@@ -17,6 +17,8 @@ All notable changes to this package are documented here.
 
 ### Changed
 
+- `/code-quality:setup-code-quality` covers the two installs that used to strand it: this package is unpublished, so a registry 404 means "depend on the local checkout" rather than "wrong name", and pnpm needs `link:` because it copies a `file:` dependency into its store. It also picks the parser from the project's TypeScript version — `@babel/eslint-parser` when TypeScript is outside `@typescript-eslint/parser`'s supported range, with JSX enabled for `.tsx` alone so a `.ts` generic is not read as an unclosed element.
+- `/code-quality:audit-code-quality` runs the gate once from the repository root, and reads a registry 404 as standing in the wrong directory rather than a missing install.
 - The gate blocks on errors only. A rule the project sets to `warn` is reported by `eslint` but does not fail the gate.
 - The edit hook lints the workspace that owns the file, so a monorepo package uses its own ESLint config and install, and it no longer passes `--max-warnings 0`.
 - **Breaking:** `DEFAULT_MAX_FILES_PER_DIRECTORY` is 10, down from 20. A project that wants the old width passes `--max-files-per-dir=20` or `findCrowdedDirectories({ max: 20 })`.
