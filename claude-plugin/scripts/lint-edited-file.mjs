@@ -73,6 +73,8 @@ function resolveEditedFile(rawPath, projectRoot) {
   return realFile;
 }
 
+// A project without ESLint has opted out, not misconfigured itself. The hook is
+// installed for every project this user opens, so it stays silent there.
 function resolveEslint(projectRoot) {
   const anchor = path.join(projectRoot, "package.json");
   const require = createRequire(anchor);
@@ -80,7 +82,7 @@ function resolveEslint(projectRoot) {
     const packageJson = require.resolve("eslint/package.json");
     return path.join(path.dirname(packageJson), "bin", "eslint.js");
   } catch {
-    fail("ESLint is not installed in this project; run the code-quality setup skill");
+    return null;
   }
 }
 
@@ -125,6 +127,8 @@ const editedFile = resolveEditedFile(rawPath, projectRoot);
 if (!editedFile) process.exit(0);
 
 const eslintBin = resolveEslint(projectRoot);
+if (!eslintBin) process.exit(0);
+
 const result = spawnSync(
   process.execPath,
   [eslintBin, "--format", "json", "--no-cache", "--max-warnings", "0", editedFile],
