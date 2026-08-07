@@ -1,7 +1,13 @@
+import codeQuality from "./src/index.js";
+
 export default [
   {
     ignores: ["coverage/**"],
   },
+
+  // The plugin holds itself to the rules it ships.
+  ...codeQuality.configs.recommended,
+
   {
     files: ["**/*.js", "**/*.mjs"],
     languageOptions: {

@@ -1,7 +1,7 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
 
-export const DEFAULT_MAX_FILES_PER_DIRECTORY = 20;
+export const DEFAULT_MAX_FILES_PER_DIRECTORY = 10;
 
 export const SOURCE_EXTENSIONS = new Set([
   ".cjs",
@@ -14,6 +14,8 @@ export const SOURCE_EXTENSIONS = new Set([
   ".tsx",
 ]);
 
+// `worktrees` is here rather than left to the dot-directory skip: an agent worktree is a full
+// checkout, and counting one repeats every finding once per worktree.
 export const DEFAULT_IGNORED_DIRECTORIES = new Set([
   ".git",
   ".next",
@@ -24,6 +26,7 @@ export const DEFAULT_IGNORED_DIRECTORIES = new Set([
   "node_modules",
   "out",
   "vendor",
+  "worktrees",
 ]);
 
 /**
@@ -34,6 +37,7 @@ export function findCrowdedDirectories({
   roots = ["."],
   max = DEFAULT_MAX_FILES_PER_DIRECTORY,
   ignoredDirectories = DEFAULT_IGNORED_DIRECTORIES,
+  extensions = SOURCE_EXTENSIONS,
 } = {}) {
   const violations = [];
   const seen = new Set();
@@ -51,30 +55,19 @@ export function findCrowdedDirectories({
       continue;
     }
 
-    const files = [];
+    let count = 0;
     for (const entry of entries) {
       if (entry.isSymbolicLink()) continue;
       if (entry.isDirectory()) {
         if (entry.name.startsWith(".") || ignoredDirectories.has(entry.name)) continue;
         queue.push(path.join(directory, entry.name));
-      } else if (entry.isFile() && SOURCE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
-        files.push(entry.name);
+      } else if (entry.isFile() && extensions.has(path.extname(entry.name).toLowerCase())) {
+        count += 1;
       }
     }
 
-    if (files.length > max) {
-      violations.push({ directory, count: files.length, files: files.sort() });
-    }
+    if (count > max) violations.push({ directory, count });
   }
 
   return violations.sort((a, b) => b.count - a.count || a.directory.localeCompare(b.directory));
-}
-
-export function formatCrowdedDirectories(violations, { cwd = process.cwd(), max } = {}) {
-  return violations
-    .map(({ directory, count }) => {
-      const relative = path.relative(cwd, directory) || ".";
-      return `${relative}\n  ${count} source files, limit ${max}. Group them into subdirectories by responsibility.`;
-    })
-    .join("\n\n");
 }

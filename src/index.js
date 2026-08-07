@@ -2,6 +2,21 @@ import commentDensity from "./comment-density.js";
 import maxConsecutiveCommentLines from "./max-consecutive-comment-lines.js";
 import noHistoricalNarration from "./no-historical-narration.js";
 
+export {
+  CROWDED_DIRECTORY_DIRECTIVE,
+  directivesFor,
+  FIX_POLICY,
+  RULE_DIRECTIVES,
+} from "./directives.js";
+export { DESIGN_SYSTEM, findInlineWarningGaps } from "./inline-warning.js";
+export {
+  DEFAULT_IGNORED_DIRECTORIES,
+  DEFAULT_MAX_FILES_PER_DIRECTORY,
+  findCrowdedDirectories,
+  SOURCE_EXTENSIONS,
+} from "./folder-size.js";
+export { HANDOFF_PATTERNS, NARRATION_PATTERNS } from "./no-historical-narration.js";
+
 export const DEFAULT_MAX_FILE_CODE_LINES = 500;
 export const DEFAULT_MAX_FUNCTION_CODE_LINES = 150;
 
@@ -15,7 +30,7 @@ export const DEFAULT_TEST_GLOBS = [
 ];
 
 const plugin = {
-  meta: { name: "eslint-plugin-code-quality", version: "0.2.1" },
+  meta: { name: "eslint-plugin-code-quality", version: "0.4.0" },
   rules: {
     "no-historical-narration": noHistoricalNarration,
     "comment-density": commentDensity,
@@ -24,15 +39,33 @@ const plugin = {
   configs: {},
 };
 
-const comments = {
-  name: "code-quality/comments",
-  plugins: { "code-quality": plugin },
-  rules: {
-    "code-quality/no-historical-narration": "error",
-    "code-quality/comment-density": ["error", { maxRatio: 0.15, minCommentLines: 0 }],
-    "code-quality/max-consecutive-comment-lines": "error",
-  },
-};
+export const DEFAULT_MAX_COMMENT_RATIO = 0.15;
+export const DEFAULT_MAX_CONSECUTIVE_COMMENT_LINES = 8;
+
+/**
+ * Comment rules. `severity: "warn"` is how a project adopts these without
+ * blocking the work already in flight.
+ */
+export function commentsConfig({
+  maxRatio = DEFAULT_MAX_COMMENT_RATIO,
+  minCommentLines = 0,
+  maxConsecutiveCommentLines = DEFAULT_MAX_CONSECUTIVE_COMMENT_LINES,
+  severity = "error",
+  narration = {},
+} = {}) {
+  return {
+    name: "code-quality/comments",
+    plugins: { "code-quality": plugin },
+    rules: {
+      "code-quality/no-historical-narration": [severity, narration],
+      "code-quality/comment-density": [severity, { maxRatio, minCommentLines }],
+      "code-quality/max-consecutive-comment-lines": [
+        severity,
+        { max: maxConsecutiveCommentLines },
+      ],
+    },
+  };
+}
 
 /**
  * God-file limits, in code lines: comments and blanks are excluded so rationale
@@ -67,9 +100,33 @@ export function godFilesConfig({
   return configs;
 }
 
-plugin.configs.comments = comments;
+plugin.configs.comments = commentsConfig();
 plugin.configs.godFiles = godFilesConfig();
-plugin.configs.recommended = [comments, ...plugin.configs.godFiles];
+plugin.configs.recommended = [plugin.configs.comments, ...plugin.configs.godFiles];
+
+/**
+ * Every rule at `warn`, for the first weeks in a project that has never run
+ * these checks. The findings are the same; only the exit code differs.
+ */
+plugin.configs.adopting = [
+  commentsConfig({ severity: "warn" }),
+  ...godFilesConfig({ severity: "warn" }),
+];
+
+/**
+ * The rule ids a config actually enables, for callers that gate a build on this
+ * plugin's findings without inheriting every other rule the project runs.
+ */
+export function enabledRuleIds(configs = plugin.configs.recommended) {
+  const ids = new Set();
+  for (const config of configs) {
+    for (const [id, entry] of Object.entries(config.rules ?? {})) {
+      const severity = Array.isArray(entry) ? entry[0] : entry;
+      if (severity !== "off" && severity !== 0) ids.add(id);
+    }
+  }
+  return ids;
+}
 
 export default plugin;
 export const { configs, rules } = plugin;

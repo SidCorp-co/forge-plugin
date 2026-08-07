@@ -1,4 +1,4 @@
-import { getLineMetrics } from "./line-metrics.js";
+import { getLineMetrics, longestConsecutiveRun } from "./line-metrics.js";
 
 export default {
   meta: {
@@ -16,7 +16,7 @@ export default {
     ],
     messages: {
       excessiveDensity:
-        "Comment density is {{ratio}} ({{commentLines}} comment lines / {{codeLines}} code lines), exceeding the maximum {{maxRatio}}.",
+        "Comment density is {{ratio}} ({{commentLines}} comment lines / {{codeLines}} code lines), over the maximum {{maxRatio}}. Delete the comments that restate the code; keep only what records a constraint the code cannot express.",
     },
   },
   create(context) {
@@ -27,8 +27,17 @@ export default {
         if (metrics.commentLines.size < minCommentLines) return;
         const ratio = metrics.codeLines.size === 0 ? Number.POSITIVE_INFINITY : metrics.commentLines.size / metrics.codeLines.size;
         if (ratio <= maxRatio) return;
+        // The densest block is where the deletions are, so the report points
+        // there rather than at the program node the ratio was computed over.
+        const run = longestConsecutiveRun(metrics.commentLines);
+        const loc = run.length === 0
+          ? node.loc
+          : {
+              start: { line: run[0], column: 0 },
+              end: { line: run.at(-1), column: context.sourceCode.lines[run.at(-1) - 1].length },
+            };
         context.report({
-          node,
+          loc,
           messageId: "excessiveDensity",
           data: {
             ratio: Number.isFinite(ratio) ? ratio.toFixed(2) : "Infinity",

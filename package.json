@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-code-quality",
-  "version": "0.2.1",
+  "version": "0.4.0",
   "description": "ESLint rules and configs for maintainable comments and god-file limits",
   "type": "module",
   "exports": {

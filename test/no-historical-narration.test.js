@@ -32,6 +32,51 @@ test("all 21 current regression examples match", () => {
   }
 });
 
+test("the report quotes the phrase that matched", () => {
+  const tester = new RuleTester({ languageOptions: { ecmaVersion: 2022 } });
+  tester.run("no-historical-narration", rule, {
+    valid: [],
+    invalid: [
+      {
+        code: "// This used to use callbacks.\nconst value = 1;",
+        errors: [{ messageId: "historicalNarration", data: { match: "used to" } }],
+      },
+      {
+        code: "/**\n * Ported from the worker package.\n */\nconst value = 1;",
+        errors: [{ messageId: "historicalNarration", data: { match: "Ported from" } }],
+      },
+    ],
+  });
+});
+
+test("narration patterns are configurable per project", () => {
+  const tester = new RuleTester({ languageOptions: { ecmaVersion: 2022 } });
+  tester.run("no-historical-narration", rule, {
+    valid: [
+      {
+        code: "// A sibling agent adds the route.\nconst value = 1;",
+        options: [{ handoffNarration: false }],
+      },
+      {
+        code: "// Previously agreed with the vendor, see RFC-12.\nconst value = 1;",
+        options: [{ allowPatterns: ["RFC-\\d+"] }],
+      },
+    ],
+    invalid: [
+      {
+        code: "// Cargo-culted from the old billing service.\nconst value = 1;",
+        options: [{ additionalPatterns: ["cargo-culted"] }],
+        errors: [{ messageId: "historicalNarration" }],
+      },
+      {
+        code: "// A sibling agent adds the route.\nconst value = 1;",
+        options: [{ handoffNarration: true }],
+        errors: [{ messageId: "historicalNarration" }],
+      },
+    ],
+  });
+});
+
 test("rule reports all 21 regression examples", () => {
   const tester = new RuleTester({ languageOptions: { ecmaVersion: 2022 } });
   tester.run("no-historical-narration", rule, {

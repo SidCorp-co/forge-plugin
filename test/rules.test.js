@@ -40,6 +40,18 @@ test("comment-density defaults and options", () => {
   });
 });
 
+test("comment-density reports on the densest block, not the whole program", () => {
+  tester.run("comment-density", commentDensity, {
+    valid: [],
+    invalid: [
+      {
+        code: "const a = 1;\nconst b = 2;\n// one\n// two\nconst c = 3;",
+        errors: [{ messageId: "excessiveDensity", line: 3, endLine: 4 }],
+      },
+    ],
+  });
+});
+
 test("max-consecutive-comment-lines defaults and options", () => {
   tester.run("max-consecutive-comment-lines", maxConsecutiveCommentLines, {
     valid: [

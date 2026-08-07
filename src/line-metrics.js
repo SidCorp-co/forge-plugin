@@ -1,4 +1,4 @@
-function isIgnoredComment(comment) {
+export function isIgnoredComment(comment) {
   const text = comment.value.trim();
   return /^(?:eslint-(?:disable|enable)|@ts-(?:ignore|expect-error))/i.test(text);
 }
@@ -44,7 +44,14 @@ function lineHasCode(sourceCode, lineNumber, commentsOnLine) {
   return segments.some((segment) => segment.trim() !== "");
 }
 
+// Both comment rules ask for the same metrics on the same file, and the walk
+// below touches every line twice.
+const metricsCache = new WeakMap();
+
 export function getLineMetrics(sourceCode) {
+  const cached = metricsCache.get(sourceCode);
+  if (cached) return cached;
+
   const commentsByLine = new Map();
   for (const comment of sourceCode.getAllComments()) {
     for (let line = comment.loc.start.line; line <= comment.loc.end.line; line += 1) {
@@ -72,7 +79,9 @@ export function getLineMetrics(sourceCode) {
     if (lineHasCode(sourceCode, lineNumber, comments)) codeLines.add(lineNumber);
   }
 
-  return { codeLines, commentLines };
+  const metrics = { codeLines, commentLines };
+  metricsCache.set(sourceCode, metrics);
+  return metrics;
 }
 
 export function longestConsecutiveRun(lines) {

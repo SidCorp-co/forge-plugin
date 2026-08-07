@@ -77,6 +77,26 @@ test("fails a changed file that exceeds the god-file limit", () => {
   assert.match(result.stderr, /max-lines/);
 });
 
+test("a god-file report carries the split directive and the fix policy", () => {
+  const root = makeConsumer();
+  const lines = Array.from({ length: 501 }, (_, index) => `export const value${index} = ${index};`);
+  write(root, "src/god.js", `${lines.join("\n")}\n`);
+  const { stderr } = runHook(root, "src/god.js");
+  assert.match(stderr, /Split by responsibility, never at the line count/);
+  assert.match(stderr, /Backend: a folder per feature/);
+  assert.match(stderr, /Frontend: components\/, hooks\/, lib\//);
+  assert.match(stderr, /no eslint-disable, no raised limit, no exemption entry/);
+});
+
+test("a comment report carries the fix policy but no split directive", () => {
+  const root = makeConsumer();
+  write(root, "src/fail.js", "// Previously this returned zero.\nexport const answer = 42;\n");
+  const { stderr } = runHook(root, "src/fail.js");
+  assert.match(stderr, /narrates history \("Previously"\)/);
+  assert.match(stderr, /no eslint-disable, no raised limit, no exemption entry/);
+  assert.doesNotMatch(stderr, /Split by responsibility/);
+});
+
 test("supports relative, absolute, and spaced paths", () => {
   const root = makeConsumer();
   const absolute = write(root, "source files/clean file.js", "export const ok = true;\n");
@@ -91,6 +111,39 @@ test("ignores unsupported, missing, deleted, and absent paths", () => {
   assert.equal(runHook(root, "missing.js").status, 0);
   assert.equal(runHook(root, "deleted.ts").status, 0);
   assert.equal(runHook(root, undefined).status, 0);
+});
+
+test("lints a monorepo package with that package's own ESLint", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "code quality monorepo "));
+  writeFileSync(path.join(root, "package.json"), '{"private":true,"workspaces":["packages/*"]}\n');
+
+  const workspace = path.join(root, "packages", "api");
+  const modules = path.join(workspace, "node_modules");
+  mkdirSync(modules, { recursive: true });
+  symlinkSync(localEslint, path.join(modules, "eslint"), "dir");
+  symlinkSync(packageRoot, path.join(modules, "eslint-plugin-code-quality"), "dir");
+  writeFileSync(path.join(workspace, "package.json"), '{"type":"module","name":"api"}\n');
+  writeFileSync(
+    path.join(workspace, "eslint.config.js"),
+    'import codeQuality from "eslint-plugin-code-quality";\nexport default [...codeQuality.configs.recommended];\n',
+  );
+  write(root, "packages/api/src/fail.js", "// Previously this returned zero.\nexport const a = 1;\n");
+
+  const result = runHook(root, "packages/api/src/fail.js");
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /no-historical-narration/);
+});
+
+test("a rule the project set to warn does not block an edit", () => {
+  const root = makeConsumer({ config: false });
+  writeFileSync(
+    path.join(root, "eslint.config.js"),
+    'import codeQuality from "eslint-plugin-code-quality";\nexport default [...codeQuality.configs.adopting];\n',
+  );
+  write(root, "src/warn.js", "// Previously this returned zero.\nexport const answer = 42;\n");
+  const result = runHook(root, "src/warn.js");
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, "");
 });
 
 test("rejects malformed stdin concisely", () => {
@@ -138,7 +191,7 @@ test("runs from a simulated versioned Claude plugin cache", () => {
   const root = makeConsumer();
   write(root, "src/cache-safe.js", "export const cacheSafe = true;\n");
   const cacheRoot = mkdtempSync(path.join(tmpdir(), "claude plugin cache "));
-  const cachedPlugin = path.join(cacheRoot, "code-quality", "0.2.1");
+  const cachedPlugin = path.join(cacheRoot, "code-quality", "0.4.0");
   mkdirSync(path.join(cachedPlugin, "scripts"), { recursive: true });
   cpSync(hookScript, path.join(cachedPlugin, "scripts", "lint-edited-file.mjs"));
 
