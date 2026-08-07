@@ -27,7 +27,7 @@ Configure the current project; do not modify files outside it. Registering the s
    npm link eslint-plugin-code-quality        # per project
    ```
 
-   pnpm's global link needs its global bin directory on `PATH`, which `pnpm setup` configures; without that it fails and leaves the project unresolvable. Use the `link:` protocol instead — same single source, no shell configuration — and add the workspace-root flag in a pnpm workspace. Do not reach for `file:`: **pnpm copies a `file:` dependency into its store**, stranding the project on a snapshot no later edit reaches.
+   pnpm has no global link to reach for: from pnpm 11 the command is `pnpm link <dir>`, which records an ordinary `link:` dependency and lands it in `dependencies` rather than `devDependencies`. Declare it directly instead, with the workspace-root flag in a pnpm workspace. Do not reach for `file:`: **pnpm copies a `file:` dependency into its store**, stranding the project on a snapshot no later edit reaches.
 
    ```sh
    pnpm add -Dw eslint link:../eslint-plugin-code-quality
