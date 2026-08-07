@@ -1,6 +1,6 @@
 {
   "name": "code-quality",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Lint edited JavaScript and TypeScript files for maintainable comments and god-file limits with the project's local ESLint installation.",
   "author": {
     "name": "Thanh Nguyen"

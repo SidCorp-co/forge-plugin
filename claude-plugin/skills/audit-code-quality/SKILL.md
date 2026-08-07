@@ -1,7 +1,7 @@
 ---
 name: audit-code-quality
 description: Audit JavaScript or TypeScript comments and god files with eslint-plugin-code-quality and explain actionable findings. Use when the user asks to review comment quality, find historical narration, reduce comment density, inspect long comment runs, or find oversized files and functions.
-version: 0.2.0
+version: 0.2.1
 ---
 
 # Audit code quality

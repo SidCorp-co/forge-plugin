@@ -1,7 +1,7 @@
 ---
 name: setup-code-quality
-description: Set up eslint-plugin-code-quality, its god-file limits, and its Claude Code edit hook in the current Node project. Use when the hook reports missing ESLint, plugin, or configuration, or when the user asks to install or configure code-quality linting.
-version: 0.2.0
+description: Set up eslint-plugin-code-quality, its god-file limits, and its Claude Code edit hook in the current Node project. Use when the hook reports a missing plugin or configuration, when a project has no ESLint at all, or when the user asks to install or configure code-quality linting.
+version: 0.2.1
 ---
 
 # Set up code-quality linting

@@ -140,8 +140,9 @@ The `PostToolUse` hook runs after `Edit`, `Write`, `MultiEdit`, and `NotebookEdi
 - resolves relative paths against `CLAUDE_PROJECT_DIR`, then the event `cwd`;
 - ignores unsupported extensions and missing, deleted, directory, symlink, or out-of-project paths;
 - resolves `eslint` from the consumer project's own `node_modules` without `npx`, downloads, or a shell;
+- exits `0` in silence when the project has no ESLint of its own, so the hook stays invisible in projects that have not opted in;
 - runs ESLint only on the changed file with the consumer's existing configuration and cache disabled;
-- exits `0` when clean or non-applicable and `2` with concise diagnostics for lint, setup, configuration, or parser failures.
+- exits `0` when clean or non-applicable and `2` with concise diagnostics for lint, configuration, or parser failures.
 
 The hook only reports. It never edits a file, never runs `--fix`, and never installs anything.
 

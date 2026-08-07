@@ -100,13 +100,13 @@ test("rejects malformed stdin concisely", () => {
   assert.match(result.stderr, /^code-quality: received malformed hook JSON on stdin\n$/);
 });
 
-test("reports missing local ESLint", () => {
+test("stays silent in a project without ESLint", () => {
   const root = makeConsumer({ eslint: false });
   write(root, "src/file.js", "export const ok = true;\n");
   const result = runHook(root, "src/file.js");
-  assert.equal(result.status, 2);
-  assert.match(result.stderr, /ESLint is not installed in this project/);
-  assert.doesNotMatch(result.stderr, /npm WARN|npx/);
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, "");
+  assert.doesNotMatch(result.stdout, /npm WARN|npx/);
 });
 
 test("reports a missing plugin through the consumer config", () => {
@@ -138,7 +138,7 @@ test("runs from a simulated versioned Claude plugin cache", () => {
   const root = makeConsumer();
   write(root, "src/cache-safe.js", "export const cacheSafe = true;\n");
   const cacheRoot = mkdtempSync(path.join(tmpdir(), "claude plugin cache "));
-  const cachedPlugin = path.join(cacheRoot, "code-quality", "0.2.0");
+  const cachedPlugin = path.join(cacheRoot, "code-quality", "0.2.1");
   mkdirSync(path.join(cachedPlugin, "scripts"), { recursive: true });
   cpSync(hookScript, path.join(cachedPlugin, "scripts", "lint-edited-file.mjs"));
 

@@ -2,6 +2,12 @@
 
 All notable changes to this package are documented here.
 
+## 0.2.1 - 2026-08-07
+
+### Changed
+
+- The edit hook exits quietly in a project that has no ESLint installed instead of reporting a setup failure. The plugin is installed per user, so it must stay silent in projects that never adopted it.
+
 ## 0.2.0 - 2026-08-07
 
 ### Added
