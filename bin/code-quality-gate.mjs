@@ -64,13 +64,17 @@ const CONFIG_NAMES = ["js", "mjs", "cjs", "ts", "mts", "cts"].map((ext) => `esli
 const hasConfig = (dir) => CONFIG_NAMES.some((name) => existsSync(path.join(dir, name)));
 
 /**
- * The directories to lint from. A repository that keeps its packages side by side has no
- * config at its root, and ESLint throws there rather than looking down, so the gate finds
- * the packages itself instead of failing on the most natural place to run it.
+ * The directories to lint from. ESLint resolves flat config from the working directory
+ * upwards, so anywhere under a configured project is already answered. Only when nothing
+ * above holds a config does the gate look down: a repository keeping its packages side by
+ * side has none at its root, and ESLint throws there rather than finding them.
  */
 function workspaces() {
   const here = process.cwd();
-  if (hasConfig(here)) return [here];
+  for (let directory = here; ; directory = path.dirname(directory)) {
+    if (hasConfig(directory)) return [here];
+    if (path.dirname(directory) === directory) break;
+  }
 
   const found = [];
   const queue = [here];
