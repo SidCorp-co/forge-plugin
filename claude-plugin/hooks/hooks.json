@@ -1,0 +1,17 @@
+{
+  "description": "Lint only the supported source file just edited by Claude Code, using the consumer project's local ESLint installation and configuration.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/lint-edited-file.mjs\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

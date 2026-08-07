@@ -1,0 +1,11 @@
+{
+  "name": "code-quality",
+  "version": "0.2.0",
+  "description": "Lint edited JavaScript and TypeScript files for maintainable comments and god-file limits with the project's local ESLint installation.",
+  "author": {
+    "name": "Thanh Nguyen"
+  },
+  "repository": "https://github.com/thanhnguyen/search-master.git",
+  "license": "MIT",
+  "keywords": ["eslint", "comments", "god-files", "code-quality", "hooks"]
+}
