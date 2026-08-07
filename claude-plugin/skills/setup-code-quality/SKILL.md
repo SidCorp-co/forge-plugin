@@ -6,24 +6,38 @@ version: 0.4.0
 
 # Set up code-quality linting
 
-Configure the current project; do not modify files outside it.
+Configure the current project; do not modify files outside it. Registering the shared plugin checkout with `npm link` is the one exception, and it writes nothing into that checkout.
 
 1. Inspect the package manager lockfile and existing ESLint flat configuration.
-2. Install `eslint` and `eslint-plugin-code-quality` as development dependencies with the project's package manager. Do not use a global install.
+2. Install `eslint` and `eslint-plugin-code-quality` as development dependencies with the project's package manager. `eslint` is always a local install — a global one leaves the Claude Code edit hook with nothing to run, since it only ever invokes the project's own executable. The plugin is the opposite: one shared copy, linked.
 
-   This plugin may not be published. `404 Not Found ... is not in the npm registry` means it is installed from a local checkout in this environment, not that the name is wrong — find the checkout and depend on the path. Never publish it, and never rename the dependency to something that does resolve.
+   This plugin may not be published. `404 Not Found ... is not in the npm registry` means it is installed from one shared checkout in this environment, not that the name is wrong. Never publish it, never rename the dependency to something that does resolve, and **never copy the plugin into the project** — a vendored `tools/eslint-plugin-code-quality` or a `workspace:*` fork is a second source of truth that goes stale the day the shared checkout moves, silently, while its version number still matches.
+
+   Find the shared checkout, then point the project at it so every project resolves the same files:
 
    ```sh
    ls -d ../*/package.json | xargs grep -l '"name": "eslint-plugin-code-quality"'
    ```
 
-   npm and yarn symlink a `file:` dependency, so `npm i -D eslint file:../eslint-plugin-code-quality` tracks the checkout. **pnpm copies a `file:` dependency into its store**, which strands the project on a snapshot that no later edit reaches; use pnpm's `link:` protocol instead, and add the workspace-root flag when the project is a pnpm workspace:
+   With npm or yarn, link the checkout once and consume it from each project:
+
+   ```sh
+   npm link                                   # once, in the checkout
+   npm i -D eslint                            # per project, from the registry
+   npm link eslint-plugin-code-quality        # per project
+   ```
+
+   pnpm's global link needs its global bin directory on `PATH`, which `pnpm setup` configures; without that it fails and leaves the project unresolvable. Use the `link:` protocol instead — same single source, no shell configuration — and add the workspace-root flag in a pnpm workspace. Do not reach for `file:`: **pnpm copies a `file:` dependency into its store**, stranding the project on a snapshot no later edit reaches.
 
    ```sh
    pnpm add -Dw eslint link:../eslint-plugin-code-quality
    ```
 
-   Install `eslint` from the registry in the same command — only the plugin needs the path.
+   Install `eslint` from the registry either way — only the plugin comes from the checkout. Confirm the link landed before moving on; this is what a stale copy fails:
+
+   ```sh
+   readlink -f node_modules/eslint-plugin-code-quality   # must be the shared checkout
+   ```
 3. A TypeScript project needs a parser, and which one is not a free choice. Read the project's TypeScript version first:
 
    ```sh

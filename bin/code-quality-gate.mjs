@@ -109,6 +109,12 @@ const results = (
     targets.map((cwd) => new ESLint({ cwd }).lintFiles(cwd === process.cwd() ? roots : [cwd])),
   )
 ).flat();
+
+// Printed on every run, clean or not: an exit code cannot tell a full sweep from one a
+// broken glob narrowed to nothing, and a caller that gates on this needs a count to floor.
+const packages = targets.length === 1 ? "package" : "packages";
+process.stdout.write(`code-quality-gate · ${results.length} files · ${targets.length} ${packages}\n`);
+
 const blockingResults = results
   .map((result) => {
     // Severity is the project's own decision to gate or merely observe, so a

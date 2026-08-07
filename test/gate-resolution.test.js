@@ -60,3 +60,18 @@ test("a project with no config anywhere says so in one line", () => {
   assert.equal(result.status, 2);
   assert.match(result.stderr, /^code-quality-gate: no ESLint config here or in any package below it\n$/);
 });
+
+test("every run prints a swept-file count, clean or not", () => {
+  const root = consumer(mkdtempSync(path.join(tmpdir(), "gate banner ")));
+  mkdirSync(path.join(root, "src"), { recursive: true });
+  writeFileSync(path.join(root, "src", "clean.js"), "export const a = 1;\n");
+
+  const clean = run(root);
+  assert.equal(clean.status, 0, clean.stderr);
+  assert.match(clean.stdout, /^code-quality-gate · \d+ files · 1 package\n/);
+
+  writeFileSync(path.join(root, "src", "narrate.js"), NARRATES);
+  const failing = run(root);
+  assert.equal(failing.status, 1);
+  assert.match(failing.stdout, /^code-quality-gate · \d+ files · 1 package\n/);
+});
