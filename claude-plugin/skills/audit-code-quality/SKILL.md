@@ -8,22 +8,28 @@ version: 0.6.0
 
 Never ask which path to audit. Default to the whole project and let the numbers point at the scope.
 
-1. Run the gate once, from the repository root:
+1. Run the gate once, from the repository root. Prefer the project's own script, which puts
+   `node_modules/.bin` on the PATH and carries whatever flags the project settled on:
 
    ```sh
-   npx code-quality-gate
+   npm run lint:code-quality     # or the pnpm/yarn equivalent, when package.json has it
+   npx code-quality-gate         # otherwise
    ```
 
    One run covers the whole repository. With no `eslint.config.*` at the working directory the gate finds the packages below it and lints each with its own config, so a repo holding `frontend/` and `backend/` side by side needs one invocation, not two. It reports only this plugin's errors, plus crowded directories and form controls that cannot announce an error.
 
-   `npm error 404 ... code-quality-gate is not in this registry` means the plugin is not installed in *this* directory, so npx reached the registry, where this package is not published. It is installed somewhere below — borrow the binary and keep the root as the working directory:
+   `npm error 404 ... is not in this registry` means npx reached the registry, where this package is not published. Two different causes, and neither is fixed by installing:
+
+   - the plugin is installed *below* here, not here. Borrow the binary and keep the root as the working directory.
+   - the plugin is installed right here, but this binary postdates the last install: `node_modules/.bin` is written at install time, so a bin added by a later version of the package is absent from it while the package's own `bin/` has it.
 
    ```sh
-   ls */node_modules/.bin/code-quality-gate     # find one
-   ./frontend/node_modules/.bin/code-quality-gate
+   find . -path "*/node_modules/.bin/code-quality-gate" -not -path "*/worktrees/*" | head  # borrow one
+   ls node_modules/eslint-plugin-code-quality/bin/                                       # or run it by path
+   node node_modules/eslint-plugin-code-quality/bin/code-quality-gate.mjs
    ```
 
-   Never install anything to make the command resolve. Use `npx eslint <paths>` when the user named a scope, or when warnings matter because the project adopted a rule at `warn`.
+   Never install anything to make the command resolve — running the file by path needs no install and no rebuild, because nothing here is compiled. Use `eslint <paths>` through the same resolution when the user named a scope, or when warnings matter because the project adopted a rule at `warn`.
 2. Lead with the shape of the problem: total findings, a count per rule, and the worst files. Then go deep on the top few. Do not walk through every finding.
 3. The command prints a directive for each rule that fired. Follow it verbatim so every audit lands on the same structure:
    - `max-lines` — split by responsibility, never at the line count. Backend: a folder per feature (routes, service, repository). Frontend: `components/`, `hooks/`, `lib/`. Move whole exports and re-export them from the original path so importers keep working.

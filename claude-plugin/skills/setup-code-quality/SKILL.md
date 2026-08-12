@@ -53,6 +53,15 @@ npx code-quality-setup --comment-density=warn --max-lines=error … \
   --tokens=app/globals.css --hook=on [--all-rules] [--dry-run]
 ```
 
+A project that installed the plugin before this binary existed has no `node_modules/.bin` entry for
+it — that list is written at install time — so `npx` reaches the registry and 404s on an unpublished
+package. Run the file by path instead; nothing here is compiled, so it needs no install and no
+rebuild:
+
+```sh
+node node_modules/eslint-plugin-code-quality/bin/code-quality-setup.mjs …
+```
+
 It picks the package manager off the lockfile, installs `eslint` plus a parser if the project is
 TypeScript, links this checkout (`link:` for pnpm, which has no global link and copies a `file:`
 into its store), writes `eslint.config.mjs` and `code-quality.json`, adds a `lint:code-quality`
