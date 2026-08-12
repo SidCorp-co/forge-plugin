@@ -2,23 +2,34 @@
 
 // A developer/CI gate, intentionally separate from any production build: it
 // reports only the rules this plugin enables and ignores every other finding.
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { ESLint } from "eslint";
 import {
   CROWDED_DIRECTORY_DIRECTIVE,
   DEFAULT_IGNORED_DIRECTORIES,
   DEFAULT_MAX_FILES_PER_DIRECTORY,
+  DEFAULT_STYLESHEET_EXTENSIONS,
   directivesFor,
-  enabledRuleIds,
+  findArbitrarySizesInFiles,
+  findContrastFailures,
   findCrowdedDirectories,
   findInlineWarningGaps,
+  findRampGaps,
+  findRawColorsInFiles,
   FIX_POLICY,
+  RULE_IDS,
   SOURCE_EXTENSIONS,
+  sourceFiles,
+  TYPE_RAMP_DIRECTIVE,
 } from "../src/index.js";
+
+const CONFIG_FILE = "code-quality.json";
 
 const USAGE = `Usage: code-quality-gate [paths...] [options]
 
+  --config=FILE           settings file (default ${CONFIG_FILE}, in the run directory)
+  --no-config             ignore it and run the ESLint half alone
   --max-files-per-dir=N   directory width limit (default ${DEFAULT_MAX_FILES_PER_DIRECTORY})
   --ignore-dir=a,b        directory names to skip, added to the defaults
   --ext=.vue,.svelte      extra source extensions to count
@@ -27,8 +38,15 @@ const USAGE = `Usage: code-quality-gate [paths...] [options]
   --inline-warning-all    judge feature screens too, not the design system alone
   --help                  show this message
 
-Fails on this plugin's rules reported as errors, and on directories over the
-width limit. Warnings and every other rule are left to \`eslint\`.
+${CONFIG_FILE} settles every flag above, plus the four checks ESLint cannot answer, so a
+configured project needs none of them:
+
+  { "allRules": true, "maxFilesPerDirectory": 10, "tokenFile": "app/globals.css",
+    "stylesheets": {}, "sizes": {}, "typeRamp": {}, "contrast": {} }
+
+Fails on this plugin's rules reported as errors, and on directories over the width
+limit. "allRules": true widens the first half to every rule the project sets to
+error. Warnings never fail.
 `;
 
 const args = process.argv.slice(2);
@@ -45,20 +63,50 @@ function listFlag(name) {
   return flag ? flag.slice(name.length + 1).split(",").filter(Boolean) : [];
 }
 
+/** The project's settings. Every flag overrides one for a single run. */
+function readSettings() {
+  if (args.includes("--no-config")) return [undefined, {}];
+  const [named] = listFlag("--config");
+  const file = named ?? CONFIG_FILE;
+  if (named === undefined && !existsSync(file)) return [undefined, {}];
+  try {
+    return [file, JSON.parse(readFileSync(file, "utf8"))];
+  } catch (error) {
+    process.stderr.write(`code-quality-gate: cannot read ${file}: ${error.message}\n`);
+    return process.exit(2);
+  }
+}
+
+const [configFile, settings] = readSettings();
+
 const [limit] = listFlag("--max-files-per-dir");
-const maxFilesPerDirectory = limit === undefined ? DEFAULT_MAX_FILES_PER_DIRECTORY : Number(limit);
+const maxFilesPerDirectory = Number(
+  limit ?? settings.maxFilesPerDirectory ?? DEFAULT_MAX_FILES_PER_DIRECTORY,
+);
 if (!Number.isInteger(maxFilesPerDirectory) || maxFilesPerDirectory < 1) {
-  process.stderr.write("code-quality-gate: --max-files-per-dir= needs a positive integer\n");
+  process.stderr.write("code-quality-gate: the directory width limit needs a positive integer\n");
   process.exit(2);
 }
 
-const ignoredDirectories = new Set([...DEFAULT_IGNORED_DIRECTORIES, ...listFlag("--ignore-dir")]);
+const ignoredDirectories = new Set([
+  ...DEFAULT_IGNORED_DIRECTORIES,
+  ...(settings.ignoreDirs ?? []),
+  ...listFlag("--ignore-dir"),
+]);
 const extensions = new Set([
   ...SOURCE_EXTENSIONS,
-  ...listFlag("--ext").map((value) => (value.startsWith(".") ? value : `.${value}`).toLowerCase()),
+  ...[...(settings.ext ?? []), ...listFlag("--ext")].map((value) =>
+    (value.startsWith(".") ? value : `.${value}`).toLowerCase(),
+  ),
 ]);
 
-const BLOCKING_RULES = enabledRuleIds();
+const BLOCKING_RULES = new Set(RULE_IDS);
+// Severity is the project's own decision to gate or merely observe; `allRules` is its
+// decision that one command should gate everything, not this plugin's half.
+const allRules = settings.allRules === true;
+const folderCheck = !args.includes("--no-folder-check") && settings.folderCheck !== false;
+const inlineWarning = !args.includes("--no-inline-warning") && settings.inlineWarning !== false;
+const inlineWarningAll = args.includes("--inline-warning-all") || settings.inlineWarningAll === true;
 
 const CONFIG_NAMES = ["js", "mjs", "cjs", "ts", "mts", "cts"].map((ext) => `eslint.config.${ext}`);
 const hasConfig = (dir) => CONFIG_NAMES.some((name) => existsSync(path.join(dir, name)));
@@ -117,10 +165,8 @@ process.stdout.write(`code-quality-gate · ${results.length} files · ${targets.
 
 const blockingResults = results
   .map((result) => {
-    // Severity is the project's own decision to gate or merely observe, so a
-    // rule this plugin enables at `warn` stays out of the exit code.
     const messages = result.messages.filter(
-      (message) => message.severity === 2 && BLOCKING_RULES.has(message.ruleId),
+      (message) => message.severity === 2 && (allRules || BLOCKING_RULES.has(message.ruleId)),
     );
     return {
       ...result,
@@ -144,7 +190,7 @@ if (blockingResults.length > 0) {
   process.exitCode = 1;
 }
 
-if (!args.includes("--no-folder-check")) {
+if (folderCheck) {
   const crowded = findCrowdedDirectories({
     roots,
     max: maxFilesPerDirectory,
@@ -168,10 +214,10 @@ if (!args.includes("--no-folder-check")) {
   }
 }
 
-if (!args.includes("--no-inline-warning")) {
+if (inlineWarning) {
   const { waivers, violations } = findInlineWarningGaps({
     roots,
-    all: args.includes("--inline-warning-all"),
+    all: inlineWarningAll,
   });
   const lines = [
     ...waivers.map((w) => `  waived  ${w.file}:${w.line}  ${w.component}\n      ${w.reason}`),
@@ -181,6 +227,149 @@ if (!args.includes("--no-inline-warning")) {
     process.stderr.write(`\nForm controls that cannot announce an error:\n\n${lines.join("\n")}\n`);
   }
   if (violations.length > 0) process.exitCode = 1;
+}
+
+/**
+ * The two checks ESLint cannot answer on its own: stylesheets, which no flat
+ * config parses without a CSS language plugin, and contrast, which needs the
+ * token file plus every screen at once. Both are configured in one JSON file
+ * whose paths resolve against its own directory.
+ */
+function checkDesignTokens(configFile, settings) {
+  const home = path.dirname(path.resolve(configFile));
+  const here = (value) => path.resolve(home, value);
+  const tokenFile = settings.tokenFile === undefined ? undefined : here(settings.tokenFile);
+  const { stylesheets, sizes, typeRamp, contrast } = settings;
+  const counts = [];
+
+  // Only the config's own paths resolve against the config. The roots the gate
+  // was invoked with belong to the caller and stay relative to where it ran —
+  // re-homing those against a config in a subdirectory points the scan at
+  // directories that do not exist, and a scan of nothing reports nothing.
+  const rootsFrom = (configured) =>
+    configured === undefined ? roots.map((root) => path.resolve(root)) : configured.map(here);
+
+  /**
+   * A configured check that reaches no file is a broken config, not a clean run:
+   * the roots or the extensions are wrong, and every finding it exists to make is
+   * silently absent. Reported as a config error, because passing here is a lie.
+   */
+  const swept = (label, options) => {
+    const files = sourceFiles(options);
+    if (files.length === 0) {
+      process.stderr.write(
+        `code-quality-gate: ${label} matched no files under ` +
+          `${options.roots.map((root) => path.relative(process.cwd(), root) || ".").join(", ")}\n`,
+      );
+      process.exit(2);
+    }
+    return files.length;
+  };
+
+  if (stylesheets) {
+    const options = {
+      ...stylesheets,
+      roots: rootsFrom(stylesheets.roots),
+      extensions: stylesheets.extensions ?? DEFAULT_STYLESHEET_EXTENSIONS,
+    };
+    counts.push(`${swept("stylesheets", options)} stylesheets`);
+    const colors = findRawColorsInFiles({
+      ...options,
+      // Resolved, not as written: exemptions match by path tail, and a token
+      // file named from above the config has no tail in common with itself.
+      exemptFiles: [...(stylesheets.exemptFiles ?? []), ...(tokenFile ? [tokenFile] : [])],
+    });
+    if (colors.length > 0) {
+      const report = colors
+        .map((entry) => `  ${entry.file}:${entry.line}\n      ${entry.kind} "${entry.value}"`)
+        .join("\n");
+      process.stderr.write(`\nRaw colours in stylesheets:\n\n${report}\n`);
+      process.exitCode = 1;
+    }
+  }
+
+  if (sizes) {
+    const options = {
+      ...sizes,
+      roots: rootsFrom(sizes.roots),
+      extensions: sizes.extensions ?? DEFAULT_STYLESHEET_EXTENSIONS,
+    };
+    counts.push(`${swept("sizes", options)} stylesheets`);
+    const found = findArbitrarySizesInFiles({
+      ...options,
+      exemptFiles: [...(sizes.exemptFiles ?? []), ...(tokenFile ? [tokenFile] : [])],
+    });
+    if (found.length > 0) {
+      const report = found
+        .map((entry) => `  ${entry.file}:${entry.line}\n      ${entry.value} — ${entry.hint}`)
+        .join("\n");
+      process.stderr.write(`\nArbitrary sizes in stylesheets:\n\n${report}\n`);
+      process.exitCode = 1;
+    }
+  }
+
+  if (typeRamp) {
+    counts.push("1 type ramp");
+    let gaps;
+    try {
+      gaps = findRampGaps({
+        ...typeRamp,
+        tokenFile: typeRamp.tokenFile ? here(typeRamp.tokenFile) : tokenFile,
+        sources: typeRamp.sources?.map((source) => ({ ...source, file: here(source.file) })),
+      });
+    } catch (error) {
+      process.stderr.write(`code-quality-gate: type ramp: ${error.message}\n`);
+      process.exit(2);
+    }
+    if (gaps.length > 0) {
+      const report = gaps.map((gap) => `  ${gap.token}\n      no ${gap.missing}`).join("\n");
+      process.stderr.write(
+        `\nType ramp steps missing a companion:\n\n${report}\n\n${TYPE_RAMP_DIRECTIVE}\n`,
+      );
+      process.exitCode = 1;
+    }
+  }
+
+  if (contrast) {
+    const markupRoots = rootsFrom(contrast.roots);
+    if (contrast.scanMarkup !== false) {
+      counts.push(`${swept("contrast", { ...contrast, roots: markupRoots })} screens`);
+    }
+    let result;
+    try {
+      result = findContrastFailures({
+        ...contrast,
+        tokenFile: contrast.tokenFile ? here(contrast.tokenFile) : tokenFile,
+        sources: contrast.sources?.map((source) => ({ ...source, file: here(source.file) })),
+        roots: markupRoots,
+      });
+    } catch (error) {
+      process.stderr.write(`code-quality-gate: contrast check: ${error.message}\n`);
+      process.exit(2);
+    }
+    const line = (entry) =>
+      `  ${entry.fg} ${entry.foreground ?? "?"} on ${entry.bg} ${entry.background ?? "?"}\n` +
+      `      ${entry.reason} — ${entry.why ?? "no site recorded"}` +
+      (entry.waivedBecause === undefined ? "" : `\n      allowed: ${entry.waivedBecause}`);
+    if (result.waivers.length > 0) {
+      process.stdout.write(
+        `\nContrast failures allowed by config:\n\n${result.waivers.map(line).join("\n")}\n`,
+      );
+    }
+    if (result.failures.length > 0) {
+      process.stderr.write(`\nContrast failures:\n\n${result.failures.map(line).join("\n")}\n`);
+      process.exitCode = 1;
+    }
+  }
+
+  // Same reason as the file count above: a caller gating on this needs to see
+  // that each configured check reached something before it trusts a clean run.
+  process.stdout.write(`design tokens · ${counts.join(" · ")}\n`);
+}
+
+const TOKEN_SECTIONS = ["stylesheets", "sizes", "typeRamp", "contrast"];
+if (configFile !== undefined && TOKEN_SECTIONS.some((section) => settings[section])) {
+  checkDesignTokens(configFile, settings);
 }
 
 if (process.exitCode === 1) process.stderr.write(`\n${FIX_POLICY}\n`);

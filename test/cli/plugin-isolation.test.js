@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { FIX_POLICY, RULE_DIRECTIVES, SOURCE_EXTENSIONS } from "../src/index.js";
+import { FIX_POLICY, RULE_DIRECTIVES, SOURCE_EXTENSIONS } from "../../src/index.js";
 
-const packageRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const packageRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 const hookSource = readFileSync(
   path.join(packageRoot, "claude-plugin", "scripts", "lint-edited-file.mjs"),
   "utf8",

@@ -1,6 +1,6 @@
 # eslint-plugin-code-quality
 
-ESLint rules and flat configs for two related limits: comments that record current constraints rather than implementation history, and files and functions that stay small enough to read, test, and move.
+ESLint rules and flat configs for three related limits: comments that record current constraints rather than implementation history, files and functions that stay small enough to read, test, and move, and colour and size values that reach the screen through design tokens instead of literals.
 
 ## Requirements
 
@@ -9,7 +9,21 @@ ESLint rules and flat configs for two related limits: comments that record curre
 
 ## Install
 
-From a local checkout:
+`code-quality-setup` does the whole adoption in one command — the dependency off the lockfile's
+package manager, the flat config, the settings file, the lint script, and a gate run to report what
+it found:
+
+```sh
+npx code-quality-setup --comment-density=warn --max-lines=error --tokens=app/globals.css
+npx code-quality-setup --help      # every rule takes error, warn or off
+npx code-quality-setup --dry-run   # print all of it, write nothing
+```
+
+A severity per rule is the only thing it asks for, because it is the only part that cannot be read
+off the project. A second run rewrites the `configure()` call it wrote and leaves the rest of the
+file alone; a config assembling this plugin some other way is reported rather than guessed at.
+
+By hand, from a local checkout:
 
 ```sh
 npm install --save-dev eslint file:/absolute/path/to/eslint-plugin-code-quality
@@ -19,34 +33,58 @@ After the package is published, replace the `file:` dependency with `eslint-plug
 
 ## Flat config
 
-```js
-import codeQuality from "eslint-plugin-code-quality";
+One call, one severity per rule. Anything you do not name is `error`.
 
-export default [...codeQuality.configs.recommended];
+```js
+import { configure } from "eslint-plugin-code-quality";
+
+export default configure();
 ```
 
-`configs.recommended` is an array, so spread it. It contains:
+```js
+export default [
+  { files: ["**/*.{ts,tsx}"], languageOptions: { parser: tsParser } },
+  ...configure({
+    "comment-density": ["warn", { maxRatio: 0.2, minCommentLines: 6 }],
+    "no-pass-through-wrapper": "off",
+    "max-lines": ["error", { max: 300 }],
+    tokens: { tokenSource: "app/globals.css" },
+  }),
+];
+```
 
-| Config | Contents |
+`configure` returns an array, so spread it into a config that has other entries. Each rule takes
+`"error"`, `"warn"`, `"off"`, or `[severity, options]` — options merge over the defaults, so raising
+a cap never silently drops `skipComments`. A misspelled rule name throws rather than leaving that
+rule quietly at `error`.
+
+| Key | Effect |
 | --- | --- |
-| `configs.comments` | the three comment rules under the `code-quality` namespace |
-| `configs.godFiles` | `max-lines` and `max-lines-per-function`, plus a test-file override |
-| `configs.recommended` | `comments` followed by `godFiles` |
-| `configs.adopting` | the same rules, every one at `warn` |
+| any of the eight rule names | its severity, optionally with its options |
+| `tokens` | `{ tokenSource, exemptFiles }` — turns the two design rules on and exempts the token file from both |
+| `testGlobs` | globs the per-function cap is off in; `[]` to keep it everywhere |
+| `ignores` | a leading ignores entry, for convenience |
 
-Nothing here assumes a framework, a directory layout, or TypeScript. The rules work on whatever ESLint can parse; bring your own parser for TypeScript or JSX and spread these configs after it.
+`configs.recommended` is `configure()` for a project that wants no opinions. Nothing in it assumes a
+framework, a directory layout, or TypeScript; bring your own parser and put it first. The
+[design-token rules](#design-token-rules) are the exception — they read utility class strings and JSX
+elements — and stay off until `tokens` names a layer, because without one every `#fff` reports.
 
 ## Adopting in an existing project
 
-A codebase that has never run these checks will light up on the first run. Start with `configs.adopting`, which reports everything at `warn`:
+A codebase that has never run these checks will light up on the first run, so start the noisy rules
+at `warn`:
 
 ```js
-export default [...codeQuality.configs.adopting];
+export default configure({ "comment-density": "warn", "max-lines": "warn" });
 ```
 
-Warnings do not fail `code-quality-gate` and do not block the Claude Code edit hook, so the findings are visible while the work continues. Move rules to `error` as they come clean — per rule with `commentsConfig({ severity })` and `godFilesConfig({ severity })`, or all at once by switching to `configs.recommended`.
+Warnings fail neither `code-quality-gate` nor the Claude Code edit hook, so the findings stay visible
+while the work continues. Move each to `error` as it comes clean.
 
-Prefer that over per-file exemption lists. If you do need to exempt files, list the exact paths in a final config block rather than disabling a rule for a directory, and treat the list as one that may only shrink.
+Prefer that over per-file exemption lists. If you do need to exempt files, list the exact paths in a
+final config block rather than disabling a rule for a directory, and treat the list as one that may
+only shrink.
 
 ## God-file limits
 
@@ -59,18 +97,15 @@ Prefer that over per-file exemption lists. If you do need to exempt files, list 
 
 These are ESLint's own rules with tuned options, not reimplementations. Comments and blank lines are excluded, so the limits measure implementation breadth and a file is never penalised for explaining itself. Test files keep the file limit but not the per-function limit, because a `describe` callback is a single function to ESLint and capping it would reward fewer, larger test cases.
 
-Use `godFilesConfig` for different limits:
+Both are tunable through `configure`, and tuning one option keeps the rest:
 
 ```js
-import codeQuality, { godFilesConfig } from "eslint-plugin-code-quality";
-
-export default [
-  codeQuality.configs.comments,
-  ...godFilesConfig({ maxFileCodeLines: 300, maxFunctionCodeLines: 80, severity: "warn" }),
-];
+configure({
+  "max-lines": ["warn", { max: 300 }],
+  "max-lines-per-function": ["warn", { max: 80 }],
+  testGlobs: [],
+});
 ```
-
-Options are `maxFileCodeLines` (default 500), `maxFunctionCodeLines` (default 150), `testGlobs` (pass `[]` to skip the test override), and `severity`.
 
 The defaults are a house rule, not a standard: ESLint's own defaults are 300 and 50, SonarQube ships 750 and 100. Pick numbers your project can hold and tighten them, rather than adopting 500/150 and exempting the files that miss.
 
@@ -78,16 +113,11 @@ The defaults are a house rule, not a standard: ESLint's own defaults are 300 and
 
 None of these rules has a fixer. `eslint --fix` cannot delete or rewrite a comment, and that is deliberate: whether a comment still earns its place is a judgement about future readers, which no mechanical rewrite can make. A reader who understands the code can — the audit skill applies comment findings directly and reports what it changed, leaving the diff as the review. What the rules ship instead is a remedy in the message — `no-historical-narration` quotes the phrase that matched, so the finding is actionable without reopening the file. See [Directives](#directives).
 
-`commentsConfig` sets all three at once:
-
 ```js
-import { commentsConfig } from "eslint-plugin-code-quality";
-
-commentsConfig({
-  maxRatio: 0.2,
-  maxConsecutiveCommentLines: 12,
-  severity: "warn",
-  narration: { handoffNarration: false, allowPatterns: ["ADR-\\d+"] },
+configure({
+  "comment-density": ["warn", { maxRatio: 0.2 }],
+  "max-consecutive-comment-lines": ["warn", { max: 12 }],
+  "no-historical-narration": ["warn", { handoffNarration: false, allowPatterns: ["ADR-\\d+"] }],
 });
 ```
 
@@ -140,9 +170,148 @@ Limits runs of adjacent substantive comment lines.
 
 Mixed lines count as comment lines. Blank and decorative block-comment lines break a run.
 
+## Design-token rules
+
+A colour or a size that reaches the screen as a literal is outside the token layer: it cannot be re-themed, and no contrast check can see it. These two rules keep both inside the tokens.
+
+They stay **off** until `tokens` names a layer. They only mean something in a project that publishes
+design tokens, and in one that does not, every `#fff` in a string would report. Name the token file
+and every report says where the value belongs; the token file exempts itself:
+
+```js
+export default configure({ tokens: { tokenSource: "app/globals.css" } });
+```
+
+Per-rule options are added beside it, and exemptions of their own are added to the token file's
+rather than replacing it:
+
+```js
+configure({
+  tokens: { tokenSource: "app/globals.css", exemptFiles: ["src/theme.ts"] },
+  "no-arbitrary-sizes": ["warn", { units: ["px"], exemptFiles: ["src/vendor/**"] }],
+});
+```
+
+| Option | Meaning |
+| --- | --- |
+| `tokenSource` | The token file, named in every remedy. It is added to `exemptFiles`, because the one file allowed to hold literals is the one that declares them. |
+| `exemptFiles` | Extra paths, matched by tail (`app/globals.css` finds it at any depth) or as a glob (`src/legacy/**`). Exemptions passed under `colors` or `sizes` are added to these, not swapped for them. |
+| `colors`, `sizes` | Passed through to `no-raw-colors` and `no-arbitrary-sizes`. |
+| `severity` | `error` by default. |
+
+### `no-raw-colors`
+
+Rejects hex literals, colour functions (`rgb()`, `rgba()`, `hsl()`, `hsla()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, `color()`), and named CSS colours, in class strings, inline `style={{}}` objects, Tailwind arbitrary values (`text-[#fff]`, `bg-[rgb(0,0,0)]`), template literals, and any other string the file holds.
+
+A `var()` reference is the sanctioned way to reach a colour and always passes — including through a colour function, which is how a token carries an opacity: `rgb(var(--color-brand-rgb) / 0.5)` and `hsl(var(--h) var(--s) var(--l))` are tokens, not literals. Alpha may be a number there, since an opacity is not a colour; a literal in a *channel* still reports. `transparent`, `currentColor`, and the CSS-wide keywords carry no colour of their own and stay legal. A colour **name** only counts beside a declaration that takes one (`color: red`, `fill="rebeccapurple"`) or inside a Tailwind arbitrary value (`text-[hotpink]`) — a bare `navy` is a token name or a class fragment.
+
+A `#` is only read as a colour where one can go. A fragment after a path or a word (`/docs#abcdef`), a `url(#gradient)`, a DOM query (`querySelector("#face")`), and an `href`/`id`/`htmlFor`/`to` attribute name a document, so an id spelled in hex letters is not a finding.
+
+```js
+{
+  "code-quality/no-raw-colors": ["error", {
+    tokenSource: "app/globals.css",
+    exemptFiles: ["app/globals.css"],
+    colorProperties: [],
+    namedColors: [],
+    allow: [{ file: "src/mask.tsx", value: "#000000", why: "an SVG mask stop, not a surface" }]
+  }]
+}
+```
+
+| Option | Meaning |
+| --- | --- |
+| `tokenSource` | Named in the remedy: *add the colour to `app/globals.css`*. |
+| `exemptFiles` | Paths the rule skips entirely, the token file first among them. |
+| `colorProperties` | Declarations and JSX attributes whose value is a colour. Defaults to the CSS colour properties in both `camelCase` and `kebab-case`; exported as `COLOR_PROPERTIES`. |
+| `namedColors` | The colour-name list, exported as `NAMED_COLORS` (148 names, minus the keywords in `NEUTRAL_COLOR_KEYWORDS`). Replace it for a project with its own palette words. |
+| `allow` | One literal, optionally in one file, and **why no token fits**. The reason is required by the schema. |
+
+### `no-arbitrary-sizes`
+
+Rejects Tailwind arbitrary values that duplicate a ramp step: font size, radius, and line height anywhere, height anywhere, and padding **only inside an interactive element**, where control tokens have an answer. Width is deliberately unchecked — a table's min-width and a drawer's column are layout decisions no token layer has an opinion on.
+
+Anything reaching a token passes by construction: `h-[var(--control-height-lg)]` and `text-[calc(var(--avatar-size)*0.45)]` never match, because a family only matches a bracketed bare number.
+
+A family may also name the CSS declarations it covers, and font size does: `properties: ["fontSize", "font-size"]`. A size written as a declaration never passes through a class string, so `style={{ fontSize: 13 }}`, `{ "font-size": "0.875rem" }`, and `<text fontSize="11" />` are read from the tree instead. `var()`, `calc()`, and keywords like `inherit` pass here too. The other families carry no `properties`: `height: 720` in a style object is layout, the same as `w-[240px]`.
+
+Interactivity is read off the enclosing JSX opening element — its tag name, an `onClick`, a `role`, or a `cursor-pointer` class — so `<button className="px-[7px]">` reports and `<div className="p-[3px]">` does not.
+
+```js
+{
+  "code-quality/no-arbitrary-sizes": ["error", {
+    tokenSource: "app/globals.css",
+    everywhere: [{ name: "font size", prefixes: ["text"], hint: "Use a step from the type ramp." }],
+    onInteractive: [{ name: "padding", prefixes: ["p", "px", "py"], hint: "Use a control padding token." }],
+    interactive: { elements: ["Chip"], roles: [], attributes: [], classNames: [] },
+    units: ["px", "rem", "em", "%"],
+    allow: [{ file: "src/mobile/phone-frame.tsx", value: "h-[720px]", why: "illustration: drawn geometry, not a sized box" }]
+  }]
+}
+```
+
+| Option | Meaning |
+| --- | --- |
+| `everywhere` | Families checked on any element. Each is `{ name, prefixes, properties, hint }`; `name` appears in the report and `hint` is the remedy. Defaults are exported as `DEFAULT_SIZE_FAMILIES`. Prefixes match exactly, so `rounded-tl` is its own entry. |
+| `onInteractive` | Families checked only inside an interactive element. Default: padding (`DEFAULT_INTERACTIVE_SIZE_FAMILIES`). Pass `[]` to switch it off. |
+| `interactive` | What counts as interactive: `elements`, `roles`, `attributes`, `classNames`. Each key replaces its default (`DEFAULT_INTERACTIVE`). |
+| `units` | Units a bracketed number may carry (`DEFAULT_SIZE_UNITS`). |
+| `allow` | One literal, optionally in one file, and why no token fits. Written as the value alone — `red`, `rgba(0,0,0,.2)`, `h-[720px]` — and compared without regard to spacing. |
+| `exemptFiles` | As above. |
+
+### What ESLint cannot see
+
+Two parts of this ban do not fit a per-file, AST-based rule, and are shipped as functions instead of pretending otherwise:
+
+- **Stylesheets.** ESLint parses no `.css` without a CSS language plugin, and this package ships none. The rules above cover `.js`/`.jsx`/`.ts`/`.tsx` — including CSS-in-JS template literals — and **not** your stylesheets. `findRawColorsInFiles()` and `findArbitrarySizesInFiles()` are the same two bans as a text scan over `.css`, `.scss`, `.sass`, and `.less`.
+- **Ramp completeness.** Whether a type ramp declares a line height beside every size is a fact about one file read whole, not about any file being linted. `findRampGaps()` answers it.
+- **Contrast.** A WCAG check needs the token file and every screen that pairs two tokens at once. A per-file rule would have to re-read the token file and would still report one pair once per file that mentions it. `findContrastFailures()` takes the whole project.
+
+```js
+import { findContrastFailures, findRawColorsInFiles } from "eslint-plugin-code-quality";
+
+findRawColorsInFiles({ roots: ["app"], exemptFiles: ["app/globals.css"] });
+// [{ file, line, kind, value }]
+
+findArbitrarySizesInFiles({ roots: ["app"], exemptFiles: ["app/globals.css"] });
+// [{ file, line, family, value, hint }] — `font-size: 14px` outside the ramp
+
+findRampGaps({ tokenFile: "app/globals.css", block: "@theme" });
+// [{ token: "--text-lg", missing: "--text-lg--line-height" }]
+
+findContrastFailures({
+  tokenFile: "app/globals.css",   // required, no default
+  block: "@theme",                // one theme out of a file that declares several
+  roots: ["app", "components"],
+  declaredPairs: [
+    { fg: "--color-fg-muted", bg: "--color-bg-1", why: "row labels on a card" },
+    { fg: "--color-primary", bg: "--color-bg-1", need: "nonText", why: "focus ring against a card" }
+  ],
+  allow: [{ fg: "--color-border", bg: "--color-bg-1", why: "design: raising it re-draws every border" }]
+});
+// { tokens, pairs, failures, waivers }
+```
+
+A theme spread over more than one file or block — a semantic layer over a raw palette, which is what Tailwind v4's `@theme inline` is for — is passed as `sources` instead of `tokenFile`, innermost layer first:
+
+```js
+findContrastFailures({
+  sources: [
+    { file: "app/tokens.css", block: ":root" },        // --ink-900: #181b22
+    { file: "app/globals.css", block: "@theme inline" } // --color-fg: var(--fg-default)
+  ]
+});
+```
+
+`var()` aliases are followed to the value they end at, across sources and any number of hops, so a two-layer theme measures the same as a one-layer one. A cycle or a name nothing declares resolves to itself and is reported as unresolvable. The plugin has no opinion on how many layers a theme has: its ban is on literals *outside* the token layer, and both shapes keep them inside.
+
+One of `tokenFile` or `sources` is required, with no default: every project names its token file differently, and a guess would report a clean run over tokens that were never read. An `allow` entry moves a failure into `waivers` and must say why it stands — the finding then carries both the site it renders at (`why`) and the decision that lets it through (`waivedBecause`). Thresholds default to WCAG 2.1 — 4.5 for text, 3 for large text, 3 for non-text boundaries and focus indicators (`DEFAULT_CONTRAST_THRESHOLDS`) — and `need` on a pair is a threshold name or a ratio.
+
+Pairs come from two places: the `declaredPairs` a project states, and the markup scan, which pairs a background utility with a foreground utility in the same class string and maps them onto tokens by `tokenPrefix` (default `--color-`). A utility carrying an opacity or an arbitrary value is skipped, because what it composites against is not in the token table. A file that declares more than one theme needs one call per theme with a different `block`; a token whose value is not a hex colour is reported as unresolvable rather than skipped. So is a translucent one (`#1118270a`): what it composites over is a fact about a screen, and scoring it opaque would pass a pair that fails in the browser.
+
 ## CI gate
 
-The package installs a `code-quality-gate` bin. It lints the project with its own ESLint configuration and fails only on this plugin's rules **reported as errors**, so warnings and unrelated findings stay visible without gating a build. The blocking set comes from `enabledRuleIds()` rather than a second hand-maintained list, so a rule added to the configs starts gating without touching the gate.
+The package installs a `code-quality-gate` bin. It lints the project with its own ESLint configuration and fails only on this plugin's rules **reported as errors**, so warnings and unrelated findings stay visible without gating a build. The blocking set is `RULE_IDS`, every rule this plugin owns, so a project that opted the design rules in at `error` is gated on them too rather than seeing them from `eslint` and not here.
 
 Run `code-quality-gate --help` for the full flag list.
 
@@ -155,6 +324,36 @@ Run `code-quality-gate --help` for the full flag list.
 ```
 
 Pass paths to narrow the scope: `code-quality-gate src test`.
+
+A bare run is the full sweep. `code-quality.json` in the run directory settles every flag below plus [the four checks ESLint cannot answer](#stylesheet-colours-and-contrast), so a configured project passes no flags at all:
+
+```json
+{
+  "allRules": true,
+  "hook": false,
+  "maxFilesPerDirectory": 10,
+  "ignoreDirs": ["generated"],
+  "ext": [".vue"],
+  "inlineWarning": false,
+  "tokenFile": "app/globals.css",
+  "stylesheets": {},
+  "sizes": {},
+  "typeRamp": {},
+  "contrast": {}
+}
+```
+
+Every flag overrides its key for one run; `--config=FILE` names the file elsewhere and `--no-config` ignores it. `"hook": false` is the one key the gate does not read — it is how a project opts out of the [edit hook](#edit-hook-behavior), which is enabled once for every project.
+
+### Gating on the project's own rules
+
+`"allRules": true` in that config widens the first half of the gate from this plugin's rules to **every** rule the project sets to `error`:
+
+```json
+{ "allRules": true, "tokenFile": "app/globals.css" }
+```
+
+Without it, a project that sets `complexity` or `max-params` to `error` sees those findings from `eslint` and not from the gate, so a `lint` script running the gate alone does not gate them. With it, one command covers everything and the filter's protection is gone — an unrelated rule the project enables now fails the build too. That is the trade, and it is the project's to make.
 
 ### Directory width
 
@@ -196,6 +395,31 @@ import { findInlineWarningGaps } from "eslint-plugin-code-quality";
 
 findInlineWarningGaps({ roots: ["frontend"] }); // { files, controlCount, waivers, violations }
 ```
+
+### Stylesheet colours and contrast
+
+The gate runs the two design-token checks ESLint cannot answer — [stylesheets and contrast](#what-eslint-cannot-see) — when it is pointed at a JSON config. Nothing runs without the flag, and every path *in the file* resolves against the file's own directory, so the config can live wherever it is kept. A section that names no `roots` sweeps the paths the gate itself was given, which are the caller's and stay relative to where it ran:
+
+```sh
+code-quality-gate    # reads code-quality.json
+```
+
+```json
+{
+  "tokenFile": "app/globals.css",
+  "stylesheets": { "roots": ["app", "components"] },
+  "sizes": { "roots": ["app", "components"] },
+  "typeRamp": { "block": "@theme" },
+  "contrast": {
+    "roots": ["app", "components"],
+    "sources": [{ "file": "app/tokens.css", "block": ":root" }],
+    "declaredPairs": [{ "fg": "--color-fg-muted", "bg": "--color-bg-1", "why": "row labels on a card" }],
+    "allow": [{ "fg": "--color-border", "bg": "--color-bg-1", "why": "design: raising it re-draws every border" }]
+  }
+}
+```
+
+Every section may be omitted. `stylesheets` bans raw colours in CSS, `sizes` bans raw font sizes there, `typeRamp` checks that every ramp step declares its line height, and `contrast` measures the theme. `stylesheets` and `sizes` always exempt `tokenFile`, alongside any `exemptFiles` of their own. Allowed contrast failures print on every run, like inline-error waivers; unresolvable or unknown tokens fail. A malformed config, a missing `tokenFile`, or an allow entry without a reason exits `2` rather than passing quietly.
 
 The check is also importable, for a project that wants it somewhere other than the gate:
 
@@ -251,6 +475,7 @@ The `PostToolUse` hook runs after `Edit`, `Write`, `MultiEdit`, and `NotebookEdi
 - ignores unsupported extensions and missing, deleted, directory, symlink, or out-of-project paths;
 - finds the workspace that owns the edited file — the nearest ancestor with a flat config, else the nearest `package.json` — so a monorepo package is linted with its own rules rather than the repository root's;
 - resolves `eslint` from that workspace without `npx`, downloads, or a shell, which picks up either a package-level install or one hoisted to the root;
+- runs the file through the project's own `prettier` first, with `--write --ignore-unknown`, when prettier is one of its dependencies — so the rules judge the file a reviewer will read, and a formatting nit is never one of the errors blocking an edit. A project without prettier is not formatted: choosing a formatter is not this plugin's call, and a prettier that fails is left to ESLint, which reports the same broken syntax with a location;
 - exits `0` in silence when the project has no ESLint of its own, so the hook stays invisible in projects that have not opted in;
 - runs ESLint only on the changed file with the consumer's existing configuration and cache disabled;
 - reports errors only — a rule the project set to `warn` never blocks an edit;

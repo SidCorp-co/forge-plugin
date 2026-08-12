@@ -1,84 +1,118 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import plugin, { commentsConfig, configs, enabledRuleIds, godFilesConfig, rules } from "../src/index.js";
+import plugin, { configs, configure, RULE_IDS, rules } from "../src/index.js";
 
-const commentRules = {
-  "code-quality/no-historical-narration": ["error", {}],
-  "code-quality/comment-density": ["error", { maxRatio: 0.15, minCommentLines: 0 }],
-  "code-quality/max-consecutive-comment-lines": ["error", { max: 8 }],
+const severityOf = (config, id) => {
+  const entry = config.rules[id];
+  return Array.isArray(entry) ? entry[0] : entry;
 };
 
-test("exports all rules and a self-contained flat comments config", () => {
+test("exports every rule, and one id per rule for the gate to block on", () => {
   assert.deepEqual(Object.keys(rules).sort(), [
     "comment-density",
     "max-consecutive-comment-lines",
+    "no-arbitrary-sizes",
     "no-historical-narration",
+    "no-pass-through-wrapper",
+    "no-raw-colors",
   ]);
-  assert.equal(configs.comments.plugins["code-quality"], plugin);
-  assert.deepEqual(configs.comments.rules, commentRules);
+  assert.deepEqual([...RULE_IDS].sort(), [
+    "code-quality/comment-density",
+    "code-quality/max-consecutive-comment-lines",
+    "code-quality/no-arbitrary-sizes",
+    "code-quality/no-historical-narration",
+    "code-quality/no-pass-through-wrapper",
+    "code-quality/no-raw-colors",
+    "max-lines",
+    "max-lines-per-function",
+  ]);
 });
 
-test("god-file config caps file and function code lines and exempts test suites", () => {
-  const [limits, tests] = configs.godFiles;
-  assert.deepEqual(limits.rules, {
+test("an unnamed rule is an error, and the design rules wait for a token layer", () => {
+  const [main, tests] = configure();
+  assert.equal(main.plugins["code-quality"], plugin);
+  assert.deepEqual(main.rules, {
+    "code-quality/no-historical-narration": ["error", {}],
+    "code-quality/comment-density": ["error", { maxRatio: 0.15, minCommentLines: 0 }],
+    "code-quality/max-consecutive-comment-lines": ["error", { max: 8 }],
+    "code-quality/no-pass-through-wrapper": ["error", {}],
     "max-lines": ["error", { max: 500, skipBlankLines: true, skipComments: true }],
     "max-lines-per-function": [
       "error",
       { max: 150, skipBlankLines: true, skipComments: true, IIFEs: true },
     ],
   });
+
+  // A suite callback is one function to ESLint, so the per-function cap is off in tests.
   assert.deepEqual(tests.rules, { "max-lines-per-function": "off" });
   assert.ok(tests.files.some((glob) => glob.includes("test")));
+  assert.deepEqual(configs.recommended, configure());
 });
 
-test("god-file limits are configurable", () => {
-  const [limits, ...rest] = godFilesConfig({
-    maxFileCodeLines: 250,
-    maxFunctionCodeLines: 60,
-    testGlobs: [],
-    severity: "warn",
+test("one severity per rule, and options travel beside it", () => {
+  const [main, ...rest] = configure({
+    "comment-density": ["warn", { maxRatio: 0.3, minCommentLines: 6 }],
+    "no-historical-narration": ["warn", { handoffNarration: false }],
+    "max-lines": ["error", { max: 250 }],
+    "no-pass-through-wrapper": "off",
+    "max-lines-per-function": "off",
   });
-  assert.deepEqual(limits.rules["max-lines"], [
+  assert.deepEqual(main.rules["code-quality/comment-density"], [
     "warn",
+    { maxRatio: 0.3, minCommentLines: 6 },
+  ]);
+  assert.deepEqual(main.rules["code-quality/no-historical-narration"], [
+    "warn",
+    { handoffNarration: false },
+  ]);
+  // Tuning one option keeps the defaults beside it, so a raised cap never drops skipComments.
+  assert.deepEqual(main.rules["max-lines"], [
+    "error",
     { max: 250, skipBlankLines: true, skipComments: true },
   ]);
-  assert.equal(limits.rules["max-lines-per-function"][1].max, 60);
+  assert.equal("code-quality/no-pass-through-wrapper" in main.rules, false);
+  // No per-function cap left to relax, so no test override either.
   assert.deepEqual(rest, []);
+
+  assert.deepEqual(configure({ testGlobs: [] }).length, 1);
+  assert.deepEqual(configure({ ignores: ["dist/**"] })[0], {
+    name: "code-quality/ignores",
+    ignores: ["dist/**"],
+  });
 });
 
-test("recommended combines the comment rules with the god-file limits", () => {
-  assert.deepEqual(configs.recommended, [configs.comments, ...configs.godFiles]);
+test("a token layer turns the design rules on and exempts itself from them", () => {
+  const [main] = configure({
+    tokens: { tokenSource: "app/globals.css", exemptFiles: ["src/legacy/**"] },
+    "no-arbitrary-sizes": ["warn", { units: ["px"] }],
+  });
+  const exemptFiles = ["app/globals.css", "src/legacy/**"];
+  assert.deepEqual(main.rules["code-quality/no-raw-colors"], [
+    "error",
+    { tokenSource: "app/globals.css", exemptFiles },
+  ]);
+  // A rule given exemptions of its own keeps the token file's, or the token file reports on
+  // every declaration it is the source of truth for.
+  assert.deepEqual(main.rules["code-quality/no-arbitrary-sizes"], [
+    "warn",
+    { tokenSource: "app/globals.css", exemptFiles, units: ["px"] },
+  ]);
+
+  const [without] = configure();
+  assert.equal("code-quality/no-raw-colors" in without.rules, false);
+  assert.equal("code-quality/no-arbitrary-sizes" in without.rules, false);
 });
 
-test("comment limits are configurable, and adopting downgrades every rule", () => {
-  const relaxed = commentsConfig({
-    maxRatio: 0.3,
-    maxConsecutiveCommentLines: 20,
-    severity: "warn",
-    narration: { handoffNarration: false },
-  });
-  assert.deepEqual(relaxed.rules, {
-    "code-quality/no-historical-narration": ["warn", { handoffNarration: false }],
-    "code-quality/comment-density": ["warn", { maxRatio: 0.3, minCommentLines: 0 }],
-    "code-quality/max-consecutive-comment-lines": ["warn", { max: 20 }],
-  });
-
-  const severities = configs.adopting.flatMap((config) =>
-    Object.values(config.rules).map((entry) => (Array.isArray(entry) ? entry[0] : entry)),
+test("every rule can be warned on, and a misspelled one is a throw rather than a default", () => {
+  const asWarnings = Object.fromEntries(
+    RULE_IDS.map((id) => [id.replace("code-quality/", ""), "warn"]),
   );
-  assert.deepEqual([...new Set(severities)].sort(), ["off", "warn"]);
-});
-
-test("enabled rule ids cover every rule recommended turns on", () => {
+  const [main] = configure({ ...asWarnings, tokens: { tokenSource: "app/globals.css" } });
   assert.deepEqual(
-    [...enabledRuleIds()].sort(),
-    [
-      "code-quality/comment-density",
-      "code-quality/max-consecutive-comment-lines",
-      "code-quality/no-historical-narration",
-      "max-lines",
-      "max-lines-per-function",
-    ],
+    [...new Set(RULE_IDS.map((id) => severityOf(main, id)))],
+    ["warn"],
+    "every rule this plugin owns must be adoptable without blocking the work in flight",
   );
-  assert.deepEqual([...enabledRuleIds([{ rules: { a: "off", b: ["error"], c: 0 } }])], ["b"]);
+
+  assert.throws(() => configure({ "comment-densty": "warn" }), /no rule named comment-densty/);
 });

@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-const packageRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const packageRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 const gate = path.join(packageRoot, "bin", "code-quality-gate.mjs");
 const CONFIG = 'import cq from "eslint-plugin-code-quality";\nexport default [...cq.configs.recommended];\n';
 const NARRATES = "// Previously this returned zero.\nexport const a = 1;\n";

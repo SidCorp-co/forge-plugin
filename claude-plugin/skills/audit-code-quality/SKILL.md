@@ -1,7 +1,7 @@
 ---
 name: audit-code-quality
 description: Audit comments and god files with eslint-plugin-code-quality and report actionable findings. Use when the user asks to review comment quality, find historical narration, reduce comment density, or find oversized files, long functions, and crowded directories.
-version: 0.4.0
+version: 0.6.0
 ---
 
 # Audit code quality
@@ -23,7 +23,7 @@ Never ask which path to audit. Default to the whole project and let the numbers 
    ./frontend/node_modules/.bin/code-quality-gate
    ```
 
-   Never install anything to make the command resolve. Use `npx eslint <paths>` when the user named a scope, or when warnings matter because the project is on `configs.adopting`.
+   Never install anything to make the command resolve. Use `npx eslint <paths>` when the user named a scope, or when warnings matter because the project adopted a rule at `warn`.
 2. Lead with the shape of the problem: total findings, a count per rule, and the worst files. Then go deep on the top few. Do not walk through every finding.
 3. The command prints a directive for each rule that fired. Follow it verbatim so every audit lands on the same structure:
    - `max-lines` — split by responsibility, never at the line count. Backend: a folder per feature (routes, service, repository). Frontend: `components/`, `hooks/`, `lib/`. Move whole exports and re-export them from the original path so importers keep working.

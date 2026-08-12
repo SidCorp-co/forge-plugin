@@ -1,92 +1,90 @@
 ---
 name: setup-code-quality
-description: Set up eslint-plugin-code-quality, its god-file limits, and its Claude Code edit hook in the current Node project. Use when the hook reports a missing plugin or configuration, when a project has no ESLint at all, or when the user asks to install or configure code-quality linting.
-version: 0.4.0
+description: Set up eslint-plugin-code-quality, its limits, and its Claude Code edit hook in the current Node project. Use when the hook reports a missing plugin or configuration, when a project has no ESLint at all, or when the user asks to install or configure code-quality linting.
+version: 0.6.0
 ---
 
 # Set up code-quality linting
 
-Configure the current project; do not modify files outside it. Registering the shared plugin checkout with `npm link` is the one exception, and it writes nothing into that checkout.
+`code-quality-setup` does every mechanical step. Yours is the severities: ask them first, run it
+once, report what it found.
 
-1. Inspect the package manager lockfile and existing ESLint flat configuration.
-2. Install `eslint` and `eslint-plugin-code-quality` as development dependencies with the project's package manager. `eslint` is always a local install — a global one leaves the Claude Code edit hook with nothing to run, since it only ever invokes the project's own executable. The plugin is the opposite: one shared copy, linked.
+## 1. Ask, one rule per question — every time
 
-   This plugin may not be published. `404 Not Found ... is not in the npm registry` means it is installed from one shared checkout in this environment, not that the name is wrong. Never publish it, never rename the dependency to something that does resolve, and **never copy the plugin into the project** — a vendored `tools/eslint-plugin-code-quality` or a `workspace:*` fork is a second source of truth that goes stale the day the shared checkout moves, silently, while its version number still matches.
+`AskUserQuestion`, one question per rule, options **error / warn / off** — in rounds of four, in
+this order. Never bundle them into a single "severity" question, and never assume a default.
 
-   Find the shared checkout, then point the project at it so every project resolves the same files:
+**Ask even when the project is already configured.** An existing config is context, not an answer:
+read the current severities first (`npx eslint --print-config <a real source file>`) and mark each in
+the option description — "currently error" — then ask anyway. The answers are authoritative, and the
+script rewrites the `configure()` call in place rather than skipping it.
 
-   ```sh
-   ls -d ../*/package.json | xargs grep -l '"name": "eslint-plugin-code-quality"'
-   ```
+| Ask about | What it catches | Off means |
+| --- | --- | --- |
+| `no-historical-narration` | comments narrating what the code used to do | history stays in comments |
+| `comment-density` | more than 15% comment lines | prose is uncapped |
+| `max-consecutive-comment-lines` | a block over 8 comment lines | essays stay inline |
+| `no-pass-through-wrapper` | a layer that forwards and adds nothing | indirection is free |
+| `max-lines` | files over 500 code lines | god files are allowed |
+| `max-lines-per-function` | functions over 150 code lines | so are god functions |
+| `no-raw-colors`, `no-arbitrary-sizes` | `#fff` and `text-[13px]` outside the token layer | ask only if step 2 found tokens |
 
-   With npm or yarn, link the checkout once and consume it from each project:
+Then one more: **the hook** — check each file Claude Code edits, on or off. On means the file is run
+through the project's own `prettier` when it has one, then linted, and a failing edit is blocked with
+the remedy; off means findings wait for the gate. It is enabled once for every project this user
+opens, so "off" here writes one project's opt-out, not a global change.
 
-   ```sh
-   npm link                                   # once, in the checkout
-   npm i -D eslint                            # per project, from the registry
-   npm link eslint-plugin-code-quality        # per project
-   ```
+The hook formats only where `prettier` is already a dependency — installing a formatter is not this
+plugin's call. Mention it if the project has none.
 
-   pnpm has no global link to reach for: from pnpm 11 the command is `pnpm link <dir>`, which records an ordinary `link:` dependency and lands it in `dependencies` rather than `devDependencies`. Declare it directly instead, with the workspace-root flag in a pnpm workspace. Do not reach for `file:`: **pnpm copies a `file:` dependency into its store**, stranding the project on a snapshot no later edit reaches.
+## 2. Find the token layer, before asking about the two design rules
 
-   ```sh
-   pnpm add -Dw eslint link:../eslint-plugin-code-quality
-   ```
+```sh
+grep -rlE "^\s*@theme|^\s*--[a-z-]+:\s*#" --include=*.css . | grep -v node_modules
+```
 
-   Install `eslint` from the registry either way — only the plugin comes from the checkout. Confirm the link landed before moving on; this is what a stale copy fails:
+Nothing found: say so, skip those two questions, pass no `--tokens`. They report every `#fff` in a
+project with nowhere to put it.
 
-   ```sh
-   readlink -f node_modules/eslint-plugin-code-quality   # must be the shared checkout
-   ```
-3. A TypeScript project needs a parser, and which one is not a free choice. Read the project's TypeScript version first:
+## 3. Run it once
 
-   ```sh
-   node -p "require('typescript/package.json').version"
-   npm view @typescript-eslint/parser@latest peerDependencies.typescript
-   ```
+```sh
+npx code-quality-setup --comment-density=warn --max-lines=error … \
+  --tokens=app/globals.css --hook=on [--all-rules] [--dry-run]
+```
 
-   Inside that range, use `@typescript-eslint/parser`. Outside it — TypeScript 7 is outside it today — the parser throws at module load with `typescript-eslint does not support TS 7.0`, and no published version fixes it. Do not downgrade the project's TypeScript to satisfy a linter.
+It picks the package manager off the lockfile, installs `eslint` plus a parser if the project is
+TypeScript, links this checkout (`link:` for pnpm, which has no global link and copies a `file:`
+into its store), writes `eslint.config.mjs` and `code-quality.json`, adds a `lint:code-quality`
+script, and finishes with a gate run whose counts are the report. `--dry-run` prints all of it and
+writes nothing.
 
-   Reach for `@babel/eslint-parser` instead. It reads TypeScript as syntax and never loads `typescript`, which is all these rules need: they count comments, lines, and function boundaries, never types.
+`--all-rules` gates on the rules the *project* enables at error too, not just this plugin's. Offer
+it whenever the project has correctness rules of its own — without it, a `lint` script running the
+gate alone leaves them to `eslint` and never fails on them.
 
-   ```sh
-   pnpm add -Dw @babel/core @babel/eslint-parser @babel/preset-typescript @babel/plugin-syntax-jsx
-   ```
+## 4. Two things the script will not do
 
-   ```js
-   import babelParser from "@babel/eslint-parser";
+**A config that assembles this plugin some other way is reported, not rewritten** — only a
+`configure()` call is the script's to replace. It prints the call to merge; spread it **last**, and
+delete the project's own `max-lines`, `max-lines-per-function`, `max-statements`, and comment-style
+rules, because those ids are this plugin's and flat config is silently last-wins.
 
-   // JSX for .tsx alone: enabled for .ts it reads `<T,>(v: T) => v` as an unclosed element.
-   const typescript = (jsx) => ({
-     requireConfigFile: false,
-     babelOptions: {
-       presets: ["@babel/preset-typescript"],
-       plugins: jsx ? ["@babel/plugin-syntax-jsx"] : [],
-     },
-   });
+**TypeScript 7 breaks `@typescript-eslint/parser`**, which throws `does not support TS 7.0` at
+module load. Never downgrade TypeScript for a linter; use `@babel/eslint-parser` with
+`@babel/preset-typescript` instead — it never loads `typescript` — and give `.tsx`/`.jsx` the JSX
+plugin but not `.ts`, where `<T,>(v: T) => v` reads as an unclosed element.
 
-   { files: ["**/*.{ts,mts,cts}"], languageOptions: { parser: babelParser, parserOptions: typescript(false) } },
-   { files: ["**/*.{tsx,jsx}"], languageOptions: { parser: babelParser, parserOptions: typescript(true) } },
-   ```
+## 5. Report
 
-   Add `["@babel/plugin-proposal-decorators", { version: "legacy" }]` to `plugins` when the project sets `experimentalDecorators`; Babel 8 rejects the older `{ legacy: true }` spelling, and `allExtensions`/`isTSX` no longer exist. Verify by parse count, not by exit code: `npx eslint . --format json` and confirm zero `Parsing error` messages before reporting the setup done.
-4. Add the plugin's recommended flat config without removing existing configuration:
+The gate's own two lines are the proof a run reached something: `N files · N packages`, and
+`design tokens · …` when step 2 found a layer. A missing count is a config that swept nothing, not
+a clean project. Name the findings by rule, point at `/code-quality:audit-code-quality` to work
+through them, and never commit a red gate.
 
-   ```js
-   import codeQuality from "eslint-plugin-code-quality";
-
-   export default [
-     // existing entries
-     ...codeQuality.configs.recommended,
-   ];
-   ```
-
-   `configs.recommended` is an array: the comment rules, the god-file limits, and a test-file override that drops the per-function limit. Use `configs.comments` or `configs.godFiles` to adopt one half only, and `commentsConfig({ maxRatio, maxConsecutiveCommentLines, severity, narration })` or `godFilesConfig({ maxFileCodeLines, maxFunctionCodeLines, testGlobs, severity })` when the project needs different limits.
-
-   In a codebase that has never run these checks, run the recommended config once to see the volume. If it is large, install `configs.adopting` instead — the same rules at `warn`, which neither fails the gate nor blocks the edit hook — and tell the user which rules to promote to `error` first. Never propose per-file exemption lists as the way in.
-5. If the project builds its config in another supported flat-config form, preserve that form and append the equivalent recommended config.
-6. Add a CI gate script: `"lint:code-quality": "code-quality-gate"`. One run covers the whole repository — it finds the packages below the working directory when none is configured there — and fails on this plugin's rules reported as errors, directories over the file-count limit, and form controls that cannot announce an error.
-7. Run the project's lint command and report the findings. Do not fix them during setup: the task was to install the checks, and a first run on an existing codebase is usually large enough to need its own pass. Point at `/code-quality:audit-code-quality` for that.
-8. Report the files changed and the exact validation command and result.
-
-The edit hook invokes only the project's local ESLint executable. It never uses `npx`, downloads packages, or supplies a replacement config.
+These rules read comments, size, and literals only. If `npx eslint --print-config <file>` shows
+nothing but `code-quality/*`, `max-lines`, and `max-lines-per-function`, say so: the project has no
+correctness lint at all. `eqeqeq`, `no-unreachable`, `no-redeclare`, `prefer-const`, `complexity`,
+`max-depth`, and `max-params` overlap nothing here. Core `no-unused-vars` is not one of them — it
+cannot see a constructor parameter property and reports every dependency injection in the repo;
+that job is `tsc`'s, with `noUnusedLocals` and `noUnusedParameters`.

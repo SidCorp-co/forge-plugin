@@ -1,7 +1,7 @@
 {
   "name": "eslint-plugin-code-quality",
-  "version": "0.4.0",
-  "description": "ESLint rules and configs for maintainable comments and god-file limits",
+  "version": "0.6.0",
+  "description": "ESLint rules and configs for maintainable comments, god-file limits, and design-token discipline",
   "type": "module",
   "exports": {
     ".": {
@@ -12,7 +12,8 @@
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "bin": {
-    "code-quality-gate": "./bin/code-quality-gate.mjs"
+    "code-quality-gate": "./bin/code-quality-gate.mjs",
+    "code-quality-setup": "./bin/code-quality-setup.mjs"
   },
   "files": [
     "src",
@@ -34,10 +35,11 @@
   },
   "scripts": {
     "test": "node --test",
-    "test:hook": "node --test test/lint-edited-file.test.js",
+    "test:hook": "node --test test/cli/lint-edited-file.test.js",
     "lint": "eslint .",
     "pack:check": "node scripts/check-pack.mjs",
-    "plugin:validate": "claude plugin validate --strict . && claude plugin validate --strict claude-plugin"
+    "plugin:validate": "claude plugin validate --strict . && claude plugin validate --strict claude-plugin",
+    "setup": "node bin/code-quality-setup.mjs"
   },
   "keywords": [
     "eslint",
@@ -45,7 +47,10 @@
     "comments",
     "god-files",
     "max-lines",
-    "code-quality"
+    "code-quality",
+    "design-tokens",
+    "contrast",
+    "accessibility"
   ],
   "license": "MIT",
   "author": "Thanh Nguyen"

@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-const packageRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const packageRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 const hookScript = path.join(packageRoot, "claude-plugin", "scripts", "lint-edited-file.mjs");
 const localEslint = path.join(packageRoot, "node_modules", "eslint");
 
@@ -138,7 +138,8 @@ test("a rule the project set to warn does not block an edit", () => {
   const root = makeConsumer({ config: false });
   writeFileSync(
     path.join(root, "eslint.config.js"),
-    'import codeQuality from "eslint-plugin-code-quality";\nexport default [...codeQuality.configs.adopting];\n',
+    'import { configure } from "eslint-plugin-code-quality";\n' +
+      'export default configure({ "no-historical-narration": "warn", "comment-density": "warn" });\n',
   );
   write(root, "src/warn.js", "// Previously this returned zero.\nexport const answer = 42;\n");
   const result = runHook(root, "src/warn.js");
@@ -151,6 +152,43 @@ test("rejects malformed stdin concisely", () => {
   const result = runHook(root, undefined, { stdin: "{not-json" });
   assert.equal(result.status, 2);
   assert.match(result.stderr, /^code-quality: received malformed hook JSON on stdin\n$/);
+});
+
+test("a project that switched the hook off is not linted on edit", () => {
+  const root = makeConsumer();
+  writeFileSync(path.join(root, "code-quality.json"), '{ "hook": false }\n');
+  write(root, "src/fail.js", "// Previously this returned zero.\nexport const a = 1;\n");
+  const off = runHook(root, "src/fail.js");
+  assert.equal(off.status, 0, off.stderr);
+  assert.equal(off.stderr, "");
+
+  // The same edit, with the same file present and saying nothing about the hook.
+  writeFileSync(path.join(root, "code-quality.json"), '{ "allRules": true }\n');
+  assert.equal(runHook(root, "src/fail.js").status, 2);
+});
+
+test("the project's prettier runs first, so the rules judge the formatted file", () => {
+  const root = makeConsumer();
+  // A stand-in for prettier: it resolves and rewrites exactly as the real one is invoked.
+  const bin = path.join(root, "node_modules", "prettier", "bin");
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(
+    path.join(root, "node_modules", "prettier", "package.json"),
+    '{"name":"prettier","version":"3.0.0","bin":"./bin/prettier.cjs"}\n',
+  );
+  writeFileSync(
+    path.join(bin, "prettier.cjs"),
+    'const fs = require("fs");\n' +
+      'const file = process.argv[process.argv.length - 1];\n' +
+      'const kept = fs.readFileSync(file, "utf8").split("\\n").filter((l) => !l.startsWith("// Previously"));\n' +
+      "fs.writeFileSync(file, kept.join(\"\\n\"));\n",
+  );
+
+  const file = write(root, "src/formatted.js", "// Previously this returned zero.\nexport const a = 1;\n");
+  const result = runHook(root, "src/formatted.js");
+  assert.equal(result.status, 0, result.stderr);
+  // The finding is gone because the file is, which only holds if formatting came first.
+  assert.doesNotMatch(readFileSync(file, "utf8"), /Previously/);
 });
 
 test("stays silent in a project without ESLint", () => {

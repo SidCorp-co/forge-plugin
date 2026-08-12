@@ -117,6 +117,16 @@ function resolveWorkspace(editedFile, projectRoot) {
   return fallback ?? projectRoot;
 }
 
+// `"hook": false` in the project's code-quality.json. The hook is enabled once, for every
+// project this user opens, so opting one out has to be the project's own say.
+function hookDisabled(projectRoot) {
+  try {
+    return JSON.parse(readFileSync(path.join(projectRoot, "code-quality.json"), "utf8")).hook === false;
+  } catch {
+    return false;
+  }
+}
+
 // A project without ESLint has opted out, not misconfigured itself. The hook is
 // installed for every project this user opens, so it stays silent there.
 function resolveEslint(workspace) {
@@ -129,6 +139,29 @@ function resolveEslint(workspace) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Prettier first, so the rules judge the file a reviewer will read rather than the one the edit
+ * happened to land as, and so a formatting nit is never one of the errors blocking the edit. Only
+ * where the project installed it: formatting a project that chose no formatter is not this hook's
+ * call. A failure here is left to ESLint, which reports the same broken syntax with a location.
+ */
+function format(workspace, file) {
+  const require = createRequire(path.join(workspace, "package.json"));
+  let bin;
+  try {
+    const manifest = require.resolve("prettier/package.json");
+    const { bin: entry } = JSON.parse(readFileSync(manifest, "utf8"));
+    bin = path.resolve(path.dirname(manifest), typeof entry === "string" ? entry : entry.prettier);
+  } catch {
+    return;
+  }
+  spawnSync(process.execPath, [bin, "--write", "--ignore-unknown", file], {
+    cwd: workspace,
+    encoding: "utf8",
+    windowsHide: true,
+  });
 }
 
 function conciseStderr(stderr) {
@@ -174,12 +207,15 @@ const rawPath = getEditedPath(event);
 if (!rawPath) process.exit(0);
 
 const projectRoot = resolveProjectRoot(event);
+if (hookDisabled(projectRoot)) process.exit(0);
 const editedFile = resolveEditedFile(rawPath, projectRoot);
 if (!editedFile) process.exit(0);
 
 const workspace = resolveWorkspace(editedFile, projectRoot);
 const eslintBin = resolveEslint(workspace);
 if (!eslintBin) process.exit(0);
+
+format(workspace, editedFile);
 
 // No --max-warnings: severity is the project's decision, and a rule it enabled
 // at `warn` should not block an edit.

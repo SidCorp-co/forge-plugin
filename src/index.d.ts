@@ -17,24 +17,51 @@ export interface NarrationOptions {
   allowPatterns?: string[];
 }
 
-export interface CommentsOptions {
-  maxRatio?: number;
-  minCommentLines?: number;
-  maxConsecutiveCommentLines?: number;
-  severity?: Severity;
-  narration?: NarrationOptions;
+export interface RawColorsOptions {
+  tokenSource?: string;
+  exemptFiles?: string[];
+  colorProperties?: string[];
+  namedColors?: string[];
+  allow?: { file?: string; value: string; why: string }[];
 }
 
-export interface GodFilesOptions {
-  maxFileCodeLines?: number;
-  maxFunctionCodeLines?: number;
+export interface ArbitrarySizesOptions {
+  tokenSource?: string;
+  exemptFiles?: string[];
+  everywhere?: unknown;
+  onInteractive?: unknown;
+  interactive?: unknown;
+  units?: string[];
+  allow?: { file?: string; value: string; why: string }[];
+}
+
+/** A severity on its own, or one beside the options for that rule. */
+export type RuleEntry<Options = Record<string, unknown>> = Severity | [Severity, Options];
+
+export interface ConfigureOptions {
+  "no-historical-narration"?: RuleEntry<NarrationOptions>;
+  "comment-density"?: RuleEntry<{ maxRatio?: number; minCommentLines?: number }>;
+  "max-consecutive-comment-lines"?: RuleEntry<{ max?: number }>;
+  "no-pass-through-wrapper"?: RuleEntry<{ elements?: boolean | string[] }>;
+  "no-raw-colors"?: RuleEntry<RawColorsOptions>;
+  "no-arbitrary-sizes"?: RuleEntry<ArbitrarySizesOptions>;
+  "max-lines"?: RuleEntry<Linter.RuleSeverityAndOptions[1]>;
+  "max-lines-per-function"?: RuleEntry<Linter.RuleSeverityAndOptions[1]>;
+  /** The file colours and sizes belong in. Turns the two design rules on and exempts it. */
+  tokens?: { tokenSource?: string; exemptFiles?: string[] };
+  /** Globs the per-function cap is switched off for. Defaults to `DEFAULT_TEST_GLOBS`. */
   testGlobs?: string[];
-  severity?: Severity;
+  ignores?: string[];
 }
 
-export declare function commentsConfig(options?: CommentsOptions): Linter.Config;
-export declare function godFilesConfig(options?: GodFilesOptions): Linter.Config[];
-export declare function enabledRuleIds(configs?: Linter.Config[]): Set<string>;
+/** Every rule id this plugin can enable, which is what the gate blocks on. */
+export declare const RULE_IDS: string[];
+
+/**
+ * The whole flat config from one severity per rule. Anything unnamed is `"error"`, the two
+ * design rules excepted: they stay off until `tokens` names a token layer.
+ */
+export declare function configure(options?: ConfigureOptions): Linter.Config[];
 
 export declare const NARRATION_PATTERNS: RegExp[];
 export declare const HANDOFF_PATTERNS: RegExp[];
@@ -80,6 +107,181 @@ export declare function findInlineWarningGaps(options?: {
   controlCount: number;
   waivers: InlineWarningFinding[];
   violations: InlineWarningFinding[];
+};
+
+export declare const NAMED_COLORS: string[];
+export declare const NEUTRAL_COLOR_KEYWORDS: string[];
+export declare const COLOR_PROPERTIES: string[];
+export declare const DEFAULT_STYLESHEET_EXTENSIONS: string[];
+export declare const DEFAULT_MARKUP_EXTENSIONS: string[];
+export declare const DEFAULT_SIZE_UNITS: string[];
+
+export interface SizeFamily {
+  /** Named in the report: "font size", "radius", "padding". */
+  name: string;
+  /** Tailwind utility prefixes, matched exactly — `rounded-tl`, not `rounded`. */
+  prefixes: string[];
+  /** The same family written as a declaration: a style-object key or a CSS property. */
+  properties?: string[];
+  /** The remedy printed with the finding. */
+  hint?: string;
+}
+
+export declare const DEFAULT_SIZE_FAMILIES: SizeFamily[];
+export declare const DEFAULT_INTERACTIVE_SIZE_FAMILIES: SizeFamily[];
+export declare const DEFAULT_INTERACTIVE: {
+  elements: string[];
+  roles: string[];
+  attributes: string[];
+  classNames: string[];
+};
+
+/** One permitted literal, optionally in one file, and why no token fits. */
+export interface AllowedValue {
+  file?: string;
+  value: string;
+  why: string;
+}
+
+export interface RawColor {
+  /** Where the value starts in the text it was found in. */
+  index: number;
+  /** How much text the value covers, for a report that highlights it. */
+  length: number;
+  kind: string;
+  value: string;
+}
+
+/** Raw colours in a string of text, `var()` and `url()` excluded. */
+export declare function findRawColors(
+  text: string,
+  options?: { colorProperties?: string[]; namedColors?: string[] },
+): RawColor[];
+
+export interface RawColorInFile {
+  file: string;
+  line: number;
+  kind: string;
+  value: string;
+}
+
+/** The colour ban over stylesheets, which ESLint does not parse. */
+export declare function findRawColorsInFiles(options?: {
+  roots?: string[];
+  extensions?: string[];
+  exemptFiles?: string[];
+  allow?: AllowedValue[];
+  colorProperties?: string[];
+  namedColors?: string[];
+  ignoredDirectories?: Set<string>;
+}): RawColorInFile[];
+
+export interface ArbitrarySizeInFile {
+  file: string;
+  line: number;
+  /** The family's name — "font size". */
+  family: string;
+  value: string;
+  /** The family's remedy, so a caller can print the finding without the family. */
+  hint: string;
+}
+
+/** The size ban over stylesheets, for families that name a CSS `properties` list. */
+export declare function findArbitrarySizesInFiles(options?: {
+  roots?: string[];
+  extensions?: string[];
+  exemptFiles?: string[];
+  allow?: AllowedValue[];
+  families?: SizeFamily[];
+  units?: string[];
+  ignoredDirectories?: Set<string>;
+}): ArbitrarySizeInFile[];
+
+export declare const DEFAULT_RAMP_PREFIX: string;
+export declare const DEFAULT_RAMP_COMPANIONS: string[];
+export declare const TYPE_RAMP_DIRECTIVE: string;
+
+/** Ramp steps declared without a companion token, such as their line height. */
+export declare function findRampGaps(options?: {
+  tokenFile?: string;
+  block?: string;
+  tokenPattern?: string;
+  sources?: TokenSource[];
+  /** Default `--text-`. */
+  prefix?: string;
+  /** Suffixes every step must also declare. Default `["--line-height"]`. */
+  requires?: string[];
+}): { token: string; missing: string }[];
+
+export declare const DEFAULT_CONTRAST_THRESHOLDS: {
+  text: number;
+  largeText: number;
+  nonText: number;
+};
+
+export interface ContrastPair {
+  fg: string;
+  bg: string;
+  /** A threshold name or a ratio. Defaults to `text`. */
+  need?: keyof typeof DEFAULT_CONTRAST_THRESHOLDS | number;
+  why?: string;
+}
+
+export interface ContrastFinding extends ContrastPair {
+  need: number;
+  foreground: string | null;
+  background: string | null;
+  ratio: number | null;
+  /** Why it failed: the ratio, an unknown token, or a value contrast cannot resolve. */
+  reason: string | null;
+  /** `declared`, or the file the pair was scanned out of. */
+  source: string;
+  /** On a waiver only: the reason the failure is allowed to stand. */
+  waivedBecause?: string;
+}
+
+/** Custom properties declared in a CSS file, optionally within one block. */
+export declare function readColorTokens(
+  file: string,
+  options?: { block?: string; tokenPattern?: string },
+): Map<string, string>;
+
+/** WCAG 2.1 relative-contrast ratio between two hex colours. */
+export declare function contrastRatio(foreground: string, background: string): number;
+
+/** One file, or one block of one, that declares part of a theme. */
+export interface TokenSource {
+  file: string;
+  block?: string;
+  tokenPattern?: string;
+}
+
+/** The same tokens with every `var()` alias followed to the value it ends at. */
+export declare function resolveTokenAliases(tokens: Map<string, string>): Map<string, string>;
+
+/** Tokens from several files or blocks, merged in order, later sources winning. */
+export declare function readTokenSources(sources: TokenSource[]): Map<string, string>;
+
+/** Contrast over a theme. One of `tokenFile` or `sources` is required. */
+export declare function findContrastFailures(options: {
+  tokenFile?: string;
+  block?: string;
+  tokenPattern?: string;
+  /** A theme spread over more than one file or block, innermost layer first. */
+  sources?: TokenSource[];
+  tokenPrefix?: string;
+  roots?: string[];
+  extensions?: string[];
+  ignoredDirectories?: Set<string>;
+  declaredPairs?: ContrastPair[];
+  allow?: ContrastPair[];
+  thresholds?: Partial<typeof DEFAULT_CONTRAST_THRESHOLDS>;
+  scanMarkup?: boolean;
+}): {
+  tokens: Map<string, string>;
+  pairs: ContrastPair[];
+  failures: ContrastFinding[];
+  waivers: ContrastFinding[];
 };
 
 declare const plugin: ESLint.Plugin;
