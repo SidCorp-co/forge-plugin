@@ -91,9 +91,12 @@ function write(file, contents) {
   if (!dryRun) writeFileSync(file, contents);
 }
 
-/** These rules read syntax and never types, so any parser TypeScript can use will do. */
-function dependencies(manager) {
-  const wanted = ["eslint", ...(typescript ? ["@typescript-eslint/parser"] : [])];
+/**
+ * A parser is only wanted for a config this run writes: a project holding one has answered the
+ * question, and better, since TypeScript 7 breaks `@typescript-eslint/parser` at module load.
+ */
+function dependencies(manager, writesConfig) {
+  const wanted = ["eslint", ...(typescript && writesConfig ? ["@typescript-eslint/parser"] : [])];
   const declared = JSON.parse(readFileSync("package.json", "utf8"));
   const installed = { ...declared.dependencies, ...declared.devDependencies };
   const missing = wanted.filter((name) => installed[name] === undefined);
@@ -211,11 +214,12 @@ const tokens = flag("tokens");
 if (tokens !== undefined && !existsSync(tokens)) fail(`--tokens=${tokens} does not exist`);
 const hook = (flag("hook") ?? "on") === "on";
 
+const existingConfig = ESLINT_CONFIG_FILES.find((file) => existsSync(file));
+
 const manager = packageManager();
-const missing = dependencies(manager);
+const missing = dependencies(manager, existingConfig === undefined);
 if (missing.length > 0) run([...manager.add, ...missing]);
 
-const existingConfig = ESLINT_CONFIG_FILES.find((file) => existsSync(file));
 const unrewritable =
   existingConfig === undefined ? null : rewriteCall(existingConfig, chosen, tokens);
 if (existingConfig === undefined) write("eslint.config.mjs", configFile(chosen, tokens));

@@ -132,6 +132,19 @@ test("a typescript project gets a parser, and a dry run writes nothing", () => {
   assert.equal(existsSync(path.join(root, "eslint.config.mjs")), false);
 });
 
+test("a project holding its own config keeps its own parser choice", () => {
+  // TypeScript 7 breaks @typescript-eslint/parser at module load, so a project that worked around
+  // it must not have one installed underneath by a run that is not writing the config anyway.
+  const root = project({
+    "tsconfig.json": "{}\n",
+    "eslint.config.mjs": 'export default [{ rules: { eqeqeq: "error" } }];\n',
+    "src/clean.ts": "export const ok = true;\n",
+  });
+  const result = run(root, "--comment-density=warn", "--dry-run");
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stdout, /@typescript-eslint\/parser/);
+});
+
 test("a severity that is not one refuses the whole run", () => {
   const root = project();
   const typo = run(root, "--comment-density=strict");
