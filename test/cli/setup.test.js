@@ -83,6 +83,18 @@ test("a config assembling the plugin some other way is reported rather than gues
   assert.equal(read(root, "eslint.config.mjs"), source);
 });
 
+test("a configure() call richer than the answers is protected, not overwritten", () => {
+  // The answers render one severity per rule; anything else in the call would be deleted by a
+  // wholesale replacement, so the run reports it instead.
+  const source =
+    'import { configure } from "eslint-plugin-code-quality";\n' +
+    'export default [...configure({ "max-lines": ["error", { max: 300 }], ignores: ["dist/**"] })];\n';
+  const root = project({ "eslint.config.mjs": source, "src/clean.js": "export const ok = true;\n" });
+  const result = run(root, "--comment-density=warn");
+  assert.match(result.stdout, /saying more than these answers do/);
+  assert.equal(read(root, "eslint.config.mjs"), source);
+});
+
 test("the hook opt-out and the widened gate are written, and cleared by the next answer", () => {
   const root = project({ "src/clean.js": "export const ok = true;\n" });
   run(root, "--hook=off", "--all-rules");
@@ -116,7 +128,7 @@ test("a typescript project gets a parser, and a dry run writes nothing", () => {
   const dry = run(root, "--comment-density=warn", "--dry-run");
   assert.equal(dry.status, 0, dry.stderr);
   assert.match(dry.stdout, /@typescript-eslint\/parser/);
-  assert.match(dry.stdout, /wrote eslint\.config\.mjs/);
+  assert.match(dry.stdout, /would write eslint\.config\.mjs/);
   assert.equal(existsSync(path.join(root, "eslint.config.mjs")), false);
 });
 

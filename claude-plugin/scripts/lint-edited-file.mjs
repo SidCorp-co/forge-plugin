@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
-// Deliberately duplicates SOURCE_EXTENSIONS from src/folder-size.js. Claude Code
-// installs claude-plugin/ alone into a versioned cache directory, so nothing here
-// can import from the package at runtime. test/plugin-isolation.test.js pins the
-// two lists together instead.
+// Deliberately duplicates SOURCE_EXTENSIONS from src/folder-size.js. Claude Code installs
+// claude-plugin/ alone into a versioned cache directory, so nothing here can import from the
+// package at runtime; test/cli/plugin-isolation.test.js pins the copies together instead.
 const supportedExtensions = new Set([
   ".cjs",
   ".cts",
@@ -20,8 +20,7 @@ const supportedExtensions = new Set([
   ".tsx",
 ]);
 
-// Duplicated from src/directives.js for the same reason as supportedExtensions.
-// test/plugin-isolation.test.js pins the strings to the package's copies.
+// Duplicated from src/directives.js for the same reason, and pinned by the same test.
 const FIX_POLICY =
   "Fix the source, not the check: no eslint-disable, no raised limit, no exemption entry.";
 
@@ -117,22 +116,22 @@ function resolveWorkspace(editedFile, projectRoot) {
   return fallback ?? projectRoot;
 }
 
-// `"hook": false` in the project's code-quality.json. The hook is enabled once, for every
-// project this user opens, so opting one out has to be the project's own say.
-function hookDisabled(projectRoot) {
-  try {
-    return JSON.parse(readFileSync(path.join(projectRoot, "code-quality.json"), "utf8")).hook === false;
-  } catch {
-    return false;
-  }
+// `"hook": false` in code-quality.json, read from the workspace owning the edited file and then the
+// repository root. The hook is enabled once for every project this user opens, so opting one out
+// has to be the project's own say.
+function hookDisabled(directories) {
+  return directories.some((directory) => {
+    try {
+      return JSON.parse(readFileSync(path.join(directory, "code-quality.json"), "utf8")).hook === false;
+    } catch {
+      return false;
+    }
+  });
 }
 
 // A project without ESLint has opted out, not misconfigured itself. The hook is
 // installed for every project this user opens, so it stays silent there.
-function resolveEslint(workspace) {
-  // Anchoring on the workspace lets Node's own upward lookup find either a
-  // package-level install or one hoisted to the repository root.
-  const require = createRequire(path.join(workspace, "package.json"));
+function resolveEslint(require) {
   try {
     const packageJson = require.resolve("eslint/package.json");
     return path.join(path.dirname(packageJson), "bin", "eslint.js");
@@ -142,26 +141,35 @@ function resolveEslint(workspace) {
 }
 
 /**
- * Prettier first, so the rules judge the file a reviewer will read rather than the one the edit
- * happened to land as, and so a formatting nit is never one of the errors blocking the edit. Only
- * where the project installed it: formatting a project that chose no formatter is not this hook's
- * call. A failure here is left to ESLint, which reports the same broken syntax with a location.
+ * Prettier first, so a formatting nit is never one of the errors blocking an edit, and only where
+ * the project installed it. In process, not through the CLI: this runs after every edit, and a
+ * second Node start would cost more than the whole check. `getFileInfo` answers what
+ * `--ignore-unknown` and .prettierignore answer between them, and a failure is ESLint's to report
+ * with a line and a column.
  */
-function format(workspace, file) {
-  const require = createRequire(path.join(workspace, "package.json"));
-  let bin;
+async function format(require, file) {
+  const whole = (api) =>
+    ["getFileInfo", "resolveConfig", "format"].every((name) => typeof api?.[name] === "function");
+  let prettier;
   try {
-    const manifest = require.resolve("prettier/package.json");
-    const { bin: entry } = JSON.parse(readFileSync(manifest, "utf8"));
-    bin = path.resolve(path.dirname(manifest), typeof entry === "string" ? entry : entry.prettier);
+    // An ESM prettier exports its API directly; a CommonJS one arrives under `default`, and the
+    // named exports Node lexes out of it are whichever ones it could see, so take neither on faith.
+    const loaded = await import(pathToFileURL(require.resolve("prettier")).href);
+    prettier = [loaded, loaded.default].find(whole);
   } catch {
     return;
   }
-  spawnSync(process.execPath, [bin, "--write", "--ignore-unknown", file], {
-    cwd: workspace,
-    encoding: "utf8",
-    windowsHide: true,
-  });
+  if (prettier === undefined) return;
+  try {
+    const { ignored, inferredParser } = await prettier.getFileInfo(file, { resolveConfig: true });
+    if (ignored || inferredParser === null) return;
+    const options = await prettier.resolveConfig(file);
+    const source = readFileSync(file, "utf8");
+    const formatted = await prettier.format(source, { ...options, filepath: file });
+    if (formatted !== source) writeFileSync(file, formatted);
+  } catch {
+    return;
+  }
 }
 
 function conciseStderr(stderr) {
@@ -207,15 +215,20 @@ const rawPath = getEditedPath(event);
 if (!rawPath) process.exit(0);
 
 const projectRoot = resolveProjectRoot(event);
-if (hookDisabled(projectRoot)) process.exit(0);
+// The extension test costs no I/O, so it settles the .md and .json edits before anything is read.
 const editedFile = resolveEditedFile(rawPath, projectRoot);
 if (!editedFile) process.exit(0);
 
 const workspace = resolveWorkspace(editedFile, projectRoot);
-const eslintBin = resolveEslint(workspace);
+if (hookDisabled([workspace, projectRoot])) process.exit(0);
+
+// Anchoring on the workspace lets Node's own upward lookup find either a package-level install
+// or one hoisted to the repository root.
+const require = createRequire(path.join(workspace, "package.json"));
+const eslintBin = resolveEslint(require);
 if (!eslintBin) process.exit(0);
 
-format(workspace, editedFile);
+await format(require, editedFile);
 
 // No --max-warnings: severity is the project's decision, and a rule it enabled
 // at `warn` should not block an edit.

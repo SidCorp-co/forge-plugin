@@ -14,6 +14,7 @@ const required = [
   "CHANGELOG.md",
   "src/index.js",
   "bin/code-quality-gate.mjs",
+  "bin/code-quality-setup.mjs",
   "src/line-metrics.js",
   "src/folder-size.js",
   "src/no-historical-narration.js",

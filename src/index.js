@@ -100,9 +100,23 @@ const CORE_RULES = new Set(["max-lines", "max-lines-per-function"]);
 /** Meaningless without a token layer: every `#fff` would report. Off until `tokens` names one. */
 const TOKEN_RULES = new Set(["no-raw-colors", "no-arbitrary-sizes"]);
 
-/** What the gate blocks on, and the only ids `configure` answers to. */
-export const RULE_IDS = Object.keys(RULE_OPTIONS).map((name) =>
-  CORE_RULES.has(name) ? name : `code-quality/${name}`,
+const idFor = (name) => (CORE_RULES.has(name) ? name : `code-quality/${name}`);
+
+/** The names `configure` answers to, which are also this CLI's `--<rule>=` flags. */
+export const RULE_NAMES = Object.keys(RULE_OPTIONS);
+
+/** What the gate blocks on: every rule this plugin owns, enabled here or not. */
+export const RULE_IDS = RULE_NAMES.map(idFor);
+
+/** The project's settings file, written by the setup CLI and read by the gate and the hook. */
+export const SETTINGS_FILE = "code-quality.json";
+
+/** Its sections that configure a check ESLint cannot answer. */
+export const TOKEN_SECTIONS = ["stylesheets", "sizes", "typeRamp", "contrast"];
+
+/** Flat config's own names, in the order ESLint itself resolves them. */
+export const ESLINT_CONFIG_FILES = ["js", "mjs", "cjs", "ts", "mts", "cts"].map(
+  (extension) => `eslint.config.${extension}`,
 );
 
 /**
@@ -117,34 +131,22 @@ export function configure({ tokens, testGlobs = DEFAULT_TEST_GLOBS, ignores, ...
   }
 
   // The token file exempts itself from the rules that would report every line of it.
-  const shared =
-    tokens === undefined
-      ? undefined
-      : {
-          ...(tokens.tokenSource === undefined ? {} : { tokenSource: tokens.tokenSource }),
-          exemptFiles: [
-            ...new Set([tokens.tokenSource, ...(tokens.exemptFiles ?? [])].filter(Boolean)),
-          ],
-        };
+  const exempt = tokens && [tokens.tokenSource, ...(tokens.exemptFiles ?? [])].filter(Boolean);
 
   const rules = {};
   for (const [name, defaults] of Object.entries(RULE_OPTIONS)) {
-    const wanted = asked[name] ?? (TOKEN_RULES.has(name) && shared === undefined ? "off" : "error");
+    const token = TOKEN_RULES.has(name) && tokens !== undefined;
+    const wanted = asked[name] ?? (TOKEN_RULES.has(name) && !token ? "off" : "error");
     const [severity, options = {}] = Array.isArray(wanted) ? wanted : [wanted];
     if (severity === "off" || severity === 0) continue;
-    const token = TOKEN_RULES.has(name) && shared !== undefined;
-    rules[CORE_RULES.has(name) ? name : `code-quality/${name}`] = [
-      severity,
-      {
-        ...defaults,
-        ...(token ? shared : {}),
-        ...options,
-        // Per-rule exemptions are added to the token file's, never swapped for it.
-        ...(token
-          ? { exemptFiles: [...new Set([...shared.exemptFiles, ...(options.exemptFiles ?? [])])] }
-          : {}),
-      },
-    ];
+
+    const merged = { ...defaults, ...options };
+    if (token) {
+      if (tokens.tokenSource !== undefined) merged.tokenSource ??= tokens.tokenSource;
+      // Per-rule exemptions are added to the token file's, never swapped for it.
+      merged.exemptFiles = [...new Set([...exempt, ...(options.exemptFiles ?? [])])];
+    }
+    rules[idFor(name)] = [severity, merged];
   }
 
   const configs = [{ name: "code-quality", plugins: { "code-quality": plugin }, rules }];

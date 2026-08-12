@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { FIX_POLICY, RULE_DIRECTIVES, SOURCE_EXTENSIONS } from "../../src/index.js";
+import { FIX_POLICY, RULE_DIRECTIVES, SETTINGS_FILE, SOURCE_EXTENSIONS } from "../../src/index.js";
 
 const packageRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 const hookSource = readFileSync(
@@ -27,6 +27,16 @@ test("the hook's directives match the package's", () => {
       `the hook no longer prints this verbatim: ${directive}`,
     );
   }
+});
+
+// Same reason as the two above, and the consequence of a drift is quieter: the hook would read a
+// settings file no longer written, and every project's opt-out would stop working with no error.
+test("the hook reads the settings file the package writes", () => {
+  assert.ok(
+    hookSource.includes(`"${SETTINGS_FILE}"`),
+    `the hook no longer reads ${SETTINGS_FILE}`,
+  );
+  assert.match(hookSource, /\.hook === false/, "the hook no longer honours the opt-out key");
 });
 
 test("the hook imports nothing from outside its own plugin directory", () => {

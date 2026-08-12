@@ -11,6 +11,7 @@ import {
   DEFAULT_MAX_FILES_PER_DIRECTORY,
   DEFAULT_STYLESHEET_EXTENSIONS,
   directivesFor,
+  ESLINT_CONFIG_FILES,
   findArbitrarySizesInFiles,
   findContrastFailures,
   findCrowdedDirectories,
@@ -19,16 +20,16 @@ import {
   findRawColorsInFiles,
   FIX_POLICY,
   RULE_IDS,
+  SETTINGS_FILE,
   SOURCE_EXTENSIONS,
   sourceFiles,
+  TOKEN_SECTIONS,
   TYPE_RAMP_DIRECTIVE,
 } from "../src/index.js";
 
-const CONFIG_FILE = "code-quality.json";
-
 const USAGE = `Usage: code-quality-gate [paths...] [options]
 
-  --config=FILE           settings file (default ${CONFIG_FILE}, in the run directory)
+  --config=FILE           settings file (default ${SETTINGS_FILE}, in the run directory)
   --no-config             ignore it and run the ESLint half alone
   --max-files-per-dir=N   directory width limit (default ${DEFAULT_MAX_FILES_PER_DIRECTORY})
   --ignore-dir=a,b        directory names to skip, added to the defaults
@@ -38,7 +39,7 @@ const USAGE = `Usage: code-quality-gate [paths...] [options]
   --inline-warning-all    judge feature screens too, not the design system alone
   --help                  show this message
 
-${CONFIG_FILE} settles every flag above, plus the four checks ESLint cannot answer, so a
+${SETTINGS_FILE} settles every flag above, plus the four checks ESLint cannot answer, so a
 configured project needs none of them:
 
   { "allRules": true, "maxFilesPerDirectory": 10, "tokenFile": "app/globals.css",
@@ -65,19 +66,20 @@ function listFlag(name) {
 
 /** The project's settings. Every flag overrides one for a single run. */
 function readSettings() {
-  if (args.includes("--no-config")) return [undefined, {}];
+  if (args.includes("--no-config")) return { home: process.cwd(), settings: {} };
   const [named] = listFlag("--config");
-  const file = named ?? CONFIG_FILE;
-  if (named === undefined && !existsSync(file)) return [undefined, {}];
+  const file = named ?? SETTINGS_FILE;
   try {
-    return [file, JSON.parse(readFileSync(file, "utf8"))];
+    return { home: path.dirname(path.resolve(file)), settings: JSON.parse(readFileSync(file, "utf8")) };
   } catch (error) {
+    // A project that never wrote one has not misconfigured itself; a named one is a promise.
+    if (error.code === "ENOENT" && named === undefined) return { home: process.cwd(), settings: {} };
     process.stderr.write(`code-quality-gate: cannot read ${file}: ${error.message}\n`);
     return process.exit(2);
   }
 }
 
-const [configFile, settings] = readSettings();
+const { home: settingsHome, settings } = readSettings();
 
 const [limit] = listFlag("--max-files-per-dir");
 const maxFilesPerDirectory = Number(
@@ -101,15 +103,17 @@ const extensions = new Set([
 ]);
 
 const BLOCKING_RULES = new Set(RULE_IDS);
+const onUnless = (flag, key) => !args.includes(flag) && settings[key] !== false;
+const offUntil = (flag, key) => args.includes(flag) || settings[key] === true;
+
 // Severity is the project's own decision to gate or merely observe; `allRules` is its
 // decision that one command should gate everything, not this plugin's half.
-const allRules = settings.allRules === true;
-const folderCheck = !args.includes("--no-folder-check") && settings.folderCheck !== false;
-const inlineWarning = !args.includes("--no-inline-warning") && settings.inlineWarning !== false;
-const inlineWarningAll = args.includes("--inline-warning-all") || settings.inlineWarningAll === true;
+const allRules = offUntil("--all-rules", "allRules");
+const folderCheck = onUnless("--no-folder-check", "folderCheck");
+const inlineWarning = onUnless("--no-inline-warning", "inlineWarning");
+const inlineWarningAll = offUntil("--inline-warning-all", "inlineWarningAll");
 
-const CONFIG_NAMES = ["js", "mjs", "cjs", "ts", "mts", "cts"].map((ext) => `eslint.config.${ext}`);
-const hasConfig = (dir) => CONFIG_NAMES.some((name) => existsSync(path.join(dir, name)));
+const hasConfig = (dir) => ESLINT_CONFIG_FILES.some((name) => existsSync(path.join(dir, name)));
 
 /**
  * The directories to lint from. ESLint resolves flat config from the working directory
@@ -235,9 +239,8 @@ if (inlineWarning) {
  * token file plus every screen at once. Both are configured in one JSON file
  * whose paths resolve against its own directory.
  */
-function checkDesignTokens(configFile, settings) {
-  const home = path.dirname(path.resolve(configFile));
-  const here = (value) => path.resolve(home, value);
+function checkDesignTokens() {
+  const here = (value) => path.resolve(settingsHome, value);
   const tokenFile = settings.tokenFile === undefined ? undefined : here(settings.tokenFile);
   const { stylesheets, sizes, typeRamp, contrast } = settings;
   const counts = [];
@@ -367,9 +370,6 @@ function checkDesignTokens(configFile, settings) {
   process.stdout.write(`design tokens · ${counts.join(" · ")}\n`);
 }
 
-const TOKEN_SECTIONS = ["stylesheets", "sizes", "typeRamp", "contrast"];
-if (configFile !== undefined && TOKEN_SECTIONS.some((section) => settings[section])) {
-  checkDesignTokens(configFile, settings);
-}
+if (TOKEN_SECTIONS.some((section) => settings[section])) checkDesignTokens();
 
 if (process.exitCode === 1) process.stderr.write(`\n${FIX_POLICY}\n`);

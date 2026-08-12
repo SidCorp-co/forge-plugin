@@ -169,26 +169,32 @@ test("a project that switched the hook off is not linted on edit", () => {
 
 test("the project's prettier runs first, so the rules judge the formatted file", () => {
   const root = makeConsumer();
-  // A stand-in for prettier: it resolves and rewrites exactly as the real one is invoked.
-  const bin = path.join(root, "node_modules", "prettier", "bin");
-  mkdirSync(bin, { recursive: true });
+  // A stand-in for prettier, exercising the same three API calls the hook makes on the real one.
+  const home = path.join(root, "node_modules", "prettier");
+  mkdirSync(home, { recursive: true });
   writeFileSync(
-    path.join(root, "node_modules", "prettier", "package.json"),
-    '{"name":"prettier","version":"3.0.0","bin":"./bin/prettier.cjs"}\n',
+    path.join(home, "package.json"),
+    '{"name":"prettier","version":"3.0.0","main":"./index.cjs"}\n',
   );
   writeFileSync(
-    path.join(bin, "prettier.cjs"),
-    'const fs = require("fs");\n' +
-      'const file = process.argv[process.argv.length - 1];\n' +
-      'const kept = fs.readFileSync(file, "utf8").split("\\n").filter((l) => !l.startsWith("// Previously"));\n' +
-      "fs.writeFileSync(file, kept.join(\"\\n\"));\n",
+    path.join(home, "index.cjs"),
+    "module.exports = {\n" +
+      "  getFileInfo: async (f) => ({ ignored: /ignored/.test(f), inferredParser: 'babel' }),\n" +
+      "  resolveConfig: async () => ({}),\n" +
+      "  format: async (text) => text.split('\\n').filter((l) => !l.startsWith('// Previously')).join('\\n'),\n" +
+      "};\n",
   );
 
   const file = write(root, "src/formatted.js", "// Previously this returned zero.\nexport const a = 1;\n");
   const result = runHook(root, "src/formatted.js");
   assert.equal(result.status, 0, result.stderr);
-  // The finding is gone because the file is, which only holds if formatting came first.
+  // The finding is gone because the narration is, which only holds if formatting came first.
   assert.doesNotMatch(readFileSync(file, "utf8"), /Previously/);
+
+  // A file prettier reports as ignored is not the hook's to rewrite, so the rules still see it.
+  const ignored = write(root, "src/ignored.js", "// Previously this returned zero.\nexport const b = 1;\n");
+  assert.equal(runHook(root, "src/ignored.js").status, 2);
+  assert.match(readFileSync(ignored, "utf8"), /Previously/);
 });
 
 test("stays silent in a project without ESLint", () => {

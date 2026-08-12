@@ -57,6 +57,18 @@ export interface ConfigureOptions {
 /** Every rule id this plugin can enable, which is what the gate blocks on. */
 export declare const RULE_IDS: string[];
 
+/** The names `configure` answers to, which are also the setup CLI's `--<rule>=` flags. */
+export declare const RULE_NAMES: string[];
+
+/** The project settings file the setup CLI writes, and the gate and the hook read. */
+export declare const SETTINGS_FILE: string;
+
+/** Its sections that configure a check ESLint cannot answer. */
+export declare const TOKEN_SECTIONS: string[];
+
+/** Flat config's own names, in the order ESLint itself resolves them. */
+export declare const ESLINT_CONFIG_FILES: string[];
+
 /**
  * The whole flat config from one severity per rule. Anything unnamed is `"error"`, the two
  * design rules excepted: they stay off until `tokens` names a token layer.
