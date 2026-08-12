@@ -15,6 +15,7 @@ test("exports every rule, and one id per rule for the gate to block on", () => {
     "no-historical-narration",
     "no-pass-through-wrapper",
     "no-raw-colors",
+    "no-raw-elements",
   ]);
   assert.deepEqual([...RULE_IDS].sort(), [
     "code-quality/comment-density",
@@ -23,9 +24,46 @@ test("exports every rule, and one id per rule for the gate to block on", () => {
     "code-quality/no-historical-narration",
     "code-quality/no-pass-through-wrapper",
     "code-quality/no-raw-colors",
+    "code-quality/no-raw-elements",
     "max-lines",
     "max-lines-per-function",
   ]);
+});
+
+test("no-raw-elements waits for a design system, and the section is what names one", () => {
+  const [waiting] = configure();
+  assert.equal("code-quality/no-raw-elements" in waiting.rules, false);
+
+  // A design system turns it on the way a token layer turns the other two on.
+  const [named] = configure({
+    primitives: { source: "src/components/ui", importPath: "@/components/ui" },
+  });
+  assert.deepEqual(named.rules["code-quality/no-raw-elements"], [
+    "error",
+    { source: "src/components/ui", importPath: "@/components/ui" },
+  ]);
+
+  // Options beside the severity tune the section rather than being replaced by it.
+  const [tuned] = configure({
+    primitives: { source: "src/components/ui", rampClasses: ["fg-"] },
+    "no-raw-elements": ["warn", { rampClasses: ["type-"] }],
+  });
+  assert.deepEqual(tuned.rules["code-quality/no-raw-elements"], [
+    "warn",
+    { rampClasses: ["type-"], source: "src/components/ui" },
+  ]);
+
+  // Asked for without a section: on, with the default map and no source to narrow it.
+  const [asked] = configure({ "no-raw-elements": "error" });
+  assert.deepEqual(asked.rules["code-quality/no-raw-elements"], ["error", {}]);
+
+  // A raw control in a test is a stub standing in for a screen, so tests are relaxed from it
+  // in the same block that relaxes the per-function cap.
+  const [, tests] = configure({ primitives: { source: "src/components/ui" } });
+  assert.deepEqual(tests.rules, {
+    "max-lines-per-function": "off",
+    "code-quality/no-raw-elements": "off",
+  });
 });
 
 test("an unnamed rule is an error, and the design rules wait for a token layer", () => {

@@ -309,6 +309,73 @@ One of `tokenFile` or `sources` is required, with no default: every project name
 
 Pairs come from two places: the `declaredPairs` a project states, and the markup scan, which pairs a background utility with a foreground utility in the same class string and maps them onto tokens by `tokenPrefix` (default `--color-`). A utility carrying an opacity or an arbitrary value is skipped, because what it composites against is not in the token table. A file that declares more than one theme needs one call per theme with a different `block`; a token whose value is not a hex colour is reported as unresolvable rather than skipped. So is a translucent one (`#1118270a`): what it composites over is a fact about a screen, and scoring it opaque would pass a pair that fails in the browser.
 
+## Design-system rules
+
+### `no-raw-elements`
+
+A design system is only a system where product code cannot reach past it. `<select>` written beside a `Select` gets the browser's metrics and the OS chevron — the split you see as a styled label above an unstyled control — and a raw `<button>` gets neither the focus ring nor the disabled semantics the primitive carries. This rule reports the raw element and names the primitive that owns what it drops.
+
+It stays **off** until `primitives` names a design system, the way the token rules wait for a token layer: with no system to point at, every `<button>` in the project reports and no message can say what to write instead. `code-quality-setup --primitives=DIR` writes this section:
+
+```js
+configure({
+  primitives: {
+    source: "src/components/ui",
+    importPath: "@/components/ui",
+    rampClasses: ["fg-"]
+  }
+});
+```
+
+Options beside the severity tune that section rather than replacing it, so one rule's `exemptFiles` sits beside the shared source:
+
+```js
+configure({
+  primitives: { source: "src/components/ui" },
+  "no-raw-elements": ["warn", { exemptFiles: ["src/app/legacy/**"] }],
+});
+```
+
+The default map is the form controls and the headings, each with the behaviour the primitive owns: `button` → `Button`, `select` → `Select`, `input` → `Input`, `textarea` → `Textarea`, `h1` → `PageHeader`, `h2`–`h4` → `CardTitle`. It is exported as `DEFAULT_PRIMITIVES`, and the map **is** the mechanism: an element absent from it is never judged.
+
+Three things are not findings, so that the rule can run over a whole repository rather than one directory:
+
+- **The primitive's own definition** — the file that *exports* it. `forms/input.tsx` exporting `Input`, `Select` and `Textarea` may render all three; `foundation/icon-button.tsx`, which exports `IconButton`, may not render a second `<button>`.
+- **`<input type="hidden">` and `type="file"`.** Neither is a control a primitive can own — one is never rendered, the other is the OS file picker, whose button no stylesheet reaches. Per-element, as `exceptTypes`.
+- **A heading carrying a ramp class**, where `rampClasses` names the project's prefixes. A section that owns its own `aria-labelledby` heading is not a card, and the ramp step is the thing `CardTitle` was there to supply. A class that is *not* a ramp step (`text-2xl`) does not open the escape.
+
+Inside the design system — a directory named `ui`, `primitives` or `forms` (`DESIGN_SYSTEM`), or anything under `source` — the report is the other way round. A file there that renders `<button>` without exporting `Button` is asked to **add the variant to `Button`** and compose it, rather than to import it:
+
+```
+Raw <button> inside the design system, in a file that does not define Button. Add the
+variant to Button and compose it here, rather than a second <button> carrying its own
+copy of the focus ring and the disabled semantics.
+```
+
+That is where the drift starts: a segmented control, a menu row and an icon button each hand-rolling a focus ring is three rings to keep in step, and the primitive's `// the ONLY <button> in the app` comment stops being true inside its own directory. A control the primitive genuinely cannot become — one carrying `role="radio"` or `role="menuitem"` — takes the waiver, whose reason then records which control it is. `systemVariants: false` skips the system wholesale, for a project adopting the rule over its screens first.
+
+Test files are relaxed from it, in the same `testGlobs` block that relaxes the per-function cap: a raw control in a test is a stub standing in for a screen, which no primitive's focus ring was ever going to reach.
+
+With `source`, only a primitive the design system actually exports is a finding: a project whose system has no `Textarea` has nothing to point a report at, so the element it writes instead is not yet one. The barrel's `export { … }` and `export function` names are read once and cached (`primitiveExports()`); an unreadable source reports every element, rather than silently passing them.
+
+A control no primitive models — a whole row that is one button, a selectable tile with `aria-pressed` — is waived at the site with a comment, in the same shape as `inline-warning: none —`:
+
+```jsx
+{/* primitive: none — the whole row is the control, and Button cannot carry a row's layout */}
+<button onClick={open}>…</button>
+```
+
+The reason is mandatory: a bare marker waives nothing. One waiver covers the next raw element after it, so a second one below still reports.
+
+| Option | Meaning |
+| --- | --- |
+| `primitives` | The element → `{ primitive, owns, exceptTypes }` map. Replaces `DEFAULT_PRIMITIVES` wholesale, which is how a project adds `table` → `DataTable` or drops an element it has no primitive for. |
+| `source` | The design system's directory or barrel file. Exempts itself, and narrows reports to the primitives it exports. |
+| `importPath` | How product code imports it (`@/components/ui`), for the message. Defaults to `source`. |
+| `rampClasses` | Class-name prefixes that mark a heading as deliberately on the type ramp. Empty by default: the ramp's spelling is the project's. |
+| `systemVariants` | Inside the system, judge each file and ask for a variant on the primitive. `true` by default; `false` skips the system wholesale. |
+| `exemptFiles` | Paths the rule skips, matched by tail (`legacy/page.tsx` finds it at any depth) or as a glob (`src/app/legacy/**`), as in the token rules. |
+
 ## CI gate
 
 The package installs a `code-quality-gate` bin. It lints the project with its own ESLint configuration and fails only on this plugin's rules **reported as errors**, so warnings and unrelated findings stay visible without gating a build. The blocking set is `RULE_IDS`, every rule this plugin owns, so a project that opted the design rules in at `error` is gated on them too rather than seeing them from `eslint` and not here.

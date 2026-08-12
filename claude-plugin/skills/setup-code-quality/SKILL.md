@@ -28,6 +28,7 @@ script rewrites the `configure()` call in place rather than skipping it.
 | `max-lines` | files over 500 code lines | god files are allowed |
 | `max-lines-per-function` | functions over 150 code lines | so are god functions |
 | `no-raw-colors`, `no-arbitrary-sizes` | `#fff` and `text-[13px]` outside the token layer | ask only if step 2 found tokens |
+| `no-raw-elements` | `<select>` and `<h1>` written beside a `Select` and a `PageHeader` | ask only if step 2 found a design system |
 
 Then one more: **the hook** — check each file Claude Code edits, on or off. On means the file is run
 through the project's own `prettier` when it has one, then linted, and a failing edit is blocked with
@@ -37,7 +38,7 @@ opens, so "off" here writes one project's opt-out, not a global change.
 The hook formats only where `prettier` is already a dependency — installing a formatter is not this
 plugin's call. Mention it if the project has none.
 
-## 2. Find the token layer, before asking about the two design rules
+## 2. Find the token layer and the design system, before asking about the design rules
 
 ```sh
 grep -rlE "^\s*@theme|^\s*--[a-z-]+:\s*#" --include=*.css . | grep -v node_modules
@@ -45,6 +46,19 @@ grep -rlE "^\s*@theme|^\s*--[a-z-]+:\s*#" --include=*.css . | grep -v node_modul
 
 Nothing found: say so, skip those two questions, pass no `--tokens`. They report every `#fff` in a
 project with nowhere to put it.
+
+The design system is the directory the primitives are exported from — a barrel beside them:
+
+```sh
+ls -d **/components/ui **/components/primitives 2>/dev/null | grep -v node_modules
+```
+
+Nothing found, or a directory with no `index.*`: skip that question and pass no `--primitives`.
+Without a system to point at, `no-raw-elements` reports every `<button>` and no message can say what
+to write instead. Where one exists, `--primitives=DIR` is enough — it exempts itself, and reports
+only the primitives it exports. Two options are left to write by hand afterwards if the project needs
+them: `importPath` (how product code imports it, e.g. `@/components/ui`, for the message) and
+`rampClasses` (the class prefixes that mark a heading as deliberately on the type ramp).
 
 ## 3. Run it once
 

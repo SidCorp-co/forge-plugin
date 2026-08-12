@@ -1,6 +1,7 @@
 import commentDensity from "./comment-density.js";
 import noArbitrarySizes from "./design/no-arbitrary-sizes.js";
 import noRawColors from "./design/no-raw-colors.js";
+import noRawElements from "./design/no-raw-elements.js";
 import maxConsecutiveCommentLines from "./max-consecutive-comment-lines.js";
 import noHistoricalNarration from "./no-historical-narration.js";
 import noPassThroughWrapper from "./no-pass-through-wrapper.js";
@@ -20,6 +21,7 @@ export {
   TYPE_RAMP_DIRECTIVE,
 } from "./design/type-ramp.js";
 export { findRawColorsInFiles } from "./design/no-raw-colors.js";
+export { DEFAULT_PRIMITIVES, primitiveExports } from "./design/no-raw-elements.js";
 export {
   COLOR_PROPERTIES,
   contrastRatio,
@@ -52,8 +54,13 @@ export { HANDOFF_PATTERNS, NARRATION_PATTERNS } from "./no-historical-narration.
 export const DEFAULT_MAX_FILE_CODE_LINES = 500;
 export const DEFAULT_MAX_FUNCTION_CODE_LINES = 150;
 
-// A suite callback is one function to ESLint, so the per-function cap would
-// measure the suite instead of the test.
+/**
+ * What a test file is not held to. A suite callback is one function to ESLint, so the
+ * per-function cap would measure the suite instead of the test; and a raw control in a test is
+ * a stub standing in for a screen, which no primitive's focus ring was ever going to reach.
+ */
+const TEST_EXEMPT_RULES = ["max-lines-per-function", "code-quality/no-raw-elements"];
+
 export const DEFAULT_TEST_GLOBS = [
   "**/*.{test,spec}.{js,jsx,mjs,cjs,ts,tsx,mts,cts}",
   "**/test/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}",
@@ -62,7 +69,7 @@ export const DEFAULT_TEST_GLOBS = [
 ];
 
 const plugin = {
-  meta: { name: "eslint-plugin-code-quality", version: "0.6.0" },
+  meta: { name: "eslint-plugin-code-quality", version: "0.7.0" },
   rules: {
     "no-historical-narration": noHistoricalNarration,
     "comment-density": commentDensity,
@@ -70,6 +77,7 @@ const plugin = {
     "no-pass-through-wrapper": noPassThroughWrapper,
     "no-raw-colors": noRawColors,
     "no-arbitrary-sizes": noArbitrarySizes,
+    "no-raw-elements": noRawElements,
   },
   configs: {},
 };
@@ -85,6 +93,7 @@ const RULE_OPTIONS = {
   "no-pass-through-wrapper": {},
   "no-raw-colors": {},
   "no-arbitrary-sizes": {},
+  "no-raw-elements": {},
   "max-lines": { max: DEFAULT_MAX_FILE_CODE_LINES, skipBlankLines: true, skipComments: true },
   "max-lines-per-function": {
     max: DEFAULT_MAX_FUNCTION_CODE_LINES,
@@ -99,6 +108,9 @@ const CORE_RULES = new Set(["max-lines", "max-lines-per-function"]);
 
 /** Meaningless without a token layer: every `#fff` would report. Off until `tokens` names one. */
 const TOKEN_RULES = new Set(["no-raw-colors", "no-arbitrary-sizes"]);
+
+/** Nothing to point a report at without a design system. Off until `primitives` names one. */
+const PRIMITIVE_RULES = new Set(["no-raw-elements"]);
 
 const idFor = (name) => (CORE_RULES.has(name) ? name : `code-quality/${name}`);
 
@@ -121,10 +133,17 @@ export const ESLINT_CONFIG_FILES = ["js", "mjs", "cjs", "ts", "mts", "cts"].map(
 
 /**
  * The whole flat config, from one severity per rule. `"error"`, `"warn"` and `"off"`, or
- * `["warn", { …options }]` to tune one; anything unnamed is `"error"`, the token rules
- * excepted. `tokens` names the file colours and sizes belong in and exempts it from both.
+ * `["warn", { …options }]` to tune one; anything unnamed is `"error"`, the rules waiting for a
+ * project noun excepted. `tokens` names the file colours and sizes belong in and exempts it from
+ * both; `primitives` names the design system product code may not reach past.
  */
-export function configure({ tokens, testGlobs = DEFAULT_TEST_GLOBS, ignores, ...asked } = {}) {
+export function configure({
+  tokens,
+  primitives,
+  testGlobs = DEFAULT_TEST_GLOBS,
+  ignores,
+  ...asked
+} = {}) {
   const unknown = Object.keys(asked).filter((name) => !(name in RULE_OPTIONS));
   if (unknown.length > 0) {
     throw new TypeError(`configure: no rule named ${unknown.join(", ")}`);
@@ -136,11 +155,18 @@ export function configure({ tokens, testGlobs = DEFAULT_TEST_GLOBS, ignores, ...
   const rules = {};
   for (const [name, defaults] of Object.entries(RULE_OPTIONS)) {
     const token = TOKEN_RULES.has(name) && tokens !== undefined;
-    const wanted = asked[name] ?? (TOKEN_RULES.has(name) && !token ? "off" : "error");
+    const system = PRIMITIVE_RULES.has(name) && primitives !== undefined;
+    // A rule waiting for a project noun is off until the section naming it arrives.
+    const waiting = (TOKEN_RULES.has(name) && !token) || (PRIMITIVE_RULES.has(name) && !system);
+    const wanted = asked[name] ?? (waiting ? "off" : "error");
     const [severity, options = {}] = Array.isArray(wanted) ? wanted : [wanted];
     if (severity === "off" || severity === 0) continue;
 
     const merged = { ...defaults, ...options };
+    if (system) {
+      // The section is the project's answer; options beside the severity tune it.
+      for (const [key, value] of Object.entries(primitives)) merged[key] ??= value;
+    }
     if (token) {
       if (tokens.tokenSource !== undefined) merged.tokenSource ??= tokens.tokenSource;
       // Per-rule exemptions are added to the token file's, never swapped for it.
@@ -151,12 +177,11 @@ export function configure({ tokens, testGlobs = DEFAULT_TEST_GLOBS, ignores, ...
 
   const configs = [{ name: "code-quality", plugins: { "code-quality": plugin }, rules }];
   if (ignores !== undefined) configs.unshift({ name: "code-quality/ignores", ignores });
-  if (rules["max-lines-per-function"] !== undefined && testGlobs.length > 0) {
-    configs.push({
-      name: "code-quality/tests",
-      files: [...testGlobs],
-      rules: { "max-lines-per-function": "off" },
-    });
+  const relaxed = Object.fromEntries(
+    TEST_EXEMPT_RULES.filter((id) => rules[id] !== undefined).map((id) => [id, "off"]),
+  );
+  if (Object.keys(relaxed).length > 0 && testGlobs.length > 0) {
+    configs.push({ name: "code-quality/tests", files: [...testGlobs], rules: relaxed });
   }
   return configs;
 }

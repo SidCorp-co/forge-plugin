@@ -123,6 +123,26 @@ test("a token layer wires both halves: the rules and the gate's four checks", ()
   assert.match(result.stdout, /design tokens · 1 stylesheet/);
 });
 
+test("a design system turns no-raw-elements on, and the next run rewrites it", () => {
+  const root = project({
+    "src/components/ui/index.ts": 'export { Button } from "./button";\n',
+    "src/app/page.jsx": "export const Page = () => <Button>Save</Button>;\n",
+  });
+  const result = run(root, "--primitives=src/components/ui");
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(read(root, "eslint.config.mjs"), /primitives: \{ source: "src\/components\/ui" \}/);
+
+  // The rewrite guard has to accept the shape this writes, or a second run refuses its own file.
+  const again = run(root, "--primitives=src/components/ui", "--comment-density=warn");
+  assert.equal(again.status, 0, again.stderr);
+  assert.doesNotMatch(again.stdout, /merge these answers/);
+  assert.match(read(root, "eslint.config.mjs"), /primitives: \{ source: "src\/components\/ui" \}/);
+
+  const missing = run(root, "--primitives=src/nowhere");
+  assert.equal(missing.status, 2);
+  assert.match(missing.stderr, /--primitives=src\/nowhere does not exist/);
+});
+
 test("a typescript project gets a parser, and a dry run writes nothing", () => {
   const root = project({ "tsconfig.json": "{}\n", "src/clean.ts": "export const ok = true;\n" });
   const dry = run(root, "--comment-density=warn", "--dry-run");

@@ -35,6 +35,33 @@ export interface ArbitrarySizesOptions {
   allow?: { file?: string; value: string; why: string }[];
 }
 
+export interface PrimitiveEntry {
+  /** The component that owns this element. Named in the report. */
+  primitive: string;
+  /** What the raw element drops by not being it. */
+  owns: string;
+  /** `type` values no primitive can own, e.g. `hidden` and `file` on an input. */
+  exceptTypes?: string[];
+}
+
+export interface RawElementsOptions {
+  /** Element → primitive. Replaces `DEFAULT_PRIMITIVES` wholesale. */
+  primitives?: Record<string, PrimitiveEntry>;
+  /** The design system's directory or barrel. Exempts itself; narrows reports to its exports. */
+  source?: string;
+  /** How product code imports it, for the message. Defaults to `source`. */
+  importPath?: string;
+  /** Class prefixes marking a heading as deliberately on the type ramp. */
+  rampClasses?: string[];
+  /**
+   * Inside the design system, judge each file: only the one exporting the primitive may render
+   * its element, and a second raw one is a variant to add instead. `false` skips the system
+   * wholesale. Default `true`.
+   */
+  systemVariants?: boolean;
+  exemptFiles?: string[];
+}
+
 /** A severity on its own, or one beside the options for that rule. */
 export type RuleEntry<Options = Record<string, unknown>> = Severity | [Severity, Options];
 
@@ -45,10 +72,14 @@ export interface ConfigureOptions {
   "no-pass-through-wrapper"?: RuleEntry<{ elements?: boolean | string[] }>;
   "no-raw-colors"?: RuleEntry<RawColorsOptions>;
   "no-arbitrary-sizes"?: RuleEntry<ArbitrarySizesOptions>;
+  /** Off unless named: without a design system to point at, every `<button>` reports. */
+  "no-raw-elements"?: RuleEntry<RawElementsOptions>;
   "max-lines"?: RuleEntry<Linter.RuleSeverityAndOptions[1]>;
   "max-lines-per-function"?: RuleEntry<Linter.RuleSeverityAndOptions[1]>;
   /** The file colours and sizes belong in. Turns the two design rules on and exempts it. */
   tokens?: { tokenSource?: string; exemptFiles?: string[] };
+  /** The design system product code may not reach past. Turns `no-raw-elements` on. */
+  primitives?: Pick<RawElementsOptions, "source" | "importPath" | "rampClasses" | "primitives">;
   /** Globs the per-function cap is switched off for. Defaults to `DEFAULT_TEST_GLOBS`. */
   testGlobs?: string[];
   ignores?: string[];
@@ -120,6 +151,15 @@ export declare function findInlineWarningGaps(options?: {
   waivers: InlineWarningFinding[];
   violations: InlineWarningFinding[];
 };
+
+/** The elements a primitive owns by default: the form controls and `h1`–`h4`. */
+export declare const DEFAULT_PRIMITIVES: Record<string, PrimitiveEntry>;
+
+/**
+ * What a design system exports, read off its barrel and cached. `null` where the source
+ * could not be read, which reports every element rather than passing them silently.
+ */
+export declare function primitiveExports(source: string): Set<string> | null;
 
 export declare const NAMED_COLORS: string[];
 export declare const NEUTRAL_COLOR_KEYWORDS: string[];

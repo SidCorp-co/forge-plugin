@@ -10,13 +10,14 @@ import { ESLINT_CONFIG_FILES, RULE_NAMES, SETTINGS_FILE, TOKEN_SECTIONS } from "
 
 const SEVERITIES = new Set(["error", "warn", "off"]);
 /** The `=`-flags that are not a rule, so one pass can reject a typo in either kind. */
-const OPTIONS = new Set(["tokens", "hook"]);
+const OPTIONS = new Set(["tokens", "primitives", "hook"]);
 const packageRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 const USAGE = `Usage: code-quality-setup [options]
 
   --<rule>=error|warn|off   one per rule, default error (design rules: off)
   --tokens=FILE             the CSS file colours and sizes belong in
+  --primitives=DIR          the design system product code may not reach past
   --hook=on|off             lint each file Claude Code edits (default on)
   --all-rules               gate on the project's own error rules too
   --dry-run                 print every file and command, write nothing
@@ -107,22 +108,26 @@ function dependencies(manager, writesConfig) {
   return missing;
 }
 
-function renderCall(chosen, tokens, indent) {
+function renderCall(chosen, nouns, indent) {
+  const { tokens, primitives } = nouns;
   const lines = Object.entries(chosen).map(
     ([rule, severity]) => `${indent}  "${rule}": "${severity}",`,
   );
   if (tokens !== undefined) lines.push(`${indent}  tokens: { tokenSource: "${tokens}" },`);
+  if (primitives !== undefined) {
+    lines.push(`${indent}  primitives: { source: "${primitives}" },`);
+  }
   if (lines.length === 0) return "configure()";
   return `configure({\n${lines.join("\n")}\n${indent}})`;
 }
 
-function configFile(chosen, tokens) {
+function configFile(chosen, nouns) {
   return `${typescript ? 'import tsParser from "@typescript-eslint/parser";\n' : ""}\
 import { configure } from "eslint-plugin-code-quality";
 
 export default [
 ${typescript ? '  { files: ["**/*.{ts,tsx,mts,cts}"], languageOptions: { parser: tsParser } },\n' : ""}\
-  ...${renderCall(chosen, tokens, "  ")},
+  ...${renderCall(chosen, nouns, "  ")},
 ];
 `;
 }
@@ -152,7 +157,7 @@ function rendersEverythingIn(call) {
  * since added parsers or rules of its own keeps them. A config assembling this plugin some other
  * way is reported rather than guessed at: only the call is ours.
  */
-function rewriteCall(file, chosen, tokens) {
+function rewriteCall(file, chosen, nouns) {
   const source = readFileSync(file, "utf8");
   const start = source.indexOf("configure(");
   if (start === -1) return "holds no configure() call";
@@ -167,7 +172,7 @@ function rewriteCall(file, chosen, tokens) {
   steps.push(`${dryRun ? "would rewrite" : "rewrote"} the configure() call in ${file}`);
   if (dryRun) return null;
 
-  writeFileSync(file, source.slice(0, start) + renderCall(chosen, tokens, indent) + source.slice(end + 1));
+  writeFileSync(file, source.slice(0, start) + renderCall(chosen, nouns, indent) + source.slice(end + 1));
   // A paren scan cannot know one inside a string from the one closing the call, so the parse is
   // the check, and the file it was read from is the way back.
   if (spawnSync(process.execPath, ["--check", file]).status === 0) return null;
@@ -212,6 +217,11 @@ if (!existsSync("package.json")) fail("no package.json here");
 const chosen = severities();
 const tokens = flag("tokens");
 if (tokens !== undefined && !existsSync(tokens)) fail(`--tokens=${tokens} does not exist`);
+const primitives = flag("primitives");
+if (primitives !== undefined && !existsSync(primitives)) {
+  fail(`--primitives=${primitives} does not exist`);
+}
+const nouns = { tokens, primitives };
 const hook = (flag("hook") ?? "on") === "on";
 
 const existingConfig = ESLINT_CONFIG_FILES.find((file) => existsSync(file));
@@ -221,11 +231,11 @@ const missing = dependencies(manager, existingConfig === undefined);
 if (missing.length > 0) run([...manager.add, ...missing]);
 
 const unrewritable =
-  existingConfig === undefined ? null : rewriteCall(existingConfig, chosen, tokens);
-if (existingConfig === undefined) write("eslint.config.mjs", configFile(chosen, tokens));
+  existingConfig === undefined ? null : rewriteCall(existingConfig, chosen, nouns);
+if (existingConfig === undefined) write("eslint.config.mjs", configFile(chosen, nouns));
 else if (unrewritable !== null) {
   steps.push(`${existingConfig} ${unrewritable} — merge these answers into it by hand:`);
-  for (const line of `...${renderCall(chosen, tokens, "")},`.split("\n")) steps.push(`    ${line}`);
+  for (const line of `...${renderCall(chosen, nouns, "")},`.split("\n")) steps.push(`    ${line}`);
 }
 
 // A project with nothing to settle needs no file, but one that had keys and no longer does needs

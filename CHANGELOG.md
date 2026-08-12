@@ -2,6 +2,18 @@
 
 All notable changes to this package are documented here.
 
+## 0.7.0 - 2026-08-12
+
+### Added
+
+- `no-raw-elements`: a raw element the design system already owns a primitive for is a finding, and the report names the primitive and the behaviour the element drops. A `<select>` beside a `Select` gets the browser's metrics and the OS chevron — which is what a styled label above an unstyled control is — and a raw `<button>` gets neither the focus ring nor the disabled semantics. The default map is the form controls and the headings (`DEFAULT_PRIMITIVES`), and the map is the mechanism: an element absent from it is never judged, so `table` → `DataTable` is a map entry rather than a new rule.
+- Three things `no-raw-elements` does not report, so it can run over a repository rather than one directory: the primitive's own definition, meaning the file that *exports* it — `forms/input.tsx` exporting `Input`, `Select` and `Textarea` may render all three; `<input type="hidden">` and `type="file"`, neither of which is a control a primitive can own; and a heading carrying one of the project's `rampClasses`, because a section that owns its own `aria-labelledby` heading is not a card and the ramp step was the thing the primitive supplied. A class that is not a ramp step does not open that escape.
+- Inside the design system (`DESIGN_SYSTEM` directory names, or anything under `source`) the report inverts: a file rendering `<button>` without exporting `Button` is asked to add the variant to `Button` and compose it, not to import it. That is where the drift starts — a segmented control, a menu row and an icon button each hand-rolling a focus ring is three rings to keep in step, and the primitive's "the ONLY `<button>`" comment stops being true inside its own directory. A control the primitive cannot become (`role="radio"`, `role="menuitem"`) takes the waiver, whose reason records which control it is. `systemVariants: false` skips the system wholesale, for a project adopting the rule over its screens first. The definition check reads the linted file's own text, so no file is read twice and an unsaved edit is judged as written.
+- `source` narrows `no-raw-elements` to the primitives the design system actually exports, read off its barrel once and cached (`primitiveExports()`): a project whose system has no `Textarea` has nothing to point a report at, so the element written instead is not yet a finding. An unreadable source reports every element rather than passing them silently.
+- A control no primitive models — a whole row that is one button, a tile carrying `aria-pressed` — is waived at the site with `primitive: none — <reason>`, the shape `inline-warning: none —` already uses. The reason is mandatory, and one waiver covers the next raw element only, so a second one below it still reports.
+- `no-raw-elements` is off over `testGlobs`, in the same block that relaxes the per-function cap there: a raw control in a test is a stub standing in for a screen, which no primitive's focus ring was ever going to reach. A star barrel (`export * from "./controls/button"`) is followed to the modules it re-exports, since a system whose barrel names nothing itself would otherwise read as exporting nothing and pass every raw element in silence.
+- `configure({ primitives })` names the design system once, the way `tokens` names the token layer, and turns `no-raw-elements` on. It stays `off` until then: with no system to point at, every `<button>` in the project reports and no message can say what to write instead. `code-quality-setup --primitives=DIR` writes that section.
+
 ## 0.6.0 - 2026-08-12
 
 ### Changed
