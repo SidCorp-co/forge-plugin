@@ -280,6 +280,8 @@ export interface ContrastPair {
 }
 
 export interface ContrastFinding extends ContrastPair {
+  /** The theme it was measured in, or `null` when the call declared none. */
+  theme: string | null;
   need: number;
   foreground: string | null;
   background: string | null;
@@ -314,13 +316,35 @@ export declare function resolveTokenAliases(tokens: Map<string, string>): Map<st
 /** Tokens from several files or blocks, merged in order, later sources winning. */
 export declare function readTokenSources(sources: TokenSource[]): Map<string, string>;
 
-/** Contrast over a theme. One of `tokenFile` or `sources` is required. */
+/** One theme of a file that declares several, named so a failure can say which. */
+export interface ContrastTheme {
+  name: string;
+  /** Blocks of `tokenFile`, layered in order: the base theme, then what rebinds it. */
+  blocks?: string[];
+  /** The same, spread over more than one file. One of `blocks` or `sources` is required. */
+  sources?: TokenSource[];
+  tokenFile?: string;
+  tokenPattern?: string;
+}
+
+/** A theme after its sources are read, with the findings measured against it. */
+export interface MeasuredTheme {
+  name: string | null;
+  sources: TokenSource[];
+  tokens: Map<string, string>;
+  failures: ContrastFinding[];
+  waivers: ContrastFinding[];
+}
+
+/** Contrast over every declared theme. One of `tokenFile` or `sources` is required. */
 export declare function findContrastFailures(options: {
   tokenFile?: string;
   block?: string;
   tokenPattern?: string;
   /** A theme spread over more than one file or block, innermost layer first. */
   sources?: TokenSource[];
+  /** Every theme the project ships. One measured palette per entry; omit for one unnamed theme. */
+  themes?: ContrastTheme[];
   tokenPrefix?: string;
   roots?: string[];
   extensions?: string[];
@@ -330,8 +354,9 @@ export declare function findContrastFailures(options: {
   thresholds?: Partial<typeof DEFAULT_CONTRAST_THRESHOLDS>;
   scanMarkup?: boolean;
 }): {
-  tokens: Map<string, string>;
+  themes: MeasuredTheme[];
   pairs: ContrastPair[];
+  /** Every theme's failures, in theme order. Each names the theme it came from. */
   failures: ContrastFinding[];
   waivers: ContrastFinding[];
 };

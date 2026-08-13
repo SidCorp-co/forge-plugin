@@ -289,8 +289,23 @@ findContrastFailures({
   ],
   allow: [{ fg: "--color-border", bg: "--color-bg-1", why: "design: raising it re-draws every border" }]
 });
-// { tokens, pairs, failures, waivers }
+// { themes, pairs, failures, waivers }
 ```
+
+A file that declares more than one theme is **one** run, not one per theme. `themes` names each and lists the blocks it is layered from, innermost first, because a second theme is usually a partial rebinding — a dark block restates the colours that move and inherits the rest:
+
+```js
+findContrastFailures({
+  tokenFile: "app/globals.css",
+  themes: [
+    { name: "light", blocks: ["@theme"] },
+    { name: "dark", blocks: ["@theme", ".dark"] }   // 42 rebound, 14 inherited
+  ]
+});
+// failures: [{ theme: "dark", fg, bg, ratio, reason, … }]
+```
+
+Every finding names the theme it came from, and `themes` on the result carries each palette with its own `failures` and `waivers`. One `allow` list covers them all: a waiver is a decision about a pair, not about a theme, and duplicating it per theme is two lists that must agree. This matters most where a theme is *only* token rebinding — with `dark:` utilities banned by convention, a dark-only contrast regression appears nowhere in the source and can be caught only by measuring the block. A theme the list omits is a theme nothing measures.
 
 A theme spread over more than one file or block — a semantic layer over a raw palette, which is what Tailwind v4's `@theme inline` is for — is passed as `sources` instead of `tokenFile`, innermost layer first:
 
@@ -303,11 +318,13 @@ findContrastFailures({
 });
 ```
 
+A `block` is matched by the header that opens it — the selector or at-rule immediately before a `{`, with comments ignored — and never as a substring. `.dark` typically occurs in a comment and inside `@custom-variant dark (&:where(.dark, .dark *))` above the block it names, and a substring search would select whichever block came next and report a green run over a theme nobody asked for. A block the file does not declare throws rather than falling through to one it does.
+
 `var()` aliases are followed to the value they end at, across sources and any number of hops, so a two-layer theme measures the same as a one-layer one. A cycle or a name nothing declares resolves to itself and is reported as unresolvable. The plugin has no opinion on how many layers a theme has: its ban is on literals *outside* the token layer, and both shapes keep them inside.
 
 One of `tokenFile` or `sources` is required, with no default: every project names its token file differently, and a guess would report a clean run over tokens that were never read. An `allow` entry moves a failure into `waivers` and must say why it stands — the finding then carries both the site it renders at (`why`) and the decision that lets it through (`waivedBecause`). Thresholds default to WCAG 2.1 — 4.5 for text, 3 for large text, 3 for non-text boundaries and focus indicators (`DEFAULT_CONTRAST_THRESHOLDS`) — and `need` on a pair is a threshold name or a ratio.
 
-Pairs come from two places: the `declaredPairs` a project states, and the markup scan, which pairs a background utility with a foreground utility in the same class string and maps them onto tokens by `tokenPrefix` (default `--color-`). A utility carrying an opacity or an arbitrary value is skipped, because what it composites against is not in the token table. A file that declares more than one theme needs one call per theme with a different `block`; a token whose value is not a hex colour is reported as unresolvable rather than skipped. So is a translucent one (`#1118270a`): what it composites over is a fact about a screen, and scoring it opaque would pass a pair that fails in the browser.
+Pairs come from two places: the `declaredPairs` a project states, and the markup scan, which pairs a background utility with a foreground utility in the same class string and maps them onto tokens by `tokenPrefix` (default `--color-`). A utility carrying an opacity or an arbitrary value is skipped, because what it composites against is not in the token table. The scan runs once for all themes: a class string pairs the same two tokens whichever theme binds them, and a name only one theme declares is a rebinding gap the others report rather than a pair to drop. A token whose value is not a hex colour is reported as unresolvable rather than skipped. So is a translucent one (`#1118270a`): what it composites over is a fact about a screen, and scoring it opaque would pass a pair that fails in the browser.
 
 ## Design-system rules
 
@@ -479,14 +496,17 @@ code-quality-gate    # reads code-quality.json
   "typeRamp": { "block": "@theme" },
   "contrast": {
     "roots": ["app", "components"],
-    "sources": [{ "file": "app/tokens.css", "block": ":root" }],
+    "themes": [
+      { "name": "light", "blocks": ["@theme"] },
+      { "name": "dark", "blocks": ["@theme", ".dark"] }
+    ],
     "declaredPairs": [{ "fg": "--color-fg-muted", "bg": "--color-bg-1", "why": "row labels on a card" }],
     "allow": [{ "fg": "--color-border", "bg": "--color-bg-1", "why": "design: raising it re-draws every border" }]
   }
 }
 ```
 
-Every section may be omitted. `stylesheets` bans raw colours in CSS, `sizes` bans raw font sizes there, `typeRamp` checks that every ramp step declares its line height, and `contrast` measures the theme. `stylesheets` and `sizes` always exempt `tokenFile`, alongside any `exemptFiles` of their own. Allowed contrast failures print on every run, like inline-error waivers; unresolvable or unknown tokens fail. A malformed config, a missing `tokenFile`, or an allow entry without a reason exits `2` rather than passing quietly.
+Every section may be omitted. `stylesheets` bans raw colours in CSS, `sizes` bans raw font sizes there, `typeRamp` checks that every ramp step declares its line height, and `contrast` measures every theme in `themes` — printing which ones it measured, and prefixing each finding with the theme it came from. A `contrast` without `themes` measures one palette: `block` for a single theme out of the file, `sources` for one spread over several files. `stylesheets` and `sizes` always exempt `tokenFile`, alongside any `exemptFiles` of their own. Allowed contrast failures print on every run, like inline-error waivers; unresolvable or unknown tokens fail. A malformed config, a missing `tokenFile`, or an allow entry without a reason exits `2` rather than passing quietly.
 
 The check is also importable, for a project that wants it somewhere other than the gate:
 

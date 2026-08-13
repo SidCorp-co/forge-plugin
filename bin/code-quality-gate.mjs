@@ -338,20 +338,32 @@ function checkDesignTokens() {
     if (contrast.scanMarkup !== false) {
       counts.push(`${swept("contrast", { ...contrast, roots: markupRoots })} screens`);
     }
+    const homed = (sources) => sources?.map((source) => ({ ...source, file: here(source.file) }));
     let result;
     try {
       result = findContrastFailures({
         ...contrast,
         tokenFile: contrast.tokenFile ? here(contrast.tokenFile) : tokenFile,
-        sources: contrast.sources?.map((source) => ({ ...source, file: here(source.file) })),
+        sources: homed(contrast.sources),
+        themes: contrast.themes?.map((theme) => ({
+          ...theme,
+          tokenFile: theme.tokenFile ? here(theme.tokenFile) : undefined,
+          sources: homed(theme.sources),
+        })),
         roots: markupRoots,
       });
     } catch (error) {
       process.stderr.write(`code-quality-gate: contrast check: ${error.message}\n`);
       process.exit(2);
     }
+    const named = result.themes.map((theme) => theme.name).filter(Boolean);
+    counts.push(named.length > 0 ? `themes ${named.join(", ")}` : "1 theme");
+    // The theme is part of the finding, not decoration: with a dark theme built
+    // out of rebound tokens rather than `dark:` utilities, the same pair reads
+    // two different ways and a report that omits which one is unactionable.
     const line = (entry) =>
-      `  ${entry.fg} ${entry.foreground ?? "?"} on ${entry.bg} ${entry.background ?? "?"}\n` +
+      `  ${entry.theme ? `[${entry.theme}] ` : ""}` +
+      `${entry.fg} ${entry.foreground ?? "?"} on ${entry.bg} ${entry.background ?? "?"}\n` +
       `      ${entry.reason} — ${entry.why ?? "no site recorded"}` +
       (entry.waivedBecause === undefined ? "" : `\n      allowed: ${entry.waivedBecause}`);
     if (result.waivers.length > 0) {

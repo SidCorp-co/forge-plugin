@@ -6,7 +6,11 @@ import test from "node:test";
 import { findContrastFailures } from "../../src/design/contrast.js";
 import { contrastRatio, readColorTokens } from "../../src/design/tokens.js";
 
-const CSS = `@theme {
+// The comment and the `:where()` are the trap: both name `.dark` above the block
+// that declares it, and both are what a substring search finds first.
+const CSS = `/* The app toggles .dark on <html> rather than following the OS. */
+@custom-variant dark (&:where(.dark, .dark *));
+@theme {
   --color-bg: #ffffff;
   --color-fg: #111111;
   --color-fg-dim: #999999;
@@ -40,7 +44,91 @@ test("WCAG ratios are computed from the token file, not transcribed", () => {
   const tokens = readColorTokens(tokenFile, { block: "@theme" });
   assert.equal(tokens.get("--color-bg"), "#ffffff");
   assert.equal(readColorTokens(tokenFile).get("--color-bg"), "#000000");
-  assert.equal(readColorTokens(tokenFile, { block: "\n.dark" }).get("--color-fg"), "#eeeeee");
+  assert.equal(readColorTokens(tokenFile, { block: ".dark" }).get("--color-fg"), "#eeeeee");
+});
+
+test("a block is found by its header, and a name nothing declares fails loudly", () => {
+  const { tokenFile } = project();
+
+  // `.dark` occurs in a comment and in a `:where()` before the block it names.
+  // A substring search reaches `@theme` and reports the light theme as the dark one.
+  assert.equal(readColorTokens(tokenFile, { block: ".dark" }).get("--color-bg"), "#000000");
+  assert.equal(readColorTokens(tokenFile, { block: "@theme" }).get("--color-bg"), "#ffffff");
+
+  // A block only a comment mentions is not a block, and measuring another one in
+  // its place would report green over a theme that was never read.
+  const { tokenFile: commented } = project({
+    "app/commented.css": "/* .midnight is planned, not written */\n@theme {\n  --color-bg: #ffffff;\n}\n",
+  });
+  const file = path.join(path.dirname(commented), "commented.css");
+  assert.throws(
+    () => readColorTokens(file, { block: ".midnight" }),
+    (error) => error.message === `No \`.midnight\` block in ${file}`,
+  );
+  assert.throws(
+    () => findContrastFailures({ tokenFile: file, block: ".midnight", scanMarkup: false }),
+    /No `\.midnight` block/,
+  );
+
+  // A declaration commented out is not a declaration either.
+  const { tokenFile: disabled } = project({
+    "app/disabled.css": "@theme {\n  --color-bg: #ffffff;\n  /* --color-bg: #000000; */\n}\n",
+  });
+  const off = readColorTokens(path.join(path.dirname(disabled), "disabled.css"), { block: "@theme" });
+  assert.equal(off.get("--color-bg"), "#ffffff");
+});
+
+test("one run measures every declared theme and names the one a failure came from", () => {
+  const { root, tokenFile } = project({
+    // The muted foreground reads 4.54:1 on white and 4.36:1 on the dark surface it
+    // is never rebound for: a failure only a run that measures dark can see.
+    "app/globals.css": CSS.replace("--color-fg-dim: #999999;", "--color-fg-dim: #767676;").replace(
+      "--color-bg: #000000;",
+      "--color-bg: #0a0a0b;",
+    ),
+    "app/card.tsx": 'export const cls = "bg-bg text-fg-dim rounded-lg";',
+  });
+  const themes = [
+    { name: "light", blocks: ["@theme"] },
+    { name: "dark", blocks: ["@theme", ".dark"] },
+  ];
+  const result = findContrastFailures({ tokenFile, themes, roots: [root] });
+
+  // The dark block rebinds --color-bg alone, so the pair only exists at all
+  // because the theme layers `.dark` over `@theme` rather than replacing it.
+  assert.deepEqual(
+    result.failures.map((entry) => `${entry.theme}: ${entry.fg} on ${entry.bg} ${entry.reason}`),
+    ["dark: --color-fg-dim on --color-bg 4.36:1, needs 4.5:1"],
+  );
+  assert.deepEqual(
+    result.themes.map((theme) => [theme.name, theme.tokens.get("--color-bg"), theme.failures.length]),
+    [
+      ["light", "#ffffff", 0],
+      ["dark", "#0a0a0b", 1],
+    ],
+  );
+
+  // One `allow` list covers every theme: a waiver is a decision about a pair.
+  const waived = findContrastFailures({
+    tokenFile,
+    themes,
+    roots: [root],
+    allow: [{ fg: "--color-fg-dim", bg: "--color-bg", why: "design: the muted ramp" }],
+  });
+  assert.deepEqual(waived.failures, []);
+  assert.deepEqual(
+    waived.waivers.map((entry) => entry.theme),
+    ["dark"],
+  );
+
+  assert.throws(
+    () => findContrastFailures({ tokenFile, themes: [{ blocks: ["@theme"] }] }),
+    /needs a \{ name \}/,
+  );
+  assert.throws(
+    () => findContrastFailures({ tokenFile, themes: [{ name: "light" }] }),
+    /needs \{ blocks \} or \{ sources \}/,
+  );
 });
 
 test("a semantic layer over a raw palette resolves to the colour it ends at", () => {
@@ -69,7 +157,7 @@ test("a semantic layer over a raw palette resolves to the colour it ends at", ()
   // Two hops across two files: --color-fg → --fg-default → --ink-900 → a colour.
   const resolved = check([{ fg: "--color-fg", bg: "--color-bg", why: "body text" }]);
   assert.deepEqual(resolved.failures, []);
-  assert.equal(resolved.tokens.get("--color-fg"), "#181b22");
+  assert.equal(resolved.themes[0].tokens.get("--color-fg"), "#181b22");
 
   // A cycle and a dead end resolve to themselves rather than hanging or throwing.
   const { failures } = check([{ fg: "--color-loop", bg: "--color-nowhere", why: "broken" }]);

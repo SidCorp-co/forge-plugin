@@ -81,6 +81,35 @@ test("an allowed pair prints on every run instead of disappearing", () => {
   assert.match(result.stdout, /design: the muted ramp/);
 });
 
+test("the gate measures every theme the config declares and names the failing one", () => {
+  const root = consumer(
+    {
+      tokenFile: "app/globals.css",
+      contrast: {
+        roots: ["app"],
+        themes: [
+          { name: "light", blocks: ["@theme"] },
+          { name: "dark", blocks: ["@theme", ".dark"] },
+        ],
+      },
+    },
+    {
+      // Planted in the dark block alone: 4.54:1 on white, 4.36:1 on the dark surface.
+      "app/globals.css":
+        "/* .dark is a class, not the OS setting */\n" +
+        "@theme {\n  --color-bg: #ffffff;\n  --color-fg-dim: #767676;\n}\n" +
+        ".dark {\n  --color-bg: #0a0a0b;\n}\n",
+    },
+  );
+
+  const result = run(root);
+  assert.equal(result.status, 1, `${result.stdout}${result.stderr}`);
+  assert.match(result.stdout, /design tokens · .*themes light, dark/);
+  assert.match(result.stderr, /\[dark\] --color-fg-dim #767676 on --color-bg #0a0a0b\n\s+4\.36:1/);
+  // The same pair passes in light, so a report naming no theme would be unactionable.
+  assert.doesNotMatch(result.stderr, /\[light\]/);
+});
+
 test("a config below the run directory still sweeps the whole run directory", () => {
   const root = consumer(
     { tokenFile: "../app/globals.css", stylesheets: {}, contrast: { block: "@theme" } },

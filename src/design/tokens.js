@@ -273,17 +273,35 @@ export function sourceFiles({
   return files.sort();
 }
 
-function blockBody(css, block) {
-  const header = css.indexOf(block);
-  if (header === -1) throw new Error(`No \`${block}\` block in the token file`);
-  const start = css.indexOf("{", header);
-  if (start === -1) throw new Error(`\`${block}\` opens no block in the token file`);
+const COMMENT = /\/\*[\s\S]*?\*\//g;
+
+/** Comments blanked to their own width, so a prose mention is never read as code. */
+function withoutComments(css) {
+  return css.replace(COMMENT, (match) => match.replace(/[^\n]/g, " "));
+}
+
+/**
+ * A block is found by the header that opens it, never by substring: `.dark`
+ * occurs in a comment and in `:where(.dark, …)` above the block it names, and a
+ * substring search selects whichever block came next. Whitespace matches any run.
+ */
+function blockStart(css, block) {
+  const name = escapeForRegExp(block.trim()).replace(/\s+/g, "\\s+");
+  const header = new RegExp(`(?<![\\w-])${name}\\s*\\{`);
+  const match = header.exec(css);
+  return match === null ? -1 : match.index + match[0].length - 1;
+}
+
+function blockBody(css, block, file) {
+  const start = blockStart(css, block);
+  // Loudly, because the alternative is measuring another block and reading green.
+  if (start === -1) throw new Error(`No \`${block}\` block in ${file}`);
   let depth = 0;
   for (let end = start; end < css.length; end += 1) {
     if (css[end] === "{") depth += 1;
     else if (css[end] === "}" && (depth -= 1) === 0) return css.slice(start + 1, end);
   }
-  throw new Error(`\`${block}\` is never closed in the token file`);
+  throw new Error(`\`${block}\` is never closed in ${file}`);
 }
 
 /**
@@ -292,8 +310,8 @@ function blockBody(css, block) {
  * declaration win, and that theme is not the one being measured.
  */
 export function readColorTokens(file, { block, tokenPattern = "--[\\w-]+" } = {}) {
-  const css = readFileSync(file, "utf8");
-  const scope = block === undefined ? css : blockBody(css, block);
+  const css = withoutComments(readFileSync(file, "utf8"));
+  const scope = block === undefined ? css : blockBody(css, block, file);
   const tokens = new Map();
   const declaration = new RegExp(`(${tokenPattern})\\s*:\\s*([^;}]+)`, "gi");
   for (const match of scope.matchAll(declaration)) {

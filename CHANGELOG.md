@@ -2,6 +2,18 @@
 
 All notable changes to this package are documented here.
 
+## 0.8.0 - 2026-08-13
+
+### Fixed
+
+- A `block` is matched by the header that opens it, not by `indexOf`. `.dark` occurs in a comment and inside `@custom-variant dark (&:where(.dark, .dark *))` above the block it names, so a substring search reached the `@theme` block instead and every reader of the result — the contrast gate, the type ramp — measured the light theme while reporting on the dark one. A checker that silently measures the wrong thing and prints green is the worst failure mode a checker has. A block the file does not declare now throws naming the file, rather than falling through to whichever block matched, and a declaration inside a comment is no longer read as a declaration.
+
+### Added
+
+- `themes` on `findContrastFailures()`: one run measures every theme a file declares and each finding names the theme it came from. A theme is `{ name, blocks }` layered innermost first, because a second theme is usually a partial rebinding — a `.dark` block restates the colours that move and inherits the rest from `@theme`, so measuring the block alone measures half a palette. One `allow` list covers every theme: a waiver is a decision about a pair, and a second config with a second list is two lists that must agree. The markup scan runs once for all of them, so a second theme costs no second sweep of the project. Without `themes` the call measures one unnamed palette exactly as before.
+- The gate prints the themes it measured beside the file counts, and prefixes each contrast finding with `[theme]`. With `dark:` utilities banned by convention a dark theme is entirely token rebinding, so a regression there is invisible in the source and a report that does not say which theme failed is unactionable.
+- `findContrastFailures()` returns `{ themes, pairs, failures, waivers }`; the palette that was `tokens` is `themes[0].tokens`, and each entry of `themes` carries its own `failures` and `waivers`. Its header states what a clean run does not cover: a colour that only exists at runtime, a pair nothing declares, and any theme missing from the list.
+
 ## 0.7.0 - 2026-08-12
 
 ### Added
