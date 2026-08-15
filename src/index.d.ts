@@ -361,6 +361,35 @@ export declare function findContrastFailures(options: {
   waivers: ContrastFinding[];
 };
 
+/** One palette per theme, each a list of sources layered in order. */
+export declare function themePalettes(options: {
+  themes?: ContrastTheme[];
+  tokenFile?: string;
+  block?: string;
+  tokenPattern?: string;
+  sources?: TokenSource[];
+}): { name: string | null; sources: TokenSource[] }[];
+
+export declare const THEME_OVERRIDE_DIRECTIVE: string;
+
+/** A theme declaration that restates the value already in force under it. */
+export interface RedundantOverride {
+  theme: string | null;
+  token: string;
+  value: string;
+  /** The block it was declared in, or `null` for a source that named no block. */
+  block: string | null;
+}
+
+/** Declarations a theme's own block could drop without changing a single colour. */
+export declare function findRedundantOverrides(options: {
+  tokenFile?: string;
+  block?: string;
+  tokenPattern?: string;
+  sources?: TokenSource[];
+  themes?: ContrastTheme[];
+}): RedundantOverride[];
+
 declare const plugin: ESLint.Plugin;
 
 export default plugin;

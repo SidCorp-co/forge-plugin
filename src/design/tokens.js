@@ -371,6 +371,34 @@ export function readTokenSources(sources) {
   return tokens;
 }
 
+/**
+ * One palette per theme, each a list of sources layered in order: a second theme
+ * is usually a partial rebinding, so its block alone is half a palette. Without
+ * `themes` this is one unnamed palette over `sources` or `tokenFile`.
+ */
+export function themePalettes({ themes, tokenFile, block, tokenPattern, sources }) {
+  if (themes === undefined) {
+    const one = sources ?? (tokenFile ? [{ file: tokenFile, block, tokenPattern }] : []);
+    return [{ name: null, sources: one }];
+  }
+  return themes.map((theme) => {
+    if (!theme.name) {
+      throw new TypeError("A theme needs a { name }: a failure has to say which theme it is from.");
+    }
+    if (theme.sources === undefined && theme.blocks === undefined) {
+      throw new TypeError(`Theme "${theme.name}" needs { blocks } or { sources } to read.`);
+    }
+    const layers =
+      theme.sources ??
+      theme.blocks.map((name) => ({
+        file: theme.tokenFile ?? tokenFile,
+        block: name,
+        tokenPattern: theme.tokenPattern ?? tokenPattern,
+      }));
+    return { name: theme.name, sources: layers };
+  });
+}
+
 /** sRGB channels of a hex colour, or null for a value this gate cannot resolve. */
 export function parseHexColor(value) {
   const digits = hexDigits(value);

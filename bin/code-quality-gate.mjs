@@ -18,11 +18,13 @@ import {
   findInlineWarningGaps,
   findRampGaps,
   findRawColorsInFiles,
+  findRedundantOverrides,
   FIX_POLICY,
   RULE_IDS,
   SETTINGS_FILE,
   SOURCE_EXTENSIONS,
   sourceFiles,
+  THEME_OVERRIDE_DIRECTIVE,
   TOKEN_SECTIONS,
   TYPE_RAMP_DIRECTIVE,
 } from "../src/index.js";
@@ -339,22 +341,35 @@ function checkDesignTokens() {
       counts.push(`${swept("contrast", { ...contrast, roots: markupRoots })} screens`);
     }
     const homed = (sources) => sources?.map((source) => ({ ...source, file: here(source.file) }));
+    const palette = {
+      ...contrast,
+      tokenFile: contrast.tokenFile ? here(contrast.tokenFile) : tokenFile,
+      sources: homed(contrast.sources),
+      themes: contrast.themes?.map((theme) => ({
+        ...theme,
+        tokenFile: theme.tokenFile ? here(theme.tokenFile) : undefined,
+        sources: homed(theme.sources),
+      })),
+    };
     let result;
+    let redundant;
     try {
-      result = findContrastFailures({
-        ...contrast,
-        tokenFile: contrast.tokenFile ? here(contrast.tokenFile) : tokenFile,
-        sources: homed(contrast.sources),
-        themes: contrast.themes?.map((theme) => ({
-          ...theme,
-          tokenFile: theme.tokenFile ? here(theme.tokenFile) : undefined,
-          sources: homed(theme.sources),
-        })),
-        roots: markupRoots,
-      });
+      result = findContrastFailures({ ...palette, roots: markupRoots });
+      redundant = findRedundantOverrides(palette);
     } catch (error) {
       process.stderr.write(`code-quality-gate: contrast check: ${error.message}\n`);
       process.exit(2);
+    }
+    // Layering is what the themes declare, so this reads the same declaration the
+    // contrast check does rather than asking the project to state it a second time.
+    if (redundant.length > 0) {
+      const report = redundant
+        .map((entry) => `  [${entry.theme}] ${entry.token} ${entry.value} in ${entry.block}`)
+        .join("\n");
+      process.stderr.write(
+        `\nTheme declarations that change nothing:\n\n${report}\n\n${THEME_OVERRIDE_DIRECTIVE}\n`,
+      );
+      process.exitCode = 1;
     }
     const named = result.themes.map((theme) => theme.name).filter(Boolean);
     counts.push(named.length > 0 ? `themes ${named.join(", ")}` : "1 theme");

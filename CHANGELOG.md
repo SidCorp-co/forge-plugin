@@ -2,6 +2,13 @@
 
 All notable changes to this package are documented here.
 
+## 0.9.0 - 2026-08-15
+
+### Added
+
+- `findRedundantOverrides()`: a declaration in a theme's own block whose value is already in force under it. The contrast check pairs tokens, so it can only see a colour someone stated twice in one class string; it is structurally blind to the token nobody rebound at all, which is the more common dark-theme defect and needs no pairing to detect. A block that restates the base value changes nothing and reads exactly like a rebinding that was considered, which is what hides the one that was never made — the token is then silently the base theme's colour on a surface the base theme never had. Values are compared after `var()` is followed, so an alias landing on the same colour is the same no-op as a repeated literal. The gate runs it off `contrast.themes`, because the layering is a fact the project has already declared once and a second copy is two declarations that must agree.
+- `themePalettes()` is exported: the theme-to-layers reading both checks share.
+
 ## 0.8.0 - 2026-08-13
 
 ### Fixed

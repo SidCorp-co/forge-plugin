@@ -21,6 +21,7 @@ export {
   TYPE_RAMP_DIRECTIVE,
 } from "./design/type-ramp.js";
 export { findRawColorsInFiles } from "./design/no-raw-colors.js";
+export { findRedundantOverrides, THEME_OVERRIDE_DIRECTIVE } from "./design/theme-overrides.js";
 export { DEFAULT_PRIMITIVES, primitiveExports } from "./design/no-raw-elements.js";
 export {
   COLOR_PROPERTIES,
@@ -34,6 +35,7 @@ export {
   readTokenSources,
   resolveTokenAliases,
   sourceFiles,
+  themePalettes,
 } from "./design/tokens.js";
 
 export {

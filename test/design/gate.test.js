@@ -110,6 +110,32 @@ test("the gate measures every theme the config declares and names the failing on
   assert.doesNotMatch(result.stderr, /\[light\]/);
 });
 
+test("the gate fails a dark block that restates a colour it never rebound", () => {
+  const root = consumer(
+    {
+      tokenFile: "app/globals.css",
+      contrast: {
+        roots: ["app"],
+        themes: [
+          { name: "light", blocks: ["@theme"] },
+          { name: "dark", blocks: ["@theme", ".dark"] },
+        ],
+      },
+    },
+    {
+      // --color-brand is named in .dark and is the light value; --color-bg is rebound.
+      "app/globals.css":
+        "@theme {\n  --color-bg: #ffffff;\n  --color-fg-dim: #767676;\n  --color-brand: #eb6927;\n}\n" +
+        ".dark {\n  --color-bg: #0a0a0b;\n  --color-brand: #eb6927;\n}\n",
+    },
+  );
+
+  const result = run(root);
+  assert.equal(result.status, 1, `${result.stdout}${result.stderr}`);
+  const [, report] = /Theme declarations that change nothing:\n\n([\s\S]*?)\n\n/.exec(result.stderr);
+  assert.equal(report, "  [dark] --color-brand #eb6927 in .dark");
+});
+
 test("a config below the run directory still sweeps the whole run directory", () => {
   const root = consumer(
     { tokenFile: "../app/globals.css", stylesheets: {}, contrast: { block: "@theme" } },

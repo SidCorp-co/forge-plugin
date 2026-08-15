@@ -307,6 +307,13 @@ findContrastFailures({
 
 Every finding names the theme it came from, and `themes` on the result carries each palette with its own `failures` and `waivers`. One `allow` list covers them all: a waiver is a decision about a pair, not about a theme, and duplicating it per theme is two lists that must agree. This matters most where a theme is *only* token rebinding — with `dark:` utilities banned by convention, a dark-only contrast regression appears nowhere in the source and can be caught only by measuring the block. A theme the list omits is a theme nothing measures.
 
+`findRedundantOverrides()` reads the same `themes` and reports the other half of that blind spot: a declaration in a theme's own block whose value is already in force underneath it. Such a line changes no colour, and in the block it is indistinguishable from the rebinding nobody made — which is how a token stays the base theme's colour on a surface the base theme never had, in a file that appears to name it. Values are compared after `var()` is followed, so an alias landing on the same colour is the same no-op as a repeated literal. It needs no pairing and no markup: a token restated is measurable on its own.
+
+```js
+findRedundantOverrides({ tokenFile: "app/globals.css", themes });
+// [{ theme: "dark", token: "--color-primary-deep", value: "#a34715", block: ".dark" }]
+```
+
 A theme spread over more than one file or block — a semantic layer over a raw palette, which is what Tailwind v4's `@theme inline` is for — is passed as `sources` instead of `tokenFile`, innermost layer first:
 
 ```js
@@ -506,7 +513,7 @@ code-quality-gate    # reads code-quality.json
 }
 ```
 
-Every section may be omitted. `stylesheets` bans raw colours in CSS, `sizes` bans raw font sizes there, `typeRamp` checks that every ramp step declares its line height, and `contrast` measures every theme in `themes` — printing which ones it measured, and prefixing each finding with the theme it came from. A `contrast` without `themes` measures one palette: `block` for a single theme out of the file, `sources` for one spread over several files. `stylesheets` and `sizes` always exempt `tokenFile`, alongside any `exemptFiles` of their own. Allowed contrast failures print on every run, like inline-error waivers; unresolvable or unknown tokens fail. A malformed config, a missing `tokenFile`, or an allow entry without a reason exits `2` rather than passing quietly.
+Every section may be omitted. `stylesheets` bans raw colours in CSS, `sizes` bans raw font sizes there, `typeRamp` checks that every ramp step declares its line height, and `contrast` measures every theme in `themes` — printing which ones it measured, and prefixing each finding with the theme it came from. Its `themes` also drive the redundant-override check, which needs no second declaration of a layering the project has already stated once. A `contrast` without `themes` measures one palette: `block` for a single theme out of the file, `sources` for one spread over several files. `stylesheets` and `sizes` always exempt `tokenFile`, alongside any `exemptFiles` of their own. Allowed contrast failures print on every run, like inline-error waivers; unresolvable or unknown tokens fail. A malformed config, a missing `tokenFile`, or an allow entry without a reason exits `2` rather than passing quietly.
 
 The check is also importable, for a project that wants it somewhere other than the gate:
 
