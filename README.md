@@ -261,11 +261,12 @@ Interactivity is read off the enclosing JSX opening element — its tag name, an
 
 ### What ESLint cannot see
 
-Two parts of this ban do not fit a per-file, AST-based rule, and are shipped as functions instead of pretending otherwise:
+Several parts of this ban do not fit a per-file, AST-based rule, and are shipped as functions instead of pretending otherwise:
 
 - **Stylesheets.** ESLint parses no `.css` without a CSS language plugin, and this package ships none. The rules above cover `.js`/`.jsx`/`.ts`/`.tsx` — including CSS-in-JS template literals — and **not** your stylesheets. `findRawColorsInFiles()` and `findArbitrarySizesInFiles()` are the same two bans as a text scan over `.css`, `.scss`, `.sass`, and `.less`.
 - **Ramp completeness.** Whether a type ramp declares a line height beside every size is a fact about one file read whole, not about any file being linted. `findRampGaps()` answers it.
 - **Contrast.** A WCAG check needs the token file and every screen that pairs two tokens at once. A per-file rule would have to re-read the token file and would still report one pair once per file that mentions it. `findContrastFailures()` takes the whole project.
+- **Utilities naming a token that does not exist.** Whether `border-warn` resolves is a question about the token file, not about the file being linted, and the answer differs per theme. `findUnknownTokens()` takes both.
 
 ```js
 import { findContrastFailures, findRawColorsInFiles } from "eslint-plugin-code-quality";
@@ -332,6 +333,46 @@ A `block` is matched by the header that opens it — the selector or at-rule imm
 One of `tokenFile` or `sources` is required, with no default: every project names its token file differently, and a guess would report a clean run over tokens that were never read. An `allow` entry moves a failure into `waivers` and must say why it stands — the finding then carries both the site it renders at (`why`) and the decision that lets it through (`waivedBecause`). Thresholds default to WCAG 2.1 — 4.5 for text, 3 for large text, 3 for non-text boundaries and focus indicators (`DEFAULT_CONTRAST_THRESHOLDS`) — and `need` on a pair is a threshold name or a ratio.
 
 Pairs come from two places: the `declaredPairs` a project states, and the markup scan, which pairs a background utility with a foreground utility in the same class string and maps them onto tokens by `tokenPrefix` (default `--color-`). A utility carrying an opacity or an arbitrary value is skipped, because what it composites against is not in the token table. The scan runs once for all themes: a class string pairs the same two tokens whichever theme binds them, and a name only one theme declares is a rebinding gap the others report rather than a pair to drop. A token whose value is not a hex colour is reported as unresolvable rather than skipped. So is a translucent one (`#1118270a`): what it composites over is a fact about a screen, and scoring it opaque would pass a pair that fails in the browser.
+
+### Utilities naming a token that does not exist
+
+`border-warn` where the token is `--color-warning` is not an error to Tailwind. It emits no rule at all: the element renders unstyled, every test passes, and the reviewer sees a plausible class name. Two screens shipped `border-warn bg-warn-soft` for months on exactly that. Merging class strings through `tailwind-merge` raises it from cosmetic to destructive — a class whose token is missing is no longer inert, it displaces the working utility before it in the same call.
+
+```js
+findUnknownTokens({
+  tokenFile: "app/globals.css",
+  themes: [
+    { name: "light", blocks: ["@theme"] },
+    { name: "dark", blocks: ["@theme", ".dark"] }
+  ],
+  roots: ["app", "components"]
+});
+// [{ file, line, kind: "unknown token", candidate: "border-warn",
+//    token: "--color-warn", missing: ["light", "dark"] }]
+```
+
+A utility is read as a prefix and a value, and the value has to resolve in the namespaces that prefix takes: `text-sm` is a ramp step, `text-danger` is a colour, and either resolving is enough. Variants are stripped first, and a variant that names a theme narrows the question to it — `dark:bg-surface` is only ever read under the dark palette. What never reports: a number (`border-2`), an opacity (`bg-navy/45`), one of Tailwind's own static values (`bg-clip-text`, `outline-offset-2`), an arbitrary value, or a name any palette declares.
+
+| Option | Meaning |
+| --- | --- |
+| `tokenFile`, `block`, `sources`, `themes` | The palettes, read exactly as the contrast check reads them. One of `tokenFile` or `sources` is required. |
+| `roots`, `extensions`, `exemptFiles` | The markup to scan. |
+| `namespaces` | Utility prefix → the theme namespaces its value may come from (`DEFAULT_TOKEN_NAMESPACES`). A project that adds a namespace to its theme adds it here. |
+| `keywords`, `values` | Values a namespace takes without a theme variable — Tailwind 4.3's own static utilities (`DEFAULT_UTILITY_KEYWORDS`) and the CSS-wide keywords (`DEFAULT_VALUE_KEYWORDS`). |
+| `ambiguous` | Prefixes whose bare `var()` is read as a colour (`DEFAULT_AMBIGUOUS_PREFIXES`). |
+| `referencePrefixes` | Token namespaces a `var()` in markup is held to. `--color-` by default; a component's own `[--card-pad:…]` is not the token layer's to declare. |
+| `checkReferences` | `false` to check classes only. |
+
+The same call answers a second question the first one hides. `border-[var(--tab-indicator-height)]` is ambiguous to **Tailwind**, which resolves a bare `var()` on `border-*` to a colour and emits `border-color: 2px` — a declaration the browser drops. The underline tab had no indicator and the checkbox had no border, in production, with nothing red anywhere. The token's own value settles it, so `border-[var(--color-x)]` is never reported and the finding names the remedy:
+
+```js
+// [{ kind: "ambiguous arbitrary value", candidate: "border-b-[var(--tab-indicator-height)]",
+//    token: "--tab-indicator-height" }]  →  border-b-[length:var(--tab-indicator-height)]
+```
+
+**What it does not see.** A token name assembled at runtime — `bg-${tone}`, `var(--color-${tone})`, a `Record` keyed by a prop — because nothing in the source spells the name, which is also why Tailwind cannot emit it; and a utility behind an arbitrary variant (`[&>svg]:text-x`). Nor whether a variable survives the build: Tailwind drops a `@theme` variable no source names, so one reached only through an assembled name resolves to nothing in the base theme while a `.dark` block, being a plain rule, still emits it. That asymmetry is not measurable from the token file, and `@theme static` is the answer to both.
+
+Naming Tailwind's own `theme.css` among the `sources` is how a project keeps its built-in palette resolvable. Omitting it is how a project bans everything it did not declare.
 
 ## Design-system rules
 
@@ -489,7 +530,7 @@ findInlineWarningGaps({ roots: ["frontend"] }); // { files, controlCount, waiver
 
 ### Stylesheet colours and contrast
 
-The gate runs the two design-token checks ESLint cannot answer — [stylesheets and contrast](#what-eslint-cannot-see) — when it is pointed at a JSON config. Nothing runs without the flag, and every path *in the file* resolves against the file's own directory, so the config can live wherever it is kept. A section that names no `roots` sweeps the paths the gate itself was given, which are the caller's and stay relative to where it ran:
+The gate runs the design-token checks ESLint cannot answer — [stylesheets, contrast and unknown tokens](#what-eslint-cannot-see) — when it is pointed at a JSON config. Nothing runs without the flag, and every path *in the file* resolves against the file's own directory, so the config can live wherever it is kept. A section that names no `roots` sweeps the paths the gate itself was given, which are the caller's and stay relative to where it ran:
 
 ```sh
 code-quality-gate    # reads code-quality.json
@@ -509,11 +550,18 @@ code-quality-gate    # reads code-quality.json
     ],
     "declaredPairs": [{ "fg": "--color-fg-muted", "bg": "--color-bg-1", "why": "row labels on a card" }],
     "allow": [{ "fg": "--color-border", "bg": "--color-bg-1", "why": "design: raising it re-draws every border" }]
+  },
+  "unknownTokens": {
+    "roots": ["app", "components"],
+    "themes": [
+      { "name": "light", "sources": [{ "file": "node_modules/tailwindcss/theme.css" }, { "file": "app/globals.css", "block": "@theme" }] },
+      { "name": "dark", "sources": [{ "file": "node_modules/tailwindcss/theme.css" }, { "file": "app/globals.css", "block": "@theme" }, { "file": "app/globals.css", "block": ".dark" }] }
+    ]
   }
 }
 ```
 
-Every section may be omitted. `stylesheets` bans raw colours in CSS, `sizes` bans raw font sizes there, `typeRamp` checks that every ramp step declares its line height, and `contrast` measures every theme in `themes` — printing which ones it measured, and prefixing each finding with the theme it came from. Its `themes` also drive the redundant-override check, which needs no second declaration of a layering the project has already stated once. A `contrast` without `themes` measures one palette: `block` for a single theme out of the file, `sources` for one spread over several files. `stylesheets` and `sizes` always exempt `tokenFile`, alongside any `exemptFiles` of their own. Allowed contrast failures print on every run, like inline-error waivers; unresolvable or unknown tokens fail. A malformed config, a missing `tokenFile`, or an allow entry without a reason exits `2` rather than passing quietly.
+Every section may be omitted. `stylesheets` bans raw colours in CSS, `sizes` bans raw font sizes there, `typeRamp` checks that every ramp step declares its line height, and `contrast` measures every theme in `themes` — printing which ones it measured, and prefixing each finding with the theme it came from. Its `themes` also drive the redundant-override check, which needs no second declaration of a layering the project has already stated once. A `contrast` without `themes` measures one palette: `block` for a single theme out of the file, `sources` for one spread over several files. `unknownTokens` reports every utility and `var()` whose token no palette declares, naming the themes it is absent from. `stylesheets` and `sizes` always exempt `tokenFile`, alongside any `exemptFiles` of their own. Allowed contrast failures print on every run, like inline-error waivers; unresolvable or unknown tokens fail. A malformed config, a missing `tokenFile`, or an allow entry without a reason exits `2` rather than passing quietly.
 
 The check is also importable, for a project that wants it somewhere other than the gate:
 

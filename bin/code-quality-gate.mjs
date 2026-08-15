@@ -19,6 +19,7 @@ import {
   findRampGaps,
   findRawColorsInFiles,
   findRedundantOverrides,
+  findUnknownTokens,
   FIX_POLICY,
   RULE_IDS,
   SETTINGS_FILE,
@@ -27,6 +28,7 @@ import {
   THEME_OVERRIDE_DIRECTIVE,
   TOKEN_SECTIONS,
   TYPE_RAMP_DIRECTIVE,
+  UNKNOWN_TOKEN_DIRECTIVE,
 } from "../src/index.js";
 
 const USAGE = `Usage: code-quality-gate [paths...] [options]
@@ -41,11 +43,11 @@ const USAGE = `Usage: code-quality-gate [paths...] [options]
   --inline-warning-all    judge feature screens too, not the design system alone
   --help                  show this message
 
-${SETTINGS_FILE} settles every flag above, plus the four checks ESLint cannot answer, so a
+${SETTINGS_FILE} settles every flag above, plus the checks ESLint cannot answer, so a
 configured project needs none of them:
 
   { "allRules": true, "maxFilesPerDirectory": 10, "tokenFile": "app/globals.css",
-    "stylesheets": {}, "sizes": {}, "typeRamp": {}, "contrast": {} }
+    "stylesheets": {}, "sizes": {}, "typeRamp": {}, "contrast": {}, "unknownTokens": {} }
 
 Fails on this plugin's rules reported as errors, and on directories over the width
 limit. "allRules": true widens the first half to every rule the project sets to
@@ -236,6 +238,34 @@ if (inlineWarning) {
 }
 
 /**
+ * Findings from the unknown-token sweep. The themes are part of one: a name the
+ * base theme declares and a rebinding forgot is absent from that theme alone.
+ */
+function reportUnknownTokens(options) {
+  let found;
+  try {
+    found = findUnknownTokens(options);
+  } catch (error) {
+    process.stderr.write(`code-quality-gate: unknown tokens: ${error.message}\n`);
+    process.exit(2);
+  }
+  if (found.length === 0) return;
+  const where = (entry) =>
+    entry.missing.filter(Boolean).length === 0 ? "" : ` in ${entry.missing.join(", ")}`;
+  const report = found
+    .map(
+      (entry) =>
+        `  ${entry.file}:${entry.line}\n      ${entry.candidate} — ` +
+        `${entry.kind} ${entry.token}${where(entry)}`,
+    )
+    .join("\n");
+  process.stderr.write(
+    `\nUtilities naming a token nothing declares:\n\n${report}\n\n${UNKNOWN_TOKEN_DIRECTIVE}\n`,
+  );
+  process.exitCode = 1;
+}
+
+/**
  * The two checks ESLint cannot answer on its own: stylesheets, which no flat
  * config parses without a CSS language plugin, and contrast, which needs the
  * token file plus every screen at once. Both are configured in one JSON file
@@ -244,7 +274,7 @@ if (inlineWarning) {
 function checkDesignTokens() {
   const here = (value) => path.resolve(settingsHome, value);
   const tokenFile = settings.tokenFile === undefined ? undefined : here(settings.tokenFile);
-  const { stylesheets, sizes, typeRamp, contrast } = settings;
+  const { stylesheets, sizes, typeRamp, contrast, unknownTokens } = settings;
   const counts = [];
 
   // Only the config's own paths resolve against the config. The roots the gate
@@ -335,22 +365,31 @@ function checkDesignTokens() {
     }
   }
 
+  // Every palette a section names, with its files resolved against the config.
+  const homed = (sources) => sources?.map((source) => ({ ...source, file: here(source.file) }));
+  const paletteFrom = (section) => ({
+    ...section,
+    tokenFile: section.tokenFile ? here(section.tokenFile) : tokenFile,
+    sources: homed(section.sources),
+    themes: section.themes?.map((theme) => ({
+      ...theme,
+      tokenFile: theme.tokenFile ? here(theme.tokenFile) : undefined,
+      sources: homed(theme.sources),
+    })),
+  });
+
+  if (unknownTokens) {
+    const options = { ...paletteFrom(unknownTokens), roots: rootsFrom(unknownTokens.roots) };
+    counts.push(`${swept("unknown tokens", options)} screens`);
+    reportUnknownTokens(options);
+  }
+
   if (contrast) {
     const markupRoots = rootsFrom(contrast.roots);
     if (contrast.scanMarkup !== false) {
       counts.push(`${swept("contrast", { ...contrast, roots: markupRoots })} screens`);
     }
-    const homed = (sources) => sources?.map((source) => ({ ...source, file: here(source.file) }));
-    const palette = {
-      ...contrast,
-      tokenFile: contrast.tokenFile ? here(contrast.tokenFile) : tokenFile,
-      sources: homed(contrast.sources),
-      themes: contrast.themes?.map((theme) => ({
-        ...theme,
-        tokenFile: theme.tokenFile ? here(theme.tokenFile) : undefined,
-        sources: homed(theme.sources),
-      })),
-    };
+    const palette = paletteFrom(contrast);
     let result;
     let redundant;
     try {

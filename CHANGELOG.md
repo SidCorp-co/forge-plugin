@@ -2,6 +2,19 @@
 
 All notable changes to this package are documented here.
 
+## 0.10.0 - 2026-08-15
+
+### Added
+
+- `findUnknownTokens()`: a utility naming a theme variable no palette declares. `border-warn` where the token is `--color-warning` is not an error to Tailwind — it emits no rule at all, so the element renders unstyled, the tests pass and the reviewer sees a plausible class name. Two screens shipped `border-warn bg-warn-soft` for months on exactly that. The severity is no longer cosmetic either: with class strings merged through `tailwind-merge`, a class whose token is missing is not inert, it displaces the working utility that precedes it in the same call. The check reads the same inventory the contrast rule does, per theme, so a name only the dark block declares is reported as absent from the light one; a `dark:` utility is asked only of the theme it names.
+- The same call reports a bare `var()` on a property that takes either a length or a colour. Tailwind reads `border-[var(--tab-indicator-height)]` as `border-color: 2px`, which the browser drops: the underline tab had no indicator and the checkbox had no border, in production, with no error anywhere. The token's own value settles it, so `border-[var(--color-x)]` is never reported and `border-[length:var(--x)]` is the remedy the finding names.
+- `stringLiterals()` is exported: the quoted-run reader the markup scans share.
+- `unknownTokens` is a settings section, so the gate runs the check from the config the project already keeps. Naming Tailwind's own `theme.css` among the `sources` is how a project keeps its built-in palette resolvable; omitting it is how a project bans everything it did not declare.
+
+### Fixed
+
+- `meta.version` had been left at `0.7.0` for two releases.
+
 ## 0.9.0 - 2026-08-15
 
 ### Added

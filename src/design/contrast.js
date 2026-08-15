@@ -8,6 +8,7 @@ import {
   readTokenSources,
   resolveTokenAliases,
   sourceFiles,
+  stringLiterals,
   themePalettes,
 } from "./tokens.js";
 
@@ -53,8 +54,8 @@ function scanPairs({ roots, extensions, ignoredDirectories, tokenPrefix, tokenNa
     } catch {
       continue;
     }
-    for (const literal of text.matchAll(/(["'`])((?:[^\\\n`]|\\.)*?)\1/g)) {
-      const value = literal[2];
+    for (const literal of stringLiterals(text)) {
+      const { value } = literal;
       const backgrounds = [...value.matchAll(utilityPattern("bg"))];
       const foregrounds = [...value.matchAll(utilityPattern("text"))];
       for (const background of backgrounds) {

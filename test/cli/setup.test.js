@@ -105,7 +105,7 @@ test("the hook opt-out and the widened gate are written, and cleared by the next
   assert.deepEqual(JSON.parse(read(root, "code-quality.json")), {});
 });
 
-test("a token layer wires both halves: the rules and the gate's four checks", () => {
+test("a token layer wires both halves: the rules and the gate's file checks", () => {
   const root = project({
     "app/globals.css": ":root { --color-bg: #ffffff; }\n",
     "src/clean.js": "export const ok = true;\n",
@@ -119,6 +119,7 @@ test("a token layer wires both halves: the rules and the gate's four checks", ()
     sizes: {},
     typeRamp: {},
     contrast: {},
+    unknownTokens: {},
   });
   assert.match(result.stdout, /design tokens · 1 stylesheet/);
 });

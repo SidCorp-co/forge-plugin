@@ -238,6 +238,18 @@ export function lineOf(text, index) {
   return text.slice(0, index).split("\n").length;
 }
 
+const STRING_LITERAL = /(["'`])((?:[^\\\n`]|\\.)*?)\1/g;
+
+/**
+ * Every quoted run, with the offset its value starts at. An interpolation stays
+ * inside the value: what surrounds a `${}` is still the class string it opened.
+ */
+export function* stringLiterals(text) {
+  for (const match of text.matchAll(STRING_LITERAL)) {
+    yield { value: match[2], index: match.index + 1 };
+  }
+}
+
 /** Source files under `roots`, for the checks a per-file lint rule cannot answer. */
 export function sourceFiles({
   roots = ["."],

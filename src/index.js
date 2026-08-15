@@ -22,6 +22,14 @@ export {
 } from "./design/type-ramp.js";
 export { findRawColorsInFiles } from "./design/no-raw-colors.js";
 export { findRedundantOverrides, THEME_OVERRIDE_DIRECTIVE } from "./design/theme-overrides.js";
+export {
+  DEFAULT_AMBIGUOUS_PREFIXES,
+  DEFAULT_TOKEN_NAMESPACES,
+  DEFAULT_UTILITY_KEYWORDS,
+  DEFAULT_VALUE_KEYWORDS,
+  findUnknownTokens,
+  UNKNOWN_TOKEN_DIRECTIVE,
+} from "./design/unknown-tokens.js";
 export { DEFAULT_PRIMITIVES, primitiveExports } from "./design/no-raw-elements.js";
 export {
   COLOR_PROPERTIES,
@@ -35,6 +43,7 @@ export {
   readTokenSources,
   resolveTokenAliases,
   sourceFiles,
+  stringLiterals,
   themePalettes,
 } from "./design/tokens.js";
 
@@ -71,7 +80,7 @@ export const DEFAULT_TEST_GLOBS = [
 ];
 
 const plugin = {
-  meta: { name: "eslint-plugin-code-quality", version: "0.7.0" },
+  meta: { name: "eslint-plugin-code-quality", version: "0.10.0" },
   rules: {
     "no-historical-narration": noHistoricalNarration,
     "comment-density": commentDensity,
@@ -126,7 +135,7 @@ export const RULE_IDS = RULE_NAMES.map(idFor);
 export const SETTINGS_FILE = "code-quality.json";
 
 /** Its sections that configure a check ESLint cannot answer. */
-export const TOKEN_SECTIONS = ["stylesheets", "sizes", "typeRamp", "contrast"];
+export const TOKEN_SECTIONS = ["stylesheets", "sizes", "typeRamp", "contrast", "unknownTokens"];
 
 /** Flat config's own names, in the order ESLint itself resolves them. */
 export const ESLINT_CONFIG_FILES = ["js", "mjs", "cjs", "ts", "mts", "cts"].map(

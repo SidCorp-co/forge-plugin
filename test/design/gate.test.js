@@ -276,3 +276,26 @@ test("the settings file answers the flags, and a flag still wins for one run", (
   const off = consumer({ maxFilesPerDirectory: 1, folderCheck: false });
   assert.equal(runBare(off).status, 0, off.stderr);
 });
+
+test("a utility whose token no theme declares fails the gate naming the token", () => {
+  const root = consumer(
+    {
+      tokenFile: "app/globals.css",
+      unknownTokens: { themes: [{ name: "light", blocks: ["@theme"] }], roots: ["app"] },
+    },
+    { "app/banner.js": 'export const cls = "border border-warn bg-warn-soft";\n' },
+  );
+
+  const planted = run(root);
+  assert.equal(planted.status, 1, planted.stdout);
+  assert.match(planted.stderr, /Utilities naming a token nothing declares:/);
+  assert.match(planted.stderr, /app[/\\]banner\.js:1\n\s+border-warn — unknown token --color-warn/);
+  assert.match(planted.stderr, /bg-warn-soft — unknown token --color-warn-soft/);
+  assert.match(planted.stdout, /design tokens · \d+ screens/);
+
+  // The same run over the same file with the token named right is silent.
+  writeFileSync(path.join(root, "app", "banner.js"), 'export const cls = "border bg-bg";\n');
+  const fixed = run(root);
+  assert.equal(fixed.status, 0, fixed.stderr);
+  assert.doesNotMatch(fixed.stderr, /unknown token/);
+});
