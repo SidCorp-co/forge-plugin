@@ -25,9 +25,18 @@ const allowEntry = {
   additionalProperties: false,
 };
 
-function remedyFor(tokenSource) {
-  const home = tokenSource ? `to ${tokenSource}` : "to the token layer";
-  return `Add the colour ${home} and reference the token with var(--…).`;
+/**
+ * Colour and size have separate homes, so `tokenSource` alone cannot name both: a project whose
+ * scale file is the size scale sends every colour there. `colorSource` is the colour's own home
+ * and falls back only where one file holds both. `colorReference` is how a project reads a token
+ * back — `var(--…)` is CSS, and a client that renders without CSS never writes it.
+ */
+function remedyFor(colorSource, colorReference) {
+  const home = colorSource ? `to ${colorSource}` : "to the token layer";
+  const read = colorReference
+    ? `read it through ${colorReference}`
+    : "reference the token with var(--…)";
+  return `Add the colour ${home} and ${read}.`;
 }
 
 /**
@@ -73,6 +82,8 @@ export default {
           allow: { type: "array", items: allowEntry },
           colorProperties: { type: "array", items: { type: "string" } },
           exemptFiles: { type: "array", items: { type: "string" } },
+          colorReference: { type: "string" },
+          colorSource: { type: "string" },
           namedColors: { type: "array", items: { type: "string" } },
           tokenSource: { type: "string" },
         },
@@ -87,6 +98,8 @@ export default {
     const {
       allow = [],
       colorProperties = COLOR_PROPERTIES,
+      colorReference = null,
+      colorSource = null,
       exemptFiles = [],
       namedColors = NAMED_COLORS,
       tokenSource = null,
@@ -96,7 +109,7 @@ export default {
     if (matchesFile(filename, exemptFiles)) return {};
 
     const { sourceCode } = context;
-    const remedy = remedyFor(tokenSource);
+    const remedy = remedyFor(colorSource ?? tokenSource, colorReference);
     const properties = new Set(colorProperties);
 
     function report(node, index, length, kind, value) {

@@ -189,6 +189,43 @@ test("the token file, an exempt path, and an allowed literal are left alone", ()
         options: [{ namedColors: ["cerulean"] }],
         errors: [{ messageId: "rawColor" }],
       },
+      // A project whose `tokenSource` is its size scale must not be sent there for a colour.
+      {
+        code: 'const style = { color: "#fff" };',
+        options: [
+          {
+            colorReference: "lib/tokens.ts",
+            colorSource: "packages/design-tokens/src/tokens.css",
+            tokenSource: "lib/scale.ts",
+          },
+        ],
+        errors: [
+          {
+            messageId: "rawColor",
+            data: {
+              kind: "hex literal",
+              value: "#fff",
+              remedy:
+                "Add the colour to packages/design-tokens/src/tokens.css and read it through lib/tokens.ts.",
+            },
+          },
+        ],
+      },
+      // Where one file holds both, naming it once still answers the colour rule.
+      {
+        code: 'const style = { color: "#fff" };',
+        options: [{ tokenSource: "app/globals.css" }],
+        errors: [
+          {
+            messageId: "rawColor",
+            data: {
+              kind: "hex literal",
+              value: "#fff",
+              remedy: "Add the colour to app/globals.css and reference the token with var(--…).",
+            },
+          },
+        ],
+      },
     ],
   });
 });

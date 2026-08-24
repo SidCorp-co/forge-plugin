@@ -121,6 +121,9 @@ const CORE_RULES = new Set(["max-lines", "max-lines-per-function"]);
 /** Meaningless without a token layer: every `#fff` would report. Off until `tokens` names one. */
 const TOKEN_RULES = new Set(["no-raw-colors", "no-arbitrary-sizes"]);
 
+/** Colour and size keep separate homes, so only the colour rule is told where colour lives. */
+const COLOR_RULES = new Set(["no-raw-colors"]);
+
 /** Nothing to point a report at without a design system. Off until `primitives` names one. */
 const PRIMITIVE_RULES = new Set(["no-raw-elements"]);
 
@@ -162,7 +165,9 @@ export function configure({
   }
 
   // The token file exempts itself from the rules that would report every line of it.
-  const exempt = tokens && [tokens.tokenSource, ...(tokens.exemptFiles ?? [])].filter(Boolean);
+  const exempt =
+    tokens &&
+    [tokens.tokenSource, tokens.colorSource, ...(tokens.exemptFiles ?? [])].filter(Boolean);
 
   const rules = {};
   for (const [name, defaults] of Object.entries(RULE_OPTIONS)) {
@@ -181,6 +186,12 @@ export function configure({
     }
     if (token) {
       if (tokens.tokenSource !== undefined) merged.tokenSource ??= tokens.tokenSource;
+      if (COLOR_RULES.has(name)) {
+        if (tokens.colorSource !== undefined) merged.colorSource ??= tokens.colorSource;
+        if (tokens.colorReference !== undefined) {
+          merged.colorReference ??= tokens.colorReference;
+        }
+      }
       // Per-rule exemptions are added to the token file's, never swapped for it.
       merged.exemptFiles = [...new Set([...exempt, ...(options.exemptFiles ?? [])])];
     }
