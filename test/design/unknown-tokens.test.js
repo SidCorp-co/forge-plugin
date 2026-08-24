@@ -127,3 +127,40 @@ test("an exempt file is not scanned, and a token file is required", () => {
   );
   assert.throws(() => findUnknownTokens({ roots: [root] }), /needs \{ tokenFile \}/);
 });
+
+// A token layer that starts `@import "some-css-framework"` declares everything the
+// import brings. Reading the file alone reported the whole default theme missing,
+// so every `font-bold` and `animate-spin` in the repo was a finding.
+test("an imported stylesheet's tokens are declared", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "imported-"));
+  const pkg = path.join(root, "node_modules", "css-framework");
+  mkdirSync(pkg, { recursive: true });
+  writeFileSync(
+    path.join(pkg, "package.json"),
+    JSON.stringify({ name: "css-framework", exports: { ".": { style: "./index.css" } } }),
+  );
+  writeFileSync(path.join(pkg, "index.css"), "@theme default { --font-weight-bold: 700; }\n");
+  mkdirSync(path.join(root, "app"), { recursive: true });
+  const tokenFile = path.join(root, "app", "tokens.css");
+  writeFileSync(tokenFile, `@import "css-framework";\n@theme { --color-bg: #ffffff; }\n`);
+  writeFileSync(
+    path.join(root, "app", "page.tsx"),
+    `export const a = <p className="font-bold bg-bg" />;\nexport const b = <p className="font-heavy" />;\n`,
+  );
+
+  const found = findUnknownTokens({ tokenFile, roots: [path.join(root, "app")] });
+  assert.deepEqual(
+    found.map((one) => one.token),
+    ["--font-heavy"],
+  );
+});
+
+// A gradient's direction is part of the utility. Tailwind 4 names it `bg-linear-to-*`
+// and still ships 3's `bg-gradient-to-*`; both emit a real rule, and neither asks the
+// theme for a colour called `to-br`.
+test("a gradient direction is a keyword, not a colour", () => {
+  assert.deepEqual(
+    find({ "page.tsx": `export const a = <p className="bg-gradient-to-br bg-linear-to-r" />;` }),
+    [],
+  );
+});

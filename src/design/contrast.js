@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { withImportedSources } from "./stylesheets.js";
 import {
   contrastRatio,
   DEFAULT_MARKUP_EXTENSIONS,
@@ -113,7 +114,7 @@ export function findContrastFailures({
   const limits = { ...DEFAULT_CONTRAST_THRESHOLDS, ...thresholds };
   const measured = palettes.map((palette) => ({
     ...palette,
-    tokens: resolveTokenAliases(readTokenSources(palette.sources)),
+    tokens: resolveTokenAliases(readTokenSources(withImportedSources(palette.sources))),
     failures: [],
     waivers: [],
   }));

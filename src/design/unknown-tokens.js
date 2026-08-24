@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { withImportedSources } from "./stylesheets.js";
 import {
   DEFAULT_MARKUP_EXTENSIONS,
   lineOf,
@@ -117,7 +118,11 @@ export const DEFAULT_AMBIGUOUS_PREFIXES = [
 export const DEFAULT_UTILITY_KEYWORDS = [
   "accent-auto,accent-color,bg-auto,bg-bottom,bg-bottom-left,bg-bottom-right,bg-center",
   "bg-clip-border,bg-clip-content,bg-clip-padding,bg-clip-text,bg-conic,bg-contain,bg-cover",
-  "bg-fixed,bg-left,bg-left-bottom,bg-left-top,bg-linear,bg-local,bg-none,bg-no-repeat",
+  "bg-fixed,bg-gradient-to-b,bg-gradient-to-bl,bg-gradient-to-br,bg-gradient-to-l",
+  "bg-gradient-to-r,bg-gradient-to-t,bg-gradient-to-tl,bg-gradient-to-tr,bg-left",
+  "bg-left-bottom,bg-left-top,bg-linear,bg-linear-to-b,bg-linear-to-bl,bg-linear-to-br",
+  "bg-linear-to-l,bg-linear-to-r,bg-linear-to-t,bg-linear-to-tl,bg-linear-to-tr",
+  "bg-local,bg-none,bg-no-repeat",
   "bg-origin-border,bg-origin-content,bg-origin-padding,bg-position,bg-radial,bg-repeat",
   "bg-repeat-round,bg-repeat-space,bg-repeat-x,bg-repeat-y,bg-right,bg-right-bottom",
   "bg-right-top,bg-scroll,bg-size,bg-top,bg-top-left,bg-top-right,border-b,border-be",
@@ -358,9 +363,11 @@ export function findUnknownTokens({
 
   const palettes = declared.map((palette) => ({
     ...palette,
-    tokens: readTokenSources(palette.sources),
+    tokens: readTokenSources(withImportedSources(palette.sources)),
   }));
-  const tokens = resolveTokenAliases(readTokenSources(palettes.flatMap((one) => one.sources)));
+  const tokens = resolveTokenAliases(
+    readTokenSources(withImportedSources(palettes.flatMap((one) => one.sources))),
+  );
   const map = namespaceMap(namespaces);
 
   const files = sourceFiles({ roots, extensions, ignoredDirectories }).filter(
