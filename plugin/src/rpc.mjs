@@ -86,12 +86,13 @@ const readable = (text) => {
 
 /* A tool result carries its payload as text, structured, or both; `isError` is the tool's own
    refusal rather than a transport failure, and it must not read as a success. */
-export const callTool = async (name, args) => {
+export const callTool = async (name, args, soft = false) => {
   const result = await rpc("tools/call", { name, arguments: args });
   const text = (result?.content ?? [])
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("\n");
+  if (result?.isError && soft) return { refused: readable(text) || "refused" };
   if (result?.isError) fail(`${name} refused:\n${readable(text) || JSON.stringify(result)}`);
   if (result?.structuredContent) return result.structuredContent;
   try {
@@ -120,8 +121,8 @@ export const projectId = async () => {
 
 /* Some tools scope by project and the rest refuse the key outright, so the schema decides rather
    than a list here that would go stale against the server it is describing. */
-export const scoped = async (name, args) => {
+export const scoped = async (name, args, soft = false) => {
   const schema = (await tools()).find((tool) => tool.name === name)?.inputSchema;
   const wants = Boolean(schema?.properties?.projectId);
-  return callTool(name, wants ? { projectId: await projectId(), ...args } : args);
+  return callTool(name, wants ? { projectId: await projectId(), ...args } : args, soft);
 };

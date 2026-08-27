@@ -57,15 +57,50 @@ const checkVi = () => {
   return Boolean(key);
 };
 
+/* A tool appearing in `tools/list` says nothing about whether this credential may call it — every
+   one of the 67 is declared to a PAT and `forge_project_pm` then refuses all six of its actions.
+   An external agent reads the list and reasonably assumes otherwise, so the capabilities it needs
+   to work correctly are probed rather than counted. Read-only, one call each. */
+const CAPABILITIES = [
+  ["guides", "forge_guide", { action: "list" }, "the lifecycle rules an agent works from"],
+  ["dependency graph", "forge_project_pm", { action: "graph" }, "blocks/relates edges"],
+  ["knowledge", "forge_knowledge", { action: "list" }, "codebase context"],
+  ["memory", "forge_memory.search", { query: "forge", topK: 1 }, "recall across sessions"],
+];
+
+const groups = (declared) =>
+  new Set(declared.map((tool) => /forge_([a-z]+)/u.exec(tool.name)?.[1] ?? tool.name)).size;
+
+const probe = async (scoped) => {
+  let gated = 0;
+  for (const [label, tool, args, why] of CAPABILITIES) {
+    const answer = await scoped(tool, args, true);
+    if (answer?.refused) {
+      gated += 1;
+      line(BAD, label, `${tool} is declared but refuses: ${answer.refused.split("\n")[0]} — ${why}`);
+    } else {
+      line(OK, label, `${tool} answers — ${why}`);
+    }
+  }
+  return gated;
+};
+
 /* Imported lazily: reaching the endpoint is the one check that needs credentials to already have
    passed, and the transport exits the process when they have not. */
 const checkEndpoint = async () => {
-  const { tools, projectId } = await import("./rpc.mjs");
+  const { tools, projectId, scoped } = await import("./rpc.mjs");
   const declared = await tools();
-  line(OK, "endpoint", `${declared.length} tools declared`);
+  line(OK, "tool surface", `${declared.length} declared in ${groups(declared)} groups`);
   const { slug } = projectScope();
-  if (!slug) return;
+  if (!slug) {
+    console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
+    return;
+  }
   line(OK, "project id", await projectId());
+  const gated = await probe(scoped);
+  if (gated) {
+    console.log(`\n${gated} declared capability(ies) refuse this credential. Declared is not callable.`);
+  }
 };
 
 const install = (values) => {
