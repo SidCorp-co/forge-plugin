@@ -1,0 +1,22 @@
+{
+  "name": "forge-local",
+  "owner": {
+    "name": "Thanh Nguyen",
+    "email": "thanhnh@sidcorp.co"
+  },
+  "metadata": {
+    "description": "Local marketplace hosting the Forge issue-tracker CLI plugin"
+  },
+  "plugins": [
+    {
+      "name": "forge",
+      "description": "Drive a Forge issue tracker from the terminal: browse, read, file and comment on issues over the MCP endpoint with no MCP client connected, and write every issue in natural Vietnamese through the bundled vi-natural CLI.",
+      "author": {
+        "name": "Thanh Nguyen",
+        "email": "thanhnh@sidcorp.co"
+      },
+      "category": "development",
+      "source": "./plugin"
+    }
+  ]
+}

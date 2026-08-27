@@ -1,0 +1,16 @@
+{
+  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Nothing else; no hook inspects or blocks a write.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/link-cli.sh \"${CLAUDE_PLUGIN_ROOT}\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

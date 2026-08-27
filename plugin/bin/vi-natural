@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# Resolve through symlinks so ~/.local/bin/vi-natural finds the package.
+SELF="$0"
+while [ -L "$SELF" ]; do
+  LINK=$(readlink "$SELF")
+  case "$LINK" in
+    /*) SELF="$LINK" ;;
+    *) SELF="$(dirname "$SELF")/$LINK" ;;
+  esac
+done
+DIR=$(cd "$(dirname "$SELF")/.." && pwd)
+exec python3 "$DIR/scripts/vi_natural.py" "$@"
