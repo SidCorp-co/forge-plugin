@@ -67,6 +67,23 @@ export const rpc = async (method, params) => {
   return parsed.result;
 };
 
+/* A schema violation comes back as a pretty-printed zod array carrying `pattern` — the full uuid
+   regex, ~150 characters, repeated per field. The path and the message are the whole signal. */
+const readable = (text) => {
+  const start = text.indexOf("[");
+  if (start < 0) return text;
+  let parsed;
+  try {
+    parsed = JSON.parse(text.slice(start));
+  } catch {
+    return text;
+  }
+  if (!Array.isArray(parsed) || !parsed.length) return text;
+  return parsed
+    .map((issue) => `${(issue.path ?? []).join(".") || "(root)"}: ${issue.message ?? issue.code}`)
+    .join("\n");
+};
+
 /* A tool result carries its payload as text, structured, or both; `isError` is the tool's own
    refusal rather than a transport failure, and it must not read as a success. */
 export const callTool = async (name, args) => {
@@ -75,7 +92,7 @@ export const callTool = async (name, args) => {
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("\n");
-  if (result?.isError) fail(`${name} refused: ${text || JSON.stringify(result)}`);
+  if (result?.isError) fail(`${name} refused:\n${readable(text) || JSON.stringify(result)}`);
   if (result?.structuredContent) return result.structuredContent;
   try {
     return JSON.parse(text);

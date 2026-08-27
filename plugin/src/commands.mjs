@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
-import { fail, settings } from "./settings.mjs";
+import { fail, projectScope, settings, translateTo } from "./settings.mjs";
 import { projectId, scoped, tools } from "./rpc.mjs";
 import { translated } from "./vi.mjs";
 import { doctor } from "./doctor.mjs";
@@ -90,6 +90,60 @@ const documentIdOf = async (reference) => {
   return found.documentId;
 };
 
+/* Wherever the schema wants an issue uuid. Resolving them here is what lets a raw `call` carry
+   `ISS-8` too, so the cheap reference is not a privilege of the wrapped verbs. */
+const REFERENCE_KEYS = new Set([
+  "documentId",
+  "dependsOnId",
+  "blocksId",
+  "issue",
+  "issueId",
+  "fromIssueId",
+  "toIssueId",
+]);
+
+const resolveReferences = async (value, key) => {
+  if (Array.isArray(value)) {
+    return Promise.all(value.map((item) => resolveReferences(item)));
+  }
+  if (value && typeof value === "object") {
+    const out = {};
+    for (const [name, held] of Object.entries(value)) out[name] = await resolveReferences(held, name);
+    return out;
+  }
+  if (typeof value === "string" && REFERENCE_KEYS.has(key) && HUMAN_REF.test(value)) {
+    return documentIdOf(value);
+  }
+  return value;
+};
+
+/* A write goes to whichever project the cwd resolves, and `forge_issues` has no delete action, so
+   the target is announced before the post rather than discovered in the response. */
+const announce = (verb) => {
+  const { slug, from } = projectScope();
+  if (!slug) return;
+  console.error(
+    `${verb} -> project ${slug} (from ${from}), prose ${translateTo() ?? "as written"}`,
+  );
+};
+
+/* A wrong tool name costs a round trip and answers "no tool named x" with 67 alternatives
+   elsewhere. Substring first, then shared prefix — both catch the real mistakes: a dot for an
+   underscore, and a remembered stem. */
+const nearest = (name, declared) => {
+  const stem = name.replace(/[._-]/gu, "").toLowerCase();
+  const close = declared
+    .map((tool) => tool.name)
+    .filter((candidate) => {
+      const bare = candidate.replace(/[._-]/gu, "").toLowerCase();
+      return bare.includes(stem) || stem.includes(bare) || bare.startsWith(stem.slice(0, 6));
+    })
+    .slice(0, 5);
+  return close.length
+    ? `No tool named ${name}. Did you mean: ${close.join(", ")}?`
+    : `No tool named ${name}. Ask \`forge tools\` for the list.`;
+};
+
 export const commands = {
   doctor,
   deps,
@@ -99,11 +153,12 @@ export const commands = {
   schema: async ([name]) => {
     if (!name) fail("Usage: forge schema <tool>");
     const tool = (await tools()).find((candidate) => candidate.name === name);
-    if (!tool) fail(`No tool named ${name}. Ask \`tools\` for the list.`);
+    if (!tool) fail(nearest(name, await tools()));
     show({ description: tool.description, inputSchema: tool.inputSchema });
   },
   call: async ([name, json]) => {
     if (!name) fail("Usage: forge call <tool> <'json'|@file|->");
+    if (!(await tools()).some((tool) => tool.name === name)) fail(nearest(name, await tools()));
     const raw = json === undefined || json === "-" || json.startsWith("@") ? bodyFrom(json ?? "-") : json;
     if (!raw.trim()) fail(`No arguments given for ${name}. Pass json as an argument or on stdin.`);
     let args;
@@ -112,9 +167,23 @@ export const commands = {
     } catch (error) {
       return fail(`Arguments for ${name} are not json: ${error.message}`);
     }
+    const resolved = await resolveReferences(args);
+    if (resolved.data) announce(`call ${name}`);
     /* `call` reaches the same create and update the wrapped verbs do, so an untranslated one here
        would be the bypass that makes every gate above decorative. */
-    show(await scoped(name, { ...args, ...(args.data ? { data: translated(args.data) } : {}) }));
+    const answer = await scoped(name, {
+      ...resolved,
+      ...(resolved.data ? { data: translated(resolved.data) } : {}),
+    });
+    /* Measured 2026-08-27 and filed as forge-dev ISS-868: the field is schema-validated and then
+       discarded, and the 200 is indistinguishable from a write that landed. */
+    if (name === "forge_issues" && resolved.action === "update" && resolved.data?.relations) {
+      console.error(
+        "warning: data.relations on `update` is a validated no-op — the server accepts it,\n" +
+          "changes nothing, and there is no read path to check. Nothing here confirms an edge.",
+      );
+    }
+    show(answer);
   },
   issues: async (rest) => {
     const { limit: raw, ...filters } = flags(rest, "issues");
@@ -133,11 +202,13 @@ export const commands = {
     if (!path) fail("Usage: forge new <file.md|-> --title T [--status S] [--priority P]");
     const data = { description: bodyFrom(path), status: "open", ...flags(rest, "new") };
     if (!data.title) fail("An issue needs --title; the tracker refuses an untitled one.");
+    announce("new");
     show(await scoped("forge_issues", { action: "create", data: translated(data) }));
   },
   comment: async ([reference, path]) => {
     if (!reference || !path) fail("Usage: forge comment <issue-uuid|ISS-45> <file.md|->");
     const issue = await documentIdOf(reference);
+    announce("comment");
     show(
       await scoped("forge_comments", {
         action: "create",

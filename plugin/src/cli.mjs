@@ -36,4 +36,11 @@ if (asked || !command || !Object.hasOwn(commands, command)) {
   process.exit(asked ? 0 : 1);
 }
 
-await commands[command](rest);
+/* A DNS failure or a dropped socket rejects out of fetch, and an unhandled rejection prints a
+   stack trace that reads as a bug in this CLI rather than a network that is down. */
+try {
+  await commands[command](rest);
+} catch (error) {
+  console.error(`forge ${command} failed: ${error?.message ?? error}`);
+  process.exit(1);
+}
