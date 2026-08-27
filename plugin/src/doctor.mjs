@@ -95,7 +95,7 @@ export const doctor = async (rest) => {
   if (slug) line(OK, "project slug", `${slug}  ← ${from}`);
   else line(BAD, "project slug", "project-scoped calls will refuse; account-level ones still work");
 
-  checkVi();
+  const canWrite = checkVi();
 
   if (!url || !token) {
     console.log("\nNot reaching the endpoint: the account half is incomplete.");
@@ -103,4 +103,8 @@ export const doctor = async (rest) => {
   }
   await checkEndpoint();
   console.log(`\nConfig file: ${CONFIG_PATH}`);
+  /* A missing vi-natural key is not a reachability problem, but `forge new` and `forge comment`
+     translate before they post, so a green doctor would send `doctor && new` into a certain
+     failure. Reads and writes differ here, and the exit code follows the stricter one. */
+  if (!canWrite) process.exit(1);
 };
