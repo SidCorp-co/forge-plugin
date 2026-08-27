@@ -25,11 +25,17 @@ const BAD = " miss ";
 
 const line = (mark, label, detail) => console.log(`[${mark}] ${label.padEnd(22)} ${detail}`);
 
-/* Enough of the token to recognise which one it is, never enough to use. */
-const masked = (token) => {
+/* Doctor's output lands in an agent's context, and an agent never types a token, a project id or
+   a path — the CLI resolves all three. So the default reports that each resolved and from where,
+   which is what a misconfiguration needs, and withholds the values themselves. A fragment of a
+   credential is still a credential once it is in a transcript, and a project id an agent can read
+   is a project id it can paste into a call the CLI exists to stop it writing.
+
+   `--full` is for the human holding two tokens who needs to know which one this is. */
+const masked = (token, full) => {
   const bare = token.replace(/^Bearer /u, "");
-  if (bare.length <= 12) return "set";
-  return `${bare.slice(0, 6)}…${bare.slice(-4)} (${bare.length} chars)`;
+  if (!full) return `set (${bare.length} chars)`;
+  return bare.length <= 12 ? "set" : `${bare.slice(0, 6)}…${bare.slice(-4)} (${bare.length} chars)`;
 };
 
 const hasViKey = () => {
@@ -100,7 +106,7 @@ const probe = async (scoped, slug) => {
 
 /* Imported lazily: reaching the endpoint is the one check that needs credentials to already have
    passed, and the transport exits the process when they have not. */
-const checkEndpoint = async () => {
+const checkEndpoint = async (full) => {
   const { tools, projectId, scoped } = await import("./rpc.mjs");
   const declared = await tools();
   line(OK, "tool surface", `${declared.length} declared in ${groups(declared)} groups`);
@@ -109,7 +115,8 @@ const checkEndpoint = async () => {
     console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
     return;
   }
-  line(OK, "project id", await projectId());
+  const id = await projectId();
+  line(OK, "project id", full ? id : `resolved from the slug (--full to print it)`);
   const gated = await probe(scoped, slug);
   if (gated) {
     console.log(
@@ -125,21 +132,23 @@ const install = (values) => {
 };
 
 export const doctor = async (rest) => {
+  const full = rest.includes("--full");
   const values = {};
-  for (let index = 0; index < rest.length; index += 2) {
-    const key = rest[index];
+  const pairs = rest.filter((argument) => argument !== "--full");
+  for (let index = 0; index < pairs.length; index += 2) {
+    const key = pairs[index];
     if (!["--token", "--url"].includes(key)) {
-      fail("Usage: forge doctor [--token <pat>] [--url <endpoint>]");
+      fail("Usage: forge doctor [--token <pat>] [--url <endpoint>] [--full]");
     }
-    if (index + 1 >= rest.length) fail(`doctor: ${key} was given no value.`);
-    values[key.slice(2)] = rest[index + 1];
+    if (index + 1 >= pairs.length) fail(`doctor: ${key} was given no value.`);
+    values[key.slice(2)] = pairs[index + 1];
   }
   if (Object.keys(values).length) install(values);
 
   const { url, urlFrom, token, tokenFrom } = accountCredentials();
   if (url) line(OK, "endpoint url", `${url}  ← ${urlFrom}`);
   else line(BAD, "endpoint url", "no FORGE_MCP_URL, no saved url, no .mcp.json");
-  if (token) line(OK, "token", `${masked(token)}  ← ${tokenFrom}`);
+  if (token) line(OK, "token", `${masked(token, full)}  ← ${tokenFrom}`);
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
 
   const { slug, from } = projectScope();
@@ -155,8 +164,8 @@ export const doctor = async (rest) => {
     console.log("\nNot reaching the endpoint: the account half is incomplete.");
     process.exit(1);
   }
-  await checkEndpoint();
-  console.log(`\nConfig file: ${CONFIG_PATH}`);
+  await checkEndpoint(full);
+  if (full) console.log(`\nConfig file: ${CONFIG_PATH}`);
   /* A missing vi-natural key is not a reachability problem, but `forge new` and `forge comment`
      translate before they post, so a green doctor would send `doctor && new` into a certain
      failure. Reads and writes differ here, and the exit code follows the stricter one. */
