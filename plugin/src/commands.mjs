@@ -61,7 +61,9 @@ const printIssues = (payload, limit) => {
   }
   console.log(`\n${issues.length} issue(s)`);
   if (issues.length === limit) {
-    console.log(`This is a full page of ${limit}; there are more. Raise --limit (max ${MAX_LIMIT}).`);
+    console.log(
+      `This is a full page of ${limit}; there are more. Raise --limit (max ${MAX_LIMIT}).`,
+    );
   }
 };
 
@@ -112,7 +114,8 @@ export const commands = {
   },
   issue: async ([reference]) => {
     if (!reference) fail("Usage: forge issue <issue-uuid|ISS-45>");
-    show(await scoped("forge_issues", { action: "get", documentId: await documentIdOf(reference) }));
+    const documentId = await documentIdOf(reference);
+    show(await scoped("forge_issues", { action: "get", documentId }));
   },
   /* `open` is the default: a repository that drives its own builders ignores the tracker's
      pipeline, so `open` marks the active set and nothing dispatches off it. `draft` stays

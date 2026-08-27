@@ -28,11 +28,14 @@ const line = (mark, label, detail) => console.log(`[${mark}] ${label.padEnd(22)}
 /* Enough of the token to recognise which one it is, never enough to use. */
 const masked = (token) => {
   const bare = token.replace(/^Bearer /u, "");
-  return bare.length <= 12 ? "set" : `${bare.slice(0, 6)}…${bare.slice(-4)} (${bare.length} chars)`;
+  if (bare.length <= 12) return "set";
+  return `${bare.slice(0, 6)}…${bare.slice(-4)} (${bare.length} chars)`;
 };
 
 const hasViKey = () => {
-  if (process.env.VI_NATURAL_API_KEY || process.env.MUSETOOLS_API_KEY) return "from the environment";
+  if (process.env.VI_NATURAL_API_KEY || process.env.MUSETOOLS_API_KEY) {
+    return "from the environment";
+  }
   try {
     return JSON.parse(readFileSync(VI_CONFIG, "utf8")).api_key ? VI_CONFIG : null;
   } catch {
@@ -74,7 +77,9 @@ export const doctor = async (rest) => {
   const values = {};
   for (let index = 0; index < rest.length; index += 2) {
     const key = rest[index];
-    if (!["--token", "--url"].includes(key)) fail(`Usage: forge doctor [--token <pat>] [--url <endpoint>]`);
+    if (!["--token", "--url"].includes(key)) {
+      fail("Usage: forge doctor [--token <pat>] [--url <endpoint>]");
+    }
     if (index + 1 >= rest.length) fail(`doctor: ${key} was given no value.`);
     values[key.slice(2)] = rest[index + 1];
   }
