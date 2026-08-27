@@ -12,7 +12,7 @@ import { suggest } from "./suggest.mjs";
 
 const VERBS = [
   ["issues", "issues [--status s] [--search q] [--limit n]   the browse projection"],
-  ["issue", "issue <uuid|ISS-45>                            one issue, full body"],
+  ["issue", "issue <uuid|ISS-45> [--fields a,b]             one body, or named parts of it"],
   ["new", "new <file.md|@file|-> --title T [--status S]   create; open unless --status says"],
   ["comment", "comment <uuid|ISS-45> <file.md|@file|->        post a comment"],
   ["attach", "attach <issue|comment> <uuid> <file>...        upload, no base64 through context"],

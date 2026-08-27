@@ -6,6 +6,7 @@ import { projectId, scoped, tools } from "./rpc.mjs";
 import { translated } from "./vi.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { userConfig } from "./config.mjs";
+import { flags } from "./flags.mjs";
 import { doctor } from "./doctor.mjs";
 import { deps } from "./deps.mjs";
 
@@ -16,19 +17,6 @@ const MAX_LIMIT = 500;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const HUMAN_REF = /^[A-Za-z]+-\d+$/u;
-
-/* A flag whose value is missing used to read as `undefined`, which `JSON.stringify` drops: the
-   filter silently vanished and the command answered about the whole tracker. */
-const flags = (rest, verb) => {
-  const out = {};
-  for (let index = 0; index < rest.length; index += 2) {
-    const key = rest[index];
-    if (!key.startsWith("--")) fail(`${verb}: expected a --flag, got \`${key}\`.`);
-    if (index + 1 >= rest.length) fail(`${verb}: ${key} was given no value.`);
-    out[key.slice(2)] = rest[index + 1];
-  }
-  return out;
-};
 
 const limitFrom = (raw) => {
   if (raw === undefined) return DEFAULT_LIMIT;
@@ -50,6 +38,30 @@ const bodyFrom = (path) => {
 
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
+
+/* A null `plan` and an empty `attachments` are 179 bytes of an issue's 1,938 and say only that
+   the field exists, which the schema already says. Absence here means empty. */
+const filled = (record) =>
+  Object.fromEntries(
+    Object.entries(record).filter(([, value]) => {
+      if (value === null || value === undefined) return false;
+      return !(typeof value === "object" && !Object.keys(value).length);
+    }),
+  );
+
+/* `format: "uuid"` and a 150-character regex asserting the same thing appear together on every
+   id field; the regex is 8% of `schema forge_issues` and tells a reader nothing the format did
+   not. Anything patterned without a format is kept — that one carries the only copy of its rule. */
+const trimPatterns = (node) => {
+  if (Array.isArray(node)) return node.map(trimPatterns);
+  if (!node || typeof node !== "object") return node;
+  const out = {};
+  for (const [key, value] of Object.entries(node)) {
+    if (key === "pattern" && node.format) continue;
+    out[key] = trimPatterns(value);
+  }
+  return out;
+};
 
 const listIssues = async (filters, limit) =>
   scoped("forge_issues", {
@@ -180,7 +192,7 @@ export const commands = {
     const tool = (await tools()).find((candidate) => candidate.name === name);
     if (!tool) fail(didYouMean("tool", name, (await tools()).map((tool) => tool.name), "Ask `forge tools`."));
     refuseIfGated(name, rest.includes("--all"));
-    show({ description: tool.description, inputSchema: tool.inputSchema });
+    show({ description: tool.description, inputSchema: trimPatterns(tool.inputSchema) });
   },
   call: async ([name, json]) => {
     if (!name) fail("Usage: forge call <tool> <'json'|@file|->");
@@ -226,10 +238,16 @@ export const commands = {
     }
     printIssues(await listIssues(filters, limit), limit);
   },
-  issue: async ([reference]) => {
-    if (!reference) fail("Usage: forge issue <issue-uuid|ISS-45>");
+  /* Three tiers, and the payload is what costs: `issues` is a line per issue, `issue` is one
+     whole body, `--fields plan` is one part of one body. Measured on this tracker — the list is
+     2,557 bytes for 50 issues against ~1,900 for a single body, so drilling into 48 of the 50
+     still costs less than one call that returned them all. Fetch narrow, then fetch again. */
+  issue: async ([reference, ...rest]) => {
+    if (!reference) fail("Usage: forge issue <issue-uuid|ISS-45> [--fields a,b]");
+    const { fields } = flags(rest, "issue");
     const documentId = await documentIdOf(reference);
-    show(await scoped("forge_issues", { action: "get", documentId }));
+    const wanted = fields ? { fields: fields.split(",").map((name) => name.trim()) } : {};
+    show(filled(await scoped("forge_issues", { action: "get", documentId, ...wanted })));
   },
   /* `open` is the default: a repository that drives its own builders ignores the tracker's
      pipeline, so `open` marks the active set and nothing dispatches off it. `draft` stays
@@ -284,7 +302,11 @@ export const commands = {
     );
   },
   guide: async ([slug]) => {
-    if (!slug) return show(await scoped("forge_guide", { action: "list" }));
+    if (!slug) {
+      const listed = await scoped("forge_guide", { action: "list" });
+      for (const guide of listed?.guides ?? []) console.log(`${guide.slug}\n  ${guide.summary}`);
+      return undefined;
+    }
     const listed = await scoped("forge_guide", { action: "list" });
     const slugs = (listed?.guides ?? []).map((guide) => guide.slug);
     if (slugs.length && !slugs.includes(slug)) fail(didYouMean("guide", slug, slugs));

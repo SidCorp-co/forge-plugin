@@ -12,6 +12,7 @@ import { dirname, join } from "node:path";
 
 import { CONFIG_PATH, saveConfig, userConfig } from "./config.mjs";
 import { accountCredentials, fail, projectScope, translateTo } from "./settings.mjs";
+import { flags } from "./flags.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const VI_CONFIG = join(
@@ -132,16 +133,11 @@ const install = (values) => {
 };
 
 export const doctor = async (rest) => {
-  const full = rest.includes("--full");
-  const values = {};
-  const pairs = rest.filter((argument) => argument !== "--full");
-  for (let index = 0; index < pairs.length; index += 2) {
-    const key = pairs[index];
-    if (!["--token", "--url"].includes(key)) {
+  const { full, ...values } = flags(rest, "doctor", ["--full"]);
+  for (const key of Object.keys(values)) {
+    if (!["token", "url"].includes(key)) {
       fail("Usage: forge doctor [--token <pat>] [--url <endpoint>] [--full]");
     }
-    if (index + 1 >= pairs.length) fail(`doctor: ${key} was given no value.`);
-    values[key.slice(2)] = pairs[index + 1];
   }
   if (Object.keys(values).length) install(values);
 
