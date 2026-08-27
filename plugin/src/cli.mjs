@@ -9,21 +9,7 @@
    from here. `forge doctor` measures which those are; `--all` is how a human looks past it. */
 import { commands, gatedTools, withheldVerbs } from "./commands.mjs";
 import { suggest } from "./suggest.mjs";
-
-const VERBS = [
-  ["issues", "issues [--status s] [--search q] [--limit n]   the browse projection"],
-  ["issue", "issue <uuid|ISS-45> [--fields a,b]             one body, or named parts of it"],
-  ["new", "new <file.md|@file|-> --title T [--status S]   create; open unless --status says"],
-  ["comment", "comment <uuid|ISS-45> <file.md|@file|->        post a comment"],
-  ["attach", "attach <issue|comment> <uuid> <file>...        upload, no base64 through context"],
-  ["deps", "deps [ISS-45] [--long]                         the graph the issue bodies claim"],
-  ["dep", "dep <blocker> <blocked> [kind]                 record a dependency edge", "forge_project_pm"],
-  ["guide", "guide [slug]                                   the tracker's own guides", "forge_guide"],
-  ["project", "project                                        the resolved project id"],
-  ["doctor", "doctor [--token t] [--url u]                   what resolves and from where"],
-  ["tools", "tools [--all] | schema <tool>                  the reachable surface"],
-  ["call", "call <tool> <'json'|@file|->                   anything not wrapped above"],
-];
+import { VERBS } from "./verbs.mjs";
 
 const withheld = gatedTools();
 const byChoice = withheldVerbs();

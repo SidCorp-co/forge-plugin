@@ -41,13 +41,15 @@ const show = (value) =>
 
 /* A null `plan` and an empty `attachments` are 179 bytes of an issue's 1,938 and say only that
    the field exists, which the schema already says. Absence here means empty. */
-const filled = (record) =>
-  Object.fromEntries(
+const filled = (record) => {
+  if (!record || typeof record !== "object" || Array.isArray(record)) return record;
+  return Object.fromEntries(
     Object.entries(record).filter(([, value]) => {
       if (value === null || value === undefined) return false;
       return !(typeof value === "object" && !Object.keys(value).length);
     }),
   );
+};
 
 /* `format: "uuid"` and a 150-character regex asserting the same thing appear together on every
    id field; the regex is 8% of `schema forge_issues` and tells a reader nothing the format did
@@ -57,7 +59,7 @@ const trimPatterns = (node) => {
   if (!node || typeof node !== "object") return node;
   const out = {};
   for (const [key, value] of Object.entries(node)) {
-    if (key === "pattern" && node.format) continue;
+    if (key === "pattern" && typeof node.format === "string") continue;
     out[key] = trimPatterns(value);
   }
   return out;
@@ -118,7 +120,7 @@ const REFERENCE_KEYS = new Set([
 
 const resolveReferences = async (value, key) => {
   if (Array.isArray(value)) {
-    return Promise.all(value.map((item) => resolveReferences(item)));
+    return Promise.all(value.map((item) => resolveReferences(item, key)));
   }
   if (value && typeof value === "object") {
     const out = {};
@@ -184,6 +186,11 @@ export const commands = {
   deps,
   tools: async (rest) => {
     const all = rest.includes("--all");
+    const stray = rest.filter((argument) => argument !== "--all");
+    if (stray.length) {
+      const named = stray.find((argument) => argument !== "schema") ?? "<tool>";
+      fail(`Usage: forge tools [--all]. For one tool's schema: \`forge schema ${named}\`.`);
+    }
     const { gates, checkedAt } = knownGates();
     for (const tool of await tools()) {
       const gate = gates[tool.name];
@@ -249,8 +256,18 @@ export const commands = {
   issue: async ([reference, ...rest]) => {
     if (!reference) fail("Usage: forge issue <issue-uuid|ISS-45> [--fields a,b]");
     const { fields } = flags(rest, "issue");
+    const asked = fields ? fields.split(",").map((name) => name.trim()) : [];
+    /* The enum is in the schema this CLI already holds, so a mistyped field answers here rather
+       than one round trip later — the same rule `issues` applies to a mistyped filter. */
+    if (asked.length) {
+      const declared = (await tools()).find((tool) => tool.name === "forge_issues");
+      const allowed = declared?.inputSchema?.properties?.fields?.items?.enum ?? [];
+      for (const name of asked) {
+        if (allowed.length && !allowed.includes(name)) fail(didYouMean("field", name, allowed));
+      }
+    }
     const documentId = await documentIdOf(reference);
-    const wanted = fields ? { fields: fields.split(",").map((name) => name.trim()) } : {};
+    const wanted = asked.length ? { fields: asked } : {};
     show(filled(await scoped("forge_issues", { action: "get", documentId, ...wanted })));
   },
   /* `open` is the default: a repository that drives its own builders ignores the tracker's
@@ -279,6 +296,9 @@ export const commands = {
   attach: async ([target, targetRef, ...paths]) => {
     if (!target || !targetRef || !paths.length) {
       fail("Usage: forge attach <issue|comment> <uuid> <file>...");
+    }
+    if (target !== "issue" && target !== "comment") {
+      fail(`attach takes \`issue\` or \`comment\` as its target, not \`${target}\`.`);
     }
     const targetId = target === "issue" ? await documentIdOf(targetRef) : targetRef;
     for (const path of paths) {

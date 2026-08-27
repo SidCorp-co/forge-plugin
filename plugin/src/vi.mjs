@@ -59,7 +59,14 @@ const translatedTitle = (text) => {
 };
 
 export const translated = (payload) => {
-  if (!payload || translateTo() !== "vi") return payload;
+  const language = translateTo();
+  if (!payload || !language) return payload;
+  if (language !== "vi") {
+    fail(
+      `The prose language is \`${language}\` and vi is the only one this CLI writes.\n` +
+        "Nothing was posted. Set translate to vi or off in .forge.json.",
+    );
+  }
   const done = { ...payload };
   for (const field of PROSE_FIELDS) {
     if (typeof done[field] !== "string" || !done[field].trim()) continue;

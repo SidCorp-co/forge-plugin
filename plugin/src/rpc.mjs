@@ -4,6 +4,9 @@ import { fail, projectSlug, settings, slugIfAny } from "./settings.mjs";
 
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
+/* The wait is the server's to state and not to impose: an hour's retryAfterSeconds is a hung
+   command, which reads as a broken CLI rather than as a rate limit being honoured. */
+const MAX_RETRY_SECONDS = 60;
 
 const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000));
 
@@ -18,11 +21,12 @@ const sseData = (text) =>
 /* The server states its own wait: `{"code":"RATE_LIMITED", …,"details":{"retryAfterSeconds":2}}`.
    Failing the command instead of honouring it turns a two-second pause into a lost run. */
 const retryAfter = (text, headers) => {
+  const capped = (seconds) => Math.min(seconds, MAX_RETRY_SECONDS);
   const header = Number(headers.get("retry-after"));
-  if (Number.isFinite(header) && header > 0) return header;
+  if (Number.isFinite(header) && header > 0) return capped(header);
   try {
     const seconds = JSON.parse(text)?.details?.retryAfterSeconds;
-    if (Number.isFinite(seconds) && seconds > 0) return seconds;
+    if (Number.isFinite(seconds) && seconds > 0) return capped(seconds);
   } catch {
     /* Not every 429 answers as JSON. */
   }

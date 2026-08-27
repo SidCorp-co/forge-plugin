@@ -1,7 +1,7 @@
 {
   "name": "forge",
   "description": "Drive a Forge issue tracker from the terminal: browse, read, file and comment on issues over the MCP endpoint with no MCP client connected, and write every issue in natural Vietnamese through the bundled vi-natural CLI.",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "author": {
     "name": "Thanh Nguyen",
     "email": "thanhnh@sidcorp.co"

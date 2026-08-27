@@ -11,8 +11,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 import { CONFIG_PATH, saveConfig, userConfig } from "./config.mjs";
+import { didYouMean } from "./suggest.mjs";
 import { accountCredentials, fail, projectScope, translateTo } from "./settings.mjs";
 import { flags } from "./flags.mjs";
+import { VERB_NAMES } from "./verbs.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const VI_CONFIG = join(
@@ -133,6 +135,7 @@ const install = (values) => {
 };
 
 const setVisibility = (verb, hide) => {
+  if (!VERB_NAMES.includes(verb)) fail(didYouMean("verb", verb, VERB_NAMES));
   const withheld = new Set(userConfig().withheld ?? []);
   if (hide) withheld.add(verb);
   else withheld.delete(verb);
@@ -157,14 +160,18 @@ export const doctor = async (rest) => {
   if (token) line(OK, "token", `${masked(token, full)}  ← ${tokenFrom}`);
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
 
+  const chosen = userConfig().withheld ?? [];
+  if (chosen.length) line(OK, "withheld verbs", `${chosen.join(", ")} — \`forge doctor --show <verb>\``);
   const { slug, from } = projectScope();
   if (slug) line(OK, "project slug", `${slug}  ← ${from}`);
   else line(BAD, "project slug", "project-scoped calls will refuse; account-level ones still work");
 
   const language = translateTo();
-  if (language) line(OK, "prose language", `${language} — every title and body is rewritten`);
-  else line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
-  const canWrite = !language || checkVi();
+  if (language === "vi") line(OK, "prose language", "vi — every title and body is rewritten");
+  else if (language) {
+    line(BAD, "prose language", `${language} — vi is the only language this CLI writes; writes refuse`);
+  } else line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
+  const canWrite = !language || (language === "vi" && checkVi());
 
   if (!url || !token) {
     console.log("\nNot reaching the endpoint: the account half is incomplete.");

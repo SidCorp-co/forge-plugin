@@ -9,6 +9,7 @@ import {
   openSync,
   readFileSync,
   renameSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
@@ -39,6 +40,9 @@ export const saveConfig = (values) => {
   mkdirSync(DIRECTORY, { recursive: true });
   const merged = { ...userConfig(), ...values };
   const temporary = `${CONFIG_PATH}.tmp`;
+  /* `w` applies the mode on create only, so a temp file a crashed run left behind would take the
+     token at whatever permissions it already had. */
+  rmSync(temporary, { force: true });
   const handle = openSync(temporary, "w", 0o600);
   try {
     writeFileSync(handle, `${JSON.stringify(merged, null, 2)}\n`);
