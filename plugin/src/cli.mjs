@@ -4,6 +4,7 @@
    The tracker is the backlog, so every agent needs a way in that does not depend on an MCP client
    being connected in the session that asks. The endpoint speaks JSON-RPC over one POST. */
 import { commands } from "./commands.mjs";
+import { suggest } from "./suggest.mjs";
 
 const USAGE = [
   `Usage: forge <${Object.keys(commands).join("|")}> [args]`,
@@ -32,6 +33,8 @@ const asked = command === "-h" || command === "--help";
 /* `Object.hasOwn`, not truthiness: `commands.toString` is inherited and callable, so a mistyped
    verb that happens to name a prototype member ran it and exited 0 with no output. */
 if (asked || !command || !Object.hasOwn(commands, command)) {
+  const close = command && !asked ? suggest(command, Object.keys(commands)) : [];
+  if (close.length) console.error(`No verb named ${command}. Did you mean: ${close.join(", ")}?\n`);
   console.error(USAGE);
   process.exit(asked ? 0 : 1);
 }

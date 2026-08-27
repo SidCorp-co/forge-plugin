@@ -4,6 +4,7 @@ import { basename } from "node:path";
 import { fail, projectScope, settings, translateTo } from "./settings.mjs";
 import { projectId, scoped, tools } from "./rpc.mjs";
 import { translated } from "./vi.mjs";
+import { didYouMean } from "./suggest.mjs";
 import { doctor } from "./doctor.mjs";
 import { deps } from "./deps.mjs";
 
@@ -127,23 +128,6 @@ const announce = (verb) => {
   );
 };
 
-/* A wrong tool name costs a round trip and answers "no tool named x" with 67 alternatives
-   elsewhere. Substring first, then shared prefix — both catch the real mistakes: a dot for an
-   underscore, and a remembered stem. */
-const nearest = (name, declared) => {
-  const stem = name.replace(/[._-]/gu, "").toLowerCase();
-  const close = declared
-    .map((tool) => tool.name)
-    .filter((candidate) => {
-      const bare = candidate.replace(/[._-]/gu, "").toLowerCase();
-      return bare.includes(stem) || stem.includes(bare) || bare.startsWith(stem.slice(0, 6));
-    })
-    .slice(0, 5);
-  return close.length
-    ? `No tool named ${name}. Did you mean: ${close.join(", ")}?`
-    : `No tool named ${name}. Ask \`forge tools\` for the list.`;
-};
-
 export const commands = {
   doctor,
   deps,
@@ -153,12 +137,12 @@ export const commands = {
   schema: async ([name]) => {
     if (!name) fail("Usage: forge schema <tool>");
     const tool = (await tools()).find((candidate) => candidate.name === name);
-    if (!tool) fail(nearest(name, await tools()));
+    if (!tool) fail(didYouMean("tool", name, (await tools()).map((tool) => tool.name), "Ask `forge tools`."));
     show({ description: tool.description, inputSchema: tool.inputSchema });
   },
   call: async ([name, json]) => {
     if (!name) fail("Usage: forge call <tool> <'json'|@file|->");
-    if (!(await tools()).some((tool) => tool.name === name)) fail(nearest(name, await tools()));
+    if (!(await tools()).some((tool) => tool.name === name)) fail(didYouMean("tool", name, (await tools()).map((tool) => tool.name), "Ask `forge tools`."));
     const raw = json === undefined || json === "-" || json.startsWith("@") ? bodyFrom(json ?? "-") : json;
     if (!raw.trim()) fail(`No arguments given for ${name}. Pass json as an argument or on stdin.`);
     let args;
@@ -188,6 +172,13 @@ export const commands = {
   issues: async (rest) => {
     const { limit: raw, ...filters } = flags(rest, "issues");
     const limit = limitFrom(raw);
+    /* The server answers an unknown filter with `Unrecognized key`, one round trip later and
+       without naming a valid one. Its own schema is already in hand. */
+    const declared = (await tools()).find((tool) => tool.name === "forge_issues");
+    const allowed = Object.keys(declared?.inputSchema?.properties?.filters?.properties ?? {});
+    for (const given of Object.keys(filters)) {
+      if (!allowed.includes(given)) fail(didYouMean("filter", `--${given}`, [...allowed.map((a) => `--${a}`), "--limit"]));
+    }
     printIssues(await listIssues(filters, limit), limit);
   },
   issue: async ([reference]) => {
@@ -248,7 +239,11 @@ export const commands = {
     );
   },
   guide: async ([slug]) => {
-    show(await scoped("forge_guide", slug ? { action: "get", slug } : { action: "list" }));
+    if (!slug) return show(await scoped("forge_guide", { action: "list" }));
+    const listed = await scoped("forge_guide", { action: "list" });
+    const slugs = (listed?.guides ?? []).map((guide) => guide.slug);
+    if (slugs.length && !slugs.includes(slug)) fail(didYouMean("guide", slug, slugs));
+    show(await scoped("forge_guide", { action: "get", slug }));
   },
   project: async () => console.log(await projectId()),
 };

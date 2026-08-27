@@ -22,6 +22,12 @@ The slug is demanded **only by a call that needs a project id**, so `tools`, `sc
 answer in a directory that belongs to no project. The project id is looked up from the slug at
 runtime and is never configured.
 
+Every name the CLI accepts answers a near miss with **"Did you mean"** — verbs, tool names,
+`--filters`, guide slugs. A wrong name costs a sentence, not a round trip, and a name that
+resembles nothing gets no suggestion rather than a wrong one. `ISS-45` works wherever a uuid does,
+including inside a raw `call` payload. Before a write, the CLI prints which project and which
+prose language it is about to post to.
+
 **Never pass a project id, a slug or a token on the command line.** An id typed into a command is
 the same hard-coded environment fact whether it sits in a script or in a shell history.
 
