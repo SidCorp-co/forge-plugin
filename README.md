@@ -17,6 +17,10 @@ claude plugin install forge@forge-local
 The `SessionStart` hook symlinks both binaries into `~/.local/bin`. After a fresh install, run
 `plugin/hooks/link-cli.sh "$PWD/plugin"` once rather than waiting for the next session.
 
+`install` **copies** this tree into `~/.claude/plugins/cache/forge-local/forge/<version>/`, and the
+symlinks point there. `claude plugin update` compares versions only, so an edit made without
+bumping `plugin.json` never reaches the cache — uninstall and install again, or bump the version.
+
 ## Configuration
 
 Two scopes, and they are not the same scope.
