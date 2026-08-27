@@ -45,6 +45,20 @@ Run `forge -h` for the list. The shape that matters:
 - `forge tools`, `forge schema <tool>`, `forge call <tool> '<json>'` — anything not wrapped above.
   `call` still routes `data` through the Vietnamese pipeline, so it is not a bypass.
 
+## Dependencies are prose, not edges
+
+**No PAT can read the recorded dependency graph.** All six `forge_project_pm` actions and the
+deprecated `forge_pm.set_dependency` answer `FORBIDDEN: PM_REQUIRES_DEVICE`; edge mutation is
+session-authenticated by design and the web UI is the only place edges are readable. `forge dep`
+will refuse for the same reason.
+
+`forge deps [ISS-45]` is the substitute: it reads the sentence a migrated issue carries about its
+own edges (*"Blocked by the … issues, and blocks the … issues; those edges are recorded"*),
+resolves each phrase to an issue, and prints the graph. **Every edge is marked `both sides agree`
+or `stated by ISS-n only`** — a one-sided claim is the finding, never reconciled away. A phrase
+matching no title, or tying two, prints unresolved rather than guessed. It reports how many issues
+carry no such prose, because that is silence and not an absence of dependencies.
+
 ## Two things the output will not tell you
 
 **`issues` returns one page.** The server's default is 25 rows; this CLI asks for 200 and the
