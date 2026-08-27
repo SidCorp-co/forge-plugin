@@ -9,7 +9,7 @@
    The binary is the one shipped beside this file, never whatever PATH resolves: a plugin that
    spawns a copy it did not ship has no idea which contract it is getting. */
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -37,15 +37,19 @@ const viNatural = (argv, stdin) => {
    carry shas, file paths and identifiers without either being translated or being stripped. */
 const translatedBody = (text) => {
   const directory = mkdtempSync(join(tmpdir(), "forge-vi-"));
-  const source = join(directory, "body.md");
-  const target = join(directory, "body.vi.md");
-  writeFileSync(source, text);
-  const run = viNatural(["doc", "-o", target, source]);
-  const left = /(\d+) left in English/u.exec(run.stdout ?? "");
-  if (left && left[1] !== "0") {
-    fail(`vi-natural left ${left[1]} block(s) in English and refused them. Nothing was posted.`);
+  try {
+    const source = join(directory, "body.md");
+    const target = join(directory, "body.vi.md");
+    writeFileSync(source, text);
+    const run = viNatural(["doc", "-o", target, source]);
+    const left = /(\d+) left in English/u.exec(run.stdout ?? "");
+    if (left && left[1] !== "0") {
+      fail(`vi-natural left ${left[1]} block(s) in English and refused them. Nothing was posted.`);
+    }
+    return readFileSync(target, "utf8");
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
   }
-  return readFileSync(target, "utf8");
 };
 
 const translatedTitle = (text) => {

@@ -13,8 +13,8 @@ description: >-
 `forge` is on PATH, and it reads two scopes that are not the same scope.
 
 The **endpoint and token are the account's** — one Forge instance, one PAT — from `FORGE_MCP_URL`
-and `FORGE_TOKEN`, else the `forge` server in the nearest `.mcp.json` walking up from the current
-directory. The **slug is the project's**, from `FORGE_PROJECT_SLUG`, else a `.forge.json` holding
+and `FORGE_TOKEN`, else `~/.config/forge/config.json`, else the `forge` server in the nearest
+`.mcp.json` walking up from the current directory. The **slug is the project's**, from `FORGE_PROJECT_SLUG`, else a `.forge.json` holding
 `{ "slug": "<project>" }`, else that file's `X-Forge-Project-Slug` header. A git worktree with no
 config of its own inherits its main checkout's.
 
@@ -38,6 +38,10 @@ Run `forge -h` for the list. The shape that matters:
 - `forge attach <issue|comment> <uuid> <file>...` — upload bytes straight to a presigned URL.
   **Use this for anything bigger than a snippet**; base64 through a model's context is the defect
   it exists to avoid.
+- `forge doctor` — **run this first when anything refuses.** It prints the endpoint, the token
+  (masked), the slug and the vi-natural key, says which source each came from, and reaches the
+  server. `forge doctor --token <pat> [--url <endpoint>]` saves the account half to
+  `~/.config/forge/config.json` at mode 0600.
 - `forge tools`, `forge schema <tool>`, `forge call <tool> '<json>'` — anything not wrapped above.
   `call` still routes `data` through the Vietnamese pipeline, so it is not a bypass.
 

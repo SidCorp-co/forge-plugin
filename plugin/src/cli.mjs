@@ -20,6 +20,7 @@ const USAGE = [
   "  dep <blocker> <blocked> [blocks|relates]       record a dependency edge",
   "  guide [slug]                                   the tracker's own guides",
   "  project                                        the resolved project id",
+  "  doctor [--token t] [--url u]                   what resolves and from where; saves both",
   "  tools | schema <tool> | call <tool> '<json>'   anything not wrapped above",
 ].join("\n");
 

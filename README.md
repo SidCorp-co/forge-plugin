@@ -29,8 +29,13 @@ Two scopes, and they are not the same scope.
 every call:
 
 1. `FORGE_MCP_URL` and `FORGE_TOKEN`
-2. `mcpServers.forge` in the nearest `.mcp.json` walking up from the current directory
-3. the same file in the main checkout, when the cwd is a linked git worktree
+2. `~/.config/forge/config.json`, written by `forge doctor --token <pat> --url <endpoint>` at
+   mode 0600 — a token belongs outside every repository
+3. `mcpServers.forge` in the nearest `.mcp.json` walking up from the current directory, or the
+   same file in the main checkout when the cwd is a linked git worktree
+
+`forge doctor` prints each of these, says which source answered, and reaches the endpoint. Run it
+first when anything refuses.
 
 **Project** — the slug, and it is the only thing here that changes when you `cd`. Demanded lazily,
 by the call that actually needs a project id, so `tools`, `schema`, `guide` and `call` against an

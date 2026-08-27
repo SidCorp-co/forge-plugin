@@ -4,6 +4,7 @@ import { basename } from "node:path";
 import { fail, settings } from "./settings.mjs";
 import { projectId, scoped, tools } from "./rpc.mjs";
 import { translated } from "./vi.mjs";
+import { doctor } from "./doctor.mjs";
 
 /* The server's own default page is 25 and its schema caps `limit` at 500 with no offset or
    cursor beside it, so a full page is the only signal that anything was left behind. */
@@ -80,6 +81,7 @@ const documentIdOf = async (reference) => {
 };
 
 export const commands = {
+  doctor,
   tools: async () => {
     for (const tool of await tools()) console.log(tool.name);
   },

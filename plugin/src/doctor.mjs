@@ -1,0 +1,101 @@
+/* `forge doctor` — what resolves, where each part came from, and whether the endpoint answers.
+
+   Every other verb fails at the first missing piece and tells you about that one. Doctor is the
+   opposite: it reports all of them at once, because "no credentials" and "credentials from the
+   wrong file" look identical from inside a single failing command. It also installs the account
+   half, since the fix for the commonest finding is to write a token somewhere private. */
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+import { CONFIG_PATH, saveConfig } from "./config.mjs";
+import { accountCredentials, fail, projectScope } from "./settings.mjs";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const VI_CONFIG = join(
+  process.env.XDG_CONFIG_HOME || join(homedir(), ".config"),
+  "vi-natural",
+  "config.json",
+);
+
+const OK = "  ok  ";
+const BAD = " miss ";
+
+const line = (mark, label, detail) => console.log(`[${mark}] ${label.padEnd(22)} ${detail}`);
+
+/* Enough of the token to recognise which one it is, never enough to use. */
+const masked = (token) => {
+  const bare = token.replace(/^Bearer /u, "");
+  return bare.length <= 12 ? "set" : `${bare.slice(0, 6)}…${bare.slice(-4)} (${bare.length} chars)`;
+};
+
+const hasViKey = () => {
+  if (process.env.VI_NATURAL_API_KEY || process.env.MUSETOOLS_API_KEY) return "from the environment";
+  try {
+    return JSON.parse(readFileSync(VI_CONFIG, "utf8")).api_key ? VI_CONFIG : null;
+  } catch {
+    return null;
+  }
+};
+
+const checkVi = () => {
+  const bundled = join(HERE, "..", "bin", "vi-natural");
+  const run = spawnSync(bundled, ["--help"], { encoding: "utf8" });
+  if (run.error || run.status !== 0) {
+    line(BAD, "vi-natural", `bundled copy will not run: ${run.error?.message ?? run.status}`);
+    return false;
+  }
+  line(OK, "vi-natural", bundled);
+  const key = hasViKey();
+  if (key) line(OK, "vi-natural key", key);
+  else line(BAD, "vi-natural key", "run `vi-natural login --key <key>` — no issue can be posted");
+  return Boolean(key);
+};
+
+/* Imported lazily: reaching the endpoint is the one check that needs credentials to already have
+   passed, and the transport exits the process when they have not. */
+const checkEndpoint = async () => {
+  const { tools, projectId } = await import("./rpc.mjs");
+  const declared = await tools();
+  line(OK, "endpoint", `${declared.length} tools declared`);
+  const { slug } = projectScope();
+  if (!slug) return;
+  line(OK, "project id", await projectId());
+};
+
+const install = (values) => {
+  const written = saveConfig(values);
+  console.log(`Saved ${Object.keys(values).join(" and ")} to ${written} (mode 0600).\n`);
+};
+
+export const doctor = async (rest) => {
+  const values = {};
+  for (let index = 0; index < rest.length; index += 2) {
+    const key = rest[index];
+    if (!["--token", "--url"].includes(key)) fail(`Usage: forge doctor [--token <pat>] [--url <endpoint>]`);
+    if (index + 1 >= rest.length) fail(`doctor: ${key} was given no value.`);
+    values[key.slice(2)] = rest[index + 1];
+  }
+  if (Object.keys(values).length) install(values);
+
+  const { url, urlFrom, token, tokenFrom } = accountCredentials();
+  if (url) line(OK, "endpoint url", `${url}  ← ${urlFrom}`);
+  else line(BAD, "endpoint url", "no FORGE_MCP_URL, no saved url, no .mcp.json");
+  if (token) line(OK, "token", `${masked(token)}  ← ${tokenFrom}`);
+  else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
+
+  const { slug, from } = projectScope();
+  if (slug) line(OK, "project slug", `${slug}  ← ${from}`);
+  else line(BAD, "project slug", "project-scoped calls will refuse; account-level ones still work");
+
+  checkVi();
+
+  if (!url || !token) {
+    console.log("\nNot reaching the endpoint: the account half is incomplete.");
+    process.exit(1);
+  }
+  await checkEndpoint();
+  console.log(`\nConfig file: ${CONFIG_PATH}`);
+};

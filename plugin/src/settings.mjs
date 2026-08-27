@@ -12,6 +12,8 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
+import { userConfig } from "./config.mjs";
+
 export const fail = (message) => {
   console.error(message);
   process.exit(1);
@@ -38,12 +40,18 @@ const ancestors = (start) => {
 /* A linked worktree has no `.mcp.json` or `.forge.json` of its own — both are git-ignored and
    belong to the checkout they were created in. `--git-common-dir` names the main checkout's
    `.git`, whose parent holds them, and that is the only way in from a worktree kept outside the
-   main tree. */
+   main tree.
+
+   Memoised: every request asks for the slug, and unmemoised this spawned `git rev-parse` nine
+   times for one `forge issues`. The cwd does not move inside a run. */
+let roots = null;
 const searchRoots = () => {
+  if (roots) return roots;
   const cwd = process.cwd();
   const common = git(["rev-parse", "--git-common-dir"], cwd);
   const shared = common === null ? null : dirname(resolve(cwd, common));
-  return [...ancestors(cwd), ...(shared ? [shared] : [])];
+  roots = [...ancestors(cwd), ...(shared ? [shared] : [])];
+  return roots;
 };
 
 const readJson = (root, name) => {
@@ -62,21 +70,38 @@ const findUp = (name, pick) => {
   return null;
 };
 
-const mcpForge = () => findUp(".mcp.json", (parsed) => parsed?.mcpServers?.forge ?? null);
+let mcp;
+const mcpForge = () => {
+  if (mcp === undefined) mcp = findUp(".mcp.json", (parsed) => parsed?.mcpServers?.forge ?? null);
+  return mcp;
+};
+
+/* The account's half, and where each part came from — `doctor` reports the source, so the lookup
+   answers with it rather than repeating the precedence in a second place. */
+export const accountCredentials = () => {
+  const saved = userConfig();
+  const mcpServer = mcpForge();
+  const pick = (env, fromConfig, fromMcp) =>
+    (process.env[env] && { value: process.env[env], from: `$${env}` }) ||
+    (fromConfig && { value: fromConfig, from: "~/.config/forge/config.json" }) ||
+    (fromMcp && { value: fromMcp, from: ".mcp.json" }) ||
+    null;
+  const url = pick("FORGE_MCP_URL", saved.url, mcpServer?.url);
+  const token = pick("FORGE_TOKEN", saved.token, mcpServer?.headers?.Authorization);
+  return { url: url?.value, urlFrom: url?.from, token: token?.value, tokenFrom: token?.from };
+};
 
 let endpoint = null;
 
-/* The account's half: url and token. Required by every call, so this fails loudly and early. */
+/* Required by every call, so this fails loudly and early. */
 export const settings = () => {
   if (endpoint) return endpoint;
-  const config = mcpForge();
-  const url = process.env.FORGE_MCP_URL ?? config?.url;
-  const token = process.env.FORGE_TOKEN ?? config?.headers?.Authorization;
+  const { url, token } = accountCredentials();
   if (!url || !token) {
     fail(
-      "No Forge endpoint. Set FORGE_MCP_URL and FORGE_TOKEN,\n" +
-        "or give a `.mcp.json` at or above this directory a `forge` server carrying its url\n" +
-        "and an Authorization header. A worktree also inherits its main checkout's.",
+      "No Forge endpoint. Run `forge doctor --token <pat> --url <endpoint>` to save one,\n" +
+        "or set FORGE_MCP_URL and FORGE_TOKEN, or give a `.mcp.json` at or above this\n" +
+        "directory a `forge` server carrying both. `forge doctor` says which of these it found.",
     );
   }
   endpoint = { url, token: token.startsWith("Bearer ") ? token : `Bearer ${token}` };
@@ -86,11 +111,18 @@ export const settings = () => {
 /* The project's half. Every request carries the slug as a header when there is one — that is how
    the server scopes a call that takes no projectId — but its absence is only an error for a call
    that needs a project id, so this one answers null instead of exiting. */
-export const slugIfAny = () =>
-  process.env.FORGE_PROJECT_SLUG ??
-  findUp(".forge.json", (parsed) => parsed?.slug ?? null) ??
-  mcpForge()?.headers?.["X-Forge-Project-Slug"] ??
-  null;
+export const projectScope = () => {
+  if (process.env.FORGE_PROJECT_SLUG) {
+    return { slug: process.env.FORGE_PROJECT_SLUG, from: "$FORGE_PROJECT_SLUG" };
+  }
+  const fromFile = findUp(".forge.json", (parsed) => parsed?.slug ?? null);
+  if (fromFile) return { slug: fromFile, from: ".forge.json" };
+  const fromMcp = mcpForge()?.headers?.["X-Forge-Project-Slug"];
+  return fromMcp ? { slug: fromMcp, from: ".mcp.json" } : { slug: null, from: null };
+};
+
+let scope;
+export const slugIfAny = () => (scope ??= projectScope()).slug;
 
 /* Nothing calls this until a tool's own schema says it takes a projectId, so an account-level
    verb works in a directory that belongs to no project. */
