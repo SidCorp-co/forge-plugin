@@ -124,6 +124,15 @@ export const projectScope = () => {
 let scope;
 export const slugIfAny = () => (scope ??= projectScope()).slug;
 
+/* Which language this project's issues are written in — a property of the tracker, not of the
+   CLI. Measured 2026-08-27: sid-growth is Vietnamese and forge-dev is English, so posting one
+   convention into both is a wrong-language issue that no verb can delete afterwards. Off is the
+   default because that failure is unrecoverable and a missing translation is an edit. */
+export const translateTo = () => {
+  const raw = process.env.FORGE_TRANSLATE ?? findUp(".forge.json", (parsed) => parsed?.translate);
+  return raw && raw !== "off" && raw !== "false" ? String(raw) : null;
+};
+
 /* Nothing calls this until a tool's own schema says it takes a projectId, so an account-level
    verb works in a directory that belongs to no project. */
 export const projectSlug = () => {

@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-import { fail } from "./settings.mjs";
+import { fail, translateTo } from "./settings.mjs";
 
 const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "bin", "vi-natural");
 const PROSE_FIELDS = ["title", "description", "body"];
@@ -59,7 +59,7 @@ const translatedTitle = (text) => {
 };
 
 export const translated = (payload) => {
-  if (!payload) return payload;
+  if (!payload || translateTo() !== "vi") return payload;
   const done = { ...payload };
   for (const field of PROSE_FIELDS) {
     if (typeof done[field] !== "string" || !done[field].trim()) continue;

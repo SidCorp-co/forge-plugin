@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 import { CONFIG_PATH, saveConfig } from "./config.mjs";
-import { accountCredentials, fail, projectScope } from "./settings.mjs";
+import { accountCredentials, fail, projectScope, translateTo } from "./settings.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const VI_CONFIG = join(
@@ -95,7 +95,10 @@ export const doctor = async (rest) => {
   if (slug) line(OK, "project slug", `${slug}  ← ${from}`);
   else line(BAD, "project slug", "project-scoped calls will refuse; account-level ones still work");
 
-  const canWrite = checkVi();
+  const language = translateTo();
+  if (language) line(OK, "prose language", `${language} — every title and body is rewritten`);
+  else line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
+  const canWrite = !language || checkVi();
 
   if (!url || !token) {
     console.log("\nNot reaching the endpoint: the account half is incomplete.");

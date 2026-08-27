@@ -75,11 +75,21 @@ rows were left behind — the CLI says so on that line. A count below the limit 
 **`issueId` and `documentId` are different keys.** `ISS-45` is what a human cites; the uuid is
 what the API takes. `issue`, `comment`, `attach issue` and `dep` accept either.
 
-## Prose goes in English
+## Prose language is the tracker's property, not the CLI's
 
-Every `title`, `description` and `body` is rewritten by the bundled `vi-natural` before it is
-posted, and the CLI prints what went out. **Write the source in English** — a source that stays
-English is the source to fix, not a reason to hand-translate. If `vi-natural` fails or leaves a
-block untranslated, nothing is posted at all.
+**By default the CLI posts what you hand it.** A project whose tracker is written in Vietnamese
+says so in its `.forge.json`:
+
+```json
+{ "slug": "sid-growth", "translate": "vi" }
+```
+
+Then every `title`, `description` and `body` is rewritten by the bundled `vi-natural` before it is
+posted and the CLI prints what went out — **write the source in English**, because a source that
+stays English is the source to fix, not a reason to hand-translate. If `vi-natural` fails or leaves
+a block untranslated, nothing is posted at all. `FORGE_TRANSLATE=vi|off` overrides per command.
+
+**Check `forge doctor` before filing into an unfamiliar project.** It prints the prose language.
+Posting the wrong language is unrecoverable: `forge_issues` has no delete action.
 
 The `vi-natural` skill in this same plugin covers writing Vietnamese directly.
