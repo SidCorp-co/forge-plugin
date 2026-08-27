@@ -19,11 +19,22 @@ The `SessionStart` hook symlinks both binaries into `~/.local/bin`. After a fres
 
 ## Configuration
 
-`forge` resolves its endpoint, token and project slug in this order:
+Two scopes, and they are not the same scope.
 
-1. `FORGE_MCP_URL`, `FORGE_TOKEN`, `FORGE_PROJECT_SLUG`
-2. the nearest `.mcp.json` walking up from the current directory, `mcpServers.forge`
-3. the `.mcp.json` of the main checkout, when the cwd is a linked git worktree
+**Account** — the endpoint and the token. One Forge instance, one PAT, every project. Required by
+every call:
+
+1. `FORGE_MCP_URL` and `FORGE_TOKEN`
+2. `mcpServers.forge` in the nearest `.mcp.json` walking up from the current directory
+3. the same file in the main checkout, when the cwd is a linked git worktree
+
+**Project** — the slug, and it is the only thing here that changes when you `cd`. Demanded lazily,
+by the call that actually needs a project id, so `tools`, `schema`, `guide` and `call` against an
+account-level tool work in a directory that belongs to no project:
+
+1. `FORGE_PROJECT_SLUG`
+2. `{ "slug": "<project>" }` in a `.forge.json` at or above the current directory
+3. the `X-Forge-Project-Slug` header of that same `.mcp.json`
 
 The project **id** is never configured — it is looked up from the slug at runtime.
 

@@ -10,10 +10,17 @@ description: >-
 
 # Skill: forge
 
-`forge` is on PATH. It is global but **project-scoped**: the endpoint, the token and the project
-slug come from the nearest `.mcp.json` walking up from the current directory, and the project id
-is looked up from that slug at runtime. A git worktree with no `.mcp.json` of its own inherits its
-main checkout's. `FORGE_MCP_URL`, `FORGE_TOKEN` and `FORGE_PROJECT_SLUG` override all of it.
+`forge` is on PATH, and it reads two scopes that are not the same scope.
+
+The **endpoint and token are the account's** — one Forge instance, one PAT — from `FORGE_MCP_URL`
+and `FORGE_TOKEN`, else the `forge` server in the nearest `.mcp.json` walking up from the current
+directory. The **slug is the project's**, from `FORGE_PROJECT_SLUG`, else a `.forge.json` holding
+`{ "slug": "<project>" }`, else that file's `X-Forge-Project-Slug` header. A git worktree with no
+config of its own inherits its main checkout's.
+
+The slug is demanded **only by a call that needs a project id**, so `tools`, `schema` and `guide`
+answer in a directory that belongs to no project. The project id is looked up from the slug at
+runtime and is never configured.
 
 **Never pass a project id, a slug or a token on the command line.** An id typed into a command is
 the same hard-coded environment fact whether it sits in a script or in a shell history.

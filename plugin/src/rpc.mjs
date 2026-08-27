@@ -1,6 +1,6 @@
 /* One transport for every verb. The endpoint speaks JSON-RPC over a single POST, so this is that
    POST plus the two things a caller should never type: the credentials, and the project id. */
-import { fail, settings } from "./settings.mjs";
+import { fail, projectSlug, settings, slugIfAny } from "./settings.mjs";
 
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
@@ -30,12 +30,13 @@ const retryAfter = (text, headers) => {
 };
 
 const post = async (method, params) => {
-  const { url, token, slug } = settings();
+  const { url, token } = settings();
+  const slug = slugIfAny();
   return fetch(url, {
     method: "POST",
     headers: {
       Authorization: token,
-      "X-Forge-Project-Slug": slug,
+      ...(slug ? { "X-Forge-Project-Slug": slug } : {}),
       "Content-Type": "application/json",
       Accept: "application/json, text/event-stream",
     },
@@ -91,7 +92,7 @@ export const tools = async () => (declared ??= (await rpc("tools/list", {})).too
 let cachedId = null;
 export const projectId = async () => {
   if (cachedId) return cachedId;
-  const { slug } = settings();
+  const slug = projectSlug();
   const listed = await callTool("forge_projects.list", {});
   const projects = listed?.projects ?? listed?.data ?? (Array.isArray(listed) ? listed : []);
   const found = projects.find((project) => project.slug === slug || project.key === slug);
