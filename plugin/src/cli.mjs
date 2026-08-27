@@ -7,7 +7,7 @@
    A verb whose backing tool this credential may not call is not listed and does not run. A
    capability an agent cannot use is not information — it is an invitation to a failure two calls
    from here. `forge doctor` measures which those are; `--all` is how a human looks past it. */
-import { commands, gatedTools } from "./commands.mjs";
+import { commands, gatedTools, withheldVerbs } from "./commands.mjs";
 import { suggest } from "./suggest.mjs";
 
 const VERBS = [
@@ -26,7 +26,10 @@ const VERBS = [
 ];
 
 const withheld = gatedTools();
-const offered = VERBS.filter(([, , needs]) => !needs || !withheld.has(needs));
+const byChoice = withheldVerbs();
+const offered = VERBS.filter(
+  ([verb, , needs]) => !byChoice.has(verb) && (!needs || !withheld.has(needs)),
+);
 
 const USAGE = [
   `Usage: forge <${offered.map(([verb]) => verb).join("|")}> [args]`,
@@ -35,6 +38,22 @@ const USAGE = [
   "from FORGE_PROJECT_SLUG or .forge.json. The project id is looked up, never passed.",
   "",
   ...offered.map(([, line]) => `  ${line}`),
+  "",
+  /* The rules from the tracker's own `agent-setup`, `pipeline-and-issue-lifecycle` and
+     `writing-an-issue` guides that change what an agent does. Carried here because a guide costs
+     3-6 KB to fetch and these are the lines it would have been fetched for. `forge guide <slug>`
+     is the authority and the full text; this is the part you need before your first write. */
+  "Before you write:",
+  "  Recall first. Project memory is not loaded for you — forge_memory.search is a call you make,",
+  "    and every hit is point-in-time: verify it against live code before relying on it.",
+  "  `open` auto-triages and spawns a pipeline run; `draft` never dispatches. A note or a decision",
+  "    is not an issue at all — write it to memory. Nobody browses the issue list for notes.",
+  "  A description is a requirements contract — outcome, business rules, invariants, out-of-scope.",
+  "    Not an implementation script naming files: those claims go stale and outrank live reading.",
+  "  Do not pre-fill `plan` or `acceptanceCriteria`; the clarify and plan steps write them.",
+  "  Ordering needs a `blocks` edge. Prose gates nothing — `forge deps` reads prose, not edges.",
+  "  Attach a file rather than pasting it; nested config is replace-not-merge, so read before you",
+  "    patch `pipelineConfig` or `projectFacts`.",
 ].join("\n");
 
 const [command, ...rest] = process.argv.slice(2);

@@ -132,13 +132,23 @@ const install = (values) => {
   console.log(`Saved ${Object.keys(values).join(" and ")} to ${written} (mode 0600).\n`);
 };
 
+const setVisibility = (verb, hide) => {
+  const withheld = new Set(userConfig().withheld ?? []);
+  if (hide) withheld.add(verb);
+  else withheld.delete(verb);
+  saveConfig({ withheld: [...withheld] });
+  console.log(`${verb} is now ${hide ? "withheld from" : "offered in"} the usage list.\n`);
+};
+
 export const doctor = async (rest) => {
-  const { full, ...values } = flags(rest, "doctor", ["--full"]);
+  const { full, hide, show: reveal, ...values } = flags(rest, "doctor", ["--full"]);
   for (const key of Object.keys(values)) {
     if (!["token", "url"].includes(key)) {
-      fail("Usage: forge doctor [--token <pat>] [--url <endpoint>] [--full]");
+      fail("Usage: forge doctor [--token <pat>] [--url <endpoint>] [--hide <verb>|--show <verb>] [--full]");
     }
   }
+  if (hide) setVisibility(hide, true);
+  if (reveal) setVisibility(reveal, false);
   if (Object.keys(values).length) install(values);
 
   const { url, urlFrom, token, tokenFrom } = accountCredentials();

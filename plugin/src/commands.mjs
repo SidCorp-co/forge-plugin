@@ -170,6 +170,10 @@ export const callable = (declared) => {
   return declared.filter((tool) => !gates[tool.name]);
 };
 
+/* Verbs a human chose to withhold with `forge doctor --hide`, as opposed to those the server
+   refuses. Same principle, different authority. */
+export const withheldVerbs = () => new Set(userConfig().withheld ?? []);
+
 export const gatedTools = () => {
   const { gates } = knownGates();
   return new Set(Object.entries(gates).filter(([, refusal]) => refusal).map(([name]) => name));
