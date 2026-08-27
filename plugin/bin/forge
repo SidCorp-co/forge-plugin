@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# Resolve through symlinks so ~/.local/bin/forge finds the package.
+SELF="$0"
+while [ -L "$SELF" ]; do
+  LINK=$(readlink "$SELF")
+  case "$LINK" in
+    /*) SELF="$LINK" ;;
+    *) SELF="$(dirname "$SELF")/$LINK" ;;
+  esac
+done
+DIR=$(cd "$(dirname "$SELF")/.." && pwd)
+exec node "$DIR/src/cli.mjs" "$@"
