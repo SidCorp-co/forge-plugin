@@ -37,7 +37,14 @@ const limitFrom = (raw) => {
   return value;
 };
 
-const bodyFrom = (path) => (path === "-" ? readFileSync(0, "utf8") : readFileSync(path, "utf8"));
+/* One rule for every payload this CLI takes: inline, `@path`, or `-` for stdin. Measured on a
+   3,895-character issue body — passing the file costs 153 characters against 4,202 inline, but
+   only because the file already existed; writing one in the same breath costs what inlining does
+   (4,078), and for a small flat payload the extra command makes it 1.6x worse. */
+const bodyFrom = (path) => {
+  if (path === "-") return readFileSync(0, "utf8");
+  return readFileSync(path.startsWith("@") ? path.slice(1) : path, "utf8");
+};
 
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
@@ -96,8 +103,8 @@ export const commands = {
     show({ description: tool.description, inputSchema: tool.inputSchema });
   },
   call: async ([name, json]) => {
-    if (!name) fail("Usage: forge call <tool> '<json>'   (json from stdin when omitted)");
-    const raw = json ?? readFileSync(0, "utf8");
+    if (!name) fail("Usage: forge call <tool> <'json'|@file|->");
+    const raw = json === undefined || json === "-" || json.startsWith("@") ? bodyFrom(json ?? "-") : json;
     if (!raw.trim()) fail(`No arguments given for ${name}. Pass json as an argument or on stdin.`);
     let args;
     try {

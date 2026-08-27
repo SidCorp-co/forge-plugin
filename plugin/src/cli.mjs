@@ -14,15 +14,16 @@ const USAGE = [
   "",
   "  issues [--status s] [--label l] [--search q] [--limit n]   the browse projection",
   "  issue <uuid|ISS-45>                            one issue, full body",
-  "  new <file.md|-> --title T [--status S]         create; open unless --status says",
-  "  comment <uuid|ISS-45> <file.md|->              post a comment",
+  "  new <file.md|@file|-> --title T [--status S]   create; open unless --status says",
+  "  comment <uuid|ISS-45> <file.md|@file|->        post a comment",
   "  attach <issue|comment> <uuid> <file>...        upload, no base64 through context",
   "  deps [ISS-45] [--long]                         the graph the issue bodies claim",
   "  dep <blocker> <blocked> [blocks|relates]       record a dependency edge (PM-gated)",
   "  guide [slug]                                   the tracker's own guides",
   "  project                                        the resolved project id",
   "  doctor [--token t] [--url u]                   what resolves and from where; saves both",
-  "  tools | schema <tool> | call <tool> '<json>'   anything not wrapped above",
+  "  tools | schema <tool>                          the raw surface",
+  "  call <tool> <'json'|@file|->                   anything not wrapped above",
 ].join("\n");
 
 const [command, ...rest] = process.argv.slice(2);
