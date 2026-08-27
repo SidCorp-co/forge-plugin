@@ -17,7 +17,7 @@ const USAGE = [
   "  new <file.md|-> --title T [--status S]         create; open unless --status says",
   "  comment <uuid|ISS-45> <file.md|->              post a comment",
   "  attach <issue|comment> <uuid> <file>...        upload, no base64 through context",
-  "  deps [ISS-45]                                  the graph the issue bodies claim",
+  "  deps [ISS-45] [--long]                         the graph the issue bodies claim",
   "  dep <blocker> <blocked> [blocks|relates]       record a dependency edge (PM-gated)",
   "  guide [slug]                                   the tracker's own guides",
   "  project                                        the resolved project id",

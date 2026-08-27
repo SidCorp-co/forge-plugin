@@ -54,8 +54,15 @@ will refuse for the same reason.
 
 `forge deps [ISS-45]` is the substitute: it reads the sentence a migrated issue carries about its
 own edges (*"Blocked by the … issues, and blocks the … issues; those edges are recorded"*),
-resolves each phrase to an issue, and prints the graph. **Every edge is marked `both sides agree`
-or `stated by ISS-n only`** — a one-sided claim is the finding, never reconciled away. A phrase
+resolves each phrase to an issue, and prints the graph as one ASCII line per blocker:
+
+```
+ISS-7  -> ISS-8 ISS-9 ISS-10? ISS-11
+ISS-8  -> ISS-9 ISS-11
+```
+
+**A `?` suffix means only one of the two issues claims that edge** — the finding, never reconciled
+away. `--long` spells each edge out on its own line with the side that claimed it. A phrase
 matching no title, or tying two, prints unresolved rather than guessed. It reports how many issues
 carry no such prose, because that is silence and not an absence of dependencies.
 
