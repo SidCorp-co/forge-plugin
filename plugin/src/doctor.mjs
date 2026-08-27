@@ -10,7 +10,7 @@ import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-import { CONFIG_PATH, saveConfig } from "./config.mjs";
+import { CONFIG_PATH, saveConfig, userConfig } from "./config.mjs";
 import { accountCredentials, fail, projectScope, translateTo } from "./settings.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -71,17 +71,30 @@ const CAPABILITIES = [
 const groups = (declared) =>
   new Set(declared.map((tool) => /forge_([a-z]+)/u.exec(tool.name)?.[1] ?? tool.name)).size;
 
-const probe = async (scoped) => {
+/* What the probe learned is written down, keyed by project, so `tools` and `schema` can mark a
+   gated tool without paying for a probe of their own. The date goes with it: a recorded refusal
+   is a measurement that was true once, not a permanent property of the server. */
+const remember = (slug, findings) => {
+  const capabilities = { ...(userConfig().capabilities ?? {}) };
+  capabilities[slug] = { checkedAt: new Date().toISOString(), ...findings };
+  saveConfig({ capabilities });
+};
+
+const probe = async (scoped, slug) => {
+  const findings = {};
   let gated = 0;
   for (const [label, tool, args, why] of CAPABILITIES) {
     const answer = await scoped(tool, args, true);
-    if (answer?.refused) {
+    const refusal = answer?.refused ? answer.refused.split("\n")[0] : null;
+    findings[tool] = refusal;
+    if (refusal) {
       gated += 1;
-      line(BAD, label, `${tool} is declared but refuses: ${answer.refused.split("\n")[0]} — ${why}`);
+      line(BAD, label, `${tool} is declared but refuses: ${refusal} — ${why}`);
     } else {
       line(OK, label, `${tool} answers — ${why}`);
     }
   }
+  remember(slug, findings);
   return gated;
 };
 
@@ -97,9 +110,12 @@ const checkEndpoint = async () => {
     return;
   }
   line(OK, "project id", await projectId());
-  const gated = await probe(scoped);
+  const gated = await probe(scoped, slug);
   if (gated) {
-    console.log(`\n${gated} declared capability(ies) refuse this credential. Declared is not callable.`);
+    console.log(
+      `\n${gated} declared capability(ies) refuse this credential. Declared is not callable —\n` +
+        "recorded, so `forge tools` and `forge schema` now mark them without probing again.",
+    );
   }
 };
 
