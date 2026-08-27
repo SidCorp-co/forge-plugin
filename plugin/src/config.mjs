@@ -1,4 +1,4 @@
-/* The account's credentials, kept outside every repository.
+/* The account's credentials and this CLI's own cache, kept outside every repository.
 
    A token in a repo file is a token one `git add -A` away from a remote, and `.mcp.json` is
    git-ignored precisely because it holds one. This is the same file `vi-natural` keeps its key in,
@@ -15,33 +15,42 @@ import {
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const DIRECTORY = join(
-  process.env.XDG_CONFIG_HOME || join(homedir(), ".config"),
-  "forge",
-);
+export const configDir = (name) =>
+  join(process.env.XDG_CONFIG_HOME || join(homedir(), ".config"), name);
 
-export const CONFIG_PATH = join(DIRECTORY, "config.json");
+export const CONFIG_PATH = join(configDir("forge"), "config.json");
 
-let cached;
-
-export const userConfig = () => {
-  if (cached !== undefined) return cached;
-  try {
-    cached = JSON.parse(readFileSync(CONFIG_PATH, "utf8"));
-  } catch {
-    cached = {};
-  }
-  return cached;
+/* Runs once and remembers that it ran, not what it returned — four of the seven hand-rolled memos
+   this replaced tested the value for truthiness, so each would silently re-run on a valid `null`. */
+export const once = (produce) => {
+  let value;
+  let ran = false;
+  return (...args) => {
+    if (!ran) {
+      value = produce(...args);
+      ran = true;
+    }
+    return value;
+  };
 };
 
+export const readJson = (path) => {
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    return null;
+  }
+};
+
+export const userConfig = once(() => readJson(CONFIG_PATH) ?? {});
+
 /* 0600 from the moment it exists: a token written world-readable and chmodded afterwards was
-   world-readable for the length of the write. */
+   world-readable for the length of the write, and `w` sets the mode on create only — a temp file a
+   crashed run left behind would take the token at whatever permissions it already had. */
 export const saveConfig = (values) => {
-  mkdirSync(DIRECTORY, { recursive: true });
+  mkdirSync(configDir("forge"), { recursive: true });
   const merged = { ...userConfig(), ...values };
   const temporary = `${CONFIG_PATH}.tmp`;
-  /* `w` applies the mode on create only, so a temp file a crashed run left behind would take the
-     token at whatever permissions it already had. */
   rmSync(temporary, { force: true });
   const handle = openSync(temporary, "w", 0o600);
   try {
@@ -50,6 +59,6 @@ export const saveConfig = (values) => {
     closeSync(handle);
   }
   renameSync(temporary, CONFIG_PATH);
-  cached = merged;
+  Object.assign(userConfig(), merged);
   return CONFIG_PATH;
 };

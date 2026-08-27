@@ -5,23 +5,16 @@
    wrong file" look identical from inside a single failing command. It also installs the account
    half, since the fix for the commonest finding is to write a token somewhere private. */
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
-import { CONFIG_PATH, saveConfig, userConfig } from "./config.mjs";
+import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "./config.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { accountCredentials, fail, projectScope, translateTo } from "./settings.mjs";
+import { BUNDLED } from "./vi.mjs";
+import { accountCredentials, fail, projectScope, translateScope } from "./settings.mjs";
 import { flags } from "./flags.mjs";
-import { VERB_NAMES } from "./verbs.mjs";
+import { VERB_NAMES } from "./visibility.mjs";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const VI_CONFIG = join(
-  process.env.XDG_CONFIG_HOME || join(homedir(), ".config"),
-  "vi-natural",
-  "config.json",
-);
+const VI_CONFIG = join(configDir("vi-natural"), "config.json");
 
 const OK = "  ok  ";
 const BAD = " miss ";
@@ -45,15 +38,11 @@ const hasViKey = () => {
   if (process.env.VI_NATURAL_API_KEY || process.env.MUSETOOLS_API_KEY) {
     return "from the environment";
   }
-  try {
-    return JSON.parse(readFileSync(VI_CONFIG, "utf8")).api_key ? VI_CONFIG : null;
-  } catch {
-    return null;
-  }
+  return readJson(VI_CONFIG)?.api_key ? VI_CONFIG : null;
 };
 
 const checkVi = () => {
-  const bundled = join(HERE, "..", "bin", "vi-natural");
+  const bundled = BUNDLED;
   const run = spawnSync(bundled, ["--help"], { encoding: "utf8" });
   if (run.error || run.status !== 0) {
     line(BAD, "vi-natural", `bundled copy will not run: ${run.error?.message ?? run.status}`);
@@ -110,10 +99,10 @@ const probe = async (scoped, slug) => {
 /* Imported lazily: reaching the endpoint is the one check that needs credentials to already have
    passed, and the transport exits the process when they have not. */
 const checkEndpoint = async (full) => {
-  const { tools, projectId, scoped } = await import("./rpc.mjs");
-  const declared = await tools();
+  const { refreshTools, projectId, scoped } = await import("./rpc.mjs");
+  const declared = await refreshTools();
   line(OK, "tool surface", `${declared.length} declared in ${groups(declared)} groups`);
-  const { slug } = projectScope();
+  const { value: slug } = projectScope();
   if (!slug) {
     console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
     return;
@@ -154,26 +143,29 @@ export const doctor = async (rest) => {
   if (reveal) setVisibility(reveal, false);
   if (Object.keys(values).length) install(values);
 
-  const { url, urlFrom, token, tokenFrom } = accountCredentials();
-  if (url) line(OK, "endpoint url", `${url}  ← ${urlFrom}`);
+  const { url, token } = accountCredentials();
+  if (url.value) line(OK, "endpoint url", `${url.value}  ← ${url.from}`);
   else line(BAD, "endpoint url", "no FORGE_MCP_URL, no saved url, no .mcp.json");
-  if (token) line(OK, "token", `${masked(token, full)}  ← ${tokenFrom}`);
+  if (token.value) line(OK, "token", `${masked(token.value, full)}  ← ${token.from}`);
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
 
   const chosen = userConfig().withheld ?? [];
   if (chosen.length) line(OK, "withheld verbs", `${chosen.join(", ")} — \`forge doctor --show <verb>\``);
-  const { slug, from } = projectScope();
+  const { value: slug, from } = projectScope();
   if (slug) line(OK, "project slug", `${slug}  ← ${from}`);
   else line(BAD, "project slug", "project-scoped calls will refuse; account-level ones still work");
 
-  const language = translateTo();
-  if (language === "vi") line(OK, "prose language", "vi — every title and body is rewritten");
-  else if (language) {
-    line(BAD, "prose language", `${language} — vi is the only language this CLI writes; writes refuse`);
-  } else line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
-  const canWrite = !language || (language === "vi" && checkVi());
+  const language = translateScope();
+  if (language.value === "vi") {
+    line(OK, "prose language", `vi  ← ${language.from} — every title and body is rewritten`);
+  } else if (language.value) {
+    line(BAD, "prose language", `${language.value}  ← ${language.from} — vi is the only language this CLI writes; writes refuse`);
+  } else {
+    line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
+  }
+  const canWrite = language.value ? language.value === "vi" && checkVi() : true;
 
-  if (!url || !token) {
+  if (!url.value || !token.value) {
     console.log("\nNot reaching the endpoint: the account half is incomplete.");
     process.exit(1);
   }

@@ -16,7 +16,7 @@ import { dirname, join } from "node:path";
 
 import { fail, translateTo } from "./settings.mjs";
 
-const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "bin", "vi-natural");
+export const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "bin", "vi-natural");
 const PROSE_FIELDS = ["title", "description", "body"];
 
 const viNatural = (argv, stdin) => {

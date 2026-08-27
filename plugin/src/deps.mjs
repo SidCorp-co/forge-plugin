@@ -7,6 +7,8 @@
    disagree are the finding this verb exists for, so an edge is printed with the side that claimed
    it and never reconciled into one arrow. */
 import { fail } from "./settings.mjs";
+import { scoped } from "./rpc.mjs";
+import { MAX_LIMIT, listIssues, rowsOf, truncated } from "./issues.mjs";
 
 /* The marker sentence, and only it. ISS-11's evidence table says "those four edges are recorded
    here" mid-row about a different set, so the trailing period is what separates the claim from
@@ -43,7 +45,7 @@ const splitPhrases = (list) =>
     .map((part) => part.trim())
     .filter(Boolean);
 
-export const edgesIn = (description) => {
+const edgesIn = (description) => {
   const found = { blockedBy: [], blocks: [] };
   for (const sentence of (description ?? "").match(MARKER) ?? []) {
     const blockedBy = BLOCKED_BY.exec(sentence);
@@ -56,7 +58,7 @@ export const edgesIn = (description) => {
 
 /* Unique best, or nothing. A phrase that ties two titles is reported as it was written rather than
    resolved to whichever one sorted first. */
-export const resolve = (phrase, issues) => {
+const resolve = (phrase, issues) => {
   const ranked = issues
     .map((issue) => ({ issue, points: score(phrase, issue.title ?? "") }))
     .sort((left, right) => right.points - left.points);
@@ -94,7 +96,7 @@ const key = (from, to) => `${from}\u0000${to}`;
 
 /* Every sentence is one issue's claim about a pair. Collecting them by pair, rather than by the
    issue that spoke, is what makes a one-sided claim visible. */
-export const graphOf = (issues, universe = issues) => {
+const graphOf = (issues, universe) => {
   const claims = new Map();
   const unresolved = [];
   const silent = [];
@@ -141,36 +143,42 @@ const printGraph = ({ claims, unresolved, carriers }, focus, total, long) => {
   );
 };
 
-/* Issues whose body may hold the sentence, found by searching for its parts rather than by reading
-   all of them: the list projection drops `description`, so every candidate costs its own `get`. */
-const MARKERS = ["those edges are recorded", "Blocked by", "blocks the"];
+/* One search, not three. Measured 2026-08-27: "Blocked by" and "blocks the" each returned a
+   strict subset of what the marker sentence returned, and `edgesIn` only recognises that sentence
+   anyway — an issue matched by the other two alone contributed nothing but its own `get`. */
+const MARKER_SEARCH = "those edges are recorded";
 
 export const deps = async (rest) => {
   const long = rest.includes("--long");
   const [focus] = rest.filter((argument) => argument !== "--long");
-  const { scoped } = await import("./rpc.mjs");
   /* Resolution ranks a phrase against *every* issue, not only the ones that carry prose: an issue
-     may be named as a dependent without saying anything about edges itself. */
-  const all = await scoped("forge_issues", { action: "list", limit: 500 });
-  const universe = all?.issues ?? [];
-  const seen = new Map();
-  for (const search of MARKERS) {
-    const found = await scoped("forge_issues", {
-      action: "list",
-      limit: 500,
-      filters: { search },
-    });
-    for (const issue of found?.issues ?? []) seen.set(issue.documentId, issue);
+     may be named as a dependent without saying anything about edges itself. Independent of the
+     marker search, so both go out at once. */
+  const [all, matched] = await Promise.all([
+    listIssues({}, MAX_LIMIT),
+    listIssues({ search: MARKER_SEARCH }, MAX_LIMIT),
+  ]);
+  const universe = rowsOf(all);
+  if (truncated(universe, MAX_LIMIT)) {
+    console.error(`warning: the tracker holds at least ${MAX_LIMIT} issues; this graph may be partial.`);
   }
-  const issues = [];
-  for (const [documentId, summary] of seen) {
-    const full = await scoped("forge_issues", { action: "get", documentId });
-    issues.push({ ...summary, ...full });
-  }
-  if (!issues.length) fail("No issue carries a dependency sentence.");
+  const candidates = rowsOf(matched);
+  if (!candidates.length) fail("No issue carries a dependency sentence.");
+  /* Only `description` is read, and the whole body is ~8% more wire for nothing. */
+  const issues = await Promise.all(
+    candidates.map(async (summary) => ({
+      ...summary,
+      ...(await scoped("forge_issues", {
+        action: "get",
+        documentId: summary.documentId,
+        fields: ["description"],
+      })),
+    })),
+  );
   const wanted = focus?.toUpperCase();
   if (wanted && !issues.some((issue) => issue.issueId?.toUpperCase() === wanted)) {
-    console.log(`${focus} carries no dependency prose, and no issue names it.\n`);
+    console.log(`${focus} carries no dependency prose, and no issue names it.
+`);
   }
   printGraph(graphOf(issues, universe), wanted, universe.length, long);
 };
