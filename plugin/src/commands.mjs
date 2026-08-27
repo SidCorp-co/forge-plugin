@@ -129,9 +129,11 @@ const announce = (verb) => {
   );
 };
 
-/* A refusal `forge doctor` measured, replayed where the tool is read about. It is deliberately
-   not a fresh probe: annotating a listing must not cost a call per tool, and a stale record that
-   carries its own date is more use than no record. */
+/* A refusal `forge doctor` measured, applied where the tool would otherwise be offered. A
+   capability this credential cannot use is not a warning to weigh, it is noise that invites an
+   error — so it is withheld rather than annotated, and `--all` is how a human sees past it.
+
+   Deliberately a replay, not a fresh probe: filtering a listing must not cost a call per tool. */
 const knownGates = () => {
   const { slug } = projectScope();
   const recorded = slug ? (userConfig().capabilities ?? {})[slug] : null;
@@ -140,35 +142,52 @@ const knownGates = () => {
   return { gates, checkedAt };
 };
 
+/* The schema a gated tool publishes is an invitation to a call that cannot succeed, so it is not
+   printed at all. The refusal names its own measurement rather than asserting a permanent fact. */
+const refuseIfGated = (name, override) => {
+  const { gates, checkedAt } = knownGates();
+  if (override || !gates[name]) return;
+  fail(
+    `${name} is not available to this credential: ${gates[name]}\n` +
+      `Measured ${checkedAt} by \`forge doctor\`. Re-run it after a credential change, or pass --all.`,
+  );
+};
+
+export const callable = (declared) => {
+  const { gates } = knownGates();
+  return declared.filter((tool) => !gates[tool.name]);
+};
+
+export const gatedTools = () => {
+  const { gates } = knownGates();
+  return new Set(Object.entries(gates).filter(([, refusal]) => refusal).map(([name]) => name));
+};
+
 export const commands = {
   doctor,
   deps,
-  tools: async () => {
+  tools: async (rest) => {
+    const all = rest.includes("--all");
     const { gates, checkedAt } = knownGates();
     for (const tool of await tools()) {
       const gate = gates[tool.name];
-      console.log(gate ? `${tool.name}  [refused: ${gate}]` : tool.name);
-    }
-    if (checkedAt && Object.values(gates).some(Boolean)) {
-      console.log(`\nRefusals measured ${checkedAt} by \`forge doctor\`. Declared is not callable.`);
+      if (gate && !all) continue;
+      console.log(gate ? `${tool.name}  [refused ${checkedAt}: ${gate}]` : tool.name);
     }
   },
-  schema: async ([name]) => {
+  schema: async ([name, ...rest]) => {
     if (!name) fail("Usage: forge schema <tool>");
     const tool = (await tools()).find((candidate) => candidate.name === name);
     if (!tool) fail(didYouMean("tool", name, (await tools()).map((tool) => tool.name), "Ask `forge tools`."));
-    const { gates, checkedAt } = knownGates();
-    if (gates[name]) {
-      console.error(
-        `warning: ${name} refused this credential when \`forge doctor\` last asked (${checkedAt}):\n` +
-          `  ${gates[name]}\nThe schema below describes what the tool accepts, not what you may call.`,
-      );
-    }
+    refuseIfGated(name, rest.includes("--all"));
     show({ description: tool.description, inputSchema: tool.inputSchema });
   },
   call: async ([name, json]) => {
     if (!name) fail("Usage: forge call <tool> <'json'|@file|->");
-    if (!(await tools()).some((tool) => tool.name === name)) fail(didYouMean("tool", name, (await tools()).map((tool) => tool.name), "Ask `forge tools`."));
+    if (!(await tools()).some((tool) => tool.name === name)) {
+      fail(didYouMean("tool", name, callable(await tools()).map((tool) => tool.name), "Ask `forge tools`."));
+    }
+    refuseIfGated(name, false);
     const raw = json === undefined || json === "-" || json.startsWith("@") ? bodyFrom(json ?? "-") : json;
     if (!raw.trim()) fail(`No arguments given for ${name}. Pass json as an argument or on stdin.`);
     let args;
