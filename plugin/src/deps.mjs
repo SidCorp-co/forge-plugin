@@ -6,16 +6,19 @@
    What it can read is the sentence a migrated issue carries about its own edges. Two issues that
    disagree are the finding this verb exists for, so an edge is printed with the side that claimed
    it and never reconciled into one arrow. */
-import { fail } from "./settings.mjs";
+import { depsConvention, fail } from "./settings.mjs";
 import { scoped } from "./rpc.mjs";
 import { MAX_LIMIT, listIssues, rowsOf, truncated } from "./issues.mjs";
 
 /* The marker sentence, and only it. ISS-11's evidence table says "those four edges are recorded
    here" mid-row about a different set, so the trailing period is what separates the claim from
-   prose about the claim. */
-const MARKER = /[^.|]*those edges are recorded\./giu;
-const BLOCKED_BY = /blocked by (?:the )?(.+?) issues?\b/iu;
-const BLOCKS = /\bblocks (?:the )?(.+?) issues?\b/iu;
+   prose about the claim. The phrases come from the tracker's own `.forge.json`; only their shape
+   is fixed here. */
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+const PROSE = depsConvention().value;
+const MARKER = new RegExp(`[^.|]*${escape(PROSE.marker)}\\.`, "giu");
+const BLOCKED_BY = new RegExp(`${escape(PROSE.blockedBy)} (?:the )?(.+?) ${PROSE.noun}\\b`, "iu");
+const BLOCKS = new RegExp(`\\b${escape(PROSE.blocks)} (?:the )?(.+?) ${PROSE.noun}\\b`, "iu");
 
 const STOPWORDS = new Set(["the", "and", "a", "an", "of", "for", "to", "issue", "issues"]);
 
@@ -146,7 +149,7 @@ const printGraph = ({ claims, unresolved, carriers }, focus, total, long) => {
 /* One search, not three. Measured 2026-08-27: "Blocked by" and "blocks the" each returned a
    strict subset of what the marker sentence returned, and `edgesIn` only recognises that sentence
    anyway — an issue matched by the other two alone contributed nothing but its own `get`. */
-const MARKER_SEARCH = "those edges are recorded";
+const MARKER_SEARCH = PROSE.marker;
 
 export const deps = async (rest) => {
   const long = rest.includes("--long");
@@ -163,7 +166,12 @@ export const deps = async (rest) => {
     console.error(`warning: the tracker holds at least ${MAX_LIMIT} issues; this graph may be partial.`);
   }
   const candidates = rowsOf(matched);
-  if (!candidates.length) fail("No issue carries a dependency sentence.");
+  if (!candidates.length) {
+    fail(
+      `No issue carries the sentence "${PROSE.marker}" (${depsConvention().from}).\n` +
+        'Set `deps: { marker, blockedBy, blocks }` in .forge.json if this tracker words it differently.',
+    );
+  }
   /* Only `description` is read, and the whole body is ~8% more wire for nothing. */
   const issues = await Promise.all(
     candidates.map(async (summary) => ({

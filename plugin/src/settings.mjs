@@ -140,3 +140,22 @@ export const translateScope = once(() => {
 });
 
 export const translateTo = () => translateScope().value;
+
+/* How this tracker writes a dependency in prose. It is the same kind of fact as `translate` — a
+   convention the tracker owns, not the CLI — and it sits at the same altitude, in `.forge.json`.
+   The default is the English sentence sid-growth's migrated issues carry; a tracker that writes
+   its issues in another language says so rather than getting an empty graph with no explanation. */
+const DEFAULT_PROSE = {
+  marker: "those edges are recorded",
+  blockedBy: "blocked by",
+  blocks: "blocks",
+  noun: "issues?",
+};
+
+export const depsConvention = once(() => {
+  const given = forgeJson().parsed?.deps;
+  return {
+    value: { ...DEFAULT_PROSE, ...(given ?? {}) },
+    from: given ? ".forge.json" : "the built-in English default",
+  };
+});
