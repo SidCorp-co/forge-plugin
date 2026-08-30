@@ -5,8 +5,8 @@
 // locale walking. Model output cannot be diffed, but everything that decides what is SENT can, and
 // that is what changes whether the Vietnamese comes out right.
 //
-// Freeze the result with --write before deleting the python; tools/goldens.json is what the node
-// tests keep asserting once there is nothing left to compare against.
+// --goldens replays tools/goldens.json, frozen while both implementations existed, and is the mode
+// that still works. The live comparison needs a python tree that is no longer here.
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -135,6 +135,10 @@ if (process.argv.includes('--goldens')) {
   process.exit(bad ? 1 : 0);
 }
 
+if (!existsSync(join(ROOT, 'plugin', 'scripts', 'vi_cli'))) {
+  process.stderr.write('the python is gone — run with --goldens, which needs no comparison source\n');
+  process.exit(2);
+}
 const py = spawnSync('python3', ['-c', PY], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
 if (py.status !== 0) {
   process.stderr.write(`python side failed:\n${py.stderr}\n`);
