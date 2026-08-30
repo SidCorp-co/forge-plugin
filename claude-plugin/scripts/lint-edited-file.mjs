@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -107,13 +109,14 @@ function resolveWorkspace(editedFile, projectRoot) {
   let directory = path.dirname(editedFile);
   let fallback = null;
   while (directory.startsWith(projectRoot)) {
-    if (CONFIG_NAMES.some((name) => existsSync(path.join(directory, name)))) return directory;
+    const config = CONFIG_NAMES.find((name) => existsSync(path.join(directory, name)));
+    if (config) return { directory, config };
     if (!fallback && existsSync(path.join(directory, "package.json"))) fallback = directory;
     const parent = path.dirname(directory);
     if (parent === directory) break;
     directory = parent;
   }
-  return fallback ?? projectRoot;
+  return { directory: fallback ?? projectRoot, config: null };
 }
 
 // `"hook": false` in code-quality.json, read from the workspace owning the edited file and then the
@@ -129,8 +132,6 @@ function hookDisabled(directories) {
   });
 }
 
-// A project without ESLint has opted out, not misconfigured itself. The hook is
-// installed for every project this user opens, so it stays silent there.
 function resolveEslint(require) {
   try {
     const packageJson = require.resolve("eslint/package.json");
@@ -138,6 +139,19 @@ function resolveEslint(require) {
   } catch {
     return null;
   }
+}
+
+/** Whether this session was already told, recorded outside the tree the message describes. */
+function alreadySaid(sessionId, subject) {
+  const key = createHash("sha1").update(`${sessionId ?? ""}\0${subject}`).digest("hex").slice(0, 16);
+  const stamp = path.join(tmpdir(), `code-quality-said-${key}`);
+  if (existsSync(stamp)) return true;
+  try {
+    writeFileSync(stamp, "");
+  } catch {
+    // A stamp we cannot write means we say it again, which is the safe direction.
+  }
+  return false;
 }
 
 /**
@@ -219,14 +233,26 @@ const projectRoot = resolveProjectRoot(event);
 const editedFile = resolveEditedFile(rawPath, projectRoot);
 if (!editedFile) process.exit(0);
 
-const workspace = resolveWorkspace(editedFile, projectRoot);
+const { directory: workspace, config } = resolveWorkspace(editedFile, projectRoot);
 if (hookDisabled([workspace, projectRoot])) process.exit(0);
 
 // Anchoring on the workspace lets Node's own upward lookup find either a package-level install
 // or one hoisted to the repository root.
 const require = createRequire(path.join(workspace, "package.json"));
 const eslintBin = resolveEslint(require);
-if (!eslintBin) process.exit(0);
+if (!eslintBin) {
+  // Silence means two things and only one is a decision: no config is an opt-out, a config with
+  // no ESLint behind it is a gate that reads as passing. Said once, because it stays true.
+  if (config && !alreadySaid(event?.session_id, workspace)) {
+    fail(
+      `${path.relative(projectRoot, path.join(workspace, config))} configures ESLint, but ESLint ` +
+        `is not installed in ${path.relative(projectRoot, workspace) || "."} — nothing is being ` +
+        `checked on edit. Install the dependencies, or opt out with { "hook": false } in ` +
+        `code-quality.json. This is said once per session.`,
+    );
+  }
+  process.exit(0);
+}
 
 await format(require, editedFile);
 

@@ -29,11 +29,12 @@ function makeConsumer({ eslint = true, plugin = true, config = true } = {}) {
   return root;
 }
 
-function runHook(root, filePath, { stdin, script = hookScript, env = {} } = {}) {
+function runHook(root, filePath, { stdin, script = hookScript, env = {}, session } = {}) {
   const event = {
     hook_event_name: "PostToolUse",
     tool_name: "Edit",
     cwd: root,
+    session_id: session,
     tool_input: filePath === undefined ? {} : { file_path: filePath },
   };
   return spawnSync(process.execPath, [script], {
@@ -198,12 +199,33 @@ test("the project's prettier runs first, so the rules judge the formatted file",
 });
 
 test("stays silent in a project without ESLint", () => {
-  const root = makeConsumer({ eslint: false });
+  const root = makeConsumer({ eslint: false, plugin: false, config: false });
   write(root, "src/file.js", "export const ok = true;\n");
   const result = runHook(root, "src/file.js");
   assert.equal(result.status, 0);
   assert.equal(result.stderr, "");
   assert.doesNotMatch(result.stdout, /npm WARN|npx/);
+});
+
+test("says so once when a project configured ESLint but did not install it", () => {
+  const root = makeConsumer({ eslint: false });
+  write(root, "src/file.js", "export const ok = true;\n");
+
+  const first = runHook(root, "src/file.js", { session: "one" });
+  assert.equal(first.status, 2);
+  assert.match(first.stderr, /eslint\.config\.js/);
+  assert.match(first.stderr, /not installed/);
+
+  const second = runHook(root, "src/file.js", { session: "one" });
+  assert.equal(second.status, 0, second.stderr);
+  assert.equal(second.stderr, "");
+});
+
+test("the install warning is per session, not once for all time", () => {
+  const root = makeConsumer({ eslint: false });
+  write(root, "src/file.js", "export const ok = true;\n");
+  assert.equal(runHook(root, "src/file.js", { session: "one" }).status, 2);
+  assert.equal(runHook(root, "src/file.js", { session: "two" }).status, 2);
 });
 
 test("reports a missing plugin through the consumer config", () => {
