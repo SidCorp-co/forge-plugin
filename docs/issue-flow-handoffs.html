@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>issue-flow — where you come in</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--paper:#f5f5f5;--ink:#2d3142;--muted:#4f5d75;--soft:#7a8399;--accent:#eb6c36;--rule:rgba(45,49,66,0.12);}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Geist',sans-serif;padding:3rem 2rem;}
+  .wrap{max-width:1100px;margin:0 auto;}
+  .eyebrow{font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:0 0 .5rem;}
+  h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:1.75rem;margin:0 0 .25rem;}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 2rem;max-width:64ch;}
+  svg{width:100%;height:auto;display:block;}
+  footer{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--rule);font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.12em;color:var(--soft);text-transform:uppercase;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Forge plugin · workflow skill · handoffs</p>
+  <h1>Where you come in</h1>
+  <p class="sub">The same workflow seen from your side. Three of your four touchpoints are short; only one of them blocks the agent. The top row is what the issue's status reads while it happens.</p>
+
+<svg viewBox="0 0 1120 560" role="img" aria-labelledby="handoffs-title handoffs-desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="handoffs-title">Handoffs between you, the agent and the running system</title>
+  <desc id="handoffs-desc">A swimlane with three lanes — you, the agent, and the live system — running left to right across five tracker statuses from open to released. You write the request, pick between two cases when the agent finds real ambiguity, approve one diff at the only blocking wait, and read the release note once the change is live. The agent triages, plans, builds, proves and ships between those points, and a rejected diff sends the work back to the build step.</desc>
+
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+    <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+    <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+  <!-- ===== STATUS HEADER ===== -->
+  <text x="24" y="64" fill="#7a8399" font-size="8" font-family="'Geist Mono',monospace" letter-spacing="0.14em">FORGE STATUS</text>
+  <text x="224" y="64" fill="#4f5d75" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.10em">open</text>
+  <text x="400" y="64" fill="#4f5d75" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.10em">needs_info → approved</text>
+  <text x="576" y="64" fill="#4f5d75" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.10em">in_progress</text>
+  <text x="752" y="64" fill="#4f5d75" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.10em">developed</text>
+  <text x="928" y="64" fill="#4f5d75" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.10em">released</text>
+
+  <!-- ===== LANE DIVIDERS + LABELS ===== -->
+  <line x1="24" y1="84" x2="1096" y2="84" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+  <line x1="24" y1="220" x2="1096" y2="220" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+  <line x1="24" y1="340" x2="1096" y2="340" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+  <line x1="24" y1="440" x2="1096" y2="440" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+  <text x="24" y="156" fill="#eb6c36" font-size="8" font-family="'Geist Mono',monospace" letter-spacing="0.14em">YOU</text>
+  <text x="24" y="276" fill="#4f5d75" font-size="8" font-family="'Geist Mono',monospace" letter-spacing="0.14em">AGENT</text>
+  <text x="24" y="392" fill="#4f5d75" font-size="8" font-family="'Geist Mono',monospace" letter-spacing="0.14em">LIVE</text>
+
+  <!-- ===== ARROWS FIRST ===== -->
+  <!-- 1 you file -> agent triages -->
+  <path d="M224 192 V272 A8 8 0 0 0 232 280 H320" fill="none" stroke="#4f5d75" stroke-width="1" marker-end="url(#arrow)"/>
+  <!-- 2 agent asks -> you (clarify) -->
+  <line x1="384" y1="248" x2="384" y2="196" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+  <!-- 3 you answer -> agent builds -->
+  <path d="M480 160 A8 8 0 0 1 488 168 V272 A8 8 0 0 0 496 280" fill="none" stroke="#4f5d75" stroke-width="1" marker-end="url(#arrow)"/>
+  <!-- 4 build -> prove -->
+  <line x1="656" y1="280" x2="668" y2="280" stroke="#4f5d75" stroke-width="1" marker-end="url(#arrow)"/>
+  <!-- 5 agent presents evidence -> you (the blocking wait) -->
+  <line x1="752" y1="248" x2="752" y2="196" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+  <!-- 6 you approve -> agent ships -->
+  <path d="M832 160 A8 8 0 0 1 840 168 V272 A8 8 0 0 0 848 280" fill="none" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+  <!-- 7 deploy -->
+  <line x1="928" y1="312" x2="928" y2="352" stroke="#4f5d75" stroke-width="1" marker-end="url(#arrow)"/>
+  <!-- 8 live -> you read the note -->
+  <path d="M1008 388 H1024 A8 8 0 0 0 1032 380 V168 A8 8 0 0 0 1024 160 H1012" fill="none" stroke="#4f5d75" stroke-width="1" marker-end="url(#arrow)"/>
+  <!-- 9 you reject -> back to build -->
+  <path d="M752 128 V112 A8 8 0 0 0 744 104 H584 A8 8 0 0 0 576 112 V244" fill="none" stroke="#2e5aa8" stroke-width="1" marker-end="url(#arrow-link)"/>
+  <!-- 10 no ambiguity: agent goes straight to build -->
+  <path d="M400 312 V320 A8 8 0 0 0 408 328 H568 A8 8 0 0 0 576 320 V316" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+
+  <!-- ===== ARROW LABELS ===== -->
+  <rect x="296" y="196" width="72" height="12" rx="2" fill="#f5f5f5"/>
+  <text x="332" y="205" fill="#7a8399" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.06em">TWO CASES</text>
+
+  <rect x="664" y="196" width="72" height="12" rx="2" fill="#f5f5f5"/>
+  <text x="700" y="205" fill="#eb6c36" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.06em">EVIDENCE</text>
+
+  <rect x="848" y="208" width="72" height="12" rx="2" fill="#f5f5f5"/>
+  <text x="884" y="217" fill="#eb6c36" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.06em">APPROVED</text>
+
+  <rect x="628" y="112" width="72" height="12" rx="2" fill="#f5f5f5"/>
+  <text x="664" y="121" fill="#2e5aa8" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.06em">REJECTED</text>
+
+  <rect x="844" y="328" width="68" height="12" rx="2" fill="#f5f5f5"/>
+  <text x="878" y="337" fill="#7a8399" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.06em">DEPLOY</text>
+
+  <rect x="1040" y="256" width="60" height="12" rx="2" fill="#f5f5f5"/>
+  <text x="1070" y="265" fill="#7a8399" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.06em">VISIBLE</text>
+
+  <rect x="424" y="332" width="112" height="12" rx="2" fill="#f5f5f5"/>
+  <text x="480" y="341" fill="#7a8399" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.06em">NO AMBIGUITY</text>
+
+  <!-- ===== NODES — YOU ===== -->
+  <rect x="144" y="128" width="160" height="64" rx="6" fill="#f5f5f5"/>
+  <rect x="144" y="128" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+  <text x="224" y="156" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Write the request</text>
+  <text x="224" y="172" fill="#4f5d75" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">outcome, not files</text>
+
+  <rect x="320" y="128" width="160" height="64" rx="6" fill="#f5f5f5"/>
+  <rect x="320" y="128" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+  <text x="400" y="156" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Pick a case</text>
+  <text x="400" y="172" fill="#4f5d75" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">A or B, side by side</text>
+
+  <rect x="672" y="128" width="160" height="64" rx="6" fill="#f5f5f5"/>
+  <rect x="672" y="128" width="160" height="64" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+  <text x="752" y="156" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Approve this diff</text>
+  <text x="752" y="172" fill="#4f5d75" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">the one blocking wait</text>
+
+  <rect x="848" y="128" width="160" height="64" rx="6" fill="#f5f5f5"/>
+  <rect x="848" y="128" width="160" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+  <text x="928" y="156" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Read the note</text>
+  <text x="928" y="172" fill="#4f5d75" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">your words + a shot</text>
+
+  <!-- ===== NODES — AGENT ===== -->
+  <rect x="320" y="248" width="160" height="64" rx="6" fill="#f5f5f5"/>
+  <rect x="320" y="248" width="160" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+  <text x="400" y="276" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Triage &amp; verify</text>
+  <text x="400" y="292" fill="#4f5d75" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">read the code first</text>
+
+  <rect x="496" y="248" width="160" height="64" rx="6" fill="#f5f5f5"/>
+  <rect x="496" y="248" width="160" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+  <text x="576" y="276" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Plan &amp; build</text>
+  <text x="576" y="292" fill="#4f5d75" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">plan lands on the issue</text>
+
+  <rect x="672" y="248" width="160" height="64" rx="6" fill="#f5f5f5"/>
+  <rect x="672" y="248" width="160" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+  <text x="752" y="276" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Prove &amp; present</text>
+  <text x="752" y="292" fill="#4f5d75" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">gates, then look at it</text>
+
+  <rect x="848" y="248" width="160" height="64" rx="6" fill="#f5f5f5"/>
+  <rect x="848" y="248" width="160" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+  <text x="928" y="276" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">Ship &amp; verify live</text>
+  <text x="928" y="292" fill="#4f5d75" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">discovered path</text>
+
+  <!-- ===== NODE — LIVE ===== -->
+  <rect x="848" y="356" width="160" height="64" rx="6" fill="#f5f5f5"/>
+  <rect x="848" y="356" width="160" height="64" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+  <text x="928" y="384" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">The change is live</text>
+  <text x="928" y="400" fill="#4f5d75" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">checked before released</text>
+
+  <!-- ===== LEGEND ===== -->
+  <line x1="24" y1="484" x2="1096" y2="484" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+  <text x="24" y="504" fill="#4f5d75" font-size="8" font-family="'Geist Mono',monospace" letter-spacing="0.14em">LEGEND</text>
+
+  <rect x="104" y="496" width="20" height="10" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+  <text x="132" y="505" fill="#4f5d75" font-size="9" font-family="'Geist',sans-serif">blocks the agent until you answer</text>
+
+  <rect x="356" y="496" width="20" height="10" rx="2" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+  <text x="384" y="505" fill="#4f5d75" font-size="9" font-family="'Geist',sans-serif">your step, but nothing waits on it</text>
+
+  <line x1="620" y1="501" x2="652" y2="501" stroke="#4f5d75" stroke-width="1" stroke-dasharray="5,4"/>
+  <text x="660" y="505" fill="#4f5d75" font-size="9" font-family="'Geist',sans-serif">happens only sometimes</text>
+
+  <line x1="856" y1="501" x2="888" y2="501" stroke="#2e5aa8" stroke-width="1"/>
+  <text x="896" y="505" fill="#4f5d75" font-size="9" font-family="'Geist',sans-serif">approval void — work returns</text>
+</svg>
+
+  <footer>issue-flow · four touchpoints · one of them blocks</footer>
+</div>
+</body>
+</html>

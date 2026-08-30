@@ -149,12 +149,6 @@ export const commands = {
     /* `call` reaches the same create and update the wrapped verbs do, so an untranslated or
        unannounced one here would be the bypass that makes every gate above decorative. */
     const answer = resolved.data ? await write(name, resolved) : await scoped(name, resolved);
-    if (name === "forge_issues" && resolved.action === "update" && resolved.data?.relations) {
-      console.error(
-        "warning: data.relations on `update` is a validated no-op — the server accepts it,\n" +
-          "changes nothing, and there is no read path to check (forge-dev ISS-868).",
-      );
-    }
     show(answer);
   },
   issues: async (rest) => {
@@ -194,6 +188,26 @@ export const commands = {
     if (!reference || !path) fail(usageOf("comment"));
     const issue = await documentIdOf(reference);
     show(await write("forge_comments", { action: "create", data: { issue, body: bodyFrom(path) } }));
+  },
+  /* An issue's plan is a field, not a comment. A comment is a message in a thread — it scrolls,
+     it is not what `--fields plan` returns, and a reader looking for the plan finds whichever
+     comment they happen to reach first. The field has one value, and replacing it is how a
+     revised plan supersedes the old one instead of accumulating beside it.
+
+     The write is read back before it reports success, because a schema-validated field that is
+     accepted and dropped answers 200 exactly like one that was stored. */
+  plan: async ([reference, path]) => {
+    if (!reference || !path) fail(usageOf("plan"));
+    const documentId = await documentIdOf(reference);
+    const plan = bodyFrom(path);
+    if (!plan.trim()) fail("An empty plan would clear the field; pass the plan itself.");
+    await write("forge_issues", { action: "update", documentId, data: { plan } });
+    const back = await scoped("forge_issues", { action: "get", documentId, fields: ["plan"] });
+    const stored = (back?.plan ?? "").trim();
+    if (!stored) {
+      fail(`The update answered success but ${reference} still has no plan. Nothing was stored.`);
+    }
+    show({ documentId, plan: stored });
   },
   /* Bytes go straight to the presigned URL, never base64 through a model's context, and that PUT
      carries no auth header of its own — the URL is the credential and expires in ~300s. */

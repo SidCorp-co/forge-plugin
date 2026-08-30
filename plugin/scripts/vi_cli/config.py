@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 
 from .util import CliError, read_json
 
@@ -43,6 +44,7 @@ class Config:
         self.opts = opts or {}
         self.file = read_json(CONFIG_PATH, {}) or {}
         self.glossary_meta = {}
+        self._said_glossary = False
 
     def _pick(self, key, env_names, default=None):
         if self.opts.get(key):
@@ -92,6 +94,19 @@ class Config:
         if self.opts.get("no_glossary"):
             return {}
         path = self.opts.get("glossary") or find_up(GLOSSARY_FILE)
+        # Absence is the silent failure this tool has: without a glossary every term still
+        # translates, just not to the project's word for it, and the output looks correct to
+        # anyone who does not already know the vocabulary. A glossary committed on another
+        # branch is exactly this case. So say which of the two happened, once, on stderr.
+        if not self._said_glossary:
+            self._said_glossary = True
+            if path:
+                sys.stderr.write("glossary: %s\n" % path)
+            else:
+                sys.stderr.write(
+                    "glossary: none found above %s — project terms will not be pinned\n"
+                    % os.getcwd()
+                )
         if not path:
             return {}
         data = read_json(path, {}) or {}

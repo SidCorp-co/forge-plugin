@@ -1,5 +1,5 @@
 {
-  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Nothing else; no hook inspects or blocks a write.",
+  "description": "Puts the forge and vi-natural CLIs on PATH at session start; refuses the shell commands whose damage cannot be undone; and stops once before a memory or skill write so it is a decision rather than a reflex.",
   "hooks": {
     "SessionStart": [
       {
@@ -7,6 +7,28 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/link-cli.sh \"${CLAUDE_PLUGIN_ROOT}\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/bash-guard.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|mcp__forge__forge_memory_write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/learning-gate.py",
             "timeout": 10
           }
         ]

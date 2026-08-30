@@ -16,6 +16,7 @@ export const VERBS = [
   ["issue", "<uuid|ISS-45> [--fields a,b]", "one body, or named parts of it", "forge_issues"],
   ["new", "<file.md|@file|-> --title T [--status S] [--priority P]", "file one; open unless --status says", "forge_issues"],
   ["comment", "<uuid|ISS-45> <file.md|@file|->", "post a comment", "forge_comments"],
+  ["plan", "<uuid|ISS-45> <file.md|@file|->", "write the issue's plan field, and read it back", "forge_issues"],
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context", "forge_uploads"],
   ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues"],
   ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm"],

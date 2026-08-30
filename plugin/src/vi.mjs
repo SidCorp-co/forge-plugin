@@ -17,7 +17,11 @@ import { dirname, join } from "node:path";
 import { fail, translateTo } from "./settings.mjs";
 
 export const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "bin", "vi-natural");
-const PROSE_FIELDS = ["title", "description", "body"];
+/* Every prose field an agent can write, not only the three the wrapped verbs started with:
+   `plan` and `acceptanceCriteria` are written by the plan step and read by whoever works the
+   issue next, so leaving them out posts English into a Vietnamese tracker while the banner
+   says the prose was rewritten. Found by reading a write back rather than trusting it. */
+const PROSE_FIELDS = ["title", "description", "body", "plan", "acceptanceCriteria"];
 
 const viNatural = (argv, stdin) => {
   const run = spawnSync(BUNDLED, [...argv, "--register", "san-pham", "--no-glossary"], {
