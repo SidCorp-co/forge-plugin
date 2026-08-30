@@ -74,3 +74,18 @@ broken. Where it cannot, say which build produced the image.
 Screenshot the state a user reaches — create the data the screen needs, and remove it
 afterwards. If seeding advanced a counter or a sequence, restore it; if the store was
 disposable, destroy it wholesale instead, which is safer than editing a counter back.
+
+## A checker that hard-codes its cases is worse than none
+
+A list written by hand knows only the cases its author had met. It fails twice: silent on a
+case it never heard of, and — the expensive one — reporting a false gap when someone extends
+the thing correctly. A checker that cries wolf gets switched off, and a switched-off checker
+protects nothing.
+
+Derive instead: read the enum, parse the switch, key on the declared return type rather than
+the function's name. Then a case added next year is covered without anyone remembering the
+checker exists. Prove it by breaking each invariant on purpose and watching it fire — a green
+checker has demonstrated nothing.
+
+Enumerating is sometimes the point: a ratchet's list of migrated directories is *supposed* to
+be incomplete. Say so in a comment above the list, which is also what silences the hook.
