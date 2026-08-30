@@ -55,6 +55,13 @@ const b = 2;`,
  */
 const a = 1;`,
       },
+      // A waiver another rule demands per site says the same thing at every site by design.
+      {
+        code: `// pass-through: keep — route handler: @Get() and the validation pipe carry the work here
+function a() { return b(); }
+// pass-through: keep — route handler: @Get() and the validation pipe carry the work here
+function c() { return d(); }`,
+      },
       // Directives are not prose and never carry a constraint.
       {
         code: `// eslint-disable-next-line no-unused-vars -- the resolver needs the binding present

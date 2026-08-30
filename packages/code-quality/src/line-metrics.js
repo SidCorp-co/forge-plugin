@@ -3,6 +3,21 @@ export function isIgnoredComment(comment) {
   return /^(?:eslint-(?:disable|enable)|@ts-(?:ignore|expect-error))/i.test(text);
 }
 
+/**
+ * How a project says "I know, and here is why" to a rule: one marker, the escape word, and a
+ * mandatory reason, since a waiver nobody had to justify is an exemption with better syntax.
+ * Enumerating them is the point — the plugin's own vocabulary, not the cases met so far.
+ */
+export function waiverPattern(marker, escape) {
+  return new RegExp(`${marker}:\\s*${escape}\\s*[—-]\\s*(\\S[^\\n]*)`);
+}
+
+export const PASS_THROUGH_WAIVER = waiverPattern("pass-through", "keep");
+export const RAW_ELEMENT_WAIVER = waiverPattern("primitive", "none");
+const WAIVERS = [PASS_THROUGH_WAIVER, RAW_ELEMENT_WAIVER];
+
+export const isWaiver = (comment) => WAIVERS.some((waiver) => waiver.test(comment.value));
+
 function blockLineContent(line, lineNumber, comment) {
   let content = line;
   if (lineNumber === comment.loc.start.line) {

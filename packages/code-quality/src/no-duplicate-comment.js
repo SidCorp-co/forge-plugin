@@ -1,4 +1,4 @@
-import { isIgnoredComment } from "./line-metrics.js";
+import { isIgnoredComment, isWaiver } from "./line-metrics.js";
 import {
   DEFAULT_MIN_SENTENCE_LENGTH,
   DEFAULT_OVERLAP_FLOOR,
@@ -13,21 +13,23 @@ import {
  * as correct. The other two comment rules cannot see it: density counts lines without reading
  * them, and narration matches phrases inside one comment at a time.
  *
+ * A waiver is skipped rather than counted: every one in a file says the same thing by
+ * construction, so reporting them would set two rules against each other.
+ *
  * Two limits, both deliberate. ESLint is handed one file, so this is what a file repeats to
- * itself; the same statement spread across a module and its caller belongs to a whole-tree check.
- * And a pair is only ever two DIFFERENT blocks: adjacent sentences inside one share a topic and
- * therefore a vocabulary, which scores high on nothing.
+ * itself. And a pair is only ever two DIFFERENT blocks: adjacent sentences inside one share a
+ * topic and therefore a vocabulary, which scores high on nothing.
  */
 
-/**
- * A run of `//` lines is one comment to a reader and N nodes to ESLint, and a sentence routinely
- * spans two of them. Grouping first is what makes the text compared the text as written.
- */
+const isDirective = (comment) => isIgnoredComment(comment) || isWaiver(comment);
+
+/** A run of `//` lines is one comment to a reader, N nodes to ESLint, and a sentence spans two of
+ *  them often enough that grouping first is what makes the compared text the written text. */
 function blocksOf(sourceCode) {
   const blocks = [];
   let open = null;
   for (const comment of sourceCode.getAllComments()) {
-    if (comment.type === "Shebang" || isIgnoredComment(comment)) {
+    if (comment.type === "Shebang" || isDirective(comment)) {
       open = null;
       continue;
     }

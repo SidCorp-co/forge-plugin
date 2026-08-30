@@ -1,4 +1,5 @@
 import { matchesFile } from "./design/tokens.js";
+import { PASS_THROUGH_WAIVER } from "./line-metrics.js";
 
 /**
  * A layer that forwards and adds nothing is a name for something that already has
@@ -7,7 +8,7 @@ import { matchesFile } from "./design/tokens.js";
  *
  * The reason is mandatory, as with every waiver here: a bare marker fails.
  */
-const WAIVER = /pass-through:\s*keep\s*[—-]\s*(\S[^\n]*)/;
+const WAIVER = PASS_THROUGH_WAIVER;
 
 /** Elements that carry no semantics of their own, so an empty one carries nothing. */
 export const DEFAULT_NEUTRAL_ELEMENTS = ["div", "span"];

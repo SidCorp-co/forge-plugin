@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { DESIGN_SYSTEM } from "../inline-warning.js";
 import { matchesFile } from "./tokens.js";
+import { RAW_ELEMENT_WAIVER } from "../line-metrics.js";
 
 /**
  * A design system is only a system where product code cannot reach past it. The primitive
@@ -32,7 +33,7 @@ export const DEFAULT_PRIMITIVES = {
 const HEADING = /^h[1-6]$/;
 
 /** The reason is mandatory, matching `inline-warning: none —`: a bare marker waives nothing. */
-const WAIVER = /primitive:\s*none\s*[—-]\s*(\S[^\n]*)/;
+const WAIVER = RAW_ELEMENT_WAIVER;
 
 const EXTENSIONS = ["", ".ts", ".tsx", ".js", ".jsx", ".mjs"];
 const INDEX_FILES = ["index.ts", "index.tsx", "index.js", "index.jsx", "index.mjs"];

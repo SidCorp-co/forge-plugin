@@ -1,4 +1,4 @@
-// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.11.0, commit cb51676,
+// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.11.0, commit 0d54e59,
 //   src/text-overlap.js
 //
 // A copy of packages/code-quality/src/text-overlap.js, because Claude Code caches plugin/ alone
