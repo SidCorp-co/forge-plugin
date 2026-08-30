@@ -5,7 +5,7 @@
     "email": "thanhnh@sidcorp.co"
   },
   "metadata": {
-    "description": "Local marketplace hosting the Forge issue-tracker CLI plugin"
+    "description": "Local marketplace hosting the Forge issue-tracker CLI plugin and the code-quality rules it fires"
   },
   "plugins": [
     {
@@ -17,6 +17,16 @@
       },
       "category": "development",
       "source": "./plugin"
+    },
+    {
+      "name": "code-quality",
+      "description": "Lint each supported file edited by Claude Code with the consumer project's local ESLint, comment-quality rules, god-file limits and design-token discipline. Forge fires these rules through its own hook; install this one to get them in a project that does not use Forge.",
+      "author": {
+        "name": "Thanh Nguyen",
+        "email": "thanhnh@sidcorp.co"
+      },
+      "category": "development",
+      "source": "./packages/code-quality/claude-plugin"
     }
   ]
 }

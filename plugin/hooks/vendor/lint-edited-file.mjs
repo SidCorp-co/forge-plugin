@@ -2,11 +2,11 @@
 // VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.10.0, commit 6903164,
 //   claude-plugin/scripts/lint-edited-file.mjs
 //
-// Copied rather than imported because that is how the file is built to travel: its own
-// header records that Claude Code installs claude-plugin/ alone into a versioned cache
-// where nothing can import from the package, and upstream pins its internal duplicates
-// with a test for the same reason. Forge uses it only as the fallback — a project with
-// its own copy in node_modules gets that one. scripts/check-vendor.mjs reports drift.
+// A copy of packages/code-quality/claude-plugin/scripts/lint-edited-file.mjs, because Claude
+// Code caches plugin/ alone and packages/ is not reachable from where this runs — the same
+// reason the package duplicates its own constants and pins them with a test. Forge uses it only
+// as the fallback: a project with its own copy in node_modules gets that one, and
+// plugin/scripts/check-vendor.mjs compares the two on every `npm run check`.
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";

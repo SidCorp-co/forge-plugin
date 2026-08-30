@@ -1,8 +1,8 @@
 import { configure } from "eslint-plugin-code-quality";
 
 export default [
-  // A vendored copy is upstream's to lint; check-vendor.mjs reports drift instead.
-  { ignores: ["plugin/hooks/vendor/**"] },
+  // Each carries its own config: check-vendor.mjs and `npm run check:package` cover these two.
+  { ignores: ["plugin/hooks/vendor/**", "packages/**"] },
   ...configure({
     "no-historical-narration": "error",
     "comment-density": "error",

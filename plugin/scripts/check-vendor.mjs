@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Report drift between the vendored lint script and its upstream. A copy nobody compares is a
-// fork with a comment on top; docs/HOOKS.md says why the copy exists at all.
+// Report drift between the vendored lint script and packages/code-quality, whose copy it is. A
+// copy nobody compares is a fork with a comment on top; docs/HOOKS.md says why the copy exists.
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -20,10 +20,11 @@ if (!pinned || !pkg) {
 }
 
 const [, name, version] = pkg;
-const upstream = process.argv[2] ?? join(HERE, '..', '..', '..', name);
+const upstream = process.argv[2] ?? join(HERE, '..', '..', 'packages', 'code-quality');
+// The path is inside this tree, so an absent one is a broken tree and not an absent checkout.
 if (!existsSync(join(upstream, REL))) {
-  process.stdout.write(`upstream not on this machine (${upstream}) — pinned at ${name} v${version} @ ${pinned}\n`);
-  process.exit(0);
+  process.stderr.write(`${join(upstream, REL)} is missing — pinned at ${name} v${version} @ ${pinned}\n`);
+  process.exit(2);
 }
 
 const head = spawnSync('git', ['-C', upstream, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' });
