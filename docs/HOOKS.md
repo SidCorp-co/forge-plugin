@@ -99,3 +99,19 @@ It is deliberately narrow. A guard that refuses too much gets disabled, and a di
 protects nothing — so each pattern names one command shape with a stated safer form, and
 anything it cannot recognise is allowed through. The git rules only bite when the tree is
 dirty, because there is nothing to lose otherwise, and any doubt counts as dirty.
+
+## `vi-provenance.mjs` — the one language a reviewer cannot check
+
+The `vi-natural` skill says to route Vietnamese through the CLI, and a skill is read by an
+agent that decided to read it. This is the case where not reading it costs nothing visible:
+hand-written Vietnamese parses, so the commit lands, and the reviewer who does not read
+Vietnamese sees a message where a message belongs. It reads translated to everyone who does.
+
+It fires on a git-commit shape carrying the letters Vietnamese has and its neighbours do not —
+`ă â đ ê ô ơ ư` and the tone-marked vowels. An accent alone would catch French, so an accent
+alone is not enough. It never reads a `Write` or an `Edit`: a file may legitimately hold
+Vietnamese that came from the tool, and the commit is the one place the provenance question
+has a single answer.
+
+Asked once per repository per session, then silent. The answer is a fact about how the agent
+is working, not about this commit, so asking twice teaches nothing the first answer did not.

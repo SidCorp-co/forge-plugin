@@ -1,5 +1,5 @@
 {
-  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Before a call: refuses the shell commands whose damage cannot be undone, and stops once before a memory or skill write, including through the shell where the content cannot be read. After a call: hands every code file that changed \u2014 whichever route wrote it \u2014 to the linter the project itself configured, its own copy where it has one and the vendored one where it does not, and asks once when a checker is about to hard-code the cases it already knows. This plugin owns when and where a rule fires; the project owns what the rule says.",
+  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Before a call: refuses the shell commands whose damage cannot be undone, and stops once before a memory or skill write, including through the shell where the content cannot be read, and once before a commit message written in Vietnamese by hand. After a call: hands every code file that changed \u2014 whichever route wrote it \u2014 to the linter the project itself configured, its own copy where it has one and the vendored one where it does not, and asks once when a checker is about to hard-code the cases it already knows. This plugin owns when and where a rule fires; the project owns what the rule says.",
   "hooks": {
     "SessionStart": [
       {
@@ -19,6 +19,11 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/bash-guard.mjs",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/vi-provenance.mjs",
             "timeout": 10
           }
         ]
