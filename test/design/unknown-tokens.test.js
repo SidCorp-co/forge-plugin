@@ -164,3 +164,41 @@ test("a gradient direction is a keyword, not a colour", () => {
     [],
   );
 });
+
+// A branch inside `${…}` is where a conditional class lives, and the quote closing it
+// is not part of the class: reading it as one asks the palette for `--color-warn'`,
+// which no stylesheet can declare and no reader can act on.
+test("a quote around an interpolated branch is not part of the token it names", () => {
+  const found = find({
+    "toggle.tsx": "export const a = <p className={`rounded-md ${on ? 'bg-warning text-warn' : ''}`} />;",
+  });
+
+  assert.deepEqual(
+    found.map((one) => `${one.candidate} ${one.token}`),
+    ["text-warn --color-warn"],
+  );
+});
+
+// A Content-Security-Policy directive is space-separated like a class attribute and
+// its first word carries a Tailwind namespace, so `font-src 'self'` asked the palette
+// for a font called `src` on every project that sets a CSP header in its config.
+test("a quoted word says the literal is not a class list", () => {
+  assert.deepEqual(
+    find({
+      "next.config.mjs":
+        "export const csp = [\"font-src 'self' data:\", \"style-src 'self'\"].join('; ');\n",
+    }),
+    [],
+  );
+});
+
+// `content-['*']` is the one class that carries a quote, and it carries it inside the
+// brackets that make it an arbitrary value.
+test("a quote inside brackets leaves the literal a class list", () => {
+  assert.deepEqual(
+    find({ "star.tsx": `export const a = <p className="content-['*'] text-warn" />;` }).map(
+      (one) => one.token,
+    ),
+    ["--color-warn"],
+  );
+});

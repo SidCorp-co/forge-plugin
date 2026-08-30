@@ -171,6 +171,59 @@ const VAR_ONLY = /^var\(\s*(--[\w-]+)\s*\)$/i;
 const VAR_USE = /var\(\s*(--[\w-]+)\s*[,)]/gi;
 const DECLARED = /(?:\[|["'\s{;,])(--[\w-]+)\s*:/g;
 const NAMED = /["'](--[\w-]+)["']/g;
+const QUOTE = /["'`]/g;
+
+/** The `${…}` spans of a value, balanced so a `}` inside an object does not close one. */
+function interpolations(value) {
+  const spans = [];
+  for (let start = 0; start < value.length - 1; start += 1) {
+    if (value[start] !== "$" || value[start + 1] !== "{") continue;
+    let depth = 0;
+    for (let index = start + 1; index < value.length; index += 1) {
+      if (value[index] === "{") depth += 1;
+      else if (value[index] === "}") depth -= 1;
+      if (depth > 0) continue;
+      spans.push([start, index + 1]);
+      start = index;
+      break;
+    }
+  }
+  return spans;
+}
+
+/**
+ * A branch inside `${…}` holds classes, but the quotes around it are not part of them
+ * and are what a word is split on: `${on ? 'bg-brand text-white' : ''}` ends a word at
+ * `text-white'`, naming a token with a quote in it that no palette can declare. One
+ * space for one quote, so every offset stays true of the file on disk.
+ */
+function withoutBranchQuotes(value) {
+  let cleaned = value;
+  for (const [start, end] of interpolations(value)) {
+    cleaned =
+      cleaned.slice(0, start) + cleaned.slice(start, end).replace(QUOTE, " ") + cleaned.slice(end);
+  }
+  return cleaned;
+}
+
+/**
+ * Whether a literal is a list of classes at all. `class` is an attribute value, so a
+ * quote can only reach one inside brackets — `content-['*']`. A quote outside them
+ * says the literal is another language that happens to be space-separated: a CSP
+ * header reads `font-src 'self' data:`, and `font-src` resolves as a utility asking
+ * the theme for a font called `src`.
+ */
+function isClassList(value) {
+  let depth = 0;
+  for (const character of value) {
+    if (character === "[") depth += 1;
+    else if (character === "]") depth -= 1;
+    else if (depth === 0 && (character === '"' || character === "'" || character === "`")) {
+      return false;
+    }
+  }
+  return true;
+}
 
 /** A word that could be a class: no interpolation, no sentence punctuation. */
 function isCandidate(word) {
@@ -276,7 +329,9 @@ function ambiguousFinding({ word, utility, ambiguous, tokens }) {
 function scanClasses(text, options) {
   const found = [];
   for (const literal of stringLiterals(text)) {
-    for (const word of literal.value.split(/\s+/)) {
+    const value = withoutBranchQuotes(literal.value);
+    if (!isClassList(value)) continue;
+    for (const word of value.split(/\s+/)) {
       if (!isCandidate(word)) continue;
       const { variants, utility: qualified } = splitVariants(word);
       const utility = bareUtility(qualified);
