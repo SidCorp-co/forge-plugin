@@ -1,0 +1,20 @@
+{
+  "name": "code-quality-local",
+  "owner": {
+    "name": "Thanh Nguyen"
+  },
+  "metadata": {
+    "description": "Claude Code plugin wrapper for eslint-plugin-code-quality"
+  },
+  "plugins": [
+    {
+      "name": "code-quality",
+      "description": "Lint each supported file edited by Claude Code with the consumer project's local ESLint, comment-quality rules, and god-file limits.",
+      "author": {
+        "name": "Thanh Nguyen"
+      },
+      "category": "development",
+      "source": "./claude-plugin"
+    }
+  ]
+}
