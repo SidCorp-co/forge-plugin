@@ -1,0 +1,675 @@
+{
+  "extract": [
+    [
+      [
+        "{{count}}",
+        1
+      ]
+    ],
+    [
+      [
+        "{count}",
+        1
+      ]
+    ],
+    [
+      [
+        "{count}",
+        1
+      ]
+    ],
+    [
+      [
+        "%d",
+        1
+      ],
+      [
+        "%s",
+        1
+      ]
+    ],
+    [
+      [
+        "%1$s",
+        1
+      ],
+      [
+        "%2$s",
+        1
+      ]
+    ],
+    [
+      [
+        "%(name)s",
+        1
+      ],
+      [
+        "%(room)s",
+        1
+      ]
+    ],
+    [
+      [
+        "{user}",
+        1
+      ]
+    ],
+    [],
+    [
+      [
+        ":name",
+        1
+      ]
+    ],
+    [
+      [
+        "</0>",
+        1
+      ],
+      [
+        "</b>",
+        1
+      ],
+      [
+        "<0>",
+        1
+      ],
+      [
+        "<b>",
+        1
+      ]
+    ],
+    [
+      [
+        "$t(common.save)",
+        1
+      ]
+    ],
+    [],
+    [],
+    [],
+    [],
+    [
+      [
+        "{}",
+        1
+      ]
+    ],
+    [
+      [
+        "{}",
+        1
+      ]
+    ],
+    [
+      [
+        "{a}",
+        2
+      ],
+      [
+        "{b}",
+        1
+      ]
+    ],
+    [
+      [
+        "{a}",
+        1
+      ],
+      [
+        "{{a}}",
+        1
+      ]
+    ],
+    [
+      [
+        "{is}",
+        1
+      ]
+    ],
+    [
+      [
+        "</Link>",
+        1
+      ],
+      [
+        "</Trans>",
+        1
+      ],
+      [
+        "<Link to=\"/x\">",
+        1
+      ],
+      [
+        "<Trans>",
+        1
+      ]
+    ],
+    [],
+    [
+      [
+        "%%",
+        1
+      ]
+    ],
+    [
+      [
+        "%.2f",
+        1
+      ]
+    ],
+    [
+      [
+        "%-10s",
+        1
+      ]
+    ],
+    [
+      [
+        "%s",
+        1
+      ],
+      [
+        ":id",
+        1
+      ],
+      [
+        "</b>",
+        1
+      ],
+      [
+        "<b>",
+        1
+      ],
+      [
+        "{name}",
+        1
+      ]
+    ],
+    [
+      [
+        "{outer}",
+        1
+      ]
+    ],
+    [],
+    [
+      [
+        "{{filename}}",
+        1
+      ]
+    ],
+    [],
+    [],
+    [],
+    [
+      [
+        "\\n",
+        1
+      ]
+    ],
+    [],
+    [],
+    [
+      [
+        "{0}",
+        1
+      ],
+      [
+        "{10}",
+        1
+      ],
+      [
+        "{1}",
+        1
+      ]
+    ]
+  ],
+  "diff": [
+    "missing {{count}}; invented {count}",
+    null,
+    "missing {count}; invented %d, %s",
+    "missing %d, %s; invented %1$s, %2$s",
+    "missing %1$s, %2$s; invented %(name)s, %(room)s",
+    "missing %(name)s, %(room)s; invented {user}",
+    "missing {user}",
+    "invented :name",
+    "missing :name; invented </0>, </b>, <0>, <b>",
+    "missing </0>, </b>, <0>, <b>; invented $t(common.save)",
+    "missing $t(common.save)",
+    null,
+    null,
+    null,
+    "invented {}",
+    null,
+    "missing {}; invented {a} x2, {b}",
+    "missing {a}, {b}; invented {{a}}",
+    "missing {a}, {{a}}; invented {is}",
+    "missing {is}; invented </Link>, </Trans>, <Link to=\"/x\">, <Trans>",
+    "missing </Link>, </Trans>, <Link to=\"/x\">, <Trans>",
+    "invented %%",
+    "missing %%; invented %.2f",
+    "missing %.2f; invented %-10s",
+    "missing %-10s; invented %s, :id, </b>, <b>, {name}",
+    "missing %s, :id, </b>, <b>, {name}; invented {outer}",
+    "missing {outer}",
+    "invented {{filename}}",
+    "missing {{filename}}",
+    null,
+    null,
+    "invented \\n",
+    "missing \\n",
+    null,
+    "invented {0}, {10}, {1}",
+    "missing {0}, {10}, {1}; invented {{count}}"
+  ],
+  "normalize": [
+    "delete {{count}} items permanently",
+    "xóa {count} mục",
+    "{count, plural, one{# item} other{# items}}",
+    "hello %s, you have %d messages",
+    "%1$s sent %2$s a file",
+    "%(name)s joined %(room)s",
+    "%{user} left",
+    "save 50% off today",
+    "welcome, :name",
+    "see <b>terms</b> and <0>privacy</0>",
+    "$t(common.save)",
+    "line one\nline two\ttabbed",
+    "nothing interesting here",
+    "",
+    "",
+    "{}",
+    "{ }",
+    "{a}{b}{a}",
+    "{{a}} and {a}",
+    "a { is never closed by a }",
+    "<trans>click <link to=\"/x\">here</link></trans>",
+    "100%",
+    "%%",
+    "%.2f rounded",
+    "%-10s padded",
+    "mixed {name} with %s and :id and <b>tag</b>",
+    "nested {outer{inner}} braces",
+    "đã lưu thay đổi",
+    "tải lên tệp {{filename}}",
+    "url: https://example.com/a:b",
+    "time 12:30:45",
+    "ratio a:b:c",
+    "\\n literal escape",
+    "emoji 🎉 stays",
+    "trailing space",
+    "{0} and {1} and {10}"
+  ],
+  "isActionKey": [
+    true,
+    false,
+    false,
+    true
+  ],
+  "genericIndex": [
+    [
+      "hủy",
+      "common.cancel"
+    ],
+    [
+      "lưu",
+      "common.save"
+    ]
+  ],
+  "inflated": [
+    {
+      "key": "rates.removeRate",
+      "en": "Remove",
+      "vi": "Xóa tỷ giá",
+      "suggested": "Xóa",
+      "existing": null
+    },
+    {
+      "key": "customers.save",
+      "en": "Save",
+      "vi": "Lưu khách hàng",
+      "suggested": "Lưu",
+      "existing": "common.save"
+    },
+    {
+      "key": "a.upload",
+      "en": "Upload",
+      "vi": "Tải tệp lên",
+      "suggested": "Tải lên",
+      "existing": null
+    }
+  ],
+  "collapse": [
+    {
+      "verb": "create",
+      "bare": "Tạo",
+      "existing": null,
+      "members": [
+        {
+          "key": "orders.createDraft",
+          "en": "Create draft",
+          "vi": "Tạo bản nháp"
+        },
+        {
+          "key": "orders.createInvoice",
+          "en": "Create invoice",
+          "vi": "Tạo hóa đơn"
+        },
+        {
+          "key": "orders.createOrder",
+          "en": "Create order",
+          "vi": "Tạo đơn hàng"
+        }
+      ]
+    }
+  ],
+  "isBare": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    true,
+    false,
+    true,
+    false,
+    false,
+    false,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+  ],
+  "segment": [
+    [
+      "keep",
+      "---\ntitle: Fixture\n---\n"
+    ],
+    [
+      "keep",
+      "\n"
+    ],
+    [
+      "text",
+      "# Heading One"
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "text",
+      "A paragraph with `inline code` and a [link](https://example.com/x)."
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "text",
+      "## Sub heading"
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "text",
+      "Another paragraph. It has two sentences."
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "keep",
+      "```js\nconst kept = \"verbatim\";\n```\n"
+    ],
+    [
+      "keep",
+      "\n"
+    ],
+    [
+      "text",
+      "- a list item\n- another item"
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "text",
+      "### Deeper"
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "text",
+      "Text under the deepest heading."
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "keep",
+      "<!-- a comment only block -->"
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "keep",
+      "[ref]: https://example.com/ref"
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "text",
+      "## Second sub"
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "text",
+      "Final paragraph with a ⟦VI0⟧ sentinel already in it."
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "keep",
+      "~~~\ntilde fence\n~~~\n"
+    ],
+    [
+      "keep",
+      "\n123"
+    ],
+    [
+      "keep",
+      "\n\n"
+    ],
+    [
+      "text",
+      "|a|b|\n|-|-|\n|1|2|"
+    ],
+    [
+      "keep",
+      "\n"
+    ]
+  ],
+  "trails": [
+    [
+      2,
+      "corpus.md"
+    ],
+    [
+      4,
+      "corpus.md › Heading One"
+    ],
+    [
+      6,
+      "corpus.md › Heading One"
+    ],
+    [
+      8,
+      "corpus.md › Heading One › Sub heading"
+    ],
+    [
+      12,
+      "corpus.md › Heading One › Sub heading"
+    ],
+    [
+      14,
+      "corpus.md › Heading One › Sub heading"
+    ],
+    [
+      16,
+      "corpus.md › Heading One › Sub heading › Deeper"
+    ],
+    [
+      22,
+      "corpus.md › Heading One"
+    ],
+    [
+      24,
+      "corpus.md › Heading One › Second sub"
+    ],
+    [
+      29,
+      "corpus.md › Heading One › Second sub"
+    ]
+  ],
+  "docVerify": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "flatten": [
+    [
+      [
+        "404"
+      ],
+      "Not found"
+    ],
+    [
+      [
+        "zebra"
+      ],
+      "Zebra"
+    ],
+    [
+      [
+        "12"
+      ],
+      "Twelve"
+    ],
+    [
+      [
+        "common",
+        "save"
+      ],
+      "Save"
+    ],
+    [
+      [
+        "common",
+        "cancel"
+      ],
+      "Cancel"
+    ],
+    [
+      [
+        "common",
+        "nested",
+        "deep"
+      ],
+      "Deep"
+    ],
+    [
+      [
+        "list",
+        0
+      ],
+      "first"
+    ],
+    [
+      [
+        "list",
+        1
+      ],
+      "second"
+    ],
+    [
+      [
+        "list",
+        2,
+        "inner"
+      ],
+      "Inner"
+    ],
+    [
+      [
+        "dotted.key"
+      ],
+      "Dotted"
+    ],
+    [
+      [
+        "empty"
+      ],
+      ""
+    ]
+  ],
+  "labels": [
+    "404",
+    "zebra",
+    "12",
+    "common.save",
+    "common.cancel",
+    "common.nested.deep",
+    "list.0",
+    "list.1",
+    "list.2.inner",
+    "dotted.key",
+    "empty"
+  ],
+  "order": "{\n  \"404\": \"Not found\",\n  \"zebra\": \"Zebra\",\n  \"12\": \"Twelve\",\n  \"common\": {\n    \"save\": \"Save\",\n    \"cancel\": \"Cancel\",\n    \"nested\": {\n      \"deep\": \"Deep\"\n    }\n  },\n  \"list\": [\n    \"first\",\n    \"second\",\n    {\n      \"inner\": \"Inner\"\n    }\n  ],\n  \"dotted.key\": \"Dotted\",\n  \"empty\": \"\",\n  \"number\": 7,\n  \"null\": null,\n  \"emptyObj\": {}\n}"
+}

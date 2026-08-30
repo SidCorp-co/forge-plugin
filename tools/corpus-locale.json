@@ -1,0 +1,24 @@
+{
+  "404": "Not found",
+  "zebra": "Zebra",
+  "12": "Twelve",
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "nested": {
+      "deep": "Deep"
+    }
+  },
+  "list": [
+    "first",
+    "second",
+    {
+      "inner": "Inner"
+    }
+  ],
+  "dotted.key": "Dotted",
+  "empty": "",
+  "number": 7,
+  "null": null,
+  "emptyObj": {}
+}

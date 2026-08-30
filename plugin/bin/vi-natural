@@ -9,4 +9,4 @@ while [ -L "$SELF" ]; do
   esac
 done
 DIR=$(cd "$(dirname "$SELF")/.." && pwd)
-exec python3 "$DIR/scripts/vi_natural.py" "$@"
+exec node "$DIR/vi-natural/cli.mjs" "$@"

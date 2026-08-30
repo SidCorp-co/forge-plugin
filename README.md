@@ -4,9 +4,9 @@ A Claude Code plugin holding two CLIs and their skills:
 
 - **`forge`** — drive a Forge issue tracker over its own MCP HTTP endpoint, with no MCP client
   connected in the asking session. JSON-RPC over one POST.
-- **`vi-natural`** — natural Vietnamese for i18n catalogs and docs. Absorbed here at v1.5.0
-  because `forge` writes every Vietnamese issue through it; see `VI-NATURAL.md` for its own
-  documentation.
+- **`vi-natural`** — natural Vietnamese for i18n catalogs and docs. Absorbed here because
+  `forge` writes every Vietnamese issue through it; see `VI-NATURAL.md` for its own
+  documentation and for the reasoning its client encodes.
 
 ## Install
 
@@ -99,7 +99,13 @@ plugin/
     skill-dup.mjs         text a skill says twice
     migration-risk.mjs    a migration classified by whether deploying it can be undone
     check-vendor.mjs      drift between vendor/ and the upstream it came from
-    vi_natural.py  vi_cli/   the vi-natural CLI, still python
+  vi-natural/             the vi-natural CLI
+    cli.mjs               argv, usage, dispatch
+    vi-text.mjs           the Vietnamese style contract — the only file holding prose
+    text/                 prompts, CTA discipline, placeholder accounting
+    format/               order-preserving JSON, locale trees, Markdown segmentation
+    gateway/              config, the streaming client, the batch engine with its gate
+    commands/             one file per verb
   skills/forge  skills/vi-natural  skills/issue-flow
   skills/audit-code-quality  skills/setup-code-quality
 ```
