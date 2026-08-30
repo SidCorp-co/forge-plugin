@@ -1,5 +1,5 @@
 {
-  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Before a call: refuses the shell commands whose damage cannot be undone, and stops once before a memory or skill write \u2014 including through the shell, where the content cannot be read. After a call: runs the project's own linter on the code files that changed, whichever route wrote them, and asks once when a checker is about to hard-code the cases it already knows.",
+  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Before a call: refuses the shell commands whose damage cannot be undone, and stops once before a memory or skill write, including through the shell where the content cannot be read. After a call: hands every code file that changed \u2014 whichever route wrote it \u2014 to the project's own installed linter, and asks once when a checker is about to hard-code the cases it already knows. It owns when and where a rule fires; the project owns what the rule says.",
   "hooks": {
     "SessionStart": [
       {
@@ -40,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/code-quality-gate.py",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/code-quality.mjs",
             "timeout": 90
           },
           {

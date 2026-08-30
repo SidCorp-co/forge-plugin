@@ -42,7 +42,8 @@ readings that produce different code is a question; two that differ in a value i
 
 **4. What the project says outranks what this skill says.** Every default here is a
 fallback for a project that has not decided. Follow the project, and **say which default
-you overrode**.
+you overrode**. Which level a rule belongs to, and what to do when only one of them could
+have known: [`references/two-levels.md`](references/two-levels.md).
 
 **5. Learn selectively, and encode rather than write.** Most rounds record nothing.
 `references/learning.md` holds the test, the categories and the destinations.
