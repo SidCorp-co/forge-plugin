@@ -28,7 +28,6 @@ function walk(dir, out = []) {
   return out;
 }
 
-/** Blank out comments so prose about the code is not mistaken for the code's own strings. */
 function stripComments(source) {
   return source
     .replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, ' '))
@@ -59,9 +58,11 @@ if (offenders.length) {
 }
 
 if (process.argv.includes('--regenerate')) {
+  // Ask for the extractor itself, not for the package it read: `vi_cli/` outlived its own deletion
+  // as gitignored __pycache__, so a directory probe answered yes about source that was gone.
   const extractor = join(ROOT, 'tools', 'extract-vi-constants.py');
-  if (!existsSync(join(ROOT, 'plugin', 'scripts', 'vi_cli'))) {
-    process.stdout.write('no vietnamese outside vi-text.mjs; python source is gone, cannot regenerate\n');
+  if (!existsSync(extractor)) {
+    process.stdout.write('no vietnamese outside vi-text.mjs; the python it was extracted from is gone\n');
     process.exit(0);
   }
   const before = readFileSync(GENERATED, 'utf8');
