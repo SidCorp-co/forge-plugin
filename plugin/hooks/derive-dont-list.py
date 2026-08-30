@@ -28,6 +28,9 @@ import re
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _touched import touched  # noqa: E402
+
 # Only files whose job is to check something. Nudging every array literal in a codebase is
 # how a guard earns its way into the ignore list.
 CHECKER = re.compile(r"(lint|check|guard|rule|verify|validate|audit)[^/]*\.(py|mjs|js|ts)$|/scripts/[^/]+\.(mjs|js|py)$|\.test\.(ts|tsx|js|mjs)$")
@@ -37,12 +40,13 @@ LIST = re.compile(r"""(?:const|let|var|^\s*[A-Z_]+\s*=)\s*[\w:\[\]<>,\s]*=\s*[\[
 CONSTS = re.compile(r"""['"]([A-Z][A-Z0-9_]{2,})['"]""")
 
 
-def content_of(ev):
-    ti = ev.get("tool_input") or {}
-    parts = [ti.get("content") or "", ti.get("new_string") or ""]
-    for edit in ti.get("edits") or []:
-        parts.append((edit or {}).get("new_string") or "")
-    return "\n".join(p for p in parts if p)
+def content_of(path):
+    """Read the file as it now stands. Running after the write is what lets a `sed -i` or a
+    heredoc be seen at all — they leave no tool_input to inspect, only a file."""
+    try:
+        return open(path, encoding="utf-8").read()
+    except OSError:
+        return ""
 
 
 def is_explained(text, start):
@@ -81,22 +85,23 @@ def main():
         ev = json.load(sys.stdin)
     except Exception:
         sys.exit(0)
-    if ev.get("tool_name") not in ("Write", "Edit", "MultiEdit"):
+    for path in touched(ev):
+        if not CHECKER.search(path):
+            continue
+        found = offending(content_of(path))
+        if len(found) < 3 or already_asked(ev, path):
+            continue
+        nudge(path, found)
         sys.exit(0)
-    path = (ev.get("tool_input") or {}).get("file_path", "")
-    if not path or not CHECKER.search(path):
-        sys.exit(0)
+    sys.exit(0)
 
-    found = offending(content_of(ev))
-    if len(found) < 3 or already_asked(ev, path):
-        sys.exit(0)
 
+def nudge(path, found):
     sample = ", ".join(found[:4]) + ("…" if len(found) > 4 else "")
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "permissionDecision": "deny",
-        "permissionDecisionReason": (
-            f"Asked once, then this file is yours.\n\n"
+    print(json.dumps({
+        "decision": "block",
+        "reason": (
+            f"{os.path.basename(path)} — asked once, then this file is yours.\n\n"
             f"This checker is about to carry a hand-written list of {len(found)} constants "
             f"({sample}). A list only knows the cases you have already met: it stays silent "
             f"on a case it never heard of, and it reports a false gap when someone extends "
@@ -105,10 +110,9 @@ def main():
             f"key on the declared type rather than the name. Then a case added next year is "
             f"covered without anyone remembering this file exists.\n\n"
             f"If enumerating IS the point — a ratchet's migrated-directory list is supposed "
-            f"to be incomplete — say so in a comment and send it again."
+            f"to be incomplete — say so in a comment above the list."
         ),
-    }}))
-    sys.exit(0)
+    }))
 
 
 if __name__ == "__main__":

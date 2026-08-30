@@ -36,6 +36,11 @@ FORGE_SOURCES = {
     "decision": "a choice among alternatives, with the reason it was chosen",
     "policy": "a rule that binds future work",
 }
+GUARDED = re.compile(r"/memory/|/skills/")
+# Naming one of those files is not touching it: reading a skill is the common case and must
+# stay free. Only a command that carries a write shape is asked about.
+WRITES = re.compile(r"\bsed\b[^|;]*-i|>>?\s|\btee\b|\bcp\b|\bmv\b|\btruncate\b|open\([^)]*['\"]w")
+
 SKILL_CATEGORIES = {
     "trap": "the environment or a tool behaved unexpectedly -> prefer a check in the plugin",
     "method": "a phase produced the wrong outcome, or had no branch for what happened",
@@ -141,6 +146,24 @@ def main():
             "Re-send with metadata.checked set to the category you chose, and say in one "
             "line which of the four conditions made it worth keeping."
         )
+
+    # A memory or a skill written through the shell would pass every check below unseen:
+    # `sed -i` and a heredoc carry no content this hook can read, and the decision this gate
+    # exists to force has to happen BEFORE the write, not after it. So the shell route is
+    # closed for these two kinds of file rather than approximated.
+    if tool == "Bash" and WRITES.search(ti.get("command", "")):
+        for token in re.findall(r"[A-Za-z0-9_./@\-]+\.md", ti.get("command", "")):
+            if GUARDED.search(token) and os.path.basename(token) != "MEMORY.md":
+                deny(
+                    f"Refused: `{token}` is a memory or skill file, and this writes it "
+                    "through the shell.\n\n"
+                    "This gate reads the content to ask whether the fact is worth keeping "
+                    "and which category it belongs to. A `sed -i` or a heredoc carries no "
+                    "content to read, so going that way skips the question rather than "
+                    "answering it.\n\n"
+                    "Use Write or Edit for this file."
+                )
+        sys.exit(0)
 
     if tool not in ("Write", "Edit", "MultiEdit"):
         sys.exit(0)
