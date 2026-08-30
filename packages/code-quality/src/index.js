@@ -3,6 +3,7 @@ import noArbitrarySizes from "./design/no-arbitrary-sizes.js";
 import noRawColors from "./design/no-raw-colors.js";
 import noRawElements from "./design/no-raw-elements.js";
 import maxConsecutiveCommentLines from "./max-consecutive-comment-lines.js";
+import noDuplicateComment from "./no-duplicate-comment.js";
 import noHistoricalNarration from "./no-historical-narration.js";
 import noPassThroughWrapper from "./no-pass-through-wrapper.js";
 
@@ -62,6 +63,17 @@ export {
   SOURCE_EXTENSIONS,
 } from "./folder-size.js";
 export { HANDOFF_PATTERNS, NARRATION_PATTERNS } from "./no-historical-narration.js";
+export {
+  contentWords,
+  DEFAULT_MIN_SENTENCE_LENGTH,
+  DEFAULT_OVERLAP_FLOOR,
+  DEFAULT_OVERLAP_THRESHOLD,
+  findOverlaps,
+  findOverlapsAgainst,
+  overlap,
+  splitSentences,
+  STOP_WORDS,
+} from "./text-overlap.js";
 
 export const DEFAULT_MAX_FILE_CODE_LINES = 500;
 export const DEFAULT_MAX_FUNCTION_CODE_LINES = 150;
@@ -81,10 +93,11 @@ export const DEFAULT_TEST_GLOBS = [
 ];
 
 const plugin = {
-  meta: { name: "eslint-plugin-code-quality", version: "0.10.0" },
+  meta: { name: "eslint-plugin-code-quality", version: "0.11.0" },
   rules: {
     "no-historical-narration": noHistoricalNarration,
     "comment-density": commentDensity,
+    "no-duplicate-comment": noDuplicateComment,
     "max-consecutive-comment-lines": maxConsecutiveCommentLines,
     "no-pass-through-wrapper": noPassThroughWrapper,
     "no-raw-colors": noRawColors,
@@ -101,6 +114,7 @@ export const DEFAULT_MAX_CONSECUTIVE_COMMENT_LINES = 8;
 const RULE_OPTIONS = {
   "no-historical-narration": {},
   "comment-density": { maxRatio: DEFAULT_MAX_COMMENT_RATIO, minCommentLines: 0 },
+  "no-duplicate-comment": {},
   "max-consecutive-comment-lines": { max: DEFAULT_MAX_CONSECUTIVE_COMMENT_LINES },
   "no-pass-through-wrapper": {},
   "no-raw-colors": {},

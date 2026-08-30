@@ -6,27 +6,25 @@
 // divergence is silent: both files read as correct on their own. This measures the overlap
 // instead of trusting a reading.
 //
-// The comparison is lexical, not semantic — a Jaccard index over content words, with a floor on
-// how many words two sentences must actually share. It cannot know that two differently worded
-// sentences mean the same thing, so it is a floor on quality, not a proof of absence.
+// The measurement itself is hooks/vendor/text-overlap.js, shared with the duplicate-comment
+// ESLint rule; what belongs here is only what makes a markdown skill different from a source
+// file — the fences, tables and headings that are not prose.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+
+import {
+  DEFAULT_MIN_SENTENCE_LENGTH,
+  DEFAULT_OVERLAP_FLOOR,
+  DEFAULT_OVERLAP_THRESHOLD,
+  findOverlapsAgainst,
+  splitSentences,
+} from '../hooks/vendor/text-overlap.js';
 
 const FENCE = /```[\s\S]*?```/g;
 const TABLE_ROW = /^[ \t]*\|.*\|[ \t]*$/gm;
 const HEADING = /^#{1,6}\s.*$/gm;
 const MARKUP = /[*`_>[\]()]/g;
-const SPLIT = /(?<=[.!?:])\s+|\n\n/;
-const WORD = /[a-z][a-z-]{3,}/g;
-
-// Words that carry no distinguishing weight here: every second sentence in a workflow document
-// contains them, so leaving them in inflates every comparison uniformly.
-const STOP = new Set(
-  ('that this with from into than then what when which there these those your yours have has ' +
-    'been being does will would should must never always only also rather because before after ' +
-    'not and the for are its').split(' '),
-);
 
 export function sentences(text) {
   const stripped = text
@@ -34,33 +32,12 @@ export function sentences(text) {
     .replace(TABLE_ROW, ' ')
     .replace(HEADING, ' ')
     .replace(MARKUP, '');
-  return stripped
-    .split(SPLIT)
-    .map((s) => s.trim())
-    .filter((s) => s.length >= 40);
-}
-
-function contentWords(s) {
-  return new Set((s.toLowerCase().match(WORD) ?? []).filter((w) => !STOP.has(w)));
+  return splitSentences(stripped, DEFAULT_MIN_SENTENCE_LENGTH);
 }
 
 /** Units are [label, sentence]. Returns [score, a, b], worst first. */
 export function compare(aUnits, bUnits, threshold, floor) {
-  const hits = [];
-  for (const a of aUnits) {
-    const ta = contentWords(a[1]);
-    if (ta.size < floor) continue;
-    for (const b of bUnits) {
-      if (a[0] === b[0] && a[1] === b[1]) continue;
-      const tb = contentWords(b[1]);
-      if (tb.size < floor) continue;
-      const shared = [...ta].filter((w) => tb.has(w));
-      if (shared.length < floor) continue;
-      const score = shared.length / new Set([...ta, ...tb]).size;
-      if (score >= threshold) hits.push([score, a, b]);
-    }
-  }
-  return hits.sort((x, y) => y[0] - x[0]);
+  return findOverlapsAgainst(aUnits, bUnits, { threshold, floor });
 }
 
 function walk(dir, out = []) {
@@ -112,7 +89,13 @@ const USAGE = `Find text a skill says twice.
 Exit 0 when clean, 1 when a duplicate is found, 2 on a usage error.`;
 
 function main(argv) {
-  const opts = { exclude: new Set(), threshold: 0.34, floor: 5, limit: 10, against: null };
+  const opts = {
+    exclude: new Set(),
+    threshold: DEFAULT_OVERLAP_THRESHOLD,
+    floor: DEFAULT_OVERLAP_FLOOR,
+    limit: 10,
+    against: null,
+  };
   const positional = [];
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];

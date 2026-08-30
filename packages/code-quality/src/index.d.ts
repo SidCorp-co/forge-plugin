@@ -5,8 +5,38 @@ export declare const DEFAULT_MAX_FUNCTION_CODE_LINES: number;
 export declare const DEFAULT_MAX_COMMENT_RATIO: number;
 export declare const DEFAULT_MAX_CONSECUTIVE_COMMENT_LINES: number;
 export declare const DEFAULT_TEST_GLOBS: string[];
+export declare const DEFAULT_OVERLAP_THRESHOLD: number;
+export declare const DEFAULT_OVERLAP_FLOOR: number;
+export declare const DEFAULT_MIN_SENTENCE_LENGTH: number;
+export declare const STOP_WORDS: Set<string>;
+
+export type OverlapUnit<L = unknown> = [L, string];
+export type OverlapHit<L = unknown> = [number, OverlapUnit<L>, OverlapUnit<L>];
+export interface OverlapOptions {
+  threshold?: number;
+  floor?: number;
+}
+
+export declare function splitSentences(text: string, minLength?: number): string[];
+export declare function contentWords(sentence: string): Set<string>;
+export declare function overlap(a: Set<string>, b: Set<string>, floor?: number): number | null;
+export declare function findOverlaps<L>(units: OverlapUnit<L>[], options?: OverlapOptions): OverlapHit<L>[];
+export declare function findOverlapsAgainst<L>(
+  incoming: OverlapUnit<L>[],
+  existing: OverlapUnit<L>[],
+  options?: OverlapOptions,
+): OverlapHit<L>[];
 
 export type Severity = "error" | "warn" | "off";
+
+export interface DuplicateCommentOptions {
+  /** Jaccard index at which two sentences are the same statement. Default `0.34`. */
+  threshold?: number;
+  /** Content words two sentences must share before the index is computed. Default `5`. */
+  floor?: number;
+  /** Characters below which a sentence is too short to compare. Default `40`. */
+  minLength?: number;
+}
 
 export interface NarrationOptions {
   /** Patterns aimed at the next agent or migration stage. Default `true`. */
@@ -68,6 +98,7 @@ export type RuleEntry<Options = Record<string, unknown>> = Severity | [Severity,
 export interface ConfigureOptions {
   "no-historical-narration"?: RuleEntry<NarrationOptions>;
   "comment-density"?: RuleEntry<{ maxRatio?: number; minCommentLines?: number }>;
+  "no-duplicate-comment"?: RuleEntry<DuplicateCommentOptions>;
   "max-consecutive-comment-lines"?: RuleEntry<{ max?: number }>;
   "no-pass-through-wrapper"?: RuleEntry<{ elements?: boolean | string[] }>;
   "no-raw-colors"?: RuleEntry<RawColorsOptions>;

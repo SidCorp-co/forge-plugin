@@ -116,6 +116,7 @@ None of these rules has a fixer. `eslint --fix` cannot delete or rewrite a comme
 ```js
 configure({
   "comment-density": ["warn", { maxRatio: 0.2 }],
+  "no-duplicate-comment": ["warn", { threshold: 0.5 }],
   "max-consecutive-comment-lines": ["warn", { max: 12 }],
   "no-historical-narration": ["warn", { handoffNarration: false, allowPatterns: ["ADR-\\d+"] }],
 });
@@ -157,6 +158,22 @@ Limits physical comment lines relative to physical code lines.
 ```
 
 A mixed line containing both code and a substantive comment belongs to both sets. Blank or decorative block-comment lines do not count. The recommended config measures every file with substantive comments and permits at most 15 comment lines per 100 code lines.
+
+### `no-duplicate-comment`
+
+Reports a comment restating what an earlier comment in the same file already says.
+
+```js
+{
+  "code-quality/no-duplicate-comment": ["error", {
+    threshold: 0.34,
+    floor: 5,
+    minLength: 40
+  }]
+}
+```
+
+The measurement is lexical — a Jaccard index over content words, with `floor` naming how many words two sentences must actually share before the index is computed at all. It cannot know that two differently worded sentences mean the same thing, so a clean file is a floor on quality and never a proof of absence; `threshold` and `floor` are what keep it from crying wolf. A run of `//` lines is one comment, because a sentence routinely spans two of them, and a pair is always two different comments: adjacent sentences inside one block share a topic and so a vocabulary. The comparison is exported as `findOverlaps` / `findOverlapsAgainst` for whole-tree checks, which is where the same statement spread across a module and its caller has to be caught — ESLint is only ever handed one file.
 
 ### `max-consecutive-comment-lines`
 

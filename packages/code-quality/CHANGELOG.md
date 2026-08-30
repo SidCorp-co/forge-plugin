@@ -2,6 +2,13 @@
 
 All notable changes to this package are documented here.
 
+## 0.11.0 - 2026-08-30
+
+### Added
+
+- `no-duplicate-comment`: a comment restating what an earlier comment in the same file already says. The other two comment rules are structurally blind to it — density counts lines without reading them, narration matches phrases inside one comment at a time — so a constraint written down twice passed every gate. Two copies of one rule read as correct on their own, which is exactly why it needs measuring rather than reviewing: the pair diverges the first time someone corrects only the copy they found, and nothing reports the divergence. The measurement is lexical, a Jaccard index over content words with a floor on how many words two sentences must actually share, so it is a floor on quality and never a proof of absence. A run of `//` lines is treated as one comment, because a sentence routinely spans two of them.
+- `findOverlaps()`, `findOverlapsAgainst()`, `splitSentences()`, `contentWords()`, `overlap()` and `STOP_WORDS` are exported: the same measurement a whole-tree duplicate check needs, since ESLint is only ever handed one file and cannot see a statement repeated across a module and its caller.
+
 ## 0.10.0 - 2026-08-15
 
 ### Added

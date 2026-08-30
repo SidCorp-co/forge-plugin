@@ -119,9 +119,8 @@ function resolveWorkspace(editedFile, projectRoot) {
   return { directory: fallback ?? projectRoot, config: null };
 }
 
-// `"hook": false` in code-quality.json, read from the workspace owning the edited file and then the
-// repository root. The hook is enabled once for every project this user opens, so opting one out
-// has to be the project's own say.
+// `"hook": false` in code-quality.json, looked for in each directory below. The hook is enabled
+// once for every project this user opens, so opting one out has to be the project's own say.
 function hookDisabled(directories) {
   return directories.some((directory) => {
     try {

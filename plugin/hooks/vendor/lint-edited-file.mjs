@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.10.0, commit 6903164,
+// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.11.0, commit cb51676,
 //   claude-plugin/scripts/lint-edited-file.mjs
 //
 // A copy of packages/code-quality/claude-plugin/scripts/lint-edited-file.mjs, because Claude
@@ -127,9 +127,8 @@ function resolveWorkspace(editedFile, projectRoot) {
   return { directory: fallback ?? projectRoot, config: null };
 }
 
-// `"hook": false` in code-quality.json, read from the workspace owning the edited file and then the
-// repository root. The hook is enabled once for every project this user opens, so opting one out
-// has to be the project's own say.
+// `"hook": false` in code-quality.json, looked for in each directory below. The hook is enabled
+// once for every project this user opens, so opting one out has to be the project's own say.
 function hookDisabled(directories) {
   return directories.some((directory) => {
     try {

@@ -42,6 +42,12 @@ upstream when upstream is on this machine, and reports which commit it is pinned
 is not. It compares code rather than commit ids: upstream moving without touching that file
 is not drift.
 
+`hooks/vendor/text-overlap.js` is here for the same reason and read by a different caller:
+`plugin/scripts/skill-dup.mjs`, so the duplicate-text measurement the `no-duplicate-comment`
+ESLint rule uses is the one the skill audit uses. Every file in `vendor/` names its own
+upstream path in its header, which is what lets the check walk the directory instead of
+carrying a list of what is vendored.
+
 The delegate runs the project's `prettier` before linting, so it **writes** the file.
 Extending it to the shell route means a file written by `sed` gets formatted too — the same
 contract every project already accepted on `Edit`.
