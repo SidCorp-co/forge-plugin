@@ -80,13 +80,13 @@ plugin/
   bin/forge  bin/vi-natural       PATH entry points, symlink-resolving
   src/                            the forge CLI
     cli.mjs          argv, the usage list, the write-time rules
-    visibility.mjs   the verb table, and what this credential may see
     commands.mjs     one function per verb
     issues.mjs       paging, the browse projection, ISS-45 -> uuid
     rpc.mjs          transport, retry, the cached tool surface, the write boundary
-    settings.mjs     every setting, resolved to { value, from }
-    config.mjs       ~/.config/forge, at 0600
-    deps.mjs  doctor.mjs  vi.mjs  flags.mjs  suggest.mjs
+    deps.mjs  doctor.mjs  vi.mjs  suggest.mjs
+    resolve/         what this run is: settings to { value, from }, ~/.config/forge
+                     at 0600, the flag parser, and the verb table deciding what
+                     this credential may see
   hooks/
     _hook.mjs             the event, the files a call wrote, deny/block, the once-per-session stamp
     bash-guard.mjs        PreToolUse: the shell commands that cannot be undone
