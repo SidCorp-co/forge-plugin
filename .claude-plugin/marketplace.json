@@ -10,7 +10,7 @@
   "plugins": [
     {
       "name": "forge",
-      "description": "Drive a Forge issue tracker from the terminal: browse, read, file and comment on issues over the MCP endpoint with no MCP client connected, and write every issue in natural Vietnamese through the bundled vi-natural CLI.",
+      "description": "Drive a Forge issue tracker from the terminal \u2014 browse, read, file and comment over the MCP endpoint with no MCP client connected, writing every issue in natural Vietnamese through the bundled vi-natural CLI. Also the global half of the two-level rule arrangement: it guards the shell commands that cannot be undone, stops once before a memory or skill write, and routes every code file a call wrote \u2014 through Edit or through the shell \u2014 to the project's own eslint, whose rules stay the project's.",
       "author": {
         "name": "Thanh Nguyen",
         "email": "thanhnh@sidcorp.co"

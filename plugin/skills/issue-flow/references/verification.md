@@ -12,7 +12,7 @@ rather than proceeding as though it were green.
 1. **The repo's own gates.** Whatever the project defines. Passing them is the floor.
 2. **Schema and deployment coupling, if the change has any.** Establish how a migration
    reaches the deployed environment before the merge — an entrypoint that migrates at boot
-   means merging *is* a schema change. Then classify it: `scripts/migration_risk.py` sorts
+   means merging *is* a schema change. Then classify it: `scripts/migration-risk.mjs` sorts
    additive from tightening from destructive, and only the last of those stops the pipeline.
    Test reversibility only where the project's migration system supports it and only against
    a disposable database.

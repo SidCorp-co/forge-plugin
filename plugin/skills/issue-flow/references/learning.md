@@ -92,7 +92,7 @@ A skill only grows unless something removes from it, and a stale rule is read an
 Three things earn deletion:
 
 - **A rule the plugin now enforces** — deleted from prose the day the check lands. Two
-  authorities for one rule is how they diverge, and `scripts/skill_dup.py` measures it
+  authorities for one rule is how they diverge, and `scripts/skill-dup.mjs` measures it
   rather than leaving it to a reading.
 - **A rule the tool now documents itself.** Anything a `-h`, a schema or an error message
   says is no longer the skill's to repeat.
@@ -109,7 +109,7 @@ rewritten from a single bad round is fitted to that round. Then read
 `references/prior-art.md`, which says what the current shape already considered and turned
 down.
 
-**The gate is a hook, not this paragraph.** `hooks/learning-gate.py` stops the first write
+**The gate is a hook, not this paragraph.** `hooks/learning-gate.mjs` stops the first write
 to a memory store *and* the first edit to a skill's own text, returning the four conditions
 and the categories. It exists because the failure it guards is a reflex — reaching for "save
 what I learned" as a way of ending a task — and a reflex is not interrupted by a document it

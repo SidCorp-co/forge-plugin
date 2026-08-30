@@ -56,7 +56,7 @@ a mistake can be detected and undone without the user.
 
 Stop for exactly these:
 
-1. **A destructive migration.** `scripts/migration_risk.py` classifies it: re-adding a
+1. **A destructive migration.** `scripts/migration-risk.mjs` classifies it: re-adding a
    dropped column restores the schema and not the values, so no automatic rollback exists.
    Say what is lost, and ask.
 2. **A choice whose readings produce different code and whose wrong branch is expensive to

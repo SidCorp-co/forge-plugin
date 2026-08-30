@@ -1,12 +1,12 @@
 {
-  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Before a call: refuses the shell commands whose damage cannot be undone, and stops once before a memory or skill write, including through the shell where the content cannot be read. After a call: hands every code file that changed \u2014 whichever route wrote it \u2014 to the project's own installed linter, and asks once when a checker is about to hard-code the cases it already knows. It owns when and where a rule fires; the project owns what the rule says.",
+  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Before a call: refuses the shell commands whose damage cannot be undone, and stops once before a memory or skill write, including through the shell where the content cannot be read. After a call: hands every code file that changed \u2014 whichever route wrote it \u2014 to the linter the project itself configured, its own copy where it has one and the vendored one where it does not, and asks once when a checker is about to hard-code the cases it already knows. This plugin owns when and where a rule fires; the project owns what the rule says.",
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/link-cli.sh \"${CLAUDE_PLUGIN_ROOT}\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/link-cli.mjs \"${CLAUDE_PLUGIN_ROOT}\"",
             "timeout": 10
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/bash-guard.py",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/bash-guard.mjs",
             "timeout": 10
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/learning-gate.py",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/learning-gate.mjs",
             "timeout": 10
           }
         ]
@@ -36,7 +36,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit|Bash",
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
         "hooks": [
           {
             "type": "command",
@@ -45,7 +45,7 @@
           },
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/derive-dont-list.py",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/derive-dont-list.mjs",
             "timeout": 15
           }
         ]

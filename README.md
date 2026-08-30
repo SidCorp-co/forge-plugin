@@ -16,7 +16,7 @@ claude plugin install forge@forge-local
 ```
 
 The `SessionStart` hook symlinks both binaries into `~/.local/bin`. After a fresh install, run
-`plugin/hooks/link-cli.sh "$PWD/plugin"` once rather than waiting for the next session.
+`node plugin/hooks/link-cli.mjs "$PWD/plugin"` once rather than waiting for the next session.
 
 `install` **copies** this tree into `~/.claude/plugins/cache/forge-local/forge/<version>/`, and the
 symlinks point there. `claude plugin update` compares versions only, so an edit made without
@@ -78,7 +78,6 @@ call, never a wrong answer.
 plugin/
   .claude-plugin/plugin.json      the plugin manifest, name: forge
   bin/forge  bin/vi-natural       PATH entry points, symlink-resolving
-  hooks/                          SessionStart link-cli.sh, nothing else
   src/                            the forge CLI
     cli.mjs          argv, the usage list, the write-time rules
     visibility.mjs   the verb table, and what this credential may see
@@ -88,6 +87,38 @@ plugin/
     settings.mjs     every setting, resolved to { value, from }
     config.mjs       ~/.config/forge, at 0600
     deps.mjs  doctor.mjs  vi.mjs  flags.mjs  suggest.mjs
-  scripts/vi_natural.py  vi_cli/  the vi-natural CLI
-  skills/forge  skills/vi-natural
+  hooks/
+    _hook.mjs             the event, the files a call wrote, deny/block, the once-per-session stamp
+    bash-guard.mjs        PreToolUse: the shell commands that cannot be undone
+    learning-gate.mjs     PreToolUse: one stop before a memory or skill write
+    code-quality.mjs      PostToolUse: every written code file, to the project's own linter
+    derive-dont-list.mjs  PostToolUse: one nudge when a checker hard-codes its cases
+    link-cli.mjs          SessionStart: both binaries onto PATH
+    vendor/               the upstream lint script, copied — see below
+  scripts/
+    skill-dup.mjs         text a skill says twice
+    migration-risk.mjs    a migration classified by whether deploying it can be undone
+    check-vendor.mjs      drift between vendor/ and the upstream it came from
+    vi_natural.py  vi_cli/   the vi-natural CLI, still python
+  skills/forge  skills/vi-natural  skills/issue-flow
+  skills/audit-code-quality  skills/setup-code-quality
 ```
+
+## Two levels
+
+This plugin is the **global** level. It owns *when and where* a rule fires — which tool routes are
+watched, which directories are in scope. It owns no rule about what good code is.
+
+A **project** owns that. Its eslint config, its thresholds, its gates. Which level a rule belongs
+to, and what happens where both could speak, is stated once in
+`plugin/skills/issue-flow/references/two-levels.md`.
+
+`code-quality.mjs` is the arrangement in one file. It finds every file a call wrote — including
+through the shell, which is the route `Edit|Write|MultiEdit` matchers miss — and hands each one to
+`eslint-plugin-code-quality`'s own hook script, which resolves the project's workspace, eslint
+binary and config. The project's copy in `node_modules` is preferred; `hooks/vendor/` is the
+fallback for a project that never installed it. A project with no eslint is silent either way.
+
+The vendored copy is a copy on purpose: that script is built to travel alone into a plugin cache,
+and its own header says so. `scripts/check-vendor.mjs` compares it against upstream when upstream
+is on this machine, and says which commit it was pinned at when it is not.
