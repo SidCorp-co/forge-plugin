@@ -1,11 +1,11 @@
-/* One transport for every verb. The endpoint speaks JSON-RPC over a single POST, so this is that
-   POST plus the two things a caller should never type: the credentials, and the project id. */
+/* One transport: the POST, plus the two things a caller should never type — the credentials and
+   the project id. docs/FORGE-CLI.md. */
 import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { configDir, once, readJson } from "./config.mjs";
-import { fail, projectScope, projectSlug, settings, translateScope } from "./settings.mjs";
+import { configDir, once, readJson } from "./resolve/config.mjs";
+import { fail, projectScope, projectSlug, settings, translateScope } from "./resolve/settings.mjs";
 import { translated } from "./vi.mjs";
 
 const RETRY_ATTEMPTS = 4;
@@ -22,9 +22,7 @@ const sseData = (text) =>
     .map((line) => line.slice(5).trim())
     .join("");
 
-/* The server states its own wait: `{"code":"RATE_LIMITED", …,"details":{"retryAfterSeconds":2}}`.
-   Failing instead of honouring it turns a two-second pause into a lost run; honouring it without a
-   ceiling turns a server saying 3600 into an hour of sleep, four times over. */
+/* Honour the server's stated wait, with a ceiling: 3600 would be an hour of sleep, four times. */
 const retryAfter = (text, headers) => {
   const capped = (seconds) => Math.min(seconds, MAX_RETRY_SECONDS);
   const header = Number(headers.get("retry-after"));
@@ -38,8 +36,7 @@ const retryAfter = (text, headers) => {
   return FALLBACK_RETRY_SECONDS;
 };
 
-/* A schema violation comes back as a pretty-printed zod array carrying `pattern` — the full uuid
-   regex, ~150 characters, repeated per field. The path and the message are the whole signal. */
+/* The path and the message are the whole signal; the uuid pattern repeats ~150 chars per field. */
 const readable = (text) => {
   const start = text.indexOf("[");
   if (start < 0) return text;
@@ -93,8 +90,7 @@ export const rpc = async (method, params) => {
   return parsed.result;
 };
 
-/* A tool result carries its payload as text, structured, or both; `isError` is the tool's own
-   refusal rather than a transport failure, and it must not read as a success. */
+/* `isError` is the tool's own refusal, not a transport failure, and must not read as success. */
 export const callTool = async (name, args, soft = false) => {
   const result = await rpc("tools/call", { name, arguments: args });
   const text = (result?.content ?? [])
@@ -111,10 +107,8 @@ export const callTool = async (name, args, soft = false) => {
   }
 };
 
-/* `tools/list` is 130 KB and every verb needs it — to answer "does this tool take a projectId",
-   and to validate a name or a filter before spending a round trip on it. Fetched per process it
-   was 75% of the traffic of `forge issue`. It is a description of the server, so it is cached
-   beside the config, keyed by endpoint, and refreshed whenever a lookup misses. */
+/* `tools/list` is 130 KB and every verb needs it — 75% of `forge issue` when fetched per process.
+   Cached beside the config, keyed by endpoint, refreshed when a lookup misses. */
 const cachePath = () => {
   const key = createHash("sha256").update(settings().url).digest("hex").slice(0, 12);
   return join(configDir("forge"), `tools-${key}.json`);
@@ -132,8 +126,7 @@ const writeCache = (patch) => {
   }
 };
 
-/* Memoise the promise, not the value: assigning after the await lets two concurrent callers each
-   fire the request, which turns one 130 KB fetch into five the moment anything runs in parallel. */
+/* Memoise the PROMISE: assigning after the await lets concurrent callers each fire the request. */
 let pending = null;
 const fetchTools = () => (pending ??= rpc("tools/list", {}).then((answer) => answer.tools));
 
@@ -144,8 +137,7 @@ export const tools = async ({ refresh = false } = {}) => {
   return declared;
 };
 
-/* Refetch before erroring: a name absent from the cache may be a typo or may be a tool the server
-   grew since the cache was written, and only one of those is worth an error message. */
+/* Refetch before erroring: an absent name may be a typo or a tool the server grew. */
 export const toolNamed = async (name) => {
   const first = (await tools()).find((tool) => tool.name === name);
   if (first) return first;
@@ -166,16 +158,13 @@ export const projectId = async () => {
   return found.id;
 };
 
-/* Some tools scope by project and the rest refuse the key outright, so the schema decides rather
-   than a list here that would go stale against the server it is describing. */
+/* The schema decides, not a list here that would go stale against the server it describes. */
 export const scoped = async (name, args, soft = false) => {
   const wants = Boolean((await toolNamed(name))?.inputSchema?.properties?.projectId);
   return callTool(name, wants ? { projectId: await projectId(), ...args } : args, soft);
 };
 
-/* Every write goes through here. A write goes to whichever project the cwd resolves and
-   `forge_issues` has no delete action, so announcing the target is not a courtesy owed per verb —
-   `dep` and `attach` had each been written without it. */
+/* Every write announces its target: the cwd picks the project and there is no delete action. */
 export const write = async (name, args) => {
   const project = projectScope();
   const language = translateScope();

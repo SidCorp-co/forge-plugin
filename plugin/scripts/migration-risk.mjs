@@ -1,20 +1,8 @@
 #!/usr/bin/env node
-// Classify a migration by whether deploying it can be undone.
-//
-// A pipeline that ships without asking needs one thing a human was previously supplying: the
-// judgement that this particular change is recoverable. Most of that judgement has a shape. A
-// deploy can be rolled back, a status reopened, a branch reverted — but a column that has been
-// dropped is gone, and re-adding it restores the schema and not the values.
-//
-// So this splits migrations three ways rather than warning about all of them, because a checker
-// that fires on every migration is one nobody reads:
-//
-//   destructive  data cannot be reconstructed from the schema after this runs
-//   tightening   the statement can fail on existing rows, so the deploy can halt midway
-//   additive     reversible by dropping what it added
-//
-// Statements inside a transaction that also rewrites the data are still destructive: this reads
-// SQL text, not intent, and says so rather than guessing.
+// Classify a migration by whether deploying it can be undone: destructive (data cannot be
+// reconstructed from the schema), tightening (can fail on existing rows and halt a deploy midway),
+// additive (reversible by dropping what it added). Three ways rather than one warning, because a
+// checker that fires on every migration is one nobody reads. It reads SQL text, not intent.
 
 import { spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -36,8 +24,8 @@ const TIGHTENING = [
   [/\bADD\s+CONSTRAINT\b[\s\S]*\b(UNIQUE|CHECK|FOREIGN\s+KEY)\b/i, 'fails if existing rows violate it'],
   [/\bCREATE\s+UNIQUE\s+INDEX\b/i, 'fails if existing rows are not unique'],
 ];
-// DROP INDEX and DROP CONSTRAINT are deliberately absent: both are rebuilt from the schema alone,
-// so losing one costs a migration, never data.
+// DROP INDEX and DROP CONSTRAINT are absent on purpose: rebuilt from the schema, so no data is
+// at stake.
 
 const RANK = { additive: 0, tightening: 1, destructive: 2, unreadable: 2 };
 
@@ -78,7 +66,7 @@ function since(ref, directory) {
     });
     if (!out.error && out.status === 0) known = new Set(out.stdout.split(/\s+/).filter(Boolean));
   } catch {
-    /* no git answer: treat everything as new, which errs toward classifying more */
+    /* no git answer: everything counts as new, which errs toward classifying more */
   }
   return walkSql(directory).filter((p) => !known.has(relative('.', p)));
 }

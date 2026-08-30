@@ -1,5 +1,5 @@
-/* Parsing `--name value` pairs, once. Three verbs had grown their own copy of this, and two of
-   them dropped a valueless flag silently — which reads as an unfiltered answer. */
+/* Parsing `--name value` pairs, once. Two of the three hand-rolled copies dropped a valueless
+   flag silently, which reads as an unfiltered answer. */
 import { fail } from "./settings.mjs";
 
 export const flags = (argv, verb, boolean = []) => {

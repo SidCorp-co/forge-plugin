@@ -1,12 +1,6 @@
 #!/usr/bin/env node
-// Report drift between the vendored lint script and the upstream it was copied from.
-//
-// A copy that nobody compares is a fork with a comment on top. The header of the vendored file
-// records which commit it came from, and that header is the only record — a second file holding
-// the sha would be one more thing to forget to update.
-//
-// Upstream is a working copy on this machine, so this is silent when it is not there. That is
-// the same reach every other local marketplace here has, not a weaker one.
+// Report drift between the vendored lint script and its upstream. A copy nobody compares is a
+// fork with a comment on top; docs/HOOKS.md says why the copy exists at all.
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -35,7 +29,7 @@ if (!existsSync(join(upstream, REL))) {
 const head = spawnSync('git', ['-C', upstream, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' });
 const now = (head.stdout ?? '').trim();
 
-// Compare the code, not the sha: upstream moving without touching this file is not drift.
+// Compare code, not sha: upstream moving without touching this file is not drift.
 const mine = readFileSync(VENDORED, 'utf8').split('\n').slice(9).join('\n').trim();
 const theirs = readFileSync(join(upstream, REL), 'utf8').replace(/^#!.*\n/, '').trim();
 if (mine === theirs) {

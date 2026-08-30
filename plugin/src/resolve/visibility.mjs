@@ -1,13 +1,5 @@
-/* What this credential may see, in one place.
-
-   Two mechanisms, deliberately not merged: the server *refuses* a tool (measured by `doctor`,
-   cached per project), and a human *chose* to withhold a verb (`doctor --hide`). They differ in
-   authority and in consequence — a gated verb cannot run, a withheld one is merely unlisted and
-   still works — so collapsing them would lose the distinction that makes each correct.
-
-   `needs` is declared on every verb that has a backing tool, not only on the two the probe list
-   happens to cover: if `forge_issues` is ever gated, six verbs must disappear together rather than
-   stay offered and fail one at a time. */
+/* What this credential may see. Two mechanisms, deliberately not merged: the server REFUSES a
+   tool, a human WITHHELD a verb. They differ in authority and consequence. docs/FORGE-CLI.md. */
 import { userConfig } from "./config.mjs";
 import { fail, projectScope } from "./settings.mjs";
 
@@ -32,9 +24,7 @@ export const VERB_NAMES = VERBS.map(([verb]) => verb);
 
 const rowFor = (verb) => VERBS.find(([name]) => name === verb);
 
-/* The usage line lived twice — once in this table and once inline in each verb's `fail()` — and
-   the two had drifted four ways, so `forge -h` and the error a caller hits disagreed about which
-   payload forms exist. */
+/* The usage line lived twice and had drifted four ways. */
 export const usageOf = (verb) => {
   const row = rowFor(verb);
   return `Usage: forge ${verb}${row?.[1] ? ` ${row[1]}` : ""}`;
@@ -43,9 +33,7 @@ export const usageOf = (verb) => {
 export const helpLine = ([verb, args, blurb]) =>
   `  ${`${verb} ${args}`.trim().padEnd(46)} ${blurb}`;
 
-/* A refusal `doctor` measured, replayed where the tool would otherwise be offered. Deliberately a
-   replay and not a fresh probe: filtering a listing must not cost a call per tool, and each record
-   carries the date it was taken, because a refusal was true once rather than forever. */
+/* A replay of what doctor measured, never a fresh probe, each record carrying its date. */
 const recorded = () => {
   const { value: slug } = projectScope();
   const held = slug ? (userConfig().capabilities ?? {})[slug] : null;
@@ -69,8 +57,7 @@ export const blockedBy = (verb) => {
   return needs && isGated(needs) ? needs : null;
 };
 
-/* The schema a gated tool publishes is an invitation to a call that cannot succeed, so it is not
-   printed at all. */
+/* A gated tool's schema is an invitation to a call that cannot succeed. */
 export const refuseIfGated = (tool, override = false) => {
   const { gates, checkedAt } = recorded();
   if (override || !gates[tool]) return;

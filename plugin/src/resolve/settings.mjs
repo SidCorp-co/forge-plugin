@@ -1,15 +1,6 @@
-/* Where the endpoint, the credentials and the project's own conventions come from — never from an
-   argument.
-
-   Two scopes, and they are not the same scope. The url and the token are the *account's*: one
-   Forge instance, one PAT, every project. The slug, the prose language and anything else a tracker
-   decides for itself are the *project's*, and they are the things that change when you cd
-   somewhere else — so the slug is demanded lazily, by the call that actually needs a project id,
-   and `tools`, `schema` and `guide` never ask for it at all.
-
-   Every setting resolves to `{ value, from }`. `doctor` exists because "not configured" and
-   "configured in the wrong file" look identical from inside one failing command, so provenance is
-   the return type rather than a courtesy some resolvers extend. */
+/* Where every setting comes from — never from an argument. Two scopes: the url and token are the
+   ACCOUNT's, the slug and prose language the PROJECT's, so the slug is demanded lazily. Each
+   resolves to `{ value, from }`, because provenance is what doctor reports. docs/FORGE-CLI.md. */
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 
@@ -20,8 +11,7 @@ export const fail = (message) => {
   process.exit(1);
 };
 
-/* Returns the trimmed stdout, or null when git refused. A caller that destructures this as
-   `{ status, stdout }` gets two undefineds and silently takes its own fallback branch forever. */
+/* Trimmed stdout, or null. A caller destructuring `{ status, stdout }` gets two undefineds. */
 const git = (args, cwd) => {
   const { status, stdout } = spawnSync("git", args, { cwd, encoding: "utf8" });
   return status === 0 ? (stdout ?? "").trim() : null;
@@ -38,11 +28,8 @@ const ancestors = (start) => {
   }
 };
 
-/* A linked worktree has no `.mcp.json` or `.forge.json` of its own — both are git-ignored and
-   belong to the checkout they were created in. `--git-common-dir` names the main checkout's
-   `.git`, whose parent holds them, and that is the only way in from a worktree kept outside the
-   main tree. Memoised: unmemoised this spawned `git rev-parse` nine times for one `forge issues`,
-   and the cwd does not move inside a run. */
+/* A linked worktree owns neither file; `--git-common-dir` names the checkout that does. Memoised —
+   unmemoised this spawned nine `git rev-parse` for one `forge issues`. */
 const searchRoots = once(() => {
   const cwd = process.cwd();
   const common = git(["rev-parse", "--git-common-dir"], cwd);
@@ -50,8 +37,7 @@ const searchRoots = once(() => {
   return [...ancestors(cwd), ...(shared ? [shared] : [])];
 });
 
-/* Each project file is read once per run and remembered with where it was found, so three settings
-   reading `.forge.json` cost one walk rather than three. */
+/* Each project file is read once per run, with where it was found. */
 const nearest = (name) =>
   once(() => {
     for (const root of searchRoots()) {
@@ -109,9 +95,7 @@ export const projectScope = once(() =>
   ]),
 );
 
-/* Every request carries the slug as a header when there is one — that is how the server scopes a
-   call that takes no projectId — but its absence is only an error for a call that needs a project
-   id, so this one answers null instead of exiting. */
+/* The slug is a header when there is one, and an error only for a call needing a project id. */
 export const slugIfAny = () => projectScope().value;
 
 export const projectSlug = () => {
@@ -126,10 +110,8 @@ export const projectSlug = () => {
   return value;
 };
 
-/* Which language this project's issues are written in — a property of the tracker, not of the
-   CLI. Measured 2026-08-27: sid-growth is Vietnamese and forge-dev is English, so posting one
-   convention into both is a wrong-language issue that no verb can delete afterwards. Off is the
-   default because that failure is unrecoverable and a missing translation is an edit. */
+/* A property of the tracker, not the CLI. Off by default: a wrong-language issue cannot be
+   deleted, and a missing translation is an edit. */
 export const translateScope = once(() => {
   const chosen = pick([
     ["$FORGE_TRANSLATE", process.env.FORGE_TRANSLATE],
@@ -141,10 +123,7 @@ export const translateScope = once(() => {
 
 export const translateTo = () => translateScope().value;
 
-/* How this tracker writes a dependency in prose. It is the same kind of fact as `translate` — a
-   convention the tracker owns, not the CLI — and it sits at the same altitude, in `.forge.json`.
-   The default is the English sentence sid-growth's migrated issues carry; a tracker that writes
-   its issues in another language says so rather than getting an empty graph with no explanation. */
+/* The same kind of fact as `translate`, at the same altitude, with an English default. */
 const DEFAULT_PROSE = {
   marker: "those edges are recorded",
   blockedBy: "blocked by",

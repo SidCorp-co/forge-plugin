@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
-import { fail, settings } from "./settings.mjs";
+import { fail, settings } from "./resolve/settings.mjs";
 import { projectId, scoped, toolNamed, tools, write } from "./rpc.mjs";
 import {
   DEFAULT_LIMIT,
@@ -11,16 +11,13 @@ import {
   rowsOf,
   truncated,
 } from "./issues.mjs";
-import { callable, isGated, refuseIfGated, usageOf } from "./visibility.mjs";
+import { callable, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { flags } from "./flags.mjs";
+import { flags } from "./resolve/flags.mjs";
 import { doctor } from "./doctor.mjs";
 import { deps } from "./deps.mjs";
 
-/* One rule for every payload this CLI takes: inline, `@path`, or `-` for stdin. Measured on a
-   3,895-character issue body — passing the file costs 153 characters against 4,202 inline, but
-   only because the file already existed; writing one in the same breath costs what inlining does,
-   and for a small flat payload the extra command makes it 1.6x worse. */
+/* One rule for every payload: inline, `@path`, or `-` for stdin. */
 const bodyFrom = (path) => {
   if (path === "-") return readFileSync(0, "utf8");
   return readFileSync(path.startsWith("@") ? path.slice(1) : path, "utf8");
@@ -29,8 +26,7 @@ const bodyFrom = (path) => {
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
 
-/* A null `plan` and an empty `attachments` are 179 bytes of an issue's 1,938 and say only that the
-   field exists, which the schema already says. Absence here means empty. */
+/* Absence means empty; the schema already says the field exists. */
 const filled = (record) => {
   if (!record || typeof record !== "object" || Array.isArray(record)) return record;
   return Object.fromEntries(
@@ -41,8 +37,7 @@ const filled = (record) => {
   );
 };
 
-/* `format: "uuid"` and a 150-character regex asserting the same thing appear together on every id
-   field. Anything patterned without a format is kept — that one carries the only copy of its rule. */
+/* A pattern without a format is kept — that one carries the only copy of its rule. */
 const trimPatterns = (node) => {
   if (Array.isArray(node)) return node.map(trimPatterns);
   if (!node || typeof node !== "object") return node;
@@ -54,8 +49,7 @@ const trimPatterns = (node) => {
   return out;
 };
 
-/* Validate a named argument against the server's own declared schema rather than a list here that
-   would go stale against it — the same reason `scoped` reads the schema for `projectId`. */
+/* Validated against the server's own schema, never a list here that would go stale. */
 const enumAt = async (tool, path) => {
   const declared = await toolNamed(tool);
   const node = path.reduce((held, key) => held?.[key], declared?.inputSchema?.properties);
@@ -77,8 +71,7 @@ const limitFrom = (raw) => {
   return value;
 };
 
-/* One line per issue. The uuid column was 22% of this verb's bytes and bought nothing — every verb
-   that takes an id also takes `ISS-45`, resolved from a list this process already holds. */
+/* One line per issue: the uuid column was 22% of this verb and bought nothing. */
 const printIssues = (payload, limit) => {
   const issues = rowsOf(payload);
   for (const issue of issues) {
@@ -146,8 +139,7 @@ export const commands = {
       return fail(`Arguments for ${name} are not json: ${error.message}`);
     }
     const resolved = await resolveReferences(args);
-    /* `call` reaches the same create and update the wrapped verbs do, so an untranslated or
-       unannounced one here would be the bypass that makes every gate above decorative. */
+    /* `call` reaches the same writes the wrapped verbs do, so it takes the same gates. */
     const answer = resolved.data ? await write(name, resolved) : await scoped(name, resolved);
     show(answer);
   },
@@ -162,8 +154,7 @@ export const commands = {
     }
     printIssues(await listIssues(filters, limit), limit);
   },
-  /* Three tiers, and the payload is what costs: `issues` is a line per issue, `issue` is one whole
-     body, `--fields plan` is one part of one body. Fetch narrow, then fetch again. */
+  /* Three tiers, and the payload is what costs. Fetch narrow, then fetch again. */
   issue: async ([reference, ...rest]) => {
     if (!reference) fail(usageOf("issue"));
     const { fields } = flags(rest, "issue");
@@ -176,8 +167,7 @@ export const commands = {
       ),
     );
   },
-  /* `open` is the default: a repository that drives its own builders ignores the tracker's
-     pipeline, so `open` marks the active set. `draft` never dispatches. */
+  /* `open` marks the active set; `draft` never dispatches. */
   new: async ([path, ...rest]) => {
     if (!path) fail(usageOf("new"));
     const data = { description: bodyFrom(path), status: "open", ...flags(rest, "new") };
@@ -189,13 +179,8 @@ export const commands = {
     const issue = await documentIdOf(reference);
     show(await write("forge_comments", { action: "create", data: { issue, body: bodyFrom(path) } }));
   },
-  /* An issue's plan is a field, not a comment. A comment is a message in a thread — it scrolls,
-     it is not what `--fields plan` returns, and a reader looking for the plan finds whichever
-     comment they happen to reach first. The field has one value, and replacing it is how a
-     revised plan supersedes the old one instead of accumulating beside it.
-
-     The write is read back before it reports success, because a schema-validated field that is
-     accepted and dropped answers 200 exactly like one that was stored. */
+  /* A plan is a field, not a comment: one value, replaced rather than accumulated. Read back before
+         reporting success — a field accepted and dropped answers 200 like one that was stored. */
   plan: async ([reference, path]) => {
     if (!reference || !path) fail(usageOf("plan"));
     const documentId = await documentIdOf(reference);
@@ -209,8 +194,7 @@ export const commands = {
     }
     show({ documentId, plan: stored });
   },
-  /* Bytes go straight to the presigned URL, never base64 through a model's context, and that PUT
-     carries no auth header of its own — the URL is the credential and expires in ~300s. */
+  /* Bytes go to the presigned URL, never base64 through context. The URL is the credential. */
   attach: async ([target, targetRef, ...paths]) => {
     if (!target || !targetRef || !paths.length) fail(usageOf("attach"));
     if (!["issue", "comment"].includes(target)) {
@@ -235,8 +219,7 @@ export const commands = {
     const [fromIssueId, toIssueId] = await Promise.all([documentIdOf(from), documentIdOf(to)]);
     show(await write("forge_project_pm", { action: "set_dependency", fromIssueId, toIssueId, kind }));
   },
-  /* Ask for the guide, and only reach for the list when the slug was wrong — validating first cost
-     a 6 KB round trip on the happy path of the verb an agent hits most for orientation. */
+  /* Ask for the guide; reach for the list only when the slug was wrong. */
   guide: async ([slug]) => {
     if (!slug) {
       const listed = await scoped("forge_guide", { action: "list" });
@@ -248,8 +231,7 @@ export const commands = {
       const listed = await scoped("forge_guide", { action: "list" });
       fail(didYouMean("guide", slug, rowsOf(listed, "guides").map((one) => one.slug)));
     }
-    /* Markdown, not markdown escaped inside a JSON envelope: 49 `\n` and 10 `\"` per guide, and
-       every one of them tokenizes worse than the character it stands for. */
+    /* Markdown, not Markdown escaped inside JSON: every `\n` tokenizes worse than the character. */
     show(answer?.guide?.body ?? answer);
   },
   project: async () => console.log(await projectId()),

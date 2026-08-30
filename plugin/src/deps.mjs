@@ -1,19 +1,11 @@
-/* `forge deps` — the dependency graph as the issue bodies state it.
-
-   This is NOT the recorded edges. Every PM tool answers `FORBIDDEN: PM_REQUIRES_DEVICE` to a PAT
-   — all six `forge_project_pm` actions and the deprecated `forge_pm.set_dependency` alike — and
-   `forge_issues get` returns no relation among its keys, so a token cannot read the graph at all.
-   What it can read is the sentence a migrated issue carries about its own edges. Two issues that
-   disagree are the finding this verb exists for, so an edge is printed with the side that claimed
-   it and never reconciled into one arrow. */
-import { depsConvention, fail } from "./settings.mjs";
+/* `forge deps` — the graph as the issue BODIES state it, not the recorded edges, which no PAT can
+   read. Two issues that disagree are the finding this verb exists for: docs/FORGE-CLI.md. */
+import { depsConvention, fail } from "./resolve/settings.mjs";
 import { scoped } from "./rpc.mjs";
 import { MAX_LIMIT, listIssues, rowsOf, truncated } from "./issues.mjs";
 
-/* The marker sentence, and only it. ISS-11's evidence table says "those four edges are recorded
-   here" mid-row about a different set, so the trailing period is what separates the claim from
-   prose about the claim. The phrases come from the tracker's own `.forge.json`; only their shape
-   is fixed here. */
+/* The marker sentence, and only it; the trailing period separates a claim from prose about one.
+   The phrases come from the tracker's own `.forge.json`. */
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 const PROSE = depsConvention().value;
 const MARKER = new RegExp(`[^.|]*${escape(PROSE.marker)}\\.`, "giu");
@@ -29,8 +21,7 @@ const words = (text) =>
     .split(" ")
     .filter((word) => word && !STOPWORDS.has(word));
 
-/* A title's own code counts: `identity` resolves IDENT-01 where whole-word matching alone ties it
-   against "run the Leader reseed per tenant", which shares `per` and `tenant` and nothing else. */
+/* A title's own code counts: whole-word matching alone ties unrelated titles. */
 const overlaps = (left, right) =>
   left === right ||
   (left.length >= 4 && right.startsWith(left)) ||
@@ -59,8 +50,7 @@ const edgesIn = (description) => {
   return found;
 };
 
-/* Unique best, or nothing. A phrase that ties two titles is reported as it was written rather than
-   resolved to whichever one sorted first. */
+/* Unique best, or nothing: a phrase tying two titles is reported as written. */
 const resolve = (phrase, issues) => {
   const ranked = issues
     .map((issue) => ({ issue, points: score(phrase, issue.title ?? "") }))
@@ -76,9 +66,7 @@ const arrow = (from, to, claimedBy, both) =>
 
 const number = (reference) => Number(reference.replace(/\D+/gu, ""));
 
-/* One line per blocker instead of one per edge, and ASCII throughout. Measured on this tracker's
-   nine edges: 595 bytes and 19 non-ASCII arrows became 180 bytes and none. A box-drawing tree is
-   fewer characters still and more tokens, because those glyphs are multi-byte. */
+/* One line per blocker, ASCII throughout: 595 bytes and 19 arrows became 180 and none. */
 const compact = (claims) => {
   const byBlocker = new Map();
   for (const claim of claims) {
@@ -93,12 +81,11 @@ const compact = (claims) => {
     });
 };
 
-/* A literal NUL in the source made git read this whole file as binary: no diff, no blame, no
-   `git grep`. The escape is the same byte at runtime and plain ASCII on disk. */
+/* A literal NUL made git read this file as binary. The escape is the same byte at runtime. */
 const key = (from, to) => `${from}\u0000${to}`;
 
-/* Every sentence is one issue's claim about a pair. Collecting them by pair, rather than by the
-   issue that spoke, is what makes a one-sided claim visible. */
+/* Collected by pair rather than by the issue that spoke — that is what makes a one-sided claim
+   visible. */
 const graphOf = (issues, universe) => {
   const claims = new Map();
   const unresolved = [];
@@ -146,17 +133,13 @@ const printGraph = ({ claims, unresolved, carriers }, focus, total, long) => {
   );
 };
 
-/* One search, not three. Measured 2026-08-27: "Blocked by" and "blocks the" each returned a
-   strict subset of what the marker sentence returned, and `edgesIn` only recognises that sentence
-   anyway — an issue matched by the other two alone contributed nothing but its own `get`. */
+/* One search, not three: the other two phrases returned strict subsets. */
 const MARKER_SEARCH = PROSE.marker;
 
 export const deps = async (rest) => {
   const long = rest.includes("--long");
   const [focus] = rest.filter((argument) => argument !== "--long");
-  /* Resolution ranks a phrase against *every* issue, not only the ones that carry prose: an issue
-     may be named as a dependent without saying anything about edges itself. Independent of the
-     marker search, so both go out at once. */
+  /* Ranked against every issue, not only those carrying prose, and issued in parallel. */
   const [all, matched] = await Promise.all([
     listIssues({}, MAX_LIMIT),
     listIssues({ search: MARKER_SEARCH }, MAX_LIMIT),

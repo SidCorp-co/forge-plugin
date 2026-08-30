@@ -1,21 +1,6 @@
 #!/usr/bin/env node
-// Stop between deciding to record something and recording it.
-//
-// Two writes are guarded, and they are not the same write. A memory row is *project knowledge*;
-// an edit to a skill's own text is a *skill learning*, which develops the method rather than the
-// repository. Confusing them loses the lesson twice — the project inherits a rule it never agreed
-// to, and the skill repeats the mistake in the next repository.
-//
-// The failure this guards is not a bad memory row — it is the reflex one. An agent that finishes
-// a task reaches for "save what I learned" as a closing ritual, and the corpus fills with entries
-// nobody reads, which is how the two or three that mattered get buried.
-//
-// So the gate is deliberately cheap to pass and impossible to pass absent-mindedly: the write is
-// refused once, the four conditions and the category list come back as the reason, a memory row
-// passes on a second attempt carrying `metadata.checked: "<category>"` or a valid `type:` in its
-// frontmatter, and a file edit passes on the next attempt at the same file in the same session.
-// Naming the category is the point — it is the one part of the test that cannot be answered by
-// nodding.
+// Stop once between deciding to record something and recording it. A memory row is project
+// knowledge; a skill edit develops the method. docs/HOOKS.md explains why the two must not merge.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';

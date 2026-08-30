@@ -1,26 +1,15 @@
-/* The tracker is written in Vietnamese, and `vi-natural` writes all of it. A source given to this
-   CLI is English: the prose fields are replaced by what vi-natural returns, so authorship is a
-   property of the pipeline rather than a claim about it.
-
-   `vi-natural review` was tried as the gate first and cannot be one — it flagged its own previous
-   suggestion, so it has no fixed point and blocking on its findings never terminates. Translating
-   is one deterministic pass, and a source that stays English is the source to fix.
-
-   The binary is the one shipped beside this file, never whatever PATH resolves: a plugin that
-   spawns a copy it did not ship has no idea which contract it is getting. */
+/* The tracker is Vietnamese and `vi-natural` writes all of it; a source given here is English.
+   `review` cannot be the gate — it has no fixed point. docs/FORGE-CLI.md. */
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-import { fail, translateTo } from "./settings.mjs";
+import { fail, translateTo } from "./resolve/settings.mjs";
 
 export const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "bin", "vi-natural");
-/* Every prose field an agent can write, not only the three the wrapped verbs started with:
-   `plan` and `acceptanceCriteria` are written by the plan step and read by whoever works the
-   issue next, so leaving them out posts English into a Vietnamese tracker while the banner
-   says the prose was rewritten. Found by reading a write back rather than trusting it. */
+/* Every prose field an agent can write, not only the three the wrapped verbs started with. */
 const PROSE_FIELDS = ["title", "description", "body", "plan", "acceptanceCriteria"];
 
 const viNatural = (argv, stdin) => {
@@ -37,8 +26,7 @@ const viNatural = (argv, stdin) => {
   return run;
 };
 
-/* `doc` keeps fenced blocks, inline spans, link targets and blank-line structure, so a body may
-   carry shas, file paths and identifiers without either being translated or being stripped. */
+/* `doc` keeps fences, spans and link targets, so a body may carry shas and paths safely. */
 const translatedBody = (text) => {
   const directory = mkdtempSync(join(tmpdir(), "forge-vi-"));
   try {

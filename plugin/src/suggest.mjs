@@ -1,9 +1,5 @@
-/* "Did you mean" for every name this CLI accepts.
-
-   An agent's mistakes are not a human's. It does not fat-finger adjacent keys; it recalls a name
-   from the wrong shape — a dot where the server wants an underscore, a singular for a plural, a
-   stem it saw in a schema three calls ago. So the match is on the separator-stripped form, and
-   containment counts as much as edit distance. */
+/* "Did you mean" for every name this CLI accepts. An agent recalls a name from the wrong SHAPE,
+   not the wrong keys, so the match is on the separator-stripped form. */
 
 const bare = (name) => name.replace(/[._\- ]/gu, "").toLowerCase();
 
@@ -20,8 +16,7 @@ const distance = (left, right) => {
   return previous[right.length];
 };
 
-/* Zero is an exact match on the stripped form, so a name that differs only by separator sorts
-   ahead of everything — that is the commonest miss against this server's dotted tool names. */
+/* Zero means the stripped forms match, so a separator-only difference sorts first. */
 const rank = (given, candidate) => {
   const [left, right] = [bare(given), bare(candidate)];
   if (left === right) return 0;

@@ -1,18 +1,14 @@
-/* `forge doctor` — what resolves, where each part came from, and whether the endpoint answers.
-
-   Every other verb fails at the first missing piece and tells you about that one. Doctor is the
-   opposite: it reports all of them at once, because "no credentials" and "credentials from the
-   wrong file" look identical from inside a single failing command. It also installs the account
-   half, since the fix for the commonest finding is to write a token somewhere private. */
+/* `forge doctor` — every finding at once, because "not configured" and "configured in the wrong
+   file" look identical from inside one failing command. docs/FORGE-CLI.md. */
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "./config.mjs";
+import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "./resolve/config.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { BUNDLED } from "./vi.mjs";
-import { accountCredentials, fail, projectScope, translateScope } from "./settings.mjs";
-import { flags } from "./flags.mjs";
-import { VERB_NAMES } from "./visibility.mjs";
+import { accountCredentials, fail, projectScope, translateScope } from "./resolve/settings.mjs";
+import { flags } from "./resolve/flags.mjs";
+import { VERB_NAMES } from "./resolve/visibility.mjs";
 
 const VI_CONFIG = join(configDir("vi-natural"), "config.json");
 
@@ -21,13 +17,8 @@ const BAD = " miss ";
 
 const line = (mark, label, detail) => console.log(`[${mark}] ${label.padEnd(22)} ${detail}`);
 
-/* Doctor's output lands in an agent's context, and an agent never types a token, a project id or
-   a path — the CLI resolves all three. So the default reports that each resolved and from where,
-   which is what a misconfiguration needs, and withholds the values themselves. A fragment of a
-   credential is still a credential once it is in a transcript, and a project id an agent can read
-   is a project id it can paste into a call the CLI exists to stop it writing.
-
-   `--full` is for the human holding two tokens who needs to know which one this is. */
+/* Reports that each part resolved and from where, never the values: a credential fragment in a
+   transcript is still a credential. `--full` is for a human holding two tokens. */
 const masked = (token, full) => {
   const bare = token.replace(/^Bearer /u, "");
   if (!full) return `set (${bare.length} chars)`;
@@ -55,10 +46,7 @@ const checkVi = () => {
   return Boolean(key);
 };
 
-/* A tool appearing in `tools/list` says nothing about whether this credential may call it — every
-   one of the 67 is declared to a PAT and `forge_project_pm` then refuses all six of its actions.
-   An external agent reads the list and reasonably assumes otherwise, so the capabilities it needs
-   to work correctly are probed rather than counted. Read-only, one call each. */
+/* Declared is not callable — all 67 are declared to a PAT and six then refuse. Probed, read-only. */
 const CAPABILITIES = [
   ["guides", "forge_guide", { action: "list" }, "the lifecycle rules an agent works from"],
   ["dependency graph", "forge_project_pm", { action: "graph" }, "blocks/relates edges"],
@@ -69,9 +57,7 @@ const CAPABILITIES = [
 const groups = (declared) =>
   new Set(declared.map((tool) => /forge_([a-z]+)/u.exec(tool.name)?.[1] ?? tool.name)).size;
 
-/* What the probe learned is written down, keyed by project, so `tools` and `schema` can mark a
-   gated tool without paying for a probe of their own. The date goes with it: a recorded refusal
-   is a measurement that was true once, not a permanent property of the server. */
+/* Recorded per project with its date: a refusal was true once, not forever. */
 const remember = (slug, findings) => {
   const capabilities = { ...(userConfig().capabilities ?? {}) };
   capabilities[slug] = { checkedAt: new Date().toISOString(), ...findings };
@@ -96,8 +82,7 @@ const probe = async (scoped, slug) => {
   return gated;
 };
 
-/* Imported lazily: reaching the endpoint is the one check that needs credentials to already have
-   passed, and the transport exits the process when they have not. */
+/* Lazy: the transport exits the process when credentials have not resolved. */
 const checkEndpoint = async (full) => {
   const { refreshTools, projectId, scoped } = await import("./rpc.mjs");
   const declared = await refreshTools();
@@ -171,8 +156,7 @@ export const doctor = async (rest) => {
   }
   await checkEndpoint(full);
   if (full) console.log(`\nConfig file: ${CONFIG_PATH}`);
-  /* A missing vi-natural key is not a reachability problem, but `forge new` and `forge comment`
-     translate before they post, so a green doctor would send `doctor && new` into a certain
-     failure. Reads and writes differ here, and the exit code follows the stricter one. */
+  /* Reads and writes differ here — `new` translates before it posts — and the exit code follows the
+         stricter one. */
   if (!canWrite) process.exit(1);
 };

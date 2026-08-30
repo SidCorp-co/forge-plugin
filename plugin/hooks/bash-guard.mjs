@@ -1,14 +1,6 @@
 #!/usr/bin/env node
 // Refuse the shell commands whose damage cannot be undone by the agent that caused it.
-//
-// Every rule here used to be a sentence in a skill. A sentence is read by an agent that decided
-// to read it, and the two failures below are the ones where a single missed reading costs work
-// nobody can reconstruct: a process the user has been running for days, or uncommitted changes
-// with no history to restore from.
-//
-// Deliberately narrow. A guard that refuses too much gets disabled, and a disabled guard
-// protects nothing — so each pattern names one command shape with a stated safer form, and
-// anything it cannot recognise is allowed through.
+// Deliberately narrow, because a guard that refuses too much gets disabled — docs/HOOKS.md.
 
 import { spawnSync } from 'node:child_process';
 

@@ -1,8 +1,5 @@
-/* The account's credentials and this CLI's own cache, kept outside every repository.
-
-   A token in a repo file is a token one `git add -A` away from a remote, and `.mcp.json` is
-   git-ignored precisely because it holds one. This is the same file `vi-natural` keeps its key in,
-   one directory over, at mode 0600. */
+/* The account's credentials and this CLI's cache, kept outside every repository at 0600 from the
+   moment the file exists. docs/FORGE-CLI.md. */
 import {
   closeSync,
   mkdirSync,
@@ -20,8 +17,7 @@ export const configDir = (name) =>
 
 export const CONFIG_PATH = join(configDir("forge"), "config.json");
 
-/* Runs once and remembers that it ran, not what it returned — four of the seven hand-rolled memos
-   this replaced tested the value for truthiness, so each would silently re-run on a valid `null`. */
+/* Remembers THAT it ran, not what it returned: a truthiness memo re-runs on a valid null. */
 export const once = (produce) => {
   let value;
   let ran = false;
@@ -44,9 +40,7 @@ export const readJson = (path) => {
 
 export const userConfig = once(() => readJson(CONFIG_PATH) ?? {});
 
-/* 0600 from the moment it exists: a token written world-readable and chmodded afterwards was
-   world-readable for the length of the write, and `w` sets the mode on create only — a temp file a
-   crashed run left behind would take the token at whatever permissions it already had. */
+/* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. */
 export const saveConfig = (values) => {
   mkdirSync(configDir("forge"), { recursive: true });
   const merged = { ...userConfig(), ...values };

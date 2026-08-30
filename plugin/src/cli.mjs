@@ -1,15 +1,9 @@
 #!/usr/bin/env node
-/* The Forge issue tracker, reached over its own HTTP endpoint: `forge -h`.
-
-   The tracker is the backlog, so every agent needs a way in that does not depend on an MCP client
-   being connected in the session that asks. The endpoint speaks JSON-RPC over one POST.
-
-   A verb whose backing tool this credential may not call is not listed and does not run. A
-   capability an agent cannot use is not information — it is an invitation to a failure two calls
-   from here. `forge doctor` measures which those are; `--all` is how a human looks past it. */
+/* The Forge issue tracker over its own HTTP endpoint: `forge -h`. A verb whose backing tool this
+   credential may not call is not listed and does not run — docs/FORGE-CLI.md. */
 import { commands } from "./commands.mjs";
 import { suggest } from "./suggest.mjs";
-import { blockedBy, helpLine, offeredVerbs } from "./visibility.mjs";
+import { blockedBy, helpLine, offeredVerbs } from "./resolve/visibility.mjs";
 
 const offered = offeredVerbs();
 
@@ -22,11 +16,7 @@ const VERB_LIST = [
   ...offered.map(helpLine),
 ].join("\n");
 
-/* The rules from the tracker's own `agent-setup`, `pipeline-and-issue-lifecycle` and
-   `writing-an-issue` guides that change what an agent does — carried here because a guide costs
-   3-6 KB to fetch and these are the lines it would have been fetched for. Printed by `-h` only:
-   a mistyped verb wants the suggestion and the verb list, and paying the lecture for a typo cost
-   more bytes than `forge -h` itself. */
+/* The tracker's own write-time rules, carried rather than fetched. `-h` only. */
 const PREAMBLE = [
   "",
   "Before you write:",
@@ -54,8 +44,8 @@ if (needs) {
   process.exit(1);
 }
 
-/* `Object.hasOwn`, not truthiness: `commands.toString` is inherited and callable, so a mistyped
-   verb that happens to name a prototype member ran it and exited 0 with no output. */
+/* `Object.hasOwn`: `commands.toString` is inherited and callable, so a mistyped verb naming a
+   prototype member ran it and exited 0. */
 if (asked || !command || !Object.hasOwn(commands, command)) {
   const close = command && !asked ? suggest(command, offered.map(([verb]) => verb)) : [];
   if (close.length) console.error(`No verb named ${command}. Did you mean: ${close.join(", ")}?\n`);
@@ -63,8 +53,7 @@ if (asked || !command || !Object.hasOwn(commands, command)) {
   process.exit(asked ? 0 : 1);
 }
 
-/* A DNS failure or a dropped socket rejects out of fetch, and an unhandled rejection prints a
-   stack trace that reads as a bug in this CLI rather than a network that is down. */
+/* An unhandled fetch rejection reads as a bug in this CLI rather than a network that is down. */
 try {
   await commands[command](rest);
 } catch (error) {
