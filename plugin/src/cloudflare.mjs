@@ -6,7 +6,7 @@
    account: which account holds that zone is asked rather than typed. */
 import { CONFIG_PATH, saveConfig, userConfig } from "./resolve/config.mjs";
 import { fail } from "./resolve/settings.mjs";
-import { flags } from "./resolve/flags.mjs";
+import { flags, pullRepeated } from "./resolve/flags.mjs";
 import { didYouMean } from "./suggest.mjs";
 
 const CF_BASE = "https://api.cloudflare.com/client/v4";
@@ -148,23 +148,6 @@ const intFlag = (raw, name) => {
   return value;
 };
 
-/* `flags` keeps only the last value of a repeated flag, and purge takes a list — so --file is
-   pulled out before the rest is parsed, rather than dropped in silence. */
-export const pullRepeated = (argv, flag) => {
-  const values = [];
-  const rest = [];
-  for (let index = 0; index < argv.length; index += 1) {
-    if (argv[index] !== flag) {
-      rest.push(argv[index]);
-      continue;
-    }
-    const value = argv[index + 1];
-    if (value === undefined || value.startsWith("--")) fail(`cloudflare: ${flag} was given no value.`);
-    values.push(value);
-    index += 1;
-  }
-  return { values, rest };
-};
 
 const zoneLine = (zone) =>
   `${zone.id.padEnd(ID_WIDTH)} ${(zone.status ?? "").padEnd(8)} ${zone.name}${zone.paused ? "  paused" : ""}`;
@@ -405,7 +388,7 @@ const zone = async ([wanted]) => {
 
 const purge = async ([wanted, ...rest]) => {
   if (!wanted) fail("Usage: forge cloudflare purge <zone-id> [--file <url>]...");
-  const { values: files, rest: others } = pullRepeated(rest, "--file");
+  const { values: files, rest: others } = pullRepeated(rest, "--file", "cloudflare purge");
   flags(others, "cloudflare purge");
   const account = await accountForZone(configured(), wanted);
   const body = files.length ? { files } : { purge_everything: true };

@@ -5,10 +5,10 @@ import {
   accountForZone,
   cloudflareAccounts,
   everyZone,
-  pullRepeated,
   recordLine,
   searchDns,
 } from "../src/cloudflare.mjs";
+import { pullRepeated } from "../src/resolve/flags.mjs";
 
 const reply = (body, { ok = true, status = 200 } = {}) => ({
   ok,
@@ -125,7 +125,7 @@ test("a query naming a host reaches the zone that host sits in", async (t) => {
 });
 
 test("--file is collected, not overwritten by the last one given", () => {
-  const { values, rest } = pullRepeated(["--file", "a", "--file", "b", "--other", "x"], "--file");
+  const { values, rest } = pullRepeated(["--file", "a", "--file", "b", "--other", "x"], "--file", "cloudflare purge");
   assert.deepEqual(values, ["a", "b"]);
   assert.deepEqual(rest, ["--other", "x"]);
 });
