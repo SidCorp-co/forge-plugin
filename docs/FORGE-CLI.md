@@ -202,9 +202,11 @@ is what makes it answer; it is warned one round early, because a model told mid-
 are gone has already spent the round it would have read in. `codex.maxTokens` is 32,000: the gateway
 returns `thinking` blocks whose tokens come out of the same ceiling, so the old 8,000 was mostly
 spent before the review began. Thinking is counted and logged, never printed — the reasoning is not
-the review. `codex.effort` is sent as `reasoning_effort` and defaults to high; probed, the gateway
-accepts it and the same puzzle answers identically at high and at minimal, so the slot appears to
-decide and this is a request rather than a lever.
+the review. `codex.effort` is sent as `reasoning_effort` and defaults to **medium**, with `--effort
+minimal|low|medium|high` overriding it for one consult. Probed, the gateway accepts the field and the
+same puzzle answers identically at high and at minimal, so the slot appears to decide and this is a
+request rather than a lever — which is the argument for medium: the minutes a consult takes go on the
+reviewer's own reading, not on the level asked for.
 
 **A named file may live in another checkout, a requested one may not.** The config is the account's,
 so `forge codex consult /elsewhere/src/a.mjs` reviews a sibling project: `locate()` takes a path

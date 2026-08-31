@@ -16,7 +16,10 @@ export const MODEL = userConfig().codex?.model || "fable";
 const MAX_TOKENS = Number(userConfig().codex?.maxTokens || 32_000);
 /* Accepted by the gateway and not observable from here: the same puzzle answers the same at high and
    at minimal, in the same seconds. Sent because the slot is the account's to configure. */
-const EFFORT = userConfig().codex?.effort || "high";
+/* Medium by default: the reviewer's own reading is where a consult's minutes go, and high bought
+   no measurable difference when probed. `--effort` raises it for the review that needs it. */
+export const EFFORTS = ["minimal", "low", "medium", "high"];
+export const defaultEffort = () => userConfig().codex?.effort || "medium";
 
 /* A file is sent whole or reported as clipped; a silently halved file is a review of half a file. */
 const FILE_CHARS = 80_000;
@@ -328,7 +331,7 @@ const parsedInput = (json) => {
   }
 };
 
-export const askApi = async (values, model, messages, { onDelta = () => {}, signal, tools } = {}) => {
+export const askApi = async (values, model, messages, { onDelta = () => {}, signal, tools, effort } = {}) => {
   const answer = await fetch(`${values.ANTHROPIC_BASE_URL}/v1/messages`, {
     method: "POST",
     headers: {
@@ -343,7 +346,7 @@ export const askApi = async (values, model, messages, { onDelta = () => {}, sign
       system: ROLE,
       stream: true,
       messages,
-      reasoning_effort: EFFORT,
+      reasoning_effort: effort ?? defaultEffort(),
       ...(tools?.length ? { tools } : {}),
     }),
     signal,

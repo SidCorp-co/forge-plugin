@@ -5,7 +5,7 @@
 
 import { spawnSync } from "node:child_process";
 
-import { deny, readEvent, why } from "./_hook.mjs";
+import { bodiless, deny, readEvent, why } from "./_hook.mjs";
 
 const RULES = [
   {
@@ -82,9 +82,22 @@ function treeIsDirty(cwd) {
   return out.stdout.trim() !== "";
 }
 
+/* What the shell will actually run: a data heredoc is dropped, and a quoted span is an argument
+   rather than a command — kept only where a string reaches a shell again, after `eval` or `-c`, and
+   never stripped from a program that can spawn one. why/bash-guard.md. */
+const QUOTED = /'[^']*'|"[^"]*"/gu;
+const TO_SHELL = /(?:\beval\b|(?:^|\s)-c)\s*$/u;
+const SPAWNS = /\b(?:subprocess|os\.system|os\.popen|child_process|execSync|spawnSync|shell\s*=\s*True)/u;
+
+const instructions = (given) => {
+  const text = bodiless(given);
+  if (SPAWNS.test(text)) return text;
+  return text.replace(QUOTED, (span, at) => (TO_SHELL.test(text.slice(0, at)) ? span : " "));
+};
+
 const ev = readEvent();
 if (ev.tool_name !== "Bash") process.exit(0);
-const command = (ev.tool_input ?? {}).command ?? "";
+const command = instructions((ev.tool_input ?? {}).command ?? "");
 if (!command) process.exit(0);
 
 for (const { pattern, cause, instead, needsDirtyTree } of RULES) {

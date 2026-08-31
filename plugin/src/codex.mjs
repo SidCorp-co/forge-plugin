@@ -14,9 +14,11 @@ import { flags, partition, pullRepeated } from "./resolve/flags.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { TOOLS, runTool, scopeFor } from "./codex-tools.mjs";
 import {
+  EFFORTS,
   MODEL,
   askApi,
   bundle,
+  defaultEffort,
   inside,
   locate,
   modelBehind,
@@ -65,11 +67,13 @@ const USAGE = [
   "  budgetMs                  how long one consult may take (default 900000)",
   "  maxTokens                 reply ceiling, thinking included (default 32000)",
   "  rounds                    model calls one consult may make, the last served no tools (10)",
-  "  effort                    reasoning effort asked of the slot (default high)",
+  "  effort                    reasoning effort asked of the slot (default medium)",
   "",
   "  --diff         send each file's diff and refuse findings that are only about code this turn",
   "                 did not touch. Raises precision more than anything else.",
   "  --base ref     what to diff against; implies --diff. HEAD unless you say otherwise.",
+  "  --effort e     minimal | low | medium | high, for this consult only. Medium by default,",
+  "                 because the reading is what costs, not the thinking.",
   "  --verify risk  a named risk to rule on rather than an open review; repeatable. A reviewer",
   "                 verifying is reliable where a reviewer discovering invents.",
   "  --only s,s     report only these severities: blocker, major, minor.",
@@ -182,7 +186,7 @@ const callBudget = () => {
   return value;
 };
 
-export const rounds = async (values, model, opening, scope, onDelta, ask = askApi) => {
+export const rounds = async (values, model, opening, scope, onDelta, ask = askApi, effort) => {
   const signal = AbortSignal.timeout(BUDGET_MS);
   const calls = callBudget();
   const messages = [{ role: "user", content: opening }];
@@ -191,7 +195,7 @@ export const rounds = async (values, model, opening, scope, onDelta, ask = askAp
   for (let call = 1; ; call += 1) {
     const last = call === calls;
     console.error(`codex: call ${call} of ${calls}${used.length ? ` after ${used.length} tool call(s)` : ""}...`);
-    const held = await ask(values, model, messages, { onDelta, signal, tools: last ? [] : TOOLS });
+    const held = await ask(values, model, messages, { onDelta, signal, effort, tools: last ? [] : TOOLS });
     if (!held.calls.length) return { ...held, tools: used, refused, calls: call };
     /* The cap is the loop's to keep: a gateway that answers the tool-less call with tool calls anyway
        would otherwise be served round `calls + 1`, with tools, until the budget expired. And a capped
@@ -258,7 +262,16 @@ export const consultArgs = (given) => {
     /* Asking what to diff against is asking for the diff, so `--base` implies `--diff` rather than
        being silently dropped — one fewer rule to learn and one fewer way to be ignored. */
     base: held.base ?? (held.diff ? "HEAD" : null),
+    effort: chosenEffort(held.effort),
   };
+};
+
+/* Named rather than clamped: an unknown value would otherwise be sent to the gateway, which accepts
+   anything and reports nothing, so the consult would run at a level nobody chose. */
+const chosenEffort = (raw) => {
+  if (raw === undefined) return defaultEffort();
+  if (!EFFORTS.includes(raw)) fail(`codex: --effort takes ${EFFORTS.join(" | ")}, not \`${raw}\`.`);
+  return raw;
 };
 
 const consult = async (given) => {
@@ -266,7 +279,7 @@ const consult = async (given) => {
   if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
-  const { named, risks, only, allowEcho, base } = consultArgs(given);
+  const { named, risks, only, allowEcho, base, effort } = consultArgs(given);
   const rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
   if (!rels.length) fail("codex: nothing to consult on. Name a file, or write one first.");
 
@@ -311,7 +324,9 @@ const consult = async (given) => {
   };
   try {
     const opening = promptFor(intent, parts, history, { risks, only });
-    const held = await rounds(values, model, opening, scopeFor(root, rels.filter(isAbsolute)), streamed);
+    const held = await rounds(
+      values, model, opening, scopeFor(root, rels.filter(isAbsolute)), streamed, askApi, effort,
+    );
     process.stdout.write("\n");
     logConsult({
       ...record,
