@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
 import { fail, settings } from "./resolve/settings.mjs";
-import { projectId, scoped, toolNamed, tools, write } from "./rpc.mjs";
+import { projectId, REFERENCE_KEYS, scoped, toolNamed, tools, write } from "./rpc.mjs";
 import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -82,17 +82,6 @@ const printIssues = (payload, limit) => {
     console.log(`Full page of ${limit}; there are more. Raise --limit (max ${MAX_LIMIT}).`);
   }
 };
-
-/* Wherever the schema wants an issue uuid, so a raw `call` carries `ISS-45` too. */
-const REFERENCE_KEYS = new Set([
-  "documentId",
-  "dependsOnId",
-  "blocksId",
-  "issue",
-  "issueId",
-  "fromIssueId",
-  "toIssueId",
-]);
 
 const resolveReferences = async (value, key) => {
   if (Array.isArray(value)) return Promise.all(value.map((item) => resolveReferences(item, key)));

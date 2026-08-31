@@ -5,6 +5,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { configDir, once, readJson } from "./resolve/config.mjs";
+import { suggest } from "./suggest.mjs";
 import { fail, projectScope, projectSlug, settings, translateScope } from "./resolve/settings.mjs";
 import { translated } from "./vi.mjs";
 
@@ -50,6 +51,66 @@ const readable = (text) => {
   return parsed
     .map((issue) => `${(issue.path ?? []).join(".") || "(root)"}: ${issue.message ?? issue.code}`)
     .join("\n");
+};
+
+/* A refusal naming a key the tool does not take is answerable from the tool's own schema: the key
+   is usually real and one level out. Reported, never moved — the same name can be valid elsewhere
+   and mean something else there, and no tool here has a delete action to undo the write. */
+/* Wherever the schema wants an issue uuid, so a raw `call` carries `ISS-45` too — and so a
+   refusal can name the argument that identifies a record when a different one was sent. */
+export const REFERENCE_KEYS = new Set([
+  "documentId",
+  "dependsOnId",
+  "blocksId",
+  "issue",
+  "issueId",
+  "fromIssueId",
+  "toIssueId",
+]);
+const UNRECOGNIZED = /Unrecognized keys?: (.+)/gu;
+const QUOTED = /"([^"]+)"/g;
+const MAX_DEPTH = 6;
+
+const inside = (path) => (path.length ? [...path.slice(0, -1), `${path.at(-1)}[]`] : path);
+
+export const keyPaths = (schema, wanted, path = [], depth = 0) => {
+  if (!schema || typeof schema !== "object" || depth > MAX_DEPTH) return [];
+  const found = [];
+  for (const [name, child] of Object.entries(schema.properties ?? {})) {
+    if (name === wanted) found.push([...path, name].join("."));
+    found.push(...keyPaths(child, wanted, [...path, name], depth + 1));
+  }
+  if (schema.items) found.push(...keyPaths(schema.items, wanted, inside(path), depth + 1));
+  for (const branch of [schema.anyOf, schema.oneOf, schema.allOf].flat()) {
+    found.push(...keyPaths(branch, wanted, path, depth + 1));
+  }
+  return [...new Set(found)];
+};
+
+const misplaced = async (name, rendered) => {
+  const schema = (await toolNamed(name))?.inputSchema;
+  if (!schema) return "";
+  const top = Object.keys(schema.properties ?? {});
+  const lines = [];
+  for (const [, listed] of rendered.matchAll(UNRECOGNIZED)) {
+    for (const [, key] of listed.matchAll(QUOTED)) {
+      const elsewhere = keyPaths(schema, key).filter((where) => where !== key);
+      lines.push(
+        elsewhere.length
+          ? `\`${key}\` is not an argument of ${name}; this schema takes it at ${elsewhere.join(", ")}.`
+          : `\`${key}\` appears nowhere in this schema.`,
+      );
+      const named = REFERENCE_KEYS.has(key) ? top.filter((one) => REFERENCE_KEYS.has(one)) : [];
+      const close = named.length ? named : suggest(key, top).filter((one) => one !== key);
+      if (close.length) {
+        const why = named.length ? "arguments that identify a record here" : "arguments close to it";
+        lines.push(`  ${why}: ${close.join(", ")}`);
+      }
+    }
+  }
+  if (!lines.length) return "";
+  return `\n\n${lines.join("\n")}\nNo key is relocated for you — the one that identifies a record and the one ` +
+    `carried inside \`data\` are different fields. \`forge schema ${name}\` prints them.`;
 };
 
 const post = async (method, params) => {
@@ -98,7 +159,10 @@ export const callTool = async (name, args, soft = false) => {
     .map((part) => part.text)
     .join("\n");
   if (result?.isError && soft) return { refused: readable(text) || "refused" };
-  if (result?.isError) fail(`${name} refused:\n${readable(text) || JSON.stringify(result)}`);
+  if (result?.isError) {
+    const rendered = readable(text) || JSON.stringify(result);
+    fail(`${name} refused:\n${rendered}${await misplaced(name, rendered)}`);
+  }
   if (result?.structuredContent) return result.structuredContent;
   try {
     return JSON.parse(text);

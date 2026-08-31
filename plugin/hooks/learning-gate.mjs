@@ -18,6 +18,26 @@ const GUARDED = /\/memory\/|\/skills\//;
 // Naming one of those files is not touching it: reading a skill is the common case and must stay
 // free. Only a command that carries a write shape is asked about.
 const WRITES = /\bsed\b[^|;]*-i|>>?\s|\btee\b|\bcp\b|\bmv\b|\btruncate\b|open\([^)]*['"]w/;
+// A path assembled from a variable named no guarded directory in any single token, so
+// `M=…/memory` followed by `cat > $M/x.md` walked straight past this gate. An assignment and a
+// `cd` in the same command are what a hook can resolve; `$(…)` and `eval` are not.
+const ASSIGN = /(?:^|[;&|\n]|\bexport\s+)\s*([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|]*)/gu;
+const CHDIR = /(?:^|[;&|\n])\s*(?:cd|pushd)\s+("[^"]*"|'[^']*'|[^\s;&|]+)/gu;
+const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
+const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
+
+const expanded = (command) => {
+  const vars = new Map();
+  for (const [, name, value] of command.matchAll(ASSIGN)) vars.set(name, unquote(value));
+  return command.replace(/\$\{?([A-Za-z_]\w*)\}?/gu, (whole, name) => vars.get(name) ?? whole);
+};
+
+/** The last directory the command changes to, so a relative write resolves against it. */
+const chdir = (text) => {
+  let target = null;
+  for (const [, path] of text.matchAll(CHDIR)) target = unquote(path);
+  return target;
+};
 
 const SKILL_CATEGORIES = {
   trap: "the environment or a tool behaved unexpectedly -> prefer a check in the plugin",
@@ -93,12 +113,17 @@ if (tool.endsWith("forge_memory_write") || tool.endsWith("forge_memory.write")) 
 // happen BEFORE the write, not after it. So the shell route is closed for these two kinds of file
 // rather than approximated.
 if (tool === "Bash") {
-  const command = ti.command ?? "";
-  if (!WRITES.test(command)) process.exit(0);
-  for (const token of command.match(/[A-Za-z0-9_./@-]+\.md/g) ?? []) {
-    if (GUARDED.test(token) && basename(token) !== "MEMORY.md") {
+  const text = expanded(ti.command ?? "");
+  if (!WRITES.test(text)) process.exit(0);
+  const base = chdir(text);
+  for (const token of text.match(MD_TOKEN) ?? []) {
+    if (basename(token) === "MEMORY.md") continue;
+    const resolved = [token, ...(base && !token.startsWith("/") ? [`${base}/${token}`] : [])].find(
+      (path) => GUARDED.test(path),
+    );
+    if (resolved) {
       deny(
-        `Refused: \`${token}\` is a memory or skill file, and this writes it through the shell.\n\n` +
+        `Refused: \`${resolved}\` is a memory or skill file, and this writes it through the shell.\n\n` +
           "This gate reads the content to ask whether the fact is worth keeping and which category " +
           "it belongs to. A `sed -i` or a heredoc carries no content to read, so going that way " +
           "skips the question rather than answering it.\n\n" +
