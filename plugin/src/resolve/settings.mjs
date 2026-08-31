@@ -65,12 +65,10 @@ export const accountCredentials = once(() => {
   const server = mcpForge();
   return {
     url: pick([
-      ["$FORGE_MCP_URL", process.env.FORGE_MCP_URL],
       ["~/.config/forge/config.json", saved.url],
       [".mcp.json", server?.url],
     ]),
     token: pick([
-      ["$FORGE_TOKEN", process.env.FORGE_TOKEN],
       ["~/.config/forge/config.json", saved.token],
       [".mcp.json", server?.headers?.Authorization],
     ]),
@@ -81,9 +79,9 @@ export const settings = once(() => {
   const { url, token } = accountCredentials();
   if (!url.value || !token.value) {
     fail(
-      "No Forge endpoint. Run `forge doctor --token <pat> --url <endpoint>` to save one,\n" +
-        "or set FORGE_MCP_URL and FORGE_TOKEN, or give a `.mcp.json` at or above this\n" +
-        "directory a `forge` server carrying both. `forge doctor` says which of these it found.",
+      "No Forge endpoint. Run `forge doctor --token <pat> --url <endpoint>` to save one, or\n" +
+        "give a `.mcp.json` at or above this directory a `forge` server carrying both.\n" +
+        "`forge doctor` says which of those it found. The environment is not a source.",
     );
   }
   const bearer = token.value.startsWith("Bearer ") ? token.value : `Bearer ${token.value}`;
@@ -92,7 +90,6 @@ export const settings = once(() => {
 
 export const projectScope = once(() =>
   pick([
-    ["$FORGE_PROJECT_SLUG", process.env.FORGE_PROJECT_SLUG],
     [".forge.json", forgeJson().parsed?.slug],
     [".mcp.json", mcpForge()?.headers?.["X-Forge-Project-Slug"]],
   ]),
@@ -110,9 +107,9 @@ export const projectSlug = () => {
   const { value } = projectScope();
   if (!value) {
     fail(
-      "This call is project-scoped and no project slug is set. Export FORGE_PROJECT_SLUG,\n" +
-        'or put `{ "slug": "<project>" }` in a `.forge.json` at the root of the project,\n' +
-        "or give the `forge` server in `.mcp.json` an X-Forge-Project-Slug header.",
+      'This call is project-scoped and no project slug is set. Put `{ "slug": "<project>" }`\n' +
+        "in a `.forge.json` at the root of the project, or give the `forge` server in\n" +
+        "`.mcp.json` an X-Forge-Project-Slug header. The environment is not a source.",
     );
   }
   return value;
@@ -121,10 +118,7 @@ export const projectSlug = () => {
 /* A property of the tracker, not the CLI. Off by default: a wrong-language issue cannot be
    deleted, and a missing translation is an edit. */
 export const translateScope = once(() => {
-  const chosen = pick([
-    ["$FORGE_TRANSLATE", process.env.FORGE_TRANSLATE],
-    [".forge.json", forgeJson().parsed?.translate],
-  ]);
+  const chosen = pick([[".forge.json", forgeJson().parsed?.translate]]);
   const off = !chosen.value || chosen.value === "off" || chosen.value === "false";
   return off ? { value: null, from: chosen.from } : { value: String(chosen.value), from: chosen.from };
 });

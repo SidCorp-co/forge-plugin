@@ -2,9 +2,9 @@
 
 Once per machine. SKILL.md says when to come here.
 
-Key and defaults live in `~/.config/vi-natural/config.json` (chmod 600), or in
-`MUSETOOLS_API_KEY` / `VI_NATURAL_MODEL` / `VI_NATURAL_BASE_URL` / `VI_NATURAL_REGISTER`.
-Precedence: flag → env → `.vi-glossary.json` → config file.
+Key and defaults live in `~/.config/vi-natural/config.json` (chmod 600) and
+nowhere else — the environment is not read. Precedence: flag →
+`.vi-glossary.json` → config file.
 
 ```bash
 vi-natural login --base-url <url> --key <key> --model <id> --register san-pham

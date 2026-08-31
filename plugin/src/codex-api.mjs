@@ -8,9 +8,11 @@ import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
 
+import { userConfig } from "./resolve/config.mjs";
+
 const PROFILE_PATH = process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
-export const MODEL = process.env.FORGE_CODEX_MODEL || "fable";
-const MAX_TOKENS = Number(process.env.FORGE_CODEX_MAX_TOKENS || 8000);
+export const MODEL = userConfig().codex?.model || "fable";
+const MAX_TOKENS = Number(userConfig().codex?.maxTokens || 8000);
 
 /* A file is sent whole or reported as clipped; a silently halved file is a review of half a file. */
 const FILE_CHARS = 80_000;

@@ -124,12 +124,10 @@ surface is eight actions rather than that API's full breadth — search, list zo
 detail, list, create, update and delete a DNS record, purge cache. Enough to run DNS from a
 terminal, small enough to stay in one file.
 
-Which means the credentials are this machine's. `$CLOUDFLARE_API_TOKEN` with
-`$CLOUDFLARE_ACCOUNT_ID`, else the accounts `forge cloudflare login` saved beside the Forge
-config at 0600. **Half an environment pair reports instead of falling through to the file** — a
-silent fallback hides the typo in whichever name was set, and the two failures look identical
-from the outside. It reports rather than throwing, because doctor prints every finding in one
-pass.
+Which means the credentials are this machine's: the accounts `forge cloudflare login` saved beside
+the Forge config at 0600, and only those. A pair in the environment used to answer first, which
+bought a CI convenience for a precedence rule, a half-a-pair failure mode of its own and a report
+that had to say which layer answered. `forge doctor` lists the accounts and where they came from.
 
 Nothing here touches the Forge endpoint, and that is load-bearing: `forge cloudflare zones` runs
 on a machine with no Forge url, no token and no project. The verb carries no backing tool in
@@ -192,7 +190,7 @@ prompt by invoking a multi-agent code-review skill, ran eleven minutes and had t
 So the call is `POST /v1/messages` with `x-api-key` and `stream: true`, and the reviewer has no
 tools at all.
 
-**Which means the files travel with the prompt, and it can ask for more.** `FORGE_CODEX_ROUNDS`
+**Which means the files travel with the prompt, and it can ask for more.** `codex.rounds`
 caps *model calls* — three by default — and the last one is told it is the last. A round exists only
 so the reviewer can **see** a file it was not given, because it cannot know it needs the third file
 before reading the second; it never gets a round to **act** in. A final call that still only asks
@@ -250,7 +248,7 @@ tree and no consult has followed. Once, because an instruction repeated on every
 `added` and `first` separately for that reason. The turn is keyed by canonical git root, since one
 state file serves every checkout, and `clearConsulted` removes only what was consulted on — a file
 recorded while the call was in flight is not part of that answer. What counts as a document is
-`FORGE_CODEX_PATH_RE`, `^docs/.*\.md$` by default, because prose is what nothing else here checks;
+`codex.pathRe`, `^docs/.*\.md$` by default, because prose is what nothing else here checks;
 the files come from `touched()` rather than `tool_input.file_path`, so a document written by a shell
 heredoc is caught too.
 
@@ -431,6 +429,18 @@ never ask for it.
 
 Every setting resolves to `{ value, from }`. Provenance is the return type rather than a courtesy
 some resolvers extend, because that is what `doctor` reports.
+
+**No value is read from the environment.** Every credential, url, model id and threshold comes from
+a config file, so exactly one source answers for each and `from` never has to arbitrate. Six
+variables remain and none of them is a value: `XDG_CONFIG_HOME` and `CLAUDE_PROXY_ENV` say *where*
+config lives, `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PROJECT_DIR` are what the platform passes a hook, and
+`CLAUDE_CODE_DISABLE_ADVISOR_TOOL` and `FORGE_CODEX_DISABLE` are kill switches — a kill switch has
+to work when the config file is what is broken, which is the one thing a config flag cannot do. A
+test walks every source here and fails on a seventh name, because an env read is one line that looks
+like every other line.
+
+The codex knobs live in a `codex` object in the account config — `model`, `pathRe`, `rounds`,
+`maxTokens`, `budgetMs`, every key optional and defaulted in code. `forge codex -h` lists them.
 
 **Credentials sit outside every repository.** A token in a repo file is one `git add -A` away
 from a remote, and `.mcp.json` is git-ignored precisely because it holds one. The config is

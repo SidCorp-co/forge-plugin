@@ -76,8 +76,8 @@ vi-natural login --key <gateway-key>
 vi-natural doctor
 ```
 
-The key is stored in `~/.config/vi-natural/config.json` at mode 600, or read from
-`MUSETOOLS_API_KEY`. It is never written into the plugin.
+The key is stored in `~/.config/vi-natural/config.json` at mode 600 and read from
+there alone — the environment is not a source. It is never written into the plugin.
 
 ## Use
 
@@ -113,11 +113,11 @@ for first.
 
 | setting  | default                             | override                                 |
 | -------- | ----------------------------------- | ---------------------------------------- |
-| gateway  | none — required                     | `--base-url`, `VI_NATURAL_BASE_URL`      |
-| model    | none — required                     | `--model`, `VI_NATURAL_MODEL`            |
-| effort   | `low`, `high` for `review`          | `--effort`, `VI_NATURAL_EFFORT`          |
-| key      | config file                         | `MUSETOOLS_API_KEY`                      |
-| register | `san-pham`                          | `--register`, `_register`, `VI_NATURAL_REGISTER` |
+| gateway  | none — required                     | `--base-url`, then the config file       |
+| model    | none — required                     | `--model`, then the config file          |
+| effort   | `low`, `high` for `review`          | `--effort`, then the config file         |
+| key      | config file                         | `vi-natural login --key`                 |
+| register | `san-pham`                          | `--register`, `_register` in a glossary  |
 
 Any OpenAI-compatible chat endpoint works; `vi-natural models` lists what the
 gateway offers.

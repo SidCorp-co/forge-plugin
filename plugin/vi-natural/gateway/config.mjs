@@ -39,24 +39,19 @@ export class Config {
     this.announced = false;
   }
 
-  // The stored file is the one python wrote, so its keys stay snake_case; only this CLI's own
-  // option names are camel.
-  pick(key, fileKey, envNames, fallback) {
+  // Snake_case file keys are the ones python wrote; only this CLI's own option names are camel.
+  pick(key, fileKey, fallback) {
     if (this.opts[key]) return this.opts[key];
-    for (const name of envNames) {
-      if (process.env[name]) return process.env[name];
-    }
     return this.file[fileKey] || fallback;
   }
 
   // No default host. The gateway is whoever runs one, and a baked-in default publishes the address
   // of a private deployment to everyone who reads this file.
   get baseUrl() {
-    const url = this.pick("baseUrl", "base_url", ["VI_NATURAL_BASE_URL", "MUSETOOLS_BASE_URL"]);
+    const url = this.pick("baseUrl", "base_url");
     if (!url) {
       throw new CliError(
         "no gateway configured.\n  run: vi-natural login --base-url <url> --key <key>\n" +
-          "  or set VI_NATURAL_BASE_URL in the environment\n" +
           "  any OpenAI-compatible endpoint serving /chat/completions works",
       );
     }
@@ -64,11 +59,11 @@ export class Config {
   }
 
   get apiKey() {
-    const key = this.pick("apiKey", "api_key", ["VI_NATURAL_API_KEY", "MUSETOOLS_API_KEY"]);
+    const key = this.pick("apiKey", "api_key");
     if (!key) {
       throw new CliError(
         "no API key configured.\n  run: vi-natural login --key <key>\n" +
-          "  or set MUSETOOLS_API_KEY in the environment",
+          "  the key is read from that file only",
       );
     }
     return key;
@@ -76,12 +71,11 @@ export class Config {
 
   // A model id names one gateway's catalogue, so it is configured with the gateway, not guessed.
   get model() {
-    const model = this.pick("model", "model", ["VI_NATURAL_MODEL"]);
+    const model = this.pick("model", "model");
     if (!model) {
       throw new CliError(
         "no model configured.\n  run: vi-natural login --model <id>\n" +
-          "  or set VI_NATURAL_MODEL in the environment\n" +
-          "  `vi-natural models` lists what the gateway serves",
+          "  the models verb lists what the gateway serves",
       );
     }
     return model;
@@ -89,7 +83,7 @@ export class Config {
 
   get effort() {
     const fallback = EFFORT_BY_VERB[this.opts.verb] ?? DEFAULT_EFFORT;
-    const value = this.pick("effort", "effort", ["VI_NATURAL_EFFORT"], fallback);
+    const value = this.pick("effort", "effort", fallback);
     if (!EFFORTS.includes(value)) {
       throw new CliError(`effort must be one of ${EFFORTS.join(", ")}, not ${JSON.stringify(value)}`);
     }
@@ -135,7 +129,6 @@ export class Config {
   register(meta) {
     return (
       this.opts.register ||
-      process.env.VI_NATURAL_REGISTER ||
       (meta ?? this.glossaryMeta)._register ||
       this.file.register ||
       "san-pham"
@@ -145,7 +138,6 @@ export class Config {
   region(meta) {
     return (
       this.opts.region ||
-      process.env.VI_NATURAL_REGION ||
       (meta ?? this.glossaryMeta)._region ||
       this.file.region ||
       null

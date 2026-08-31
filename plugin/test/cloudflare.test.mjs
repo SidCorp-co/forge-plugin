@@ -45,19 +45,12 @@ const withEnv = (t, values) => {
 const byToken = (answers) => async (url, init) =>
   answers[init.headers.Authorization] ?? refusal("no such account");
 
-test("an environment pair resolves to one account without reading the config", (t) => {
+/* The config is the only source, so a pair in the environment resolves to nothing — and the
+   error names the one command that saves an account, because that is now the only route. */
+test("an environment pair is not an account", (t) => {
   withEnv(t, { CLOUDFLARE_API_TOKEN: "cf-token", CLOUDFLARE_ACCOUNT_ID: "acct-1" });
-  const { accounts, from, problem } = cloudflareAccounts();
-  assert.equal(problem, undefined);
-  assert.equal(from, "$CLOUDFLARE_API_TOKEN");
-  assert.deepEqual(accounts, [{ name: "environment", accountId: "acct-1", apiToken: "cf-token" }]);
-});
-
-test("half an environment pair says which name is missing rather than falling back", (t) => {
-  withEnv(t, { CLOUDFLARE_API_TOKEN: "cf-token", CLOUDFLARE_ACCOUNT_ID: null });
-  const { accounts, problem } = cloudflareAccounts();
-  assert.deepEqual(accounts, []);
-  assert.match(problem, /\$CLOUDFLARE_ACCOUNT_ID is not set/u);
+  const { accounts } = cloudflareAccounts();
+  assert.equal(accounts.some((one) => one.apiToken === "cf-token"), false);
 });
 
 test("a failing account is named, and the others still aggregate", async (t) => {

@@ -43,9 +43,11 @@ test("a model is the third setting, and its absence is reported too", () => {
   assert.match(out, /\[ miss \] vi-natural model\s+run `vi-natural login --model/);
 });
 
-test("either half may come from the environment", () => {
+/* The config file is the only source: a variable that once answered for the gateway now answers
+   for nothing, and the report has to keep saying MISSING rather than counting it. */
+test("the environment is not a source for the gateway", () => {
   const out = report(null, { VI_NATURAL_BASE_URL: "https://gateway.example/v1" });
-  assert.match(out, /\[ {2}ok {2}\] vi-natural gateway\s+from the environment/);
+  assert.match(out, /\[ miss \] vi-natural gateway/);
   assert.match(out, /\[ miss \] vi-natural key/);
 });
 

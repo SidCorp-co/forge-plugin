@@ -8,7 +8,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
 
-import { configDir, readJson, writeJsonPrivate } from "./resolve/config.mjs";
+import { CONFIG_PATH, configDir, readJson, userConfig, writeJsonPrivate } from "./resolve/config.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { flags, partition, pullRepeated } from "./resolve/flags.mjs";
 import { didYouMean } from "./suggest.mjs";
@@ -50,7 +50,7 @@ const USAGE = [
   "Usage: forge codex <consult|verdict|pending|show|log> [args]",
   "GPT-5 Codex reviews the files you name, streamed over the gateway's own API. It has no tools:",
   "the files are sent with the prompt, and the log is what gives it a memory of this repository.",
-  "The hook records only documents (see FORGE_CODEX_PATH_RE); any path can be named explicitly.",
+  "The hook records only documents (see `codex.pathRe` below); any path can be named explicitly.",
   "",
   "  consult [file...] [--diff [--base ref]] [--verify risk]... [--only s,s] [--allow-echo]",
   "                            review; pipe your intent on stdin",
@@ -59,13 +59,12 @@ const USAGE = [
   "  show                      profile, model, history and pending, in effect here",
   "  log [--last n] [--id i] [--full]   past consults, for scoring the advice later",
   "",
-  "Environment",
-  "  CLAUDE_PROXY_ENV          profile supplying the endpoint, token and model map",
-  "  FORGE_CODEX_MODEL         model slot to ask for (default fable)",
-  "  FORGE_CODEX_PATH_RE       repo-relative paths the hook records (default ^docs/.*\\.md$)",
-  "  FORGE_CODEX_BUDGET_MS     how long one consult may take (default 900000)",
-  "  FORGE_CODEX_MAX_TOKENS    reply ceiling (default 8000)",
-  "  FORGE_CODEX_ROUNDS        model calls one consult may make, the last forced to answer (3)",
+  "A `codex` object in ~/.config/forge/config.json, every key optional",
+  "  model                     model slot to ask for (default fable)",
+  "  pathRe                    repo-relative paths the hook records (default ^docs/.*\\.md$)",
+  "  budgetMs                  how long one consult may take (default 900000)",
+  "  maxTokens                 reply ceiling (default 8000)",
+  "  rounds                    model calls one consult may make, the last forced to answer (3)",
   "",
   "  --diff         send each file's diff and refuse findings that are only about code this turn",
   "                 did not touch. Raises precision more than anything else.",
@@ -73,7 +72,8 @@ const USAGE = [
   "  --verify risk  a named risk to rule on rather than an open review; repeatable. A reviewer",
   "                 verifying is reliable where a reviewer discovering invents.",
   "  --only s,s     report only these severities: blocker, major, minor.",
-  "  FORGE_CODEX_DISABLE=1     the hook records nothing",
+  "",
+  "  FORGE_CODEX_DISABLE=1     the one variable: a kill switch has to work when config is broken",
 ].join("\n");
 
 const readState = () => readJson(STATE_PATH) ?? {};
@@ -126,7 +126,7 @@ const turnsOf = (held) => held.turns ?? {};
 
 export const pendingIn = (held, root) => turnsOf(held)[root]?.files ?? [];
 
-export const recordable = (rel) => new RegExp(process.env.FORGE_CODEX_PATH_RE || DEFAULT_PATH_RE).test(rel);
+export const recordable = (rel) => new RegExp(userConfig().codex?.pathRe || DEFAULT_PATH_RE).test(rel);
 
 /* A turn's second write must not repeat the instruction the first one carried — that is how an
    instruction gets ignored. So the decision the hook needs is `first`, not just `added`. */
@@ -169,11 +169,11 @@ const severities = (raw) => {
 };
 
 const callBudget = () => {
-  const raw = process.env.FORGE_CODEX_ROUNDS;
+  const raw = userConfig().codex?.rounds;
   if (raw === undefined) return DEFAULT_CALLS;
   const value = Number(raw);
   if (!Number.isInteger(value) || value < 1) {
-    fail(`codex: FORGE_CODEX_ROUNDS takes an integer of 1 or more, not \`${raw}\`.`);
+    fail(`codex: \`codex.rounds\` in ${CONFIG_PATH} takes an integer of 1 or more, not \`${raw}\`.`);
   }
   return value;
 };
@@ -194,7 +194,7 @@ const rounds = async (values, model, opening, root, rels, onDelta) => {
        consult would clear the turn's pending list in exchange for nothing. */
     if (last) {
       throw new Error(
-        `it spent all ${calls} calls asking for context and never reviewed. Raise FORGE_CODEX_ROUNDS, `
+        `it spent all ${calls} calls asking for context and never reviewed. Raise \`codex.rounds\`, `
         + `or name the files it kept asking for: ${needed(held.text, root, []).wanted.join(", ") || "none servable"}.`,
       );
     }
@@ -250,10 +250,10 @@ const consult = async (given) => {
      stderr is read after the tokens are spent. */
   if (sameFamily(model) && !allowEcho) {
     fail(`codex: the ${MODEL} slot resolves to ${model}, this model's own family — that echoes rather `
-      + "than reviews. Point FORGE_CODEX_MODEL at another slot, or pass --allow-echo.");
+      + "than reviews. Point `codex.model` at another slot, or pass --allow-echo.");
   }
   const intent = await stdinText();
-  const id = process.env.FORGE_CODEX_ID || randomBytes(3).toString("hex");
+  const id = randomBytes(3).toString("hex");
 
   const parts = base ? withDiffs(root, bundle(root, rels), base) : bundle(root, rels);
   const clipped = parts.filter((part) => part.clipped).map((part) => part.rel);
@@ -305,7 +305,7 @@ const consult = async (given) => {
     if (held.asked && !held.served.length) console.error("codex: it asked for files; none were servable.");
     if (held.refused.length) console.error(`codex: refused to send ${held.refused.join(", ")}.`);
     if (left.length) console.error(`codex: still unconsulted from this turn: ${left.join(", ")}.`);
-    if (held.stop === "max_tokens") console.error("codex: the reply hit FORGE_CODEX_MAX_TOKENS.");
+    if (held.stop === "max_tokens") console.error("codex: the reply hit `codex.maxTokens`.");
   } catch (error) {
     logConsult({ ...record, kind: "consult", ms: Date.now() - started, ok: false, error: error.message });
     const partial = shown ? `\n\ncodex: the ${shown} characters above are an incomplete reply and were `
@@ -328,7 +328,7 @@ const show = () => {
   }
   console.log(`repo root : ${root ?? "<not in a git repository>"}`);
   console.log(`history   : ${root ? historyFor(entries, root).length : 0} prior exchange(s) replayed`);
-  console.log(`records   : ${process.env.FORGE_CODEX_PATH_RE || DEFAULT_PATH_RE}`);
+  console.log(`records   : ${userConfig().codex?.pathRe || DEFAULT_PATH_RE}`);
   console.log(`pending   : ${waiting.length ? waiting.join(", ") : "nothing"}`);
   console.log(`log       : ${LOG_PATH}  (${consults(entries).length} consult(s))`);
 };

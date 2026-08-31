@@ -7,9 +7,7 @@ import { join } from "node:path";
 /* Imported after XDG_CONFIG_HOME moves, so nothing here can touch the caller's own state file. */
 const sandbox = mkdtempSync(join(tmpdir(), "forge-codex-"));
 process.env.XDG_CONFIG_HOME = sandbox;
-for (const name of ["FORGE_CODEX_PATH_RE", "FORGE_CODEX_DISABLE"]) {
-  delete process.env[name];
-}
+delete process.env.FORGE_CODEX_DISABLE;
 
 const {
   STATE_PATH,
@@ -35,6 +33,7 @@ const {
   sameFamily,
 } = await import("../src/codex-api.mjs");
 const { partition } = await import("../src/resolve/flags.mjs");
+const { userConfig } = await import("../src/resolve/config.mjs");
 const BOOLEANS = ["--allow-echo"];
 const { answered, countedIn, historyFor, logEntries, pairedLog, startedState, verdictsBy } =
   await import("../src/codex-log.mjs");
@@ -99,9 +98,12 @@ test("a path escapes the repo by neither dots nor a symlink", () => {
 test("the recorded path set is the default docs one, and is overridable", (t) => {
   assert.equal(recordable("docs/PLAN.md"), true);
   assert.equal(recordable("plugin/src/codex.mjs"), false);
-  process.env.FORGE_CODEX_PATH_RE = "\\.md$";
+  /* The config object the process already read, which is the seam `forge` writes through too — the
+     environment is not a source, so there is nothing else to reach in from. */
+  const held = userConfig().codex;
+  userConfig().codex = { pathRe: "\\.md$" };
   t.after(() => {
-    delete process.env.FORGE_CODEX_PATH_RE;
+    userConfig().codex = held;
   });
   assert.equal(recordable("notes/PLAN.md"), true);
 });

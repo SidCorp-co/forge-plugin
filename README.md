@@ -29,11 +29,14 @@ Two scopes, and they are not the same scope.
 **Account** — the endpoint and the token. One Forge instance, one PAT, every project. Required by
 every call:
 
-1. `FORGE_MCP_URL` and `FORGE_TOKEN`
-2. `~/.config/forge/config.json`, written by `forge doctor --token <pat> --url <endpoint>` at
+1. `~/.config/forge/config.json`, written by `forge doctor --token <pat> --url <endpoint>` at
    mode 0600 — a token belongs outside every repository
-3. `mcpServers.forge` in the nearest `.mcp.json` walking up from the current directory, or the
+2. `mcpServers.forge` in the nearest `.mcp.json` walking up from the current directory, or the
    same file in the main checkout when the cwd is a linked git worktree
+
+The environment is not one of them. A value read from two places needs a precedence rule and a
+report saying which place answered; a file that can be read, copied and chmodded needs neither.
+`XDG_CONFIG_HOME` moves all of it, and is how a test runs on state that is not yours.
 
 **Project** — everything a tracker decides for itself, in a `.forge.json` at its root:
 
@@ -45,10 +48,9 @@ every call:
 }
 ```
 
-`slug` also comes from `FORGE_PROJECT_SLUG` or the `.mcp.json` header, and is demanded only by a
-call that needs a project id. `translate` is off unless set — a wrong-language issue cannot be
-withdrawn, and `FORGE_TRANSLATE` overrides per command. `deps` is optional and defaults to the
-English sentence shown.
+`slug` also comes from the `.mcp.json` header, and is demanded only by a call that needs a project
+id. `translate` is off unless set — a wrong-language issue cannot be withdrawn. `deps` is optional
+and defaults to the English sentence shown.
 
 The project **id** is never configured — it is looked up from the slug at runtime.
 

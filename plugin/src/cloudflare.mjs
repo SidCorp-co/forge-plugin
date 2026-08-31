@@ -19,8 +19,8 @@ const NAME_WIDTH = 30;
 
 const USAGE = [
   "Usage: forge cloudflare <zones|zone|dns|purge|search|login|accounts> [args]",
-  "Zones and DNS against api.cloudflare.com. Credentials resolve from $CLOUDFLARE_API_TOKEN",
-  "with $CLOUDFLARE_ACCOUNT_ID, else the accounts `login` saved under ~/.config/forge.",
+  "Zones and DNS against api.cloudflare.com. Credentials are the accounts `login` saved",
+  "under ~/.config/forge, and nothing else: the environment is not a source.",
   "",
   "  zones [--search q]                     one line per zone, across every account",
   "  zone <zone-id>                         one zone's detail",
@@ -34,28 +34,16 @@ const USAGE = [
   "  accounts [--full]                      what resolved, and from where",
 ].join("\n");
 
-/* One account from the environment, or every account the config holds. Provenance travels with
-   them because `forge doctor` reports where each came from and never what it is. */
+/* Every account the config holds, and only the config: provenance travels with them because
+   `forge doctor` reports where each came from and never what it is. */
 export const cloudflareAccounts = () => {
-  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  if (apiToken && accountId) {
-    return { from: "$CLOUDFLARE_API_TOKEN", accounts: [{ name: "environment", accountId, apiToken }] };
-  }
-  /* Half a pair reports rather than falling through: reading the config file instead would hide the
-     typo in whichever name was set. */
-  if (apiToken || accountId) {
-    const missing = apiToken ? "$CLOUDFLARE_ACCOUNT_ID" : "$CLOUDFLARE_API_TOKEN";
-    return { from: "the environment", accounts: [], problem: `${missing} is not set` };
-  }
   const held = (userConfig().cloudflare?.accounts ?? []).filter((one) => one.apiToken && one.accountId);
   return { from: held.length ? CONFIG_PATH : null, accounts: held };
 };
 
 const NO_ACCOUNT =
   "No Cloudflare account is configured. Save one with\n" +
-  "  forge cloudflare login --name <label> --account-id <id> --token <api-token>\n" +
-  "or export CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.";
+  "  forge cloudflare login --name <label> --account-id <id> --token <api-token>";
 
 const configured = () => {
   const { accounts, problem } = cloudflareAccounts();

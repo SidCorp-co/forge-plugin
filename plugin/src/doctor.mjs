@@ -61,10 +61,7 @@ const envHeld = () => {
   return found;
 };
 
-const viSetting = (field, envNames) => {
-  if (envNames.some((name) => process.env[name])) return "from the environment";
-  return readJson(VI_CONFIG)?.[field] ? VI_CONFIG : null;
-};
+const viSetting = (field) => (readJson(VI_CONFIG)?.[field] ? VI_CONFIG : null);
 
 /* Reported every run and, like cloudflare's, gating nothing by itself: the vi-natural skill
    translates a locale file with no tracker in sight. `translate` decides only whether the
@@ -77,13 +74,13 @@ const checkVi = () => {
     return false;
   }
   line(OK, "vi-natural", bundled);
-  const url = viSetting("base_url", ["VI_NATURAL_BASE_URL", "MUSETOOLS_BASE_URL"]);
+  const url = viSetting("base_url");
   if (url) line(OK, "vi-natural gateway", url);
   else line(BAD, "vi-natural gateway", "run `vi-natural login --base-url <url>` — there is no default host");
-  const key = viSetting("api_key", ["VI_NATURAL_API_KEY", "MUSETOOLS_API_KEY"]);
+  const key = viSetting("api_key");
   if (key) line(OK, "vi-natural key", key);
   else line(BAD, "vi-natural key", "run `vi-natural login --key <key>` — no issue can be posted");
-  const model = viSetting("model", ["VI_NATURAL_MODEL"]);
+  const model = viSetting("model");
   if (model) line(OK, "vi-natural model", model);
   else line(BAD, "vi-natural model", "run `vi-natural login --model <id>` — `vi-natural models` lists them");
   return Boolean(url && key && model);
@@ -354,7 +351,7 @@ export const doctor = async (rest) => {
 
   const { url, token } = accountCredentials();
   if (url.value) line(OK, "endpoint url", `${url.value}  ← ${url.from}`);
-  else line(BAD, "endpoint url", "no FORGE_MCP_URL, no saved url, no .mcp.json");
+  else line(BAD, "endpoint url", "no saved url and no .mcp.json — `forge doctor --url <endpoint>`");
   if (token.value) line(OK, "token", `${masked(token.value, full)}  ← ${token.from}`);
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
 

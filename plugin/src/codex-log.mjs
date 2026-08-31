@@ -4,12 +4,12 @@
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { configDir } from "./resolve/config.mjs";
+import { configDir, userConfig } from "./resolve/config.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { flags } from "./resolve/flags.mjs";
 
 export const LOG_PATH = join(configDir("forge"), "codex-log.jsonl");
-export const BUDGET_MS = Number(process.env.FORGE_CODEX_BUDGET_MS || 900_000);
+export const BUDGET_MS = Number(userConfig().codex?.budgetMs || 900_000);
 
 const HISTORY_PAIRS = 3;
 const HISTORY_CHARS = 6000;
