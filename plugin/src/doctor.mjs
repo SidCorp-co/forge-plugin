@@ -40,13 +40,14 @@ const masked = (token, full) => {
   return bare.length <= 12 ? "set" : `${bare.slice(0, 6)}…${bare.slice(-4)} (${bare.length} chars)`;
 };
 
-const hasViKey = () => {
-  if (process.env.VI_NATURAL_API_KEY || process.env.MUSETOOLS_API_KEY) {
-    return "from the environment";
-  }
-  return readJson(VI_CONFIG)?.api_key ? VI_CONFIG : null;
+const viSetting = (field, envNames) => {
+  if (envNames.some((name) => process.env[name])) return "from the environment";
+  return readJson(VI_CONFIG)?.[field] ? VI_CONFIG : null;
 };
 
+/* Reported every run and, like cloudflare's, gating nothing by itself: the vi-natural skill
+   translates a locale file with no tracker in sight. `translate` decides only whether the
+   tracker's own writes wait on it. */
 const checkVi = () => {
   const bundled = BUNDLED;
   const run = spawnSync(bundled, ["--help"], { encoding: "utf8" });
@@ -55,10 +56,13 @@ const checkVi = () => {
     return false;
   }
   line(OK, "vi-natural", bundled);
-  const key = hasViKey();
+  const url = viSetting("base_url", ["VI_NATURAL_BASE_URL", "MUSETOOLS_BASE_URL"]);
+  if (url) line(OK, "vi-natural gateway", url);
+  else line(BAD, "vi-natural gateway", "run `vi-natural login --base-url <url>` — there is no default host");
+  const key = viSetting("api_key", ["VI_NATURAL_API_KEY", "MUSETOOLS_API_KEY"]);
   if (key) line(OK, "vi-natural key", key);
   else line(BAD, "vi-natural key", "run `vi-natural login --key <key>` — no issue can be posted");
-  return Boolean(key);
+  return Boolean(url && key);
 };
 
 /* Cloudflare's credentials are this machine's, not the tracker's, so they resolve and report here
@@ -344,7 +348,8 @@ export const doctor = async (rest) => {
   } else {
     line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
   }
-  const canWrite = language.value ? language.value === "vi" && checkVi() : true;
+  const vi = checkVi();
+  const canWrite = language.value ? language.value === "vi" && vi : true;
   checkCloudflare(full);
   checkCodex();
   const local = checkClaudeMdLocally();
