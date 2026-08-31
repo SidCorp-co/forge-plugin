@@ -62,7 +62,6 @@ export const profileFrom = (text) => {
   return found;
 };
 
-/* Reported rather than thrown: doctor asks the same question and prints every finding in one pass. */
 export const profile = () => {
   if (!existsSync(PROFILE_PATH)) return { path: PROFILE_PATH, problem: `no gateway profile at ${PROFILE_PATH}` };
   const values = profileFrom(readFileSync(PROFILE_PATH, "utf8"));

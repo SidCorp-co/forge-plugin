@@ -4,12 +4,12 @@
    Three pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and
    its eval set (codex-log.mjs), and this — the verb, the turn's bookkeeping, and the hook halves. */
 import { spawn, spawnSync } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, openSync, unlinkSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
-import { configDir, readJson } from "./resolve/config.mjs";
+import { configDir, readJson, writeJsonPrivate } from "./resolve/config.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { flags, partition, pullRepeated } from "./resolve/flags.mjs";
 import { didYouMean } from "./suggest.mjs";
@@ -90,20 +90,11 @@ export const ageOf = (at, now = Date.now()) => {
   return hours < 48 ? `${hours} hour(s) ago` : `${Math.round(hours / 24)} day(s) ago`;
 };
 
-/* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. */
 const writeState = (values) => {
   const merged = { ...readState(), ...values };
   try {
     mkdirSync(configDir("forge"), { recursive: true });
-    const temporary = `${STATE_PATH}.tmp`;
-    rmSync(temporary, { force: true });
-    const handle = openSync(temporary, "w", 0o600);
-    try {
-      writeFileSync(handle, `${JSON.stringify(merged, null, 2)}\n`);
-    } finally {
-      closeSync(handle);
-    }
-    renameSync(temporary, STATE_PATH);
+    writeJsonPrivate(STATE_PATH, merged);
   } catch {
     /* A turn whose bookkeeping cannot be written still consults on files named on the line. */
   }

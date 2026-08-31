@@ -43,8 +43,7 @@ export const cloudflareAccounts = () => {
     return { from: "$CLOUDFLARE_API_TOKEN", accounts: [{ name: "environment", accountId, apiToken }] };
   }
   /* Half a pair reports rather than falling through: reading the config file instead would hide the
-     typo in whichever name was set. It reports, and does not throw, because doctor prints every
-     finding in one pass. */
+     typo in whichever name was set. */
   if (apiToken || accountId) {
     const missing = apiToken ? "$CLOUDFLARE_ACCOUNT_ID" : "$CLOUDFLARE_API_TOKEN";
     return { from: "the environment", accounts: [], problem: `${missing} is not set` };

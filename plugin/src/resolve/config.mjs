@@ -41,18 +41,22 @@ export const readJson = (path) => {
 export const userConfig = once(() => readJson(CONFIG_PATH) ?? {});
 
 /* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. */
-export const saveConfig = (values) => {
-  mkdirSync(configDir("forge"), { recursive: true });
-  const merged = { ...userConfig(), ...values };
-  const temporary = `${CONFIG_PATH}.tmp`;
+export const writeJsonPrivate = (path, value) => {
+  const temporary = `${path}.tmp`;
   rmSync(temporary, { force: true });
   const handle = openSync(temporary, "w", 0o600);
   try {
-    writeFileSync(handle, `${JSON.stringify(merged, null, 2)}\n`);
+    writeFileSync(handle, `${JSON.stringify(value, null, 2)}\n`);
   } finally {
     closeSync(handle);
   }
-  renameSync(temporary, CONFIG_PATH);
+  renameSync(temporary, path);
+};
+
+export const saveConfig = (values) => {
+  mkdirSync(configDir("forge"), { recursive: true });
+  const merged = { ...userConfig(), ...values };
+  writeJsonPrivate(CONFIG_PATH, merged);
   Object.assign(userConfig(), merged);
   return CONFIG_PATH;
 };

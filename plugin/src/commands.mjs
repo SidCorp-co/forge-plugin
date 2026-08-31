@@ -77,7 +77,6 @@ const trimPatterns = (node) => {
   return out;
 };
 
-/* Validated against the server's own schema, never a list here that would go stale. */
 const enumAt = async (tool, path) => {
   const declared = await toolNamed(tool);
   const node = path.reduce((held, key) => held?.[key], declared?.inputSchema?.properties);
