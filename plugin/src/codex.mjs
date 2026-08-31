@@ -3,10 +3,9 @@
 
    Three pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and
    its eval set (codex-log.mjs), and this — the verb, the turn's bookkeeping, and the hook halves. */
-import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, openSync, unlinkSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "./resolve/config.mjs";
@@ -53,7 +52,7 @@ const USAGE = [
   "the files are sent with the prompt, and the log is what gives it a memory of this repository.",
   "The hook records only documents (see FORGE_CODEX_PATH_RE); any path can be named explicitly.",
   "",
-  "  consult [file...] [--diff [--base ref]] [--verify risk]... [--only s,s] [--bg] [--allow-echo]",
+  "  consult [file...] [--diff [--base ref]] [--verify risk]... [--only s,s] [--allow-echo]",
   "                            review; pipe your intent on stdin",
   "  verdict --accepted n --rejected n [--note t]   what you did with the last consult",
   "  pending [--drop]          what this turn touched and has not been consulted on",
@@ -154,40 +153,12 @@ const commitAt = (root) => {
   return { head: (head.stdout ?? "").trim(), dirty: Boolean((changed.stdout ?? "").trim()) };
 };
 
-/* Detached with its own stdin file, unlinked the moment the child holds it open: the point of a
-   background reviewer is that the caller's shell can end without taking the review with it, and the
-   intent is the caller's prose, not something to leave in /tmp. */
-const detach = (rels, intent, id) => {
-  const held = join(tmpdir(), `forge-codex-${process.pid}-${Date.now()}.txt`);
-  writeFileSync(held, intent, { mode: 0o600 });
-  const handle = openSync(held, "r");
-  const child = spawn(process.execPath, [process.argv[1], "codex", "consult", ...rels], {
-    cwd: process.cwd(),
-    detached: true,
-    stdio: [handle, "ignore", "ignore"],
-    env: { ...process.env, FORGE_CODEX_INSIDE: "1", FORGE_CODEX_ID: id },
-  });
-  try {
-    unlinkSync(held);
-  } catch {
-    /* The child holds the descriptor; an unlink that fails leaves a 0600 file and nothing worse. */
-  }
-  /* Told after the spawn lands, not before: an executable that cannot be launched fails
-     asynchronously, and an id the caller waits on that never gets a record is worse than an error. */
-  child.on("error", (error) => fail(`codex: could not start the background consult: ${error.message}`));
-  child.on("spawn", () => {
-    console.log(`codex: consulting on ${rels.length} file(s) in the background as ${id} (pid ${child.pid}).`);
-    console.log(`Read it with \`forge codex log --id ${id} --full\`.`);
-    child.unref();
-  });
-};
-
 /* More than one call, and a bounded number: a round exists only so the reviewer can SEE something
    it was not given, and seeing has a fixed point. It may take two rounds to learn it needs a third
    file — it cannot know that before reading the second — so the cap is rounds and not one extra.
    What it never gets is a round to ACT in: the version of this that could run commands took eleven
    minutes, spawned its own subagents, and had to be killed by pid. */
-const BOOLEAN = ["--bg", "--allow-echo", "--diff"];
+const BOOLEAN = ["--allow-echo", "--diff"];
 const SEVERITIES = ["blocker", "major", "minor"];
 
 const severities = (raw) => {
@@ -249,6 +220,7 @@ const stdinText = async () => {
 /* Repeated `--verify`, then positionals apart from flag values, then the rest — three passes
    because a flag can carry a value and a file cannot. */
 export const consultArgs = (given) => {
+  if (given.includes("--bg")) fail("codex: --bg is gone; a consult runs inline, like the advisor.");
   const { values: risks, rest: without } = pullRepeated(given, "--verify", "codex consult");
   const { positionals, flagArgv } = partition(without, BOOLEAN);
   const held = flags(flagArgv, "codex consult", BOOLEAN);
@@ -256,7 +228,6 @@ export const consultArgs = (given) => {
     named: positionals,
     risks,
     only: severities(held.only),
-    bg: Boolean(held.bg),
     allowEcho: Boolean(held["allow-echo"]),
     /* Asking what to diff against is asking for the diff, so `--base` implies `--diff` rather than
        being silently dropped — one fewer rule to learn and one fewer way to be ignored. */
@@ -269,7 +240,7 @@ const consult = async (given) => {
   if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
-  const { named, risks, only, bg, allowEcho, base } = consultArgs(given);
+  const { named, risks, only, allowEcho, base } = consultArgs(given);
   const rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
   if (!rels.length) fail("codex: nothing to consult on. Name a file, or write one first.");
 
@@ -283,7 +254,6 @@ const consult = async (given) => {
   }
   const intent = await stdinText();
   const id = process.env.FORGE_CODEX_ID || randomBytes(3).toString("hex");
-  if (bg) return detach(rels, intent, id);
 
   const parts = base ? withDiffs(root, bundle(root, rels), base) : bundle(root, rels);
   const clipped = parts.filter((part) => part.clipped).map((part) => part.rel);
@@ -366,7 +336,7 @@ const show = () => {
 /* The hook records; it never reviews. What it asks for is one consult at the end of the turn, with
    the intent attached — a review that knows what you were trying to do is a different review. */
 export const hookRecord = (event, paths) => {
-  if (process.env.FORGE_CODEX_DISABLE === "1" || process.env.FORGE_CODEX_INSIDE === "1") return null;
+  if (process.env.FORGE_CODEX_DISABLE === "1") return null;
   let held = readState();
   let announce = null;
   for (const path of paths) {
@@ -391,16 +361,6 @@ export const hookRecord = (event, paths) => {
       + `again carries this exchange forward. Report which findings you accepted, record it with `
       + `\`forge codex verdict\`, and put anything that is the user's call through AskUserQuestion.`
     : null;
-};
-
-export const stopNotice = () => {
-  if (process.env.FORGE_CODEX_DISABLE === "1" || process.env.FORGE_CODEX_INSIDE === "1") return null;
-  const root = repoRoot(process.cwd());
-  const waiting = root ? pendingIn(readState(), root) : [];
-  if (!waiting.length) return null;
-  const at = readState().turns?.[root]?.at;
-  return `codex: ${waiting.join(", ")} changed ${ageOf(at)} and never consulted. Run `
-    + `\`echo "<intent>" | forge codex consult\` for a second read before it lands.`;
 };
 
 const SUBS = {

@@ -1,6 +1,6 @@
 # The hooks, and why each one exists
 
-Six hooks, and the reasoning behind them. The code states constraints; this states the
+Seven hooks, and the reasoning behind them. The code states constraints; this states the
 failures the constraints were written for. `plugin/hooks/hooks.json` is the wiring.
 
 ## Two levels
@@ -153,17 +153,60 @@ documents a turn changed and asks for a second model to read them at the end, wi
 attached. Splitting it that way is the point — a per-write review sees a paragraph and cannot know
 whether the paragraph was the plan; a review at the end of the turn sees the turn.
 
-**It asks once.** The first document of a turn carries the instruction and the rest are recorded
-silently, because an instruction repeated on every write is an instruction that gets ignored.
-`afterTouch` in `plugin/src/codex.mjs` therefore answers `added` and `first` separately, and the
-Stop half — the only Stop hook here — says it once more if the turn is ending unconsulted.
+**It asks once, then it insists.** The first document of a turn carries the instruction and the rest
+are recorded silently, because an instruction repeated on every write is an instruction that gets
+ignored. `afterTouch` in `plugin/src/codex.mjs` therefore answers `added` and `first` separately.
 
-It is the same file twice in `hooks.json`, bare for `PostToolUse` and `--stop` for `Stop`, and the
-logic lives in `src/codex.mjs` rather than the hook, so `forge codex` and the hook cannot drift on
-what counts as a document or where the turn is written down. The turn is keyed by canonical git
-root: one state file serves every checkout on this machine, and its paths are repo-relative. `FORGE_CODEX_DISABLE=1` silences both
-halves; `FORGE_CODEX_INSIDE=1` is set on the consult's own child session, which loads this same
-plugin and would otherwise record inside the review.
+**There is no Stop half.** One existed briefly, twice: first printing the reminder into a channel
+nobody reads, then refusing the ending with `{"decision": "block"}`. The refusal worked — and the
+first turn it caught was one that had only edited this document, which is not what anyone wanted a
+turn stopped for. The user removed it on sight. So the asking ends at PostToolUse: it is context, the
+agent can ignore it, and nothing here forces a consult. `forge codex pending` still lists what a turn
+left unread, for whoever wants to look.
+
+The logic lives in `src/codex.mjs` rather than the hook, so `forge codex` and the hook cannot drift
+on what counts as a document or where the turn is written down. The turn is keyed by canonical git
+root: one state file serves every checkout on this machine, and its paths are repo-relative.
+`FORGE_CODEX_DISABLE=1` silences it. There was a second switch, `FORGE_CODEX_INSIDE=1`, set on the
+detached child a background consult used to spawn; a consult now runs inline, so nothing sets it and
+it is gone.
+
+## `advisor-first.mjs` — the call that is easy to forget
+
+`codex-order` orders the two opinions, and that is not the failure the user kept hitting. The failure
+is simpler: **the advisor is never called at all.** It cannot be automated — a server-side tool is
+not dispatched locally, so no hook can invoke it — so the nearest thing is to make forgetting
+expensive at the moment forgetting starts. The first write of a turn is what trips it — the plan is
+still soft there, and one call costs nothing next to the same point arriving after the work — and it
+stays tripped while no `advisor_tool_result` appears after the last prompt.
+
+It is a wall, not a nudge: every write in the turn is refused until the call appears in the
+transcript. That is safe here and it would not be in `learning-gate` — this condition is a fact the
+agent can clear by calling advisor(), where only the agent can judge whether a memory is worth
+recording, so that gate has to let the re-send through. The re-send is the escape hatch there; here
+the advisor call is.
+The turn boundary is `promptSource`, the same field `codex-order` stopped trusting — and here its
+unreliability runs the safe way. A message typed mid-turn reaches the transcript as one of two
+shapes: a `queue-operation` record, which moves no boundary, or a `user` record carrying
+`promptSource: "queued"`, which moves it like any prompt. When the second shape or a compaction
+summary is read as a new turn, the cost here is one extra advisor call; in `codex-order` the same
+misreading cost a false refusal.
+
+It reads a write the way `learning-gate` does, through the shared `WRITES` and `REDIRECT` tests,
+because most of this repo's edits arrive as an interpreter writing a file or as `cat > file <<EOF`
+rather than as the `Write` tool — the first version covered only `WRITES`, and the user named the gap
+before the hook had fired once. A redirect counts unless its target is under `/dev/`, so `2>/dev/null`
+is not a write. `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` stands the gate down.
+
+**A refusal waits for the writer.** The gate refused a write nine seconds after a live advisor call,
+twice, with the user watching. The logic was right: replaying `advisedThisTurn` against the transcript
+truncated to the exact record the hook could have read returns `true`. The file was wrong — a record
+generated mid-message reaches disk when that message *completes*, which is the same instant the tool
+dispatches, so the hook and the transcript writer race over the very call being demanded. `settle()`
+in `_hook.mjs` re-reads for up to a second before refusing, and returns the moment the record appears.
+Only the refusal path pays it, `FORGE_HOOK_SETTLE_MS=0` removes the wait so the tests do not, and
+`codex-order` reads the transcript through the same function for the same reason. This is why both
+messages say to re-send: the second read finds what the first missed.
 
 ## `codex-order.mjs` — the second opinion goes second
 
@@ -178,9 +221,8 @@ called once in the turn that ran them, while the skill said plainly to call it f
 
 **The advisor cannot be hooked, but it can be witnessed.** It is a server-side tool, so nothing is
 dispatched locally and no `PreToolUse` fires. Every call still leaves an assistant record carrying an
-`advisor_tool_result` block, and every hook event is handed `transcript_path` — so `advisedSince()`
-in `_hook.mjs` counts the calls made since the last real user message, and a consult with none is
-refused.
+`advisor_tool_result` block, and every hook event is handed `transcript_path` — so `unspentAdvice()`
+in `_hook.mjs` reads those records and a consult with none behind it is refused.
 
 The second half is a nudge rather than a refusal, because it is a judgement and not a fact: the
 advisor's reply is encrypted and unreadable once the turn moves on, so the intent piped to codex is
@@ -188,13 +230,25 @@ the only place its content can survive. A consult whose intent never mentions it
 per session. Whether a paragraph really carries the advice is not something a regular expression
 should be the judge of.
 
-**Where a turn begins decides whether this gate works.** Treating any user record bearing text as a
-new turn refused a consult three minutes after the advice arrived: a compaction summary is itself
-such a record, and it is written *after* the advisor call it summarises. Only a real prompt carries
-`promptSource` — a compaction summary, a `[Request interrupted by user]` marker and an injected skill
-body all carry text without one, and a message typed mid-turn is a `queue-operation`, not a user
-record at all. A transcript carrying no `promptSource` widens the window to the whole file rather
-than narrowing it to nothing.
+**What counts as "before" is bookkeeping, not a boundary in the conversation.** The first version
+asked whether the advisor had spoken since the last user prompt, and every version of that question
+was wrong in the same direction. A compaction summary is a user record bearing text, written *after*
+the advisor call it summarises, so it discarded advice from minutes earlier; keying on `promptSource`
+fixed that and left a worse case, measured here — advice at 11:16:49, a typed correction at 11:17:36,
+the re-run refused 47 seconds after the advice arrived. A prompt is not evidence that advice went
+stale, and this user types mid-task, which made that the common case.
+
+So advice is **spent by the consult that follows it**, and by nothing else. `lastConsultAt()` in
+`codex-log.mjs` reads the `consult` entries — the ones a finished
+review writes, so a consult killed mid-flight licenses its own retry rather than burning the advice
+it never got to use — and the gate asks for an `advisor_tool_result` newer than the last of
+them, and only from this checkout — one log holds them all, so a consult elsewhere must not spend the
+advice given here. One call licenses one consult however many prompts arrive in between, a second
+consult wants a second call, and an empty log lets any call in the session through so a fresh
+checkout is not locked out. The check and the spend are not one act, and counting only finished
+consults widens that window from launch to completion — minutes, now that a consult runs inline.
+Two started before the first records itself both read the same advice as unspent. Left alone: this
+gate orders a colleague who forgets, not a scheduler that races.
 
 **It reads command position, not prose,** which is `bash-guard`'s rule applied here: the phrase turns
 up in commit messages and in heredoc-written docs, and denying those teaches the agent to route around
@@ -215,8 +269,8 @@ message teaches the agent that the gate is noise, and that costs every consult a
 
 Two ways out, and not one knob: `FORGE_CODEX_DISABLE=1` switches codex off entirely, while
 `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` stands only this gate down — where the advisor cannot be called,
-an order to call it first is a wall. The transcript also lags the conversation, so the refusal says to
-re-run the command rather than call the advisor twice.
+an order to call it first is a wall. The transcript also lags the conversation — `settle()` above —
+so the refusal says to re-run the command rather than call the advisor twice.
 
 A transcript that will not open reads as null, never as "no advice given" — a gate that fails closed
 on a missing file stops the work it exists to order.

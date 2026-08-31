@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 // A second opinion that follows no first opinion is just another first opinion. docs/HOOKS.md.
 
+import { repoRoot } from "../src/codex.mjs";
+import { lastConsultAt } from "../src/codex-log.mjs";
 import {
   EXECUTES_STDIN,
-  advisedSince,
   askedAlready,
   block,
   deny,
   readEvent,
-  transcript,
+  settle,
+  unspentAdvice,
 } from "./_hook.mjs";
 
 /* Command position, as bash-guard reads it: the data is removed, then what is left is read as
@@ -48,16 +50,14 @@ if (
   process.exit(0);
 }
 
-const records = transcript(ev.transcript_path ?? "");
-if (!records) process.exit(0);
-
-if (advisedSince(records) === 0) {
+const spentAt = lastConsultAt(repoRoot(ev.cwd ?? process.cwd()));
+if (!settle(ev.transcript_path ?? "", (records) => unspentAdvice(records, spentAt))) {
   deny(
     "Consult the built-in advisor before codex, not after.\n\n"
       + "It reads this conversation and costs nothing; codex reads the files and has never seen any "
       + "of it. Backwards, the expensive reviewer pays to rediscover what the free one would say.\n\n"
       + "Do this: call advisor(), act on it, then re-run this command with its points in the intent. "
-      + "If you called it seconds ago, just re-run — the transcript lags the conversation.",
+      + "Advice holds until a consult spends it, so a re-run needs no second call.",
   );
 }
 
@@ -65,7 +65,7 @@ if (advisedSince(records) === 0) {
 // content can survive to reach codex. Asked once: this is a judgement, not a fact.
 if (!/advisor/i.test(String(ev.tool_input.command)) && !askedAlready(ev, "codex-intent", "codex-order")) {
   block(
-    "The advisor spoke this turn and this intent does not mention it.\n\n"
+    "The advisor has spoken and this intent does not mention it.\n\n"
       + "Its reply is encrypted and unreadable once the turn moves on, so the intent is the only place "
       + "its content survives — without it, agreement looks independent when it is duplication.\n\n"
       + "Do this: add what it said and what you did about it, then re-run. Asked once per session.",

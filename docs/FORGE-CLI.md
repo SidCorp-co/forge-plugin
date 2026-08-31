@@ -244,8 +244,8 @@ sha256 and whether the file was clipped, because advice that cannot be tied to b
 checked.
 
 **The hook records; it never reviews.** A PostToolUse half notes each document a turn changed and
-asks — *once* — for a consult at the end; a Stop half says it again if the turn is ending
-unconsulted. Once, because an instruction repeated on every write gets ignored: `afterTouch` answers
+asks — *once* — for a consult at the end, and that is the whole of the asking: nothing blocks a turn
+over it. Once, because an instruction repeated on every write gets ignored: `afterTouch` answers
 `added` and `first` separately for that reason. The turn is keyed by canonical git root, since one
 state file serves every checkout, and `clearConsulted` removes only what was consulted on — a file
 recorded while the call was in flight is not part of that answer. What counts as a document is

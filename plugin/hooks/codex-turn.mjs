@@ -1,15 +1,14 @@
 #!/usr/bin/env node
-// Record what a turn changed; ask once, at the end, for a second model to read it. Called bare
-// for PostToolUse and with `--stop` for Stop. Why `touched()` and not tool_input: docs/HOOKS.md.
+// Record what a turn changed and ask once for a second model to read it. docs/HOOKS.md.
 
-import { hookRecord, stopNotice } from "../src/codex.mjs";
+import { hookRecord } from "../src/codex.mjs";
 import { readEvent, touched } from "./_hook.mjs";
 
 const ev = readEvent();
 
+/* The Stop half is gone; the guard stays until a restart drops the registration with it. */
 if (process.argv[2] === "--stop") {
-  const notice = stopNotice();
-  if (notice) process.stdout.write(`${notice}\n`);
+  process.exit(0);
 } else {
   const context = hookRecord(ev, touched(ev));
   if (context) {

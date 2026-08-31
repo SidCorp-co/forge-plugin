@@ -5,7 +5,7 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { EXECUTES_STDIN, askedAlready, deny, readEvent } from "./_hook.mjs";
+import { EXECUTES_STDIN, REDIRECT, WRITES, askedAlready, deny, readEvent } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
 
 const FORGE_SOURCES = {
@@ -17,12 +17,7 @@ const FORGE_SOURCES = {
 const GUARDED = /\/memory\/|\/skills\//;
 // Naming one of those files is not touching it: reading a skill must stay free, so a write shape
 // is asked about only as its own token — unanchored, `-i` matched inside `erp-issue-workflow.md`
-// and `>` a commit trailer's `<noreply@anthropic.com>`. A redirect is judged by its target, since
-// coexistence is not aim: `2>/dev/null` writes nothing, a read sent to `/tmp` writes nowhere near.
-const REDIRECT = /(?:^|[\s;&|(])\d?>>?\s*(?!&\d)("[^"]*"|'[^']*'|[^\s;&|<>]+)/gu;
-// These carry their target as an argument, so a guarded file beside one is asked about.
-const WRITES =
-  /\bsed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)|\btee\b|\bcp\b|\bmv\b|\btruncate\b|open\([^)]*['"]w|\bwrite_(?:text|bytes)\b|\bwriteFileSync\b|\bshutil\.(?:copy|move)|\bos\.(?:replace|rename)\b/;
+// and `>` a commit trailer's `<noreply@anthropic.com>`.
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
 /** A heredoc body is data, not command. The operator's own line survives, so `cat <<EOF > x.md`

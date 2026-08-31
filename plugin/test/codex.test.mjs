@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { mock } from "node:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,7 +7,7 @@ import { join } from "node:path";
 /* Imported after XDG_CONFIG_HOME moves, so nothing here can touch the caller's own state file. */
 const sandbox = mkdtempSync(join(tmpdir(), "forge-codex-"));
 process.env.XDG_CONFIG_HOME = sandbox;
-for (const name of ["FORGE_CODEX_PATH_RE", "FORGE_CODEX_DISABLE", "FORGE_CODEX_INSIDE"]) {
+for (const name of ["FORGE_CODEX_PATH_RE", "FORGE_CODEX_DISABLE"]) {
   delete process.env[name];
 }
 
@@ -19,7 +19,6 @@ const {
   hookRecord,
   pendingIn,
   recordable,
-  stopNotice,
 } = await import("../src/codex.mjs");
 const {
   bundle,
@@ -36,7 +35,7 @@ const {
   sameFamily,
 } = await import("../src/codex-api.mjs");
 const { partition } = await import("../src/resolve/flags.mjs");
-const BOOLEANS = ["--bg", "--allow-echo"];
+const BOOLEANS = ["--allow-echo"];
 const { answered, countedIn, historyFor, logEntries, pairedLog, startedState, verdictsBy } =
   await import("../src/codex-log.mjs");
 
@@ -280,7 +279,7 @@ test("a path the filter does not cover, or no repository at all, is not recorded
   assert.equal(existsSync(STATE_PATH), false);
 });
 
-test("the disable switch silences both halves", (t) => {
+test("the disable switch silences the record", (t) => {
   clearState();
   process.env.FORGE_CODEX_DISABLE = "1";
   t.after(() => {
@@ -288,7 +287,6 @@ test("the disable switch silences both halves", (t) => {
     clearState();
   });
   assert.equal(hookRecord({}, [join(REPO, "docs", "PLAN.md")]), null);
-  assert.equal(stopNotice(), null);
 });
 
 /* An unpaired start is a consult that died; a paired one is replaced by what it answered. */
@@ -376,12 +374,28 @@ test("an unchanged file is offered as context and excluded from review", () => {
 /* Found by running it: splitting on "starts with --" read a flag's value as a file path and hid it
    from the parser, so `--diff --only major` reported that --diff had no value. */
 test("a flag's value is never mistaken for a file", () => {
-  const held = partition(["a.mjs", "--diff", "--only", "blocker,major", "b.mjs", "--bg"], BOOLEANS);
+  const held = partition(["a.mjs", "--diff", "--only", "blocker,major", "b.mjs", "--allow-echo"], BOOLEANS);
   assert.deepEqual(held.positionals, ["a.mjs", "b.mjs"]);
-  assert.deepEqual(held.flagArgv, ["--diff", "--only", "blocker,major", "--bg"]);
-  const bare = partition(["--bg", "x.mjs"], BOOLEANS);
+  assert.deepEqual(held.flagArgv, ["--diff", "--only", "blocker,major", "--allow-echo"]);
+  const bare = partition(["--allow-echo", "x.mjs"], BOOLEANS);
   assert.deepEqual(bare.positionals, ["x.mjs"]);
-  assert.deepEqual(bare.flagArgv, ["--bg"]);
+  assert.deepEqual(bare.flagArgv, ["--allow-echo"]);
+});
+
+/* Removed rather than ignored: the flag was documented, and a habit outlives the code. `fail` exits
+   rather than throwing, so the exit is what gets caught and the message is read off console.error. */
+test("--bg is refused by name", () => {
+  const stopped = mock.method(process, "exit", () => {
+    throw new Error("exited");
+  });
+  const said = mock.method(console, "error", () => {});
+  try {
+    assert.throws(() => consultArgs(["a.mjs", "--bg"]), /exited/);
+    assert.match(String(said.mock.calls[0].arguments[0]), /--bg is gone/);
+  } finally {
+    stopped.mock.restore();
+    said.mock.restore();
+  }
 });
 
 test("a command line becomes a request in one place", () => {
@@ -391,14 +405,13 @@ test("a command line becomes a request in one place", () => {
   assert.deepEqual(plain.risks, []);
 
   const shaped = consultArgs([
-    "a.mjs", "--diff", "--verify", "it races", "--only", "blocker,major", "--verify", "it leaks", "--bg",
+    "a.mjs", "--diff", "--verify", "it races", "--only", "blocker,major", "--verify", "it leaks", "--allow-echo",
   ]);
   assert.deepEqual(shaped.named, ["a.mjs"]);
   assert.deepEqual(shaped.risks, ["it races", "it leaks"]);
   assert.deepEqual(shaped.only, ["blocker", "major"]);
   assert.equal(shaped.base, "HEAD");
-  assert.equal(shaped.bg, true);
-  assert.equal(shaped.allowEcho, false);
+  assert.equal(shaped.allowEcho, true);
 
   /* Asking what to diff against is asking for the diff, so --base implies it rather than being
      silently dropped. */
