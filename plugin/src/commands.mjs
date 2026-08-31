@@ -38,6 +38,32 @@ const filled = (record) => {
   );
 };
 
+/* An attachment answers with its id, name, mime, size and timestamp, and a reader acts on none
+   of them: the url is what gets fetched. Keyed on carrying a url rather than on the field being
+   called `attachments`, so a payload that grows another such list is covered. */
+export const urlBearing = (item) => Boolean(item) && typeof item === "object" && typeof item.url === "string";
+
+export const terse = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => (urlBearing(item) ? item.url : terse(item)));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, held]) => [key, terse(held)]));
+  }
+  return value;
+};
+
+/* The upload reply is that same object, and the name is already on the line. Unparseable is
+   printed whole: a body that is not the expected shape is the one worth seeing. */
+export const uploaded = (answer) => {
+  try {
+    const parsed = JSON.parse(answer);
+    return urlBearing(parsed) ? parsed.url : answer;
+  } catch {
+    return answer;
+  }
+};
+
 /* A pattern without a format is kept — that one carries the only copy of its rule. */
 const trimPatterns = (node) => {
   if (Array.isArray(node)) return node.map(trimPatterns);
@@ -148,15 +174,14 @@ export const commands = {
   /* Three tiers, and the payload is what costs. Fetch narrow, then fetch again. */
   issue: async ([reference, ...rest]) => {
     if (!reference) fail(usageOf("issue"));
-    const { fields } = flags(rest, "issue");
+    const { fields, full } = flags(rest, "issue", ["--full"]);
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
     if (names) await checkNames(names, "forge_issues", ["fields", "items", "enum"], "field");
     const documentId = await documentIdOf(reference);
-    show(
-      filled(
-        await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: names } : {}) }),
-      ),
+    const body = filled(
+      await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: names } : {}) }),
     );
+    show(full ? body : terse(body));
   },
   /* `open` marks the active set; `draft` never dispatches. */
   new: async ([path, ...rest]) => {
@@ -202,7 +227,7 @@ export const commands = {
       const put = await fetch(url, { method: "PUT", body: readFileSync(path) });
       const answer = await put.text();
       if (!put.ok) fail(`Upload of ${name} answered ${put.status}: ${answer.slice(0, 300)}`);
-      console.log(`${name}  ${answer}`);
+      console.log(`${name}  ${uploaded(answer)}`);
     }
   },
   dep: async ([from, to, kind = "blocks"]) => {
