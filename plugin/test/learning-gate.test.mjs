@@ -9,6 +9,7 @@ import test from "node:test";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "learning-gate.mjs");
 const MEMORY = "/home/thanh/.claude/projects/-run-media-thanh-New-ai-project-sid-erp/memory";
+const SKILL = "plugin/skills/issue-flow/SKILL.md";
 
 /* The gate stamps /tmp once per session per file, so a fixture reusing a session id passes on a
    re-run for the wrong reason. Every call gets its own session. */
@@ -113,4 +114,22 @@ test("a python write through the shell is still found", () => {
 
 test("a heredoc keeps the rest of its own operator line", () => {
   assert.equal(decide(`M=${MEMORY}\ncat <<EOF > $M/trap.md\nx\nEOF`).allowed, false);
+});
+
+/* A redirect is aim, not coexistence. Anchoring `>` to the start of a token made `2>/dev/null`
+   a write shape, so reading a skill file with stderr silenced was refused — this suite's own
+   harness hit it first. */
+test("stderr redirection is not a write", () => {
+  assert.equal(decide(`ls -la ${SKILL} 2>/dev/null | head`).allowed, true);
+  assert.equal(decide(`cat ${MEMORY}/a.md 2>&1 | head -5`).allowed, true);
+});
+
+test("a read of a guarded file that writes somewhere else is free", () => {
+  assert.equal(decide(`sed -n 1,5p ${MEMORY}/a.md > /tmp/out.txt`).allowed, true);
+});
+
+test("a redirect aimed at a guarded file is refused, appended or truncated", () => {
+  assert.equal(decide(`cat > ${MEMORY}/trap.md`).allowed, false);
+  assert.equal(decide(`echo x >> ${MEMORY}/trap.md`).allowed, false);
+  assert.equal(decide(`echo x > ${SKILL}`).allowed, false);
 });

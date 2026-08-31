@@ -15,12 +15,14 @@ const FORGE_SOURCES = {
   policy: "a rule that binds future work",
 };
 const GUARDED = /\/memory\/|\/skills\//;
-// Naming one of those files is not touching it: reading a skill must stay free, so only a write
-// shape is asked about — and each has to be its own token. Unanchored, `-i` matched inside
-// `erp-issue-workflow.md` and `>` matched a commit trailer's `<noreply@anthropic.com>`, refusing a
-// `sed -n` read and a `git add` for redirects neither contained.
+// Naming one of those files is not touching it: reading a skill must stay free, so a write shape
+// is asked about only as its own token — unanchored, `-i` matched inside `erp-issue-workflow.md`
+// and `>` a commit trailer's `<noreply@anthropic.com>`. A redirect is judged by its target, since
+// coexistence is not aim: `2>/dev/null` writes nothing, a read sent to `/tmp` writes nowhere near.
+const REDIRECT = /(?:^|[\s;&|(])\d?>>?\s*(?!&\d)("[^"]*"|'[^']*'|[^\s;&|<>]+)/gu;
+// These carry their target as an argument, so a guarded file beside one is asked about.
 const WRITES =
-  /\bsed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)|(?:^|[\s;&|(])\d?>>?|\btee\b|\bcp\b|\bmv\b|\btruncate\b|open\([^)]*['"]w/;
+  /\bsed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)|\btee\b|\bcp\b|\bmv\b|\btruncate\b|open\([^)]*['"]w/;
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
 /** A heredoc body is data, not command. The operator's own line survives, so `cat <<EOF > x.md`
@@ -133,9 +135,12 @@ if (tool.endsWith("forge_memory_write") || tool.endsWith("forge_memory.write")) 
 // So the shell route is closed for these two kinds of file rather than approximated.
 if (tool === "Bash") {
   const text = bodiless(expanded(ti.command ?? ""));
-  if (!WRITES.test(text)) process.exit(0);
   const base = chdir(text);
-  for (const token of text.match(MD_TOKEN) ?? []) {
+  const named = WRITES.test(text) ? (text.match(MD_TOKEN) ?? []) : [];
+  const aimed = [...text.matchAll(REDIRECT)]
+    .flatMap(([, path]) => unquote(path).match(MD_TOKEN) ?? []);
+  if (named.length === 0 && aimed.length === 0) process.exit(0);
+  for (const token of [...aimed, ...named]) {
     if (basename(token) === "MEMORY.md") continue;
     const resolved = [token, ...(base && !token.startsWith("/") ? [`${base}/${token}`] : [])].find(
       (path) => GUARDED.test(path),
