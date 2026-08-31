@@ -26,3 +26,20 @@ asks for the pid and the one command that ends it.
 **The way out is not a rephrasing.** A refusal states one safer form, and a case the guard reads
 wrongly is a case to put to the user — a command reworded until it slips past teaches the agent
 that the guard is noise, and that costs every refusal after it.
+
+**A quoted span is an argument, not a command.** The rules matched the whole line, so a `python3`
+heredoc holding `git add -A` in a *string literal* was refused twice in one session — the shell had
+nothing to run, and the developer could not reword their own line, which is the shape the paragraph
+above says costs every refusal after it. The command is read through `bodiless` first, as the write
+gates read it, and then quoted spans are dropped.
+
+Two exceptions, because a quoted string can become a command again. A span after `eval` or `-c` is
+kept: `bash -c "git add -A"` runs it. And nothing is stripped at all from a body that can hand a
+string to a shell — `subprocess`, `os.system`, `child_process`, `execSync`, `spawnSync`,
+`shell=True` — because there the strip would be the guard silently not existing, and this is the one
+gate whose misses cannot be undone.
+
+Known and left: `git checkout "file.txt"` loses the evidence the rule reads (a quoted path with no
+`--`), and `bash -lc` is not recognised as handing its argument to a shell. Both are narrower than
+the false refusals they replace, and both are stated here rather than discovered.
+
