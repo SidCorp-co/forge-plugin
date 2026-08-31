@@ -1,12 +1,12 @@
-import { readFileSync } from "node:fs";
 import path from "node:path";
+import { ALLOWLIST_OPTIONS } from "./allowlist.js";
 import {
   DEFAULT_STYLESHEET_EXTENSIONS,
   isAllowedValue,
   keyName,
   lineOf,
   matchesFile,
-  sourceFiles,
+  readSourceFiles,
 } from "./tokens.js";
 
 /**
@@ -124,17 +124,6 @@ const familySchema = {
   additionalProperties: false,
 };
 
-const allowEntry = {
-  type: "object",
-  properties: {
-    file: { type: "string" },
-    value: { type: "string" },
-    why: { type: "string", minLength: 1 },
-  },
-  required: ["value", "why"],
-  additionalProperties: false,
-};
-
 function elementNames(element) {
   const name = element.name;
   if (name.type === "JSXIdentifier") return [name.name];
@@ -168,9 +157,7 @@ export default {
             additionalProperties: false,
           },
           units: { type: "array", items: { type: "string" } },
-          allow: { type: "array", items: allowEntry },
-          exemptFiles: { type: "array", items: { type: "string" } },
-          tokenSource: { type: "string" },
+          ...ALLOWLIST_OPTIONS,
         },
         additionalProperties: false,
       },
@@ -316,14 +303,7 @@ export function findArbitrarySizesInFiles({
   ignoredDirectories,
 } = {}) {
   const violations = [];
-  for (const file of sourceFiles({ roots, extensions, ignoredDirectories })) {
-    if (matchesFile(file, exemptFiles)) continue;
-    let text;
-    try {
-      text = readFileSync(file, "utf8");
-    } catch {
-      continue;
-    }
+  for (const [file, text] of readSourceFiles({ roots, extensions, exemptFiles, ignoredDirectories })) {
     for (const family of families) {
       for (const property of family.properties ?? []) {
         // Anchored on a declaration boundary, so `--font-size: 12px` in the token

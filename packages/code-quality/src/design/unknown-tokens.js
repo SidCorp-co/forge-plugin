@@ -1,13 +1,11 @@
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { withImportedSources } from "./stylesheets.js";
 import {
   DEFAULT_MARKUP_EXTENSIONS,
   lineOf,
-  matchesFile,
+  readSourceFiles,
   readTokenSources,
   resolveTokenAliases,
-  sourceFiles,
   stringLiterals,
   themePalettes,
 } from "./tokens.js";
@@ -425,17 +423,7 @@ export function findUnknownTokens({
   );
   const map = namespaceMap(namespaces);
 
-  const files = sourceFiles({ roots, extensions, ignoredDirectories }).filter(
-    (file) => !matchesFile(file, exemptFiles),
-  );
-  const read = new Map();
-  for (const file of files) {
-    try {
-      read.set(file, readFileSync(file, "utf8"));
-    } catch {
-      continue;
-    }
-  }
+  const read = new Map(readSourceFiles({ roots, extensions, exemptFiles, ignoredDirectories }));
   const local = localProperties(read.values());
 
   const violations = [];

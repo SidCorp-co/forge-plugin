@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { withImportedSources } from "./stylesheets.js";
 import {
@@ -6,9 +5,9 @@ import {
   DEFAULT_MARKUP_EXTENSIONS,
   isTranslucentHex,
   parseHexColor,
+  readSourceFiles,
   readTokenSources,
   resolveTokenAliases,
-  sourceFiles,
   stringLiterals,
   themePalettes,
 } from "./tokens.js";
@@ -48,13 +47,7 @@ function resolveNeed(need, thresholds) {
 // value are skipped — what they composite against is not in the token table.
 function scanPairs({ roots, extensions, ignoredDirectories, tokenPrefix, tokenNames }) {
   const pairs = new Map();
-  for (const file of sourceFiles({ roots, extensions, ignoredDirectories })) {
-    let text;
-    try {
-      text = readFileSync(file, "utf8");
-    } catch {
-      continue;
-    }
+  for (const [file, text] of readSourceFiles({ roots, extensions, ignoredDirectories })) {
     for (const literal of stringLiterals(text)) {
       const { value } = literal;
       const backgrounds = [...value.matchAll(utilityPattern("bg"))];

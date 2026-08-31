@@ -268,6 +268,21 @@ export function sourceFiles({
   return files.sort();
 }
 
+// The four scans that read every file, given the text with it. Reading sits outside the yield:
+// a consumer that throws resumes there, and inside the `try` looks like an unreadable file.
+export function* readSourceFiles({ exemptFiles = [], ...options } = {}) {
+  for (const file of sourceFiles(options)) {
+    if (matchesFile(file, exemptFiles)) continue;
+    let text;
+    try {
+      text = readFileSync(file, "utf8");
+    } catch {
+      continue;
+    }
+    yield [file, text];
+  }
+}
+
 const COMMENT = /\/\*[\s\S]*?\*\//g;
 
 /** Comments blanked to their own width, so a prose mention is never read as code. */

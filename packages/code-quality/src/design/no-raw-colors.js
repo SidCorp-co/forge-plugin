@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
 import path from "node:path";
+import { ALLOWLIST_OPTIONS } from "./allowlist.js";
 import {
   COLOR_PROPERTIES,
   DEFAULT_STYLESHEET_EXTENSIONS,
@@ -11,19 +11,8 @@ import {
   matchesFile,
   NAMED_COLORS,
   NEUTRAL_COLOR_KEYWORDS,
-  sourceFiles,
+  readSourceFiles,
 } from "./tokens.js";
-
-const allowEntry = {
-  type: "object",
-  properties: {
-    file: { type: "string" },
-    value: { type: "string" },
-    why: { type: "string", minLength: 1 },
-  },
-  required: ["value", "why"],
-  additionalProperties: false,
-};
 
 /**
  * Colour and size have separate homes, so `tokenSource` alone cannot name both: a project whose
@@ -79,13 +68,11 @@ export default {
       {
         type: "object",
         properties: {
-          allow: { type: "array", items: allowEntry },
+          ...ALLOWLIST_OPTIONS,
           colorProperties: { type: "array", items: { type: "string" } },
-          exemptFiles: { type: "array", items: { type: "string" } },
           colorReference: { type: "string" },
           colorSource: { type: "string" },
           namedColors: { type: "array", items: { type: "string" } },
-          tokenSource: { type: "string" },
         },
         additionalProperties: false,
       },
@@ -178,14 +165,7 @@ export function findRawColorsInFiles({
   ignoredDirectories,
 } = {}) {
   const violations = [];
-  for (const file of sourceFiles({ roots, extensions, ignoredDirectories })) {
-    if (matchesFile(file, exemptFiles)) continue;
-    let text;
-    try {
-      text = readFileSync(file, "utf8");
-    } catch {
-      continue;
-    }
+  for (const [file, text] of readSourceFiles({ roots, extensions, exemptFiles, ignoredDirectories })) {
     for (const finding of findRawColors(text, { colorProperties, namedColors })) {
       if (isAllowedValue(allow, file, finding.value)) continue;
       violations.push({
