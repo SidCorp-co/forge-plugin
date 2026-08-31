@@ -55,6 +55,11 @@ test("code carries comments and markdown carries prose", () => {
   assert.deepEqual(load(root, new Set(), "prose").map(([label]) => label), ["b.md"]);
 });
 
+test("a glob is not a block comment, however much it looks like one", () => {
+  const config = `export default [{ ignores: ["dist/**", "node_modules/**"] }];\n// ${A}\n`;
+  assert.deepEqual(commentSentences(config), [A]);
+});
+
 test("a markdown heading is not prose, so it is never a unit", () => {
   assert.deepEqual(sentences(`# ${A}\n\n${B}\n`), [B]);
 });

@@ -8,7 +8,8 @@
 // What belongs here is only the difference between the two kinds of input: markdown's fences,
 // tables and headings, and a source file's comment markers and waivers.
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import { isIgnoredComment, isWaiver, RESTATEMENT_WAIVER } from "../hooks/vendor/line-metrics.js";
@@ -34,7 +35,9 @@ export function sentences(text) {
   return splitSentences(stripped, DEFAULT_MIN_SENTENCE_LENGTH);
 }
 
-const COMMENT = /^[ \t]*\/\/([^\n]*)|\/\*([\s\S]*?)\*\//gm;
+// A glob is not a comment: `"dist/**"` opens one to a scanner and swallows the code after it,
+// so an opener preceded by a word character, a quote or a slash is one of those.
+const COMMENT = /^[ \t]*\/\/([^\n]*)|(?<![\w"'`/])\/\*([\s\S]*?)\*\//gm;
 const STAR = /^\s*\*\s?/gm;
 const newlines = (text, from, to) => (text.slice(from, to).match(/\n/g) ?? []).length;
 
@@ -83,21 +86,37 @@ const CODE = /\.(?:mjs|cjs|js|jsx|ts|tsx)$/;
 
 export const KINDS = ["both", "comments", "prose"];
 
+const wanted = (name, kind) =>
+  name.endsWith(".md") ? kind !== "comments" : CODE.test(name) && kind !== "prose";
+
 function walk(dir, kind, out = []) {
   for (const name of readdirSync(dir).sort()) {
     if (SKIP.has(name)) continue;
     const path = join(dir, name);
     if (statSync(path).isDirectory()) walk(path, kind, out);
-    else if (name.endsWith(".md") ? kind !== "comments" : CODE.test(name) && kind !== "prose")
-      out.push(path);
+    else if (wanted(name, kind)) out.push(path);
   }
   return out;
+}
+
+/** A build directory holds a compiled copy of the source, so scanning one reports every comment in
+ *  the project twice. Which files a project keeps is git's answer rather than a list of directory
+ *  names guessed at here; a tree that is not a repository falls back to walking it. */
+function tracked(root, kind) {
+  const args = ["ls-files", "-z", "--cached", "--others", "--exclude-standard"];
+  const git = spawnSync("git", ["-C", root, ...args], { encoding: "utf8", maxBuffer: 1 << 28 });
+  if (git.status !== 0) return null;
+  return git.stdout
+    .split("\0")
+    .filter((rel) => rel && wanted(rel, kind))
+    .map((rel) => join(root, rel))
+    .filter((path) => existsSync(path));
 }
 
 export function load(root, exclude = new Set(), kind = "both") {
   const units = [];
   const skipped = [...exclude];
-  for (const path of walk(root, kind)) {
+  for (const path of tracked(root, kind) ?? walk(root, kind)) {
     const rel = relative(root, path);
     if (skipped.some((entry) => rel === entry || rel.startsWith(`${entry}/`))) continue;
     const text = readFileSync(path, "utf8");
@@ -132,6 +151,9 @@ const USAGE = `Find text stated twice: a skill's prose, or a source tree's comme
   --exclude REL    skip this file or directory, relative to <dir>; repeatable
   --only KIND      comments, prose, or both (default: both). A changelog restates its README by
                    design, so a source tree is usually audited for comments alone
+
+Inside a git repository only what git tracks is read, so a build directory holding a compiled
+copy of the source does not report every comment in the project twice.
   --threshold N    Jaccard index at which two sentences count as duplicates (default: 0.34)
   --floor N        content words two sentences must share before the index is computed (default: 5)
   --limit N        pairs to print (default: 10)
