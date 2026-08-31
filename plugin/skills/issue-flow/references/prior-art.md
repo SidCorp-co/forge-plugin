@@ -30,17 +30,15 @@ the next person reads.
 The problem: a workflow worth reusing must not know one project's facts, yet cannot work
 without them.
 
-**[Anthropic's Agent Skills format](https://agentskills.io/home)** loads a skill's name and
-description at startup, its instructions when the task matches, and its bundled
-`references/` only during execution. That progressive disclosure is where `SKILL.md`'s rule
-about its own spine comes from — a reference nobody reaches costs nothing, so the cheapest
-place for detail is behind a citation. It bounds the spine by what each phase cites, not by a
-line count: phases differ in length because they differ in how much they owe.
+**[Anthropic's Agent Skills format](https://agentskills.io/home)** — progressive disclosure.
+That is where `SKILL.md`'s rule about its own spine comes from: a reference nobody reaches
+costs nothing, so the cheapest place for detail is behind a citation. It bounds the spine by
+what each phase cites, not by a line count — phases differ in length because they differ in
+how much they owe.
 
-**[OpenHands repository agents](https://docs.openhands.dev/overview/skills)** load
-repository-specific knowledge from a file inside the repository, separate from the reusable
-skills. **[Cursor rules](https://cursor.com/docs/rules)** make the scoping explicit with four
-activation modes: always, glob-attached, agent-requested by description, and manual — the
+**[OpenHands repository agents](https://docs.openhands.dev/overview/skills)** keep repository
+knowledge in the repository, separate from the reusable skill.
+**[Cursor rules](https://cursor.com/docs/rules)** make activation scoping explicit — the
 lesson being that "always loaded" is a budget to spend sparingly.
 **[AGENTS.md](https://agents.md/)** turned the repository-side half into a cross-tool
 standard rather than one vendor's private file.
