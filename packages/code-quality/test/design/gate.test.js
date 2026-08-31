@@ -266,7 +266,7 @@ test("the settings file answers the flags, and a flag still wins for one run", (
   // Counted because the config named the extension, over the limit the config set.
   const configured = runBare(root);
   assert.equal(configured.status, 1, configured.stdout);
-  assert.match(configured.stderr, /app\n\s+\d+ source files, limit 1/);
+  assert.match(configured.stderr, /app\n\s+move \d+ out: \d+ source files, limit 1/);
 
   // The flag overrides the key for this run only.
   assert.equal(runBare(root, "--max-files-per-dir=99").status, 0);

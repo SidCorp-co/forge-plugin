@@ -2,7 +2,7 @@
 
 // A developer/CI gate, intentionally separate from any production build: it
 // reports only the rules this plugin enables and ignores every other finding.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { ESLint } from "eslint";
 import {
@@ -29,6 +29,7 @@ import {
   TOKEN_SECTIONS,
   TYPE_RAMP_DIRECTIVE,
   UNKNOWN_TOKEN_DIRECTIVE,
+  walkDirectories,
 } from "../src/index.js";
 
 const USAGE = `Usage: code-quality-gate [paths...] [options]
@@ -132,24 +133,16 @@ function workspaces() {
     if (path.dirname(directory) === directory) break;
   }
 
+  // A configured directory is a package root and its children are ESLint's problem, not this
+  // walk's — so finding one is what stops the descent rather than a filter after the fact.
   const found = [];
-  const queue = [here];
-  while (queue.length > 0 && found.length < 50) {
-    const directory = queue.shift();
-    let entries;
-    try {
-      entries = readdirSync(directory, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
-      if (DEFAULT_IGNORED_DIRECTORIES.has(entry.name) || entry.name === "worktrees") continue;
-      const child = path.join(directory, entry.name);
-      if (hasConfig(child)) found.push(child);
-      else queue.push(child);
-    }
-  }
+  const descend = (child) => {
+    if (!hasConfig(child)) return true;
+    found.push(child);
+    return false;
+  };
+  const walk = walkDirectories([here], { descend });
+  while (found.length < 50 && !walk.next().done);
   return found;
 }
 
@@ -211,8 +204,8 @@ if (folderCheck) {
     const report = crowded
       .map(
         ({ directory, count }) =>
-          `${path.relative(process.cwd(), directory) || "."}\n  ${count} source files, limit ` +
-          `${maxFilesPerDirectory}`,
+          `${path.relative(process.cwd(), directory) || "."}\n  move ${count - maxFilesPerDirectory} ` +
+          `out: ${count} source files, limit ${maxFilesPerDirectory}`,
       )
       .join("\n");
     process.stderr.write(

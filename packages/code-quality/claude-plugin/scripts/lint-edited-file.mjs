@@ -27,6 +27,10 @@ const FIX_POLICY =
   "Fix the source, not the check: no eslint-disable, no raised limit, no exemption entry.";
 
 const RULE_DIRECTIVES = {
+  "code-quality/no-duplicate-comment":
+    'Two authorities for one constraint diverge the first time someone corrects only the copy they found. Keep the statement in one place, or waive it with "restated: deliberate — <reason>".',
+  "code-quality/no-raw-elements":
+    'Compose the primitive the design system exports, or waive it at the site with "primitive: none — <reason>".',
   "max-lines":
     "Split by responsibility, never at the line count. Backend: a folder per feature (routes, service, repository). Frontend: components/, hooks/, lib/. Move whole exports and re-export them from the original path.",
   "max-lines-per-function":

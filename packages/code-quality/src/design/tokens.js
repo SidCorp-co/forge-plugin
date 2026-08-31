@@ -1,6 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import { DEFAULT_IGNORED_DIRECTORIES } from "../folder-size.js";
+
+import { DEFAULT_IGNORED_DIRECTORIES, walkDirectories } from "../walk.js";
 
 /**
  * The vocabulary the design-system rules share: what counts as a colour, which
@@ -258,28 +259,10 @@ export function sourceFiles({
 } = {}) {
   const wanted = new Set(extensions.map((extension) => extension.toLowerCase()));
   const files = [];
-  const seen = new Set();
-  const queue = roots.map((root) => path.resolve(root));
-
-  while (queue.length > 0) {
-    const directory = queue.pop();
-    if (seen.has(directory)) continue;
-    seen.add(directory);
-    let entries;
-    try {
-      entries = readdirSync(directory, { withFileTypes: true });
-    } catch {
-      continue;
-    }
+  for (const { directory, entries } of walkDirectories(roots, { ignoredDirectories })) {
     for (const entry of entries) {
-      if (entry.isSymbolicLink()) continue;
-      const target = path.join(directory, entry.name);
-      if (entry.isDirectory()) {
-        if (entry.name.startsWith(".") || ignoredDirectories.has(entry.name)) continue;
-        queue.push(target);
-      } else if (wanted.has(path.extname(entry.name).toLowerCase())) {
-        files.push(target);
-      }
+      if (!entry.isFile()) continue;
+      if (wanted.has(path.extname(entry.name).toLowerCase())) files.push(path.join(directory, entry.name));
     }
   }
   return files.sort();
@@ -293,9 +276,8 @@ function withoutComments(css) {
 }
 
 /**
- * A block is found by the header that opens it, never by substring: `.dark`
- * occurs in a comment and in `:where(.dark, …)` above the block it names, and a
- * substring search selects whichever block came next. Whitespace matches any run.
+ * A block is found by the header that opens it, never by substring: `.dark` occurs in a comment
+ * and in `:where(.dark, …)`, and a substring search takes whichever block came next.
  */
 function blockStart(css, block) {
   const name = escapeForRegExp(block.trim()).replace(/\s+/g, "\\s+");
@@ -317,9 +299,8 @@ function blockBody(css, block, file) {
 }
 
 /**
- * Custom properties declared in a CSS file. `block` narrows the read to one
- * theme, which a file declaring several needs: a whole-file read lets the last
- * declaration win, and that theme is not the one being measured.
+ * Custom properties declared in a CSS file. `block` narrows the read to one theme, which a file
+ * declaring several needs: read whole, the last declaration wins and it is not the one measured.
  */
 export function readColorTokens(file, { block, tokenPattern = "--[\\w-]+" } = {}) {
   const css = withoutComments(readFileSync(file, "utf8"));
@@ -384,9 +365,8 @@ export function readTokenSources(sources) {
 }
 
 /**
- * One palette per theme, each a list of sources layered in order: a second theme
- * is usually a partial rebinding, so its block alone is half a palette. Without
- * `themes` this is one unnamed palette over `sources` or `tokenFile`.
+ * One palette per theme, each a list of sources layered in order — a second theme is usually a
+ * partial rebinding, so its block alone is half. Without `themes`, one unnamed palette.
  */
 export function themePalettes({ themes, tokenFile, block, tokenPattern, sources }) {
   if (themes === undefined) {

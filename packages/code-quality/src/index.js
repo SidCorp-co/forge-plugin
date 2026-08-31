@@ -57,11 +57,11 @@ export {
 } from "./directives.js";
 export { DESIGN_SYSTEM, findInlineWarningGaps } from "./inline-warning.js";
 export {
-  DEFAULT_IGNORED_DIRECTORIES,
   DEFAULT_MAX_FILES_PER_DIRECTORY,
   findCrowdedDirectories,
   SOURCE_EXTENSIONS,
 } from "./folder-size.js";
+export { DEFAULT_IGNORED_DIRECTORIES, walkDirectories } from "./walk.js";
 export { HANDOFF_PATTERNS, NARRATION_PATTERNS } from "./no-historical-narration.js";
 export {
   contentWords,

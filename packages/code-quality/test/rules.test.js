@@ -25,7 +25,13 @@ test("comment-density defaults and options", () => {
     invalid: [
       {
         code: source(1, 6),
-        errors: [{ messageId: "excessiveDensity", data: { ratio: "0.17", commentLines: 1, codeLines: 6, maxRatio: 0.15 } }],
+        errors: [
+          {
+            messageId: "excessiveDensity",
+            // 6 code lines at 0.15 buy no comment line at all, so the one written is the one to cut.
+            data: { excess: 1, lineWord: "line", budget: 0, commentLines: 1, codeLines: 6, maxRatio: 0.15 },
+          },
+        ],
       },
       {
         code: source(2, 1),
@@ -62,7 +68,7 @@ test("max-consecutive-comment-lines defaults and options", () => {
     invalid: [
       {
         code: "// 1\n// 2\n// 3\n// 4\n// 5\n// 6\n// 7\n// 8\n// 9\nconst x = 1;",
-        errors: [{ messageId: "tooManyConsecutive", data: { count: 9, max: 8 } }],
+        errors: [{ messageId: "tooManyConsecutive", data: { count: 9, max: 8, excess: 1 } }],
       },
       {
         code: "const a = 1; // 1\nconst b = 2; // 2\nconst c = 3; // 3",

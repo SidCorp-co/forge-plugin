@@ -88,7 +88,7 @@ export default {
     ],
     messages: {
       duplicateComment:
-        'This repeats what the comment on line {{line}} already says ("{{other}}"). Two authorities for one constraint diverge the first time someone corrects only the copy they found. Keep the statement in one place, or waive it with "restated: deliberate — <reason>".',
+        'Repeats what the comment on line {{line}} already says ("{{other}}").',
     },
   },
   create(context) {

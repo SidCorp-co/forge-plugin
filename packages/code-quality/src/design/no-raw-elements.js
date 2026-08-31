@@ -236,7 +236,7 @@ export default {
             primitive: owner.primitive,
             from: from ? ` from ${from}` : "",
             owns: owner.owns,
-            remedy: `Compose ${owner.primitive}, or waive it with "primitive: none — <reason>".`,
+            remedy: `Compose ${owner.primitive}.`,
           },
         });
       },

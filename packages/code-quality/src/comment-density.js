@@ -16,7 +16,7 @@ export default {
     ],
     messages: {
       excessiveDensity:
-        "Comment density is {{ratio}} ({{commentLines}} comment lines / {{codeLines}} code lines), over the maximum {{maxRatio}}. Delete the comments that restate the code; keep only what records a constraint the code cannot express.",
+        "Delete {{excess}} comment {{lineWord}}: {{codeLines}} code lines allow {{budget}} at {{maxRatio}}, this file has {{commentLines}}.",
     },
   },
   create(context) {
@@ -36,11 +36,17 @@ export default {
               start: { line: run[0], column: 0 },
               end: { line: run.at(-1), column: context.sourceCode.lines[run.at(-1) - 1].length },
             };
+        // The budget in lines, not the ratio it came from: a reader who has to divide to learn
+        // how many comments to cut does that arithmetic on every report.
+        const budget = Math.floor(maxRatio * metrics.codeLines.size);
+        const excess = metrics.commentLines.size - budget;
         context.report({
           loc,
           messageId: "excessiveDensity",
           data: {
-            ratio: Number.isFinite(ratio) ? ratio.toFixed(2) : "Infinity",
+            excess,
+            lineWord: excess === 1 ? "line" : "lines",
+            budget,
             commentLines: metrics.commentLines.size,
             codeLines: metrics.codeLines.size,
             maxRatio,

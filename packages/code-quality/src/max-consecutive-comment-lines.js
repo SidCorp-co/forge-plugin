@@ -13,7 +13,7 @@ export default {
     ],
     messages: {
       tooManyConsecutive:
-        "{{count}} consecutive comment lines exceed the maximum {{max}}. Keep comments focused on the current constraint.",
+        "Break this run: {{count}} consecutive comment lines against a maximum of {{max}}, so {{excess}} too many.",
     },
   },
   create(context) {
@@ -28,7 +28,7 @@ export default {
             end: { line: run.at(-1), column: context.sourceCode.lines[run.at(-1) - 1].length },
           },
           messageId: "tooManyConsecutive",
-          data: { count: run.length, max },
+          data: { count: run.length, max, excess: run.length - max },
         });
       },
     };

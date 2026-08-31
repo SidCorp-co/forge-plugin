@@ -21,9 +21,11 @@ test("the hook's extension list matches the package's", () => {
 });
 
 test("the hook's directives match the package's", () => {
+  // Escapes are the literal's business: both sides are compared unescaped.
+  const unescaped = hookSource.replace(/\\(["'])/g, "$1");
   for (const directive of [FIX_POLICY, ...Object.values(RULE_DIRECTIVES)]) {
     assert.ok(
-      hookSource.includes(JSON.stringify(directive).slice(1, -1)),
+      unescaped.includes(directive),
       `the hook no longer prints this verbatim: ${directive}`,
     );
   }
