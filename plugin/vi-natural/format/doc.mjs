@@ -89,9 +89,9 @@ export function segment(text) {
 
 /** Where each prose block sits in the document, keyed by index in `pieces`.
  *
- *  A locale string is sent with its key path because "save" means one thing under `common.buttons`
- *  and another under `billing`. A paragraph in a spec has the same problem and no key: lifted out
- *  of its section it can mean several things. The heading above it is the key path it already has.
+ *  A paragraph has the ambiguity a locale string's key path resolves — gateway/engine.mjs — and no
+ *  key of its own: lifted out of its section it can mean several things. The heading above it is
+ *  the key path it already has.
  *
  *  Keyed by index in `pieces`, not by position among the prose blocks: the two callers number their
  *  items differently and only this index is common to both. */

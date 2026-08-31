@@ -94,9 +94,9 @@ plugin/
     code-quality.mjs      PostToolUse: every written code file, to the project's own linter
     derive-dont-list.mjs  PostToolUse: one nudge when a checker hard-codes its cases
     link-cli.mjs          SessionStart: both binaries onto PATH
-    vendor/               the upstream lint script, copied — see below
+    vendor/               upstream files, copied — see below
   scripts/
-    skill-dup.mjs         text a skill says twice
+    skill-dup.mjs         text stated twice — a skill's prose, or a tree's comments
     migration-risk.mjs    a migration classified by whether deploying it can be undone
     check-vendor.mjs      drift between vendor/ and the upstream it came from
   vi-natural/             the vi-natural CLI
