@@ -37,7 +37,12 @@ export async function models(args, makeClient) {
 export async function doctor(args, makeClient) {
   const { config, client } = makeClient(args);
   process.stdout.write(`config file : ${CONFIG_PATH}${existsSync(CONFIG_PATH) ? "" : " (absent)"}\n`);
-  process.stdout.write(`base url    : ${config.baseUrl}\n`);
+  try {
+    process.stdout.write(`base url    : ${config.baseUrl}\n`);
+  } catch (error) {
+    process.stdout.write("base url    : MISSING\n");
+    throw error;
+  }
   process.stdout.write(`model       : ${config.model} (effort ${config.effort})\n`);
   let key;
   try {

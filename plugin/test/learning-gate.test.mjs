@@ -12,7 +12,9 @@ import test from "node:test";
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "learning-gate.mjs");
 /* A refusal writes to the config dir now, so a suite that skips this one logs onto the developer. */
 const HOME = { ...process.env, XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), "learning-gate-home-")) };
-const MEMORY = "/home/thanh/.claude/projects/-run-media-thanh-New-ai-project-sid-erp/memory";
+/* A fixture path, not this machine's: the Bash cases need only a string holding /memory/, and
+   the ones that judge content build a real directory below. */
+const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";
 const SKILL = "plugin/skills/issue-flow/SKILL.md";
 
 /* The gate stamps /tmp once per session per file, so a fixture reusing a session id passes on a

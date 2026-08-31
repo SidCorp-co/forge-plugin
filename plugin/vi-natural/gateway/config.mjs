@@ -10,7 +10,6 @@ const CONFIG_DIR = join(process.env.XDG_CONFIG_HOME || join(homedir(), ".config"
 export const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 const GLOSSARY_FILE = ".vi-glossary.json";
 
-export const DEFAULT_BASE_URL = "https://serp-api.musetools.com/v1";
 export const DEFAULT_MODEL = "cx/gpt-5.6-luna";
 export const EFFORTS = ["minimal", "low", "medium", "high"];
 export const DEFAULT_EFFORT = "low";
@@ -51,8 +50,18 @@ export class Config {
     return this.file[fileKey] || fallback;
   }
 
+  // No default host. The gateway is whoever runs one, and a baked-in default publishes the address
+  // of a private deployment to everyone who reads this file.
   get baseUrl() {
-    return this.pick("baseUrl", "base_url", ["VI_NATURAL_BASE_URL", "MUSETOOLS_BASE_URL"], DEFAULT_BASE_URL).replace(/\/+$/, "");
+    const url = this.pick("baseUrl", "base_url", ["VI_NATURAL_BASE_URL", "MUSETOOLS_BASE_URL"]);
+    if (!url) {
+      throw new CliError(
+        "no gateway configured.\n  run: vi-natural login --base-url <url> --key <key>\n" +
+          "  or set VI_NATURAL_BASE_URL in the environment\n" +
+          "  any OpenAI-compatible endpoint serving /chat/completions works",
+      );
+    }
+    return url.replace(/\/+$/, "");
   }
 
   get apiKey() {
