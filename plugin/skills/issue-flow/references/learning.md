@@ -114,3 +114,40 @@ to a memory store *and* the first edit to a skill's own text, returning the four
 and the categories. It exists because the failure it guards is a reflex — reaching for "save
 what I learned" as a way of ending a task — and a reflex is not interrupted by a document it
 has already stopped reading.
+
+## A checker that hard-codes its cases is worse than none
+
+A list written by hand knows only the cases its author had met. It fails twice: silent on a
+case it never heard of, and — the expensive one — reporting a false gap when someone extends
+the thing correctly. A checker that cries wolf gets switched off, and a switched-off checker
+protects nothing.
+
+Derive instead: read the enum, parse the switch, key on the declared return type rather than
+the function's name. Then a case added next year is covered without anyone remembering the
+checker exists. Prove it by breaking each invariant on purpose and watching it fire — a green
+checker has demonstrated nothing.
+
+Enumerating is sometimes the point: a ratchet's list of migrated directories is *supposed* to
+be incomplete. Say so in a comment above the list, which is also what silences the hook.
+
+## Where a rule goes, and why a hook is the last place
+
+Push a rule as far down this list as it will go; one that sits higher than it needs to is
+maintenance nobody asked for.
+
+1. **A type.** Fires at compile, costs nothing to keep. A handler taking `string` where the
+   value is one of a closed set lets a typo become a branch that silently never runs.
+2. **A checker the gate runs.** Sees the whole tree, may be slow and thorough, and is the
+   authority on its own rule — a hook that reimplements one has created the second definition,
+   and the second definition is the one that drifts.
+3. **A hook.** One tool call, tight timeout, near-zero tolerance for noise. Reserved for what
+   a checker cannot see: an action that leaves no tree to scan, and a write whose *decision*
+   has to happen before the file exists.
+4. **Prose.** Last, because it is read only by someone who chose to read it.
+
+**A file hook that watches only Write and Edit is watching the side door.** `sed -i`, a
+heredoc and a python one-liner all write files through Bash and were invisible to every file
+hook here until measured. Two fixes, and which one applies depends on when the rule has to
+act: a check on the *result* runs after the call and reads the file from disk, which covers
+every route at once; a check on the *decision* cannot, so for those files the shell route is
+refused outright and the file tools are required.

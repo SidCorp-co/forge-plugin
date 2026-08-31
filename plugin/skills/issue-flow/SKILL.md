@@ -109,12 +109,12 @@ is dropped and parked, the shared gates re-run, the rest continue.
 ## Phase 2 — Decide; clarify only under condition 2
 
 The default is to decide and record the assumption; asking is condition 2, and it parks the
-issue. `references/clarify-plan.md`.
+issue. `references/clarify.md`.
 
 ## Phase 3 — Plan and acceptance criteria, in the issue's own fields
 
 Both land in fields of the issue, one each — never a local file: invisible to whoever reads
-the tracker, stale the moment the branch merges. `references/clarify-plan.md`.
+the tracker, stale the moment the branch merges. `references/plan.md`.
 
 ## Phase 4 — Implement
 
@@ -147,13 +147,13 @@ park the issue. Do not carry an unsound change forward because the phases go tha
 
 ## Phase 6 — Draft the release note
 
-Drafted here, posted in Phase 7. `references/clarify-plan.md`.
+Drafted here, posted in Phase 7. `references/release-note.md`.
 
 ## Phase 7 — Ship
 
 Take the integration and deploy path Phase 0 discovered, not one assumed from another
-project. Verify the change where it now runs, then post the release note, then move the status. The
-order matters and `references/clarify-plan.md` says why.
+project. Verify the change where it now runs, then post the release note, then move the
+status — `references/release-note.md` says why that order.
 
 **A failure anywhere along the path is condition 3**: roll back by the route Phase 0
 established, and report with the evidence rather than retrying past it.
@@ -176,8 +176,10 @@ Read on arrival at the phase that cites it.
 | File | Read at |
 |---|---|
 | `references/project-discovery.md` | Phase 0, and whenever a project fact is needed |
-| `references/clarify-plan.md` | Phases 2, 3, 6 |
+| `references/clarify.md` | Phase 2 |
+| `references/plan.md` | Phase 3 |
 | `references/verification.md` | Phases 4, 5 |
-| `references/learning.md` | Phase 8, and any time a trap costs a cycle |
+| `references/release-note.md` | Phases 6, 7 |
+| `references/learning.md` | Phase 8, and any time a rule needs a home |
 | `references/prior-art.md` | When changing this workflow |
 | `forge -h`, `forge schema <tool>` | Any tracker write |
