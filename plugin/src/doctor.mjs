@@ -7,7 +7,7 @@ import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "./reso
 import { didYouMean } from "./suggest.mjs";
 import { BUNDLED } from "./vi.mjs";
 import { accountCredentials, fail, projectRoot, projectScope, translateScope } from "./resolve/settings.mjs";
-import { readClaudeMd, reviewClaudeMd } from "./claude-md.mjs";
+import { checkClaims, readClaudeMd, reviewClaudeMd } from "./claude-md.mjs";
 import { flags } from "./resolve/flags.mjs";
 import { VERB_NAMES } from "./resolve/visibility.mjs";
 
@@ -133,10 +133,33 @@ const reportClaudeMd = (review, path) => {
 /* An override naming no guide waives nothing, so the exit code follows it. A pair doctor cannot
    classify does not: a check that stays red until someone edits prose gets switched off. */
 
+/* A claim about the repo is the kind that rots without anyone noticing, and it is the kind a
+   command can settle. Each of the three found a live defect the day it was written. */
+const CLAIMS = [
+  ["missingPaths", "claude.md path", "names no such path, relative to the project root"],
+  ["missingScripts", "claude.md script", "is in no package.json this project holds"],
+  ["missingHelp", "claude.md -h", "is told to answer `-h`, and handles no such flag"],
+];
+
+const reportClaims = (root, text) => {
+  const found = checkClaims(text, root);
+  let broken = 0;
+  for (const [key, label, why] of CLAIMS) {
+    for (const name of found[key]) {
+      broken += 1;
+      line(BAD, label, `\`${name}\` ${why}`);
+    }
+  }
+  if (!broken) line(OK, "claude.md claims", "every path, npm script and `-h` it names is real");
+  return broken;
+};
+
 const checkClaudeMd = async (scoped) => {
-  const found = readClaudeMd(projectRoot());
+  const root = projectRoot();
+  const found = readClaudeMd(root);
   if (!found) return 0;
-  return reportClaudeMd(reviewClaudeMd(found.text, await guideBodies(scoped)), found.path);
+  const broken = reportClaims(root, found.text);
+  return broken + reportClaudeMd(reviewClaudeMd(found.text, await guideBodies(scoped)), found.path);
 };
 
 /* Lazy: the transport exits the process when credentials have not resolved. */

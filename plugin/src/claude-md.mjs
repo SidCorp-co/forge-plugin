@@ -1,6 +1,7 @@
 /* The CLAUDE.md half of `forge doctor`: the guides are the authority and a project file that
    restates one has forked it. Why a pair is reported and never classified: docs/FORGE-CLI.md. */
 import { existsSync, readFileSync } from "node:fs";
+
 import { join } from "node:path";
 
 import {
@@ -117,6 +118,23 @@ export function reviewClaudeMd(text, guides, options = {}) {
   };
 }
 
+const readText = (path) => {
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+};
+
+const readJson = (path) => {
+  const text = readText(path);
+  try {
+    return text === null ? null : JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
 /** The project root's own CLAUDE.md, or null. Nested ones are another scope and are not read. */
 export function readClaudeMd(root) {
   if (!root) return null;
@@ -127,4 +145,61 @@ export function readClaudeMd(root) {
   } catch {
     return null;
   }
+}
+
+/* Claims about the repo, which are the ones that rot silently: a path that was renamed, a script
+   that lost its entry, a `-h` nobody wired. Each of the three found a live defect in sid-erp on
+   the day it was written. Backticks and link targets only — prose naming a file is not a claim. */
+const CODE_SPAN = /`([^`\n]+)`/g;
+const LINK_TARGET = /\]\(([^)\s]+)\)/g;
+const NPM_SCRIPT = /\bnpm (?:run ([\w:-]+)|(test)\b)/g;
+const HELP_CLAIM = /`([\w./-]+\.(?:mjs|js|sh))\s+(?:-h|--help)`/g;
+
+/* A placeholder, a glob, a package name and a url are not paths this repo owns. */
+const NOT_A_PATH = /[<>*$…{}\s]|^https?:|^@|^~/u;
+const PATHISH = /^[\w.@-]+(?:\/[\w.@-]+)+\/?$|^[\w.-]+\.(?:mjs|js|ts|tsx|json|md|sql|ya?ml)$/u;
+
+const spans = (text) => {
+  const out = new Set();
+  for (const [, inner] of text.matchAll(CODE_SPAN)) out.add(inner.trim());
+  for (const [, target] of text.matchAll(LINK_TARGET)) out.add(target.trim());
+  return out;
+};
+
+/** Everything the file asserts about the tree it sits in, as data. */
+export function claims(text) {
+  const paths = [...spans(text)].filter((t) => !NOT_A_PATH.test(t) && PATHISH.test(t)).sort();
+  const scripts = [...new Set([...text.matchAll(NPM_SCRIPT)].map((m) => m[1] ?? m[2]))].sort();
+  const helps = [...new Set([...text.matchAll(HELP_CLAIM)].map((m) => m[1]))].sort();
+  return { paths, scripts, helps };
+}
+
+const packageScripts = (root) => {
+  const found = new Map();
+  for (const dir of ["", "backend", "frontend", "packages/api-contract", "packages/i18n"]) {
+    const parsed = readJson(join(root, dir, "package.json"));
+    for (const name of Object.keys(parsed?.scripts ?? {})) {
+      found.set(name, [...(found.get(name) ?? []), dir || "."]);
+    }
+  }
+  return found;
+};
+
+/** Reads the tree; `root` is the only input, so a test points it at a fixture. */
+export function checkClaims(text, root) {
+  const { paths, scripts, helps } = claims(text);
+  const declared = packageScripts(root);
+  const missingHelp = [];
+  const unresolved = [];
+  for (const rel of helps) {
+    const source = readText(join(root, rel));
+    if (source === null) unresolved.push(rel);
+    else if (!/["'`](?:-h|--help)["'`]/u.test(source)) missingHelp.push(rel);
+  }
+  const missingPaths = paths.filter((rel) => !existsSync(join(root, rel)));
+  return {
+    missingPaths: [...missingPaths, ...unresolved].sort(),
+    missingScripts: scripts.filter((name) => !declared.has(name)),
+    missingHelp,
+  };
 }

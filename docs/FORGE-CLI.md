@@ -134,6 +134,13 @@ refuses all six of its actions. Read-only, one call each. What the probe learned
 keyed by project, so `tools` and `schema` can mark a gated tool without paying for a probe of
 their own; the date goes with it.
 
+**It settles CLAUDE.md's claims about the repo.** Three, each of which caught a live defect on the
+day it was written: a path that resolves from nowhere (`scripts/migration-risk.mjs` was named by
+sid-erp's CLAUDE.md and existed in no commit), an `npm run <script>` no package.json in the project
+declares, and a script the file tells you to ask with `-h` that handles no such flag. Only
+backticked spans and link targets count — prose naming a file is not a claim — and a placeholder,
+a glob, a package name and a url are all excluded. These are mechanical, so they fail doctor.
+
 **It reviews CLAUDE.md against the guides, and the guides are the authority.** The project file is
 the copy: a rule stated in both has two homes, and the pair diverges the first time somebody
 corrects only the one they found — silently, because each still reads as correct on its own. So

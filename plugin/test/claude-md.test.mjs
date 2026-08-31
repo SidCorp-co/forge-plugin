@@ -87,3 +87,50 @@ test("a marker inside a fence is an example, not a declaration", () => {
   assert.deepEqual(overrideMarkers(text), []);
   assert.deepEqual(reviewClaudeMd(text, GUIDES).overrides, []);
 });
+
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+import { checkClaims, claims } from "../src/claude-md.mjs";
+
+function fixture() {
+  const root = mkdtempSync(path.join(tmpdir(), "cm-claims-"));
+  mkdirSync(path.join(root, "scripts"), { recursive: true });
+  writeFileSync(path.join(root, "package.json"), JSON.stringify({ scripts: { lint: "eslint ." } }));
+  writeFileSync(path.join(root, "scripts", "helpful.mjs"), "if (a === '--help') {}\n");
+  writeFileSync(path.join(root, "scripts", "mute.mjs"), "run();\n");
+  return root;
+}
+
+test("only backticks and link targets are claims, and a placeholder is not one", () => {
+  const found = claims("Run `scripts/a.mjs` and see [docs](docs/b.md); `<slug>`, `@nestjs/*`, prose/path.\n");
+  assert.deepEqual(found.paths, ["docs/b.md", "scripts/a.mjs"]);
+});
+
+test("a path, an npm script and a silent -h are each reported", () => {
+  const root = fixture();
+  const text = [
+    "- `scripts/helpful.mjs -h` has the rest, and `scripts/mute.mjs -h` does not.",
+    "- Gates are `npm run lint` and `npm run typecheck`.",
+    "- See [gone](docs/gone.md).",
+  ].join("\n");
+  assert.deepEqual(checkClaims(text, root), {
+    missingPaths: ["docs/gone.md"],
+    missingScripts: ["typecheck"],
+    missingHelp: ["scripts/mute.mjs"],
+  });
+});
+
+test("a -h target that does not resolve is a missing path, not a silent -h", () => {
+  const root = fixture();
+  const found = checkClaims("Ask `scripts/absent.mjs --help`.\n", root);
+  assert.deepEqual(found.missingPaths, ["scripts/absent.mjs"]);
+  assert.deepEqual(found.missingHelp, []);
+});
+
+test("a clean file reports nothing", () => {
+  const root = fixture();
+  const text = "Run `scripts/helpful.mjs -h`, then `npm run lint`.\n";
+  assert.deepEqual(checkClaims(text, root), { missingPaths: [], missingScripts: [], missingHelp: [] });
+});
