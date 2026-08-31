@@ -16,11 +16,12 @@ const FORGE_SOURCES = {
 };
 const GUARDED = /\/memory\/|\/skills\//;
 // Naming one of those files is not touching it: reading a skill is the common case and must stay
-// free. Only a command that carries a write shape is asked about.
-const WRITES = /\bsed\b[^|;]*-i|>>?\s|\btee\b|\bcp\b|\bmv\b|\btruncate\b|open\([^)]*['"]w/;
-// A path assembled from a variable named no guarded directory in any single token, so
-// `M=…/memory` followed by `cat > $M/x.md` walked straight past this gate. An assignment and a
-// `cd` in the same command are what a hook can resolve; `$(…)` and `eval` are not.
+// free. Only a command that carries a write shape is asked about. `-i` has to be its own token:
+// unanchored it matched inside `erp-issue-workflow.md`, so `sed -n` reading a file was refused.
+const WRITES =
+  /\bsed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)|>>?\s|\btee\b|\bcp\b|\bmv\b|\btruncate\b|open\([^)]*['"]w/;
+// `M=…/memory` then `cat > $M/x.md` named no guarded directory in any single token and walked
+// past this gate. An assignment and a `cd` resolve here; `$(…)` and `eval` cannot.
 const ASSIGN = /(?:^|[;&|\n]|\bexport\s+)\s*([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|]*)/gu;
 const CHDIR = /(?:^|[;&|\n])\s*(?:cd|pushd)\s+("[^"]*"|'[^']*'|[^\s;&|]+)/gu;
 const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
@@ -151,7 +152,9 @@ if (path.includes("/memory/") && path.endsWith(".md") && basename(path) !== "MEM
     }
     if (!body) process.exit(0);
   }
-  const m = /^type:\s*([a-z]+)\s*$/m.exec(body);
+  // `type:` sits under `metadata:` in the documented frontmatter, so it is indented: anchored to
+  // column zero this never matched, and every correctly-shaped memory file was asked about anyway.
+  const m = /^\s*type:\s*([a-z]+)\s*$/m.exec(body);
   if ((m && m[1] in FILE_TYPES) || askedAlready(ev, path, "learning-gate")) process.exit(0);
   deny(
     `Hold — you are about to write a memory file.\n\n${TEST}\n\n` +

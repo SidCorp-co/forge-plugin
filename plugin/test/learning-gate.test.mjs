@@ -2,6 +2,7 @@
    the permission decision on stdout. The Bash fixtures are shapes observed slipping through. */
 import { spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -9,11 +10,16 @@ import test from "node:test";
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "learning-gate.mjs");
 const MEMORY = "/home/thanh/.claude/projects/-run-media-thanh-New-ai-project-sid-erp/memory";
 
-const decide = (command) => {
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
+/* The gate stamps /tmp once per session per file, so a fixture reusing a session id passes on a
+   re-run for the wrong reason. Every call gets its own session. */
+const ask = (event) =>
+  spawnSync(process.execPath, [HOOK], {
+    input: JSON.stringify({ session_id: randomUUID(), ...event }),
     encoding: "utf8",
   });
+
+const decide = (command) => {
+  const run = ask({ tool_name: "Bash", tool_input: { command } });
   assert.equal(run.status, 0, run.stderr);
   if (!run.stdout.trim()) return { allowed: true };
   const answer = JSON.parse(run.stdout).hookSpecificOutput;
@@ -59,4 +65,28 @@ test("an unrelated variable-held markdown write is free", () => {
 
 test("an unresolvable variable does not deny by accident", () => {
   assert.equal(decide("cat > $UNSET/notes.md <<'EOF'\nx\nEOF").allowed, true);
+});
+
+test("a `-i` inside the filename is not an in-place edit", () => {
+  assert.equal(decide(`sed -n 1,7p ${MEMORY}/erp-issue-workflow.md`).allowed, true);
+});
+
+test("a real in-place edit of the same file is still refused", () => {
+  assert.equal(decide(`sed -i s/a/b/ ${MEMORY}/erp-issue-workflow.md`).allowed, false);
+  assert.equal(decide(`sed --in-place s/a/b/ ${MEMORY}/erp-issue-workflow.md`).allowed, false);
+  assert.equal(decide(`sed -i.bak s/a/b/ ${MEMORY}/erp-issue-workflow.md`).allowed, false);
+});
+
+test("a memory file declaring its type under metadata is not asked about", () => {
+  const body = "---\nname: a-fact\nmetadata:\n  type: reference\n---\n\nbody\n";
+  const run = ask({ tool_name: "Write", tool_input: { file_path: `${MEMORY}/a-fact.md`, content: body } });
+  assert.equal(run.stdout.trim(), "", "indented `type:` should satisfy the gate");
+});
+
+test("a memory file declaring no type is still asked about", () => {
+  const run = ask({
+    tool_name: "Write",
+    tool_input: { file_path: `${MEMORY}/no-type.md`, content: "---\nname: x\n---\n\nbody\n" },
+  });
+  assert.match(JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason, /valid `type:`/);
 });
