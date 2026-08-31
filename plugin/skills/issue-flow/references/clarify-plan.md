@@ -24,18 +24,32 @@ the reason recorded, and go work another issue.
 
 - The files it will touch.
 - The behaviour before, and after.
-- **How completion will be judged** — observable outcomes, stated before any code exists.
-  For a missing column that means what it holds, where it sorts, what an empty value shows,
-  who may see it, and whether the export follows.
+- **Where the acceptance criteria are** — they have a field of their own, below, and the plan
+  points at it rather than paraphrasing it.
 - What it deliberately does **not** change. The boundary is half the value of a plan.
 - The one thing you had to verify in code to be sure the plan is possible, so a reviewer can
   check the load-bearing assumption instead of the whole plan.
 - Any documented convention this change reverses — the same change rewrites the document,
   and the plan says so.
 
-It goes in the issue's `plan` field — `forge plan` writes it and reads it back. Not a
-comment: a comment is a message in a thread, it is not what `--fields plan` returns, and a
+It goes in the issue's own plan field, and is read back after writing. Not a comment: a
+comment is a message in a thread rather than the issue's answer to what the plan is, and a
 reader looking for the plan finds whichever comment they reach first.
+
+## Acceptance criteria are a field, not a paragraph
+
+The tracker keeps one beside `plan` and expects this step to fill it — `forge schema` says so
+in the tool's own words. Left empty it is not a formality skipped: Phase 5 has nothing to
+judge against, so "done" quietly becomes whatever the implementer still remembers wanting.
+
+Write them numbered, each one an outcome a reader could check without opening the diff — what
+it holds, where it sorts, what an empty value shows, who may see it, whether the export
+follows. **One criterion per line and no conjunctions**: a criterion joined by "and" is two,
+and the half nobody checks is the half that fails.
+
+They are written before the code and they are not quietly relaxed to match what got built.
+A criterion that turns out to be wrong is corrected the way a wrong plan is — below, in the
+open, with the reason.
 
 ## When the plan turns out to be wrong
 

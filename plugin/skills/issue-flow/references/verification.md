@@ -75,6 +75,10 @@ Screenshot the state a user reaches — create the data the screen needs, and re
 afterwards. If seeding advanced a counter or a sequence, restore it; if the store was
 disposable, destroy it wholesale instead, which is safer than editing a counter back.
 
+**An image left on your disk proved nothing to anyone.** It belongs on the issue with the QA
+report that cites it, uploaded rather than pasted through context — `forge -h` names the
+verb. This is the one evidence type whose whole purpose is that somebody else looks at it.
+
 ## A checker that hard-codes its cases is worse than none
 
 A list written by hand knows only the cases its author had met. It fails twice: silent on a

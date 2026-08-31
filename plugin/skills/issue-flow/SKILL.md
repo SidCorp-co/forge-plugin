@@ -67,6 +67,11 @@ Stop for exactly these:
 Everything else proceeds unasked — plan, comments, evidence, branch, commits, push, deploy,
 status, release note.
 
+With one park, which Phase 5 states and this section only explains: **a screen is
+different.** The deploy rolls back easily enough; the people who already worked against the
+wrong screen do not get to un-see it. So that one waits for a human eye — a park in Phase 2's
+sense, not a fourth stop. The run carries on with the next issue.
+
 Two obligations replace the gate that used to sit before them:
 
 - **Know the way back before the step that needs one.** Establish it in Phase 0. A step with
@@ -98,7 +103,8 @@ Then decide what the issue *is*, which has three outcomes:
 - **It is bigger than one issue** → split it, say so on both halves, and work them in order.
 
 **Batching.** Issues sharing a module, unblocked, needing the same build and smoke run may
-share a branch; say which and why. Each still gets its own plan naming its batchmates, and
+share a branch; say which and why. Each still gets its own plan, criteria and QA report
+naming its batchmates, and
 commits stay independently removable — a member failing Phase 5 is dropped and parked, the
 shared gates re-run, the rest continue.
 
@@ -107,10 +113,11 @@ shared gates re-run, the rest continue.
 The default is to decide and record the assumption. Ask only when the wrong branch is
 expensive to undo, and then the issue parks. `references/clarify-plan.md`.
 
-## Phase 3 — Plan, in the issue's `plan` field
+## Phase 3 — Plan and acceptance criteria, in the issue's own fields
 
-`forge plan ISS-nn <file>`. Never a local file: invisible to whoever reads the tracker,
-stale the moment the branch merges. `references/clarify-plan.md`.
+Both land in fields of the issue, one each. Phase 5 is judged against the criteria field, so
+leaving it empty is what makes Phase 5 unfalsifiable. Never a local file: invisible to
+whoever reads the tracker, stale the moment the branch merges. `references/clarify-plan.md`.
 
 ## Phase 4 — Implement
 
@@ -125,7 +132,18 @@ command shapes that cannot be aimed.
 
 Baseline, gates and evidence: `references/verification.md`.
 
-## Phase 5 — Prove it by running it
+## Phase 5 — Prove it by running it, and post what you proved
+
+Read the acceptance criteria back off the issue rather than from memory, judge each one, and
+post a QA report as a comment: every criterion, its verdict, and the evidence behind that
+verdict. **On every outcome, not only on failure** — Rule 2 makes evidence a phase output,
+and a session transcript is not an output. Nobody can reopen it, and the release note is
+written for someone who will never ask how it was checked.
+
+`references/verification.md` owns what each kind of change owes and how to capture it.
+
+**A change to a screen parks the issue for human review before Phase 7 ships it.** The
+rendered evidence is attached, the reason is recorded, and you move to the next issue.
 
 If it proves unshippable, that is an outcome: post the finding, leave the branch named,
 park the issue. Do not carry an unsound change forward because the phases go that way.
