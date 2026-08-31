@@ -30,11 +30,14 @@ const ancestors = (start) => {
 
 /* A linked worktree owns neither file; `--git-common-dir` names the checkout that does. Memoised —
    unmemoised this spawned nine `git rev-parse` for one `forge issues`. */
+const checkoutRoot = once(() => {
+  const common = git(["rev-parse", "--git-common-dir"], process.cwd());
+  return common === null ? null : dirname(resolve(process.cwd(), common));
+});
+
 const searchRoots = once(() => {
-  const cwd = process.cwd();
-  const common = git(["rev-parse", "--git-common-dir"], cwd);
-  const shared = common === null ? null : dirname(resolve(cwd, common));
-  return [...ancestors(cwd), ...(shared ? [shared] : [])];
+  const shared = checkoutRoot();
+  return [...ancestors(process.cwd()), ...(shared ? [shared] : [])];
 });
 
 /* Each project file is read once per run, with where it was found. */
@@ -42,9 +45,9 @@ const nearest = (name) =>
   once(() => {
     for (const root of searchRoots()) {
       const parsed = readJson(join(root, name));
-      if (parsed) return { parsed, from: name };
+      if (parsed) return { parsed, from: name, root };
     }
-    return { parsed: null, from: null };
+    return { parsed: null, from: null, root: null };
   });
 
 const forgeJson = nearest(".forge.json");
@@ -94,6 +97,11 @@ export const projectScope = once(() =>
     [".mcp.json", mcpForge()?.headers?.["X-Forge-Project-Slug"]],
   ]),
 );
+
+/* The directory `.forge.json` sits in, else the checkout's. A caller reading a project file needs
+   this and not the cwd: doctor runs anywhere, and walking up from a subdirectory eventually leaves
+   the project. */
+export const projectRoot = once(() => forgeJson().root ?? checkoutRoot());
 
 /* The slug is a header when there is one, and an error only for a call needing a project id. */
 export const slugIfAny = () => projectScope().value;

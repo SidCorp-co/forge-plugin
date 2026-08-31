@@ -6,7 +6,8 @@ import { join } from "node:path";
 import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "./resolve/config.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { BUNDLED } from "./vi.mjs";
-import { accountCredentials, fail, projectScope, translateScope } from "./resolve/settings.mjs";
+import { accountCredentials, fail, projectRoot, projectScope, translateScope } from "./resolve/settings.mjs";
+import { readClaudeMd, reviewClaudeMd } from "./claude-md.mjs";
 import { flags } from "./resolve/flags.mjs";
 import { VERB_NAMES } from "./resolve/visibility.mjs";
 
@@ -14,6 +15,9 @@ const VI_CONFIG = join(configDir("vi-natural"), "config.json");
 
 const OK = "  ok  ";
 const BAD = " miss ";
+/* A finding doctor cannot resolve and the exit code must not gate on: prose it measured but cannot
+   classify, and a guide belonging to the server rather than to this checkout. */
+const NOTE = " note ";
 
 const line = (mark, label, detail) => console.log(`[${mark}] ${label.padEnd(22)} ${detail}`);
 
@@ -79,7 +83,60 @@ const probe = async (scoped, slug) => {
     }
   }
   remember(slug, findings);
-  return gated;
+  return { ...findings, gated };
+};
+
+/* Bodies are one call each and `list` carries none, so the twelve go out together. */
+const guideBodies = async (scoped) => {
+  const listed = (await scoped("forge_guide", { action: "list" }, true))?.guides ?? [];
+  const fetched = await Promise.all(
+    listed.map((guide) => scoped("forge_guide", { action: "get", slug: guide.slug }, true)),
+  );
+  return fetched.map((answer, index) => ({ slug: listed[index].slug, body: answer?.guide?.body ?? "" }));
+};
+
+/* The guide is the authority, so it is named first and the CLAUDE.md line second. Nothing here
+   claims which of the two a pair is — the measurement is blind to negation, so a contradiction and
+   a restatement score alike, and saying which would be a resolution it does not have. */
+const reportClaudeMd = (review, path) => {
+  let broken = 0;
+  for (const marker of review.overrides) {
+    const where = `CLAUDE.md:${marker.line}`;
+    if (marker.known) line(OK, "claude.md override", `${marker.slug} — ${marker.reason} (${where})`);
+    else {
+      broken += 1;
+      line(BAD, "claude.md override", `${where} names no guide called ${marker.slug}`);
+    }
+  }
+  for (const { slug, evidence } of review.misScoped) {
+    line(NOTE, "guide scope", `${slug} is global and names ${evidence.join(", ")} — one project's tools`);
+  }
+  if (!review.overlaps.length) {
+    line(OK, "claude.md", `${path} restates no guide`);
+    return broken;
+  }
+  line(NOTE, "claude.md", `${review.overlaps.length} statement(s) a guide already owns — ${path}`);
+  for (const hit of review.overlaps) {
+    console.log(`      ${hit.score.toFixed(2)}  guide ${hit.slug}\n            ${hit.theirs}`);
+    console.log(`            CLAUDE.md:${hit.line}\n            ${hit.ours}`);
+  }
+  console.log(
+    "\nThe guide is the authority and the project file is the copy. Where the two agree, delete the\n" +
+      "CLAUDE.md line and let the guide carry it; where the project means to differ, say so on that\n" +
+      "line — `overrides: <guide-slug> — <why this project differs>` — and doctor stops asking.\n" +
+      "This is a measure of shared wording, not of meaning: a restatement and a contradiction score\n" +
+      "alike, and only reading the pair tells you which you have.",
+  );
+  return broken;
+};
+
+/* An override naming no guide waives nothing, so the exit code follows it. A pair doctor cannot
+   classify does not: a check that stays red until someone edits prose gets switched off. */
+
+const checkClaudeMd = async (scoped) => {
+  const found = readClaudeMd(projectRoot());
+  if (!found) return 0;
+  return reportClaudeMd(reviewClaudeMd(found.text, await guideBodies(scoped)), found.path);
 };
 
 /* Lazy: the transport exits the process when credentials have not resolved. */
@@ -90,17 +147,20 @@ const checkEndpoint = async (full) => {
   const { value: slug } = projectScope();
   if (!slug) {
     console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
-    return;
+    return 0;
   }
   const id = await projectId();
   line(OK, "project id", full ? id : `resolved from the slug (--full to print it)`);
-  const gated = await probe(scoped, slug);
+  const findings = await probe(scoped, slug);
+  const broken = findings.forge_guide ? 0 : await checkClaudeMd(scoped);
+  const gated = findings.gated;
   if (gated) {
     console.log(
       `\n${gated} declared capability(ies) refuse this credential. Declared is not callable —\n` +
         "recorded, so `forge tools`, `forge schema` and the usage list now withhold them.",
     );
   }
+  return broken;
 };
 
 const install = (values) => {
@@ -154,8 +214,9 @@ export const doctor = async (rest) => {
     console.log("\nNot reaching the endpoint: the account half is incomplete.");
     process.exit(1);
   }
-  await checkEndpoint(full);
+  const broken = await checkEndpoint(full);
   if (full) console.log(`\nConfig file: ${CONFIG_PATH}`);
+  if (broken) process.exit(1);
   /* Reads and writes differ here — `new` translates before it posts — and the exit code follows the
          stricter one. */
   if (!canWrite) process.exit(1);

@@ -13,7 +13,8 @@
     "check:vi-text": "node tools/check-vi-text.mjs",
     "check:vi-goldens": "node tools/diff-python.mjs --goldens",
     "check:vendor": "node plugin/scripts/check-vendor.mjs",
-    "check": "npm run lint && npm run check:package && npm run check:vi-text && npm run check:vi-goldens && npm run check:vendor",
-    "check:package": "npm --prefix packages/code-quality run lint && npm --prefix packages/code-quality test"
+    "check": "npm run lint && npm test && npm run check:package && npm run check:vi-text && npm run check:vi-goldens && npm run check:vendor",
+    "check:package": "npm --prefix packages/code-quality run lint && npm --prefix packages/code-quality test",
+    "test": "node --test \"plugin/test/*.test.mjs\""
   }
 }

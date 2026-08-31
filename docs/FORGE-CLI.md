@@ -134,6 +134,41 @@ refuses all six of its actions. Read-only, one call each. What the probe learned
 keyed by project, so `tools` and `schema` can mark a gated tool without paying for a probe of
 their own; the date goes with it.
 
+**It reviews CLAUDE.md against the guides, and the guides are the authority.** The project file is
+the copy: a rule stated in both has two homes, and the pair diverges the first time somebody
+corrects only the one they found — silently, because each still reads as correct on its own. So
+doctor measures the project root's CLAUDE.md against every guide body and prints the guide first.
+
+The measurement is `hooks/vendor/text-overlap.js`, the same Jaccard index the duplicate-comment
+rule and `skill-dup.mjs` use, at 0.25 over a floor of 3 rather than the shared 0.34 over 5. That
+is a calibration and not a preference: two documents state one rule in their own vocabularies, so
+"a green gate proves nothing about a screen" and "a page that returns 200 proves nothing" share
+three content words where two comments in one file share eight. Measured over 28 real CLAUDE.md
+files against these guides, 0.34/5 finds nothing at all and 0.25/3 finds seven pairs, every one a
+real restatement.
+
+**A pair is reported, never classified.** Negation is a stop word, so a restatement and a flat
+contradiction score alike and the tool has no way to tell them apart — claiming one would be a
+resolution it does not have. Reading the pair is the reader's job, and this is why an overlap
+prints as `note` and cannot fail doctor: a check that stays red until somebody edits prose gets
+switched off.
+
+**A project may override a guide; it may not fork one by accident.** The difference has to be
+said out loud, in the waiver grammar the ESLint rules already use — `overrides: <guide-slug> —
+<why this project differs>`, on a line inside the block that differs, with a reason that is not
+optional. A marker sanctions the pairs against that guide and nothing else. A marker naming a
+guide that does not exist waives nothing and *does* fail doctor, because that one is mechanical.
+
+**A guide that is really one project's is a finding against the guide.** Guides are global, so a
+global guide whose body calls a foreign MCP namespace — `mcp__epodsystem__*` and not
+`mcp__forge__*` — is describing one integration to every project that reads it, and that scope
+belongs on the project rather than in the guide set. It prints as `note`: the guide lives on the
+server, so nobody can fix it from the checkout doctor is reporting on.
+
+Discovery is anchored at the `.forge.json` directory, else the checkout — never an unbounded
+walk-up, which from a subdirectory eventually reaches `~/.claude/CLAUDE.md` and reviews the user's
+global file against a project's guides. The root file only; a nested CLAUDE.md is another scope.
+
 A missing `vi-natural` key is not a reachability problem, but `forge new` and `forge comment`
 translate before they post, so a green doctor would send `doctor && new` into a certain failure.
 Reads and writes differ here, and the exit code follows the stricter one.
