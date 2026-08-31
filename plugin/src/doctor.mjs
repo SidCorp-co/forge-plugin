@@ -352,9 +352,15 @@ export const doctor = async (rest) => {
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
 
   const stale = mcpForgeIgnored();
-  if (stale?.carries) {
-    line(BAD, "mcp.json", `${join(stale.root, ".mcp.json")} names a forge server and it is not read`
-      + " — `forge doctor --token <pat> --url <endpoint>` saves both");
+  /* Each half is named separately: a project whose credentials are already saved and whose slug
+     still sits in that header loses only its project scope, and only one command fixes it. */
+  if (stale?.credentials || stale?.slug) {
+    const fix = [
+      stale.credentials && "`forge doctor --token <pat> --url <endpoint>`",
+      stale.slug && '`{ "slug": "<project>" }` in a .forge.json',
+    ].filter(Boolean);
+    line(BAD, "mcp.json", `${join(stale.root, ".mcp.json")} carries settings this CLI does not read`
+      + ` — ${fix.join(", and ")}`);
   }
   const chosen = userConfig().withheld ?? [];
   if (chosen.length) line(OK, "withheld verbs", `${chosen.join(", ")} — \`forge doctor --show <verb>\``);

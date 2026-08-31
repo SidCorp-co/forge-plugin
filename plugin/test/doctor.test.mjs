@@ -37,7 +37,19 @@ test("a .mcp.json naming a forge server is reported and not read", () => {
   const out = report(null, {}, { ".mcp.json": MCP_FORGE });
   assert.match(out, /\[ miss \] endpoint url\s+nothing saved/, "it is not a source for the url");
   assert.match(out, /\[ miss \] token/, "nor for the token");
-  assert.match(out, /\[ miss \] mcp.json\s+\S+\.mcp\.json names a forge server and it is not read/);
+  assert.match(out, /\[ miss \] mcp.json\s+\S+\.mcp\.json carries settings this CLI does not read/);
+});
+
+/* Its credentials being saved already is exactly when the slug header is the only thing left to
+   lose, and the report has to name the one command that moves it. */
+test("a slug header alone is reported, with where to put it instead", () => {
+  const slugOnly = JSON.stringify({
+    mcpServers: { forge: { headers: { "X-Forge-Project-Slug": "sid-growth" } } },
+  });
+  const out = report(null, {}, { ".mcp.json": slugOnly });
+  assert.match(out, /\[ miss \] project slug/, "the header is not a source");
+  assert.match(out, /\[ miss \] mcp.json[^\n]+`\{ "slug": "<project>" \}` in a \.forge\.json/);
+  assert.doesNotMatch(out, /mcp.json[^\n]+--token/, "nothing about credentials it does not carry");
 });
 
 test("no .mcp.json means no line about one", () => {

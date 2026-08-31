@@ -58,7 +58,11 @@ const CONFIG_NAME = "~/.config/forge/config.json";
 export const mcpForgeIgnored = () => {
   const server = mcpJson().parsed?.mcpServers?.forge ?? null;
   if (!server) return null;
-  return { root: mcpJson().root, carries: Boolean(server.url || server.headers?.Authorization) };
+  return {
+    root: mcpJson().root,
+    credentials: Boolean(server.url || server.headers?.Authorization),
+    slug: Boolean(server.headers?.["X-Forge-Project-Slug"]),
+  };
 };
 
 const sourced = (from, value) => (value ? { value, from } : { value: null, from: null });
