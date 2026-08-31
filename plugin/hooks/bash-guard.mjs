@@ -1,12 +1,29 @@
 #!/usr/bin/env node
-// Refuse the shell commands whose damage cannot be undone by the agent that caused it.
-// Deliberately narrow, because a guard that refuses too much gets disabled — docs/HOOKS.md.
+// Refuse the shell commands whose damage cannot be undone by the agent that caused it, and the
+// one that launders a finding into a green run. Deliberately narrow, because a guard that
+// refuses too much gets disabled — docs/HOOKS.md.
 
 import { spawnSync } from "node:child_process";
 
 import { deny, readEvent } from "./_hook.mjs";
 
 const RULES = [
+  {
+    // Anchored on command position, so a commit message or a doc line that quotes the flag is
+    // prose and not a run. `--fix-type` writes too; `--fix-dry-run` writes nothing and is how you
+    // see the diff before deciding.
+    pattern: new RegExp(
+      String.raw`(?:^|[;&|(]\s*|\b(?:npx|pnpm\s+exec|yarn\s+run|time|env)\s+)` +
+        String.raw`(?:eslint|(?:npm|pnpm|yarn)\s+(?:run\s+)?lint\S*)\b[^|;&]*--fix(?:-type)?(?![\w-])`,
+    ),
+    why:
+      "--fix rewrites the source until the checker stops reporting, which is the check being " +
+      "answered rather than the code being fixed. The rewrite carries no judgement about which " +
+      "findings were real, and it lands mixed into whatever else is uncommitted.",
+    instead:
+      "Fix each finding at its source. Adopting a new formatting rule is the one case the sweep " +
+      "is the point, and that is a decision to put to the user before running it.",
+  },
   {
     pattern: /\b(pkill|killall)\b/,
     why:
