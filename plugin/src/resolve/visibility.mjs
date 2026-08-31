@@ -14,6 +14,7 @@ export const VERBS = [
   ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm"],
   ["guide", "[slug]", "the tracker's own guides", "forge_guide"],
   ["project", "", "the resolved project id", "forge_projects.list"],
+  ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials"],
   ["doctor", "[--token t] [--url u] [--hide v|--show v] [--full]", "what resolves, and from where"],
   ["tools", "[--all]", "the reachable surface"],
   ["schema", "<tool>", "one tool's arguments"],

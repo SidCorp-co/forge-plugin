@@ -4,8 +4,10 @@ description: >-
   Drive a Forge issue tracker from the terminal with the `forge` CLI — browse, read, file,
   comment on and attach to issues without an MCP client connected. Invoke for any task that
   reads or writes the backlog: listing open issues, filing a defect, posting a finding,
-  recording a dependency, or reading an issue body before working it. Triggers on Forge,
-  tracker, backlog, issue, ISS-nn, "file an issue", "what's open".
+  recording a dependency, or reading an issue body before working it. The same CLI carries
+  `forge cloudflare` for zones, DNS records and cache purges. Triggers on Forge, tracker,
+  backlog, issue, ISS-nn, "file an issue", "what's open", Cloudflare, DNS record, zone,
+  purge cache.
 ---
 
 # Skill: forge
@@ -114,3 +116,16 @@ its source. Posting the wrong language is unrecoverable: `forge_issues` has no d
 so is posting into the wrong project — every write announces its target before it goes.
 
 The `vi-natural` skill in this same plugin covers writing Vietnamese directly.
+
+## `forge cloudflare` is not the tracker
+
+Run `forge cloudflare -h` for the sub-verbs. Two things it does not say:
+
+**Nothing above applies to it.** It calls `api.cloudflare.com` on credentials saved on this
+machine, so it needs no Forge endpoint, no token and no slug, and no capability probe can withhold
+it. Never ask the user for a Cloudflare token to paste — `forge cloudflare accounts` says whether
+one already resolved.
+
+**The four write actions apply on the first call, with no confirmation.** They print the zone and
+the account *after* the fact. These are live zones and a deleted record is not recoverable from
+here, so read with `dns <zone-id>` before `dns set` or `dns rm`.

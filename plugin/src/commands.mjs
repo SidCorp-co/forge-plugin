@@ -16,6 +16,7 @@ import { didYouMean } from "./suggest.mjs";
 import { flags } from "./resolve/flags.mjs";
 import { doctor } from "./doctor.mjs";
 import { deps } from "./deps.mjs";
+import { cloudflare } from "./cloudflare.mjs";
 
 /* One rule for every payload: inline, `@path`, or `-` for stdin. */
 const bodyFrom = (path) => {
@@ -101,6 +102,7 @@ const suggestTool = async (name) =>
 export const commands = {
   doctor,
   deps,
+  cloudflare,
   tools: async (rest) => {
     const { all } = flags(rest, "tools", ["--all"]);
     for (const tool of await tools()) {

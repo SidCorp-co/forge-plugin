@@ -31,6 +31,7 @@ export default [
         TextDecoder: "readonly",
         TextEncoder: "readonly",
         URL: "readonly",
+        URLSearchParams: "readonly",
       },
     },
     rules: {

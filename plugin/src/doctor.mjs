@@ -15,6 +15,7 @@ import {
   readClaudeMd,
   reviewClaudeMd,
 } from "./claude-md.mjs";
+import { cloudflareAccounts } from "./cloudflare.mjs";
 import { flags } from "./resolve/flags.mjs";
 import { VERB_NAMES } from "./resolve/visibility.mjs";
 
@@ -55,6 +56,22 @@ const checkVi = () => {
   if (key) line(OK, "vi-natural key", key);
   else line(BAD, "vi-natural key", "run `vi-natural login --key <key>` — no issue can be posted");
   return Boolean(key);
+};
+
+/* Cloudflare's credentials are this machine's, not the tracker's, so they resolve and report here
+   and gate nothing: every other verb works with none saved. */
+const checkCloudflare = (full) => {
+  const { accounts, from, problem } = cloudflareAccounts();
+  if (problem) {
+    line(BAD, "cloudflare", `half configured from the environment — ${problem}`);
+    return;
+  }
+  if (!accounts.length) {
+    line(BAD, "cloudflare", "no account — `forge cloudflare login --name n --account-id a --token t`");
+    return;
+  }
+  const held = accounts.map((account) => `${account.name} ${masked(account.apiToken, full)}`);
+  line(OK, "cloudflare", `${held.join(", ")}  ← ${from}`);
 };
 
 /* Declared is not callable — all 67 are declared to a PAT and six then refuse. Probed, read-only. */
@@ -299,6 +316,7 @@ export const doctor = async (rest) => {
     line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
   }
   const canWrite = language.value ? language.value === "vi" && checkVi() : true;
+  checkCloudflare(full);
   const local = checkClaudeMdLocally();
 
   if (!url.value || !token.value) {

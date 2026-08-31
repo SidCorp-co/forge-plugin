@@ -115,6 +115,51 @@ tree is fewer characters still and more tokens, because those glyphs are multi-b
 A literal NUL in the source once made git read the whole file as binary — no diff, no blame, no
 `git grep`. The escape is the same byte at runtime and plain ASCII on disk.
 
+## `cloudflare.mjs` — a second API, not a second tracker
+
+**Cloudflare is not on the Forge endpoint, and this verb does not route through it.** The endpoint
+this CLI resolves declares 68 tools in 33 groups and none of them is Cloudflare's; asked for one
+directly, the server answers `Unknown tool`. So the calls go to `api.cloudflare.com`, and the
+surface is eight actions rather than that API's full breadth — search, list zones, one zone's
+detail, list, create, update and delete a DNS record, purge cache. Enough to run DNS from a
+terminal, small enough to stay in one file.
+
+Which means the credentials are this machine's. `$CLOUDFLARE_API_TOKEN` with
+`$CLOUDFLARE_ACCOUNT_ID`, else the accounts `forge cloudflare login` saved beside the Forge
+config at 0600. **Half an environment pair reports instead of falling through to the file** — a
+silent fallback hides the typo in whichever name was set, and the two failures look identical
+from the outside. It reports rather than throwing, because doctor prints every finding in one
+pass.
+
+Nothing here touches the Forge endpoint, and that is load-bearing: `forge cloudflare zones` runs
+on a machine with no Forge url, no token and no project. The verb carries no backing tool in
+`VERBS`, so no capability probe can withhold it, and `doctor`'s cloudflare line gates no exit
+code — an account nobody saved is not a broken Forge install.
+
+**A failing account is named, and every account failing is an error.** Skipping one silently
+would make a revoked token indistinguishable from an account holding no zones, so the account is
+printed to stderr and the rest still aggregate. When none answered, the verb exits non-zero
+instead of printing `0 zone(s)` — a caller piping that into a decision would read a dead
+credential as an empty account.
+
+Which account holds a zone is written down nowhere, so it is asked: one `GET /zones/<id>` per
+account until one answers. Sequential, because the first hit ends the probe and one account is the
+common case.
+
+Search sends two queries per zone — `name.contains` and `content.contains` — because Cloudflare
+has no OR across those fields, and the same record answers both, so ids are deduped after. Zones
+are capped at 15 per search: two requests each is a bounded fan-out, and a query naming a host
+still reaches the zone that host sits in.
+
+Two flags cannot be what they look like. `--file` is pulled out of argv before `flags` sees it:
+`flags` keeps the last value of a repeated flag, so a three-URL purge would silently purge one.
+`--proxied` takes `true|false` rather than being a bare present-or-absent boolean, because
+`dns set` has to be able to turn proxying *off* — a bare flag can only turn it on.
+
+**Every write announces its zone and its account, and nothing asks for confirmation.** The zone
+is an argument, but the account was chosen by a probe nobody watched, so the pair is printed to
+stderr the way `rpc.mjs`'s writes print theirs. `dns rm` and `purge` then run.
+
 ## `doctor.mjs` — everything at once
 
 Every other verb fails at the first missing piece and tells you about that one. Doctor is the
