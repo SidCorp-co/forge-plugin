@@ -17,7 +17,12 @@ rather than proceeding as though it were green.
    Test reversibility only where the project's migration system supports it and only against
    a disposable database.
 3. **Blast radius.** Grep for what you changed — the renamed symbol, the removed field, the
-   altered response shape. Nothing asserts what nothing covers.
+   altered response shape. Nothing asserts what nothing covers. **That grep is blind to a
+   change of provenance**: where every identifier stays and only who assigns the value moved,
+   the code still reading the old convention mentions no line of the diff, and the sweep comes
+   back clean. `scripts/blast-radius.mjs` covers that case, ranking the files that share the
+   diff's narrow identifiers and sit outside it. Its output is a reading list and not findings
+   — say, of the top entries, whether the change alters what each one reads.
 4. **Proof suited to what you changed** (below).
 5. **Look at the result.** The only step with no substitute.
 
