@@ -84,10 +84,17 @@ finishes a task reaches for "save what I learned" as a closing ritual, and the c
 with entries nobody reads, which is how the two or three that mattered get buried.
 
 So the gate is cheap to pass and impossible to pass absent-mindedly. The write is refused
-once; the four conditions and the category list come back as the reason. A memory row passes
-on a second attempt carrying `metadata.checked`, and a file edit passes on the next attempt at
-the same file in the same session. Naming the category is the point — it is the one part of
-the test that cannot be answered by nodding.
+once. A memory row passes on a second attempt carrying `metadata.checked`, and a file edit
+passes on the next attempt at the same file in the same session. Naming the category is the
+point — it is the one part of the test that cannot be answered by nodding.
+
+**The reason is a pointer, not a copy of the document.** The four conditions, the five
+categories and the destinations are `skills/issue-flow/references/learning.md`, and a refusal
+that reprinted them spent the same 300 tokens on every edit — measured at eight refusals in
+one session, restructuring five skills. What comes back now is one line of test, the category
+names to answer with, and the path; the path itself is printed for the first refusal of a
+session only, stamped like any other once-per-session decision. A file read once beats a
+paragraph read eight times, and it is also the only copy, so the two cannot drift.
 
 **A declared `type:` buys nothing.** It used to end the check, so the only memory write ever stopped
 was a malformed one — and shape is not what is wrong with a second copy. The schema is in the agent's

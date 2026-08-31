@@ -196,3 +196,31 @@ test("editing an existing memory is told to replace, not append", () => {
   assert.match(first, /never append a second version/);
   assert.doesNotMatch(first, /Already in/, "a file is not a copy of itself");
 });
+
+/* A refusal on every edit reprinted the same 300 tokens; the document it restated is one file. */
+const skillWrite = (session, name) => {
+  const room = mkdtempSync(join(tmpdir(), "skill-gate-"));
+  const file = join(room, "skills", "demo", name);
+  mkdirSync(dirname(file), { recursive: true });
+  const run = spawnSync(process.execPath, [HOOK], {
+    input: JSON.stringify({ session_id: session, tool_name: "Write", tool_input: { file_path: file, content: "a line of method" } }),
+    encoding: "utf8",
+    env: HOME,
+  });
+  assert.equal(run.status, 0, run.stderr);
+  return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
+};
+
+test("the refusal names the categories and does not reprint the test", () => {
+  const first = skillWrite(randomUUID(), "SKILL.md");
+  assert.match(first, /trap \| method \| invariant \| discovery \| boundary/);
+  assert.doesNotMatch(first, /it cost a cycle, not a thought/, "the four conditions belong to one file");
+  assert.ok(first.split("\n").length <= 10, `five lines, not twenty-five: got ${first.split("\n").length}`);
+});
+
+test("the pointer to that file goes out once a session, not once an edit", () => {
+  const session = randomUUID();
+  assert.match(skillWrite(session, "SKILL.md"), /references\/learning\.md/);
+  assert.doesNotMatch(skillWrite(session, "SKILL.md"), /references\/learning\.md/);
+  assert.match(skillWrite(randomUUID(), "SKILL.md"), /references\/learning\.md/, "a new session is told again");
+});

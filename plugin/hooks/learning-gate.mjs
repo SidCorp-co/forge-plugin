@@ -4,6 +4,7 @@
 
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { REDIRECT, WRITES, askedAlready, bodiless, deny, readEvent } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
@@ -52,16 +53,19 @@ const FILE_TYPES = {
   reference: "a pointer to something external — URL, dashboard, ticket",
 };
 
-const TEST = `Recording is the exception, not the closing ritual. All four must hold:
-  1. it cost a cycle, not a thought
-  2. it will recur — a property of the tool, repo or domain, not of this issue
-  3. its failure is silent (a thing that reports its own cause needs no note)
-  4. it is not already written — search first; a second copy drifts from the first
-Fail any one and write nothing. That is the normal outcome of a round.
+/* The test, the categories and the destinations are one document already, and a refusal that
+   reprints them spends the same 300 tokens on every edit — eight times in one session, measured.
+   So the message points at the document and the pointer goes out once. */
+const LEARNING_REF = join(
+  dirname(fileURLToPath(import.meta.url)), "..", "skills", "issue-flow", "references", "learning.md",
+);
 
-Before either destination: does the wrong state have a SHAPE — a command pattern, a
-missing field, a violated ordering? Then it is a check waiting to be written, and a
-check cannot be missed the way a sentence can.`;
+const pointer = (ev) => {
+  if (askedAlready(ev, "learning-ref", "learning-gate", { set: false })) return "";
+  askedAlready(ev, "learning-ref", "learning-gate");
+  return `\n\nThe four-part test and where each category lands: ${LEARNING_REF}\n`
+    + "Read it once — this pointer is printed for the first refusal of a session only.";
+};
 
 const BRIEF =
   "Record only what cost a cycle, will recur, fails silently, and is not already written. Most "
@@ -138,10 +142,10 @@ if (tool.endsWith("forge_memory_write") || tool.endsWith("forge_memory.write")) 
   const md = ti.metadata;
   if (md && typeof md === "object" && md.checked) process.exit(0);
   deny(
-    `Hold — you are about to write project memory as \`${src}\`.\n\n${TEST}\n\n` +
+    `Hold — you are about to write project memory as \`${src}\`.\n\n${BRIEF}\n\n` +
       `If it survives, put it in the right category rather than all of it in one:\n${catalogue(FORGE_SOURCES)}\n\n` +
       "Re-send with metadata.checked set to the category you chose, and say in one line which of " +
-      "the four conditions made it worth keeping.",
+      `the four conditions made it worth keeping.${pointer(ev)}`,
   );
 }
 
@@ -219,15 +223,11 @@ if (path.includes("/skills/") && /\/(SKILL\.md|references\/[^/]+\.md)$/.test(pat
   }
   if (askedAlready(ev, path, "learning-gate")) process.exit(0);
   deny(
-    "Hold — you are about to change a skill's own text. That is a skill learning, not project " +
-      "knowledge: it develops the method, so it must not be a note about this one repository.\n\n" +
-      `${TEST}\n\nIf it survives, it lands in a specific place, not on a pile:\n` +
-      `${catalogue(SKILL_CATEGORIES)}\n\n` +
-      "Two more before you re-send. (a) Could a check in the plugin enforce this instead? A check " +
-      "cannot be missed the way a sentence can. (b) What does this displace? A skill that only " +
-      "accumulates stops being read — name the rule it replaces, or say that it adds without " +
-      "replacing.\n\n" +
-      "Re-send the same edit once you have answered both — say the category and what it displaces " +
-      "in your reply, not in the file.",
+    `Hold — \`${basename(path)}\` is a skill's own text: it develops the method, so it must not be ` +
+      `a note about this one repository.\n\n${BRIEF}\n\n` +
+      "Do this: change nothing unless the test holds. If it does, re-send and answer three things " +
+      `in your reply — which category (${Object.keys(SKILL_CATEGORIES).join(" | ")}), whether a ` +
+      "check in the plugin could enforce it instead, and what it displaces." +
+      pointer(ev),
   );
 }
