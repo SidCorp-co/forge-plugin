@@ -6,9 +6,9 @@ It is GPT-5 Codex over the gateway's own API — a genuinely different provider,
 reason a second opinion is worth its tokens. `consult` refuses outright if the model slot resolves
 to this model's own family, so a consult that runs is one worth reading.
 
-**Pipe it your intent, and name the files.** The file text is sent for you, so never paste it; the
-intent is the part it cannot see, and a review that knows what you were trying to do is a different
-review:
+**Pipe it your intent, and name the files.** Each file's diff and size are sent for you and it reads
+the rest itself, so never paste a file; the intent is the part it cannot see, and a review that knows
+what you were trying to do is a different review:
 
 ```
 echo "what I was doing and why, the plan, the decisions I made" | forge codex consult src/a.mjs
@@ -16,7 +16,8 @@ echo "what I was doing and why, the plan, the decisions I made" | forge codex co
 
 With no file named it consults on the documents this turn changed, and a named file may be an
 absolute path in another checkout. Beyond what you send it reads for itself — over those checkouts
-only — and every call it makes is printed as it runs.
+only — and every call it makes is printed as it runs. A consult is three model calls at most and
+about 45 seconds each; `--rounds n` buys more, and measured, more bought no extra finding.
 
 **It runs after the built-in advisor, never before, and it must be told what the advisor said.**
 That one reads this conversation and cannot open a file; codex reads the files and has never seen the

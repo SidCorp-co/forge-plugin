@@ -199,10 +199,16 @@ const diffBlock = (diff) => {
   return `\nCHANGED THIS TURN${note}:\n\`\`\`diff\n${diff.text}\n\`\`\`\n`;
 };
 
-const fileBlock = (part) => {
+/* With tools, the body is a fetch away, and sending it anyway was paid for twice: a reviewer that
+   re-reads a file it already holds spends a whole model call, and a call is the unit of wall time. */
+const fileBlock = (part, bodies) => {
   if (part.missing) return `### ${part.rel}\n(could not be read: ${part.missing})`;
   const note = part.clipped ? ` — CLIPPED, ${part.chars} chars in the file, first part only` : "";
-  return `### ${part.rel}${note}${diffBlock(part.diff)}\nFULL TEXT, for context:\n\`\`\`\n${part.text}\n\`\`\``;
+  if (bodies) {
+    return `### ${part.rel}${note}${diffBlock(part.diff)}\nFULL TEXT, for context:\n\`\`\`\n${part.text}\n\`\`\``;
+  }
+  return `### ${part.rel} — ${part.chars} chars${diffBlock(part.diff)}\nIts full text is not here. `
+    + "Read it with read_file if the diff is not enough to rule.";
 };
 
 const ANCHORED = `ANCHOR EVERY FINDING TO THIS TURN'S CHANGE.
@@ -217,7 +223,7 @@ const floorBlock = (only) =>
   `REPORT ONLY ${only.map((one) => one.toUpperCase()).join(" and ")} FINDINGS. A finding below that bar is left out `
   + `entirely rather than downgraded — this run is asking for precision, not coverage.`;
 
-export const promptFor = (intent, parts, history = [], { risks = [], only = [] } = {}) => {
+export const promptFor = (intent, parts, history = [], { risks = [], only = [], bodies = false } = {}) => {
   /* Derived, not passed: a caller that says "anchored" while sending no diffs would be asking the
      reviewer to anchor to nothing. */
   const anchored = parts.some((part) => part.diff);
@@ -242,7 +248,7 @@ export const promptFor = (intent, parts, history = [], { risks = [], only = [] }
     ...(risks.length ? [verifyBlock(risks)] : []),
     ...(anchored ? [ANCHORED] : []),
     ...(only.length ? [floorBlock(only)] : []),
-    `THE FILES — ${parts.length} of them:\n\n${parts.map(fileBlock).join("\n\n")}`,
+    `THE FILES — ${parts.length} of them:\n\n${parts.map((part) => fileBlock(part, bodies)).join("\n\n")}`,
     closing,
   ].join("\n\n---\n\n");
 };
@@ -325,7 +331,8 @@ export const consume = async (body, onDelta) => {
  *  the executor refuses it in words rather than the loop throwing. */
 const parsedInput = (json) => {
   try {
-    return json.trim() ? JSON.parse(json) : {};
+    const held = json.trim() ? JSON.parse(json) : {};
+    return held && typeof held === "object" && !Array.isArray(held) ? held : {};
   } catch {
     return {};
   }

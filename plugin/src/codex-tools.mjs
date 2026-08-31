@@ -175,7 +175,10 @@ const diffOf = (held, base) => {
 
 /** One tool call, run here. Every failure comes back as text the reviewer can act on: a refusal it
  *  cannot read is indistinguishable from a file that does not exist. */
-export const runTool = (scope, name, input = {}) => {
+export const runTool = (scope, name, given = {}) => {
+  /* A default catches undefined and not `null`, which is what `"input": null` parses to — and a
+     throw here ends the consult, where a refusal is something the reviewer can answer. */
+  const input = given && typeof given === "object" ? given : {};
   const needsPath = name !== "grep";
   const held = input.path ? located(scope, input.path) : null;
   if (needsPath && !held) return { text: "this tool needs a `path`", error: true };

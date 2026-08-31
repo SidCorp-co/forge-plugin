@@ -43,8 +43,8 @@ export const STATE_PATH = join(configDir("forge"), "codex.json");
 
 const DEFAULT_PATH_RE = "^docs/.*\\.md$";
 /* Model calls in total, not extra rounds: the last one is served no tools, so the cap is what the
-   caller is billed for and not one more. Ten, because a reviewer with tools spends rounds reading. */
-const DEFAULT_CALLS = 10;
+   caller is billed for and not one more. Three, measured: docs/FORGE-CLI.md carries the numbers. */
+const DEFAULT_CALLS = 3;
 
 const USAGE = [
   "Usage: forge codex <consult|verdict|pending|show|log> [args]",
@@ -66,7 +66,8 @@ const USAGE = [
   "  pathRe                    repo-relative paths the hook records (default ^docs/.*\\.md$)",
   "  budgetMs                  how long one consult may take (default 900000)",
   "  maxTokens                 reply ceiling, thinking included (default 32000)",
-  "  rounds                    model calls one consult may make, the last served no tools (10)",
+  "  rounds                    model calls one consult may make, the last served no tools (3)",
+  "  send                      diffs | bodies — what travels with the prompt (diffs)",
   "  effort                    reasoning effort asked of the slot (default medium)",
   "",
   "  --diff         send each file's diff and refuse findings that are only about code this turn",
@@ -74,6 +75,9 @@ const USAGE = [
   "  --base ref     what to diff against; implies --diff. HEAD unless you say otherwise.",
   "  --effort e     minimal | low | medium | high, for this consult only. Medium by default,",
   "                 because the reading is what costs, not the thinking.",
+  "  --rounds n     model calls this consult may make. Wall time is calls times about 45s.",
+  "  --send m       diffs (default) sends each file's change and its size, and the reviewer reads",
+  "                 what it needs; bodies sends every file whole, for a consult with nothing to read.",
   "  --verify risk  a named risk to rule on rather than an open review; repeatable. A reviewer",
   "                 verifying is reliable where a reviewer discovering invents.",
   "  --only s,s     report only these severities: blocker, major, minor.",
@@ -176,19 +180,21 @@ const severities = (raw) => {
   return asked;
 };
 
-const callBudget = () => {
-  const raw = userConfig().codex?.rounds;
+const callBudget = (asked) => {
+  const raw = asked ?? userConfig().codex?.rounds;
   if (raw === undefined) return DEFAULT_CALLS;
   const value = Number(raw);
   if (!Number.isInteger(value) || value < 1) {
-    fail(`codex: \`codex.rounds\` in ${CONFIG_PATH} takes an integer of 1 or more, not \`${raw}\`.`);
+    const where = asked === undefined ? `\`codex.rounds\` in ${CONFIG_PATH}` : "--rounds";
+    fail(`codex: ${where} takes an integer of 1 or more, not \`${raw}\`.`);
   }
   return value;
 };
 
-export const rounds = async (values, model, opening, scope, onDelta, ask = askApi, effort) => {
+export const rounds = async (values, model, opening, scope, onDelta, ask = askApi, held = {}) => {
+  const { effort, cap } = held;
   const signal = AbortSignal.timeout(BUDGET_MS);
-  const calls = callBudget();
+  const calls = callBudget(cap);
   const messages = [{ role: "user", content: opening }];
   const used = [];
   const refused = [];
@@ -263,7 +269,20 @@ export const consultArgs = (given) => {
        being silently dropped — one fewer rule to learn and one fewer way to be ignored. */
     base: held.base ?? (held.diff ? "HEAD" : null),
     effort: chosenEffort(held.effort),
+    cap: held.rounds === undefined ? undefined : Number(held.rounds),
+    /* Bodies off by default when the reviewer has tools: it reads what it needs and the payload
+       stops paying twice. `--send bodies` is the old shape, for a consult with no repository to
+       read from. */
+    bodies: chosenSend(held.send),
   };
+};
+
+const SENDS = ["diffs", "bodies"];
+
+const chosenSend = (raw) => {
+  const named = raw ?? userConfig().codex?.send ?? "diffs";
+  if (!SENDS.includes(named)) fail(`codex: --send takes ${SENDS.join(" | ")}, not \`${named}\`.`);
+  return named === "bodies";
 };
 
 /* Named rather than clamped: an unknown value would otherwise be sent to the gateway, which accepts
@@ -279,7 +298,7 @@ const consult = async (given) => {
   if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
-  const { named, risks, only, allowEcho, base, effort } = consultArgs(given);
+  const { named, risks, only, allowEcho, base, effort, cap, bodies } = consultArgs(given);
   const rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
   if (!rels.length) fail("codex: nothing to consult on. Name a file, or write one first.");
 
@@ -323,9 +342,9 @@ const consult = async (given) => {
     process.stdout.write(text);
   };
   try {
-    const opening = promptFor(intent, parts, history, { risks, only });
+    const opening = promptFor(intent, parts, history, { risks, only, bodies });
     const held = await rounds(
-      values, model, opening, scopeFor(root, rels.filter(isAbsolute)), streamed, askApi, effort,
+      values, model, opening, scopeFor(root, rels.filter(isAbsolute)), streamed, askApi, { effort, cap },
     );
     process.stdout.write("\n");
     logConsult({

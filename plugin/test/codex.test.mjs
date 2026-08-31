@@ -137,15 +137,14 @@ test("a turn is remembered per repository, not per machine", () => {
 
 test("a missing intent is stated rather than left blank", () => {
   const parts = [{ rel: "docs/A.md", text: "the body" }];
-  const withIntent = promptFor("renaming the verb", parts);
+  const withIntent = promptFor("renaming the verb", parts, [], { bodies: true });
   assert.match(withIntent, /renaming the verb/);
   assert.match(withIntent, /docs\/A\.md/);
   assert.match(withIntent, /the body/);
   assert.match(promptFor("", parts), /have not described my intent/);
 });
 
-/* It has no tools, so the bytes travel with the prompt — and a file cut short must say so, or the
-   reviewer reasons about an ending that was never sent. */
+/* A file cut short must say so, or the reviewer reasons about an ending that was never sent. */
 test("a file is sent whole with its hash, and a missing one is named", () => {
   const [whole] = bundle(REPO, ["docs/PLAN.md"]);
   assert.equal(whole.text, "x");
@@ -268,6 +267,27 @@ test("a file named in another checkout is located, and widens the scope to it", 
 
 /* The tool call arrives as a start frame and its arguments as partial JSON, so the loop has to
    assemble them: a call whose input never parsed would otherwise reach the executor as a string. */
+/* `"input": null` parses to null, and a default only covers undefined — so this threw out of the
+   loop and failed the whole consult, where the reviewer could have answered a refusal instead. */
+test("a tool call whose arguments are not an object is refused, not thrown", async () => {
+  const scope = scopeFor(REPO);
+  for (const given of [null, "nope", 7, ["docs/PLAN.md"]]) {
+    const held = runTool(scope, "read_file", given);
+    assert.equal(held.error, true, `${JSON.stringify(given)} threw or was accepted`);
+    assert.match(held.text, /needs a `path`/u);
+  }
+  const frames = [
+    'data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"c1","name":"read_file","input":{}}}',
+    'data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"null"}}',
+    'data: {"type":"content_block_stop","index":0}',
+  ];
+  async function* streamed() {
+    yield Buffer.from(`${frames.join("\n\n")}\n\n`, "utf8");
+  }
+  const held = await consume(streamed(), () => {});
+  assert.deepEqual(held.calls[0].input, {}, "and it never reaches the executor as null either");
+});
+
 test("a streamed tool call is assembled from its frames", async () => {
   const frames = [
     'data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"call_1","name":"read_file","input":{}}}',
@@ -310,11 +330,12 @@ test("the call cap is the loop's, and a tool call past it is refused not served"
       thought: 0,
     };
   };
-  const held = await rounds({}, "m", "go", scopeFor(REPO), () => {}, stub);
-  assert.equal(held.calls, 10, "ten model calls, the cap, and not one more");
-  assert.equal(asked.length, 10);
+  /* The cap is named here rather than taken from the config: this is about the loop keeping it. */
+  const held = await rounds({}, "m", "go", scopeFor(REPO), () => {}, stub, { cap: 4 });
+  assert.equal(held.calls, 4, "the cap it was given, and not one more");
+  assert.equal(asked.length, 4);
   assert.equal(asked.at(-1), 0, "the last call is served no tools");
-  assert.equal(held.tools.length, 9, "the tool call answering the capped request is not run");
+  assert.equal(held.tools.length, 3, "the tool call answering the capped request is not run");
   assert.match(held.refused.at(-1), /past the call cap/u);
 });
 
@@ -329,7 +350,7 @@ test("a capped reply that is only tool calls is a failure, not an answer", async
     thought: 0,
   });
   await assert.rejects(
-    () => rounds({}, "m", "go", scopeFor(REPO), () => {}, stub),
+    () => rounds({}, "m", "go", scopeFor(REPO), () => {}, stub, { cap: 2 }),
     /never answered/u,
   );
 });
@@ -417,6 +438,18 @@ test("anchoring, named risks and a severity floor each reach the prompt", () => 
   assert.match(shaped, /Answer the verification list first/);
 });
 
+/* Measured over a fixture with two planted defects: sending the diff alone found both in one call,
+   where sending every body cost four calls and eleven re-reads for the same answer. */
+test("the payload sends the diff and not the body, unless asked", () => {
+  const parts = [{ rel: "a.mjs", text: "the whole body", chars: 14, diff: { text: "@@ -1 +1 @@", clipped: false } }];
+  const lean = promptFor("intent", parts);
+  assert.equal(lean.includes("the whole body"), false, "the body is a read_file away");
+  assert.match(lean, /@@ -1 \+1 @@/, "the change still travels");
+  assert.match(lean, /14 chars/, "the size, so it can judge whether to read");
+  assert.match(lean, /Read it with read_file/);
+  assert.match(promptFor("intent", parts, [], { bodies: true }), /the whole body/);
+});
+
 test("an unchanged file is offered as context and excluded from review", () => {
   const parts = [
     { rel: "a.mjs", text: "code", diff: { unchanged: true } },
@@ -452,6 +485,16 @@ test("--bg is refused by name", () => {
     stopped.mock.restore();
     said.mock.restore();
   }
+});
+
+/* Both are per-consult: the cap because a review's worth of rounds is not a property of the
+   repository, and the payload because a consult on a file outside any checkout has nothing to read
+   with. An unknown value is refused rather than sent on. */
+test("the cap and the payload mode are the consult's own", () => {
+  assert.equal(consultArgs([]).cap, undefined, "unset means the config, then the default");
+  assert.equal(consultArgs(["--rounds", "3"]).cap, 3);
+  assert.equal(consultArgs([]).bodies, false, "diffs by default, because it can read");
+  assert.equal(consultArgs(["--send", "bodies"]).bodies, true);
 });
 
 test("a command line becomes a request in one place", () => {

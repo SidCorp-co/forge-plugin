@@ -193,13 +193,33 @@ is decided here rather than by whatever a spawned agent happens to have.
 **It has tools, and they are this process's.** Probed against the gateway: it answers a `tools`
 request with real `tool_use` blocks and takes a `tool_result` continuation, so the reviewer gets
 `read_file`, `list_dir`, `grep` and `git_diff`, executed in `codex-tools.mjs` — read-only, output
-clipped, each call reported on stderr as it runs. The changed files still travel with the prompt: a
-reviewer made to fetch what the caller already knows it needs spends rounds learning what it was
-about to be told.
+clipped, each call reported on stderr as it runs.
 
-`codex.rounds` caps *model calls* — ten by default — and the last one is served **no tools**, which
+**What travels with the prompt is the diff, not the body** (`codex.send`, `--send diffs|bodies`).
+Sending every file whole *and* offering tools paid for the same bytes twice: two consults spent 12
+and 17 tool calls re-reading files whose full text was already in front of them, and each tool round
+is another model call. Asked to rule on that, codex agreed the re-reading was not rational — *"the
+payload contains the full changed document, its diff, and the full relevant implementation… fewer
+rounds or stronger instructions against redundant reads are appropriate."* Telling it not to
+re-read, in the intent, did not work. Sending less did: 4,381 characters against 32,233 on a
+two-file review, 5,266 against 59,462 on a four-file one, with the same findings. `bodies` remains
+for a consult on a file outside any checkout, where there is nothing to read from.
+
+`codex.rounds` caps *model calls* — three by default, measured rather than guessed — and the last one is served **no tools**, which
 is what makes it answer; it is warned one round early, because a model told mid-answer that its tools
-are gone has already spent the round it would have read in. `codex.maxTokens` is 32,000: the gateway
+are gone has already spent the round it would have read in. Eleven runs over a fixture with two
+planted defects — a model-chosen git ref in option position and a call cap left to the gateway, both
+findings codex made against this harness for real — say what a review actually needs: given ten calls
+it used **two** on a two-file review and **four** on a four-file one with three named risks, and a cap
+of three lost no finding while saving a third of the wall time (99s against 145s). Every one of the
+eleven found both defects, at every cap from one upward, so the rounds are for *reaching* the code,
+not for thinking longer. A cap that bites degrades rather than fails: the unserved calls are reported
+as `past the call cap`, and `--rounds n` raises it for one consult.
+
+Wall time is `calls × ~45s`, and almost all of that is the model thinking before its first token. A
+timed consult: 49.5s total, one call, 39.5s of silence and then 10s of streaming. Probed against the
+same gateway, a trivial call is 1.6–2.0s and this payload with one word asked for is 6.1s — so input
+size is not where the minutes go, and the number of calls is the only lever that moves. `codex.maxTokens` is 32,000: the gateway
 returns `thinking` blocks whose tokens come out of the same ceiling, so the old 8,000 was mostly
 spent before the review began. Thinking is counted and logged, never printed — the reasoning is not
 the review. `codex.effort` is sent as `reasoning_effort` and defaults to **medium**, with `--effort
