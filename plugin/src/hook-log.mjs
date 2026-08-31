@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { configDir } from "./resolve/config.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { hookEnv, hookEvent, hookNames, offNow, setHook } from "./hook-switch.mjs";
+import { hookEvent, hookNames, offNow, setHook } from "./hook-switch.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { flags } from "./resolve/flags.mjs";
 
@@ -66,8 +66,7 @@ const line = (one) =>
 const switched = (name, off) => {
   if (!hookNames().includes(name)) fail(didYouMean("hook", name, hookNames()));
   setHook(name, off);
-  console.log(`${name} (${hookEvent(name)}) is now ${off ? "off" : "on"} for every session.`);
-  console.log(`This session only: ${hookEnv(name)}=${off ? "off" : "on"}`);
+  console.log(`${name} (${hookEvent(name)}) is now ${off ? "off" : "on"}.`);
   const down = offNow();
   console.log(down.length ? `Off: ${down.map((one) => one.name).join(", ")}` : "Every hook is on.");
 };
@@ -76,9 +75,8 @@ export const hooks = (argv) => {
   const held = flags(argv, "hooks", ["--deny", "--block"]);
   /* Switching answers with the new state and stops: the refusal log is a different question. */
   if (held.off || held.on) return switched(held.off ?? held.on, Boolean(held.off));
-  for (const { name, event, env, config } of offNow()) {
-    const from = [env && hookEnv(name), config && "hooksOff"].filter(Boolean).join(", ");
-    console.log(`off: ${name.padEnd(16)} ${event.padEnd(12)} ← ${from}`);
+  for (const { name, event } of offNow()) {
+    console.log(`off: ${name.padEnd(16)} ${event}  — \`forge hooks --on ${name}\``);
   }
   let entries = hookEntries();
   if (held.hook) entries = entries.filter((one) => one.hook === held.hook);

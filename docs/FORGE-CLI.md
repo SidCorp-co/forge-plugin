@@ -408,19 +408,17 @@ the tracker's own writes gate on them.
 switchable without anyone editing this file. Derivation alone did not make that true — an entry
 point can skip `readEvent` and keep running while `forge hooks --off` reports it off, which is what
 `link-cli` would have been — so a test asserts that every file in `hooks/` calls one of the two,
-and names the fix when it fails. `hookOff(name)` asks two layers: `FORGE_HOOK_<NAME>` for this session, `hooksOff()` in the account
-config for every session. The variable wins and spells both directions, so a session can bring back
-a gate the config holds off; a value neither set recognises, and anything that is not an array in
-the config, runs every gate — that is what makes a broken switch cost a gate firing rather than a
-gate silently gone. `forge hooks --off <hook>` validates against the derived names and answers with
+and names the fix when it fails. `hookOff(name)` asks one place, the account config, and treats anything that is not an array as
+empty — which is what makes a broken config run every gate rather than none. Nothing in the
+environment reaches it, and a test says so: a second layer is a precedence rule plus a report that
+has to name which layer holds a gate. `forge hooks --off <hook>` validates against the derived names and answers with
 the near miss, so a typo cannot write a switch that silences nothing.
 
 `hookEvents()` parses `hooks.json` into name → events, which is how a name becomes a *type*: the
 switch answers name the event they turned off, and a test fails on a script registered on two, whose
-name would take both. `offNow()` is what is down right now and which layers hold it — a variable
-leaves no trace in the config a report would otherwise read, and a gate both hold is not brought back
-by undoing one. `forge doctor` prints one line per gate that is down, each with its event and the undo
-for every layer holding it, and reports a name matching no hook file as a miss. Why the switch is read by the hook process rather than declared in `hooks.json`:
+name would take both. `offNow()` is what is down right now, each with its event. `forge doctor` prints one line per gate
+that is down with the command that brings it back, and reports a name matching no hook file as a
+miss. Why the switch is read by the hook process rather than declared in `hooks.json`:
 docs/HOOKS.md.
 
 ## `resolve/` — where every setting comes from

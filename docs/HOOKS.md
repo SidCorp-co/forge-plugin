@@ -79,15 +79,18 @@ the documentation sends you to `/plugin`, which takes a whole plugin — and the
 `disableAllHooks`, which takes the whole arrangement. Measured against the 2.1.251 bundle: no
 `disabledSkills`, no `CLAUDE_CODE_DISABLE_HOOKS`, no per-hook field in the `hooks.json` schema.
 
-So the switch is this plugin's own, and there are two of it, in the shape the codex gates already
-use. `FORGE_HOOK_<NAME>` stands one hook down for one session — `off`, `0`, `false` or `no`, with
-`-` in the name written `_`, so `FORGE_HOOK_BASH_GUARD=off`. `hooksOff` in
-`~/.config/forge/config.json` holds names for every session; `forge hooks --off <hook>` / `--on
-<hook>` writes them and answers with the variable that would have done it for one. `forge doctor`
-prints what is down either way, and how to bring each one back.
+So the switch is this plugin's own, and there is exactly one of it: `hooksOff` in
+`~/.config/forge/config.json`, holding hook names. `forge hooks --off <hook>` / `--on <hook>` writes
+it, and `forge hooks` and `forge doctor` print what is down with the one command that brings each
+back.
 
-The variable wins, and `on`/`1`/`true`/`yes` is a value too: a session brings a gate back that the
-config holds off, without a write it would have to remember to undo.
+**One source, because two would be a rule to remember.** An environment variable beside the config
+means a precedence rule, a report that has to say which layer holds a gate, and an undo in two parts
+that is wrong whenever only one part applies — a gate someone believes they turned back on is the
+worst state this switch can be in. A test asserts that nothing in the environment reaches the
+decision. The wider switches a gate carries of its own stay, and neither competes with `hooksOff`
+for one hook's answer: `FORGE_CODEX_DISABLE=1` takes every codex gate at once, and
+`CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` the two that order the advisor.
 
 **One name is one hook type.** Every script here is registered on exactly one event, so switching
 `codex-turn` switches PostToolUse and nothing else — which is why the answers name the event. That
@@ -95,8 +98,8 @@ holds because a test derives the registrations from `hooks.json` and fails on a 
 twice, whose name would stand down two events while mentioning neither. The day one appears, the key
 gains a `name:Event` form; until then it would be a shape with no case behind it.
 
-**It costs nothing measured.** A hook is ~47 ms of Node startup; the variable is a `process.env`
-read, and a hook the variable stands down never reaches the config file at all.
+**It costs nothing measured.** A hook is ~47 ms of Node startup, and the switch is inside the
+noise: one read of a small JSON file, memoized per process, before anything else runs.
 
 **The hook process reads it, not the registration.** `hooks.json` is read once at session start and
 hook code on every event, so a config the hook reads is the only switch that takes effect without a
@@ -112,10 +115,8 @@ of exactly the shape a checker matching nothing is.
 A name matching no hook file is a finding, not a silence: after a rename, `hooksOff` would read as
 an arrangement someone turned off deliberately, so `forge doctor` reports it as a miss.
 
-The switches a gate carries of its own are honoured too: `FORGE_CODEX_DISABLE=1` takes every codex
-gate at once, `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` the two that order the advisor. Scoping a switch
-to one project is not built — `hooksOff` is the account's, like the withheld verbs it mirrors, and
-a variable is already the narrower layer.
+Scoping a switch to one project is not built — `hooksOff` is the account's, like the withheld verbs
+it mirrors.
 
 ## `learning-gate.mjs` — two writes, and they are not the same write
 

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { hookEnv, hookEvents, hookNames } from "../src/hook-switch.mjs";
+import { hookEvents } from "../src/hook-switch.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const HOOK = join(HERE, "..", "hooks", "bash-guard.mjs");
@@ -36,13 +36,11 @@ const refused = (home, extra = {}) => {
   return Boolean(run.stdout.trim());
 };
 
-const forgeIn = (home, extra, ...argv) =>
+const forge = (home, ...argv) =>
   spawnSync(process.execPath, [CLI, ...argv], {
     encoding: "utf8",
-    env: { ...process.env, XDG_CONFIG_HOME: home, ...extra },
+    env: { ...process.env, XDG_CONFIG_HOME: home },
   });
-
-const forge = (home, ...argv) => forgeIn(home, {}, ...argv);
 
 test("a hook named in hooksOff does not fire, and one not named does", () => {
   assert.equal(refused(room('{"hooksOff":["bash-guard"]}')), false);
@@ -60,7 +58,6 @@ test("the CLI writes the switch and answers with the new state", () => {
   const home = room("{}");
   const off = forge(home, "hooks", "--off", "bash-guard");
   assert.match(off.stdout, /bash-guard \(PreToolUse\) is now off/, "the answer names the hook type");
-  assert.match(off.stdout, /FORGE_HOOK_BASH_GUARD=off/, "and the variable that does it for one session");
   assert.equal(refused(home), false, "the hook process reads what the CLI wrote");
   const on = forge(home, "hooks", "--on", "bash-guard");
   assert.match(on.stdout, /Every hook is on/);
@@ -94,20 +91,11 @@ test("every hook honours the switch, not only the ones that read an event", () =
   );
 });
 
-/* The variable is the codex switches' shape, and it is the layer a session has: a config write
-   outlives the reason for it, and `unset` is the only undo nobody has to remember a path for. */
-test("a variable stands one hook down, and brings one back that the config holds off", () => {
-  assert.equal(refused(room("{}"), { FORGE_HOOK_BASH_GUARD: "off" }), false);
-  assert.equal(refused(room("{}"), { FORGE_HOOK_BASH_GUARD: "0" }), false, "0 and false spell it too");
-  assert.equal(refused(room("{}"), { FORGE_HOOK_CODEX_SECOND: "off" }), true, "one name, one hook");
-  const held = '{"hooksOff":["bash-guard"]}';
-  assert.equal(refused(room(held)), false);
-  assert.equal(refused(room(held), { FORGE_HOOK_BASH_GUARD: "on" }), true, "the variable wins");
-});
-
-test("a value neither set spells runs the gate", () => {
-  assert.equal(refused(room("{}"), { FORGE_HOOK_BASH_GUARD: "maybe" }), true);
-  assert.equal(refused(room("{}"), { FORGE_HOOK_BASH_GUARD: "" }), true, "empty is not off");
+/* The config is the only source, so nothing in the environment may reach this decision: a second
+   switch would need a precedence rule, and the report would have to name which one holds a gate. */
+test("no variable switches a hook", () => {
+  const named = { FORGE_HOOK_BASH_GUARD: "off", FORGE_HOOKS_OFF: "bash-guard", BASH_GUARD: "off" };
+  assert.equal(refused(room("{}"), named), true);
 });
 
 /* One name switches one hook type only while that stays true. A script on two events would be stood
@@ -122,25 +110,8 @@ test("each hook is registered on exactly one event", () => {
   );
 });
 
-test("doctor names the event it stood down and every layer holding it", () => {
-  const held = '{"hooksOff":["codex-turn"]}';
-  const out = forge(room(held), "doctor").stdout;
+test("doctor names the event it stood down and the one undo for it", () => {
+  const out = forge(room('{"hooksOff":["codex-turn"]}'), "doctor").stdout;
   assert.match(out, /hooks off\s+codex-turn \(PostToolUse\) — `forge hooks --on codex-turn`/);
-  const byEnv = forgeIn(room("{}"), { FORGE_HOOK_CODEX_TURN: "off" }, "doctor").stdout;
-  assert.match(byEnv, /hooks off\s+codex-turn \(PostToolUse\) — `unset FORGE_HOOK_CODEX_TURN`/);
-  /* Undoing one of two leaves the gate exactly as it was, and the report promised how to bring
-     it back — so both layers are named, and only the ones actually holding it. */
-  const both = forgeIn(room(held), { FORGE_HOOK_CODEX_TURN: "off" }, "doctor").stdout;
-  assert.match(both, /— `unset FORGE_HOOK_CODEX_TURN`, `forge hooks --on codex-turn`/);
 });
 
-/* The variable name flattens `-` to `_`, so two files a directory allows can ask for one variable
-   and each would answer for the other. Nothing else notices: both would look switchable. */
-test("no two hooks want the same variable", () => {
-  const seen = new Map();
-  for (const name of hookNames()) {
-    const key = hookEnv(name);
-    assert.equal(seen.get(key), undefined, `${name} and ${seen.get(key)} both read ${key}: rename one`);
-    seen.set(key, name);
-  }
-});
