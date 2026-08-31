@@ -15,11 +15,30 @@ const FORGE_SOURCES = {
   policy: "a rule that binds future work",
 };
 const GUARDED = /\/memory\/|\/skills\//;
-// Naming one of those files is not touching it: reading a skill is the common case and must stay
-// free. Only a command that carries a write shape is asked about. `-i` has to be its own token:
-// unanchored it matched inside `erp-issue-workflow.md`, so `sed -n` reading a file was refused.
+// Naming one of those files is not touching it: reading a skill must stay free, so only a write
+// shape is asked about — and each has to be its own token. Unanchored, `-i` matched inside
+// `erp-issue-workflow.md` and `>` matched a commit trailer's `<noreply@anthropic.com>`, refusing a
+// `sed -n` read and a `git add` for redirects neither contained.
 const WRITES =
-  /\bsed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)|>>?\s|\btee\b|\bcp\b|\bmv\b|\btruncate\b|open\([^)]*['"]w/;
+  /\bsed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)|(?:^|[\s;&|(])\d?>>?|\btee\b|\bcp\b|\bmv\b|\btruncate\b|open\([^)]*['"]w/;
+const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
+
+/** A heredoc body is data, not command. The operator's own line survives, so `cat <<EOF > x.md`
+ *  keeps its target; an unterminated body runs to the end. */
+const bodiless = (text) => {
+  let out = "";
+  let rest = text;
+  for (let m = HEREDOC.exec(rest); m; m = HEREDOC.exec(rest)) {
+    const after = m.index + m[0].length;
+    const nl = rest.indexOf("\n", after);
+    if (nl < 0) return `${out}${rest.slice(0, m.index)} ${rest.slice(after)}`;
+    out += `${rest.slice(0, m.index)} ${rest.slice(after, nl + 1)}`;
+    rest = rest.slice(nl + 1);
+    const end = new RegExp(`^[ \\t]*${m[2]}[ \\t]*$`, "mu").exec(rest);
+    rest = end ? rest.slice(end.index + end[0].length) : "";
+  }
+  return out + rest;
+};
 // `M=…/memory` then `cat > $M/x.md` named no guarded directory in any single token and walked
 // past this gate. An assignment and a `cd` resolve here; `$(…)` and `eval` cannot.
 const ASSIGN = /(?:^|[;&|\n]|\bexport\s+)\s*([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|]*)/gu;
@@ -109,12 +128,11 @@ if (tool.endsWith("forge_memory_write") || tool.endsWith("forge_memory.write")) 
   );
 }
 
-// A memory or a skill written through the shell would pass every check below unseen: `sed -i` and
-// a heredoc carry no content this hook can read, and the decision this gate exists to force has to
-// happen BEFORE the write, not after it. So the shell route is closed for these two kinds of file
-// rather than approximated.
+// A memory or a skill written through the shell passes every check below unseen: `sed -i` and a
+// heredoc carry no content to read, and this gate's question has to be answered BEFORE the write.
+// So the shell route is closed for these two kinds of file rather than approximated.
 if (tool === "Bash") {
-  const text = expanded(ti.command ?? "");
+  const text = bodiless(expanded(ti.command ?? ""));
   if (!WRITES.test(text)) process.exit(0);
   const base = chdir(text);
   for (const token of text.match(MD_TOKEN) ?? []) {

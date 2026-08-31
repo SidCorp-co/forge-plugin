@@ -90,3 +90,27 @@ test("a memory file declaring no type is still asked about", () => {
   });
   assert.match(JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason, /valid `type:`/);
 });
+
+test("a commit trailer's `>` is not a redirect", () => {
+  const body = "msg\n\nCo-Authored-By: Claude Opus 5 <noreply@anthropic.com>";
+  const { allowed, reason } = decide(
+    `git add plugin/skills/issue-flow/SKILL.md && git commit -F - <<'EOF'\n${body}\nEOF`,
+  );
+  assert.equal(allowed, true, reason);
+});
+
+test("an arrow in a commit message is not a redirect", () => {
+  assert.equal(decide('git add plugin/skills/forge/SKILL.md && git commit -m "list -> table"').allowed, true);
+});
+
+test("a quoted write target is still found", () => {
+  assert.equal(decide(`M=${MEMORY}\ncat > "$M/trap.md" <<EOF\nx\nEOF`).allowed, false);
+});
+
+test("a python write through the shell is still found", () => {
+  assert.equal(decide(`python3 -c "open('${MEMORY}/trap.md','w').write('x')"`).allowed, false);
+});
+
+test("a heredoc keeps the rest of its own operator line", () => {
+  assert.equal(decide(`M=${MEMORY}\ncat <<EOF > $M/trap.md\nx\nEOF`).allowed, false);
+});
