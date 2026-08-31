@@ -62,7 +62,10 @@ const checkVi = () => {
   const key = viSetting("api_key", ["VI_NATURAL_API_KEY", "MUSETOOLS_API_KEY"]);
   if (key) line(OK, "vi-natural key", key);
   else line(BAD, "vi-natural key", "run `vi-natural login --key <key>` — no issue can be posted");
-  return Boolean(url && key);
+  const model = viSetting("model", ["VI_NATURAL_MODEL"]);
+  if (model) line(OK, "vi-natural model", model);
+  else line(BAD, "vi-natural model", "run `vi-natural login --model <id>` — `vi-natural models` lists them");
+  return Boolean(url && key && model);
 };
 
 /* Cloudflare's credentials are this machine's, not the tracker's, so they resolve and report here

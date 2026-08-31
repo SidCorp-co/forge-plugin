@@ -10,7 +10,6 @@ const CONFIG_DIR = join(process.env.XDG_CONFIG_HOME || join(homedir(), ".config"
 export const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 const GLOSSARY_FILE = ".vi-glossary.json";
 
-export const DEFAULT_MODEL = "cx/gpt-5.6-luna";
 export const EFFORTS = ["minimal", "low", "medium", "high"];
 export const DEFAULT_EFFORT = "low";
 
@@ -75,8 +74,17 @@ export class Config {
     return key;
   }
 
+  // A model id names one gateway's catalogue, so it is configured with the gateway, not guessed.
   get model() {
-    return this.pick("model", "model", ["VI_NATURAL_MODEL"], DEFAULT_MODEL);
+    const model = this.pick("model", "model", ["VI_NATURAL_MODEL"]);
+    if (!model) {
+      throw new CliError(
+        "no model configured.\n  run: vi-natural login --model <id>\n" +
+          "  or set VI_NATURAL_MODEL in the environment\n" +
+          "  `vi-natural models` lists what the gateway serves",
+      );
+    }
+    return model;
   }
 
   get effort() {

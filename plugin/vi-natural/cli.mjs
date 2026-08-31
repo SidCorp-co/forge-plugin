@@ -3,7 +3,7 @@
 
 import { CliError, err } from "./util.mjs";
 import { Client } from "./gateway/client.mjs";
-import { Config, DEFAULT_EFFORT, DEFAULT_MODEL, EFFORTS, EFFORT_BY_VERB } from "./gateway/config.mjs";
+import { Config, DEFAULT_EFFORT, EFFORTS, EFFORT_BY_VERB } from "./gateway/config.mjs";
 import { REGION_NAMES, REGISTER_NAMES } from "./text/prompts.mjs";
 import * as account from "./commands/account.mjs";
 import * as docCmd from "./commands/doc.mjs";
@@ -50,7 +50,7 @@ Natural Vietnamese for i18n files and docs, via an OpenAI-compatible gateway.
   doctor                                                config, reachability, one round trip
 
 Common options:
-  --model M          model id (default ${DEFAULT_MODEL})
+  --model M          model id (required; the models verb lists them)
   --effort E         ${EFFORTS.join("|")} (default ${DEFAULT_EFFORT}, ${EFFORT_BY_VERB.review} for review)
   --base-url U       gateway base url
   --temperature N    sampling temperature (default 0.3)

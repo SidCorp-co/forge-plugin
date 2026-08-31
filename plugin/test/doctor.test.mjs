@@ -31,10 +31,16 @@ test("a saved key with no gateway is reported, not passed", () => {
   assert.match(out, /\[ {2}ok {2}\] vi-natural key/, "the half that is configured still reads as configured");
 });
 
-test("both halves configured read as configured", () => {
-  const out = report({ api_key: "k-abc123", base_url: "https://gateway.example/v1" });
+test("all three configured read as configured", () => {
+  const out = report({ api_key: "k-abc123", base_url: "https://gateway.example/v1", model: "gw/some-model" });
   assert.match(out, /\[ {2}ok {2}\] vi-natural gateway/);
   assert.match(out, /\[ {2}ok {2}\] vi-natural key/);
+  assert.match(out, /\[ {2}ok {2}\] vi-natural model/);
+});
+
+test("a model is the third setting, and its absence is reported too", () => {
+  const out = report({ api_key: "k-abc123", base_url: "https://gateway.example/v1" });
+  assert.match(out, /\[ miss \] vi-natural model\s+run `vi-natural login --model/);
 });
 
 test("either half may come from the environment", () => {

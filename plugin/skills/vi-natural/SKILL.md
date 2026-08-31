@@ -132,12 +132,13 @@ Key and defaults live in `~/.config/vi-natural/config.json` (chmod 600), or in
 `VI_NATURAL_REGISTER`. Precedence: flag → env → `.vi-glossary.json` → config file.
 
 ```bash
-vi-natural login --key <key> --register san-pham
+vi-natural login --base-url <url> --key <key> --model <id> --register san-pham
 vi-natural models                            # what the gateway offers
 vi-natural i18n en.json --model gm/gemini-3.1-pro-preview   # per-run override
 ```
 
-Default model is `cx/gpt-5.6-luna`. `review` runs at `--effort high` — judging
+Gateway, key and model are required and have no default — a host and a model id
+belong to whoever runs the gateway. `review` runs at `--effort high` — judging
 whether a sentence is ambiguous is what reasoning is for — and the producing verbs
 run at `low`, where they follow the style contract instead of arguing with it.
 `--effort` overrides either way.

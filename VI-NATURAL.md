@@ -114,7 +114,7 @@ for first.
 | setting  | default                             | override                                 |
 | -------- | ----------------------------------- | ---------------------------------------- |
 | gateway  | none — required                     | `--base-url`, `VI_NATURAL_BASE_URL`      |
-| model    | `cx/gpt-5.6-luna`                   | `--model`, `VI_NATURAL_MODEL`            |
+| model    | none — required                     | `--model`, `VI_NATURAL_MODEL`            |
 | effort   | `low`, `high` for `review`          | `--effort`, `VI_NATURAL_EFFORT`          |
 | key      | config file                         | `MUSETOOLS_API_KEY`                      |
 | register | `san-pham`                          | `--register`, `_register`, `VI_NATURAL_REGISTER` |

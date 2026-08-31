@@ -43,7 +43,12 @@ export async function doctor(args, makeClient) {
     process.stdout.write("base url    : MISSING\n");
     throw error;
   }
-  process.stdout.write(`model       : ${config.model} (effort ${config.effort})\n`);
+  try {
+    process.stdout.write(`model       : ${config.model} (effort ${config.effort})\n`);
+  } catch (error) {
+    process.stdout.write("model       : MISSING\n");
+    throw error;
+  }
   let key;
   try {
     key = config.apiKey;

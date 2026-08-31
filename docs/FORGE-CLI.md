@@ -396,10 +396,11 @@ A missing `vi-natural` key is not a reachability problem, but `forge new` and `f
 translate before they post, so a green doctor would send `doctor && new` into a certain failure.
 Reads and writes differ here, and the exit code follows the stricter one.
 
-The gateway url is read beside the key, because there is no default host to fall back on: a saved
-key alone is configuration that looks complete and dies at the first call. Both print on every run
-whatever `translate` says — the vi-natural skill translates a locale file with no tracker in
-sight — and only the tracker's own writes gate on them.
+The gateway url and the model are read beside the key, because neither has a default to fall back
+on — a host and a model id both belong to whoever runs the gateway, and a saved key alone is
+configuration that looks complete and dies at the first call. All three print on every run whatever
+`translate` says — the vi-natural skill translates a locale file with no tracker in sight — and only
+the tracker's own writes gate on them.
 
 ## `resolve/` — where every setting comes from
 
