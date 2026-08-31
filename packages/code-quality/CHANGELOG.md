@@ -2,6 +2,12 @@
 
 All notable changes to this package are documented here.
 
+## 0.12.0 - 2026-08-31
+
+### Added
+
+- `restated: deliberate — <reason>`, `no-duplicate-comment`'s own waiver, joining `pass-through: keep` and `primitive: none` in `line-metrics.js`. A comment written to contrast with an earlier one borrows its vocabulary wholesale, so it measures as a restatement and no threshold tells the two apart. Measured rather than assumed: over `sid-growth`, `sonahome` and `search-master` — 3,072 files, 53 reports, every one classified by hand — 47 were true, 3 arguable and 3 false, and all 3 false were that same shape. A variant that dropped a pair whose shared words flip negation removed 2 of the 3 but took 5 true findings with them, which is why the rule does not guess: the author states it. The waiver reaches the block beneath it rather than only itself, because a directive ends the run of `//` lines it sits in, and the reason stays mandatory.
+
 ## 0.11.0 - 2026-08-30
 
 ### Added

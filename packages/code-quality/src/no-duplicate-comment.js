@@ -1,4 +1,4 @@
-import { isIgnoredComment, isWaiver } from "./line-metrics.js";
+import { isIgnoredComment, isWaiver, RESTATEMENT_WAIVER } from "./line-metrics.js";
 import {
   DEFAULT_MIN_SENTENCE_LENGTH,
   DEFAULT_OVERLAP_FLOOR,
@@ -8,17 +8,17 @@ import {
 } from "./text-overlap.js";
 
 /**
- * A constraint stated in two comments has two authorities, and the pair diverges the first time
- * someone corrects the one they happened to be reading — silently, because each copy still reads
- * as correct. The other two comment rules cannot see it: density counts lines without reading
- * them, and narration matches phrases inside one comment at a time.
+ * A constraint stated in two comments has two authorities and diverges the first time someone
+ * corrects only the copy they found — silently, each still reading as correct. Neither other
+ * comment rule sees it: density counts lines unread, narration matches inside one comment.
  *
- * A waiver is skipped rather than counted: every one in a file says the same thing by
- * construction, so reporting them would set two rules against each other.
- *
- * Two limits, both deliberate. ESLint is handed one file, so this is what a file repeats to
- * itself. And a pair is only ever two DIFFERENT blocks: adjacent sentences inside one share a
- * topic and therefore a vocabulary, which scores high on nothing.
+ * A waiver is skipped rather than counted — every one in a file says the same thing by
+ * construction — and `restated: deliberate` is this rule's own, because a comment written to
+ * contrast with an earlier one borrows its whole vocabulary: over three foreign codebases a
+ * negation-aware variant cost five real findings to drop two such pairs, so which it is stays
+ * the author's to state. Two limits beyond that. ESLint is handed one file, so this is what a
+ * file repeats to itself; and a pair is only ever two DIFFERENT blocks, adjacent sentences
+ * inside one sharing a topic and therefore a vocabulary that scores high on nothing.
  */
 
 const isDirective = (comment) => isIgnoredComment(comment) || isWaiver(comment);
@@ -28,8 +28,11 @@ const isDirective = (comment) => isIgnoredComment(comment) || isWaiver(comment);
 function blocksOf(sourceCode) {
   const blocks = [];
   let open = null;
+  let waivedLine = 0;
   for (const comment of sourceCode.getAllComments()) {
     if (comment.type === "Shebang" || isDirective(comment)) {
+      // Reaches the block under it: a directive ends its own run, so alone it waives nothing.
+      if (RESTATEMENT_WAIVER.test(comment.value)) waivedLine = comment.loc.end.line + 1;
       open = null;
       continue;
     }
@@ -48,10 +51,11 @@ function blocksOf(sourceCode) {
       comments: [comment],
       loc: { start: comment.loc.start, end: comment.loc.end },
       start: comment.range[0],
+      waived: comment.loc.start.line === waivedLine,
     };
     blocks.push(open);
   }
-  return blocks;
+  return blocks.filter((block) => !block.waived);
 }
 
 function textOf(block) {
@@ -84,7 +88,7 @@ export default {
     ],
     messages: {
       duplicateComment:
-        'This repeats what the comment on line {{line}} already says ("{{other}}"). Keep the statement in one place; two authorities for one constraint diverge the first time someone corrects only the copy they found.',
+        'This repeats what the comment on line {{line}} already says ("{{other}}"). Two authorities for one constraint diverge the first time someone corrects only the copy they found. Keep the statement in one place, or waive it with "restated: deliberate — <reason>".',
     },
   },
   create(context) {

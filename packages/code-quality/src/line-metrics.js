@@ -14,7 +14,8 @@ export function waiverPattern(marker, escape) {
 
 export const PASS_THROUGH_WAIVER = waiverPattern("pass-through", "keep");
 export const RAW_ELEMENT_WAIVER = waiverPattern("primitive", "none");
-const WAIVERS = [PASS_THROUGH_WAIVER, RAW_ELEMENT_WAIVER];
+export const RESTATEMENT_WAIVER = waiverPattern("restated", "deliberate");
+const WAIVERS = [PASS_THROUGH_WAIVER, RAW_ELEMENT_WAIVER, RESTATEMENT_WAIVER];
 
 export const isWaiver = (comment) => WAIVERS.some((waiver) => waiver.test(comment.value));
 

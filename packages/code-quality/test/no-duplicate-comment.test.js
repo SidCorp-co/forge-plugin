@@ -62,6 +62,13 @@ function a() { return b(); }
 // pass-through: keep — route handler: @Get() and the validation pipe carry the work here
 function c() { return d(); }`,
       },
+      // This rule's own waiver, over the very text the first case proves is reported.
+      {
+        code: RESTATED.replace(
+          "  // Uniqueness",
+          "  // restated: deliberate — the mirror case, and the contrast is why both are written\n  // Uniqueness",
+        ),
+      },
       // Directives are not prose and never carry a constraint.
       {
         code: `// eslint-disable-next-line no-unused-vars -- the resolver needs the binding present
@@ -71,6 +78,18 @@ const b = 2;`,
       },
     ],
     invalid: [],
+  });
+});
+
+test("a waiver without a reason is a marker, and a marker waives nothing", () => {
+  tester.run("no-duplicate-comment", rule, {
+    valid: [],
+    invalid: [
+      {
+        code: RESTATED.replace("  // Uniqueness", "  // restated: deliberate\n  // Uniqueness"),
+        errors: [{ messageId: "duplicateComment" }],
+      },
+    ],
   });
 });
 

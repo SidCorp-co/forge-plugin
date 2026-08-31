@@ -175,6 +175,15 @@ Reports a comment restating what an earlier comment in the same file already say
 
 The measurement is lexical — a Jaccard index over content words, with `floor` naming how many words two sentences must actually share before the index is computed at all. It cannot know that two differently worded sentences mean the same thing, so a clean file is a floor on quality and never a proof of absence; `threshold` and `floor` are what keep it from crying wolf. A run of `//` lines is one comment, because a sentence routinely spans two of them, and a pair is always two different comments: adjacent sentences inside one block share a topic and so a vocabulary. The comparison is exported as `findOverlaps` / `findOverlapsAgainst` for whole-tree checks, which is where the same statement spread across a module and its caller has to be caught — ESLint is only ever handed one file.
 
+A comment written to *contrast* with an earlier one borrows its whole vocabulary, and no lexical measure separates that from a restatement: run over three unrelated codebases, 3 of 53 reports were such a pair, and a negation-aware variant that dropped 2 of them cost 5 real findings to do it. So the polarity is the author's to declare, with a waiver on the line above:
+
+```js
+// restated: deliberate — the mirror case, and the contrast is why both are written
+// Now two of them, so the other refusal is the reachable one.
+```
+
+The reason is mandatory — a bare `restated: deliberate` waives nothing — and the waiver reaches the one comment block beneath it, never the rest of the file.
+
 ### `max-consecutive-comment-lines`
 
 Limits runs of adjacent substantive comment lines.
