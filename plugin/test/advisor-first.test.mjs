@@ -2,10 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const HOOK = new URL("../hooks/advisor-first.mjs", import.meta.url).pathname;
+/* The wall is for work in a repository, so every fixture path is one — the checkout this runs in. */
+const REPO = fileURLToPath(new URL("../..", import.meta.url));
+const inRepo = (name) => join(REPO, name);
 const room = mkdtempSync(join(tmpdir(), "advisor-first-"));
 /* A refusal writes to the config dir now, so a suite that skips this one logs onto the developer. */
 const HOME = { ...process.env, XDG_CONFIG_HOME: room };
@@ -38,7 +42,7 @@ const gate = (input, records, { tool = "Write", session } = {}) => {
     tool_input: input,
     transcript_path: transcriptOf(records),
     session_id: session ?? `s${count}-${process.pid}`,
-    cwd: process.cwd(),
+    cwd: REPO,
   };
   const run = spawnSync(process.execPath, [HOOK], {
     input: JSON.stringify(event),
@@ -50,7 +54,7 @@ const gate = (input, records, { tool = "Write", session } = {}) => {
 const because = (out) => out?.hookSpecificOutput?.permissionDecisionReason ?? "";
 
 test("a write before the turn's advisor call is stopped, and the file is named", () => {
-  const out = gate({ file_path: "/tmp/notes.mjs", content: "x" }, [userTurn("do it"), said("working")]);
+  const out = gate({ file_path: inRepo("notes.mjs"), content: "x" }, [userTurn("do it"), said("working")]);
   assert.equal(out.hookSpecificOutput.permissionDecision, "deny");
   assert.match(because(out), /notes\.mjs/);
   assert.match(because(out), /advisor\(\)/);
@@ -58,13 +62,13 @@ test("a write before the turn's advisor call is stopped, and the file is named",
 
 /* The hook reads notebook_path, so the matcher has to send it: found by codex, not by a test. */
 test("a notebook edit is a write too", () => {
-  const out = gate({ notebook_path: "/tmp/run.ipynb" }, [userTurn("go")], { tool: "NotebookEdit" });
+  const out = gate({ notebook_path: inRepo("run.ipynb") }, [userTurn("go")], { tool: "NotebookEdit" });
   assert.equal(out.hookSpecificOutput.permissionDecision, "deny");
   assert.match(because(out), /run\.ipynb/);
 });
 
 test("advice given this turn lets the writes through", () => {
-  assert.equal(gate({ file_path: "/tmp/a.mjs" }, [userTurn("go"), advised(), said("acting on it")]), null);
+  assert.equal(gate({ file_path: inRepo("a.mjs") }, [userTurn("go"), advised(), said("acting on it")]), null);
 });
 
 /* A wall and not a nudge, safe here because the condition is a fact the agent can clear: calling
@@ -72,19 +76,19 @@ test("advice given this turn lets the writes through", () => {
 test("the re-send is refused too, until the call is in the transcript", () => {
   const records = [userTurn("go"), said("working")];
   const session = `wall-${process.pid}-${Date.now()}`;
-  const first = gate({ file_path: "/tmp/a.mjs" }, records, { session });
+  const first = gate({ file_path: inRepo("a.mjs") }, records, { session });
   assert.equal(first.hookSpecificOutput.permissionDecision, "deny");
-  const again = gate({ file_path: "/tmp/a.mjs" }, records, { session });
+  const again = gate({ file_path: inRepo("a.mjs") }, records, { session });
   assert.equal(again.hookSpecificOutput.permissionDecision, "deny", "no stamp lets it through");
-  assert.equal(gate({ file_path: "/tmp/a.mjs" }, [...records, advised()], { session }), null, "the call lifts it");
+  assert.equal(gate({ file_path: inRepo("a.mjs") }, [...records, advised()], { session }), null, "the call lifts it");
 });
 
 /* Most of this repo's edits arrive as an interpreter writing a file, not as the Write tool. */
 test("a shell write counts; reading and searching do not", () => {
   const records = [userTurn("go")];
-  assert.ok(gate({ command: 'python3 -c \'open("/tmp/x","w").write("y")\'' }, records, { tool: "Bash" }));
+  assert.ok(gate({ command: `python3 -c 'open("${inRepo("x")}","w").write("y")'` }, records, { tool: "Bash" }));
   assert.ok(gate({ command: "cp plugin/src/codex.mjs /tmp/keep.mjs" }, records, { tool: "Bash" }));
-  assert.ok(gate({ command: "cat > /tmp/new.md <<'MD'\nbody\nMD" }, records, { tool: "Bash" }), "a heredoc redirect");
+  assert.ok(gate({ command: "cat > notes.md <<'MD'\nbody\nMD" }, records, { tool: "Bash" }), "a heredoc redirect");
   assert.equal(gate({ command: "grep -rn thing plugin/" }, records, { tool: "Bash" }), null);
   assert.equal(gate({ command: "npm test 2>/dev/null" }, records, { tool: "Bash" }), null, "not a real target");
 });
@@ -122,9 +126,29 @@ test("an assignment or a wrapper before the verb is still command position", () 
   assert.ok(gate({ command: "find . -name x -exec cp {} /tmp ;" }, records, bash), "find -exec");
 });
 
+/* Two gates fired on writes that were nobody's work: a memory file under ~/.claude while the cwd
+   was a repository, and a gate run whose only write was a log in /tmp. why/advisor-first.md. */
+test("a write outside the repository is not work, and does not trip the wall", () => {
+  const records = [userTurn("go")];
+  assert.equal(gate({ file_path: "/tmp/scratch.mjs" }, records), null, "a scratch file");
+  const memory = join(homedir(), ".claude", "projects", "some-repo", "memory", "a-fact.md");
+  assert.equal(gate({ file_path: memory }, records), null, "the agent's own memory");
+  const log = gate({ command: "node scripts/gates.mjs > /tmp/notes.log" }, records, { tool: "Bash" });
+  assert.equal(log, null, "a read-only run whose one write is a log");
+  const through = gate({ command: "H=/tmp/d; node x.mjs > $H/t.jsonl" }, records, { tool: "Bash" });
+  assert.equal(through, null, "the same target reached through a variable");
+});
+
+test("a write verb answers for a target that cannot be read from the line", () => {
+  const records = [userTurn("go")];
+  assert.ok(gate({ command: "cp plugin/src/codex.mjs /tmp/keep.mjs" }, records, { tool: "Bash" }),
+    "cp names two paths and the gate cannot tell which is the target");
+  assert.ok(gate({ command: "sed -i s/a/b/ plugin/src/codex.mjs" }, records, { tool: "Bash" }));
+});
+
 /* The message has to be true: a wait cannot close this, so re-sending is the instruction. */
 test("the refusal says the record lands a round-trip later", () => {
-  const out = gate({ file_path: "/tmp/a.mjs" }, [userTurn("go")]);
+  const out = gate({ file_path: inRepo("a.mjs") }, [userTurn("go")]);
   assert.match(because(out), /round-trip later/);
   assert.match(because(out), /re-send/);
 });
@@ -132,7 +156,7 @@ test("the refusal says the record lands a round-trip later", () => {
 /* This lands in a context window on every write of every turn, so the argument for the rule is a
    command and not a paragraph. It was 498 characters of standing prose before the split. */
 test("the refusal is short, and names where the reasoning is", () => {
-  const reason = because(gate({ file_path: "/tmp/a.mjs" }, [userTurn("go")]));
+  const reason = because(gate({ file_path: inRepo("a.mjs") }, [userTurn("go")]));
   assert.match(reason, /forge hooks --why advisor-first/);
   assert.ok(reason.length < 300, `${reason.length} characters printed on every refused write`);
 });
@@ -140,10 +164,10 @@ test("the refusal is short, and names where the reasoning is", () => {
 test("the gate stands down when the advisor tool itself is off", () => {
   const event = {
     tool_name: "Write",
-    tool_input: { file_path: "/tmp/a.mjs" },
+    tool_input: { file_path: inRepo("a.mjs") },
     transcript_path: transcriptOf([userTurn("go")]),
     session_id: `off-${process.pid}`,
-    cwd: process.cwd(),
+    cwd: REPO,
   };
   const run = spawnSync(process.execPath, [HOOK], {
     input: JSON.stringify(event),

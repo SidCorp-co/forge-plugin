@@ -36,3 +36,9 @@ it down too — with no advisor there is no first opinion for this to be second 
 The price is stated rather than hidden: a turn that takes advice and touches a dirty tree pays one
 consult, around 30–60 seconds, before its first write lands. That is the trade the user asked for
 twice — "not relax but forget to run" — after watching the reminder be ignored.
+
+**The write has to be in the tree codex would read.** The root comes from the session's working
+directory and the target was never consulted, so a memory file written under `~/.claude/projects/`
+demanded a review of a repository that write was not part of. A target resolving outside the root
+now stands the gate down — and that stand-down is not stamped: it is a fact about one write, not a
+decision about this advice, and stamping it would let one stray write clear the turn.

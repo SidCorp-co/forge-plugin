@@ -17,11 +17,12 @@ import {
   transcript,
   unspentAdvice,
   why,
+  writesInside,
   writing,
 } from "./_hook.mjs";
 
-/* Nothing to review is not a rule worth enforcing, so the gate asks when the tree last changed. A
-   deleted file has no mtime and is missed; a deletion alone is not what this is for. */
+/* Nothing to review is not a rule worth enforcing, so the gate asks when the tree last changed; a
+   deleted file has no mtime and is missed. A write outside the tree is not stamped: why/codex-second.md. */
 const changedAt = (root) => {
   const out =
     spawnSync("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8", timeout: 5000 })
@@ -51,7 +52,7 @@ if (
 
 const records = transcript(ev.transcript_path ?? "");
 const root = repoRoot(ev.cwd ?? process.cwd());
-if (!records || !root || !advisedThisTurn(records)) process.exit(0);
+if (!records || !root || !advisedThisTurn(records) || !writesInside(ev, root)) process.exit(0);
 
 const spentAt = lastConsultAt(root);
 if (!unspentAdvice(records, spentAt)) process.exit(0);

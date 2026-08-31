@@ -6,7 +6,7 @@ import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { REDIRECT, WRITES, askedAlready, bodiless, deny, readEvent } from "./_hook.mjs";
+import { REDIRECT, WRITES, askedAlready, bodiless, deny, expanded, readEvent } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
 
 const FORGE_SOURCES = ["note", "knowledge", "decision", "policy"];
@@ -14,16 +14,9 @@ const GUARDED = /\/memory\/|\/skills\//;
 // A write shape counts only as its own token, and `M=…/memory` then a redirect to `$M/x.md` named
 // no guarded directory in any single token — so an assignment and a `cd` resolve here, and `$(…)`
 // and `eval` cannot. The false positives that set both rules: why/learning-gate.md.
-const ASSIGN = /(?:^|[;&|\n]|\bexport\s+)\s*([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|]*)/gu;
 const CHDIR = /(?:^|[;&|\n])\s*(?:cd|pushd)\s+("[^"]*"|'[^']*'|[^\s;&|]+)/gu;
 const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
 const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
-
-const expanded = (command) => {
-  const vars = new Map();
-  for (const [, name, value] of command.matchAll(ASSIGN)) vars.set(name, unquote(value));
-  return command.replace(/\$\{?([A-Za-z_]\w*)\}?/gu, (whole, name) => vars.get(name) ?? whole);
-};
 
 /** The last directory the command changes to, so a relative write resolves against it. */
 const chdir = (text) => {

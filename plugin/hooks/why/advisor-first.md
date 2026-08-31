@@ -55,3 +55,13 @@ commands take, was invisible. The library calls — `open(…, "w")`, `write_tex
 
 The two errors are not symmetric, which is why the anchor is generous: a false refusal costs one
 advisor call, and a missed write is the wall silently not existing.
+
+**A write outside the repository is not work.** The wall fired on `node scripts/gates.mjs >
+/tmp/notes.log` — a read-only gate run whose only write was a log in a scratch directory — and on a
+memory file under `~/.claude/projects/`, written while the working directory happened to be a
+checkout. Neither is what the advisor exists to see, so a write whose every target resolves outside
+the repository stands the gate down. Only a redirect names its target: a write *verb* (`sed -i`,
+`cp`, `tee`, an interpreter opening a path) names nothing this can read from the line, so it counts
+as inside, because a wall that stands down on doubt is not a wall. Variables are substituted first —
+`H=/tmp/d` then a redirect to `$H/t.jsonl` named the directory in no single token, and that shape
+was two of the false refusals.

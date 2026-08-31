@@ -3,8 +3,8 @@
 
 import { createHash } from "node:crypto";
 import { readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { basename, join, resolve, sep } from "node:path";
 
 import { logHook, scrubbed } from "../src/hook-log.mjs";
 import { hookOff } from "../src/hook-switch.mjs";
@@ -173,6 +173,45 @@ export function writing(ev) {
     WRITES.test(command)
     || [...command.matchAll(REDIRECT)].some((one) => !/^\/dev\//u.test(one[1].replace(/['"]/gu, "")))
   );
+}
+
+/** Lexical: the file may not exist yet, and a relative target resolves against the cwd. */
+const under = (root, cwd, path) => {
+  let base;
+  try {
+    base = realpathSync(root);
+  } catch {
+    return true;
+  }
+  const full = resolve(cwd || root, path.replace(/^~(?=\/|$)/u, homedir()));
+  return full === base || full.startsWith(base + sep);
+};
+
+const ASSIGN = /(?:^|[;&|\n]|\bexport\s+)\s*([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|]*)/gu;
+const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
+
+/** `H=/tmp/d` then `> $H/x` names the directory in no token, so a value is substituted first. */
+export const expanded = (command) => {
+  const vars = new Map();
+  for (const [, name, value] of command.matchAll(ASSIGN)) vars.set(name, unquote(value));
+  return command.replace(/\$\{?([A-Za-z_]\w*)\}?/gu, (whole, name) => vars.get(name) ?? whole);
+};
+
+/** Whether the write is work in `root`. A write verb names no readable target so it answers true —
+ *  a wall that stands down on doubt is not a wall. A redirect does: why/advisor-first.md. */
+export function writesInside(ev, root) {
+  if (!root) return true;
+  const ti = ev.tool_input ?? {};
+  if (ev.tool_name !== "Bash") {
+    const path = ti.file_path ?? ti.notebook_path;
+    return !path || under(root, ev.cwd, path);
+  }
+  const command = bodiless(expanded(String(ti.command ?? "")));
+  if (WRITES.test(command)) return true;
+  const aimed = [...command.matchAll(REDIRECT)]
+    .map((one) => one[1].replace(/['"]/gu, ""))
+    .filter((path) => !/^\/dev\//u.test(path));
+  return aimed.length === 0 || aimed.some((path) => under(root, ev.cwd, path));
 }
 
 /** When the advisor last spoke, in epoch ms; 0 if it never has. */

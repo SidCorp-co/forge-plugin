@@ -29,7 +29,7 @@ const advised = (msAgo = 1000) => ({
 });
 
 let count = 0;
-const gate = (records, { consultAt, clean, staleBy, session, env = {} } = {}) => {
+const gate = (records, { consultAt, clean, staleBy, session, env = {}, writes } = {}) => {
   count += 1;
   const path = join(room, `t${count}.jsonl`);
   writeFileSync(path, `${records.map((one) => JSON.stringify(one)).join("\n")}\n`);
@@ -47,7 +47,7 @@ const gate = (records, { consultAt, clean, staleBy, session, env = {} } = {}) =>
   const run = spawnSync(process.execPath, [HOOK], {
     input: JSON.stringify({
       tool_name: "Write",
-      tool_input: { file_path: join(REPO, "next.mjs") },
+      tool_input: { file_path: writes ?? join(REPO, "next.mjs") },
       transcript_path: path,
       session_id: session ?? `s${count}`,
       cwd: REPO,
@@ -58,6 +58,14 @@ const gate = (records, { consultAt, clean, staleBy, session, env = {} } = {}) =>
   return run.stdout.trim() ? JSON.parse(run.stdout) : null;
 };
 const because = (out) => out?.hookSpecificOutput?.permissionDecisionReason ?? "";
+
+/* It demanded a review of the sid-growth tree because a memory file under ~/.claude was written:
+   the root comes from the session's cwd, and nothing asked where the write was going. */
+test("a write outside the tree is not something codex could review", () => {
+  const outside = join(room, "elsewhere", "a-fact.md");
+  assert.equal(gate([userTurn(), advised()], { writes: outside }), null);
+  assert.ok(gate([userTurn(), advised()]), "a write inside it still stops");
+});
 
 /* The failure this exists for: the advisor ran, the turn wrote and committed, and the consult that
    was supposed to follow never did — the end-of-turn reminder is context, and it was ignored. */

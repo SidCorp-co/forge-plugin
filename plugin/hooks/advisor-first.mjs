@@ -3,11 +3,13 @@
 
 import { basename } from "node:path";
 
-import { advisedThisTurn, deny, readEvent, transcript, why, writing } from "./_hook.mjs";
+import { repoRoot } from "../src/codex.mjs";
+import { advisedThisTurn, deny, readEvent, transcript, why, writesInside, writing } from "./_hook.mjs";
 
 const ev = readEvent();
 
 if (!writing(ev) || process.env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL === "1") process.exit(0);
+if (!writesInside(ev, repoRoot(ev.cwd ?? process.cwd()))) process.exit(0);
 
 const records = transcript(ev.transcript_path ?? "");
 if (!records || advisedThisTurn(records)) process.exit(0);
