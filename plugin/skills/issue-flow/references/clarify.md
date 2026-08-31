@@ -17,5 +17,4 @@ Not a paragraph asking what they meant. **Enumerate the readings as concrete cas
 outcome each produces** — a table of before/after rows, a literal example record, the two
 screens side by side. The person answering should be choosing between visible results.
 
-Then park the issue in whatever status the tracker uses for "waiting on the reporter", with
-the reason recorded, and go work another issue.
+Then park it, in whatever status the tracker uses for "waiting on the reporter".
