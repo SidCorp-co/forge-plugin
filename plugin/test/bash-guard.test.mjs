@@ -46,19 +46,24 @@ test("the command itself is refused, and the refusal names the rule and a way ou
 
 /* Twice in one session a python heredoc was refused for holding the command in a *string literal*,
    with nothing for the shell to run, and no way for the developer to reword their own line. */
-test("a quoted literal is data, and a heredoc that only quotes a rule is not a run", () => {
+test("a literal inside a program is data, and the line that ran it is not", () => {
   assert.ok(decide(`python3 - <<'PY'\nt = t.replace("${STAGE_ALL}", "x")\nPY`).allowed);
-  assert.ok(decide(`git commit -m "${STAGE_ALL} is refused by bash-guard"`).allowed);
-  assert.equal(decide(`echo 'notes' > /tmp/x && ${STAGE_ALL}`).allowed, false, "outside quotes it runs");
-});
-
-/* Stripping quoted spans is only safe while a quoted string cannot become a command again. */
-test("a string handed back to a shell is a command, and a body that can spawn keeps its quotes", () => {
-  assert.equal(decide(`bash -c "${STAGE_ALL}"`).allowed, false, "-c runs what it is given");
-  assert.equal(decide(`eval "${STAGE_ALL}"`).allowed, false);
+  assert.equal(decide(`echo 'notes' > /tmp/x && ${STAGE_ALL}`).allowed, false, "outside a body it runs");
+  assert.equal(decide(`bash -c "${STAGE_ALL}"`).allowed, false, "the operator's line keeps its quotes");
   assert.equal(
     decide(`python3 - <<'PY'\n${SPAWNING}("${STAGE_ALL}", shell=True)\nPY`).allowed,
     false,
     "a body that can reach a shell keeps every literal",
   );
+});
+
+/* The shell removes a quote and keeps what is inside it, so a quoted flag is the flag. Four rules
+   read the flag directly and missed all four of these until codex named them. */
+test("a quoted flag is still the flag the rule is about", () => {
+  const q = String.fromCharCode(34);
+  assert.equal(decide(`git ${"add"} ${q}-A${q}`).allowed, false);
+  assert.equal(decide(`git reset ${q}--hard${q}`).allowed, false);
+  assert.equal(decide(`git ${q}stash${q}`).allowed, false);
+  assert.equal(decide(`eslint ${q}--fix${q} .`).allowed, false);
+  assert.equal(decide(`git checkout -- ${q}file.txt${q}`).allowed, false);
 });

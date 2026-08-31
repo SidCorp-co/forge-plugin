@@ -135,9 +135,9 @@ export const REDIRECT = /(?:^|[\s;&|(])\d?>>?\s*(?!&\d)("[^"]*"|'[^']*'|[^\s;&|<
 
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
-/** A heredoc body is data, not command: an intent that quotes `writeFileSync` is prose. The
- *  operator's line survives, and a body an interpreter executes stays. why/learning-gate.md. */
-export const bodiless = (text) => {
+/** A heredoc body is data, not command, and `onProgram` is where a caller reads a body an
+ *  interpreter executes differently from the line that ran it. why/learning-gate.md. */
+export const bodiless = (text, onProgram = (body) => body) => {
   let out = "";
   let rest = text;
   for (let m = HEREDOC.exec(rest); m; m = HEREDOC.exec(rest)) {
@@ -148,7 +148,7 @@ export const bodiless = (text) => {
     out += `${line} ${rest.slice(after, nl + 1)}`;
     rest = rest.slice(nl + 1);
     const end = new RegExp(`^[ \\t]*${m[2]}[ \\t]*$`, "mu").exec(rest);
-    if (EXECUTES_STDIN.test(line)) out += end ? rest.slice(0, end.index) : rest;
+    if (EXECUTES_STDIN.test(line)) out += onProgram(end ? rest.slice(0, end.index) : rest);
     rest = end ? rest.slice(end.index + end[0].length) : "";
   }
   return out + rest;

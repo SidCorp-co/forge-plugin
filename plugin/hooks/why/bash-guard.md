@@ -27,19 +27,29 @@ asks for the pid and the one command that ends it.
 wrongly is a case to put to the user — a command reworded until it slips past teaches the agent
 that the guard is noise, and that costs every refusal after it.
 
-**A quoted span is an argument, not a command.** The rules matched the whole line, so a `python3`
-heredoc holding `git add -A` in a *string literal* was refused twice in one session — the shell had
-nothing to run, and the developer could not reword their own line, which is the shape the paragraph
-above says costs every refusal after it. The command is read through `bodiless` first, as the write
-gates read it, and then quoted spans are dropped.
+**A literal inside a program is data; the line that ran it is not.** The rules matched the whole
+command, so a `python3` heredoc holding a refused command in a *string literal* was refused twice in
+one session — the shell had nothing to run, and the developer could not reword their own line, which
+is the shape the paragraph above says costs every refusal after it. The command is read through
+`bodiless` first, as the write gates read it, and inside a body an interpreter executes, the quoted
+literals are dropped.
 
-Two exceptions, because a quoted string can become a command again. A span after `eval` or `-c` is
-kept: `bash -c "git add -A"` runs it. And nothing is stripped at all from a body that can hand a
-string to a shell — `subprocess`, `os.system`, `child_process`, `execSync`, `spawnSync`,
-`shell=True` — because there the strip would be the guard silently not existing, and this is the one
-gate whose misses cannot be undone.
+Only there. A first version stripped every quoted span in the command, and codex named the cost: the
+shell removes a quote and keeps what is inside it, so a quoted `--fix` stopped being seen — one real
+bypass, shipped in 3.8.0 and closed the same day. The operator's own line keeps its quotes, and a
+command handed to `bash -c` is refused because of that rather than because of a rule about `-c`. A
+body that can hand a string to a shell — `subprocess`, `os.system`, `child_process`, `execSync`,
+`spawnSync`, `shell=True` — keeps every literal, because a strip there would be the guard silently
+not existing, and this is the one gate whose misses cannot be undone.
 
-Known and left: `git checkout "file.txt"` loses the evidence the rule reads (a quoted path with no
-`--`), and `bash -lc` is not recognised as handing its argument to a shell. Both are narrower than
-the false refusals they replace, and both are stated here rather than discovered.
+Two prices, both the safe direction. A commit message quoting a rule reads as the rule, and is one
+re-word away. And the pairing is naive: prose apostrophes inside a body pair with each other, so a
+quoted command can lose its quotes and be seen anyway. This document tripped that while being
+written.
+
+**A quoted flag is the flag.** A quoted `-A`, `--hard`, `stash` or `--fix` was allowed by every
+version of this guard until codex read it — four patterns matched the flag directly and a quote in
+front of it was enough. Each tolerates one now. The lesson is not about quoting: a rule that reads a
+command as text is only as good as the shapes someone has actually tried, which is why this file has
+a suite now.
 

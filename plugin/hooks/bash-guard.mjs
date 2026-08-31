@@ -33,7 +33,7 @@ const RULES = [
       "is the one you established you may stop, then `kill <pid>`.",
   },
   {
-    pattern: /\bgit\s+add\s+(-A\b|--all\b|\.(\s|$))/,
+    pattern: /\bgit\s+add\s+["']?(-A\b|--all\b|\.(\s|$))/,
     needsDirtyTree: true,
     cause:
       "git add -A stages everything in the tree, including work in progress that is not yours " +
@@ -41,7 +41,7 @@ const RULES = [
     instead: "Stage the paths you changed, explicitly.",
   },
   {
-    pattern: /\bgit\s+stash\b/,
+    pattern: /\bgit\s+["']?stash\b/,
     needsDirtyTree: true,
     cause:
       "git stash silently reverts the working tree, so everything read afterwards reports about " +
@@ -50,14 +50,14 @@ const RULES = [
       "Copy the file aside to undo a probe, or use a separate `git worktree` for a clean baseline.",
   },
   {
-    pattern: /\bgit\s+checkout\s+(--\s+\S|-{2}\s|\S+\.\w)/,
+    pattern: /\bgit\s+checkout\s+["']?(--\s+\S|-{2}\s|\S+\.\w)/,
     needsDirtyTree: true,
     cause:
       "git checkout of a tracked path discards uncommitted work with no history to restore it from.",
     instead: "Copy the file aside first, or make the change you actually want.",
   },
   {
-    pattern: /\bgit\s+reset\s+--hard\b/,
+    pattern: /\bgit\s+reset\s+["']?--hard\b/,
     needsDirtyTree: true,
     cause: "git reset --hard discards every uncommitted change in the tree at once.",
     instead: "Reset the specific paths, or commit first so the state is recoverable.",
@@ -82,18 +82,14 @@ function treeIsDirty(cwd) {
   return out.stdout.trim() !== "";
 }
 
-/* What the shell will actually run: a data heredoc is dropped, and a quoted span is an argument
-   rather than a command — kept only where a string reaches a shell again, after `eval` or `-c`, and
-   never stripped from a program that can spawn one. why/bash-guard.md. */
+/* What the shell will actually run. A data heredoc is dropped, and inside a program an interpreter
+   runs, a quoted literal is data — unless that program can hand a string to a shell. The operator's
+   own line keeps its quotes: `git add "-A"` is the flag, quoted. why/bash-guard.md. */
 const QUOTED = /'[^']*'|"[^"]*"/gu;
-const TO_SHELL = /(?:\beval\b|(?:^|\s)-c)\s*$/u;
 const SPAWNS = /\b(?:subprocess|os\.system|os\.popen|child_process|execSync|spawnSync|shell\s*=\s*True)/u;
 
-const instructions = (given) => {
-  const text = bodiless(given);
-  if (SPAWNS.test(text)) return text;
-  return text.replace(QUOTED, (span, at) => (TO_SHELL.test(text.slice(0, at)) ? span : " "));
-};
+const instructions = (given) =>
+  bodiless(given, (body) => (SPAWNS.test(body) ? body : body.replace(QUOTED, " ")));
 
 const ev = readEvent();
 if (ev.tool_name !== "Bash") process.exit(0);
