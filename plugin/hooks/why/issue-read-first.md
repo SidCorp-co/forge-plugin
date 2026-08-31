@@ -18,7 +18,7 @@ that key appears in the transcript. Every key the command names must have been r
 command touching two issues has two states to be wrong about.
 
 **An empty list satisfies it.** The condition is having looked, which is a fact the agent can clear
-in one call — so, like `advisor-first` and unlike `learning-gate`, this is a wall rather than a
+in one call — so, like `codex-second` and unlike `learning-gate`, this is a wall rather than a
 question. A freshly created issue costs one listing that returns nothing.
 
 Only the agent's own `tool_use` blocks are searched. The refusal names the exact command to run, and

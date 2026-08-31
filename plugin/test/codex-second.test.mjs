@@ -117,8 +117,8 @@ test("a clean tree has nothing for codex to read", () => {
   assert.equal(gate([userTurn(), advised()], { clean: true }), null);
 });
 
-/* Before the advisor speaks this is advisor-first's refusal to make, and two walls saying different
-   things about the same write is how a gate gets switched off. */
+/* With no first opinion there is nothing to be second to, and the system prompt is what asks for
+   the advisor call — a hook repeating that ask was removed for charging a refusal to enforce it. */
 test("a turn with no advisor call is not this gate's business", () => {
   assert.equal(gate([userTurn()]), null);
 });

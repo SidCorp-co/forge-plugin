@@ -60,7 +60,7 @@ message teaches the agent that the gate is noise, and that costs every consult a
 Two ways out, and not one knob: `FORGE_CODEX_DISABLE=1` switches codex off entirely, while
 `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` stands only this gate down — where the advisor cannot be called,
 an order to call it first is a wall. The transcript also lags the conversation by about a round-trip —
-`forge hooks --why advisor-first` measures it — so the refusal says to re-run the command rather than call the
+`forge hooks --why codex-second` measures it — so the refusal says to re-run the command rather than call the
 advisor twice.
 
 A transcript that will not open reads as null, never as "no advice given" — a gate that fails closed

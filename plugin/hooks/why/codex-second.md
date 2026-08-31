@@ -1,9 +1,15 @@
 # codex-second — the second opinion happens
 
-`codex-order` puts the two opinions in order and `advisor-first` makes the free one happen. Neither
-makes the *second* one happen, and it did not: a commit landed, then an hour of hook changes, with
-the advisor consulted four times and codex not once. The end-of-turn reminder is `additionalContext`
-— an agent can ignore it, and did.
+`codex-order` puts the two opinions in order. Neither it nor the prompt makes the *second* one
+happen, and it did not: a commit landed, then an hour of hook changes, with the advisor consulted
+four times and codex not once. The end-of-turn reminder is `additionalContext` — an agent can ignore
+it, and did.
+
+The free opinion is not walled off, deliberately. A gate that refused every write until the built-in
+advisor had spoken was tried and removed at the user's instruction: the system prompt already asks
+for that call, so a hook repeating it charged a refused write per turn to enforce an instruction that
+was already there. This one asks for the thing no prompt asks for — a reading by another provider —
+and it arms itself on the advisor call rather than demanding it.
 
 **Where it fires was the user's choice, and the alternatives were measured.** Claude Code 2.1.251
 offers `PreToolUse`, `PostToolUse`, `Notification`, `Stop`, `SubagentStop`, `SessionStart`,
@@ -16,8 +22,8 @@ where the user asked for it: a `PreToolUse` on a write *that follows an advisor 
 So the condition is four facts, all cheap: the call writes, the advisor has spoken this turn, no
 consult has spent that advice, and `git status --porcelain` is non-empty. The last one matters — a
 clean tree gives codex nothing to read, and a rule enforced where it cannot be satisfied usefully is
-the kind that gets switched off. Before the advisor speaks this is `advisor-first`'s refusal to make,
-not this gate's; two walls arguing over one write is the same failure.
+the kind that gets switched off. Before the advisor speaks nothing here fires at all: with no first
+opinion there is nothing for this to be second to.
 
 **It decides once per advisor call, not once per write** — and that is a rule change codex named
 before it shipped. Standing down when nothing dirty postdates the last consult stops the gate
@@ -42,3 +48,40 @@ directory and the target was never consulted, so a memory file written under `~/
 demanded a review of a repository that write was not part of. A target resolving outside the root
 now stands the gate down — and that stand-down is not stamped: it is a fact about one write, not a
 decision about this advice, and stamping it would let one stray write clear the turn.
+
+## What counts as a write, which this gate and `learning-gate` read the same way
+
+Most of this repo's edits arrive as an interpreter writing a file or as `cat > file <<EOF` rather than
+through the `Write` tool, so the shared `WRITES` and `REDIRECT` tests cover both — the first version
+of the older wall covered only `WRITES`, and the user named the gap before it had fired once. A
+redirect counts unless its target is under `/dev/`, so `2>/dev/null` is not a write.
+
+**A verb only counts in command position, and prose is not command.** Three false refusals in one
+session came from one matcher: a Cloudflare DNS query (`--name cp.musetools.com` contains `cp`), a
+commit message quoting `mv`, and a codex intent whose heredoc body quoted `writeFileSync`. So the
+command runs through `bodiless` first, and the shell verbs (`sed -i`, `tee`, `cp`, `mv`, `truncate`)
+are anchored the way `bash-guard` anchors `--fix`.
+
+Anchoring is where this gets narrow in the wrong direction, and codex caught it: a first version
+allowed only separators and a short wrapper list, which missed `MODE=fast cp a b`, `command mv a b`
+and `if cp a b; then`. Command position now means start of string or line, after `;` `&` `|` `(`,
+after `-exec`, after an assignment prefix, or after `sudo`, `command`, `nohup`, `time`, `env`,
+`xargs`, `do`, `then`, `else`, `if`, `elif`, `while`, `until`. `^` alone was another such miss —
+without `/m` it matched only the string start, so `cd repo\ncp a b`, the shape most of this repo's
+commands take, was invisible. The library calls — `open(…, "w")`, `write_text`, `writeFileSync`,
+`shutil.copy`, `os.replace` — need no anchor, because nothing else looks like them.
+
+The two errors are not symmetric, which is why the anchor is generous: a false refusal costs one
+consult, and a missed write is the gate silently not existing.
+
+**Only a redirect names its target.** A write *verb* (`sed -i`, `cp`, `tee`, an interpreter opening a
+path) names nothing readable from the line, so it counts as inside the tree — a gate that stands down
+on doubt is not a gate. Variables are substituted first: `H=/tmp/d` then a redirect to `$H/t.jsonl`
+names the directory in no single token, and that shape was two false refusals of the removed wall.
+
+**The advisor's record reaches the transcript about a round-trip later, and past a hook's timeout.**
+Measured: the record generated at 12:18:11, the write dispatched at 12:18:14, the refusal returned at
+12:18:15, the transcript file not written until **12:18:26**. So no amount of waiting inside a hook
+reaches it — a `settle()` that re-read for a second was tried, never once caught the case, and cost
+every honest refusal a second. `codex-order` reads the same lagging record, which is why its refusal
+names re-running the command rather than calling the advisor again.

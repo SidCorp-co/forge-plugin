@@ -57,7 +57,7 @@ directory invisible, and a memory file was rewritten unasked. Two faults: the wr
 interpreter uses (`write_text`, `writeFileSync`, `shutil.copy`, `os.replace`) were missing from the
 list, and the body carrying them was thrown away. A body survives now when the operator's own line
 names something that executes stdin, which `cat` does not. `bodiless` lives in `_hook.mjs` because
-`advisor-first` needed it too — a data heredoc there was an *intent* quoting the write shapes, and
+`codex-second` needs it too — a data heredoc there was an *intent* quoting the write shapes, and
 the gate refused the consult that was about to describe them.
 
 The cost is real. A program that carries a write shape *and* quotes a guarded path is refused even

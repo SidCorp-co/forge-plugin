@@ -47,10 +47,10 @@ test("a refusal from a live hook lands in the log, redacted", () => {
       message: { content: [{ type: "text", text: "go" }] },
     })}\n`,
   );
-  spawnSync(process.execPath, [new URL("../hooks/advisor-first.mjs", import.meta.url).pathname], {
+  spawnSync(process.execPath, [new URL("../hooks/bash-guard.mjs", import.meta.url).pathname], {
     input: JSON.stringify({
       tool_name: "Bash",
-      tool_input: { command: "coolify login --token 7|secretsecret && cp a b" },
+      tool_input: { command: "coolify login --token 7|secretsecret && git add -A" },
       transcript_path: path,
       session_id: "logged",
       cwd: process.cwd(),
@@ -59,13 +59,13 @@ test("a refusal from a live hook lands in the log, redacted", () => {
     env: { ...process.env, XDG_CONFIG_HOME: room },
   });
   const entry = hookEntries().at(-1);
-  assert.equal(entry.hook, "advisor-first");
+  assert.equal(entry.hook, "bash-guard");
   assert.equal(entry.decision, "deny");
   assert.equal(entry.tool, "Bash");
   assert.equal(entry.session, "logged");
-  assert.match(entry.target, /--token \*\*\* && cp a b/u);
+  assert.match(entry.target, /--token \*\*\* && git add -A/u);
   assert.ok(!entry.target.includes("secretsecret"), "the log is a file on disk, so it never holds one");
-  assert.match(entry.reason, /advisor\(\) has not run/u);
+  assert.match(entry.reason, /stages everything in the tree/u);
   assert.equal(readFileSync(HOOK_LOG_PATH, "utf8").trim().split("\n").length, hookEntries().length);
 });
 
@@ -77,8 +77,8 @@ test("a mistyped hook filter is refused with the near miss", () => {
       encoding: "utf8",
       env: { PATH: process.env.PATH, HOME: room, XDG_CONFIG_HOME: room },
     });
-  const missed = forge("--hook", "advisor-frist");
+  const missed = forge("--hook", "bash-gaurd");
   assert.equal(missed.status, 1);
-  assert.match(missed.stderr, /No hook named advisor-frist\. Did you mean: advisor-first/u);
-  assert.match(forge("--hook", "advisor-first").stdout, /advisor-first\s+deny/u, "the real name filters");
+  assert.match(missed.stderr, /No hook named bash-gaurd\. Did you mean: bash-guard/u);
+  assert.match(forge("--hook", "bash-guard").stdout, /bash-guard\s+deny/u, "the real name filters");
 });

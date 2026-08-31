@@ -19,7 +19,7 @@ test("every gate that points at its reasoning has some", () => {
   const pointing = scripts
     .filter((one) => /\bwhy\(\)/u.test(readFileSync(join(HOOKS, one), "utf8")))
     .map((one) => one.replace(/\.mjs$/u, ""));
-  assert.ok(pointing.length >= 6, `${pointing.length} hooks print the pointer`);
+  assert.ok(pointing.length >= 5, `${pointing.length} hooks print the pointer`);
   for (const name of pointing) {
     assert.ok(documented.includes(name), `${name} prints \`forge hooks --why ${name}\` and has no why/${name}.md`);
   }
@@ -34,14 +34,14 @@ test("every document names a hook that exists", () => {
 
 test("the reasoning is what --why prints, and a near miss is named", () => {
   const forge = (...argv) => spawnSync(process.execPath, [CLI, "hooks", ...argv], { encoding: "utf8" });
-  const out = forge("--why", "advisor-first");
+  const out = forge("--why", "codex-second");
   assert.equal(out.status, 0);
   assert.equal(
     out.stdout.trimEnd(),
-    readFileSync(join(WHY, "advisor-first.md"), "utf8").trimEnd(),
+    readFileSync(join(WHY, "codex-second.md"), "utf8").trimEnd(),
     "the file itself, so the argument has one home",
   );
-  const missed = forge("--why", "advisor-frist");
+  const missed = forge("--why", "codex-secnod");
   assert.equal(missed.status, 1);
-  assert.match(missed.stderr, /No hook named advisor-frist\. Did you mean: advisor-first/u);
+  assert.match(missed.stderr, /No hook named codex-secnod\. Did you mean: codex-second/u);
 });
