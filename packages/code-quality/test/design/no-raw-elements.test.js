@@ -249,6 +249,34 @@ test("only what the design system exports is a finding", () => {
   });
 });
 
+// sid-growth wrote 202 lines around this: the barrel stopped exporting a primitive its config
+// still named, and the rule answered by judging no <select> anywhere and saying nothing.
+test("a configured primitive the barrel does not export is reported, not skipped", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "primitives-gap-"));
+  writeFileSync(path.join(dir, "index.ts"), "export function Button() {}\n");
+  const primitives = { select: { primitive: "Select", owns: "the field metrics" } };
+
+  tester.run("no-raw-elements", noRawElements, {
+    valid: [
+      // The default map is a guess about a project, so a primitive it lacks is not a defect.
+      { code: "const a = <select />;", filename: screen, options: [{ source: dir }] },
+      {
+        code: "// primitive: none — the OS picker is the control here\nconst a = <select />;",
+        filename: screen,
+        options: [{ source: dir, primitives }],
+      },
+    ],
+    invalid: [
+      {
+        code: "const a = <select />;",
+        filename: screen,
+        options: [{ source: dir, primitives }],
+        errors: [{ messageId: "missingPrimitive" }],
+      },
+    ],
+  });
+});
+
 test("the map is the mechanism: an element absent from it is never judged", () => {
   assert.deepEqual(Object.keys(DEFAULT_PRIMITIVES).sort(), [
     "button",

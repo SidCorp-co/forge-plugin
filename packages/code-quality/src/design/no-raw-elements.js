@@ -165,6 +165,9 @@ export default {
         "Raw <{{element}}> inside the design system, in a file that does not define " +
         "{{primitive}}. Add the variant to {{primitive}} and compose it here, rather than a " +
         "second <{{element}}> carrying its own copy of {{owns}}. {{remedy}}",
+      missingPrimitive:
+        "This config names {{primitive}} for <{{element}}>, and {{from}} does not export it. " +
+        "Export it or drop the entry: until then no <{{element}}> anywhere is judged.",
     },
   },
   create(context) {
@@ -190,6 +193,7 @@ export default {
       (source !== null && !path.relative(path.resolve(source), filename).startsWith(".."));
     if (inSystem && !systemVariants) return {};
 
+    const configured = (context.options[0] ?? {}).primitives !== undefined;
     const exported = source ? primitiveExports(source) : null;
     const from = importPath ?? source;
     const { sourceCode } = context;
@@ -212,7 +216,6 @@ export default {
         const element = name(node);
         const owner = element === null ? undefined : primitives[element];
         if (owner === undefined) return;
-        if (exported !== null && !exported.has(owner.primitive)) return;
 
         const type = stringAttribute(node, "type");
         if (type !== null && (owner.exceptTypes ?? []).includes(type)) return;
@@ -227,6 +230,20 @@ export default {
         // The file exporting the primitive is the one place the element it owns belongs.
         if (defined.has(owner.primitive)) return;
         if (waived(node)) return;
+
+        // A default entry naming a primitive the barrel lacks is a project that has no such
+        // primitive, and there is nothing to compose. A configured one is this project's own
+        // claim about its own barrel, and a claim that stopped holding is the finding —
+        // skipping it retires the rule for that element with nothing said.
+        if (exported !== null && !exported.has(owner.primitive)) {
+          if (!configured) return;
+          context.report({
+            node,
+            messageId: "missingPrimitive",
+            data: { element, primitive: owner.primitive, from: from ?? "the design system" },
+          });
+          return;
+        }
 
         context.report({
           node,
