@@ -6,7 +6,7 @@ import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
 import { EXECUTES_STDIN, askedAlready, deny, readEvent } from "./_hook.mjs";
-import { compare, load, sentences } from "../scripts/skill-dup.mjs";
+import { compare, load, sentences } from "../src/duplication.mjs";
 
 const FORGE_SOURCES = {
   note: "episodic — why THIS issue happened, what one debugging run cost",

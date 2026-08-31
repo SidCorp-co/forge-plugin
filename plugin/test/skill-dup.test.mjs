@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { commentSentences, load, sentences } from "../scripts/skill-dup.mjs";
+import { commentSentences, load, sentences } from "../src/duplication.mjs";
 
 const A = "The sequence assigns a master-data code whenever the field is left blank.";
 const B = "Uniqueness of that code is a database constraint and not application discipline.";

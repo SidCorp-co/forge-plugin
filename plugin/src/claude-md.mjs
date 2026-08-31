@@ -7,9 +7,12 @@ import { join } from "node:path";
 
 import {
   DEFAULT_MIN_SENTENCE_LENGTH,
+  DEFAULT_OVERLAP_FLOOR,
+  DEFAULT_OVERLAP_THRESHOLD,
   findOverlapsAgainst,
   splitSentences,
 } from "../hooks/vendor/text-overlap.js";
+import { load } from "./duplication.mjs";
 
 /* Not the shared 0.34/5: that was calibrated on comments inside one file, where two copies share
    twice the vocabulary two documents do. Measured over 28 CLAUDE.md files — docs/FORGE-CLI.md. */
@@ -311,6 +314,24 @@ export function checkerOwned(text, root) {
     for (const name of owned) if (!at.has(name) && line.includes(`\`${name}\``)) at.set(name, index + 1);
   }
   return owned.map((rule) => ({ rule, line: at.get(rule) ?? 0 })).sort((a, b) => a.line - b.line);
+}
+
+/* `checkerOwned` catches a rule named in backticks; one written out in prose is the half that rots,
+   because nothing fails when a checker appears underneath it later. */
+export function checkerRestated(text, root) {
+  const units = load(root, new Set(), "comments");
+  const out = [];
+  const seen = new Set();
+  for (const [score, [span, ours], [where, theirs]] of findOverlapsAgainst(statements(text), units, {
+    threshold: DEFAULT_OVERLAP_THRESHOLD,
+    floor: DEFAULT_OVERLAP_FLOOR,
+  })) {
+    const key = `${where}\0${theirs}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ score, where, theirs, line: span.start, ours });
+  }
+  return out.sort((a, b) => b.score - a.score);
 }
 
 export function checkClaims(text, root) {

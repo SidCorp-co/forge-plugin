@@ -210,3 +210,29 @@ test("an @import is checked against the tree, and one in backticks is not an imp
   const found = checkStructure("See @scripts/helpful.mjs and @docs/gone.md; `@README` is literal.\n", root);
   assert.deepEqual(found.brokenImports, ["docs/gone.md"]);
 });
+
+import { checkerRestated } from "../src/claude-md.mjs";
+
+const OWNED = "A process started outside the stack script reads production-shaped data and can write it.";
+
+function repo() {
+  const root = mkdtempSync(path.join(tmpdir(), "cm-restated-"));
+  mkdirSync(path.join(root, "hooks"), { recursive: true });
+  return root;
+}
+
+test("a CLAUDE.md sentence the code's own comment owns is reported", () => {
+  const root = repo();
+  writeFileSync(path.join(root, "hooks", "guard.mjs"), `// ${OWNED}\nrun();\n`);
+  const [hit, ...rest] = checkerRestated(`# Rules\n\n${OWNED}\n`, root);
+  assert.equal(rest.length, 0);
+  assert.equal(hit.where, path.join("hooks", "guard.mjs"));
+  assert.equal(hit.score, 1);
+});
+
+test("`restated: deliberate` on the comment waives the pair", () => {
+  const root = repo();
+  const waived = "// restated: deliberate — stated for an agent that reads, enforced for one that does not.";
+  writeFileSync(path.join(root, "hooks", "guard.mjs"), `${waived}\n// ${OWNED}\nrun();\n`);
+  assert.deepEqual(checkerRestated(`# Rules\n\n${OWNED}\n`, root), []);
+});

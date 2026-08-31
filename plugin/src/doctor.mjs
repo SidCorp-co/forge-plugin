@@ -12,6 +12,7 @@ import {
   checkClaims,
   checkStructure,
   checkerOwned,
+  checkerRestated,
   readClaudeMd,
   reviewClaudeMd,
 } from "./claude-md.mjs";
@@ -242,12 +243,28 @@ const RESTATES = "\nA rule with a checker is documented by the checker's own mes
 
 /* Reads the tree and nothing else, so it runs before the endpoint: a project with no Forge slug,
    or none at all, still gets its CLAUDE.md checked. */
+/* The comment is named first for the same reason the guide is: it is the authority, being what a
+   developer reads at the moment the checker fires. */
+const reportRestated = (hits) => {
+  if (!hits.length) return;
+  line(NOTE, "claude.md comment", `${hits.length} statement(s) a comment already owns`);
+  for (const hit of hits) {
+    console.log(`      ${hit.score.toFixed(2)}  ${hit.where}\n            ${hit.theirs}`);
+    console.log(`            CLAUDE.md:${hit.line}\n            ${hit.ours}`);
+  }
+  console.log(
+    "\nDelete the CLAUDE.md line and let the comment carry it. Where both copies have to exist, put\n" +
+      "`restated: deliberate — <why>` above the comment and this stops asking.",
+  );
+};
+
 const checkClaudeMdLocally = () => {
   const root = projectRoot();
   const found = readClaudeMd(root);
   if (!found) return 0;
   const broken = reportStructure(root, found.text) + reportClaims(root, found.text);
   if (checkerOwned(found.text, root).length) console.log(RESTATES);
+  reportRestated(checkerRestated(found.text, root));
   return broken;
 };
 
