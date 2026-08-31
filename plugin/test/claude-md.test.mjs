@@ -182,3 +182,31 @@ test("a rule a checker declares is reported where CLAUDE.md explains it", () => 
   assert.deepEqual(checkerOwned(text, root), [{ rule: "tenant-filter", line: 3 }]);
   assert.deepEqual(checkerOwned("- `no-such-rule` does a thing that is long enough to be a statement.\n", root), []);
 });
+
+import { MAX_CLAUDE_MD_LINES, checkStructure } from "../src/claude-md.mjs";
+
+test("the line target is the published one, and a short file passes it", () => {
+  assert.equal(MAX_CLAUDE_MD_LINES, 200);
+  const long = `${"- a rule long enough to count as a statement here.\n".repeat(201)}`;
+  assert.equal(checkStructure(long, null).overLineTarget, true);
+  assert.equal(checkStructure("- one rule.\n", null).overLineTarget, false);
+});
+
+test("emphasis counts as diluted only when nearly every bullet carries it", () => {
+  const all = `${"- **a rule.** and its reason.\n".repeat(10)}`;
+  assert.equal(checkStructure(all, null).emphasisDiluted, true);
+  const two = `${"- **a rule.** and its reason.\n".repeat(2)}${"- a rule. and its reason.\n".repeat(8)}`;
+  assert.equal(checkStructure(two, null).emphasisDiluted, false);
+});
+
+test("a vague word is a finding, and one quoted as an anti-pattern is not", () => {
+  assert.deepEqual(checkStructure("- Use an appropriate timeout here.\n", null).vague, ["appropriate"]);
+  assert.deepEqual(checkStructure('- "Appropriate" signals unfinished thinking.\n', null).vague, []);
+  assert.deepEqual(checkStructure("- `appropriate` is a word this rule bans.\n", null).vague, []);
+});
+
+test("an @import is checked against the tree, and one in backticks is not an import", () => {
+  const root = fixture();
+  const found = checkStructure("See @scripts/helpful.mjs and @docs/gone.md; `@README` is literal.\n", root);
+  assert.deepEqual(found.brokenImports, ["docs/gone.md"]);
+});

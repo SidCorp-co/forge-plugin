@@ -7,7 +7,14 @@ import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "./reso
 import { didYouMean } from "./suggest.mjs";
 import { BUNDLED } from "./vi.mjs";
 import { accountCredentials, fail, projectRoot, projectScope, translateScope } from "./resolve/settings.mjs";
-import { checkClaims, checkerOwned, readClaudeMd, reviewClaudeMd } from "./claude-md.mjs";
+import {
+  MAX_CLAUDE_MD_LINES,
+  checkClaims,
+  checkStructure,
+  checkerOwned,
+  readClaudeMd,
+  reviewClaudeMd,
+} from "./claude-md.mjs";
 import { flags } from "./resolve/flags.mjs";
 import { VERB_NAMES } from "./resolve/visibility.mjs";
 
@@ -156,6 +163,32 @@ const reportStale = (stale) => {
   line(NOTE, "claude.md stale path", `${shown}${rest} — exists, under another path`);
 };
 
+/* The published rules, not taste: code.claude.com/docs/en/memory gives the line target and the
+   emphasis rule, docs/en/best-practices the include/exclude table. Only the two mechanical ones
+   gate — a file legitimately has no deploy section, and "vague" is a reading. */
+const reportStructure = (root, text) => {
+  const found = checkStructure(text, root);
+  let broken = 0;
+  if (found.overLineTarget) {
+    broken += 1;
+    line(BAD, "claude.md size", `${found.lines} lines — target is under ${MAX_CLAUDE_MD_LINES}`);
+  }
+  for (const rel of found.brokenImports) {
+    broken += 1;
+    line(BAD, "claude.md import", `@${rel} resolves to no file, and an import loads at launch`);
+  }
+  if (found.emphasisDiluted) {
+    line(NOTE, "claude.md emphasis", `${found.emphasised} of ${found.bullets} bullets are bold — emphasise many and none stands out`);
+  }
+  if (found.vague.length) {
+    line(NOTE, "claude.md vague", `${found.vague.join(", ")} — write what is concrete enough to verify`);
+  }
+  if (found.absentTopics.length) {
+    line(NOTE, "claude.md covers", `nothing on ${found.absentTopics.join(", ")} — a gap to look at, not a fault`);
+  }
+  return broken;
+};
+
 const reportClaims = (root, text) => {
   const found = checkClaims(text, root);
   let broken = 0;
@@ -178,13 +211,22 @@ const RESTATES = "\nA rule with a checker is documented by the checker's own mes
   "developer reads at the moment it fails. Delete the prose, or keep one line stating the invariant\n" +
   "behind it and no more — an explanation in two places diverges at the first correction.";
 
-const checkClaudeMd = async (scoped) => {
+/* Reads the tree and nothing else, so it runs before the endpoint: a project with no Forge slug,
+   or none at all, still gets its CLAUDE.md checked. */
+const checkClaudeMdLocally = () => {
   const root = projectRoot();
   const found = readClaudeMd(root);
   if (!found) return 0;
-  const broken = reportClaims(root, found.text);
+  const broken = reportStructure(root, found.text) + reportClaims(root, found.text);
   if (checkerOwned(found.text, root).length) console.log(RESTATES);
-  return broken + reportClaudeMd(reviewClaudeMd(found.text, await guideBodies(scoped)), found.path);
+  return broken;
+};
+
+/* The guide half, which needs the server. */
+const checkAgainstGuides = async (scoped) => {
+  const found = readClaudeMd(projectRoot());
+  if (!found) return 0;
+  return reportClaudeMd(reviewClaudeMd(found.text, await guideBodies(scoped)), found.path);
 };
 
 /* Lazy: the transport exits the process when credentials have not resolved. */
@@ -200,7 +242,7 @@ const checkEndpoint = async (full) => {
   const id = await projectId();
   line(OK, "project id", full ? id : `resolved from the slug (--full to print it)`);
   const findings = await probe(scoped, slug);
-  const broken = findings.forge_guide ? 0 : await checkClaudeMd(scoped);
+  const broken = findings.forge_guide ? 0 : await checkAgainstGuides(scoped);
   const gated = findings.gated;
   if (gated) {
     console.log(
@@ -257,12 +299,13 @@ export const doctor = async (rest) => {
     line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
   }
   const canWrite = language.value ? language.value === "vi" && checkVi() : true;
+  const local = checkClaudeMdLocally();
 
   if (!url.value || !token.value) {
     console.log("\nNot reaching the endpoint: the account half is incomplete.");
     process.exit(1);
   }
-  const broken = await checkEndpoint(full);
+  const broken = local + (await checkEndpoint(full));
   if (full) console.log(`\nConfig file: ${CONFIG_PATH}`);
   if (broken) process.exit(1);
   /* Reads and writes differ here — `new` translates before it posts — and the exit code follows the

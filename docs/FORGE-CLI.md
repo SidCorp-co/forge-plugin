@@ -159,6 +159,32 @@ A path whose basename exists elsewhere is *stale* rather than missing — `port-
 `docs/port-plan.md` — and prints as one `note` with a count, because at 102 occurrences across the
 corpus it is worth a line and not a list.
 
+**Structure, against the published rules rather than taste.** `code.claude.com/docs/en/memory`
+gives a line target and an emphasis rule; `docs/en/best-practices` gives the include/exclude table.
+Two of these are mechanical and gate: a file over **200 lines** (the documented target — longer
+files consume more context and reduce adherence), and an `@path` import that resolves to no file,
+which matters because an import loads at launch. Import parsing skips backticked spans, as the
+docs specify, so `` `@README` `` stays literal.
+
+Three are notes, because each is a reading rather than a measurement:
+
+- **Emphasis dilution.** The docs say that if you emphasise many lines, none of them stands out.
+  Measured over 28 real CLAUDE.md files, nine had *every* bullet bold-led — sid-erp's own was 25 of
+  25 before this check existed. Flagged above 80% of at least 8 bullets.
+- **Vague words** — "appropriate", "adequate", "properly", "clean code". The docs' exclude table
+  names "write clean code" specifically. A word quoted as an anti-pattern is not a finding: one
+  project lists these exact words as signals of unfinished thinking, and meant it.
+- **Coverage** of what the docs say a CLAUDE.md is for — commands, testing, environment quirks,
+  gotchas. A gap to look at, never a fault; a library with no deploy has no deploy section.
+
+The structure and claim checks read the tree and nothing else, so they run **before** the endpoint:
+a project with no Forge slug, or no Forge project at all, still gets its CLAUDE.md checked.
+
+**Claude Code ships its own `/doctor`**, which proposes trims for a checked-in CLAUDE.md — it cuts
+what Claude can derive from the codebase and keeps pitfalls and rationale. That is a judgement made
+by a model; everything here is a measurement made by a command, and the two are complementary
+rather than a second way of doing one thing.
+
 **A rule with a checker is not documented twice.** Doctor reads the rule names the project's own
 checkers declare — eslint configs, a `rules/` directory, a gate script — and notes each one
 CLAUDE.md explains, because the message a developer reads when it fires is the documentation. It

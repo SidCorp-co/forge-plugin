@@ -127,8 +127,7 @@ const readDir = (dir) => {
   }
 };
 
-/* Three questions only a command can answer. Each is read-only and each is allowed to fail: a
-   repo with no git, or a `git` that is not installed, is not a finding about CLAUDE.md. */
+/* Read-only, and each allowed to fail: a repo with no git is not a finding about CLAUDE.md. */
 const ran = (cmd, args, cwd) => spawnSync(cmd, args, { cwd, encoding: "utf8", stdio: "pipe" });
 const ignored = (root, rel) => ran("git", ["check-ignore", "-q", rel], root).status === 0;
 const resolvesRef = (root, ref) => ran("git", ["rev-parse", "--verify", "--quiet", ref], root).status === 0;
@@ -341,5 +340,45 @@ export function checkClaims(text, root) {
       (sha) => ran("git", ["merge-base", "--is-ancestor", sha, "HEAD"], root).status !== 0,
     ),
     uncitedIdentifiers: cited.filter((id) => !defined.has(id)),
+  };
+}
+
+/* Structure against the published rules, not taste — code.claude.com/docs/en/memory. */
+export const MAX_CLAUDE_MD_LINES = 200;
+
+const IMPORT = /(^|\s)@([\w./-]+)/g;
+const BULLET_LEAD = /^\s*[-*+]\s+(\*\*|__)/u;
+const ANY_BULLET = /^\s*[-*+]\s+\S/u;
+
+/* Words that signal unfinished thinking; the docs ask for what is concrete enough to verify. */
+const VAGUE = /\b(?:appropriate(?:ly)?|adequate(?:ly)?|properly|as needed|if any|reasonable|clean code|best practice|significant(?:ly)?)\b/giu;
+
+/* What the docs say a CLAUDE.md is for. Missing one is a gap to look at, never a failure: a
+   library with no deploy has no deploy section. */
+const EXPECTED = [
+  ["commands", /`(?:npm|pnpm|yarn|make|cargo|go|uv|poetry|node|python)[ `]/u],
+  ["testing", /\btests?\b|\btesting\b|\bsuite\b/iu],
+  ["environment", /\.env\b|environment|env var|secret/iu],
+  ["gotchas", /never|must not|do not|silent|trap|gotcha|danger/iu],
+];
+
+/* A file naming these words as an anti-pattern quotes them, and a quoted span is not its own prose. */
+const unquoted = (text) => text.replace(/`[^`\n]*`|"[^"\n]*"|«[^»\n]*»/gu, " ");
+
+/** Pure over the text, except the imports, which have to resolve against the tree. */
+export function checkStructure(text, root) {
+  const lines = text.split("\n");
+  const bullets = lines.filter((line) => ANY_BULLET.test(line));
+  const emphasised = bullets.filter((line) => BULLET_LEAD.test(line));
+  const imports = [...text.replace(/`[^`\n]*`/gu, " ").matchAll(IMPORT)].map((m) => m[2]);
+  return {
+    lines: lines.length,
+    overLineTarget: lines.length > MAX_CLAUDE_MD_LINES,
+    emphasisDiluted: bullets.length >= 8 && emphasised.length / bullets.length > 0.8,
+    emphasised: emphasised.length,
+    bullets: bullets.length,
+    vague: [...new Set([...unquoted(text).matchAll(VAGUE)].map((m) => m[0].toLowerCase()))].sort(),
+    brokenImports: root ? imports.filter((rel) => !existsSync(join(root, rel))) : [],
+    absentTopics: EXPECTED.filter(([, rx]) => !rx.test(text)).map(([name]) => name),
   };
 }
