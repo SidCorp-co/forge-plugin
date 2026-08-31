@@ -14,9 +14,9 @@ review:
 echo "what I was doing and why, the plan, the decisions I made" | forge codex consult src/a.mjs
 ```
 
-With no file named it consults on the documents this turn changed. It has no tools, so it may reply
-asking for a file — that is handled for you, up to three model calls, and never shown as if it were
-a finding.
+With no file named it consults on the documents this turn changed, and a named file may be an
+absolute path in another checkout. Beyond what you send it reads for itself — over those checkouts
+only — and every call it makes is printed as it runs.
 
 **It runs after the built-in advisor, never before, and it must be told what the advisor said.**
 That one reads this conversation and cannot open a file; codex reads the files and has never seen the

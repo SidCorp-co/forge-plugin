@@ -17,21 +17,21 @@ const {
   hookRecord,
   pendingIn,
   recordable,
+  rounds,
 } = await import("../src/codex.mjs");
 const {
   bundle,
   consume,
   digest,
-  gated,
   inside,
+  locate,
   modelBehind,
-  needed,
-  onlyNeeds,
   profileFrom,
   promptFor,
   withDiffs,
   sameFamily,
 } = await import("../src/codex-api.mjs");
+const { runTool, scopeFor } = await import("../src/codex-tools.mjs");
 const { partition } = await import("../src/resolve/flags.mjs");
 const { userConfig } = await import("../src/resolve/config.mjs");
 const BOOLEANS = ["--allow-echo"];
@@ -233,30 +233,105 @@ test("only an answered consult can carry a verdict", () => {
   assert.deepEqual(answered(entries).map((one) => one.reply), ["said something"]);
 });
 
-/* A served path is read with the caller's own permissions, so the reviewer must not be able to name
-   its way out — and a refusal is reported, or it cannot tell "outside" from "you forgot". */
-test("a NEED is honoured only inside the repo, once, and refusals come back", () => {
-  const asked = [
-    "NEED: docs/TWO.md",
-    "NEED: docs/TWO.md",
-    "NEED: ../outside.md",
-    "NEED: docs/escape.md",
-    "NEED: docs/PLAN.md",
-  ].join("\n");
-  const { wanted, refused } = needed(asked, REPO, ["docs/PLAN.md"]);
-  assert.deepEqual(wanted, ["docs/TWO.md"]);
-  assert.equal(refused.length, 4);
-  assert.match(refused.join(" "), /outside this repository/);
-  assert.deepEqual(needed("nothing asked", REPO, []), { wanted: [], refused: [] });
+/* A model-initiated read is the one that must not be able to name its way out: the machine holds
+   `~/.config/forge/config.json` and a gateway token beside it. A refusal comes back as words,
+   because a reviewer that cannot tell "outside" from "you forgot" asks again. */
+test("the reviewer reads inside the checkouts under review, and nowhere else", () => {
+  const scope = scopeFor(REPO);
+  assert.equal(runTool(scope, "read_file", { path: "docs/PLAN.md" }).text.trim(), "x");
+  const out = runTool(scope, "read_file", { path: "../outside.md" });
+  assert.equal(out.error, true);
+  assert.match(out.text, /outside the checkouts under review|not a readable path/u);
+  const absolute = runTool(scope, "read_file", { path: join(sandbox, "outside.md") });
+  assert.equal(absolute.error, true);
+  assert.equal(runTool(scope, "read_file", {}).error, true, "a call with no path is answered, not thrown");
+  assert.equal(runTool(scope, "no_such_tool", { path: "docs/PLAN.md" }).error, true);
 });
 
-/* A reply that is only NEED lines is a request; one that carries findings is the answer, whatever
-   stray line came with it. */
-test("a request is told apart from an answer", () => {
-  assert.equal(onlyNeeds("NEED: a.md\nNEED: b.md"), true);
-  assert.equal(onlyNeeds("NEED: a.md\n\n## Tech Lead\n- blocker"), false);
-  assert.equal(onlyNeeds("## Tech Lead"), false);
-  assert.equal(onlyNeeds(""), false);
+/* One account configures one reviewer, so a file named in another checkout is reviewable — and
+   naming it widens what the model may read to that checkout, not to the machine. */
+test("a file named in another checkout is located, and widens the scope to it", () => {
+  const other = join(sandbox, "other");
+  mkdirSync(join(other, "src"), { recursive: true });
+  writeFileSync(join(other, ".git"), "gitdir: elsewhere\n");
+  const file = join(other, "src", "far.mjs");
+  writeFileSync(file, "export const far = 1;\n");
+  assert.equal(locate(REPO, file).rel, file, "absolute, because it is not this repository's");
+  assert.equal(locate(REPO, "docs/PLAN.md").rel, "docs/PLAN.md");
+  assert.equal(locate(REPO, join(sandbox, "nothing-here.md")), null);
+  const sent = bundle(REPO, [file]);
+  assert.match(sent[0].text, /export const far/u);
+  const scope = scopeFor(REPO, [file]);
+  assert.match(runTool(scope, "read_file", { path: file }).text, /export const far/u);
+  assert.equal(runTool(scopeFor(REPO), "read_file", { path: file }).error, true, "unnamed, unreadable");
+});
+
+/* The tool call arrives as a start frame and its arguments as partial JSON, so the loop has to
+   assemble them: a call whose input never parsed would otherwise reach the executor as a string. */
+test("a streamed tool call is assembled from its frames", async () => {
+  const frames = [
+    'data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"call_1","name":"read_file","input":{}}}',
+    'data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"path\\":"}}',
+    'data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"\\"docs/PLAN.md\\"}"}}',
+    'data: {"type":"content_block_stop","index":0}',
+    'data: {"type":"content_block_delta","index":1,"delta":{"type":"thinking_delta","thinking":"weighing"}}',
+    'data: {"type":"message_delta","delta":{"stop_reason":"tool_use"}}',
+  ];
+  async function* streamed() {
+    yield Buffer.from(`${frames.join("\n\n")}\n\n`, "utf8");
+  }
+  const held = await consume(streamed(), () => {});
+  assert.deepEqual(held.calls, [{ id: "call_1", name: "read_file", input: { path: "docs/PLAN.md" } }]);
+  assert.equal(held.stop, "tool_use");
+  assert.equal(held.thought, "weighing".length, "thinking is counted, not printed");
+});
+
+/* A read-only tool that spawns git puts a model-chosen string next to git's own options, and
+   `--output=` there writes a file. The refusal is what proves it never reaches git at all. */
+test("a base that is an option is refused rather than handed to git", () => {
+  const written = join(sandbox, "written-by-git-diff");
+  const out = runTool(scopeFor(REPO), "git_diff", { path: "docs/PLAN.md", base: `--output=${written}` });
+  assert.equal(out.error, true);
+  assert.match(out.text, /is not a ref/u);
+  assert.equal(existsSync(written), false, "git ran with a model-chosen option");
+});
+
+/* `codex.rounds` is what the account is billed, so the loop cannot leave the cap to the gateway:
+   the last call is served no tools, and tool calls in its answer are reported, not run. */
+test("the call cap is the loop's, and a tool call past it is refused not served", async () => {
+  const asked = [];
+  const stub = async (values, model, messages, held) => {
+    asked.push((held.tools ?? []).length);
+    return {
+      text: "answered",
+      calls: [{ id: `call_${asked.length}`, name: "read_file", input: { path: "docs/PLAN.md" } }],
+      usage: {},
+      stop: "tool_use",
+      thought: 0,
+    };
+  };
+  const held = await rounds({}, "m", "go", scopeFor(REPO), () => {}, stub);
+  assert.equal(held.calls, 10, "ten model calls, the cap, and not one more");
+  assert.equal(asked.length, 10);
+  assert.equal(asked.at(-1), 0, "the last call is served no tools");
+  assert.equal(held.tools.length, 9, "the tool call answering the capped request is not run");
+  assert.match(held.refused.at(-1), /past the call cap/u);
+});
+
+/* Reading for ten calls and never answering is a failed consult, not a short one: returned, it
+   would be logged as a review, spend the advice and clear the files it never reviewed. */
+test("a capped reply that is only tool calls is a failure, not an answer", async () => {
+  const stub = async () => ({
+    text: "",
+    calls: [{ id: "call_x", name: "grep", input: { pattern: "x" } }],
+    usage: {},
+    stop: "tool_use",
+    thought: 0,
+  });
+  await assert.rejects(
+    () => rounds({}, "m", "go", scopeFor(REPO), () => {}, stub),
+    /never answered/u,
+  );
 });
 
 test("the hook records a document once, and announces only the first", () => {
@@ -310,27 +385,6 @@ test("a start inside the budget reads as running, past it as lost", () => {
 
 test("nothing consulted yet reads as an empty log, never a throw", () => {
   assert.deepEqual(logEntries(), []);
-});
-
-/* The gate is what lets one call be streamed live and the next be suppressed: an answer flows from
-   the first characters, a request never appears at all. */
-test("an answer streams from its first characters and a request never shows", () => {
-  const shown = [];
-  const answer = gated((text) => shown.push(text));
-  for (const piece of ["## ", "Tech", " Lead\n", "- blocker"]) answer(piece);
-  assert.equal(shown.join(""), "## Tech Lead\n- blocker");
-
-  const request = [];
-  const asking = gated((text) => request.push(text));
-  for (const piece of ["NEE", "D: docs/A.md\n", "NEED: docs/B.md"]) asking(piece);
-  assert.deepEqual(request, []);
-});
-
-test("a leading newline does not fool the gate", () => {
-  const shown = [];
-  const asking = gated((text) => shown.push(text));
-  asking("\nNEED: docs/A.md\n");
-  assert.deepEqual(shown, []);
 });
 
 /* The precision mechanism: a finding about code this turn did not touch is the class of noise that

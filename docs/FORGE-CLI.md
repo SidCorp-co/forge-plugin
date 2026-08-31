@@ -183,19 +183,36 @@ the only moment its content can reach codex is the same turn, written into the i
 without which codex covers ground already covered, its agreement reads as independent confirmation
 when it is duplication, and a disagreement between the two never surfaces.
 
-**One HTTPS POST, streamed, no local agent.** The first engine spawned a `claude` session with
+**HTTPS POSTs, streamed, and no local agent.** The first engine spawned a `claude` session with
 `--allowedTools Read Grep Glob` so the reviewer could grep for itself. Measured: `--allowedTools`
 auto-approves, it does not confine. The child inherited this machine's skills, answered a review
 prompt by invoking a multi-agent code-review skill, ran eleven minutes and had to be killed by pid.
-So the call is `POST /v1/messages` with `x-api-key` and `stream: true`, and the reviewer has no
-tools at all.
+So the call is `POST /v1/messages` with `x-api-key` and `stream: true`, and what the reviewer may do
+is decided here rather than by whatever a spawned agent happens to have.
 
-**Which means the files travel with the prompt, and it can ask for more.** `codex.rounds`
-caps *model calls* — three by default — and the last one is told it is the last. A round exists only
-so the reviewer can **see** a file it was not given, because it cannot know it needs the third file
-before reading the second; it never gets a round to **act** in. A final call that still only asks
-for files is an error, not a consult: reporting it as one would clear the turn's pending list in
-exchange for nothing.
+**It has tools, and they are this process's.** Probed against the gateway: it answers a `tools`
+request with real `tool_use` blocks and takes a `tool_result` continuation, so the reviewer gets
+`read_file`, `list_dir`, `grep` and `git_diff`, executed in `codex-tools.mjs` — read-only, output
+clipped, each call reported on stderr as it runs. The changed files still travel with the prompt: a
+reviewer made to fetch what the caller already knows it needs spends rounds learning what it was
+about to be told.
+
+`codex.rounds` caps *model calls* — ten by default — and the last one is served **no tools**, which
+is what makes it answer; it is warned one round early, because a model told mid-answer that its tools
+are gone has already spent the round it would have read in. `codex.maxTokens` is 32,000: the gateway
+returns `thinking` blocks whose tokens come out of the same ceiling, so the old 8,000 was mostly
+spent before the review began. Thinking is counted and logged, never printed — the reasoning is not
+the review. `codex.effort` is sent as `reasoning_effort` and defaults to high; probed, the gateway
+accepts it and the same puzzle answers identically at high and at minimal, so the slot appears to
+decide and this is a request rather than a lever.
+
+**A named file may live in another checkout, a requested one may not.** The config is the account's,
+so `forge codex consult /elsewhere/src/a.mjs` reviews a sibling project: `locate()` takes a path
+outside the root when it is absolute and readable, and carries it absolute through the record. What
+the *model* asks to read is the narrower question — `scopeFor()` allows this checkout plus the
+checkout of every file the caller named, and nothing else on the machine, because the account config
+and the gateway profile both hold live tokens. A refused read comes back as a `tool_result` saying
+so, since a reviewer that cannot tell "outside" from "you forgot" asks again.
 
 **Containment is physical, not lexical.** `..` is the traversal you can see; a symlink committed
 inside the repository is the one you cannot, and both routes end at `readFileSync`. So
@@ -204,12 +221,12 @@ and returns the canonical path that is then read — and it guards paths named o
 well as paths the reviewer asks for. The check and the read remain two operations, so a checkout
 mutated between them is a race this narrows rather than closes.
 
-**The stream is gated, not raw.** A request begins with `NEED:` and an answer does not, so the gate
-holds the first few characters, decides, and either flushes and follows the stream or stays shut for
-the rest of that call. Live output for a review, silence for a request, and no NEED line ever
-printed as though it were a finding. Frames split on `/\r?\n\r?\n/`, the decoder is flushed and the
-tail absorbed — the last frame often arrives with no blank line after it, and it is the one carrying
-`stop_reason`.
+**A tool call arrives in pieces.** `content_block_start` carries the id and the name, the arguments
+follow as `input_json_delta` fragments, and `content_block_stop` closes it — so `consume()` assembles
+them and hands the loop whole calls. Arguments that never parsed become an empty input, which the
+executor refuses in words rather than the loop throwing. Frames split on `/\r?\n\r?\n/`, the decoder
+is flushed and the tail absorbed — the last frame often arrives with no blank line after it, and it
+is the one carrying `stop_reason`.
 
 **Precision is asked for, not hoped for.** Three shaping flags, each answering a measured failure of
 the open review. `--diff [ref]` attaches every file's diff and states that unchanged files are

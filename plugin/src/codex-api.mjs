@@ -1,24 +1,27 @@
-/* The call itself: what GPT-5 Codex is asked, what it may read, and the streamed answer. One HTTPS
-   POST to the gateway named in ~/.claude/claude-proxy.env — no agent, no tools on the far side, so
-   the files travel with the prompt and a reviewer that needs one it was not given asks for it.
-   docs/FORGE-CLI.md. */
+/* The call itself: what GPT-5 Codex is asked, what it may do for itself, and the streamed answer.
+   HTTPS POSTs to the gateway named in ~/.claude/claude-proxy.env, which answers with real `tool_use`
+   blocks — so the changed files travel with the prompt and anything else the reviewer needs it reads
+   through codex-tools.mjs. docs/FORGE-CLI.md. */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, relative, resolve, sep } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
+import { gitRootOf } from "./codex-tools.mjs";
 import { userConfig } from "./resolve/config.mjs";
 
 const PROFILE_PATH = process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
 export const MODEL = userConfig().codex?.model || "fable";
-const MAX_TOKENS = Number(userConfig().codex?.maxTokens || 8000);
+const MAX_TOKENS = Number(userConfig().codex?.maxTokens || 32_000);
+/* Accepted by the gateway and not observable from here: the same puzzle answers the same at high and
+   at minimal, in the same seconds. Sent because the slot is the account's to configure. */
+const EFFORT = userConfig().codex?.effort || "high";
 
 /* A file is sent whole or reported as clipped; a silently halved file is a review of half a file. */
 const FILE_CHARS = 80_000;
 const TOTAL_CHARS = 320_000;
 const ERROR_CHARS = 400;
-const NEED_CAP = 8;
 const HASH_CHARS = 12;
 
 const ROLE = `You are CODEX for this repository: a second model, on a different provider, reviewing work a coding agent has just done.
@@ -30,18 +33,18 @@ Reply as a board of four:
 - UI/UX — screens, flows, empty/error/loading states, information architecture, accessibility. If nothing describes an interface, say so rather than inventing one.
 
 FORM
-- Open with exactly one line: \`CODEX: <n> findings (<b> blocker, <m> major, <k> minor)\`, counting what you are about to write. Where you find nothing, that line is \`CODEX: 0 findings\` and you stop.
+- Where you were given a list to verify, answer it FIRST — every item, with its verdict — and only then the findings line. A verification list is never skipped, whatever you found.
+- Open the findings with exactly one line: \`CODEX: <n> findings (<b> blocker, <m> major, <k> minor)\`, counting what you are about to write. Where you find nothing, that line is \`CODEX: 0 findings\` and you stop there.
 - Anchor every finding to \`path:line\` — the path as you were given it, the line as numbered in the text you were given. A finding you cannot place is a finding you cannot ground.
 
 RULES
-- You are given the full text of each changed file. Ground every finding in a quotation from what you were given.
-- You have no tools. If a finding depends on a file you were not given, reply with NOTHING BUT lines of the form \`NEED: <repo-relative-path>\`, at most 8 — those files will be sent and this question asked again. Never NEED a file already given, never mix NEED lines with findings, and never guess at a file instead of asking. A citation you could not check is a finding you do not make.
+- You are given the full text of each changed file. Ground every finding in a quotation from what you were given, or in something you read with a tool.
+- You have tools over the checkouts under review: \`read_file\`, \`list_dir\`, \`grep\`, \`git_diff\`. Use them whenever a finding depends on something you were not given — the caller, the test, the config, the other end of an interface. Never guess at a file you could read, and never assert what a symbol does without seeing it. A citation you could not check is a finding you do not make. Tools are read-only and confined to those checkouts; a refusal comes back as text and is not worth arguing with.
 - You are given the coding agent's intent. Judge the work against that intent as well as against the repository's own rules, and say so plainly where the two disagree.
 - Severity: blocker, major, minor. At most 4 findings per angle. An angle with nothing real to add writes "nothing material".
 - Earlier consults on this repository are quoted above where there are any. On a file you have seen before, report Resolved / Still open / New, and never repeat an argument you already made.
 - The coding agent will push back with context you cannot see. Weigh it honestly: concede when it is right, hold when it is not, and give the better reason either way.
 - Where you are given a diff, the diff is what is under review. Context you were given for reading is not the subject.
-- Where you are given a list to verify, those come first and each gets a verdict, not a discussion.
 - Terse. No preamble, no praise, no summary of what the file already says.`;
 
 const ENV_LINE = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/;
@@ -103,6 +106,21 @@ const resolvedInside = (root, path) => {
 
 export const inside = (root, path) => resolvedInside(root, path)?.rel ?? null;
 
+/** A file to review, named as this repository sees it or as an absolute path in another checkout —
+ *  the account configures one reviewer, so a caller may point it at a sibling project. What the
+ *  MODEL may then read for itself is a narrower question: codex-tools.mjs. */
+export const locate = (root, given) => {
+  const held = resolvedInside(root, given);
+  if (held) return held;
+  if (!isAbsolute(given)) return null;
+  try {
+    const real = realpathSync(given);
+    return statSync(real).isFile() ? { rel: real, real } : null;
+  } catch {
+    return null;
+  }
+};
+
 /* The canonical root, so one checkout reached by two symlinked paths is one key in the state file
    and one history in the log rather than two. */
 export const canonical = (root) => {
@@ -123,9 +141,9 @@ export const bundle = (root, rels) => {
   for (const rel of rels) {
     /* Re-validated at read time and read by its canonical path: the check and the read are still
        two operations, so a checkout mutated between them is a race this narrows and does not close. */
-    const held = resolvedInside(root, rel);
+    const held = locate(root, rel);
     if (!held) {
-      parts.push({ rel, missing: "not a readable file inside the repository" });
+      parts.push({ rel, missing: "not a readable file" });
       continue;
     }
     let text;
@@ -154,11 +172,15 @@ const DIFF_CHARS = 20_000;
 /* What changed, so a finding can be anchored to it. Untracked files answer with nothing and are
    labelled new: the whole text is the change. */
 const changedIn = (root, rel, base) => {
-  const diff = spawnSync("git", ["diff", "--no-color", base, "--", rel], { cwd: root, encoding: "utf8" });
+  /* An outside file is diffed in its own checkout, which is the only one that knows the ref. */
+  const own = isAbsolute(rel) ? gitRootOf(rel) : root;
+  if (!own) return { untracked: true };
+  const asked = isAbsolute(rel) ? relative(own, rel) : rel;
+  const diff = spawnSync("git", ["diff", "--no-color", base, "--", asked], { cwd: own, encoding: "utf8" });
   if (diff.status !== 0) return { error: (diff.stderr ?? "").trim().slice(0, 200) || "git diff failed" };
   const text = (diff.stdout ?? "").trim();
   if (text) return { text: text.slice(0, DIFF_CHARS), clipped: text.length > DIFF_CHARS };
-  const known = spawnSync("git", ["ls-files", "--error-unmatch", "--", rel], { cwd: root, encoding: "utf8" });
+  const known = spawnSync("git", ["ls-files", "--error-unmatch", "--", asked], { cwd: own, encoding: "utf8" });
   return known.status === 0 ? { unchanged: true } : { untracked: true };
 };
 
@@ -222,68 +244,6 @@ export const promptFor = (intent, parts, history = [], { risks = [], only = [] }
   ].join("\n\n---\n\n");
 };
 
-const NEED_LINE = /^NEED:\s*(\S.*?)\s*$/gm;
-
-/* A reply that is nothing but NEED lines is a request, not an answer. Mixed content is taken as the
-   answer it mostly is — the alternative is discarding a review over a stray line. */
-export const onlyNeeds = (text) => {
-  const lines = String(text).split("\n").map((line) => line.trim()).filter(Boolean);
-  return lines.length > 0 && lines.every((line) => /^NEED:/.test(line));
-};
-
-/* Refusals are returned, not dropped: a reviewer told nothing about a path it asked for cannot tell
-   "outside this repository" from "you forgot". */
-export const needed = (text, root, already) => {
-  const held = new Set(already);
-  const wanted = [];
-  const refused = [];
-  for (const [, raw] of String(text).matchAll(NEED_LINE)) {
-    const rel = inside(root, raw);
-    if (!rel) refused.push(`${raw} (outside this repository, or not a readable file)`);
-    else if (held.has(rel) || wanted.includes(rel)) refused.push(`${rel} (already sent)`);
-    else if (wanted.length >= NEED_CAP) refused.push(`${rel} (past the ${NEED_CAP}-file limit)`);
-    else wanted.push(rel);
-  }
-  return { wanted, refused };
-};
-
-export const servedPrompt = (parts, refused, last) => {
-  const note = refused.length
-    ? `\n\nNOT SENT, and not available to you:\n${refused.map((one) => `- ${one}`).join("\n")}`
-    : "";
-  const more = last
-    ? "These are the last files you will be given and no further request will be served. Answer now, "
-      + "and where something is still unavailable, say what it would have changed."
-    : "Answer now if you can. If reading these has shown you another file you truly need, you may ask "
-      + "again in the same NEED form.";
-  const sent = parts.length ? `\n\n${parts.map(fileBlock).join("\n\n")}` : "";
-  return `The files you asked for.${note}\n\n${more}${sent}`;
-};
-
-const GATE_CHARS = 6;
-
-/* Streaming and suppression at once: a request begins with NEED and an answer does not, so the gate
-   holds the first few characters, decides, and either flushes and follows the stream or stays shut
-   for the rest of this call. One gate per call — the next call decides again. */
-export const gated = (sink) => {
-  let head = "";
-  let open = false;
-  let shut = false;
-  return (text) => {
-    if (shut) return;
-    if (open) return sink(text);
-    head += text;
-    if (head.length < GATE_CHARS && !head.includes("\n")) return;
-    if (/^\s*NEED:/.test(head)) {
-      shut = true;
-      return;
-    }
-    open = true;
-    sink(head);
-    head = "";
-  };
-};
-
 const frameEvent = (frame) => {
   const data = frame
     .split("\n")
@@ -309,6 +269,9 @@ export const consume = async (body, onDelta) => {
   let text = "";
   let usage = null;
   let stop = null;
+  let thought = 0;
+  const open = new Map();
+  const calls = [];
   const absorb = (frame) => {
     const event = frameEvent(frame);
     if (!event) return;
@@ -316,6 +279,23 @@ export const consume = async (body, onDelta) => {
       throw new Error(`gateway streamed an error: ${JSON.stringify(event.error).slice(0, ERROR_CHARS)}`);
     }
     if (event.type === "message_start") usage = event.message?.usage ?? usage;
+    if (event.type === "content_block_start" && event.content_block?.type === "tool_use") {
+      open.set(event.index, { id: event.content_block.id, name: event.content_block.name, json: "" });
+    }
+    if (event.type === "content_block_delta" && event.delta?.type === "input_json_delta") {
+      const held = open.get(event.index);
+      if (held) held.json += event.delta.partial_json ?? "";
+    }
+    if (event.type === "content_block_stop" && open.has(event.index)) {
+      const held = open.get(event.index);
+      open.delete(event.index);
+      calls.push({ id: held.id, name: held.name, input: parsedInput(held.json) });
+    }
+    /* Thinking is counted, not shown: the reviewer's reasoning is not the review, and the terminal
+       is where the review goes. The count is what tells a reader where the tokens went. */
+    if (event.type === "content_block_delta" && event.delta?.type === "thinking_delta") {
+      thought += (event.delta.thinking ?? "").length;
+    }
     if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
       text += event.delta.text;
       onDelta(event.delta.text);
@@ -335,10 +315,20 @@ export const consume = async (body, onDelta) => {
      blank line after it would otherwise be dropped, and it is the frame carrying stop_reason. */
   buffered += decoder.decode();
   for (const frame of buffered.split(FRAME_END)) absorb(frame);
-  return { text: text.trim(), usage, stop };
+  return { text: text.trim(), usage, stop, calls, thought };
 };
 
-export const askApi = async (values, model, messages, { onDelta = () => {}, signal } = {}) => {
+/** A tool call whose arguments did not arrive whole is answered as one that asked for nothing, so
+ *  the executor refuses it in words rather than the loop throwing. */
+const parsedInput = (json) => {
+  try {
+    return json.trim() ? JSON.parse(json) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const askApi = async (values, model, messages, { onDelta = () => {}, signal, tools } = {}) => {
   const answer = await fetch(`${values.ANTHROPIC_BASE_URL}/v1/messages`, {
     method: "POST",
     headers: {
@@ -347,7 +337,15 @@ export const askApi = async (values, model, messages, { onDelta = () => {}, sign
       "anthropic-version": "2023-06-01",
       "x-api-key": values.ANTHROPIC_AUTH_TOKEN,
     },
-    body: JSON.stringify({ model, max_tokens: MAX_TOKENS, system: ROLE, stream: true, messages }),
+    body: JSON.stringify({
+      model,
+      max_tokens: MAX_TOKENS,
+      system: ROLE,
+      stream: true,
+      messages,
+      reasoning_effort: EFFORT,
+      ...(tools?.length ? { tools } : {}),
+    }),
     signal,
   });
   if (!answer.ok) {
@@ -355,6 +353,6 @@ export const askApi = async (values, model, messages, { onDelta = () => {}, sign
     throw new Error(`gateway answered ${answer.status}: ${body.slice(0, ERROR_CHARS)}`);
   }
   const held = await consume(answer.body, onDelta);
-  if (!held.text) throw new Error("the gateway streamed no text at all");
+  if (!held.text && !held.calls.length) throw new Error("the gateway streamed no text at all");
   return held;
 };
