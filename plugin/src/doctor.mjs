@@ -61,8 +61,6 @@ const envHeld = () => {
   return found;
 };
 
-const viSetting = (field) => (readJson(VI_CONFIG)?.[field] ? VI_CONFIG : null);
-
 /* Reported every run and, like cloudflare's, gating nothing by itself: the vi-natural skill
    translates a locale file with no tracker in sight. `translate` decides only whether the
    tracker's own writes wait on it. */
@@ -74,6 +72,8 @@ const checkVi = () => {
     return false;
   }
   line(OK, "vi-natural", bundled);
+  const saved = readJson(VI_CONFIG) ?? {};
+  const viSetting = (field) => (saved[field] ? VI_CONFIG : null);
   const url = viSetting("base_url");
   if (url) line(OK, "vi-natural gateway", url);
   else line(BAD, "vi-natural gateway", "run `vi-natural login --base-url <url>` — there is no default host");

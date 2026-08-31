@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { hookEvents } from "../src/hook-switch.mjs";
+import { hookEvents, hookNames } from "../src/hook-switch.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const HOOK = join(HERE, "..", "hooks", "bash-guard.mjs");
@@ -123,15 +123,18 @@ test("doctor reports a gate its own variable holds down", () => {
   }
 });
 
-/* One name switches one hook type only while that stays true. A script on two events would be stood
-   down on both by a name that mentions neither, so the day one appears the key needs the pair. */
+/* One name switches one hook type only while that stays true, and a file registered on no event is
+   worse than a missing one: `forge hooks` lists it and switching it changes nothing. */
 test("each hook is registered on exactly one event", () => {
-  const many = Object.entries(hookEvents()).filter(([, events]) => events.length !== 1);
+  const registered = hookEvents();
+  const wrong = hookNames()
+    .map((name) => [name, registered[name] ?? []])
+    .filter(([, events]) => events.length !== 1);
   assert.deepEqual(
-    many,
+    wrong,
     [],
-    "`forge hooks --off <name>` switches every event of a script: give the key a `name:Event` form, "
-      + "or register this script once",
+    "a script on two events is stood down on both by a name that mentions neither, and one on no "
+      + "event never fires: register it in hooks.json once, or give the key a `name:Event` form",
   );
 });
 

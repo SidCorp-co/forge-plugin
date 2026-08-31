@@ -126,7 +126,9 @@ const turnsOf = (held) => held.turns ?? {};
 
 export const pendingIn = (held, root) => turnsOf(held)[root]?.files ?? [];
 
-export const recordable = (rel) => new RegExp(userConfig().codex?.pathRe || DEFAULT_PATH_RE).test(rel);
+const recordPattern = () => userConfig().codex?.pathRe || DEFAULT_PATH_RE;
+
+export const recordable = (rel) => new RegExp(recordPattern()).test(rel);
 
 /* A turn's second write must not repeat the instruction the first one carried — that is how an
    instruction gets ignored. So the decision the hook needs is `first`, not just `added`. */
@@ -328,7 +330,7 @@ const show = () => {
   }
   console.log(`repo root : ${root ?? "<not in a git repository>"}`);
   console.log(`history   : ${root ? historyFor(entries, root).length : 0} prior exchange(s) replayed`);
-  console.log(`records   : ${userConfig().codex?.pathRe || DEFAULT_PATH_RE}`);
+  console.log(`records   : ${recordPattern()}`);
   console.log(`pending   : ${waiting.length ? waiting.join(", ") : "nothing"}`);
   console.log(`log       : ${LOG_PATH}  (${consults(entries).length} consult(s))`);
 };

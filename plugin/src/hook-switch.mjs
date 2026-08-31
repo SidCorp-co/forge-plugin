@@ -5,7 +5,7 @@ import { readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { readJson, saveConfig, userConfig } from "./resolve/config.mjs";
+import { once, readJson, saveConfig, userConfig } from "./resolve/config.mjs";
 
 export const HOOKS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks");
 
@@ -21,8 +21,8 @@ export const hookNames = () => {
 };
 
 /* Where a name becomes a type: each script is registered on one event, so switching the name
-   switches that event. A test holds it to one — a script on two would need a key naming the pair. */
-export const hookEvents = () => {
+   switches that event. Memoised — `offNow` asks per hook, and one run reads one hooks.json. */
+export const hookEvents = once(() => {
   const found = {};
   for (const [event, blocks] of Object.entries(readJson(join(HOOKS_DIR, "hooks.json"))?.hooks ?? {})) {
     for (const block of blocks ?? []) {
@@ -33,7 +33,7 @@ export const hookEvents = () => {
     }
   }
   return found;
-};
+});
 
 export const hookEvent = (name) => (hookEvents()[name] ?? []).join(", ") || "registered on nothing";
 

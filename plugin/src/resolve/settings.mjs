@@ -4,7 +4,7 @@
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 
-import { once, readJson, userConfig } from "./config.mjs";
+import { CONFIG_PATH, once, readJson, userConfig } from "./config.mjs";
 
 export const fail = (message) => {
   console.error(message);
@@ -51,7 +51,6 @@ const nearest = (name) =>
 
 const forgeJson = nearest(".forge.json");
 const mcpJson = nearest(".mcp.json");
-const CONFIG_NAME = "~/.config/forge/config.json";
 
 /* Reported, never resolved: doctor names a `forge` server in a `.mcp.json` rather than leaving its
    owner to guess, because credentials that answer by directory are the account's in name only. */
@@ -70,8 +69,8 @@ const sourced = (from, value) => (value ? { value, from } : { value: null, from:
 export const accountCredentials = once(() => {
   const saved = userConfig();
   return {
-    url: sourced(CONFIG_NAME, saved.url),
-    token: sourced(CONFIG_NAME, saved.token),
+    url: sourced(CONFIG_PATH, saved.url),
+    token: sourced(CONFIG_PATH, saved.token),
   };
 });
 
