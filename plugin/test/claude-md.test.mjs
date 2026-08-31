@@ -92,7 +92,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { checkClaims, claims } from "../src/claude-md.mjs";
+import { checkClaims, checkerOwned, claims } from "../src/claude-md.mjs";
 
 function fixture() {
   const root = mkdtempSync(path.join(tmpdir(), "cm-claims-"));
@@ -103,9 +103,48 @@ function fixture() {
   return root;
 }
 
+const NONE = {
+  missingPaths: [],
+  stalePaths: [],
+  missingScripts: [],
+  missingHelp: [],
+  missingTools: [],
+  missingRefs: [],
+  presentForbidden: [],
+  strandedShas: [],
+  uncitedIdentifiers: [],
+};
+
 test("only backticks and link targets are claims, and a placeholder is not one", () => {
   const found = claims("Run `scripts/a.mjs` and see [docs](docs/b.md); `<slug>`, `@nestjs/*`, prose/path.\n");
   assert.deepEqual(found.paths, ["docs/b.md", "scripts/a.mjs"]);
+});
+
+test("shapes that only look like paths are not claimed", () => {
+  const text = "`141.11.205.0/24`, `dd/mm/yyyy`, `.spec.ts`, `origin/production`, `codemap/1`, `frontend/.next`\n";
+  assert.deepEqual(claims(text).paths, []);
+});
+
+test("a missing path and a stale one are separated", () => {
+  const root = fixture();
+  const found = checkClaims("See `scripts/helpful.mjs` — no, `lib/helpful.mjs`, and [gone](docs/gone.md).\n", root);
+  assert.deepEqual(found.stalePaths, ["lib/helpful.mjs"]);
+  assert.deepEqual(found.missingPaths, ["docs/gone.md"]);
+});
+
+test("an absence claim is read the right way round", () => {
+  const root = fixture();
+  const text = "There is no `scripts/helpful.mjs` and there must not be one; there is no `scripts/absent.mjs`.\n";
+  const found = checkClaims(text, root);
+  assert.deepEqual(found.presentForbidden, ["scripts/helpful.mjs"]);
+  assert.deepEqual(found.missingPaths, []);
+});
+
+test("a tool told to answer -h must be on PATH", () => {
+  const root = fixture();
+  assert.deepEqual(checkClaims("Ask `node -h` and `definitelynotinstalled9 -h`.\n", root).missingTools, [
+    "definitelynotinstalled9",
+  ]);
 });
 
 test("a path, an npm script and a silent -h are each reported", () => {
@@ -116,6 +155,7 @@ test("a path, an npm script and a silent -h are each reported", () => {
     "- See [gone](docs/gone.md).",
   ].join("\n");
   assert.deepEqual(checkClaims(text, root), {
+    ...NONE,
     missingPaths: ["docs/gone.md"],
     missingScripts: ["typecheck"],
     missingHelp: ["scripts/mute.mjs"],
@@ -131,6 +171,14 @@ test("a -h target that does not resolve is a missing path, not a silent -h", () 
 
 test("a clean file reports nothing", () => {
   const root = fixture();
-  const text = "Run `scripts/helpful.mjs -h`, then `npm run lint`.\n";
-  assert.deepEqual(checkClaims(text, root), { missingPaths: [], missingScripts: [], missingHelp: [] });
+  assert.deepEqual(checkClaims("Run `scripts/helpful.mjs -h`, then `npm run lint`.\n", root), NONE);
+});
+
+test("a rule a checker declares is reported where CLAUDE.md explains it", () => {
+  const root = fixture();
+  mkdirSync(path.join(root, "rules"), { recursive: true });
+  writeFileSync(path.join(root, "rules", "tenant-filter.mjs"), 'name: "tenant-filter",\n');
+  const text = "# Rules\n\n- `tenant-filter` inspects queries, not designs, so it cannot see a missing filter.\n";
+  assert.deepEqual(checkerOwned(text, root), [{ rule: "tenant-filter", line: 3 }]);
+  assert.deepEqual(checkerOwned("- `no-such-rule` does a thing that is long enough to be a statement.\n", root), []);
 });

@@ -1,6 +1,7 @@
 /* The CLAUDE.md half of `forge doctor`: the guides are the authority and a project file that
    restates one has forked it. Why a pair is reported and never classified: docs/FORGE-CLI.md. */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 
 import { join } from "node:path";
 
@@ -118,6 +119,21 @@ export function reviewClaudeMd(text, guides, options = {}) {
   };
 }
 
+const readDir = (dir) => {
+  try {
+    return readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+};
+
+/* Three questions only a command can answer. Each is read-only and each is allowed to fail: a
+   repo with no git, or a `git` that is not installed, is not a finding about CLAUDE.md. */
+const ran = (cmd, args, cwd) => spawnSync(cmd, args, { cwd, encoding: "utf8", stdio: "pipe" });
+const ignored = (root, rel) => ran("git", ["check-ignore", "-q", rel], root).status === 0;
+const resolvesRef = (root, ref) => ran("git", ["rev-parse", "--verify", "--quiet", ref], root).status === 0;
+const onPath = (name) => ran("command", ["-v", name]).status === 0 || ran("sh", ["-c", `command -v ${name}`]).status === 0;
+
 const readText = (path) => {
   try {
     return readFileSync(path, "utf8");
@@ -153,11 +169,44 @@ export function readClaudeMd(root) {
 const CODE_SPAN = /`([^`\n]+)`/g;
 const LINK_TARGET = /\]\(([^)\s]+)\)/g;
 const NPM_SCRIPT = /\bnpm (?:run ([\w:-]+)|(test)\b)/g;
-const HELP_CLAIM = /`([\w./-]+\.(?:mjs|js|sh))\s+(?:-h|--help)`/g;
+/* Two shapes of "ask it with -h": a script this repo holds, and a command on PATH. */
+const SCRIPT_HELP = /`([\w./-]+\.(?:mjs|js|sh|py))\s+(?:-h|--help)`/g;
+const TOOL_HELP = /`([a-z][\w-]*)\s+(?:-h|--help)`/g;
+const GIT_REF = /`((?:origin|upstream)\/[\w.\/-]+)`/g;
+const SHA = /`([0-9a-f]{7,40})`/g;
+
+/* An absence is a claim, and the strongest kind — "there is no `backend/.env` and there must not be
+   one" is falsified by the file EXISTING. Read the other way round it reports backwards. */
+const FORBIDDEN = /there (?:is|are) no `([^`\n]+)`/gi;
+
+/* Identifiers the documents are organised by. Three projects state the rule themselves: a cited
+   identifier must exist. */
+const CITED = /\b((?:FR|UC|BR|NFR|AC|HC|ISS|SPEC|A|D)-\d[\w-]*)\b/g;
 
 /* A placeholder, a glob, a package name and a url are not paths this repo owns. */
 const NOT_A_PATH = /[<>*$…{}\s]|^https?:|^@|^~/u;
 const PATHISH = /^[\w.@-]+(?:\/[\w.@-]+)+\/?$|^[\w.-]+\.(?:mjs|js|ts|tsx|json|md|sql|ya?ml)$/u;
+
+/* Shaped like a path and not one — each measured as a false positive over 28 real CLAUDE.md files:
+   a CIDR block, a date mask, a bare extension used as a noun, a git ref, a build directory. */
+const LOOKS_LIKE = [
+  /^\d{1,3}(?:\.\d{1,3}){3}\/\d{1,2}$/u,
+  /^(?:dd|mm|yy|yyyy|hh|ss|DD|MM|YY|YYYY)[\/.-]/u,
+  /^\.[\w.]+$/u,
+  /^(?:origin|upstream|HEAD|refs)\//u,
+  /\/\d+$/u,
+  /(?:^|\/)(?:\.next|dist|build|coverage|target|__pycache__)\/?$/u,
+];
+
+/* A rule with a checker is documented by the checker's own message. Names come from the configs the
+   project actually loads, so this cannot claim a rule that was renamed or removed. */
+const CONFIG_RULE = /["']([a-z][\w-]*(?:\/[\w-]+)?)["']\s*:\s*(?:["'](?:error|warn)["']|\[)/g;
+const DECLARED_RULE = /["']([a-z][a-z\d]*(?:-[a-z\d]+)*)["']/g;
+const CONFIG_FILE = /^(?:eslint\.config\.[cm]?js|\.eslintrc(?:\.\w+)?)$/u;
+/* A checker declares its own rule names, and no two projects keep them in the same place: an eslint
+   config, a `rules/` directory, a gate script. A name quoted anywhere else is just a string. */
+const CHECKER_FILE = /^(?:check-[\w-]+|gates)\.[cm]?js$/u;
+const RULE_TOKEN = /^[a-z][a-z\d]*(?:-[a-z\d]+)*$/u;
 
 const spans = (text) => {
   const out = new Set();
@@ -166,28 +215,107 @@ const spans = (text) => {
   return out;
 };
 
+const uniq = (text, pattern) => [...new Set([...text.matchAll(pattern)].map((m) => m[1]))].sort();
+
 /** Everything the file asserts about the tree it sits in, as data. */
 export function claims(text) {
-  const paths = [...spans(text)].filter((t) => !NOT_A_PATH.test(t) && PATHISH.test(t)).sort();
+  const paths = [...spans(text)]
+    .filter((t) => !NOT_A_PATH.test(t) && PATHISH.test(t) && !LOOKS_LIKE.some((rx) => rx.test(t)))
+    .sort();
   const scripts = [...new Set([...text.matchAll(NPM_SCRIPT)].map((m) => m[1] ?? m[2]))].sort();
-  const helps = [...new Set([...text.matchAll(HELP_CLAIM)].map((m) => m[1]))].sort();
-  return { paths, scripts, helps };
+  const helps = uniq(text, SCRIPT_HELP);
+  const tools = uniq(text, TOOL_HELP).filter((name) => !helps.includes(name) && name !== "npm");
+  const forbidden = uniq(text, FORBIDDEN);
+  return {
+    paths: paths.filter((rel) => !forbidden.includes(rel)),
+    scripts,
+    helps,
+    tools,
+    forbidden,
+    refs: uniq(text, GIT_REF),
+    shas: uniq(text, SHA),
+    cited: uniq(text, CITED),
+  };
 }
 
+/* Every package.json the project holds, found rather than guessed: a list of workspace directories
+   is one repo's layout, and this runs in any of them. Bounded, because a monorepo is wide. */
 const packageScripts = (root) => {
-  const found = new Map();
-  for (const dir of ["", "backend", "frontend", "packages/api-contract", "packages/i18n"]) {
-    const parsed = readJson(join(root, dir, "package.json"));
-    for (const name of Object.keys(parsed?.scripts ?? {})) {
-      found.set(name, [...(found.get(name) ?? []), dir || "."]);
+  const names = new Set();
+  const visit = (dir, depth) => {
+    for (const name of Object.keys(readJson(join(dir, "package.json"))?.scripts ?? {})) {
+      names.add(name);
     }
-  }
+    if (depth === 0) return;
+    for (const entry of readDir(dir)) {
+      if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules") {
+        visit(join(dir, entry.name), depth - 1);
+      }
+    }
+  };
+  visit(root, 3);
+  return names;
+};
+
+/* Dangling and imprecise deserve different weight: `lib/formatters.ts` against
+   `dashboard/frontend/src/lib/utils/formatters.ts` is stale, not missing. */
+const basenames = (root) => {
+  const found = new Set();
+  const visit = (dir, depth) => {
+    for (const entry of readDir(dir)) {
+      if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+      found.add(entry.name);
+      if (depth > 0 && entry.isDirectory()) visit(join(dir, entry.name), depth - 1);
+    }
+  };
+  visit(root, 6);
   return found;
 };
 
 /** Reads the tree; `root` is the only input, so a test points it at a fixture. */
+/* One sweep, not a subprocess per citation. `grep -r` and not `git grep`, which skips ignored files. */
+const definedIdentifiers = (root) => {
+  const run = ran("grep", ["-rhoE", "(FR|UC|BR|NFR|AC|HC|ISS|SPEC|A|D)-[0-9][A-Za-z0-9-]*",
+    "--exclude=CLAUDE.md", "--exclude-dir=node_modules", "--exclude-dir=.git", "."], root);
+  return new Set((run.stdout ?? "").split("\n").filter(Boolean));
+};
+
+/* Found rather than listed: a project keeps its checkers where it likes. */
+const configuredRules = (root) => {
+  const names = new Set();
+  const visit = (dir, depth, inRules) => {
+    for (const entry of readDir(dir)) {
+      if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (depth > 0) visit(full, depth - 1, inRules || entry.name === "rules");
+        continue;
+      }
+      const config = CONFIG_FILE.test(entry.name);
+      if (!config && !inRules && !CHECKER_FILE.test(entry.name)) continue;
+      const text = readText(full) ?? "";
+      for (const [, name] of text.matchAll(config ? CONFIG_RULE : DECLARED_RULE)) names.add(name);
+    }
+  };
+  visit(root, 4, false);
+  return names;
+};
+
+/** Rules CLAUDE.md explains that a checker already enforces, with the line each sits on. */
+export function checkerOwned(text, root) {
+  const named = [...spans(text)].filter((token) => RULE_TOKEN.test(token) && token.includes("-"));
+  if (!named.length) return [];
+  const configured = configuredRules(root);
+  const owned = named.filter((name) => configured.has(name));
+  const at = new Map();
+  for (const [index, line] of text.split("\n").entries()) {
+    for (const name of owned) if (!at.has(name) && line.includes(`\`${name}\``)) at.set(name, index + 1);
+  }
+  return owned.map((rule) => ({ rule, line: at.get(rule) ?? 0 })).sort((a, b) => a.line - b.line);
+}
+
 export function checkClaims(text, root) {
-  const { paths, scripts, helps } = claims(text);
+  const { paths, scripts, helps, tools, forbidden, refs, shas, cited } = claims(text);
   const declared = packageScripts(root);
   const missingHelp = [];
   const unresolved = [];
@@ -196,10 +324,22 @@ export function checkClaims(text, root) {
     if (source === null) unresolved.push(rel);
     else if (!/["'`](?:-h|--help)["'`]/u.test(source)) missingHelp.push(rel);
   }
-  const missingPaths = paths.filter((rel) => !existsSync(join(root, rel)));
+  const defined = cited.length ? definedIdentifiers(root) : new Set();
+  const absent = [...paths.filter((rel) => !existsSync(join(root, rel))), ...unresolved];
+  const tracked = absent.filter((rel) => !ignored(root, rel));
+  const known = basenames(root);
+  const base = (rel) => rel.replace(/\/$/u, "").split("/").at(-1);
   return {
-    missingPaths: [...missingPaths, ...unresolved].sort(),
+    missingPaths: tracked.filter((rel) => !known.has(base(rel))).sort(),
+    stalePaths: tracked.filter((rel) => known.has(base(rel))).sort(),
     missingScripts: scripts.filter((name) => !declared.has(name)),
     missingHelp,
+    missingTools: tools.filter((name) => !onPath(name)),
+    missingRefs: refs.filter((ref) => !resolvesRef(root, ref)),
+    presentForbidden: forbidden.filter((rel) => existsSync(join(root, rel))),
+    strandedShas: shas.filter(
+      (sha) => ran("git", ["merge-base", "--is-ancestor", sha, "HEAD"], root).status !== 0,
+    ),
+    uncitedIdentifiers: cited.filter((id) => !defined.has(id)),
   };
 }

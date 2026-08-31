@@ -7,7 +7,7 @@ import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "./reso
 import { didYouMean } from "./suggest.mjs";
 import { BUNDLED } from "./vi.mjs";
 import { accountCredentials, fail, projectRoot, projectScope, translateScope } from "./resolve/settings.mjs";
-import { checkClaims, readClaudeMd, reviewClaudeMd } from "./claude-md.mjs";
+import { checkClaims, checkerOwned, readClaudeMd, reviewClaudeMd } from "./claude-md.mjs";
 import { flags } from "./resolve/flags.mjs";
 import { VERB_NAMES } from "./resolve/visibility.mjs";
 
@@ -133,13 +133,28 @@ const reportClaudeMd = (review, path) => {
 /* An override naming no guide waives nothing, so the exit code follows it. A pair doctor cannot
    classify does not: a check that stays red until someone edits prose gets switched off. */
 
-/* A claim about the repo is the kind that rots without anyone noticing, and it is the kind a
-   command can settle. Each of the three found a live defect the day it was written. */
+/* A claim about the repo is the kind that rots without anyone noticing, and the kind a command can
+   settle. Measured over 28 real CLAUDE.md files; the shapes that produced only false positives —
+   a CIDR block, a date mask, a bare extension, a git ref — are excluded before this runs. */
 const CLAIMS = [
-  ["missingPaths", "claude.md path", "names no such path, relative to the project root"],
+  ["missingPaths", "claude.md path", "names no such path, and no file of that name anywhere"],
   ["missingScripts", "claude.md script", "is in no package.json this project holds"],
   ["missingHelp", "claude.md -h", "is told to answer `-h`, and handles no such flag"],
+  ["missingTools", "claude.md tool", "is told to answer `-h`, and is not on PATH"],
+  ["missingRefs", "claude.md ref", "is a git ref that does not resolve here"],
+  ["presentForbidden", "claude.md absence", "is said not to exist, and it does"],
+  ["strandedShas", "claude.md sha", "is cited and is no ancestor of HEAD"],
+  ["uncitedIdentifiers", "claude.md id", "is cited and is defined nowhere else in the repo"],
 ];
+
+/* Imprecise rather than dangling — the file exists, under another path. Volume is the reason this
+   is a count: `port-plan.md` for `docs/port-plan.md` is worth one line, not twenty-nine. */
+const reportStale = (stale) => {
+  if (!stale.length) return;
+  const shown = stale.slice(0, 3).join(", ");
+  const rest = stale.length > 3 ? `, +${stale.length - 3} more` : "";
+  line(NOTE, "claude.md stale path", `${shown}${rest} — exists, under another path`);
+};
 
 const reportClaims = (root, text) => {
   const found = checkClaims(text, root);
@@ -150,15 +165,25 @@ const reportClaims = (root, text) => {
       line(BAD, label, `\`${name}\` ${why}`);
     }
   }
-  if (!broken) line(OK, "claude.md claims", "every path, npm script and `-h` it names is real");
+  reportStale(found.stalePaths);
+  for (const { rule, line: at } of checkerOwned(text, root)) {
+    line(NOTE, "claude.md restates", `\`${rule}\` has a checker (CLAUDE.md:${at})`);
+  }
+  if (!broken) line(OK, "claude.md claims", "every path, script, `-h`, ref and id it names is real");
   return broken;
 };
+
+/* Printed once, not per rule: the remedy is the same for all of them. */
+const RESTATES = "\nA rule with a checker is documented by the checker's own message, which is what a\n" +
+  "developer reads at the moment it fails. Delete the prose, or keep one line stating the invariant\n" +
+  "behind it and no more — an explanation in two places diverges at the first correction.";
 
 const checkClaudeMd = async (scoped) => {
   const root = projectRoot();
   const found = readClaudeMd(root);
   if (!found) return 0;
   const broken = reportClaims(root, found.text);
+  if (checkerOwned(found.text, root).length) console.log(RESTATES);
   return broken + reportClaudeMd(reviewClaudeMd(found.text, await guideBodies(scoped)), found.path);
 };
 

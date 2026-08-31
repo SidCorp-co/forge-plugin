@@ -134,12 +134,36 @@ refuses all six of its actions. Read-only, one call each. What the probe learned
 keyed by project, so `tools` and `schema` can mark a gated tool without paying for a probe of
 their own; the date goes with it.
 
-**It settles CLAUDE.md's claims about the repo.** Three, each of which caught a live defect on the
-day it was written: a path that resolves from nowhere (`scripts/migration-risk.mjs` was named by
-sid-erp's CLAUDE.md and existed in no commit), an `npm run <script>` no package.json in the project
-declares, and a script the file tells you to ask with `-h` that handles no such flag. Only
-backticked spans and link targets count — prose naming a file is not a claim — and a placeholder,
-a glob, a package name and a url are all excluded. These are mechanical, so they fail doctor.
+**It settles CLAUDE.md's claims about the repo.** Eight of them, calibrated by running the check
+over 28 real CLAUDE.md files in this tree rather than over one:
+
+| Claim | Falsified by |
+|---|---|
+| a path | nothing resolving, and no file of that name anywhere |
+| an `npm run <script>` | no package.json the project holds declaring it |
+| a script told to answer `-h` | the file handling no such flag |
+| a command told to answer `-h` | it not being on PATH |
+| a git ref such as `origin/production` | `rev-parse` not resolving it |
+| **an absence** — "there is no `backend/.env` and there must not be one" | the file existing |
+| a cited sha | it being no ancestor of `HEAD` |
+| a cited `FR-`/`BR-`/`UC-`/`ISS-` identifier | it appearing nowhere else in the repo |
+
+The absence claim is why the direction matters: read the other way round, a checker reports the
+*required* state as the defect. Three of these projects state the identifier rule themselves — "a
+cited identifier must exist" — so that check is theirs, not this tool's invention.
+
+Only backticked spans and link targets count; prose naming a file is not a claim. A placeholder, a
+glob, a package name, a url, a CIDR block, a date mask, a bare extension used as a noun, a git ref
+and a build directory are all excluded, each because it produced a false positive on that corpus.
+A path whose basename exists elsewhere is *stale* rather than missing — `port-plan.md` for
+`docs/port-plan.md` — and prints as one `note` with a count, because at 102 occurrences across the
+corpus it is worth a line and not a list.
+
+**A rule with a checker is not documented twice.** Doctor reads the rule names the project's own
+checkers declare — eslint configs, a `rules/` directory, a gate script — and notes each one
+CLAUDE.md explains, because the message a developer reads when it fires is the documentation. It
+matches only backticked, hyphenated names against names a checker declares as a literal, so a rule
+that derives its name from its filename is missed and a stray `"edge"` string cannot false-positive.
 
 **It reviews CLAUDE.md against the guides, and the guides are the authority.** The project file is
 the copy: a rule stated in both has two homes, and the pair diverges the first time somebody
