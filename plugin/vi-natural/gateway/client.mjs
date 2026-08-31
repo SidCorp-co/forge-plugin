@@ -90,8 +90,10 @@ export class Client {
           return await this.consume(response);
         }
       } catch (error) {
-        if (error instanceof CliError && !last) throw error;
-        if (!(error instanceof CliError)) last = new CliError(`gateway request failed: ${error.message}`);
+        // Raised deliberately: a status in no retry table, or a reply that cannot be used. Sleeping
+        // twice to be told the same thing is the cost of reading it as a transport failure.
+        if (error instanceof CliError) throw error;
+        last = new CliError(`gateway request failed: ${error.message}`);
       }
       if (attempt < this.retries - 1) await sleep(2 ** attempt * 1000);
     }

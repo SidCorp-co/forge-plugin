@@ -134,7 +134,7 @@ const readDir = (dir) => {
 const ran = (cmd, args, cwd) => spawnSync(cmd, args, { cwd, encoding: "utf8", stdio: "pipe" });
 const ignored = (root, rel) => ran("git", ["check-ignore", "-q", rel], root).status === 0;
 const resolvesRef = (root, ref) => ran("git", ["rev-parse", "--verify", "--quiet", ref], root).status === 0;
-const onPath = (name) => ran("command", ["-v", name]).status === 0 || ran("sh", ["-c", `command -v ${name}`]).status === 0;
+const onPath = (name) => ran("sh", ["-c", `command -v ${name}`]).status === 0;
 
 const readText = (path) => {
   try {

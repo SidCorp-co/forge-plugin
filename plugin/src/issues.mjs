@@ -22,14 +22,14 @@ export const listIssues = async (filters = {}, limit = DEFAULT_LIMIT, extra = {}
 
 export const truncated = (rows, limit) => rows.length === limit;
 
-/* One list per process: `dep <a> <b>` fetched the same 41 KB twice. A documentId never changes. */
-let index = null;
-const referenceIndex = async () => {
-  if (index) return index;
-  const rows = rowsOf(await listIssues({}, MAX_LIMIT));
-  index = new Map(rows.map((issue) => [(issue.issueId ?? "").toUpperCase(), issue.documentId]));
-  return index;
-};
+/* One list per process, and the PROMISE is what is shared: `dep <a> <b>` resolves two references
+   at once, so a memo assigned after the await lets each of them fetch the same 41 KB. */
+let pending = null;
+const referenceIndex = () =>
+  (pending ??= listIssues({}, MAX_LIMIT).then(
+    (payload) =>
+      new Map(rowsOf(payload).map((issue) => [(issue.issueId ?? "").toUpperCase(), issue.documentId])),
+  ));
 
 export const documentIdOf = async (reference) => {
   if (UUID.test(reference)) return reference;

@@ -79,7 +79,12 @@ export const hooks = (argv) => {
     console.log(`off: ${name.padEnd(16)} ${event}  — \`forge hooks --on ${name}\``);
   }
   let entries = hookEntries();
-  if (held.hook) entries = entries.filter((one) => one.hook === held.hook);
+  if (held.hook) {
+    /* The log outlives the file: a hook since renamed is still worth filtering for. */
+    const known = [...new Set([...hookNames(), ...entries.map((one) => one.hook).filter(Boolean)])];
+    if (!known.includes(held.hook)) fail(didYouMean("hook", held.hook, known));
+    entries = entries.filter((one) => one.hook === held.hook);
+  }
   if (held.deny) entries = entries.filter((one) => one.decision === "deny");
   if (held.block) entries = entries.filter((one) => one.decision === "block");
   if (!entries.length) {

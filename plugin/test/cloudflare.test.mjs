@@ -1,14 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import {
-  accountForZone,
-  cloudflareAccounts,
-  everyZone,
-  recordLine,
-  searchDns,
-} from "../src/cloudflare.mjs";
-import { pullRepeated } from "../src/resolve/flags.mjs";
+/* A config of its own, and imported after it: on the developer's machine this suite otherwise
+   loads four live tokens and what it proves becomes a property of that file. The import has to
+   follow, because the config path is resolved once when `resolve/config.mjs` loads. */
+const HOME = mkdtempSync(join(tmpdir(), "cloudflare-home-"));
+const CONFIG = join(HOME, "forge", "config.json");
+mkdirSync(join(HOME, "forge"));
+writeFileSync(CONFIG, JSON.stringify({
+  cloudflare: { accounts: [{ name: "saved", accountId: "acct-config", apiToken: "cf-config" }] },
+}));
+process.env.XDG_CONFIG_HOME = HOME;
+
+const { accountForZone, cloudflareAccounts, everyZone, recordLine, searchDns } = await import(
+  "../src/cloudflare.mjs"
+);
+const { pullRepeated } = await import("../src/resolve/flags.mjs");
 
 const reply = (body, { ok = true, status = 200 } = {}) => ({
   ok,
@@ -45,12 +55,12 @@ const withEnv = (t, values) => {
 const byToken = (answers) => async (url, init) =>
   answers[init.headers.Authorization] ?? refusal("no such account");
 
-/* The config is the only source, so a pair in the environment resolves to nothing — and the
-   error names the one command that saves an account, because that is now the only route. */
+/* The config is the only source, so a pair in the environment adds nothing to what it holds. */
 test("an environment pair is not an account", (t) => {
-  withEnv(t, { CLOUDFLARE_API_TOKEN: "cf-token", CLOUDFLARE_ACCOUNT_ID: "acct-1" });
-  const { accounts } = cloudflareAccounts();
-  assert.equal(accounts.some((one) => one.apiToken === "cf-token"), false);
+  withEnv(t, { CLOUDFLARE_API_TOKEN: "cf-env", CLOUDFLARE_ACCOUNT_ID: "acct-env" });
+  const { accounts, from } = cloudflareAccounts();
+  assert.deepEqual(accounts.map((one) => one.name), ["saved"], "the saved account, and only it");
+  assert.equal(from, CONFIG, "reported as coming from the file it was read from");
 });
 
 test("a failing account is named, and the others still aggregate", async (t) => {

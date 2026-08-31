@@ -8,6 +8,7 @@ import { join } from "node:path";
 const room = mkdtempSync(join(tmpdir(), "hook-log-"));
 process.env.XDG_CONFIG_HOME = room;
 const { HOOK_LOG_PATH, hookEntries, scrubbed } = await import("../src/hook-log.mjs");
+const CLI = new URL("../src/cli.mjs", import.meta.url).pathname;
 test.after(() => rmSync(room, { recursive: true, force: true }));
 
 /* A Coolify token reached a session transcript through a redaction that missed one nesting level.
@@ -66,4 +67,18 @@ test("a refusal from a live hook lands in the log, redacted", () => {
   assert.ok(!entry.target.includes("secretsecret"), "the log is a file on disk, so it never holds one");
   assert.match(entry.reason, /advisor\(\) has not run/u);
   assert.equal(readFileSync(HOOK_LOG_PATH, "utf8").trim().split("\n").length, hookEntries().length);
+});
+
+/* A filter nobody checked answered "no refusals logged", which is a wrong answer to a mistyped
+   question rather than a refusal of it — and the name of a hook since renamed is still filterable. */
+test("a mistyped hook filter is refused with the near miss", () => {
+  const forge = (...argv) =>
+    spawnSync(process.execPath, [CLI, "hooks", ...argv], {
+      encoding: "utf8",
+      env: { PATH: process.env.PATH, HOME: room, XDG_CONFIG_HOME: room },
+    });
+  const missed = forge("--hook", "advisor-frist");
+  assert.equal(missed.status, 1);
+  assert.match(missed.stderr, /No hook named advisor-frist\. Did you mean: advisor-first/u);
+  assert.match(forge("--hook", "advisor-first").stdout, /advisor-first\s+deny/u, "the real name filters");
 });
