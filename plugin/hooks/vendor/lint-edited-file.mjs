@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.12.0, commit 2285e66,
+// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.13.0, commit ad501cc,
 //   claude-plugin/scripts/lint-edited-file.mjs
 //
 // A copy of packages/code-quality/claude-plugin/scripts/lint-edited-file.mjs, because Claude

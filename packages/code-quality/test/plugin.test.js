@@ -7,6 +7,13 @@ const severityOf = (config, id) => {
   return Array.isArray(entry) ? entry[0] : entry;
 };
 
+// It has drifted twice. ESLint prints meta.version in --print-config and in caching keys, so a
+// stale one names the wrong release with nothing failing.
+test("meta.version is the version the package ships", async () => {
+  const { default: manifest } = await import("../package.json", { with: { type: "json" } });
+  assert.equal(plugin.meta.version, manifest.version);
+});
+
 test("exports every rule, and one id per rule for the gate to block on", () => {
   assert.deepEqual(Object.keys(rules).sort(), [
     "comment-density",

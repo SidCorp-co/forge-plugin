@@ -2,6 +2,20 @@
 
 All notable changes to this package are documented here.
 
+## 0.13.0 - 2026-08-31
+
+### Fixed
+
+- `no-raw-elements` reported nothing where a configured primitive is absent from the barrel it names. Skipping is right for the default map — a project may simply have no `Select`, and there is nothing to compose — but a `primitives` entry the project wrote is its own claim about its own barrel, and when the barrel stops exporting the name the rule retires for that element with nothing said. `sid-growth` carries 202 lines written around exactly this. A configured entry now reports `missingPrimitive`, after the exemptions, so a `type="hidden"` input or a waived site still passes.
+- `meta.version` had drifted to `0.11.0` again, two releases behind the package. A test now compares the two, since ESLint prints it in `--print-config` and nothing else fails on a stale one.
+
+### Changed
+
+- One directory traversal, `walkDirectories()`, behind the crowding count, the design scans and the gate's own workspace discovery: written out per call site, the ignore list lived in three places and agreed in none. `SOURCE_EXTENSIONS` and `DEFAULT_MARKUP_EXTENSIONS` move beside it — what a sweep keeps belongs with what it skips — and the markup list now derives from the source list rather than restating it two entries short.
+- One file-scan shell, `readSourceFiles()`, behind the four scanners that read every file, and one `ALLOW_ENTRY_SCHEMA` and `ALLOWLIST_OPTIONS` behind the two allowlisted design rules, which each carried a byte-identical copy. A field added to one copy is a schema the other rejects.
+- `CSS_WIDE_KEYWORDS` is the one list of the four keywords every property accepts; `NEUTRAL_COLOR_KEYWORDS` and `DEFAULT_VALUE_KEYWORDS` spread it instead of spelling it out.
+- Findings state the number to act on rather than the ratio it came from: `comment-density` says how many lines to delete, `max-consecutive-comment-lines` how many over the run is. The unguessable half of a remedy moves out of the per-occurrence message into `RULE_DIRECTIVES`, which a report prints once — the message is 130 characters where it was 204, and `no-duplicate-comment`'s is 69 where it was 260.
+
 ## 0.12.0 - 2026-08-31
 
 ### Added
