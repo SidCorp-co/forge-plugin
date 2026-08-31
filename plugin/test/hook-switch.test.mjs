@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { hookEvents } from "../src/hook-switch.mjs";
+import { hookEnv, hookEvents, hookNames } from "../src/hook-switch.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const HOOK = join(HERE, "..", "hooks", "bash-guard.mjs");
@@ -122,9 +122,25 @@ test("each hook is registered on exactly one event", () => {
   );
 });
 
-test("doctor names the event it stood down and how to bring it back", () => {
-  const out = forge(room('{"hooksOff":["codex-turn"]}'), "doctor").stdout;
+test("doctor names the event it stood down and every layer holding it", () => {
+  const held = '{"hooksOff":["codex-turn"]}';
+  const out = forge(room(held), "doctor").stdout;
   assert.match(out, /hooks off\s+codex-turn \(PostToolUse\) — `forge hooks --on codex-turn`/);
   const byEnv = forgeIn(room("{}"), { FORGE_HOOK_CODEX_TURN: "off" }, "doctor").stdout;
   assert.match(byEnv, /hooks off\s+codex-turn \(PostToolUse\) — `unset FORGE_HOOK_CODEX_TURN`/);
+  /* Undoing one of two leaves the gate exactly as it was, and the report promised how to bring
+     it back — so both layers are named, and only the ones actually holding it. */
+  const both = forgeIn(room(held), { FORGE_HOOK_CODEX_TURN: "off" }, "doctor").stdout;
+  assert.match(both, /— `unset FORGE_HOOK_CODEX_TURN`, `forge hooks --on codex-turn`/);
+});
+
+/* The variable name flattens `-` to `_`, so two files a directory allows can ask for one variable
+   and each would answer for the other. Nothing else notices: both would look switchable. */
+test("no two hooks want the same variable", () => {
+  const seen = new Map();
+  for (const name of hookNames()) {
+    const key = hookEnv(name);
+    assert.equal(seen.get(key), undefined, `${name} and ${seen.get(key)} both read ${key}: rename one`);
+    seen.set(key, name);
+  }
 });

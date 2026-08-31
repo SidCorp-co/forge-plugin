@@ -340,9 +340,10 @@ export const doctor = async (rest) => {
 
   const chosen = userConfig().withheld ?? [];
   if (chosen.length) line(OK, "withheld verbs", `${chosen.join(", ")} — \`forge doctor --show <verb>\``);
-  for (const { name, event, env } of offNow()) {
-    const back = env ? `unset ${hookEnv(name)}` : `forge hooks --on ${name}`;
-    line(OK, "hooks off", `${name} (${event}) — \`${back}\``);
+  for (const { name, event, env, config } of offNow()) {
+    /* Every layer holding it, because undoing one of two leaves the gate exactly as it was. */
+    const back = [env && `unset ${hookEnv(name)}`, config && `forge hooks --on ${name}`];
+    line(OK, "hooks off", `${name} (${event}) — \`${back.filter(Boolean).join("`, `")}\``);
   }
   for (const name of strandedSwitches()) {
     line(BAD, "hooks off", `${name} is switched off and is no hook here — \`forge hooks --on ${name}\``);

@@ -417,10 +417,10 @@ the near miss, so a typo cannot write a switch that silences nothing.
 
 `hookEvents()` parses `hooks.json` into name → events, which is how a name becomes a *type*: the
 switch answers name the event they turned off, and a test fails on a script registered on two, whose
-name would take both. `offNow()` is what is down right now and which layer put it there — a variable
-leaves no trace in the config a report would otherwise read. `forge doctor` prints one line per gate
-that is down, each with its event and the undo for its own layer, and reports a name matching no
-hook file as a miss. Why the switch is read by the hook process rather than declared in `hooks.json`:
+name would take both. `offNow()` is what is down right now and which layers hold it — a variable
+leaves no trace in the config a report would otherwise read, and a gate both hold is not brought back
+by undoing one. `forge doctor` prints one line per gate that is down, each with its event and the undo
+for every layer holding it, and reports a name matching no hook file as a miss. Why the switch is read by the hook process rather than declared in `hooks.json`:
 docs/HOOKS.md.
 
 ## `resolve/` — where every setting comes from

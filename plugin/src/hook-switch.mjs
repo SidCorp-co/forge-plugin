@@ -70,7 +70,12 @@ export const setHook = (name, off) => {
 export const offNow = () =>
   hookNames()
     .filter((name) => hookOff(name))
-    .map((name) => ({ name, event: hookEvent(name), env: envSays(name) === true }));
+    .map((name) => ({
+      name,
+      event: hookEvent(name),
+      env: envSays(name) === true,
+      config: envSays(name) !== false && hooksOff().has(name),
+    }));
 
 export const strandedSwitches = () => {
   const real = new Set(hookNames());

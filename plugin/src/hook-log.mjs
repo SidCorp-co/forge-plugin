@@ -76,8 +76,9 @@ export const hooks = (argv) => {
   const held = flags(argv, "hooks", ["--deny", "--block"]);
   /* Switching answers with the new state and stops: the refusal log is a different question. */
   if (held.off || held.on) return switched(held.off ?? held.on, Boolean(held.off));
-  for (const { name, event, env } of offNow()) {
-    console.log(`off: ${name.padEnd(16)} ${event}${env ? `  ← ${hookEnv(name)}` : ""}`);
+  for (const { name, event, env, config } of offNow()) {
+    const from = [env && hookEnv(name), config && "hooksOff"].filter(Boolean).join(", ");
+    console.log(`off: ${name.padEnd(16)} ${event.padEnd(12)} ← ${from}`);
   }
   let entries = hookEntries();
   if (held.hook) entries = entries.filter((one) => one.hook === held.hook);
