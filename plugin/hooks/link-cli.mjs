@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// The skills tell the agent to run `forge` and `vi-natural`, so both have to be on PATH.
+// Both CLIs on PATH, because the skills tell the agent to run them. No event, so no readEvent.
 import { mkdirSync, symlinkSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { hookOff } from "../src/hook-switch.mjs";
+
 const root = process.argv[2];
-if (!root) process.exit(0);
+if (!root || hookOff("link-cli")) process.exit(0);
 const bin = join(homedir(), ".local", "bin");
 try {
   mkdirSync(bin, { recursive: true });

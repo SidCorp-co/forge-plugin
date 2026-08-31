@@ -402,6 +402,21 @@ configuration that looks complete and dies at the first call. All three print on
 `translate` says — the vi-natural skill translates a locale file with no tracker in sight — and only
 the tracker's own writes gate on them.
 
+## `hook-switch.mjs` — which gates run
+
+`hookNames()` is the hooks directory, read: nothing here carries a list, so a hook added later is
+switchable without anyone editing this file. Derivation alone did not make that true — an entry
+point can skip `readEvent` and keep running while `forge hooks --off` reports it off, which is what
+`link-cli` would have been — so a test asserts that every file in `hooks/` calls one of the two,
+and names the fix when it fails. `hooksOff()` reads the account config and treats
+anything that is not an array as empty, which is what makes a broken config run every gate rather
+than none. `forge hooks --off <hook>` validates against the derived names and answers with the near
+miss, so a typo cannot write a switch that silences nothing.
+
+`forge doctor` prints the off list beside the withheld verbs, and reports a name matching no hook
+file as a miss. Why the switch is read by the hook process rather than declared in `hooks.json`:
+docs/HOOKS.md.
+
 ## `resolve/` — where every setting comes from
 
 **Two scopes, and they are not the same scope.** The url and the token are the *account's*: one

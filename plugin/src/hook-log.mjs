@@ -4,6 +4,9 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { join } from "node:path";
 
 import { configDir } from "./resolve/config.mjs";
+import { didYouMean } from "./suggest.mjs";
+import { hookNames, hooksOff, setHook } from "./hook-switch.mjs";
+import { fail } from "./resolve/settings.mjs";
 import { flags } from "./resolve/flags.mjs";
 
 export const HOOK_LOG_PATH = join(configDir("forge"), "hook-log.jsonl");
@@ -59,8 +62,19 @@ const line = (one) =>
   `${one.at}  ${(one.hook ?? "?").padEnd(16)} ${(one.decision ?? "?").padEnd(5)} `
   + `${(one.tool ?? "?").padEnd(8)} ${one.target ?? ""}`;
 
+const switched = (name, off) => {
+  if (!hookNames().includes(name)) fail(didYouMean("hook", name, hookNames()));
+  const list = setHook(name, off);
+  console.log(`${name} is now ${off ? "off" : "on"}.`);
+  console.log(list.length ? `Off: ${list.join(", ")}` : "Every hook is on.");
+};
+
 export const hooks = (argv) => {
   const held = flags(argv, "hooks", ["--deny", "--block"]);
+  /* Switching answers with the new state and stops: the refusal log is a different question. */
+  if (held.off || held.on) return switched(held.off ?? held.on, Boolean(held.off));
+  const off = [...hooksOff()];
+  if (off.length) console.log(`Off: ${off.join(", ")} — \`forge hooks --on <hook>\``);
   let entries = hookEntries();
   if (held.hook) entries = entries.filter((one) => one.hook === held.hook);
   if (held.deny) entries = entries.filter((one) => one.decision === "deny");

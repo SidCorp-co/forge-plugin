@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
 import { logHook, scrubbed } from "../src/hook-log.mjs";
+import { hookOff } from "../src/hook-switch.mjs";
 
 const TOKEN = /[A-Za-z0-9_./@-]+\.[A-Za-z0-9]+/g;
 const FRESH_MS = 120_000;
@@ -16,10 +17,12 @@ let event = {};
 export function readEvent() {
   try {
     event = JSON.parse(readFileSync(0, "utf8"));
-    return event;
   } catch {
     process.exit(0);
   }
+  /* Switched off before anything is decided, in the one place every hook already calls. */
+  if (hookOff(basename(process.argv[1] ?? "", ".mjs"))) process.exit(0);
+  return event;
 }
 
 /* Refusals are the only entries: they are what a false positive looks like from outside. */

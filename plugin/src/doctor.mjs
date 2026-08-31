@@ -20,6 +20,7 @@ import { cloudflareAccounts } from "./cloudflare.mjs";
 import { modelBehind, profile } from "./codex-api.mjs";
 import { LOG_PATH, consults, logEntries } from "./codex-log.mjs";
 import { flags } from "./resolve/flags.mjs";
+import { hooksOff, strandedSwitches } from "./hook-switch.mjs";
 import { VERB_NAMES } from "./resolve/visibility.mjs";
 
 const VI_CONFIG = join(configDir("vi-natural"), "config.json");
@@ -339,6 +340,11 @@ export const doctor = async (rest) => {
 
   const chosen = userConfig().withheld ?? [];
   if (chosen.length) line(OK, "withheld verbs", `${chosen.join(", ")} — \`forge doctor --show <verb>\``);
+  const off = [...hooksOff()];
+  if (off.length) line(OK, "hooks off", `${off.join(", ")} — \`forge hooks --on <hook>\``);
+  for (const name of strandedSwitches()) {
+    line(BAD, "hooks off", `${name} is switched off and is no hook here — \`forge hooks --on ${name}\``);
+  }
   const { value: slug, from } = projectScope();
   if (slug) line(OK, "project slug", `${slug}  ← ${from}`);
   else line(BAD, "project slug", "project-scoped calls will refuse; account-level ones still work");

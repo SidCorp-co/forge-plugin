@@ -72,6 +72,35 @@ incomplete is the point. A comment directly above the literal silences it outrig
 not politeness — it is the difference between a list nobody examined and one somebody decided
 on, and the decision is the only thing a reader downstream can act on.
 
+## Every hook can be switched off, one at a time
+
+Claude Code has no per-hook toggle. `skillOverrides` in settings does not reach a plugin's skills —
+the documentation sends you to `/plugin`, which takes a whole plugin — and the only hook switch is
+`disableAllHooks`, which takes the whole arrangement. Measured against the 2.1.251 bundle: no
+`disabledSkills`, no `CLAUDE_CODE_DISABLE_HOOKS`, no per-hook field in the `hooks.json` schema.
+
+So the switch is this plugin's own. `hooksOff` in `~/.config/forge/config.json` holds hook names,
+`forge hooks --off <hook>` / `--on <hook>` writes them, and `forge doctor` prints what is off.
+
+**The hook process reads it, not the registration.** `hooks.json` is read once at session start and
+hook code on every event, so a config the hook reads is the only switch that takes effect without a
+restart — and a hook is one process per event, so there is no cache to go stale.
+
+**It fails open.** A config that will not parse, or a `hooksOff` that is a string rather than a
+list, runs every gate: the cost of a broken switch has to be a gate firing, never a gate silently
+gone. The check lives inside `readEvent`, which every hook calls before it decides anything, so no
+hook can forget it. `link-cli` reads no event and names its own switch instead — it is in the list
+because the names are derived from the directory, and a name that switched nothing would be a lie
+of exactly the shape a checker matching nothing is.
+
+A name matching no hook file is a finding, not a silence: after a rename, `hooksOff` would read as
+an arrangement someone turned off deliberately, so `forge doctor` reports it as a miss.
+
+Env switches are the session-scoped layer and both are honoured: `FORGE_CODEX_DISABLE=1` and
+`CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` stand their gates down for one session without writing
+anything. Scoping a switch to one project is not built — `hooksOff` is the account's, like the
+withheld verbs it mirrors.
+
 ## `learning-gate.mjs` — two writes, and they are not the same write
 
 A memory row is *project knowledge*. An edit to a skill's own text is a *skill learning*,
