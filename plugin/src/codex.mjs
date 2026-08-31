@@ -352,16 +352,12 @@ export const hookRecord = (event, paths) => {
     if (first) announce = rel;
   }
   return announce
-    ? `You have started changing documents in this turn (${announce}). Before you finish, consult `
-      + `codex — GPT-5 Codex, on another provider, with the log's memory of this repository.\n\n`
-      + `Run it once, at the end, over everything you changed, and pipe it your intent:\n\n`
+    ? `You have changed a document in this turn (${announce}). Before you finish, consult codex — `
+      + `GPT-5 Codex, on another provider, with the log's memory of this repository:\n\n`
       + `    echo "what I was doing and why, the plan, and the decisions I made" | forge codex consult\n\n`
-      + `The files travel with the prompt, so do not paste them. Give it the reasoning it cannot see — `
-      + `including whatever the built-in advisor already told you this turn, since its reply is `
-      + `unreadable later and codex would otherwise re-tread it. `
-      + `Weigh what comes back, act on what is right, push back on what is not — \`forge codex consult\` `
-      + `again carries this exchange forward. Report which findings you accepted, record it with `
-      + `\`forge codex verdict\`, and put anything that is the user's call through AskUserQuestion.`
+      + `Once, at the end, over everything you changed. The files travel with the prompt; the intent `
+      + `is the only thing it cannot see, including whatever the advisor said this turn. Then `
+      + `\`forge codex verdict\`. Why, and what to do with what comes back: \`forge hooks --why codex-turn\`.`
     : null;
 };
 

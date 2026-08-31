@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A second opinion that follows no first opinion is just another first opinion. docs/HOOKS.md.
+// A second opinion that follows no first opinion is just another first opinion. why/codex-order.md.
 
 import { repoRoot } from "../src/codex.mjs";
 import { lastConsultAt } from "../src/codex-log.mjs";
@@ -11,10 +11,11 @@ import {
   readEvent,
   transcript,
   unspentAdvice,
+  why,
 } from "./_hook.mjs";
 
 /* Command position, as bash-guard reads it: the data is removed, then what is left is read as
-   tokens. An allowlist of wrappers was tried first and missed four shapes. docs/HOOKS.md. */
+   tokens. An allowlist of wrappers was tried first and missed four shapes. why/codex-order.md. */
 const HEREDOC = /(^|\s)<<-?\s*(['"]?)(\w+)\2[^\n]*\n[\s\S]*?^\3$/gm;
 const QUOTED = /'[^']*'|"(?:[^"\\]|\\.)*"/g;
 const TOKENS = /[\s();&|<>"',]+/;
@@ -56,12 +57,9 @@ if (!records) process.exit(0);
 if (!unspentAdvice(records, lastConsultAt(repoRoot(ev.cwd ?? process.cwd())))) {
   deny(
     "Consult the built-in advisor before codex, not after.\n\n"
-      + "It reads this conversation and costs nothing; codex reads the files and has never seen any "
-      + "of it. Backwards, the expensive reviewer pays to rediscover what the free one would say.\n\n"
       + "Do this: call advisor(), act on it, then re-run this command with its points in the intent. "
-      + "Advice holds until a consult spends it, so a re-run needs no second call — and the record\n"
-      + "of that call lands about one round-trip later, so a re-run is what clears this, not a\n"
-      + "second advisor call.",
+      + "A re-run is what clears this, not a second advisor call."
+      + why(),
   );
 }
 
@@ -70,8 +68,7 @@ if (!unspentAdvice(records, lastConsultAt(repoRoot(ev.cwd ?? process.cwd())))) {
 if (!/advisor/i.test(String(ev.tool_input.command)) && !askedAlready(ev, "codex-intent", "codex-order")) {
   block(
     "The advisor has spoken and this intent does not mention it.\n\n"
-      + "Its reply is encrypted and unreadable once the turn moves on, so the intent is the only place "
-      + "its content survives — without it, agreement looks independent when it is duplication.\n\n"
-      + "Do this: add what it said and what you did about it, then re-run. Asked once per session.",
+      + "Do this: add what it said and what you did about it, then re-run. Asked once per session."
+      + why(),
   );
 }

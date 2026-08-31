@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Report drift between each vendored file and packages/code-quality, whose copy it is. A copy
-// nobody compares is a fork with a comment on top; docs/HOOKS.md says why the copies exist.
+// nobody compares is a fork with a comment on top; hooks/why/code-quality.md says why the copies exist.
 // Every file in vendor/ names its own upstream in its header, so vendoring one more is a copy
 // and never an edit here.
 

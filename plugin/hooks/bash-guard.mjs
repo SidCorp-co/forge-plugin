@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Refuse the shell commands whose damage cannot be undone by the agent that caused it, and the
 // one that launders a finding into a green run. Deliberately narrow, because a guard that
-// refuses too much gets disabled — docs/HOOKS.md.
+// refuses too much gets disabled — why/bash-guard.md.
 
 import { spawnSync } from "node:child_process";
 
-import { deny, readEvent } from "./_hook.mjs";
+import { deny, readEvent, why } from "./_hook.mjs";
 
 const RULES = [
   {
@@ -16,17 +16,16 @@ const RULES = [
       String.raw`(?:^|[;&|(]\s*|\b(?:npx|pnpm\s+exec|yarn\s+run|time|env)\s+)` +
         String.raw`(?:eslint|(?:npm|pnpm|yarn)\s+(?:run\s+)?lint\S*)\b[^|;&]*--fix(?:-type)?(?![\w-])`,
     ),
-    why:
-      "--fix rewrites the source until the checker stops reporting, which is the check being " +
-      "answered rather than the code being fixed. The rewrite carries no judgement about which " +
-      "findings were real, and it lands mixed into whatever else is uncommitted.",
+    cause:
+      "--fix rewrites the source until the checker stops reporting: the check is answered rather " +
+      "than the code, and no judgement is recorded about which findings were real.",
     instead:
       "Fix each finding at its source. Adopting a new formatting rule is the one case the sweep " +
-      "is the point, and that is a decision to put to the user before running it.",
+      "is the point, and that is the user's decision to make first.",
   },
   {
     pattern: /\b(pkill|killall)\b/,
-    why:
+    cause:
       "pkill and killall select by name, so they match every process whose name fits — " +
       "including the ones the user has been running since before this session.",
     instead:
@@ -36,7 +35,7 @@ const RULES = [
   {
     pattern: /\bgit\s+add\s+(-A\b|--all\b|\.(\s|$))/,
     needsDirtyTree: true,
-    why:
+    cause:
       "git add -A stages everything in the tree, including work in progress that is not yours " +
       "and probes you meant to throw away.",
     instead: "Stage the paths you changed, explicitly.",
@@ -44,7 +43,7 @@ const RULES = [
   {
     pattern: /\bgit\s+stash\b/,
     needsDirtyTree: true,
-    why:
+    cause:
       "git stash silently reverts the working tree, so everything read afterwards reports about " +
       "code that is no longer there.",
     instead:
@@ -53,14 +52,14 @@ const RULES = [
   {
     pattern: /\bgit\s+checkout\s+(--\s+\S|-{2}\s|\S+\.\w)/,
     needsDirtyTree: true,
-    why:
+    cause:
       "git checkout of a tracked path discards uncommitted work with no history to restore it from.",
     instead: "Copy the file aside first, or make the change you actually want.",
   },
   {
     pattern: /\bgit\s+reset\s+--hard\b/,
     needsDirtyTree: true,
-    why: "git reset --hard discards every uncommitted change in the tree at once.",
+    cause: "git reset --hard discards every uncommitted change in the tree at once.",
     instead: "Reset the specific paths, or commit first so the state is recoverable.",
   },
 ];
@@ -88,12 +87,8 @@ if (ev.tool_name !== "Bash") process.exit(0);
 const command = (ev.tool_input ?? {}).command ?? "";
 if (!command) process.exit(0);
 
-for (const { pattern, why, instead, needsDirtyTree } of RULES) {
+for (const { pattern, cause, instead, needsDirtyTree } of RULES) {
   if (!pattern.test(command)) continue;
   if (needsDirtyTree && !treeIsDirty(ev.cwd ?? process.cwd())) continue;
-  deny(
-    `Refused.\n\n${why}\n\nInstead: ${instead}\n\n` +
-      "If you have a reason this case is safe, say it and ask the user rather than rephrasing " +
-      "around the guard.",
-  );
+  deny(`Refused. ${cause}\n\nInstead: ${instead}${why()}`);
 }

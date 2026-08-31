@@ -85,6 +85,10 @@ export function deny(reason) {
   process.exit(0);
 }
 
+/** Where the argument for a rule lives. What a refusal prints costs context on every tool use, so
+ *  it carries the shape and the action and ends with this. The name derives from the script. */
+export const why = () => `\n\nWhy: \`forge hooks --why ${basename(process.argv[1] ?? "", ".mjs")}\``;
+
 export function block(reason) {
   record("block", reason);
   process.stdout.write(JSON.stringify({ decision: "block", reason }));
@@ -122,7 +126,7 @@ const blocksOf = (record) => {
   return Array.isArray(content) ? content.filter((one) => one && typeof one === "object") : [];
 };
 
-/** Where a heredoc body is a program rather than data. docs/HOOKS.md. */
+/** Where a heredoc body is a program rather than data. why/learning-gate.md. */
 export const EXECUTES_STDIN =
   /(?:^|[\s;&|(])(?:python3?|node|deno|bun|perl|ruby|php|sh|bash|zsh)(?:\s+-\S+)*\s*-?\s*$/u;
 
@@ -132,7 +136,7 @@ export const REDIRECT = /(?:^|[\s;&|(])\d?>>?\s*(?!&\d)("[^"]*"|'[^']*'|[^\s;&|<
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
 /** A heredoc body is data, not command: an intent that quotes `writeFileSync` is prose. The
- *  operator's line survives, and a body an interpreter executes stays. docs/HOOKS.md. */
+ *  operator's line survives, and a body an interpreter executes stays. why/learning-gate.md. */
 export const bodiless = (text) => {
   let out = "";
   let rest = text;
@@ -150,7 +154,7 @@ export const bodiless = (text) => {
   return out + rest;
 };
 
-/** The shell verbs are read in command position, a library call anywhere. docs/HOOKS.md. */
+/** The shell verbs are read in command position, a library call anywhere. why/advisor-first.md. */
 export const WRITES = new RegExp(
   String.raw`(?:^|[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+`
     + String.raw`|\b(?:sudo|command|nohup|time|env|xargs|do|then|else|if|elif|while|until)\s+)`
@@ -160,7 +164,7 @@ export const WRITES = new RegExp(
 );
 
 /** Whether a call writes a file: a target for the file tools, a verb or a redirect for the shell.
- *  A redirect under `/dev/` writes nothing. docs/HOOKS.md. */
+ *  A redirect under `/dev/` writes nothing. why/advisor-first.md. */
 export function writing(ev) {
   const ti = ev.tool_input ?? {};
   if (ev.tool_name !== "Bash") return Boolean(ti.file_path ?? ti.notebook_path);
@@ -181,7 +185,7 @@ export const adviceAt = (records) =>
     0,
   );
 
-/** Whether the advisor has spoken since the last prompt. docs/HOOKS.md. */
+/** Whether the advisor has spoken since the last prompt. why/advisor-first.md. */
 export function advisedThisTurn(records) {
   let from = -1;
   for (let at = 0; at < records.length; at += 1) {
@@ -190,7 +194,7 @@ export function advisedThisTurn(records) {
   return unspentAdvice(records.slice(from + 1));
 }
 
-/** Advice is spent by the consult that follows it, not by the user speaking. docs/HOOKS.md. */
+/** Advice is spent by the consult that follows it, not by the user speaking. why/codex-order.md. */
 export function unspentAdvice(records, spentAt = 0) {
   return records.some(
     (record) =>

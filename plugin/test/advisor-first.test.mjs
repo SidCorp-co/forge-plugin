@@ -129,6 +129,14 @@ test("the refusal says the record lands a round-trip later", () => {
   assert.match(because(out), /re-send/);
 });
 
+/* This lands in a context window on every write of every turn, so the argument for the rule is a
+   command and not a paragraph. It was 498 characters of standing prose before the split. */
+test("the refusal is short, and names where the reasoning is", () => {
+  const reason = because(gate({ file_path: "/tmp/a.mjs" }, [userTurn("go")]));
+  assert.match(reason, /forge hooks --why advisor-first/);
+  assert.ok(reason.length < 300, `${reason.length} characters printed on every refused write`);
+});
+
 test("the gate stands down when the advisor tool itself is off", () => {
   const event = {
     tool_name: "Write",

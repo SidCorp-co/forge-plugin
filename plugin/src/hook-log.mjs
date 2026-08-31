@@ -1,11 +1,11 @@
 /* What the gates actually did. Three false refusals this session were found by watching a command
    fail, not by reading anything — a refusal left no trace at all. docs/FORGE-CLI.md. */
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { configDir } from "./resolve/config.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { hookEvent, hookNames, offNow, setHook } from "./hook-switch.mjs";
+import { HOOKS_DIR, hookEvent, hookNames, offNow, setHook } from "./hook-switch.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { flags } from "./resolve/flags.mjs";
 
@@ -71,8 +71,26 @@ const switched = (name, off) => {
   console.log(down.length ? `Off: ${down.map((one) => one.name).join(", ")}` : "Every hook is on.");
 };
 
+/* One document per gate, beside the hook rather than under docs/: only `plugin/` travels into an
+   installed copy, and this is the path every refusal ends by naming. */
+const WHY_DIR = join(HOOKS_DIR, "why");
+
+const documented = () => {
+  try {
+    return readdirSync(WHY_DIR).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3));
+  } catch {
+    return [];
+  }
+};
+
+const reasoning = (name) => {
+  if (!documented().includes(name)) fail(didYouMean("hook", name, documented()));
+  console.log(readFileSync(join(WHY_DIR, `${name}.md`), "utf8").trimEnd());
+};
+
 export const hooks = (argv) => {
   const held = flags(argv, "hooks", ["--deny", "--block"]);
+  if (held.why) return reasoning(held.why);
   /* Switching answers with the new state and stops: the refusal log is a different question. */
   if (held.off || held.on) return switched(held.off ?? held.on, Boolean(held.off));
   for (const { name, event } of offNow()) {

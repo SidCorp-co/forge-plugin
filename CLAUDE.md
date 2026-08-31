@@ -7,8 +7,9 @@ session, and the skills that drive both.
 a checker is stated once — in the checker, whose message is what a developer reads when it fires.
 Nothing here names a path or a script that does not resolve; `forge doctor` checks that. Install,
 configuration, layout and which level a rule belongs to: [`README.md`](README.md). The CLI's
-surface: [`docs/FORGE-CLI.md`](docs/FORGE-CLI.md). What each hook fires on:
-[`docs/HOOKS.md`](docs/HOOKS.md).
+surface: [`docs/FORGE-CLI.md`](docs/FORGE-CLI.md). What the hooks share:
+[`docs/HOOKS.md`](docs/HOOKS.md). Why one of them refuses what it refuses: `forge hooks --why
+<hook>`, which is where a refusal's own reasoning lives rather than in the refusal.
 
 ## An entry point is not a library
 

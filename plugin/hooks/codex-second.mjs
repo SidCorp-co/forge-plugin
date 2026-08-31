@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The advisor has spoken and there is work in the tree: the second opinion happens before the next
-// write, not at some end the turn may never reach. docs/HOOKS.md.
+// write, not at some end the turn may never reach. why/codex-second.md.
 
 import { spawnSync } from "node:child_process";
 import { statSync } from "node:fs";
@@ -16,6 +16,7 @@ import {
   readEvent,
   transcript,
   unspentAdvice,
+  why,
   writing,
 } from "./_hook.mjs";
 
@@ -57,7 +58,7 @@ if (!unspentAdvice(records, spentAt)) process.exit(0);
 
 /* One decision per advisor call, not per write: deciding again mid-build would refuse the second
    write of a turn and send codex a fragment. So a stand-down is remembered, a refusal is not, and
-   the next advisor call re-arms the whole question. docs/HOOKS.md. */
+   the next advisor call re-arms the whole question. why/codex-second.md. */
 const key = `advice-${adviceAt(records)}`;
 if (askedAlready(ev, key, "codex-second", { set: false })) process.exit(0);
 
@@ -69,9 +70,8 @@ if (changed === 0 || changed <= spentAt) {
 
 deny(
   "The advisor has spoken; codex has not read what is in the tree.\n\n"
-    + "Nothing else makes this happen — the reminder at the end of a turn is context an agent can "
-    + "ignore, and it was. So the second opinion lands here, where the first one already did.\n\n"
     + "Do this: `echo \"<what you were doing, and what the advisor said>\" | forge codex consult "
-    + "--diff --only blocker,major`, weigh what comes back, then re-send. One consult clears this "
-    + "for the rest of the turn; `FORGE_CODEX_DISABLE=1` clears it for the session.",
+    + "--diff --only blocker,major`, weigh what comes back, then re-send. One consult clears the "
+    + "rest of the turn; `FORGE_CODEX_DISABLE=1` the session."
+    + why(),
 );

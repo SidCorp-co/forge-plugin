@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Stop once between deciding to record something and recording it. A memory row is project
-// knowledge; a skill edit develops the method. docs/HOOKS.md explains why the two must not merge.
+// knowledge; a skill edit develops the method. why/learning-gate.md says why the two must not merge.
 
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
@@ -9,18 +9,11 @@ import { fileURLToPath } from "node:url";
 import { REDIRECT, WRITES, askedAlready, bodiless, deny, readEvent } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
 
-const FORGE_SOURCES = {
-  note: "episodic — why THIS issue happened, what one debugging run cost",
-  knowledge: "how this codebase actually works, traced and verified",
-  decision: "a choice among alternatives, with the reason it was chosen",
-  policy: "a rule that binds future work",
-};
+const FORGE_SOURCES = ["note", "knowledge", "decision", "policy"];
 const GUARDED = /\/memory\/|\/skills\//;
-// Naming one of those files is not touching it: reading a skill must stay free, so a write shape
-// is asked about only as its own token — unanchored, `-i` matched inside `erp-issue-workflow.md`
-// and `>` a commit trailer's `<noreply@anthropic.com>`.
-// `M=…/memory` then `cat > $M/x.md` named no guarded directory in any single token and walked
-// past this gate. An assignment and a `cd` resolve here; `$(…)` and `eval` cannot.
+// A write shape counts only as its own token, and `M=…/memory` then a redirect to `$M/x.md` named
+// no guarded directory in any single token — so an assignment and a `cd` resolve here, and `$(…)`
+// and `eval` cannot. The false positives that set both rules: why/learning-gate.md.
 const ASSIGN = /(?:^|[;&|\n]|\bexport\s+)\s*([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|]*)/gu;
 const CHDIR = /(?:^|[;&|\n])\s*(?:cd|pushd)\s+("[^"]*"|'[^']*'|[^\s;&|]+)/gu;
 const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
@@ -39,23 +32,10 @@ const chdir = (text) => {
   return target;
 };
 
-const SKILL_CATEGORIES = {
-  trap: "the environment or a tool behaved unexpectedly -> prefer a check in the plugin",
-  method: "a phase produced the wrong outcome, or had no branch for what happened",
-  invariant: "holds in EVERY project, not just this one -> a rule, and only if it outranks a phase",
-  discovery: "Phase 0 should have established this and did not",
-  boundary: "the skill asserted what a project decides -> DELETE it, say what replaced it",
-};
-const FILE_TYPES = {
-  user: "who the user is — role, expertise, standing preferences",
-  feedback: "guidance on how to work, with the why",
-  project: "ongoing work, goals, constraints not derivable from the code",
-  reference: "a pointer to something external — URL, dashboard, ticket",
-};
+const SKILL_CATEGORIES = ["trap", "method", "invariant", "discovery", "boundary"];
+const FILE_TYPES = ["user", "feedback", "project", "reference"];
 
-/* The test, the categories and the destinations are one document already, and a refusal that
-   reprints them spends the same 300 tokens on every edit — eight times in one session, measured.
-   So the message points at the document and the pointer goes out once. */
+/* The test and the categories are one document already: a refusal points at it, once a session. */
 const LEARNING_REF = join(
   dirname(fileURLToPath(import.meta.url)), "..", "skills", "issue-flow", "references", "learning.md",
 );
@@ -73,12 +53,7 @@ const BRIEF =
 
 const SHAPE =
   "One file, one fact: `name`, a `description` saying when it applies, `metadata.type` "
-  + `(${Object.keys(FILE_TYPES).join("|")}), one pointer line in MEMORY.md.`;
-
-const catalogue = (entries) =>
-  Object.entries(entries)
-    .map(([k, v]) => `  ${k.padEnd(10)} ${v}`)
-    .join("\n");
+  + `(${FILE_TYPES.join("|")}), one pointer line in MEMORY.md.`;
 
 /** Walk up to the directory holding SKILL.md, or null if this is not a skill file. */
 function skillRoot(path) {
@@ -138,14 +113,13 @@ const ti = ev.tool_input ?? {};
 
 if (tool.endsWith("forge_memory_write") || tool.endsWith("forge_memory.write")) {
   const src = ti.source ?? "";
-  if (!(src in FORGE_SOURCES)) process.exit(0); // issue/comment/job are system-authored
+  if (!FORGE_SOURCES.includes(src)) process.exit(0); // issue/comment/job are system-authored
   const md = ti.metadata;
   if (md && typeof md === "object" && md.checked) process.exit(0);
   deny(
-    `Hold — you are about to write project memory as \`${src}\`.\n\n${BRIEF}\n\n` +
-      `If it survives, put it in the right category rather than all of it in one:\n${catalogue(FORGE_SOURCES)}\n\n` +
-      "Re-send with metadata.checked set to the category you chose, and say in one line which of " +
-      `the four conditions made it worth keeping.${pointer(ev)}`,
+    `Hold — project memory, written as \`${src}\`.\n\n${BRIEF}\n\n` +
+      `Re-send with metadata.checked set to the category it belongs in (${FORGE_SOURCES.join(" | ")}), ` +
+      `and say in one line which of the four conditions made it worth keeping.${pointer(ev)}`,
   );
 }
 
@@ -171,8 +145,8 @@ if (tool === "Bash") {
         `Hold — \`${resolved}\` is ${memory ? "a memory file" : "a skill's own text"}, written `
           + `through the shell.\n\n${BRIEF}\n\n`
           + (memory
-            ? `Do this: if all four hold, write it with Write and declare \`type:\` — ${Object.keys(FILE_TYPES).join(" | ")}. Otherwise write nothing.`
-            : `Do this: if all four hold, use Edit and name the kind — ${Object.keys(SKILL_CATEGORIES).join(" | ")}. Otherwise change nothing.`),
+            ? `Do this: if all four hold, write it with Write and declare \`type:\` — ${FILE_TYPES.join(" | ")}. Otherwise write nothing.`
+            : `Do this: if all four hold, use Edit and name the kind — ${SKILL_CATEGORIES.join(" | ")}. Otherwise change nothing.`),
       );
     }
   }
@@ -226,7 +200,7 @@ if (path.includes("/skills/") && /\/(SKILL\.md|references\/[^/]+\.md)$/.test(pat
     `Hold — \`${basename(path)}\` is a skill's own text: it develops the method, so it must not be ` +
       `a note about this one repository.\n\n${BRIEF}\n\n` +
       "Do this: change nothing unless the test holds. If it does, re-send and answer three things " +
-      `in your reply — which category (${Object.keys(SKILL_CATEGORIES).join(" | ")}), whether a ` +
+      `in your reply — which category (${SKILL_CATEGORIES.join(" | ")}), whether a ` +
       "check in the plugin could enforce it instead, and what it displaces." +
       pointer(ev),
   );

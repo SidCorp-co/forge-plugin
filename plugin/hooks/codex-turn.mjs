@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Record what a turn changed and ask once for a second model to read it. docs/HOOKS.md.
+// Record what a turn changed and ask once for a second model to read it. why/codex-turn.md.
 
 import { hookRecord } from "../src/codex.mjs";
 import { readEvent, touched } from "./_hook.mjs";
