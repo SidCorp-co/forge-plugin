@@ -94,11 +94,11 @@ plugin/
     code-quality.mjs      PostToolUse: every written code file, to the project's own linter
     derive-dont-list.mjs  PostToolUse: one nudge when a checker hard-codes its cases
     link-cli.mjs          SessionStart: both binaries onto PATH
-    vendor/               upstream files, copied — see below
+    vendor/               copies of packages/code-quality — see below
   scripts/
     skill-dup.mjs         text stated twice — a skill's prose, or a tree's comments
     migration-risk.mjs    a migration classified by whether deploying it can be undone
-    check-vendor.mjs      drift between vendor/ and the upstream it came from
+    check-vendor.mjs      drift between vendor/ and packages/code-quality
   vi-natural/             the vi-natural CLI
     cli.mjs               argv, usage, dispatch
     vi-text.mjs           the Vietnamese style contract — the only file holding prose
@@ -126,5 +126,7 @@ binary and config. The project's copy in `node_modules` is preferred; `hooks/ven
 fallback for a project that never installed it. A project with no eslint is silent either way.
 
 The vendored copy is a copy on purpose: that script is built to travel alone into a plugin cache,
-and its own header says so. `scripts/check-vendor.mjs` compares it against upstream when upstream
-is on this machine, and says which commit it was pinned at when it is not.
+and its own header says so. Its source is `packages/code-quality/`, this repository's own package
+rather than somebody else's release, so `scripts/check-vendor.mjs` compares the two on every
+`npm run check` — code rather than commit id — and a source that is not there fails as a broken
+tree, not as an absent checkout. `npm run check` runs that package's own lint and tests too.

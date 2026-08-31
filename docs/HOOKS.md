@@ -37,10 +37,11 @@ The gap that justifies a wrapper is routes, not rules: the shipped hook's matche
 `Edit|Write|MultiEdit|NotebookEdit`, so the shell route was unwatched.
 
 The vendored copy is a copy on purpose — that script is built to travel alone into a plugin
-cache, and its own header says so. `plugin/scripts/check-vendor.mjs` compares it against
-upstream when upstream is on this machine, and reports which commit it is pinned at when it
-is not. It compares code rather than commit ids: upstream moving without touching that file
-is not drift.
+cache, and its own header says so. Its source is `packages/code-quality/`, a package of this
+repository, so `plugin/scripts/check-vendor.mjs` compares the two on every check rather than
+only when a checkout happens to be present, and a source that has gone missing fails. It
+compares code rather than commit ids: the package moving without touching that file is not
+drift.
 
 `hooks/vendor/text-overlap.js` is here for the same reason and read by a different caller:
 `plugin/scripts/skill-dup.mjs`, so the duplicate-text measurement the `no-duplicate-comment`
