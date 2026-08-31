@@ -6,7 +6,7 @@
 
 import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 
 const DESTRUCTIVE = [
   [/\bDROP\s+COLUMN\b/i, "drops a column — its values are not recoverable"],
@@ -27,7 +27,7 @@ const TIGHTENING = [
 // DROP INDEX and DROP CONSTRAINT are absent on purpose: rebuilt from the schema, so no data is
 // at stake.
 
-const RANK = { additive: 0, tightening: 1, destructive: 2, unreadable: 2 };
+const RANK = { additive: 0, tightening: 1, destructive: 2, unreadable: 2, unreversible: 2 };
 
 function classify(path) {
   let sql;
@@ -48,13 +48,41 @@ function classify(path) {
   return ["additive", []];
 }
 
+// A `.down.sql` is never classified: undoing what the up added is its whole job, so it reads
+// destructive by construction and says nothing about the deploy.
+const isDown = (name) => name.endsWith(".down.sql");
+
 function walkSql(dir, out = []) {
   for (const name of readdirSync(dir).sort()) {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) walkSql(path, out);
-    else if (name.endsWith(".sql")) out.push(path);
+    else if (name.endsWith(".sql") && !isDown(name)) out.push(path);
   }
   return out;
+}
+
+// Only where the project evidently pairs them: a repo that keeps no down files at all has a
+// convention, not 35 findings. Self-calibrating, so this stays a plugin script and not a policy.
+function missingDowns(files) {
+  const dirs = new Set(files.map((path) => dirname(path)));
+  const paired = new Set();
+  const uses = new Set();
+  for (const dir of dirs) {
+    // An unreadable directory is already reported as unreadable by classify; crashing here would
+    // lose that finding and every other file's with it.
+    let names = [];
+    try {
+      names = readdirSync(dir);
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      if (!isDown(name)) continue;
+      uses.add(dir);
+      paired.add(join(dir, name.replace(/\.down\.sql$/u, ".sql")));
+    }
+  }
+  return files.filter((path) => uses.has(dirname(path)) && !paired.has(path));
 }
 
 function since(ref, directory) {
@@ -73,10 +101,14 @@ function since(ref, directory) {
 
 const USAGE = `Classify migrations by whether deploying them can be undone.
 
-  migration-risk.mjs <file.sql>...          classify each
+  migration-risk.mjs <file.sql|DIR>...      classify each, walking a directory
   migration-risk.mjs --since <git-ref> DIR  classify only what that ref does not have
 
-Exit 0 additive only, 1 something tightening, 2 something destructive.`;
+A \`.down.sql\` is skipped: undoing the up is its job, so it reads destructive by construction.
+Where a directory holds down files at all, an up migration without one is reported — there is no
+way back from that at all, whatever its SQL says.
+
+Exit 0 additive only, 1 something tightening, 2 something destructive or unreversible.`;
 
 function main(argv) {
   let ref = null;
@@ -93,17 +125,30 @@ function main(argv) {
     return 2;
   }
 
-  const files = ref ? since(ref, paths[0]) : paths;
+  const files = ref
+    ? since(ref, paths[0])
+    : paths.flatMap((path) => {
+        try {
+          return statSync(path).isDirectory() ? walkSql(path) : [path];
+        } catch {
+          return [path];
+        }
+      });
   if (files.length === 0) {
     process.stdout.write("no migrations to classify\n");
     return 0;
   }
 
+  // One verdict per file: having no down migration outranks whatever the SQL does, because it is
+  // the same finding at full strength — there is nothing to run either way.
+  const orphans = new Set(missingDowns(files));
   let worst = 0;
   for (const path of files) {
-    const [verdict, why] = classify(path);
+    const [sqlVerdict, why] = classify(path);
+    const verdict = orphans.has(path) ? "unreversible" : sqlVerdict;
     worst = Math.max(worst, RANK[verdict]);
     process.stdout.write(`${verdict.padEnd(12)} ${path}\n`);
+    if (orphans.has(path)) process.stdout.write("             no paired .down.sql — nothing to run\n");
     for (const line of why) process.stdout.write(`             ${line}\n`);
   }
 
