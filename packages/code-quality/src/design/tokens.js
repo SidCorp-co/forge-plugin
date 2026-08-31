@@ -1,23 +1,22 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { DEFAULT_IGNORED_DIRECTORIES, walkDirectories } from "../walk.js";
+import { DEFAULT_IGNORED_DIRECTORIES, DEFAULT_MARKUP_EXTENSIONS, walkDirectories } from "../walk.js";
 
 /**
  * The vocabulary the design-system rules share: what counts as a colour, which
  * declarations take one, and how a token file is read back into values.
  */
 
-// `transparent` and `currentColor` carry no colour of their own; every other CSS
-// colour name resolves to a fixed sRGB value and forks the token layer.
+// Accepted by every property whatever its type, so no namespace declares them; `transparent` and
+// `currentColor` add the two that carry no colour, and every other name forks the token layer.
+export const CSS_WIDE_KEYWORDS = ["inherit", "initial", "revert", "unset"];
+
 export const NEUTRAL_COLOR_KEYWORDS = [
+  ...CSS_WIDE_KEYWORDS,
   "currentcolor",
-  "inherit",
-  "initial",
   "none",
-  "revert",
   "transparent",
-  "unset",
 ];
 
 export const NAMED_COLORS = [
@@ -66,7 +65,6 @@ export const COLOR_PROPERTIES = [
 ];
 
 export const DEFAULT_STYLESHEET_EXTENSIONS = [".css", ".scss", ".sass", ".less"];
-export const DEFAULT_MARKUP_EXTENSIONS = [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"];
 
 // A `#` after a word character or a slash opens a URL fragment, not a colour:
 // `/docs#abcdef` and `?q=1#face` are hex-shaped and mean nothing of the sort.
@@ -219,10 +217,7 @@ export function matchesFile(filename, patterns = []) {
   });
 }
 
-/**
- * An allow entry permits one literal, optionally in one file, and must say why
- * no token fits. The reason is required by every schema that takes one.
- */
+/** One entry permits one literal, optionally in one file — the shape is `ALLOW_ENTRY_SCHEMA`. */
 export function isAllowedValue(allow, filename, value) {
   // A colour function is matched by its whole call, and the spacing inside one is
   // a formatter's decision, so neither side is compared on it.

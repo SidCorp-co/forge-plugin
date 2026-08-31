@@ -1,7 +1,8 @@
 import path from "node:path";
+import { DEFAULT_MARKUP_EXTENSIONS } from "../walk.js";
 import { withImportedSources } from "./stylesheets.js";
 import {
-  DEFAULT_MARKUP_EXTENSIONS,
+  CSS_WIDE_KEYWORDS,
   lineOf,
   readSourceFiles,
   readTokenSources,
@@ -150,17 +151,14 @@ export const DEFAULT_UTILITY_KEYWORDS = [
   .join(",")
   .split(",");
 
-/** Suffixes every namespace takes: the CSS-wide keywords plus Tailwind's colour words. */
+/** Suffixes every namespace takes: the CSS-wide keywords plus Tailwind's own words. */
 export const DEFAULT_VALUE_KEYWORDS = [
+  ...CSS_WIDE_KEYWORDS,
   "auto",
   "current",
   "full",
-  "inherit",
-  "initial",
   "none",
-  "revert",
   "transparent",
-  "unset",
 ];
 
 const NUMERIC = /^-?\d[\d.]*$/;

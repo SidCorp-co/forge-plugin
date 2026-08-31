@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-// Deliberately duplicates SOURCE_EXTENSIONS from src/folder-size.js. Claude Code installs
+// Deliberately duplicates SOURCE_EXTENSIONS from src/walk.js. Claude Code installs
 // claude-plugin/ alone into a versioned cache directory, so nothing here can import from the
 // package at runtime; test/cli/plugin-isolation.test.js pins the copies together instead.
 const supportedExtensions = new Set([

@@ -15,6 +15,23 @@ export const DEFAULT_IGNORED_DIRECTORIES = new Set([
   "worktrees",
 ]);
 
+export const SOURCE_EXTENSIONS = new Set([
+  ".cjs",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".mts",
+  ".ts",
+  ".tsx",
+]);
+
+// The markup half of the family above. `.cts`/`.mts` pin a module format, which is what a build
+// or tooling file does; a screen is not written in one, so scanning one buys a read and no finding.
+export const DEFAULT_MARKUP_EXTENSIONS = [...SOURCE_EXTENSIONS].filter(
+  (extension) => extension !== ".cts" && extension !== ".mts",
+);
+
 /**
  * One traversal, three answers — a per-directory count, the files, the package roots — because
  * written out per call site the ignore list lives in three places and agrees in none. A symlink

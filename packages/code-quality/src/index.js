@@ -36,7 +36,6 @@ export { DEFAULT_PRIMITIVES, primitiveExports } from "./design/no-raw-elements.j
 export {
   COLOR_PROPERTIES,
   contrastRatio,
-  DEFAULT_MARKUP_EXTENSIONS,
   DEFAULT_STYLESHEET_EXTENSIONS,
   findRawColors,
   NAMED_COLORS,
@@ -56,12 +55,13 @@ export {
   RULE_DIRECTIVES,
 } from "./directives.js";
 export { DESIGN_SYSTEM, findInlineWarningGaps } from "./inline-warning.js";
+export { DEFAULT_MAX_FILES_PER_DIRECTORY, findCrowdedDirectories } from "./folder-size.js";
 export {
-  DEFAULT_MAX_FILES_PER_DIRECTORY,
-  findCrowdedDirectories,
+  DEFAULT_IGNORED_DIRECTORIES,
+  DEFAULT_MARKUP_EXTENSIONS,
   SOURCE_EXTENSIONS,
-} from "./folder-size.js";
-export { DEFAULT_IGNORED_DIRECTORIES, walkDirectories } from "./walk.js";
+  walkDirectories,
+} from "./walk.js";
 export { HANDOFF_PATTERNS, NARRATION_PATTERNS } from "./no-historical-narration.js";
 export {
   contentWords,

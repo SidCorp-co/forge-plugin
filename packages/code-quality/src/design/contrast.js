@@ -1,8 +1,8 @@
 import path from "node:path";
+import { DEFAULT_MARKUP_EXTENSIONS } from "../walk.js";
 import { withImportedSources } from "./stylesheets.js";
 import {
   contrastRatio,
-  DEFAULT_MARKUP_EXTENSIONS,
   isTranslucentHex,
   parseHexColor,
   readSourceFiles,

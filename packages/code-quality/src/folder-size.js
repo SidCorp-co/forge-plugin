@@ -1,19 +1,8 @@
 import path from "node:path";
 
-import { DEFAULT_IGNORED_DIRECTORIES, walkDirectories } from "./walk.js";
+import { DEFAULT_IGNORED_DIRECTORIES, SOURCE_EXTENSIONS, walkDirectories } from "./walk.js";
 
 export const DEFAULT_MAX_FILES_PER_DIRECTORY = 10;
-
-export const SOURCE_EXTENSIONS = new Set([
-  ".cjs",
-  ".cts",
-  ".js",
-  ".jsx",
-  ".mjs",
-  ".mts",
-  ".ts",
-  ".tsx",
-]);
 
 /**
  * Counts source files directly inside each directory, never recursively: a
