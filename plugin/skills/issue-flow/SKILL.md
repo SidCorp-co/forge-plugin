@@ -59,18 +59,17 @@ Stop for exactly these:
 1. **A destructive migration.** `scripts/migration-risk.mjs` classifies it: re-adding a
    dropped column restores the schema and not the values, so no automatic rollback exists.
    Say what is lost, and ask.
-2. **A choice whose readings produce different code and whose wrong branch is expensive to
-   undo.** Where one reading is cheap to reverse, take it and record the assumption.
+2. **An ambiguity of the kind Rule 3 admits**, and only that kind.
 3. **A failure with no way back**: a deploy that will not roll back, a gate still red after
    the fix, an integration path that changed underneath you.
 
 Everything else proceeds unasked — plan, comments, evidence, branch, commits, push, deploy,
 status, release note.
 
-With one park, which Phase 5 states and this section only explains: **a screen is
+With one exception, which Phase 5 states and this section only explains: **a screen is
 different.** The deploy rolls back easily enough; the people who already worked against the
-wrong screen do not get to un-see it. So that one waits for a human eye — a park in Phase 2's
-sense, not a fourth stop. The run carries on with the next issue.
+wrong screen do not get to un-see it. That is a park in Phase 2's sense rather than a fourth
+stop — the run carries on.
 
 Two obligations replace the gate that used to sit before them:
 
@@ -104,20 +103,18 @@ Then decide what the issue *is*, which has three outcomes:
 
 **Batching.** Issues sharing a module, unblocked, needing the same build and smoke run may
 share a branch; say which and why. Each still gets its own plan, criteria and QA report
-naming its batchmates, and
-commits stay independently removable — a member failing Phase 5 is dropped and parked, the
-shared gates re-run, the rest continue.
+naming its batchmates, and commits stay independently removable — a member failing Phase 5
+is dropped and parked, the shared gates re-run, the rest continue.
 
 ## Phase 2 — Decide; clarify only under condition 2
 
-The default is to decide and record the assumption. Ask only when the wrong branch is
-expensive to undo, and then the issue parks. `references/clarify-plan.md`.
+The default is to decide and record the assumption; asking is condition 2, and it parks the
+issue. `references/clarify-plan.md`.
 
 ## Phase 3 — Plan and acceptance criteria, in the issue's own fields
 
-Both land in fields of the issue, one each. Phase 5 is judged against the criteria field, so
-leaving it empty is what makes Phase 5 unfalsifiable. Never a local file: invisible to
-whoever reads the tracker, stale the moment the branch merges. `references/clarify-plan.md`.
+Both land in fields of the issue, one each — never a local file: invisible to whoever reads
+the tracker, stale the moment the branch merges. `references/clarify-plan.md`.
 
 ## Phase 4 — Implement
 

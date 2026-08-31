@@ -66,9 +66,9 @@ code), its knowledge store (ask it before a broad file search), and its project 
 Ask the tracker whether it holds settings, preview URLs or credentials before searching the
 repository for them.
 
-**4. The code, which is the tiebreaker for mechanics.** A container entrypoint says whether
-merging a migration changes the deployed schema; a stack script says which variables it
-overrides.
+**4. The code, which is the tiebreaker for mechanics.** A container entrypoint and a stack
+script each settle a question that prose about them gets wrong — what runs at boot, and what
+the wrapper overrides on the way in.
 
 **Code decides what the system currently does. It does not decide what it should do** — an
 approved specification, a tracker decision or a product rule does. In an issue workflow the
