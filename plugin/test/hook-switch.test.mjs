@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
+import { hookEvents } from "../src/hook-switch.mjs";
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const HOOK = join(HERE, "..", "hooks", "bash-guard.mjs");
 const CLI = join(HERE, "..", "src", "cli.mjs");
@@ -24,21 +26,23 @@ const room = (config) => {
   return home;
 };
 
-const refused = (home) => {
+const refused = (home, extra = {}) => {
   const run = spawnSync(process.execPath, [HOOK], {
     input: JSON.stringify({ session_id: randomUUID(), tool_name: "Bash", tool_input: { command: STAGES_EVERYTHING } }),
     encoding: "utf8",
-    env: { ...process.env, XDG_CONFIG_HOME: home },
+    env: { ...process.env, XDG_CONFIG_HOME: home, ...extra },
   });
   assert.equal(run.status, 0, run.stderr);
   return Boolean(run.stdout.trim());
 };
 
-const forge = (home, ...argv) =>
+const forgeIn = (home, extra, ...argv) =>
   spawnSync(process.execPath, [CLI, ...argv], {
     encoding: "utf8",
-    env: { ...process.env, XDG_CONFIG_HOME: home },
+    env: { ...process.env, XDG_CONFIG_HOME: home, ...extra },
   });
+
+const forge = (home, ...argv) => forgeIn(home, {}, ...argv);
 
 test("a hook named in hooksOff does not fire, and one not named does", () => {
   assert.equal(refused(room('{"hooksOff":["bash-guard"]}')), false);
@@ -55,7 +59,8 @@ test("a config that will not parse runs every gate", () => {
 test("the CLI writes the switch and answers with the new state", () => {
   const home = room("{}");
   const off = forge(home, "hooks", "--off", "bash-guard");
-  assert.match(off.stdout, /bash-guard is now off/);
+  assert.match(off.stdout, /bash-guard \(PreToolUse\) is now off/, "the answer names the hook type");
+  assert.match(off.stdout, /FORGE_HOOK_BASH_GUARD=off/, "and the variable that does it for one session");
   assert.equal(refused(home), false, "the hook process reads what the CLI wrote");
   const on = forge(home, "hooks", "--on", "bash-guard");
   assert.match(on.stdout, /Every hook is on/);
@@ -87,4 +92,39 @@ test("every hook honours the switch, not only the ones that read an event", () =
     "each of these is listed by `forge hooks --off` and would keep running: call readEvent(), or "
       + "name its own switch with hookOff(<name>) the way link-cli does",
   );
+});
+
+/* The variable is the codex switches' shape, and it is the layer a session has: a config write
+   outlives the reason for it, and `unset` is the only undo nobody has to remember a path for. */
+test("a variable stands one hook down, and brings one back that the config holds off", () => {
+  assert.equal(refused(room("{}"), { FORGE_HOOK_BASH_GUARD: "off" }), false);
+  assert.equal(refused(room("{}"), { FORGE_HOOK_BASH_GUARD: "0" }), false, "0 and false spell it too");
+  assert.equal(refused(room("{}"), { FORGE_HOOK_CODEX_SECOND: "off" }), true, "one name, one hook");
+  const held = '{"hooksOff":["bash-guard"]}';
+  assert.equal(refused(room(held)), false);
+  assert.equal(refused(room(held), { FORGE_HOOK_BASH_GUARD: "on" }), true, "the variable wins");
+});
+
+test("a value neither set spells runs the gate", () => {
+  assert.equal(refused(room("{}"), { FORGE_HOOK_BASH_GUARD: "maybe" }), true);
+  assert.equal(refused(room("{}"), { FORGE_HOOK_BASH_GUARD: "" }), true, "empty is not off");
+});
+
+/* One name switches one hook type only while that stays true. A script on two events would be stood
+   down on both by a name that mentions neither, so the day one appears the key needs the pair. */
+test("each hook is registered on exactly one event", () => {
+  const many = Object.entries(hookEvents()).filter(([, events]) => events.length !== 1);
+  assert.deepEqual(
+    many,
+    [],
+    "`forge hooks --off <name>` switches every event of a script: give the key a `name:Event` form, "
+      + "or register this script once",
+  );
+});
+
+test("doctor names the event it stood down and how to bring it back", () => {
+  const out = forge(room('{"hooksOff":["codex-turn"]}'), "doctor").stdout;
+  assert.match(out, /hooks off\s+codex-turn \(PostToolUse\) — `forge hooks --on codex-turn`/);
+  const byEnv = forgeIn(room("{}"), { FORGE_HOOK_CODEX_TURN: "off" }, "doctor").stdout;
+  assert.match(byEnv, /hooks off\s+codex-turn \(PostToolUse\) — `unset FORGE_HOOK_CODEX_TURN`/);
 });

@@ -408,13 +408,19 @@ the tracker's own writes gate on them.
 switchable without anyone editing this file. Derivation alone did not make that true — an entry
 point can skip `readEvent` and keep running while `forge hooks --off` reports it off, which is what
 `link-cli` would have been — so a test asserts that every file in `hooks/` calls one of the two,
-and names the fix when it fails. `hooksOff()` reads the account config and treats
-anything that is not an array as empty, which is what makes a broken config run every gate rather
-than none. `forge hooks --off <hook>` validates against the derived names and answers with the near
-miss, so a typo cannot write a switch that silences nothing.
+and names the fix when it fails. `hookOff(name)` asks two layers: `FORGE_HOOK_<NAME>` for this session, `hooksOff()` in the account
+config for every session. The variable wins and spells both directions, so a session can bring back
+a gate the config holds off; a value neither set recognises, and anything that is not an array in
+the config, runs every gate — that is what makes a broken switch cost a gate firing rather than a
+gate silently gone. `forge hooks --off <hook>` validates against the derived names and answers with
+the near miss, so a typo cannot write a switch that silences nothing.
 
-`forge doctor` prints the off list beside the withheld verbs, and reports a name matching no hook
-file as a miss. Why the switch is read by the hook process rather than declared in `hooks.json`:
+`hookEvents()` parses `hooks.json` into name → events, which is how a name becomes a *type*: the
+switch answers name the event they turned off, and a test fails on a script registered on two, whose
+name would take both. `offNow()` is what is down right now and which layer put it there — a variable
+leaves no trace in the config a report would otherwise read. `forge doctor` prints one line per gate
+that is down, each with its event and the undo for its own layer, and reports a name matching no
+hook file as a miss. Why the switch is read by the hook process rather than declared in `hooks.json`:
 docs/HOOKS.md.
 
 ## `resolve/` — where every setting comes from
