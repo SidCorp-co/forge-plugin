@@ -1,6 +1,7 @@
 /* `forge doctor` — every finding at once, because "not configured" and "configured in the wrong
    file" look identical from inside one failing command. docs/FORGE-CLI.md. */
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "./resolve/config.mjs";
@@ -20,7 +21,7 @@ import { cloudflareAccounts } from "./cloudflare.mjs";
 import { modelBehind, profile } from "./codex-api.mjs";
 import { LOG_PATH, consults, logEntries } from "./codex-log.mjs";
 import { flags } from "./resolve/flags.mjs";
-import { offNow, strandedSwitches } from "./hook-switch.mjs";
+import { HOOKS_DIR, hookEvent, hookNames, offNow, strandedSwitches } from "./hook-switch.mjs";
 import { VERB_NAMES } from "./resolve/visibility.mjs";
 
 const VI_CONFIG = join(configDir("vi-natural"), "config.json");
@@ -39,6 +40,25 @@ const masked = (token, full) => {
   const bare = token.replace(/^Bearer /u, "");
   if (!full) return `set (${bare.length} chars)`;
   return bare.length <= 12 ? "set" : `${bare.slice(0, 6)}…${bare.slice(-4)} (${bare.length} chars)`;
+};
+
+/* A gate a switch of its own holds down, read from the gates: printing one undo while another
+   switch still holds a hook is worse than printing nothing, and each of these is its own decision
+   rather than a second answer to `hooksOff`. */
+const envHeld = () => {
+  const found = {};
+  for (const name of hookNames()) {
+    let source = "";
+    try {
+      source = readFileSync(join(HOOKS_DIR, `${name}.mjs`), "utf8");
+    } catch {
+      continue;
+    }
+    for (const [, variable] of source.matchAll(/process\.env\.([A-Z_]+)\s*===\s*"1"/gu)) {
+      if (process.env[variable] === "1") (found[variable] ??= []).push(`${name} (${hookEvent(name)})`);
+    }
+  }
+  return found;
 };
 
 const viSetting = (field, envNames) => {
@@ -342,6 +362,9 @@ export const doctor = async (rest) => {
   if (chosen.length) line(OK, "withheld verbs", `${chosen.join(", ")} — \`forge doctor --show <verb>\``);
   for (const { name, event } of offNow()) {
     line(OK, "hooks off", `${name} (${event}) — \`forge hooks --on ${name}\``);
+  }
+  for (const [variable, names] of Object.entries(envHeld())) {
+    line(OK, "hooks off", `${names.join(", ")} — \`unset ${variable}\``);
   }
   for (const name of strandedSwitches()) {
     line(BAD, "hooks off", `${name} is switched off and is no hook here — \`forge hooks --on ${name}\``);

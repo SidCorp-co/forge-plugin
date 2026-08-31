@@ -410,15 +410,15 @@ point can skip `readEvent` and keep running while `forge hooks --off` reports it
 `link-cli` would have been — so a test asserts that every file in `hooks/` calls one of the two,
 and names the fix when it fails. `hookOff(name)` asks one place, the account config, and treats anything that is not an array as
 empty — which is what makes a broken config run every gate rather than none. Nothing in the
-environment reaches it, and a test says so: a second layer is a precedence rule plus a report that
-has to name which layer holds a gate. `forge hooks --off <hook>` validates against the derived names and answers with
+environment reaches it, and a test asserts that against the module's own source: a second layer is a
+precedence rule plus a report that has to name which layer holds a gate. `forge hooks --off <hook>` validates against the derived names and answers with
 the near miss, so a typo cannot write a switch that silences nothing.
 
 `hookEvents()` parses `hooks.json` into name → events, which is how a name becomes a *type*: the
 switch answers name the event they turned off, and a test fails on a script registered on two, whose
 name would take both. `offNow()` is what is down right now, each with its event. `forge doctor` prints one line per gate
-that is down with the command that brings it back, and reports a name matching no hook file as a
-miss. Why the switch is read by the hook process rather than declared in `hooks.json`:
+`hooksOff` holds with the command that clears it, one per variable a gate reads of its own — those
+pairs read out of the hooks themselves — and reports a name matching no hook file as a miss. Why the switch is read by the hook process rather than declared in `hooks.json`:
 docs/HOOKS.md.
 
 ## `resolve/` — where every setting comes from

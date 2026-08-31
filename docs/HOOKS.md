@@ -81,16 +81,22 @@ the documentation sends you to `/plugin`, which takes a whole plugin — and the
 
 So the switch is this plugin's own, and there is exactly one of it: `hooksOff` in
 `~/.config/forge/config.json`, holding hook names. `forge hooks --off <hook>` / `--on <hook>` writes
-it, and `forge hooks` and `forge doctor` print what is down with the one command that brings each
-back.
+it, and `forge hooks` and `forge doctor` print which gates it holds down, each with the command that
+clears it.
 
 **One source, because two would be a rule to remember.** An environment variable beside the config
 means a precedence rule, a report that has to say which layer holds a gate, and an undo in two parts
 that is wrong whenever only one part applies — a gate someone believes they turned back on is the
 worst state this switch can be in. A test asserts that nothing in the environment reaches the
-decision. The wider switches a gate carries of its own stay, and neither competes with `hooksOff`
-for one hook's answer: `FORGE_CODEX_DISABLE=1` takes every codex gate at once, and
-`CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` the two that order the advisor.
+decision, and it reads the module rather than trying variable names — the name a later layer would
+pick is exactly what a test sampling names cannot know.
+
+The wider switches a gate carries of its own stay, because each is its own decision rather than a
+second answer for one hook: `FORGE_CODEX_DISABLE=1` takes every codex gate at once,
+`CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` the two that order the advisor. `forge doctor` reports those as
+gates that are down too, with `unset` as the undo, and reads the pairs out of the hooks — otherwise
+it would print `forge hooks --on <hook>` for a gate that variable keeps down whatever the config
+says, which is the same lie in a different layer.
 
 **One name is one hook type.** Every script here is registered on exactly one event, so switching
 `codex-turn` switches PostToolUse and nothing else — which is why the answers name the event. That

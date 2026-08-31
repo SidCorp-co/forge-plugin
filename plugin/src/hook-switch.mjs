@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { readJson, saveConfig, userConfig } from "./resolve/config.mjs";
 
-const HOOKS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks");
+export const HOOKS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks");
 
 export const hookNames = () => {
   try {

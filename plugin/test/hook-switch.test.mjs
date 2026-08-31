@@ -36,11 +36,13 @@ const refused = (home, extra = {}) => {
   return Boolean(run.stdout.trim());
 };
 
-const forge = (home, ...argv) =>
+const forgeIn = (home, extra, ...argv) =>
   spawnSync(process.execPath, [CLI, ...argv], {
     encoding: "utf8",
-    env: { ...process.env, XDG_CONFIG_HOME: home },
+    env: { ...process.env, XDG_CONFIG_HOME: home, ...extra },
   });
+
+const forge = (home, ...argv) => forgeIn(home, {}, ...argv);
 
 test("a hook named in hooksOff does not fire, and one not named does", () => {
   assert.equal(refused(room('{"hooksOff":["bash-guard"]}')), false);
@@ -92,10 +94,33 @@ test("every hook honours the switch, not only the ones that read an event", () =
 });
 
 /* The config is the only source, so nothing in the environment may reach this decision: a second
-   switch would need a precedence rule, and the report would have to name which one holds a gate. */
-test("no variable switches a hook", () => {
-  const named = { FORGE_HOOK_BASH_GUARD: "off", FORGE_HOOKS_OFF: "bash-guard", BASH_GUARD: "off" };
-  assert.equal(refused(room("{}"), named), true);
+   switch would need a precedence rule, and the report would have to name which one holds a gate.
+   Asserted against the module rather than by trying names, because the name a later layer picks is
+   exactly what a suite sampling names cannot know. */
+test("the switch reads no environment variable", () => {
+  const source = readFileSync(join(HERE, "..", "src", "hook-switch.mjs"), "utf8");
+  assert.equal(
+    /process\.env/u.test(source),
+    false,
+    "hooksOff in the account config decides whether a gate runs and nothing else does: a variable "
+      + "here is a second source, and `forge doctor` would print an undo that leaves the gate down",
+  );
+  assert.equal(refused(room("{}"), { FORGE_HOOK_BASH_GUARD: "off" }), true);
+});
+
+/* A hook holding a switch of its own is not a second answer to hooksOff — it is its own decision —
+   but a report printing one undo while another variable holds the gate down is worse than silence.
+   The pairs are read from the hooks, so a gate that gains one is reported without an edit here. */
+test("doctor reports a gate its own variable holds down", () => {
+  const out = forgeIn(room("{}"), { FORGE_CODEX_DISABLE: "1" }, "doctor").stdout;
+  const found = /hooks off\s+(.+?) — `unset FORGE_CODEX_DISABLE`/u.exec(out);
+  assert.ok(found, `no line for a variable that stands gates down:\n${out}`);
+  const named = found[1].split(", ").map((one) => one.replace(/ \(.+\)$/u, ""));
+  assert.ok(named.length > 0);
+  for (const name of named) {
+    const source = readFileSync(join(HERE, "..", "hooks", `${name}.mjs`), "utf8");
+    assert.match(source, /FORGE_CODEX_DISABLE/u, `${name} does not read the variable it is listed under`);
+  }
 });
 
 /* One name switches one hook type only while that stays true. A script on two events would be stood
