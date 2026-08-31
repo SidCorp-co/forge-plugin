@@ -40,7 +40,6 @@ const searchRoots = once(() => {
   return [...ancestors(process.cwd()), ...(shared ? [shared] : [])];
 });
 
-/* Each project file is read once per run, with where it was found. */
 const nearest = (name) =>
   once(() => {
     for (const root of searchRoots()) {
@@ -52,26 +51,23 @@ const nearest = (name) =>
 
 const forgeJson = nearest(".forge.json");
 const mcpJson = nearest(".mcp.json");
-const mcpForge = () => mcpJson().parsed?.mcpServers?.forge ?? null;
+const CONFIG_NAME = "~/.config/forge/config.json";
 
-/* First source that answers wins, and it says which it was. */
-const pick = (sources) => {
-  for (const [from, value] of sources) if (value) return { value, from };
-  return { value: null, from: null };
+/* Reported, never resolved: doctor names a `forge` server in a `.mcp.json` rather than leaving its
+   owner to guess, because credentials that answer by directory are the account's in name only. */
+export const mcpForgeIgnored = () => {
+  const server = mcpJson().parsed?.mcpServers?.forge ?? null;
+  if (!server) return null;
+  return { root: mcpJson().root, carries: Boolean(server.url || server.headers?.Authorization) };
 };
+
+const sourced = (from, value) => (value ? { value, from } : { value: null, from: null });
 
 export const accountCredentials = once(() => {
   const saved = userConfig();
-  const server = mcpForge();
   return {
-    url: pick([
-      ["~/.config/forge/config.json", saved.url],
-      [".mcp.json", server?.url],
-    ]),
-    token: pick([
-      ["~/.config/forge/config.json", saved.token],
-      [".mcp.json", server?.headers?.Authorization],
-    ]),
+    url: sourced(CONFIG_NAME, saved.url),
+    token: sourced(CONFIG_NAME, saved.token),
   };
 });
 
@@ -79,21 +75,16 @@ export const settings = once(() => {
   const { url, token } = accountCredentials();
   if (!url.value || !token.value) {
     fail(
-      "No Forge endpoint. Run `forge doctor --token <pat> --url <endpoint>` to save one, or\n" +
-        "give a `.mcp.json` at or above this directory a `forge` server carrying both.\n" +
-        "`forge doctor` says which of those it found. The environment is not a source.",
+      "No Forge endpoint. Run `forge doctor --token <pat> --url <endpoint>` to save one in\n" +
+        "~/.config/forge/config.json, the one place either is read from. Neither the environment\n" +
+        "nor a `.mcp.json` is a source; `forge doctor` names a `.mcp.json` it finds.",
     );
   }
   const bearer = token.value.startsWith("Bearer ") ? token.value : `Bearer ${token.value}`;
   return { url: url.value, token: bearer };
 });
 
-export const projectScope = once(() =>
-  pick([
-    [".forge.json", forgeJson().parsed?.slug],
-    [".mcp.json", mcpForge()?.headers?.["X-Forge-Project-Slug"]],
-  ]),
-);
+export const projectScope = once(() => sourced(".forge.json", forgeJson().parsed?.slug));
 
 /* The directory `.forge.json` sits in, else the checkout's. A caller reading a project file needs
    this and not the cwd: doctor runs anywhere, and walking up from a subdirectory eventually leaves
@@ -108,8 +99,8 @@ export const projectSlug = () => {
   if (!value) {
     fail(
       'This call is project-scoped and no project slug is set. Put `{ "slug": "<project>" }`\n' +
-        "in a `.forge.json` at the root of the project, or give the `forge` server in\n" +
-        "`.mcp.json` an X-Forge-Project-Slug header. The environment is not a source.",
+        "in a `.forge.json` at the root of the project, the one place it is read from — not\n" +
+        "the environment, and not a `.mcp.json` header.",
     );
   }
   return value;
@@ -118,14 +109,13 @@ export const projectSlug = () => {
 /* A property of the tracker, not the CLI. Off by default: a wrong-language issue cannot be
    deleted, and a missing translation is an edit. */
 export const translateScope = once(() => {
-  const chosen = pick([[".forge.json", forgeJson().parsed?.translate]]);
+  const chosen = sourced(".forge.json", forgeJson().parsed?.translate);
   const off = !chosen.value || chosen.value === "off" || chosen.value === "false";
   return off ? { value: null, from: chosen.from } : { value: String(chosen.value), from: chosen.from };
 });
 
 export const translateTo = () => translateScope().value;
 
-/* The same kind of fact as `translate`, at the same altitude, with an English default. */
 const DEFAULT_PROSE = {
   marker: "those edges are recorded",
   blockedBy: "blocked by",

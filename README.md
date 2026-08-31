@@ -27,18 +27,15 @@ bumping `plugin.json` never reaches the cache — bump the version, or uninstall
 Two scopes, and they are not the same scope.
 
 **Account** — the endpoint and the token. One Forge instance, one PAT, every project. Required by
-every call:
+every call, and read from exactly one place: `~/.config/forge/config.json`, written by
+`forge doctor --token <pat> --url <endpoint>` at mode 0600, because a token belongs outside every
+repository.
 
-1. `~/.config/forge/config.json`, written by `forge doctor --token <pat> --url <endpoint>` at
-   mode 0600 — a token belongs outside every repository
-2. `mcpServers.forge` in the nearest `.mcp.json` walking up from the current directory, or the
-   same file in the main checkout when the cwd is a linked git worktree
-
-The environment is not one of them: no value here is read from it. Those two files are still a
-precedence rule — `.mcp.json` is the zero-config route for a machine whose MCP client is already
-configured — and `forge doctor` says which one answered. A variable would have been a third source
-that no file records and no report can show. `XDG_CONFIG_HOME` moves all of it, and is how a test
-runs on state that is not yours.
+Not the environment, and not a `.mcp.json`. Every additional source is a precedence rule to
+remember, a report that has to say which one answered, and — for credentials that answer by
+directory — an account setting that is the account's in name only. A `.mcp.json` naming a `forge`
+server is reported by `forge doctor` with the command that saves the same values properly.
+`XDG_CONFIG_HOME` moves all of it, and is how a test runs on state that is not yours.
 
 **Project** — everything a tracker decides for itself, in a `.forge.json` at its root:
 
@@ -50,8 +47,8 @@ runs on state that is not yours.
 }
 ```
 
-`slug` also comes from the `.mcp.json` header, and is demanded only by a call that needs a project
-id. `translate` is off unless set — a wrong-language issue cannot be withdrawn. `deps` is optional
+`slug` is read from that file alone and is demanded only by a call that needs a project id.
+`translate` is off unless set — a wrong-language issue cannot be withdrawn. `deps` is optional
 and defaults to the English sentence shown.
 
 The project **id** is never configured — it is looked up from the slug at runtime.

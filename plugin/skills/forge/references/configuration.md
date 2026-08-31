@@ -7,12 +7,11 @@ spine.
 ## Two scopes, and they are not the same scope
 
 The **endpoint and token are the account's** — one Forge instance, one PAT — from
-`~/.config/forge/config.json`, else the `forge` server in the nearest `.mcp.json` walking up from
-the current directory. Never from the environment: every value here is read from a file.
+`~/.config/forge/config.json` and nowhere else. Not the environment, and not a `.mcp.json`: doctor
+reports one of those naming a `forge` server, with the command that saves the same values.
 
-The **slug is the project's**, from a `.forge.json` holding `{ "slug": "<project>" }`, else that
-file's `X-Forge-Project-Slug` header. A git worktree with no config of its own inherits its main
-checkout's.
+The **slug is the project's**, from a `.forge.json` holding `{ "slug": "<project>" }`, and only from
+there. A git worktree with no config of its own inherits its main checkout's.
 
 The slug is demanded **only by a call that needs a project id**, so `tools` and `schema` answer in
 a directory that belongs to no project. The project id is looked up from the slug and is never

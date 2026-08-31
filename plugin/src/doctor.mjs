@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "./resolve/config.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { BUNDLED } from "./vi.mjs";
-import { accountCredentials, fail, projectRoot, projectScope, translateScope } from "./resolve/settings.mjs";
+import { accountCredentials, fail, mcpForgeIgnored, projectRoot, projectScope, translateScope } from "./resolve/settings.mjs";
 import {
   MAX_CLAUDE_MD_LINES,
   checkClaims,
@@ -347,10 +347,15 @@ export const doctor = async (rest) => {
 
   const { url, token } = accountCredentials();
   if (url.value) line(OK, "endpoint url", `${url.value}  ← ${url.from}`);
-  else line(BAD, "endpoint url", "no saved url and no .mcp.json — `forge doctor --url <endpoint>`");
+  else line(BAD, "endpoint url", "nothing saved — `forge doctor --url <endpoint>`");
   if (token.value) line(OK, "token", `${masked(token.value, full)}  ← ${token.from}`);
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
 
+  const stale = mcpForgeIgnored();
+  if (stale?.carries) {
+    line(BAD, "mcp.json", `${join(stale.root, ".mcp.json")} names a forge server and it is not read`
+      + " — `forge doctor --token <pat> --url <endpoint>` saves both");
+  }
   const chosen = userConfig().withheld ?? [];
   if (chosen.length) line(OK, "withheld verbs", `${chosen.join(", ")} — \`forge doctor --show <verb>\``);
   for (const { name, event } of offNow()) {

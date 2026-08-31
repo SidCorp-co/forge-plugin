@@ -11,19 +11,38 @@ const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "cli.mjs"
 
 /* Built rather than filtered: naming the variables to drop is a list that goes stale the day one is
    added, and the developer's own would otherwise answer for half of every fixture. */
-const report = (viConfig, extra = {}) => {
+const report = (viConfig, extra = {}, project = {}) => {
   const home = mkdtempSync(join(tmpdir(), "doctor-home-"));
   if (viConfig) {
     mkdirSync(join(home, "vi-natural"));
     writeFileSync(join(home, "vi-natural", "config.json"), JSON.stringify(viConfig));
   }
+  const cwd = mkdtempSync(join(tmpdir(), "doctor-cwd-"));
+  for (const [name, body] of Object.entries(project)) writeFileSync(join(cwd, name), body);
   const run = spawnSync(process.execPath, [CLI, "doctor"], {
     encoding: "utf8",
-    cwd: mkdtempSync(join(tmpdir(), "doctor-cwd-")),
+    cwd,
     env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home, ...extra },
   });
   return run.stdout;
 };
+
+const MCP_FORGE = JSON.stringify({
+  mcpServers: { forge: { url: "https://old.example/mcp", headers: { Authorization: "Bearer t" } } },
+});
+
+/* The account config is the only source, and a `.mcp.json` carrying credentials is the one setup
+   that would otherwise fail in silence — which is the failure this whole report exists for. */
+test("a .mcp.json naming a forge server is reported and not read", () => {
+  const out = report(null, {}, { ".mcp.json": MCP_FORGE });
+  assert.match(out, /\[ miss \] endpoint url\s+nothing saved/, "it is not a source for the url");
+  assert.match(out, /\[ miss \] token/, "nor for the token");
+  assert.match(out, /\[ miss \] mcp.json\s+\S+\.mcp\.json names a forge server and it is not read/);
+});
+
+test("no .mcp.json means no line about one", () => {
+  assert.doesNotMatch(report(null), /mcp.json/);
+});
 
 test("a saved key with no gateway is reported, not passed", () => {
   const out = report({ api_key: "k-abc123" });

@@ -10,8 +10,8 @@ const offered = offeredVerbs();
 const VERB_LIST = [
   `Usage: forge <${offered.map(([verb]) => verb).join("|")}> [args]`,
   "The issue tracker is the backlog; this is the way in that needs no MCP client.",
-  "Credentials come from ~/.config/forge/config.json or the nearest .mcp.json; the project slug",
-  "from .forge.json or .mcp.json. The project id is looked up, never passed.",
+  "Credentials come from ~/.config/forge/config.json, the project slug from .forge.json, and",
+  "from nowhere else. The project id is looked up from the slug, never passed.",
   "",
   ...offered.map(helpLine),
 ].join("\n");

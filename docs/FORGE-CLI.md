@@ -430,11 +430,13 @@ never ask for it.
 Every setting resolves to `{ value, from }`. Provenance is the return type rather than a courtesy
 some resolvers extend, because that is what `doctor` reports.
 
-**No value is read from the environment.** Every credential, url, model id and threshold comes from
-a config file. That does not retire `from`: the url and token still resolve from the account config
-before the nearest `.mcp.json`, which is a precedence rule between two *files* — a zero-config route
-for a machine that already has an MCP server configured, and provenance is how doctor says which one
-answered. What it retires is a third source that no file records and no report can show. Six
+**One source per setting.** The url and the token are the account config's, the slug and the prose
+language a `.forge.json`'s, and nothing else answers for any of them — not the environment, and not
+a `.mcp.json`. `sourced()` is what remains of a chain: a value and the name of the one file it came
+from, because `doctor` reports provenance even where there is nothing to arbitrate. A `.mcp.json`
+naming a `forge` server is *reported* and never read, since a setup that stops answering in silence
+is the failure this report exists for, and credentials that resolve by directory are the account's
+in name only. Six
 variables remain and none of them is a value: `XDG_CONFIG_HOME` and `CLAUDE_PROXY_ENV` say *where*
 config lives, `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PROJECT_DIR` are what the platform passes a hook, and
 `CLAUDE_CODE_DISABLE_ADVISOR_TOOL` and `FORGE_CODEX_DISABLE` are kill switches — a kill switch has
@@ -446,7 +448,7 @@ The codex knobs live in a `codex` object in the account config — `model`, `pat
 `maxTokens`, `budgetMs`, every key optional and defaulted in code. `forge codex -h` lists them.
 
 **Credentials sit outside every repository.** A token in a repo file is one `git add -A` away
-from a remote, and `.mcp.json` is git-ignored precisely because it holds one. The config is
+from a remote, which is the other half of why a `.mcp.json` is not read from. The config is
 0600 *from the moment it exists*: a token written world-readable and chmodded afterwards was
 world-readable for the length of the write, and `w` sets the mode on create only — so a temp file
 a crashed run left behind would take the token at whatever permissions it already had.
@@ -456,8 +458,8 @@ memos it replaced tested the value for truthiness, so each would silently re-run
 `null`. The git helper returns trimmed stdout or null; a caller destructuring it as
 `{ status, stdout }` gets two undefineds and silently takes its own fallback branch forever.
 
-**Worktrees.** A linked worktree has no `.mcp.json` or `.forge.json` of its own — both are
-git-ignored and belong to the checkout they were created in. `--git-common-dir` names the main
+**Worktrees.** A linked worktree has no `.forge.json` of its own — it is git-ignored and belongs to
+the checkout it was created in. `--git-common-dir` names the main
 checkout's `.git`, whose parent holds them, and that is the only way in from a worktree kept
 outside the main tree. Memoised: unmemoised this spawned `git rev-parse` nine times for one
 `forge issues`, and the cwd does not move inside a run.
