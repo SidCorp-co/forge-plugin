@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const HOOK = new URL("../hooks/advisor-first.mjs", import.meta.url).pathname;
 const room = mkdtempSync(join(tmpdir(), "advisor-first-"));
+/* A refusal writes to the config dir now, so a suite that skips this one logs onto the developer. */
+const HOME = { ...process.env, XDG_CONFIG_HOME: room };
 test.after(() => rmSync(room, { recursive: true, force: true }));
 
 const userTurn = (text, at = "2026-08-31T11:00:00Z") => ({
@@ -41,7 +43,7 @@ const gate = (input, records, { tool = "Write", session } = {}) => {
   const run = spawnSync(process.execPath, [HOOK], {
     input: JSON.stringify(event),
     encoding: "utf8",
-    env: { ...process.env, FORGE_HOOK_SETTLE_MS: "0" },
+    env: HOME,
   });
   return run.stdout.trim() ? JSON.parse(run.stdout) : null;
 };
@@ -87,45 +89,44 @@ test("a shell write counts; reading and searching do not", () => {
   assert.equal(gate({ command: "npm test 2>/dev/null" }, records, { tool: "Bash" }), null, "not a real target");
 });
 
-/* The failure this cost twice in one session: the record lands as the message that made the call
-   ends, which is when the tool dispatches, so the first read raced it. The appender is its own
-   process because `spawnSync` below blocks this one's timers. */
-test("a record that lands while the hook is reading still lifts the wall", () => {
-  const path = transcriptOf([userTurn("go"), said("working")]);
-  const late = spawn(
-    process.execPath,
-    ["-e", 'setTimeout(() => require("node:fs").appendFileSync(process.argv[1], process.argv[2]), 250);',
-      path, `${JSON.stringify(advised())}\n`],
-    { stdio: "ignore" },
-  );
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({
-      tool_name: "Write",
-      tool_input: { file_path: "/tmp/late.mjs" },
-      transcript_path: path,
-      session_id: "late",
-      cwd: process.cwd(),
-    }),
-    encoding: "utf8",
-  });
-  late.unref();
-  assert.equal(run.stdout.trim(), "", "it waited for the writer instead of refusing");
+/* The real incident: a DNS query refused as a write, because `cp` was read outside command
+   position. The re-send that follows a live advisor call is the other half of that turn. */
+test("an argument that merely contains a verb is not a write", () => {
+  const records = [userTurn("point cp.musetools.com at coolify")];
+  const query = "forge cloudflare dns f699 --name cp.musetools.com";
+  assert.equal(gate({ command: query }, records, { tool: "Bash" }), null);
+  assert.equal(gate({ command: 'git commit -m "refactor: mv the module"' }, records, { tool: "Bash" }), null);
+  assert.ok(gate({ command: "npm test && cp a b" }, records, { tool: "Bash" }), "in command position it is");
+  assert.ok(gate({ command: "for f in *; do mv $f /tmp; done" }, records, { tool: "Bash" }), "and after do");
 });
 
-test("but the wait is bounded: a record that never lands is refused", () => {
-  const path = transcriptOf([userTurn("go")]);
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({
-      tool_name: "Write",
-      tool_input: { file_path: "/tmp/never.mjs" },
-      transcript_path: path,
-      session_id: "never",
-      cwd: process.cwd(),
-    }),
-    encoding: "utf8",
-    env: { ...process.env, FORGE_HOOK_SETTLE_MS: "300" },
-  });
-  assert.equal(JSON.parse(run.stdout).hookSpecificOutput.permissionDecision, "deny");
+/* Refused three real commands in one session: a DNS query, a commit message, and the intent of the
+   consult itself, whose heredoc body quoted the very patterns WRITES looks for. */
+test("a data heredoc is data; an interpreter's body is not", () => {
+  const records = [userTurn("go")];
+  const bash = { tool: "Bash" };
+  const intent = "cat <<'I' | forge codex consult\nit uses writeFileSync and open(\"x\",\"w\")\nI";
+  assert.equal(gate({ command: intent }, records, bash), null, "prose about writing is not writing");
+  assert.ok(gate({ command: "python3 - <<'PY'\np.write_text(x)\nPY" }, records, bash), "a program is");
+  assert.ok(gate({ command: "cd plugin\ncp a b" }, records, bash), "a second line is command position");
+});
+
+/* Codex found these: the first anchor read only separators and a wrapper list, and a shell has more
+   ways to reach command position than that. */
+test("an assignment or a wrapper before the verb is still command position", () => {
+  const records = [userTurn("go")];
+  const bash = { tool: "Bash" };
+  assert.ok(gate({ command: "MODE=fast cp a b" }, records, bash), "an assignment prefix");
+  assert.ok(gate({ command: "command mv a b" }, records, bash), "the command builtin");
+  assert.ok(gate({ command: "if cp a b; then echo x; fi" }, records, bash), "a conditional");
+  assert.ok(gate({ command: "find . -name x -exec cp {} /tmp ;" }, records, bash), "find -exec");
+});
+
+/* The message has to be true: a wait cannot close this, so re-sending is the instruction. */
+test("the refusal says the record lands a round-trip later", () => {
+  const out = gate({ file_path: "/tmp/a.mjs" }, [userTurn("go")]);
+  assert.match(because(out), /round-trip later/);
+  assert.match(because(out), /re-send/);
 });
 
 test("the gate stands down when the advisor tool itself is off", () => {
@@ -139,7 +140,7 @@ test("the gate stands down when the advisor tool itself is off", () => {
   const run = spawnSync(process.execPath, [HOOK], {
     input: JSON.stringify(event),
     encoding: "utf8",
-    env: { ...process.env, CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1", FORGE_HOOK_SETTLE_MS: "0" },
+    env: { ...HOME, CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1" },
   });
   assert.equal(run.stdout.trim(), "");
 });

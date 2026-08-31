@@ -5,7 +5,7 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { EXECUTES_STDIN, REDIRECT, WRITES, askedAlready, deny, readEvent } from "./_hook.mjs";
+import { REDIRECT, WRITES, askedAlready, bodiless, deny, readEvent } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
 
 const FORGE_SOURCES = {
@@ -18,26 +18,6 @@ const GUARDED = /\/memory\/|\/skills\//;
 // Naming one of those files is not touching it: reading a skill must stay free, so a write shape
 // is asked about only as its own token — unanchored, `-i` matched inside `erp-issue-workflow.md`
 // and `>` a commit trailer's `<noreply@anthropic.com>`.
-const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
-
-/** A heredoc body is data, not command. The operator's own line survives, so `cat <<EOF > x.md`
- *  keeps its target; an unterminated body runs to the end; a body an interpreter executes stays. */
-const bodiless = (text) => {
-  let out = "";
-  let rest = text;
-  for (let m = HEREDOC.exec(rest); m; m = HEREDOC.exec(rest)) {
-    const after = m.index + m[0].length;
-    const nl = rest.indexOf("\n", after);
-    if (nl < 0) return `${out}${rest.slice(0, m.index)} ${rest.slice(after)}`;
-    const line = rest.slice(0, m.index);
-    out += `${line} ${rest.slice(after, nl + 1)}`;
-    rest = rest.slice(nl + 1);
-    const end = new RegExp(`^[ \\t]*${m[2]}[ \\t]*$`, "mu").exec(rest);
-    if (EXECUTES_STDIN.test(line)) out += end ? rest.slice(0, end.index) : rest;
-    rest = end ? rest.slice(end.index + end[0].length) : "";
-  }
-  return out + rest;
-};
 // `M=…/memory` then `cat > $M/x.md` named no guarded directory in any single token and walked
 // past this gate. An assignment and a `cd` resolve here; `$(…)` and `eval` cannot.
 const ASSIGN = /(?:^|[;&|\n]|\bexport\s+)\s*([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|]*)/gu;

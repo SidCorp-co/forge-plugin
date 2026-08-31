@@ -244,8 +244,9 @@ sha256 and whether the file was clipped, because advice that cannot be tied to b
 checked.
 
 **The hook records; it never reviews.** A PostToolUse half notes each document a turn changed and
-asks — *once* — for a consult at the end, and that is the whole of the asking: nothing blocks a turn
-over it. Once, because an instruction repeated on every write gets ignored: `afterTouch` answers
+asks — *once* — for a consult at the end. That reminder is context and nothing blocks a turn over it;
+what does is `codex-second.mjs`, which refuses the next write when the advisor has spoken over a dirty
+tree and no consult has followed. Once, because an instruction repeated on every write gets ignored: `afterTouch` answers
 `added` and `first` separately for that reason. The turn is keyed by canonical git root, since one
 state file serves every checkout, and `clearConsulted` removes only what was consulted on — a file
 recorded while the call was in flight is not part of that answer. What counts as a document is
@@ -255,6 +256,30 @@ heredoc is caught too.
 
 `doctor` reports codex and gates nothing — a missing gateway profile costs the second opinion and no
 verb.
+
+## `hook-log.mjs` — what the gates refused
+
+Three false refusals shipped in one session — a Cloudflare DNS query containing `cp`, a commit
+message quoting `mv`, a consult intent whose heredoc body quoted `writeFileSync` — and every one was
+found by watching a command fail. A refusal left no trace anywhere: `codex-log.jsonl` records
+consults and verdicts, and the gates recorded nothing. So `deny()` and `block()` in
+`plugin/hooks/_hook.mjs` now append to `hook-log.jsonl` themselves, reading an event that
+`readEvent()` stashed, which is why no hook's call sites mention logging and every gate is covered
+including the two that predate this.
+
+`forge hooks [--deny|--block] [--hook h] [--last n]` reads it back with a count per hook, so a
+pattern that refuses too much shows up as a number rather than as an anecdote. Only refusals are
+logged: they are the signal a false positive leaves. Allows would double the write sites for a
+question nothing is asking yet.
+
+**The log is a file on disk, so it never holds a credential.** `scrubbed` masks named secret flags
+(`--token`, `--password`, `--api-key`, `--secret`), `Authorization`/`Bearer` values, and the shapes
+that read as a secret on sight — a Coolify `7|…` token, a JWT, `sk-`/`ghp_` prefixes — then cuts the
+line at 220 characters. The reason is specific: an hour before this was written, a Coolify API token
+reached a session transcript through a redaction that missed one nesting level. A zone id and a
+hostname survive, because those are what the log is read for. Mode is 0600, and a write that fails
+is silent where `logConsult` warns — a hook's stderr is protocol, and a full disk must not turn a
+gate into noise on every call.
 
 ## `doctor.mjs` — everything at once
 

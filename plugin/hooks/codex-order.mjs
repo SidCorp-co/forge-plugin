@@ -9,7 +9,7 @@ import {
   block,
   deny,
   readEvent,
-  settle,
+  transcript,
   unspentAdvice,
 } from "./_hook.mjs";
 
@@ -50,14 +50,18 @@ if (
   process.exit(0);
 }
 
-const spentAt = lastConsultAt(repoRoot(ev.cwd ?? process.cwd()));
-if (!settle(ev.transcript_path ?? "", (records) => unspentAdvice(records, spentAt))) {
+const records = transcript(ev.transcript_path ?? "");
+if (!records) process.exit(0);
+
+if (!unspentAdvice(records, lastConsultAt(repoRoot(ev.cwd ?? process.cwd())))) {
   deny(
     "Consult the built-in advisor before codex, not after.\n\n"
       + "It reads this conversation and costs nothing; codex reads the files and has never seen any "
       + "of it. Backwards, the expensive reviewer pays to rediscover what the free one would say.\n\n"
       + "Do this: call advisor(), act on it, then re-run this command with its points in the intent. "
-      + "Advice holds until a consult spends it, so a re-run needs no second call.",
+      + "Advice holds until a consult spends it, so a re-run needs no second call — and the record\n"
+      + "of that call lands about one round-trip later, so a re-run is what clears this, not a\n"
+      + "second advisor call.",
   );
 }
 

@@ -20,7 +20,7 @@ const said = (text) => ({ type: "assistant", message: { content: [{ type: "text"
 
 const room = mkdtempSync(join(tmpdir(), "codex-order-"));
 /* An empty consult log, so what the gate reads is the fixture and not this machine's history. */
-const env = { ...process.env, XDG_CONFIG_HOME: room, FORGE_HOOK_SETTLE_MS: "0" };
+const env = { ...process.env, XDG_CONFIG_HOME: room };
 test.after(() => rmSync(room, { recursive: true, force: true }));
 
 const transcriptOf = (records, name) => {

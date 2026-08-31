@@ -1,6 +1,6 @@
 # The hooks, and why each one exists
 
-Seven hooks, and the reasoning behind them. The code states constraints; this states the
+Eight hooks, and the reasoning behind them. The code states constraints; this states the
 failures the constraints were written for. `plugin/hooks/hooks.json` is the wiring.
 
 ## Two levels
@@ -118,12 +118,23 @@ program that runs it, so discarding it as data left a `Path(...).write_text(...)
 directory invisible, and a memory file was rewritten unasked. Two faults: the write shapes an
 interpreter uses (`write_text`, `writeFileSync`, `shutil.copy`, `os.replace`) were missing from the
 list, and the body carrying them was thrown away. A body survives now when the operator's own line
-names something that executes stdin, which `cat` does not.
+names something that executes stdin, which `cat` does not. `bodiless` lives in `_hook.mjs` because
+`advisor-first` needed it too — a data heredoc there was an *intent* quoting the write shapes, and
+the gate refused the consult that was about to describe them.
 
 The cost is real. A program that carries a write shape *and* quotes a guarded path is refused even
 when the path is only prose — which caught the very commit documenting this. Which token the program
 would actually open is not knowable from the text, and refusing is the right side to err on when the
 way out is one tool call.
+
+## Every refusal is written down
+
+A gate that refuses too much is the failure mode here, and for months nothing recorded a refusal:
+three false positives in one session were all found by watching a command fail. `deny()` and
+`block()` append to `~/.config/forge/hook-log.jsonl` themselves — the event comes from a stash
+`readEvent()` fills, so no hook passes anything and the gates that predate the log are covered too.
+`forge hooks --deny` reads it back with a count per hook. Credentials are masked and the line is cut
+at 220 characters before anything is written: `docs/FORGE-CLI.md` says which shapes and why.
 
 ## `bash-guard.mjs` — what cannot be undone, and what launders a finding
 
@@ -198,15 +209,75 @@ rather than as the `Write` tool — the first version covered only `WRITES`, and
 before the hook had fired once. A redirect counts unless its target is under `/dev/`, so `2>/dev/null`
 is not a write. `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` stands the gate down.
 
-**A refusal waits for the writer.** The gate refused a write nine seconds after a live advisor call,
-twice, with the user watching. The logic was right: replaying `advisedThisTurn` against the transcript
-truncated to the exact record the hook could have read returns `true`. The file was wrong — a record
-generated mid-message reaches disk when that message *completes*, which is the same instant the tool
-dispatches, so the hook and the transcript writer race over the very call being demanded. `settle()`
-in `_hook.mjs` re-reads for up to a second before refusing, and returns the moment the record appears.
-Only the refusal path pays it, `FORGE_HOOK_SETTLE_MS=0` removes the wait so the tests do not, and
-`codex-order` reads the transcript through the same function for the same reason. This is why both
-messages say to re-send: the second read finds what the first missed.
+**The first write after an advisor call is always refused, and the message says so.** The gate
+refused writes seconds after live advisor calls, repeatedly, with the user watching. The logic was
+right — replaying `advisedThisTurn` against the transcript truncated to what the hook could have read
+returns `true` — and the file was wrong. Measured: the record generated at 12:18:11, the write
+dispatched at 12:18:14, the refusal returned at 12:18:15, the transcript file not written until
+**12:18:26**. The record lands about one tool round-trip later, and past this hook's 10-second
+timeout, so no amount of waiting inside the hook can reach it. A `settle()` that re-read for a second
+was tried and removed: it never once caught the case and cost every honest refusal a second. So the
+refusal names the real move — run any other command, then re-send — and `codex-order`'s first half
+says the same, because it reads the same lagging record. The price of the wall is one refused write
+per turn. Making a codex consult the suggested escape instead would not work: `codex-order` gates the
+consult on that same record, so both go blind together and the consult is refused too.
+
+**A verb only counts in command position, and prose is not command.** Three false refusals in one
+session, all from one matcher: a Cloudflare DNS query (`--name cp.musetools.com` contains `cp`), a
+commit message quoting `mv`, and the intent of a codex consult whose heredoc body quoted
+`writeFileSync`. So `advisor-first` runs `bodiless` first, and the shell verbs (`sed -i`, `tee`,
+`cp`, `mv`, `truncate`) are anchored the way `bash-guard` anchors `--fix`.
+
+Anchoring is where this gets narrow in the wrong direction, and codex caught it: a first version
+allowed only separators and a short wrapper list, which missed `MODE=fast cp a b`, `command mv a b`
+and `if cp a b; then`. Command position now means start of string or line, after `;` `&` `|` `(`,
+after `-exec`, after an assignment prefix, or after `sudo`, `command`, `nohup`, `time`, `env`,
+`xargs`, `do`, `then`, `else`, `if`, `elif`, `while`, `until`. `^` alone was another such miss —
+without `/m` it matched only the string start, so `cd repo\ncp a b`, the shape most of this repo's
+commands take, was invisible. The library calls — `open(…, "w")`, `write_text`, `writeFileSync`,
+`shutil.copy`, `os.replace` — need no anchor, because nothing else looks like them.
+
+The two errors are not symmetric, which is why the anchor is generous: a false refusal costs one
+advisor call, and a missed write is the wall silently not existing.
+
+## `codex-second.mjs` — the second opinion happens
+
+`codex-order` puts the two opinions in order and `advisor-first` makes the free one happen. Neither
+makes the *second* one happen, and it did not: a commit landed, then an hour of hook changes, with
+the advisor consulted four times and codex not once. The end-of-turn reminder is `additionalContext`
+— an agent can ignore it, and did.
+
+**Where it fires was the user's choice, and the alternatives were measured.** Claude Code 2.1.251
+offers `PreToolUse`, `PostToolUse`, `Notification`, `Stop`, `SubagentStop`, `SessionStart`,
+`SessionEnd`, `UserPromptSubmit` and `PreCompact`. There is no advisor event: the advisor is a
+server-side tool handled in the streaming path, so nothing local is dispatched and no `PostToolUse`
+follows it. `Stop` was tried twice — printing, which reached nobody, then blocking, which stopped a
+turn whose only change was this document — and removed. What is left is the write itself, which is
+where the user asked for it: a `PreToolUse` on a write *that follows an advisor call*.
+
+So the condition is four facts, all cheap: the call writes, the advisor has spoken this turn, no
+consult has spent that advice, and `git status --porcelain` is non-empty. The last one matters — a
+clean tree gives codex nothing to read, and a rule enforced where it cannot be satisfied usefully is
+the kind that gets switched off. Before the advisor speaks this is `advisor-first`'s refusal to make,
+not this gate's; two walls arguing over one write is the same failure.
+
+**It decides once per advisor call, not once per write** — and that is a rule change codex named
+before it shipped. Standing down when nothing dirty postdates the last consult stops the gate
+demanding a review of bytes codex just cleared; alone, it also means the write it allows creates new
+dirt, so the *second* write of a turn gets refused and the consult it demands reviews a fragment. So
+the decision is stamped: a stand-down is remembered for that advisor call, a refusal is not, and a
+new advisor call re-arms the question. The cost, accepted deliberately: work built after a stand-down
+is not reviewed in that turn. It is reviewed at the first write of the next turn, when it is finished
+rather than half-built. A deletion has no mtime and slips through; a turn that only deletes is not
+what this is for.
+
+One consult clears the turn, because the same spend accounting `codex-order` uses says the advice is
+answered. `FORGE_CODEX_DISABLE=1` clears the session, and `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` stands
+it down too — with no advisor there is no first opinion for this to be second to.
+
+The price is stated rather than hidden: a turn that takes advice and touches a dirty tree pays one
+consult, around 30–60 seconds, before its first write lands. That is the trade the user asked for
+twice — "not relax but forget to run" — after watching the reminder be ignored.
 
 ## `codex-order.mjs` — the second opinion goes second
 
@@ -269,8 +340,9 @@ message teaches the agent that the gate is noise, and that costs every consult a
 
 Two ways out, and not one knob: `FORGE_CODEX_DISABLE=1` switches codex off entirely, while
 `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` stands only this gate down — where the advisor cannot be called,
-an order to call it first is a wall. The transcript also lags the conversation — `settle()` above —
-so the refusal says to re-run the command rather than call the advisor twice.
+an order to call it first is a wall. The transcript also lags the conversation by about a round-trip —
+`advisor-first` above measures it — so the refusal says to re-run the command rather than call the
+advisor twice.
 
 A transcript that will not open reads as null, never as "no advice given" — a gate that fails closed
 on a missing file stops the work it exists to order.

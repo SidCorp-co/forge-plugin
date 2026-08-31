@@ -1,5 +1,5 @@
 {
-  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Before a call: refuses the shell commands whose damage cannot be undone, and stops once before a memory or skill write, including through the shell where the content cannot be read. After a call: hands every code file that changed \u2014 whichever route wrote it \u2014 to the linter the project itself configured, its own copy where it has one and the vendored one where it does not, and asks once when a checker is about to hard-code the cases it already knows. This plugin owns when and where a rule fires; the project owns what the rule says. It also records the documents a turn changed and asks once for a second model to read them. It also keeps the two second opinions in order: no write lands in a turn until the built-in advisor has spoken, it speaks before a codex consult, and what it said travels into that consult.",
+  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Before a call: refuses the shell commands whose damage cannot be undone, and stops once before a memory or skill write, including through the shell where the content cannot be read. After a call: hands every code file that changed \u2014 whichever route wrote it \u2014 to the linter the project itself configured, its own copy where it has one and the vendored one where it does not, and asks once when a checker is about to hard-code the cases it already knows. This plugin owns when and where a rule fires; the project owns what the rule says. It also records the documents a turn changed and asks once for a second model to read them. It also keeps the two second opinions in order: no write lands in a turn until the built-in advisor has spoken, none lands after it until codex has read the tree, it speaks before a codex consult, and what it said travels into that consult.",
   "hooks": {
     "SessionStart": [
       {
@@ -29,6 +29,16 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/advisor-first.mjs",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/codex-second.mjs",
             "timeout": 10
           }
         ]

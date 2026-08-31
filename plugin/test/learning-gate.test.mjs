@@ -10,6 +10,8 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "learning-gate.mjs");
+/* A refusal writes to the config dir now, so a suite that skips this one logs onto the developer. */
+const HOME = { ...process.env, XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), "learning-gate-home-")) };
 const MEMORY = "/home/thanh/.claude/projects/-run-media-thanh-New-ai-project-sid-erp/memory";
 const SKILL = "plugin/skills/issue-flow/SKILL.md";
 
@@ -19,6 +21,7 @@ const ask = (event) =>
   spawnSync(process.execPath, [HOOK], {
     input: JSON.stringify({ session_id: randomUUID(), ...event }),
     encoding: "utf8",
+    env: HOME,
   });
 
 const decide = (command) => {
@@ -158,6 +161,7 @@ const write = (name, content, tool = "Write") => {
     const run = spawnSync(process.execPath, [HOOK], {
       input: JSON.stringify({ session_id: session, tool_name: tool, tool_input: { file_path: join(room, name), [key]: content } }),
       encoding: "utf8",
+      env: HOME,
     });
     assert.equal(run.status, 0, run.stderr);
     return run.stdout.trim() ? JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason : null;
