@@ -16,6 +16,8 @@ import {
   reviewClaudeMd,
 } from "./claude-md.mjs";
 import { cloudflareAccounts } from "./cloudflare.mjs";
+import { modelBehind, profile } from "./codex-api.mjs";
+import { LOG_PATH, consults, logEntries } from "./codex-log.mjs";
 import { flags } from "./resolve/flags.mjs";
 import { VERB_NAMES } from "./resolve/visibility.mjs";
 
@@ -72,6 +74,16 @@ const checkCloudflare = (full) => {
   }
   const held = accounts.map((account) => `${account.name} ${masked(account.apiToken, full)}`);
   line(OK, "cloudflare", `${held.join(", ")}  ← ${from}`);
+};
+
+/* codex answers from a gateway of the user's own, over one HTTPS call, so it reports and gates
+   nothing: a missing profile costs the second opinion and no verb. */
+const checkCodex = () => {
+  const { problem, values } = profile();
+  if (problem) return line(BAD, "codex", `${problem} — \`forge codex\` cannot consult`);
+  const model = modelBehind(values);
+  if (!model) return line(BAD, "codex", "the profile maps that model slot to nothing");
+  line(OK, "codex", `${model}  ${consults(logEntries()).length} consult(s) logged at ${LOG_PATH}`);
 };
 
 /* Declared is not callable — all 67 are declared to a PAT and six then refuse. Probed, read-only. */
@@ -317,6 +329,7 @@ export const doctor = async (rest) => {
   }
   const canWrite = language.value ? language.value === "vi" && checkVi() : true;
   checkCloudflare(full);
+  checkCodex();
   const local = checkClaudeMdLocally();
 
   if (!url.value || !token.value) {

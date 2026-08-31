@@ -1,6 +1,6 @@
 # The hooks, and why each one exists
 
-Four hooks, and the reasoning behind them. The code states constraints; this states the
+Six hooks, and the reasoning behind them. The code states constraints; this states the
 failures the constraints were written for. `plugin/hooks/hooks.json` is the wiring.
 
 ## Two levels
@@ -88,11 +88,42 @@ on a second attempt carrying `metadata.checked`, and a file edit passes on the n
 the same file in the same session. Naming the category is the point — it is the one part of
 the test that cannot be answered by nodding.
 
+**A declared `type:` buys nothing.** It used to end the check, so the only memory write ever stopped
+was a malformed one — and shape is not what is wrong with a second copy. The schema is in the agent's
+own instructions, so `type: feedback` costs it nothing to type. Every memory write and edit is now
+stopped once per file, with one action fitted to the situation: a new file is asked why it should
+exist and given the shape, an edit is told to replace the wrong rule in place rather than append a
+version beside it, and a restatement is named. A write carrying no content is reminded too rather
+than waved through, because emptying a memory is exactly when "delete it if the rule no longer
+holds" is the advice.
+
+Condition 4 is the one a hook can actually check, so the text is compared sentence-by-sentence with
+the other memories in the directory and above 0.45 the reminder names the file it restates.
+Calibrated on six real memories: five score 0.00 against the others, the one genuinely related pair
+0.27, a paraphrase re-filed under a new name 1.00. A file is excluded from its own comparison, so
+revising one never reads as duplicating it.
+
 A memory or skill file written through the shell would pass all of that unseen, because
 `sed -i` and a heredoc carry no content the gate can read, and the decision has to happen
 *before* the write. So that route is closed for those two kinds of file rather than
 approximated. Naming a file is not touching it: only a command carrying a write shape is
 asked about, so reading a skill stays free.
+
+**A refusal names which kind of file it means**, states the rule in one line, and gives one action.
+"A memory or a skill" makes the reader work out what it is being told, and a refusal that only
+redirects the tool teaches nothing about whether the fact belongs in a file at all.
+
+**A heredoc body is data — until an interpreter executes it.** `python3 - <<PY` hands its body to a
+program that runs it, so discarding it as data left a `Path(...).write_text(...)` aimed at a guarded
+directory invisible, and a memory file was rewritten unasked. Two faults: the write shapes an
+interpreter uses (`write_text`, `writeFileSync`, `shutil.copy`, `os.replace`) were missing from the
+list, and the body carrying them was thrown away. A body survives now when the operator's own line
+names something that executes stdin, which `cat` does not.
+
+The cost is real. A program that carries a write shape *and* quotes a guarded path is refused even
+when the path is only prose — which caught the very commit documenting this. Which token the program
+would actually open is not knowable from the text, and refusing is the right side to err on when the
+way out is one tool call.
 
 ## `bash-guard.mjs` — what cannot be undone, and what launders a finding
 
@@ -114,3 +145,78 @@ dirty, because there is nothing to lose otherwise, and any doubt counts as dirty
 `--fix` rule is anchored on command position for the same reason a narrow guard survives: a
 commit message or a doc line that quotes the flag is prose, and refusing it would teach the
 agent to route around the guard rather than obey it.
+
+## `codex-turn.mjs` — the review that knows what you were trying to do
+
+The other four hooks judge a write against a rule. This one judges nothing: it records which
+documents a turn changed and asks for a second model to read them at the end, with the intent
+attached. Splitting it that way is the point — a per-write review sees a paragraph and cannot know
+whether the paragraph was the plan; a review at the end of the turn sees the turn.
+
+**It asks once.** The first document of a turn carries the instruction and the rest are recorded
+silently, because an instruction repeated on every write is an instruction that gets ignored.
+`afterTouch` in `plugin/src/codex.mjs` therefore answers `added` and `first` separately, and the
+Stop half — the only Stop hook here — says it once more if the turn is ending unconsulted.
+
+It is the same file twice in `hooks.json`, bare for `PostToolUse` and `--stop` for `Stop`, and the
+logic lives in `src/codex.mjs` rather than the hook, so `forge codex` and the hook cannot drift on
+what counts as a document or where the turn is written down. The turn is keyed by canonical git
+root: one state file serves every checkout on this machine, and its paths are repo-relative. `FORGE_CODEX_DISABLE=1` silences both
+halves; `FORGE_CODEX_INSIDE=1` is set on the consult's own child session, which loads this same
+plugin and would otherwise record inside the review.
+
+## `codex-order.mjs` — the second opinion goes second
+
+Two second opinions exist here and they are not interchangeable. The built-in advisor reads the
+conversation — the reasoning, every tool result, what was tried and abandoned — and costs nothing.
+`forge codex` reads the files and has never seen any of it. Run in that order each is worth its
+tokens; run backwards, the expensive reviewer pays to rediscover what the free one would have said.
+
+The order was written into a skill first, and that is exactly why this hook exists: **a rule in prose
+fires only if it is read.** Measured mid-session, six consults had run and the advisor had not been
+called once in the turn that ran them, while the skill said plainly to call it first.
+
+**The advisor cannot be hooked, but it can be witnessed.** It is a server-side tool, so nothing is
+dispatched locally and no `PreToolUse` fires. Every call still leaves an assistant record carrying an
+`advisor_tool_result` block, and every hook event is handed `transcript_path` — so `advisedSince()`
+in `_hook.mjs` counts the calls made since the last real user message, and a consult with none is
+refused.
+
+The second half is a nudge rather than a refusal, because it is a judgement and not a fact: the
+advisor's reply is encrypted and unreadable once the turn moves on, so the intent piped to codex is
+the only place its content can survive. A consult whose intent never mentions it is stopped **once**
+per session. Whether a paragraph really carries the advice is not something a regular expression
+should be the judge of.
+
+**Where a turn begins decides whether this gate works.** Treating any user record bearing text as a
+new turn refused a consult three minutes after the advice arrived: a compaction summary is itself
+such a record, and it is written *after* the advisor call it summarises. Only a real prompt carries
+`promptSource` — a compaction summary, a `[Request interrupted by user]` marker and an injected skill
+body all carry text without one, and a message typed mid-turn is a `queue-operation`, not a user
+record at all. A transcript carrying no `promptSource` widens the window to the whole file rather
+than narrowing it to nothing.
+
+**It reads command position, not prose,** which is `bash-guard`'s rule applied here: the phrase turns
+up in commit messages and in heredoc-written docs, and denying those teaches the agent to route around
+the gate. An allowlist of wrappers cannot be completed — codex found four real shapes past the first
+attempt, including `timeout 180 node .../cli.mjs codex consult ...`, the very command this repo had
+just used to run that review. So heredoc bodies and quoted spans are removed as data and what survives
+is read as tokens: `codex consult` counts when the token before it is `forge` or `cli.mjs`.
+
+The interpreter-heredoc hole was here too, and closing it needed the opposite of quote-stripping: a
+program's own commands live *inside* quotes, so an executed body is read with its quotes intact while
+a command that merely mentions the phrase keeps having them stripped. `subprocess.run("forge codex
+consult ...")` is gated; `git commit -m "... codex consult ..."` is not.
+
+The residual is deliberate and it runs one way. A contrived command — a quoted `<<EOF` followed by a
+line that is exactly `EOF` — can still hide an invocation, and this gate orders a colleague who
+forgets, not an adversary who evades. A missed consult costs one duplicated review; a denied commit
+message teaches the agent that the gate is noise, and that costs every consult after it.
+
+Two ways out, and not one knob: `FORGE_CODEX_DISABLE=1` switches codex off entirely, while
+`CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` stands only this gate down — where the advisor cannot be called,
+an order to call it first is a wall. The transcript also lags the conversation, so the refusal says to
+re-run the command rather than call the advisor twice.
+
+A transcript that will not open reads as null, never as "no advice given" — a gate that fails closed
+on a missing file stops the work it exists to order.

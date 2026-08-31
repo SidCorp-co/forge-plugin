@@ -1,6 +1,8 @@
 /* The gate is a decision, so it is exercised the way Claude Code calls it: the event on stdin and
    the permission decision on stdout. The Bash fixtures are shapes observed slipping through. */
 import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -33,7 +35,8 @@ test("a heredoc through a variable-held memory path is refused", () => {
   );
   assert.equal(allowed, false);
   assert.match(reason, /coolify-deploy-log-location\.md/);
-  assert.match(reason, /Use Write or Edit/);
+  assert.match(reason, /Record only what cost a cycle/, "the rule, not only the tool");
+  assert.match(reason, /Do this: if all four hold, write it with Write/);
 });
 
 test("the braced form resolves too", () => {
@@ -78,20 +81,6 @@ test("a real in-place edit of the same file is still refused", () => {
   assert.equal(decide(`sed -i.bak s/a/b/ ${MEMORY}/erp-issue-workflow.md`).allowed, false);
 });
 
-test("a memory file declaring its type under metadata is not asked about", () => {
-  const body = "---\nname: a-fact\nmetadata:\n  type: reference\n---\n\nbody\n";
-  const run = ask({ tool_name: "Write", tool_input: { file_path: `${MEMORY}/a-fact.md`, content: body } });
-  assert.equal(run.stdout.trim(), "", "indented `type:` should satisfy the gate");
-});
-
-test("a memory file declaring no type is still asked about", () => {
-  const run = ask({
-    tool_name: "Write",
-    tool_input: { file_path: `${MEMORY}/no-type.md`, content: "---\nname: x\n---\n\nbody\n" },
-  });
-  assert.match(JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason, /valid `type:`/);
-});
-
 test("a commit trailer's `>` is not a redirect", () => {
   const body = "msg\n\nCo-Authored-By: Claude Opus 5 <noreply@anthropic.com>";
   const { allowed, reason } = decide(
@@ -110,6 +99,20 @@ test("a quoted write target is still found", () => {
 
 test("a python write through the shell is still found", () => {
   assert.equal(decide(`python3 -c "open('${MEMORY}/trap.md','w').write('x')"`).allowed, false);
+});
+
+/* A heredoc body is data — but `python3 - <<PY` executes it, and stripping it as data let a memory
+   file be rewritten with no question asked. Found by doing it. */
+test("a body an interpreter executes is command, not data", () => {
+  const write = `import pathlib\npathlib.Path("${MEMORY}/trap.md").write_text("x")`;
+  assert.equal(decide(`python3 - <<'PY'\n${write}\nPY`).allowed, false);
+  assert.equal(decide(`node - <<'JS'\nwriteFileSync("${MEMORY}/trap.md", "x")\nJS`).allowed, false);
+});
+
+test("the same shape aimed anywhere else stays free", () => {
+  assert.equal(decide(`python3 - <<'PY'\nimport pathlib\npathlib.Path("docs/HOOKS.md").write_text("x")\nPY`).allowed, true);
+  /* `cat` executes nothing, so its body is data again and only the operator line is read. */
+  assert.equal(decide(`cat > docs/X.md <<'MD'\nsee ${MEMORY}/a.md for the fact\nMD`).allowed, true);
 });
 
 test("a heredoc keeps the rest of its own operator line", () => {
@@ -132,4 +135,58 @@ test("a redirect aimed at a guarded file is refused, appended or truncated", () 
   assert.equal(decide(`cat > ${MEMORY}/trap.md`).allowed, false);
   assert.equal(decide(`echo x >> ${MEMORY}/trap.md`).allowed, false);
   assert.equal(decide(`echo x > ${SKILL}`).allowed, false);
+});
+
+/* A memory write is judged on content, so these need a real directory to compare against. */
+const room = join(mkdtempSync(join(tmpdir(), "memory-gate-")), "memory");
+mkdirSync(room);
+const KNOWN = `---
+name: background-work-survives-tool-timeout
+metadata:
+  type: feedback
+---
+
+A Bash tool timeout stops the waiting and never the process, so an empty output file beside a live
+pid means the work is still running rather than killed.
+`;
+writeFileSync(join(room, "background-work-survives-tool-timeout.md"), KNOWN);
+
+const write = (name, content, tool = "Write") => {
+  const key = tool === "Write" ? "content" : "new_string";
+  const session = randomUUID();
+  const once = () => {
+    const run = spawnSync(process.execPath, [HOOK], {
+      input: JSON.stringify({ session_id: session, tool_name: tool, tool_input: { file_path: join(room, name), [key]: content } }),
+      encoding: "utf8",
+    });
+    assert.equal(run.status, 0, run.stderr);
+    return run.stdout.trim() ? JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason : null;
+  };
+  return { first: once(), again: once() };
+};
+
+/* The shape of a second copy is not what is wrong with it, so a declared type buys no pass: a
+   well-formed write is stopped exactly like a malformed one. */
+test("every memory write is stopped once, well-formed or not", () => {
+  const fact = "Zed opens a worktree without its main checkout, so a project-wide search misses vendored files.";
+  const { first, again } = write("zed-typed.md", `---\nname: zed\nmetadata:\n  type: reference\n---\n\n${fact}\n`);
+  assert.match(write("zed-untyped.md", `---\nname: zed\n---\n\n${fact}\n`).first, /Record only what cost/);
+  assert.match(first, /Record only what cost a cycle/);
+  assert.match(first, /One file, one fact/, "the shape, so re-sending is not guesswork");
+  assert.match(first, /one pointer line in MEMORY\.md/);
+  assert.match(first, /Do this: if a memory already states this, fix that file/);
+  assert.equal(again, null, "the re-send passes, or the file could never be written");
+});
+
+test("a fact already written names the file that has it", () => {
+  const { first } = write("killed-jobs-keep-running.md", KNOWN);
+  assert.match(first, /Already in `background-work-survives-tool-timeout\.md`/);
+  assert.match(first, /fix that file if its rule is wrong/);
+  assert.doesNotMatch(first, /One file, one fact/, "the shape belongs where a file is being shaped");
+});
+
+test("editing an existing memory is told to replace, not append", () => {
+  const { first } = write("background-work-survives-tool-timeout.md", "a corrected sentence", "Edit");
+  assert.match(first, /never append a second version/);
+  assert.doesNotMatch(first, /Already in/, "a file is not a copy of itself");
 });

@@ -2,10 +2,10 @@
 // Stop once between deciding to record something and recording it. A memory row is project
 // knowledge; a skill edit develops the method. docs/HOOKS.md explains why the two must not merge.
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, deny, readEvent } from "./_hook.mjs";
+import { EXECUTES_STDIN, askedAlready, deny, readEvent } from "./_hook.mjs";
 import { compare, load, sentences } from "../scripts/skill-dup.mjs";
 
 const FORGE_SOURCES = {
@@ -22,11 +22,11 @@ const GUARDED = /\/memory\/|\/skills\//;
 const REDIRECT = /(?:^|[\s;&|(])\d?>>?\s*(?!&\d)("[^"]*"|'[^']*'|[^\s;&|<>]+)/gu;
 // These carry their target as an argument, so a guarded file beside one is asked about.
 const WRITES =
-  /\bsed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)|\btee\b|\bcp\b|\bmv\b|\btruncate\b|open\([^)]*['"]w/;
+  /\bsed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)|\btee\b|\bcp\b|\bmv\b|\btruncate\b|open\([^)]*['"]w|\bwrite_(?:text|bytes)\b|\bwriteFileSync\b|\bshutil\.(?:copy|move)|\bos\.(?:replace|rename)\b/;
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
 /** A heredoc body is data, not command. The operator's own line survives, so `cat <<EOF > x.md`
- *  keeps its target; an unterminated body runs to the end. */
+ *  keeps its target; an unterminated body runs to the end; a body an interpreter executes stays. */
 const bodiless = (text) => {
   let out = "";
   let rest = text;
@@ -34,9 +34,11 @@ const bodiless = (text) => {
     const after = m.index + m[0].length;
     const nl = rest.indexOf("\n", after);
     if (nl < 0) return `${out}${rest.slice(0, m.index)} ${rest.slice(after)}`;
-    out += `${rest.slice(0, m.index)} ${rest.slice(after, nl + 1)}`;
+    const line = rest.slice(0, m.index);
+    out += `${line} ${rest.slice(after, nl + 1)}`;
     rest = rest.slice(nl + 1);
     const end = new RegExp(`^[ \\t]*${m[2]}[ \\t]*$`, "mu").exec(rest);
+    if (EXECUTES_STDIN.test(line)) out += end ? rest.slice(0, end.index) : rest;
     rest = end ? rest.slice(end.index + end[0].length) : "";
   }
   return out + rest;
@@ -86,6 +88,14 @@ Before either destination: does the wrong state have a SHAPE — a command patte
 missing field, a violated ordering? Then it is a check waiting to be written, and a
 check cannot be missed the way a sentence can.`;
 
+const BRIEF =
+  "Record only what cost a cycle, will recur, fails silently, and is not already written. Most "
+  + "rounds record nothing.";
+
+const SHAPE =
+  "One file, one fact: `name`, a `description` saying when it applies, `metadata.type` "
+  + `(${Object.keys(FILE_TYPES).join("|")}), one pointer line in MEMORY.md.`;
+
 const catalogue = (entries) =>
   Object.entries(entries)
     .map(([k, v]) => `  ${k.padEnd(10)} ${v}`)
@@ -112,6 +122,36 @@ function duplicates(root, path, text) {
   const rel = relative(root, resolve(path));
   return compare(incoming, load(root, new Set([rel])), 0.34, 5);
 }
+
+/** Condition 4 made a check. Calibrated on six real memories: the closest related pair scores 0.27,
+ *  a paraphrase re-filed under a new name scores 1.00. */
+function restated(dir, path, text) {
+  if (!text.trim()) return null;
+  const incoming = sentences(text).map((one) => ["<proposed>", one]);
+  if (incoming.length === 0) return null;
+  let others = [];
+  // A first memory, or a directory that is not there yet: nothing to restate.
+  try {
+    others = load(dir, new Set([basename(path), "MEMORY.md"]), "prose");
+  } catch {
+    return null;
+  }
+  const [top] = compare(incoming, others, 0.45, 5).sort((a, b) => b[0] - a[0]);
+  if (!top) return null;
+  return { file: top[2][0], score: top[0], sentence: top[2][1].replace(/^["\u201c]|["\u201d]$/gu, "") };
+}
+
+const action = (twin, exists) => {
+  if (twin) {
+    return `Already in \`${twin.file}\` (${twin.score.toFixed(2)}): "${twin.sentence.slice(0, 100)}"\n\n`
+      + "Do this: fix that file if its rule is wrong. Re-send only if this fact is a different one.";
+  }
+  if (exists) {
+    return "Do this: replace the wrong rule in place, or delete the file if it no longer holds — never "
+      + "append a second version. Otherwise re-send.";
+  }
+  return "Do this: if a memory already states this, fix that file. Otherwise re-send.";
+};
 
 const ev = readEvent();
 const tool = ev.tool_name ?? "";
@@ -146,12 +186,14 @@ if (tool === "Bash") {
       (path) => GUARDED.test(path),
     );
     if (resolved) {
+      // Being sent to another tool teaches nothing about whether the fact belongs in a file at all.
+      const memory = resolved.includes("/memory/");
       deny(
-        `Refused: \`${resolved}\` is a memory or skill file, and this writes it through the shell.\n\n` +
-          "This gate reads the content to ask whether the fact is worth keeping and which category " +
-          "it belongs to. A `sed -i` or a heredoc carries no content to read, so going that way " +
-          "skips the question rather than answering it.\n\n" +
-          "Use Write or Edit for this file.",
+        `Hold — \`${resolved}\` is ${memory ? "a memory file" : "a skill's own text"}, written `
+          + `through the shell.\n\n${BRIEF}\n\n`
+          + (memory
+            ? `Do this: if all four hold, write it with Write and declare \`type:\` — ${Object.keys(FILE_TYPES).join(" | ")}. Otherwise write nothing.`
+            : `Do this: if all four hold, use Edit and name the kind — ${Object.keys(SKILL_CATEGORIES).join(" | ")}. Otherwise change nothing.`),
       );
     }
   }
@@ -164,25 +206,14 @@ const path = ti.file_path ?? "";
 // --- a memory file: project knowledge ---
 // MEMORY.md is the index, not a memory: it carries pointers and no frontmatter.
 if (path.includes("/memory/") && path.endsWith(".md") && basename(path) !== "MEMORY.md") {
-  let body = ti.content ?? "";
-  if (!body) {
-    // An Edit sends only the changed span, so the type lives in the file already; gating on the
-    // span would refuse every legitimate revision of an existing fact.
-    try {
-      body = readFileSync(path, "utf8");
-    } catch {
-      body = "";
-    }
-    if (!body) process.exit(0);
-  }
-  // `type:` sits under `metadata:` in the documented frontmatter, so it is indented: anchored to
-  // column zero this never matched, and every correctly-shaped memory file was asked about anyway.
-  const m = /^\s*type:\s*([a-z]+)\s*$/m.exec(body);
-  if ((m && m[1] in FILE_TYPES) || askedAlready(ev, path, "learning-gate")) process.exit(0);
+  // Once per file: a refusal that also refuses the re-send forbids the write outright.
+  if (askedAlready(ev, path, "learning-gate")) process.exit(0);
+  const twin = restated(dirname(resolve(path)), path, ti.content ?? ti.new_string ?? "");
+  const fresh = !twin && !existsSync(path);
   deny(
-    `Hold — you are about to write a memory file.\n\n${TEST}\n\n` +
-      "If it survives, one file is one fact, and the frontmatter must declare which kind it is:\n" +
-      `${catalogue(FILE_TYPES)}\n\nAdd a valid \`type:\` to the frontmatter and re-send.`,
+    `Hold — \`${basename(path)}\`${fresh ? ", a new memory. Why should it exist, and will it still matter later?" : "."}`
+      + `\n\n${BRIEF}\n\n${fresh ? `${SHAPE}\n\n` : ""}`
+      + action(twin, existsSync(path)),
   );
 }
 

@@ -15,6 +15,7 @@ export const VERBS = [
   ["guide", "[slug]", "the tracker's own guides", "forge_guide"],
   ["project", "", "the resolved project id", "forge_projects.list"],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials"],
+  ["codex", "<consult|verdict|pending|show|log>", "a second model reviews what this turn changed"],
   ["doctor", "[--token t] [--url u] [--hide v|--show v] [--full]", "what resolves, and from where"],
   ["tools", "[--all]", "the reachable surface"],
   ["schema", "<tool>", "one tool's arguments"],

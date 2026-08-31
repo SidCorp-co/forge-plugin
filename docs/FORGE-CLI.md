@@ -160,6 +160,102 @@ Two flags cannot be what they look like. `--file` is pulled out of argv before `
 is an argument, but the account was chosen by a probe nobody watched, so the pair is printed to
 stderr the way `rpc.mjs`'s writes print theirs. `dns rm` and `purge` then run.
 
+## `codex*.mjs` — a second opinion, from a different provider
+
+Three files: `codex-api.mjs` is the call and what it may read, `codex-log.mjs` is memory and eval
+set at once, `codex.mjs` is the verb and the turn's bookkeeping.
+
+**The model slot is not the model.** The verb asks for `fable`; the gateway profile at
+`~/.claude/claude-proxy.env` maps that slot to `cx/gpt-5.6-sol`, which identifies itself as GPT-5
+Codex. That mapping is the whole premise, so `consult` **refuses** when the slot resolves to this
+model's own family — `--allow-echo` overrides it. Warning after the fact would be warning after the
+tokens.
+
+**Why this exists next to the built-in advisor.** Measured from a session transcript: the built-in
+advisor is a server-side tool with empty input, the server forwards the whole conversation (32,385
+input tokens, no cache read, ~33 s), and the reply comes back encrypted and never enters the
+transcript as plaintext. So it reviews the agent's *account* of the work — it has no file access,
+holds no session, and its advice cannot be read back or scored. codex is built for exactly the gap
+that leaves: it reads the artifact's own bytes, it remembers this repository, and every consult is
+logged verbatim.
+
+**It runs after the advisor, and the ordering is load-bearing.** The advisor speaks first and may
+speak repeatedly; a consult follows it. Because that reply is encrypted and unreadable afterwards,
+the only moment its content can reach codex is the same turn, written into the intent by hand —
+without which codex covers ground already covered, its agreement reads as independent confirmation
+when it is duplication, and a disagreement between the two never surfaces.
+
+**One HTTPS POST, streamed, no local agent.** The first engine spawned a `claude` session with
+`--allowedTools Read Grep Glob` so the reviewer could grep for itself. Measured: `--allowedTools`
+auto-approves, it does not confine. The child inherited this machine's skills, answered a review
+prompt by invoking a multi-agent code-review skill, ran eleven minutes and had to be killed by pid.
+So the call is `POST /v1/messages` with `x-api-key` and `stream: true`, and the reviewer has no
+tools at all.
+
+**Which means the files travel with the prompt, and it can ask for more.** `FORGE_CODEX_ROUNDS`
+caps *model calls* — three by default — and the last one is told it is the last. A round exists only
+so the reviewer can **see** a file it was not given, because it cannot know it needs the third file
+before reading the second; it never gets a round to **act** in. A final call that still only asks
+for files is an error, not a consult: reporting it as one would clear the turn's pending list in
+exchange for nothing.
+
+**Containment is physical, not lexical.** `..` is the traversal you can see; a symlink committed
+inside the repository is the one you cannot, and both routes end at `readFileSync`. So
+`resolvedInside()` realpaths the root and the target, checks the prefix, requires a regular file,
+and returns the canonical path that is then read — and it guards paths named on the command line as
+well as paths the reviewer asks for. The check and the read remain two operations, so a checkout
+mutated between them is a race this narrows rather than closes.
+
+**The stream is gated, not raw.** A request begins with `NEED:` and an answer does not, so the gate
+holds the first few characters, decides, and either flushes and follows the stream or stays shut for
+the rest of that call. Live output for a review, silence for a request, and no NEED line ever
+printed as though it were a finding. Frames split on `/\r?\n\r?\n/`, the decoder is flushed and the
+tail absorbed — the last frame often arrives with no blank line after it, and it is the one carrying
+`stop_reason`.
+
+**Precision is asked for, not hoped for.** Three shaping flags, each answering a measured failure of
+the open review. `--diff [ref]` attaches every file's diff and states that unchanged files are
+context rather than subject — of the findings in the first three consults here, a good handful were
+about code the turn never touched, and that class of noise crowds out the real ones. `--verify
+"<risk>"` names risks to rule on, CONFIRMED / REFUTED / CANNOT TELL against a quoted line, because a
+reviewer verifying a stated risk is reliable where a reviewer discovering one invents; the published
+work on critic models puts human-plus-critic ahead of either alone for exactly this reason.
+`--only blocker,major` drops the rest rather than downgrading it — the same precision-for-coverage
+trade CriticGPT exposes as a decoding knob.
+
+**Receiving is half the mechanism, and it lives in the skill, not here.** A model cannot localise its
+own errors but fixes them once localised, so a finding is a pointer whose worth is the verification
+you do of it; and a model challenged on a correct answer tends to cave, so capitulation is the
+failure mode to design against. `verdict` exists to make the acceptance rate visible instead of
+assumed.
+
+**The log is the session.** There is no session id: `historyFor()` replays this repository's last
+three answered consults — the intent that was judged, the reply, and the verdict recorded against
+it — so a second consult can say Resolved / Still open / New. `verdict --accepted n --rejected n`
+records what survived contact with the work, because the reply is only half an eval set, and it is
+scoped to this repository and to consults that actually answered: "3 accepted" against a gateway
+timeout is not a verdict.
+
+**A `started` entry is written before the call.** A consult that dies mid-flight reaches neither
+handler, and a review that vanished is the one an eval most wants to see. The result closes the pair
+on the consult's id; `log` says whether an unpaired start is still inside its budget or is never
+coming back, and `--id` replaces a racy `--last 1`. Each entry carries the commit, a per-file
+sha256 and whether the file was clipped, because advice that cannot be tied to bytes cannot be
+checked.
+
+**The hook records; it never reviews.** A PostToolUse half notes each document a turn changed and
+asks — *once* — for a consult at the end; a Stop half says it again if the turn is ending
+unconsulted. Once, because an instruction repeated on every write gets ignored: `afterTouch` answers
+`added` and `first` separately for that reason. The turn is keyed by canonical git root, since one
+state file serves every checkout, and `clearConsulted` removes only what was consulted on — a file
+recorded while the call was in flight is not part of that answer. What counts as a document is
+`FORGE_CODEX_PATH_RE`, `^docs/.*\.md$` by default, because prose is what nothing else here checks;
+the files come from `touched()` rather than `tool_input.file_path`, so a document written by a shell
+heredoc is caught too.
+
+`doctor` reports codex and gates nothing — a missing gateway profile costs the second opinion and no
+verb.
+
 ## `doctor.mjs` — everything at once
 
 Every other verb fails at the first missing piece and tells you about that one. Doctor is the

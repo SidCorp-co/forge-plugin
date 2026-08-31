@@ -90,3 +90,44 @@ export function askedAlready(ev, path, kind) {
   }
   return false;
 }
+
+/** No hook fires for the advisor — a server-side tool is not dispatched locally — but every call
+ *  leaves an assistant record carrying an `advisor_tool_result`, and events carry the transcript. */
+const blocksOf = (record) => {
+  const content = (record?.message ?? {}).content;
+  return Array.isArray(content) ? content.filter((one) => one && typeof one === "object") : [];
+};
+
+/** Where a heredoc body is a program rather than data. docs/HOOKS.md. */
+export const EXECUTES_STDIN =
+  /(?:^|[\s;&|(])(?:python3?|node|deno|bun|perl|ruby|php|sh|bash|zsh)(?:\s+-\S+)*\s*-?\s*$/u;
+
+/** Only a real prompt carries `promptSource` — a compaction summary does not. docs/HOOKS.md. */
+const startsATurn = (record) => record?.type === "user" && typeof record.promptSource === "string";
+
+export function advisedSince(records) {
+  let turnAt = -1;
+  for (let at = 0; at < records.length; at += 1) if (startsATurn(records[at])) turnAt = at;
+  return records
+    .slice(turnAt + 1)
+    .filter((record) => blocksOf(record).some((one) => one.type === "advisor_tool_result")).length;
+}
+
+/** Null and not an empty list: a gate that reads "no advice" from a transcript it could not open
+ *  would stop the work it exists to order. */
+export function transcript(path) {
+  try {
+    return readFileSync(path, "utf8")
+      .split("\n")
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+  } catch {
+    return null;
+  }
+}
