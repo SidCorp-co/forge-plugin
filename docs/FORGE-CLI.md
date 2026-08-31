@@ -431,7 +431,10 @@ Every setting resolves to `{ value, from }`. Provenance is the return type rathe
 some resolvers extend, because that is what `doctor` reports.
 
 **No value is read from the environment.** Every credential, url, model id and threshold comes from
-a config file, so exactly one source answers for each and `from` never has to arbitrate. Six
+a config file. That does not retire `from`: the url and token still resolve from the account config
+before the nearest `.mcp.json`, which is a precedence rule between two *files* — a zero-config route
+for a machine that already has an MCP server configured, and provenance is how doctor says which one
+answered. What it retires is a third source that no file records and no report can show. Six
 variables remain and none of them is a value: `XDG_CONFIG_HOME` and `CLAUDE_PROXY_ENV` say *where*
 config lives, `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PROJECT_DIR` are what the platform passes a hook, and
 `CLAUDE_CODE_DISABLE_ADVISOR_TOOL` and `FORGE_CODEX_DISABLE` are kill switches — a kill switch has

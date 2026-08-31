@@ -34,9 +34,11 @@ every call:
 2. `mcpServers.forge` in the nearest `.mcp.json` walking up from the current directory, or the
    same file in the main checkout when the cwd is a linked git worktree
 
-The environment is not one of them. A value read from two places needs a precedence rule and a
-report saying which place answered; a file that can be read, copied and chmodded needs neither.
-`XDG_CONFIG_HOME` moves all of it, and is how a test runs on state that is not yours.
+The environment is not one of them: no value here is read from it. Those two files are still a
+precedence rule — `.mcp.json` is the zero-config route for a machine whose MCP client is already
+configured — and `forge doctor` says which one answered. A variable would have been a third source
+that no file records and no report can show. `XDG_CONFIG_HOME` moves all of it, and is how a test
+runs on state that is not yours.
 
 **Project** — everything a tracker decides for itself, in a `.forge.json` at its root:
 

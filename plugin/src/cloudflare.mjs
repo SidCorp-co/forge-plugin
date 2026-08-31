@@ -46,8 +46,7 @@ const NO_ACCOUNT =
   "  forge cloudflare login --name <label> --account-id <id> --token <api-token>";
 
 const configured = () => {
-  const { accounts, problem } = cloudflareAccounts();
-  if (problem) fail(`Cloudflare is half configured from the environment: ${problem}.`);
+  const { accounts } = cloudflareAccounts();
   if (!accounts.length) fail(NO_ACCOUNT);
   return accounts;
 };
@@ -251,8 +250,7 @@ const saveAccount = (rest) => {
 
 const listAccounts = (rest) => {
   const { full } = flags(rest, "cloudflare accounts", ["--full"]);
-  const { accounts, from, problem } = cloudflareAccounts();
-  if (problem) fail(`Cloudflare is half configured from the environment: ${problem}.`);
+  const { accounts, from } = cloudflareAccounts();
   if (!accounts.length) {
     console.log(NO_ACCOUNT);
     return;

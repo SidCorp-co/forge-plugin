@@ -89,11 +89,7 @@ const checkVi = () => {
 /* Cloudflare's credentials are this machine's, not the tracker's, so they resolve and report here
    and gate nothing: every other verb works with none saved. */
 const checkCloudflare = (full) => {
-  const { accounts, from, problem } = cloudflareAccounts();
-  if (problem) {
-    line(BAD, "cloudflare", `half configured from the environment — ${problem}`);
-    return;
-  }
+  const { accounts, from } = cloudflareAccounts();
   if (!accounts.length) {
     line(BAD, "cloudflare", "no account — `forge cloudflare login --name n --account-id a --token t`");
     return;

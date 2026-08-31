@@ -1,6 +1,5 @@
-/* Values come from config files; the environment holds only what config cannot. Without this the
-   rule is worth nothing: an env read is one line that looks like every other line, and it gives a
-   decision a second source. */
+/* Values come from config files; the environment holds only what config cannot. An env read is one
+   line that looks like every other line, and it gives a decision a second source. */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import assert from "node:assert/strict";
 import { dirname, join, relative } from "node:path";
@@ -33,25 +32,30 @@ const sources = (dir) => {
   return out;
 };
 
-test("no value is read from the environment", () => {
+/* Every read, not every `process.env.NAME`: destructuring and `process["env"]` reach the same
+   place while matching no name at all. */
+const READ = /process\s*(?:\.\s*env|\[\s*["']env["']\s*\])/gu;
+
+const offences = (path) => {
+  const text = readFileSync(path, "utf8");
   const found = [];
-  for (const path of sources(join(ROOT))) {
-    const text = readFileSync(path, "utf8");
-    for (const [, name] of text.matchAll(/process\.env\.([A-Za-z_][A-Za-z0-9_]*)/gu)) {
-      if (!ALLOWED.has(name)) found.push(`${relative(ROOT, path)}: ${name}`);
-    }
+  for (const one of text.matchAll(READ)) {
+    const after = text.slice(one.index + one[0].length);
+    const named = /^\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)/u.exec(after);
+    if (named && ALLOWED.has(named[1])) continue;
+    /* doctor asks by computed name on purpose: it reports which kill switch holds a gate down. */
+    if (relative(ROOT, path) === "src/doctor.mjs" && /^\[/u.test(after)) continue;
+    found.push(`${relative(ROOT, path)}: ${named ? named[1] : one[0].trim()}`);
   }
+  return found;
+};
+
+test("no value is read from the environment", () => {
+  const found = sources(ROOT).flatMap(offences);
   assert.deepEqual(
     found,
     [],
     "a credential, a url, a model id or a threshold belongs in a config file, where one source "
-      + `answers for it: ${[...ALLOWED].join(", ")} are the only names read here`,
+      + `answers for it: ${[...ALLOWED].join(", ")} are the only names read here, by name`,
   );
-});
-
-test("only doctor reads the environment by computed name", () => {
-  const found = sources(join(ROOT))
-    .filter((path) => /process\.env\[/u.test(readFileSync(path, "utf8")))
-    .map((path) => relative(ROOT, path));
-  assert.deepEqual(found, ["src/doctor.mjs"], "it reports which kill switch holds a gate down");
 });
