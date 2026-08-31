@@ -32,9 +32,10 @@ without them.
 
 **[Anthropic's Agent Skills format](https://agentskills.io/home)** loads a skill's name and
 description at startup, its instructions when the task matches, and its bundled
-`references/` only during execution. That progressive disclosure is why the phases here are
-five lines each and the detail sits in files cited at the phase that needs them — a
-reference nobody reaches costs nothing.
+`references/` only during execution. That progressive disclosure is where `SKILL.md`'s rule
+about its own spine comes from — a reference nobody reaches costs nothing, so the cheapest
+place for detail is behind a citation. It bounds the spine by what each phase cites, not by a
+line count: phases differ in length because they differ in how much they owe.
 
 **[OpenHands repository agents](https://docs.openhands.dev/overview/skills)** load
 repository-specific knowledge from a file inside the repository, separate from the reusable

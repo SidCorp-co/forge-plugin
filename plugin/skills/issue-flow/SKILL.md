@@ -134,8 +134,7 @@ Baseline, gates and evidence: `references/verification.md`.
 Read the acceptance criteria back off the issue rather than from memory, judge each one, and
 post a QA report as a comment: every criterion, its verdict, and the evidence behind that
 verdict. **On every outcome, not only on failure** — Rule 2 makes evidence a phase output,
-and a session transcript is not an output. Nobody can reopen it, and the release note is
-written for someone who will never ask how it was checked.
+and a session transcript nobody else can reopen is not an output.
 
 `references/verification.md` owns what each kind of change owes and how to capture it.
 
