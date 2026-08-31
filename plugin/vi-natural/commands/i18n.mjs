@@ -1,13 +1,13 @@
 // `vi-natural i18n` — translate a locale JSON file, and `--check`, its offline audit.
 
-import { basename, dirname, extname, join, sep } from 'node:path';
+import { basename, dirname, extname, join, sep } from "node:path";
 
-import * as cta from '../text/cta.mjs';
-import * as locale from '../format/locale.mjs';
-import * as placeholders from '../text/placeholders.mjs';
-import { CliError, err, matchesAny, readText, writeAtomic } from '../util.mjs';
-import { parseOrdered, stringifyOrdered } from '../format/json-order.mjs';
-import { translateItems } from '../gateway/engine.mjs';
+import * as cta from "../text/cta.mjs";
+import * as locale from "../format/locale.mjs";
+import * as placeholders from "../text/placeholders.mjs";
+import { CliError, err, matchesAny, readText, writeAtomic } from "../util.mjs";
+import { parseOrdered, stringifyOrdered } from "../format/json-order.mjs";
+import { translateItems } from "../gateway/engine.mjs";
 
 const SHOWN = 40;
 
@@ -16,9 +16,9 @@ export function defaultTarget(source) {
   const ext = extname(source);
   const stem = basename(source, ext);
   for (const [pattern, replacement] of [
-    ['en', 'vi'],
-    ['en-US', 'vi-VN'],
-    ['en_US', 'vi_VN'],
+    ["en", "vi"],
+    ["en-US", "vi-VN"],
+    ["en_US", "vi_VN"],
   ]) {
     if (stem === pattern) return join(directory, `vi${ext}`);
     if (stem.startsWith(`${pattern}.`)) {
@@ -40,7 +40,7 @@ export function ctaPairs(source, target) {
   const pairs = [];
   for (const [path, text] of locale.flatten(source)) {
     const existing = locale.getPath(target, path);
-    if (typeof existing === 'string' && existing.trim()) {
+    if (typeof existing === "string" && existing.trim()) {
       pairs.push([locale.label(path), text, existing]);
     }
   }
@@ -55,13 +55,13 @@ function reportCta(inflated, groups) {
       `${groups.length} verb group(s) a shared key would cover\n`,
   );
   for (const finding of inflated) {
-    const owner = finding.existing ? ` — ${finding.existing} already says it` : '';
+    const owner = finding.existing ? ` — ${finding.existing} already says it` : "";
     process.stdout.write(
       `  inflated: ${finding.key}\n      en: ${finding.en}\n      vi: ${finding.vi} → ${finding.suggested}${owner}\n`,
     );
   }
   for (const group of groups) {
-    const owner = group.existing || 'no generic key yet';
+    const owner = group.existing || "no generic key yet";
     process.stdout.write(`  collapse: ${group.members.length} keys say "${group.bare} <object>" — ${owner}\n`);
     for (const member of group.members.slice(0, 4)) {
       process.stdout.write(`      ${member.key.padEnd(44)} ${member.vi}\n`);
@@ -79,7 +79,7 @@ export function checkLocale(source, target, sourcePath, targetPath, ignore = [])
   let skipped = 0;
   for (const [path, text] of locale.flatten(source)) {
     const existing = locale.getPath(target, path);
-    if (typeof existing !== 'string' || !existing.trim()) {
+    if (typeof existing !== "string" || !existing.trim()) {
       missing.push(locale.label(path));
       continue;
     }
@@ -103,7 +103,7 @@ export function checkLocale(source, target, sourcePath, targetPath, ignore = [])
   process.stdout.write(
     `${sourcePath} vs ${targetPath}: ${total} source strings, ${missing.length} missing, ` +
       `${damaged.length} with placeholder damage, ${extra.length} stale` +
-      `${skipped ? `, ${skipped} ignored` : ''}\n`,
+      `${skipped ? `, ${skipped} ignored` : ""}\n`,
   );
   for (const name of missing.slice(0, 50)) process.stdout.write(`  missing: ${name}\n`);
   for (const [name, problem, want, got] of damaged) {
@@ -137,7 +137,7 @@ export async function run(args, makeClient) {
     return checkLocale(source, target, args.source, outPath, config.ignorePatterns());
   }
 
-  const keys = args.keys ? args.keys.split(',').map((k) => k.trim()) : null;
+  const keys = args.keys ? args.keys.split(",").map((k) => k.trim()) : null;
   const todo = locale.pending(source, target, { overwrite: args.overwrite, keys });
   if (!todo.length) {
     process.stdout.write(`${outPath} is already complete (${locale.flatten(source).length} strings).\n`);
@@ -162,7 +162,7 @@ export async function run(args, makeClient) {
 
   err(`translating ${items.length} string(s) with ${config.model} (${config.register()})`);
   const { results, problems } = await translateItems(client, items, {
-    kind: 'ui',
+    kind: "ui",
     glossary,
     temperature: args.temperature,
     verbose: args.verbose,
@@ -183,7 +183,7 @@ export async function run(args, makeClient) {
     `${outPath}: ${translations.length} translated, ${problems.length} skipped (${client.usageNote()})\n`,
   );
   if (!problems.length) return 0;
-  err('\nleft untranslated — fix by hand or rerun:');
+  err("\nleft untranslated — fix by hand or rerun:");
   for (const problem of problems) {
     const key = ids.has(problem.key) ? locale.label(ids.get(problem.key)) : problem.key;
     err(`  ${key}: ${problem.reason}\n      source: ${problem.source}`);

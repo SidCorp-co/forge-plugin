@@ -1,10 +1,10 @@
 // Batch translation with a verification gate on every string.
 
-import * as cta from '../text/cta.mjs';
-import * as placeholders from '../text/placeholders.mjs';
-import { BATCH_TASK, systemPrompt } from '../text/prompts.mjs';
-import { BARE_HINT, PLACEHOLDER_HINT } from '../vi-text.mjs';
-import { chunkItems, err, parseJsonObject } from '../util.mjs';
+import * as cta from "../text/cta.mjs";
+import * as placeholders from "../text/placeholders.mjs";
+import { BATCH_TASK, systemPrompt } from "../text/prompts.mjs";
+import { BARE_HINT, PLACEHOLDER_HINT } from "../vi-text.mjs";
+import { chunkItems, err, parseJsonObject } from "../util.mjs";
 
 export const MAX_CHARS = 6000;
 export const MAX_ITEMS = 40;
@@ -16,7 +16,7 @@ export const MAX_ITEMS = 40;
 function shape(batch, contexts) {
   const out = {};
   for (const [key, text] of batch) {
-    out[String(key)] = contexts ? { k: contexts.get(String(key)) ?? '', s: text } : text;
+    out[String(key)] = contexts ? { k: contexts.get(String(key)) ?? "", s: text } : text;
   }
   return out;
 }
@@ -39,7 +39,7 @@ async function translateOne(client, system, task, entry, gates) {
   const bare = gates.bareCta.has(key);
   const verify = gates.skipVerify.has(key) ? null : gates.verify;
   const required = [...placeholders.extract(source).keys()].sort();
-  let hint = required.length ? PLACEHOLDER_HINT.replace('%s', required.join(', ')) : '';
+  let hint = required.length ? PLACEHOLDER_HINT.replace("%s", required.join(", ")) : "";
   if (bare) hint += BARE_HINT;
 
   let answer;
@@ -49,8 +49,8 @@ async function translateOne(client, system, task, entry, gates) {
     return { reason: `gateway error: ${error.message}` };
   }
   const candidate = answer[String(key)];
-  if (typeof candidate !== 'string' || !candidate.trim()) {
-    return { reason: 'model returned nothing for this key' };
+  if (typeof candidate !== "string" || !candidate.trim()) {
+    return { reason: "model returned nothing for this key" };
   }
   const problem = verify ? verify(source, candidate) : null;
   if (problem) return { reason: `rejected after retry: ${problem}` };
@@ -67,7 +67,7 @@ async function translateOne(client, system, task, entry, gates) {
  *  locale file. */
 export async function translateItems(client, items, options = {}) {
   const {
-    kind = 'ui',
+    kind = "ui",
     task = BATCH_TASK,
     glossary,
     temperature = 0.3,
@@ -100,7 +100,7 @@ export async function translateItems(client, items, options = {}) {
     }
     for (const [key, source] of batch) {
       const candidate = answer[String(key)];
-      if (typeof candidate !== 'string' || !candidate.trim()) retries.push([key, source]);
+      if (typeof candidate !== "string" || !candidate.trim()) retries.push([key, source]);
       else if (rejected(key, source, candidate, gates)) retries.push([key, source]);
       else results.set(key, candidate);
     }

@@ -30,7 +30,7 @@ test("tokens pass, raw colour values do not", () => {
       'const cls = "bg-surface text-fg-muted";',
       'const style = { color: "var(--color-fg)" };',
       'const style = { backgroundColor: "transparent", borderColor: "currentColor" };',
-      'const css = `.a { color: var(--color-fg); }`;',
+      "const css = `.a { color: var(--color-fg); }`;",
       'const anchor = "#section-two";',
       'const label = "the red button";',
     ],
@@ -94,9 +94,9 @@ test("a colour name counts beside a declaration, in an attribute, or in a bracke
 test("a colour function reaching the token layer through var() passes", () => {
   tester.run("no-raw-colors", rule, {
     valid: [
-      'const css = `.a { color: rgb(var(--color-brand-rgb) / 0.5); }`;',
-      'const css = `.a { color: hsl(var(--h) var(--s) var(--l)); }`;',
-      'const css = `.a { background: rgba(var(--shadow-rgb), 0.2); }`;',
+      "const css = `.a { color: rgb(var(--color-brand-rgb) / 0.5); }`;",
+      "const css = `.a { color: hsl(var(--h) var(--s) var(--l)); }`;",
+      "const css = `.a { background: rgba(var(--shadow-rgb), 0.2); }`;",
     ],
     invalid: [
       // Alpha is the only argument a literal may sit in: the channels still fork.

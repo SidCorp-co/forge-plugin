@@ -15,7 +15,7 @@ import {
   REVIEW_TASK,
   STYLE,
   UI_CONTEXT,
-} from '../vi-text.mjs';
+} from "../vi-text.mjs";
 
 export { BATCH_TASK, DOC_TASK, REVIEW_TASK };
 
@@ -26,16 +26,16 @@ export function systemPrompt(kind, { glossary, register, region, keyContext = fa
   const parts = [STYLE, PLACEHOLDER_RULE];
   if (register && register in REGISTERS) parts.push(REGISTERS[register]);
   if (region && region in REGIONS) parts.push(REGIONS[region]);
-  if (keyContext) parts.push(kind === 'doc' ? DOC_KEY_CONTEXT : KEY_CONTEXT);
-  if (kind === 'ui') parts.push(UI_CONTEXT);
-  else if (kind === 'doc') parts.push(DOC_CONTEXT);
+  if (keyContext) parts.push(kind === "doc" ? DOC_KEY_CONTEXT : KEY_CONTEXT);
+  if (kind === "ui") parts.push(UI_CONTEXT);
+  else if (kind === "doc") parts.push(DOC_CONTEXT);
   if (glossary && glossary.size) {
     const lines = [GLOSSARY_HEADER];
     for (const [source, target] of glossary) {
       const rendered = target === null ? GLOSSARY_KEEP : `"${target}"`;
-      lines.push(GLOSSARY_LINE.replace('%s', source).replace('%s', rendered));
+      lines.push(GLOSSARY_LINE.replace("%s", source).replace("%s", rendered));
     }
-    parts.push(lines.join('\n'));
+    parts.push(lines.join("\n"));
   }
-  return parts.join('\n\n');
+  return parts.join("\n\n");
 }

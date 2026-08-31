@@ -184,17 +184,17 @@ test("a font size written as a declaration is caught too, not just as a utility"
       'const style = { fontSize: "var(--text-sm)" };',
       'const style = { fontSize: "calc(var(--text-sm) * 1.2)" };',
       'const style = { fontSize: "inherit" };',
-      'const style = { fontSize: ramp.sm };',
+      "const style = { fontSize: ramp.sm };",
       // Height has no `properties`, so a declaration of one is layout as before.
-      'const style = { height: 720 };',
+      "const style = { height: 720 };",
       {
-        code: 'const style = { fontSize: 13 };',
+        code: "const style = { fontSize: 13 };",
         options: [{ allow: [{ value: "13", why: "a canvas label, drawn not laid out" }] }],
       },
     ],
     invalid: [
       {
-        code: 'const style = { fontSize: 13 };',
+        code: "const style = { fontSize: 13 };",
         errors: [{ message: `"13" is an arbitrary font size value. ${REMEDY.text}` }],
       },
       {

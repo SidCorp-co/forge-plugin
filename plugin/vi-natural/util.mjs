@@ -1,15 +1,15 @@
 // Small shared helpers.
 
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 
 export class CliError extends Error {}
 
 export function readText(path) {
   try {
-    return readFileSync(path, 'utf8');
+    return readFileSync(path, "utf8");
   } catch (error) {
-    if (error.code === 'ENOENT') return null;
+    if (error.code === "ENOENT") return null;
     throw new CliError(`cannot read ${path}: ${error.message}`);
   }
 }
@@ -28,7 +28,7 @@ export function writeAtomic(path, body, mode) {
   const directory = dirname(resolve(path));
   if (directory) mkdirSync(directory, { recursive: true });
   const tmp = `${path}.tmp`;
-  writeFileSync(tmp, body, mode === undefined ? 'utf8' : { encoding: 'utf8', mode });
+  writeFileSync(tmp, body, mode === undefined ? "utf8" : { encoding: "utf8", mode });
   renameSync(tmp, path);
 }
 
@@ -40,17 +40,17 @@ export function writeJson(path, data, indent = 2) {
 // JSON.parse loses whole batches that were otherwise fine.
 export function parseJsonObject(text) {
   let body = text.trim();
-  if (body.startsWith('```')) {
-    body = body.includes('\n') ? body.slice(body.indexOf('\n') + 1) : '';
-    if (body.trimEnd().endsWith('```')) body = body.trimEnd().slice(0, -3);
+  if (body.startsWith("```")) {
+    body = body.includes("\n") ? body.slice(body.indexOf("\n") + 1) : "";
+    if (body.trimEnd().endsWith("```")) body = body.trimEnd().slice(0, -3);
   }
   try {
     return JSON.parse(body);
   } catch {
     /* fall through to the brace scan */
   }
-  const start = body.indexOf('{');
-  const end = body.lastIndexOf('}');
+  const start = body.indexOf("{");
+  const end = body.lastIndexOf("}");
   if (start === -1 || end <= start) {
     throw new CliError(`model did not return JSON:\n${text.slice(0, 400)}`);
   }
@@ -62,7 +62,7 @@ export function parseJsonObject(text) {
 }
 
 export function err(message) {
-  process.stderr.write(`${message.replace(/\s+$/, '')}\n`);
+  process.stderr.write(`${message.replace(/\s+$/, "")}\n`);
 }
 
 /** Group [key, text] pairs into batches small enough to survive one round trip. */
@@ -88,9 +88,9 @@ const GLOB = /[.+^${}()|[\]\\]/g;
 
 export function globToRegExp(pattern) {
   const body = pattern
-    .replace(GLOB, '\\$&')
-    .replace(/\*/g, '[\\s\\S]*')
-    .replace(/\?/g, '[\\s\\S]');
+    .replace(GLOB, "\\$&")
+    .replace(/\*/g, "[\\s\\S]*")
+    .replace(/\?/g, "[\\s\\S]");
   return new RegExp(`^${body}$`);
 }
 

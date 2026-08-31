@@ -21,7 +21,8 @@ export default [
       "no-redeclare": "error",
       "no-unreachable": "error",
       "prefer-const": "error",
-      "eqeqeq": "error",
+      eqeqeq: "error",
+      quotes: ["error", "double", { allowTemplateLiterals: true, avoidEscape: true }],
     },
   },
 ];

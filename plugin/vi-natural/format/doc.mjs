@@ -24,23 +24,23 @@ function untranslatable(block) {
 
 function flush(pieces, buffer) {
   if (!buffer.length) return;
-  const body = buffer.join('');
+  const body = buffer.join("");
   buffer.length = 0;
   for (const part of body.split(SPLIT)) {
     if (!part) continue;
     if (new RegExp(`^${SPLIT.source}$`).test(part) || untranslatable(part)) {
-      pieces.push(['keep', part]);
+      pieces.push(["keep", part]);
       continue;
     }
     // Surrounding whitespace rides along as "keep": the model would not give it back, and losing a
     // trailing newline silently reflows the document.
-    const text = part.replace(/^\n+/, '').replace(/\n+$/, '');
+    const text = part.replace(/^\n+/, "").replace(/\n+$/, "");
     const at = part.indexOf(text);
     const head = part.slice(0, at);
     const tail = part.slice(at + text.length);
-    if (head) pieces.push(['keep', head]);
-    pieces.push(['text', text]);
-    if (tail) pieces.push(['keep', tail]);
+    if (head) pieces.push(["keep", head]);
+    pieces.push(["text", text]);
+    if (tail) pieces.push(["keep", tail]);
   }
 }
 
@@ -53,10 +53,10 @@ export function segment(text) {
   const lines = keepLines(text);
   let index = 0;
 
-  if (lines.length && lines[0].trim() === '---') {
+  if (lines.length && lines[0].trim() === "---") {
     for (let end = 1; end < lines.length; end += 1) {
-      if (['---', '...'].includes(lines[end].trim())) {
-        pieces.push(['keep', lines.slice(0, end + 1).join('')]);
+      if (["---", "..."].includes(lines[end].trim())) {
+        pieces.push(["keep", lines.slice(0, end + 1).join("")]);
         index = end + 1;
         break;
       }
@@ -81,7 +81,7 @@ export function segment(text) {
       if (closed) break;
     }
     flush(pieces, buffer);
-    pieces.push(['keep', block.join('')]);
+    pieces.push(["keep", block.join("")]);
   }
   flush(pieces, buffer);
   return pieces;
@@ -99,9 +99,9 @@ export function headingTrails(pieces, root) {
   const trails = {};
   const stack = [];
   pieces.forEach(([kind, block], index) => {
-    if (kind !== 'text') return;
+    if (kind !== "text") return;
     let own = stack.map(([, title]) => title);
-    for (const line of block.split('\n')) {
+    for (const line of block.split("\n")) {
       const match = HEADING.exec(line);
       if (!match) continue;
       const level = match[1].length;
@@ -110,7 +110,7 @@ export function headingTrails(pieces, root) {
       own = stack.map(([, title]) => title);
       stack.push([level, match[2]]);
     }
-    trails[index] = [...(root ? [root] : []), ...own.filter(Boolean)].join(' › ');
+    trails[index] = [...(root ? [root] : []), ...own.filter(Boolean)].join(" › ");
   });
   return trails;
 }
@@ -132,17 +132,17 @@ export function restoreInline(block, slots) {
 }
 
 const found = (text, pattern) => (text.match(pattern) ?? []).sort();
-const hashes = (text) => text.trimStart().length - text.trimStart().replace(/^#+/, '').length;
+const hashes = (text) => text.trimStart().length - text.trimStart().replace(/^#+/, "").length;
 
 /** What a Markdown block must keep: its sentinels and its link targets. */
 export function verify(source, translated) {
   if (String(found(source, SENTINEL)) !== String(found(translated, SENTINEL))) {
-    return 'code span or placeholder token lost';
+    return "code span or placeholder token lost";
   }
   const links = (text) => [...text.matchAll(LINK_TARGET)].map((m) => m[1]).sort();
-  if (String(links(source)) !== String(links(translated))) return 'link target changed';
-  if (source.trimStart().startsWith('#') && hashes(source) !== hashes(translated)) {
-    return 'heading level changed';
+  if (String(links(source)) !== String(links(translated))) return "link target changed";
+  if (source.trimStart().startsWith("#") && hashes(source) !== hashes(translated)) {
+    return "heading level changed";
   }
   return null;
 }

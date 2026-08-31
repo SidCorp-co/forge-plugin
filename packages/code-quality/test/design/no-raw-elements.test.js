@@ -153,7 +153,7 @@ test("inside the system, a second raw element is a variant that was never added"
               "Raw <button> inside the design system, in a file that does not define Button. " +
               "Add the variant to Button and compose it here, rather than a second <button> " +
               "carrying its own copy of the focus ring and the disabled semantics. " +
-              'Compose Button.',
+              "Compose Button.",
           },
         ],
       },
@@ -202,7 +202,7 @@ test("a message names where the primitive is imported from", () => {
           {
             message:
               "Raw <select> duplicates Select from @/components/ui, which owns the field metrics " +
-              'and a chevron, the OS one being unrestylable. Compose Select.',
+              "and a chevron, the OS one being unrestylable. Compose Select.",
           },
         ],
       },
@@ -300,7 +300,7 @@ test("the map is the mechanism: an element absent from it is never judged", () =
           {
             message:
               "Raw <table> duplicates DataTable, which owns its empty and error rows. " +
-              'Compose DataTable.',
+              "Compose DataTable.",
           },
         ],
       },

@@ -1,25 +1,25 @@
 // Where the gateway URL, API key, model and project glossary come from.
 
-import { existsSync, mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 
-import { CliError, err, readJson, writeAtomic } from '../util.mjs';
+import { CliError, err, readJson, writeAtomic } from "../util.mjs";
 
-const CONFIG_DIR = join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'vi-natural');
-export const CONFIG_PATH = join(CONFIG_DIR, 'config.json');
-const GLOSSARY_FILE = '.vi-glossary.json';
+const CONFIG_DIR = join(process.env.XDG_CONFIG_HOME || join(homedir(), ".config"), "vi-natural");
+export const CONFIG_PATH = join(CONFIG_DIR, "config.json");
+const GLOSSARY_FILE = ".vi-glossary.json";
 
-export const DEFAULT_BASE_URL = 'https://serp-api.musetools.com/v1';
-export const DEFAULT_MODEL = 'cx/gpt-5.6-luna';
-export const EFFORTS = ['minimal', 'low', 'medium', 'high'];
-export const DEFAULT_EFFORT = 'low';
+export const DEFAULT_BASE_URL = "https://serp-api.musetools.com/v1";
+export const DEFAULT_MODEL = "cx/gpt-5.6-luna";
+export const EFFORTS = ["minimal", "low", "medium", "high"];
+export const DEFAULT_EFFORT = "low";
 
 // `review` is a judgement call — whether a sentence is ambiguous is exactly the question reasoning
 // is for. The producing verbs are not: they follow a written contract, and reasoning talks itself
 // out of it. At `--effort high` luna dropped the `quý khách` of `trang-trong` in 4 of 9 samples of
 // one string; at `low`, 3 of 3 kept it.
-export const EFFORT_BY_VERB = { review: 'high' };
+export const EFFORT_BY_VERB = { review: "high" };
 
 export function findUp(filename, start) {
   let current = resolve(start ?? process.cwd());
@@ -52,29 +52,29 @@ export class Config {
   }
 
   get baseUrl() {
-    return this.pick('baseUrl', 'base_url', ['VI_NATURAL_BASE_URL', 'MUSETOOLS_BASE_URL'], DEFAULT_BASE_URL).replace(/\/+$/, '');
+    return this.pick("baseUrl", "base_url", ["VI_NATURAL_BASE_URL", "MUSETOOLS_BASE_URL"], DEFAULT_BASE_URL).replace(/\/+$/, "");
   }
 
   get apiKey() {
-    const key = this.pick('apiKey', 'api_key', ['VI_NATURAL_API_KEY', 'MUSETOOLS_API_KEY']);
+    const key = this.pick("apiKey", "api_key", ["VI_NATURAL_API_KEY", "MUSETOOLS_API_KEY"]);
     if (!key) {
       throw new CliError(
-        'no API key configured.\n  run: vi-natural login --key <key>\n' +
-          '  or set MUSETOOLS_API_KEY in the environment',
+        "no API key configured.\n  run: vi-natural login --key <key>\n" +
+          "  or set MUSETOOLS_API_KEY in the environment",
       );
     }
     return key;
   }
 
   get model() {
-    return this.pick('model', 'model', ['VI_NATURAL_MODEL'], DEFAULT_MODEL);
+    return this.pick("model", "model", ["VI_NATURAL_MODEL"], DEFAULT_MODEL);
   }
 
   get effort() {
     const fallback = EFFORT_BY_VERB[this.opts.verb] ?? DEFAULT_EFFORT;
-    const value = this.pick('effort', 'effort', ['VI_NATURAL_EFFORT'], fallback);
+    const value = this.pick("effort", "effort", ["VI_NATURAL_EFFORT"], fallback);
     if (!EFFORTS.includes(value)) {
-      throw new CliError(`effort must be one of ${EFFORTS.join(', ')}, not ${JSON.stringify(value)}`);
+      throw new CliError(`effort must be one of ${EFFORTS.join(", ")}, not ${JSON.stringify(value)}`);
     }
     return value;
   }
@@ -92,13 +92,13 @@ export class Config {
     }
     if (!path) return new Map();
     const data = readJson(path, {}) ?? {};
-    if (typeof data !== 'object' || Array.isArray(data)) {
+    if (typeof data !== "object" || Array.isArray(data)) {
       throw new CliError(`${path} must be a JSON object of term -> translation`);
     }
     this.glossaryPath = path;
     // Underscore keys carry project settings (_register, _region), not terms.
-    this.glossaryMeta = Object.fromEntries(Object.entries(data).filter(([k]) => k.startsWith('_')));
-    return new Map(Object.entries(data).filter(([k]) => !k.startsWith('_')));
+    this.glossaryMeta = Object.fromEntries(Object.entries(data).filter(([k]) => k.startsWith("_")));
+    return new Map(Object.entries(data).filter(([k]) => !k.startsWith("_")));
   }
 
   /** Key globs whose placeholder check is a known false alarm.
@@ -108,10 +108,10 @@ export class Config {
    *  keys that are prose about braces. */
   ignorePatterns(meta) {
     let raw = this.opts.ignore;
-    if (typeof raw === 'string') raw = raw.split(',').map((p) => p.trim()).filter(Boolean);
+    if (typeof raw === "string") raw = raw.split(",").map((p) => p.trim()).filter(Boolean);
     if (!raw || !raw.length) raw = (meta ?? this.glossaryMeta)._ignore;
     if (!raw || !raw.length) raw = this.file.ignore;
-    if (typeof raw === 'string') raw = [raw];
+    if (typeof raw === "string") raw = [raw];
     return [...(raw ?? [])];
   }
 
@@ -121,7 +121,7 @@ export class Config {
       process.env.VI_NATURAL_REGISTER ||
       (meta ?? this.glossaryMeta)._register ||
       this.file.register ||
-      'san-pham'
+      "san-pham"
     );
   }
 

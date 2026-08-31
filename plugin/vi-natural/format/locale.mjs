@@ -2,8 +2,8 @@
 //
 // Objects are Maps, from format/json-order.mjs — see that file for why an object would not do.
 
-import { cloneOrdered } from './json-order.mjs';
-import { CliError } from '../util.mjs';
+import { cloneOrdered } from "./json-order.mjs";
+import { CliError } from "../util.mjs";
 
 /** Every translatable string in the tree, as [path, text].
  *
@@ -15,7 +15,7 @@ export function flatten(node, path = []) {
     for (const [key, value] of node) items.push(...flatten(value, [...path, key]));
   } else if (Array.isArray(node)) {
     node.forEach((value, index) => items.push(...flatten(value, [...path, index])));
-  } else if (typeof node === 'string') {
+  } else if (typeof node === "string") {
     items.push([path, node]);
   }
   return items;
@@ -25,17 +25,17 @@ export function getPath(node, path) {
   let current = node;
   for (const step of path) {
     if (current instanceof Map) current = current.get(step);
-    else if (Array.isArray(current) && typeof step === 'number') current = current[step];
+    else if (Array.isArray(current) && typeof step === "number") current = current[step];
     else return null;
     if (current === undefined) return null;
   }
   return current ?? null;
 }
 
-const container = (step) => (typeof step === 'number' ? [] : new Map());
+const container = (step) => (typeof step === "number" ? [] : new Map());
 
 function descend(node, step, next) {
-  if (typeof step === 'number') {
+  if (typeof step === "number") {
     while (node.length <= step) node.push(container(next));
     if (node[step] === null || node[step] === undefined) node[step] = container(next);
     return node[step];
@@ -52,8 +52,8 @@ export function setPath(node, path, value) {
     current = descend(current, path[index], path[index + 1]);
   }
   const leaf = path[path.length - 1];
-  if (typeof leaf === 'number') {
-    while (current.length <= leaf) current.push('');
+  if (typeof leaf === "number") {
+    while (current.length <= leaf) current.push("");
     current[leaf] = value;
   } else {
     current.set(leaf, value);
@@ -61,7 +61,7 @@ export function setPath(node, path, value) {
 }
 
 export function label(path) {
-  return path.map(String).join('.');
+  return path.map(String).join(".");
 }
 
 /** Which source strings still need a translation in `target`. */
@@ -70,11 +70,11 @@ export function pending(source, target, { overwrite = false, keys = null } = {})
   const out = [];
   for (const [path, text] of flatten(source)) {
     const name = label(path);
-    if (wanted && !wanted.has(name) && !wanted.has(name.split('.')[0])) continue;
+    if (wanted && !wanted.has(name) && !wanted.has(name.split(".")[0])) continue;
     if (!text.trim()) continue;
     if (!overwrite) {
       const existing = getPath(target, path);
-      if (typeof existing === 'string' && existing.trim() && existing !== text) continue;
+      if (typeof existing === "string" && existing.trim() && existing !== text) continue;
     }
     out.push([path, text]);
   }

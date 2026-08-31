@@ -152,7 +152,7 @@ export const deps = async (rest) => {
   if (!candidates.length) {
     fail(
       `No issue carries the sentence "${PROSE.marker}" (${depsConvention().from}).\n` +
-        'Set `deps: { marker, blockedBy, blocks }` in .forge.json if this tracker words it differently.',
+        "Set `deps: { marker, blockedBy, blocks }` in .forge.json if this tracker words it differently.",
     );
   }
   /* Only `description` is read, and the whole body is ~8% more wire for nothing. */

@@ -4,25 +4,25 @@
 // additive (reversible by dropping what it added). Three ways rather than one warning, because a
 // checker that fires on every migration is one nobody reads. It reads SQL text, not intent.
 
-import { spawnSync } from 'node:child_process';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { spawnSync } from "node:child_process";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
 
 const DESTRUCTIVE = [
-  [/\bDROP\s+COLUMN\b/i, 'drops a column — its values are not recoverable'],
-  [/\bDROP\s+TABLE\b/i, 'drops a table — its rows are not recoverable'],
-  [/\bTRUNCATE\b/i, 'truncates — every row goes'],
-  [/\bDELETE\s+FROM\b/i, 'deletes rows'],
-  [/\bDROP\s+TYPE\b/i, 'drops a type — columns using it go with it'],
+  [/\bDROP\s+COLUMN\b/i, "drops a column — its values are not recoverable"],
+  [/\bDROP\s+TABLE\b/i, "drops a table — its rows are not recoverable"],
+  [/\bTRUNCATE\b/i, "truncates — every row goes"],
+  [/\bDELETE\s+FROM\b/i, "deletes rows"],
+  [/\bDROP\s+TYPE\b/i, "drops a type — columns using it go with it"],
   [
     /\bALTER\s+COLUMN\s+\S+\s+TYPE\b/i,
     "changes a column's type — a narrowing cast silently loses precision or truncates",
   ],
 ];
 const TIGHTENING = [
-  [/\bSET\s+NOT\s+NULL\b/i, 'fails if any existing row holds NULL'],
-  [/\bADD\s+CONSTRAINT\b[\s\S]*\b(UNIQUE|CHECK|FOREIGN\s+KEY)\b/i, 'fails if existing rows violate it'],
-  [/\bCREATE\s+UNIQUE\s+INDEX\b/i, 'fails if existing rows are not unique'],
+  [/\bSET\s+NOT\s+NULL\b/i, "fails if any existing row holds NULL"],
+  [/\bADD\s+CONSTRAINT\b[\s\S]*\b(UNIQUE|CHECK|FOREIGN\s+KEY)\b/i, "fails if existing rows violate it"],
+  [/\bCREATE\s+UNIQUE\s+INDEX\b/i, "fails if existing rows are not unique"],
 ];
 // DROP INDEX and DROP CONSTRAINT are absent on purpose: rebuilt from the schema, so no data is
 // at stake.
@@ -32,27 +32,27 @@ const RANK = { additive: 0, tightening: 1, destructive: 2, unreadable: 2 };
 function classify(path) {
   let sql;
   try {
-    sql = readFileSync(path, 'utf8');
+    sql = readFileSync(path, "utf8");
   } catch (error) {
-    return ['unreadable', [String(error.message ?? error)]];
+    return ["unreadable", [String(error.message ?? error)]];
   }
   // A line comment can contain the word DROP without doing anything.
-  const body = sql.replace(/--[^\n]*/g, ' ');
+  const body = sql.replace(/--[^\n]*/g, " ");
   for (const [group, verdict] of [
-    [DESTRUCTIVE, 'destructive'],
-    [TIGHTENING, 'tightening'],
+    [DESTRUCTIVE, "destructive"],
+    [TIGHTENING, "tightening"],
   ]) {
     const hits = group.filter(([rx]) => rx.test(body)).map(([, why]) => why);
     if (hits.length) return [verdict, hits];
   }
-  return ['additive', []];
+  return ["additive", []];
 }
 
 function walkSql(dir, out = []) {
   for (const name of readdirSync(dir).sort()) {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) walkSql(path, out);
-    else if (name.endsWith('.sql')) out.push(path);
+    else if (name.endsWith(".sql")) out.push(path);
   }
   return out;
 }
@@ -60,15 +60,15 @@ function walkSql(dir, out = []) {
 function since(ref, directory) {
   let known = new Set();
   try {
-    const out = spawnSync('git', ['ls-tree', '-r', '--name-only', ref, '--', directory], {
-      encoding: 'utf8',
+    const out = spawnSync("git", ["ls-tree", "-r", "--name-only", ref, "--", directory], {
+      encoding: "utf8",
       timeout: 10_000,
     });
     if (!out.error && out.status === 0) known = new Set(out.stdout.split(/\s+/).filter(Boolean));
   } catch {
     /* no git answer: everything counts as new, which errs toward classifying more */
   }
-  return walkSql(directory).filter((p) => !known.has(relative('.', p)));
+  return walkSql(directory).filter((p) => !known.has(relative(".", p)));
 }
 
 const USAGE = `Classify migrations by whether deploying them can be undone.
@@ -82,10 +82,10 @@ function main(argv) {
   let ref = null;
   const paths = [];
   for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === '-h' || argv[i] === '--help') {
+    if (argv[i] === "-h" || argv[i] === "--help") {
       process.stdout.write(`${USAGE}\n`);
       return 0;
-    } else if (argv[i] === '--since') ref = argv[++i];
+    } else if (argv[i] === "--since") ref = argv[++i];
     else paths.push(argv[i]);
   }
   if (paths.length === 0) {
@@ -95,7 +95,7 @@ function main(argv) {
 
   const files = ref ? since(ref, paths[0]) : paths;
   if (files.length === 0) {
-    process.stdout.write('no migrations to classify\n');
+    process.stdout.write("no migrations to classify\n");
     return 0;
   }
 
@@ -109,14 +109,14 @@ function main(argv) {
 
   if (worst === 2) {
     process.stdout.write(
-      '\nA destructive migration is the one deploy this pipeline does not take on its own: ' +
-        're-adding a column restores the schema and not the values, so no automatic rollback ' +
-        'exists. Say what is lost and ask.\n',
+      "\nA destructive migration is the one deploy this pipeline does not take on its own: " +
+        "re-adding a column restores the schema and not the values, so no automatic rollback " +
+        "exists. Say what is lost and ask.\n",
     );
   } else if (worst === 1) {
     process.stdout.write(
-      '\nTightening can halt a deploy midway on existing rows. Run it against a copy of the ' +
-        'deployed data before shipping; if it passes there, ship without asking.\n',
+      "\nTightening can halt a deploy midway on existing rows. Run it against a copy of the " +
+        "deployed data before shipping; if it passes there, ship without asking.\n",
     );
   }
   return worst;

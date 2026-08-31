@@ -1,38 +1,38 @@
 #!/usr/bin/env node
 // Argument parsing and command dispatch for `vi-natural`.
 
-import { CliError, err } from './util.mjs';
-import { Client } from './gateway/client.mjs';
-import { Config, DEFAULT_EFFORT, DEFAULT_MODEL, EFFORTS, EFFORT_BY_VERB } from './gateway/config.mjs';
-import { REGION_NAMES, REGISTER_NAMES } from './text/prompts.mjs';
-import * as account from './commands/account.mjs';
-import * as docCmd from './commands/doc.mjs';
-import * as i18nCmd from './commands/i18n.mjs';
-import * as reviewCmd from './commands/review.mjs';
+import { CliError, err } from "./util.mjs";
+import { Client } from "./gateway/client.mjs";
+import { Config, DEFAULT_EFFORT, DEFAULT_MODEL, EFFORTS, EFFORT_BY_VERB } from "./gateway/config.mjs";
+import { REGION_NAMES, REGISTER_NAMES } from "./text/prompts.mjs";
+import * as account from "./commands/account.mjs";
+import * as docCmd from "./commands/doc.mjs";
+import * as i18nCmd from "./commands/i18n.mjs";
+import * as reviewCmd from "./commands/review.mjs";
 
-export const VERSION = '2.0.0';
+export const VERSION = "2.0.0";
 
 // name → [takes a value, dest, allowed values]
 const COMMON = {
-  '--model': [true, 'model'],
-  '--effort': [true, 'effort', EFFORTS],
-  '--base-url': [true, 'baseUrl'],
-  '--temperature': [true, 'temperature'],
-  '--register': [true, 'register', REGISTER_NAMES],
-  '--region': [true, 'region', REGION_NAMES],
-  '--glossary': [true, 'glossary'],
-  '--ignore': [true, 'ignore'],
-  '--no-glossary': [false, 'noGlossary'],
-  '-v': [false, 'verbose'],
-  '--verbose': [false, 'verbose'],
+  "--model": [true, "model"],
+  "--effort": [true, "effort", EFFORTS],
+  "--base-url": [true, "baseUrl"],
+  "--temperature": [true, "temperature"],
+  "--register": [true, "register", REGISTER_NAMES],
+  "--region": [true, "region", REGION_NAMES],
+  "--glossary": [true, "glossary"],
+  "--ignore": [true, "ignore"],
+  "--no-glossary": [false, "noGlossary"],
+  "-v": [false, "verbose"],
+  "--verbose": [false, "verbose"],
 };
 
 const VERBS = {
-  translate: { common: true, positional: 'text', many: true, flags: { '-f': [true, 'file'], '--file': [true, 'file'], '--kind': [true, 'kind', ['ui', 'doc', 'prose']] } },
-  i18n: { common: true, positional: 'source', flags: { '-o': [true, 'out'], '--out': [true, 'out'], '--overwrite': [false, 'overwrite'], '--keys': [true, 'keys'], '--prune': [false, 'prune'], '--check': [false, 'check'], '--dry-run': [false, 'dryRun'] } },
-  doc: { common: true, positional: 'source', flags: { '-o': [true, 'out'], '--out': [true, 'out'], '--dry-run': [false, 'dryRun'] } },
-  review: { common: true, positional: 'source', flags: { '--json': [false, 'asJson'], '--fix': [false, 'fix'] } },
-  login: { flags: { '--key': [true, 'key'], '--base-url': [true, 'baseUrl'], '--model': [true, 'model'], '--effort': [true, 'effort', EFFORTS], '--register': [true, 'register', REGISTER_NAMES], '--region': [true, 'region', REGION_NAMES] } },
+  translate: { common: true, positional: "text", many: true, flags: { "-f": [true, "file"], "--file": [true, "file"], "--kind": [true, "kind", ["ui", "doc", "prose"]] } },
+  i18n: { common: true, positional: "source", flags: { "-o": [true, "out"], "--out": [true, "out"], "--overwrite": [false, "overwrite"], "--keys": [true, "keys"], "--prune": [false, "prune"], "--check": [false, "check"], "--dry-run": [false, "dryRun"] } },
+  doc: { common: true, positional: "source", flags: { "-o": [true, "out"], "--out": [true, "out"], "--dry-run": [false, "dryRun"] } },
+  review: { common: true, positional: "source", flags: { "--json": [false, "asJson"], "--fix": [false, "fix"] } },
+  login: { flags: { "--key": [true, "key"], "--base-url": [true, "baseUrl"], "--model": [true, "model"], "--effort": [true, "effort", EFFORTS], "--register": [true, "register", REGISTER_NAMES], "--region": [true, "region", REGION_NAMES] } },
   models: { common: true },
   doctor: { common: true },
 };
@@ -51,11 +51,11 @@ Natural Vietnamese for i18n files and docs, via an OpenAI-compatible gateway.
 
 Common options:
   --model M          model id (default ${DEFAULT_MODEL})
-  --effort E         ${EFFORTS.join('|')} (default ${DEFAULT_EFFORT}, ${EFFORT_BY_VERB.review} for review)
+  --effort E         ${EFFORTS.join("|")} (default ${DEFAULT_EFFORT}, ${EFFORT_BY_VERB.review} for review)
   --base-url U       gateway base url
   --temperature N    sampling temperature (default 0.3)
-  --register R       ${REGISTER_NAMES.join(' | ')}
-  --region R         ${REGION_NAMES.join(' | ')}
+  --register R       ${REGISTER_NAMES.join(" | ")}
+  --region R         ${REGION_NAMES.join(" | ")}
   --glossary PATH    path to a term glossary JSON
   --ignore GLOBS     comma-separated key globs exempt from the placeholder check
   --no-glossary      ignore .vi-glossary.json even if one is found
@@ -65,21 +65,21 @@ Common options:
 Exit codes: 0 clean · 1 error, or review found something · 2 written, some strings refused.`;
 
 function parse(argv) {
-  if (argv.includes('--version')) return { command: 'version' };
+  if (argv.includes("--version")) return { command: "version" };
   const command = argv[0];
-  if (!command || command === '-h' || command === '--help') return { command: 'help' };
+  if (!command || command === "-h" || command === "--help") return { command: "help" };
   const spec = VERBS[command];
   if (!spec) throw new CliError(`unknown command: ${command}\n\n${USAGE}`);
 
   const flags = { ...(spec.common ? COMMON : {}), ...(spec.flags ?? {}) };
-  const args = { command, temperature: 0.3, kind: 'ui', text: [] };
+  const args = { command, temperature: 0.3, kind: "ui", text: [] };
   const positional = [];
 
   for (let index = 1; index < argv.length; index += 1) {
     const token = argv[index];
-    if (token === '-h' || token === '--help') return { command: 'help' };
+    if (token === "-h" || token === "--help") return { command: "help" };
     if (!(token in flags)) {
-      if (token.startsWith('-') && token !== '-') throw new CliError(`unknown option: ${token}\n\n${USAGE}`);
+      if (token.startsWith("-") && token !== "-") throw new CliError(`unknown option: ${token}\n\n${USAGE}`);
       positional.push(token);
       continue;
     }
@@ -91,9 +91,9 @@ function parse(argv) {
     const value = argv[++index];
     if (value === undefined) throw new CliError(`${token} needs a value`);
     if (allowed && !allowed.includes(value)) {
-      throw new CliError(`${token} must be one of ${allowed.join(', ')}, not ${value}`);
+      throw new CliError(`${token} must be one of ${allowed.join(", ")}, not ${value}`);
     }
-    args[dest] = dest === 'temperature' ? Number(value) : value;
+    args[dest] = dest === "temperature" ? Number(value) : value;
   }
 
   if (spec.many) args.text = positional;
@@ -140,11 +140,11 @@ export async function main(argv) {
     err(`vi-natural: ${error.message}`);
     return 1;
   }
-  if (args.command === 'help') {
+  if (args.command === "help") {
     process.stdout.write(`${USAGE}\n`);
     return 0;
   }
-  if (args.command === 'version') {
+  if (args.command === "version") {
     process.stdout.write(`${VERSION}\n`);
     return 0;
   }
@@ -160,8 +160,8 @@ export async function main(argv) {
 }
 
 if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
-  process.on('SIGINT', () => {
-    err('interrupted');
+  process.on("SIGINT", () => {
+    err("interrupted");
     process.exit(130);
   });
   process.exit(await main(process.argv.slice(2)));

@@ -23,10 +23,10 @@ function braceSpans(text) {
   let depth = 0;
   let start = 0;
   for (let index = 0; index < text.length; index += 1) {
-    if (text[index] === '{') {
+    if (text[index] === "{") {
       if (depth === 0) start = index;
       depth += 1;
-    } else if (text[index] === '}' && depth) {
+    } else if (text[index] === "}" && depth) {
       depth -= 1;
       if (depth === 0) spans.push([start, index + 1]);
     }
@@ -42,21 +42,21 @@ function add(counts, token) {
  *  translator may reshape an ICU plural block but not rename its variable. */
 export function extract(text) {
   const counts = new Map();
-  if (typeof text !== 'string') return counts;
+  if (typeof text !== "string") return counts;
   const masked = [...text];
   for (const [start, end] of braceSpans(text)) {
     const chunk = text.slice(start, end);
     const match = BRACE.exec(chunk);
-    const name = (match ? match[1] : '').trim();
+    const name = (match ? match[1] : "").trim();
     // Swapping `{{name}}` for `{name}` breaks the app as surely as dropping it.
-    add(counts, chunk.startsWith('{{') ? `{{${name}}}` : `{${name}}`);
-    for (let index = start; index < end; index += 1) masked[index] = '\0';
+    add(counts, chunk.startsWith("{{") ? `{{${name}}}` : `{${name}}`);
+    for (let index = start; index < end; index += 1) masked[index] = "\0";
   }
-  let rest = masked.join('');
+  let rest = masked.join("");
   for (const pattern of PATTERNS) {
     for (const match of [...rest.matchAll(pattern)]) {
       add(counts, match[0]);
-      rest = rest.slice(0, match.index) + '\0'.repeat(match[0].length) + rest.slice(match.index + match[0].length);
+      rest = rest.slice(0, match.index) + "\0".repeat(match[0].length) + rest.slice(match.index + match[0].length);
     }
   }
   return counts;
@@ -83,7 +83,7 @@ export function diff(source, translated) {
   const added = subtract(got, want);
   if (missing.size === 0 && added.size === 0) return null;
   const parts = [];
-  if (missing.size) parts.push(`missing ${expand(missing).join(', ')}`);
-  if (added.size) parts.push(`invented ${expand(added).join(', ')}`);
-  return parts.join('; ');
+  if (missing.size) parts.push(`missing ${expand(missing).join(", ")}`);
+  if (added.size) parts.push(`invented ${expand(added).join(", ")}`);
+  return parts.join("; ");
 }

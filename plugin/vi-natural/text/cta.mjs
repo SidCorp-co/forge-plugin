@@ -1,7 +1,7 @@
 // Call-to-action discipline: a button says the verb, the screen says the noun. See VI-NATURAL.md.
 
-import { stripChars } from '../util.mjs';
-import { GENERIC, VI_BARE } from '../vi-text.mjs';
+import { stripChars } from "../util.mjs";
+import { GENERIC, VI_BARE } from "../vi-text.mjs";
 
 export { GENERIC };
 
@@ -15,7 +15,7 @@ const NOT_A_BUTTON =
 const SHARED_NAMESPACE = /^(common|shared|actions?|buttons?|ui|global)\./i;
 
 export function normalize(text) {
-  return stripChars(stripChars(stripChars(text.trim(), '…'), '.?!:'), ' \t\n\r').toLowerCase();
+  return stripChars(stripChars(stripChars(text.trim(), "…"), ".?!:"), " \t\n\r").toLowerCase();
 }
 
 export function isActionKey(label) {
@@ -37,7 +37,7 @@ export function genericIndex(pairs) {
 export function isBare(vietnamese, index) {
   const label = normalize(vietnamese);
   // One syllable is always one word, so it cannot be a verb plus an object.
-  if (label && !label.includes(' ')) return true;
+  if (label && !label.includes(" ")) return true;
   return BARE.has(label) || Boolean(index && index.has(label));
 }
 
@@ -66,7 +66,7 @@ export function collapseGroups(pairs, index, minimum = 3) {
   for (const [label, english, vietnamese] of pairs) {
     const words = normalize(english).split(/\s+/).filter(Boolean);
     if (words.length < 2 || words.length > 4 || !(words[0] in GENERIC)) continue;
-    if (!isActionKey(label) || vietnamese.includes('{')) continue;
+    if (!isActionKey(label) || vietnamese.includes("{")) continue;
     // A noun phrase is not a button whose verb could be shared.
     if (!normalize(vietnamese).startsWith(normalize(GENERIC[words[0]]))) continue;
     if (!groups.has(words[0])) groups.set(words[0], []);

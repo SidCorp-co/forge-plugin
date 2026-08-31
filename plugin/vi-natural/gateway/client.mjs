@@ -4,13 +4,13 @@
 // connection whose origin has said nothing for ~100 seconds. `timeout` is therefore the longest
 // silence tolerated BETWEEN chunks, not a budget for the whole call — see VI-NATURAL.md.
 
-import { CliError, err } from '../util.mjs';
+import { CliError, err } from "../util.mjs";
 
 // 520/522/524 are Cloudflare's own: the origin misbehaved or went quiet. They are worth retrying
 // and are in no OpenAI error table, which is why a 524 once aborted a run instead of retrying.
 const RETRY_STATUS = new Set([408, 409, 429, 500, 502, 503, 504, 520, 522, 524]);
 // Cloudflare rejects a default agent string with 1010.
-const USER_AGENT = 'vi-natural/2.0';
+const USER_AGENT = "vi-natural/2.0";
 const NOTE_EVERY_MS = 30_000;
 
 class StreamBroken extends Error {}
@@ -45,9 +45,9 @@ export class Client {
   headers() {
     return {
       Authorization: `Bearer ${this.config.apiKey}`,
-      'Content-Type': 'application/json',
-      'User-Agent': USER_AGENT,
-      Accept: 'text/event-stream',
+      "Content-Type": "application/json",
+      "User-Agent": USER_AGENT,
+      Accept: "text/event-stream",
     };
   }
 
@@ -55,8 +55,8 @@ export class Client {
     const payload = {
       model: this.config.model,
       messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
+        { role: "system", content: system },
+        { role: "user", content: user },
       ],
       temperature,
       stream: true,
@@ -66,7 +66,7 @@ export class Client {
     };
     const { effort } = this.config;
     if (effort) payload.reasoning_effort = effort;
-    if (jsonMode) payload.response_format = { type: 'json_object' };
+    if (jsonMode) payload.response_format = { type: "json_object" };
     if (maxTokens) payload.max_tokens = maxTokens;
     return payload;
   }
@@ -78,7 +78,7 @@ export class Client {
     for (let attempt = 0; attempt < this.retries; attempt += 1) {
       try {
         const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
-          method: 'POST',
+          method: "POST",
           headers: this.headers(),
           body: JSON.stringify(payload),
         });
@@ -109,7 +109,7 @@ export class Client {
     const pieces = [];
     let usage = null;
     let done = false;
-    let buffered = '';
+    let buffered = "";
     const started = Date.now();
     let noted = started;
 
@@ -118,16 +118,16 @@ export class Client {
       if (chunk.done) break;
       if (this.verbose && Date.now() - noted > NOTE_EVERY_MS) {
         noted = Date.now();
-        err(`    …${Math.round((noted - started) / 1000)}s, ${pieces.join('').length} chars`);
+        err(`    …${Math.round((noted - started) / 1000)}s, ${pieces.join("").length} chars`);
       }
       buffered += decoder.decode(chunk.value, { stream: true });
-      const lines = buffered.split('\n');
-      buffered = lines.pop() ?? '';
+      const lines = buffered.split("\n");
+      buffered = lines.pop() ?? "";
       for (const raw of lines) {
         const line = raw.trim();
-        if (!line.startsWith('data:')) continue;
+        if (!line.startsWith("data:")) continue;
         const body = line.slice(5).trim();
-        if (body === '[DONE]') {
+        if (body === "[DONE]") {
           done = true;
           break;
         }
@@ -148,9 +148,9 @@ export class Client {
     }
     reader.cancel().catch(() => {});
 
-    const content = pieces.join('');
-    if (!done && !content) throw new StreamBroken('stream ended before any content arrived');
-    if (!content.trim()) throw new CliError('model returned empty content');
+    const content = pieces.join("");
+    if (!done && !content) throw new StreamBroken("stream ended before any content arrived");
+    if (!content.trim()) throw new CliError("model returned empty content");
     // Truncated mid-answer: the JSON will not parse and a half-written batch is worse than a
     // retried one.
     if (!done) throw new StreamBroken(`stream ended after ${content.length} chars, before [DONE]`);
@@ -170,7 +170,7 @@ export class Client {
     let response;
     try {
       response = await fetch(url, {
-        headers: { Authorization: `Bearer ${this.config.apiKey}`, 'User-Agent': USER_AGENT },
+        headers: { Authorization: `Bearer ${this.config.apiKey}`, "User-Agent": USER_AGENT },
         signal: AbortSignal.timeout(30_000),
       });
     } catch (error) {
