@@ -23,7 +23,9 @@ export const claimProblems = (text, { verbs, usageOf, documented, sources }) => 
   for (const { verb } of calls) if (!verbs.includes(verb)) out.push(`\`forge ${verb}\` is no verb`);
   for (const { verb, flag } of flags) {
     const usage = verbs.includes(verb) ? usageOf(verb) : "";
-    if (usage.includes("--") && !usage.includes(flag)) out.push(`\`forge ${verb} ${flag}\` is in no usage line`);
+    /* Held to a boundary: `--den` is in `--deny` by substring, and a truncated flag is the drift. */
+    const has = new RegExp(`${flag}(?![\\w-])`, "u").test(usage);
+    if (usage.includes("--") && !has) out.push(`\`forge ${verb} ${flag}\` is in no usage line`);
   }
   for (const name of hows) if (!documented.includes(name)) out.push(`\`--how ${name}\` names no document`);
   for (const name of envs) if (!sources.includes(name)) out.push(`${name} is read by nothing`);

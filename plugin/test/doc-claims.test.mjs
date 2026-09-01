@@ -64,6 +64,8 @@ test("a renamed flag, a dropped verb, a document that moved and a dead switch ea
     "`--how ghost` names no document",
     "FORGE_MADE_UP is read by nothing",
   ]);
+  /* A truncation is in the real flag by substring, and truncation is how a flag drifts. */
+  assert.deepEqual(claimProblems("`forge hooks --den`", held), ["`forge hooks --den` is in no usage line"]);
 });
 
 /* The flags of a verb that takes a sub-verb live with the sub-verb, so checking them here would fail

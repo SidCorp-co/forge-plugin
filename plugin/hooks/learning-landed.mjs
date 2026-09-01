@@ -9,19 +9,20 @@ import { BRIEF, guarded, swept } from "../src/learning.mjs";
 const ev = readEvent();
 /* A link out of a guarded directory answers as its target, so the name the call used counts too. */
 const spelled = named(ev).filter((one) => guarded(one));
-/* Keyed by what the name resolves to: a link and its target are one file, named once. */
-const landed = [...new Map(
+/* Keyed by what a name resolves to, which is the key the gate stamps — a link and its target are one
+   file. The name is carried alongside because the refusal has to print the one the call used. */
+const landed = new Map(
   [...touched(ev), ...swept(ev, FRESH_MS)].map((one) => [settled(one), one]),
-).values()];
+);
 
 const asked = [];
-for (const file of landed) {
+for (const [file, spelling] of landed) {
   const asLink = spelled.find((one) => settled(one) === file);
-  if (!guarded(file) && !asLink) continue;
+  if (!guarded(file) && !guarded(spelling) && !asLink) continue;
   if (askedByAnyone(ev, file, "learning-gate", { set: false })) continue;
   if (askedAlready(ev, file, "learning-gate", { set: false })) continue;
   if (askedByAnyone(ev, file, "learning-landed")) continue;
-  asked.push(basename(asLink ?? file));
+  asked.push(basename(asLink ?? spelling));
 }
 
 if (asked.length) {

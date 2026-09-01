@@ -90,6 +90,7 @@ test("a quote the shell escapes does not end a command", () => {
 test("a command that hands the next one its target is one command", () => {
   assert.equal(decide(`printf '%s' ${MEMORY}/trap.md | xargs touch`).allowed, false, "a pipe is not a boundary");
   assert.equal(decide(`python3 -c 'p="${MEMORY}/trap.md"; open(p, "w")'`).allowed, false, "nor a program's own `;`");
+  assert.equal(decide(`printf '%s' ${MEMORY}/trap.md |& xargs touch`).allowed, false, "nor the `&` in `|&`");
 });
 
 test("a `-c` body inside a `-c` body is unwrapped too", () => {

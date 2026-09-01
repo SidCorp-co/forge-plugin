@@ -219,15 +219,14 @@ export const unwrapped = (text) => {
   return out;
 };
 
-/** Where each command begins and ends. A quoted body is never cut — a program's own `;` is not a
- *  boundary — nor is a pipe, which hands the next command its arguments. An unclosed quote joins. */
+/** Where each command begins and ends. A quoted body is never cut, nor a pipeline split: both hand the
+ *  next command its arguments. An unclosed quote joins; a backslash escapes, single quotes excepted. */
 export const spans = (text) => {
   const out = [];
   let start = 0;
   let quote = "";
   for (let at = 0; at < text.length; at += 1) {
     const one = text[at];
-    /* A backslash escapes what follows, single quotes excepted: read as a quote, a write was lost. */
     if (one === "\\" && quote !== "'") {
       at += 1;
       continue;
@@ -241,6 +240,11 @@ export const spans = (text) => {
       continue;
     }
     const pair = text.slice(at, at + 2);
+    /* `|&` is a pipeline, and the `&` in it is not a command's end. */
+    if (pair === "|&") {
+      at += 1;
+      continue;
+    }
     if (one === ";" || one === "\n" || one === "&" || pair === "||") {
       out.push({ start, end: at });
       if (pair === "&&" || pair === "||") at += 1;

@@ -122,7 +122,8 @@ export const hooks = (argv) => {
   entries = held.notes ? noted : entries.filter((one) => REFUSALS.includes(one.decision));
   const also = !held.notes && noted.length ? ` ${noted.length} note(s): \`forge hooks --notes\`.` : "";
   if (!entries.length) {
-    return console.log(`No hook refusals logged. ${HOOK_LOG_PATH} appears on the first one.${also}`);
+    const what = held.notes ? "notes" : "hook refusals";
+    return console.log(`No ${what} logged. ${HOOK_LOG_PATH} appears on the first one.${also}`);
   }
   const last = Number(held.last || TAIL);
   for (const one of entries.slice(-last)) console.log(line(one));

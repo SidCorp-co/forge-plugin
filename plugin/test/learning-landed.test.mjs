@@ -176,6 +176,34 @@ test("a guarded name that links out of the tree is swept as itself", () => {
   assert.match(JSON.parse(run.stdout).reason, /points-out\.md/u, "named by the guarded name");
 });
 
+/* The gate stamps what the name resolves to, and the sweep answers with the name: keyed apart, a file
+   the gate asked about before the write is asked about again after it. */
+test("a swept link the gate already asked about is not asked again", () => {
+  const session = randomUUID();
+  const gate = new URL("../hooks/learning-gate.mjs", import.meta.url).pathname;
+  const project = mkdtempSync(join(tmpdir(), "landed-swept-asked-"));
+  mkdirSync(join(project, "memory"));
+  const outside = join(mkdtempSync(join(tmpdir(), "landed-swept-real-")), "kept.md");
+  writeFileSync(outside, "a line\n");
+  const link = join(project, "memory", "asked-then-swept.md");
+  symlinkSync(outside, link);
+  const asking = callHook(gate, { session_id: session, tool_name: "Write", tool_input: { file_path: link, content: "a fact" } }, HOME);
+  assert.equal(JSON.parse(asking.stdout).hookSpecificOutput.permissionDecision, "deny", "asked first");
+  writeFileSync(outside, "the fact, written\n");
+  const run = callHook(
+    HOOK,
+    {
+      session_id: session,
+      tool_name: "Bash",
+      tool_input: { command: "node build-notes.mjs" },
+      cwd: project,
+      transcript_path: join(project, `${session}.jsonl`),
+    },
+    HOME,
+  );
+  assert.equal(run.stdout.trim(), "", "and not asked again by the half that sweeps");
+});
+
 /* A guarded directory is the project's, not one session's: two sessions swept the same memory
    directory and both stopped on a file one of them had already been asked about. */
 test("a file one session was asked about is not asked again in another", () => {
@@ -196,6 +224,29 @@ test("a file one session was asked about is not asked again in another", () => {
   writeFileSync(join(project, "memory", "shared.md"), "a line\n");
   assert.ok(asking(randomUUID()), "the first session asks");
   assert.equal(asking(randomUUID()), "", "and the second does not ask again");
+});
+
+/* A skill directory git has never seen is where a new skill lands, so the tracked list alone cannot
+   find it: the whole point is the file nobody committed yet. */
+test("a skill directory the tree has never tracked is swept too", () => {
+  const session = randomUUID();
+  const repo = mkdtempSync(join(tmpdir(), "landed-untracked-"));
+  mkdirSync(join(repo, "skills", "brand-new"), { recursive: true });
+  writeFileSync(join(repo, "README.md"), "a tree\n");
+  for (const args of [["init", "-q"], ["add", "README.md"], ["commit", "-qm", "first"]]) {
+    const run = spawnSync("git", ["-C", repo, ...args], {
+      encoding: "utf8",
+      env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" },
+    });
+    assert.equal(run.status, 0, run.stderr);
+  }
+  writeFileSync(join(repo, "skills", "brand-new", "SKILL.md"), "the method\n");
+  const run = callHook(
+    HOOK,
+    { session_id: session, tool_name: "Bash", tool_input: { command: "node make-skill.mjs" }, cwd: repo },
+    HOME,
+  );
+  assert.match(JSON.parse(run.stdout).reason, /SKILL\.md/u, "nothing named it and nothing tracked it");
 });
 
 /* A fresh mtime is not authorship: `git pull` restamps every skill file it carries, and asking the
