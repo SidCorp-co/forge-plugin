@@ -1,4 +1,5 @@
 /* Two entry points ask one question — before a write, and after one no check could read. */
+import { basename } from "node:path";
 
 export const GUARDED = /\/memory\/|\/skills\//;
 export const FILE_TYPES = ["user", "feedback", "project", "reference"];
@@ -10,4 +11,4 @@ export const BRIEF =
   + "rounds record nothing.";
 
 export const guarded = (path) =>
-  GUARDED.test(path) && path.endsWith(".md") && !path.endsWith("MEMORY.md");
+  GUARDED.test(path) && path.endsWith(".md") && basename(path) !== "MEMORY.md";

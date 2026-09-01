@@ -43,6 +43,12 @@ test("it is asked once, and never for the index", () => {
   assert.equal(landed(randomUUID(), "MEMORY.md"), null, "the index is not a memory");
 });
 
+/* Only the index is the index: the gate compares the file's name and this half compared the end of
+   the path, so a file the gate asks about was one the backstop never did. */
+test("a name that merely ends in the index's is a memory like any other", () => {
+  assert.match(landed(randomUUID(), "OLD-MEMORY.md"), /OLD-MEMORY\.md/u);
+});
+
 test("a file nobody just wrote is somebody else's business", () => {
   assert.equal(landed(randomUUID(), "written-yesterday.md", { old: 86_400_000 }), null);
 });
@@ -66,4 +72,25 @@ test("a write the gate asked about before it landed is not asked about after", (
   );
   assert.equal(JSON.parse(asking.stdout).hookSpecificOutput.permissionDecision, "deny", "asked first");
   assert.equal(landed(session, "asked-first.md"), null);
+});
+
+/* A link to the file counts as much as a link to its directory: one resolves and the other did not. */
+test("a link to the file itself is the same file to both halves", () => {
+  const session = randomUUID();
+  const gate = new URL("../hooks/learning-gate.mjs", import.meta.url).pathname;
+  const elsewhere = join(mkdtempSync(join(tmpdir(), "landed-file-")), "memory");
+  mkdirSync(elsewhere);
+  writeFileSync(join(room, "by-a-link.md"), "a line\n");
+  symlinkSync(join(room, "by-a-link.md"), join(elsewhere, "by-a-link.md"));
+  const asking = callHook(
+    gate,
+    {
+      session_id: session,
+      tool_name: "Write",
+      tool_input: { file_path: join(elsewhere, "by-a-link.md"), content: "a fact" },
+    },
+    HOME,
+  );
+  assert.equal(JSON.parse(asking.stdout).hookSpecificOutput.permissionDecision, "deny", "asked first");
+  assert.equal(landed(session, "by-a-link.md"), null, "and not asked again through the link");
 });

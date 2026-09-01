@@ -51,9 +51,8 @@ test("a path resolves through a second name, a reassignment, a modifier and a pr
   assert.equal(decide(`env M=${MEMORY} cp a $M/trap.md`).allowed, false, "after a command that takes one");
 });
 
-/* Resolving on whitespace alone invented an assignment out of quoted data, and a phantom value
-   answers for a name the shell leaves unset — which reads a write as landing somewhere it does not.
-   So an assignment is what a shell would set: a line, a separator, or a command that takes one. */
+/* An assignment is what a shell would set — a line, a separator, a command that takes one — because
+   a phantom out of quoted data answers for a name the shell leaves unset. */
 test("text that looks like an assignment but sets nothing resolves nothing", () => {
   assert.equal(decide(`echo DEST=${MEMORY} ; printf y > "$DEST/trap.md"`).allowed, true);
   assert.equal(decide(`node -e "const s = 'M=${MEMORY}'" ; printf y > $M/trap.md`).allowed, true);
@@ -116,6 +115,20 @@ test("the tracker's own memory write is the same decision through the shell", ()
   assert.match(reason, /Record only what cost a cycle/u);
   assert.match(reason, /metadata\.checked/u);
   assert.equal(decide(`forge call forge_memory_search '{"q":"x"}'`).allowed, true, "recall is free");
+});
+
+/* Naming a thing is not calling it: a grep for the endpoint was refused as a write to it. */
+test("a command that only names the tracker's endpoint is not writing to it", () => {
+  const named = `forge${"_"}memory${"_"}write`;
+  assert.equal(decide(`grep -rn ${named} plugin/hooks`).allowed, true);
+  assert.equal(decide(`forge call ${named} '{"source":"note"}'`).allowed, false, "the call is");
+});
+
+/* A wrapper counts where a verb counts: promoting a `-c` body promoted one quoted in a message too. */
+test("a `-c` body quoted inside an argument is not the shell running one", () => {
+  assert.equal(decide(`git commit -m "ran sh -c 'cp a b'" -- ${MEMORY}/a.md`).allowed, true);
+  assert.equal(decide(`sh -c 'cp a ${MEMORY}/trap.md'`).allowed, false, "at the start it is");
+  assert.equal(decide(`ls | xargs -I{} sh -c 'cp {} ${MEMORY}/trap.md'`).allowed, false, "after a wrapper too");
 });
 
 test("a heredoc through a variable-held memory path is refused", () => {

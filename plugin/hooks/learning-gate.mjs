@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Stop once between deciding to record something and recording it. A memory row is project
-// knowledge; a skill edit develops the method. how/learning-gate.md says why the two must not merge.
+// Stop once between deciding to record something and recording it: a memory row is project
+// knowledge, a skill edit develops the method, and how/learning-gate.md says why they must not merge.
 
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
@@ -8,8 +8,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { REDIRECT, WRITES, askedAlready, deny, how, readEvent, settled, shellText } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../src/learning.mjs";
-// A write shape counts only as its own token, so an assignment and a `cd` resolve here; a value that
-// runs a command does not. how/learning-gate.md.
+// A write shape counts only as its own token, so an assignment and a `cd` resolve here.
 const CHDIR = /(?:^|[;&|\n])\s*(?:cd|pushd)\s+("[^"]*"|'[^']*'|[^\s;&|]+)/gu;
 const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
 const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
@@ -84,6 +83,8 @@ const tool = ev.tool_name ?? "";
 const ti = ev.tool_input ?? {};
 
 const TRACKER = /forge[_.]memory[_.]write/;
+/* Through the shell the CLI is the caller, so the verb has to be there: a grep is a read. */
+const CALLED = /\bforge\s+call\s+forge[_.]memory[_.]write\b/;
 
 const tracker = (src) =>
   deny(
@@ -105,7 +106,7 @@ if (TRACKER.test(tool)) {
 if (tool === "Bash") {
   const text = shellText(ti.command);
   // The CLI reaches the endpoint the MCP tool does, and a payload carries no path to recognise.
-  if (TRACKER.test(text) && !/"checked"/.test(text)) tracker("");
+  if (CALLED.test(text) && !/"checked"/.test(text)) tracker("");
   const base = chdir(text);
   const named = WRITES.test(text) ? (text.match(MD_TOKEN) ?? []) : [];
   const aimed = [...text.matchAll(REDIRECT)]

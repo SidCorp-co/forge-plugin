@@ -14,7 +14,7 @@ import {
   askedAlready,
   deny,
   readEvent,
-  transcript,
+  turnRecords,
   unspentAdvice,
   how,
   writesInside,
@@ -50,7 +50,7 @@ if (
   process.exit(0);
 }
 
-const records = transcript(ev.transcript_path ?? "");
+const records = turnRecords(ev.transcript_path ?? "");
 const root = repoRoot(ev.cwd ?? process.cwd());
 if (!records || !root || !advisedThisTurn(records) || !writesInside(ev, root)) process.exit(0);
 

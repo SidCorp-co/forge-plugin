@@ -2,7 +2,7 @@
 // once-per-file-per-session stamp. Why write detection asks the disk, not the shell: docs/HOOKS.md.
 
 import { createHash } from "node:crypto";
-import { readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 
@@ -99,6 +99,11 @@ export function block(reason) {
 export const settled = (path) => {
   const full = resolve(path);
   try {
+    return realpathSync(full);
+  } catch {
+    /* Not there yet: the directory is as far as a name settles. */
+  }
+  try {
     return join(realpathSync(dirname(full)), basename(full));
   } catch {
     return full;
@@ -129,8 +134,7 @@ export function askedAlready(ev, path, kind, { set = true } = {}) {
   return false;
 }
 
-/** No hook fires for the advisor — a server-side tool is not dispatched locally — but every call
- *  leaves an assistant record carrying an `advisor_tool_result`, and events carry the transcript. */
+/** No hook fires for the advisor, but every call leaves an `advisor_tool_result` in the transcript. */
 const blocksOf = (record) => {
   const content = (record?.message ?? {}).content;
   return Array.isArray(content) ? content.filter((one) => one && typeof one === "object") : [];
@@ -166,10 +170,13 @@ export const bodiless = (text, onProgram = (body) => body) => {
   return out + rest;
 };
 
-/** Verbs count in command position, a library call anywhere, and only if its target is a token. */
+/* Where a command starts, flags of a wrapper included: `xargs -I{} sh` still runs the shell. */
+const STARTS = String.raw`(?:^|[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+`
+  + String.raw`|\b(?:sudo|command|nohup|time|env|xargs|do|then|else|if|elif|while|until)\s+(?:-\S+\s+)*)`;
+
+/** Verbs count where a command starts, a library call anywhere, and only with a target it names. */
 export const WRITES = new RegExp(
-  String.raw`(?:^|[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+`
-    + String.raw`|\b(?:sudo|command|nohup|time|env|xargs|do|then|else|if|elif|while|until)\s+)`
+  STARTS
     + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
     + String.raw`|(?:tee|cp|mv|truncate|touch|install|rsync)\b`
     + String.raw`|dd\b[^|;]*\bof=|curl\b[^|;]*\s(?:-o|--output)\b|wget\b[^|;]*\s(?:-O|--output-document)\b)`
@@ -179,7 +186,10 @@ export const WRITES = new RegExp(
 );
 
 /** A shell runs a `-c` body, so a verb in it is in command position, not a quoted argument. */
-const WRAPPED = /\b(?:busybox\s+)?(?:sh|bash|zsh|dash|ksh)\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*c\s+("[^"]*"|'[^']*')/gu;
+const WRAPPED = new RegExp(
+  STARTS + String.raw`(?:busybox\s+)?(?:sh|bash|zsh|dash|ksh)\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*c\s+("[^"]*"|'[^']*')`,
+  "gu",
+);
 export const unwrapped = (text) =>
   text.replace(WRAPPED, (all, body) => `; ${body.slice(1, -1)} ;`);
 
@@ -292,20 +302,56 @@ export function unspentAdvice(records, spentAt = 0) {
   );
 }
 
+const parsed = (text) =>
+  text
+    .split("\n")
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+
+const TAIL = 1 << 20;
+const TAIL_CAP = 64 << 20;
+
+/** This turn, without reading the session for it: a transcript reaches hundreds of megabytes and the
+ *  last prompt is at the end. Grown rather than fixed, because one turn's records can outrun a
+ *  window, and a partial first line is dropped since a read cuts wherever the offset lands. */
+export function turnRecords(path) {
+  let size = 0;
+  try {
+    size = statSync(path).size;
+  } catch {
+    return null;
+  }
+  for (let span = TAIL; ; span *= 2) {
+    const from = Math.max(0, size - span);
+    let text = "";
+    try {
+      const handle = openSync(path, "r");
+      try {
+        const held = Buffer.alloc(size - from);
+        readSync(handle, held, 0, held.length, from);
+        text = held.toString("utf8");
+      } finally {
+        closeSync(handle);
+      }
+    } catch {
+      return null;
+    }
+    const records = parsed(from > 0 ? text.slice(text.indexOf("\n") + 1) : text);
+    if (promptIndex(records) >= 0 || from === 0 || span >= TAIL_CAP) return records;
+  }
+}
+
 /** Null and not an empty list: a gate that reads "no advice" from a transcript it could not open
  *  would stop the work it exists to order. */
 export function transcript(path) {
   try {
-    return readFileSync(path, "utf8")
-      .split("\n")
-      .map((line) => {
-        try {
-          return JSON.parse(line);
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
+    return parsed(readFileSync(path, "utf8"));
   } catch {
     return null;
   }
