@@ -144,11 +144,12 @@ if (path.includes("/memory/") && path.endsWith(".md") && basename(path) !== "MEM
   // Once per file: a refusal that also refuses the re-send forbids the write outright.
   if (askedAlready(ev, path, "learning-gate")) process.exit(0);
   const twin = restated(dirname(resolve(path)), path, ti.content ?? ti.new_string ?? "");
-  const fresh = !twin && !existsSync(path);
+  const held = existsSync(path);
+  const fresh = !twin && !held;
   deny(
     `Hold — \`${basename(path)}\`${fresh ? ", a new memory. Why should it exist, and will it still matter later?" : "."}`
       + `\n\n${BRIEF}\n\n${fresh ? `${SHAPE}\n\n` : ""}`
-      + action(twin, existsSync(path)) + how(),
+      + action(twin, held) + how(),
   );
 }
 
