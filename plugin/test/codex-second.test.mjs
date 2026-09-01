@@ -81,6 +81,13 @@ test("a write outside the tree through a shell body is outside it too", () => {
   );
 });
 
+/* One command writing both places is work in the tree whatever else it does, so any target inside is
+   enough. Every target having to be inside would stand the gate down on a stray log line. */
+test("a body writing outside the tree as well as inside is still work in it", () => {
+  const command = `sh -c 'echo fact > ${join(room, "elsewhere", "a-fact.md")}; echo done > ${join(REPO, "work.md")}'`;
+  assert.ok(gate([userTurn(), advised()], { command }));
+});
+
 /* The failure this exists for: the advisor ran, the turn wrote and committed, and the consult that
    was supposed to follow never did — the end-of-turn reminder is context, and it was ignored. */
 test("advice with work in the tree and no consult behind it stops the next write", () => {
