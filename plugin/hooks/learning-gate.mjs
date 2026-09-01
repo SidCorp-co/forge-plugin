@@ -5,7 +5,7 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { REDIRECT, WRITES, askedAlready, deny, how, readEvent, settled, shellText } from "./_hook.mjs";
+import { REDIRECT, WRITES, askedAlready, commands, deny, how, readEvent, settled, shellText } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../src/learning.mjs";
 // A write shape counts only as its own token, so an assignment and a `cd` resolve here.
@@ -121,7 +121,7 @@ if (tool === "Bash") {
   const text = shellText(ti.command);
   if (CALLED.test(text)) decide(payloadIn(text));
   const base = chdir(text);
-  const named = WRITES.test(text) ? (text.match(MD_TOKEN) ?? []) : [];
+  const named = commands(text).flatMap((one) => (WRITES.test(one) ? (one.match(MD_TOKEN) ?? []) : []));
   const aimed = [...text.matchAll(REDIRECT)]
     .flatMap(([, path]) => unquote(path).match(MD_TOKEN) ?? []);
   if (named.length === 0 && aimed.length === 0) process.exit(0);

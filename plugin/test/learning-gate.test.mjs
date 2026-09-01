@@ -70,6 +70,25 @@ test("a directory a command substitution spells out is still refused", () => {
   assert.equal(decide(`M=$(mktemp -d)\nprintf x > $M/trap.md`).allowed, true, "a value only the run knows");
 });
 
+/* A verb answers for its own command, not for the line: any of them made every `.md` token a target. */
+test("a write in one command does not answer for a path named in another", () => {
+  assert.equal(decide(`cat ${MEMORY}/a.md | grep -c x && touch /tmp/done.md`).allowed, true);
+  assert.equal(decide(`sed -n 1,5p ${MEMORY}/a.md && cp notes.md /tmp/`).allowed, true);
+  assert.equal(decide(`wc -l ${MEMORY}/a.md ; truncate -s 0 /tmp/log.md`).allowed, true);
+  assert.equal(decide(`cp notes.md ${MEMORY}/trap.md && echo done`).allowed, false, "its own target still counts");
+  assert.equal(decide(`echo start ; touch ${MEMORY}/trap.md`).allowed, false, "in whichever command it is");
+});
+
+/* Two ways a target reaches a verb in another command, both of which a plain split would let through. */
+test("a command that hands the next one its target is one command", () => {
+  assert.equal(decide(`printf '%s' ${MEMORY}/trap.md | xargs touch`).allowed, false, "a pipe is not a boundary");
+  assert.equal(decide(`python3 -c 'p="${MEMORY}/trap.md"; open(p, "w")'`).allowed, false, "nor a program's own `;`");
+});
+
+test("a `-c` body inside a `-c` body is unwrapped too", () => {
+  assert.equal(decide(`sh -c 'sh -c "cp a ${MEMORY}/trap.md"'`).allowed, false);
+});
+
 /* A verb belongs here only with a target the command spells out: `tar -x` is the backstop's business. */
 test("the write verbs an agent reaches for are writes", () => {
   for (const command of [

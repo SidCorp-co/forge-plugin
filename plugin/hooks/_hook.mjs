@@ -198,13 +198,51 @@ export const WRITES = new RegExp(
     + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`,
 );
 
-/** A shell runs a `-c` body, so a verb in it is in command position, not a quoted argument. */
+/** A shell runs a `-c` body, so a verb in it is in command position, not a quoted argument. Promoting
+ *  one leaves a body inside it still quoted, so the promotion runs to a fixed point. */
 const WRAPPED = new RegExp(
   STARTS + String.raw`(?:busybox\s+)?(?:sh|bash|zsh|dash|ksh)\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*c\s+("[^"]*"|'[^']*')`,
   "gu",
 );
-export const unwrapped = (text) =>
-  text.replace(WRAPPED, (all, body) => `; ${body.slice(1, -1)} ;`);
+export const unwrapped = (text) => {
+  let out = text;
+  for (let hop = 0; hop < HOPS; hop += 1) {
+    const next = out.replace(WRAPPED, (all, body) => `; ${body.slice(1, -1)} ;`);
+    if (next === out) break;
+    out = next;
+  }
+  return out;
+};
+
+/** The commands in a line, so a write answers for what it was handed rather than for the whole line.
+ *  A quoted body is never cut: a program's own `;` is not a boundary. Nor is a pipe, which hands the
+ *  next command its arguments. An unclosed quote runs to the end, joining commands rather than
+ *  splitting them, so a line that cannot be read stays one target for every verb in it. */
+export const commands = (text) => {
+  const out = [];
+  let held = "";
+  let quote = "";
+  for (let at = 0; at < text.length; at += 1) {
+    const one = text[at];
+    held += one;
+    if (quote) {
+      if (one === quote) quote = "";
+      continue;
+    }
+    if (one === '"' || one === "'") {
+      quote = one;
+      continue;
+    }
+    const pair = text.slice(at, at + 2);
+    if (one === ";" || one === "\n" || one === "&" || pair === "||") {
+      out.push(held.slice(0, -1));
+      held = "";
+      if (pair === "&&" || pair === "||") at += 1;
+    }
+  }
+  out.push(held);
+  return out.map((one) => one.trim()).filter(Boolean);
+};
 
 /** The one text every write test reads: values resolved, a data heredoc dropped, a `-c` body run. */
 export const shellText = (command, onProgram) =>

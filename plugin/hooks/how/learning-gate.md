@@ -15,7 +15,8 @@ displaces. A sentence the skill already says is refused outright.
 A file that lands anyway is answered for late: `forge hooks --how learning-landed`.
 
 How to write through it: `Write` or `Edit`. The shell route is closed — `sed -i` carries no content to
-read, and the decision has to happen before the write. Reading is free. A program carrying a write
-shape *and* quoting a guarded path is refused even when the path is prose, so assemble it from parts.
+read, and the decision has to happen before the write. Reading is free. A command carrying a write shape
+*and* a guarded path is refused even when the path is prose, so assemble it from parts. Reading one
+beside a write of something else is not.
 
 Not judged: whether the fact is true or useful. Only that the write was decided on.
