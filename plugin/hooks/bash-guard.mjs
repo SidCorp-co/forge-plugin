@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-// Refuse the shell commands whose damage cannot be undone by the agent that caused it, and the
-// one that launders a finding into a green run. Deliberately narrow, because a guard that
-// refuses too much gets disabled — how/bash-guard.md.
+// Refuse the shell commands whose damage cannot be undone, and the one that launders a finding into
+// a green run. Narrow on purpose: a guard refusing too much gets disabled — how/bash-guard.md.
 
 import { spawnSync } from "node:child_process";
 
@@ -41,7 +40,8 @@ const RULES = [
     instead: "Stage the paths you changed, explicitly.",
   },
   {
-    pattern: /\bgit\s+["']?stash\b/,
+    // `list` and `show` read the stash and revert nothing, and refusing one cost a whole line.
+    pattern: /\bgit\s+["']?stash\b(?!\s+["']?(?:list|show)\b)/,
     needsDirtyTree: true,
     cause:
       "git stash silently reverts the working tree, so everything read afterwards reports about " +

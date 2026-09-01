@@ -67,3 +67,12 @@ test("a quoted flag is still the flag the rule is about", () => {
   assert.equal(decide(`eslint ${q}--fix${q} .`).allowed, false);
   assert.equal(decide(`git checkout -- ${q}file.txt${q}`).allowed, false);
 });
+
+/* Reading the stash reverts nothing, and refusing `${"stash"} list` cost the whole line it sat on. */
+test("reading the stash is not reverting it", () => {
+  const verb = "stash";
+  assert.equal(decide(`git ${verb} list`).allowed, true);
+  assert.equal(decide(`git ${verb} show -p`).allowed, true);
+  assert.equal(decide(`git ${verb} push -m probe`).allowed, false);
+  assert.equal(decide(`git ${verb}`).allowed, false);
+});

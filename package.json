@@ -2,12 +2,13 @@
   "name": "forge-plugin",
   "private": true,
   "type": "module",
-  "version": "3.12.1",
+  "version": "3.12.2",
   "devDependencies": {
     "eslint": "^10.9.1",
     "eslint-plugin-code-quality": "file:./packages/code-quality"
   },
   "scripts": {
+    "version": "node -e \"const f='plugin/.claude-plugin/plugin.json',fs=require('fs'),j=JSON.parse(fs.readFileSync(f));j.version=require('./package.json').version;fs.writeFileSync(f,JSON.stringify(j,null,2)+'\\n')\" && git add plugin/.claude-plugin/plugin.json",
     "lint": "eslint .",
     "lint:code-quality": "code-quality-gate",
     "check:vi-text": "node tools/check-vi-text.mjs",
