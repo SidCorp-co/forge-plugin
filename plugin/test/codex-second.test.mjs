@@ -271,6 +271,51 @@ test("a renamed file is named once, by where it went", () => {
   assert.equal(/blocker,major ([^`]*)`/u.exec(out)?.[1]?.trim(), "now.mjs", out);
 });
 
+/* `?? dir/` is one entry, and the consult dies on a directory exactly as it did on `-h` — the
+   suggested command failed, which is the guessing the file list exists to stop. */
+test("an untracked directory is named by its files", () => {
+  const repo = mkdtempSync(join(tmpdir(), "codex-second-fresh-"));
+  spawnSync("git", ["init", "-q", repo]);
+  mkdirSync(join(repo, "fresh"), { recursive: true });
+  writeFileSync(join(repo, "fresh", "one.mjs"), "// a line\n");
+  const home = mkdtempSync(join(tmpdir(), "codex-second-fresh-home-"));
+  mkdirSync(join(home, "forge"), { recursive: true });
+  writeFileSync(join(home, "forge", "codex-log.jsonl"), "");
+  const path = join(home, "fresh.jsonl");
+  writeFileSync(path, `${[userTurn(), advised()].map((one) => JSON.stringify(one)).join("\n")}\n`);
+  const run = callHook(
+    HOOK,
+    { tool_name: "Write", tool_input: { file_path: join(repo, "next.mjs") }, transcript_path: path, session_id: `fresh-${now}`, cwd: repo },
+    { ...process.env, XDG_CONFIG_HOME: home },
+  );
+  /* Codex's case: `-uall` does not walk into an embedded repository, so one still arrives as `held/`. */
+  spawnSync("git", ["init", "-q", join(repo, "held")]);
+  writeFileSync(join(repo, "held", "own.mjs"), "// a line\n");
+  const out = because(run.stdout.trim() ? JSON.parse(run.stdout) : null);
+  assert.equal(/blocker,major ([^`]*)`/u.exec(out)?.[1]?.trim(), "fresh/one.mjs", out);
+  const second = callHook(
+    HOOK,
+    { tool_name: "Write", tool_input: { file_path: join(repo, "after.mjs") }, transcript_path: path, session_id: `held-${now}`, cwd: repo },
+    { ...process.env, XDG_CONFIG_HOME: home },
+  );
+  const held = because(second.stdout.trim() ? JSON.parse(second.stdout) : null);
+  assert.equal(/blocker,major ([^`]*)`/u.exec(held)?.[1]?.trim(), "fresh/one.mjs", held);
+  /* A diff of this tree covers none of it, so the ordinary files are not the whole instruction. */
+  assert.match(held, /held\/ holds changes of its own/u, "and the held tree is named alongside them");
+  /* With nothing else in the tree there is no file to name, and an empty command is not an action. */
+  rmSync(join(repo, "fresh"), { recursive: true, force: true });
+  const alone = callHook(
+    HOOK,
+    { tool_name: "Write", tool_input: { file_path: join(repo, "last.mjs") }, transcript_path: path, session_id: `alone-${now}`, cwd: repo },
+    { ...process.env, XDG_CONFIG_HOME: home },
+  );
+  assert.match(
+    because(alone.stdout.trim() ? JSON.parse(alone.stdout) : null),
+    /work is inside held\/, a repository of its own/u,
+    "it still refuses, and says where the work is",
+  );
+});
+
 test("a commit is judged by the tree it names, not the shell's", () => {
   const records = [userTurn(), advised()];
   assert.equal(gate(records, { command: `git -C ${away(false)} commit -m x` }), null, "clean elsewhere");

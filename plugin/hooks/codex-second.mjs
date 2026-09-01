@@ -37,24 +37,29 @@ const climbed = (path, root) => {
   return 0;
 };
 
-/* Nothing to review is not a rule worth enforcing, so the gate asks when the tree last changed, and
-   which files: told only to consult, an agent guesses at what. `-z` neither quotes nor escapes, and
-   gives a rename its old name in the field after it — either status column reports one. */
+/* Which files changed, and when: told only to consult, an agent guesses at what. `-z` neither quotes
+   nor escapes, `-uall` uncollapses an untracked directory, and a rename's old name is the next field. */
 const changedAt = (root) => {
   const out =
-    spawnSync("git", ["-C", root, "status", "--porcelain", "-z"], { encoding: "utf8", timeout: 5000 })
+    spawnSync("git", ["-C", root, "status", "--porcelain", "-z", "-uall"], {
+      encoding: "utf8",
+      timeout: 5000,
+    })
       .stdout ?? "";
   const rows = out.split("\0");
   let newest = 0;
   const named = [];
+  const held = [];
   for (let at = 0; at < rows.length; at += 1) {
     const path = rows[at].slice(3);
     if (!path) continue;
     if (/[RC]/u.test(rows[at].slice(0, 2))) at += 1;
-    named.push(path);
+    /* A directory survives `-uall` only as a repository of its own: work this tree cannot hand over
+       as a file, and going quiet about it is the silence the gate exists to break. */
+    (path.endsWith("/") ? held : named).push(path);
     newest = Math.max(newest, climbed(join(root, path), root));
   }
-  return { newest, named };
+  return { newest, named, held };
 };
 
 const typed = (one) =>
@@ -82,7 +87,7 @@ const spentAt = lastConsultAt(root);
 if (!closing && !unspentAdvice(records, spentAt)) process.exit(0);
 
 /* Asked at every write: decided once, it was decided at the first, on the tree the advisor left. */
-const { newest: changed, named } = changedAt(root);
+const { newest: changed, named, held } = changedAt(root);
 if (changed === 0 || changed <= spentAt) process.exit(0);
 
 /* The command it can send as it stands: six is a readable line, and the paths are the judged tree's,
@@ -91,13 +96,25 @@ const shown = named.slice(0, 6);
 const rest = named.length - shown.length;
 const files = `${shown.map(typed).join(" ")}${rest ? ` # and ${rest} more` : ""}`;
 const there = root === (ev.cwd ?? process.cwd()) ? "" : `cd ${typed(root)} && `;
+const each = held.length > 1 ? "each" : "it";
+const own = held.length > 1 ? "repositories of their own" : "a repository of its own";
+const holds = held.length > 1 ? "hold changes of their own" : "holds changes of its own";
+const action = named.length
+  ? `\`${there}echo "<what you were doing, and what the advisor said>" | forge codex consult `
+    + `--diff --base HEAD --only blocker,major ${files}\`, weigh what comes back, then re-send.`
+  : `the work is inside ${held.map(typed).join(" ")}, ${own} — consult from inside ${each} on a file `
+    + "there, then re-send. An empty one holds nothing to read.";
+/* A diff of this tree says nothing about a repository held inside it, so the command cannot be all. */
+const nested =
+  named.length && held.length
+    ? ` ${held.map(typed).join(" ")} ${holds}, outside that diff: consult in ${each} as well.`
+    : "";
 
 deny(
   `The advisor has spoken; codex has not read what is in the tree${
     closing ? ", and this commit is where the turn stops being a draft" : ""
   }.\n\n`
-    + `Do this: \`${there}echo "<what you were doing, and what the advisor said>" | forge codex consult `
-    + `--diff --base HEAD --only blocker,major ${files}\`, weigh what comes back, then re-send. `
-    + "One consult clears the turn's writes; `FORGE_CODEX_DISABLE=1` the session."
+    + `Do this: ${action}${nested} `
+    + "One consult of this tree clears its writes; `FORGE_CODEX_DISABLE=1` the session."
     + how(),
 );
