@@ -218,9 +218,10 @@ test("the refusal names the categories and does not reprint the test", () => {
   assert.ok(first.split("\n").length <= 10, `five lines, not twenty-five: got ${first.split("\n").length}`);
 });
 
-test("the pointer to that file goes out once a session, not once an edit", () => {
+/* The pointer is the verb every gate prints, so it costs one line and is on every refusal rather
+   than the session's first; the document that carries the test is named inside what the verb prints. */
+test("every refusal ends by naming where the argument is", () => {
   const session = randomUUID();
-  assert.match(skillWrite(session, "SKILL.md"), /references\/learning\.md/);
-  assert.doesNotMatch(skillWrite(session, "SKILL.md"), /references\/learning\.md/);
-  assert.match(skillWrite(randomUUID(), "SKILL.md"), /references\/learning\.md/, "a new session is told again");
+  assert.match(skillWrite(session, "SKILL.md"), /forge hooks --why learning-gate/u);
+  assert.match(skillWrite(session, "SKILL.md"), /forge hooks --why learning-gate/u, "and again, in the same session");
 });

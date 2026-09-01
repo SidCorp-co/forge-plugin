@@ -253,9 +253,15 @@ const reportClaims = (root, text) => {
   for (const { rule, line: at } of checkerOwned(text, root)) {
     line(NOTE, "claude.md restates", `\`${rule}\` has a checker (CLAUDE.md:${at})`);
   }
+  if (broken) console.log(CLAIM_REMEDY);
   if (!broken) line(OK, "claude.md claims", "every path, script, `-h`, ref and id it names is real");
   return broken;
 };
+
+/* Printed once for the group: the move is the same whichever claim broke, and a report that names a
+   defect without it leaves the reader to guess which of the two sides is wrong. */
+const CLAIM_REMEDY = "\nA claim like these is read as fact by every session this file opens. Correct the claim, or\n"
+  + "delete it — the file it names is the authority, and a claim it has outlived is worse than silence.";
 
 /* Printed once, not per rule: the remedy is the same for all of them. */
 const RESTATES = "\nA rule with a checker is documented by the checker's own message, which is what a\n" +

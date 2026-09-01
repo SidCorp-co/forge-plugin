@@ -193,7 +193,10 @@ const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 /** `H=/tmp/d` then `> $H/x` names the directory in no token, so a value is substituted first. */
 export const expanded = (command) => {
   const vars = new Map();
-  for (const [, name, value] of command.matchAll(ASSIGN)) vars.set(name, unquote(value));
+  for (const [, name, value] of command.matchAll(ASSIGN)) {
+    /* A value that runs a command is not a path: substituting one named a file after the command. */
+    if (!/[$`]/u.test(value)) vars.set(name, unquote(value));
+  }
   return command.replace(/\$\{?([A-Za-z_]\w*)\}?/gu, (whole, name) => vars.get(name) ?? whole);
 };
 

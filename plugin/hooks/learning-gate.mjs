@@ -4,16 +4,14 @@
 
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
-import { REDIRECT, WRITES, askedAlready, bodiless, deny, expanded, readEvent } from "./_hook.mjs";
+import { REDIRECT, WRITES, askedAlready, bodiless, deny, expanded, readEvent, why } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
 
 const FORGE_SOURCES = ["note", "knowledge", "decision", "policy"];
 const GUARDED = /\/memory\/|\/skills\//;
-// A write shape counts only as its own token, and `M=…/memory` then a redirect to `$M/x.md` named
-// no guarded directory in any single token — so an assignment and a `cd` resolve here, and `$(…)`
-// and `eval` cannot. The false positives that set both rules: why/learning-gate.md.
+// A write shape counts only as its own token, so an assignment and a `cd` resolve here; a value that
+// runs a command does not. why/learning-gate.md.
 const CHDIR = /(?:^|[;&|\n])\s*(?:cd|pushd)\s+("[^"]*"|'[^']*'|[^\s;&|]+)/gu;
 const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
 const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
@@ -27,18 +25,6 @@ const chdir = (text) => {
 
 const SKILL_CATEGORIES = ["trap", "method", "invariant", "discovery", "boundary"];
 const FILE_TYPES = ["user", "feedback", "project", "reference"];
-
-/* The test and the categories are one document already: a refusal points at it, once a session. */
-const LEARNING_REF = join(
-  dirname(fileURLToPath(import.meta.url)), "..", "skills", "issue-flow", "references", "learning.md",
-);
-
-const pointer = (ev) => {
-  if (askedAlready(ev, "learning-ref", "learning-gate", { set: false })) return "";
-  askedAlready(ev, "learning-ref", "learning-gate");
-  return `\n\nThe four-part test and where each category lands: ${LEARNING_REF}\n`
-    + "Read it once — this pointer is printed for the first refusal of a session only.";
-};
 
 const BRIEF =
   "Record only what cost a cycle, will recur, fails silently, and is not already written. Most "
@@ -90,7 +76,9 @@ function restated(dir, path, text) {
 
 const action = (twin, exists) => {
   if (twin) {
-    return `Already in \`${twin.file}\` (${twin.score.toFixed(2)}): "${twin.sentence.slice(0, 100)}"\n\n`
+    /* One line: a sentence can run from a frontmatter description into the next key. */
+    const quoted = twin.sentence.split("\n")[0].replace(/^\w+:\s*"?/u, "").trim();
+    return `Already in \`${twin.file}\` (${twin.score.toFixed(2)}): "${quoted.slice(0, 100)}"\n\n`
       + "Do this: fix that file if its rule is wrong. Re-send only if this fact is a different one.";
   }
   if (exists) {
@@ -112,7 +100,7 @@ if (tool.endsWith("forge_memory_write") || tool.endsWith("forge_memory.write")) 
   deny(
     `Hold — project memory, written as \`${src}\`.\n\n${BRIEF}\n\n` +
       `Re-send with metadata.checked set to the category it belongs in (${FORGE_SOURCES.join(" | ")}), ` +
-      `and say in one line which of the four conditions made it worth keeping.${pointer(ev)}`,
+      `and say in one line which of the four conditions made it worth keeping.${why()}`,
   );
 }
 
@@ -135,11 +123,12 @@ if (tool === "Bash") {
       // Being sent to another tool teaches nothing about whether the fact belongs in a file at all.
       const memory = resolved.includes("/memory/");
       deny(
-        `Hold — \`${resolved}\` is ${memory ? "a memory file" : "a skill's own text"}, written `
+        `Hold — \`${basename(resolved)}\` is ${memory ? "a memory file" : "a skill's own text"}, written `
           + `through the shell.\n\n${BRIEF}\n\n`
           + (memory
             ? `Do this: if all four hold, write it with Write and declare \`type:\` — ${FILE_TYPES.join(" | ")}. Otherwise write nothing.`
-            : `Do this: if all four hold, use Edit and name the kind — ${SKILL_CATEGORIES.join(" | ")}. Otherwise change nothing.`),
+            : `Do this: if all four hold, use Edit and name the kind — ${SKILL_CATEGORIES.join(" | ")}. Otherwise change nothing.`)
+          + why(),
       );
     }
   }
@@ -195,6 +184,6 @@ if (path.includes("/skills/") && /\/(SKILL\.md|references\/[^/]+\.md)$/.test(pat
       "Do this: change nothing unless the test holds. If it does, re-send and answer three things " +
       `in your reply — which category (${SKILL_CATEGORIES.join(" | ")}), whether a ` +
       "check in the plugin could enforce it instead, and what it displaces." +
-      pointer(ev),
+      why(),
   );
 }

@@ -100,3 +100,12 @@ three false positives in one session were all found by watching a command fail. 
 `readEvent()` fills, so no hook passes anything and the gates that predate the log are covered too.
 `forge hooks --deny` reads it back with a count per hook. Credentials are masked and the line is cut
 at 220 characters before anything is written: `docs/FORGE-CLI.md` says which shapes and why.
+
+## A claim in a project's own CLAUDE.md is checked where it is written
+
+`forge doctor` has checked those claims for a while, and doctor is run when someone already suspects
+something. `claude-md` moves the same function to the write: `PostToolUse`, beside `code-quality`,
+both answering for bytes a call has just put on disk. The baseline is the committed file, so a
+repository that was inherited wrong still gets the edit that fixes it — a gate that fires over
+someone else's sentence is a gate that gets switched off. `forge hooks --why claude-md` carries the
+rest, including what it deliberately does not judge.
