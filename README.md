@@ -43,13 +43,17 @@ server is reported by `forge doctor` with the command that saves the same values
 {
   "slug": "sid-growth",
   "translate": "vi",
-  "deps": { "marker": "those edges are recorded", "blockedBy": "blocked by", "blocks": "blocks" }
+  "deps": { "marker": "those edges are recorded", "blockedBy": "blocked by", "blocks": "blocks" },
+  "codex": { "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$" }
 }
 ```
 
 `slug` is read from that file alone and is demanded only by a call that needs a project id.
 `translate` is off unless set — a wrong-language issue cannot be withdrawn. `deps` is optional
-and defaults to the English sentence shown.
+and defaults to the English sentence shown. `codex.pathRe` decides which of a turn's writes are
+worth a second opinion, and belongs here rather than in the account's config: a docs tree and a
+code tree do not want the same answer. `forge codex show` names which of the three levels
+answered.
 
 The project **id** is never configured — it is looked up from the slug at runtime.
 

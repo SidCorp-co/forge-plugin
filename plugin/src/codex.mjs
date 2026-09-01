@@ -18,7 +18,7 @@ import { randomBytes } from "node:crypto";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 import { CONFIG_PATH, configDir, readJson, userConfig, writeJsonPrivate } from "./resolve/config.mjs";
-import { fail } from "./resolve/settings.mjs";
+import { fail, projectRecordPattern } from "./resolve/settings.mjs";
 import { flags, partition, pullRepeated } from "./resolve/flags.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { logHook } from "./hook-log.mjs";
@@ -62,7 +62,7 @@ const USAGE = [
   "with the prompt; beyond them it reads for itself — read_file, list_dir, grep and git_diff, over",
   "this checkout and any other you name a file in, and nothing else on the machine. The log is what",
   "gives it a memory of this repository. A named file may be an absolute path in another project.",
-  "The hook records only documents (see `codex.pathRe` below); any path can be named explicitly.",
+  "The hook records what `codex.pathRe` matches, documents by default; any path can be named too.",
   "",
   "  consult [file...] [--diff [--base ref]] [--verify risk]... [--only s,s] [--allow-echo]",
   "                            review; pipe your intent on stdin",
@@ -73,7 +73,8 @@ const USAGE = [
   "",
   "A `codex` object in ~/.config/forge/config.json, every key optional",
   "  model                     model slot to ask for (default fable)",
-  "  pathRe                    repo-relative paths the hook records (default ^docs/.*\\.md$)",
+  "  pathRe                    repo-relative paths the hook records (default ^docs/.*\\.md$);",
+  "                            a `codex.pathRe` in the checkout's .forge.json wins over this",
   "  budgetMs                  how long one consult may take (default 900000)",
   "  maxTokens                 reply ceiling, thinking included (default 32000)",
   "  rounds                    model calls one consult may make, the last served no tools (3)",
@@ -221,9 +222,24 @@ const turnsOf = (held) => held.turns ?? {};
 
 export const pendingIn = (held, root) => turnsOf(held)[root]?.files ?? [];
 
-const recordPattern = () => userConfig().codex?.pathRe || DEFAULT_PATH_RE;
+/* A pattern that does not compile is worse than no pattern: the gate would throw on every write of
+   whatever repository carries it. It is skipped for the next source, and `show` names what resolved. */
+const compiles = (source) => {
+  try {
+    new RegExp(source);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
-export const recordable = (rel) => new RegExp(recordPattern()).test(rel);
+export const recordPattern = () => {
+  const asked = [projectRecordPattern(), { value: userConfig().codex?.pathRe, from: CONFIG_PATH }];
+  const held = asked.find((one) => one.value && compiles(one.value));
+  return held ?? { value: DEFAULT_PATH_RE, from: "the built-in default" };
+};
+
+export const recordable = (rel) => new RegExp(recordPattern().value).test(rel);
 
 /* A turn's second write must not repeat the instruction the first one carried — that is how an
    instruction gets ignored. So the decision the hook needs is `first`, not just `added`. */
@@ -475,7 +491,7 @@ const show = () => {
   }
   console.log(`repo root : ${root ?? "<not in a git repository>"}`);
   console.log(`history   : ${root ? historyFor(entries, root).length : 0} prior exchange(s) replayed`);
-  console.log(`records   : ${recordPattern()}`);
+  console.log(`records   : ${recordPattern().value}  \u2190 ${recordPattern().from}`);
   console.log(`tools     : ${TOOLS.map((one) => one.name).join(", ")} over ${callBudget()} call(s)`);
   console.log(`pending   : ${waiting.length ? waiting.join(", ") : "nothing"}`);
   console.log(`log       : ${LOG_PATH}  (${consults(entries).length} consult(s))`);

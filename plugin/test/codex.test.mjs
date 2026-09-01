@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,7 +17,6 @@ const {
   consultArgs,
   hookRecord,
   pendingIn,
-  recordable,
   rounds,
 } = await import("../src/codex.mjs");
 const {
@@ -33,7 +33,6 @@ const {
 } = await import("../src/codex-api.mjs");
 const { runTool, scopeFor } = await import("../src/codex-tools.mjs");
 const { partition } = await import("../src/resolve/flags.mjs");
-const { userConfig } = await import("../src/resolve/config.mjs");
 const BOOLEANS = ["--allow-echo"];
 const { answered, countedIn, historyFor, logEntries, pairedLog, startedState, verdictsBy } =
   await import("../src/codex-log.mjs");
@@ -95,17 +94,32 @@ test("a path escapes the repo by neither dots nor a symlink", () => {
   assert.equal(inside(REPO, "docs/NOPE.md"), null);
 });
 
-test("the recorded path set is the default docs one, and is overridable", (t) => {
-  assert.equal(recordable("docs/PLAN.md"), true);
-  assert.equal(recordable("plugin/src/codex.mjs"), false);
-  /* The config object the process already read, which is the seam `forge` writes through too — the
-     environment is not a source, so there is nothing else to reach in from. */
-  const held = userConfig().codex;
-  userConfig().codex = { pathRe: "\\.md$" };
-  t.after(() => {
-    userConfig().codex = held;
-  });
-  assert.equal(recordable("notes/PLAN.md"), true);
+/* Three sources for one pattern, and which answered is printed rather than inferred: the checkout's,
+   the account's, then the default. It cannot be asked in process — this checkout is a repository that
+   overrides it, which is the whole point of the layer. */
+test("the pattern comes from the checkout, else the account, else the default", () => {
+  const forge = new URL("../bin/forge", import.meta.url).pathname;
+  const shown = ({ repo, user }) => {
+    const room = mkdtempSync(join(tmpdir(), "codex-pattern-"));
+    const home = mkdtempSync(join(tmpdir(), "codex-pattern-home-"));
+    if (repo) writeFileSync(join(room, ".forge.json"), JSON.stringify(repo));
+    if (user) {
+      mkdirSync(join(home, "forge"), { recursive: true });
+      writeFileSync(join(home, "forge", "config.json"), JSON.stringify(user));
+    }
+    const run = spawnSync(forge, ["codex", "show"], {
+      cwd: room,
+      encoding: "utf8",
+      env: { ...process.env, XDG_CONFIG_HOME: home },
+    });
+    return (run.stdout.split("\n").find((one) => one.startsWith("records")) ?? "").replace(/\s+/gu, " ");
+  };
+  const account = { codex: { pathRe: "\\.md$" } };
+  assert.equal(shown({}), "records : ^docs/.*\\.md$ \u2190 the built-in default");
+  assert.match(shown({ user: account }), /^records : \\\.md\$ \u2190 .*config\.json$/u);
+  assert.match(shown({ repo: { codex: { pathRe: "^src/" } }, user: account }), /^records : \^src\/ \u2190 \.forge\.json$/u);
+  /* A pattern that does not compile would throw on every write of whatever repository carries it. */
+  assert.match(shown({ repo: { codex: { pathRe: "^(" } }, user: account }), /^records : \\\.md\$ \u2190 .*config\.json$/u);
 });
 
 /* `first` and `added` are different questions: the second new file of a turn is recorded but must
