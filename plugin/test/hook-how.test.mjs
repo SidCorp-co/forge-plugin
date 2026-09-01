@@ -39,8 +39,8 @@ test("every document names a hook, or a topic the harness cites", () => {
    past what anyone reads, an argument filling the file an agent opened for a route out, and a pointer
    into `docs/` — which does not exist in the copy a gate fires from. */
 test("each document opens with its claim, argues briefly, and points nowhere unreachable", () => {
-  const CEILING = 1600;
-  const WHY = 430; // 100 tokens: the reason a rule exists, not a defence of it
+  const CEILING = 1300;
+  const WHY = 280; // 65 tokens: the reason a rule exists, not a defence of it
   for (const name of documented) {
     const text = readFileSync(join(HOW, `${name}.md`), "utf8");
     const [first] = text.split("\n");

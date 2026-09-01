@@ -94,7 +94,7 @@ route out — not a defence of the rule. So the argument gets 100 tokens and the
 The shape, in order, the first two and the last enforced by the suite:
 
 - `# <hook> — <claim>`, so `forge hooks --how` opens with what the gate is for.
-- `Why: …` as the second paragraph, at most 430 characters — 100 tokens. One failure, one
+- `Why: …` as the second paragraph, at most 280 characters — 65 tokens. One failure or one
   measurement, and nothing else. It exists so the rule can be obeyed intelligently, not so it can win
   an argument.
 - **How to clear it**, expanded past what the refusal could afford: what to re-send, what counts as an
@@ -104,10 +104,14 @@ The shape, in order, the first two and the last enforced by the suite:
 - `Not judged: …` on its own line, so nobody over-complies with a gate that was never asking. Two
   documents shipped without it and codex caught both.
 
-Under 1,600 characters all in. What does not fit is an argument sitting where a route out belongs:
-calibration stories, codex attributions, and alternatives tried and removed all go, unless the removed
-alternative is one an agent would otherwise attempt — then one clause. Nothing restates what `-h`
-already answers, and nothing restates the refusal itself.
+Under 1,300 characters all in — the ten average 921. What does not fit is an argument sitting where a
+route out belongs: calibration stories, attributions, and alternatives tried and removed all go,
+unless the removed alternative is one an agent would otherwise attempt — then one clause. Nothing
+restates what `-h` answers, and nothing restates the refusal itself.
+
+Every instruction survives a cut, though. Five wrong or missing claims were shipped in one pass of
+this and caught by a diff review: a lost `/dev/` exclusion, a stand-down described as something else,
+two harms collapsed into one sentence. Cut arguments freely; check each instruction against the code.
 
 Two more constraints the checker keeps: no absolute path and nothing under `docs/`, because only
 `plugin/` travels into an installed copy; and a document either names a hook that prints the pointer,
