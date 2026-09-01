@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -128,6 +128,25 @@ test("nothing is lost when several projects record at the same moment", async ()
       `${root} lost ${wanted.length - stormPending(root).length} of ${wanted.length} to another writer`,
     );
   }
+});
+
+/* A stale break hands the lock file to whoever took it next. Releasing by path rather than by owner,
+   the first writer then deletes the second's lock and both are inside at once — codex found this.
+   The environment is moved before the import, because this half runs in-process: the fixture's env
+   reaches a child and nothing else, and the first version of this test locked the developer's own
+   config directory. */
+test("a writer whose lock was broken does not remove the one that replaced it", async () => {
+  process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
+  const { holding } = await import("../src/codex.mjs");
+  const lock = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json.lock");
+  let entered = false;
+  holding(() => {
+    entered = true;
+    writeFileSync(lock, "another-writer");
+  });
+  assert.ok(entered, "the lock was never taken");
+  assert.equal(readFileSync(lock, "utf8"), "another-writer", "it removed a lock that was not its own");
+  rmSync(lock, { force: true });
 });
 
 /* The writer asked directly, with no lock between them: what the lock hides is whether the write

@@ -71,6 +71,18 @@ export function touched(ev, freshMs = FRESH_MS) {
   return [...out].sort();
 }
 
+/** The paths a call spelled, resolved but not followed: `touched` answers with what a name points at,
+ *  and a link is a different question from its target. */
+export const named = (ev) => {
+  const ti = ev.tool_input ?? {};
+  const cwd = ev.cwd || process.cwd();
+  const found =
+    ev.tool_name === "Bash"
+      ? (String(ti.command ?? "").match(TOKEN) ?? [])
+      : [ti.file_path ?? ti.notebook_path ?? ""].filter(Boolean);
+  return found.map((one) => resolve(cwd, one));
+};
+
 export function deny(reason) {
   record("deny", reason);
   process.stdout.write(
@@ -170,9 +182,10 @@ export const bodiless = (text, onProgram = (body) => body) => {
   return out + rest;
 };
 
-/* Where a command starts, flags of a wrapper included: `xargs -I{} sh` still runs the shell. */
-const STARTS = String.raw`(?:^|[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+`
-  + String.raw`|\b(?:sudo|command|nohup|time|env|xargs|do|then|else|if|elif|while|until)\s+(?:-\S+\s+)*)`;
+/* Where a command starts. `xargs` keeps its own flags, because `xargs -I{} sh` still runs the shell;
+   the others do not, since every flag allowed widens what a quoted mention can look like. */
+const STARTS = String.raw`(?:^|[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
+  + String.raw`|\b(?:sudo|command|nohup|time|env|do|then|else|if|elif|while|until)\s+)`;
 
 /** Verbs count where a command starts, a library call anywhere, and only with a target it names. */
 export const WRITES = new RegExp(
@@ -316,34 +329,56 @@ const parsed = (text) =>
 
 const TAIL = 1 << 20;
 const TAIL_CAP = 64 << 20;
+const PROMPT_KEY = Buffer.from('"promptSource"');
+const NEWLINE = 0x0a;
+
+const spanOf = (handle, from, to) => {
+  const held = Buffer.alloc(to - from);
+  readSync(handle, held, 0, held.length, from);
+  return held;
+};
+
+/* Where the last prompt is, searched as bytes rather than parsed as records: past the window this is
+   what a turn costs, and the alternative was answering "no turn" — once a session, not once a turn. */
+const promptAt = (handle, size) => {
+  for (let end = size; end > 0; ) {
+    const from = Math.max(0, end - TAIL);
+    const held = spanOf(handle, from, end);
+    const at = held.lastIndexOf(PROMPT_KEY);
+    if (at >= 0) return from + held.lastIndexOf(NEWLINE, at) + 1;
+    if (from === 0) return -1;
+    end = from + PROMPT_KEY.length - 1;
+  }
+  return -1;
+};
 
 /** This turn, without reading the session for it: a transcript reaches hundreds of megabytes and the
  *  last prompt is at the end. Grown rather than fixed, because one turn's records can outrun a
  *  window, and a partial first line is dropped since a read cuts wherever the offset lands. */
-export function turnRecords(path) {
+export function turnRecords(path, { tail = TAIL, cap = TAIL_CAP } = {}) {
   let size = 0;
+  let handle = null;
   try {
     size = statSync(path).size;
+    handle = openSync(path, "r");
   } catch {
     return null;
   }
-  for (let span = TAIL; ; span *= 2) {
-    const from = Math.max(0, size - span);
-    let text = "";
-    try {
-      const handle = openSync(path, "r");
-      try {
-        const held = Buffer.alloc(size - from);
-        readSync(handle, held, 0, held.length, from);
-        text = held.toString("utf8");
-      } finally {
-        closeSync(handle);
+  try {
+    for (let span = tail; ; span *= 2) {
+      const from = Math.max(0, size - span);
+      const text = spanOf(handle, from, size).toString("utf8");
+      const records = parsed(from > 0 ? text.slice(text.indexOf("\n") + 1) : text);
+      if (promptIndex(records) >= 0 || from === 0) return records;
+      if (span >= cap) {
+        const at = promptAt(handle, size);
+        return at >= 0 ? parsed(spanOf(handle, at, size).toString("utf8")) : records;
       }
-    } catch {
-      return null;
     }
-    const records = parsed(from > 0 ? text.slice(text.indexOf("\n") + 1) : text);
-    if (promptIndex(records) >= 0 || from === 0 || span >= TAIL_CAP) return records;
+  } catch {
+    return null;
+  } finally {
+    closeSync(handle);
   }
 }
 

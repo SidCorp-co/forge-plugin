@@ -85,6 +85,17 @@ const ti = ev.tool_input ?? {};
 const TRACKER = /forge[_.]memory[_.]write/;
 /* Through the shell the CLI is the caller, so the verb has to be there: a grep is a read. */
 const CALLED = /\bforge\s+call\s+forge[_.]memory[_.]write\b/;
+const PAYLOAD = /(?:^|\s)('(\{[\s\S]*\})'|"(\{[\s\S]*\})")/u;
+
+/** What the CLI was handed; one it reads from a file or stdin is judged as a write, not waved through. */
+const payloadIn = (text) => {
+  const held = PAYLOAD.exec(text);
+  try {
+    return JSON.parse(held?.[2] ?? held?.[3] ?? "");
+  } catch {
+    return { source: FORGE_SOURCES[0] };
+  }
+};
 
 const tracker = (src) =>
   deny(
@@ -93,20 +104,22 @@ const tracker = (src) =>
       `and say in one line which of the four conditions made it worth keeping.${how()}`,
   );
 
-if (TRACKER.test(tool)) {
-  const src = ti.source ?? "";
+/** One rule for one endpoint, whichever route reached it: the tool's arguments or the CLI's payload. */
+const decide = (payload) => {
+  const src = payload?.source ?? "";
   if (!FORGE_SOURCES.includes(src)) process.exit(0); // issue/comment/job are system-authored
-  const md = ti.metadata;
+  const md = payload?.metadata;
   if (md && typeof md === "object" && md.checked) process.exit(0);
   tracker(src);
-}
+};
+
+if (TRACKER.test(tool)) decide(ti);
 
 // Through the shell the content cannot be read — `sed -i` carries none — and the question has to be
 // answered BEFORE the write, so the route is closed for these two kinds of file, not approximated.
 if (tool === "Bash") {
   const text = shellText(ti.command);
-  // The CLI reaches the endpoint the MCP tool does, and a payload carries no path to recognise.
-  if (CALLED.test(text) && !/"checked"/.test(text)) tracker("");
+  if (CALLED.test(text)) decide(payloadIn(text));
   const base = chdir(text);
   const named = WRITES.test(text) ? (text.match(MD_TOKEN) ?? []) : [];
   const aimed = [...text.matchAll(REDIRECT)]

@@ -70,8 +70,7 @@ test("a directory a command substitution spells out is still refused", () => {
   assert.equal(decide(`M=$(mktemp -d)\nprintf x > $M/trap.md`).allowed, true, "a value only the run knows");
 });
 
-/* A verb belongs here only if its target is spelled out in the command: `tar -x` and `patch` name
-   none, so an unasked write through one of those is the backstop's business rather than this test's. */
+/* A verb belongs here only with a target the command spells out: `tar -x` is the backstop's business. */
 test("the write verbs an agent reaches for are writes", () => {
   for (const command of [
     `touch ${MEMORY}/trap.md`,
@@ -122,6 +121,23 @@ test("a command that only names the tracker's endpoint is not writing to it", ()
   const named = `forge${"_"}memory${"_"}write`;
   assert.equal(decide(`grep -rn ${named} plugin/hooks`).allowed, true);
   assert.equal(decide(`forge call ${named} '{"source":"note"}'`).allowed, false, "the call is");
+});
+
+/* One endpoint, two routes, two rules: the payload was searched for the word rather than read, so a
+   field set to false cleared it, and a source the tracker authors was refused here and not there. */
+test("the payload is read, not searched, and the tracker's own sources pass either way", () => {
+  const named = `forge${"_"}memory${"_"}write`;
+  const call = (payload) => decide(`forge call ${named} '${JSON.stringify(payload)}'`);
+  assert.equal(call({ source: "note", metadata: { checked: false } }).allowed, false, "false is not checked");
+  assert.equal(call({ source: "note", metadata: { checked: "trap" } }).allowed, true, "a category clears it");
+  assert.equal(call({ source: "issue", text: "x" }).allowed, true, "the tracker authors this one");
+  assert.equal(decide(`forge call ${named} @body.json`).allowed, false, "a payload it cannot read");
+});
+
+/* A wrapper's own flags let `sudo -u touch <path>` inside an echo read as a write; only `xargs` needs them. */
+test("a wrapper's flags are not a licence for every quoted mention", () => {
+  assert.equal(decide(`echo "sudo -u me touch ${SKILL}"`).allowed, true);
+  assert.equal(decide(`sudo touch ${MEMORY}/trap.md`).allowed, false, "the wrapper itself still counts");
 });
 
 /* A wrapper counts where a verb counts: promoting a `-c` body promoted one quoted in a message too. */

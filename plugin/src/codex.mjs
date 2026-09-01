@@ -4,7 +4,16 @@
    Three pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and
    its eval set (codex-log.mjs), and this — the verb, the turn's bookkeeping, and the hook halves. */
 import { spawnSync } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, openSync, rmSync, statSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
@@ -105,10 +114,14 @@ const TRIES = 50;
 
 const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 
+/* Whose lock this is. A stale break hands the file to whoever took it next, and a writer that then
+   released by path would delete a lock it does not hold — the lost update this exists to stop. */
+const MINE = `${process.pid}-${randomBytes(4).toString("hex")}`;
+
 /* One file serves every checkout on the machine, so a hook that read it, added a line and wrote it
    back would lose whatever another project wrote in between. Bounded and stale-breaking on purpose:
    a gate that waits forever costs more than a list. */
-const holding = (fn) => {
+const underLock = (fn) => {
   let held = null;
   /* The lock lives beside the state file, so the directory has to exist before it can be taken —
      made here rather than under the lock, where the first writer would have been the only one. */
@@ -120,6 +133,7 @@ const holding = (fn) => {
   for (let tries = 0; tries < TRIES && held === null; tries += 1) {
     try {
       held = openSync(LOCK_PATH, "wx");
+      writeFileSync(held, MINE);
     } catch (error) {
       if (error.code !== "EEXIST") break;
       let since = 0;
@@ -137,15 +151,21 @@ const holding = (fn) => {
   } finally {
     if (held !== null) {
       closeSync(held);
-      rmSync(LOCK_PATH, { force: true });
+      try {
+        if (readFileSync(LOCK_PATH, "utf8") === MINE) rmSync(LOCK_PATH, { force: true });
+      } catch {
+        /* gone already, or unreadable: either way it is not ours to remove */
+      }
     }
   }
 };
 
+export { underLock as holding };
+
 /* The change is a function of the state as it stands, read inside the lock: a caller cannot compose
    the next state from a read that happened before it. */
 const updateState = (change) =>
-  holding(() => {
+  underLock(() => {
     const before = readState();
     const after = change(before);
     if (after === before) return before;

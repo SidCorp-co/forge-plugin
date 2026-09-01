@@ -1,6 +1,5 @@
-/* A transcript reaches hundreds of megabytes — 214 MB here, 3.2 seconds to read and parse — and two
-   gates want one thing from it: this turn. Reading the session to find its last line is what that
-   cost buys, so the reader takes the end of the file and grows the window only if it must. */
+/* A transcript reaches hundreds of megabytes — 214 MB here, 3.2s to read and parse — and two gates
+   want one thing from it: this turn, which is at the end. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -42,6 +41,17 @@ test("a window too small for one turn is grown, not given up on", () => {
   const records = turnRecords(path);
   assert.equal(turnAt(records), "2026-09-01T11:00:00.000Z", "the prompt sat 3.5 MB back");
   assert.ok(unspentAdvice(records.slice(promptIndex(records) + 1)), "and the advice after it is still seen");
+});
+
+/* Past the cap the reader answered "no turn", and that empty answer is a key of its own: told twice
+   in one turn, then never for the next oversized one. The cap is the suite's, so the fixture is small. */
+test("a turn past the window is found rather than given up on", () => {
+  const path = wrote(
+    "past-the-cap.jsonl",
+    filler(100_000) + prompt("2026-09-01T13:00:00.000Z") + filler(400_000),
+  );
+  const found = turnRecords(path, { tail: 4096, cap: 8192 });
+  assert.equal(turnAt(found), "2026-09-01T13:00:00.000Z");
 });
 
 test("a transcript with no prompt in it at all reads as no turn", () => {

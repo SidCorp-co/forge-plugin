@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, mkdtempSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -15,9 +15,10 @@ const HOME = homeEnv("learning-landed");
 const room = join(mkdtempSync(join(tmpdir(), "landed-")), "memory");
 mkdirSync(room);
 
-const landed = (session, name, { dir = room, old } = {}) => {
+const landed = (session, name, { dir = room, old, existing } = {}) => {
   const file = join(dir, name);
-  writeFileSync(file, "a line\n");
+  /* Writing through a link would replace it, so a case about links writes what it points at. */
+  writeFileSync(existing ? realpathSync(file) : file, "a line\n");
   if (old) utimesSync(file, new Date(Date.now() - old), new Date(Date.now() - old));
   const run = callHook(
     HOOK,
@@ -47,6 +48,16 @@ test("it is asked once, and never for the index", () => {
    the path, so a file the gate asks about was one the backstop never did. */
 test("a name that merely ends in the index's is a memory like any other", () => {
   assert.match(landed(randomUUID(), "OLD-MEMORY.md"), /OLD-MEMORY\.md/u);
+});
+
+/* The disk answers with what a name points at, so a guarded file that is a link to somewhere else
+   arrived here as somewhere else and was skipped. Writing through the link writes the memory. */
+test("a guarded name that links out of the tree is still a guarded write", () => {
+  const outside = join(mkdtempSync(join(tmpdir(), "landed-outside-")), "kept.md");
+  writeFileSync(outside, "a line\n");
+  symlinkSync(outside, join(room, "points-away.md"));
+  const said = landed(randomUUID(), "points-away.md", { existing: true });
+  assert.match(said, /points-away\.md/u, "named by the link the call used");
 });
 
 test("a file nobody just wrote is somebody else's business", () => {
