@@ -23,13 +23,23 @@ const SKILL = "plugin/skills/issue-flow/SKILL.md";
 const ask = (event) =>
   callHook(HOOK, { session_id: randomUUID(), ...event }, HOME);
 
-const decide = (command) => {
-  const run = ask({ tool_name: "Bash", tool_input: { command } });
+const answered = (run) => {
   assert.equal(run.status, 0, run.stderr);
   if (!run.stdout.trim()) return { allowed: true };
   const answer = JSON.parse(run.stdout).hookSpecificOutput;
   return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason };
 };
+
+const decide = (command) => answered(ask({ tool_name: "Bash", tool_input: { command } }));
+
+/* A value naming another variable was dropped whole rather than carried through, so this exact write —
+   found by firing the live gate — landed a memory file with nothing asked. The inner name stays
+   unresolved; what the guard needs is the `/memory/` the value spells out. */
+test("a guarded path held by a variable of a variable is refused", () => {
+  assert.equal(decide(`M="$HOME/p/memory"\nprintf x > "$M/trap.md"`).allowed, false);
+  assert.equal(decide(`printf x > "$HOME/p/memory/trap.md"`).allowed, false);
+  assert.equal(decide(`M=$(mktemp -d)\nprintf x > $M/trap.md`).allowed, true, "a value that runs a command is not a path");
+});
 
 test("a heredoc through a variable-held memory path is refused", () => {
   const { allowed, reason } = decide(

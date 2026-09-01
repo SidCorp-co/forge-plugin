@@ -190,14 +190,17 @@ const under = (root, cwd, path) => {
 const ASSIGN = /(?:^|[;&|\n]|\bexport\s+)\s*([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|]*)/gu;
 const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 
-/** `H=/tmp/d` then `> $H/x` names the directory in no token, so a value is substituted first. */
+const NAMED = /\$\{?([A-Za-z_]\w*)\}?/gu;
+const RUNS = /\$\(|`/u;
+
+/** `H=/tmp/d` then `> $H/x` names the directory in no token, so a value is substituted first — one
+ *  naming another variable included, since only a command substitution is unknowable. how/writes.md. */
 export const expanded = (command) => {
   const vars = new Map();
   for (const [, name, value] of command.matchAll(ASSIGN)) {
-    /* A value that runs a command is not a path: substituting one named a file after the command. */
-    if (!/[$`]/u.test(value)) vars.set(name, unquote(value));
+    if (!RUNS.test(value)) vars.set(name, unquote(value));
   }
-  return command.replace(/\$\{?([A-Za-z_]\w*)\}?/gu, (whole, name) => vars.get(name) ?? whole);
+  return command.replace(NAMED, (whole, name) => vars.get(name) ?? whole);
 };
 
 /** Whether the write is work in `root`. A write verb names no readable target so it answers true —
