@@ -133,3 +133,19 @@ test("naming both refusals asks for either, and an empty answer is not an empty 
   assert.match(none.stdout, /match nothing asked for/u);
   assert.doesNotMatch(none.stdout, /appears on the first one/u, "the log is right there");
 });
+
+/* Codex ruled on the neighbours of the bug above: a hint whose job is to say the notes are there was
+   computed after the filter that took them out, and a tailed listing summed a set it had not printed. */
+test("a filtered listing still points at the notes, and says what it cut", () => {
+  const forge = (...argv) =>
+    spawnSync(process.execPath, [CLI, "hooks", ...argv], {
+      encoding: "utf8",
+      env: { PATH: process.env.PATH, HOME: room, XDG_CONFIG_HOME: room },
+    });
+  const denied = forge("--deny");
+  assert.match(denied.stdout, /note\(s\): `forge hooks --notes`/u, "the route to the notes survives");
+  const tailed = forge("--deny", "--last", "1");
+  assert.equal(tailed.stdout.trim().split("\n").filter((one) => one.startsWith("2026")).length, 1);
+  assert.match(tailed.stdout, /refusal\(s\), last 1 shown:/u, "the count is not the lines");
+  assert.doesNotMatch(denied.stdout, /shown:/u, "and nothing is said when nothing was cut");
+});

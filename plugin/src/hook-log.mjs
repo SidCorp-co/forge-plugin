@@ -116,10 +116,10 @@ export const hooks = (argv) => {
     if (!known.includes(held.hook)) fail(didYouMean("hook", held.hook, known));
     entries = entries.filter((one) => one.hook === held.hook);
   }
-  /* Either, never both: one entry has one decision, so two filters ANDed answered nothing. */
+  /* Either, never both; and the hint counts before that filter, or it hides the route to what it cut. */
   const asked = held.notes ? [] : REFUSALS.filter((one) => held[one]);
-  if (asked.length) entries = entries.filter((one) => asked.includes(one.decision));
   const noted = entries.filter((one) => !REFUSALS.includes(one.decision));
+  if (asked.length) entries = entries.filter((one) => asked.includes(one.decision));
   entries = held.notes ? noted : entries.filter((one) => REFUSALS.includes(one.decision));
   const also = !held.notes && noted.length ? ` ${noted.length} note(s): \`forge hooks --notes\`.` : "";
   if (!entries.length) {
@@ -131,11 +131,13 @@ export const hooks = (argv) => {
     return console.log(`No ${what} logged. ${where}.${also}`);
   }
   const last = Number(held.last || TAIL);
-  for (const one of entries.slice(-last)) console.log(line(one));
+  const shown = entries.slice(-last);
+  for (const one of shown) console.log(line(one));
   const by = entries.reduce((seen, one) => ({ ...seen, [one.hook]: (seen[one.hook] ?? 0) + 1 }), {});
   const summary = Object.entries(by)
     .sort((a, b) => b[1] - a[1])
     .map(([name, count]) => `${name} ${count}`)
     .join(", ");
-  console.log(`\n${entries.length} ${held.notes ? "note(s)" : "refusal(s)"}: ${summary}${also}`);
+  const cut = shown.length < entries.length ? `, last ${shown.length} shown` : "";
+  console.log(`\n${entries.length} ${held.notes ? "note(s)" : "refusal(s)"}${cut}: ${summary}${also}`);
 };

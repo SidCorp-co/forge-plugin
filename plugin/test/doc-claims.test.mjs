@@ -48,7 +48,6 @@ test("every command a document tells a reader to run is one the CLI has", () => 
     claims += found.calls.length + found.flags.length + found.envs.length;
     assert.deepEqual(claimProblems(text, held), [], rel);
   }
-  /* A selector matching nothing reads exactly like a clean repository. */
   assert.ok(markdown.length > 20, `${markdown.length} markdown file(s) found`);
   assert.ok(claims > 40, `${claims} claims across ${markdown.length} documents: the pattern found nothing`);
 });
