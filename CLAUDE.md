@@ -5,6 +5,9 @@ session, and the skills that drive both.
 
 **Rules only.** Facts live in the code, mechanics in each tool's `-h`, history in `git`. A rule with
 a checker is stated once — in the checker, whose message is what a developer reads when it fires.
+Every `.md` here obeys the same division: it carries what the code cannot — the decision behind a
+shape, the constraint, the route out — and never restates or explains code. A paragraph narrating an
+implementation is a second copy that goes stale without failing anything.
 Nothing here names a path or a script that does not resolve; `forge doctor` checks that. Install,
 configuration, layout and which level a rule belongs to: [`README.md`](README.md). The CLI's
 surface: [`docs/FORGE-CLI.md`](docs/FORGE-CLI.md). What the hooks share:

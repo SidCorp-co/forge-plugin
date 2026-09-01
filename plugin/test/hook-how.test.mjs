@@ -38,6 +38,10 @@ test("every document names a hook, or a topic the harness cites", () => {
 /* Every rule of the shape was got wrong here first: a document opening without naming its gate, one
    past what anyone reads, an argument filling the file an agent opened for a route out, and a pointer
    into `docs/` — which does not exist in the copy a gate fires from. */
+/* A paragraph narrating an implementation is a copy that goes stale silently. CLAUDE.md. */
+const NARRATES =
+  /```|\bthe (?:function|regex|loop|variable|implementation|call site)\b|\bimplemented in\b|\bunder the hood\b|\binternally\b|\bin `[\w./-]+\.(?:mjs|js|ts)`/iu;
+
 test("each document opens with its claim, argues briefly, and points nowhere unreachable", () => {
   const CEILING = 1300;
   const WHY = 280; // 65 tokens: the reason a rule exists, not a defence of it
@@ -54,6 +58,8 @@ test("each document opens with its claim, argues briefly, and points nowhere unr
         + "is an argument where a route out belongs",
     );
     assert.match(text, /^Not judged:/mu, `how/${name}.md says nothing it declines to judge`);
+    const narrating = text.match(NARRATES);
+    assert.equal(narrating, null, `how/${name}.md explains code: "${narrating?.[0]}"`);
     assert.doesNotMatch(text, /(?:^|[\s(`])(?:\/(?:home|run|Users|tmp)\/|docs\/)/u, `how/${name}.md`);
   }
 });
