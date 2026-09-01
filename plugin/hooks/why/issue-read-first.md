@@ -25,8 +25,6 @@ its own suggestion. The key shape is `[A-Z]{2,6}-\d+`, so a tracker whose prefix
 configuration. A transcript that will not open reads as null and the gate stands down: it exists to
 order the work, not to stop it when its evidence is missing.
 
-The key and the call have to be the **same invocation**. Searching the whole command for the key and
-for `forge_comments` separately was cleared by the gate's own diagnostic command — found by running the
-hook against a real session transcript, where two matches were spurious and one was the measurement
-itself. A payload handed over as `@file` therefore does not clear the gate; the inline form the refusal
-prints does.
+The key and the call have to be the **same invocation** — searching the command for each separately was
+cleared by the gate's own diagnostic command. So a payload handed over as `@file` does not clear the
+gate; the inline form the refusal prints does.

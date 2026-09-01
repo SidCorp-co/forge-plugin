@@ -1,7 +1,13 @@
 # writes — what counts as one, for every gate that asks
 
-Not a hook: the shared test `codex-second` and `learning-gate` both read a write through, in
-`_hook.mjs`. Kept here because only `plugin/` travels into an installed copy.
+Not a hook: the shared test six gates read a write through, in `_hook.mjs`. Kept here because only
+`plugin/` travels into an installed copy.
+
+**Afterwards, the disk answers; before, only the text can.** A gate firing after the call — `claude-md`,
+`code-quality` — asks which files exist with an mtime inside the last breath, and gets `sed`, a heredoc,
+`tee`, `cp` and a script that opened a path it mentioned, without parsing any of them. A gate that must
+refuse *before* the write has no such evidence, so it reads the command, and everything below is that
+harder half.
 
 Most edits in this repository arrive as an interpreter writing a file, or as `cat > file <<EOF`,
 rather than through the `Write` tool — so `WRITES` covers the shell verbs and the library calls, and

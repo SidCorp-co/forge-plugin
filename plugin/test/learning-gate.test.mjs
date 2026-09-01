@@ -218,10 +218,40 @@ test("the refusal names the categories and does not reprint the test", () => {
   assert.ok(first.split("\n").length <= 10, `five lines, not twenty-five: got ${first.split("\n").length}`);
 });
 
-/* The pointer is the verb every gate prints, so it costs one line and is on every refusal rather
-   than the session's first; the document that carries the test is named inside what the verb prints. */
-test("every refusal ends by naming where the argument is", () => {
+/* A duplicate is refused before the once-per-file stamp, so this route has its own fixture: the
+   skill already says the sentence being written into a second file. */
+const skillDuplicate = () => {
+  const room = join(mkdtempSync(join(tmpdir(), "skill-dup-gate-")), "skills", "demo");
+  const line = "A refusal names the shape it refused and the one action that clears it.";
+  mkdirSync(join(room, "references"), { recursive: true });
+  writeFileSync(join(room, "SKILL.md"), `# demo\n\n${line}\n`);
+  const run = spawnSync(process.execPath, [HOOK], {
+    input: JSON.stringify({
+      session_id: randomUUID(),
+      tool_name: "Write",
+      tool_input: { file_path: join(room, "references", "shape.md"), content: `${line}\n` },
+    }),
+    encoding: "utf8",
+    env: HOME,
+  });
+  assert.equal(run.status, 0, run.stderr);
+  return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
+};
+
+/* Every route, not the one that was easiest to reach: the memory write fires most and shipped
+   without the pointer, and the duplicate refusal named a repository script instead — a path the
+   project a gate fires in does not have, and cannot run. */
+test("every refusal ends by naming where the argument is, and names no path", () => {
   const session = randomUUID();
-  assert.match(skillWrite(session, "SKILL.md"), /forge hooks --why learning-gate/u);
-  assert.match(skillWrite(session, "SKILL.md"), /forge hooks --why learning-gate/u, "and again, in the same session");
+  const reasons = [
+    skillWrite(session, "SKILL.md"),
+    skillWrite(session, "SKILL.md"),
+    skillDuplicate(),
+    write("a-new-trap.md", "A pnpm workspace resolves a symlinked package twice.").first,
+    write("background-work-survives-tool-timeout.md", KNOWN).first,
+  ];
+  for (const reason of reasons) {
+    assert.match(reason, /forge hooks --why learning-gate/u, reason);
+    assert.doesNotMatch(reason, /[\w.-]+\/[\w./-]+\.(?:mjs|js|md)\b/u, `names a path: ${reason}`);
+  }
 });

@@ -14,16 +14,12 @@ where both could speak, is stated once in
 
 ## Which files a call wrote — `_hook.mjs`
 
-The file hooks watched `Write`, `Edit` and `MultiEdit` and nothing else, so every edit made
-through the shell — `sed -i`, a heredoc, a one-liner that opens a path — passed all of them
-unseen. Under a permission mode that encourages Bash that is not an edge case; it is the main
-road.
+The file hooks watched `Write`, `Edit` and `MultiEdit` and nothing else, so every edit made through
+the shell passed all of them unseen — under a permission mode that encourages Bash, the main road
+rather than an edge case. `touched()` and `WRITES` in `_hook.mjs` close it, and how they decide is
+one document, `forge hooks --why writes`: six gates read a write through it, and a second account
+here would diverge the first time one of them was corrected.
 
-Parsing the shell command is the wrong tool, because there is no bounded set of ways to write
-a file. So the hook asks the disk instead: any path-shaped token in the command that names a
-real file whose mtime is within the last breath is a file this call just wrote. That covers
-`sed`, a heredoc, `tee`, `cp` and a script that opens a path it mentions, without any of them
-being understood.
 ## A refusal is short, and says where the argument is
 
 What a hook prints lands in a context window on every tool use, so a refusal carries only the
@@ -108,7 +104,7 @@ cost one real bypass" is the argument for the current rule; "then we added X" is
 
 Two constraints the checker enforces, both learned the hard way: no absolute path and nothing under
 `docs/`, because only `plugin/` travels into an installed copy; and a document either names a hook
-that prints the pointer, or is a shared topic the harness itself cites — `writes` is one, since two
+that prints the pointer, or is a shared topic the harness itself cites — `writes` is one, since six
 gates read a write the same way and that argument should live in one place.
 
 ## Every hook can be switched off, one at a time

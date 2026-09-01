@@ -31,7 +31,5 @@ Two prices, both the safe direction: a commit message quoting a rule reads as th
 away; and the pairing is naive, so prose apostrophes inside a body can expose a command, which this
 document tripped while being written.
 
-**A quoted flag is the flag.** A quoted `-A`, `--hard`, `stash` or `--fix` was allowed by every
-version of this guard until codex read it. The lesson is not about quoting: a rule that reads a
-command as text is only as good as the shapes someone has actually tried, which is why this file has a
-suite now.
+**A quoted flag is the flag**, on the operator's own line: every pattern here tolerates one, because
+`-A`, `--hard`, `stash` and `--fix` quoted slipped past every earlier version.

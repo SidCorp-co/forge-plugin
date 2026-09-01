@@ -4,12 +4,11 @@
 hour of hook changes, with the advisor consulted four times and codex not once — the end-of-turn
 reminder is `additionalContext`, which an agent can ignore, and did.
 
-The free opinion is not walled off. A gate demanding the built-in advisor was removed at the user's
-instruction: the system prompt already asks for that call, so the hook charged a refused write per
-turn to enforce an instruction already there. This asks for what no prompt asks for — a reading by
-another provider — and arms on the advisor call rather than demanding it. No advisor event exists to
-hook, and `Stop` was tried twice: printing reached nobody, blocking stopped a turn whose only change
-was documentation. What is left is the write.
+The free opinion is not walled off. A gate demanding the built-in advisor was removed: the system
+prompt already asks for that call, so the hook charged a refused write per turn to enforce an
+instruction already there. This asks for what no prompt asks for — a reading by another provider —
+and arms on the advisor call rather than demanding it. No advisor event exists to hook and `Stop` did
+not work (`forge hooks --why codex-turn`), so what is left is the write.
 
 Four cheap facts: the call writes (`forge hooks --why writes`), the advisor has spoken this turn, no
 consult has spent that advice, and `git status --porcelain` is non-empty. The last matters — a clean
