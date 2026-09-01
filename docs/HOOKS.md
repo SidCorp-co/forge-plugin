@@ -20,19 +20,19 @@ rather than an edge case. `touched()` and `WRITES` in `_hook.mjs` close it, and 
 one document, `forge hooks --how writes`: six gates read a write through it, and a second account
 here would diverge the first time one of them was corrected.
 
-## A refusal is short, and says where the argument is
+## A refusal is short, and the document says how to get through it
 
-What a hook prints lands in a context window on every tool use, so a refusal carries only the
-shape it refused and the one action that clears it. The argument for the rule — the failure it was
-written for, the measurement behind a threshold, the case that was tried and removed — is one
-command away, and the refusal ends with that command:
+What a hook prints lands in a context window on every tool use, so a refusal carries only the shape it
+refused and the one action that clears it. Everything a refused agent still needs — the route that
+works when the obvious one is refused, what the gate does not judge, what to do when it is wrong — is
+one command away, and the refusal ends with that command:
 
     forge hooks --how <hook>
 
-It reads `plugin/hooks/how/<hook>.md`, which is the list: one file per gate that has a reason to
-give, and `forge hooks --how` with a name it does not hold answers with the nearest one it does.
+It reads `plugin/hooks/how/<hook>.md`, one file per gate, and a name it does not hold answers with the
+nearest one it does.
 
-The reasoning ships inside the plugin rather than in `docs/`, because only `plugin/` travels into an
+The document ships inside the plugin rather than in `docs/`, because only `plugin/` travels into an
 installed copy. A refusal citing a path under `docs/` would name a file that does not exist in the
 project the gate fired in, which is the one thing a pointer may not do.
 
@@ -73,39 +73,45 @@ Four failures worth naming, every one of them found by firing a gate rather than
   teaches that the gate is noise, which costs every refusal after it. Say the safer form, and treat a
   wrong refusal as a case for the user rather than a thing to slip past.
 
-**A document: the argument the message could not afford.** Under 2,600 characters — about 650 tokens
-when an agent reads it, which is the cost the pointer exists to avoid, and short enough that someone
-reads all of it. `# <hook> — <claim>` as its first line, so `forge hooks --how` opens with what the
-gate is *for*. One claim per paragraph: that is the discipline that fits ten gates into the ceiling,
-and the paragraph that carries no claim of its own is the one to cut.
+**A document: how to do the thing right.** An agent opens it having just been refused, and wants the
+route out — not a defence of the rule. So the argument gets 100 tokens and the rest is instruction.
 
     WRONG                                     RIGHT
 
-    The gate refuses a memory write until      The failure this guards is not a bad memory
-    the category is named. It also handles     row — it is the reflex one. An agent that
-    skills. Originally it only checked the     finishes a task reaches for "save what I
-    shape, then we added the duplicate         learned" as a closing ritual, and the
-    check, and later the shell route.          corpus fills with entries nobody reads.
+    The gate refuses a memory write until      Why: an agent finishing a task reaches for
+    the category is named. It also handles     "save what I learned" as a ritual, and the
+    skills. Originally it only checked the     corpus fills with rows nobody reads.
+    shape, then we added the duplicate
+    check, and later the shell route. It       How to clear it: apply the four conditions
+    was calibrated on six memories …           the refusal prints, then re-send and say
+                                               which one made it worth keeping.
+    — restates the message, narrates a
+      changelog, and leaves the agent          How to write through it: use Write or Edit.
+      exactly where it was                     `sed -i` carries no content to read.
 
-    — restates the message, then narrates      Calibrated on six real memories: five score
-      a changelog                              0.00, the one related pair 0.27, a
-                                               paraphrase re-filed under a new name 1.00.
+                                               Not judged: whether the fact is any good.
 
-                                               The cost is real: a program that quotes a
-                                               guarded path is refused even when the path
-                                               is prose — which caught the very commit
-                                               documenting this.
+The shape, in order, each part enforced or checkable:
 
-So: the failure it was written for, the measurement behind any threshold, the alternative that was
-tried and removed, the price being paid on purpose, and what it deliberately does not judge. History
-earns its place when it explains why the current shape is what it is — "stripping every quoted span
-cost one real bypass" is the argument for the current rule; "then we added X" is a changelog, and
-`git log` already holds it.
+- `# <hook> — <claim>`, so `forge hooks --how` opens with what the gate is for.
+- `Why: …` as the second paragraph, at most 430 characters — 100 tokens. One failure, one
+  measurement, and nothing else. It exists so the rule can be obeyed intelligently, not so it can win
+  an argument.
+- **How to clear it**, expanded past what the refusal could afford: what to re-send, what counts as an
+  answer, how often it asks.
+- **How to work through it** — the route that survives the gate, and how to handle a refusal you
+  believe is wrong.
+- **Not judged**, so nobody over-complies with a gate that was never asking.
 
-Two constraints the checker enforces, both learned the hard way: no absolute path and nothing under
-`docs/`, because only `plugin/` travels into an installed copy; and a document either names a hook
-that prints the pointer, or is a shared topic the harness itself cites — `writes` is one, since six
-gates read a write the same way and that argument should live in one place.
+Under 1,600 characters all in. What does not fit is an argument sitting where a route out belongs:
+calibration stories, codex attributions, and alternatives tried and removed all go, unless the removed
+alternative is one an agent would otherwise attempt — then one clause. Nothing restates what `-h`
+already answers, and nothing restates the refusal itself.
+
+Two more constraints the checker keeps: no absolute path and nothing under `docs/`, because only
+`plugin/` travels into an installed copy; and a document either names a hook that prints the pointer,
+or is a shared topic the harness itself cites — `writes` is one, since six gates read a write the same
+way and that argument should live in one place.
 
 ## Every hook can be switched off, one at a time
 

@@ -1,30 +1,17 @@
 # issue-read-first — the read that looks complete and is not
 
-An issue's body says what was asked for months ago. Its **comments** say what the state is now: an
-answer the client already gave, a decision already taken and its reason, a correction that never made
-it back into the body. Writing a plan or a note without them posts something carrying the tracker's
-authority while contradicting what is already on the issue.
+Why: `forge issue ISS-nn --full` returns no comments at all. The body says what was asked months ago;
+the comments say what the state is now — an answer the client already gave, a decision already taken.
+Writing without them posts something carrying the tracker's authority and contradicting the issue.
 
-`issue-flow` Phase 1 has always said to read the comments, and the instruction was missed twice in one
-session with the user correcting it both times. The reason is measurable rather than a matter of
-attention: **`forge issue ISS-nn --full` returns no comments at all.** The command that reads as "the
-whole issue" omits the discussion, so an agent that ran it has read the issue and knows none of its
-state, with nothing anywhere saying so.
+How to clear it: list the comments for every key the command names, inline in the same call, then
+re-send. An empty list satisfies it — the condition is having looked, so a freshly created issue costs
+one listing that returns nothing.
 
-So the gate is on the write, not on the reading: a `forge comment`, `forge plan`, `forge attach`, or a
-`forge_issues` call whose action is not `list` or `get` is refused while no comments listing for that
-key appears in the transcript. Every key the command names must have been read, because a command
-touching two issues has two states to be wrong about.
+Every key the command names must have been read, because a command touching two issues has two states
+to be wrong about. The key and the listing have to be the same invocation, so a payload handed over as
+`@file` does not clear the gate; the inline form the refusal prints does. Any `[A-Z]{2,6}-\d+` key
+counts, so a tracker whose prefix is not `ISS` needs no configuration.
 
-**An empty list satisfies it.** The condition is having looked, which the agent can clear in one call —
-so this is a wall rather than a question. A freshly created issue costs one listing that returns
-nothing.
-
-Only the agent's own `tool_use` blocks are searched, so the refusal cannot satisfy the next attempt with
-its own suggestion. The key shape is `[A-Z]{2,6}-\d+`, so a tracker whose prefix is not `ISS` needs no
-configuration. A transcript that will not open reads as null and the gate stands down: it exists to
-order the work, not to stop it when its evidence is missing.
-
-The key and the call have to be the **same invocation** — searching the command for each separately was
-cleared by the gate's own diagnostic command. So a payload handed over as `@file` does not clear the
-gate; the inline form the refusal prints does.
+**Not judged:** what you write once you have read. A transcript that will not open stands the gate
+down: it exists to order the work, not to stop it when its own evidence is missing.

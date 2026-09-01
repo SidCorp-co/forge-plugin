@@ -25,9 +25,8 @@ test("every gate that points at its reasoning has some", () => {
   }
 });
 
-/* The other direction: a hook renamed leaves a document nothing reads, and `--how` would offer it.
-   A shared topic is allowed one document, and the harness every hook loads is what names it — cited
-   rather than listed, so the pair cannot drift. */
+/* A hook renamed leaves a document nothing reads, and `--how` would offer it. A shared topic is
+   allowed one, cited by the harness rather than listed, so the pair cannot drift. */
 test("every document names a hook, or a topic the harness cites", () => {
   const harness = readFileSync(join(HOOKS, "_hook.mjs"), "utf8");
   for (const name of documented) {
@@ -36,19 +35,23 @@ test("every document names a hook, or a topic the harness cites", () => {
   }
 });
 
-/* The shape docs/HOOKS.md sets out. Each of these was got wrong before it was written down: a
-   document that opened without naming its gate, one that grew past what anyone reads, and a pointer
-   into `docs/` or an absolute path — neither of which exists in the copy a gate fires from. */
-test("each document opens with its claim, stays short, and points nowhere unreachable", () => {
-  const CEILING = 2600;
+/* Every rule of the shape was got wrong here first: a document opening without naming its gate, one
+   past what anyone reads, an argument filling the file an agent opened for a route out, and a pointer
+   into `docs/` — which does not exist in the copy a gate fires from. */
+test("each document opens with its claim, argues briefly, and points nowhere unreachable", () => {
+  const CEILING = 1600;
+  const WHY = 430; // 100 tokens: the reason a rule exists, not a defence of it
   for (const name of documented) {
     const text = readFileSync(join(HOW, `${name}.md`), "utf8");
     const [first] = text.split("\n");
+    const why = text.split("\n\n")[1].replace(/\n/gu, " ");
     assert.equal(first, `# ${name} — ${first.replace(/^# \S+ — /u, "")}`, `how/${name}.md: ${first}`);
+    assert.ok(why.startsWith("Why: "), `how/${name}.md: second paragraph is not the why — ${why.slice(0, 60)}`);
+    assert.ok(why.length <= WHY, `how/${name}.md: the why is ${why.length} characters, and ${WHY} is the budget`);
     assert.ok(
       text.length <= CEILING,
-      `how/${name}.md is ${text.length} characters; the ceiling is ${CEILING}, and the argument that `
-        + "does not fit is the one to cut",
+      `how/${name}.md is ${text.length} characters; the ceiling is ${CEILING}, and what does not fit `
+        + "is an argument where a route out belongs",
     );
     assert.doesNotMatch(text, /(?:^|[\s(`])(?:\/(?:home|run|Users|tmp)\/|docs\/)/u, `how/${name}.md`);
   }

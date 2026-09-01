@@ -309,12 +309,13 @@ pattern that refuses too much shows up as a number rather than as an anecdote. O
 logged: they are the signal a false positive leaves. Allows would double the write sites for a
 question nothing is asking yet.
 
-`forge hooks --how <hook>` prints that gate's reasoning: `plugin/hooks/how/<hook>.md`, which is
-where the paragraphs a refusal used to carry now live. What a hook prints reaches a context window
-on every tool use, so a refusal states the shape it refused and one action and ends with this
-command — measured at 1,765 characters of standing argument removed from seven gates. The document
-sits under `plugin/` because only that directory travels into an installed plugin, and a name with
-no document is refused with the nearest one that has, like every other hook name this verb takes.
+`forge hooks --how <hook>` prints that gate's document: `plugin/hooks/how/<hook>.md` — how to clear
+the refusal, the route that survives the gate, and what it does not judge. What a hook prints reaches
+a context window on every tool use, so a refusal states the shape it refused and one action and ends
+with this command. The reasoning it does carry is capped at 100 tokens: an agent opens the file having
+just been refused, and wants the way through rather than a defence of the rule. The document sits
+under `plugin/` because only that directory travels into an installed plugin, and a name with no
+document is refused with the nearest one that has, like every other hook name this verb takes.
 
 **The log is a file on disk, so it never holds a credential.** `scrubbed` masks named secret flags
 (`--token`, `--password`, `--api-key`, `--secret`), `Authorization`/`Bearer` values, and the shapes

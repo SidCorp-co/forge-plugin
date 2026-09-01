@@ -1,20 +1,21 @@
-# code-quality — the plugin fires, the project decides
+# code-quality — the project's own lint, on the files it could not see
 
-`eslint-plugin-code-quality` ships its own Claude plugin whose hook script resolves the
-consumer project's workspace, ESLint binary and config. Reimplementing that here would be a
-second copy of something already maintained, so this hook forwards to it instead — preferring
-the project's own copy in `node_modules`, falling back to `hooks/vendor/` for a project that
-never installed the package. A project with no ESLint stays silent either way; the script
-treats that as an opt-out rather than a misconfiguration.
+Why: the shipped hook watches the tool routes only, so a file written by `sed` or a heredoc was never
+linted. This wrapper adds that route and forwards to the project's own copy, with its config and its
+thresholds.
 
-The gap that justifies a wrapper is routes, not rules: the shipped hook's matcher is
-`Edit|Write|MultiEdit|NotebookEdit`, so the shell route was unwatched.
+How to clear it: fix what each finding names, at the source. `--fix` is refused by `bash-guard`, and
+for the same reason — a green run nobody decided about. The finding that fires most here is comment
+density, and it inverts: shortening a string literal raises the ratio, so trim the header comment in
+the same edit rather than wondering why a deletion made it worse.
 
-The vendored copy is a copy on purpose: a plugin directory travels alone and cannot import a
-sibling package. Every file in `vendor/` names its upstream in its header, and a check compares
-the two on every run — so a stale vendored rule is a failing gate here, never a project quietly
+It **writes**. The delegate runs the project's `prettier` before linting, so a file written by `sed`
+comes back formatted — the same contract every project already accepted on `Edit`.
+
+The vendored copy under `hooks/vendor/` is a copy on purpose: a plugin directory travels alone and
+cannot import a sibling package. Every file there names its upstream in its header and a check
+compares the two on every run, so a stale rule is a failing gate here rather than a project quietly
 linted against last month's rules.
 
-The delegate runs the project's `prettier` before linting, so it **writes** the file.
-Extending it to the shell route means a file written by `sed` gets formatted too — the same
-contract every project already accepted on `Edit`.
+**Not judged:** anything the project has not configured. No ESLint means silence, which is an opt-out
+and not a misconfiguration. Every rule comes from the project; none from here.
