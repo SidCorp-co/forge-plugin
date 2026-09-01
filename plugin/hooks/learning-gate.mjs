@@ -5,7 +5,7 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { REDIRECT, WRITES, askedAlready, commands, deny, how, readEvent, settled, shellText } from "./_hook.mjs";
+import { REDIRECT, WRITES, askedAlready, askedByAnyone, commands, deny, how, readEvent, settled, shellText } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../src/learning.mjs";
 // A write shape counts only as its own token, so an assignment and a `cd` resolve here.
@@ -154,6 +154,7 @@ const path = ti.file_path ?? "";
 if (path.includes("/memory/") && path.endsWith(".md") && basename(path) !== "MEMORY.md") {
   // Once per file: a refusal that also refuses the re-send forbids the write outright.
   if (askedAlready(ev, settled(path), "learning-gate")) process.exit(0);
+  askedByAnyone(ev, settled(path), "learning-gate");
   const twin = restated(dirname(resolve(path)), path, ti.content ?? ti.new_string ?? "");
   const held = existsSync(path);
   const fresh = !twin && !held;
@@ -189,6 +190,7 @@ if (path.includes("/skills/") && /\/(SKILL\.md|references\/[^/]+\.md)$/.test(pat
     }
   }
   if (askedAlready(ev, settled(path), "learning-gate")) process.exit(0);
+  askedByAnyone(ev, settled(path), "learning-gate");
   deny(
     `Hold — \`${basename(path)}\` is a skill's own text: it develops the method, so it must not be ` +
       `a note about this one repository.\n\n${BRIEF}\n\n` +

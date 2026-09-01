@@ -79,6 +79,11 @@ test("a write in one command does not answer for a path named in another", () =>
   assert.equal(decide(`echo start ; touch ${MEMORY}/trap.md`).allowed, false, "in whichever command it is");
 });
 
+/* Read as a quote, an escaped one split the verb from its target and the write was lost. */
+test("a quote the shell escapes does not end a command", () => {
+  assert.equal(decide(`cp "a\\";b" ${MEMORY}/trap.md`).allowed, false);
+});
+
 /* Two ways a target reaches a verb in another command, both of which a plain split would let through. */
 test("a command that hands the next one its target is one command", () => {
   assert.equal(decide(`printf '%s' ${MEMORY}/trap.md | xargs touch`).allowed, false, "a pipe is not a boundary");

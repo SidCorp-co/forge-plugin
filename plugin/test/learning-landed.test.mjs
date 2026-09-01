@@ -128,6 +128,53 @@ test("every file that landed is named in one refusal", () => {
   assert.match(said, /they should/u, "and asked of them together");
 });
 
+/* The swept paths are canonical and git's root is not, so a checkout reached through a linked parent
+   compared as outside its own repository — and every file in it skipped the tree filter. */
+test("a checkout reached through a link is still inside its own repository", () => {
+  const session = randomUUID();
+  const held = mkdtempSync(join(tmpdir(), "landed-real-"));
+  const repo = join(held, "checkout");
+  mkdirSync(join(repo, "skills", "deploy"), { recursive: true });
+  writeFileSync(join(repo, "skills", "deploy", "SKILL.md"), "the method\n");
+  for (const args of [["init", "-q"], ["add", "-A"], ["commit", "-qm", "first"]]) {
+    const run = spawnSync("git", ["-C", repo, ...args], {
+      encoding: "utf8",
+      env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" },
+    });
+    assert.equal(run.status, 0, run.stderr);
+  }
+  const link = join(mkdtempSync(join(tmpdir(), "landed-link-parent-")), "seen-as");
+  symlinkSync(repo, link);
+  const run = callHook(
+    HOOK,
+    { session_id: session, tool_name: "Bash", tool_input: { command: "git checkout master" }, cwd: link },
+    HOME,
+  );
+  assert.equal(run.stdout.trim(), "", "the tree says unchanged, and the link is not another repository");
+});
+
+/* A guarded directory is the project's, not one session's: two sessions swept the same memory
+   directory and both stopped on a file one of them had already been asked about. */
+test("a file one session was asked about is not asked again in another", () => {
+  const project = mkdtempSync(join(tmpdir(), "landed-two-"));
+  mkdirSync(join(project, "memory"));
+  const asking = (session) =>
+    callHook(
+      HOOK,
+      {
+        session_id: session,
+        tool_name: "Bash",
+        tool_input: { command: "node build-notes.mjs" },
+        cwd: project,
+        transcript_path: join(project, `${session}.jsonl`),
+      },
+      HOME,
+    ).stdout.trim();
+  writeFileSync(join(project, "memory", "shared.md"), "a line\n");
+  assert.ok(asking(randomUUID()), "the first session asks");
+  assert.equal(asking(randomUUID()), "", "and the second does not ask again");
+});
+
 /* A fresh mtime is not authorship: `git pull` restamps every skill file it carries, and asking the
    agent to justify those is a refusal about somebody else's commit. The tree is asked instead. */
 test("a tracked skill file the tree agrees with was not written here", () => {

@@ -147,6 +147,10 @@ export function askedAlready(ev, path, kind, { set = true } = {}) {
   return false;
 }
 
+/** Keyed for whoever asks next: a guarded directory is the project's, not one session's. */
+export const askedByAnyone = (ev, path, kind, options) =>
+  askedAlready({ ...ev, session_id: "" }, path, kind, options);
+
 /** No hook fires for the advisor, but every call leaves an `advisor_tool_result` in the transcript. */
 const blocksOf = (record) => {
   const content = (record?.message ?? {}).content;
@@ -216,9 +220,8 @@ export const unwrapped = (text) => {
 };
 
 /** The commands in a line, so a write answers for what it was handed rather than for the whole line.
- *  A quoted body is never cut: a program's own `;` is not a boundary. Nor is a pipe, which hands the
- *  next command its arguments. An unclosed quote runs to the end, joining commands rather than
- *  splitting them, so a line that cannot be read stays one target for every verb in it. */
+ *  A quoted body is never cut — a program's own `;` is not a boundary — nor is a pipe, which hands the
+ *  next command its arguments. An unclosed quote runs to the end, joining rather than splitting. */
 export const commands = (text) => {
   const out = [];
   let held = "";
@@ -226,6 +229,12 @@ export const commands = (text) => {
   for (let at = 0; at < text.length; at += 1) {
     const one = text[at];
     held += one;
+    /* A backslash escapes what follows, single quotes excepted: read as a quote, a write was lost. */
+    if (one === "\\" && quote !== "'") {
+      held += text[at + 1] ?? "";
+      at += 1;
+      continue;
+    }
     if (quote) {
       if (one === quote) quote = "";
       continue;

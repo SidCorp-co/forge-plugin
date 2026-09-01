@@ -26,17 +26,26 @@ const git = (cwd, args) => {
 /* Where a guarded file can land with nothing naming it: the session's own memory directory, which is
    the transcript's neighbour rather than a slug this code spells out, and the skill directories the
    repository already keeps — asked of git, since a tree's layout is not this plugin's to assume. */
-const guardedDirs = (ev) => {
+const guardedDirs = (ev, root) => {
   const out = [];
   const transcript = ev.transcript_path ?? "";
   if (transcript) out.push(join(dirname(transcript), "memory"));
-  const root = git(ev.cwd || process.cwd(), ["rev-parse", "--show-toplevel"]).trim();
-  if (root) {
-    for (const rel of git(root, ["ls-files", "--full-name", "--", "*/SKILL.md", "SKILL.md"]).split("\n")) {
-      if (rel) out.push(join(root, dirname(dirname(rel))));
-    }
+  for (const rel of root ? git(root, ["ls-files", "--full-name", "--", "*/SKILL.md", "SKILL.md"]).split("\n") : []) {
+    if (rel) out.push(join(root, dirname(dirname(rel))));
   }
   return [...new Set(out)];
+};
+
+/* Canonical, because the swept paths are, and one path of a comparison resolved while the other is not
+   puts every file outside its own repository. Git resolves the link today; this does not rely on it. */
+const repoRoot = (from) => {
+  const said = git(from, ["rev-parse", "--show-toplevel"]).trim();
+  if (!said) return "";
+  try {
+    return realpathSync(said);
+  } catch {
+    return said;
+  }
 };
 
 const freshIn = (dir, since, depth = DEPTH) => {
@@ -63,8 +72,7 @@ const freshIn = (dir, since, depth = DEPTH) => {
   return out;
 };
 
-/* A fresh mtime is not authorship: `git pull` and `git checkout` restamp every skill file they carry.
-   A tracked file the tree agrees with was not written here, whoever touched it. */
+/* A fresh mtime is not authorship: a tracked file the tree agrees with was restamped, not written. */
 const changedIn = (root, files) => {
   const asked = files.map((one) => relative(root, one));
   const said = git(root, ["status", "--porcelain", "-z", "--untracked-files=all", "--", ...asked]);
@@ -76,8 +84,8 @@ const changedIn = (root, files) => {
  *  reading the command, so the directories it could have written are read instead. */
 export const swept = (ev, freshMs) => {
   const since = Date.now() - freshMs;
-  const root = git(ev.cwd || process.cwd(), ["rev-parse", "--show-toplevel"]).trim();
-  const found = [...new Set(guardedDirs(ev).flatMap((dir) => freshIn(dir, since)))].sort();
+  const root = repoRoot(ev.cwd || process.cwd());
+  const found = [...new Set(guardedDirs(ev, root).flatMap((dir) => freshIn(dir, since)))].sort();
   const inside = root ? found.filter((one) => !relative(root, one).startsWith("..")) : [];
   const outside = found.filter((one) => !inside.includes(one));
   return [...outside, ...(inside.length ? changedIn(root, inside) : [])].sort();

@@ -395,7 +395,7 @@ export const doctor = async (rest) => {
   const copy = pluginCopy();
   if (copy && !copy.stale) line(OK, "plugin copy", `${copy.running} — running and installed`);
   else if (copy) {
-    line(BAD, "plugin copy", `${copy.running} here, ${copy.installed} installed — a session keeps the `
+    line(NOTE, "plugin copy", `${copy.running} here, ${copy.installed} installed — a session keeps the `
       + "copy it started with: `claude plugin update` then restart");
   }
   const vi = checkVi();
