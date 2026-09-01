@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
+import { dirtyRepo } from "./dirty-repo.mjs";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -53,7 +55,7 @@ test("a refusal from a live hook lands in the log, redacted", () => {
       tool_input: { command: "coolify login --token 7|secretsecret && git add -A" },
       transcript_path: path,
       session_id: "logged",
-      cwd: process.cwd(),
+      cwd: dirtyRepo(),
     }),
     encoding: "utf8",
     env: { ...process.env, XDG_CONFIG_HOME: room },

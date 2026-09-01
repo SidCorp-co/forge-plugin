@@ -27,7 +27,7 @@ const homed = () => {
     }
   }
   const how = join(ROOT, "plugin", "hooks", "how");
-  for (const one of readdirSync(how)) files.push(join(how, one));
+  for (const one of readdirSync(how)) if (one.endsWith(".md")) files.push(join(how, one));
   return files.flatMap((file) => sentences(readFileSync(file, "utf8"), { inlineCode: "drop" }).map((one) => [file, one]));
 };
 

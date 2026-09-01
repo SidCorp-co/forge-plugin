@@ -48,7 +48,7 @@ test("each document opens with its claim, argues briefly, and points nowhere unr
   for (const name of documented) {
     const text = readFileSync(join(HOW, `${name}.md`), "utf8");
     const [first] = text.split("\n");
-    const why = text.split("\n\n")[1].replace(/\n/gu, " ");
+    const why = (text.split("\n\n")[1] ?? "").replace(/\n/gu, " ");
     assert.equal(first, `# ${name} — ${first.replace(/^# \S+ — /u, "")}`, `how/${name}.md: ${first}`);
     assert.ok(why.startsWith("Why: "), `how/${name}.md: second paragraph is not the why — ${why.slice(0, 60)}`);
     assert.ok(why.length <= WHY, `how/${name}.md: the why is ${why.length} characters, and ${WHY} is the budget`);

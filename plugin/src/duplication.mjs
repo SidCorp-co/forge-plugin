@@ -22,8 +22,8 @@ const INLINE = /`[^`\n]*`/g;
 /** `inlineCode: "drop"` takes the span out, not only its backticks: two texts naming one command are
  *  about it rather than restating each other. Off by default: doctor calibrated with them counted. */
 export function sentences(text, { inlineCode = "keep" } = {}) {
-  const stripped = (inlineCode === "drop" ? text.replace(INLINE, " ") : text)
-    .replace(FENCE, " ")
+  const fenceless = text.replace(FENCE, " ");
+  const stripped = (inlineCode === "drop" ? fenceless.replace(INLINE, " ") : fenceless)
     .replace(TABLE_ROW, " ")
     .replace(HEADING, " ")
     .replace(MARKUP, "");

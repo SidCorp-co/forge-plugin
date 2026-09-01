@@ -239,9 +239,9 @@ const skillDuplicate = () => {
 };
 
 /* Every route, not the one that was easiest to reach: the memory write fires most and shipped
-   without the pointer, and the duplicate refusal named a repository script instead — a path the
-   project a gate fires in does not have, and cannot run. */
-test("every refusal ends by naming where the argument is, and names no path", () => {
+   without the pointer, and the duplicate refusal named a repository script — a path the project a
+   gate fires in cannot resolve or run. A file in the user's own tree is fair to name. */
+test("every refusal ends by naming where the argument is, and no path of this repository's", () => {
   const session = randomUUID();
   const reasons = [
     skillWrite(session, "SKILL.md"),
@@ -252,6 +252,7 @@ test("every refusal ends by naming where the argument is, and names no path", ()
   ];
   for (const reason of reasons) {
     assert.match(reason, /forge hooks --how learning-gate/u, reason);
-    assert.doesNotMatch(reason, /[\w.-]+\/[\w./-]+\.(?:mjs|js|md)\b/u, `names a path: ${reason}`);
+    const ours = /(?:^|[\s(`])(?:\.\/)?(?:plugin|packages|scripts|docs|src|tools)\/\S+/u;
+    assert.doesNotMatch(reason, ours, `names a path of this repository: ${reason}`);
   }
 });

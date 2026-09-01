@@ -8,18 +8,21 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
+import { dirtyRepo } from "./dirty-repo.mjs";
+
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "bash-guard.mjs");
 /* A refusal writes to the config dir, so a suite that skips this one logs onto the developer. */
 const HOME = { ...process.env, XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), "bash-guard-home-")) };
 
-/* The git rules stand down on a clean tree, so the fixtures run against this dirty checkout. */
+/* The git rules stand down on a clean tree, so the fixtures bring their own dirty one. */
+const DIRTY = dirtyRepo();
 const decide = (command) => {
   const run = spawnSync(process.execPath, [HOOK], {
     input: JSON.stringify({
       session_id: randomUUID(),
       tool_name: "Bash",
       tool_input: { command },
-      cwd: process.cwd(),
+      cwd: DIRTY,
     }),
     encoding: "utf8",
     env: HOME,
