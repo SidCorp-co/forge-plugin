@@ -13,8 +13,9 @@ description: >-
 
 # Skill: forge
 
-**Run `forge -h` first.** It lists the verbs *this* credential can actually use and carries the
-tracker's own rules for writing an issue. What follows is how to spend a call well. What is read
+**Run `forge -h` first.** It lists the verbs *this* credential can actually use. `forge <verb> -h`
+says what to type for one of them and names the schema holding its arguments in full; `forge -h
+--full` adds the tracker's own rules for writing an issue. What follows is how to spend a call well. What is read
 once — where settings come from, what `doctor` reports, and the two verb families that are not the
 tracker — is in `references/`, named at the point it becomes relevant.
 

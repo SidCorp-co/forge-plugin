@@ -557,3 +557,5 @@ export const codex = async ([sub, ...rest]) => {
   }
   await SUBS[sub](rest);
 };
+
+codex.answersHelp = true;

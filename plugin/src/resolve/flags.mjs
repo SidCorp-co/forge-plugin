@@ -18,6 +18,9 @@ export const flags = (argv, verb, boolean = []) => {
   return found;
 };
 
+/* First or not at all: further along it is an argument, and help there is a write that never ran. */
+export const wantsHelp = ([first]) => first === "-h" || first === "--help";
+
 /* `flags` keeps only the last value of a repeated flag, which reads as a filtered answer rather
    than a dropped one. A caller that means "all of these" pulls them out first. */
 export const pullRepeated = (argv, flag, verb) => {
@@ -36,9 +39,8 @@ export const pullRepeated = (argv, flag, verb) => {
   return { values, rest };
 };
 
-/* Positionals and flags interleave on a line like `consult a.mjs --diff --only major b.mjs`, and
-   splitting on "starts with --" reads a flag's VALUE as a positional and hides it from the parser.
-   So the boolean flags are declared and everything else consumes the token after it. */
+/* Positionals and flags interleave (`consult a.mjs --diff --only major b.mjs`), and splitting on
+   "starts with --" read a VALUE as a positional: so booleans are declared, and the rest consume. */
 export const partition = (argv, booleans = []) => {
   const positionals = [];
   const flagArgv = [];

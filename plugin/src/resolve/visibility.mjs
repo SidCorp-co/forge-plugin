@@ -33,6 +33,17 @@ export const usageOf = (verb) => {
   return `Usage: forge ${verb}${row?.[1] ? ` ${row[1]}` : ""}`;
 };
 
+/** What `-h` on a verb answers: what to type, what it is for, and which schema holds the fields the
+ *  tracker itself takes — the detail, fetched only when it is asked for. */
+export const helpOf = (verb) => {
+  const row = rowFor(verb);
+  /* A verb that takes nothing has no arguments to write out: the pointer read as an invitation. */
+  const detail = row?.[1] && row?.[3] && `The fields the tracker takes: \`forge schema ${row[3]}\`.`;
+  return [usageOf(verb), row?.[2], detail]
+    .filter(Boolean)
+    .join("\n");
+};
+
 export const helpLine = ([verb, args, blurb]) =>
   `  ${`${verb} ${args}`.trim().padEnd(46)} ${blurb}`;
 
