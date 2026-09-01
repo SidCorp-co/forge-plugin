@@ -23,9 +23,8 @@ const git = (cwd, args) => {
   return run.status === 0 ? String(run.stdout) : "";
 };
 
-/* Where a guarded file can land with nothing naming it: the session's own memory directory, which is
-   the transcript's neighbour rather than a slug this code spells out, and the skill directories the
-   repository already keeps — asked of git, since a tree's layout is not this plugin's to assume. */
+/* Where a guarded file lands with nothing naming it: the memory directory beside the transcript rather
+   than at a slug spelled out here, and the skill directories git reports — a layout is the tree's. */
 const guardedDirs = (ev, root) => {
   const out = [];
   const transcript = ev.transcript_path ?? "";
@@ -62,11 +61,13 @@ const freshIn = (dir, since, depth = DEPTH) => {
       if (depth > 1) out.push(...freshIn(full, since, depth - 1));
       continue;
     }
-    if (!entry.isFile() || !guarded(full)) continue;
+    /* A link is no file to `readdir`, and a guarded name pointing out of the tree is a guarded write. */
+    if (!guarded(full)) continue;
     try {
-      if (statSync(full).mtimeMs >= since) out.push(realpathSync(full));
+      const held = statSync(full);
+      if (held.isFile() && held.mtimeMs >= since) out.push(full);
     } catch {
-      /* gone between the listing and the question */
+      /* a broken link, or gone between the listing and the question */
     }
   }
   return out;

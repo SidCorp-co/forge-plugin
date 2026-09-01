@@ -48,7 +48,9 @@ test("a path resolves through a second name, a reassignment, a modifier and a pr
   assert.equal(decide(`M=${MEMORY}\ncp a "$M/trap.md"\nM=/tmp`).allowed, false, "the assignment before the use");
   assert.equal(decide(`M=${MEMORY}\ncp a \${M:-/tmp}/trap.md`).allowed, false, "a brace modifier");
   assert.equal(decide(`( M=${MEMORY} ; cp a $M/trap.md )`).allowed, false, "inside a subshell");
-  assert.equal(decide(`env M=${MEMORY} cp a $M/trap.md`).allowed, false, "after a command that takes one");
+  /* Measured: `$M` expands before `env` sets it, so this lands in `/trap.md` and is nothing to refuse. */
+  assert.equal(decide(`env M=${MEMORY} cp a $M/trap.md`).allowed, true, "a prefix is unset on its own line");
+  assert.equal(decide(`env M=${MEMORY} sh -c 'cp a $M/trap.md'`).allowed, false, "the shell it starts reads it");
 });
 
 /* An assignment is what a shell would set — a line, a separator, a command that takes one — because
@@ -58,10 +60,10 @@ test("text that looks like an assignment but sets nothing resolves nothing", () 
   assert.equal(decide(`node -e "const s = 'M=${MEMORY}'" ; printf y > $M/trap.md`).allowed, true);
 });
 
-/* A prefix assignment is unset while the same line expands; the interpreter it wraps is what reads one. */
-test("an assignment a wrapper passes to an interpreter that reads it is refused", () => {
+test("an assignment reaches the shell a wrapper starts, and no interpreter beyond it", () => {
+  assert.equal(decide(`env A=1 M=${MEMORY} sh -c 'cp a $M/trap.md'`).allowed, false, "beside another assignment");
   const inner = 'writeFileSync("$M/trap.md", "x")';
-  assert.equal(decide(`env A=1 M=${MEMORY} node -e '${inner}'`).allowed, false, "beside another assignment");
+  assert.equal(decide(`env M=${MEMORY} node -e '${inner}'`).allowed, true, "a literal `$M` is no directory");
 });
 
 /* What a substitution returns is unknowable; a directory its text names is one the write reaches. */

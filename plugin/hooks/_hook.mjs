@@ -203,35 +203,32 @@ export const WRITES = new RegExp(
     + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`,
 );
 
-/** A shell runs a `-c` body, so a verb in it is in command position, not a quoted argument. Promoting
- *  one leaves a body inside it still quoted, so the promotion runs to a fixed point. */
+/** A shell runs a `-c` body, so a verb in it is in command position. One body holds another, so the
+ *  promotion runs to a fixed point, and keeps the start it matched: that can carry an assignment. */
 const WRAPPED = new RegExp(
-  STARTS + String.raw`(?:busybox\s+)?(?:sh|bash|zsh|dash|ksh)\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*c\s+("[^"]*"|'[^']*')`,
+  `(${STARTS})` + String.raw`(?:busybox\s+)?(?:sh|bash|zsh|dash|ksh)\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*c\s+("[^"]*"|'[^']*')`,
   "gu",
 );
 export const unwrapped = (text) => {
   let out = text;
   for (let hop = 0; hop < HOPS; hop += 1) {
-    const next = out.replace(WRAPPED, (all, body) => `; ${body.slice(1, -1)} ;`);
+    const next = out.replace(WRAPPED, (all, start, body) => `${start} ; ${body.slice(1, -1)} ;`);
     if (next === out) break;
     out = next;
   }
   return out;
 };
 
-/** The commands in a line, so a write answers for what it was handed rather than for the whole line.
- *  A quoted body is never cut — a program's own `;` is not a boundary — nor is a pipe, which hands the
- *  next command its arguments. An unclosed quote runs to the end, joining rather than splitting. */
-export const commands = (text) => {
+/** Where each command begins and ends. A quoted body is never cut — a program's own `;` is not a
+ *  boundary — nor is a pipe, which hands the next command its arguments. An unclosed quote joins. */
+export const spans = (text) => {
   const out = [];
-  let held = "";
+  let start = 0;
   let quote = "";
   for (let at = 0; at < text.length; at += 1) {
     const one = text[at];
-    held += one;
     /* A backslash escapes what follows, single quotes excepted: read as a quote, a write was lost. */
     if (one === "\\" && quote !== "'") {
-      held += text[at + 1] ?? "";
       at += 1;
       continue;
     }
@@ -245,18 +242,22 @@ export const commands = (text) => {
     }
     const pair = text.slice(at, at + 2);
     if (one === ";" || one === "\n" || one === "&" || pair === "||") {
-      out.push(held.slice(0, -1));
-      held = "";
+      out.push({ start, end: at });
       if (pair === "&&" || pair === "||") at += 1;
+      start = at + 1;
     }
   }
-  out.push(held);
-  return out.map((one) => one.trim()).filter(Boolean);
+  out.push({ start, end: text.length });
+  return out;
 };
 
+export const commands = (text) =>
+  spans(text).map(({ start, end }) => text.slice(start, end).trim()).filter(Boolean);
+
 /** The one text every write test reads: values resolved, a data heredoc dropped, a `-c` body run. */
+/* Unwrapped before expanded: the shell that takes a `-c` body is what an `env` prefix reaches. */
 export const shellText = (command, onProgram) =>
-  unwrapped(bodiless(expanded(String(command ?? "")), onProgram));
+  expanded(unwrapped(bodiless(String(command ?? ""), onProgram)));
 
 /** Whether a call writes: a target for the file tools, a verb or a redirect for the shell, and one
  *  under `/dev/` writes nothing. how/writes.md. */
@@ -293,20 +294,22 @@ const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 const NAMED = /\$(?:\{([A-Za-z_]\w*)[^}]*\}|([A-Za-z_]\w*))/gu;
 const HOPS = 3;
 
-/** `H=/tmp/d` then `> $H/x` names the directory in no token, so a value is substituted first — what
- *  a shell would set only, since a phantom from quoted data answers for a name that is unset. A use
- *  takes the assignment before it, a hop is followed, a modifier dropped, and a `$(…)` carried whole
- *  as text: what it returns is unknown, but a directory it spells out is one the write reaches. */
+/** `H=/tmp/d` then `> $H/x` names the directory in no token, so a value is substituted first — what a
+ *  shell would set only, since a phantom from quoted data answers for a name that is unset. A hop is
+ *  followed, a modifier dropped, a `$(…)` carried whole as text. An assignment reaches the commands
+ *  *after* its own: `env M=/d cp a $M/x` expands `$M` before `env` sets it. Measured. */
 export const expanded = (command) => {
+  const ends = spans(command);
+  const endOf = (at) => ends.find((one) => at >= one.start && at <= one.end)?.end ?? at;
   const set = [];
   for (const one of command.matchAll(ASSIGN)) {
-    set.push({ at: one.index, name: one[1], value: unquote(one[2]) });
+    set.push({ after: endOf(one.index), name: one[1], value: unquote(one[2]) });
   }
-  const resolve = (name, at) => set.filter((one) => one.name === name && one.at < at).pop()?.value;
+  const resolve = (name, at) => set.filter((one) => one.name === name && one.after < at).pop()?.value;
   const substitute = (text, at) =>
     text.replace(NAMED, (whole, braced, bare) => resolve(braced ?? bare, at) ?? whole);
   for (let hop = 0; hop < HOPS; hop += 1) {
-    for (const one of set) one.value = substitute(one.value, one.at);
+    for (const one of set) one.value = substitute(one.value, one.after);
   }
   return command.replace(NAMED, (whole, braced, bare, at) => resolve(braced ?? bare, at) ?? whole);
 };
@@ -386,14 +389,29 @@ const spanOf = (handle, from, to) => {
   return held;
 };
 
+/* The key is in quoted content too — a record about a record, this session's own transcript included —
+   so a hit is read as a line and has to parse as the prompt. Bounded: past the cap it is one read. */
+const isPrompt = (handle, start, size) => {
+  const room = Math.min(TAIL, size - start);
+  const line = spanOf(handle, start, start + room);
+  const end = line.indexOf(NEWLINE);
+  try {
+    return typeof JSON.parse(line.subarray(0, end < 0 ? room : end).toString("utf8")).promptSource === "string";
+  } catch {
+    return false;
+  }
+};
+
 /* Where the last prompt is, searched as bytes rather than parsed as records: past the window this is
    what a turn costs, and the alternative was answering "no turn" — once a session, not once a turn. */
 const promptAt = (handle, size) => {
   for (let end = size; end > 0; ) {
     const from = Math.max(0, end - TAIL);
     const held = spanOf(handle, from, end);
-    const at = held.lastIndexOf(PROMPT_KEY);
-    if (at >= 0) return from + held.lastIndexOf(NEWLINE, at) + 1;
+    for (let at = held.lastIndexOf(PROMPT_KEY); at >= 0; at = held.lastIndexOf(PROMPT_KEY, at - 1)) {
+      const start = from + held.lastIndexOf(NEWLINE, at) + 1;
+      if (isPrompt(handle, start, size)) return start;
+    }
     if (from === 0) return -1;
     end = from + PROMPT_KEY.length - 1;
   }

@@ -54,6 +54,20 @@ test("a turn past the window is found rather than given up on", () => {
   assert.equal(turnAt(found), "2026-09-01T13:00:00.000Z");
 });
 
+/* Past the cap the prompt is found by its bytes, and a record carrying a record has the key nested
+   inside it, unescaped. Read as the prompt, the turn is the wrong turn — or no turn at all. */
+test("the key inside a record a record carries is not the prompt", () => {
+  const carrying = `${JSON.stringify({
+    type: "assistant",
+    message: { content: [{ type: "tool_result", content: { type: "user", promptSource: "typed" } }] },
+  })}\n`;
+  const path = wrote(
+    "nested-key.jsonl",
+    filler(50_000) + prompt("2026-09-01T14:00:00.000Z") + carrying + filler(50_000) + carrying,
+  );
+  assert.equal(turnAt(turnRecords(path, { tail: 4096, cap: 8192 })), "2026-09-01T14:00:00.000Z");
+});
+
 test("a transcript with no prompt in it at all reads as no turn", () => {
   const path = wrote("no-prompt.jsonl", filler(100_000));
   assert.equal(turnAt(turnRecords(path)), "");

@@ -153,6 +153,29 @@ test("a checkout reached through a link is still inside its own repository", () 
   assert.equal(run.stdout.trim(), "", "the tree says unchanged, and the link is not another repository");
 });
 
+/* A link is not a file to a directory listing, so a guarded name pointing out of the tree was swept
+   past — the last spelling of the route where nothing names the file. */
+test("a guarded name that links out of the tree is swept as itself", () => {
+  const session = randomUUID();
+  const project = mkdtempSync(join(tmpdir(), "landed-swept-link-"));
+  mkdirSync(join(project, "memory"));
+  const outside = join(mkdtempSync(join(tmpdir(), "landed-swept-target-")), "kept.md");
+  writeFileSync(outside, "a line\n");
+  symlinkSync(outside, join(project, "memory", "points-out.md"));
+  const run = callHook(
+    HOOK,
+    {
+      session_id: session,
+      tool_name: "Bash",
+      tool_input: { command: "node build-notes.mjs" },
+      cwd: project,
+      transcript_path: join(project, `${session}.jsonl`),
+    },
+    HOME,
+  );
+  assert.match(JSON.parse(run.stdout).reason, /points-out\.md/u, "named by the guarded name");
+});
+
 /* A guarded directory is the project's, not one session's: two sessions swept the same memory
    directory and both stopped on a file one of them had already been asked about. */
 test("a file one session was asked about is not asked again in another", () => {

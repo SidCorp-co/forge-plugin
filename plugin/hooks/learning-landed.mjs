@@ -9,7 +9,10 @@ import { BRIEF, guarded, swept } from "../src/learning.mjs";
 const ev = readEvent();
 /* A link out of a guarded directory answers as its target, so the name the call used counts too. */
 const spelled = named(ev).filter((one) => guarded(one));
-const landed = [...new Set([...touched(ev), ...swept(ev, FRESH_MS)])];
+/* Keyed by what the name resolves to: a link and its target are one file, named once. */
+const landed = [...new Map(
+  [...touched(ev), ...swept(ev, FRESH_MS)].map((one) => [settled(one), one]),
+).values()];
 
 const asked = [];
 for (const file of landed) {
