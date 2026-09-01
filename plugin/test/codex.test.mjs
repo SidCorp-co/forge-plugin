@@ -355,18 +355,49 @@ test("a capped reply that is only tool calls is a failure, not an answer", async
   );
 });
 
-test("the hook records a document once, and announces only the first", () => {
+/* The caller decides what a turn is, because only the hook can see one. Told once, a repository is
+   not told again until the next turn — and an unanswered list no longer answers for the silence. */
+const teller = () => {
+  const said = new Set();
+  return (turn) => (root) => {
+    const key = `${root}\0${turn}`;
+    if (said.has(key)) return true;
+    said.add(key);
+    return false;
+  };
+};
+
+test("the hook records a document once, and tells a repository once per turn", () => {
   clearState();
-  const first = hookRecord({}, [join(REPO, "docs", "PLAN.md")]);
+  const told = teller();
+  const first = hookRecord({}, [join(REPO, "docs", "PLAN.md")], told("t1"));
   assert.match(first, /forge codex consult/);
   assert.match(first, /docs\/PLAN\.md/);
   assert.deepEqual(pendingIn(state(), REPO), ["docs/PLAN.md"]);
 
-  assert.equal(hookRecord({}, [join(REPO, "docs", "PLAN.md")]), null);
-  assert.deepEqual(pendingIn(state(), REPO), ["docs/PLAN.md"]);
-
-  assert.equal(hookRecord({}, [join(REPO, "docs", "TWO.md")]), null);
+  assert.equal(hookRecord({}, [join(REPO, "docs", "PLAN.md")], told("t1")), null, "recorded already");
+  assert.equal(hookRecord({}, [join(REPO, "docs", "TWO.md")], told("t1")), null, "told already");
   assert.deepEqual(pendingIn(state(), REPO), ["docs/PLAN.md", "docs/TWO.md"]);
+
+  writeFileSync(join(REPO, "docs", "THREE.md"), "x");
+  const later = hookRecord({}, [join(REPO, "docs", "THREE.md")], told("t2"));
+  assert.match(later, /docs\/THREE\.md/, "a new turn is told, with two files still pending");
+  clearState();
+});
+
+/* Two checkouts, one state file: a hook firing in each at the same moment must not write what it
+   read, and each is told for itself. */
+test("a second repository is told for itself, and neither loses the other's list", () => {
+  clearState();
+  const other = join(sandbox, "repo-two");
+  mkdirSync(join(other, "docs"), { recursive: true });
+  writeFileSync(join(other, ".git"), "gitdir: elsewhere\n");
+  writeFileSync(join(other, "docs", "PLAN.md"), "x");
+  const told = teller();
+  assert.match(hookRecord({}, [join(REPO, "docs", "PLAN.md")], told("t1")), /docs\/PLAN\.md/);
+  assert.match(hookRecord({}, [join(other, "docs", "PLAN.md")], told("t1")), /docs\/PLAN\.md/);
+  assert.deepEqual(pendingIn(state(), REPO), ["docs/PLAN.md"]);
+  assert.deepEqual(pendingIn(state(), other), ["docs/PLAN.md"]);
   clearState();
 });
 

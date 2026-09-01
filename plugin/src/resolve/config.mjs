@@ -41,8 +41,10 @@ export const readJson = (path) => {
 export const userConfig = once(() => readJson(CONFIG_PATH) ?? {});
 
 /* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. */
+/* The temporary name carries the writer's pid: two processes sharing one would interleave a file
+   the survivor then renames into place. */
 export const writeJsonPrivate = (path, value) => {
-  const temporary = `${path}.tmp`;
+  const temporary = `${path}.${process.pid}.tmp`;
   rmSync(temporary, { force: true });
   const handle = openSync(temporary, "w", 0o600);
   try {

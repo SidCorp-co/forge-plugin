@@ -4,7 +4,7 @@
    Three pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and
    its eval set (codex-log.mjs), and this — the verb, the turn's bookkeeping, and the hook halves. */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, rmSync, statSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
@@ -98,16 +98,66 @@ export const ageOf = (at, now = Date.now()) => {
   return hours < 48 ? `${hours} hour(s) ago` : `${Math.round(hours / 24)} day(s) ago`;
 };
 
-const writeState = (values) => {
-  const merged = { ...readState(), ...values };
+const LOCK_PATH = `${STATE_PATH}.lock`;
+const STALE_MS = 5_000;
+const WAIT_MS = 20;
+const TRIES = 50;
+
+const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+/* One file serves every checkout on the machine, so a hook that read it, added a line and wrote it
+   back would lose whatever another project wrote in between. Bounded and stale-breaking on purpose:
+   a gate that waits forever costs more than a list. */
+const holding = (fn) => {
+  let held = null;
+  /* The lock lives beside the state file, so the directory has to exist before it can be taken —
+     made here rather than under the lock, where the first writer would have been the only one. */
   try {
     mkdirSync(configDir("forge"), { recursive: true });
-    writeJsonPrivate(STATE_PATH, merged);
   } catch {
-    /* A turn whose bookkeeping cannot be written still consults on files named on the line. */
+    /* No directory means no lock and no state either; the caller's write fails the same way. */
   }
-  return merged;
+  for (let tries = 0; tries < TRIES && held === null; tries += 1) {
+    try {
+      held = openSync(LOCK_PATH, "wx");
+    } catch (error) {
+      if (error.code !== "EEXIST") break;
+      let since = 0;
+      try {
+        since = statSync(LOCK_PATH).mtimeMs;
+      } catch {
+        /* released while we looked */
+      }
+      if (since && Date.now() - since > STALE_MS) rmSync(LOCK_PATH, { force: true });
+      else pause(WAIT_MS);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    if (held !== null) {
+      closeSync(held);
+      rmSync(LOCK_PATH, { force: true });
+    }
+  }
 };
+
+/* The change is a function of the state as it stands, read inside the lock: a caller cannot compose
+   the next state from a read that happened before it. */
+const updateState = (change) =>
+  holding(() => {
+    const before = readState();
+    const after = change(before);
+    if (after === before) return before;
+    try {
+      mkdirSync(configDir("forge"), { recursive: true });
+      writeJsonPrivate(STATE_PATH, after);
+    } catch {
+      /* A turn whose bookkeeping cannot be written still consults on files named on the line. */
+    }
+    return after;
+  });
+
 
 /* Canonical, because the root is the key the state file and the log are grouped by: one checkout
    reached through a symlink would otherwise be two repositories. */
@@ -152,9 +202,11 @@ export const afterTouch = (held, root, rel) => {
 /* Only what was consulted on is dropped, and the state is re-read to do it: a file the hook recorded
    while the call was in flight is not part of this answer and must survive it. */
 const clearConsulted = (root, rels) => {
-  const held = readState();
-  const left = pendingIn(held, root).filter((rel) => !rels.includes(rel));
-  writeState({ turns: { ...turnsOf(held), [root]: { files: left, at: Date.now() } } });
+  let left = [];
+  updateState((held) => {
+    left = pendingIn(held, root).filter((rel) => !rels.includes(rel));
+    return { ...held, turns: { ...turnsOf(held), [root]: { files: left, at: Date.now() } } };
+  });
   return left;
 };
 
@@ -396,20 +448,24 @@ const show = () => {
 };
 
 /* The hook records; it never reviews. What it asks for is one consult at the end of the turn, with
-   the intent attached — a review that knows what you were trying to do is a different review. */
-export const hookRecord = (event, paths) => {
+   the intent attached — a review that knows what you were trying to do is a different review. The
+   caller decides what a turn is: a pending list spans sessions, so it cannot answer for the silence. */
+export const hookRecord = (event, paths, told = () => false) => {
   if (process.env.FORGE_CODEX_DISABLE === "1") return null;
-  let held = readState();
   let announce = null;
   for (const path of paths) {
     const root = repoRoot(dirname(resolve(path)));
     if (!root) continue;
     const rel = inside(root, path);
     if (!rel || !recordable(rel)) continue;
-    const { files, added, first } = afterTouch(held, root, rel);
-    if (!added) continue;
-    held = writeState({ turns: { ...turnsOf(held), [root]: { files, at: Date.now() } } });
-    if (first) announce = rel;
+    let added = false;
+    updateState((held) => {
+      const step = afterTouch(held, root, rel);
+      added = step.added;
+      return added ? { ...held, turns: { ...turnsOf(held), [root]: { files: step.files, at: Date.now() } } } : held;
+    });
+    /* Asked only while there is something to say, because asking is what marks the turn told. */
+    if (added && !announce && !told(root)) announce = rel;
   }
   return announce
     ? `You have changed a document in this turn (${announce}). Before you finish, consult codex — `
@@ -431,7 +487,7 @@ const SUBS = {
     const waiting = root ? pendingIn(held, root) : [];
     if (!waiting.length) return console.log("nothing pending");
     if (drop) {
-      writeState({ turns: { ...(held.turns ?? {}), [root]: { files: [], at: Date.now() } } });
+      updateState((now) => ({ ...now, turns: { ...turnsOf(now), [root]: { files: [], at: Date.now() } } }));
       return console.log(`dropped ${waiting.length} unconsulted file(s).`);
     }
     console.log(waiting.join("\n"));

@@ -267,13 +267,20 @@ export const adviceAt = (records) =>
     0,
   );
 
-/** Whether the advisor has spoken since the last prompt. how/codex-second.md. */
-export function advisedThisTurn(records) {
+/** Where this turn begins: only a user record carrying `promptSource` is a prompt somebody typed. */
+export const promptIndex = (records) => {
   let from = -1;
   for (let at = 0; at < records.length; at += 1) {
     if (records[at]?.type === "user" && typeof records[at].promptSource === "string") from = at;
   }
-  return unspentAdvice(records.slice(from + 1));
+  return from;
+};
+
+export const turnAt = (records) => records[promptIndex(records)]?.timestamp ?? "";
+
+/** Whether the advisor has spoken since the last prompt. how/codex-second.md. */
+export function advisedThisTurn(records) {
+  return unspentAdvice(records.slice(promptIndex(records) + 1));
 }
 
 /** Advice is spent by the consult that follows it, not by the user speaking. how/codex-order.md. */
