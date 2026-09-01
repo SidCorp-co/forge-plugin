@@ -1,7 +1,6 @@
-/* Text stated twice across files — the pairs the duplicate-comment ESLint rule cannot see, reading
-   one file at a time. Why that costs anything: hooks/vendor/text-overlap.js. What belongs here is
-   only the difference between the two inputs: markdown's fences, tables and headings, and a source
-   file's comment markers and waivers. */
+/* Text stated twice across files, which the duplicate-comment ESLint rule cannot see one file at a
+   time. What belongs here is the difference between the two inputs: markdown's fences, tables and
+   headings, and a source file's comment markers. hooks/vendor/text-overlap.js measures. */
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -18,9 +17,12 @@ const FENCE = /```[\s\S]*?```/g;
 const TABLE_ROW = /^[ \t]*\|.*\|[ \t]*$/gm;
 const HEADING = /^#{1,6}\s.*$/gm;
 const MARKUP = /[*`_>[\]()]/g;
+const INLINE = /`[^`\n]*`/g;
 
-export function sentences(text) {
-  const stripped = text
+/** `inlineCode: "drop"` takes the span out, not only its backticks: two texts naming one command are
+ *  about it rather than restating each other. Off by default: doctor calibrated with them counted. */
+export function sentences(text, { inlineCode = "keep" } = {}) {
+  const stripped = (inlineCode === "drop" ? text.replace(INLINE, " ") : text)
     .replace(FENCE, " ")
     .replace(TABLE_ROW, " ")
     .replace(HEADING, " ")

@@ -5,8 +5,8 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { compare } from "../src/duplication.mjs";
-import { NARRATES, prose } from "../src/doc-shape.mjs";
+import { compare, sentences } from "../src/duplication.mjs";
+import { NARRATES } from "../src/doc-shape.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const DOCS = join(ROOT, "docs");
@@ -28,13 +28,13 @@ const homed = () => {
   }
   const how = join(ROOT, "plugin", "hooks", "how");
   for (const one of readdirSync(how)) files.push(join(how, one));
-  return files.flatMap((file) => prose(readFileSync(file, "utf8")).map((one) => [file, one]));
+  return files.flatMap((file) => sentences(readFileSync(file, "utf8"), { inlineCode: "drop" }).map((one) => [file, one]));
 };
 
 test("no document restates a skill, a gate document or CLAUDE.md", () => {
   const elsewhere = homed();
   for (const name of docs) {
-    const mine = prose(readFileSync(join(DOCS, name), "utf8")).map((one) => [name, one]);
+    const mine = sentences(readFileSync(join(DOCS, name), "utf8"), { inlineCode: "drop" }).map((one) => [name, one]);
     /* Doctor's 0.25, over a floor of 5 rather than its 3: three words collide in short prose. */
     const [worst] = compare(mine, elsewhere, 0.25, 5);
     assert.equal(
