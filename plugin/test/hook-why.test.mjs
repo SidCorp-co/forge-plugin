@@ -25,10 +25,32 @@ test("every gate that points at its reasoning has some", () => {
   }
 });
 
-/* The other direction: a hook renamed leaves a document nothing reads, and `--why` would offer it. */
-test("every document names a hook that exists", () => {
+/* The other direction: a hook renamed leaves a document nothing reads, and `--why` would offer it.
+   A shared topic is allowed one document, and the harness every hook loads is what names it — cited
+   rather than listed, so the pair cannot drift. */
+test("every document names a hook, or a topic the harness cites", () => {
+  const harness = readFileSync(join(HOOKS, "_hook.mjs"), "utf8");
   for (const name of documented) {
-    assert.ok(scripts.includes(`${name}.mjs`), `why/${name}.md names no hook`);
+    const named = scripts.includes(`${name}.mjs`) || harness.includes(`why/${name}.md`);
+    assert.ok(named, `why/${name}.md names no hook, and _hook.mjs does not cite it`);
+  }
+});
+
+/* The shape docs/HOOKS.md sets out. Each of these was got wrong before it was written down: a
+   document that opened without naming its gate, one that grew past what anyone reads, and a pointer
+   into `docs/` or an absolute path — neither of which exists in the copy a gate fires from. */
+test("each document opens with its claim, stays short, and points nowhere unreachable", () => {
+  const CEILING = 4000;
+  for (const name of documented) {
+    const text = readFileSync(join(WHY, `${name}.md`), "utf8");
+    const [first] = text.split("\n");
+    assert.equal(first, `# ${name} — ${first.replace(/^# \S+ — /u, "")}`, `why/${name}.md: ${first}`);
+    assert.ok(
+      text.length <= CEILING,
+      `why/${name}.md is ${text.length} characters; the ceiling is ${CEILING}, and the argument that `
+        + "does not fit is the one to cut",
+    );
+    assert.doesNotMatch(text, /(?:^|[\s(`])(?:\/(?:home|run|Users|tmp)\/|docs\/)/u, `why/${name}.md`);
   }
 });
 

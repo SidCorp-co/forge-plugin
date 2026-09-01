@@ -40,6 +40,75 @@ The reasoning ships inside the plugin rather than in `docs/`, because only `plug
 installed copy. A refusal citing a path under `docs/` would name a file that does not exist in the
 project the gate fired in, which is the one thing a pointer may not do.
 
+## Writing the two of them
+
+The refusal and the document are one contract with two halves, and each has a shape that has already
+been got wrong here. The messages are literals in their hook, never loaded from a file: a rule is
+stated once, in the checker, and the wording belongs beside the decision that produces it.
+
+**A refusal: what was refused, the rule in one clause, one action, the pointer.** Nothing else.
+
+    WRONG                                     RIGHT
+
+    Hold — this writes to project memory,      Hold — `a-new-fact.md`, a new memory. Why
+    and project memory is knowledge the        should it exist, and will it still matter
+    project inherits, so it has to be worth    later?
+    inheriting. The four conditions are
+    that it cost a cycle, will recur, fails    Record only what cost a cycle, will recur,
+    silently, and is not already written.      fails silently, and is not already written.
+    Most rounds record nothing. The            Most rounds record nothing.
+    categories are user, feedback, project
+    and reference, and each of them lands      Do this: if a memory already states this,
+    somewhere different …                      fix that file. Otherwise re-send.
+
+    [864 characters, on every write]           Why: `forge hooks --why learning-gate`
+                                               [434 characters]
+
+Four failures worth naming, every one of them found by firing a gate rather than reading it:
+
+- **A pointer that is a path.** An absolute path to a reference document, printed for the first
+  refusal of a session only, was long on the first refusal and absent on the second. The verb costs
+  one line and is always there.
+- **A name that cannot exist.** A variable holding a command substitution, expanded into the message,
+  named a file after the command. Name what the message can defend — the basename will do.
+- **A tool redirect instead of a rule.** "Use the Write tool instead" teaches nothing about whether
+  the fact belonged in a file at all. State the rule, then the action.
+- **A rephrasing offered as the way out.** A refusal that invites rewording until the pattern misses
+  teaches that the gate is noise, which costs every refusal after it. Say the safer form, and treat a
+  wrong refusal as a case for the user rather than a thing to slip past.
+
+**A document: the argument the message could not afford.** Under 4,000 characters — about a screen,
+and about a thousand tokens when an agent reads it, which is the cost the pointer exists to avoid.
+`# <hook> — <claim>` as its first line, so `forge hooks --why` opens with what the gate is *for*.
+
+    WRONG                                     RIGHT
+
+    The gate refuses a memory write until      The failure this guards is not a bad memory
+    the category is named. It also handles     row — it is the reflex one. An agent that
+    skills. Originally it only checked the     finishes a task reaches for "save what I
+    shape, then we added the duplicate         learned" as a closing ritual, and the
+    check, and later the shell route.          corpus fills with entries nobody reads.
+
+    — restates the message, then narrates      Calibrated on six real memories: five score
+      a changelog                              0.00, the one related pair 0.27, a
+                                               paraphrase re-filed under a new name 1.00.
+
+                                               The cost is real: a program that quotes a
+                                               guarded path is refused even when the path
+                                               is prose — which caught the very commit
+                                               documenting this.
+
+So: the failure it was written for, the measurement behind any threshold, the alternative that was
+tried and removed, the price being paid on purpose, and what it deliberately does not judge. History
+earns its place when it explains why the current shape is what it is — "stripping every quoted span
+cost one real bypass" is the argument for the current rule; "then we added X" is a changelog, and
+`git log` already holds it.
+
+Two constraints the checker enforces, both learned the hard way: no absolute path and nothing under
+`docs/`, because only `plugin/` travels into an installed copy; and a document either names a hook
+that prints the pointer, or is a shared topic the harness itself cites — `writes` is one, since two
+gates read a write the same way and that argument should live in one place.
+
 ## Every hook can be switched off, one at a time
 
 Claude Code has no per-hook toggle. `skillOverrides` in settings does not reach a plugin's skills —

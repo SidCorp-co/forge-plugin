@@ -154,7 +154,7 @@ export const bodiless = (text, onProgram = (body) => body) => {
   return out + rest;
 };
 
-/** The shell verbs are read in command position, a library call anywhere. why/codex-second.md. */
+/** The shell verbs are read in command position, a library call anywhere. why/writes.md. */
 export const WRITES = new RegExp(
   String.raw`(?:^|[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+`
     + String.raw`|\b(?:sudo|command|nohup|time|env|xargs|do|then|else|if|elif|while|until)\s+)`
@@ -164,7 +164,7 @@ export const WRITES = new RegExp(
 );
 
 /** Whether a call writes a file: a target for the file tools, a verb or a redirect for the shell.
- *  A redirect under `/dev/` writes nothing. why/codex-second.md. */
+ *  A redirect under `/dev/` writes nothing. why/writes.md. */
 export function writing(ev) {
   const ti = ev.tool_input ?? {};
   if (ev.tool_name !== "Bash") return Boolean(ti.file_path ?? ti.notebook_path);
@@ -201,7 +201,7 @@ export const expanded = (command) => {
 };
 
 /** Whether the write is work in `root`. A write verb names no readable target so it answers true —
- *  a wall that stands down on doubt is not a wall. A redirect does: why/codex-second.md. */
+ *  a wall that stands down on doubt is not a wall. A redirect does: why/writes.md. */
 export function writesInside(ev, root) {
   if (!root) return true;
   const ti = ev.tool_input ?? {};
