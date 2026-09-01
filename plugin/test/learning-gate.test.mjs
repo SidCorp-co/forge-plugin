@@ -41,6 +41,25 @@ test("a guarded path held by a variable of a variable is refused", () => {
   assert.equal(decide(`M=$(mktemp -d)\nprintf x > $M/trap.md`).allowed, true, "a value that runs a command is not a path");
 });
 
+/* Measured escaping after that fix: a value naming a second value, a use before the name is
+   reassigned, a brace modifier, and an assignment a prefix or a subshell hid. A use resolves
+   against the assignment before it, so the last one in the file no longer answers for all of them. */
+test("a path resolves through a second name, a reassignment, a modifier and a prefix", () => {
+  assert.equal(decide(`A=${MEMORY}\nB=$A\nprintf x > $B/trap.md`).allowed, false, "one name holding another");
+  assert.equal(decide(`M=${MEMORY}\ncp a "$M/trap.md"\nM=/tmp`).allowed, false, "the assignment before the use");
+  assert.equal(decide(`M=${MEMORY}\ncp a \${M:-/tmp}/trap.md`).allowed, false, "a brace modifier");
+  assert.equal(decide(`( M=${MEMORY} ; cp a $M/trap.md )`).allowed, false, "inside a subshell");
+  assert.equal(decide(`env M=${MEMORY} cp a $M/trap.md`).allowed, false, "after a command that takes one");
+});
+
+/* Resolving on whitespace alone invented an assignment out of quoted data, and a phantom value
+   answers for a name the shell leaves unset — which reads a write as landing somewhere it does not.
+   So an assignment is what a shell would set: a line, a separator, or a command that takes one. */
+test("text that looks like an assignment but sets nothing resolves nothing", () => {
+  assert.equal(decide(`echo DEST=${MEMORY} ; printf y > "$DEST/trap.md"`).allowed, true);
+  assert.equal(decide(`node -e "const s = 'M=${MEMORY}'" ; printf y > $M/trap.md`).allowed, true);
+});
+
 test("a heredoc through a variable-held memory path is refused", () => {
   const { allowed, reason } = decide(
     `M=${MEMORY}\ncat > $M/coolify-deploy-log-location.md <<'EOF'\nbody\nEOF`,

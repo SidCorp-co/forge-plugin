@@ -187,20 +187,29 @@ const under = (root, cwd, path) => {
   return full === base || full.startsWith(base + sep);
 };
 
-const ASSIGN = /(?:^|[;&|\n]|\bexport\s+)\s*([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|]*)/gu;
+const ASSIGN =
+  /(?<=^|[;&|(){\n]\s*|\b(?:export|env|sudo|command|nohup|time)\s+|=(?:"[^"]*"|'[^']*'|[^\s;&|]*)\s+)([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|]*)/gu;
 const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 
-const NAMED = /\$\{?([A-Za-z_]\w*)\}?/gu;
+const NAMED = /\$(?:\{([A-Za-z_]\w*)[^}]*\}|([A-Za-z_]\w*))/gu;
 const RUNS = /\$\(|`/u;
+const HOPS = 3;
 
-/** `H=/tmp/d` then `> $H/x` names the directory in no token, so a value is substituted first — one
- *  naming another variable included, since only a command substitution is unknowable. how/writes.md. */
+/** `H=/tmp/d` then `> $H/x` names the directory in no token, so a value is substituted first — what
+ *  a shell would set only, since a phantom from quoted data answers for a name that is unset. A use
+ *  takes the assignment before it, a hop is followed, a modifier dropped, `$(…)` stays unknowable. */
 export const expanded = (command) => {
-  const vars = new Map();
-  for (const [, name, value] of command.matchAll(ASSIGN)) {
-    if (!RUNS.test(value)) vars.set(name, unquote(value));
+  const set = [];
+  for (const one of command.matchAll(ASSIGN)) {
+    if (!RUNS.test(one[2])) set.push({ at: one.index, name: one[1], value: unquote(one[2]) });
   }
-  return command.replace(NAMED, (whole, name) => vars.get(name) ?? whole);
+  const resolve = (name, at) => set.filter((one) => one.name === name && one.at < at).pop()?.value;
+  const substitute = (text, at) =>
+    text.replace(NAMED, (whole, braced, bare) => resolve(braced ?? bare, at) ?? whole);
+  for (let hop = 0; hop < HOPS; hop += 1) {
+    for (const one of set) one.value = substitute(one.value, one.at);
+  }
+  return command.replace(NAMED, (whole, braced, bare, at) => resolve(braced ?? bare, at) ?? whole);
 };
 
 /** Whether the write is work in `root`. A write verb names no readable target so it answers true —

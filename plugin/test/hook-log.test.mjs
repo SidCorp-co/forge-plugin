@@ -25,6 +25,24 @@ test("a credential is masked before it is written down", () => {
   assert.match(scrubbed("token ghp_abcdefghijklmnopqrstuv"), /token \*\*\*/u);
 });
 
+/* The four shapes above read as credentials by their value. These read as credentials by their
+   name, and the log is not private: `forge hooks` prints it back into a session, so an unmasked
+   secret here is one a later model request carries. */
+test("a credential named as one is masked whatever its value looks like", () => {
+  assert.equal(scrubbed("COOLIFY_TOKEN=9|Xk3mQp7 forge x"), "COOLIFY_TOKEN=*** forge x");
+  assert.equal(scrubbed("export FORGE_SECRET=notarealone && forge x"), "export FORGE_SECRET=*** && forge x");
+  assert.equal(scrubbed("PGPASSWORD=notarealone psql -h db"), "PGPASSWORD=*** psql -h db");
+  assert.match(scrubbed("psql postgres://app:notarealone@db:5432/f"), /postgres:\/\/app:\*\*\*@db/u);
+  assert.match(scrubbed('forge call x \'{"password":"notarealone"}\''), /"password":"\*\*\*"/u);
+});
+
+/* Masking to the next space left most of a phrase behind, and what survives is printed back into a
+   session. A quoted value goes whole. */
+test("a quoted credential is masked past its spaces", () => {
+  assert.equal(scrubbed("PASSWORD='not a real one' psql -h db"), "PASSWORD=*** psql -h db");
+  assert.equal(scrubbed('forge x --token "not a real one" y'), "forge x --token *** y");
+});
+
 test("what is not a credential survives, and a long line is cut", () => {
   const query = "forge cloudflare dns f699ca3c1fae884abd0c47f2e5ff1622 --name cp.musetools.com";
   assert.equal(scrubbed(query), query, "a zone id and a hostname are what the log is read for");

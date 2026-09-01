@@ -15,13 +15,22 @@ const TAIL = 20;
 
 /* A named credential flag, a header, and the shapes that are a secret on sight. An hour ago a
    Coolify token reached this session's transcript through a redaction that missed one level. */
+/* A value goes whole, quotes and spaces included: masking to the next space leaves most of a
+   passphrase in a log that is printed back into a session. */
+const VALUE = String.raw`("[^"]*"|'[^']*'|\S+)`;
+
 const SECRETS = [
-  [/(--?(?:token|password|api[-_]?key|secret|passwd?)[=\s]+)\S+/giu, "$1***"],
+  [new RegExp(String.raw`(--?(?:token|password|api[-_]?key|secret|passwd?)[=\s]+)${VALUE}`, "giu"), "$1***"],
   [/(Authorization:\s*)(?:Bearer\s+)?\S+/giu, "$1***"],
   [/(Bearer\s+)\S+/giu, "$1***"],
   [/\b\d+\|[A-Za-z0-9]{30,}\b/gu, "***"],
   [/\beyJ[\w-]{10,}\.[\w-]+\.[\w-]+/gu, "***"],
   [/\b(?:sk|ghp|gho|github_pat)[-_][A-Za-z0-9_]{16,}\b/gu, "***"],
+  /* Named rather than shaped: a value no pattern would recognise is still a secret when the name
+     beside it says so. Over-masking a log is the safe direction. */
+  [new RegExp(String.raw`\b(\w*(?:token|password|passwd|secret|api[-_]?key|key)\w*\s*=\s*)${VALUE}`, "giu"), "$1***"],
+  [/([a-z][\w+.-]*:\/\/[^\s:@/]+:)[^\s@/]+@/giu, "$1***@"],
+  [/("(?:password|token|secret|api[-_]?key)"\s*:\s*")[^"]*/giu, "$1***"],
 ];
 
 export const scrubbed = (text) => {
