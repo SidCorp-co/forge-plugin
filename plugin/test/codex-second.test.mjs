@@ -31,7 +31,7 @@ const advised = (msAgo = 1000) => ({
 });
 
 let count = 0;
-const gate = (records, { consultAt, clean, staleBy, session, env = {}, writes } = {}) => {
+const gate = (records, { consultAt, clean, staleBy, session, env = {}, writes, command } = {}) => {
   count += 1;
   const path = join(room, `t${count}.jsonl`);
   writeFileSync(path, `${records.map((one) => JSON.stringify(one)).join("\n")}\n`);
@@ -49,8 +49,8 @@ const gate = (records, { consultAt, clean, staleBy, session, env = {}, writes } 
   const run = callHook(
     HOOK,
     {
-      tool_name: "Write",
-      tool_input: { file_path: writes ?? join(REPO, "next.mjs") },
+      tool_name: command ? "Bash" : "Write",
+      tool_input: command ? { command } : { file_path: writes ?? join(REPO, "next.mjs") },
       transcript_path: path,
       session_id: session ?? `s${count}`,
       cwd: REPO,
@@ -113,6 +113,13 @@ test("the stand-down is remembered for the turn; a refusal is not", () => {
     gate([userTurn(), advised(500)], { consultAt: at(120_000), session: later }),
     "and refused again, because a refusal leaves no stamp",
   );
+});
+
+/* A shell call is only this gate's business if it writes, and a descriptor sent to `/dev/null` is
+   not a file — nothing else in the suite could tell the two apart. */
+test("a command that stores nothing is not a write", () => {
+  assert.equal(gate([userTurn(), advised()], { command: "npm run check 2>/dev/null | tail -3" }), null);
+  assert.ok(gate([userTurn(), advised()], { command: `printf x > ${join(REPO, "out.txt")}` }), "a file is");
 });
 
 test("a clean tree has nothing for codex to read", () => {

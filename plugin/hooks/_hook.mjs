@@ -130,8 +130,11 @@ const blocksOf = (record) => {
 export const EXECUTES_STDIN =
   /(?:^|[\s;&|(])(?:python3?|node|deno|bun|perl|ruby|php|sh|bash|zsh)(?:\s+-\S+)*\s*-?\s*$/u;
 
-/** A redirect is judged by its target: `2>&1` duplicates a descriptor and writes nothing. */
-export const REDIRECT = /(?:^|[\s;&|(])\d?>>?\s*(?!&\d)("[^"]*"|'[^']*'|[^\s;&|<>]+)/gu;
+/** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. */
+export const REDIRECT = new RegExp(
+  String.raw`(?:^|[\s;&|(])\d?>>?\s*(?!&\d)("[^"]*"|'[^']*'|\$\([^)]*\)[^\s;&|<>]*|[^\s;&|<>]+)`,
+  "gu",
+);
 
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
@@ -187,21 +190,25 @@ const under = (root, cwd, path) => {
   return full === base || full.startsWith(base + sep);
 };
 
-const ASSIGN =
-  /(?<=^|[;&|(){\n]\s*|\b(?:export|env|sudo|command|nohup|time)\s+|=(?:"[^"]*"|'[^']*'|[^\s;&|]*)\s+)([A-Za-z_]\w*)=("[^"]*"|'[^']*'|[^\s;&|]*)/gu;
+const VALUE = String.raw`"[^"]*"|'[^']*'|\$\([^)]*\)|` + "`[^`]*`" + String.raw`|[^\s;&|]*`;
+const ASSIGN = new RegExp(
+  String.raw`(?<=^|[;&|(){\n]\s*|\b(?:export|env|sudo|command|nohup|time)\s+|=(?:${VALUE})\s+)`
+    + String.raw`([A-Za-z_]\w*)=(${VALUE})`,
+  "gu",
+);
 const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 
 const NAMED = /\$(?:\{([A-Za-z_]\w*)[^}]*\}|([A-Za-z_]\w*))/gu;
-const RUNS = /\$\(|`/u;
 const HOPS = 3;
 
 /** `H=/tmp/d` then `> $H/x` names the directory in no token, so a value is substituted first — what
  *  a shell would set only, since a phantom from quoted data answers for a name that is unset. A use
- *  takes the assignment before it, a hop is followed, a modifier dropped, `$(…)` stays unknowable. */
+ *  takes the assignment before it, a hop is followed, a modifier dropped, and a `$(…)` carried whole
+ *  as text: what it returns is unknown, but a directory it spells out is one the write reaches. */
 export const expanded = (command) => {
   const set = [];
   for (const one of command.matchAll(ASSIGN)) {
-    if (!RUNS.test(one[2])) set.push({ at: one.index, name: one[1], value: unquote(one[2]) });
+    set.push({ at: one.index, name: one[1], value: unquote(one[2]) });
   }
   const resolve = (name, at) => set.filter((one) => one.name === name && one.at < at).pop()?.value;
   const substitute = (text, at) =>

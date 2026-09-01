@@ -36,6 +36,14 @@ test("a credential named as one is masked whatever its value looks like", () => 
   assert.match(scrubbed('forge call x \'{"password":"notarealone"}\''), /"password":"\*\*\*"/u);
 });
 
+/* A name-based rule masks these too, so each case here carries no name a rule would read: without
+   one, only the value's own shape stands between it and the log. The token rule was covered by a
+   fixture the name rule now catches first, which is how a rule goes quietly untested. */
+test("a value shaped like a credential is masked with nothing beside it to say so", () => {
+  assert.match(scrubbed("forge x 7|abcdefghijklmnopqrstuvwxyz0123456789"), /forge x \*\*\*/u);
+  assert.match(scrubbed("send Bearer abcdefghijklmnop"), /send Bearer \*\*\*/u);
+});
+
 /* Masking to the next space left most of a phrase behind, and what survives is printed back into a
    session. A quoted value goes whole. */
 test("a quoted credential is masked past its spaces", () => {

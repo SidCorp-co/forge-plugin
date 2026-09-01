@@ -32,13 +32,12 @@ const answered = (run) => {
 
 const decide = (command) => answered(ask({ tool_name: "Bash", tool_input: { command } }));
 
-/* A value naming another variable was dropped whole rather than carried through, so this exact write —
-   found by firing the live gate — landed a memory file with nothing asked. The inner name stays
-   unresolved; what the guard needs is the `/memory/` the value spells out. */
+/* A value naming another was dropped whole rather than carried, so this exact write — found by firing
+   the live gate — landed a memory file with nothing asked. The `/memory/` it spells out is enough. */
 test("a guarded path held by a variable of a variable is refused", () => {
   assert.equal(decide(`M="$HOME/p/memory"\nprintf x > "$M/trap.md"`).allowed, false);
   assert.equal(decide(`printf x > "$HOME/p/memory/trap.md"`).allowed, false);
-  assert.equal(decide(`M=$(mktemp -d)\nprintf x > $M/trap.md`).allowed, true, "a value that runs a command is not a path");
+  assert.equal(decide(`M=$(mktemp -d)\nprintf x > $M/trap.md`).allowed, true, "a value only the run knows");
 });
 
 /* Measured escaping after that fix: a value naming a second value, a use before the name is
@@ -58,6 +57,18 @@ test("a path resolves through a second name, a reassignment, a modifier and a pr
 test("text that looks like an assignment but sets nothing resolves nothing", () => {
   assert.equal(decide(`echo DEST=${MEMORY} ; printf y > "$DEST/trap.md"`).allowed, true);
   assert.equal(decide(`node -e "const s = 'M=${MEMORY}'" ; printf y > $M/trap.md`).allowed, true);
+});
+
+/* A prefix assignment is unset while the same line expands; the interpreter it wraps is what reads one. */
+test("an assignment a wrapper passes to an interpreter that reads it is refused", () => {
+  const inner = 'writeFileSync("$M/trap.md", "x")';
+  assert.equal(decide(`env A=1 M=${MEMORY} node -e '${inner}'`).allowed, false, "beside another assignment");
+});
+
+/* What a substitution returns is unknowable; a directory its text names is one the write reaches. */
+test("a directory a command substitution spells out is still refused", () => {
+  assert.equal(decide(`M=$(dirname ${MEMORY}/a.md)\nprintf x > $M/trap.md`).allowed, false);
+  assert.equal(decide(`M=$(mktemp -d)\nprintf x > $M/trap.md`).allowed, true, "a value only the run knows");
 });
 
 test("a heredoc through a variable-held memory path is refused", () => {
@@ -138,6 +149,11 @@ test("a body an interpreter executes is command, not data", () => {
   const write = `import pathlib\npathlib.Path("${MEMORY}/trap.md").write_text("x")`;
   assert.equal(decide(`python3 - <<'PY'\n${write}\nPY`).allowed, false);
   assert.equal(decide(`node - <<'JS'\nwriteFileSync("${MEMORY}/trap.md", "x")\nJS`).allowed, false);
+});
+
+/* The prose case below reads the same dropped or kept; a body holding a write shape is what asks. */
+test("a write shape inside a data body is text, not a write", () => {
+  assert.equal(decide(`cat > /tmp/note.md <<'MD'\ncp a ${MEMORY}/x.md\nMD`).allowed, true);
 });
 
 test("the same shape aimed anywhere else stays free", () => {
