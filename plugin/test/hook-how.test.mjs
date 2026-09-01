@@ -53,6 +53,7 @@ test("each document opens with its claim, argues briefly, and points nowhere unr
       `how/${name}.md is ${text.length} characters; the ceiling is ${CEILING}, and what does not fit `
         + "is an argument where a route out belongs",
     );
+    assert.match(text, /^Not judged:/mu, `how/${name}.md says nothing it declines to judge`);
     assert.doesNotMatch(text, /(?:^|[\s(`])(?:\/(?:home|run|Users|tmp)\/|docs\/)/u, `how/${name}.md`);
   }
 });

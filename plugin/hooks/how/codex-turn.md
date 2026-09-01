@@ -13,7 +13,7 @@ turn.
 Nothing here forces a consult: this is context, and ignoring it is allowed. `FORGE_CODEX_DISABLE=1`
 silences it.
 
-**Not judged:** code, and the end of a turn. A `Stop` half was tried twice — printing into a channel
+Not judged: code, and the end of a turn. A `Stop` half was tried twice — printing into a channel
 nobody reads, then blocking the ending — and the first turn blocking caught had only edited these
 documents, which is not what anyone wants a turn stopped for. It was removed on sight, so no turn is
 ever stopped for this.

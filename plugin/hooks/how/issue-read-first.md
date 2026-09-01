@@ -13,5 +13,5 @@ to be wrong about. The key and the listing have to be the same invocation, so a 
 `@file` does not clear the gate; the inline form the refusal prints does. Any `[A-Z]{2,6}-\d+` key
 counts, so a tracker whose prefix is not `ISS` needs no configuration.
 
-**Not judged:** what you write once you have read. A transcript that will not open stands the gate
+Not judged: what you write once you have read. A transcript that will not open stands the gate
 down: it exists to order the work, not to stop it when its own evidence is missing.

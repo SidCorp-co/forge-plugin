@@ -19,5 +19,5 @@ before matching, while a heredoc an interpreter executes keeps them.
 
 `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` stands this gate down, `FORGE_CODEX_DISABLE=1` every codex gate.
 
-**Not judged:** whether the intent's account of the advice is any good. That is asked once per session
+Not judged: whether the intent's account of the advice is any good. That is asked once per session
 and never enforced — no regular expression should rule on it.

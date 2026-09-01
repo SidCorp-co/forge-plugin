@@ -17,6 +17,6 @@ are excluded first.
 Only claims *this write* introduces are refused: the baseline is `git show HEAD:CLAUDE.md`, so the
 edit that fixes an inherited file always lands.
 
-**Not judged:** whether the rule belongs in CLAUDE.md at all, whether a guide already says it, whether
+Not judged: whether the rule belongs in CLAUDE.md at all, whether a guide already says it, whether
 a checker already enforces it. Those are judgements about prose, and `forge doctor` raises them where
 a human is reading.

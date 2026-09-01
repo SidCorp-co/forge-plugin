@@ -91,7 +91,7 @@ route out — not a defence of the rule. So the argument gets 100 tokens and the
 
                                                Not judged: whether the fact is any good.
 
-The shape, in order, each part enforced or checkable:
+The shape, in order, the first two and the last enforced by the suite:
 
 - `# <hook> — <claim>`, so `forge hooks --how` opens with what the gate is for.
 - `Why: …` as the second paragraph, at most 430 characters — 100 tokens. One failure, one
@@ -101,7 +101,8 @@ The shape, in order, each part enforced or checkable:
   answer, how often it asks.
 - **How to work through it** — the route that survives the gate, and how to handle a refusal you
   believe is wrong.
-- **Not judged**, so nobody over-complies with a gate that was never asking.
+- `Not judged: …` on its own line, so nobody over-complies with a gate that was never asking. Two
+  documents shipped without it and codex caught both.
 
 Under 1,600 characters all in. What does not fit is an argument sitting where a route out belongs:
 calibration stories, codex attributions, and alternatives tried and removed all go, unless the removed

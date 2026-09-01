@@ -12,5 +12,5 @@ A ratchet's list of migrated directories is the honest case: being incomplete is
 comment is not politeness — it is the difference between a list nobody examined and one somebody
 decided on, and the decision is the only part a later reader can act on.
 
-**Not judged:** lists outside a checker, and the content of any list. It blocks rather than refuses, so
+Not judged: lists outside a checker, and the content of any list. It blocks rather than refuses, so
 nothing is ever lost to it.

@@ -17,5 +17,5 @@ cannot import a sibling package. Every file there names its upstream in its head
 compares the two on every run, so a stale rule is a failing gate here rather than a project quietly
 linted against last month's rules.
 
-**Not judged:** anything the project has not configured. No ESLint means silence, which is an opt-out
+Not judged: anything the project has not configured. No ESLint means silence, which is an opt-out
 and not a misconfiguration. Every rule comes from the project; none from here.
