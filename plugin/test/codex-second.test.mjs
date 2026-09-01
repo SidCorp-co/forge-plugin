@@ -69,6 +69,18 @@ test("a write outside the tree is not something codex could review", () => {
   assert.ok(gate([userTurn(), advised()]), "a write inside it still stops");
 });
 
+/* An assignment reaches the commands after its own, and the shell handed a `-c` body is one of them.
+   Read without unwrapping that body first, `$M` stays a word and a write anywhere looks in-tree. */
+test("a write outside the tree through a shell body is outside it too", () => {
+  const outside = join(room, "elsewhere");
+  const command = `env M=${outside} sh -c 'echo fact > $M/a-fact.md'`;
+  assert.equal(gate([userTurn(), advised()], { command }), null);
+  assert.ok(
+    gate([userTurn(), advised()], { command: `env M=${REPO} sh -c 'echo fact > $M/a-fact.md'` }),
+    "and the same shape inside it still stops",
+  );
+});
+
 /* The failure this exists for: the advisor ran, the turn wrote and committed, and the consult that
    was supposed to follow never did — the end-of-turn reminder is context, and it was ignored. */
 test("advice with work in the tree and no consult behind it stops the next write", () => {

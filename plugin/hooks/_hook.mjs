@@ -327,7 +327,7 @@ export function writesInside(ev, root) {
     const path = ti.file_path ?? ti.notebook_path;
     return !path || under(root, ev.cwd, path);
   }
-  const command = bodiless(expanded(String(ti.command ?? "")));
+  const command = shellText(ti.command);
   if (WRITES.test(command)) return true;
   const aimed = [...command.matchAll(REDIRECT)]
     .map((one) => one[1].replace(/['"]/gu, ""))

@@ -85,13 +85,23 @@ const changedIn = (root, files) => {
   return files.filter((one) => seen.has(relative(root, one)));
 };
 
+const pointsAt = (path) => {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
+};
+
 /** The guarded files written lately that no call named: a script writing one is invisible to a check
- *  reading the command, so the directories it could have written are read instead. */
+ *  reading the command, so the directories it could have written are read instead. Git answers about
+ *  what a name resolves to, so the target decides inside and changed, and the name is what is said. */
 export const swept = (ev, freshMs) => {
   const since = Date.now() - freshMs;
   const root = repoRoot(ev.cwd || process.cwd());
   const found = [...new Set(guardedDirs(ev, root).flatMap((dir) => freshIn(dir, since)))].sort();
-  const inside = root ? found.filter((one) => !relative(root, one).startsWith("..")) : [];
-  const outside = found.filter((one) => !inside.includes(one));
-  return [...outside, ...(inside.length ? changedIn(root, inside) : [])].sort();
+  const target = new Map(found.map((one) => [one, pointsAt(one)]));
+  const inside = root ? found.filter((one) => !relative(root, target.get(one)).startsWith("..")) : [];
+  const changed = new Set(inside.length ? changedIn(root, inside.map((one) => target.get(one))) : []);
+  return found.filter((one) => !inside.includes(one) || changed.has(target.get(one)));
 };

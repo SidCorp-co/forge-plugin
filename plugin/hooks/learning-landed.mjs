@@ -7,22 +7,22 @@ import { FRESH_MS, askedAlready, askedByAnyone, block, how, named, readEvent, se
 import { BRIEF, guarded, swept } from "../src/learning.mjs";
 
 const ev = readEvent();
-/* A link out of a guarded directory answers as its target, so the name the call used counts too. */
+/* A link out of a guarded directory answers as its target, and that target is the key the gate
+   stamps — so the map is keyed by it, and the name the call used is carried alongside to print. */
 const spelled = named(ev).filter((one) => guarded(one));
-/* Keyed by what a name resolves to, which is the key the gate stamps — a link and its target are one
-   file. The name is carried alongside because the refusal has to print the one the call used. */
 const landed = new Map(
   [...touched(ev), ...swept(ev, FRESH_MS)].map((one) => [settled(one), one]),
 );
 
 const asked = [];
 for (const [file, spelling] of landed) {
-  const asLink = spelled.find((one) => settled(one) === file);
-  if (!guarded(file) && !guarded(spelling) && !asLink) continue;
+  /* Every name the file went by, link or target: any guarded one is a guarded write, and prints. */
+  const names = [spelling, spelled.find((one) => settled(one) === file), file].filter(Boolean);
+  if (!names.some((one) => guarded(one))) continue;
   if (askedByAnyone(ev, file, "learning-gate", { set: false })) continue;
   if (askedAlready(ev, file, "learning-gate", { set: false })) continue;
   if (askedByAnyone(ev, file, "learning-landed")) continue;
-  asked.push(basename(asLink ?? spelling));
+  asked.push(basename(names.find((one) => guarded(one)) ?? spelling));
 }
 
 if (asked.length) {

@@ -30,6 +30,16 @@ const landed = (session, name, { dir = room, old, existing } = {}) => {
   return run.stdout.trim() ? JSON.parse(run.stdout).reason : null;
 };
 
+const committed = (repo, what) => {
+  for (const args of [["init", "-q"], ["add", what], ["commit", "-qm", "first"]]) {
+    const run = spawnSync("git", ["-C", repo, ...args], {
+      encoding: "utf8",
+      env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" },
+    });
+    assert.equal(run.status, 0, run.stderr);
+  }
+};
+
 test("a memory file that arrived by no route a check reads is caught after the fact", () => {
   const first = landed(randomUUID(), "arrived-somehow.md");
   assert.match(first, /arrived-somehow\.md/u);
@@ -59,6 +69,26 @@ test("a guarded name that links out of the tree is still a guarded write", () =>
   symlinkSync(outside, join(room, "points-away.md"));
   const said = landed(randomUUID(), "points-away.md", { existing: true });
   assert.match(said, /points-away\.md/u, "named by the link the call used");
+});
+
+/* The other direction, and the only case where no name the call used is guarded: the file is not there
+   yet, so the disk cannot follow it, and only its directory settling inside the tree says what it is. */
+test("a new file named through a directory link into the tree is a guarded write", () => {
+  const project = mkdtempSync(join(tmpdir(), "landed-linked-dir-"));
+  mkdirSync(join(project, "real", "memory"), { recursive: true });
+  symlinkSync(join(project, "real", "memory"), join(project, "notes"));
+  const run = callHook(
+    HOOK,
+    {
+      session_id: randomUUID(),
+      tool_name: "Write",
+      tool_input: { file_path: join(project, "notes", "through-a-link.md") },
+      cwd: project,
+    },
+    HOME,
+  );
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(JSON.parse(run.stdout).reason, /through-a-link\.md/u);
 });
 
 /* The route both halves miss: a script writes the file and the command names nothing to check. The
@@ -136,13 +166,7 @@ test("a checkout reached through a link is still inside its own repository", () 
   const repo = join(held, "checkout");
   mkdirSync(join(repo, "skills", "deploy"), { recursive: true });
   writeFileSync(join(repo, "skills", "deploy", "SKILL.md"), "the method\n");
-  for (const args of [["init", "-q"], ["add", "-A"], ["commit", "-qm", "first"]]) {
-    const run = spawnSync("git", ["-C", repo, ...args], {
-      encoding: "utf8",
-      env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" },
-    });
-    assert.equal(run.status, 0, run.stderr);
-  }
+  committed(repo, "-A");
   const link = join(mkdtempSync(join(tmpdir(), "landed-link-parent-")), "seen-as");
   symlinkSync(repo, link);
   const run = callHook(
@@ -233,13 +257,7 @@ test("a skill directory the tree has never tracked is swept too", () => {
   const repo = mkdtempSync(join(tmpdir(), "landed-untracked-"));
   mkdirSync(join(repo, "skills", "brand-new"), { recursive: true });
   writeFileSync(join(repo, "README.md"), "a tree\n");
-  for (const args of [["init", "-q"], ["add", "README.md"], ["commit", "-qm", "first"]]) {
-    const run = spawnSync("git", ["-C", repo, ...args], {
-      encoding: "utf8",
-      env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" },
-    });
-    assert.equal(run.status, 0, run.stderr);
-  }
+  committed(repo, "README.md");
   writeFileSync(join(repo, "skills", "brand-new", "SKILL.md"), "the method\n");
   const run = callHook(
     HOOK,
@@ -257,13 +275,7 @@ test("a tracked skill file the tree agrees with was not written here", () => {
   const skill = join(repo, "skills", "deploy");
   mkdirSync(skill, { recursive: true });
   writeFileSync(join(skill, "SKILL.md"), "the method\n");
-  for (const args of [["init", "-q"], ["add", "-A"], ["commit", "-qm", "first"]]) {
-    const run = spawnSync("git", ["-C", repo, ...args], {
-      encoding: "utf8",
-      env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" },
-    });
-    assert.equal(run.status, 0, run.stderr);
-  }
+  committed(repo, "-A");
   const pulled = () =>
     callHook(
       HOOK,
@@ -319,4 +331,23 @@ test("a link to the file itself is the same file to both halves", () => {
   );
   assert.equal(JSON.parse(asking.stdout).hookSpecificOutput.permissionDecision, "deny", "asked first");
   assert.equal(landed(session, "by-a-link.md"), null, "and not asked again through the link");
+});
+
+/* Git answers about the file, never about the name: a tracked link is unchanged whatever its target
+   does, so a guarded file written through one was swept up and then dropped as somebody else's. */
+test("a tracked link is judged by what it points at, not by its own name", () => {
+  const repo = mkdtempSync(join(tmpdir(), "landed-linked-"));
+  const skill = join(repo, "skills", "deploy");
+  mkdirSync(skill, { recursive: true });
+  const target = join(mkdtempSync(join(tmpdir(), "landed-target-")), "kept.md");
+  writeFileSync(target, "the method\n");
+  symlinkSync(target, join(skill, "SKILL.md"));
+  committed(repo, "-A");
+  writeFileSync(target, "the method, rewritten\n");
+  const run = callHook(
+    HOOK,
+    { session_id: randomUUID(), tool_name: "Bash", tool_input: { command: "node make-skill.mjs" }, cwd: repo },
+    HOME,
+  );
+  assert.match(JSON.parse(run.stdout).reason, /SKILL\.md/u, "the link is clean; the write is not");
 });

@@ -97,8 +97,8 @@ const reasoning = (name) => {
   console.log(readFileSync(join(HOW_DIR, `${name}.md`), "utf8").trimEnd());
 };
 
-/* A refusal is what a false positive looks like from outside, and the count is read that way. An entry
-   that refused nothing is kept apart rather than inflating it. */
+/* Which decisions count as refusals, held apart from notes so an entry that refused nothing does not
+   inflate the count. Why those are the entries worth logging at all: `_hook.mjs`. */
 const REFUSALS = ["deny", "block"];
 
 export const hooks = (argv) => {
