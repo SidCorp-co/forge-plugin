@@ -169,6 +169,8 @@ export const REDIRECT = new RegExp(
 
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
+export const QUOTED = /'[^']*'|"(?:[^"\\]|\\.)*"/gu;
+
 /** A heredoc body is data; `onProgram` reads one an interpreter executes. how/learning-gate.md. */
 export const bodiless = (text, onProgram = (body) => body) => {
   let out = "";
@@ -187,10 +189,10 @@ export const bodiless = (text, onProgram = (body) => body) => {
   return out + rest;
 };
 
-/* Where a command starts. `xargs` keeps its own flags, because `xargs -I{} sh` still runs the shell;
-   the others do not, since every flag allowed widens what a quoted mention can look like. */
-const STARTS = String.raw`(?:^|[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
-  + String.raw`|\b(?:sudo|command|nohup|time|env|do|then|else|if|elif|while|until)\s+)`;
+/* Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), the rest do not:
+   a flag widens what a mention may look like. `^` is last — zero-width, it wins a prefix's position. */
+export const STARTS = String.raw`(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
+  + String.raw`|\b(?:sudo|command|nohup|time|env|do|then|else|if|elif|while|until)\s+|^)`;
 
 /** Verbs count where a command starts, a library call anywhere, and only with a target it names. */
 export const WRITES = new RegExp(
@@ -203,10 +205,12 @@ export const WRITES = new RegExp(
     + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`,
 );
 
-/** A shell runs a `-c` body, so a verb in it is in command position. One body holds another, so the
- *  promotion runs to a fixed point, and keeps the start it matched: that can carry an assignment. */
+/** A shell runs a `-c` body and `eval` its argument, so a verb there is in command position. One holds
+ *  another, so it runs to a fixed point, keeping the start it matched: that can carry an assignment. */
 const WRAPPED = new RegExp(
-  `(${STARTS})` + String.raw`(?:busybox\s+)?(?:sh|bash|zsh|dash|ksh)\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*c\s+("[^"]*"|'[^']*')`,
+  `(${STARTS})`
+    + String.raw`(?:(?:busybox\s+)?(?:sh|bash|zsh|dash|ksh)\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*c|eval)`
+    + String.raw`\s+("[^"]*"|'[^']*')`,
   "gu",
 );
 export const unwrapped = (text) => {
@@ -264,6 +268,29 @@ export const commands = (text) =>
 /** Which program an argument belongs to: a pipeline carries its arguments along, a flag not — `| grep -h`. */
 export const invocations = (text) =>
   spans(text, { pipes: true }).map(({ start, end }) => text.slice(start, end).trim()).filter(Boolean);
+
+/* A runner's options stand between it and the verb, and whether one took an argument is not knowable
+   here — `sudo -n git` and `sudo -u root git` read alike, so both readings are offered. */
+const WORD = /(?:'[^']*'|"(?:[^"\\]|\\.)*"|\S)+/gu;
+const SAID = /['"]/gu;
+const past = (text) => {
+  const out = [];
+  const tokens = text.match(WORD) ?? [];
+  for (let at = 0; at < tokens.length; at += 1) {
+    out.push([tokens[at].replace(SAID, ""), ...tokens.slice(at + 1)].join(" "));
+    const one = tokens[at];
+    const held = /^["']?\{\}["']?$/u.test(one);
+    if (!(one.startsWith("-") || held || (at > 0 && tokens[at - 1].startsWith("-")))) break;
+  }
+  return out;
+};
+
+/** Each point a program runs one, from there on, its own quotes off: a quoted span holds no start. */
+export const starts = (text) =>
+  invocations(text).flatMap((one) => {
+    const bare = one.replace(QUOTED, (q) => " ".repeat(q.length));
+    return [...bare.matchAll(new RegExp(STARTS, "gu"))].flatMap((m) => past(one.slice(m.index + m[0].length)));
+  });
 
 /** The one text every write test reads: values resolved, a data heredoc dropped, a `-c` body run. */
 /* Unwrapped before expanded: the shell that takes a `-c` body is what an `env` prefix reaches. */

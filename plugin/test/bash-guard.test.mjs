@@ -37,6 +37,17 @@ test("the command itself is refused, and the refusal names the rule and a way ou
 /* Twice in one session a heredoc was refused for holding the command in a *string literal*. */
 test("a literal inside a program is data, and the line that ran it is not", () => {
   assert.ok(decide(`python3 - <<'PY'\nt = t.replace("${STAGE_ALL}", "x")\nPY`).allowed);
+  const three = "'".repeat(3);
+  assert.ok(
+    decide(`python3 - <<'PY'\nt = t.replace(${three}the hook's ${STAGE_ALL} line${three}, "x")\nPY`).allowed,
+    "a triple quote read as three skews on the apostrophe inside it, baring the rest",
+  );
+  const esc = `\\${String.fromCharCode(39)}`;
+  const skewed = `p = ['x${esc}y']\ns = s.replace(${three}\n${STAGE_ALL}\n${three}, 'z')`;
+  assert.ok(
+    decide(`python3 - <<'PY'\n${skewed}\nPY`).allowed,
+    "an escape ends a literal early, and every literal after it pairs wrong",
+  );
   assert.equal(decide(`echo 'notes' > /tmp/x && ${STAGE_ALL}`).allowed, false, "outside a body it runs");
   assert.equal(decide(`bash -c "${STAGE_ALL}"`).allowed, false, "the operator's line keeps its quotes");
   assert.equal(
@@ -44,6 +55,46 @@ test("a literal inside a program is data, and the line that ran it is not", () =
     false,
     "a body that can reach a shell keeps every literal",
   );
+  assert.equal(decide(`eval "${STAGE_ALL}"`).allowed, false, "eval runs its argument");
+  assert.equal(
+    decide(`python3 -c 'import os; os.system("${STAGE_ALL}")'`).allowed,
+    false,
+    "and a -c body reaching a shell is the same as a heredoc that does",
+  );
+  assert.ok(decide(`python3 -c 'x = "${STAGE_ALL}"'`).allowed, "while a -c body that cannot is data");
+});
+
+/* It refused this session's own consult, whose intent named the flag in an echo argument. A rule
+   quoted for a program that is not a shell is data, and which program owns it is what `starts` says. */
+test("a rule named in an argument is not a run", () => {
+  assert.ok(decide(`echo "the note names ${STAGE_ALL} in prose" | forge codex consult`).allowed);
+  assert.ok(decide(`grep -n "${BY_NAME}" plugin/hooks/bash-guard.mjs`).allowed, "and a search for it");
+  assert.equal(decide("sudo git reset --hard HEAD").allowed, false, "a runner still runs what follows");
+  assert.equal(decide("sudo -u root git reset --hard").allowed, false, "past the runner's own options");
+  const two = String.fromCharCode(34);
+  assert.equal(
+    decide(`sudo -u ${two}domain user${two} git reset --hard`).allowed,
+    false,
+    "and past one whose value holds a space",
+  );
+  assert.equal(decide("/usr/bin/git reset --hard").allowed, false, "a path names the same program");
+  const inner = `${two}domain ${String.fromCharCode(92)}${two}user name${String.fromCharCode(92)}${two}${two}`;
+  assert.equal(decide(`sudo -u ${inner} git reset --hard`).allowed, false, "an escape inside that value");
+  assert.equal(decide(`${two}git${two} reset --hard`).allowed, false, "a quoted program is the program");
+  assert.equal(decide(`${two}/usr/bin/git${two} reset --hard`).allowed, false, "quoted and pathed both");
+  const half = `${String.fromCharCode(39)}/usr/bin${String.fromCharCode(39)}/git`;
+  assert.equal(decide(`${half} reset --hard`).allowed, false, "a token quoted in part is one program");
+  const three = '"'.repeat(3);
+  assert.equal(
+    decide(`python3 - <<'PY'\n${SPAWNING}(${three}git reset --hard${three}, shell=True)\nPY`).allowed,
+    false,
+    "and a payload quoted three deep is the same command",
+  );
+  const kill = BY_NAME.split(" ")[0];
+  assert.equal(decide(`pgrep -f node | xargs ${kill}`).allowed, false, "and so does xargs");
+  assert.equal(decide(`pgrep -f node | xargs -I {} ${kill} {}`).allowed, false, "with a placeholder too");
+  const held = `xargs -I ${String.fromCharCode(34)}{}${String.fromCharCode(34)}`;
+  assert.equal(decide(`pgrep -f node | ${held} ${kill}`).allowed, false, "a quoted placeholder as well");
 });
 
 /* The shell removes a quote and keeps what is inside it, so a quoted flag is the flag. Four rules

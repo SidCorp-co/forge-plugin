@@ -5,32 +5,35 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { keysIn, readsComments, unreadKeys, writesAnIssue } from "../src/issue-read.mjs";
+import { shellText, starts } from "../hooks/_hook.mjs";
 import { callHook } from "./fixtures.mjs";
 
 const bash = (command) => ({ name: "Bash", input: { command } });
+/* The hook's own wiring: the write test reads where a command starts, so it is given the starts. */
+const writes = (command) => writesAnIssue(bash(command), starts(shellText(command)));
 const LIST = bash(`forge call forge_comments '{"action":"list","filters":{"issue":"ISS-29"}}'`);
 
 test("a comment, a plan and an attach are writes", () => {
   for (const command of ["forge comment ISS-29 @n.md", "forge plan ISS-29 -", "forge attach issue ISS-29 a.png"]) {
-    assert.equal(writesAnIssue(bash(command)), true, command);
+    assert.equal(writes(command), true, command);
   }
 });
 
 test("a transition through `call` is a write; a list and a get are not", () => {
-  assert.equal(writesAnIssue(bash(`forge call forge_issues '{"action":"transition","documentId":"ISS-29"}'`)), true);
-  assert.equal(writesAnIssue(bash(`forge call forge_issues '{"action":"list"}'`)), false);
-  assert.equal(writesAnIssue(bash(`forge call forge_issues '{"action":"get","documentId":"ISS-29"}'`)), false);
+  assert.equal(writes(`forge call forge_issues '{"action":"transition","documentId":"ISS-29"}'`), true);
+  assert.equal(writes(`forge call forge_issues '{"action":"list"}'`), false);
+  assert.equal(writes(`forge call forge_issues '{"action":"get","documentId":"ISS-29"}'`), false);
 });
 
 test("reading the issue is not writing to it, however full", () => {
-  assert.equal(writesAnIssue(bash("forge issue ISS-29 --full")), false);
-  assert.equal(writesAnIssue(bash("forge issues --status open")), false);
+  assert.equal(writes("forge issue ISS-29 --full"), false);
+  assert.equal(writes("forge issues --status open"), false);
 });
 
 test("an MCP call is judged by its action, not by its name", () => {
   const mcp = (action) => ({ name: "mcp__forge__forge_issues", input: { action, documentId: "ISS-29" } });
-  assert.equal(writesAnIssue(mcp("update")), true);
-  assert.equal(writesAnIssue(mcp("get")), false);
+  assert.equal(writesAnIssue(mcp("update"), []), true);
+  assert.equal(writesAnIssue(mcp("get"), []), false);
 });
 
 test("the key shape is a prefix and a number, so a tracker need not be named ISS", () => {
@@ -118,4 +121,35 @@ test("a transcript that will not open stands the gate down", () => {
     HOME,
   );
   assert.equal(run.stdout.trim(), "");
+});
+
+/* Reported by the gate refusing this very patch twice: prose that quotes a write verb near a
+   reference is not a write. A heredoc body is data and a quoted argument belongs to the program
+   holding it — while a real payload keeps its key in quotes, so keys are still read raw. */
+test("a write verb in prose is not a write; one in a payload still is", () => {
+  const fixture = 'cat > t.mjs <<\'EOF\'\nassert.equal(writes("forge comment ISS-45 @n.md"), true);\nEOF';
+  assert.equal(gate(fixture, []), null, "a heredoc body naming a write verb");
+  const note = 'echo "the gate refused forge comment ISS-45 on a test file" | forge codex consult --diff';
+  assert.equal(gate(note, []), null, "an intent quoting one, past a pipe");
+  const real = `forge call forge_issues '{"action":"update","documentId":"ISS-45","data":{"title":"x"}}'`;
+  assert.equal(gate(real, [])?.hookSpecificOutput?.permissionDecision, "deny", "the write itself");
+  const after = gate("git status --short && forge comment ISS-45 @note.md", []);
+  assert.equal(after?.hookSpecificOutput?.permissionDecision, "deny", "and a write past a separator");
+  assert.equal(writes('echo "run this: | forge comment ISS-45 -" > n.md'), false, "a quoted separator");
+});
+
+/* A start is wherever the shared grammar says one is, and not the first token of the line: each of
+   these reaches the verb past a prefix, and each is a write. */
+test("a prefix before the verb is still the verb", () => {
+  for (const command of [
+    "sudo forge comment ISS-45 @n.md",
+    "(forge comment ISS-45 @n.md)",
+    "find . -name n.md -exec forge comment ISS-45 {} ;",
+    "printf ISS-45 | xargs -I{} forge comment {} @n.md",
+    "NOTE='review now' forge comment ISS-45 @n.md",
+    "/usr/local/bin/forge plan ISS-45 -",
+    `sh -c "forge comment ISS-45 @n.md"`,
+  ]) {
+    assert.equal(writes(command), true, command);
+  }
 });

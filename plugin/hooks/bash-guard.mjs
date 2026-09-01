@@ -4,15 +4,14 @@
 
 import { spawnSync } from "node:child_process";
 
-import { bodiless, deny, readEvent, how } from "./_hook.mjs";
+import { bodiless, deny, readEvent, starts, unwrapped, how } from "./_hook.mjs";
 
 const RULES = [
   {
-    // Anchored on command position, so a commit message or a doc line that quotes the flag is
-    // prose and not a run. `--fix-type` writes too; `--fix-dry-run` writes nothing and is how you
-    // see the diff before deciding.
+    // `--fix-type` writes too; `--fix-dry-run` writes nothing and is how you see the diff first.
+    // A runner keeps its command as arguments and is not in the shared grammar; a path names it too.
     pattern: new RegExp(
-      String.raw`(?:^|[;&|(]\s*|\b(?:npx|pnpm\s+exec|yarn\s+run|time|env)\s+)` +
+      String.raw`^(?:\S*\/)?(?:(?:npx|pnpm\s+exec|yarn\s+run|bunx)\s+)?(?:\S*\/)?` +
         String.raw`(?:eslint|(?:npm|pnpm|yarn)\s+(?:run\s+)?lint\S*)\b[^|;&]*--fix(?:-type)?(?![\w-])`,
     ),
     cause:
@@ -23,7 +22,7 @@ const RULES = [
       "is the point, and that is the user's decision to make first.",
   },
   {
-    pattern: /\b(pkill|killall)\b/,
+    pattern: /^(?:\S*\/)?(?:pkill|killall)\b/u,
     cause:
       "pkill and killall select by name, so they match every process whose name fits — " +
       "including the ones the user has been running since before this session.",
@@ -32,7 +31,7 @@ const RULES = [
       "is the one you established you may stop, then `kill <pid>`.",
   },
   {
-    pattern: /\bgit\s+add\s+["']?(-A\b|--all\b|\.(\s|$))/,
+    pattern: /^(?:\S*\/)?git\s+add\s+["']?(?:-A\b|--all\b|\.(?:\s|$))/u,
     needsDirtyTree: true,
     cause:
       "git add -A stages everything in the tree, including work in progress that is not yours " +
@@ -41,7 +40,7 @@ const RULES = [
   },
   {
     // `list` and `show` read the stash and revert nothing, and refusing one cost a whole line.
-    pattern: /\bgit\s+["']?stash\b(?!\s+["']?(?:list|show)\b)/,
+    pattern: /^(?:\S*\/)?git\s+["']?stash\b(?!\s+["']?(?:list|show)\b)/u,
     needsDirtyTree: true,
     cause:
       "git stash silently reverts the working tree, so everything read afterwards reports about " +
@@ -50,14 +49,14 @@ const RULES = [
       "Copy the file aside to undo a probe, or use a separate `git worktree` for a clean baseline.",
   },
   {
-    pattern: /\bgit\s+checkout\s+["']?(--\s+\S|-{2}\s|\S+\.\w)/,
+    pattern: /^(?:\S*\/)?git\s+checkout\s+["']?(?:--\s+\S|-{2}\s|\S+\.\w)/u,
     needsDirtyTree: true,
     cause:
       "git checkout of a tracked path discards uncommitted work with no history to restore it from.",
     instead: "Copy the file aside first, or make the change you actually want.",
   },
   {
-    pattern: /\bgit\s+reset\s+["']?--hard\b/,
+    pattern: /^(?:\S*\/)?git\s+reset\s+["']?--hard\b/u,
     needsDirtyTree: true,
     cause: "git reset --hard discards every uncommitted change in the tree at once.",
     instead: "Reset the specific paths, or commit first so the state is recoverable.",
@@ -82,22 +81,35 @@ function treeIsDirty(cwd) {
   return out.stdout.trim() !== "";
 }
 
-/* What the shell will actually run. A data heredoc is dropped, and inside a program an interpreter
-   runs, a quoted literal is data — unless that program can hand a string to a shell. The operator's
-   own line keeps its quotes: `git add "-A"` is the flag, quoted. how/bash-guard.md. */
-const QUOTED = /'[^']*'|"[^"]*"/gu;
+/* A literal inside a program an interpreter runs is data — a triple quote and an escape first, since
+   read wrong its pairs skew and bare the rest. Unless it reaches a shell: there it is the command. */
+const QUOTED = /'''[\s\S]*?'''|"""[\s\S]*?"""|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/gu;
 const SPAWNS = /\b(?:subprocess|os\.system|os\.popen|child_process|execSync|spawnSync|shell\s*=\s*True)/u;
 
+const bare = (one) => (/^('''|""")/u.test(one) ? one.slice(3, -3) : one.slice(1, -1));
+
+/* An interpreter's `-c` body is the program a heredoc would hold; a shell's own is promoted before it. */
+const RUNS = /\b(?:python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*-c\s+('[^']*'|"[^"]*")/gu;
+
+const handed = [];
+const held = (body) => {
+  if (!SPAWNS.test(body)) return body.replace(QUOTED, " ");
+  handed.push(...[...body.matchAll(QUOTED)].map((one) => bare(one[0])));
+  return " ";
+};
 const instructions = (given) =>
-  bodiless(given, (body) => (SPAWNS.test(body) ? body : body.replace(QUOTED, " ")));
+  bodiless(given, held).replace(RUNS, (all, body) => held(bare(body)) && " ");
 
 const ev = readEvent();
 if (ev.tool_name !== "Bash") process.exit(0);
-const command = instructions((ev.tool_input ?? {}).command ?? "");
-if (!command) process.exit(0);
+/* Where each command starts, because a rule quoted in an argument is data: `echo "git stash"` prints.
+   A `-c` body is promoted first — the shell it names runs what is inside as commands of its own. */
+const text = instructions((ev.tool_input ?? {}).command ?? "");
+const run = [text, ...handed].flatMap((one) => starts(unwrapped(one)));
+if (!run.length) process.exit(0);
 
 for (const { pattern, cause, instead, needsDirtyTree } of RULES) {
-  if (!pattern.test(command)) continue;
+  if (!run.some((one) => pattern.test(one))) continue;
   if (needsDirtyTree && !treeIsDirty(ev.cwd ?? process.cwd())) continue;
   deny(`Refused. ${cause}\n\nInstead: ${instead}${how()}`);
 }

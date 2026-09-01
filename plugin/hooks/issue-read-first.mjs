@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 // Why the write is where this gate sits, and not the reading: how/issue-read-first.md.
 
-import { deny, readEvent, transcript, how } from "./_hook.mjs";
+import { deny, readEvent, shellText, starts, transcript, how } from "./_hook.mjs";
 import { unreadKeys, writesAnIssue } from "../src/issue-read.mjs";
 
 const ev = readEvent();
 const current = { name: ev.tool_name, input: ev.tool_input };
-if (!writesAnIssue(current)) process.exit(0);
+// Which text answers which question: where a command starts for the write, the raw input for keys.
+if (!writesAnIssue(current, starts(shellText(ev.tool_input?.command)))) process.exit(0);
 
 const records = transcript(ev.transcript_path ?? "");
 if (!records) process.exit(0);
 
-// Only the agent's own tool calls count. A hook's own refusal names the read it is asking for, and
-// reading that back out of the transcript would let the second attempt satisfy itself.
+// Only the agent's own tool calls: a refusal names the read it asks for, and would satisfy the next.
 const uses = [];
 for (const record of records) {
   const content = record?.message?.content;

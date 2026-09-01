@@ -5,6 +5,7 @@ import { repoRoot } from "../src/codex.mjs";
 import { lastConsultAt } from "../src/codex-log.mjs";
 import {
   EXECUTES_STDIN,
+  QUOTED,
   advisedThisTurn,
   askedAlready,
   invocations,
@@ -19,7 +20,6 @@ import {
 
 /* Command position: the data goes, the rest is read as tokens — an allowlist missed four shapes. */
 const HEREDOC = /(^|\s)<<-?\s*(['"]?)(\w+)\2[^\n]*\n[\s\S]*?^\3$/gm;
-const QUOTED = /'[^']*'|"(?:[^"\\]|\\.)*"/g;
 const TOKENS = /[\s();&|<>"',]+/;
 const RUNNER = /(?:^|\/)(?:forge|cli\.mjs)$/;
 
