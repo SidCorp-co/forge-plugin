@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Why the write is where this gate sits, and not the reading: why/issue-read-first.md.
+// Why the write is where this gate sits, and not the reading: how/issue-read-first.md.
 
-import { deny, readEvent, transcript, why } from "./_hook.mjs";
+import { deny, readEvent, transcript, how } from "./_hook.mjs";
 import { unreadKeys, writesAnIssue } from "../src/issue-read.mjs";
 
 const ev = readEvent();
@@ -32,5 +32,5 @@ deny(
     + "not return.\n\n"
     + `Do this: forge call forge_comments '{"action":"list","filters":{"issue":"${key}"}}' — then `
     + "re-send. An empty list satisfies this."
-    + why(),
+    + how(),
 );

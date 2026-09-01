@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 // Stop once between deciding to record something and recording it. A memory row is project
-// knowledge; a skill edit develops the method. why/learning-gate.md says why the two must not merge.
+// knowledge; a skill edit develops the method. how/learning-gate.md says why the two must not merge.
 
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { REDIRECT, WRITES, askedAlready, bodiless, deny, expanded, readEvent, why } from "./_hook.mjs";
+import { REDIRECT, WRITES, askedAlready, bodiless, deny, expanded, readEvent, how } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
 
 const FORGE_SOURCES = ["note", "knowledge", "decision", "policy"];
 const GUARDED = /\/memory\/|\/skills\//;
 // A write shape counts only as its own token, so an assignment and a `cd` resolve here; a value that
-// runs a command does not. why/learning-gate.md.
+// runs a command does not. how/learning-gate.md.
 const CHDIR = /(?:^|[;&|\n])\s*(?:cd|pushd)\s+("[^"]*"|'[^']*'|[^\s;&|]+)/gu;
 const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
 const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
@@ -100,7 +100,7 @@ if (tool.endsWith("forge_memory_write") || tool.endsWith("forge_memory.write")) 
   deny(
     `Hold — project memory, written as \`${src}\`.\n\n${BRIEF}\n\n` +
       `Re-send with metadata.checked set to the category it belongs in (${FORGE_SOURCES.join(" | ")}), ` +
-      `and say in one line which of the four conditions made it worth keeping.${why()}`,
+      `and say in one line which of the four conditions made it worth keeping.${how()}`,
   );
 }
 
@@ -128,7 +128,7 @@ if (tool === "Bash") {
           + (memory
             ? `Do this: if all four hold, write it with Write and declare \`type:\` — ${FILE_TYPES.join(" | ")}. Otherwise write nothing.`
             : `Do this: if all four hold, use Edit and name the kind — ${SKILL_CATEGORIES.join(" | ")}. Otherwise change nothing.`)
-          + why(),
+          + how(),
       );
     }
   }
@@ -148,7 +148,7 @@ if (path.includes("/memory/") && path.endsWith(".md") && basename(path) !== "MEM
   deny(
     `Hold — \`${basename(path)}\`${fresh ? ", a new memory. Why should it exist, and will it still matter later?" : "."}`
       + `\n\n${BRIEF}\n\n${fresh ? `${SHAPE}\n\n` : ""}`
-      + action(twin, existsSync(path)) + why(),
+      + action(twin, existsSync(path)) + how(),
   );
 }
 
@@ -172,7 +172,7 @@ if (path.includes("/skills/") && /\/(SKILL\.md|references\/[^/]+\.md)$/.test(pat
           "authorities for one rule diverge the first time someone corrects only the copy they " +
           `found.\n\n${joined}\n\n` +
           "Do this: keep it in one place and cite it from the other. If the existing wording is " +
-          "the worse one, replace it rather than adding beside it." + why(),
+          "the worse one, replace it rather than adding beside it." + how(),
       );
     }
   }
@@ -183,6 +183,6 @@ if (path.includes("/skills/") && /\/(SKILL\.md|references\/[^/]+\.md)$/.test(pat
       "Do this: change nothing unless the test holds. If it does, re-send and answer three things " +
       `in your reply — which category (${SKILL_CATEGORIES.join(" | ")}), whether a ` +
       "check in the plugin could enforce it instead, and what it displaces." +
-      why(),
+      how(),
   );
 }

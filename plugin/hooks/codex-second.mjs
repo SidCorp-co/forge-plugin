@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The advisor has spoken and there is work in the tree: the second opinion happens before the next
-// write, not at some end the turn may never reach. why/codex-second.md.
+// write, not at some end the turn may never reach. how/codex-second.md.
 
 import { spawnSync } from "node:child_process";
 import { statSync } from "node:fs";
@@ -16,13 +16,13 @@ import {
   readEvent,
   transcript,
   unspentAdvice,
-  why,
+  how,
   writesInside,
   writing,
 } from "./_hook.mjs";
 
 /* Nothing to review is not a rule worth enforcing, so the gate asks when the tree last changed; a
-   deleted file has no mtime and is missed. A write outside the tree is not stamped: why/codex-second.md. */
+   deleted file has no mtime and is missed. A write outside the tree is not stamped: how/codex-second.md. */
 const changedAt = (root) => {
   const out =
     spawnSync("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8", timeout: 5000 })
@@ -59,7 +59,7 @@ if (!unspentAdvice(records, spentAt)) process.exit(0);
 
 /* One decision per advisor call, not per write: deciding again mid-build would refuse the second
    write of a turn and send codex a fragment. So a stand-down is remembered, a refusal is not, and
-   the next advisor call re-arms the whole question. why/codex-second.md. */
+   the next advisor call re-arms the whole question. how/codex-second.md. */
 const key = `advice-${adviceAt(records)}`;
 if (askedAlready(ev, key, "codex-second", { set: false })) process.exit(0);
 
@@ -74,5 +74,5 @@ deny(
     + "Do this: `echo \"<what you were doing, and what the advisor said>\" | forge codex consult "
     + "--diff --only blocker,major`, weigh what comes back, then re-send. One consult clears the "
     + "rest of the turn; `FORGE_CODEX_DISABLE=1` the session."
-    + why(),
+    + how(),
 );

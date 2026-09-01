@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A second opinion that follows no first opinion is just another first opinion. why/codex-order.md.
+// A second opinion that follows no first opinion is just another first opinion. how/codex-order.md.
 
 import { repoRoot } from "../src/codex.mjs";
 import { lastConsultAt } from "../src/codex-log.mjs";
@@ -11,11 +11,11 @@ import {
   readEvent,
   transcript,
   unspentAdvice,
-  why,
+  how,
 } from "./_hook.mjs";
 
 /* Command position, as bash-guard reads it: the data is removed, then what is left is read as
-   tokens. An allowlist of wrappers was tried first and missed four shapes. why/codex-order.md. */
+   tokens. An allowlist of wrappers was tried first and missed four shapes. how/codex-order.md. */
 const HEREDOC = /(^|\s)<<-?\s*(['"]?)(\w+)\2[^\n]*\n[\s\S]*?^\3$/gm;
 const QUOTED = /'[^']*'|"(?:[^"\\]|\\.)*"/g;
 const TOKENS = /[\s();&|<>"',]+/;
@@ -59,7 +59,7 @@ if (!unspentAdvice(records, lastConsultAt(repoRoot(ev.cwd ?? process.cwd())))) {
     "Consult the built-in advisor before codex, not after.\n\n"
       + "Do this: call advisor(), act on it, then re-run this command with its points in the intent. "
       + "A re-run is what clears this, not a second advisor call."
-      + why(),
+      + how(),
   );
 }
 
@@ -69,6 +69,6 @@ if (!/advisor/i.test(String(ev.tool_input.command)) && !askedAlready(ev, "codex-
   block(
     "The advisor has spoken and this intent does not mention it.\n\n"
       + "Do this: add what it said and what you did about it, then re-run. Asked once per session."
-      + why(),
+      + how(),
   );
 }

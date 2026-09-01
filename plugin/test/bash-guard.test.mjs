@@ -40,7 +40,7 @@ test("the command itself is refused, and the refusal names the rule and a way ou
   assert.equal(allowed, false);
   assert.match(reason, /stages everything in the tree/u);
   assert.match(reason, /Instead: Stage the paths you changed/u);
-  assert.match(reason, /forge hooks --why bash-guard/u);
+  assert.match(reason, /forge hooks --how bash-guard/u);
   assert.equal(decide(BY_NAME).allowed, false, "selects by name, so it is not the pid you meant");
 });
 

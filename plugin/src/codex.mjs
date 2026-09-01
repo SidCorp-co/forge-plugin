@@ -169,7 +169,7 @@ const commitAt = (root) => {
 /* More than one call, and a bounded number: a round exists so the reviewer can SEE what it was not
    given, and seeing has a fixed point. The last call is served no tools, so it answers. What it
    still never gets is a shell: the version that could run commands took eleven minutes, spawned its
-   own subagents and had to be killed by pid. hooks/why/codex-second.md. */
+   own subagents and had to be killed by pid. hooks/how/codex-second.md. */
 const BOOLEAN = ["--allow-echo", "--diff"];
 const SEVERITIES = ["blocker", "major", "minor"];
 
@@ -417,7 +417,7 @@ export const hookRecord = (event, paths) => {
       + `    echo "what I was doing and why, the plan, and the decisions I made" | forge codex consult\n\n`
       + `Once, at the end, over everything you changed. The files travel with the prompt and it reads `
       + `what else it needs; your intent is the one thing it cannot reach, the advisor's reply included. Then `
-      + `\`forge codex verdict\`. Why, and what to do with what comes back: \`forge hooks --why codex-turn\`.`
+      + `\`forge codex verdict\`. Why, and what to do with what comes back: \`forge hooks --how codex-turn\`.`
     : null;
 };
 

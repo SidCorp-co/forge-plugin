@@ -53,7 +53,7 @@ test("a claim the write introduces is refused, named, with one move and where th
   assert.match(reason, /`scripts\/gate\.mjs` names no such path/u);
   assert.match(reason, /`verify` is in no package\.json here/u);
   assert.match(reason, /correct each claim, or delete it/u);
-  assert.match(reason, /forge hooks --why claude-md/u);
+  assert.match(reason, /forge hooks --how claude-md/u);
   assert.ok(reason.length < 500, `${reason.length} characters printed on a refused write`);
 });
 

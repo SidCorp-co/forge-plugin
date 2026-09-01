@@ -8,8 +8,8 @@ a checker is stated once — in the checker, whose message is what a developer r
 Nothing here names a path or a script that does not resolve; `forge doctor` checks that. Install,
 configuration, layout and which level a rule belongs to: [`README.md`](README.md). The CLI's
 surface: [`docs/FORGE-CLI.md`](docs/FORGE-CLI.md). What the hooks share:
-[`docs/HOOKS.md`](docs/HOOKS.md). Why one of them refuses what it refuses: `forge hooks --why
-<hook>`, which is where a refusal's own reasoning lives rather than in the refusal.
+[`docs/HOOKS.md`](docs/HOOKS.md). How to clear one of them: `forge hooks --how <hook>`, which is
+where the route out of a refusal lives rather than in the refusal itself.
 
 ## An entry point is not a library
 

@@ -251,7 +251,7 @@ test("every refusal ends by naming where the argument is, and names no path", ()
     write("background-work-survives-tool-timeout.md", KNOWN).first,
   ];
   for (const reason of reasons) {
-    assert.match(reason, /forge hooks --why learning-gate/u, reason);
+    assert.match(reason, /forge hooks --how learning-gate/u, reason);
     assert.doesNotMatch(reason, /[\w.-]+\/[\w./-]+\.(?:mjs|js|md)\b/u, `names a path: ${reason}`);
   }
 });

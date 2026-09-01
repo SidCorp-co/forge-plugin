@@ -2,7 +2,7 @@
 
 This states what every gate here shares — the two levels, the one switch, the log. Why an
 individual gate refuses what it refuses is its own document, next to the code, one per hook:
-`plugin/hooks/why/`. `plugin/hooks/hooks.json` is the wiring.
+`plugin/hooks/how/`. `plugin/hooks/hooks.json` is the wiring.
 
 ## Two levels
 
@@ -17,7 +17,7 @@ where both could speak, is stated once in
 The file hooks watched `Write`, `Edit` and `MultiEdit` and nothing else, so every edit made through
 the shell passed all of them unseen — under a permission mode that encourages Bash, the main road
 rather than an edge case. `touched()` and `WRITES` in `_hook.mjs` close it, and how they decide is
-one document, `forge hooks --why writes`: six gates read a write through it, and a second account
+one document, `forge hooks --how writes`: six gates read a write through it, and a second account
 here would diverge the first time one of them was corrected.
 
 ## A refusal is short, and says where the argument is
@@ -27,10 +27,10 @@ shape it refused and the one action that clears it. The argument for the rule �
 written for, the measurement behind a threshold, the case that was tried and removed — is one
 command away, and the refusal ends with that command:
 
-    forge hooks --why <hook>
+    forge hooks --how <hook>
 
-It reads `plugin/hooks/why/<hook>.md`, which is the list: one file per gate that has a reason to
-give, and `forge hooks --why` with a name it does not hold answers with the nearest one it does.
+It reads `plugin/hooks/how/<hook>.md`, which is the list: one file per gate that has a reason to
+give, and `forge hooks --how` with a name it does not hold answers with the nearest one it does.
 
 The reasoning ships inside the plugin rather than in `docs/`, because only `plugin/` travels into an
 installed copy. A refusal citing a path under `docs/` would name a file that does not exist in the
@@ -57,7 +57,7 @@ stated once, in the checker, and the wording belongs beside the decision that pr
     and reference, and each of them lands      Do this: if a memory already states this,
     somewhere different …                      fix that file. Otherwise re-send.
 
-    [864 characters, on every write]           Why: `forge hooks --why learning-gate`
+    [864 characters, on every write]           How: `forge hooks --how learning-gate`
                                                [434 characters]
 
 Four failures worth naming, every one of them found by firing a gate rather than reading it:
@@ -75,7 +75,7 @@ Four failures worth naming, every one of them found by firing a gate rather than
 
 **A document: the argument the message could not afford.** Under 2,600 characters — about 650 tokens
 when an agent reads it, which is the cost the pointer exists to avoid, and short enough that someone
-reads all of it. `# <hook> — <claim>` as its first line, so `forge hooks --why` opens with what the
+reads all of it. `# <hook> — <claim>` as its first line, so `forge hooks --how` opens with what the
 gate is *for*. One claim per paragraph: that is the discipline that fits ten gates into the ceiling,
 and the paragraph that carries no claim of its own is the one to cut.
 
@@ -174,5 +174,5 @@ at 220 characters before anything is written: `docs/FORGE-CLI.md` says which sha
 something. `claude-md` moves the same function to the write: `PostToolUse`, beside `code-quality`,
 both answering for bytes a call has just put on disk. The baseline is the committed file, so a
 repository that was inherited wrong still gets the edit that fixes it — a gate that fires over
-someone else's sentence is a gate that gets switched off. `forge hooks --why claude-md` carries the
+someone else's sentence is a gate that gets switched off. `forge hooks --how claude-md` carries the
 rest, including what it deliberately does not judge.

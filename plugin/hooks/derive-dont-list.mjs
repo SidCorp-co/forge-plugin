@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Nudge once when a checker is about to hard-code the cases it knows. A nudge and not a refusal,
-// and silenced by a comment above the literal — why/derive-dont-list.md has the measurement behind both.
+// and silenced by a comment above the literal — how/derive-dont-list.md has the measurement behind both.
 
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
-import { askedAlready, block, readEvent, touched, why } from "./_hook.mjs";
+import { askedAlready, block, readEvent, touched, how } from "./_hook.mjs";
 
 // Only files whose job is to check something; nudging every array literal earns an ignore list.
 const CHECKER =
@@ -51,6 +51,6 @@ for (const path of touched(ev)) {
       "on the case it never met, and cries wolf when someone extends the thing correctly.\n\n" +
       "Do this: derive them from the source — read the enum, parse the switch, key on the declared " +
       "type. If enumerating IS the point, say so in a comment above the list." +
-      why()
+      how()
   );
 }

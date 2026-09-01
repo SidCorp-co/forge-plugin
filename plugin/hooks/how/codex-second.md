@@ -8,9 +8,9 @@ The free opinion is not walled off. A gate demanding the built-in advisor was re
 prompt already asks for that call, so the hook charged a refused write per turn to enforce an
 instruction already there. This asks for what no prompt asks for — a reading by another provider —
 and arms on the advisor call rather than demanding it. No advisor event exists to hook and `Stop` did
-not work (`forge hooks --why codex-turn`), so what is left is the write.
+not work (`forge hooks --how codex-turn`), so what is left is the write.
 
-Four cheap facts: the call writes (`forge hooks --why writes`), the advisor has spoken this turn, no
+Four cheap facts: the call writes (`forge hooks --how writes`), the advisor has spoken this turn, no
 consult has spent that advice, and `git status --porcelain` is non-empty. The last matters — a clean
 tree gives codex nothing to read, and a rule enforced where it cannot be satisfied gets switched off.
 A target resolving outside the root stands the gate down, since the root is only the session's working

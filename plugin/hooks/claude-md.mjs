@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 // A claim CLAUDE.md makes about the repository is read as fact by every session that opens it, and
-// it rots silently. Checked where it is written. why/claude-md.md.
+// it rots silently. Checked where it is written. how/claude-md.md.
 
 import { spawnSync } from "node:child_process";
 import { relative } from "node:path";
 
 import { checkClaims, readClaudeMd } from "../src/claude-md.mjs";
 import { repoRoot } from "../src/codex.mjs";
-import { block, readEvent, touched, why } from "./_hook.mjs";
+import { block, readEvent, touched, how } from "./_hook.mjs";
 
-/* The eight kinds `forge doctor` reports, in its words: why/claude-md.md. */
+/* The eight kinds `forge doctor` reports, in its words: how/claude-md.md. */
 const KINDS = [
   ["missingPaths", "names no such path"],
   ["missingScripts", "is in no package.json here"],
@@ -51,5 +51,5 @@ block(
     + `does not bear out:\n\n${fresh.map((one) => `- ${one}`).join("\n")}\n\n`
     + "Do this: correct each claim, or delete it — the file it names is the authority, and a claim it "
     + "has outlived is worse than silence."
-    + why(),
+    + how(),
 );

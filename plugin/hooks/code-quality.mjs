@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Hands every code file a call wrote to the linter the project itself configured — its own copy
 // where it has one, the vendored one where it does not. Owns the routes, never the rules;
-// why/code-quality.md says why the split falls there.
+// how/code-quality.md says why the split falls there.
 
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";

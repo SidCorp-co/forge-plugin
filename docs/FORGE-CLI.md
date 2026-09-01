@@ -309,7 +309,7 @@ pattern that refuses too much shows up as a number rather than as an anecdote. O
 logged: they are the signal a false positive leaves. Allows would double the write sites for a
 question nothing is asking yet.
 
-`forge hooks --why <hook>` prints that gate's reasoning: `plugin/hooks/why/<hook>.md`, which is
+`forge hooks --how <hook>` prints that gate's reasoning: `plugin/hooks/how/<hook>.md`, which is
 where the paragraphs a refusal used to carry now live. What a hook prints reaches a context window
 on every tool use, so a refusal states the shape it refused and one action and ends with this
 command — measured at 1,765 characters of standing argument removed from seven gates. The document

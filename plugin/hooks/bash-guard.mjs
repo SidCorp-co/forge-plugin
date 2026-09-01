@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Refuse the shell commands whose damage cannot be undone by the agent that caused it, and the
 // one that launders a finding into a green run. Deliberately narrow, because a guard that
-// refuses too much gets disabled — why/bash-guard.md.
+// refuses too much gets disabled — how/bash-guard.md.
 
 import { spawnSync } from "node:child_process";
 
-import { bodiless, deny, readEvent, why } from "./_hook.mjs";
+import { bodiless, deny, readEvent, how } from "./_hook.mjs";
 
 const RULES = [
   {
@@ -84,7 +84,7 @@ function treeIsDirty(cwd) {
 
 /* What the shell will actually run. A data heredoc is dropped, and inside a program an interpreter
    runs, a quoted literal is data — unless that program can hand a string to a shell. The operator's
-   own line keeps its quotes: `git add "-A"` is the flag, quoted. why/bash-guard.md. */
+   own line keeps its quotes: `git add "-A"` is the flag, quoted. how/bash-guard.md. */
 const QUOTED = /'[^']*'|"[^"]*"/gu;
 const SPAWNS = /\b(?:subprocess|os\.system|os\.popen|child_process|execSync|spawnSync|shell\s*=\s*True)/u;
 
@@ -99,5 +99,5 @@ if (!command) process.exit(0);
 for (const { pattern, cause, instead, needsDirtyTree } of RULES) {
   if (!pattern.test(command)) continue;
   if (needsDirtyTree && !treeIsDirty(ev.cwd ?? process.cwd())) continue;
-  deny(`Refused. ${cause}\n\nInstead: ${instead}${why()}`);
+  deny(`Refused. ${cause}\n\nInstead: ${instead}${how()}`);
 }

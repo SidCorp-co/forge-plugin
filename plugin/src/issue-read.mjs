@@ -1,5 +1,5 @@
 /* Whether an issue's comments have been read before something is written to it. `forge issue --full`
-   carries no comments at all, so the obvious read leaves the state unread. hooks/why/issue-read-first.md */
+   carries no comments at all, so the obvious read leaves the state unread. hooks/how/issue-read-first.md */
 
 const KEY = /\b[A-Z]{2,6}-\d+\b/g;
 const READ_ACTIONS = /"action"\s*:\s*"(list|get)"/;

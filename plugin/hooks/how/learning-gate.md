@@ -28,7 +28,7 @@ name 1.00. A file is excluded from its own comparison, so revising one never rea
 
 The shell route is closed rather than approximated: `sed -i` and a heredoc carry no content to read,
 and the decision has to happen *before* the write. Naming a file is not touching it, so reading a
-skill stays free — only a write shape is asked about (`forge hooks --why writes`). A heredoc body is
+skill stays free — only a write shape is asked about (`forge hooks --how writes`). A heredoc body is
 data until an interpreter executes it: discarding it left a `write_text` aimed at a guarded directory
 invisible, and a memory file was rewritten unasked.
 

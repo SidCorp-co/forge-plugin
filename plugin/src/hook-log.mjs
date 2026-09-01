@@ -73,11 +73,11 @@ const switched = (name, off) => {
 
 /* One document per gate, beside the hook rather than under docs/: only `plugin/` travels into an
    installed copy, and this is the path every refusal ends by naming. */
-const WHY_DIR = join(HOOKS_DIR, "why");
+const HOW_DIR = join(HOOKS_DIR, "how");
 
 const documented = () => {
   try {
-    return readdirSync(WHY_DIR).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3));
+    return readdirSync(HOW_DIR).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3));
   } catch {
     return [];
   }
@@ -85,12 +85,12 @@ const documented = () => {
 
 const reasoning = (name) => {
   if (!documented().includes(name)) fail(didYouMean("hook", name, documented()));
-  console.log(readFileSync(join(WHY_DIR, `${name}.md`), "utf8").trimEnd());
+  console.log(readFileSync(join(HOW_DIR, `${name}.md`), "utf8").trimEnd());
 };
 
 export const hooks = (argv) => {
   const held = flags(argv, "hooks", ["--deny", "--block"]);
-  if (held.why) return reasoning(held.why);
+  if (held.how) return reasoning(held.how);
   /* Switching answers with the new state and stops: the refusal log is a different question. */
   if (held.off || held.on) return switched(held.off ?? held.on, Boolean(held.off));
   for (const { name, event } of offNow()) {
