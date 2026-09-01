@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
+import { callHook } from "./fixtures.mjs";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -44,17 +46,17 @@ const gate = (records, { consultAt, clean, staleBy, session, env = {}, writes } 
   else writeFileSync(join(REPO, "work.mjs"), `// ${count}\n`);
   /* Work that predates the consult has been read already, whatever the tree still shows. */
   if (staleBy) utimesSync(join(REPO, "work.mjs"), new Date(now - staleBy), new Date(now - staleBy));
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({
+  const run = callHook(
+    HOOK,
+    {
       tool_name: "Write",
       tool_input: { file_path: writes ?? join(REPO, "next.mjs") },
       transcript_path: path,
       session_id: session ?? `s${count}`,
       cwd: REPO,
-    }),
-    encoding: "utf8",
-    env: { ...process.env, XDG_CONFIG_HOME: room, ...env },
-  });
+    },
+    { ...process.env, XDG_CONFIG_HOME: room, ...env },
+  );
   return run.stdout.trim() ? JSON.parse(run.stdout) : null;
 };
 const because = (out) => out?.hookSpecificOutput?.permissionDecisionReason ?? "";

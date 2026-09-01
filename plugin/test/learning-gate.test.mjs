@@ -1,6 +1,5 @@
 /* The gate is a decision, so it is exercised the way Claude Code calls it: the event on stdin and
    the permission decision on stdout. The Bash fixtures are shapes observed slipping through. */
-import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import assert from "node:assert/strict";
@@ -9,9 +8,11 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
+import { callHook, homeEnv } from "./fixtures.mjs";
+
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "learning-gate.mjs");
 /* A refusal writes to the config dir now, so a suite that skips this one logs onto the developer. */
-const HOME = { ...process.env, XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), "learning-gate-home-")) };
+const HOME = homeEnv("learning-gate");
 /* A fixture path, not this machine's: the Bash cases need only a string holding /memory/, and
    the ones that judge content build a real directory below. */
 const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";
@@ -20,11 +21,7 @@ const SKILL = "plugin/skills/issue-flow/SKILL.md";
 /* The gate stamps /tmp once per session per file, so a fixture reusing a session id passes on a
    re-run for the wrong reason. Every call gets its own session. */
 const ask = (event) =>
-  spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({ session_id: randomUUID(), ...event }),
-    encoding: "utf8",
-    env: HOME,
-  });
+  callHook(HOOK, { session_id: randomUUID(), ...event }, HOME);
 
 const decide = (command) => {
   const run = ask({ tool_name: "Bash", tool_input: { command } });
@@ -160,11 +157,11 @@ const write = (name, content, tool = "Write") => {
   const key = tool === "Write" ? "content" : "new_string";
   const session = randomUUID();
   const once = () => {
-    const run = spawnSync(process.execPath, [HOOK], {
-      input: JSON.stringify({ session_id: session, tool_name: tool, tool_input: { file_path: join(room, name), [key]: content } }),
-      encoding: "utf8",
-      env: HOME,
-    });
+    const run = callHook(
+      HOOK,
+      { session_id: session, tool_name: tool, tool_input: { file_path: join(room, name), [key]: content } },
+      HOME,
+    );
     assert.equal(run.status, 0, run.stderr);
     return run.stdout.trim() ? JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason : null;
   };
@@ -202,11 +199,11 @@ const skillWrite = (session, name) => {
   const room = mkdtempSync(join(tmpdir(), "skill-gate-"));
   const file = join(room, "skills", "demo", name);
   mkdirSync(dirname(file), { recursive: true });
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({ session_id: session, tool_name: "Write", tool_input: { file_path: file, content: "a line of method" } }),
-    encoding: "utf8",
-    env: HOME,
-  });
+  const run = callHook(
+    HOOK,
+    { session_id: session, tool_name: "Write", tool_input: { file_path: file, content: "a line of method" } },
+    HOME,
+  );
   assert.equal(run.status, 0, run.stderr);
   return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
 };
@@ -225,15 +222,15 @@ const skillDuplicate = () => {
   const line = "A refusal names the shape it refused and the one action that clears it.";
   mkdirSync(join(room, "references"), { recursive: true });
   writeFileSync(join(room, "SKILL.md"), `# demo\n\n${line}\n`);
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({
+  const run = callHook(
+    HOOK,
+    {
       session_id: randomUUID(),
       tool_name: "Write",
       tool_input: { file_path: join(room, "references", "shape.md"), content: `${line}\n` },
-    }),
-    encoding: "utf8",
-    env: HOME,
-  });
+    },
+    HOME,
+  );
   assert.equal(run.status, 0, run.stderr);
   return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
 };

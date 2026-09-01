@@ -34,7 +34,7 @@
     "eslint": "^9.32.0"
   },
   "scripts": {
-    "version": "node -e \"const f='claude-plugin/.claude-plugin/plugin.json',fs=require('fs'),j=JSON.parse(fs.readFileSync(f));j.version=require('./package.json').version;fs.writeFileSync(f,JSON.stringify(j,null,2)+'\\n')\" && git add claude-plugin/.claude-plugin/plugin.json",
+    "version": "node ../../tools/sync-manifest-version.mjs",
     "test": "node --test",
     "test:hook": "node --test test/cli/lint-edited-file.test.js",
     "lint": "eslint .",

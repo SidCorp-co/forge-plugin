@@ -1,6 +1,6 @@
 /* The event on stdin and the decision on stdout, as Claude Code calls it. The fixture is a
    repository that was inherited already wrong, because that is the case a gate has to survive. */
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import assert from "node:assert/strict";
@@ -9,8 +9,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
+import { callHook, homeEnv } from "./fixtures.mjs";
+
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "claude-md.mjs");
-const HOME = { ...process.env, XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), "claude-md-home-")) };
+const HOME = homeEnv("claude-md");
 
 const room = mkdtempSync(join(tmpdir(), "claude-md-hook-"));
 const git = (...args) => execFileSync("git", args, { cwd: room, encoding: "utf8" });
@@ -24,16 +26,11 @@ git("add", "CLAUDE.md", "package.json");
 git("commit", "-qm", "inherited, and already wrong");
 
 const decide = (file = join(room, "CLAUDE.md")) => {
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({
-      session_id: randomUUID(),
-      cwd: room,
-      tool_name: "Write",
-      tool_input: { file_path: file },
-    }),
-    encoding: "utf8",
-    env: HOME,
-  });
+  const run = callHook(
+    HOOK,
+    { session_id: randomUUID(), cwd: room, tool_name: "Write", tool_input: { file_path: file } },
+    HOME,
+  );
   assert.equal(run.status, 0, run.stderr);
   if (!run.stdout.trim()) return { allowed: true };
   const held = JSON.parse(run.stdout);

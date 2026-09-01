@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { keysIn, readsComments, unreadKeys, writesAnIssue } from "../src/issue-read.mjs";
+import { callHook } from "./fixtures.mjs";
 
 const bash = (command) => ({ name: "Bash", input: { command } });
 const LIST = bash(`forge call forge_comments '{"action":"list","filters":{"issue":"ISS-29"}}'`);
@@ -84,11 +84,11 @@ const gate = (command, records) => {
   count += 1;
   const path = join(room, `t${count}.jsonl`);
   writeFileSync(path, `${records.map((one) => JSON.stringify(one)).join("\n")}\n`);
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, transcript_path: path, cwd: process.cwd() }),
-    encoding: "utf8",
-    env: HOME,
-  });
+  const run = callHook(
+    HOOK,
+    { tool_name: "Bash", tool_input: { command }, transcript_path: path, cwd: process.cwd() },
+    HOME,
+  );
   return run.stdout.trim() ? JSON.parse(run.stdout) : null;
 };
 const because = (out) => out?.hookSpecificOutput?.permissionDecisionReason ?? "";
@@ -112,10 +112,10 @@ test("the hook's own refusal does not satisfy the next attempt", () => {
 });
 
 test("a transcript that will not open stands the gate down", () => {
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({ tool_name: "Bash", tool_input: { command: "forge comment ISS-29 -" }, transcript_path: "/nope" }),
-    encoding: "utf8",
-    env: HOME,
-  });
+  const run = callHook(
+    HOOK,
+    { tool_name: "Bash", tool_input: { command: "forge comment ISS-29 -" }, transcript_path: "/nope" },
+    HOME,
+  );
   assert.equal(run.stdout.trim(), "");
 });

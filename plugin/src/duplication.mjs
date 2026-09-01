@@ -19,11 +19,12 @@ const HEADING = /^#{1,6}\s.*$/gm;
 const MARKUP = /[*`_>[\]()]/g;
 const INLINE = /`[^`\n]*`/g;
 
-/** `inlineCode: "drop"` takes the span out, not only its backticks: two texts naming one command are
- *  about it rather than restating each other. Off by default: doctor calibrated with them counted. */
-export function sentences(text, { inlineCode = "keep" } = {}) {
-  const fenceless = text.replace(FENCE, " ");
-  const stripped = (inlineCode === "drop" ? fenceless.replace(INLINE, " ") : fenceless)
+/** An inline span goes with the fences: two texts naming one command are about that command, which is
+ *  not either of them restating the other. */
+export function sentences(text) {
+  const stripped = text
+    .replace(FENCE, " ")
+    .replace(INLINE, " ")
     .replace(TABLE_ROW, " ")
     .replace(HEADING, " ")
     .replace(MARKUP, "");

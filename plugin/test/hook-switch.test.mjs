@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
+import { callHook, dirtyRepo } from "./fixtures.mjs";
+
 import { hookEvents, hookNames } from "../src/hook-switch.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -26,24 +28,15 @@ const room = (config) => {
   return home;
 };
 
-/* The fixture command trips a rule that only bites where there is uncommitted work, so the tree it
-   is judged against is one this file makes: left to the runner's cwd, these cases pass or fail by
-   whether the checkout they ran in happened to be dirty, and a fresh clone is not. */
-const DIRTY = mkdtempSync(join(tmpdir(), "hook-switch-repo-"));
-spawnSync("git", ["init", "-q", DIRTY]);
-writeFileSync(join(DIRTY, "work-in-progress.txt"), "something to lose\n");
+/* The fixture command trips a rule that only bites where there is uncommitted work. */
+const DIRTY = dirtyRepo();
 
 const refused = (home, extra = {}) => {
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({
-      session_id: randomUUID(),
-      tool_name: "Bash",
-      cwd: DIRTY,
-      tool_input: { command: STAGES_EVERYTHING },
-    }),
-    encoding: "utf8",
-    env: { ...process.env, XDG_CONFIG_HOME: home, ...extra },
-  });
+  const run = callHook(
+    HOOK,
+    { session_id: randomUUID(), tool_name: "Bash", cwd: DIRTY, tool_input: { command: STAGES_EVERYTHING } },
+    { ...process.env, XDG_CONFIG_HOME: home, ...extra },
+  );
   assert.equal(run.status, 0, run.stderr);
   return Boolean(run.stdout.trim());
 };

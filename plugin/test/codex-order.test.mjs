@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { spawnSync } from "node:child_process";
+
+import { callHook } from "./fixtures.mjs";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -38,7 +39,7 @@ const gate = (command, records, { path } = {}) => {
     transcript_path: path ?? transcriptOf(records, `t${session}`),
     session_id: `s${session}`,
   };
-  const run = spawnSync(process.execPath, [HOOK], { input: JSON.stringify(event), encoding: "utf8", env });
+  const run = callHook(HOOK, event, env);
   return run.stdout.trim() ? JSON.parse(run.stdout) : null;
 };
 
@@ -94,11 +95,7 @@ test("the gate stands down when the advisor tool itself is off", () => {
     transcript_path: transcriptOf([userTurn("do it")], "off"),
     session_id: "off",
   };
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify(event),
-    encoding: "utf8",
-    env: { ...env, CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1" },
-  });
+  const run = callHook(HOOK, event, { ...env, CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1" });
   assert.equal(run.stdout.trim(), "", "an order nobody can satisfy is not enforced");
 });
 
@@ -126,7 +123,7 @@ test("advice given but not carried in is blocked once, then let through", () => 
     session_id: `carry-${process.pid}-${Date.now()}`,
   };
   const run = () => {
-    const held = spawnSync(process.execPath, [HOOK], { input: JSON.stringify(event), encoding: "utf8", env });
+    const held = callHook(HOOK, event, env);
     return held.stdout.trim() ? JSON.parse(held.stdout) : null;
   };
   const first = run();
@@ -140,9 +137,6 @@ test("nothing else is gated: another verb, another tool, or no transcript at all
   assert.equal(gate("forge codex log --last 2", records), null);
   assert.equal(gate("forge codex pending", records), null);
   assert.equal(gate("forge codex consult a.mjs", [], { path: join(room, "absent.jsonl") }), null);
-  const other = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({ tool_name: "Read", tool_input: { file_path: "x" } }),
-    encoding: "utf8",
-  });
+  const other = callHook(HOOK, { tool_name: "Read", tool_input: { file_path: "x" } });
   assert.equal(other.stdout.trim(), "");
 });
