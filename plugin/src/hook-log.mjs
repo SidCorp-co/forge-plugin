@@ -97,8 +97,7 @@ const reasoning = (name) => {
   console.log(readFileSync(join(HOW_DIR, `${name}.md`), "utf8").trimEnd());
 };
 
-/* Which decisions count as refusals, held apart from notes so an entry that refused nothing does not
-   inflate the count. Why those are the entries worth logging at all: `_hook.mjs`. */
+/* Refusals as against notes, which do not inflate the count. Why they are logged: `_hook.mjs`. */
 const REFUSALS = ["deny", "block"];
 
 export const hooks = (argv) => {
@@ -110,20 +109,26 @@ export const hooks = (argv) => {
     console.log(`off: ${name.padEnd(16)} ${event}  — \`forge hooks --on ${name}\``);
   }
   let entries = hookEntries();
+  const logged = entries.length;
   if (held.hook) {
     /* The log outlives the file: a hook since renamed is still worth filtering for. */
     const known = [...new Set([...hookNames(), ...entries.map((one) => one.hook).filter(Boolean)])];
     if (!known.includes(held.hook)) fail(didYouMean("hook", held.hook, known));
     entries = entries.filter((one) => one.hook === held.hook);
   }
-  if (held.deny) entries = entries.filter((one) => one.decision === "deny");
-  if (held.block) entries = entries.filter((one) => one.decision === "block");
+  /* Either, never both: one entry has one decision, so two filters ANDed answered nothing. */
+  const asked = held.notes ? [] : REFUSALS.filter((one) => held[one]);
+  if (asked.length) entries = entries.filter((one) => asked.includes(one.decision));
   const noted = entries.filter((one) => !REFUSALS.includes(one.decision));
   entries = held.notes ? noted : entries.filter((one) => REFUSALS.includes(one.decision));
   const also = !held.notes && noted.length ? ` ${noted.length} note(s): \`forge hooks --notes\`.` : "";
   if (!entries.length) {
     const what = held.notes ? "notes" : "hook refusals";
-    return console.log(`No ${what} logged. ${HOOK_LOG_PATH} appears on the first one.${also}`);
+    /* A filter matching nothing is not an empty log: the path is news only when none is there. */
+    const where = logged
+      ? `${logged} entr${logged === 1 ? "y" : "ies"} in ${HOOK_LOG_PATH} match nothing asked for`
+      : `${HOOK_LOG_PATH} appears on the first one`;
+    return console.log(`No ${what} logged. ${where}.${also}`);
   }
   const last = Number(held.last || TAIL);
   for (const one of entries.slice(-last)) console.log(line(one));

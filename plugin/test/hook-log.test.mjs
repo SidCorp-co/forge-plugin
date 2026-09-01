@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { dirtyRepo } from "./fixtures.mjs";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -109,4 +109,27 @@ test("a mistyped hook filter is refused with the near miss", () => {
   assert.equal(missed.status, 1);
   assert.match(missed.stderr, /No hook named bash-gaurd\. Did you mean: bash-guard/u);
   assert.match(forge("--hook", "bash-guard").stdout, /bash-guard\s+deny/u, "the real name filters");
+});
+
+/* Found by running it: two filters for one field ANDed to nothing, and the empty answer said the log
+   would appear on the first refusal — of 121 already in it. */
+test("naming both refusals asks for either, and an empty answer is not an empty log", () => {
+  const forge = (...argv) =>
+    spawnSync(process.execPath, [CLI, "hooks", ...argv], {
+      encoding: "utf8",
+      env: { PATH: process.env.PATH, HOME: room, XDG_CONFIG_HOME: room },
+    });
+  for (const [decision, hook] of [["deny", "bash-guard"], ["block", "claude-md"], ["note", "codex-turn"]]) {
+    appendFileSync(
+      HOOK_LOG_PATH,
+      `${JSON.stringify({ at: new Date().toISOString(), hook, decision, tool: "Bash", target: "x", reason: "r", session: "s" })}\n`,
+    );
+  }
+  const both = forge("--deny", "--block");
+  assert.match(both.stdout, /bash-guard/u, "the deny");
+  assert.match(both.stdout, /claude-md/u, "and the block, which ANDing dropped");
+  assert.doesNotMatch(both.stdout, /codex-turn/u, "a note is neither");
+  const none = forge("--hook", "link-cli");
+  assert.match(none.stdout, /match nothing asked for/u);
+  assert.doesNotMatch(none.stdout, /appears on the first one/u, "the log is right there");
 });
