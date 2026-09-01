@@ -12,6 +12,8 @@ in place, or delete the file — never append a second version.
 A skill edit answers three things instead: the category, whether a check could enforce it, and what it
 displaces. A sentence the skill already says is refused outright.
 
+A file that lands anyway is answered for late: `forge hooks --how learning-landed`.
+
 How to write through it: `Write` or `Edit`. The shell route is closed — `sed -i` carries no content to
 read, and the decision has to happen before the write. Reading is free. A program carrying a write
 shape *and* quoting a guarded path is refused even when the path is prose, so assemble it from parts.

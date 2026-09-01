@@ -5,11 +5,9 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { REDIRECT, WRITES, askedAlready, bodiless, deny, expanded, readEvent, how } from "./_hook.mjs";
+import { REDIRECT, WRITES, askedAlready, deny, how, readEvent, settled, shellText } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
-
-const FORGE_SOURCES = ["note", "knowledge", "decision", "policy"];
-const GUARDED = /\/memory\/|\/skills\//;
+import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../src/learning.mjs";
 // A write shape counts only as its own token, so an assignment and a `cd` resolve here; a value that
 // runs a command does not. how/learning-gate.md.
 const CHDIR = /(?:^|[;&|\n])\s*(?:cd|pushd)\s+("[^"]*"|'[^']*'|[^\s;&|]+)/gu;
@@ -22,13 +20,6 @@ const chdir = (text) => {
   for (const [, path] of text.matchAll(CHDIR)) target = unquote(path);
   return target;
 };
-
-const SKILL_CATEGORIES = ["trap", "method", "invariant", "discovery", "boundary"];
-const FILE_TYPES = ["user", "feedback", "project", "reference"];
-
-const BRIEF =
-  "Record only what cost a cycle, will recur, fails silently, and is not already written. Most "
-  + "rounds record nothing.";
 
 const SHAPE =
   "One file, one fact: `name`, a `description` saying when it applies, `metadata.type` "
@@ -92,23 +83,29 @@ const ev = readEvent();
 const tool = ev.tool_name ?? "";
 const ti = ev.tool_input ?? {};
 
-if (tool.endsWith("forge_memory_write") || tool.endsWith("forge_memory.write")) {
+const TRACKER = /forge[_.]memory[_.]write/;
+
+const tracker = (src) =>
+  deny(
+    `Hold — project memory${src ? `, written as \`${src}\`` : ""}.\n\n${BRIEF}\n\n` +
+      `Re-send with metadata.checked set to the category it belongs in (${FORGE_SOURCES.join(" | ")}), ` +
+      `and say in one line which of the four conditions made it worth keeping.${how()}`,
+  );
+
+if (TRACKER.test(tool)) {
   const src = ti.source ?? "";
   if (!FORGE_SOURCES.includes(src)) process.exit(0); // issue/comment/job are system-authored
   const md = ti.metadata;
   if (md && typeof md === "object" && md.checked) process.exit(0);
-  deny(
-    `Hold — project memory, written as \`${src}\`.\n\n${BRIEF}\n\n` +
-      `Re-send with metadata.checked set to the category it belongs in (${FORGE_SOURCES.join(" | ")}), ` +
-      `and say in one line which of the four conditions made it worth keeping.${how()}`,
-  );
+  tracker(src);
 }
 
-// A memory or a skill written through the shell passes every check below unseen: `sed -i` and a
-// heredoc carry no content to read, and this gate's question has to be answered BEFORE the write.
-// So the shell route is closed for these two kinds of file rather than approximated.
+// Through the shell the content cannot be read — `sed -i` carries none — and the question has to be
+// answered BEFORE the write, so the route is closed for these two kinds of file, not approximated.
 if (tool === "Bash") {
-  const text = bodiless(expanded(ti.command ?? ""));
+  const text = shellText(ti.command);
+  // The CLI reaches the endpoint the MCP tool does, and a payload carries no path to recognise.
+  if (TRACKER.test(text) && !/"checked"/.test(text)) tracker("");
   const base = chdir(text);
   const named = WRITES.test(text) ? (text.match(MD_TOKEN) ?? []) : [];
   const aimed = [...text.matchAll(REDIRECT)]
@@ -142,7 +139,7 @@ const path = ti.file_path ?? "";
 // MEMORY.md is the index, not a memory: it carries pointers and no frontmatter.
 if (path.includes("/memory/") && path.endsWith(".md") && basename(path) !== "MEMORY.md") {
   // Once per file: a refusal that also refuses the re-send forbids the write outright.
-  if (askedAlready(ev, path, "learning-gate")) process.exit(0);
+  if (askedAlready(ev, settled(path), "learning-gate")) process.exit(0);
   const twin = restated(dirname(resolve(path)), path, ti.content ?? ti.new_string ?? "");
   const held = existsSync(path);
   const fresh = !twin && !held;
@@ -177,7 +174,7 @@ if (path.includes("/skills/") && /\/(SKILL\.md|references\/[^/]+\.md)$/.test(pat
       );
     }
   }
-  if (askedAlready(ev, path, "learning-gate")) process.exit(0);
+  if (askedAlready(ev, settled(path), "learning-gate")) process.exit(0);
   deny(
     `Hold — \`${basename(path)}\` is a skill's own text: it develops the method, so it must not be ` +
       `a note about this one repository.\n\n${BRIEF}\n\n` +

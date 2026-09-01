@@ -12,8 +12,8 @@ after `;` `&` `|` `(`, after `-exec`, an assignment prefix, or a wrapper that ru
 `writeFileSync`, …) counts anywhere.
 
 To mention one without writing: keep it out of command position — a `--name` value, a commit message
-— or inside a data heredoc, dropped whole. Quotes are stripped for `bash-guard`'s rules, not
-for this test: a verb inside `sh -c '…'` is not in command position.
+— or inside a data heredoc, dropped whole. A `-c` body is run by the shell that
+takes it, so a verb inside `sh -c '…'` is in command position and quoting is no route out.
 
 Only a redirect names its target, and one under `/dev/` writes nothing. A bare verb counts as inside
 the tree. A variable resolves to the assignment before the use, a name holding another is followed,

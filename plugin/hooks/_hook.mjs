@@ -4,7 +4,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { basename, join, resolve, sep } from "node:path";
+import { basename, dirname, join, resolve, sep } from "node:path";
 
 import { logHook, scrubbed } from "../src/hook-log.mjs";
 import { hookOff } from "../src/hook-switch.mjs";
@@ -95,6 +95,16 @@ export function block(reason) {
   process.exit(0);
 }
 
+/** One name for one file, existing or not: two spellings of it stamp twice, once per half of a gate. */
+export const settled = (path) => {
+  const full = resolve(path);
+  try {
+    return join(realpathSync(dirname(full)), basename(full));
+  } catch {
+    return full;
+  }
+};
+
 /** A file edit has no field to hold an acknowledgement, and forcing one into the content would
  *  write this gate's bookkeeping into the file it guards. So the answer is that the question was
  *  put — recorded outside the file, once per session. */
@@ -138,8 +148,7 @@ export const REDIRECT = new RegExp(
 
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
-/** A heredoc body is data, not command, and `onProgram` is where a caller reads a body an
- *  interpreter executes differently from the line that ran it. how/learning-gate.md. */
+/** A heredoc body is data; `onProgram` reads one an interpreter executes. how/learning-gate.md. */
 export const bodiless = (text, onProgram = (body) => body) => {
   let out = "";
   let rest = text;
@@ -157,21 +166,33 @@ export const bodiless = (text, onProgram = (body) => body) => {
   return out + rest;
 };
 
-/** The shell verbs are read in command position, a library call anywhere. how/writes.md. */
+/** Verbs count in command position, a library call anywhere, and only if its target is a token. */
 export const WRITES = new RegExp(
   String.raw`(?:^|[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+`
     + String.raw`|\b(?:sudo|command|nohup|time|env|xargs|do|then|else|if|elif|while|until)\s+)`
-    + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)|(?:tee|cp|mv|truncate)\b)`
-    + String.raw`|open\([^)]*['"]w|\bwrite_(?:text|bytes)\b|\bwriteFileSync\b`
-    + String.raw`|\bshutil\.(?:copy|move)|\bos\.(?:replace|rename)\b`,
+    + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
+    + String.raw`|(?:tee|cp|mv|truncate|touch|install|rsync)\b`
+    + String.raw`|dd\b[^|;]*\bof=|curl\b[^|;]*\s(?:-o|--output)\b|wget\b[^|;]*\s(?:-O|--output-document)\b)`
+    + String.raw`|open\([^)]*['"][wa]|\bwrite_(?:text|bytes)\b|\b(?:append|write)FileSync\b`
+    + String.raw`|\bwriteFile\b|\bDeno\.write(?:TextFile|File)\b|\bBun\.write\b`
+    + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`,
 );
 
-/** Whether a call writes a file: a target for the file tools, a verb or a redirect for the shell.
- *  A redirect under `/dev/` writes nothing. how/writes.md. */
+/** A shell runs a `-c` body, so a verb in it is in command position, not a quoted argument. */
+const WRAPPED = /\b(?:busybox\s+)?(?:sh|bash|zsh|dash|ksh)\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*c\s+("[^"]*"|'[^']*')/gu;
+export const unwrapped = (text) =>
+  text.replace(WRAPPED, (all, body) => `; ${body.slice(1, -1)} ;`);
+
+/** The one text every write test reads: values resolved, a data heredoc dropped, a `-c` body run. */
+export const shellText = (command, onProgram) =>
+  unwrapped(bodiless(expanded(String(command ?? "")), onProgram));
+
+/** Whether a call writes: a target for the file tools, a verb or a redirect for the shell, and one
+ *  under `/dev/` writes nothing. how/writes.md. */
 export function writing(ev) {
   const ti = ev.tool_input ?? {};
   if (ev.tool_name !== "Bash") return Boolean(ti.file_path ?? ti.notebook_path);
-  const command = bodiless(String(ti.command ?? ""));
+  const command = shellText(ti.command);
   return (
     WRITES.test(command)
     || [...command.matchAll(REDIRECT)].some((one) => !/^\/dev\//u.test(one[1].replace(/['"]/gu, "")))

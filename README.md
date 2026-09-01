@@ -92,6 +92,7 @@ plugin/
     _hook.mjs             the event, the files a call wrote, deny/block, the once-per-session stamp
     bash-guard.mjs        PreToolUse: the shell commands that cannot be undone
     learning-gate.mjs     PreToolUse: one stop before a memory or skill write
+    learning-landed.mjs   PostToolUse: one that arrived by a route no shape reads
     code-quality.mjs      PostToolUse: every written code file, to the project's own linter
     derive-dont-list.mjs  PostToolUse: one nudge when a checker hard-codes its cases
     link-cli.mjs          SessionStart: both binaries onto PATH

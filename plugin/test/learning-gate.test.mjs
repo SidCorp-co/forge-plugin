@@ -71,6 +71,53 @@ test("a directory a command substitution spells out is still refused", () => {
   assert.equal(decide(`M=$(mktemp -d)\nprintf x > $M/trap.md`).allowed, true, "a value only the run knows");
 });
 
+/* A verb belongs here only if its target is spelled out in the command: `tar -x` and `patch` name
+   none, so an unasked write through one of those is the backstop's business rather than this test's. */
+test("the write verbs an agent reaches for are writes", () => {
+  for (const command of [
+    `touch ${MEMORY}/trap.md`,
+    `install -m 644 a.md ${MEMORY}/trap.md`,
+    `rsync a.md ${MEMORY}/trap.md`,
+    `dd if=a.md of=${MEMORY}/trap.md`,
+    `curl -sS https://x/a.md -o ${MEMORY}/trap.md`,
+    `wget -O ${MEMORY}/trap.md https://x/a.md`,
+  ]) {
+    assert.equal(decide(command).allowed, false, command);
+  }
+});
+
+/* `open(…, "w")` was read and `"a"` was not: the shape that keeps the file was the one that passed. */
+test("a call that appends or copies is a write, in whichever language reached for it", () => {
+  for (const program of [
+    `open("${MEMORY}/trap.md", "a").write("x")`,
+    `appendFileSync("${MEMORY}/trap.md", "x")`,
+    `await writeFile("${MEMORY}/trap.md", "x")`,
+    `Deno.writeTextFile("${MEMORY}/trap.md", "x")`,
+    `Bun.write("${MEMORY}/trap.md", "x")`,
+    `shutil.copyfile("a.md", "${MEMORY}/trap.md")`,
+  ]) {
+    assert.equal(decide(`python3 -c '${program}'`).allowed, false, program);
+  }
+});
+
+/* Read as a quoted argument, a `-c` body let every verb through: `sh -c 'cp …'` was not a write. */
+test("a verb inside a `-c` body is where the shell puts it", () => {
+  assert.equal(decide(`sh -c 'cp a ${MEMORY}/trap.md'`).allowed, false);
+  assert.equal(decide(`bash -lc "tee ${MEMORY}/trap.md < a"`).allowed, false);
+  assert.equal(decide(`ls | xargs -I{} sh -c 'cp {} ${MEMORY}/trap.md'`).allowed, false);
+  assert.equal(decide(`sh -c 'grep -c x ${MEMORY}/a.md'`).allowed, true, "reading is still free");
+});
+
+/* The tracker holds project memory too, and the MCP tool was guarded while the CLI that reaches the
+   same endpoint was not. One decision, both routes. */
+test("the tracker's own memory write is the same decision through the shell", () => {
+  const { allowed, reason } = decide(`forge call forge_memory_write '{"source":"note","text":"x"}'`);
+  assert.equal(allowed, false);
+  assert.match(reason, /Record only what cost a cycle/u);
+  assert.match(reason, /metadata\.checked/u);
+  assert.equal(decide(`forge call forge_memory_search '{"q":"x"}'`).allowed, true, "recall is free");
+});
+
 test("a heredoc through a variable-held memory path is refused", () => {
   const { allowed, reason } = decide(
     `M=${MEMORY}\ncat > $M/coolify-deploy-log-location.md <<'EOF'\nbody\nEOF`,
