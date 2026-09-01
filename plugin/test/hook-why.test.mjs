@@ -40,7 +40,7 @@ test("every document names a hook, or a topic the harness cites", () => {
    document that opened without naming its gate, one that grew past what anyone reads, and a pointer
    into `docs/` or an absolute path — neither of which exists in the copy a gate fires from. */
 test("each document opens with its claim, stays short, and points nowhere unreachable", () => {
-  const CEILING = 4000;
+  const CEILING = 2600;
   for (const name of documented) {
     const text = readFileSync(join(WHY, `${name}.md`), "utf8");
     const [first] = text.split("\n");

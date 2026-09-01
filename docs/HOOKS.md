@@ -77,9 +77,11 @@ Four failures worth naming, every one of them found by firing a gate rather than
   teaches that the gate is noise, which costs every refusal after it. Say the safer form, and treat a
   wrong refusal as a case for the user rather than a thing to slip past.
 
-**A document: the argument the message could not afford.** Under 4,000 characters — about a screen,
-and about a thousand tokens when an agent reads it, which is the cost the pointer exists to avoid.
-`# <hook> — <claim>` as its first line, so `forge hooks --why` opens with what the gate is *for*.
+**A document: the argument the message could not afford.** Under 2,600 characters — about 650 tokens
+when an agent reads it, which is the cost the pointer exists to avoid, and short enough that someone
+reads all of it. `# <hook> — <claim>` as its first line, so `forge hooks --why` opens with what the
+gate is *for*. One claim per paragraph: that is the discipline that fits ten gates into the ceiling,
+and the paragraph that carries no claim of its own is the one to cut.
 
     WRONG                                     RIGHT
 
