@@ -5,17 +5,14 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { compare, sentences } from "../src/duplication.mjs";
+import { compare } from "../src/duplication.mjs";
+import { NARRATES, prose } from "../src/doc-shape.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const DOCS = join(ROOT, "docs");
 const docs = readdirSync(DOCS).filter((one) => one.endsWith(".md"));
 
-const NARRATES =
-  /```|\bthe (?:function|regex|loop|variable|implementation|call site)\b|\bimplemented in\b|\bunder the hood\b|\binternally\b|\bin `[\w./-]+\.(?:mjs|js|ts)`/iu;
 
-/* Prose only: sharing a command name is being about one command, not restating it. */
-const prose = (text) => sentences(text.replace(/`[^`]*`/gu, " "));
 
 /* Everywhere a fact may already live: the skills, the gate documents, the rules file. */
 const homed = () => {

@@ -7,6 +7,9 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/* One home for what a document may not do; the rule itself is CLAUDE.md's. */
+import { NARRATES } from "../src/doc-shape.mjs";
+
 const PLUGIN = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const HOOKS = join(PLUGIN, "hooks");
 const HOW = join(HOOKS, "how");
@@ -38,9 +41,6 @@ test("every document names a hook, or a topic the harness cites", () => {
 /* Every rule of the shape was got wrong here first: a document opening without naming its gate, one
    past what anyone reads, an argument filling the file an agent opened for a route out, and a pointer
    into `docs/` — which does not exist in the copy a gate fires from. */
-/* A paragraph narrating an implementation is a copy that goes stale silently. CLAUDE.md. */
-const NARRATES =
-  /```|\bthe (?:function|regex|loop|variable|implementation|call site)\b|\bimplemented in\b|\bunder the hood\b|\binternally\b|\bin `[\w./-]+\.(?:mjs|js|ts)`/iu;
 
 test("each document opens with its claim, argues briefly, and points nowhere unreachable", () => {
   const CEILING = 1300;
