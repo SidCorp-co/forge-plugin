@@ -97,8 +97,12 @@ const reasoning = (name) => {
   console.log(readFileSync(join(HOW_DIR, `${name}.md`), "utf8").trimEnd());
 };
 
+/* A refusal is what a false positive looks like from outside, and the count is read that way. An entry
+   that refused nothing is kept apart rather than inflating it. */
+const REFUSALS = ["deny", "block"];
+
 export const hooks = (argv) => {
-  const held = flags(argv, "hooks", ["--deny", "--block"]);
+  const held = flags(argv, "hooks", ["--deny", "--block", "--notes"]);
   if (held.how) return reasoning(held.how);
   /* Switching answers with the new state and stops: the refusal log is a different question. */
   if (held.off || held.on) return switched(held.off ?? held.on, Boolean(held.off));
@@ -114,8 +118,11 @@ export const hooks = (argv) => {
   }
   if (held.deny) entries = entries.filter((one) => one.decision === "deny");
   if (held.block) entries = entries.filter((one) => one.decision === "block");
+  const noted = entries.filter((one) => !REFUSALS.includes(one.decision));
+  entries = held.notes ? noted : entries.filter((one) => REFUSALS.includes(one.decision));
+  const also = !held.notes && noted.length ? ` ${noted.length} note(s): \`forge hooks --notes\`.` : "";
   if (!entries.length) {
-    return console.log(`No hook refusals logged. ${HOOK_LOG_PATH} appears on the first one.`);
+    return console.log(`No hook refusals logged. ${HOOK_LOG_PATH} appears on the first one.${also}`);
   }
   const last = Number(held.last || TAIL);
   for (const one of entries.slice(-last)) console.log(line(one));
@@ -124,5 +131,5 @@ export const hooks = (argv) => {
     .sort((a, b) => b[1] - a[1])
     .map(([name, count]) => `${name} ${count}`)
     .join(", ");
-  console.log(`\n${entries.length} refusal(s): ${summary}`);
+  console.log(`\n${entries.length} ${held.notes ? "note(s)" : "refusal(s)"}: ${summary}${also}`);
 };

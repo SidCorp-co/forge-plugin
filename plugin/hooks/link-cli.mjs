@@ -5,6 +5,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { hookOff } from "../src/hook-switch.mjs";
+import { pluginCopy } from "../src/plugin-copy.mjs";
 
 const root = process.argv[2];
 if (!root || hookOff("link-cli")) process.exit(0);
@@ -33,4 +34,13 @@ for (const name of ["forge", "vi-natural"]) {
   } catch {
     /* a link we cannot write is not worth failing a session start over */
   }
+}
+
+/* Said at the start because it cannot be noticed later: which gates ran came from the copy named here. */
+const copy = pluginCopy(root);
+if (copy?.stale) {
+  process.stdout.write(
+    `${copy.name} ${copy.running} is running in this session and ${copy.installed} is installed: a `
+      + "session keeps the copy it started with, code and registration both. Restart to pick it up.\n",
+  );
 }

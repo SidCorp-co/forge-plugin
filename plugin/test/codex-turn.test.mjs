@@ -4,10 +4,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
-import { spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { callHook, homeEnv } from "./fixtures.mjs";
 
@@ -15,6 +15,7 @@ const HOOK = new URL("../hooks/codex-turn.mjs", import.meta.url).pathname;
 const HOME = homeEnv("codex-turn");
 const room = mkdtempSync(join(tmpdir(), "codex-turn-"));
 const STATE = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json");
+const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 
 const repo = (name) => {
   const root = join(room, name);
@@ -128,6 +129,50 @@ test("nothing is lost when several projects record at the same moment", async ()
       `${root} lost ${wanted.length - stormPending(root).length} of ${wanted.length} to another writer`,
     );
   }
+});
+
+/* A writer killed between its open and its rename leaves the temp file behind for good: the pid in the
+   name means no later writer touches it. One minute old is nobody's write in progress. */
+test("a temp file a killed writer left behind is swept, and a live one is not", async () => {
+  process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
+  const { writeJsonPrivate } = await import("../src/resolve/config.mjs");
+  const room = join(HOME.XDG_CONFIG_HOME, "forge");
+  mkdirSync(room, { recursive: true });
+  const target = join(room, "swept.json");
+  const stranded = `${target}.999999.tmp`;
+  const busy = `${target}.999998.tmp`;
+  for (const one of [stranded, busy]) writeFileSync(one, "half a write");
+  const old = new Date(Date.now() - 600_000);
+  utimesSync(stranded, old, old);
+  writeJsonPrivate(target, { a: 1 });
+  assert.equal(existsSync(stranded), false, "a minute-old temp file was left");
+  assert.equal(existsSync(busy), true, "a write in progress was deleted under it");
+  assert.deepEqual(JSON.parse(readFileSync(target, "utf8")), { a: 1 });
+});
+
+/* Proceeding without the lock is right — a turn is not worth losing to a stuck one — and it is also
+   the one moment a write can be lost, so the log carries it. A note is not a refusal: the count that
+   reads "N refusal(s)" is what a false positive looks like from outside. */
+test("giving up on the lock leaves a note, and the note is not counted as a refusal", async () => {
+  process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
+  const { holding } = await import("../src/codex.mjs");
+  const lock = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json.lock");
+  mkdirSync(dirname(lock), { recursive: true });
+  writeFileSync(lock, "somebody-still-holding-it");
+  let entered = false;
+  holding(() => {
+    entered = true;
+  });
+  rmSync(lock, { force: true });
+  assert.ok(entered, "the write happened anyway");
+  const log = readFileSync(join(HOME.XDG_CONFIG_HOME, "forge", "hook-log.jsonl"), "utf8");
+  const noted = log.trim().split("\n").map((one) => JSON.parse(one)).filter((one) => one.decision === "note");
+  assert.equal(noted.length, 1, "the unlocked write left no trace");
+  assert.match(noted[0].reason, /without it/u);
+  const said = spawnSync(FORGE, ["hooks"], { encoding: "utf8", env: HOME }).stdout;
+  assert.doesNotMatch(said, /1 refusal\(s\)/u, "a note counted as a refusal");
+  assert.match(said, /1 note\(s\)/u, "and it is reachable");
+  assert.match(spawnSync(FORGE, ["hooks", "--notes"], { encoding: "utf8", env: HOME }).stdout, /codex\.json\.lock/u);
 });
 
 /* A stale break hands the lock file to whoever took it next. Releasing by path rather than by owner,

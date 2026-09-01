@@ -14,8 +14,9 @@ How to avoid it: write a memory with `Write` and a skill's text with `Edit`, whe
 before the write and a re-send settles it. The gate stamps the file it asked about, so a write that
 went through it is never asked about twice.
 
-What it sees: a guarded file whose path the command named, changed in the last two minutes. A script
-that writes one without naming it — `node tmp.mjs` — names only itself, and that write is invisible
-here as everywhere else.
+What it sees: a guarded file changed in the last two minutes — the path a command named, and the ones
+it did not, since this session's memory directory and the repository's skill directories are read too.
+A tracked file the tree agrees with was restamped rather than written, so `git checkout` is not
+answered for.
 
 Not judged: whether the fact is true or useful, and never a file outside `memory/` or `skills/`.

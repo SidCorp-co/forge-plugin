@@ -15,12 +15,13 @@ import {
   writeFileSync,
 } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 import { CONFIG_PATH, configDir, readJson, userConfig, writeJsonPrivate } from "./resolve/config.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { flags, partition, pullRepeated } from "./resolve/flags.mjs";
 import { didYouMean } from "./suggest.mjs";
+import { logHook } from "./hook-log.mjs";
 import { TOOLS, runTool, scopeFor } from "./codex-tools.mjs";
 import {
   EFFORTS,
@@ -145,6 +146,19 @@ const underLock = (fn) => {
       if (since && Date.now() - since > STALE_MS) rmSync(LOCK_PATH, { force: true });
       else pause(WAIT_MS);
     }
+  }
+  /* Proceeding unlocked is the right call — a turn is not worth losing to somebody's stuck lock — but
+     it is the one moment a lost write is possible, so it leaves a trace rather than passing silently. */
+  if (held === null) {
+    logHook({
+      at: new Date().toISOString(),
+      hook: basename(process.argv[1] ?? "", ".mjs"),
+      decision: "note",
+      tool: "",
+      session: "",
+      target: LOCK_PATH,
+      reason: `the lock held for ${(TRIES * WAIT_MS) / 1000}s, so the state was written without it`,
+    });
   }
   try {
     return fn();

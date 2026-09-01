@@ -3,6 +3,7 @@
    about a file that should not have been written. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -58,6 +59,99 @@ test("a guarded name that links out of the tree is still a guarded write", () =>
   symlinkSync(outside, join(room, "points-away.md"));
   const said = landed(randomUUID(), "points-away.md", { existing: true });
   assert.match(said, /points-away\.md/u, "named by the link the call used");
+});
+
+/* The route both halves miss: a script writes the file and the command names nothing to check. The
+   session's memory directory is the transcript's neighbour, so it is read rather than guessed at. */
+test("a memory file no call named at all is found by reading the directory", () => {
+  const session = randomUUID();
+  const project = mkdtempSync(join(tmpdir(), "landed-session-"));
+  mkdirSync(join(project, "memory"));
+  writeFileSync(join(project, "memory", "by-a-script.md"), "a line\n");
+  const run = callHook(
+    HOOK,
+    {
+      session_id: session,
+      tool_name: "Bash",
+      tool_input: { command: "node build-notes.mjs" },
+      cwd: project,
+      transcript_path: join(project, `${session}.jsonl`),
+    },
+    HOME,
+  );
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(JSON.parse(run.stdout).reason, /by-a-script\.md/u, "nothing in the command names it");
+});
+
+test("a file the directory has held for a day is not this call's", () => {
+  const session = randomUUID();
+  const project = mkdtempSync(join(tmpdir(), "landed-stale-"));
+  mkdirSync(join(project, "memory"));
+  const old = join(project, "memory", "from-yesterday.md");
+  writeFileSync(old, "a line\n");
+  utimesSync(old, new Date(Date.now() - 86_400_000), new Date(Date.now() - 86_400_000));
+  const run = callHook(
+    HOOK,
+    {
+      session_id: session,
+      tool_name: "Bash",
+      tool_input: { command: "node build-notes.mjs" },
+      cwd: project,
+      transcript_path: join(project, `${session}.jsonl`),
+    },
+    HOME,
+  );
+  assert.equal(run.stdout.trim(), "", "the sweep asks about what just landed");
+});
+
+/* Blocking on the first left the rest unmentioned: a script writing four was answered for one. */
+test("every file that landed is named in one refusal", () => {
+  const session = randomUUID();
+  const project = mkdtempSync(join(tmpdir(), "landed-batch-"));
+  mkdirSync(join(project, "memory"));
+  for (const name of ["one.md", "two.md", "three.md"]) {
+    writeFileSync(join(project, "memory", name), "a line\n");
+  }
+  const run = callHook(
+    HOOK,
+    {
+      session_id: session,
+      tool_name: "Bash",
+      tool_input: { command: "node build-notes.mjs" },
+      cwd: project,
+      transcript_path: join(project, `${session}.jsonl`),
+    },
+    HOME,
+  );
+  const said = JSON.parse(run.stdout).reason;
+  for (const name of ["one.md", "two.md", "three.md"]) assert.match(said, new RegExp(name.replace(".", "\\."), "u"));
+  assert.match(said, /they should/u, "and asked of them together");
+});
+
+/* A fresh mtime is not authorship: `git pull` restamps every skill file it carries, and asking the
+   agent to justify those is a refusal about somebody else's commit. The tree is asked instead. */
+test("a tracked skill file the tree agrees with was not written here", () => {
+  const session = randomUUID();
+  const repo = mkdtempSync(join(tmpdir(), "landed-repo-"));
+  const skill = join(repo, "skills", "deploy");
+  mkdirSync(skill, { recursive: true });
+  writeFileSync(join(skill, "SKILL.md"), "the method\n");
+  for (const args of [["init", "-q"], ["add", "-A"], ["commit", "-qm", "first"]]) {
+    const run = spawnSync("git", ["-C", repo, ...args], {
+      encoding: "utf8",
+      env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" },
+    });
+    assert.equal(run.status, 0, run.stderr);
+  }
+  const pulled = () =>
+    callHook(
+      HOOK,
+      { session_id: session, tool_name: "Bash", tool_input: { command: "git checkout master" }, cwd: repo },
+      HOME,
+    );
+  assert.equal(pulled().stdout.trim(), "", "restamped, and the tree says it is unchanged");
+  writeFileSync(join(skill, "SKILL.md"), "the method, rewritten\n");
+  assert.match(JSON.parse(pulled().stdout).reason, /SKILL\.md/u, "changed, and nothing asked");
 });
 
 test("a file nobody just wrote is somebody else's business", () => {

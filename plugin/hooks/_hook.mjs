@@ -10,7 +10,8 @@ import { logHook, scrubbed } from "../src/hook-log.mjs";
 import { hookOff } from "../src/hook-switch.mjs";
 
 const TOKEN = /[A-Za-z0-9_./@-]+\.[A-Za-z0-9]+/g;
-const FRESH_MS = 120_000;
+/** How long after a call a file's mtime still answers for it. */
+export const FRESH_MS = 120_000;
 
 let event = {};
 

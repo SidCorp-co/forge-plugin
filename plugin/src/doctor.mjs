@@ -19,6 +19,7 @@ import {
 } from "./claude-md.mjs";
 import { cloudflareAccounts } from "./cloudflare.mjs";
 import { modelBehind, profile } from "./codex-api.mjs";
+import { pluginCopy } from "./plugin-copy.mjs";
 import { LOG_PATH, consults, logEntries } from "./codex-log.mjs";
 import { flags } from "./resolve/flags.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, strandedSwitches } from "./hook-switch.mjs";
@@ -390,6 +391,12 @@ export const doctor = async (rest) => {
     line(BAD, "prose language", `${language.value}  ← ${language.from} — vi is the only language this CLI writes; writes refuse`);
   } else {
     line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
+  }
+  const copy = pluginCopy();
+  if (copy && !copy.stale) line(OK, "plugin copy", `${copy.running} — running and installed`);
+  else if (copy) {
+    line(BAD, "plugin copy", `${copy.running} here, ${copy.installed} installed — a session keeps the `
+      + "copy it started with: `claude plugin update` then restart");
   }
   const vi = checkVi();
   const canWrite = language.value ? language.value === "vi" && vi : true;
