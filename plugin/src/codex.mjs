@@ -548,7 +548,8 @@ const SUBS = {
 };
 
 export const codex = async ([sub, ...rest]) => {
-  const asked = sub === "-h" || sub === "--help";
+  /* `-h` after an action read as a filename, and one usage documents every action anyway. */
+  const asked = [sub, ...rest].some((one) => one === "-h" || one === "--help");
   if (asked || !sub || !Object.hasOwn(SUBS, sub)) {
     if (sub && !asked) console.error(didYouMean("codex action", sub, Object.keys(SUBS)));
     console.error(USAGE);

@@ -575,3 +575,14 @@ test("a review counts itself, and a malformed header counts as nothing", () => {
 });
 
 test.after(() => rmSync(sandbox, { recursive: true, force: true }));
+
+/* Refused in sid-erp twice over: the CLI read `-h` as a filename, and the order gate refused the line
+   as a consult — so the one command that says what to type was the one that could not be run. */
+test("asking an action what to type prints the usage", () => {
+  const forge = new URL("../bin/forge", import.meta.url).pathname;
+  for (const argv of [["codex", "consult", "-h"], ["codex", "verdict", "--help"], ["codex", "-h"]]) {
+    const run = spawnSync(forge, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), "codex-help-")) } });
+    assert.equal(run.status, 0, `${argv.join(" ")}: ${run.stderr}`);
+    assert.match(`${run.stdout}${run.stderr}`, /Usage: forge codex <consult\|verdict\|pending\|show\|log>/u);
+  }
+});

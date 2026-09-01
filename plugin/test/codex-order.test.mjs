@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { callHook } from "./fixtures.mjs";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -139,4 +139,53 @@ test("nothing else is gated: another verb, another tool, or no transcript at all
   assert.equal(gate("forge codex consult a.mjs", [], { path: join(room, "absent.jsonl") }), null);
   const other = callHook(HOOK, { tool_name: "Read", tool_input: { file_path: "x" } });
   assert.equal(other.stdout.trim(), "");
+});
+
+/* Blocked in sid-erp: `forge codex consult -h` is how a developer reads what to type, and the gate
+   refused it — the way out of a refusal cannot itself be refused. */
+test("asking the consult what to type is not consulting", () => {
+  const records = [userTurn("do it"), said("working")];
+  for (const one of [
+    "forge codex consult -h 2>&1 | head -40",
+    "forge codex consult --help",
+    /* Codex's case: a redirect may legally precede the flag, and the CLI reads help wherever it is. */
+    "forge codex consult 2>&1 --help",
+    "forge codex consult 2>/tmp/err -h",
+  ]) assert.equal(gate(one, records), null, one);
+  for (const one of [
+    "echo why | forge codex consult a.mjs | grep -h found",
+    "forge codex consult a.mjs && ls -h",
+    /* A lone `&` ends a command as surely as `&&` does, and the flag after it is not the consult's;
+       `|&` is a pipeline, which is where the program a flag belongs to stops. */
+    "forge codex consult a.mjs & echo --help",
+    "forge codex consult a.mjs |& grep --help",
+  ]) {
+    const still = gate(one, records);
+    assert.equal(still?.hookSpecificOutput?.permissionDecision, "deny", `somebody else's -h: ${one}`);
+  }
+});
+
+/* Also sid-erp: the commit gate asks for a second consult inside one turn, and under the spent rule
+   that needed a second advisor call — whose record arrives seconds after the consult is sent. */
+test("a turn holding two consults needs one advisor call, not two", () => {
+  const records = [userTurn("do it"), advised(), said("acting on it")];
+  const log = join(room, "forge", "codex-log.jsonl");
+  mkdirSync(join(room, "forge"), { recursive: true });
+  writeFileSync(
+    log,
+    `${JSON.stringify({ kind: "consult", at: new Date().toISOString(), root: process.cwd(), ok: true, reply: "CODEX: 0 findings" })}\n`,
+  );
+  assert.equal(
+    gate("echo 'the advisor said X, and this is the commit' | forge codex consult a.mjs", records),
+    null,
+    "the advice of this turn is what the gate asks about",
+  );
+  writeFileSync(log, "");
+});
+
+/* The user types mid-task, which ends the turn the advice was in — measured as the common case, not
+   the edge one. The advice is still unspent, so the second half of the rule carries it. */
+test("advice from the turn a prompt closed still clears a consult", () => {
+  const records = [userTurn("do it"), advised(), said("acting"), userTurn("and the hook did not run")];
+  assert.equal(gate("echo 'the advisor said X' | forge codex consult a.mjs", records), null);
 });

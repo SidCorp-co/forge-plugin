@@ -221,7 +221,7 @@ export const unwrapped = (text) => {
 
 /** Where each command begins and ends. A quoted body is never cut, nor a pipeline split: both hand the
  *  next command its arguments. An unclosed quote joins; a backslash escapes, single quotes excepted. */
-export const spans = (text) => {
+export const spans = (text, { pipes = false } = {}) => {
   const out = [];
   let start = 0;
   let quote = "";
@@ -240,12 +240,15 @@ export const spans = (text) => {
       continue;
     }
     const pair = text.slice(at, at + 2);
-    /* `|&` is a pipeline, and the `&` in it is not a command's end. */
+    /* `|&` is a pipeline, `>&` a descriptor — but a pipeline is where a program owning a flag stops. */
     if (pair === "|&") {
+      if (pipes) out.push({ start, end: at });
       at += 1;
+      if (pipes) start = at + 1;
       continue;
     }
-    if (one === ";" || one === "\n" || one === "&" || pair === "||") {
+    if (one === "&" && text[at - 1] === ">") continue;
+    if (one === ";" || one === "\n" || one === "&" || pair === "||" || (pipes && one === "|")) {
       out.push({ start, end: at });
       if (pair === "&&" || pair === "||") at += 1;
       start = at + 1;
@@ -257,6 +260,10 @@ export const spans = (text) => {
 
 export const commands = (text) =>
   spans(text).map(({ start, end }) => text.slice(start, end).trim()).filter(Boolean);
+
+/** Which program an argument belongs to: a pipeline carries its arguments along, a flag not — `| grep -h`. */
+export const invocations = (text) =>
+  spans(text, { pipes: true }).map(({ start, end }) => text.slice(start, end).trim()).filter(Boolean);
 
 /** The one text every write test reads: values resolved, a data heredoc dropped, a `-c` body run. */
 /* Unwrapped before expanded: the shell that takes a `-c` body is what an `env` prefix reaches. */
@@ -274,6 +281,26 @@ export function writing(ev) {
     || [...command.matchAll(REDIRECT)].some((one) => !/^\/dev\//u.test(one[1].replace(/['"]/gu, "")))
   );
 }
+
+/** Where a draft stops being one, in command position only: a message quoting the word is not one. */
+export const COMMITS = new RegExp(
+  `${STARTS}git\\s+(?:(?:-[cC]|--(?:git-dir|work-tree|namespace|exec-path|config-env))\\s+\\S+\\s+`
+    + String.raw`|-[A-Za-z-]+(?:=\S+)?\s+)*commit(?![\w-])`,
+  "u",
+);
+
+export const committing = (ev) =>
+  ev.tool_name === "Bash" && COMMITS.test(shellText((ev.tool_input ?? {}).command));
+
+/** Which tree the draft closes in: `git -C other commit` is that repository's, not the cwd's. */
+const AIMS = /(?:^|\s)(?:-C|--work-tree|--git-dir)(?:\s+|=)(\S+)/gu;
+export const commitTree = (ev) => {
+  const found = shellText((ev.tool_input ?? {}).command).match(COMMITS);
+  const named = found ? [...found[0].matchAll(AIMS)].pop() : null;
+  if (!named) return null;
+  const path = named[1].replace(/['"]/gu, "").replace(/\/+$/u, "");
+  return basename(path) === ".git" ? dirname(path) : path;
+};
 
 /** Lexical: the file may not exist yet, and a relative target resolves against the cwd. */
 const under = (root, cwd, path) => {
