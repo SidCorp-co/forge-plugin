@@ -19,19 +19,28 @@ here obeys.
 
 *How is a clause written, and how is one cited?*
 
-**Identifiers.**
+**Identifiers.** One table for the whole tree, the BRD's own sequences included, so a reader looks
+in one place to learn what a prefix means.
 
 | Form | What it names | Where it is defined |
 |---|---|---|
-| `FR-05` | a functional requirement, one per file, one per capability | `srs/fr-05-<slug>.md` |
+| `FR-05` | a functional requirement, one per file, one per capability | `./fr-05-<slug>.md` |
 | `UC-05-3` | a use case of `FR-05` | the file of its requirement |
 | `AC-05-3-2` | an acceptance criterion of `UC-05-3` | under its use case |
-| `BR-09` | a business rule, one sequence across the product | `brd/04-business-rules.md` |
-| `NFR-04` | a non-functional requirement | `srs/17-nfr.md` |
-| `EI-02` | an interface this product crosses | `srs/19-external-interfaces.md` |
+| `BR-09` | a business rule, one sequence across the product | `../brd/04-business-rules.md` |
+| `NFR-04` | a non-functional requirement | `./17-nfr.md` |
+| `EI-02` | an interface this product crosses | `./19-external-interfaces.md` |
+| `G-01` | a business goal | `../brd/03-goals-non-goals.md` |
+| `M-01` | a success measure | `../brd/05-success-measures.md` |
+| `C-01` | a constraint | `../brd/06-constraints-assumptions.md` |
+| `A-01` | an assumption | `../brd/06-constraints-assumptions.md` |
+| `R-01` | a rule of this tree | `docs/requirements/README.md` |
 
 An acceptance criterion is one token rather than the two-part `UC-05-3 AC 2`, so it sorts, greps
-and renders as a column without a parser.
+and renders as a column without a parser. A criterion belonging to a non-functional requirement or
+an interface is numbered from its section instead of a functional requirement — `AC-17-2-1` is the
+first criterion of `NFR-02`, and `AC-19-3-1` the first of `EI-03` — because those clauses have no
+use case to sit under.
 
 **A field line** carries everything a machine reads. It is the first non-blank line after a
 clause's heading, and it holds `Key: value` pairs separated by `·`:
@@ -52,8 +61,8 @@ particular words, and it is the form a tracker verdict uses.
 **An acceptance criterion is two lines**, because it is a list item rather than a heading and its
 field line has nowhere else to go:
 
-    - **AC-05-1-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
-      WHEN the agent asks what is owed THEN the CLI SHALL name the next status.
+    - **AC-<fr>-<uc>-<n>** · Rev: 1 · Proof: <a test, a checker, or none yet with an issue>
+      WHEN <event> THEN <the part that answers> SHALL <what it does>.
 
 The first line is the field line, opening with the identifier. The second is the criterion itself,
 **in EARS form** — one behaviour per criterion, an observable outcome, and never an implementation:

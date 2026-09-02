@@ -41,7 +41,7 @@ the checker and does not restate what it says.
 |---|---|---|---|
 | R-01 | One functional-requirement sequence, and one only. | `FR-` ids form one run from 01 with no gap, and each has exactly one `srs/fr-NN-<slug>.md`. | the spec gate |
 | R-02 | The index and the files agree. | The identifier set in `srs/README.md` equals the set the `srs/fr-*.md` filenames carry. | the spec gate |
-| R-03 | A clause is referenced by identifier, never by a line number or a section number. | No `§` and no line number inside a clause body; a section number appears only in a document title or a navigation line; every identifier cited resolves to a clause. | the spec gate |
+| R-03 | A clause is referenced by its identifier. A section number names a document and never a clause, and a line number names nothing. | No line number anywhere. A section number appears only in a document title, a navigation line, a contents row, or the label of a link whose target is that section's own file; every identifier cited resolves to a clause. | the spec gate |
 | R-04 | A count is read from the list, never restated. | No prose gives the size of a list this tree holds. | a person |
 | R-05 | The reason sits beside the clause. | Every clause has a because-clause or a `Source:` field. | a person |
 | R-06 | A deviation names its decision or its issue. | Every deviation mark carries an issue key or a decision id, and that reference resolves. | the spec gate |
@@ -53,11 +53,11 @@ the checker and does not restate what it says.
 | R-12 | An identifier is never reused and never renumbered. | A retired clause keeps its number and is marked retired; no number appears twice in the tree. | the spec gate |
 | R-13 | Each document carries the sections its kind declares. | The section list below, matched against the headings of each file. | the spec gate |
 | R-14 | A section heading is followed by the question it answers. | The first non-blank line after a `##` heading ends in a question mark. | the spec gate |
-| R-15 | A clause heading is followed by its field line. | The first non-blank line after an `FR-`, `UC-`, `NFR-` or `EI-` heading opens with `Rev:`; an acceptance criterion is a list item and its own first line is its field line. | the spec gate |
+| R-15 | A clause heading is followed by its field line. | The first non-blank line after an `FR-`, `UC-`, `NFR-` or `EI-` heading opens with `Rev:`; where a document carries a proposal line that line comes first and the field line is the first non-blank line after it; an acceptance criterion is a list item and its own first line is its field line. | the spec gate |
 | R-16 | Machinery never sits inside the sentence a person reads. | No identifier, revision, hash or path inside a `SHALL` sentence or a business rule statement, except the system the criterion names. | a person |
 | R-17 | Every list is renderable as a table. | Each list of clauses is a table, or a sequence of clauses with identical field keys. | the page lint |
 | R-18 | A clause never restates a rule a checker already states; it cites the checker. | No clause's sentence overlaps a checker message, a skill or `CLAUDE.md` above the threshold the one-home gate uses. | the spec gate |
-| R-19 | The tree names nothing that does not resolve. | Every path in a clause exists; every verb named is one the CLI has, or one declared on the document's proposal line. | `plugin/test/doc-claims.test.mjs`, then the spec gate |
+| R-19 | The tree names nothing that does not resolve. | Every path in a code span or a link exists, read from the repository root or from the document's own directory; every verb named is one the CLI has, or one declared on the document's proposal line. | `plugin/test/doc-claims.test.mjs`, then the spec gate |
 
 **Why a revision by hand and a hash by machine (R-10).** Doorstop stores a parent's fingerprint in
 the child link and marks the link suspect when the parent changes; OpenFastTrace puts a revision in
@@ -66,6 +66,13 @@ revision alone cannot tell an obligation that changed from a typo that did not. 
 one integer and the tool owns the hash: a text change makes every citation of that clause suspect,
 and the author either bumps the revision — which drops the verdicts that cited the old one — or
 clears the suspicion, which moves the recorded hash and leaves the verdicts standing.
+
+**A proposal line, where a document has one.** Exactly one line, immediately after the title:
+`**Status: proposal for` followed by the verbs the document names, each in a code span, then a full
+stop. It exists because a document specifying a verb the CLI does not have would otherwise fail the
+check that every command a document names is one a reader can run (R-19), and the exemption has to
+name the verbs it covers so it cannot excuse a typo. Nothing else in the document may name a verb
+the CLI lacks.
 
 **What is hashed, and where the hash lives.** A clause's content is its normative text with
 Markdown markup stripped and runs of whitespace collapsed: for an acceptance criterion, the EARS

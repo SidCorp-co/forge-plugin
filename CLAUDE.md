@@ -11,7 +11,9 @@ implementation is a second copy that goes stale without failing anything.
 Nothing here names a path or a script that does not resolve; `forge doctor` checks that. Install,
 configuration, layout and which level a rule belongs to: [`README.md`](README.md). The CLI's
 surface: [`docs/FORGE-CLI.md`](docs/FORGE-CLI.md). What the hooks share:
-[`docs/HOOKS.md`](docs/HOOKS.md). A refusal carries the one command that clears it, because an agent
+[`docs/HOOKS.md`](docs/HOOKS.md). What this plugin owes, one clause per identifier so an issue can
+cite it: [`docs/requirements/README.md`](docs/requirements/README.md), which also carries that
+tree's own rules. A refusal carries the one command that clears it, because an agent
 that needs a second call to learn what to do spends the turn guessing; `forge hooks --how <hook>`
 carries what a refusal has no room for — why the rule exists, what it does not judge, the escape.
 

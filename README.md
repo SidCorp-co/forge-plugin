@@ -8,6 +8,10 @@ A Claude Code plugin holding two CLIs and their skills:
   `forge` writes every Vietnamese issue through it; see `VI-NATURAL.md` for its own
   documentation and for the reasoning its client encodes.
 
+What the two of them owe, clause by clause under an identifier an issue can cite, is
+`docs/requirements/README.md` — a BRD over an SRS. That document also holds the rules of the
+tree and the steps another project follows to adopt it.
+
 ## Install
 
 ```sh
