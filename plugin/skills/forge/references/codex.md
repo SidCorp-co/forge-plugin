@@ -32,7 +32,8 @@ instead of roaming the diff for a narrower nit. Measured: six open rounds on one
 something smaller than the last; a recheck converges.
 
 **Which angles review is the checkout's.** `codex.angles` in `.forge.json` — `tech`, `ba`, `user`,
-`ux`, all four by default. A CLI wants `tech`; a product with screens wants all four.
+`ux`, all four by default. A CLI wants `tech`; a product with screens wants all four. `codex.check`
+there names one command codex may run once per consult, when "the tree is green" is the claim at stake.
 
 **Ask it to rule, not to roam.** `--diff` sends each file's diff and refuses findings about code the
 turn did not touch; `--verify "<risk>"` (repeatable) hands it named risks to answer CONFIRMED /
@@ -56,10 +57,10 @@ they interact, and half-understood advice produces the wrong fix. Before "implem
 grep for whether the thing is even called. Take blockers first, then the cheap ones, and test each
 change on its own.
 
-Then close the loop: `forge codex verdict --accepted n --rejected n --note "..."` — it is replayed
-into the next consult, and without it "resolved / still open" is a guess. Rejecting a finding with a
-reason is a legitimate outcome and belongs in the note. When a finding traces to a *document* that
-allowed the mistake, fix the document too, not only the code.
+Then close the loop: `forge codex verdict --accepted F1,F3 --rejected F2="why" --note "..."` — each
+finding by the id codex gave it, replayed into the next consult; without it "resolved / still open" is
+a guess. Rejecting a finding with a reason is a legitimate outcome, and the reason rides with the id.
+When a finding traces to a *document* that allowed the mistake, fix the document too, not only the code.
 
 Anything that is the user's call goes through AskUserQuestion rather than being settled between two
 models.

@@ -88,6 +88,9 @@ which keeps the last value of a repeated flag and would have purged one URL of t
 **No local agent.** The first engine spawned a `claude` session with `--allowedTools Read Grep Glob`;
 that flag auto-approves and does not confine, so the child inherited this machine's skills, answered a
 review prompt by running a multi-agent review skill, and had to be killed by pid after eleven minutes.
+The one exception since is `codex.check`: a command the *checkout* names in `.forge.json`, run at most
+once per consult under a clock, exit code and tail returned. "The tests pass" was the claim every review
+said it could not verify; a fixed command it did not choose is not a shell.
 
 **What the advisor is, measured.** From a transcript: the built-in advisor forwards the whole
 conversation (32,385 input tokens, no cache read, ~33 s) and its reply comes back encrypted, never
@@ -142,7 +145,9 @@ and come back as a refusal: the model's mistake to correct, not a reason to end 
 for.
 
 **The log is the session.** There is no session id, so a consult opens with this repository's last
-three answered ones and their verdicts. A `started` entry is written before the call, because a consult
+three answered ones and their verdicts. Findings are numbered `F1…` across angles and a verdict names
+them — `--accepted F1,F3 --rejected F2=why` — so a recheck can tell codex what became of *each* one
+rather than replaying two counts and a note against a list. A `started` entry is written before the call, because a consult
 that dies mid-flight reaches no handler and a review that vanished is what an eval most wants to see.
 Each entry carries the commit, a per-file sha256 and whether the file was clipped: advice that cannot
 be tied to bytes cannot be checked.

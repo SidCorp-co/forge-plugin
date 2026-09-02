@@ -1,6 +1,7 @@
 {
   "codex": {
     "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$",
-    "angles": ["tech"]
+    "angles": ["tech"],
+    "check": "npm test"
   }
 }

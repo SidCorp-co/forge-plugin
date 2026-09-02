@@ -22,7 +22,7 @@ import { fail, projectCodex, projectRecordPattern } from "./resolve/settings.mjs
 import { flags, partition, pullRepeated } from "./resolve/flags.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { logHook } from "./hook-log.mjs";
-import { TOOLS, runTool, scopeFor } from "./codex-tools.mjs";
+import { TOOLS, runTool, scopeFor, toolsFor } from "./codex-tools.mjs";
 import {
   ANGLES,
   EFFORTS,
@@ -70,7 +70,7 @@ const USAGE = [
   "  consult [file...] [--diff [--base ref]] [--verify risk]... [--only s,s] [--recheck]",
   "                            review; pipe your intent on stdin",
   "                            [--angles a,a] [--effort e] [--rounds n] [--send m] [--allow-echo]",
-  "  verdict --accepted n --rejected n [--note t]   what you did with the last consult",
+  "  verdict --accepted F1,F3|n --rejected F2=why|n [--note t]   what you did with each finding",
   "  pending [--drop]          what this turn touched and has not been consulted on",
   "  show                      profile, model, history and pending, in effect here",
   "  log [--last n] [--id i] [--full]   past consults, for scoring the advice later",
@@ -87,6 +87,8 @@ const USAGE = [
   "  effort                    reasoning effort asked of the slot (default medium)",
   "  angles                    which of tech | ba | user | ux review (default all four);",
   "                            a `codex.angles` in the checkout's .forge.json wins over this",
+  "  check                     .forge.json only: one command the reviewer may run once per consult,",
+  "                            such as `npm test`; `checkMs` its clock (default 300000). Off unless set.",
   "",
   "  --diff         send each file's diff and refuse findings that are only about code this turn",
   "                 did not touch. Raises precision more than anything else.",
@@ -285,8 +287,8 @@ const commitAt = (root) => {
 
 /* More than one call, and a bounded number: a round exists so the reviewer can SEE what it was not
    given, and seeing has a fixed point. The last call is served no tools, so it answers. What it
-   still never gets is a shell: the version that could run commands took eleven minutes, spawned its
-   own subagents and had to be killed by pid. hooks/how/codex-second.md. */
+   still never gets is a shell — one command the checkout named, once, is the whole exception; the
+   version that could run commands took eleven minutes and had to be killed by pid. */
 const BOOLEAN = ["--allow-echo", "--diff", "--recheck"];
 const SEVERITIES = ["blocker", "major", "minor"];
 
@@ -318,7 +320,7 @@ export const rounds = async (values, model, opening, scope, onDelta, ask = askAp
   for (let call = 1; ; call += 1) {
     const last = call === calls;
     console.error(`codex: call ${call} of ${calls}${used.length ? ` after ${used.length} tool call(s)` : ""}...`);
-    const held = await ask(values, model, messages, { onDelta, signal, effort, system, tools: last ? [] : TOOLS });
+    const held = await ask(values, model, messages, { onDelta, signal, effort, system, tools: last ? [] : toolsFor(scope) });
     if (!held.calls.length) return { ...held, tools: used, refused, calls: call };
     /* The cap is the loop's to keep: a gateway that answers the tool-less call with tool calls anyway
        would otherwise be served round `calls + 1`, with tools, until the budget expired. And a capped
@@ -406,6 +408,13 @@ const chosenAngles = (raw) => {
   return asked.length ? asked : Object.keys(ANGLES);
 };
 
+/* The checkout's, never the account's: what a project's check is, only the project can say. */
+const projectCheck = () => {
+  const { check, checkMs } = projectCodex();
+  if (!check || typeof check !== "string") return null;
+  return { command: check, ms: Number(checkMs) > 0 ? Number(checkMs) : undefined };
+};
+
 const SENDS = ["diffs", "bodies"];
 
 const chosenSend = (raw) => {
@@ -486,9 +495,10 @@ const consult = async (given) => {
   };
   try {
     const opening = openingFor(intent, parts, history, { risks, only, bodies });
+    const check = projectCheck();
     const held = await rounds(
-      values, model, opening, scopeFor(root, rels.filter(isAbsolute)), streamed, askApi,
-      { effort, cap, system: roleFor(angles) },
+      values, model, opening, scopeFor(root, rels.filter(isAbsolute), check), streamed, askApi,
+      { effort, cap, system: roleFor(angles, { check: Boolean(check) }) },
     );
     process.stdout.write("\n");
     logConsult({
@@ -536,6 +546,7 @@ const show = () => {
   console.log(`records   : ${recordPattern().value}  \u2190 ${recordPattern().from}`);
   console.log(`tools     : ${TOOLS.map((one) => one.name).join(", ")} over ${callBudget()} call(s)`);
   console.log(`angles    : ${chosenAngles(undefined).join(", ")}`);
+  console.log(`check     : ${projectCheck()?.command ?? "none — codex.check in .forge.json names one"}`);
   console.log(`pending   : ${waiting.length ? waiting.join(", ") : "nothing"}`);
   console.log(`log       : ${LOG_PATH}  (${consults(entries).length} consult(s))`);
 };

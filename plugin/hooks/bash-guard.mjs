@@ -105,7 +105,7 @@ function treeIsDirty(cwd) {
    read wrong its pairs skew and bare the rest. Unless it reaches a shell: there it is the command. */
 const QUOTED = /'''[\s\S]*?'''|"""[\s\S]*?"""|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/gu;
 
-/* As the shell hands it over: in double quotes a backslash escapes a quote or itself, and joins a line. */
+/* The body as a shell would hand it over — the quoting rule is WORD's in `_hook.mjs`; this undoes it. */
 const bare = (one) => {
   if (/^('''|""")/u.test(one)) return one.slice(3, -3);
   const inner = one.slice(1, -1);

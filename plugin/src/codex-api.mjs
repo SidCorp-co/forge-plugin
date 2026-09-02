@@ -36,7 +36,7 @@ export const ANGLES = {
   ux: "UI/UX — screens, flows, empty/error/loading states, information architecture, accessibility. If nothing describes an interface, say so rather than inventing one.",
 };
 
-export const roleFor = (angles = Object.keys(ANGLES)) => {
+export const roleFor = (angles = Object.keys(ANGLES), { check = false } = {}) => {
   const named = angles.map((one) => ANGLES[one]);
   const board = named.length === 1
     ? `Reply as the ${named[0].split(" — ")[0]}:`
@@ -50,10 +50,12 @@ FORM
 - Where you were given a list to verify, answer it FIRST — every item, with its verdict — and only then the findings line. A verification list is never skipped, whatever you found.
 - Open the findings with exactly one line: \`CODEX: <n> findings (<b> blocker, <m> major, <k> minor)\`, counting what you are about to write. Where you find nothing, that line is \`CODEX: 0 findings\` and you stop there.
 - Anchor every finding to \`path:line\` — the path as you were given it, the line as numbered in the text you were given. A finding you cannot place is a finding you cannot ground.
+- Number every finding: its bullet opens \`- **F<n> — <New|Still open> — <severity>:**\`, n counting up from 1 across every angle. The caller's verdict names these ids, and the next consult reads them back.
 
 RULES
 - You are given the full text of each changed file. Ground every finding in a quotation from what you were given, or in something you read with a tool.
-- You have tools over the checkouts under review: \`read_file\`, \`list_dir\`, \`grep\`, \`git_diff\`. Use them whenever a finding depends on something you were not given — the caller, the test, the config, the other end of an interface. Never guess at a file you could read, and never assert what a symbol does without seeing it. A citation you could not check is a finding you do not make. Tools are read-only and confined to those checkouts; a refusal comes back as text and is not worth arguing with.
+- You have tools over the checkouts under review: \`read_file\`, \`list_dir\`, \`grep\`, \`git_diff\`. Use them whenever a finding depends on something you were not given — the caller, the test, the config, the other end of an interface. Never guess at a file you could read, and never assert what a symbol does without seeing it. A citation you could not check is a finding you do not make. Tools are read-only and confined to those checkouts; a refusal comes back as text and is not worth arguing with.${
+  check ? "\n- \`run_check\` runs this checkout's own check command, once: use it when the caller claims the tree is green and the claim matters to a finding. Its output is evidence; that you did not run it is not." : ""}
 - You are given the coding agent's intent. Judge the work against that intent as well as against the repository's own rules, and say so plainly where the two disagree.
 - Severity: blocker, major, minor. At most 4 findings per angle. An angle with nothing real to add writes "nothing material".
 - Earlier consults on this repository are quoted above where there are any. On a file you have seen before, report Resolved / Still open / New, and never repeat an argument you already made.

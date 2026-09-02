@@ -12,6 +12,17 @@ const GREP_LINES = 200;
 const TOOL_MS = 10_000;
 const SKIP = /(?:^|\/)(?:node_modules|\.git|dist|coverage|\.next)(?:\/|$)/;
 
+/* One command the checkout named, once, with a clock on it — not a shell. The version that could run
+   commands took eleven minutes and spawned its own subagents; a project's own `npm test` is the one
+   claim a reviewer keeps saying it could not verify. */
+const CHECK = {
+  name: "run_check",
+  description: "Run this checkout's own check command once — the one the project configured, not one you choose. Returns the exit code and the output's tail.",
+  input_schema: { type: "object", properties: {} },
+};
+
+export const toolsFor = (scope) => (scope?.check ? [...TOOLS, CHECK] : TOOLS);
+
 export const TOOLS = [
   {
     name: "read_file",
@@ -63,7 +74,7 @@ export const TOOLS = [
 
 /** The roots a model-initiated read may reach, and the single files allowed outside them. A reply
  *  that could read any path could read `~/.config/forge/config.json`, which holds a live token. */
-export const scopeFor = (root, extras = []) => {
+export const scopeFor = (root, extras = [], check = null) => {
   const roots = new Set([canonical(root)]);
   const files = new Set();
   for (const one of extras) {
@@ -72,7 +83,35 @@ export const scopeFor = (root, extras = []) => {
     if (owner) roots.add(owner);
     else files.add(real);
   }
-  return { roots: [...roots], files: [...files] };
+  return { roots: [...roots], files: [...files], check: check ? { ...check, root: canonical(root), used: false } : null };
+};
+
+const CHECK_MS = 300_000;
+const TAIL_CHARS = 6_000;
+
+const checkOnce = (scope) => {
+  if (!scope.check) return { text: "this checkout configures no `codex.check`, so there is nothing to run", error: true };
+  if (scope.check.used) return { text: "run_check runs once per consult, and it has run", error: true };
+  scope.check.used = true;
+  /* Its own process group: the clock kills the shell, and a runner the shell started would outlive
+     it — the orphan the rule exists to prevent — unless the group goes with it. */
+  const run = spawnSync("sh", ["-c", scope.check.command], {
+    cwd: scope.check.root,
+    encoding: "utf8",
+    timeout: scope.check.ms ?? CHECK_MS,
+    maxBuffer: 16 << 20,
+    detached: true,
+  });
+  if (run.error) {
+    if (run.pid) try { process.kill(-run.pid, "SIGKILL"); } catch { /* already gone */ }
+    const why = run.error.code === "ETIMEDOUT"
+      ? `ran past ${(scope.check.ms ?? CHECK_MS) / 1000}s and was stopped`
+      : `could not finish: ${run.error.message}`;
+    return { text: `\`${scope.check.command}\` ${why}`, error: true };
+  }
+  const out = `${run.stdout ?? ""}${run.stderr ?? ""}`;
+  const tail = out.length > TAIL_CHARS ? `…\n${out.slice(-TAIL_CHARS)}` : out;
+  return { text: `\`${scope.check.command}\` exited ${run.status}\n${tail.trim()}` };
 };
 
 const canonical = (path) => {
@@ -179,6 +218,7 @@ export const runTool = (scope, name, given = {}) => {
   /* A default catches undefined and not `null`, which is what `"input": null` parses to — and a
      throw here ends the consult, where a refusal is something the reviewer can answer. */
   const input = given && typeof given === "object" ? given : {};
+  if (name === "run_check") return checkOnce(scope);
   const needsPath = name !== "grep";
   const held = input.path ? located(scope, input.path) : null;
   if (needsPath && !held) return { text: "this tool needs a `path`", error: true };

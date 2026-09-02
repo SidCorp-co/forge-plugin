@@ -14,6 +14,9 @@ const {
   answered,
   countedIn,
   findingsIn,
+  numbered,
+  outcomeOf,
+  verdictRecord,
   historyFor,
   logEntries,
   pairedLog,
@@ -84,6 +87,17 @@ test("a recheck turns the last consult's findings on these files into the verifi
   assert.equal(findingsIn(reply).length, 3, "unfiltered, the other file's finding is one too");
   assert.equal(findingsIn("- **New — major:** no anchor here", ["a.mjs"]).length, 1, "unanchored, it stays");
   assert.equal(findingsIn("- **New — major:** calling `saveConfig()` loses data", ["a.mjs"]).length, 1, "a code span is not a path");
+  assert.deepEqual(numbered(reply, ["a.mjs"]).map((one) => one.id), ["F1", "F2"], "an unnumbered reply is numbered by order");
+  const ids = numbered([
+    "- **F1 — New — blocker:** `a.mjs:1` — one.",
+    "- **F3 — Still open — major:** `a.mjs:2` — three.",
+    "- **F2 - New - minor:** `a.mjs:3` — two.",
+  ].join("\n"));
+  assert.deepEqual(ids.map((one) => one.id), ["F1", "F3", "F2"], "the reply's own ids win over order");
+  assert.equal(ids[0].text, "New — blocker: `a.mjs:1` — one.", "the id leaves the text");
+  const twoFiles = "- **New — major:** `a.mjs:1` — a.\n- **New — major:** `b.mjs:1` — b.";
+  assert.deepEqual(numbered(twoFiles, ["b.mjs"]).map((one) => one.id), ["F2"], "filtering a file keeps the whole reply's numbering");
+  assert.equal(numbered("- **F1 — New — major:** x\n- **F1 — New — minor:** y").length, 1, "an id the reply gave twice names one finding");
   const entries = [
     { kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs"], reply },
     { kind: "consult", id: "c2", ok: true, root: "/a", at: "2", files: ["b.mjs"], reply: "CODEX: 1 findings\n- **New — minor:** `b.mjs:1` — b." },
@@ -153,4 +167,54 @@ test("a review counts itself, and a malformed header counts as nothing", () => {
   assert.deepEqual(countedIn("CODEX: 2 findings (2 major)"), { total: 2, major: 2 });
   assert.equal(countedIn("## Tech Lead\n- blocker: something"), null);
   assert.equal(countedIn(undefined), null);
+});
+
+test("a verdict names findings by id, and a name the reply never gave is refused", () => {
+  const reply = [
+    "- **F1 — New — blocker:** `a.mjs:12` — one.",
+    "- **F2 — New — major:** `a.mjs:40` — two.",
+    "- **F3 — New — minor:** `a.mjs:50` — three.",
+  ].join("\n");
+  const last = { id: "c1", at: "1", files: ["a.mjs"], reply };
+  const byId = verdictRecord(last, { accepted: "F1,F3", rejected: "F2=the cap is the loop's" });
+  assert.deepEqual(byId.record.kept, ["F1", "F3"]);
+  assert.deepEqual(byId.record.dropped, { F2: "the cap is the loop's" });
+  assert.equal(byId.record.accepted, 2);
+  assert.equal(byId.record.rejected, 1);
+  assert.equal(byId.undecided, 0);
+  assert.match(verdictRecord(last, { accepted: "F4" }).problem, /no finding F4; it made F1, F2, F3/u);
+  assert.match(verdictRecord(last, { accepted: "F1", rejected: "F1=no" }).problem, /F1 cannot be both/u);
+  assert.equal(verdictRecord(last, { accepted: "F1" }).undecided, 2, "two left undecided");
+  assert.match(verdictRecord(last, { accepted: "1", rejected: "F2=why" }).problem, /both as ids .* or both as counts/u, "mixed syntax is refused");
+  const twice = verdictRecord(last, { accepted: "F1,F1" });
+  assert.deepEqual(twice.record.kept, ["F1"], "one id said twice is one finding");
+  assert.equal(twice.undecided, 2);
+  const counts = verdictRecord({ ...last, reply: `CODEX: 3 findings (1 blocker, 1 major, 1 minor)\n${reply}` }, { accepted: "2", rejected: "1" });
+  assert.equal(counts.record.accepted, 2, "two counts still work");
+  assert.equal(counts.record.kept, undefined);
+  assert.match(
+    verdictRecord({ ...last, reply: `CODEX: 3 findings (1 blocker, 1 major, 1 minor)\n${reply}` }, { accepted: "3", rejected: "1" }).problem,
+    /made 3 finding\(s\); 4 cannot/u,
+  );
+  const held = byId.record;
+  assert.equal(outcomeOf(held, "F2"), "rejected — the cap is the loop's");
+  assert.equal(outcomeOf(held, "F1"), "accepted");
+  assert.equal(outcomeOf({ ...held, kept: [], dropped: {}, note: "did it" }, "F1"), "did it", "unnamed, the note stands for all");
+  assert.equal(outcomeOf(null, "F1"), null);
+});
+
+test("a recheck carries each finding's own outcome, and history prints the ids", () => {
+  const reply = [
+    "- **F1 — New — blocker:** `a.mjs:12` — one.",
+    "- **F2 — New — major:** `a.mjs:40` — two.",
+  ].join("\n");
+  const entries = [
+    { kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs"], intent: "x", reply },
+    { kind: "verdict", of: "c1", accepted: 1, rejected: 1, kept: ["F1"], dropped: { F2: "by design" } },
+  ];
+  const risks = recheckRisks(entries, "/a", ["a.mjs"]);
+  assert.match(risks[0], /finding F1, .*What I then did: accepted$/u);
+  assert.match(risks[1], /finding F2, .*What I then did: rejected — by design$/u);
+  const [history] = historyFor(entries, "/a", 3, ["a.mjs"]);
+  assert.equal(history.verdict, "1 accepted (F1), 1 rejected (F2: by design)");
 });
