@@ -102,25 +102,108 @@
     .card ul { margin: 0 0 0 1.1rem; }
     .card li { margin-bottom: 0.4rem; }
     section + figure, figure + section { margin-top: 3rem; padding-top: 2.5rem; border-top: 1px solid rgba(45,49,66,0.12); }
+
+    .prose { max-width: 960px; margin: 2rem 0 0; font-size: 0.95rem; line-height: 1.55; color: var(--color-ink); }
+    .prose h3 { font-family: var(--font-serif); font-weight: 400; font-size: 1.25rem; margin: 1.5rem 0 0.5rem; }
+    .prose p { margin: 0 0 0.85rem; }
+    .prose ul { margin: 0 0 0.85rem 1.25rem; }
+    .prose li { margin-bottom: 0.35rem; }
+    .prose code, .cards code, td code { font-family: var(--font-mono); font-size: 0.85em; color: var(--color-muted); }
+    .prose .status { font-size: 0.9rem; color: var(--color-muted); }
+    table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1.25rem; font-size: 0.9rem; }
+    th, td { text-align: left; vertical-align: top; padding: 0.6rem 0.75rem; border-top: 1px solid rgba(45,49,66,0.12); }
+    th { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-muted); border-top: 0; }
+    tbody tr:last-child td { border-bottom: 1px solid rgba(45,49,66,0.12); }
+    td:first-child code { color: var(--color-ink); font-weight: 600; }
+    .cards { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 1.25rem; margin: 2rem 0 0; }
+    .card { background: #ffffff; border: 1px solid rgba(45,49,66,0.12); border-radius: 6px; padding: 1.25rem; font-size: 0.9rem; line-height: 1.5; }
+    .card ul { margin: 0 0 0 1.1rem; }
+    .card li { margin-bottom: 0.4rem; }
+    section + figure, figure + section { margin-top: 3rem; padding-top: 2.5rem; border-top: 1px solid rgba(45,49,66,0.12); }
   </style>
 </head>
 <body>
   <div class="frame">
-    <p class="eyebrow">forge issue flow · the contract and three figures</p>
+    <p class="eyebrow">forge issue flow · the contract in four figures</p>
     <h1>The issue flow and its contract</h1>
 <section class="prose">
 <p class="status"><strong>Status: proposal for <code>forge advance</code>.</strong> Nothing here is built. It records the shape before the first issue is filed, so each part ships against a stated whole. The figures: <code>diagrams/issue-flow.html</code>.</p>
-<h3>The constraint</h3>
-<p>Nine phases across ten files is more than a session reliably holds, and the only check that an issue finished was the agent's memory of having read them. One run this week showed the split: every obligation with a gate behind it held, every one that lived in prose slipped at least once, and the issue that skipped the workflow was declared done with an empty criteria field and a QA verdict that was false when posted.</p>
-<p>The tracker already holds everything the workflow produces — plan, criteria, comments, attachments, release notes, a merged mark — and a <code>transition</code> action over its statuses. What it lacks is the rule that a status is <em>earned</em>: a transition succeeds whatever the record holds. So the order of the work is prose, and prose is read only by someone who chose to read it.</p>
-<h3>Two layers, one record</h3>
-<p><strong>The statuses are a communication contract.</strong> A status is a promise to whoever reads the tracker next, and the payload that earned it is what they may rely on. <strong>The phases are the agent's workflow under that contract.</strong> Each phase exists to produce one payload, and the status an issue holds tells the agent which phase it is in. The two do not compete; one says what is owed, the other says how it is produced.</p>
-<p>That collapses the workflow to a single cycle: pick an issue, read its status, run the phase that status owes, write the payload, advance. <code>forge advance --owed</code> says what the payload is. The skill keeps the method, its five rules and its three judgement calls — is this a screen change, is this ambiguity expensive to reverse, is this lesson worth a line — and cites the verb for the rest.</p>
-<p>Phases 0 and 8 sit outside the issue: discovery before the run, cleanup and learning after each issue. They write to the project, never to a transition.</p>
 </section>
 
     <figure>
-    <p class="eyebrow">1 · State machine</p>
+    <p class="eyebrow">1 · Build plan</p>
+    <h2>The plan: what gets built, in the order each part needs the last</h2>
+
+    <svg viewBox="0 0 1384 224" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="issue-plan-title issue-plan-desc">
+      <title id="issue-plan-title">The build plan for the issue-flow contract</title>
+      <desc id="issue-plan-desc">Five steps in dependency order: type the payload writes, build the advance verb that checks entry criteria, apply the same check in the pre-hook, cut the skill down to rules and judgement calls, and hand the tracker the contract as the specification for a server-side check.</desc>
+      <defs>
+        <marker id="plan-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="plan-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+        <marker id="plan-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- Handoffs, then steps -->
+      <line x1="264" y1="96" x2="328" y2="96" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#plan-arrow-accent)"/>
+      <rect x="272" y="76" width="48" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="296" y="84" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">SHAPES</text>
+      <line x1="528" y1="96" x2="592" y2="96" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#plan-arrow)"/>
+      <rect x="528" y="76" width="64" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="560" y="84" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">SAME CHECK</text>
+      <line x1="792" y1="96" x2="856" y2="96" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#plan-arrow)"/>
+      <rect x="792" y="76" width="64" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="824" y="84" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">RULES ONLY</text>
+      <line x1="1056" y1="96" x2="1120" y2="96" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#plan-arrow)"/>
+      <rect x="1072" y="76" width="32" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="1088" y="84" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">SPEC</text>
+      <rect x="64" y="48" width="200" height="96" rx="6" fill="#f5f5f5"/>
+      <rect x="64" y="48" width="200" height="96" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="164" y="76" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">1 · Type the writes</text>
+      <text x="164" y="96" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">confirmation · decision record</text>
+      <text x="164" y="110" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">question · baseline · verdict</text>
+      <text x="164" y="124" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">verification · release note</text>
+      <rect x="328" y="48" width="200" height="96" rx="6" fill="#f5f5f5"/>
+      <rect x="328" y="48" width="200" height="96" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="428" y="76" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">2 · The verb</text>
+      <text x="428" y="96" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">forge advance ISS-nn [--owed]</text>
+      <text x="428" y="110" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">entry criteria per status</text>
+      <text x="428" y="124" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">refusal = the item + its command</text>
+      <rect x="592" y="48" width="200" height="96" rx="6" fill="#f5f5f5"/>
+      <rect x="592" y="48" width="200" height="96" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="692" y="76" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">3 · The pre-hook</text>
+      <text x="692" y="96" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">forge_issues · transition</text>
+      <text x="692" y="110" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">the verb's check on the tool call</text>
+      <text x="692" y="124" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">drop refused once merged</text>
+      <rect x="856" y="48" width="200" height="96" rx="6" fill="#f5f5f5"/>
+      <rect x="856" y="48" width="200" height="96" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="956" y="76" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">4 · Cut the skill</text>
+      <text x="956" y="96" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">five rules · three judgement calls</text>
+      <text x="956" y="110" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">cites the verb for the rest</text>
+      <text x="956" y="124" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">the schema is the document</text>
+      <rect x="1120" y="48" width="200" height="96" rx="6" fill="#f5f5f5"/>
+      <rect x="1120" y="48" width="200" height="96" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="1220" y="76" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">5 · The tracker's part</text>
+      <text x="1220" y="96" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">a check on the server</text>
+      <text x="1220" y="110" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">a commit field on the merged mark</text>
+      <text x="1220" y="124" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">this contract as its spec</text>
+
+      <!-- Legend -->
+      <line x1="64" y1="184" x2="1320" y2="184" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="64" y="200" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+      <rect x="160" y="192" width="16" height="10" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="184" y="200" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">STEP · in the plugin</text>
+      <rect x="352" y="192" width="16" height="10" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="376" y="200" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">FOCAL · the verb everything else serves</text>
+      <rect x="640" y="192" width="16" height="10" rx="2" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="664" y="200" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">EXTERNAL · the tracker's</text>
+      <line x1="864" y1="196" x2="888" y2="196" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#plan-arrow)"/>
+      <text x="896" y="200" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">HANDS OVER · what the next step needs</text>
+    </svg>
+    </figure>
+
+    <figure>
+    <p class="eyebrow">2 · State machine</p>
     <h2>The flow: every status is earned, and the phase on the arrow earns it</h2>
 
     <svg viewBox="0 0 1184 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="issue-flow-title issue-flow-desc">
@@ -256,17 +339,16 @@
 <thead><tr><th>Status</th><th>Promise to the next reader</th><th>Earned by</th><th>Phase owed while held</th></tr></thead>
 <tbody><tr><td><code>open</code></td><td>someone filed this</td><td>nothing; the one status nobody earns</td><td>1 Triage</td></tr><tr><td><code>confirmed</code></td><td>we read the code; the problem is real and it is this</td><td>a confirmation: where the reader looked, what the issue is in the code's own terms, and a finding — <em>holds</em>, or one of the dispositions the triage reference admits</td><td>2 Clarify</td></tr><tr><td><code>clarified</code></td><td>every ambiguity is decided or answered</td><td>a decision record: each reading decided, its assumption and the sentence that undoes it, or an explicit <em>none found</em>; no question left open</td><td>3 Plan</td></tr><tr><td><code>approved</code></td><td>object to the plan now, not after</td><td>plan and numbered criteria, one per line, each in its own field; the plan states whether this is a screen change and whether it touches the schema</td><td>4 Implement, to the branch</td></tr><tr><td><code>in_progress</code></td><td>code is being written against this plan</td><td><code>approved</code>; every blocker at least <code>developed</code>; for a batch, the member list written when the branch is cut</td><td>4 Implement, to the merge</td></tr><tr><td><code>developed</code></td><td>the change is on the default branch</td><td>the merged mark with its commit, and a baseline recorded before it naming what already failed</td><td>5 Prove</td></tr><tr><td><code>tested</code></td><td>the evidence is here to be judged</td><td>one verdict per criterion, each citing evidence, all against the merged commit; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling</td><td>6, 7 Ship</td></tr><tr><td><code>released</code></td><td>you can see it now</td><td>a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; for a screen change, a review comment from a person</td><td>closing, by a person or the run's end</td></tr><tr><td><code>closed</code></td><td>nothing more happens unless reopened; code landed</td><td><code>released</code></td><td>none</td></tr></tbody>
 </table>
-<p>The phase a status owes produces the payload that earns the next row, so reading the status is reading the phase. The tracker's <code>draft</code>, <code>testing</code> and <code>reopen</code> statuses are not steps and <code>advance</code> never enters them: <code>draft</code> is the reporter's, before <code>open</code>; <code>testing</code> is a label this contract has no use for, since <code>developed</code> already says where the change is; <code>reopen</code> is an action, below.</p>
 <p><strong>The parks are messages to a person, typed by who has to answer.</strong> Each records the status it left, and <code>advance</code> resumes there.</p>
 <ul><li><code>needs_info</code> speaks to the reporter, from <code>open</code> or <code>confirmed</code>: two or more readings, each with the outcome it produces. Fewer is not a question. It resumes on a reply from another author.</li><li><code>waiting</code> speaks to a reviewer: the kind — screen review, or a destructive migration — and the evidence to look at. It resumes on their comment.</li><li><code>on_hold</code> speaks to the owner: what failed with no way back, or why the change is unshippable. It resumes by hand.</li><li><code>dropped</code> speaks to everyone: the reason — a disposition the triage reference admits, or one of the project's own. Reachable only before <code>developed</code>, so it always means no code landed, and it is never marked merged. Terminal unless reopened. Abandoning code that did land is a revert: the commit goes, the mark is cleared with <code>unmark</code>, the issue falls back to <code>approved</code>, and only then may it drop.</li></ul>
-<p><strong>Who moves a status.</strong> The agent, by advancing. A project that wants a person on <code>approved</code> or <code>released</code> says so in its settings, and <code>advance</code> then waits for that person's comment instead of moving. The default is autonomous, which is what the skill already says.</p>
 </section>
 
 
 
 
+
     <figure>
-    <p class="eyebrow">2 · Loop</p>
+    <p class="eyebrow">3 · Loop</p>
     <h2>The workflow: one cycle, and the status says which phase</h2>
 
     <svg viewBox="0 0 1040 680" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="issue-cycle-title issue-cycle-desc">
@@ -343,7 +425,7 @@
     </figure>
 
     <figure>
-    <p class="eyebrow">3 · Flowchart</p>
+    <p class="eyebrow">4 · Flowchart</p>
     <h2>The contract: the verb asks, then moves</h2>
 
     <svg viewBox="0 0 1000 664" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="issue-contract-title issue-contract-desc">
@@ -460,22 +542,11 @@
       <text x="840" y="640" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">FOCAL · the refusal</text>
     </svg>
     </figure>
-<section class="prose">
-<p class="eyebrow">The mechanics</p>
-<p><strong>Two sources, one recorded.</strong> The tracker record is the only thing checked, so anything the repository knows — which commit merged, which commit a verdict judged — is written onto the issue at the step that knows it: the merged mark carries its commit, a verdict carries the commit it judged. Repository state is never read at transition time; the transition reads what the earlier step wrote.</p>
-<p><strong>A later change unearns.</strong> A verdict records the commit it judged and the criteria text it judged against. When the merged commit moves, or the criteria field changes, <code>tested</code>, <code>released</code> and <code>closed</code> are unearned and the issue falls back to <code>developed</code>; the old verdicts stay as superseded history and the new ones are written beside them. A plan or criteria edit after <code>approved</code> also owes a correction comment saying what moved and why, and the write is refused without it, so criteria cannot be quietly relaxed to fit what got built. <code>reopen</code> is a person's word, and it returns the issue to the status it held before the disposition or the drop, where <code>advance</code> picks up with that status's criteria rechecked.</p>
-<p><strong>A disposition is a drop with its finding as the reason.</strong> A confirmation whose finding is a disposition earns <code>confirmed</code> and, on the next advance, <code>dropped</code>; the same comment is the evidence and the reason. Nothing is jumped: <code>closed</code> stays what code that landed earns, and <code>dropped</code> what nothing landing earns. Whoever disagrees reopens.</p>
-<p><strong>A split is a filing, not a transition.</strong> An issue that turns out to be several gets siblings filed <code>open</code>, each naming the others in the same write, and the original is confirmed as the first of them. Their blocking relations decide the order the run takes.</p>
-<p><strong>A batch is a relation, written when the branch is cut.</strong> Every member earns each status on its own record. A verdict inherits the member list, so no report lists its batchmates by hand. A member that fails its own criteria parks while the rest advance; what the branch does with that member's commits is the project's revert policy, not this contract's.</p>
-<p><strong>The verb asks, then moves.</strong> <code>forge advance ISS-nn</code> names the next status, checks its entry criteria, and either transitions or prints the shortfall. <code>forge advance ISS-nn --owed</code> prints the shortfall without moving. A jump past a status is refused; a park is a transition to one of the side statuses with a typed reason, so a judgement call is recorded rather than skipped, and a drop is refused once the merged mark is set.</p>
-<p><strong>Evidence is typed at the write.</strong> Every payload above is a write of a shape the CLI owns — a confirmation, a decision record, a question, a verdict, a verification — and a report is assembled from the latest of each rather than written from memory. A verdict names its criterion by number and quotes the text it judged; one with no evidence is refused; a criterion with no verdict keeps the issue out of <code>tested</code>. The kind of evidence a criterion needs is its author's to name and the reviewer's to judge; the contract checks presence and the commit, not truth. Whether a criterion is really two is a warning at the write, from a conjunction list the project's prose language supplies, never a refusal.</p>
-<p><strong>The schema is the document.</strong> <code>forge schema forge_issues</code> and <code>forge advance --owed</code> carry the entry criteria in the tool's own words. Nothing in the skill repeats them.</p>
-<p><strong>Every route this plugin sees is the same route.</strong> The CLI enforces; the pre-hook applies the same check to the tracker tool called directly, so the contract cannot be stepped around by choosing a client the plugin serves. The tracker's own screens and unhooked clients are outside it: a status they set is unearned, and <code>advance --owed</code> on such an issue says what its record lacks. A check on the server is the tracker's to add, and this contract is its specification.</p>
-</section>
 <section class="cards">
 <div class="card"><p class="eyebrow">What it does not do</p><ul><li>It cannot tell a true verdict from a false one. ISS-31's verdict cited a screenshot of a similar screen. Presence and recency are checkable; fit is the reviewer's and codex's.</li><li>It cannot start a run. An issue worked outside the workflow meets the contract at its first transition, which is earlier than today and later than the plan.</li><li>It does not add fields. Everything it reads exists on the issue now.</li></ul></div>
 <div class="card"><p class="eyebrow">Open questions</p><ul><li>Whether the tracker's task records fit the per-criterion verdict better than a shaped comment.</li><li>What a project with no deploy step writes for <code>released</code>.</li><li>Where the way back from each ship step is recorded — the plan, for a change with deploy coupling, or the project's settings once. Today it is checked nowhere.</li></ul></div>
 </section>
+
 
 
 
