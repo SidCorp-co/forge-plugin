@@ -1,7 +1,9 @@
 # The issue-flow contract — a status is earned, and the tracker says what it costs
 
-**Status: proposal for `forge advance`.** Nothing here is built. It records the shape before the first
-issue is filed, so each part ships against a stated whole. The figures: `diagrams/issue-flow.html`.
+**Status: the verb is built; the contract is still ahead of it.** `forge record` (ISS-2, ISS-10) and
+`forge advance` (ISS-3) implement most of what follows. Where a rule here exceeds what the code does,
+the rule names the issue that owes it, so a reader can tell the specification from the shipped
+behaviour without reading the code. The figures: `diagrams/issue-flow.html`.
 
 ## The constraint
 
@@ -47,12 +49,21 @@ issue. They write to the project, never to a transition.
 | `closed` | nothing more happens unless reopened; code landed | `released` | none |
 
 The phase a status owes produces the payload that earns the next row, so reading the status is
-reading the phase. The tracker's `draft`, `testing` and `reopen` statuses are not steps and `advance`
+reading the phase. Every *earned by* is checked for presence, recency and the commit it names,
+never for fit: whether an attachment is really the migration classification, or a comment really
+an approving screen review, is the reviewer's judgement, and a check that tried to make it would
+refuse honest records and pass dishonest ones alike. The tracker's `draft`, `testing` and `reopen` statuses are not steps and `advance`
 never enters them: `draft` is the reporter's, before `open`; `testing` is a label this contract has
 no use for, since `developed` already says where the change is; `reopen` is an action, below.
 
 **The parks are messages to a person, typed by who has to answer.** Each records the status it
-left, and `advance` resumes there.
+left, and `advance` resumes there. The other half is who lifts it: a reply from any author but the
+one who parked lifts `needs_info` and `waiting`, so another agent's answer counts; a person's word
+lifts `on_hold` and reopens `dropped`, and a person is a comment the tracker did not mark as an
+agent's. A park that was a mistake is lifted on the record too: a correction naming the park and
+the status resumed, written before the transition back, so a reader of the record sees the retraction
+beside the park rather than a status that quietly disagrees with the last typed write. Owed by
+ISS-13; today the lift is a raw transition the report never shows.
 
 - `needs_info` speaks to the reporter, from `open` or `confirmed`: two or more readings, each
   with the outcome it produces. Fewer is not a question. It resumes on a reply from another author.
@@ -67,7 +78,11 @@ left, and `advance` resumes there.
   commit goes, the mark is cleared with `unmark`, the issue falls back to `approved`, and only then
   may it drop.
 
-**Who moves a status.** The agent, by advancing. A project that wants a person on `approved` or
+**Who moves a status.** The agent, by advancing, and every move, a park and a drop included, can
+be asked before it is made: `--owed` prints what the move would write and where it would go and
+writes nothing. A verb that can only be rehearsed for the moves that need no rehearsal is the wrong
+way round; the fourth dry run dropped an issue for real to learn what a drop does. Owed by ISS-12;
+today `--owed` is refused beside a park or a drop. A project that wants a person on `approved` or
 `released` says so in its settings, and `advance` then waits for that person's comment instead of
 moving. The default is autonomous, which is what the skill already says.
 
@@ -272,12 +287,19 @@ by anyone, because nothing about it is held anywhere but the record.
 repository knows — which commit merged, which commit a verdict judged — is written onto the issue
 at the step that knows it: the merged mark carries its commit, a review the head it judged, a
 verdict the commit it judged. Repository state is never read at transition time; the transition reads what the earlier
-step wrote.
+step wrote. This is not advice but the constraint that makes the verb possible: a check that read
+the working tree would answer differently on every machine that ran it. It is honoured by
+convention in one place, the merged mark, which today takes no commit and carries it in the
+prose of its note; until the tracker gives the mark a commit field, the note's form is part of the
+contract.
 
 **A later change unearns.** A review records the head it judged; a verdict records the commit it
 judged and the criteria text it judged against. When the merged commit moves, `developed` and
 everything above it are unearned and the issue falls back to `in_progress` until the new head has
-its approving review and its mark; when the criteria field changes, `tested`, `released` and
+its approving review and its mark. Who notices is the run that moved it: the merge that lands a
+new head writes the mark again, and the new mark is what unearns, because the verb cannot see a
+head it was never told about. A head moved without a re-mark is invisible until the tracker
+compares for itself; when the criteria field changes, `tested`, `released` and
 `closed` are unearned and the issue falls back to `developed`. Old reviews and verdicts stay as
 superseded history and the new ones are written beside them. A plan or criteria edit after
 `approved` also owes a correction comment saying what moved and why, and the write is refused
@@ -305,9 +327,22 @@ the shortfall without moving. A jump past a status is refused; a park is a trans
 the side statuses with a typed reason, so a judgement call is recorded rather than skipped, and a
 drop is refused once the merged mark is set.
 
+**A review is two voices in one record.** The outcome is the reviewer's word about the diff at
+the head it judged, and nothing else: *approved* means the reviewer stood behind that head. The
+finding lines are the author's disposition of each finding by id, accepted or rejected with a
+reason. Dispositions never add up to an approval: a rejected finding the reviewer never saw
+answered is an open finding, and *approved* is written only from the reviewer's answer on the same
+head with nothing standing, which for codex is the recheck that found none. A record that could
+only say *approved* or *changes requested* made the honest value and the passable value differ,
+and the fourth dry run wrote the passable one. ISS-16 owes the separate value.
+
 **Evidence is typed at the write.** Every payload above is a write of a shape the CLI owns — a
 confirmation, a decision record, a question, a review, a verdict, a verification — and a report is
-assembled from the latest of each rather than written from memory. A verdict names its criterion
+assembled from the record rather than written from memory: the latest of each kind that can only
+be current, and every instance of a kind that repeats, so a report shows four corrections when
+four were written (owed by ISS-11; today only verdicts are kept per instance). A separator between
+repeated values must be one a value cannot contain, or the record does not read back as it was
+written (owed by ISS-14; today the pair that separates them can occur inside one). A verdict names its criterion
 by number and quotes the text it judged; one with no evidence is refused; a criterion with no
 verdict keeps the issue out of `tested`. The kind of evidence a criterion needs is its author's to
 name and the reviewer's to judge; the contract checks presence and the commit, not truth. Whether
@@ -337,6 +372,15 @@ the server is the tracker's to add, and this contract is its specification.
 - What a project with no deploy step writes for `released`.
 - Where the way back from each ship step is recorded — the plan, for a change with deploy
   coupling, or the project's settings once. Today it is checked nowhere.
+- Whether `advance` offers `reopen`. Today it refuses at `closed` and names the raw transition,
+  because reopening is a person's word; if that stands, the raw call is the documented route and
+  belongs here, not only in a refusal.
+- What `advance` does on an issue whose comments exceed one page. Today it refuses every
+  operation, `--owed` included, which is safe and useless; it wants a cursor from the tracker, or a
+  rule that only a status-moving operation needs the whole record.
+- Whether the entry criteria should be data rather than functions, so the flow table here, the
+  checks in the code and the verb's own help can be diffed against each other instead of agreed by
+  hand.
 
 ## First dry run — ISS-1
 
@@ -440,3 +484,35 @@ criteria, baseline, review, six verdicts, verification, release note.
   record that finding landed in is the first review record on the tracker.
 - Nine transitions and one mark by raw call, as before. Everything else was typed. ISS-3 is what is
   left.
+
+## Fourth dry run — ISS-3
+
+ISS-3 built `forge advance`, and was the first issue delegated whole to a second agent working
+from this document alone. Five transitions were raw calls because the verb did not exist yet; the
+verb made the last four, and refused three times first: at `developed` until a review record named
+the merged commit, at `tested` with one line per criterion lacking a verdict, at `closed` naming
+`reopen` as a person's word. Twenty-six raw transitions across three runs had refused nothing.
+
+- The drop was real. There was no way to rehearse a park, so the agent ran one to see what it did,
+  and a drop before `developed` is legal. The way back was a raw transition and a plain comment,
+  which the report never shows, so the assembled record still ends in a drop. Two rules came out of
+  it, above: `--owed` covers every move, and a park is lifted on the record.
+- The report lied by omission. Four corrections were written and one was reported, because the
+  assembly kept the latest of every kind and only verdicts were keyed per instance.
+- The review record offered *approved* or *changes requested*, both codex findings had been
+  rejected with reasons, and `developed` accepts only the first. The passable value was written.
+- Three of one confirmation's *where* values read back as four: the separator between repeated
+  values can occur inside one.
+- The baseline was a blindfold. The check suite stops at its first failure, the tree has carried a
+  known one since the second run, and every later gate had been unrun for three commits; one was
+  failing. A baseline that reads *one known failure* is a baseline for nothing after it.
+- The read-first gate matched the three older writing verbs and neither of the two that write the
+  record now, so the sentence in this document that said the verb satisfies it on the way was
+  untrue until the gate was told. ISS-15.
+- A test-only addition after `closed` had no route: the resume path shipped without a case, the
+  gap was found after every criterion had passed, and the fix went out with a correction record
+  because nothing else fit.
+- Delegation worked as the contract meant it to: the agent read this document and the record and
+  nothing else, and where it stalled the document was thin, not the agent. Each place is now a
+  rule above or an issue: ISS-11 to ISS-17.
+
