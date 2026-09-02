@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { callHook } from "./fixtures.mjs";
-import { committing } from "../hooks/_hook.mjs";
+import { commitTree, committing } from "../hooks/_hook.mjs";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -156,6 +156,15 @@ test("a commit the consult already covered lands, and so does one with nothing b
 });
 
 /* Command position, and git's globals take arguments: `--git-dir /r/.git commit` is one. */
+test("a commit behind a quoted global with a space is a commit in that tree", () => {
+  const ev = (command) => ({ tool_name: "Bash", tool_input: { command } });
+  assert.equal(committing(ev(`git -C "/tmp/a b" commit -m x`)), true);
+  assert.equal(committing(ev(`git --no-pager -C '/tmp/a b' commit -m x`)), true);
+  assert.equal(commitTree(ev(`git -C "/tmp/a b" commit -m x`)), "/tmp/a b");
+  assert.equal(commitTree(ev("git --work-tree /w --git-dir /m/repo.git commit -m x")), "/w", "the work tree, not the last option");
+  assert.equal(commitTree(ev("git --git-dir /w/.git commit -m x")), "/w");
+});
+
 test("a commit is a commit where a command starts, git's globals in between", () => {
   const ask = (command) => committing({ tool_name: "Bash", tool_input: { command } });
   for (const one of ["git commit -m x", "git -C /r commit", "git -c k=v commit", "git --no-pager commit",
@@ -364,6 +373,22 @@ test("a turn with no advisor call is not this gate's business", () => {
 test("either disable switch stands it down", () => {
   assert.equal(gate([userTurn(), advised()], { env: { FORGE_CODEX_DISABLE: "1" } }), null);
   assert.equal(gate([userTurn(), advised()], { env: { CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1" } }), null);
+});
+
+/* A stat per path outran the hook on an unignored tree; past the cap the tree is read as changed. */
+test("past five hundred paths the tree is read as changed without a stat", () => {
+  mkdirSync(join(REPO, "many"), { recursive: true });
+  for (let at = 0; at < 520; at += 1) writeFileSync(join(REPO, "many", `f${at}.txt`), "x\n");
+  try {
+    for (let at = 0; at < 520; at += 1) utimesSync(join(REPO, "many", `f${at}.txt`), new Date(now - 900_000), new Date(now - 900_000));
+    utimesSync(join(REPO, "work.mjs"), new Date(now - 900_000), new Date(now - 900_000));
+    const started = Date.now();
+    const held = gate([userTurn(), advised(300_000)], { consultAt: at(120_000), staleBy: 900_000, command: "git commit -m x" });
+    assert.ok(held, "every path is older than the consult, and the count alone says ask");
+    assert.ok(Date.now() - started < 5000, "and it answered well inside the hook's clock");
+  } finally {
+    rmSync(join(REPO, "many"), { recursive: true, force: true });
+  }
 });
 
 /* 7 of 30 commits landed with the turn's documents recorded and unread, in turns the advisor never

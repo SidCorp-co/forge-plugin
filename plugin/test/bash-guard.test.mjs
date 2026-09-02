@@ -1,6 +1,9 @@
 /* The event on stdin and the decision on stdout, as Claude Code calls it. */
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -141,4 +144,46 @@ test("reading the stash is not reverting it", () => {
   assert.equal(decide(`git ${verb} show -p`).allowed, true);
   assert.equal(decide(`git ${verb} push -m probe`).allowed, false);
   assert.equal(decide(`git ${verb}`).allowed, false);
+});
+
+/* The dirty-tree check read the shell's cwd, so `git -C other stash` was judged by the wrong tree. */
+test("a git aimed at another tree is judged by that tree", () => {
+  const dirty = dirtyRepo();
+  const clean = mkdtempSync(join(tmpdir(), "clean-repo-"));
+  spawnSync("git", ["init", "-q", clean]);
+  const from = (cwd, command) => callHook(HOOK, { tool_name: "Bash", tool_input: { command }, cwd, session_id: "c" }, homeEnv("bash-guard"));
+  assert.equal(from(dirty, `git -C ${clean} stash`).stdout.trim(), "", "a clean tree named from a dirty cwd has nothing to lose");
+  assert.match(from(clean, `git -C ${dirty} stash`).stdout, /git stash silently reverts/u, "a dirty tree named from a clean cwd does");
+});
+
+/* A global's value may be quoted and hold a space, and a flag with no value must not eat `-C`. */
+test("git's globals before the verb are read as git reads them", () => {
+  const dirty = mkdtempSync(join(tmpdir(), "dirty tree-"));
+  spawnSync("git", ["init", "-q", dirty]);
+  writeFileSync(join(dirty, "a.txt"), "x\n");
+  const from = (cwd, command) => callHook(HOOK, { tool_name: "Bash", tool_input: { command }, cwd, session_id: "c" }, homeEnv("bash-guard")).stdout;
+  const clean = mkdtempSync(join(tmpdir(), "clean-"));
+  spawnSync("git", ["init", "-q", clean]);
+  assert.match(from(clean, `git -C "${dirty}" reset --hard`), /reset --hard discards/u, "a quoted tree with a space is the tree");
+  assert.match(from(clean, `git --no-pager -C "${dirty}" stash`), /git stash silently/u, "a bare flag before -C does not eat it");
+  assert.match(from(clean, `git -c core.pager=cat -C '${dirty}' stash`), /git stash silently/u);
+  assert.equal(from(dirty, `git --no-pager -C ${clean} stash`).trim(), "", "and the named clean tree has nothing to lose");
+});
+
+test("a tree named by --git-dir and --work-tree is the tree judged", () => {
+  const dirty = dirtyRepo();
+  const clean = mkdtempSync(join(tmpdir(), "clean-"));
+  spawnSync("git", ["init", "-q", clean]);
+  const from = (cwd, command) => callHook(HOOK, { tool_name: "Bash", tool_input: { command }, cwd, session_id: "c" }, homeEnv("bash-guard")).stdout;
+  assert.match(from(clean, `git --git-dir ${dirty}/.git --work-tree ${dirty} reset --hard`), /reset --hard discards/u);
+  assert.equal(from(dirty, `git --git-dir=${clean}/.git reset --hard`).trim(), "", "a clean tree named by its .git");
+});
+
+test("--work-tree names the work tree whatever --git-dir says after it", () => {
+  const dirty = dirtyRepo();
+  const meta = mkdtempSync(join(tmpdir(), "meta-"));
+  const clean = mkdtempSync(join(tmpdir(), "clean-"));
+  spawnSync("git", ["init", "-q", clean]);
+  const from = (cwd, command) => callHook(HOOK, { tool_name: "Bash", tool_input: { command }, cwd, session_id: "c" }, homeEnv("bash-guard")).stdout;
+  assert.match(from(clean, `git --work-tree ${dirty} --git-dir ${meta}/repo.git reset --hard`), /reset --hard discards/u);
 });

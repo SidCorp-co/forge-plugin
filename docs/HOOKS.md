@@ -65,6 +65,17 @@ Cut arguments freely and check every instruction against the code: one pass of t
 five wrong or missing claims — a lost `/dev/` exclusion, a stand-down described as something else, two
 harms collapsed into one sentence — and a diff review caught all five.
 
+## One process per event
+
+Ten registered scripts cost ten Node starts per tool call — 46 to 67 ms each, 38 of it Node itself —
+with three of them reading the transcript tail apart and five computing the touched files apart. So
+`hooks.json` registers one line per event, `gate.mjs` with the gates named in order, and the gates run
+in one process against one event, sharing those reads. Before a call the first refusal is the answer,
+as it was when each was a process; after one, every block and every context is kept and sent together,
+where the old arrangement let each print its own. A gate answers by throwing a decision the runner
+turns into the protocol, so the same gate text runs alone under `plugin/hooks/<name>.mjs` for the suite
+and for `forge hooks --off <name>`, which reads the names off the line.
+
 ## Every hook can be switched off, one at a time
 
 Claude Code has no per-hook toggle. Measured against the 2.1.251 bundle: `skillOverrides` does not

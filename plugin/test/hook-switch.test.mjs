@@ -88,13 +88,13 @@ test("doctor reports a switch wired to nothing", () => {
 test("every hook honours the switch, not only the ones that read an event", () => {
   const dir = join(HERE, "..", "hooks");
   const missing = readdirSync(dir)
-    .filter((name) => name.endsWith(".mjs") && !name.startsWith("_"))
-    .filter((name) => !/\breadEvent\(|\bhookOff\(/u.test(readFileSync(join(dir, name), "utf8")));
+    .filter((name) => name.endsWith(".mjs") && !name.startsWith("_") && name !== "gate.mjs")
+    .filter((name) => !/\balone\("[\w-]+"\)|\bhookOff\(/u.test(readFileSync(join(dir, name), "utf8")));
   assert.deepEqual(
     missing,
     [],
-    "each of these is listed by `forge hooks --off` and would keep running: call readEvent(), or "
-      + "name its own switch with hookOff(<name>) the way link-cli does",
+    "each of these is listed by `forge hooks --off` and would keep running: run through alone(<name>), "
+      + "which asks the switch, or name its own with hookOff(<name>) the way link-cli does",
   );
 });
 
@@ -123,13 +123,22 @@ test("doctor reports a gate its own variable holds down", () => {
   const named = found[1].split(", ").map((one) => one.replace(/ \(.+\)$/u, ""));
   assert.ok(named.length > 0);
   for (const name of named) {
-    const source = readFileSync(join(HERE, "..", "hooks", `${name}.mjs`), "utf8");
+    const source = readFileSync(join(HERE, "..", "hooks", "gates", `${name}.mjs`), "utf8");
     assert.match(source, /FORGE_CODEX_DISABLE/u, `${name} does not read the variable it is listed under`);
   }
 });
 
 /* One name switches one hook type only while that stays true, and a file registered on no event is
    worse than a missing one: `forge hooks` lists it and switching it changes nothing. */
+test("the gate line names every gate it runs, and a lone script names itself", () => {
+  const registered = hookEvents();
+  assert.deepEqual(registered["bash-guard"], ["PreToolUse"]);
+  assert.deepEqual(registered["code-quality"], ["PostToolUse"]);
+  assert.deepEqual(registered["link-cli"], ["SessionStart"]);
+  assert.equal(registered.gate, undefined, "the dispatcher is not a gate");
+  assert.equal(registered.pre, undefined, "nor is the kind word on its line");
+});
+
 test("each hook is registered on exactly one event", () => {
   const registered = hookEvents();
   const wrong = hookNames()

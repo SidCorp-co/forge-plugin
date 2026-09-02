@@ -1,5 +1,6 @@
-// What every hook here needs: the event, the files a call wrote, the two ways to answer, and the
-// once-per-file-per-session stamp. Why write detection asks the disk, not the shell: docs/HOOKS.md.
+// What every gate here needs: the event, the files a call wrote, the ways to answer, the runner that
+// hands one event to every gate of its kind in one process, and the once-per-file-per-session stamp.
+// Why write detection asks the disk, not the shell: docs/HOOKS.md.
 
 import { createHash } from "node:crypto";
 import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync, writeFileSync } from "node:fs";
@@ -14,6 +15,8 @@ const TOKEN = /[A-Za-z0-9_./@-]+\.[A-Za-z0-9]+/g;
 export const FRESH_MS = 120_000;
 
 let event = {};
+/* Which gate is deciding: the runner sets it, so a refusal and its log line name the gate, not the file. */
+let current = "";
 
 export function readEvent() {
   try {
@@ -21,17 +24,83 @@ export function readEvent() {
   } catch {
     process.exit(0);
   }
-  /* Switched off before anything is decided, in the one place every hook already calls. */
-  if (hookOff(basename(process.argv[1] ?? "", ".mjs"))) process.exit(0);
   return event;
 }
 
-/* Refusals are the only entries — a false positive from outside. Exported for the one delegate protocol. */
+/* A gate answers by throwing one of these; the runner turns it into the protocol. `done` is silence. */
+class Decision extends Error {
+  constructor(kind, reason) {
+    super(reason);
+    this.kind = kind;
+  }
+}
+export const done = () => {
+  throw new Decision("none", "");
+};
+
+const emit = (out) => process.stdout.write(JSON.stringify(out));
+
+/* Ten processes per call was the whole cost of the hooks, 38 ms of each 50 being Node starting. One
+   process per event: the first refusal answers before a call; after one every block and context is kept. */
+export const dispatch = async (given, ev = readEvent()) => {
+  const names = given.filter((one) => !(one in DEADLINES));
+  const kind = given.find((one) => one in DEADLINES);
+  if (kind) deadline = DEADLINES[kind];
+  const blocks = [];
+  const contexts = [];
+  for (const name of names) {
+    if (hookOff(name)) continue;
+    current = name;
+    /* Out of time refuses a call (a re-send gets a fresh clock) and logs after one; a kill leaves neither. */
+    if (remaining() <= 0) {
+      if (kind === "pre") {
+        const reason = `The hooks ran out of time before ${name} could decide this call. Re-send it.`;
+        logged("deny", reason);
+        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } });
+        return;
+      }
+      logged("error", `${name} skipped: the post clock ran out before it`);
+      continue;
+    }
+    try {
+      const gate = await import(`./gates/${name}.mjs`);
+      await gate.run(ev);
+    } catch (error) {
+      if (!(error instanceof Decision)) {
+        logged("error", `${name} failed: ${error.message}`);
+        process.stderr.write(`forge hooks: ${name} failed and was skipped: ${error.message}\n`);
+        continue;
+      }
+      if (error.kind === "deny") {
+        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: error.message } });
+        return;
+      }
+      if (error.kind === "block") blocks.push(error.message);
+      if (error.kind === "context") contexts.push(error.message);
+    }
+  }
+  if (!blocks.length && !contexts.length) return;
+  emit({
+    ...(blocks.length ? { decision: "block", reason: blocks.join("\n\n") } : {}),
+    ...(contexts.length ? { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: contexts.join("\n\n") } } : {}),
+  });
+};
+
+/* The deadline is the event's, under what hooks.json registers: a late gate spends what is left. */
+const startedAt = Date.now();
+export const DEADLINES = { pre: 8_000, post: 85_000 };
+let deadline = DEADLINES.post;
+export const remaining = () => deadline - (Date.now() - startedAt);
+
+/** One gate on its own, as the suite and a hand-run call it. */
+export const alone = (name) => dispatch([name]);
+
+/* Refusals are the only entries — a false positive from outside. */
 export const logged = (decision, reason) => {
   const ti = event.tool_input ?? {};
   logHook({
     at: new Date().toISOString(),
-    hook: basename(process.argv[1] ?? "", ".mjs"),
+    hook: current || basename(process.argv[1] ?? "", ".mjs"),
     decision,
     tool: event.tool_name ?? "",
     session: event.session_id ?? "",
@@ -40,7 +109,16 @@ export const logged = (decision, reason) => {
   });
 };
 
+const touchedBy = new WeakMap();
 export function touched(ev, freshMs = FRESH_MS) {
+  const seen = touchedBy.get(ev)?.[freshMs];
+  if (seen) return seen;
+  const found = touching(ev, freshMs);
+  touchedBy.set(ev, { ...(touchedBy.get(ev) ?? {}), [freshMs]: found });
+  return found;
+}
+
+function touching(ev, freshMs) {
   const ti = ev.tool_input ?? {};
   if (["Write", "Edit", "MultiEdit", "NotebookEdit"].includes(ev.tool_name)) {
     const p = ti.file_path ?? ti.notebook_path;
@@ -86,27 +164,22 @@ export const named = (ev) => {
 
 export function deny(reason) {
   logged("deny", reason);
-  process.stdout.write(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: reason,
-      },
-    }),
-  );
-  process.exit(0);
+  throw new Decision("deny", reason);
 }
 
 /** Where the argument for a rule lives. What a refusal prints costs context on every tool use, so
- *  it carries the shape and the action and ends with this. The name derives from the script. */
-export const how = () => `\n\nHow: \`forge hooks --how ${basename(process.argv[1] ?? "", ".mjs")}\``;
+ *  it carries the shape and the action and ends with this. The name is the gate's. */
+export const how = () => `\n\nHow: \`forge hooks --how ${current || basename(process.argv[1] ?? "", ".mjs")}\``;
 
 export function block(reason) {
   logged("block", reason);
-  process.stdout.write(JSON.stringify({ decision: "block", reason }));
-  process.exit(0);
+  throw new Decision("block", reason);
 }
+
+/** Said to the model after the call, refusing nothing. */
+export const context = (text) => {
+  throw new Decision("context", text);
+};
 
 /** One name for one file, existing or not: two spellings of it stamp twice, once per half of a gate. */
 export const settled = (path) => {
@@ -321,24 +394,36 @@ export function writing(ev) {
   );
 }
 
+/* git's globals before the verb: a value may be quoted and hold a space; a bare flag eats no token. */
+const GIT_VALUE = String.raw`(?:"[^"]*"|'[^']*'|\S+)`;
+export const GIT_GLOBALS = String.raw`(?:(?:-[cC]|--(?:git-dir|work-tree|namespace|exec-path|config-env|super-prefix))\s+`
+  + GIT_VALUE + String.raw`\s+|-[A-Za-z-]+(?:=` + GIT_VALUE + String.raw`)?\s+)*`;
+
 /** Where a draft stops being one, in command position only: a message quoting the word is not one. */
-export const COMMITS = new RegExp(
-  `${STARTS}git\\s+(?:(?:-[cC]|--(?:git-dir|work-tree|namespace|exec-path|config-env))\\s+\\S+\\s+`
-    + String.raw`|-[A-Za-z-]+(?:=\S+)?\s+)*commit(?![\w-])`,
-  "u",
-);
+export const COMMITS = new RegExp(`${STARTS}git\\s+${GIT_GLOBALS}commit(?![\\w-])`, "u");
 
 export const committing = (ev) =>
   ev.tool_name === "Bash" && COMMITS.test(shellText((ev.tool_input ?? {}).command));
 
+/** The work tree a git command names: `--work-tree` says so outright, `-C` moves there, and
+ *  `--git-dir` only implies it — so they rank, and are not the last one said. */
+const AIMS = /(?:^|\s)(-C|--work-tree|--git-dir)(?:\s+|=)("[^"]*"|'[^']*'|\S+)/gu;
+export const gitTreeOf = (text) => {
+  const said = {};
+  for (const [, option, value] of String(text ?? "").matchAll(AIMS)) {
+    said[option] = value.replace(/['"]/gu, "").replace(/\/+$/u, "");
+  }
+  if (said["--work-tree"]) return said["--work-tree"];
+  if (said["-C"]) return said["-C"];
+  const dir = said["--git-dir"];
+  if (!dir) return null;
+  return basename(dir) === ".git" ? dirname(dir) : dir;
+};
+
 /** Which tree the draft closes in: `git -C other commit` is that repository's, not the cwd's. */
-const AIMS = /(?:^|\s)(?:-C|--work-tree|--git-dir)(?:\s+|=)(\S+)/gu;
 export const commitTree = (ev) => {
   const found = shellText((ev.tool_input ?? {}).command).match(COMMITS);
-  const named = found ? [...found[0].matchAll(AIMS)].pop() : null;
-  if (!named) return null;
-  const path = named[1].replace(/['"]/gu, "").replace(/\/+$/u, "");
-  return basename(path) === ".git" ? dirname(path) : path;
+  return found ? gitTreeOf(found[0]) : null;
 };
 
 /** Lexical: the file may not exist yet, and a relative target resolves against the cwd. */
@@ -491,7 +576,14 @@ const promptAt = (handle, size) => {
 /** This turn, without reading the session for it: a transcript reaches hundreds of megabytes and the
  *  last prompt is at the end. Grown rather than fixed, because one turn's records can outrun a
  *  window, and a partial first line is dropped since a read cuts wherever the offset lands. */
+const turns = new Map();
 export function turnRecords(path, { tail = TAIL, cap = TAIL_CAP } = {}) {
+  const key = `${path}\0${tail}\0${cap}`;
+  if (!turns.has(key)) turns.set(key, readTurn(path, tail, cap));
+  return turns.get(key);
+}
+
+function readTurn(path, tail, cap) {
   let size = 0;
   let handle = null;
   try {

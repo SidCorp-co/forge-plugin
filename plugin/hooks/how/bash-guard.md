@@ -15,7 +15,8 @@ a subshell, an assignment, a path — and both readings of a runner's options, s
 reads as `git stash` too.
 
 A refusal you believe is wrong: put it to the user. Rewording until the pattern misses teaches that
-the guard is noise, and costs every refusal after it.
+the guard is noise.
 
-Not judged: every shape not listed, `git add -A` under a pathspec, and the git rules on a clean tree. `git commit`, `git push` and
-`rm -rf` are not here.
+Not judged: every shape not listed, `git add -A` under a pathspec, and the git rules on a clean tree —
+the tree the command names with `-C`, else the shell's. `git commit`, `git push` and `rm -rf` are not
+here.

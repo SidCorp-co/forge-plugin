@@ -19,10 +19,12 @@ carries what a refusal has no room for — why the rule exists, what it does not
 
 A registered hook and a script under `plugin/scripts/` are entry points, and nothing imports an
 entry point. Code a second one needs moves to `plugin/src/` before the second copy exists — nothing
-checks the direction, and one script reaching into another is how it starts. Two exceptions are
-imported widely and are not entry points: `plugin/hooks/_hook.mjs`, the harness every hook loads,
-and `plugin/hooks/vendor/`, copies of `packages/code-quality/` — a plugin directory travels alone
-and cannot import a sibling package. README says why.
+checks the direction, and one script reaching into another is how it starts. Three exceptions are
+imported and are not entry points: `plugin/hooks/_hook.mjs`, the harness every hook loads;
+`plugin/hooks/gates/`, the gates themselves, which `gate.mjs` runs together per event and each
+`plugin/hooks/<name>.mjs` runs alone for the suite and the hand; and `plugin/hooks/vendor/`, copies
+of `packages/code-quality/` — a plugin directory travels alone and cannot import a sibling package.
+README says why.
 
 ## This code runs in repositories you cannot see
 

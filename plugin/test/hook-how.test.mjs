@@ -15,12 +15,14 @@ const HOOKS = join(PLUGIN, "hooks");
 const HOW = join(HOOKS, "how");
 const CLI = join(PLUGIN, "src", "cli.mjs");
 
-const scripts = readdirSync(HOOKS).filter((one) => one.endsWith(".mjs") && !one.startsWith("_"));
+const GATES = join(HOOKS, "gates");
+const scripts = readdirSync(HOOKS).filter((one) => one.endsWith(".mjs") && !one.startsWith("_") && one !== "gate.mjs");
+const gates = readdirSync(GATES).filter((one) => one.endsWith(".mjs"));
 const documented = readdirSync(HOW).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3));
 
 test("every gate that points at its reasoning has some", () => {
-  const pointing = scripts
-    .filter((one) => /\bhow\(\)/u.test(readFileSync(join(HOOKS, one), "utf8")))
+  const pointing = gates
+    .filter((one) => /\bhow\(\)/u.test(readFileSync(join(GATES, one), "utf8")))
     .map((one) => one.replace(/\.mjs$/u, ""));
   assert.ok(pointing.length >= 5, `${pointing.length} hooks print the pointer`);
   for (const name of pointing) {

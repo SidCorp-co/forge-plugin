@@ -14,51 +14,11 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|mcp__forge__forge_memory_write|mcp__forge__forge_issues|mcp__forge__forge_comments",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/bash-guard.mjs",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/codex-second.mjs",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit|Bash|mcp__forge__forge_memory_write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/learning-gate.mjs",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/codex-order.mjs",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|mcp__forge__forge_issues|mcp__forge__forge_comments",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/issue-read-first.mjs",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/gate.mjs pre bash-guard codex-second learning-gate codex-order issue-read-first",
             "timeout": 10
           }
         ]
@@ -70,28 +30,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/learning-landed.mjs",
-            "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/code-quality.mjs",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/gate.mjs post learning-landed claude-md derive-dont-list codex-turn code-quality",
             "timeout": 90
-          },
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/claude-md.mjs",
-            "timeout": 20
-          },
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/derive-dont-list.mjs",
-            "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/codex-turn.mjs",
-            "timeout": 15
           }
         ]
       }

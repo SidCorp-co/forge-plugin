@@ -12,7 +12,7 @@ export const HOOKS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "ho
 export const hookNames = () => {
   try {
     return readdirSync(HOOKS_DIR)
-      .filter((name) => name.endsWith(".mjs") && !name.startsWith("_"))
+      .filter((name) => name.endsWith(".mjs") && !name.startsWith("_") && name !== "gate.mjs")
       .map((name) => name.replace(/\.mjs$/u, ""))
       .sort();
   } catch {
@@ -20,15 +20,22 @@ export const hookNames = () => {
   }
 };
 
-/* Where a name becomes a type: each script is registered on one event, so switching the name
+/* The gates a line runs: `gate.mjs a b c` names three; any other script names itself. */
+const namesOn = (command) => {
+  const gate = /hooks\/gate\.mjs((?:\s+[\w-]+)*)/u.exec(command);
+  if (gate) return gate[1].trim().split(/\s+/u).filter((one) => one && one !== "pre" && one !== "post");
+  const own = /hooks\/([\w-]+)\.mjs/u.exec(command);
+  return own ? [own[1]] : [];
+};
+
+/* Where a name becomes a type: each gate is registered on one event, so switching the name
    switches that event. Memoised — `offNow` asks per hook, and one run reads one hooks.json. */
 export const hookEvents = once(() => {
   const found = {};
   for (const [event, blocks] of Object.entries(readJson(join(HOOKS_DIR, "hooks.json"))?.hooks ?? {})) {
     for (const block of blocks ?? []) {
       for (const one of block.hooks ?? []) {
-        const named = /hooks\/([\w-]+)\.mjs/u.exec(one.command ?? "");
-        if (named) (found[named[1]] ??= []).push(event);
+        for (const name of namesOn(one.command ?? "")) (found[name] ??= []).push(event);
       }
     }
   }

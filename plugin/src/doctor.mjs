@@ -49,12 +49,17 @@ const masked = (token, full) => {
 const envHeld = () => {
   const found = {};
   for (const name of hookNames()) {
+    /* A gate's text is under gates/; an entry with no gate, link-cli, is its own text. */
     let source = "";
-    try {
-      source = readFileSync(join(HOOKS_DIR, `${name}.mjs`), "utf8");
-    } catch {
-      continue;
+    for (const path of [join(HOOKS_DIR, "gates", `${name}.mjs`), join(HOOKS_DIR, `${name}.mjs`)]) {
+      try {
+        source = readFileSync(path, "utf8");
+        break;
+      } catch {
+        source = "";
+      }
     }
+    if (!source) continue;
     for (const [, variable] of source.matchAll(/process\.env\.([A-Z_]+)\s*===\s*"1"/gu)) {
       if (process.env[variable] === "1") (found[variable] ??= []).push(`${name} (${hookEvent(name)})`);
     }
