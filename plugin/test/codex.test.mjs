@@ -399,6 +399,43 @@ test("the hook records a document once, and tells a repository once per turn", (
   clearState();
 });
 
+test("a document the latest answered consult read at this content is not recorded again", () => {
+  clearState();
+  const file = join(REPO, "docs", "READ.md");
+  writeFileSync(file, "read by codex");
+  const consult = (ok) => ({
+    kind: "consult",
+    ok,
+    reply: ok ? "CODEX: 0 findings" : null,
+    root: REPO,
+    files: ["docs/READ.md"],
+    sent: [{ rel: "docs/READ.md", sha: digest("read by codex") }],
+  });
+  const told = teller();
+  let opened = 0;
+  const log = (entries) => () => {
+    opened += 1;
+    return entries;
+  };
+
+  assert.equal(hookRecord({}, [file], told("t1"), log([consult(true)])), null, "same content, already read");
+  assert.ok(!existsSync(STATE_PATH) || !pendingIn(state(), REPO).length, "nothing pending");
+  assert.equal(opened, 1, "the log was read once, for the file that would be added");
+
+  assert.match(hookRecord({}, [file], told("t2"), log([consult(false)])), /docs\/READ\.md/, "an unanswered consult read nothing");
+  clearState();
+  assert.match(hookRecord({}, [file], told("t3"), log([])), /docs\/READ\.md/, "never sent");
+  clearState();
+  writeFileSync(file, "changed since");
+  assert.match(hookRecord({}, [file], told("t4"), log([consult(true)])), /docs\/READ\.md/, "changed since the consult");
+
+  opened = 0;
+  assert.equal(hookRecord({}, [file], told("t4"), log([consult(true)])), null, "already pending");
+  assert.equal(hookRecord({}, [join(REPO, "src", "codex.mjs")], told("t4"), log([consult(true)])), null);
+  assert.equal(opened, 0, "a pending or unrecordable file never opens the log");
+  clearState();
+});
+
 /* Two checkouts, one state file: a hook firing in each at the same moment must not write what it
    read, and each is told for itself. */
 test("a second repository is told for itself, and neither loses the other's list", () => {

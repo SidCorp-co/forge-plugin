@@ -70,6 +70,16 @@ export const lastConsultAt = (root, entries = logEntries()) =>
 /* A failed consult carries no advice: "3 accepted" against a gateway timeout is not a verdict. */
 export const answered = (entries) => consults(entries).filter((one) => one.ok && one.reply);
 
+/* The hash the latest answered consult for this checkout sent for one file; null when none did. */
+export const sentShaOf = (entries, root, rel) => {
+  for (const one of answered(entries).reverse()) {
+    if (one.root !== root) continue;
+    const hit = (one.sent ?? []).find((sent) => sent.rel === rel);
+    if (hit) return hit.sha ?? null;
+  }
+  return null;
+};
+
 /* Paired on `id`, which the finished entry copies from the started one. An unpaired start is a
    consult that died rather than one that failed, and only writing the start down tells them apart. */
 export const pairedLog = (entries) => {

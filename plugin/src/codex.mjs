@@ -6,7 +6,7 @@
    the hook halves. */
 export { STATE_PATH, afterTouch, ageOf, holding, pendingIn, pendingState } from "./codex-state.mjs";
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
@@ -23,6 +23,7 @@ import {
   askApi,
   bundle,
   defaultEffort,
+  digest,
   inside,
   locate,
   modelBehind,
@@ -42,6 +43,7 @@ import {
   logEntries,
   printLog,
   recheckPlan,
+  sentShaOf,
   verdict,
   verdictFromRulings,
   verdictsBy,
@@ -439,7 +441,18 @@ const show = () => {
 /* The hook records; it never reviews. What it asks for is one consult at the end of the turn, with
    the intent attached — a review that knows what you were trying to do is a different review. The
    caller decides what a turn is: a pending list spans sessions, so it cannot answer for the silence. */
-export const hookRecord = (event, paths, told = () => false) => {
+/* Content codex has read is not owed a second reading, whatever the mtime says. */
+const readByCodex = (root, rel, log) => {
+  let text;
+  try {
+    text = readFileSync(join(root, rel), "utf8");
+  } catch {
+    return false;
+  }
+  return digest(text) === sentShaOf(log(), root, rel);
+};
+
+export const hookRecord = (event, paths, told = () => false, log = logEntries) => {
   if (process.env.FORGE_CODEX_DISABLE === "1") return null;
   let announce = null;
   for (const path of paths) {
@@ -447,6 +460,7 @@ export const hookRecord = (event, paths, told = () => false) => {
     if (!root) continue;
     const rel = inside(root, path);
     if (!rel || !recordable(rel)) continue;
+    if (!pendingIn(readState(), root).includes(rel) && readByCodex(root, rel, log)) continue;
     let added = false;
     updateState((held) => {
       const step = afterTouch(held, root, rel);
