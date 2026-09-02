@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The issue flow and its contract</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1, h2 {
+      font-family: var(--font-serif);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    h1 { font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); }
+    h2 { font-size: 1.375rem; }
+    figure + figure { margin-top: 4rem; padding-top: 2.5rem; border-top: 1px solid rgba(45,49,66,0.12); }
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">forge issue flow · two figures</p>
+    <h1>The issue flow and its contract</h1>
+
+    <figure>
+    <p class="eyebrow">1 · State machine</p>
+    <h2>The flow: every status is earned</h2>
+
+    <svg viewBox="0 0 1120 496" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="issue-flow-title issue-flow-desc">
+      <title id="issue-flow-title">The issue flow: every status is earned</title>
+      <desc id="issue-flow-desc">State machine of a Forge issue moving from open through confirmed, approved, in progress, developed, tested and released to closed, where each status names what the record must hold, a disposition is the one jump from confirmed to closed, and a moved commit or edited criteria unearns tested, released and closed back to developed.</desc>
+      <defs>
+        <marker id="flow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="flow-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+        <marker id="flow-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- Transitions: every forward arrow is one `forge advance` -->
+      <line x1="62" y1="108" x2="88" y2="108" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#flow-arrow)"/>
+      <line x1="288" y1="108" x2="336" y2="108" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#flow-arrow)"/>
+      <line x1="536" y1="108" x2="584" y2="108" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#flow-arrow)"/>
+      <line x1="784" y1="108" x2="832" y2="108" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#flow-arrow)"/>
+      <line x1="932" y1="144" x2="932" y2="232" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#flow-arrow)"/>
+      <line x1="832" y1="268" x2="784" y2="268" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#flow-arrow)"/>
+      <line x1="584" y1="268" x2="536" y2="268" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#flow-arrow)"/>
+      <line x1="336" y1="268" x2="288" y2="268" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#flow-arrow)"/>
+      <line x1="88" y1="268" x2="64" y2="268" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#flow-arrow)"/>
+
+      <!-- Disposition: confirmed straight to closed, the one jump permitted -->
+      <path d="M 436 144 L 436 180 Q 436 188 428 188 L 196 188 Q 188 188 188 196 L 188 232" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#flow-arrow)"/>
+      <rect x="276" y="168" width="72" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="312" y="176" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DISPOSITION</text>
+
+      <!-- Unearn: tested, released and closed fall back to developed -->
+      <path d="M 88 336 Q 88 344 96 344 L 924 344 Q 932 344 932 336 L 932 304" fill="none" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#flow-arrow-accent)"/>
+      <rect x="476" y="324" width="64" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="508" y="332" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">UNEARNED</text>
+
+      <!-- Start and end -->
+      <circle cx="56" cy="108" r="6" fill="#2d3142"/>
+      <circle cx="56" cy="268" r="8" fill="none" stroke="#2d3142" stroke-width="1"/>
+      <circle cx="56" cy="268" r="5" fill="#2d3142"/>
+
+      <!-- Row 1 -->
+      <rect x="88" y="72" width="200" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="88" y="72" width="200" height="72" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="188" y="104" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Open</text>
+      <text x="188" y="122" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">filed</text>
+
+      <rect x="336" y="72" width="200" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="336" y="72" width="200" height="72" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="436" y="104" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Confirmed</text>
+      <text x="436" y="122" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">comment: what was verified in code</text>
+
+      <rect x="584" y="72" width="200" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="584" y="72" width="200" height="72" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="684" y="104" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Approved</text>
+      <text x="684" y="122" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">plan + numbered criteria</text>
+
+      <rect x="832" y="72" width="200" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="832" y="72" width="200" height="72" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="932" y="104" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">In progress</text>
+      <text x="932" y="122" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">from approved, never a jump</text>
+
+      <!-- Row 2 (right to left) -->
+      <rect x="832" y="232" width="200" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="832" y="232" width="200" height="72" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="932" y="264" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Developed</text>
+      <text x="932" y="282" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">merged mark @ commit</text>
+
+      <rect x="584" y="232" width="200" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="584" y="232" width="200" height="72" rx="8" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="684" y="264" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Tested</text>
+      <text x="684" y="282" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">verdict per criterion @ commit</text>
+
+      <rect x="336" y="232" width="200" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="336" y="232" width="200" height="72" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="436" y="264" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Released</text>
+      <text x="436" y="282" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">release notes + where it runs</text>
+
+      <rect x="88" y="232" width="200" height="72" rx="8" fill="#f5f5f5"/>
+      <rect x="88" y="232" width="200" height="72" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="188" y="264" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Closed</text>
+      <text x="188" y="282" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">released, or a disposition</text>
+
+      <!-- From-anywhere rules -->
+      <text x="88" y="384" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.04em">* → waiting | on_hold  [reason]  advance resumes at the parked status</text>
+      <text x="88" y="400" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.04em">* → dropped  [reason]  terminal until reopen</text>
+      <text x="88" y="416" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.04em">reopen → the status held before the disposition or the drop</text>
+      <text x="88" y="432" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.04em">every arrow is forge advance ISS-nn; a shortfall names the item and its command</text>
+
+      <!-- Callout -->
+      <text x="1032" y="396" fill="#2d3142" font-size="14" font-style="italic" font-family="'Instrument Serif', serif" text-anchor="end">a verdict names the commit and the criteria it judged;</text>
+      <text x="1032" y="412" fill="#2d3142" font-size="14" font-style="italic" font-family="'Instrument Serif', serif" text-anchor="end">move either, and the status is unearned</text>
+      <path d="M 872 384 Q 876 364 880 348" fill="none" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+      <circle cx="880" cy="344" r="2" fill="#2d3142"/>
+
+      <!-- Legend -->
+      <line x1="88" y1="456" x2="1032" y2="456" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="88" y="472" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+      <rect x="184" y="464" width="16" height="10" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="208" y="472" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">STATUS · earned by what it names</text>
+      <rect x="424" y="464" width="16" height="10" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="448" y="472" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">FOCAL · the gate a false verdict passed</text>
+      <line x1="704" y1="468" x2="728" y2="468" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#flow-arrow)"/>
+      <text x="736" y="472" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">ADVANCE</text>
+      <line x1="808" y1="468" x2="832" y2="468" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#flow-arrow)"/>
+      <text x="840" y="472" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">DISPOSITION</text>
+      <line x1="936" y1="468" x2="960" y2="468" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#flow-arrow-accent)"/>
+      <text x="968" y="472" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">UNEARN</text>
+    </svg>
+    </figure>
+
+    <figure>
+    <p class="eyebrow">2 · Flowchart</p>
+    <h2>The contract: the verb asks, then moves</h2>
+
+    <svg viewBox="0 0 1000 664" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="issue-contract-title issue-contract-desc">
+      <title id="issue-contract-title">The contract: the verb asks, then moves</title>
+      <desc id="issue-contract-desc">Flowchart showing a forge advance command and a direct tracker tool call meeting the same check: the next status is named, the issue record is read, and the issue either transitions or is refused with the missing item and the command that supplies it.</desc>
+      <defs>
+        <marker id="contract-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="contract-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+        <marker id="contract-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- Two routes into one check -->
+      <path d="M 300 104 L 300 144 Q 300 152 308 152 L 496 152" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#contract-arrow)"/>
+      <path d="M 700 104 L 700 144 Q 700 152 692 152 L 504 152" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#contract-arrow)"/>
+      <rect x="264" y="118" width="28" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="278" y="127" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">CLI</text>
+      <rect x="708" y="118" width="56" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="736" y="127" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">PRE-HOOK</text>
+      <line x1="500" y1="156" x2="500" y2="192" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#contract-arrow)"/>
+
+      <!-- Down the spine -->
+      <line x1="500" y1="248" x2="500" y2="296" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#contract-arrow)"/>
+      <line x1="500" y1="352" x2="500" y2="400" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#contract-arrow)"/>
+      <line x1="704" y1="324" x2="600" y2="324" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#contract-arrow)"/>
+      <rect x="632" y="304" width="40" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="652" y="313" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">READ</text>
+
+      <!-- Decision exits -->
+      <line x1="564" y1="448" x2="704" y2="448" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#contract-arrow)"/>
+      <rect x="618" y="428" width="32" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="634" y="437" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+      <line x1="500" y1="496" x2="500" y2="536" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#contract-arrow-accent)"/>
+      <rect x="508" y="508" width="24" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="520" y="517" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+
+      <!-- Inputs -->
+      <rect x="200" y="48" width="200" height="56" rx="6" fill="#f5f5f5"/>
+      <rect x="200" y="48" width="200" height="56" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+      <text x="300" y="72" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">The verb</text>
+      <text x="300" y="90" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">forge advance ISS-nn [--owed]</text>
+
+      <rect x="600" y="48" width="200" height="56" rx="6" fill="#f5f5f5"/>
+      <rect x="600" y="48" width="200" height="56" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+      <text x="700" y="72" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">The tracker tool, called directly</text>
+      <text x="700" y="90" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">forge_issues · transition</text>
+
+      <!-- Merge point -->
+      <circle cx="500" cy="152" r="4" fill="#2d3142"/>
+
+      <!-- Steps -->
+      <rect x="400" y="192" width="200" height="56" rx="6" fill="#f5f5f5"/>
+      <rect x="400" y="192" width="200" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="500" y="216" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Name the next status</text>
+      <text x="500" y="234" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">one step forward</text>
+
+      <rect x="400" y="296" width="200" height="56" rx="6" fill="#f5f5f5"/>
+      <rect x="400" y="296" width="200" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="500" y="320" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Read the entry criteria</text>
+      <text x="500" y="338" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">from the record alone</text>
+
+      <!-- Store -->
+      <rect x="704" y="280" width="200" height="88" rx="6" fill="#f5f5f5"/>
+      <rect x="704" y="280" width="200" height="88" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="804" y="300" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Issue record</text>
+      <text x="804" y="316" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">plan · numbered criteria</text>
+      <text x="804" y="330" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">merged mark @ commit</text>
+      <text x="804" y="344" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">verdicts @ commit + evidence</text>
+      <text x="804" y="358" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">release notes · verification</text>
+
+      <!-- Decision -->
+      <polygon points="500,400 564,448 500,496 436,448" fill="#f5f5f5"/>
+      <polygon points="500,400 564,448 500,496 436,448" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="500" y="452" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Criteria met?</text>
+
+      <!-- Ends -->
+      <rect x="704" y="420" width="200" height="56" rx="20" fill="#f5f5f5"/>
+      <rect x="704" y="420" width="200" height="56" rx="20" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="804" y="444" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Transition</text>
+      <text x="804" y="462" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">the status is earned</text>
+
+      <rect x="360" y="536" width="280" height="64" rx="20" fill="#f5f5f5"/>
+      <rect x="360" y="536" width="280" height="64" rx="20" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="500" y="558" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Refuse</text>
+      <text x="500" y="574" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">the missing item · the command that supplies it</text>
+      <text x="500" y="588" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">--owed prints the same and never moves</text>
+
+      <!-- Callouts -->
+      <text x="960" y="236" fill="#2d3142" font-size="14" font-style="italic" font-family="'Instrument Serif', serif" text-anchor="end">written by the step that knew it:</text>
+      <text x="960" y="252" fill="#2d3142" font-size="14" font-style="italic" font-family="'Instrument Serif', serif" text-anchor="end">the merged mark carries its commit, a verdict the commit it judged</text>
+      <path d="M 880 260 Q 868 272 852 278" fill="none" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+      <circle cx="852" cy="280" r="2" fill="#2d3142"/>
+
+      <text x="40" y="216" fill="#2d3142" font-size="14" font-style="italic" font-family="'Instrument Serif', serif">a jump past a status is refused;</text>
+      <text x="40" y="232" fill="#2d3142" font-size="14" font-style="italic" font-family="'Instrument Serif', serif">a park is a transition with a reason</text>
+      <path d="M 284 226 Q 340 236 396 220" fill="none" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+      <circle cx="400" cy="220" r="2" fill="#2d3142"/>
+
+      <!-- Legend -->
+      <line x1="40" y1="624" x2="960" y2="624" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="40" y="640" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+      <rect x="136" y="632" width="16" height="10" rx="2" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+      <text x="160" y="640" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">ROUTE IN</text>
+      <rect x="272" y="632" width="16" height="10" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="296" y="640" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">STEP</text>
+      <rect x="408" y="632" width="16" height="10" rx="2" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="432" y="640" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">RECORD</text>
+      <polygon points="552,632 560,637 552,642 544,637" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="568" y="640" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">DECISION</text>
+      <rect x="680" y="632" width="16" height="10" rx="5" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="704" y="640" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">OUTCOME</text>
+      <rect x="816" y="632" width="16" height="10" rx="5" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+      <text x="840" y="640" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.06em">FOCAL · the refusal</text>
+    </svg>
+    </figure>
+  </div>
+</body>
+</html>

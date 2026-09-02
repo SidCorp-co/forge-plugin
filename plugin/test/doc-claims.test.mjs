@@ -67,6 +67,14 @@ test("a renamed flag, a dropped verb, a document that moved and a dead switch ea
   assert.deepEqual(claimProblems("`forge hooks --den`", held), ["`forge hooks --den` is in no usage line"]);
 });
 
+test("a proposal may name the verb it opens with, and nothing else the CLI lacks", () => {
+  const marker = "**Status: proposal for `forge advance`.** Nothing here is built.";
+  const body = "Run `forge advance ISS-1`, then `forge tranistion`, then `forge hooks --nope`.";
+  const rest = ["`forge tranistion` is no verb", "`forge hooks --nope` is in no usage line"];
+  assert.deepEqual(claimProblems(`# A title\n\n${marker}\n\n${body}`, held), rest);
+  assert.deepEqual(claimProblems(`${body}\n\n${marker}`, held), ["`forge advance` is no verb", ...rest]);
+});
+
 /* The flags of a verb that takes a sub-verb live with the sub-verb, so checking them here would fail
    on every true document. `forge codex consult --diff` is real and its usage line cannot say so. */
 test("a sub-verb's own flags are not held against the verb's usage line", () => {

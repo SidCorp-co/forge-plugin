@@ -1,6 +1,6 @@
 # The issue-flow contract — a status is earned, and the tracker says what it costs
 
-**Status: proposal.** Nothing here is built. It records the shape before the first issue is filed,
+**Status: proposal for `forge advance`.** Nothing here is built. It records the shape before the first issue is filed,
 so each part ships against a stated whole.
 
 ## The constraint

@@ -5,6 +5,8 @@ export const NARRATES =
 const FORGE_CALL = /`forge ([a-z]+)((?:\s+(?:--?[\w-]+|<[^`>]*>|[\w.@/-]+))*)`/gu;
 const ENV_VAR = /\bFORGE_[A-Z][A-Z_]*\b/gu;
 const FLAG = /--[\w-]+/gu;
+/* A proposal opens by naming the verbs it asks for: those the CLI cannot have yet, and only those. */
+const PROPOSAL = /^(?:#[^\n]*\n\s*)?\*\*Status: proposal for ((?:`forge [a-z]+`(?:,\s*)?)+)\.\*\*/u;
 
 export const docClaims = (text) => {
   const calls = [...text.matchAll(FORGE_CALL)].map(([, verb, rest]) => ({ verb, rest: rest ?? "" }));
@@ -20,7 +22,10 @@ export const docClaims = (text) => {
 export const claimProblems = (text, { verbs, usageOf, documented, sources }) => {
   const { calls, flags, hows, envs } = docClaims(text);
   const out = [];
-  for (const { verb } of calls) if (!verbs.includes(verb)) out.push(`\`forge ${verb}\` is no verb`);
+  const proposed = [...(PROPOSAL.exec(text)?.[1] ?? "").matchAll(/`forge ([a-z]+)`/gu)].map((one) => one[1]);
+  for (const { verb } of calls) {
+    if (!verbs.includes(verb) && !proposed.includes(verb)) out.push(`\`forge ${verb}\` is no verb`);
+  }
   for (const { verb, flag } of flags) {
     const usage = verbs.includes(verb) ? usageOf(verb) : "";
     /* Held to a boundary: `--den` is in `--deny` by substring, and a truncated flag is the drift. */
