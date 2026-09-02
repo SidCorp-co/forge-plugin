@@ -1,7 +1,7 @@
 # The issue-flow contract — a status is earned, and the tracker says what it costs
 
-**Status: the verb is built; the contract is still ahead of it.** `forge record` (ISS-2, ISS-10) and
-`forge advance` (ISS-3) implement most of what follows. Where a rule here exceeds what the code does,
+**Status: the verb is built; the contract is still ahead of it.** `forge record` (ISS-2, ISS-10),
+`forge advance` (ISS-3) and `forge claim` (ISS-4) implement most of what follows. Where a rule here exceeds what the code does,
 the rule names the issue that owes it, so a reader can tell the specification from the shipped
 behaviour without reading the code. The figures: `diagrams/issue-flow.html`.
 
@@ -26,8 +26,8 @@ workflow under that contract.** Each phase exists to produce one payload, and th
 holds tells the agent which phase it is in. The two do not compete; one says what is owed, the
 other says how it is produced.
 
-That collapses the workflow to a single cycle: pick an issue, read its status, run the phase that
-status owes, write the payload, advance. `forge advance --owed` says what the payload is. The
+That collapses the workflow to a single cycle: pick an issue and claim it, read its status, run
+the phase that status owes, write the payload, advance. `forge advance --owed` says what the payload is. The
 skill keeps the method, its five rules and its three judgement calls — is this a screen change, is
 this ambiguity expensive to reverse, is this lesson worth a line — and cites the verb for the rest.
 

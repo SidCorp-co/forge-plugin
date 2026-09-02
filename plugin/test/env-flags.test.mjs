@@ -8,15 +8,17 @@ import test from "node:test";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/* Decided, not derived: where config lives, what the platform passes in, and one kill switch that
-   has to work when the config file is what is broken. */
+/* Decided, not derived: where config lives, what the platform passes in, a kill switch for when
+   config is what broke, and the session's own identity — no file names a run. */
 const ALLOWED = new Set([
   "XDG_CONFIG_HOME",
   "CLAUDE_PROXY_ENV",
   "CLAUDE_PLUGIN_ROOT",
   "CLAUDE_PROJECT_DIR",
   "CLAUDE_CODE_DISABLE_ADVISOR_TOOL",
+  "CLAUDE_CODE_SESSION_ID",
   "FORGE_CODEX_DISABLE",
+  "FORGE_SESSION_ID",
 ]);
 
 const SKIP = new Set(["vendor", "node_modules", "test"]);

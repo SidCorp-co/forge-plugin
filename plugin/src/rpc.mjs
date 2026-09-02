@@ -12,8 +12,28 @@ import { translated } from "./vi.mjs";
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
 const MAX_RETRY_SECONDS = 60;
+const RATE_LIMITED = 429;
+/* A gateway status or a dropped socket leaves a call that may have landed, so only a named read is
+   sent again. Decided rather than derived from the arguments: `set_dependency` mutates with no
+   `data` at all, and an action this list does not name is not retried, which is the safe side.
+   429 is the tracker saying it did not process the call, which is safe whatever the call was. */
+const TRANSIENT = [408, 425, 500, 502, 503, 504];
+const READS = ["list", "get", "listTasks", "snapshot", "graph", "runner_load", "search"];
+const AMBIGUOUS = "This call may have been processed and is not sent again: idempotence is "
+  + "documented for the merged mark alone, so a repeat could write twice. Read the record first.";
+
+const repeatable = (params) => {
+  const args = params?.arguments;
+  if (!args || !Object.keys(args).length) return true;
+  return READS.includes(args.action) && !args.data;
+};
+export const retryOf = (status, params) => {
+  if (status === RATE_LIMITED) return "rate-limited";
+  return (status === null || TRANSIENT.includes(status)) && repeatable(params) ? "transient" : null;
+};
 
 const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000));
+const backoff = (attempt) => Math.min(FALLBACK_RETRY_SECONDS * 2 ** (attempt - 1), MAX_RETRY_SECONDS);
 
 /* The endpoint may answer either as JSON or as a single SSE frame. */
 const sseData = (text) =>
@@ -130,16 +150,30 @@ const post = async (method, params) => {
 
 export const rpc = async (method, params) => {
   let text = "";
-  let response;
+  let response = null;
+  let dropped = null;
   for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt += 1) {
-    response = await post(method, params);
-    text = await response.text();
-    if (response.status !== 429 || attempt === RETRY_ATTEMPTS) break;
-    const wait = retryAfter(text, response.headers);
-    console.error(`Forge rate-limited this call; waiting ${wait}s (attempt ${attempt}).`);
+    [response, dropped] = [null, null];
+    try {
+      response = await post(method, params);
+      text = await response.text();
+    } catch (error) {
+      dropped = error;
+    }
+    if (response?.ok) break;
+    const again = retryOf(response ? response.status : null, params);
+    if (!again || attempt === RETRY_ATTEMPTS) break;
+    const limited = again === "rate-limited";
+    const wait = limited ? retryAfter(text, response.headers) : backoff(attempt);
+    const said = limited ? "rate-limited this call" : `answered ${response?.status ?? dropped.message}`;
+    console.error(`Forge ${said}; waiting ${wait}s (attempt ${attempt} of ${RETRY_ATTEMPTS}).`);
     await sleep(wait);
   }
-  if (!response.ok) fail(`Forge answered ${response.status}: ${text.slice(0, 400)}`);
+  const owed = repeatable(params) ? "" : `\n${AMBIGUOUS}`;
+  if (dropped) fail(`Forge did not answer: ${dropped.message}.${owed}`);
+  if (!response.ok) {
+    fail(`Forge answered ${response.status}: ${text.slice(0, 400)}${TRANSIENT.includes(response.status) ? owed : ""}`);
+  }
   const frame = text.startsWith("event:") || text.startsWith("data:") ? sseData(text) : text;
   let parsed;
   try {

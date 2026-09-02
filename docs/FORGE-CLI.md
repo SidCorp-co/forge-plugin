@@ -71,6 +71,38 @@ git is asked at the step that knows the answer, and the answer is written onto t
 a caller can tell "not yet" from "here is what to type". The contract it serves, and the tables it
 carries in its own words: `docs/issue-flow-contract.md`.
 
+## `claim` — one run holds an issue, as far as a client can promise
+
+The issue's session field was there from the start and nothing wrote it: measured 2026-09-02, a
+search for it across this plugin answered nowhere at all. It now holds a lease — a holder, a renew
+time, a duration and the claims before this one — taken by the pick and renewed by every payload
+write the CLI makes. A run that dies leaves the field behind, and the field is what the next run
+reads.
+
+Three measurements shaped it. The tracker replaces that field rather than merging it and answers
+with the keys in an order of its own, so the compare is blind to key order: the first read-back
+rejected a write where nothing had changed. There is no conditional write (ISS-7), so the compare
+is a read, a write and a read back, which cannot stop another run's write and only refuses to build
+on it — `forge claim` says so in its own output rather than leaving a reader to assume otherwise.
+And 429 is the only answer this tracker gives that means it did not process a call, so it is the
+only one anything but a read is sent again on; a gateway status or a dropped socket is retried for
+a named read alone, because idempotence is documented for the merged mark and nothing else. Which
+actions those are is decided here rather than read off the arguments: one of them mutates with no
+payload field at all, and an action this list does not name is not retried.
+
+A lease past its duration is stale for its holder too. The first version renewed the holder's own
+expired lease instead, and a live run then showed a dead session writing payloads half an hour
+after its lease had gone: past the duration another run may hold the issue, and that is exactly
+what nothing here can refuse yet. A reclaim is a handoff between two holders, though, so a holder
+taking its own lapsed lease back appends nothing to the history and brings no park closer.
+
+The holder is the harness's own session, read twice to check that it is stable for the life of a
+process tree. Outside a harness it is a file under the config directory, which names a machine
+rather than a run: two runs there look like one holder and neither is refused. Each payload write
+costs three calls for the lease — the read, the write, the read back — and every one of them pays,
+because a park is three writes and an upload of four files is four: a run reclaimed halfway through
+has to be refused at the next of them rather than carried to the end.
+
 ## Two writes that lie about themselves
 
 A schema-validated field that is accepted and dropped answers 200 exactly like one that was stored, so

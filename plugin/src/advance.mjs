@@ -17,6 +17,7 @@ import {
   render,
 } from "./record.mjs";
 import { PARK_STATUS, SIDE, atLeast, payloadOwed, targetOf, transitionCall, viewFrom } from "./earned.mjs";
+import { renew } from "./lease.mjs";
 
 /* A needs_info park owes the readings only the question shape carries; a reviewer's park owes
    the thing to look at. Both are the payload the person on the other side reads. */
@@ -56,11 +57,19 @@ const viewOf = async (reference) => {
   return viewFrom(documentId, body, comments, !hasMore);
 };
 
-const transitionTo = async (view, status, ref, note = "") => {
+export const transitionTo = async (view, status, ref, note = "") => {
+  await renew(view.documentId, ref);
   const answer = await write("forge_issues", { action: "transition", documentId: view.documentId, data: { status } });
   const held = answer?.status ?? answer?.issue?.status;
   if (held && held !== status) refuse(`The transition answered with status ${held}, not ${status}. Nothing to rely on.`);
   console.log(`${ref}  ${view.issue.status} -> ${status}${note}`);
+};
+
+/* The two writes of one park, in the order a reader of the record needs them: the typed reason
+   first, then the status it sends the issue to. The crashed park a reclaim writes lands here too. */
+export const parkAs = async (view, ref, kind, why, evidence = []) => {
+  await post(view.documentId, render("park", { kind, why, evidence }, view.issue.status), ref);
+  await transitionTo(view, PARK_STATUS[kind], ref);
 };
 
 const park = async (view, ref, kind, why, evidence) => {
@@ -93,8 +102,7 @@ const park = async (view, ref, kind, why, evidence) => {
       + `  forge advance ${ref} --park ${kind} --why "<why>" --evidence <attachment|url|sha>`);
   }
   if (evidence.length) checkEvidence(evidence, attachmentNames(view.issue, view.comments));
-  await post(view.documentId, render("park", { kind, why, evidence }, view.issue.status));
-  await transitionTo(view, to, ref);
+  await parkAs(view, ref, kind, why, evidence);
 };
 
 const shortfall = (ref, view, next, missing) => {

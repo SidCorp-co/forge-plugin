@@ -21,6 +21,8 @@ import { codex } from "./codex.mjs";
 import { hooks } from "./hook-log.mjs";
 import { record } from "./record.mjs";
 import { advance } from "./advance.mjs";
+import { claim } from "./claim.mjs";
+import { notAnothers, renew } from "./lease.mjs";
 
 /* One rule for every payload: inline, `@path`, or `-` for stdin. */
 const bodyFrom = (path) => {
@@ -130,6 +132,7 @@ const suggestTool = async (name) =>
 
 export const commands = {
   doctor,
+  claim,
   record,
   advance,
   deps,
@@ -200,6 +203,7 @@ export const commands = {
   comment: async ([reference, path]) => {
     if (!reference || !path) fail(usageOf("comment"));
     const issue = await documentIdOf(reference);
+    await renew(issue, reference);
     show(await write("forge_comments", { action: "create", data: { issue, body: bodyFrom(path) } }));
   },
   /* A plan is a field, not a comment: one value, replaced rather than accumulated. Read back before
@@ -209,6 +213,7 @@ export const commands = {
     const documentId = await documentIdOf(reference);
     const plan = bodyFrom(path);
     if (!plan.trim()) fail("An empty plan would clear the field; pass the plan itself.");
+    await renew(documentId, reference);
     await write("forge_issues", { action: "update", documentId, data: { plan } });
     const back = await scoped("forge_issues", { action: "get", documentId, fields: ["plan"] });
     const stored = (back?.plan ?? "").trim();
@@ -225,6 +230,9 @@ export const commands = {
     }
     const targetId = target === "issue" ? await documentIdOf(targetRef) : targetRef;
     for (const path of paths) {
+      /* Every payload write renews, uploads included; a comment id names no issue to read a lease
+         from, and the tracker offers no route from one to the other. */
+      if (target === "issue") await renew(targetId, targetRef);
       const name = basename(path);
       const minted = await write("forge_uploads", {
         action: "request",
@@ -237,9 +245,13 @@ export const commands = {
       console.log(`${name}  ${uploaded(answer)}`);
     }
   },
+  /* An edge changes the order the blocked issue is worked in, so its lease is the one that covers
+     the write: a new issue filed to block the one in hand renews the one in hand. */
   dep: async ([from, to, kind = "blocks"]) => {
     if (!from || !to) fail(usageOf("dep"));
     const [fromIssueId, toIssueId] = await Promise.all([documentIdOf(from), documentIdOf(to)]);
+    await notAnothers(fromIssueId, from);
+    await renew(toIssueId, to);
     show(await write("forge_project_pm", { action: "set_dependency", fromIssueId, toIssueId, kind }));
   },
   /* Ask for the guide; reach for the list only when the slug was wrong. */

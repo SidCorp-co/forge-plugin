@@ -7,6 +7,7 @@ import { pullRepeated, flags } from "./resolve/flags.mjs";
 import { documentIdOf, rowsOf } from "./issues.mjs";
 import { scoped, write } from "./rpc.mjs";
 import { refuseIfGated, usageOf } from "./resolve/visibility.mjs";
+import { renew } from "./lease.mjs";
 
 export const CONTRACT = 1;
 
@@ -289,8 +290,9 @@ const gather = (kind, argv) => {
   return got;
 };
 
-export const post = async (documentId, body) => {
+export const post = async (documentId, body, ref = documentId) => {
   refuseIfGated("forge_comments");
+  await renew(documentId, ref);
   const answer = await write("forge_comments", { action: "create", data: { issue: documentId, body } });
   console.log(body);
   return answer;
@@ -308,7 +310,7 @@ const recordShaped = async (kind, reference, argv) => {
     if (!held) refuse(`${reference} has no criterion ${got.criterion}; its field holds ${criteriaCount(body)}.`);
     got.criterion = `${held.number} — ${held.text}`;
   }
-  return post(documentId, render(kind, got, shape.status ? body.status : null));
+  return post(documentId, render(kind, got, shape.status ? body.status : null), reference);
 };
 
 const criteriaCount = (body) => {
@@ -338,7 +340,8 @@ export const noteFrom = (argv) => {
 };
 
 /* The read-back is owed here for the reason it is owed on `plan`, stated once beside that verb. */
-const updateField = async (documentId, field, value, same) => {
+const updateField = async (documentId, field, value, same, ref) => {
+  await renew(documentId, ref);
   await write("forge_issues", { action: "update", documentId, data: { [field]: value } });
   const back = await scoped("forge_issues", { action: "get", documentId, fields: [field] });
   if (!same(back?.[field])) refuse(`The update answered success but ${field} did not read back as written. Nothing to rely on.`);
@@ -348,7 +351,7 @@ const recordNote = async (reference, argv) => {
   const releaseNotes = noteFrom(argv);
   const { documentId } = await issueOf(reference);
   const same = (held) => ["section", "userFacing", "technical"].every((key) => (held?.[key] ?? null) === releaseNotes[key]);
-  await updateField(documentId, "releaseNotes", releaseNotes, same);
+  await updateField(documentId, "releaseNotes", releaseNotes, same, reference);
   console.log(JSON.stringify(releaseNotes, null, 2));
 };
 
@@ -359,7 +362,7 @@ const recordCriteria = async (reference, [path, ...extra]) => {
   const joined = joinedCriteria(criteria, conjunctionsFor());
   const { documentId } = await issueOf(reference);
   const acceptanceCriteria = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");
-  await updateField(documentId, "acceptanceCriteria", acceptanceCriteria, (held) => unwrap(held) === acceptanceCriteria);
+  await updateField(documentId, "acceptanceCriteria", acceptanceCriteria, (held) => unwrap(held) === acceptanceCriteria, reference);
   for (const number of joined) {
     console.error(`criterion ${number} holds a conjunction: is it two? A verdict judges one outcome.`);
   }
