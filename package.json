@@ -14,11 +14,13 @@
     "check:vi-text": "node tools/check-vi-text.mjs",
     "check:vi-goldens": "node tools/diff-python.mjs --goldens",
     "check:vendor": "node plugin/scripts/check-vendor.mjs",
-    "check": "npm run lint && npm test && npm run check:package && npm run check:vi-text && npm run check:vi-goldens && npm run check:vendor && npm run check:skill-paths && npm run check:skill-boundaries && npm run check:dup",
+    "check": "npm run lint && npm test && npm run check:package && npm run check:vi-text && npm run check:vi-goldens && npm run check:vendor && npm run check:skill-paths && npm run check:skill-boundaries && npm run check:dup && npm run sync:skills:check",
     "check:package": "npm --prefix packages/code-quality run lint && npm --prefix packages/code-quality test",
     "test": "node --test \"plugin/test/*.test.mjs\"",
     "check:skill-paths": "node plugin/scripts/skill-paths.mjs",
     "check:skill-boundaries": "node plugin/scripts/skill-boundaries.mjs",
-    "check:dup": "node plugin/scripts/skill-dup.mjs plugin --only comments --exclude hooks/vendor --exclude test"
+    "check:dup": "node plugin/scripts/skill-dup.mjs plugin --only comments --exclude hooks/vendor --exclude test",
+    "sync:skills": "node tools/sync-skills.mjs",
+    "sync:skills:check": "node tools/sync-skills.mjs --check"
   }
 }

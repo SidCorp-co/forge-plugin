@@ -1,6 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { URL } from "node:url";
 
+// The skills under claude-plugin/skills are COPIES of plugin/skills, and a copy
+// that drifted is the exact thing that shipped 0.6.0 while the source sat at
+// 0.7.0. Refuse to pack until the copy matches.
+execFileSync("node", [new URL("../../../tools/sync-skills.mjs", import.meta.url).pathname, "--check"], {
+  stdio: "inherit",
+});
+
 const output = execFileSync("npm", ["pack", "--dry-run", "--json"], {
   cwd: new URL("..", import.meta.url),
   encoding: "utf8",
@@ -29,7 +36,11 @@ const required = [
   "claude-plugin/hooks/hooks.json",
   "claude-plugin/scripts/lint-edited-file.mjs",
   "claude-plugin/skills/setup-code-quality/SKILL.md",
+  "claude-plugin/skills/setup-code-quality/references/discovery.md",
+  "claude-plugin/skills/setup-code-quality/references/edge-cases.md",
   "claude-plugin/skills/audit-code-quality/SKILL.md",
+  "claude-plugin/skills/audit-code-quality/references/directives.md",
+  "claude-plugin/skills/audit-code-quality/references/resolving-the-binary.md",
 ];
 const missing = required.filter((file) => !files.has(file));
 if (missing.length > 0) throw new Error(`Package is missing: ${missing.join(", ")}`);
