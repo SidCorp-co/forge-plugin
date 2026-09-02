@@ -42,7 +42,7 @@ issue. They write to the project, never to a transition.
 | `confirmed` | we read the code; the problem is real and it is this | a confirmation: where the reader looked, what the issue is in the code's own terms, and a finding — *holds*, or one of the dispositions the triage reference admits | 2 Clarify |
 | `clarified` | every ambiguity is decided or answered | a decision record: each reading decided, its assumption and the sentence that undoes it, or an explicit *none found*; no question left open | 3 Plan |
 | `approved` | object to the plan now, not after | plan and numbered criteria, one per line, each in its own field; the plan states whether this is a screen change and whether it touches the schema | 4 Implement, to the branch |
-| `in_progress` | code is being written against this plan | `approved`; every blocker at least `developed`; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the review and the merge |
+| `in_progress` | code is being written against this plan | `approved`; every blocker that gates dispatch at least `developed` (a *relates* edge gates nothing; ISS-19 owes the distinction); a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the review and the merge |
 | `developed` | the change was reviewed and is on the default branch | an approving review of the head that landed: the reviewer, the findings with a verdict on each by id, the outcome *approved*; a person's approval where the project asks for one; then the merged mark with its commit | 5 Prove |
 | `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all against the merged commit; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
 | `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; for a screen change, a review comment from a person | closing, by a person or the run's end |
@@ -123,7 +123,7 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 
 | Scenario | Writes | Goes to |
 |---|---|---|
-| every blocker at least `developed` | the branch cut; the baseline naming what already fails, so a later red has something to be judged against; the batch relation when several ride together | `in_progress` |
+| every gating blocker at least `developed` | the branch cut; the baseline naming what already fails, so a later red has something to be judged against; the batch relation when several ride together | `in_progress` |
 | a blocker not yet `developed` | nothing; the refusal names the blocker | unchanged |
 | the plan or criteria change now | a correction comment saying what moved and why, at the write | unchanged |
 
@@ -212,7 +212,10 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
 - **A claim is a lease, in a field the issue already has.** The issue's session field holds the
   holder's session, the renew time and the duration; every payload write renews it. A second agent
   that picks an issue with a live lease is refused, naming the holder. A lease past its duration is
-  reclaimable by any run, and the first holder's later writes are refused as stale. The field also
+  reclaimable by any run, and a lapsed lease is stale for its own holder too: the first holder's later
+  writes are refused, and the fifth dry run caught a build that renewed a dead run's lease for it. A
+  reclaim is a handoff between two holders, so a holder retaking its own lapsed lease appends no
+  reclaim and counts toward no park. The field also
   keeps the claim history, each claim and reclaim appended by the write that made it, so who held the
   issue when is on the record with no second write that could fail or lie. The
   claim, and every status or payload write the lease covers, is a compare-and-set on the whole field:
@@ -224,13 +227,22 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
 - **Crashed is not failed.** An expired lease says nothing about the work. The status stands, the
   payloads written so far stand, and the next run resumes the phase the status owes. The third
   reclaim of one status parks the issue as `on_hold`, kind crashed, with the claim history as
-  evidence: Gas Town's handoff, Composio's needs-you column.
+  evidence: Gas Town's handoff, Composio's needs-you column. The history is the park's reason where
+  the typed evidence admits no history yet (ISS-35 owes the field-as-evidence form).
 - **The record is the checkpoint.** The tracker holds the process, the pushed branch holds the code,
   and nothing lives in a session. A commit is pushed as it is made, because a branch on one disk is a
   checkpoint nobody can resume from. Every payload write is idempotent: the same content twice is one
   record, the latest verdict per criterion wins, the merged mark keeps its first stamp. Where a
   project lands work through a merge queue, the lease holder writes the merged mark once the queue
   reports the landing, with the commit the queue landed; the queue itself writes nothing to the issue.
+  A wrong typed payload is not deleted: a correction beside it says what was wrong, and the report
+  shows both, because a record that can be quietly removed and reposted is a record that can be made
+  to say anything. The fifth dry run deleted and reposted four of its own records and the report
+  shows no sign of it; until the verb refuses the deletion, the rule is the author's to keep.
+  A relation write renews the lease on the issue the run holds, the one `forge dep` takes second:
+  for a *blocks* edge that is the blocked issue, for a *relates* edge the one in hand; the issue
+  named first is only checked not to be another run's, so filing a blocker for the issue in hand
+  keeps working.
 - **A park is a checkpoint with a person at it.** Nothing runs while it waits. A reply resumes the
   three parks that wait on a person; a blocked issue is resumed by the next run that picks it and
   finds its blocker `developed`, and that run takes the lease as it would for any issue. The parks
@@ -330,7 +342,8 @@ drop is refused once the merged mark is set.
 **A review is two voices in one record.** The outcome is the reviewer's word about the diff at
 the head it judged, and nothing else: *approved* means the reviewer stood behind that head. The
 finding lines are the author's disposition of each finding by id, accepted or rejected with a
-reason. Dispositions never add up to an approval: a rejected finding the reviewer never saw
+reason; an id names the consult that issued it, because every consult numbers from one and a
+review over four rounds has four findings called F1 (ISS-34 owes the grammar). Dispositions never add up to an approval: a rejected finding the reviewer never saw
 answered is an open finding, and *approved* is written only from the reviewer's answer on the same
 head with nothing standing, which for codex is the recheck that found none. A record that could
 only say *approved* or *changes requested* made the honest value and the passable value differ,
@@ -354,7 +367,9 @@ entry criteria in the tool's own words. Nothing in the skill repeats them.
 
 **Every route this plugin sees is the same route.** The CLI enforces; the pre-hook applies the same
 check to the tracker tool called directly, so the contract cannot be stepped around by choosing a
-client the plugin serves. The tracker's own screens and unhooked clients are outside it: a status
+client the plugin serves. A delegated agent is a route too: the read-first gate looks for a read in
+the main session's transcript, so a subagent's read is invisible and a read from hours earlier
+counts, which is the same route only in name (ISS-33 owes it). The tracker's own screens and unhooked clients are outside it: a status
 they set is unearned, and `advance --owed` on such an issue says what its record lacks. A check on
 the server is the tracker's to add, and this contract is its specification.
 
@@ -515,4 +530,31 @@ the merged commit, at `tested` with one line per criterion lacking a verdict, at
 - Delegation worked as the contract meant it to: the agent read this document and the record and
   nothing else, and where it stalled the document was thin, not the agent. Each place is now a
   rule above or an issue: ISS-11 to ISS-17.
+
+## Fifth dry run — ISS-4
+
+ISS-4 built the lease and was the second issue delegated whole. Seven of eight transitions were
+`forge advance`; every payload was typed. The one raw transition was forced by a wrong refusal: a
+*relates* edge to an open issue was counted as a blocker, filed as ISS-19 and now a rule above.
+
+- The first build renewed a lapsed lease for its own holder, and a live test caught the dead run
+  writing a payload half an hour after it should have stopped. The lease bullet now says stale is
+  stale for the holder too, and a reclaim is a handoff.
+- Four typed records were deleted and reposted, two written by a session the fixed build would have
+  refused, one mangled by shell backticks inside a value, one saying eight findings where there were
+  nine. The report shows none of it. The rule above forbids the deletion and asks for a correction;
+  the verb does not enforce it yet.
+- Four codex rounds each numbered from F1, and the review record carries F1 to F9 that no consult
+  said. ISS-34.
+- The read-first gate denied a subagent every write after the subagent had read, and passed a write
+  on a read from hours earlier; the route out was the issue's uuid, which is the gate bypassed.
+  ISS-33.
+- The crash park could not carry the claim history as evidence, so the history went into the reason
+  on one line. ISS-35.
+- A test left its fixture in a real field: ISS-4's session field still holds a synthetic holder from
+  the live reclaim test. Harmless on a closed issue, and exactly the kind of write the rule about
+  the live config directory exists for.
+- One gate list was widened rather than the code changed: the environment-flag test gained the two
+  variables a run's identity comes from. Stated plainly in the run and in the file, because a rule
+  that names an incomplete list is the checker being wrong, which the repository's own rule allows.
 
