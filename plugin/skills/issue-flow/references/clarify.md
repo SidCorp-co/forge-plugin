@@ -17,4 +17,5 @@ Not a paragraph asking what they meant. **Enumerate the readings as concrete cas
 outcome each produces** — a table of before/after rows, a literal example record, the two
 screens side by side. The person answering should be choosing between visible results.
 
-Then park it, in whatever status the tracker uses for "waiting on the reporter".
+Then park it, in whatever status the tracker uses for "waiting on the reporter" — for the Forge
+driver that is `needs_info`, and only that: `references/forge-driver.md`.

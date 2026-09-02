@@ -3,11 +3,11 @@ name: issue-flow
 description: >-
   Implement a tracker issue end to end — plan it, build it, prove it, ship it. Invoke when
   an issue has to become deployed code: verifying what it claims, writing the plan the
-  tracker holds, implementing, proving by running, and taking it to released. For reading,
+  tracker holds, implementing, proving by running, and taking it to done. For reading,
   listing or filing issues without implementing them, use the forge skill instead.
   Triggers on "work ISS-nn", "implement this issue", "fix ISS-nn", "làm issue",
   "xử lý ISS-nn", "ship this issue".
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Skill: issue-flow
@@ -86,6 +86,11 @@ Two obligations replace the gate that used to sit before them:
 ## Phase 0 — Learn the project
 
 Follow `references/project-discovery.md`. Report what you found and what is missing.
+
+**If a Forge runner handed you this issue** — the prompt names a pipeline run and tells you to
+reach Forge with `forge-runner api` — read `references/forge-driver.md` first. It holds the three literals this workflow
+otherwise leaves to the tracker: the one transport, the five statuses, and the phase journal a
+crashed session resumes from.
 
 ## Phase 1 — Recall, read, decide what this issue is
 
@@ -175,6 +180,7 @@ Read on arrival at the phase that cites it.
 | File | Read at |
 |---|---|
 | `references/project-discovery.md` | Phase 0, and whenever a project fact is needed |
+| `references/forge-driver.md` | Phase 0, when a Forge runner is the caller — and at every park, status write and phase boundary after |
 | `references/triage.md` | Phase 1 |
 | `references/clarify.md` | Phase 2 |
 | `references/plan.md` | Phase 3 |
