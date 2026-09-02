@@ -72,9 +72,9 @@ than encoded into the call, because bytes through a context window are paid for 
 
 Rev: 1 · Actors: agent · Enforces: BR-02
 
-The tracker fences every field and body it returns in markers saying the content is data. Anything
-that reads the record reads through that fence, so a body cannot instruct whatever parses it, and a
-value is never confused with the fence around it.
+What the tracker returns arrives inside its own data markers (EI-01), and everything here reads
+through them: a body cannot instruct whatever parses it, and a value is never confused with the
+markers around it.
 
 - **AC-02-4-1** · Rev: 1 · Proof: plugin/test/record.test.mjs
   WHEN a fenced field is read THEN the reader SHALL return the value without the fence, and SHALL

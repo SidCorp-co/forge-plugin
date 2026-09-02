@@ -8,8 +8,9 @@ Rev: 1 · Actors: project, agent · Enforces: BR-07, BR-09, BR-10, BR-12 · Sour
 
 *Why does this requirement exist?*
 
-This product owns *when and where* a rule fires, and owns no rule about what good code is. The
-project owns that: its linter, its configuration, its thresholds. So the code files a call wrote —
+The division this requirement sits on has one home, the issue-flow skill's `two-levels` reference,
+and what falls to the project here is concrete: its linter, its configuration, its thresholds. So
+the code files a call wrote —
 by whichever route, and up to the cap UC-11-1 states — are handed to the linter the project itself
 configured, and a project with no linter is answered with silence, which is an opt-out rather than a
 misconfiguration.
@@ -35,8 +36,8 @@ Rev: 1 · Actors: project, agent · Enforces: BR-07
 
 The files a call wrote are found rather than assumed, including the ones written through a shell,
 and they are handed to the project's own linting entry point, which resolves the workspace, the
-binary and the configuration. The project's installed copy is preferred and the vendored copy is
-the fallback. Linting is the slowest thing a post-call gate does and the whole line shares one
+binary and the configuration; which copy of that entry point answers is `README.md`'s.
+Linting is the slowest thing a post-call gate does and the whole line shares one
 deadline, so the number of files one call can carry is capped — which is why the cap is a clause
 here rather than an implementation detail.
 
@@ -58,11 +59,9 @@ here rather than an implementation detail.
 
 Rev: 1 · Actors: agent · Enforces: BR-12
 
-Each kind of claim is settled by a command rather than by an opinion: a path that is not there, a
-script no manifest holds, a help flag a script does not handle, a tool not on the path, a reference
-that does not resolve, a file said to be absent that exists, a commit that is no ancestor, an
-identifier cited nowhere else. Only backticked spans and link targets are claims, so prose naming a
-file is not one.
+Every kind of claim is settled by running something rather than by an opinion — the kinds
+themselves, and what counts as a claim at all, are listed in the gate's own document. The duty here
+is that the file a claim names is the authority over the claim.
 
 - **AC-11-2-1** · Rev: 1 · Proof: plugin/test/claude-md-hook.test.mjs
   IF a write introduces a claim the repository does not bear out THEN the gate SHALL refuse the

@@ -60,7 +60,8 @@ criterion, the issues citing each and the verdicts that passed — is rendered b
 
 *Where are they, and why not here?*
 
-In [../brd/04-business-rules.md](../brd/04-business-rules.md), which is both their definition and
-their quick table. The sibling trees this one learned from keep that table in the SRS index because
-neither has a BRD; here it would be a second copy of the text, and the map from a rule to the
-requirements enforcing it is rendered rather than kept (../README.md records the deviation).
+In [../brd/04-business-rules.md](../brd/04-business-rules.md), which holds the sequence: each rule's
+name and the document that states it. The sibling trees this one learned from keep
+that table in the SRS index because neither has a BRD; here it would be a second copy, and the map
+from a rule to the requirements enforcing it is rendered rather than kept (../README.md records both
+deviations).

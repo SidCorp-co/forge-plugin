@@ -14,8 +14,8 @@ failure a reviewer who does not read Vietnamese cannot see. So the rule is struc
 textual: no source file of this route may hold Vietnamese text at all, and everything the product
 may send comes from one generated module.
 
-What comes back from a model is not diffable (BR-16), so a change to a prompt or a style contract
-is verified by running it and reading the output. A green tree says the plumbing survived.
+BR-16 governs the rest: no clause here promises that the Vietnamese is good, and a change to a
+prompt or a style contract is answered for by a person reading the output.
 
 ## Actors
 

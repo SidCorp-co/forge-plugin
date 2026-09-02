@@ -13,8 +13,10 @@ work has to survive that without a person reconstructing where it got to, and tw
 work one issue at once. A lease answers both: it says who holds an issue, until when, and who held
 it before — in a field the issue already has, so no run has to remember anything.
 
-An expired lease says nothing about the work. Crashed is not failed: the status stands, the
-payloads stand, and the next run resumes the phase the status owes.
+A lapsed lease is a statement about a run and not about the work, which is why this product needs
+crashed and failed to be different states. What survives an expiry, and where a resuming run picks
+up, is `docs/issue-flow-contract.md`, "Crashed is not failed"; the duty here is that the lease is
+the only thing that expires.
 
 ## Actors
 
@@ -62,10 +64,9 @@ the holder and the renew time — the two facts a person needs to decide whether
 
 Rev: 1 · Actors: agent · Enforces: BR-05
 
-A lease past its duration is reclaimable by any run, and it is stale for its own holder too: the
-first holder's later writes are refused, because a build that renewed a dead run's lease for it let
-that run keep writing half an hour after it should have stopped. A holder retaking its own lapsed
-lease is not a handoff and counts toward no park.
+Once the duration has passed the lease is open to any run, and the run that held it is no more
+privileged than any other. The live test that settled that — and what it caught a build doing — is
+in the contract's fifth dry run.
 
 - **AC-03-3-1** · Rev: 1 · Proof: plugin/test/lease.test.mjs
   IF a lease is past its duration THEN the CLI SHALL let any run reclaim it, and SHALL refuse the

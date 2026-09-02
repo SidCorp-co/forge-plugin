@@ -8,11 +8,11 @@ Rev: 1 · Actors: agent, reviewer · Enforces: BR-01, BR-09, BR-16 · Source: pl
 
 *Why does this requirement exist?*
 
-A model's own errors are the ones it cannot see, and it fixes them readily once someone else points
-at them. So what a turn wrote is read by a model from another provider before it lands — and the
-reading has to actually happen and actually be answered, because a reminder is context and an agent
-can ignore it. It was ignored: a commit landed after an hour of gate changes with the built-in
-advisor consulted four times and the other reviewer not once.
+What a turn wrote is read by a model from another provider before it lands. Why that is worth its
+tokens at all, and how a finding should be received, is
+`plugin/skills/forge/references/codex.md`; what this requirement adds is that the reading has to
+happen and has to be answered, because a reminder is context and an agent can ignore one — and one
+did, for an hour of gate changes.
 
 A second opinion from the same model family is duplication wearing the clothes of confirmation
 (C-09), which is why the review model is refused when it resolves to this model's own family.
@@ -32,10 +32,9 @@ A second opinion from the same model family is duplication wearing the clothes o
 
 Rev: 1 · Actors: agent · Enforces: BR-01, BR-16
 
-The diff and the size of each file are sent, the reviewer reads the rest itself, and the intent —
-what the author was trying to do — is the part it cannot see. Which files are worth a second opinion
-is the checkout's decision, not the account's: a documentation tree and a code tree do not want the
-same answer.
+The intent — what the author was trying to do — is the part the reviewer cannot see, and what is
+sent alongside it is the codex reference's business. Which files are worth a second opinion is the
+checkout's decision rather than the account's, and `README.md` says why that level.
 
 - **AC-06-1-1** · Rev: 1 · Proof: plugin/test/codex.test.mjs
   WHEN a consult runs THEN the pattern deciding which files it covers SHALL be taken from the
@@ -53,9 +52,9 @@ same answer.
 
 Rev: 1 · Actors: agent · Enforces: BR-01
 
-A review per write sees a paragraph and cannot know whether the paragraph was the plan. So the
-documents a turn changed are recorded and offered for one reading at the end of it, and a document
-whose content the last consult already read is not offered again however recently it was touched.
+The reading is offered once at the end of a turn rather than at each write, for the reason
+`plugin/hooks/how/codex-turn.md` gives, and a document whose content the last consult already read
+is not offered again however recently it was touched.
 
 - **AC-06-2-1** · Rev: 1 · Proof: plugin/test/codex-turn.test.mjs
   WHEN the first document of a turn is written THEN the CLI SHALL ask once, and SHALL record the
@@ -91,10 +90,9 @@ heard a disposition of each. A finding nobody ruled on is an open finding.
 
 Rev: 1 · Actors: agent · Enforces: BR-09
 
-One reviewer reads the conversation and cannot open a file; the other reads the files and has never
-seen the conversation. The advisor's reply is unreadable once the turn moves on, so the only moment
-its content can reach the other reviewer is the same turn. Left out, the second reviewer rediscovers
-the ground and its agreement reads as independent confirmation.
+The two reviewers see disjoint things, and only one of them can be re-read afterwards — so the
+only moment the first one's reply can reach the second is the turn it was given in. What is lost by
+skipping the carry-in is in `plugin/hooks/how/codex-order.md`.
 
 - **AC-06-4-1** · Rev: 1 · Proof: plugin/test/codex-order.test.mjs
   IF the advisor has spoken this turn and its advice is unspent THEN the gate SHALL ask once for that

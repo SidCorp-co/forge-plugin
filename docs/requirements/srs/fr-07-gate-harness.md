@@ -115,10 +115,10 @@ and `docs/HOOKS.md` carries the state that settled it.
 
 Rev: 1 · Actors: developer · Enforces: BR-13
 
-A gate that refuses too much is this product's failure mode, and for months nothing recorded a
-refusal: the only false positives found were the ones somebody watched fail. Refusing is what
-writes the line, so no gate can opt in or forget, and a credential inside what is logged is masked
-before it reaches the file.
+Refusing too much is this product's characteristic failure, and nothing else finds it: `docs/HOOKS.md`
+carries what the years without a log cost. The duty here is that refusing is itself what writes the
+line, so no gate can opt in or forget, and that a credential inside a logged line is masked before
+it reaches the file.
 
 - **AC-07-5-1** · Rev: 1 · Proof: plugin/test/hook-log.test.mjs
   WHEN a gate refuses THEN the refusal SHALL be written to the log by the act of refusing.

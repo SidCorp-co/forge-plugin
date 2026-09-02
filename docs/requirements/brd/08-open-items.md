@@ -32,7 +32,7 @@ here to keep in step.
 *Why are they not listed here?*
 
 Because they are already listed once. `docs/issue-flow-contract.md` closes with the questions the
-workflow has not answered — what a project with no deploy step writes to earn a release, whether
-the entry criteria should be data rather than code, and the rest — and that document is the
-specification of the statuses this tree's requirements implement. Copying its list here would give
-one question two homes and two answers (BR-09).
+workflow has not answered, and that document is the specification of the statuses this tree's
+requirements implement. Summarising even one of them here would put it in two places to be kept in
+step, which is the duty of BR-09; the list is one link away and it is the authority for its own
+contents.

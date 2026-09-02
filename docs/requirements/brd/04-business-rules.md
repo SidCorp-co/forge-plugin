@@ -6,40 +6,52 @@
 
 *Which rules hold whatever the software is asked to do?*
 
-This table is the one place a business rule's text lives, and the only source for what the sequence
-holds. Each rule was drawn from a rule this repository already keeps; the last column says where it
-is kept, so a reader can see the rule was inherited rather than invented. Which requirements
-enforce a rule is not listed here — that map is rendered by ISS-29 from the `Enforces` fields, and
-a hand-kept copy of it is the drift this tree exists to avoid.
+Each row is **an identifier, the name of the rule, and the document that states it**. Nothing here
+states a rule itself. In a product whose rules were written before this tree, every one of them is
+already argued for somewhere a developer reads — a checker's message, a gate document, a contract, a
+skill, the rules file — and BR-09, at its own home, says what a second copy of one costs.
+
+A name is not a statement. It is short enough that the repository's own duplication measure cannot
+see it, which is the line this repository already draws between naming a rule and stating it, and
+it changes only when the subject of the rule changes — at which point the identifier's meaning has
+changed and its revision moves anyway.
+
+So a reader who wants the rule follows the last column, and a tool that renders a rule beside a
+clause quotes that source. This table is the only source for what the sequence holds; which
+requirements enforce a rule is rendered by ISS-29 from the `Enforces` fields, never kept here.
 
 A citation of a rule carries its revision: `BR-09~1`.
 
-| Rule | Rev | Statement | Already kept in |
+| Rule | Rev | Name | Stated in |
 |---|---|---|---|
-| **BR-01** | 1 | A refusal is actionable: it names what was refused, the rule in one clause, and one command that clears it. A refusal a developer cannot act on is a defect. | `CLAUDE.md`, `docs/HOOKS.md` |
-| **BR-02** | 1 | The record is the only witness. Anything the repository knows is written onto the issue at the step that knew it, and nothing is read from a working tree at the moment of judging. | `docs/issue-flow-contract.md` |
-| **BR-03** | 1 | A typed record is never removed. A wrong one is answered by a correction written beside it, so a reader sees the retraction next to what it retracts. | `docs/issue-flow-contract.md` |
-| **BR-04** | 1 | A status is a promise, and it is earned by a payload. A change underneath it takes the promise back: the status falls to the last one still earned. | `docs/issue-flow-contract.md` |
-| **BR-05** | 1 | One run holds an issue at a time, and who held it when is on the record rather than in anybody's memory. | `docs/issue-flow-contract.md` |
-| **BR-06** | 1 | Every route this plugin can see is held to the same rule, so a check cannot be stepped around by choosing another client. | `docs/issue-flow-contract.md` |
-| **BR-07** | 1 | This code runs in repositories it cannot see. It may refuse a shape and never a style, it reads a project's configuration rather than assuming it, and it says nothing where a project has not decided. | `CLAUDE.md` |
-| **BR-08** | 1 | One decision has one source. A second place to set the same thing is a precedence rule to remember, a report that has to say which layer answered, and an undo that is wrong whenever only one half applies. | `README.md`, `docs/HOOKS.md` |
-| **BR-09** | 1 | One fact has one home. A rule with a checker behind it is stated in the checker, whose message is what a developer reads; a document that repeats it is a copy that goes stale without failing anything. | `CLAUDE.md` |
-| **BR-10** | 1 | An entry point is imported by nothing. Code a second one needs moves to the shared source before the second copy exists. | `CLAUDE.md` |
-| **BR-11** | 1 | Vietnamese belongs to the tracker and the product. Everything a developer reads — comments, documents, help, errors, logs, commit messages — is English, and product prose is written through the style contract rather than typed where it is used. | `CLAUDE.md`, `VI-NATURAL.md` |
-| **BR-12** | 1 | A gate is never loosened to admit the change in hand. A violation that slips through is a defect in the checker, fixed by the task that found it. | `CLAUDE.md` |
-| **BR-13** | 1 | A checker is believed only once it has been watched to refuse something. One whose selector matches nothing is indistinguishable from a clean repository. | `CLAUDE.md` |
-| **BR-14** | 1 | Every input is used or refused, never quietly dropped. A flag read and ignored is the defect family a review of these verbs found six times in one issue. | `docs/issue-flow-contract.md` |
-| **BR-15** | 1 | Work proceeds unasked unless a mistake could not be detected and undone. Visibility is not the test; irreversibility is. | `plugin/skills/issue-flow/SKILL.md` |
-| **BR-16** | 1 | A green tree says the plumbing survived, not that the answer was good. What a model returns is verified by running it and reading the output. | `CLAUDE.md` |
-| **BR-17** | 1 | Nothing exercising this product's state runs on the developer's own credential. A test points the configuration directory elsewhere first. | `CLAUDE.md` |
+| **BR-01** | 1 | the shape of a refusal | `CLAUDE.md`; `docs/HOOKS.md`; each gate's own document |
+| **BR-02** | 1 | the record as the only witness | `docs/issue-flow-contract.md`, "The mechanics" |
+| **BR-03** | 1 | a record corrected, never removed | `docs/issue-flow-contract.md`, "The record is the checkpoint" |
+| **BR-04** | 1 | a status earned, and unearned | `docs/issue-flow-contract.md`, "A later change unearns" |
+| **BR-05** | 1 | one holder per issue, on the record — bounded by C-05 | `docs/issue-flow-contract.md`, "A claim is a lease" |
+| **BR-06** | 1 | one rule for every route | `docs/issue-flow-contract.md`, "Every route this plugin sees is the same route" |
+| **BR-07** | 1 | repositories this code cannot see | `CLAUDE.md`, "This code runs in repositories you cannot see" |
+| **BR-08** | 1 | one source per decision | `README.md`, "Configuration"; `docs/HOOKS.md`, "Every hook can be switched off" |
+| **BR-09** | 1 | one home per fact | `CLAUDE.md`, its opening rules |
+| **BR-10** | 1 | an entry point imported by nothing | `CLAUDE.md`, "An entry point is not a library" |
+| **BR-11** | 1 | whose language is whose | `CLAUDE.md`, "Vietnamese is the tracker's and the product's"; `VI-NATURAL.md` |
+| **BR-12** | 1 | the source, not the gate | `CLAUDE.md`, "Verifying" |
+| **BR-13** | 1 | a checker watched to fire | `CLAUDE.md`, "Verifying" |
+| **BR-14** | 1 | an input used or refused | `docs/issue-flow-contract.md`, "Second dry run" |
+| **BR-15** | 1 | a stop only for the irreversible | `plugin/skills/issue-flow/SKILL.md`, "Autonomy, and the three things that stop it" |
+| **BR-16** | 1 | the half no gate reaches | `CLAUDE.md`, "The half no gate reaches" |
+| **BR-17** | 1 | never the developer's own credential | `CLAUDE.md`, "The live config directory is one environment variable away" |
 
 ## How a rule enters this table
 
 *What has to be true before a rule is written down here?*
 
 A rule belongs here when it is an obligation on the product that holds across requirements, and
-when something in the repository already keeps it — a checker, a gate document, a contract, a
-skill. A rule with no such home is a wish, and it is filed as an issue rather than added here: this
-table is a statement of what the product already owes, and the requirements that carry each rule
-out cite it in their `Enforces` field.
+when something in the repository already argues for it. A rule with no such home is a wish: it is
+filed as an issue, the argument is made where it belongs, and only then does it earn a row. That
+order is what keeps this table an index of what the product already owes, rather than a place where
+rules are invented without a reader.
+
+A project whose tree comes before its rules has nowhere to point, and states the rule in the row
+instead — the last column then names the row itself, and the tree becomes that rule's home. Which
+way round a project is, is the first thing its tree decides.

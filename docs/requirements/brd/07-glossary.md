@@ -13,7 +13,7 @@ This is the one place a term is defined. A clause elsewhere uses the term and do
 | **record** (noun) | one typed payload on an issue, in a shape the CLI owns, tagged with its kind and the contract version it was written under | [FR-04](../srs/fr-04-typed-records.md) |
 | **record** (verb) | to write such a payload | [FR-04](../srs/fr-04-typed-records.md) |
 | **the record** | everything the tracker holds about an issue: its fields, its typed payloads, its comments, its attachments, its merged mark and its relations | [FR-05](../srs/fr-05-earned-transitions.md), BR-02 |
-| **payload** | what a phase produces and a status is earned by; every payload is a record, and the two words differ only in which side is speaking | [FR-05](../srs/fr-05-earned-transitions.md) |
+| **payload** | what a phase produces and a status is earned by: a typed record, or one of the fields the plan and the criteria live in — so a payload is not always a record, and those two are the ones that are not | [FR-04](../srs/fr-04-typed-records.md), [FR-05](../srs/fr-05-earned-transitions.md) |
 | **status** | one of the tracker's states, read as a promise to whoever reads the issue next | [FR-05](../srs/fr-05-earned-transitions.md) |
 | **phase** | the work an agent does while a status is held, producing the payload the next status is earned by | the issue-flow skill |
 | **earned** | said of a status whose entry payload is present, recent, and about the commit it names | [FR-05](../srs/fr-05-earned-transitions.md), BR-04 |

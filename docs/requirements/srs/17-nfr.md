@@ -24,9 +24,8 @@ startup for each of them on every tool call, with several reading the same sessi
 
 Rev: 1 · Enforces: BR-13
 
-A broken switch or an unreadable configuration has to cost a gate firing, never a gate silently
-gone. The reverse failure is undetectable: nothing looks more like a clean session than one where
-no gate ran.
+The failure in this direction is undetectable — nothing looks more like a clean session than one
+where no gate ran — so the switch errs toward running. Which way it errs and why is `docs/HOOKS.md`.
 
 - **AC-17-2-1** · Rev: 1 · Proof: plugin/test/hook-switch.test.mjs
   IF the switch cannot be read THEN every gate SHALL run.
@@ -36,9 +35,8 @@ no gate ran.
 Rev: 1 · Enforces: BR-01
 
 A refusal lands in a context window on every tool call, so it carries what was refused, the rule,
-one action and where to read more, and nothing else. One gate's message was more than twice its
-current size in conditions and categories, and the conditions it kept are the test the agent has to
-apply before re-sending.
+one action and where to read more, and nothing else. `docs/HOOKS.md` has the before and after of the
+one message that was cut hardest, and what survived the cut.
 
 - **AC-17-3-1** · Rev: 1 · Proof: plugin/test/hook-how.test.mjs
   WHEN a gate's document is written THEN its argument SHALL be within the cap and the document
@@ -85,9 +83,8 @@ branch holds the code (C-10). A commit is pushed as it is made.
 
 Rev: 1 · Enforces: BR-02, BR-03
 
-The same content written twice is one record, the latest verdict per criterion wins, and the merged
-mark keeps its first stamp — so a retry after a dropped connection is safe and a report does not
-double-count.
+Which writes are idempotent, and how each resolves a repeat, is the contract's "The record is the
+checkpoint" — so a retry after a dropped connection is safe and a report does not double-count.
 
 - **AC-17-7-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
   WHEN the same payload is written twice THEN the record SHALL hold it once.
@@ -117,8 +114,8 @@ settings of its own gets no findings from this product about what good code is.
 
 Rev: 1 · Enforces: BR-16
 
-What a model returns is not diffable, so a change to a prompt, a style contract or an effort level
-is verified by running it and reading the output. No clause here promises that an answer is good.
+BR-16 is the rule, and this clause only records that no requirement in this tree promises
+otherwise: an answer's quality is a person's finding, never a gate's.
 
 - **AC-17-10-1** · Rev: 1 · Proof: tools/diff-python.mjs
   WHEN the output for a known input changes THEN the change SHALL be shown to a person rather than

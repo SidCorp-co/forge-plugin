@@ -31,8 +31,8 @@
 - **It does not dispatch work.** No runner, no queue, no scheduler; one session takes one issue.
   What a supervisor needs to *see* is a goal (ISS-24); what a supervisor does is done through the
   verbs that already exist.
-- **It does not start a run.** An issue worked outside the workflow meets these rules at its first
-  transition and not before.
+- **It does not start a run.** Where these rules first reach an issue that was worked outside the
+  workflow is the contract's "What it does not do".
 - **It does not add fields to the tracker.** Everything the workflow reads exists on an issue now.
   Where that shape is wrong, the change is the tracker's (ISS-7).
 - **It does not migrate another project.** Each project adopts a rule, a gate or the requirements

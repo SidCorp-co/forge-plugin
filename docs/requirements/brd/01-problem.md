@@ -12,9 +12,9 @@ work was its own memory of having read the instructions. Nothing separated a sta
 issue could be declared done with an empty criteria field and a quality verdict that was false when
 it was posted, and nothing on the record said so.
 
-The split is measurable and it is not about diligence. In one run of the workflow, every obligation
-with a gate behind it held, and every obligation that lived in prose slipped at least once. Prose
-is read by whoever chose to read it.
+The split is measurable and it is not about diligence: one run of the workflow separated the
+obligations with a gate behind them from the ones that lived in prose, and
+`docs/issue-flow-contract.md` records which half held. Prose is read by whoever chose to read it.
 
 ## What it costs the developer
 

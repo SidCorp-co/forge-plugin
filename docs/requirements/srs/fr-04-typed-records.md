@@ -9,9 +9,9 @@ Rev: 1 · Actors: agent, reviewer · Enforces: BR-01, BR-02, BR-03, BR-14 · Cou
 *Why does this requirement exist?*
 
 The payloads a workflow produces were invented at the keyboard, and a second run invented them
-differently: a confirmation, a decision, a baseline and a per-criterion verdict each had no shape to
-copy. A payload with one shape can be written the same way twice, read back by kind, assembled into
-a report nobody writes from memory, and checked for presence by the verb that judges a status.
+differently — the contract's first dry run names the four that had no shape to copy. A payload with
+one shape can be written the same way twice, read back by kind, assembled into a report nobody
+writes from memory, and checked for presence by the verb that judges a status.
 
 Each record renders for a person to read and closes with a line naming its kind and the contract
 version it was written under, so a rule that changes tomorrow owes nothing backwards.
@@ -64,9 +64,9 @@ client no check sits in front of.
 
 Rev: 1 · Actors: agent, reviewer · Enforces: BR-01, BR-03
 
-The outcome is the reviewer's word about one head and nothing else. The finding lines are the
-author's disposition of each finding by the identifier the review gave it. Dispositions never add
-up to an approval: a rejected finding the reviewer never saw answered is an open finding.
+Two voices share one record: the outcome belongs to the reviewer and covers one head, and the
+finding lines belong to the author. What each may say, and why one can never be derived from the
+other, is the contract's "A review is two voices in one record".
 
 - **AC-04-3-1** · Rev: 1 · Proof: plugin/test/record.test.mjs
   WHEN a review is recorded THEN it SHALL name the reviewer, the head judged and the outcome, and
@@ -123,11 +123,10 @@ counts, and nobody writes a report from memory.
 
 A record's rendered shape is also its read format, so changing a field name or a separator makes
 every record already on the tracker unreadable. Two things make that reversible: the contract
-version on the last line of every record, and the rule that a held status whose payload exists under
-the version on that payload stands even if today's rule asks for more. So a shape change bumps the
-version and leaves the old reader in place; it never rewrites a record, and it never deletes one
-(BR-03). A held status with no payload at all is unearned whatever the version, which is how a
-status set from the tracker's own screens is told apart from one earned under an older rule.
+version on the last line of every record, and the contract's own rule about what a payload written
+under an older version still earns (`docs/issue-flow-contract.md`, "A rule change owes nothing
+backwards"). So a shape change bumps the version and leaves the old reader in place; it never
+rewrites a record, and it never deletes one (BR-03).
 
 ## Business rules enforced
 

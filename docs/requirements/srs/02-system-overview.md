@@ -36,8 +36,7 @@ Three places, and each answers for exactly one thing.
 - **The tracker holds the process.** Status, plan, criteria, every typed payload, the lease, the
   merged mark, the relations. It is the only witness a check reads (BR-02), and the only thing a
   new run needs in order to resume one that died.
-- **The pushed branch holds the code.** A commit is pushed as it is made, because a branch on one
-  disk is a checkpoint nobody else can resume from (C-10).
+- **The pushed branch holds the code.** A commit is pushed as it is made (C-10).
 - **The account's configuration directory holds the credential and the switches.** The endpoint,
   the token, which verbs are withheld, which gates are off, the cached tool declaration and the
   consult log. Its shape is [§18](./18-data.md).

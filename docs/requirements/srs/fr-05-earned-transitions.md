@@ -13,9 +13,8 @@ something to the next reader promises nothing. This requirement is the check tha
 *earned*: one verb reads the record, decides whether the next status's entry criteria are met, and
 either transitions or names every missing item beside the command that supplies it.
 
-It judges presence, recency and the commit a payload names — never fit. Whether an attachment is
-really a migration classification is the reviewer's call, and a check that tried to make it would
-refuse honest records and pass dishonest ones alike.
+It judges presence, recency and the commit a payload names — never fit. Where that line falls, and
+what a check attempting fit would cost, is stated in the contract's flow table.
 
 ## Actors
 
@@ -53,9 +52,9 @@ Rev: 1 · Actors: agent · Enforces: BR-02, BR-04
 
 The agent advances one status. The entry criteria of that status are checked against the issue's
 record — its typed payloads, its plan and criteria fields, its merged mark, its blocking relations
-— and against nothing else. Repository state is never read: what `git` knew was written onto the
-issue at the step that knew it, because a check that read the working tree would answer differently
-on every machine that ran it.
+— and against nothing else. BR-02 is the rule and the contract's "Two sources, one recorded" is the
+argument; the duty here is that no requirement of this product may reach for the working tree while
+deciding a status.
 
 - **AC-05-2-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
   WHEN every entry criterion of the next status is met THEN the CLI SHALL transition the issue to
@@ -128,10 +127,10 @@ landed is closed, never dropped.
 
 Rev: 1 · Actors: agent · Enforces: BR-04
 
-A review names the head it judged and a verdict names the commit and the criteria text it judged.
-When the merged commit moves, everything above `in_progress` is unearned; when the criteria change,
-everything above `developed` is. Nothing is deleted: the old review and the old verdicts stay as
-superseded history, and the check simply stops being met.
+Each of those records names what it judged, which is what makes the fall-back computable rather
+than remembered: when the merged commit moves, everything above `in_progress` is unearned, and when
+the criteria change, everything above `developed` is. Nothing is deleted — the earlier records stay
+as superseded history and the check simply stops being met.
 
 - **AC-05-6-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
   IF the latest approving review judged neither the commit the merged mark names nor the reviewed
@@ -169,8 +168,7 @@ read at the ship steps rather than at the write: a screen change owes a person's
 Rev: 1 · Actors: agent · Enforces: BR-02
 
 The check reads the whole record, so a record that cannot be read whole cannot be judged. Today
-every operation on such an issue is refused, which is safe and useless; ISS-17 owes the cursor and
-ISS-18 the rule that only a status-moving operation needs the whole record.
+such an issue is refused outright, and ISS-17 and ISS-18 own what replaces that.
 
 - **AC-05-8-1** · Rev: 1 · Proof: none yet — ISS-17
   IF the issue's comments exceed one page THEN the CLI SHALL refuse rather than judge a status on a

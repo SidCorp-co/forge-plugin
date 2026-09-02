@@ -1,7 +1,7 @@
 # BRD — Business requirements (index)
 
-**Product:** forge-plugin — the Claude Code plugin for the Forge tracker: a CLI, the hooks that
-guard a session, and the skills that drive both.
+**Product:** forge-plugin. What it is in one line is `CLAUDE.md`'s opening sentence; what it is
+*for* is [01-problem.md](./01-problem.md).
 
 *What does each section answer?*
 

@@ -31,8 +31,8 @@ one the shell happens to be in (BR-07).
 
 Rev: 1 · Actors: agent · Enforces: BR-01, BR-15
 
-The refusal names the cause and the safer form. A refusal the agent believes is wrong goes to the
-user rather than into another attempt at the same command.
+A refusal the agent believes is wrong goes to the user rather than into another attempt at the
+same command, and the gate's own document says what the message owes.
 
 - **AC-08-1-1** · Rev: 1 · Proof: plugin/test/bash-guard.test.mjs
   WHEN a refused shape is about to run THEN the gate SHALL refuse the command and SHALL name the
@@ -48,9 +48,9 @@ user rather than into another attempt at the same command.
 
 Rev: 1 · Actors: agent · Enforces: BR-07
 
-A rule applies at a command's start, so a phrase inside an argument is prose. Quotes come off as
-the shell takes them off, a wrapper is read through to the verb it runs, and a body that can reach
-a shell has each of its literals read as the command it hands over.
+A rule applies at a command's start, so a phrase inside an argument is prose. Which readings that
+commits the gate to — quoting, wrappers, and a body handed to another interpreter — is the gate's
+own document; the duty here is that the reading is of command position and never of text.
 
 - **AC-08-2-1** · Rev: 1 · Proof: plugin/test/bash-guard.test.mjs
   IF a refused phrase appears only inside an argument or a program's own string THEN the gate SHALL

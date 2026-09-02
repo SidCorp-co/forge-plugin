@@ -8,10 +8,9 @@ Rev: 1 · Actors: agent · Enforces: BR-01, BR-02, BR-06 · Source: plugin/hooks
 
 *Why does this requirement exist?*
 
-A full read of an issue returns no comments at all, so the read that looks complete is not. The body
-says what was asked months ago and the comments say what the state is now — including, often, that
-the thing was already decided. So a write to an issue is refused until this session has asked the
-tracker about that issue's comments. An empty answer satisfies it: the condition is having looked,
+A full read of an issue returns no comments at all, so the read that looks complete is not: the two
+halves of an issue differ in age, and the gate's own document has the sentence for it. So a write to
+an issue is refused until this session has asked the tracker about that issue's comments. An empty answer satisfies it: the condition is having looked,
 and what the gate can check is that the asking happened — UC-10-1 states exactly how much that is.
 
 ## Actors

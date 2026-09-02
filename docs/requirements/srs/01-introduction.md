@@ -93,7 +93,8 @@ retired it, and is never renumbered or reused.
 - **The workflow contract itself.** `docs/issue-flow-contract.md` is the specification of the
   statuses and their payloads, and it is the `Source` of several requirements here. This tree says
   what the software must do about it.
-- **Any other project's rules.** This plugin owns when and where a rule fires; a project owns what
-  good code is. The division is the issue-flow skill's `two-levels` reference.
+- **Any other project's rules.** The division between what this plugin decides and what a project
+  decides has one home, the issue-flow skill's `two-levels` reference, and no clause here repeats
+  it.
 - **Judgement.** No clause here asks whether an answer from a model is good; nothing diffable
   proves that.

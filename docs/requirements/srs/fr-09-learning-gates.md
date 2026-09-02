@@ -8,10 +8,9 @@ Rev: 1 · Actors: agent · Enforces: BR-01, BR-09, BR-13 · Source: plugin/hooks
 
 *Why does this requirement exist?*
 
-An agent finishing a task reaches for "save what I learned" as a ritual, and the store fills with
-rows nobody reads. Two writes look alike and are not: a note about a project is knowledge, and an
-edit to a skill develops the method. Each is worth one stop, and the questions the stop asks are
-different.
+The habit these answer, and what it costs, are in `plugin/hooks/how/learning-gate.md`. What this
+requirement adds is that two writes which look alike are not: one adds a fact about a project, the
+other changes the method. Each is worth one stop, and the two stops ask different questions.
 
 The same reasoning covers a checker that hard-codes the cases it could derive: a hand-written list
 is silent on the case it never met and fails on a correct change — measured, when a list copied out
@@ -48,24 +47,25 @@ fact is true or useful — only that the write was decided on rather than perfor
 
 Rev: 1 · Actors: agent · Enforces: BR-01, BR-09
 
-A skill edit answers three questions instead: which category it is, whether a check could enforce
-it instead, and what it displaces. A sentence the skill already says is refused outright, because
-that is a second copy of a rule inside the document that owns it.
+A skill edit is asked something else, and AC-09-2-1 names the three. A sentence the skill already
+says is refused outright, because that is a second copy of a rule inside the document that owns
+it.
 
 - **AC-09-2-1** · Rev: 1 · Proof: plugin/test/learning-gate.test.mjs
   WHEN a skill's text is about to be written THEN the gate SHALL ask for the category, whether a
   check could enforce it, and what it displaces.
-- **AC-09-2-2** · Rev: 1 · Proof: plugin/test/skill-dup.test.mjs
-  IF the sentence being added is one the skill already says THEN it SHALL be refused.
+- **AC-09-2-2** · Rev: 1 · Proof: plugin/test/learning-gate.test.mjs
+  IF the sentence being added is one the skill already says THEN it SHALL be refused, before the
+  once-per-file stamp that would otherwise let it through.
 
 ### UC-09-3 — A file that arrived unasked is answered for late
 
 Rev: 1 · Actors: agent · Enforces: BR-13
 
-A gate before a write reads shapes, and a shape list is silent on the route nobody thought of. So
-the disk is read after the call: a guarded file changed in the last breath is asked about even if
-no shape saw it coming. Nothing here undoes the write — a file kept because deleting it felt
-wasteful is what the conditions are against.
+A gate standing before a write can only match the shapes it knows, so this one reads the disk
+after the call instead: a guarded file changed in the last breath is asked about even where no
+shape saw it coming. Nothing here undoes the write, and `plugin/hooks/how/learning-landed.md` says
+why asking late is still worth it.
 
 - **AC-09-3-1** · Rev: 1 · Proof: plugin/test/learning-landed.test.mjs
   WHEN a guarded file has just changed and no stop asked about it THEN the gate SHALL ask which
@@ -85,8 +85,8 @@ switch or the declared type. Where enumerating *is* the point, saying so beside 
 it. It blocks rather than refuses, so nothing is lost to it.
 
 - **AC-09-4-1** · Rev: 1 · Proof: plugin/test/derive-dont-list.test.mjs
-  WHEN a checker hard-codes cases it could derive THEN the gate SHALL ask once and SHALL name where
-  the cases could be read from.
+  WHEN a checker hard-codes a list of cases THEN the gate SHALL ask once, naming the file, the
+  values it found, and the instruction to derive them from the source.
 - **AC-09-4-2** · Rev: 1 · Proof: plugin/test/derive-dont-list.test.mjs
   IF a note above the list says enumerating is the point THEN the gate SHALL not ask.
 - **AC-09-4-3** · Rev: 1 · Proof: plugin/test/derive-dont-list.test.mjs

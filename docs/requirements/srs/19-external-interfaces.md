@@ -46,8 +46,7 @@ Rev: 1 · Enforces: BR-01, BR-07
 
 The session host hands each gate an event and reads back a decision. What the host offers is fixed:
 one registration per event, no per-gate switch (C-06), and a copy of the plugin taken at install
-time (C-01). A gate answers by throwing a decision the runner turns into the host's protocol, so
-the same gate text also runs on its own.
+time (C-01). How a gate's answer becomes that protocol is `docs/HOOKS.md`'s.
 
 - **AC-19-3-1** · Rev: 1 · Proof: plugin/test/gate.test.mjs
   WHEN a gate decides THEN the runner SHALL express that decision in the host's own protocol.
@@ -60,8 +59,8 @@ the same gate text also runs on its own.
 Rev: 1 · Enforces: BR-07
 
 Reached through its own entry point, which resolves the workspace, the binary and the
-configuration. The project's installed copy is preferred and the vendored copy is the fallback; a
-project with neither is silence (NFR-09).
+configuration. Which copy of it answers is `README.md`'s; a project with neither is silence
+(NFR-09).
 
 - **AC-19-4-1** · Rev: 1 · Proof: plugin/test/code-quality.test.mjs
   WHEN a file is linted THEN the finding SHALL come from the project's own configuration, and the
