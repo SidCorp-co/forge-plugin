@@ -186,6 +186,9 @@ test("a verdict names findings by id, and a name the reply never gave is refused
   assert.match(verdictRecord(last, { accepted: "F1", rejected: "F1=no" }).problem, /F1 cannot be both/u);
   assert.equal(verdictRecord(last, { accepted: "F1" }).undecided, 2, "two left undecided");
   assert.match(verdictRecord(last, { accepted: "1", rejected: "F2=why" }).problem, /both as ids .* or both as counts/u, "mixed syntax is refused");
+  const comma = verdictRecord(last, { rejected: "F2=not reproducible, the shell rejects it,F3=fine" });
+  assert.deepEqual(comma.record.dropped, { F2: "not reproducible, the shell rejects it", F3: "fine" }, "a comma in a reason stays");
+  assert.match(verdictRecord(last, { accepted: "0", rejected: "99999999999999999999999" }).problem, /^9999.* is not a count/u, "the bad side is the one named");
   const twice = verdictRecord(last, { accepted: "F1,F1" });
   assert.deepEqual(twice.record.kept, ["F1"], "one id said twice is one finding");
   assert.equal(twice.undecided, 2);

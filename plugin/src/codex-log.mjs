@@ -148,23 +148,28 @@ export const numbered = (reply, files = null) => {
 export const findingsIn = (reply, files = null) => numbered(reply, files).map((one) => one.text);
 
 /* `--accepted F1,F3 --rejected F2=why`, or the two counts as before. An id the reply never gave, or one
-   given to both sides, is refused: a verdict is what the next consult reads "still open" from. */
+   given to both sides, is refused: a verdict is what the next consult reads "still open" from. A comma
+   opens a new entry only where an id follows, so a reason may contain one. */
+const NEXT = /,(?=\s*F\d+\b)/u;
 const spelled = (raw) => {
   const out = new Map();
-  for (const one of String(raw ?? "").split(",").map((part) => part.trim()).filter(Boolean)) {
+  for (const one of String(raw ?? "").split(NEXT).map((part) => part.trim()).filter(Boolean)) {
     const [id, ...why] = one.split("=");
     out.set(id.trim(), { id: id.trim(), why: why.join("=").trim() });
   }
   return [...out.values()];
 };
 const isCount = (raw) => raw === undefined || /^\d+$/u.test(String(raw).trim());
+const asCount = (raw) => Number(raw ?? 0);
 
 export const verdictRecord = (last, { accepted, rejected, note }) => {
   const at = new Date().toISOString();
   const base = { kind: "verdict", at, of: last.id ?? last.at, files: last.files, ...(note ? { note } : {}) };
   if (isCount(accepted) && isCount(rejected)) {
-    const a = Number(accepted ?? 0);
-    const r = Number(rejected ?? 0);
+    const a = asCount(accepted);
+    const r = asCount(rejected);
+    const bad = [accepted, rejected].find((one) => one !== undefined && !Number.isSafeInteger(asCount(one)));
+    if (bad !== undefined) return { problem: `${bad} is not a count.` };
     const counted = countedIn(last.reply);
     if (counted && a + r > counted.total) {
       return { problem: `consult ${base.of} made ${counted.total} finding(s); ${a + r} cannot be decided.` };
