@@ -58,8 +58,9 @@ left, and `advance` resumes there.
   with the outcome it produces. Fewer is not a question. It resumes on a reply from another author.
 - `waiting` speaks to a reviewer: the kind — screen review, or a destructive migration — and the
   evidence to look at. It resumes on their comment.
-- `on_hold` speaks to the owner: what failed and whether the route rolled it back, or why the
-  change is unshippable. It resumes by hand.
+- `on_hold` speaks to the owner: what failed and whether the route rolled it back, why the change
+  is unshippable, what blocks it, that a person paused it, or that it keeps crashing. It resumes by
+  hand, except a blocked issue, which the next run picks up once its blocker is `developed`.
 - `dropped` speaks to everyone: the reason — a disposition the triage reference admits, or one of
   the project's own. Reachable only before `developed`, so it always means no code landed, and it
   is never marked merged. Terminal unless reopened. Abandoning code that did land is a revert: the
@@ -154,6 +155,113 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 
 Across every stage: a park records its kind, its evidence and the status it left; a refusal names
 the missing item and the command that supplies it.
+
+## When the run breaks
+
+The stages above are the happy path and its known forks. Runs also die, collide, run out of
+budget and learn things halfway. Two families of software settled how to hold that, and the
+contract borrows their shapes rather than inventing its own.
+
+**The workflow engines.** Temporal detects a dead worker by a heartbeat timeout and a
+start-to-close timeout, retries under a policy, and replays a workflow from its event history so a
+resumed run repeats the commands it already issued. Kubernetes coordinates through a lease: a
+holder identity, a renew time, a duration, and a holder that stops renewing loses it when it
+expires. Prefect and Airflow mark a run whose heartbeats stopped *crashed*, a state distinct from
+*failed*, and retry or hand it to a person. Argo separates *error*, the infrastructure's fault, from
+*failed*, the work's fault, and retries transient errors alone. LangGraph checkpoints state at every
+step and resumes from the last one; a pause for a person is a checkpoint that waits. Temporal
+versions a workflow definition so a change made today never re-judges a run started yesterday.
+
+**The coding-agent orchestrators.** The agent-orchestrator that watches GitHub keeps its whole
+state "in the issue itself — one workflow label plus one pinned JSON comment", so it restarts
+without losing context; a dev or reviewer agent that "timed out or crashed" is simply retried on
+the next tick, requested changes send the issue to a *fixing* state and back, and done means a
+mergeable pull request the reviewer approved, with the merge left to a person. Baton claims an
+issue, runs one worktree per claim, and releases the claim the moment a pull request exists. Gas
+Town keeps work in a git-backed ledger of beads, pins each agent to a hook that "survives crashes and
+restarts", has a Witness that "detects stuck agents, triggers recovery (nudge or handoff)", and lands
+work through a merge queue where agents "never push directly to main". Paperclip gives issues
+"atomic checkout with execution locks, first-class blocker dependencies", recovers orphaned runs,
+and stops an agent hard when its budget is spent. Buzz makes the relay the single source of truth:
+every workflow step is a signed event, a run is pending, running, waiting approval, completed,
+failed or cancelled, and an approval suspends it with a timeout. Orca gives each task its own
+worktree and tells the person when an agent "finishes or needs attention". Composio's orchestrator
+derives its board from facts — session, pull request, CI, review — and puts blocked sessions,
+missing input, failed CI, requested changes and "lost signals" in one column: needs you.
+
+**How the contract carries each of them.**
+
+- **A claim is a lease, in a field the issue already has.** The issue's session field holds the
+  holder's session, the renew time and the duration; every payload write renews it. A second agent
+  that picks an issue with a live lease is refused, naming the holder. A lease past its duration is
+  reclaimable by any run, and the first holder's later writes are refused as stale. The field also
+  keeps the claim history, each claim and reclaim appended by the write that made it, so who held the
+  issue when is on the record with no second write that could fail or lie. The
+  claim, and every status or payload write the lease covers, is a compare-and-set on the whole field:
+  the write carries the field value it read, holder, renew time, duration and history together, lands
+  only if the field is still exactly that, and the tracker refuses otherwise. That refusal is the tracker's to add and the first item in its part of the
+  plan; until it exists the lease is advisory: two runs that both find no lease may both claim, the
+  later write can erase the earlier, and nothing on the record promises to show it. A project that
+  runs more than one agent at a time needs the tracker's refusal before it can trust the lease.
+- **Crashed is not failed.** An expired lease says nothing about the work. The status stands, the
+  payloads written so far stand, and the next run resumes the phase the status owes. The third
+  reclaim of one status parks the issue as `on_hold`, kind crashed, with the claim history as
+  evidence: Gas Town's handoff, Composio's needs-you column.
+- **The record is the checkpoint.** The tracker holds the process, the pushed branch holds the code,
+  and nothing lives in a session. A commit is pushed as it is made, because a branch on one disk is a
+  checkpoint nobody can resume from. Every payload write is idempotent: the same content twice is one
+  record, the latest verdict per criterion wins, the merged mark keeps its first stamp. Where a
+  project lands work through a merge queue, the lease holder writes the merged mark once the queue
+  reports the landing, with the commit the queue landed; the queue itself writes nothing to the issue.
+- **A park is a checkpoint with a person at it.** Nothing runs while it waits. A reply resumes the
+  three parks that wait on a person; a blocked issue is resumed by the next run that picks it and
+  finds its blocker `developed`, and that run takes the lease as it would for any issue. The parks
+  carry no timeout: unlike Buzz's approval, the person's reply is the only clock.
+- **Transient is retried, never recorded.** A tracker that answers with an error is retried with
+  backoff; a hook that refuses a command is a command to rewrite; neither reaches the issue. A run
+  that has to stop — the tracker unreachable past its budget, the stack down, the agent's own budget
+  spent — writes one comment saying so when the tracker allows it, and moves no status. The next run
+  finds the lease stale and resumes.
+- **A rule change owes nothing backwards.** Every typed write carries the contract version it was
+  written under. A held status whose payload exists, under the version on that payload, stands even
+  if today's rule asks for more. A held status with no payload at all is unearned whatever the
+  version, which is how a status set from the tracker's own screens is told apart from one earned
+  under an older rule.
+
+### Breaks mid-run
+
+| Scenario | What the record shows | What happens | Goes to |
+|---|---|---|---|
+| the agent dies mid-phase: context exhausted, process killed, machine off, budget spent | status unchanged, lease going stale, payloads so far intact | the next run reclaims the lease and resumes the phase from the record; uncommitted tree work is gone, pushed commits are not | unchanged |
+| the agent dies between two writes, say merged but not marked | git shows the merge, the record shows no mark | `advance --owed` names the missing mark; the step that knows the commit writes it | unchanged, then `developed` |
+| the same status reclaimed a third time | three reclaims of one status in the claim history | the issue parks with that history as evidence | `on_hold`, kind crashed |
+| two agents pick the same issue | a live lease held by another session | the second is refused, naming the holder and the renew time | unchanged |
+| the tracker answers with an error | nothing | retry with backoff; past the budget, the run stops; nothing is written | unchanged |
+| a hook refuses a write | nothing | the command is rewritten to satisfy the gate; not an issue event | unchanged |
+| the environment breaks: stack down, ports taken | one comment saying the run stopped and why | the run stops; the next run reads why | unchanged |
+| a person pauses or reprioritises mid-run | a person's comment | the branch is left named; nothing else changes | `on_hold`, kind paused; resumes by hand |
+
+### Findings mid-development
+
+| Scenario | Writes | Goes to |
+|---|---|---|
+| a second defect found while building | a new issue, related to this one; nothing of it is fixed here | unchanged |
+| a defect this issue cannot pass without | a new issue that blocks this one, by relation | `on_hold`, kind blocked; the next run that finds the blocker `developed` picks it up |
+| the plan proves wrong | the plan field replaced; a correction comment saying what moved and why | unchanged |
+| a criterion proves wrong or impossible | the criteria field corrected; a correction comment with the reason | unchanged; if already `tested`, unearned to `developed` |
+| the default branch moved under the branch | a rebase; a fresh baseline, since the old one measured another base | unchanged |
+| a gate is red for a reason outside this issue | the verdict names the failure as baseline-identical, with the baseline as evidence | judged as the criterion says |
+| the reporter's answer changes what the issue is | a new confirmation superseding the first | back to `confirmed` |
+| the screen reviewer rejects | their comment stands as a failing verdict from a person | unearned to `developed`; a fix moves the merged commit and judging restarts |
+| a batch member fails its criteria | its failing verdict; the others' verdicts stand | that member parks, kind unshippable; the rest advance; its commits follow the project's revert policy |
+| a finding whose disclosure is a decision | release note withheld with *Skip* and the reason; the decision handed to a person | `waiting`, kind release decision |
+| a regression after release | a new issue naming this one | unchanged |
+
+Across all of them: the status and the typed payloads are written only by the agent that holds the
+lease; people write comments, replies, reviews and `reopen` at any time, need no lease and renew
+none, and those writes are what the parks wait for. The branch is pushed as it moves, and the status
+is the resume point. Nothing about the run has to be remembered
+by anyone, because nothing about it is held anywhere but the record.
 
 ## The mechanics
 
@@ -255,6 +363,9 @@ surprised by it.
 - The tracker's own state machine accepted every step, `closed` included. The checks live in the
   CLI and the pre-hook, and nowhere else; nothing on the server refuses. The reach of the guarantee
   is stated under "Every route this plugin sees is the same route".
+- The issue has a session field and nothing that writes conditionally on it. The lease needs a
+  compare-and-set on that field for the claim and for every write the lease covers, which is the
+  tracker's to add.
 - The merged mark exists: `mark_merged` stamps the time and writes an audit comment, and its target
   is a label. It has no commit field, so until one exists the commit lives in the mark's note in a
   fixed shape, and `developed` reads it from there.
