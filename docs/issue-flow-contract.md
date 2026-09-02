@@ -134,7 +134,7 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 | the change is ready | a review record: who reviewed, the head judged, each finding by id either accepted or rejected with the reason, the outcome | unchanged, until the merge |
 | the reviewer requests changes | the fixes; a new head earns a new review | unchanged |
 | the project asks a person to review | the head and the diff to look at | `waiting`, kind code review; their comment resumes |
-| reviewed, and on the default branch | the merged mark with its commit; where a squash changed the hash, the note names the reviewed head | `developed` |
+| reviewed, and on the default branch | the merged mark with its commit and the base it landed on; where a squash changed the hash, the note names the reviewed head; a rebase changes the tree, so its result is a new head that owes its own recheck before the mark | `developed` |
 | scope grows | a plan correction before the edit | unchanged |
 | a destructive migration | the classification, attached | `waiting`, kind destructive migration; a reviewer's comment resumes |
 | it cannot be built soundly | the finding; the branch left named | `on_hold`, kind unshippable |
@@ -279,7 +279,7 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
 | a defect this issue cannot pass without | a new issue that blocks this one, by relation | `on_hold`, kind blocked; the next run that finds the blocker `developed` picks it up |
 | the plan proves wrong | the plan field replaced; a correction comment saying what moved and why | unchanged |
 | a criterion proves wrong or impossible | the criteria field corrected; a correction comment with the reason | unchanged; if already `tested`, unearned to `developed` |
-| the default branch moved under the branch | a rebase; a fresh baseline, since the old one measured another base | unchanged |
+| the default branch moved under the branch | a rebase; a fresh baseline, since the old one measured another base, owed by the verb once the mark names its base (ISS-40) | unchanged |
 | a gate is red for a reason outside this issue | the verdict names the failure as baseline-identical, with the baseline as evidence | judged as the criterion says |
 | the reporter's answer changes what the issue is | a new confirmation superseding the first | back to `confirmed` |
 | the screen reviewer rejects | their comment stands as a failing verdict from a person | unearned to `developed`; a fix moves the merged commit, which sends the issue to `in_progress` for review |
@@ -349,13 +349,25 @@ head with nothing standing, which for codex is the recheck that found none. A re
 only say *approved* or *changes requested* made the honest value and the passable value differ,
 and the fourth dry run wrote the passable one. ISS-16 owes the separate value.
 
+**The reviewer read what it was shown.** A consult limited to a diff judges the diff; its truth
+pass on the rest answers *not verified* and says so. The recheck that earns an approving review runs
+on the whole set of files the change touched, never on a diff, and the review record names that set
+beside the head so the transition can see the scope without the repository (ISS-34 owes the field
+with the consult ids); the merging run, which is the one that knows, writes the touched files into
+the mark's note beside the commit and the base, and a review whose recorded set is narrower than the
+mark's is not approving. Both sets are on the record; nothing inspects the repository. The sixth dry run caught three *not verified* answers only because the
+output said the words.
+
 **Evidence is typed at the write.** Every payload above is a write of a shape the CLI owns — a
 confirmation, a decision record, a question, a review, a verdict, a verification — and a report is
 assembled from the record rather than written from memory: the latest of each kind that can only
 be current, and every instance of a kind that repeats, so a report shows four corrections when
 four were written (owed by ISS-11; today only verdicts are kept per instance). A separator between
 repeated values must be one a value cannot contain, or the record does not read back as it was
-written (owed by ISS-14; today the pair that separates them can occur inside one). A verdict names its criterion
+written (owed by ISS-14; today the pair that separates them can occur inside one), and a repeated
+flag value, which the verb keeps to one line at the write, renders as one line each, because six
+decision triples read back as one paragraph are six decisions nobody will read; a multi-line field
+is one value and is rendered whole. A verdict names its criterion
 by number and quotes the text it judged; one with no evidence is refused; a criterion with no
 verdict keeps the issue out of `tested`. The kind of evidence a criterion needs is its author's to
 name and the reviewer's to judge; the contract checks presence and the commit, not truth. Whether
@@ -557,4 +569,35 @@ ISS-4 built the lease and was the second issue delegated whole. Seven of eight t
 - One gate list was widened rather than the code changed: the environment-flag test gained the two
   variables a run's identity comes from. Stated plainly in the run and in the file, because a rule
   that names an incomplete list is the checker being wrong, which the repository's own rule allows.
+
+## Sixth dry run — ISS-32
+
+ISS-32 wrote this plugin's own requirements tree, the first spec the spec verbs (ISS-26 and after) will be
+built against, and was the first run to die and resume: the API usage limit killed the agent mid
+codex loop, the lease lapsed, and the same agent resumed on the same tree.
+
+- The crash cost one reclaim and one correction. Plan, criteria, baseline and review were on the
+  issue and the branch was pushed, so the record was the checkpoint the contract says it is. The one
+  piece of run state it did not hold was which codex round the run was in; a fresh agent would have
+  re-run the consult. The lease's `next` line (ISS-22) is where that belongs.
+- Every transition was the verb's. One refusal could not have been anticipated from any document:
+  the plan's two flag lines have an exact wording the verb reads, and only the refusal states it.
+  `--owed` should quote the lines before the write; the typed plan (ISS-20) makes them fields.
+- The read-first gate read `FR-05`, `UC-05` and `AC-05` as issue keys and denied the plan write, and
+  the denied compound command lost the plan file it was writing. ISS-36, which collides with ISS-28's
+  citation form the moment criteria join the gated verbs.
+- Thirteen codex rounds each numbered from F1; one finding was rejected and the record does not show
+  it. ISS-34's strongest evidence yet.
+- `--diff` narrowed codex to the uncommitted delta and its truth pass answered *not verified* three
+  times. Rule above: the earning recheck runs on the whole set.
+- A rebase refreshed every file's mtime, and a consult that merely named three documents recorded
+  one as changed. ISS-39, with its mirror ISS-37 and the five-file cap ISS-38.
+- Nineteen verdicts took longer than the tool timeout, and five were written without a reason before
+  the author noticed the flag is optional. ISS-41 for the batch, the reason rule into ISS-21.
+- The first baseline measured nine gates; the base it landed on had ten. The table row said a fresh
+  baseline was owed and only the author's memory enforced it. ISS-40.
+- A stand-in checker for the tree's nineteen rules found 28 findings on the first pass and none at
+  the merged commit; it lives in `/tmp` and is ISS-27's first fixture in all but name. Two numbers it
+  measured are recorded beside the rules: the duplication scorer strips table rows, which is where a
+  restated rule sits in a spec, and its threshold for documents is wrong for a spec by a factor of two.
 
