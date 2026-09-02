@@ -130,3 +130,25 @@ tracker tool called directly, so the contract cannot be stepped around by choosi
 - What a project with no deploy step writes for `released`.
 - Where the way back from each ship step is recorded — the plan, for a change with deploy
   coupling, or the project's settings once. Today it is checked nowhere.
+
+## First dry run — ISS-1
+
+The defect this contract's own commit gate showed three times in an afternoon was worked under the
+flow above, on the tracker as it is, with every payload shaped by hand.
+
+- Eight transitions, each a raw call, and none refused anything: the record held every payload
+  because the agent chose to write it. That is the gap the verb closes, and it is the size it looked.
+- The payloads with no shape to copy were the confirmation, the decision record, the baseline and the
+  per-criterion verdict table. Each was invented at the keyboard, and a second run would invent them
+  differently. They are the writes to type first.
+- The correction rule fit. The version bump the ship path needs was not in the plan; a correction
+  comment before the edit cost one paragraph.
+- A criterion that said "the suite passes" had to be judged against the baseline, because one
+  failure outside the issue predated it. The criterion should say so: no failure the baseline lacked.
+- Codex's one finding was rejected by id with a reason, into the consult log, which the tracker
+  never sees. The verdict belongs on the issue as a typed write, so the report reads it from the
+  record like everything else, and the log stays what it is: the reviewer's own memory.
+- The release note field is an object with a section, and the first write as a string was refused.
+  The schema says so, and `forge advance --owed` should quote it before the write rather than after.
+- About twenty tracker calls for one small fix. Under the cycle it is eight advances plus the
+  payload writes, and nothing else to remember.
