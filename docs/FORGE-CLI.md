@@ -38,6 +38,22 @@ tokenizing worse than the character it stands for.
 Nothing here keeps its own copy of names the server already publishes — a local list goes stale
 against the thing it describes, silently, and reports the server's newest feature as a typo.
 
+## `record` — a payload has one shape
+
+ISS-1's dry run of the issue-flow contract wrote nine payloads by hand: a confirmation, a decision
+record, a baseline, six verdicts. Each was shaped at the keyboard, and the second run would have
+shaped them differently. `forge record <kind>` owns the shape, so the reader and the checker find the
+same fields every time, and a missing field is refused by name before anything is posted.
+
+A record is a comment a person reads first: a heading, one line per field, and one parsed line last,
+in a code span so a translated project keeps it. The verdict quotes the criterion's text as it stood
+at the write, because the field can change later and the verdict has to say what it judged. Evidence
+is an attachment name the issue carries, a URL or a commit, and an attachment that is not there is
+refused: a reference to a file on someone's disk proved nothing. The release note and the criteria go
+to their fields, which the tracker already types; everything else is a comment. `report` assembles
+the latest record of each kind and the latest verdict per criterion, and names the criteria no verdict
+covers. Nothing is stored twice. The contract this serves: `docs/issue-flow-contract.md`.
+
 ## Two writes that lie about themselves
 
 A schema-validated field that is accepted and dropped answers 200 exactly like one that was stored, so
