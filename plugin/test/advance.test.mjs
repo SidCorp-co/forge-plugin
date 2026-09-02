@@ -11,7 +11,7 @@ process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "advance-"));
 const { PARKS, render } = await import("../src/record.mjs");
 const {
   CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, markedCommit,
-  nextOf, planFlags, sameCommit, viewFrom,
+  nextOf, planFlags, sameCommit, targetOf, viewFrom,
 } = await import("../src/earned.mjs");
 const { USAGE } = await import("../src/advance.mjs");
 
@@ -232,6 +232,34 @@ test("a comment carrying the tag and little else is no payload", () => {
   ]);
   assert.equal(dispositionOf({ confirmation: { record: { fields: { Finding: "maybe" } } } }), null,
     "a finding off the list drops nothing");
+});
+
+/* The park record is written before the reply that answers it, and the fixture clock says so:
+   a reply that predates the park answered something else. */
+test("a parked issue resumes where its park record says it left, once somebody answers", () => {
+  const asked = (kind, left) => recorded("park", { kind, why: "asked", evidence: [] }, left);
+  const at = (status, comments, issue = {}) => targetOf(view({ status, ...issue }, comments), "ISS-3");
+  assert.throws(() => at("waiting", []), /no park record/u);
+  assert.throws(() => at("waiting", [asked("code-review", "nowhere")]), /no step of the flow/u);
+
+  const question = asked("question", "confirmed");
+  const unanswered = at("needs_info", [question]);
+  assert.equal(unanswered.next, "confirmed");
+  assert.equal(unanswered.resumed, true);
+  assert.match(unanswered.missing[0].what, /kind question and nobody has answered it/u);
+  assert.match(unanswered.missing[0].command, /"action":"transition"/u);
+  assert.deepEqual(at("needs_info", [question, comment("the answer", { authorId: "the-reporter" })]).missing, []);
+  assert.equal(at("needs_info", [question, comment("still mine", { authorId: "agent" })]).missing.length, 1,
+    "the author of the question cannot answer it");
+
+  const paused = at("on_hold", [asked("paused", "in_progress")]);
+  assert.equal(paused.next, "in_progress");
+  assert.match(paused.missing[0].what, /kind paused, which a person lifts/u);
+  const blocked = (otherStatus) =>
+    at("on_hold", [asked("blocked", "approved")], { relations: { blockedBy: [{ otherDisplayId: "ISS-4", otherStatus }] } });
+  assert.match(blocked("open").missing[0].what, /^ISS-4 blocks this/u);
+  assert.deepEqual(blocked("developed").missing, [], "the next run picks up a blocked issue itself");
+  assert.equal(blocked("developed").next, "approved");
 });
 
 test("`-h` answers what each status is earned by, and asks the tracker nothing", () => {
