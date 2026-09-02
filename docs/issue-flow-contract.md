@@ -40,8 +40,8 @@ issue. They write to the project, never to a transition.
 | `confirmed` | we read the code; the problem is real and it is this | a confirmation: where the reader looked, what the issue is in the code's own terms, and a finding — *holds*, or one of the dispositions the triage reference admits | 2 Clarify |
 | `clarified` | every ambiguity is decided or answered | a decision record: each reading decided, its assumption and the sentence that undoes it, or an explicit *none found*; no question left open | 3 Plan |
 | `approved` | object to the plan now, not after | plan and numbered criteria, one per line, each in its own field; the plan states whether this is a screen change and whether it touches the schema | 4 Implement, to the branch |
-| `in_progress` | code is being written against this plan | `approved`; every blocker at least `developed`; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the merge |
-| `developed` | the change is on the default branch | the merged mark with its commit | 5 Prove |
+| `in_progress` | code is being written against this plan | `approved`; every blocker at least `developed`; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the review and the merge |
+| `developed` | the change was reviewed and is on the default branch | an approving review of the head that landed: the reviewer, the findings with a verdict on each by id, the outcome *approved*; a person's approval where the project asks for one; then the merged mark with its commit | 5 Prove |
 | `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all against the merged commit; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
 | `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; for a screen change, a review comment from a person | closing, by a person or the run's end |
 | `closed` | nothing more happens unless reopened; code landed | `released` | none |
@@ -56,8 +56,8 @@ left, and `advance` resumes there.
 
 - `needs_info` speaks to the reporter, from `open` or `confirmed`: two or more readings, each
   with the outcome it produces. Fewer is not a question. It resumes on a reply from another author.
-- `waiting` speaks to a reviewer: the kind — screen review, or a destructive migration — and the
-  evidence to look at. It resumes on their comment.
+- `waiting` speaks to a reviewer: the kind — code review, screen review, or a destructive
+  migration — and the evidence to look at. It resumes on their comment.
 - `on_hold` speaks to the owner: what failed and whether the route rolled it back, why the change
   is unshippable, what blocks it, that a person paused it, or that it keeps crashing. It resumes by
   hand, except a blocked issue, which the next run picks up once its blocker is `developed`.
@@ -116,7 +116,10 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 
 | Scenario | Writes | Goes to |
 |---|---|---|
-| the change is on the default branch | the merged mark with its commit | `developed` |
+| the change is ready | a review record: who reviewed, the head judged, each finding accepted or rejected by id with the reason, the outcome | unchanged, until the merge |
+| the reviewer requests changes | the fixes; a new head earns a new review | unchanged |
+| the project asks a person to review | the head and the diff to look at | `waiting`, kind code review; their comment resumes |
+| reviewed, and on the default branch | the merged mark with its commit; where a squash changed the hash, the note names the reviewed head | `developed` |
 | scope grows | a plan correction before the edit | unchanged |
 | a destructive migration | the classification, attached | `waiting`, kind destructive migration; a reviewer's comment resumes |
 | it cannot be built soundly | the finding; the branch left named | `on_hold`, kind unshippable |
@@ -126,7 +129,7 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 | Scenario | Writes | Goes to |
 |---|---|---|
 | every criterion judged | one verdict per criterion with evidence, all at the merged commit; skipped checks named with reasons; the migration classification when the schema flag is set | `tested` |
-| a criterion fails | its failing verdict | unchanged; the fix moves the merged commit, which supersedes every verdict, and judging starts over |
+| a criterion fails | its failing verdict | unchanged; the fix moves the merged commit, so the issue falls to `in_progress` until the new head is reviewed, and judging starts over |
 | proves unshippable | the finding | `on_hold`, kind unshippable |
 
 ### `tested` — reads the verdicts, the plan's flags and the release note field
@@ -137,7 +140,7 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 | a screen change not yet reviewed | the rendered evidence, attached | `waiting`, kind screen review; the reviewer's comment resumes |
 | the deploy fails and the route rolls it back | the rollback taken and its evidence | `on_hold`, kind rolled back |
 | the deploy fails and nothing rolls it back | what is lost, and the evidence | `on_hold`, kind no way back |
-| a fix lands meanwhile | nothing; the merged commit moved | unearned to `developed` |
+| a fix lands meanwhile | nothing; the merged commit moved | unearned to `in_progress` until the new head is reviewed |
 
 ### `released` — reads nothing more
 
@@ -252,7 +255,7 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
 | the default branch moved under the branch | a rebase; a fresh baseline, since the old one measured another base | unchanged |
 | a gate is red for a reason outside this issue | the verdict names the failure as baseline-identical, with the baseline as evidence | judged as the criterion says |
 | the reporter's answer changes what the issue is | a new confirmation superseding the first | back to `confirmed` |
-| the screen reviewer rejects | their comment stands as a failing verdict from a person | unearned to `developed`; a fix moves the merged commit and judging restarts |
+| the screen reviewer rejects | their comment stands as a failing verdict from a person | unearned to `developed`; a fix moves the merged commit, which sends the issue to `in_progress` for review |
 | a batch member fails its criteria | its failing verdict; the others' verdicts stand | that member parks, kind unshippable; the rest advance; its commits follow the project's revert policy |
 | a finding whose disclosure is a decision | release note withheld with *Skip* and the reason; the decision handed to a person | `waiting`, kind release decision |
 | a regression after release | a new issue naming this one | unchanged |
@@ -267,13 +270,15 @@ by anyone, because nothing about it is held anywhere but the record.
 
 **Two sources, one recorded.** The tracker record is the only thing checked, so anything the
 repository knows — which commit merged, which commit a verdict judged — is written onto the issue
-at the step that knows it: the merged mark carries its commit, a verdict carries the commit it
-judged. Repository state is never read at transition time; the transition reads what the earlier
+at the step that knows it: the merged mark carries its commit, a review the head it judged, a
+verdict the commit it judged. Repository state is never read at transition time; the transition reads what the earlier
 step wrote.
 
-**A later change unearns.** A verdict records the commit it judged and the criteria text it
-judged against. When the merged commit moves, or the criteria field changes, `tested`, `released`
-and `closed` are unearned and the issue falls back to `developed`; the old verdicts stay as
+**A later change unearns.** A review records the head it judged; a verdict records the commit it
+judged and the criteria text it judged against. When the merged commit moves, `developed` and
+everything above it are unearned and the issue falls back to `in_progress` until the new head has
+its approving review and its mark; when the criteria field changes, `tested`, `released` and
+`closed` are unearned and the issue falls back to `developed`. Old reviews and verdicts stay as
 superseded history and the new ones are written beside them. A plan or criteria edit after
 `approved` also owes a correction comment saying what moved and why, and the write is refused
 without it, so criteria cannot be quietly relaxed to fit what got built. `reopen` is a person's
@@ -301,7 +306,7 @@ the side statuses with a typed reason, so a judgement call is recorded rather th
 drop is refused once the merged mark is set.
 
 **Evidence is typed at the write.** Every payload above is a write of a shape the CLI owns — a
-confirmation, a decision record, a question, a verdict, a verification — and a report is
+confirmation, a decision record, a question, a review, a verdict, a verification — and a report is
 assembled from the latest of each rather than written from memory. A verdict names its criterion
 by number and quotes the text it judged; one with no evidence is refused; a criterion with no
 verdict keeps the issue out of `tested`. The kind of evidence a criterion needs is its author's to
@@ -411,5 +416,8 @@ shaped by hand, because the verb did not exist when they were written.
   plugin defect to file, not a habit to keep.
 - The criteria kind, with its conjunction warning, has not run live: ISS-2's criteria were written
   before it existed. The next issue writes its criteria through the verb and is the first test.
+- Codex reviewed the code before every commit in both runs, and neither run had a payload for it:
+  the review lived in the consult log the tracker never sees. A review record at the boundary into
+  `developed` closes that, and it is the write a person's review lands in too.
 - About nine tracker calls by hand this run against about twenty in ISS-1. The eight transitions
   are still raw calls, and they are ISS-3.
