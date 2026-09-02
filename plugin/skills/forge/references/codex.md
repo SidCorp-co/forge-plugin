@@ -26,6 +26,14 @@ same turn — write it into the intent. Skip that and codex re-treads covered gr
 reads as independent confirmation when it is duplication, and a disagreement between the two is
 invisible. A consult with no advisor before it is fine; a gate asks once per session for the carry-in.
 
+**The round after a fix is `--recheck`.** It turns the last consult's findings on these files into
+the verification list, so codex confirms or refutes what it said against the tree as it now stands
+instead of roaming the diff for a narrower nit. Measured: six open rounds on one patch each found
+something smaller than the last; a recheck converges.
+
+**Which angles review is the checkout's.** `codex.angles` in `.forge.json` — `tech`, `ba`, `user`,
+`ux`, all four by default. A CLI wants `tech`; a product with screens wants all four.
+
 **Ask it to rule, not to roam.** `--diff` sends each file's diff and refuses findings about code the
 turn did not touch; `--verify "<risk>"` (repeatable) hands it named risks to answer CONFIRMED /
 REFUTED / CANNOT TELL against a quoted line. Both raise precision sharply, because a reviewer

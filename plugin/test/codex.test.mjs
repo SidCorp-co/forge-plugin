@@ -18,24 +18,26 @@ const {
   hookRecord,
   pendingIn,
   rounds,
+  unchangedAll,
 } = await import("../src/codex.mjs");
 const {
+  ANGLES,
   bundle,
   consume,
   digest,
   inside,
   locate,
   modelBehind,
+  openingFor,
   profileFrom,
   promptFor,
+  roleFor,
   withDiffs,
   sameFamily,
 } = await import("../src/codex-api.mjs");
 const { runTool, scopeFor } = await import("../src/codex-tools.mjs");
 const { partition } = await import("../src/resolve/flags.mjs");
 const BOOLEANS = ["--allow-echo"];
-const { answered, countedIn, historyFor, logEntries, pairedLog, startedState, verdictsBy } =
-  await import("../src/codex-log.mjs");
 
 /* A `.git` that is a file is what a worktree has, and repoRoot only asks whether it exists. */
 const REPO = join(sandbox, "repo");
@@ -210,40 +212,35 @@ test("pending work is dated in words", () => {
   assert.equal(ageOf(now - 5 * 86_400_000, now), "5 day(s) ago");
 });
 
-/* A verdict is a separate record; replaying advice without what was done with it made resolved /
-   still open a guess. */
-test("a verdict is joined back to the consult it scored", () => {
-  const entries = [
-    { kind: "consult", id: "aa", ok: true, root: "/a", at: "1", files: ["x"], intent: "i", reply: "r" },
-    { kind: "verdict", of: "aa", accepted: 2, rejected: 1, note: "kept the blocker" },
-  ];
-  assert.equal(verdictsBy(entries).get("aa").accepted, 2);
-  assert.match(historyFor(entries, "/a")[0].verdict, /2 accepted, 1 rejected — kept the blocker/);
+/* Three of four angles wrote "nothing material" in every one of 92 consults on a CLI. */
+test("the checkout picks the angles, and one angle is not a board", () => {
+  assert.match(roleFor(), /board of 4/u);
+  assert.match(roleFor(), /Business Analyst/u);
+  const one = roleFor(["tech"]);
+  assert.match(one, /Reply as the Tech Lead:/u);
+  assert.ok(!one.includes("Business Analyst") && !one.includes("UI/UX"), one.slice(0, 300));
+  assert.deepEqual(Object.keys(ANGLES), ["tech", "ba", "user", "ux"]);
+  assert.deepEqual(consultArgs(["a.mjs", "--angles", "tech,ux"]).angles, ["tech", "ux"]);
+  assert.equal(consultArgs(["a.mjs", "--recheck"]).recheck, true);
+  assert.equal(consultArgs(["a.mjs"]).recheck, false);
 });
 
-test("prior exchanges replay this repository's answered consults, with the intent judged", () => {
-  const entries = [
-    { kind: "consult", ok: true, root: "/a", at: "1", files: ["x"], intent: "first go", reply: "first" },
-    { kind: "consult", ok: false, root: "/a", at: "2", files: ["y"], error: "boom" },
-    { kind: "consult", ok: true, root: "/b", at: "3", files: ["z"], reply: "elsewhere" },
-    { kind: "consult", ok: true, root: "/a", at: "4", files: ["w"], reply: "second" },
-  ];
-  const held = historyFor(entries, "/a");
-  assert.deepEqual(held.map((one) => one.reply), ["first", "second"]);
-  assert.equal(held[0].intent, "first go");
-  assert.equal(held[1].intent, "(none given)");
-  assert.deepEqual(historyFor(entries, "/a", 1).map((one) => one.reply), ["second"]);
-  assert.deepEqual(historyFor(entries, "/c"), []);
+/* Zero cache reads in 92 consults: the history opens every call and was resent as fresh text. */
+test("the opening is the same text as blocks, with the history cached", () => {
+  const parts = [{ rel: "a.mjs", text: "code", chars: 4, sha: "x" }];
+  const history = [{ at: "1", files: ["a.mjs"], intent: "then", reply: "said", verdict: null }];
+  const blocks = openingFor("now", parts, history);
+  assert.equal(blocks.length, 2);
+  assert.deepEqual(blocks[0].cache_control, { type: "ephemeral" });
+  assert.equal(blocks[0].text + blocks[1].text, promptFor("now", parts, history), "one text, two blocks");
+  assert.equal(typeof openingFor("now", parts, []), "string", "nothing to cache, nothing to split");
 });
 
-/* A verdict against an error entry would read as "3 accepted" on a gateway timeout. */
-test("only an answered consult can carry a verdict", () => {
-  const entries = [
-    { kind: "consult", ok: true, reply: "said something" },
-    { kind: "consult", ok: false, error: "timed out" },
-    { kind: "consult", ok: true, reply: "" },
-  ];
-  assert.deepEqual(answered(entries).map((one) => one.reply), ["said something"]);
+/* After a commit every file reads UNCHANGED against HEAD, and a review of nothing is still billed. */
+test("a diff with nothing in it is recognised before the call", () => {
+  assert.equal(unchangedAll([{ rel: "a", diff: { unchanged: true } }, { rel: "b", missing: "gone" }]), true);
+  assert.equal(unchangedAll([{ rel: "a", diff: { unchanged: true } }, { rel: "b", diff: { text: "+x" } }]), false);
+  assert.equal(unchangedAll([]), false);
 });
 
 /* A model-initiated read is the one that must not be able to name its way out: the machine holds
@@ -433,27 +430,6 @@ test("the disable switch silences the record", (t) => {
   assert.equal(hookRecord({}, [join(REPO, "docs", "PLAN.md")]), null);
 });
 
-/* An unpaired start is a consult that died; a paired one is replaced by what it answered. */
-test("the log pairs a start with its result on the id", () => {
-  const entries = [
-    { kind: "started", id: "aa", at: "A", files: ["docs/A.md"] },
-    { kind: "consult", id: "aa", at: "A", ok: true, reply: "x" },
-    { kind: "started", id: "bb", at: "B", files: ["docs/B.md"] },
-  ];
-  assert.deepEqual(pairedLog(entries).map((one) => `${one.kind}:${one.id}`), ["consult:aa", "started:bb"]);
-});
-
-test("a start inside the budget reads as running, past it as lost", () => {
-  const at = "2026-08-31T08:00:00.000Z";
-  const base = Date.parse(at);
-  assert.match(startedState({ at }, base + 30_000), /running for 30s/);
-  assert.match(startedState({ at }, base + 1_000_000), /never reported back/);
-});
-
-test("nothing consulted yet reads as an empty log, never a throw", () => {
-  assert.deepEqual(logEntries(), []);
-});
-
 /* The precision mechanism: a finding about code this turn did not touch is the class of noise that
    crowds out the real ones, so an unchanged file is labelled context and not subject. */
 test("a diff is attached per file, and an unchanged one says so", () => {
@@ -563,16 +539,6 @@ test("a command line becomes a request in one place", () => {
   assert.equal(consultArgs(["--diff", "--base", "main"]).base, "main");
   assert.equal(consultArgs(["--base", "main"]).base, "main");
   assert.equal(consultArgs(["a.mjs"]).base, null);
-});
-
-/* A verdict typed by hand against a review nobody counted is accounting by vibes. */
-test("a review counts itself, and a malformed header counts as nothing", () => {
-  const held = countedIn("CODEX: 5 findings (1 blocker, 3 major, 1 minor)\n\n## Tech Lead");
-  assert.deepEqual(held, { total: 5, blocker: 1, major: 3, minor: 1 });
-  assert.deepEqual(countedIn("CODEX: 0 findings"), { total: 0 });
-  assert.deepEqual(countedIn("CODEX: 2 findings (2 major)"), { total: 2, major: 2 });
-  assert.equal(countedIn("## Tech Lead\n- blocker: something"), null);
-  assert.equal(countedIn(undefined), null);
 });
 
 test.after(() => rmSync(sandbox, { recursive: true, force: true }));

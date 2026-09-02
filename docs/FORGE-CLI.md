@@ -114,6 +114,21 @@ the review began. `reasoning_effort` is a request rather than a lever — the sa
 identically at minimal and at high — and the minutes go on the reviewer's own reading, which is the
 argument for medium.
 
+**A follow-up round verifies; it does not roam.** Six rounds on one patch, each a full review, each
+finding a narrower hole than the last with no signal to stop on. `--recheck` replays the previous
+consult's findings as the verification list, which is the shape the reviewer is reliable in.
+
+**Angles are the checkout's.** On this CLI three of the four wrote "nothing material" in every one of
+92 consults — output paid for, and the reader skimming past the one angle that mattered. The board
+stays for a product with screens; `.forge.json` names the angles that fit.
+
+**The history is marked for caching and chosen by file.** Zero cache reads in 92 consults, with the
+role and the replayed history resent on every call: both now carry a cache breakpoint. Measured on the
+first consult sent with them, the gateway created and read nothing — it caches on its own terms, so
+like `reasoning_effort` this is a request and not a lever, and it costs nothing to ask. The last three consults
+were the last three by date whatever they were about; one sharing a file comes first now, because that
+is the one "still open" can be answered against.
+
 **Containment is physical, not lexical.** `..` is the traversal you can see; a symlink committed inside
 the repository is the one you cannot. A path is admitted by realpath and by being a regular file, for a
 name on the command line as much as for one the reviewer asks for, and checking and reading stay two

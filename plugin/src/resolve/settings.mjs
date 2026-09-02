@@ -89,8 +89,9 @@ export const settings = once(() => {
 
 export const projectScope = once(() => sourced(".forge.json", forgeJson().parsed?.slug));
 
-/* Which paths are worth a second opinion is the checkout's answer: the account's covers every one. */
+/* Which paths, and which angles, are the checkout's answer: the account's covers every one. */
 export const projectRecordPattern = () => sourced(".forge.json", forgeJson().parsed?.codex?.pathRe);
+export const projectCodex = () => forgeJson().parsed?.codex ?? {};
 
 /* The directory `.forge.json` sits in, else the checkout's. A caller reading a project file needs
    this and not the cwd: doctor runs anywhere, and walking up from a subdirectory eventually leaves

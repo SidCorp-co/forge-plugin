@@ -27,13 +27,24 @@ const TOTAL_CHARS = 320_000;
 const ERROR_CHARS = 400;
 const HASH_CHARS = 12;
 
-const ROLE = `You are CODEX for this repository: a second model, on a different provider, reviewing work a coding agent has just done.
+/* Four angles, and a checkout picks which review it: on a CLI three of them wrote "nothing material"
+   in every one of 92 consults, output paid for and a reader's attention spent on the one that mattered. */
+export const ANGLES = {
+  tech: "Tech Lead — feasibility, architectural consistency, hidden coupling, what this forces or breaks downstream.",
+  ba: "Business Analyst — missing rules, contradictions, ambiguity, behaviour asserted without a source, untestable criteria.",
+  user: "End User — whether this serves the person actually doing the job; steps that confuse, cases nobody accounted for.",
+  ux: "UI/UX — screens, flows, empty/error/loading states, information architecture, accessibility. If nothing describes an interface, say so rather than inventing one.",
+};
 
-Reply as a board of four:
-- Tech Lead — feasibility, architectural consistency, hidden coupling, what this forces or breaks downstream.
-- Business Analyst — missing rules, contradictions, ambiguity, behaviour asserted without a source, untestable criteria.
-- End User — whether this serves the person actually doing the job; steps that confuse, cases nobody accounted for.
-- UI/UX — screens, flows, empty/error/loading states, information architecture, accessibility. If nothing describes an interface, say so rather than inventing one.
+export const roleFor = (angles = Object.keys(ANGLES)) => {
+  const named = angles.map((one) => ANGLES[one]);
+  const board = named.length === 1
+    ? `Reply as the ${named[0].split(" — ")[0]}:`
+    : `Reply as a board of ${named.length}:`;
+  return `You are CODEX for this repository: a second model, on a different provider, reviewing work a coding agent has just done.
+
+${board}
+${named.map((one) => `- ${one}`).join("\n")}
 
 FORM
 - Where you were given a list to verify, answer it FIRST — every item, with its verdict — and only then the findings line. A verification list is never skipped, whatever you found.
@@ -49,6 +60,7 @@ RULES
 - The coding agent will push back with context you cannot see. Weigh it honestly: concede when it is right, hold when it is not, and give the better reason either way.
 - Where you are given a diff, the diff is what is under review. Context you were given for reading is not the subject.
 - Terse. No preamble, no praise, no summary of what the file already says.`;
+};
 
 const ENV_LINE = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/;
 
@@ -223,7 +235,11 @@ const floorBlock = (only) =>
   `REPORT ONLY ${only.map((one) => one.toUpperCase()).join(" and ")} FINDINGS. A finding below that bar is left out `
   + `entirely rather than downgraded — this run is asking for precision, not coverage.`;
 
-export const promptFor = (intent, parts, history = [], { risks = [], only = [], bodies = false } = {}) => {
+const SEP = "\n\n---\n\n";
+
+/* Two halves, because the first is the one that repeats: the history opens every call of a consult
+   and the next consult on this repository, so it takes the cache breakpoint. */
+const promptSections = (intent, parts, history = [], { risks = [], only = [], bodies = false } = {}) => {
   /* Derived, not passed: a caller that says "anchored" while sending no diffs would be asking the
      reviewer to anchor to nothing. */
   const anchored = parts.some((part) => part.diff);
@@ -238,10 +254,9 @@ export const promptFor = (intent, parts, history = [], { risks = [], only = [], 
       ].join("\n\n")
     : null;
   const closing = risks.length
-    ? "Answer the verification list first, as the four angles where an angle has something to add."
-    : "Review these as the four angles, against my stated intent as well as this repository's own rules.";
-  return [
-    ...(earlier ? [earlier] : []),
+    ? "Answer the verification list first, as each angle where it has something to add."
+    : "Review these as the angles you were given, against my stated intent as well as this repository's own rules.";
+  const rest = [
     intent
       ? `WHAT I WAS DOING THIS TURN — my intent and plan, in my own words:\n\n${intent}`
       : "I have not described my intent. Say so if a finding turns on it.",
@@ -250,7 +265,20 @@ export const promptFor = (intent, parts, history = [], { risks = [], only = [], 
     ...(only.length ? [floorBlock(only)] : []),
     `THE FILES — ${parts.length} of them:\n\n${parts.map((part) => fileBlock(part, bodies)).join("\n\n")}`,
     closing,
-  ].join("\n\n---\n\n");
+  ].join(SEP);
+  return { earlier, rest };
+};
+
+export const promptFor = (...given) => {
+  const { earlier, rest } = promptSections(...given);
+  return earlier ? `${earlier}${SEP}${rest}` : rest;
+};
+
+/** The same text as blocks: the history cached, the rest fresh. Zero cache reads in 92 consults. */
+export const cached = (text) => ({ type: "text", text, cache_control: { type: "ephemeral" } });
+export const openingFor = (...given) => {
+  const { earlier, rest } = promptSections(...given);
+  return earlier ? [cached(`${earlier}${SEP}`), { type: "text", text: rest }] : rest;
 };
 
 const frameEvent = (frame) => {
@@ -338,7 +366,7 @@ const parsedInput = (json) => {
   }
 };
 
-export const askApi = async (values, model, messages, { onDelta = () => {}, signal, tools, effort } = {}) => {
+export const askApi = async (values, model, messages, { onDelta = () => {}, signal, tools, effort, system } = {}) => {
   const answer = await fetch(`${values.ANTHROPIC_BASE_URL}/v1/messages`, {
     method: "POST",
     headers: {
@@ -350,7 +378,7 @@ export const askApi = async (values, model, messages, { onDelta = () => {}, sign
     body: JSON.stringify({
       model,
       max_tokens: MAX_TOKENS,
-      system: ROLE,
+      system: [cached(system ?? roleFor())],
       stream: true,
       messages,
       reasoning_effort: effort ?? defaultEffort(),

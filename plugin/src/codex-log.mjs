@@ -86,11 +86,18 @@ export const verdictsBy = (entries) => {
   return found;
 };
 
-export const historyFor = (entries, root, pairs = HISTORY_PAIRS) => {
+/* By relevance first: a consult on bash-guard carried three about cli.mjs, because recency was the
+   only order. One sharing a file is what "still open" can be answered against. */
+const sharing = (one, rels) => (one.files ?? []).some((file) => rels.includes(file));
+
+export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
   const scored = verdictsBy(entries);
-  return answered(entries)
-    .filter((one) => one.root === root)
-    .slice(-pairs)
+  const own = answered(entries).filter((one) => one.root === root);
+  const near = own.filter((one) => sharing(one, rels)).slice(-pairs);
+  const room = pairs - near.length;
+  const far = room > 0 ? own.filter((one) => !near.includes(one)).slice(-room) : [];
+  return [...far, ...near]
+    .sort((a, b) => own.indexOf(a) - own.indexOf(b))
     .map((one) => {
       const held = scored.get(one.id ?? one.at);
       return {
@@ -103,6 +110,29 @@ export const historyFor = (entries, root, pairs = HISTORY_PAIRS) => {
         reply: one.reply.slice(0, HISTORY_CHARS),
       };
     });
+};
+
+/* A finding's bullet names a severity; a verdict on a risk names its ruling, whatever else its head
+   says, and a resolved one is not re-asked. Anchored to a file the round is about, or unanchored. */
+const FINDING = /^\s*[-*]\s+\*\*([^*]*\b(?:blocker|major|minor)\b[^*]*)\*\*\s*(.+)$/gimu;
+const RULING = /\b(?:resolved|confirmed|refuted|cannot tell)\b/iu;
+const ANCHOR = /`([^`:\s]+):\d+(?:-\d+)?`/u;
+const FINDING_CHARS = 400;
+
+export const findingsIn = (reply, files = null) =>
+  [...String(reply ?? "").matchAll(FINDING)]
+    .filter(([, kind]) => !RULING.test(kind))
+    .filter(([, , text]) => !files || !ANCHOR.test(text) || files.includes(ANCHOR.exec(text)[1]))
+    .map(([, kind, text]) => `${kind.replace(/:\s*$/u, "")}: ${text}`.slice(0, FINDING_CHARS));
+
+/* A follow-up round rules on the last consult's findings about these files — another file's would
+   clear this one unread. Six open rounds each found a narrower nit; asked to confirm, one converges. */
+export const recheckRisks = (entries, root, rels) => {
+  const last = answered(entries).filter((one) => one.root === root && sharing(one, rels)).at(-1);
+  if (!last) return [];
+  const held = verdictsBy(entries).get(last.id ?? last.at);
+  const did = held?.note ? ` What I then did: ${held.note.slice(0, FINDING_CHARS)}` : "";
+  return findingsIn(last.reply, rels).map((one) => `Your earlier finding, to re-verify against the tree as it stands now — ${one}.${did}`);
 };
 
 /* Inside the budget it is in flight; past it, nothing is coming. Reading the second as the first
@@ -145,11 +175,52 @@ const logLine = (entry, full) => {
   return [head, files, sent, "", entry.reply ?? entry.error ?? "", ""].filter((one) => one !== null).join("\n");
 };
 
+/* The eval the log exists for: what each model found, what the caller kept, cached over every input token. */
+const median = (values) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+};
+
+export const scoreOf = (entries) => {
+  const scored = verdictsBy(entries);
+  const rows = new Map();
+  for (const one of answered(entries)) {
+    const key = `${one.model ?? one.slot ?? "?"}${one.effort ? ` @${one.effort}` : ""}`;
+    const row = rows.get(key) ?? { model: key, consults: 0, findings: 0, zero: 0, accepted: 0, rejected: 0, seconds: [], cached: 0, input: 0 };
+    const counted = countedIn(one.reply);
+    row.consults += 1;
+    if (counted) {
+      row.findings += counted.total;
+      if (counted.total === 0) row.zero += 1;
+    }
+    const held = scored.get(one.id ?? one.at);
+    if (held) {
+      row.accepted += held.accepted ?? 0;
+      row.rejected += held.rejected ?? 0;
+    }
+    row.seconds.push(Math.round((one.ms ?? 0) / 1000));
+    const usage = one.usage ?? {};
+    row.cached += usage.cache_read_input_tokens ?? 0;
+    row.input += (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);
+    rows.set(key, row);
+  }
+  return [...rows.values()].map((row) => ({ ...row, median: median(row.seconds), seconds: undefined }));
+};
+
+const scoreLine = (row) =>
+  `${row.model.padEnd(24)} ${String(row.consults).padStart(4)} consults  ${String(row.findings).padStart(4)} findings `
+  + `(${row.zero} none)  ${String(row.accepted).padStart(4)} accepted  ${String(row.rejected).padStart(3)} rejected  `
+  + `${String(row.median).padStart(4)}s median  ${row.input ? Math.round((row.cached / row.input) * 100) : 0}% cached`;
+
 /* `--id` and not `--last 1`: two consults in flight make "the last one" a race. */
 export const printLog = (rest) => {
-  const { last, id, full } = flags(rest, "codex log", ["--full"]);
+  const { last, id, full, score } = flags(rest, "codex log", ["--full", "--score"]);
   const entries = pairedLog(logEntries());
   if (!entries.length) return console.log(`No consults logged yet. ${LOG_PATH} appears on the first.`);
+  if (score) {
+    for (const row of scoreOf(entries)) console.log(scoreLine(row));
+    return;
+  }
   if (id) {
     const held = entries.filter((one) => one.id === id || one.of === id);
     if (!held.length) fail(`codex: no consult logged as ${id}.`);

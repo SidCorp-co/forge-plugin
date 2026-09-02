@@ -18,12 +18,13 @@ import { randomBytes } from "node:crypto";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 import { CONFIG_PATH, configDir, readJson, userConfig, writeJsonPrivate } from "./resolve/config.mjs";
-import { fail, projectRecordPattern } from "./resolve/settings.mjs";
+import { fail, projectCodex, projectRecordPattern } from "./resolve/settings.mjs";
 import { flags, partition, pullRepeated } from "./resolve/flags.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { logHook } from "./hook-log.mjs";
 import { TOOLS, runTool, scopeFor } from "./codex-tools.mjs";
 import {
+  ANGLES,
   EFFORTS,
   MODEL,
   askApi,
@@ -34,8 +35,9 @@ import {
   modelBehind,
   canonical,
   withDiffs,
+  openingFor,
   profile,
-  promptFor,
+  roleFor,
   sameFamily,
 } from "./codex-api.mjs";
 import {
@@ -46,6 +48,7 @@ import {
   logConsult,
   logEntries,
   printLog,
+  recheckRisks,
   verdict,
 } from "./codex-log.mjs";
 
@@ -64,12 +67,14 @@ const USAGE = [
   "gives it a memory of this repository. A named file may be an absolute path in another project.",
   "The hook records what `codex.pathRe` matches, documents by default; any path can be named too.",
   "",
-  "  consult [file...] [--diff [--base ref]] [--verify risk]... [--only s,s] [--allow-echo]",
+  "  consult [file...] [--diff [--base ref]] [--verify risk]... [--only s,s] [--recheck]",
   "                            review; pipe your intent on stdin",
+  "                            [--angles a,a] [--effort e] [--rounds n] [--send m] [--allow-echo]",
   "  verdict --accepted n --rejected n [--note t]   what you did with the last consult",
   "  pending [--drop]          what this turn touched and has not been consulted on",
   "  show                      profile, model, history and pending, in effect here",
   "  log [--last n] [--id i] [--full]   past consults, for scoring the advice later",
+  "  log --score               per model: consults, findings, what was kept, time, cache",
   "",
   "A `codex` object in ~/.config/forge/config.json, every key optional",
   "  model                     model slot to ask for (default fable)",
@@ -80,6 +85,8 @@ const USAGE = [
   "  rounds                    model calls one consult may make, the last served no tools (3)",
   "  send                      diffs | bodies — what travels with the prompt (diffs)",
   "  effort                    reasoning effort asked of the slot (default medium)",
+  "  angles                    which of tech | ba | user | ux review (default all four);",
+  "                            a `codex.angles` in the checkout's .forge.json wins over this",
   "",
   "  --diff         send each file's diff and refuse findings that are only about code this turn",
   "                 did not touch. Raises precision more than anything else.",
@@ -92,6 +99,9 @@ const USAGE = [
   "  --verify risk  a named risk to rule on rather than an open review; repeatable. A reviewer",
   "                 verifying is reliable where a reviewer discovering invents.",
   "  --only s,s     report only these severities: blocker, major, minor.",
+  "  --recheck      verify the last consult's findings on these files instead of roaming for new",
+  "                 ones: each becomes a --verify risk. The round after a fix, not the first.",
+  "  --angles a,a   which angles review this consult: tech, ba, user, ux.",
   "",
   "  FORGE_CODEX_DISABLE=1     the one variable: a kill switch has to work when config is broken",
 ].join("\n");
@@ -253,12 +263,17 @@ export const afterTouch = (held, root, rel) => {
    while the call was in flight is not part of this answer and must survive it. */
 const clearConsulted = (root, rels) => {
   let left = [];
+  let since = null;
   updateState((held) => {
+    since = turnsOf(held)[root]?.at ?? null;
     left = pendingIn(held, root).filter((rel) => !rels.includes(rel));
-    return { ...held, turns: { ...turnsOf(held), [root]: { files: left, at: Date.now() } } };
+    /* The date is the list's, not this consult's: a file left over keeps the age it was recorded at. */
+    return { ...held, turns: { ...turnsOf(held), [root]: { files: left, at: left.length ? since ?? Date.now() : Date.now() } } };
   });
-  return left;
+  return { left, since };
 };
+
+export const unchangedAll = (parts) => parts.length > 0 && parts.every((part) => part.missing || part.diff?.unchanged);
 
 /* An entry that cannot be tied to code cannot be checked, so an eval over the log needs the commit. */
 const commitAt = (root) => {
@@ -272,7 +287,7 @@ const commitAt = (root) => {
    given, and seeing has a fixed point. The last call is served no tools, so it answers. What it
    still never gets is a shell: the version that could run commands took eleven minutes, spawned its
    own subagents and had to be killed by pid. hooks/how/codex-second.md. */
-const BOOLEAN = ["--allow-echo", "--diff"];
+const BOOLEAN = ["--allow-echo", "--diff", "--recheck"];
 const SEVERITIES = ["blocker", "major", "minor"];
 
 const severities = (raw) => {
@@ -294,7 +309,7 @@ const callBudget = (asked) => {
 };
 
 export const rounds = async (values, model, opening, scope, onDelta, ask = askApi, held = {}) => {
-  const { effort, cap } = held;
+  const { effort, cap, system } = held;
   const signal = AbortSignal.timeout(BUDGET_MS);
   const calls = callBudget(cap);
   const messages = [{ role: "user", content: opening }];
@@ -303,7 +318,7 @@ export const rounds = async (values, model, opening, scope, onDelta, ask = askAp
   for (let call = 1; ; call += 1) {
     const last = call === calls;
     console.error(`codex: call ${call} of ${calls}${used.length ? ` after ${used.length} tool call(s)` : ""}...`);
-    const held = await ask(values, model, messages, { onDelta, signal, effort, tools: last ? [] : TOOLS });
+    const held = await ask(values, model, messages, { onDelta, signal, effort, system, tools: last ? [] : TOOLS });
     if (!held.calls.length) return { ...held, tools: used, refused, calls: call };
     /* The cap is the loop's to keep: a gateway that answers the tool-less call with tool calls anyway
        would otherwise be served round `calls + 1`, with tools, until the budget expired. And a capped
@@ -376,7 +391,19 @@ export const consultArgs = (given) => {
        stops paying twice. `--send bodies` is the old shape, for a consult with no repository to
        read from. */
     bodies: chosenSend(held.send),
+    recheck: Boolean(held.recheck),
+    angles: chosenAngles(held.angles),
   };
+};
+
+/* The checkout's, else the account's, else all four — and a name not on the list is refused rather
+   than sent, because a role the prompt never described would be reviewed by nobody. */
+const chosenAngles = (raw) => {
+  const given = raw ?? projectCodex().angles ?? userConfig().codex?.angles;
+  if (given === undefined) return Object.keys(ANGLES);
+  const asked = (Array.isArray(given) ? given : String(given).split(",")).map((one) => one.trim()).filter(Boolean);
+  for (const one of asked) if (!ANGLES[one]) fail(didYouMean("angle", one, Object.keys(ANGLES)));
+  return asked.length ? asked : Object.keys(ANGLES);
 };
 
 const SENDS = ["diffs", "bodies"];
@@ -400,9 +427,15 @@ const consult = async (given) => {
   if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
-  const { named, risks, only, allowEcho, base, effort, cap, bodies } = consultArgs(given);
+  const { named, risks, only, allowEcho, base, effort, cap, bodies, recheck, angles } = consultArgs(given);
   const rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
   if (!rels.length) fail("codex: nothing to consult on. Name a file, or write one first.");
+  const entries = logEntries();
+  if (recheck) {
+    const again = recheckRisks(entries, root, rels);
+    if (!again.length) fail("codex: --recheck needs an answered consult with findings on these files, and none is logged.");
+    risks.push(...again);
+  }
 
   const model = modelBehind(values);
   if (!model) fail(`codex: ${path} maps the ${MODEL} slot to no model.`);
@@ -416,9 +449,14 @@ const consult = async (given) => {
   const id = randomBytes(3).toString("hex");
 
   const parts = base ? withDiffs(root, bundle(root, rels), base) : bundle(root, rels);
+  /* A review of nothing is still billed: after a commit every file reads UNCHANGED against HEAD. */
+  if (base && unchangedAll(parts)) {
+    const where = commitAt(root).dirty ? "the files named" : "the tree is clean, so the change is committed";
+    fail(`codex: nothing differs from ${base} in ${rels.join(", ")} — ${where}. Pass --base ${base}~1 to review the last commit.`);
+  }
   const clipped = parts.filter((part) => part.clipped).map((part) => part.rel);
   if (clipped.length) console.error(`codex: sent clipped, too long to fit whole: ${clipped.join(", ")}.`);
-  const history = historyFor(logEntries(), root);
+  const history = historyFor(entries, root, undefined, rels);
   const started = Date.now();
   const record = {
     id,
@@ -430,6 +468,9 @@ const consult = async (given) => {
     sent: parts.map((part) => ({ rel: part.rel, sha: part.sha, chars: part.chars, clipped: Boolean(part.clipped) })),
     intent,
     history: history.length,
+    effort,
+    angles,
+    ...(recheck ? { recheck: true } : {}),
     ...(base ? { anchoredTo: base } : {}),
     ...(risks.length ? { risks } : {}),
     ...(only.length ? { only } : {}),
@@ -444,9 +485,10 @@ const consult = async (given) => {
     process.stdout.write(text);
   };
   try {
-    const opening = promptFor(intent, parts, history, { risks, only, bodies });
+    const opening = openingFor(intent, parts, history, { risks, only, bodies });
     const held = await rounds(
-      values, model, opening, scopeFor(root, rels.filter(isAbsolute)), streamed, askApi, { effort, cap },
+      values, model, opening, scopeFor(root, rels.filter(isAbsolute)), streamed, askApi,
+      { effort, cap, system: roleFor(angles) },
     );
     process.stdout.write("\n");
     logConsult({
@@ -462,12 +504,12 @@ const consult = async (given) => {
       calls: held.calls,
       reply: held.text,
     });
-    const left = clearConsulted(root, rels);
+    const { left, since } = clearConsulted(root, rels);
     const kinds = held.tools.reduce((seen, one) => ({ ...seen, [one.name]: (seen[one.name] ?? 0) + 1 }), {});
     const spent = Object.entries(kinds).map(([name, n]) => `${name} ${n}`).join(", ");
     if (spent) console.error(`codex: ${held.calls} call(s), tools it ran: ${spent}.`);
     if (held.refused.length) console.error(`codex: refused ${held.refused.length} tool call(s): ${held.refused.join("; ")}.`);
-    if (left.length) console.error(`codex: still unconsulted from this turn: ${left.join(", ")}.`);
+    if (left.length) console.error(`codex: ${left.length} file(s) still pending, recorded ${ageOf(since)}: ${left.join(", ")}.`);
     if (held.stop === "max_tokens") console.error("codex: the reply hit `codex.maxTokens`.");
   } catch (error) {
     logConsult({ ...record, kind: "consult", ms: Date.now() - started, ok: false, error: error.message });
@@ -493,6 +535,7 @@ const show = () => {
   console.log(`history   : ${root ? historyFor(entries, root).length : 0} prior exchange(s) replayed`);
   console.log(`records   : ${recordPattern().value}  \u2190 ${recordPattern().from}`);
   console.log(`tools     : ${TOOLS.map((one) => one.name).join(", ")} over ${callBudget()} call(s)`);
+  console.log(`angles    : ${chosenAngles(undefined).join(", ")}`);
   console.log(`pending   : ${waiting.length ? waiting.join(", ") : "nothing"}`);
   console.log(`log       : ${LOG_PATH}  (${consults(entries).length} consult(s))`);
 };
