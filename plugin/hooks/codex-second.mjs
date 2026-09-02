@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // The advisor has spoken and there is work in the tree: the second opinion happens before the next
-// write, not at some end the turn may never reach. how/codex-second.md.
+// write, not at some end the turn may never reach. And a commit waits for what a consult still owes:
+// documents recorded and never read, findings nobody ruled on. how/codex-second.md.
 
 import { spawnSync } from "node:child_process";
 import { statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-import { repoRoot } from "../src/codex.mjs";
-import { lastConsultAt } from "../src/codex-log.mjs";
+import { ageOf, pendingState, repoRoot } from "../src/codex.mjs";
+import { lastConsultAt, logEntries, unverdicted } from "../src/codex-log.mjs";
 import {
   advisedThisTurn,
   commitTree,
@@ -68,27 +69,43 @@ const typed = (one) =>
 const ev = readEvent();
 const closing = committing(ev);
 
-if (
-  (!writing(ev) && !closing)
-  || process.env.FORGE_CODEX_DISABLE === "1"
-  || process.env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL === "1"
-) {
-  process.exit(0);
-}
+if ((!writing(ev) && !closing) || process.env.FORGE_CODEX_DISABLE === "1") process.exit(0);
 
-const records = turnRecords(ev.transcript_path ?? "");
 /* The tree the commit names, not the shell's; and a commit is in it by construction, redirect or not. */
 const root = repoRoot(resolve(ev.cwd ?? process.cwd(), commitTree(ev) ?? "."));
-if (!records || !root || !advisedThisTurn(records) || (!closing && !writesInside(ev, root))) {
-  process.exit(0);
-}
+if (!root) process.exit(0);
 
+const records = process.env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL === "1" ? null : turnRecords(ev.transcript_path ?? "");
+const advised = Boolean(records && advisedThisTurn(records) && (closing || writesInside(ev, root)));
 const spentAt = lastConsultAt(root);
-if (!closing && !unspentAdvice(records, spentAt)) process.exit(0);
-
 /* Asked at every write: decided once, it was decided at the first, on the tree the advisor left. */
-const { newest: changed, named, held } = changedAt(root);
-if (changed === 0 || changed <= spentAt) process.exit(0);
+const { newest: changed, named, held } = advised ? changedAt(root) : { newest: 0, named: [], held: [] };
+const owed = advised && (closing || unspentAdvice(records, spentAt)) && changed > 0 && changed > spentAt;
+
+if (!owed && closing) {
+  /* Recorded this turn or a turn ago, and never read: 7 of 30 commits landed with the list unread. */
+  const waiting = pendingState(root);
+  if (waiting.files.length) {
+    deny(
+      `Codex has not read the documents this tree recorded (${waiting.files.slice(0, 6).map(typed).join(" ")}`
+        + `${waiting.files.length > 6 ? ` and ${waiting.files.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}).\n\n`
+        + 'Do this: `echo "<what you were doing>" | forge codex consult --diff --only blocker,major`, then re-send. '
+        + "`forge codex pending --drop` discards them unread; `FORGE_CODEX_DISABLE=1` the session."
+        + how(),
+    );
+  }
+  /* 37 consults made findings nobody ruled on, and the next consult then read "still open" as a guess. */
+  const open = unverdicted(logEntries(), root);
+  if (open) {
+    deny(
+      `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what became of ${open.open.join(", ")}.\n\n`
+        + `Do this: \`forge codex verdict --of ${open.id} --accepted <ids> --rejected <id>=<why>\`, then re-send. `
+        + "A --recheck records the verdict for what it refutes; `FORGE_CODEX_DISABLE=1` the session."
+        + how(),
+    );
+  }
+}
+if (!owed) process.exit(0);
 
 /* The command it can send as it stands: six is a readable line, and the paths are the judged tree's,
    so a commit aimed elsewhere is consulted there rather than in the tree the shell happens to be. */

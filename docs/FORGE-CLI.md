@@ -146,8 +146,14 @@ for.
 
 **The log is the session.** There is no session id, so a consult opens with this repository's last
 three answered ones and their verdicts. Findings are numbered `F1…` across angles and a verdict names
-them — `--accepted F1,F3 --rejected F2=why` — so a recheck can tell codex what became of *each* one
-rather than replaying two counts and a note against a list. A `started` entry is written before the call, because a consult
+them — `--accepted F1,F3 --rejected F2=why`, never a count: 185 accepted to 14 rejected was the count
+form saying nothing. What is replayed is the findings, the rulings and what became of each, not the
+prose: the gateway reported no cache creation in 108 consults, so every replayed character was paid for
+on every call. A recheck's REFUTED rulings record themselves as the verdict on the consult they judged
+(CONFIRMED stays open), a verdict lands by default on the last consult that made findings and heard
+nothing, and `--of` names another. The commit gate waits on both, and its how document carries the
+counts. Usage is summed over a consult's calls; logged from the
+last call alone, `log --score` counted a third of the input. A `started` entry is written before the call, because a consult
 that dies mid-flight reaches no handler and a review that vanished is what an eval most wants to see.
 Each entry carries the commit, a per-file sha256 and whether the file was clipped: advice that cannot
 be tied to bytes cannot be checked.

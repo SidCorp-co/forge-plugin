@@ -77,9 +77,7 @@ export const pairedLog = (entries) => {
   return entries.filter((one) => one.kind !== "started" || !finished.has(one.id ?? one.at));
 };
 
-/* Continuity without a session: this repository's last few exchanges, clipped, replayed. */
-/* Joined back from its own record: a review replayed without what the caller did with it made
-   "resolved / still open" a guess. */
+/* A review replayed without what the caller did with it made "resolved / still open" a guess. */
 export const verdictsBy = (entries) => {
   const found = new Map();
   for (const one of entries) if (one.kind === "verdict" && one.of) found.set(one.of, one);
@@ -113,9 +111,30 @@ export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
         files: one.files ?? [],
         intent: (one.intent ?? "(none given)").slice(0, INTENT_CHARS),
         verdict: held ? verdictLine(held) : null,
-        reply: one.reply.slice(0, HISTORY_CHARS),
+        reply: digestOf(one.reply, held),
       };
     });
+};
+
+/* The rulings and the numbered findings, each with what became of it — not the prose around them.
+   The gateway cached none of 108 replays, so every call paid for the whole reply three times over. */
+const RULING_LINE = /^\s*(\d+)\.\s+\*\*(CONFIRMED|REFUTED|CANNOT TELL)\*\*.*$/gimu;
+export const rulingsIn = (reply) =>
+  [...String(reply ?? "").matchAll(RULING_LINE)].map(([line, n, ruling]) => ({ n: Number(n), ruling: ruling.toUpperCase(), line }));
+
+export const digestOf = (reply, held = null) => {
+  const findings = numbered(reply);
+  const rulings = rulingsIn(reply);
+  const counted = countedIn(reply);
+  if (!findings.length && !rulings.length && !counted) return String(reply ?? "").slice(0, HISTORY_CHARS);
+  return [
+    ...rulings.map((one) => one.line.trim().slice(0, FINDING_CHARS)),
+    `CODEX: ${counted ? counted.total : findings.length} findings`,
+    ...findings.map((one) => {
+      const did = outcomeOf(held, one.id);
+      return `- ${one.id} — ${one.text}${did ? ` → ${did}` : ""}`;
+    }),
+  ].join("\n").slice(0, HISTORY_CHARS);
 };
 
 /* A finding's bullet names a severity; a verdict on a risk names its ruling, whatever else its head
@@ -147,9 +166,10 @@ export const numbered = (reply, files = null) => {
 
 export const findingsIn = (reply, files = null) => numbered(reply, files).map((one) => one.text);
 
-/* `--accepted F1,F3 --rejected F2=why`, or the two counts as before. An id the reply never gave, or one
-   given to both sides, is refused: a verdict is what the next consult reads "still open" from. A comma
-   opens a new entry only where an id follows, so a reason may contain one. */
+/* `--accepted F1,F3 --rejected F2=why`, by id and never by count: 185 accepted to 14 rejected was the
+   count form saying nothing. An id the reply never gave, or one given to both sides, is refused: a
+   verdict is what the next consult reads "still open" from. A comma opens a new entry only where an id
+   follows, so a reason may contain one. */
 const NEXT = /,(?=\s*F\d+\b)/u;
 const spelled = (raw) => {
   const out = new Map();
@@ -159,27 +179,20 @@ const spelled = (raw) => {
   }
   return [...out.values()];
 };
-const isCount = (raw) => raw === undefined || /^\d+$/u.test(String(raw).trim());
-const asCount = (raw) => Number(raw ?? 0);
+const isCount = (raw) => raw !== undefined && /^\d+$/u.test(String(raw).trim());
 
-export const verdictRecord = (last, { accepted, rejected, note }) => {
+export const verdictRecord = (last, { accepted, rejected, note }, prior = null) => {
   const at = new Date().toISOString();
   const base = { kind: "verdict", at, of: last.id ?? last.at, files: last.files, ...(note ? { note } : {}) };
-  if (isCount(accepted) && isCount(rejected)) {
-    const a = asCount(accepted);
-    const r = asCount(rejected);
-    const bad = [accepted, rejected].find((one) => one !== undefined && !Number.isSafeInteger(asCount(one)));
-    if (bad !== undefined) return { problem: `${bad} is not a count.` };
-    const counted = countedIn(last.reply);
-    if (counted && a + r > counted.total) {
-      return { problem: `consult ${base.of} made ${counted.total} finding(s); ${a + r} cannot be decided.` };
-    }
-    return { record: { ...base, accepted: a, rejected: r }, undecided: counted ? counted.total - a - r : 0 };
-  }
-  if ((accepted !== undefined && isCount(accepted)) || (rejected !== undefined && isCount(rejected))) {
-    return { problem: "one side names findings and the other counts them; say both as ids (F1,F3) or both as counts." };
-  }
   const known = numbered(last.reply).map((one) => one.id);
+  const made = known.length ? `it made ${known.join(", ")}` : "it made no findings";
+  if (isCount(accepted) || isCount(rejected)) {
+    return { problem: `a verdict names findings, not counts — --accepted F1,F3 --rejected F2=why; consult ${base.of}: ${made}.` };
+  }
+  if (accepted === undefined && rejected === undefined) {
+    if (known.length) return { problem: `consult ${base.of} made ${known.join(", ")}: say which you accepted and which you rejected.` };
+    return { record: { ...base, accepted: 0, rejected: 0, kept: [], dropped: {} }, undecided: 0 };
+  }
   const kept = spelled(accepted);
   const dropped = spelled(rejected);
   for (const { id } of [...kept, ...dropped]) {
@@ -187,14 +200,8 @@ export const verdictRecord = (last, { accepted, rejected, note }) => {
   }
   const twice = kept.map((one) => one.id).filter((id) => dropped.some((one) => one.id === id));
   if (twice.length) return { problem: `${twice.join(", ")} cannot be both accepted and rejected.` };
-  const record = {
-    ...base,
-    accepted: kept.length,
-    rejected: dropped.length,
-    kept: kept.map((one) => one.id),
-    dropped: Object.fromEntries(dropped.map((one) => [one.id, one.why])),
-  };
-  return { record, undecided: known.length - kept.length - dropped.length };
+  const record = { ...base, ...joined(prior, kept, dropped, known.length) };
+  return { record, undecided: undecidedIn(known, record).length };
 };
 
 /* What was done with one finding, when the verdict named it; the note otherwise. */
@@ -207,15 +214,90 @@ export const outcomeOf = (held, id) => {
 
 /* A follow-up round rules on the last consult's findings about these files — another file's would
    clear this one unread. Six open rounds each found a narrower nit; asked to confirm, one converges. */
-export const recheckRisks = (entries, root, rels) => {
-  const last = answered(entries).filter((one) => one.root === root && sharing(one, rels)).at(-1);
-  if (!last) return [];
-  const held = verdictsBy(entries).get(last.id ?? last.at);
-  return numbered(last.reply, rels).map((one) => {
-    const did = outcomeOf(held, one.id);
-    return `Your earlier finding ${one.id}, to re-verify against the tree as it stands now — ${one.text}.${
-      did ? ` What I then did: ${did.slice(0, FINDING_CHARS)}` : ""}`;
+export const recheckPlan = (entries, root, rels) => {
+  const judged = answered(entries).filter((one) => one.root === root && sharing(one, rels)).at(-1);
+  if (!judged) return null;
+  const held = verdictsBy(entries).get(judged.id ?? judged.at);
+  const findings = numbered(judged.reply, rels);
+  return {
+    judged,
+    ids: findings.map((one) => one.id),
+    /* The defect, with the legend: "re-verify" drew CONFIRMED for a fix that held, then REFUTED. */
+    risks: findings.map((one) => {
+      const did = outcomeOf(held, one.id);
+      return `Your earlier finding ${one.id} still stands in the tree as it is now — ${one.text}.${
+        did ? ` What I then did: ${did.slice(0, FINDING_CHARS)}` : ""} (CONFIRMED = the defect is still there; REFUTED = it is fixed, or was never real.)`;
+    }),
+  };
+};
+
+export const recheckRisks = (entries, root, rels) => recheckPlan(entries, root, rels)?.risks ?? [];
+
+/* A recheck's rulings are the verdict on what it re-verified: REFUTED is a finding the tree no longer
+   shows. 37 consults with findings closed with nothing recorded, and 10 of them had a recheck that
+   said exactly what became of each. The n-th ruling answers the n-th risk, whatever else the reply
+   says; a CONFIRMED one stays open, and the caller's own verdict overrides this one. */
+export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null) => {
+  const rulings = new Map(rulingsIn(reply).map((one) => [one.n, one.ruling]));
+  const kept = [];
+  const open = [];
+  plan.ids.forEach((id, at) => {
+    const ruling = rulings.get(offset + at + 1);
+    if (ruling === "REFUTED") kept.push(id);
+    else if (ruling === "CONFIRMED" || ruling === "CANNOT TELL") open.push(id);
   });
+  if (!kept.length && !open.length) return null;
+  const of = plan.judged.id ?? plan.judged.at;
+  const note = `from recheck ${recheckId}${open.length ? `; still open: ${open.join(", ")}` : ""}`;
+  const held = joined(prior, kept.map((id) => ({ id })), open.map((id) => ({ id, reopen: true })), numbered(plan.judged.reply).length);
+  return {
+    record: { kind: "verdict", at: new Date().toISOString(), of, files: plan.judged.files, ...held, from: recheckId, note },
+    said: `verdict on ${of} recorded from this recheck — accepted: ${kept.join(", ") || "none"}`
+      + `${open.length ? `; still open: ${open.join(", ")}` : ""}. \`forge codex verdict --of ${of}\` overrides it.`,
+  };
+};
+
+/* Added to the prior record, never over it; the newer word wins, and a reopened finding leaves both sides. */
+const joined = (prior, kept, dropped, total) => {
+  const said = new Set([...kept, ...dropped].map((one) => one.id));
+  const keptAll = [...(prior?.kept ?? []).filter((id) => !said.has(id)), ...kept.map((one) => one.id)];
+  const droppedAll = {
+    ...Object.fromEntries(Object.entries(prior?.dropped ?? {}).filter(([id]) => !said.has(id))),
+    ...Object.fromEntries(dropped.filter((one) => !one.reopen).map((one) => [one.id, one.why ?? ""])),
+  };
+  /* A count-form prior decided every id it never named; only what a recheck reopens is open again.
+     Its totals are carried for `log --score`, the rejected side first and the accepted side capped so
+     the two never exceed the findings made: a count cannot say which of its ids a later word moved. */
+  const counted = Boolean(prior && (prior.counted || (!prior.kept && !prior.dropped)));
+  const reopened = [...(prior?.reopened ?? []).filter((id) => !said.has(id)), ...dropped.filter((one) => one.reopen).map((one) => one.id)];
+  const rejected = counted ? Math.max(prior.rejected ?? 0, Object.keys(droppedAll).length) : Object.keys(droppedAll).length;
+  return {
+    accepted: counted ? Math.max(keptAll.length, Math.min(prior.accepted ?? 0, total - rejected)) : keptAll.length,
+    rejected,
+    kept: keptAll,
+    dropped: droppedAll,
+    ...(counted ? { counted } : {}),
+    ...(reopened.length ? { reopened } : {}),
+  };
+};
+
+/* The ids a verdict has not decided: a recheck's leaves CONFIRMED and CANNOT TELL open, and the gate
+   is about decisions, not records. A count-form verdict from before ids decided everything at once. */
+export const undecidedIn = (ids, held) => {
+  if (!held) return ids;
+  if (held.counted) return ids.filter((id) => held.reopened?.includes(id));
+  if (!held.kept && !held.dropped) return [];
+  return ids.filter((id) => !held.kept?.includes(id) && !(id in (held.dropped ?? {})));
+};
+
+/* For the commit gate. A later consult that found nothing does not answer for an earlier one's findings. */
+export const unverdicted = (entries, root) => {
+  const scored = verdictsBy(entries);
+  const last = answered(entries).filter((one) => one.root === root && numbered(one.reply).length).at(-1);
+  if (!last) return null;
+  const ids = numbered(last.reply).map((one) => one.id);
+  const open = undecidedIn(ids, scored.get(last.id ?? last.at));
+  return open.length ? { id: last.id ?? last.at, ids, open, files: last.files ?? [], at: last.at } : null;
 };
 
 /* Inside the budget it is in flight; past it, nothing is coming. Reading the second as the first
@@ -319,20 +401,23 @@ export const printLog = (rest) => {
 export const verdict = (rest, root) => {
   const { values: accepted, rest: r1 } = pullRepeated(rest, "--accepted", "codex verdict");
   const { values: rejected, rest: r2 } = pullRepeated(r1, "--rejected", "codex verdict");
-  const { note } = flags(r2, "codex verdict");
-  if (!accepted.length && !rejected.length) {
-    fail('Usage: forge codex verdict --accepted F1,F3|n --rejected F2=why|n [--note "why"]');
+  const { note, of } = flags(r2, "codex verdict");
+  if (!accepted.length && !rejected.length && !note) {
+    fail('Usage: forge codex verdict --accepted F1,F3 --rejected F2=why [--note "why"] [--of id]');
   }
-  /* This repository's last answer, not the account's: a verdict typed in one checkout must not land
-     on advice given about another. */
+  /* This repository's last consult that made findings and heard nothing back, not the last answer:
+     after a converged recheck the last answer found nothing, and a verdict landed on it twice. */
   const entries = logEntries();
-  const last = answered(entries).filter((one) => !root || one.root === root).at(-1);
-  if (!last) fail(`codex: no consult has answered${root ? " for this repository" : ""} yet.`);
+  const own = answered(entries).filter((one) => !root || one.root === root);
+  const last = of
+    ? own.find((one) => one.id === of)
+    : unverdicted(entries, root) && own.find((one) => one.id === unverdicted(entries, root).id) || own.at(-1);
+  if (!last) fail(of ? `codex: no consult ${of} has answered here.` : `codex: no consult has answered${root ? " for this repository" : ""} yet.`);
   const held = verdictRecord(last, {
     accepted: accepted.length ? accepted.join(",") : undefined,
     rejected: rejected.length ? rejected.join(",") : undefined,
     note,
-  });
+  }, verdictsBy(entries).get(last.id ?? last.at) ?? null);
   if (held.problem) fail(`codex: ${held.problem}`);
   logConsult(held.record);
   console.log(`recorded against consult ${last.id ?? last.at} on ${(last.files ?? []).join(", ")}`);

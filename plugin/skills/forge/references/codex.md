@@ -59,8 +59,11 @@ change on its own.
 
 Then close the loop: `forge codex verdict --accepted F1,F3 --rejected F2="why" --note "..."` — each
 finding by the id codex gave it, replayed into the next consult; without it "resolved / still open" is
-a guess. Rejecting a finding with a reason is a legitimate outcome, and the reason rides with the id.
-When a finding traces to a *document* that allowed the mistake, fix the document too, not only the code.
+a guess, and a commit waits for it. A `--recheck` records the verdict for what it refutes, so the
+usual shape is consult, fix, recheck, and a verdict only for what the recheck left open or found new.
+`--of <id>` aims at an older consult. Rejecting a finding with a reason is a legitimate outcome, and
+the reason rides with the id. When a finding traces to a *document* that allowed the mistake, fix the
+document too, not only the code.
 
 Anything that is the user's call goes through AskUserQuestion rather than being settled between two
 models.

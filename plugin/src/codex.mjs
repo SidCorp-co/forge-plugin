@@ -1,27 +1,20 @@
 /* `forge codex` — a second opinion from GPT-5 Codex over the gateway's own API, on the files this
    turn changed. docs/FORGE-CLI.md.
 
-   Three pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and
-   its eval set (codex-log.mjs), and this — the verb, the turn's bookkeeping, and the hook halves. */
+   Four pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and
+   its eval set (codex-log.mjs), the turn's bookkeeping (codex-state.mjs), and this — the verb and
+   the hook halves. */
+export { STATE_PATH, afterTouch, ageOf, holding, pendingIn, pendingState } from "./codex-state.mjs";
 import { spawnSync } from "node:child_process";
-import {
-  closeSync,
-  existsSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 
-import { CONFIG_PATH, configDir, readJson, userConfig, writeJsonPrivate } from "./resolve/config.mjs";
+import { CONFIG_PATH, userConfig } from "./resolve/config.mjs";
 import { fail, projectCodex, projectRecordPattern } from "./resolve/settings.mjs";
 import { flags, partition, pullRepeated } from "./resolve/flags.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { logHook } from "./hook-log.mjs";
+import { afterTouch, ageOf, clearConsulted, pendingIn, readState, turnsOf, updateState } from "./codex-state.mjs";
 import { TOOLS, runTool, scopeFor, toolsFor } from "./codex-tools.mjs";
 import {
   ANGLES,
@@ -48,11 +41,11 @@ import {
   logConsult,
   logEntries,
   printLog,
-  recheckRisks,
+  recheckPlan,
   verdict,
+  verdictFromRulings,
+  verdictsBy,
 } from "./codex-log.mjs";
-
-export const STATE_PATH = join(configDir("forge"), "codex.json");
 
 const DEFAULT_PATH_RE = "^docs/.*\\.md$";
 /* Model calls in total, not extra rounds: the last one is served no tools, so the cap is what the
@@ -70,7 +63,8 @@ const USAGE = [
   "  consult [file...] [--diff [--base ref]] [--verify risk]... [--only s,s] [--recheck]",
   "                            review; pipe your intent on stdin",
   "                            [--angles a,a] [--effort e] [--rounds n] [--send m] [--allow-echo]",
-  "  verdict --accepted F1,F3|n --rejected F2=why|n [--note t]   what you did with each finding",
+  "  verdict --accepted F1,F3 --rejected F2=why [--note t] [--of id]   what became of each finding;",
+  "                            a recheck records one for what it refuted, and a commit waits for one",
   "  pending [--drop]          what this turn touched and has not been consulted on",
   "  show                      profile, model, history and pending, in effect here",
   "  log [--last n] [--id i] [--full]   past consults, for scoring the advice later",
@@ -102,109 +96,12 @@ const USAGE = [
   "                 verifying is reliable where a reviewer discovering invents.",
   "  --only s,s     report only these severities: blocker, major, minor.",
   "  --recheck      verify the last consult's findings on these files instead of roaming for new",
-  "                 ones: each becomes a --verify risk. The round after a fix, not the first.",
+  "                 ones: each becomes a --verify risk. The round after a fix, not the first. What",
+  "                 it REFUTES is recorded as that consult's verdict; CONFIRMED stays open.",
   "  --angles a,a   which angles review this consult: tech, ba, user, ux.",
   "",
   "  FORGE_CODEX_DISABLE=1     the one variable: a kill switch has to work when config is broken",
 ].join("\n");
-
-const readState = () => readJson(STATE_PATH) ?? {};
-
-/* A list with no age reads as this turn's work however old it is, and backlog presented as current
-   work is how the notice gets ignored. */
-export const ageOf = (at, now = Date.now()) => {
-  if (!at) return "at an unknown time";
-  const minutes = Math.round((now - at) / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} minute(s) ago`;
-  const hours = Math.round(minutes / 60);
-  return hours < 48 ? `${hours} hour(s) ago` : `${Math.round(hours / 24)} day(s) ago`;
-};
-
-const LOCK_PATH = `${STATE_PATH}.lock`;
-const STALE_MS = 5_000;
-const WAIT_MS = 20;
-const TRIES = 50;
-
-const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-
-/* Whose lock this is. A stale break hands the file to whoever took it next, and a writer that then
-   released by path would delete a lock it does not hold — the lost update this exists to stop. */
-const MINE = `${process.pid}-${randomBytes(4).toString("hex")}`;
-
-/* One file serves every checkout on the machine, so a hook that read it, added a line and wrote it
-   back would lose whatever another project wrote in between. Bounded and stale-breaking on purpose:
-   a gate that waits forever costs more than a list. */
-const underLock = (fn) => {
-  let held = null;
-  /* The lock lives beside the state file, so the directory has to exist before it can be taken —
-     made here rather than under the lock, where the first writer would have been the only one. */
-  try {
-    mkdirSync(configDir("forge"), { recursive: true });
-  } catch {
-    /* No directory means no lock and no state either; the caller's write fails the same way. */
-  }
-  for (let tries = 0; tries < TRIES && held === null; tries += 1) {
-    try {
-      held = openSync(LOCK_PATH, "wx");
-      writeFileSync(held, MINE);
-    } catch (error) {
-      if (error.code !== "EEXIST") break;
-      let since = 0;
-      try {
-        since = statSync(LOCK_PATH).mtimeMs;
-      } catch {
-        /* released while we looked */
-      }
-      if (since && Date.now() - since > STALE_MS) rmSync(LOCK_PATH, { force: true });
-      else pause(WAIT_MS);
-    }
-  }
-  /* Proceeding unlocked is the right call — a turn is not worth losing to somebody's stuck lock — but
-     it is the one moment a lost write is possible, so it leaves a trace rather than passing silently. */
-  if (held === null) {
-    logHook({
-      at: new Date().toISOString(),
-      hook: basename(process.argv[1] ?? "", ".mjs"),
-      decision: "note",
-      tool: "",
-      session: "",
-      target: LOCK_PATH,
-      reason: `the lock held for ${(TRIES * WAIT_MS) / 1000}s, so the state was written without it`,
-    });
-  }
-  try {
-    return fn();
-  } finally {
-    if (held !== null) {
-      closeSync(held);
-      try {
-        if (readFileSync(LOCK_PATH, "utf8") === MINE) rmSync(LOCK_PATH, { force: true });
-      } catch {
-        /* gone already, or unreadable: either way it is not ours to remove */
-      }
-    }
-  }
-};
-
-export { underLock as holding };
-
-/* The change is a function of the state as it stands, read inside the lock: a caller cannot compose
-   the next state from a read that happened before it. */
-const updateState = (change) =>
-  underLock(() => {
-    const before = readState();
-    const after = change(before);
-    if (after === before) return before;
-    try {
-      mkdirSync(configDir("forge"), { recursive: true });
-      writeJsonPrivate(STATE_PATH, after);
-    } catch {
-      /* A turn whose bookkeeping cannot be written still consults on files named on the line. */
-    }
-    return after;
-  });
-
 
 /* Canonical, because the root is the key the state file and the log are grouped by: one checkout
    reached through a symlink would otherwise be two repositories. */
@@ -228,12 +125,6 @@ const contained = (root, given) => {
   return held.rel;
 };
 
-/* One state file holds every repository's turn, so the list is keyed by root: paths are relative,
-   and two checkouts would otherwise trade files with each other. */
-const turnsOf = (held) => held.turns ?? {};
-
-export const pendingIn = (held, root) => turnsOf(held)[root]?.files ?? [];
-
 /* A pattern that does not compile is worse than no pattern: the gate would throw on every write of
    whatever repository carries it. It is skipped for the next source, and `show` names what resolved. */
 const compiles = (source) => {
@@ -252,28 +143,6 @@ export const recordPattern = () => {
 };
 
 export const recordable = (rel) => new RegExp(recordPattern().value).test(rel);
-
-/* A turn's second write must not repeat the instruction the first one carried — that is how an
-   instruction gets ignored. So the decision the hook needs is `first`, not just `added`. */
-export const afterTouch = (held, root, rel) => {
-  const files = pendingIn(held, root);
-  if (files.includes(rel)) return { files, added: false, first: false };
-  return { files: [...files, rel], added: true, first: files.length === 0 };
-};
-
-/* Only what was consulted on is dropped, and the state is re-read to do it: a file the hook recorded
-   while the call was in flight is not part of this answer and must survive it. */
-const clearConsulted = (root, rels) => {
-  let left = [];
-  let since = null;
-  updateState((held) => {
-    since = turnsOf(held)[root]?.at ?? null;
-    left = pendingIn(held, root).filter((rel) => !rels.includes(rel));
-    /* The date is the list's, not this consult's: a file left over keeps the age it was recorded at. */
-    return { ...held, turns: { ...turnsOf(held), [root]: { files: left, at: left.length ? since ?? Date.now() : Date.now() } } };
-  });
-  return { left, since };
-};
 
 export const unchangedAll = (parts) => parts.length > 0 && parts.every((part) => part.missing || part.diff?.unchanged);
 
@@ -317,11 +186,19 @@ export const rounds = async (values, model, opening, scope, onDelta, ask = askAp
   const messages = [{ role: "user", content: opening }];
   const used = [];
   const refused = [];
+  /* Summed over the calls: logged from the last one alone, `log --score` counted a third of the input. */
+  const spent = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+  let thought = 0;
+  const charge = (one) => {
+    for (const key of Object.keys(spent)) spent[key] += one.usage?.[key] ?? 0;
+    thought += one.thought ?? 0;
+  };
   for (let call = 1; ; call += 1) {
     const last = call === calls;
     console.error(`codex: call ${call} of ${calls}${used.length ? ` after ${used.length} tool call(s)` : ""}...`);
     const held = await ask(values, model, messages, { onDelta, signal, effort, system, tools: last ? [] : toolsFor(scope) });
-    if (!held.calls.length) return { ...held, tools: used, refused, calls: call };
+    charge(held);
+    if (!held.calls.length) return { ...held, usage: spent, thought, tools: used, refused, calls: call };
     /* The cap is the loop's to keep: a gateway that answers the tool-less call with tool calls anyway
        would otherwise be served round `calls + 1`, with tools, until the budget expired. And a capped
        reply that is only tool calls answered nothing, so it fails rather than returns: returned, it
@@ -331,7 +208,7 @@ export const rounds = async (values, model, opening, scope, onDelta, ask = askAp
         throw new Error(`spent all ${calls} call(s) reading and never answered. Raise \`codex.rounds\` in ${CONFIG_PATH}.`);
       }
       const unserved = held.calls.map((one) => `${one.name} ${detail(one.input)} (past the call cap)`);
-      return { ...held, tools: used, refused: [...refused, ...unserved], calls: call };
+      return { ...held, usage: spent, thought, tools: used, refused: [...refused, ...unserved], calls: call };
     }
     const results = [];
     for (const one of held.calls) {
@@ -440,10 +317,11 @@ const consult = async (given) => {
   const rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
   if (!rels.length) fail("codex: nothing to consult on. Name a file, or write one first.");
   const entries = logEntries();
+  const plan = recheck ? recheckPlan(entries, root, rels) : null;
+  const offset = risks.length;
   if (recheck) {
-    const again = recheckRisks(entries, root, rels);
-    if (!again.length) fail("codex: --recheck needs an answered consult with findings on these files, and none is logged.");
-    risks.push(...again);
+    if (!plan?.risks.length) fail("codex: --recheck needs an answered consult with findings on these files, and none is logged.");
+    risks.push(...plan.risks);
   }
 
   const model = modelBehind(values);
@@ -515,6 +393,13 @@ const consult = async (given) => {
       reply: held.text,
     });
     const { left, since } = clearConsulted(root, rels);
+    if (plan) {
+      const auto = verdictFromRulings(plan, offset, held.text, id, verdictsBy(entries).get(plan.judged.id ?? plan.judged.at) ?? null);
+      if (auto) {
+        logConsult(auto.record);
+        console.error(`codex: ${auto.said}`);
+      }
+    }
     const kinds = held.tools.reduce((seen, one) => ({ ...seen, [one.name]: (seen[one.name] ?? 0) + 1 }), {});
     const spent = Object.entries(kinds).map(([name, n]) => `${name} ${n}`).join(", ");
     if (spent) console.error(`codex: ${held.calls} call(s), tools it ran: ${spent}.`);

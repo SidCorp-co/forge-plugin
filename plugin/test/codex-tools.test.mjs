@@ -14,6 +14,13 @@ const repo = () => {
   return dir;
 };
 
+test("a refused path names what the checkout holds at its top", () => {
+  const root = repo();
+  const scope = scopeFor(root);
+  assert.match(runTool(scope, "grep", { path: "test", pattern: "x" }).text, /test is not a readable path in .*; at its top: a\.txt/u);
+  assert.match(runTool(scope, "list_dir", {}).text, /needs a `path`; at its top: a\.txt/u);
+});
+
 test("run_check is offered only where the checkout named a command", () => {
   const root = repo();
   assert.deepEqual(toolsFor(scopeFor(root)), TOOLS);

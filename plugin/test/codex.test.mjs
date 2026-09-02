@@ -336,14 +336,16 @@ test("the call cap is the loop's, and a tool call past it is refused not served"
     return {
       text: "answered",
       calls: [{ id: `call_${asked.length}`, name: "read_file", input: { path: "docs/PLAN.md" } }],
-      usage: {},
+      usage: { input_tokens: 5, output_tokens: 1, cache_read_input_tokens: 2 },
       stop: "tool_use",
-      thought: 0,
+      thought: 3,
     };
   };
   /* The cap is named here rather than taken from the config: this is about the loop keeping it. */
   const held = await rounds({}, "m", "go", scopeFor(REPO), () => {}, stub, { cap: 4 });
   assert.equal(held.calls, 4, "the cap it was given, and not one more");
+  assert.deepEqual(held.usage, { input_tokens: 20, output_tokens: 4, cache_read_input_tokens: 8, cache_creation_input_tokens: 0 }, "usage is the consult's, summed over its calls");
+  assert.equal(held.thought, 12);
   assert.equal(asked.length, 4);
   assert.equal(asked.at(-1), 0, "the last call is served no tools");
   assert.equal(held.tools.length, 3, "the tool call answering the capped request is not run");

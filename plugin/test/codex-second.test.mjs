@@ -4,7 +4,7 @@ import test from "node:test";
 import { callHook } from "./fixtures.mjs";
 import { committing } from "../hooks/_hook.mjs";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -32,15 +32,20 @@ const advised = (msAgo = 1000) => ({
 });
 
 let count = 0;
-const gate = (records, { consultAt, clean, staleBy, session, env = {}, writes, command } = {}) => {
+const gate = (records, { consultAt, clean, staleBy, session, env = {}, writes, command, log, pending } = {}) => {
   count += 1;
   const path = join(room, `t${count}.jsonl`);
   writeFileSync(path, `${records.map((one) => JSON.stringify(one)).join("\n")}\n`);
   writeFileSync(
     join(room, "forge", "codex-log.jsonl"),
-    consultAt
+    log ?? (consultAt
       ? `${JSON.stringify({ kind: "consult", at: consultAt, root: REPO, ok: true, reply: "CODEX: 0 findings" })}\n`
-      : "",
+      : ""),
+  );
+  /* The state file is keyed by the canonical root, as the hook resolves it. */
+  writeFileSync(
+    join(room, "forge", "codex.json"),
+    JSON.stringify({ turns: pending ? { [realpathSync(REPO)]: { files: pending, at: now - 90_000 } } : {} }),
   );
   /* Dirt is what makes a review possible, so the fixture's tree is dirty unless a case says not. */
   if (clean) rmSync(join(REPO, "work.mjs"), { force: true });
@@ -359,4 +364,33 @@ test("a turn with no advisor call is not this gate's business", () => {
 test("either disable switch stands it down", () => {
   assert.equal(gate([userTurn(), advised()], { env: { FORGE_CODEX_DISABLE: "1" } }), null);
   assert.equal(gate([userTurn(), advised()], { env: { CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1" } }), null);
+});
+
+/* 7 of 30 commits landed with the turn's documents recorded and unread, in turns the advisor never
+   spoke in. The commit is where the list is read; a write is not. */
+test("a commit waits for documents recorded and never consulted on, advisor or not", () => {
+  const command = "git commit -m 'the work'";
+  const out = because(gate([userTurn()], { command, pending: ["docs/PLAN.md", "docs/a b.md"] }));
+  assert.match(out, /has not read the documents .*docs\/PLAN\.md 'docs\/a b\.md', recorded 2 minute\(s\) ago/u);
+  assert.match(out, /forge codex consult --diff --only blocker,major/u);
+  assert.match(out, /pending --drop/u);
+  assert.equal(gate([userTurn()], { pending: ["docs/PLAN.md"] }), null, "a write is not where the list is read");
+  assert.equal(gate([userTurn()], { command, pending: ["docs/PLAN.md"], env: { FORGE_CODEX_DISABLE: "1" } }), null);
+});
+
+/* 37 consults made findings nobody ruled on. The one the gate asks about is the last that made any. */
+test("a commit waits for a verdict on the last consult that made findings", () => {
+  const command = "git commit -m 'the work'";
+  const root = realpathSync(REPO);
+  const found = { kind: "consult", id: "c9", at: at(300_000), root, ok: true, files: ["a.mjs"], reply: "- **F1 — New — major:** `a.mjs:1` — x.\n- **F2 — New — minor:** `a.mjs:2` — y." };
+  const quiet = { kind: "consult", id: "c10", at: at(100_000), root, ok: true, files: ["b.mjs"], reply: "CODEX: 0 findings" };
+  const lines = (...rows) => `${rows.map((one) => JSON.stringify(one)).join("\n")}\n`;
+  const out = because(gate([userTurn()], { command, log: lines(found, quiet) }));
+  assert.match(out, /Consult c9 made F1, F2 on a\.mjs; nothing says what became of F1, F2/u);
+  const half = because(gate([userTurn()], { command, log: lines(found, quiet, { kind: "verdict", of: "c9", accepted: 1, rejected: 0, kept: ["F1"], dropped: {}, from: "r1" }) }));
+  assert.match(half, /what became of F2\./u, "a recheck that closed F1 leaves F2 to decide");
+  assert.match(out, /forge codex verdict --of c9 --accepted/u);
+  assert.equal(gate([userTurn()], { command, log: lines(found, quiet, { kind: "verdict", of: "c9", accepted: 1, rejected: 1, kept: ["F1"], dropped: { F2: "no" } }) }), null, "ruled on, it lands");
+  assert.equal(gate([userTurn()], { command, log: lines({ ...found, root: "/elsewhere" }) }), null, "another tree's consult is not this one's");
+  assert.equal(gate([userTurn()], { log: lines(found) }), null, "a write is not asked");
 });

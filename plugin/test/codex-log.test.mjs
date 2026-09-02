@@ -16,6 +16,11 @@ const {
   findingsIn,
   numbered,
   outcomeOf,
+  digestOf,
+  rulingsIn,
+  undecidedIn,
+  unverdicted,
+  verdictFromRulings,
   verdictRecord,
   historyFor,
   logEntries,
@@ -105,7 +110,7 @@ test("a recheck turns the last consult's findings on these files into the verifi
   ];
   const risks = recheckRisks(entries, "/a", ["a.mjs"]);
   assert.equal(risks.length, 2, "the consult sharing the file, not the newest");
-  assert.match(risks[0], /re-verify.*released by path.*What I then did: took the lock/u);
+  assert.match(risks[0], /still stands.*released by path.*What I then did: took the lock/u);
   assert.deepEqual(recheckRisks(entries, "/a", ["c.mjs"]), [], "none sharing these files: nothing to re-verify");
   assert.deepEqual(recheckRisks(entries, "/z", ["a.mjs"]), []);
 });
@@ -185,20 +190,16 @@ test("a verdict names findings by id, and a name the reply never gave is refused
   assert.match(verdictRecord(last, { accepted: "F4" }).problem, /no finding F4; it made F1, F2, F3/u);
   assert.match(verdictRecord(last, { accepted: "F1", rejected: "F1=no" }).problem, /F1 cannot be both/u);
   assert.equal(verdictRecord(last, { accepted: "F1" }).undecided, 2, "two left undecided");
-  assert.match(verdictRecord(last, { accepted: "1", rejected: "F2=why" }).problem, /both as ids .* or both as counts/u, "mixed syntax is refused");
+  assert.match(verdictRecord(last, { accepted: "1", rejected: "F2=why" }).problem, /not counts/u, "a count on either side is refused");
   const comma = verdictRecord(last, { rejected: "F2=not reproducible, the shell rejects it,F3=fine" });
   assert.deepEqual(comma.record.dropped, { F2: "not reproducible, the shell rejects it", F3: "fine" }, "a comma in a reason stays");
-  assert.match(verdictRecord(last, { accepted: "0", rejected: "99999999999999999999999" }).problem, /^9999.* is not a count/u, "the bad side is the one named");
+  assert.match(verdictRecord(last, { accepted: "2", rejected: "1" }).problem, /names findings, not counts .* it made F1, F2, F3/u, "the count form is gone");
+  assert.match(verdictRecord(last, { note: "did it" }).problem, /made F1, F2, F3: say which/u, "a note alone does not decide findings");
+  const none = verdictRecord({ ...last, reply: "CODEX: 0 findings" }, { note: "nothing to decide" });
+  assert.deepEqual([none.record.accepted, none.record.rejected, none.record.kept, none.record.note], [0, 0, [], "nothing to decide"], "a note alone closes a consult with no findings");
   const twice = verdictRecord(last, { accepted: "F1,F1" });
   assert.deepEqual(twice.record.kept, ["F1"], "one id said twice is one finding");
   assert.equal(twice.undecided, 2);
-  const counts = verdictRecord({ ...last, reply: `CODEX: 3 findings (1 blocker, 1 major, 1 minor)\n${reply}` }, { accepted: "2", rejected: "1" });
-  assert.equal(counts.record.accepted, 2, "two counts still work");
-  assert.equal(counts.record.kept, undefined);
-  assert.match(
-    verdictRecord({ ...last, reply: `CODEX: 3 findings (1 blocker, 1 major, 1 minor)\n${reply}` }, { accepted: "3", rejected: "1" }).problem,
-    /made 3 finding\(s\); 4 cannot/u,
-  );
   const held = byId.record;
   assert.equal(outcomeOf(held, "F2"), "rejected — the cap is the loop's");
   assert.equal(outcomeOf(held, "F1"), "accepted");
@@ -216,8 +217,82 @@ test("a recheck carries each finding's own outcome, and history prints the ids",
     { kind: "verdict", of: "c1", accepted: 1, rejected: 1, kept: ["F1"], dropped: { F2: "by design" } },
   ];
   const risks = recheckRisks(entries, "/a", ["a.mjs"]);
-  assert.match(risks[0], /finding F1, .*What I then did: accepted$/u);
-  assert.match(risks[1], /finding F2, .*What I then did: rejected — by design$/u);
+  assert.match(risks[0], /finding F1 still stands.*What I then did: accepted \(CONFIRMED/u);
+  assert.match(risks[1], /finding F2 still stands.*What I then did: rejected — by design \(CONFIRMED/u);
   const [history] = historyFor(entries, "/a", 3, ["a.mjs"]);
   assert.equal(history.verdict, "1 accepted (F1), 1 rejected (F2: by design)");
+});
+
+const RECHECK_REPLY = [
+  "1. **REFUTED** — `a.mjs:12` — the lock is now taken by owner.",
+  "2. **CONFIRMED** — `a.mjs:40` — the cap is still the gateway's.",
+  "3. **CANNOT TELL** — no test was reachable.",
+  "",
+  "CODEX: 1 findings (0 blocker, 1 major, 0 minor)",
+  "- **F1 — New — major:** `a.mjs:60` — something new.",
+].join("\n");
+
+test("a recheck's rulings become the verdict on the consult it judged, by position", () => {
+  assert.deepEqual(rulingsIn(RECHECK_REPLY).map((one) => [one.n, one.ruling]), [[1, "REFUTED"], [2, "CONFIRMED"], [3, "CANNOT TELL"]]);
+  const judged = { id: "c1", files: ["a.mjs"], reply: "- **F1 — New — blocker:** `a.mjs:12` — x.\n- **F2 — New — major:** `a.mjs:40` — y.\n- **F3 — New — minor:** `a.mjs:50` — z." };
+  const plan = { judged, ids: ["F1", "F2", "F3"], risks: [] };
+  const auto = verdictFromRulings(plan, 0, RECHECK_REPLY, "r1");
+  assert.deepEqual(auto.record.kept, ["F1"], "REFUTED is a finding the tree no longer shows");
+  assert.equal(auto.record.accepted, 1);
+  assert.equal(auto.record.of, "c1");
+  assert.equal(auto.record.from, "r1");
+  assert.match(auto.record.note, /still open: F2/u, "CONFIRMED stays open, CANNOT TELL is neither");
+  assert.match(auto.said, /verdict --of c1/u);
+  const shifted = verdictFromRulings(plan, 1, RECHECK_REPLY, "r1");
+  assert.deepEqual(shifted.record.kept, [], "a --verify risk before the list shifts the numbering");
+  assert.match(shifted.record.note, /still open: F1/u);
+  assert.equal(verdictFromRulings(plan, 0, "CODEX: 0 findings", "r1"), null, "no rulings, no verdict");
+  const prior = { kept: ["F3", "F9"], dropped: { F2: "by design" } };
+  const merged = verdictFromRulings(plan, 0, RECHECK_REPLY, "r2", prior);
+  assert.deepEqual(merged.record.kept, ["F9", "F1"], "what an earlier verdict kept survives the recheck's, unless the recheck reopens it");
+  assert.deepEqual(merged.record.dropped, {}, "a finding the recheck confirms is open again, whatever was said before");
+  assert.deepEqual(merged.record.reopened, ["F2", "F3"], "CONFIRMED and CANNOT TELL both reopen");
+  const unsure = verdictFromRulings(plan, 0, "1. **CANNOT TELL** — a\n2. **CANNOT TELL** — b\n3. **CANNOT TELL** — c", "r3", { kept: ["F1", "F2", "F3"], dropped: {} });
+  assert.deepEqual([unsure.record.kept, unsure.record.reopened], [[], ["F1", "F2", "F3"]], "all CANNOT TELL reopens everything it had closed");
+  const legacy = verdictFromRulings(plan, 0, RECHECK_REPLY, "r4", { accepted: 3, rejected: 0 });
+  assert.equal(legacy.record.counted, true);
+  assert.deepEqual(undecidedIn(["F1", "F2", "F3"], legacy.record), ["F2", "F3"], "a count-form prior decided F3 by count; only what this recheck reopened is open");
+  assert.deepEqual(undecidedIn(["F1", "F2", "F3"], verdictFromRulings(plan, 0, "1. **REFUTED** — a", "r5", { accepted: 3, rejected: 0 }).record), [], "nothing reopened, nothing open");
+  const scored = verdictFromRulings(plan, 0, "1. **CANNOT TELL** — a", "r6", { accepted: 10, rejected: 2 }).record;
+  assert.deepEqual([scored.accepted, scored.rejected, scored.reopened], [1, 2, ["F1"]], "a count-form prior's totals survive the merge, capped at the findings made");
+  const moved = verdictRecord({ id: "c1", files: ["a.mjs"], reply: judged.reply }, { rejected: "F1=wrong" }, { accepted: 3, rejected: 0 });
+  assert.deepEqual([moved.record.accepted, moved.record.rejected], [2, 1], "a later rejection moves one out of the count, and the two never exceed three");
+  assert.match(recheckRisks([{ kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs"], reply: judged.reply }], "/a", ["a.mjs"])[0],
+    /^Your earlier finding F1 still stands in the tree as it is now — .*\(CONFIRMED = the defect is still there; REFUTED = it is fixed, or was never real\.\)$/u,
+    "the risk is the defect, and the legend rides with it");
+});
+
+test("the commit gate asks about the last consult that made findings and heard nothing", () => {
+  const withFindings = { kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs"], reply: "- **F1 — New — major:** `a.mjs:1` — x." };
+  const quiet = { kind: "consult", id: "c2", ok: true, root: "/a", at: "2", files: ["b.mjs"], reply: "CODEX: 0 findings" };
+  assert.deepEqual(unverdicted([withFindings, quiet], "/a"), { id: "c1", ids: ["F1"], open: ["F1"], files: ["a.mjs"], at: "1" }, "a later empty consult does not answer for it");
+  assert.equal(unverdicted([withFindings, quiet, { kind: "verdict", of: "c1", accepted: 1, rejected: 0 }], "/a"), null, "a count-form verdict decided everything");
+  const two = { ...withFindings, reply: `${withFindings.reply}\n- **F2 — New — minor:** \`a.mjs:2\` — y.` };
+  const partial = { kind: "verdict", of: "c1", accepted: 1, rejected: 0, kept: ["F1"], dropped: {}, from: "r1" };
+  assert.deepEqual(unverdicted([two, partial], "/a").open, ["F2"], "a recheck's partial verdict leaves what it confirmed open");
+  assert.equal(unverdicted([two, { ...partial, dropped: { F2: "by design" } }], "/a"), null);
+  const merged = verdictRecord({ id: "c1", files: ["a.mjs"], reply: two.reply }, { rejected: "F2=by design" }, partial);
+  assert.deepEqual([merged.record.kept, merged.record.dropped, merged.undecided], [["F1"], { F2: "by design" }, 0], "a later verdict adds to the recheck's");
+  const flipped = verdictRecord({ id: "c1", files: ["a.mjs"], reply: two.reply }, { rejected: "F1=wrong after all" }, partial);
+  assert.deepEqual([flipped.record.kept, Object.keys(flipped.record.dropped)], [[], ["F1"]], "the newer word wins");
+  assert.equal(unverdicted([withFindings], "/b"), null, "another root's consult is not this tree's");
+});
+
+test("history replays the findings, rulings and outcomes, not the prose", () => {
+  const held = { kept: ["F1"], dropped: { F2: "by design" } };
+  const digest = digestOf(`## Tech Lead\n\nLong preamble that costs tokens.\n${RECHECK_REPLY}\n- **F2 — New — minor:** \`a.mjs:70\` — small.`, held);
+  assert.match(digest, /^1\. \*\*REFUTED\*\*/u, "rulings first");
+  assert.match(digest, /CODEX: 1 findings/u);
+  assert.match(digest, /- F1 — New — major: `a.mjs:60` — something new\. → accepted/u);
+  assert.match(digest, /- F2 — .* → rejected — by design/u);
+  assert.doesNotMatch(digest, /Long preamble/u);
+  assert.equal(digestOf("Nothing material here.", null), "Nothing material here.", "prose with no structure is replayed as it was");
+  assert.equal(digestOf("## Tech Lead\n\nA paragraph of reasons.\n\nCODEX: 0 findings\n\nMore prose after.", null), "CODEX: 0 findings", "a converged reply is one line");
+  const [replayed] = historyFor([{ kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs"], intent: "x", reply: "Preamble.\n- **F1 — New — major:** `a.mjs:1` — x." }], "/a", 3, ["a.mjs"]);
+  assert.equal(replayed.reply, "CODEX: 1 findings\n- F1 — New — major: `a.mjs:1` — x.", "what travels is the digest");
 });

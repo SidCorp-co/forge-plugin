@@ -154,7 +154,20 @@ export const located = (scope, given) => {
     }
     return { refused: `${given} is outside the checkouts under review` };
   }
-  return { refused: `${given} is not a readable path in ${scope.roots.join(", ")}` };
+  return { refused: `${given} is not a readable path in ${scope.roots.join(", ")}; ${topOf(scope)}` };
+};
+
+/* A refusal that names what is there: `grep test` was refused five times and retried blind, because
+   the directory is `plugin/test` and nothing said so. */
+const TOP_ENTRIES = 24;
+const topOf = (scope) => {
+  const root = scope.roots[0];
+  try {
+    const names = readdirSync(root).filter((one) => one !== ".git").sort().slice(0, TOP_ENTRIES);
+    return `at its top: ${names.join(", ")}`;
+  } catch {
+    return "its top level could not be listed";
+  }
 };
 
 const clipped = (text) =>
@@ -221,7 +234,7 @@ export const runTool = (scope, name, given = {}) => {
   if (name === "run_check") return checkOnce(scope);
   const needsPath = name !== "grep";
   const held = input.path ? located(scope, input.path) : null;
-  if (needsPath && !held) return { text: "this tool needs a `path`", error: true };
+  if (needsPath && !held) return { text: `this tool needs a \`path\`; ${topOf(scope)}`, error: true };
   if (held?.refused) return { text: held.refused, error: true };
   try {
     if (name === "read_file") return { text: readOne(held, input) };
