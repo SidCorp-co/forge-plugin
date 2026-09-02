@@ -44,7 +44,7 @@ issue. They write to the project, never to a transition.
 | `developed` | the change is on the default branch | the merged mark with its commit, and a baseline recorded before it naming what already failed | 5 Prove |
 | `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all against the merged commit; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
 | `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; for a screen change, a review comment from a person | closing, by a person or the run's end |
-| `closed` | nothing more happens unless reopened | `released`, or a disposition | none |
+| `closed` | nothing more happens unless reopened; code landed | `released` | none |
 
 The phase a status owes produces the payload that earns the next row, so reading the status is
 reading the phase. The tracker's `draft`, `testing` and `reopen` statuses are not steps and `advance`
@@ -60,7 +60,11 @@ left, and `advance` resumes there.
   evidence to look at. It resumes on their comment.
 - `on_hold` speaks to the owner: what failed with no way back, or why the change is unshippable.
   It resumes by hand.
-- `dropped` speaks to everyone: the reason. Terminal unless reopened.
+- `dropped` speaks to everyone: the reason — a disposition the triage reference admits, or one of
+  the project's own. Reachable only before `developed`, so it always means no code landed, and it
+  is never marked merged. Terminal unless reopened. Abandoning code that did land is a revert: the
+  commit goes, the mark is cleared with `unmark`, the issue falls back to `approved`, and only then
+  may it drop.
 
 **Who moves a status.** The agent, by advancing. A project that wants a person on `approved` or
 `released` says so in its settings, and `advance` then waits for that person's comment instead of
@@ -83,9 +87,10 @@ without it, so criteria cannot be quietly relaxed to fit what got built. `reopen
 word, and it returns the issue to the status it held before the disposition or the drop, where
 `advance` picks up with that status's criteria rechecked.
 
-**A disposition is a defined shortcut.** A confirmation whose finding is a disposition earns
-`confirmed` and, on the next advance, `closed`; the same comment is the evidence. It is the one
-jump `advance` permits. Whoever disagrees reopens.
+**A disposition is a drop with its finding as the reason.** A confirmation whose finding is a
+disposition earns `confirmed` and, on the next advance, `dropped`; the same comment is the evidence
+and the reason. Nothing is jumped: `closed` stays what code that landed earns, and `dropped` what
+nothing landing earns. Whoever disagrees reopens.
 
 **A split is a filing, not a transition.** An issue that turns out to be several gets siblings
 filed `open`, each naming the others in the same write, and the original is confirmed as the first
@@ -99,7 +104,8 @@ member's commits is the project's revert policy, not this contract's.
 **The verb asks, then moves.** `forge advance ISS-nn` names the next status, checks its entry
 criteria, and either transitions or prints the shortfall. `forge advance ISS-nn --owed` prints
 the shortfall without moving. A jump past a status is refused; a park is a transition to one of
-the side statuses with a typed reason, so a judgement call is recorded rather than skipped.
+the side statuses with a typed reason, so a judgement call is recorded rather than skipped, and a
+drop is refused once the merged mark is set.
 
 **Evidence is typed at the write.** Every payload above is a write of a shape the CLI owns — a
 confirmation, a decision record, a question, a verdict, a verification — and a report is
@@ -113,8 +119,11 @@ language supplies, never a refusal.
 **The schema is the document.** `forge schema forge_issues` and `forge advance --owed` carry the
 entry criteria in the tool's own words. Nothing in the skill repeats them.
 
-**Every route is the same route.** The CLI enforces; the pre-hook applies the same check to the
-tracker tool called directly, so the contract cannot be stepped around by choosing a client.
+**Every route this plugin sees is the same route.** The CLI enforces; the pre-hook applies the same
+check to the tracker tool called directly, so the contract cannot be stepped around by choosing a
+client the plugin serves. The tracker's own screens and unhooked clients are outside it: a status
+they set is unearned, and `advance --owed` on such an issue says what its record lacks. A check on
+the server is the tracker's to add, and this contract is its specification.
 
 ## What it does not do
 
@@ -152,3 +161,31 @@ flow above, on the tracker as it is, with every payload shaped by hand.
   The schema says so, and `forge advance --owed` should quote it before the write rather than after.
 - About twenty tracker calls for one small fix. Under the cycle it is eight advances plus the
   payload writes, and nothing else to remember.
+
+## Implementing the verb on the tracker as it is
+
+What the run showed about the record `advance` will read, so the first implementation is not
+surprised by it.
+
+- The tracker's own state machine accepted every step, `closed` included. The checks live in the
+  CLI and the pre-hook, and nowhere else; nothing on the server refuses. The reach of the guarantee
+  is stated under "Every route this plugin sees is the same route".
+- The merged mark exists: `mark_merged` stamps the time and writes an audit comment, and its target
+  is a label. It has no commit field, so until one exists the commit lives in the mark's note in a
+  fixed shape, and `developed` reads it from there.
+- Closing stamps the merged mark when it is empty, so a status meaning that no code landed must
+  never be `closed`. That is why a disposition lands in `dropped`, which nothing stamps, and why the
+  contract needs no second write to undo a mark.
+- The release note field is an object of section, user-facing text and technical text. A
+  withholding is the `Skip` section with the reason as its text.
+- Plan and criteria are plain text fields. A criterion is a line that opens with its number and a
+  dot, which is what a verdict names and what the conjunction warning reads.
+- Attachments are returned by the full issue read and by nothing narrower, so an evidence reference
+  is checked against that read.
+- The first write to an issue's comments is refused until its comments were read this session. The
+  verb reads the whole record before it decides, so it satisfies that gate on the way.
+- Under the fixed turn hook, a document is recorded by content: reading, touching or naming a file the
+  last consult already read at this content records nothing, verified live after the release. A
+  verdict follows the same rule, judged by the hash of the criteria text and the commit, not by time.
+- An edit and a consult in one shell command run before the hook records the edit, so the consult
+  finds nothing. The verb has no such gap: it reads the record when it runs.
