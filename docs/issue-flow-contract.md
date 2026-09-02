@@ -40,8 +40,8 @@ issue. They write to the project, never to a transition.
 | `confirmed` | we read the code; the problem is real and it is this | a confirmation: where the reader looked, what the issue is in the code's own terms, and a finding — *holds*, or one of the dispositions the triage reference admits | 2 Clarify |
 | `clarified` | every ambiguity is decided or answered | a decision record: each reading decided, its assumption and the sentence that undoes it, or an explicit *none found*; no question left open | 3 Plan |
 | `approved` | object to the plan now, not after | plan and numbered criteria, one per line, each in its own field; the plan states whether this is a screen change and whether it touches the schema | 4 Implement, to the branch |
-| `in_progress` | code is being written against this plan | `approved`; every blocker at least `developed`; for a batch, the member list written when the branch is cut | 4 Implement, to the merge |
-| `developed` | the change is on the default branch | the merged mark with its commit, and a baseline recorded before it naming what already failed | 5 Prove |
+| `in_progress` | code is being written against this plan | `approved`; every blocker at least `developed`; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the merge |
+| `developed` | the change is on the default branch | the merged mark with its commit | 5 Prove |
 | `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all against the merged commit; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
 | `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; for a screen change, a review comment from a person | closing, by a person or the run's end |
 | `closed` | nothing more happens unless reopened; code landed | `released` | none |
@@ -58,8 +58,8 @@ left, and `advance` resumes there.
   with the outcome it produces. Fewer is not a question. It resumes on a reply from another author.
 - `waiting` speaks to a reviewer: the kind — screen review, or a destructive migration — and the
   evidence to look at. It resumes on their comment.
-- `on_hold` speaks to the owner: what failed with no way back, or why the change is unshippable.
-  It resumes by hand.
+- `on_hold` speaks to the owner: what failed and whether the route rolled it back, or why the
+  change is unshippable. It resumes by hand.
 - `dropped` speaks to everyone: the reason — a disposition the triage reference admits, or one of
   the project's own. Reachable only before `developed`, so it always means no code landed, and it
   is never marked merged. Terminal unless reopened. Abandoning code that did land is a revert: the
@@ -69,6 +69,91 @@ left, and `advance` resumes there.
 **Who moves a status.** The agent, by advancing. A project that wants a person on `approved` or
 `released` says so in its settings, and `advance` then waits for that person's comment instead of
 moving. The default is autonomous, which is what the skill already says.
+
+## The stages, scenario by scenario
+
+What each status reads, and for every scenario it can meet, the payload owed and where the issue
+goes. The scenario is the person's or the agent's to decide; the contract checks the payload.
+
+### `open` — reads the title, body, comments, attachments and blocking relations
+
+| Scenario | Writes | Goes to |
+|---|---|---|
+| the claim holds | a confirmation with finding *holds* | `confirmed` |
+| already fixed, duplicate, intended, obsolete, premise false | a confirmation with that finding | `confirmed`, then `dropped` on the next advance, the finding as reason |
+| really several issues | siblings filed `open`, each naming the others; a confirmation naming them | `confirmed`, as the first of them |
+| cannot tell what it is | a question: two or more readings, each with its outcome | `needs_info`; a reply from another author resumes at `open` |
+| not worth doing, by a project reason | the reason | `dropped` |
+
+### `confirmed` — reads the confirmation and the code behind it
+
+| Scenario | Writes | Goes to |
+|---|---|---|
+| the finding was a disposition | nothing more; the confirmation is the evidence | `dropped` |
+| no ambiguity | a decision record saying *none found* | `clarified` |
+| ambiguity cheap to reverse | a decision record: reading chosen, assumption, undo sentence | `clarified` |
+| ambiguity expensive to reverse | a question | `needs_info`; the reply resumes at `confirmed` and the decision record quotes it |
+
+### `clarified` — reads the decision record and the body
+
+| Scenario | Writes | Goes to |
+|---|---|---|
+| the plan is possible | the plan in its field; numbered criteria in theirs; the screen and schema flags | `approved` |
+| a criterion joined by a conjunction | a warning at the write, never a refusal | unchanged until the author splits it or keeps it |
+| planning proves the claim false | a new confirmation with a disposition finding | back to `confirmed`, then `dropped` |
+| the project names an approver | nothing more | `approved` once that person has commented |
+
+### `approved` — reads the plan, the criteria and the blocking relations
+
+| Scenario | Writes | Goes to |
+|---|---|---|
+| every blocker at least `developed` | the branch cut; the baseline naming what already fails, so a later red has something to be judged against; the batch relation when several ride together | `in_progress` |
+| a blocker not yet `developed` | nothing; the refusal names the blocker | unchanged |
+| the plan or criteria change now | a correction comment saying what moved and why, at the write | unchanged |
+
+### `in_progress` — reads the plan and the baseline
+
+| Scenario | Writes | Goes to |
+|---|---|---|
+| the change is on the default branch | the merged mark with its commit | `developed` |
+| scope grows | a plan correction before the edit | unchanged |
+| a destructive migration | the classification, attached | `waiting`, kind destructive migration; a reviewer's comment resumes |
+| it cannot be built soundly | the finding; the branch left named | `on_hold`, kind unshippable |
+
+### `developed` — reads the criteria, the merged commit and the baseline
+
+| Scenario | Writes | Goes to |
+|---|---|---|
+| every criterion judged | one verdict per criterion with evidence, all at the merged commit; skipped checks named with reasons; the migration classification when the schema flag is set | `tested` |
+| a criterion fails | its failing verdict | unchanged; the fix moves the merged commit, which supersedes every verdict, and judging starts over |
+| proves unshippable | the finding | `on_hold`, kind unshippable |
+
+### `tested` — reads the verdicts, the plan's flags and the release note field
+
+| Scenario | Writes | Goes to |
+|---|---|---|
+| shipped and seen running | a verification citing where it runs; the release note, or *Skip* with a reason; for a screen change, a person's review comment | `released` |
+| a screen change not yet reviewed | the rendered evidence, attached | `waiting`, kind screen review; the reviewer's comment resumes |
+| the deploy fails and the route rolls it back | the rollback taken and its evidence | `on_hold`, kind rolled back |
+| the deploy fails and nothing rolls it back | what is lost, and the evidence | `on_hold`, kind no way back |
+| a fix lands meanwhile | nothing; the merged commit moved | unearned to `developed` |
+
+### `released` — reads nothing more
+
+| Scenario | Writes | Goes to |
+|---|---|---|
+| the run ends, or a person decides | nothing | `closed` |
+| a later regression | a new issue | unchanged |
+
+### `closed`, `dropped` — terminal
+
+| Scenario | Writes | Goes to |
+|---|---|---|
+| a person disagrees with a drop | `reopen`, a person's word | the status held before the drop, its criteria rechecked |
+| a person disagrees with a close | `reopen` | `released`; a regression is a new issue, not a reopen |
+
+Across every stage: a park records its kind, its evidence and the status it left; a refusal names
+the missing item and the command that supplies it.
 
 ## The mechanics
 
@@ -84,8 +169,8 @@ and `closed` are unearned and the issue falls back to `developed`; the old verdi
 superseded history and the new ones are written beside them. A plan or criteria edit after
 `approved` also owes a correction comment saying what moved and why, and the write is refused
 without it, so criteria cannot be quietly relaxed to fit what got built. `reopen` is a person's
-word, and it returns the issue to the status it held before the disposition or the drop, where
-`advance` picks up with that status's criteria rechecked.
+word: on `dropped` it returns the issue to the status it held before the drop, on `closed` to
+`released`, and `advance` picks up with that status's criteria rechecked.
 
 **A disposition is a drop with its finding as the reason.** A confirmation whose finding is a
 disposition earns `confirmed` and, on the next advance, `dropped`; the same comment is the evidence
