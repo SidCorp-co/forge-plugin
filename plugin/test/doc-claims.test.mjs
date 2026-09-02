@@ -67,12 +67,14 @@ test("a renamed flag, a dropped verb, a document that moved and a dead switch ea
   assert.deepEqual(claimProblems("`forge hooks --den`", held), ["`forge hooks --den` is in no usage line"]);
 });
 
+/* The verb here is one the CLI does not have: `advance` was the fixture until ISS-3 shipped it,
+   and a proposal for a verb that exists would prove nothing about the exemption. */
 test("a proposal may name the verb it opens with, and nothing else the CLI lacks", () => {
-  const marker = "**Status: proposal for `forge advance`.** Nothing here is built.";
-  const body = "Run `forge advance ISS-1`, then `forge tranistion`, then `forge hooks --nope`.";
+  const marker = "**Status: proposal for `forge reopen`.** Nothing here is built.";
+  const body = "Run `forge reopen ISS-1`, then `forge tranistion`, then `forge hooks --nope`.";
   const rest = ["`forge tranistion` is no verb", "`forge hooks --nope` is in no usage line"];
   assert.deepEqual(claimProblems(`# A title\n\n${marker}\n\n${body}`, held), rest);
-  assert.deepEqual(claimProblems(`${body}\n\n${marker}`, held), ["`forge advance` is no verb", ...rest]);
+  assert.deepEqual(claimProblems(`${body}\n\n${marker}`, held), ["`forge reopen` is no verb", ...rest]);
 });
 
 /* The flags of a verb that takes a sub-verb live with the sub-verb, so checking them here would fail

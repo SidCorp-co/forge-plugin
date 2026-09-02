@@ -10,16 +10,17 @@ import { refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 
 export const CONTRACT = 1;
 
-/* Thrown, not exited: the helpers are tested in-process, and the verb turns one into a refusal. */
-class Refused extends Error {}
-const refuse = (message) => {
+/* Thrown, not exited: the helpers are tested in-process, and the verb turns one into a refusal.
+   `advance` reads the same record and refuses the same way, so both share this one class. */
+export class Refused extends Error {}
+export const refuse = (message) => {
   throw new Refused(message);
 };
 
 export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false"];
 export const PARKS = [
   "question", "screen-review", "destructive-migration", "rolled-back", "no-way-back",
-  "unshippable", "blocked", "paused", "crashed", "release-decision",
+  "unshippable", "blocked", "paused", "crashed", "release-decision", "code-review", "dropped",
 ];
 export const VERDICTS = ["pass", "fail", "skipped"];
 export const OUTCOMES = ["approved", "changes-requested"];
@@ -216,25 +217,32 @@ const printRecord = ({ at, record }) => {
   for (const [label, value] of Object.entries(record.fields)) console.log(`  ${label}: ${value}`);
 };
 
-const issueOf = async (reference) => {
+export const issueOf = async (reference) => {
   const documentId = await documentIdOf(reference);
   const body = await scoped("forge_issues", { action: "get", documentId });
   return { documentId, body };
 };
 
-const commentsOf = (documentId) =>
-  scoped("forge_comments", { action: "list", filters: { issue: documentId }, limit: 200 }).then((got) =>
-    rowsOf(got, "comments"),
-  );
+export const COMMENT_PAGE = 200;
 
-const attachmentNames = (body, comments) => [
+/* The page is the tool's own maximum and it offers no cursor, so a fuller read cannot be asked
+   for: a reader that judges the record has to say it saw only part of it. */
+export const commentPage = (documentId) =>
+  scoped("forge_comments", { action: "list", filters: { issue: documentId }, limit: COMMENT_PAGE }).then((got) => ({
+    comments: rowsOf(got, "comments"),
+    hasMore: Boolean(got?.hasMore),
+  }));
+
+export const attachmentNames = (body, comments) => [
   ...(body.attachments ?? []).map((one) => one.name),
   ...comments.flatMap((one) => (one.attachments ?? []).map((two) => two.name)),
 ];
 
-const checkEvidence = (refs, names) => {
+export const evidenceHeld = (ref, names) => URL_REF.test(ref) || COMMIT.test(ref) || names.includes(ref);
+
+export const checkEvidence = (refs, names) => {
   for (const ref of refs) {
-    if (URL_REF.test(ref) || COMMIT.test(ref) || names.includes(ref)) continue;
+    if (evidenceHeld(ref, names)) continue;
     refuse(
       `Evidence \`${ref}\` is no attachment on this issue, no URL and no commit. ` +
         `Attach it first (forge attach issue <ref> <file>), or cite a URL or a commit.` +
@@ -281,7 +289,7 @@ const gather = (kind, argv) => {
   return got;
 };
 
-const post = async (documentId, body) => {
+export const post = async (documentId, body) => {
   refuseIfGated("forge_comments");
   const answer = await write("forge_comments", { action: "create", data: { issue: documentId, body } });
   console.log(body);
@@ -293,7 +301,7 @@ const recordShaped = async (kind, reference, argv) => {
   const { documentId, body } = await issueOf(reference);
   const shape = SHAPES[kind];
   if (shape.fields.some((one) => one.evidence) && got.evidence?.length) {
-    checkEvidence(got.evidence, attachmentNames(body, await commentsOf(documentId)));
+    checkEvidence(got.evidence, attachmentNames(body, (await commentPage(documentId)).comments));
   }
   if (kind === "verdict") {
     const held = criteriaLines(unwrap(body.acceptanceCriteria)).find((one) => one.number === Number(got.criterion));
@@ -329,7 +337,7 @@ export const noteFrom = (argv) => {
   return { section: rest.section, userFacing: rest.user, technical: rest.technical ?? null };
 };
 
-/* A field accepted and dropped answers like one stored, so the field is read back before success. */
+/* The read-back is owed here for the reason it is owed on `plan`, stated once beside that verb. */
 const updateField = async (documentId, field, value, same) => {
   await write("forge_issues", { action: "update", documentId, data: { [field]: value } });
   const back = await scoped("forge_issues", { action: "get", documentId, fields: [field] });
@@ -366,7 +374,9 @@ const recordReport = async (reference) => {
   } catch {
     criteria = [];
   }
-  const { latest, verdicts, owed } = assemble(await commentsOf(documentId), criteria);
+  const { comments, hasMore } = await commentPage(documentId);
+  if (hasMore) console.error(`More than ${COMMENT_PAGE} comments match and the list stops there: this report read the first ${COMMENT_PAGE}.`);
+  const { latest, verdicts, owed } = assemble(comments, criteria);
   for (const kind of Object.keys(SHAPES)) if (latest[kind]) printRecord(latest[kind]);
   for (const number of [...verdicts.keys()].sort((a, b) => a - b)) printRecord(verdicts.get(number));
   if (body.releaseNotes?.section) console.log(`Release note  ${body.releaseNotes.section}: ${body.releaseNotes.userFacing}`);

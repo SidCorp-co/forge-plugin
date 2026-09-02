@@ -54,6 +54,23 @@ to their fields, which the tracker already types; everything else is a comment. 
 the latest record of each kind and the latest verdict per criterion, and names the criteria no verdict
 covers. Nothing is stored twice. The contract this serves: `docs/issue-flow-contract.md`.
 
+## `advance` — a status is earned, and the record is the only witness
+
+ISS-1, ISS-2 and ISS-10 moved twenty-six statuses between them, every one a raw `forge call
+forge_issues` transition, and not one refused anything: the record held each payload because the
+agent chose to write it. `forge advance` puts the contract's entry criteria between an agent and
+the transition, so a status nobody earned costs a refusal instead of a reader's trust.
+
+Two measurements shaped what it reads. The merged mark stamps a time and takes no commit, so the
+commit that landed lives in the note as `at <sha>`, read back from the audit comment the mark
+writes; a review may name seven hex digits where that note names forty, and the shorter of the two
+decides whether they are the same commit. Nothing is read from the repository at transition time:
+git is asked at the step that knows the answer, and the answer is written onto the issue there.
+
+`--owed` is a question and answers zero; the same list without it is a refusal and answers one, so
+a caller can tell "not yet" from "here is what to type". The contract it serves, and the tables it
+carries in its own words: `docs/issue-flow-contract.md`.
+
 ## Two writes that lie about themselves
 
 A schema-validated field that is accepted and dropped answers 200 exactly like one that was stored, so

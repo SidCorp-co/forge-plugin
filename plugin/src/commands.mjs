@@ -20,6 +20,7 @@ import { cloudflare } from "./cloudflare.mjs";
 import { codex } from "./codex.mjs";
 import { hooks } from "./hook-log.mjs";
 import { record } from "./record.mjs";
+import { advance } from "./advance.mjs";
 
 /* One rule for every payload: inline, `@path`, or `-` for stdin. */
 const bodyFrom = (path) => {
@@ -130,6 +131,7 @@ const suggestTool = async (name) =>
 export const commands = {
   doctor,
   record,
+  advance,
   deps,
   cloudflare,
   codex,
