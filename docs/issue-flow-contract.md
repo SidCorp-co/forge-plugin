@@ -385,3 +385,31 @@ surprised by it.
   verdict follows the same rule, judged by the hash of the criteria text and the commit, not by time.
 - An edit and a consult in one shell command run before the hook records the edit, so the consult
   finds nothing. The verb has no such gap: it reads the record when it runs.
+
+## Second dry run — ISS-2
+
+ISS-2 built the typed writes, and its own run was the first to use them: the plan correction, the
+eleven verdicts and the release verification went through `forge record`, and the report assembled
+itself from them. The confirmation, the decision record, the baseline and the criteria were still
+shaped by hand, because the verb did not exist when they were written.
+
+- Eleven verdicts in one loop, each quoting its criterion and citing the same two references, and
+  `report` answered "every criterion has a verdict" without anyone counting. That is the check
+  `advance` will run for `tested`, already written.
+- The evidence check refused a reference to an attachment that was not yet on the issue. The
+  invariant it enforces is narrow: what a verdict cites exists before the verdict is recorded,
+  whether that is an attachment, a URL or a commit. The report's "owed" line is the checklist.
+- Codex found six defects across three rounds, all of one family: an input read and silently dropped
+  — a flag from the other form, a trailing argument, a duplicate number, a field written and not read
+  back, a verb offered while one of its two tools was gated. The rule for every typed write, and for
+  the verb: every input is used or refused, never ignored.
+- The tracker fences every field and body it returns in untrusted-data markers. Anything that reads
+  the record parses through the fence; `advance` will read the same record and needs the same
+  reader.
+- A recheck consult in the same shell command as the edit found nothing to consult on, for the third
+  time. The consult should fall back to the files changed on disk when nothing is pending; that is a
+  plugin defect to file, not a habit to keep.
+- The criteria kind, with its conjunction warning, has not run live: ISS-2's criteria were written
+  before it existed. The next issue writes its criteria through the verb and is the first test.
+- About nine tracker calls by hand this run against about twenty in ISS-1. The eight transitions
+  are still raw calls, and they are ISS-3.
