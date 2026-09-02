@@ -116,7 +116,7 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 
 | Scenario | Writes | Goes to |
 |---|---|---|
-| the change is ready | a review record: who reviewed, the head judged, each finding accepted or rejected by id with the reason, the outcome | unchanged, until the merge |
+| the change is ready | a review record: who reviewed, the head judged, each finding by id either accepted or rejected with the reason, the outcome | unchanged, until the merge |
 | the reviewer requests changes | the fixes; a new head earns a new review | unchanged |
 | the project asks a person to review | the head and the diff to look at | `waiting`, kind code review; their comment resumes |
 | reviewed, and on the default branch | the merged mark with its commit; where a squash changed the hash, the note names the reviewed head | `developed` |
@@ -421,3 +421,22 @@ shaped by hand, because the verb did not exist when they were written.
   `developed` closes that, and it is the write a person's review lands in too.
 - About nine tracker calls by hand this run against about twenty in ISS-1. The eight transitions
   are still raw calls, and they are ISS-3.
+
+## Third dry run — ISS-10
+
+ISS-10 added the review record the second run had shown missing, and its own run was the first
+where every payload but the plan went through `forge record`: confirmation, decision record,
+criteria, baseline, review, six verdicts, verification, release note.
+
+- The criteria kind ran live for the first time. Its conjunction warning fired on two criteria,
+  both an "or" listing the values a flag accepts. The author read the warning and kept them: the
+  rule is a warning because a lexical check cannot tell two claims from one sentence, and this run
+  showed exactly that.
+- The first review record was refused: an accepted finding had a reason after it, and the grammar
+  codex had just tightened allows none. The refusal was right by the grammar and wrong by the wish
+  to note why a finding was accepted. The grammar stands for now; a reason on an accepted finding is
+  a decision for the verb's next reader, not a silent loosening.
+- Codex's review of the review kind was one finding, and it was about the grammar of findings. The
+  record that finding landed in is the first review record on the tracker.
+- Nine transitions and one mark by raw call, as before. Everything else was typed. ISS-3 is what is
+  left.
