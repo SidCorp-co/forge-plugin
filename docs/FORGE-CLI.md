@@ -91,8 +91,8 @@ review prompt by running a multi-agent review skill, and had to be killed by pid
 
 **What the advisor is, measured.** From a transcript: the built-in advisor forwards the whole
 conversation (32,385 input tokens, no cache read, ~33 s) and its reply comes back encrypted, never
-entering the transcript as plaintext. That is the number behind everything the skill says about
-ordering the two.
+entering the transcript as plaintext. That is the number behind what the skill says about carrying
+its reply into the consult.
 
 **The diff travels, not the body.** Sending files whole *and* offering tools paid twice: two consults
 spent 12 and 17 calls re-reading text already in front of them. Telling it not to re-read did not

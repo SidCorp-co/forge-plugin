@@ -26,8 +26,8 @@ export function readEvent() {
   return event;
 }
 
-/* Refusals are the only entries: they are what a false positive looks like from outside. */
-const record = (decision, reason) => {
+/* Refusals are the only entries — a false positive from outside. Exported for the one delegate protocol. */
+export const logged = (decision, reason) => {
   const ti = event.tool_input ?? {};
   logHook({
     at: new Date().toISOString(),
@@ -85,7 +85,7 @@ export const named = (ev) => {
 };
 
 export function deny(reason) {
-  record("deny", reason);
+  logged("deny", reason);
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {
@@ -103,7 +103,7 @@ export function deny(reason) {
 export const how = () => `\n\nHow: \`forge hooks --how ${basename(process.argv[1] ?? "", ".mjs")}\``;
 
 export function block(reason) {
-  record("block", reason);
+  logged("block", reason);
   process.stdout.write(JSON.stringify({ decision: "block", reason }));
   process.exit(0);
 }
@@ -157,6 +157,10 @@ const blocksOf = (record) => {
   return Array.isArray(content) ? content.filter((one) => one && typeof one === "object") : [];
 };
 
+/** A program that can hand a string to a shell, and an interpreter's inline program: literals there are code. */
+export const SPAWNS = /\b(?:subprocess|os\.system|os\.popen|child_process|execSync|spawnSync|shell\s*=\s*True)/u;
+export const RUNS = /\b(?:python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*(?:-c|-e|--eval)\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")/gu;
+
 /** Where a heredoc body is a program rather than data. how/learning-gate.md. */
 export const EXECUTES_STDIN =
   /(?:^|[\s;&|(])(?:python3?|node|deno|bun|perl|ruby|php|sh|bash|zsh)(?:\s+-\S+)*\s*-?\s*$/u;
@@ -169,7 +173,7 @@ export const REDIRECT = new RegExp(
 
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
-export const QUOTED = /'[^']*'|"(?:[^"\\]|\\.)*"/gu;
+export const QUOTED = /'[^']*'|"(?:[^"\\]|\\[\s\S])*"/gu;
 
 /** A heredoc body is data; `onProgram` reads one an interpreter executes. how/learning-gate.md. */
 export const bodiless = (text, onProgram = (body) => body) => {
@@ -269,8 +273,7 @@ export const commands = (text) =>
 export const invocations = (text) =>
   spans(text, { pipes: true }).map(({ start, end }) => text.slice(start, end).trim()).filter(Boolean);
 
-/* A runner's options stand between it and the verb, and whether one took an argument is not knowable
-   here — `sudo -n git` and `sudo -u root git` read alike, so both readings are offered. */
+/* A runner's options precede the verb; whether one took an argument is unknowable, so both readings go. */
 const WORD = /(?:'[^']*'|"(?:[^"\\]|\\.)*"|\S)+/gu;
 const SAID = /['"]/gu;
 const past = (text) => {
@@ -297,12 +300,21 @@ export const starts = (text) =>
 export const shellText = (command, onProgram) =>
   expanded(unwrapped(bodiless(String(command ?? ""), onProgram)));
 
+/* A verb aimed at `/dev/` stores nothing, as a redirect there does not: the aim goes, the verb stays. */
+const DEVICE = String.raw`(?:["']?)/dev/[^\s;&|)]+`;
+const DEVLESS = new RegExp(
+  String.raw`\s(?:-o|-O|--output|--output-document)(?:=|\s+)${DEVICE}`
+    + String.raw`|\btee\b(?:\s+-\S+)*(?:\s+${DEVICE})+(?=\s*(?:[;&|)]|$))`,
+  "gu",
+);
+export const devless = (command) => command.replace(DEVLESS, " ");
+
 /** Whether a call writes: a target for the file tools, a verb or a redirect for the shell, and one
  *  under `/dev/` writes nothing. how/writes.md. */
 export function writing(ev) {
   const ti = ev.tool_input ?? {};
   if (ev.tool_name !== "Bash") return Boolean(ti.file_path ?? ti.notebook_path);
-  const command = shellText(ti.command);
+  const command = devless(shellText(ti.command));
   return (
     WRITES.test(command)
     || [...command.matchAll(REDIRECT)].some((one) => !/^\/dev\//u.test(one[1].replace(/['"]/gu, "")))
@@ -381,7 +393,7 @@ export function writesInside(ev, root) {
     const path = ti.file_path ?? ti.notebook_path;
     return !path || under(root, ev.cwd, path);
   }
-  const command = shellText(ti.command);
+  const command = devless(shellText(ti.command));
   if (WRITES.test(command)) return true;
   const aimed = [...command.matchAll(REDIRECT)]
     .map((one) => one[1].replace(/['"]/gu, ""))

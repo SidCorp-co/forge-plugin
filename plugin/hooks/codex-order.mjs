@@ -1,20 +1,17 @@
 #!/usr/bin/env node
-// A second opinion that follows no first opinion is just another first opinion. how/codex-order.md.
+// What the advisor said reaches codex only through the intent: its reply is unreadable once the turn
+// moves on, and codex has seen none of the conversation. how/codex-order.md.
 
-import { repoRoot } from "../src/codex.mjs";
-import { lastConsultAt } from "../src/codex-log.mjs";
 import {
   EXECUTES_STDIN,
   QUOTED,
+  SPAWNS,
   advisedThisTurn,
   askedAlready,
   invocations,
   block,
-  deny,
   readEvent,
-  transcript,
   turnRecords,
-  unspentAdvice,
   how,
 } from "./_hook.mjs";
 
@@ -37,12 +34,12 @@ const invoked = (text) =>
     );
   });
 
-/* A program's own commands live inside quotes, so a body an interpreter executes is read with the
-   quotes left in — where stripping them is what keeps a commit message from being denied. */
+/* A program's literal is data unless it can reach a shell: a test asserting on the phrase lost an edit. */
 const programs = (command) =>
   [...command.matchAll(HEREDOC)]
     .filter((m) => EXECUTES_STDIN.test(command.slice(command.lastIndexOf("\n", m.index) + 1, m.index)))
-    .map((m) => m[0]);
+    .map((m) => m[0])
+    .filter((body) => SPAWNS.test(body));
 
 const consults = (command) => {
   const text = String(command);
@@ -54,31 +51,15 @@ if (
   ev.tool_name !== "Bash"
   || !consults(ev.tool_input?.command)
   || process.env.FORGE_CODEX_DISABLE === "1"
-  // An order nobody can satisfy is not an order but a wall, so: advisor off, gate off.
   || process.env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL === "1"
 ) {
   process.exit(0);
 }
 
+/* Nothing to carry: a consult with no advisor before it is a consult, and is asked nothing. */
 const records = turnRecords(ev.transcript_path ?? "");
-if (!records) process.exit(0);
+if (!records || !advisedThisTurn(records)) process.exit(0);
 
-/* Either is enough — this turn's advice, or advice no consult spent: a turn holds two consults when
-   the commit gate asks, and typing mid-task ends the turn. The whole-file read precedes a refusal. */
-if (!advisedThisTurn(records)) {
-  const spentAt = lastConsultAt(repoRoot(ev.cwd ?? process.cwd()));
-  if (!unspentAdvice(transcript(ev.transcript_path ?? "") ?? [], spentAt)) {
-    deny(
-      "Consult the built-in advisor before codex, not after.\n\n"
-        + "Do this: call advisor(), act on it, then re-run this command with its points in the intent. "
-        + "A re-run is what clears this; its record reaches the transcript a few seconds late, so a "
-        + "consult sent in the same breath is refused for advice that has arrived."
-        + how(),
-    );
-  }
-}
-
-// Its reply is unreadable once the turn moves on, so the intent is the only place it survives.
 if (!/advisor/i.test(String(ev.tool_input.command)) && !askedAlready(ev, "codex-intent", "codex-order")) {
   block(
     "The advisor has spoken and this intent does not mention it.\n\n"

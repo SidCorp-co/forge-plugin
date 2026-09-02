@@ -11,11 +11,11 @@ argument — `echo "…"`, a `grep` pattern, a literal in a body an interpreter 
 the quotes come off as the shell takes them off: `git add "-A"` is the flag. A body that can reach a
 shell (`subprocess`, `os.system`, `child_process`, `execSync`, `spawnSync`, `shell=True`) has each of
 its literals read as the command it hands over. A prefix reaches the verb — `sudo`, `xargs`, `-exec`,
-a subshell, an assignment, a path — and both readings of a runner's options are offered, since whether
-one took an argument cannot be known here: `sudo -u git stash` reads `git stash` as well.
+a subshell, an assignment, a path — and both readings of a runner's options, so `sudo -u git stash`
+reads as `git stash` too.
 
 A refusal you believe is wrong: put it to the user. Rewording until the pattern misses teaches that
 the guard is noise, and costs every refusal after it.
 
-Not judged: every shape not listed, and the git rules on a clean tree. `git commit`, `git push` and
+Not judged: every shape not listed, `git add -A` under a pathspec, and the git rules on a clean tree. `git commit`, `git push` and
 `rm -rf` are not here.

@@ -338,6 +338,12 @@ test("a commit is judged by the tree it names, not the shell's", () => {
 test("a command that stores nothing is not a write", () => {
   assert.equal(gate([userTurn(), advised()], { command: "npm run check 2>/dev/null | tail -3" }), null);
   assert.ok(gate([userTurn(), advised()], { command: `printf x > ${join(REPO, "out.txt")}` }), "a file is");
+  /* Measured in the log: a health check and a second screen armed this gate, because the `/dev/`
+     exclusion read redirects and not the verbs that take a target of their own. */
+  assert.equal(gate([userTurn(), advised()], { command: "curl -s -o /dev/null -w '%{http_code}' http://x" }), null);
+  assert.equal(gate([userTurn(), advised()], { command: "npm test 2>&1 | tee /dev/stderr" }), null);
+  assert.ok(gate([userTurn(), advised()], { command: "curl -s -o out.json http://x" }), "aimed at a file, it stores");
+  assert.ok(gate([userTurn(), advised()], { command: "curl -o /dev/null http://x; touch a.txt" }), "the verb after it");
 });
 
 test("a clean tree has nothing for codex to read", () => {

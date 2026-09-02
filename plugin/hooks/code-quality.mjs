@@ -8,7 +8,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { readEvent, touched } from "./_hook.mjs";
+import { logged, readEvent, touched } from "./_hook.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const VENDORED = join(HERE, "vendor", "lint-edited-file.mjs");
@@ -50,6 +50,7 @@ for (const file of files) {
 }
 
 if (reasons.length) {
+  logged("block", reasons[0]);
   process.stderr.write(`${reasons.join("\n\n")}\n`);
   process.exit(2);
 }

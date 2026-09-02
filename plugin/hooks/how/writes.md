@@ -13,11 +13,11 @@ after `;` `&` `|` `(`, after `-exec`, an assignment prefix, or a wrapper that ru
 
 To mention one without writing: keep it out of command position — a `--name` value — or inside a
 data heredoc. A `-c` body is run by the shell that takes it, so a verb inside
-`sh -c '…'` is in command position and quoting is no route out, one body inside another included.
+`sh -c '…'` is in command position, nested or not.
 
-Only a redirect names its target, and one under `/dev/` writes nothing. A bare verb counts as inside
-the tree. A variable takes an assignment from an earlier command, not its own line's prefix; a name holding
-another is followed,
-`$(…)` is carried as text; what only looks like an assignment sets nothing.
+Only a redirect names its target; one under `/dev/` writes nothing, nor does a verb aimed there
+(`curl -o /dev/null`). A bare verb counts as inside the tree. A variable takes an assignment from an
+earlier command, not its own line's prefix; a name holding another is followed, `$(…)` is carried as
+text, and what only looks like an assignment sets nothing.
 
 Not judged: what the write contains, or whether it should happen.

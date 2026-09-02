@@ -19,12 +19,12 @@ absolute path in another checkout. Beyond what you send it reads for itself — 
 only — and every call it makes is printed as it runs. A consult is three model calls at most and
 about 45 seconds each; `--rounds n` buys more, and measured, more bought no extra finding.
 
-**It runs after the built-in advisor, never before, and it must be told what the advisor said.**
-That one reads this conversation and cannot open a file; codex reads the files and has never seen the
-conversation. The advisor's reply is unreadable after the fact, so the only moment its content can
-reach codex is the same turn — write it into the intent. Skip that and codex re-treads covered
-ground, its agreement reads as independent confirmation when it is duplication, and a disagreement
-between the two is invisible.
+**When the built-in advisor has spoken, codex must be told what it said.** That one reads this
+conversation and cannot open a file; codex reads the files and has never seen the conversation. The
+advisor's reply is unreadable after the fact, so the only moment its content can reach codex is the
+same turn — write it into the intent. Skip that and codex re-treads covered ground, its agreement
+reads as independent confirmation when it is duplication, and a disagreement between the two is
+invisible. A consult with no advisor before it is fine; a gate asks once per session for the carry-in.
 
 **Ask it to rule, not to roam.** `--diff` sends each file's diff and refuses findings about code the
 turn did not touch; `--verify "<risk>"` (repeatable) hands it named risks to answer CONFIRMED /

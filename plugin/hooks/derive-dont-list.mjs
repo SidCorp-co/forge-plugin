@@ -7,9 +7,10 @@ import { basename } from "node:path";
 
 import { askedAlready, block, readEvent, touched, how } from "./_hook.mjs";
 
-// Only files whose job is to check something; nudging every array literal earns an ignore list.
+// Only files whose job is to check something; nudging every array literal earns an ignore list. Not a
+// test: half its real fires were a case table, which is a test enumerating on purpose.
 const CHECKER =
-  /(lint|check|guard|rule|verify|validate|audit)[^/]*\.(py|mjs|js|ts)$|\/scripts\/[^/]+\.(mjs|js|py)$|\.test\.(ts|tsx|js|mjs)$/;
+  /(lint|check|guard|rule|verify|validate|audit)[^/]*\.(py|mjs|js|ts)$|\/scripts\/[^/]+\.(mjs|js|py)$/;
 
 const LIST = /(?:const|let|var|^\s*[A-Z_]+\s*=)\s*[\w:[\]<>,\s]*=\s*[[{]([^\]}]{0,400})[\]}]/gm;
 const CONSTS = /['"]([A-Z][A-Z0-9_]{2,})['"]/g;

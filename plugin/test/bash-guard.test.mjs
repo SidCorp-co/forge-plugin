@@ -62,6 +62,14 @@ test("a literal inside a program is data, and the line that ran it is not", () =
     "and a -c body reaching a shell is the same as a heredoc that does",
   );
   assert.ok(decide(`python3 -c 'x = "${STAGE_ALL}"'`).allowed, "while a -c body that cannot is data");
+  const bs = String.fromCharCode(92);
+  assert.equal(
+    decide(`python3 -c "import os; os.system(${bs}"${STAGE_ALL}${bs}")"`).allowed,
+    false,
+    "a body quoting with escapes hands the same command over",
+  );
+  const joined = `python3 -c "import os; os.system(${bs}"git reset --${bs}\nhard${bs}")"`;
+  assert.equal(decide(joined).allowed, false, "a backslash-newline joins the line, as the shell does");
 });
 
 /* It refused this session's own consult, whose intent named the flag in an echo argument. A rule
@@ -95,6 +103,24 @@ test("a rule named in an argument is not a run", () => {
   assert.equal(decide(`pgrep -f node | xargs -I {} ${kill} {}`).allowed, false, "with a placeholder too");
   const held = `xargs -I ${String.fromCharCode(34)}{}${String.fromCharCode(34)}`;
   assert.equal(decide(`pgrep -f node | ${held} ${kill}`).allowed, false, "a quoted placeholder as well");
+});
+
+/* Seven refusals in three days were `git add -A <paths>`, each told it staged the whole tree; a pathspec
+   bounds `-A`. Only `.` — or `./` — is everything, and a redirect's operand is not a path. */
+test("a pathspec bounds -A, and only the dot is everything", () => {
+  const all = "git " + "add -A";
+  assert.equal(decide(`${all} plugin docs`).allowed, true);
+  assert.equal(decide(`${all} -- plugin`).allowed, true);
+  assert.equal(decide(all).allowed, false);
+  assert.equal(decide(`${all} .`).allowed, false);
+  assert.equal(decide(`${all} ./`).allowed, false, "the same tree, spelled longer");
+  assert.equal(decide("git " + "add .").allowed, false);
+  assert.equal(decide(`${all} > /tmp/log`).allowed, false, "a redirect's operand is not a pathspec");
+  assert.equal(decide(`${all} 2>&1`).allowed, false);
+  assert.equal(decide(`${all}n`).allowed, true, "a dry run stages nothing");
+  assert.equal(decide(`${all} --dry-run`).allowed, true);
+  assert.equal(decide("git " + "add . -- -n").allowed, false, "after `--` a flag is a file name");
+  assert.equal(decide(`${all} :/`).allowed, false, "pathspec magic for the root is the root");
 });
 
 /* The shell removes a quote and keeps what is inside it, so a quoted flag is the flag. Four rules

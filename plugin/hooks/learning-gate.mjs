@@ -5,13 +5,19 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { REDIRECT, WRITES, askedAlready, askedByAnyone, commands, deny, how, readEvent, settled, shellText } from "./_hook.mjs";
+import { QUOTED, REDIRECT, RUNS, WRITES, askedAlready, askedByAnyone, commands, deny, how, readEvent, settled, shellText } from "./_hook.mjs";
 import { compare, load, sentences } from "../src/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../src/learning.mjs";
 // A write shape counts only as its own token, so an assignment and a `cd` resolve here.
 const CHDIR = /(?:^|[;&|\n])\s*(?:cd|pushd)\s+("[^"]*"|'[^']*'|[^\s;&|]+)/gu;
 const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
 const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
+/* Twelve refusals in three days were a sentence inside a string — a write word and a skill path in one
+   line of prose. A path and a mode hold no space, so a span with one is prose; a `-c` body is code. */
+const spoken = (text) =>
+  text
+    .replace(RUNS, (all, body) => ` ${body.slice(1, -1)} `)
+    .replace(QUOTED, (span) => (/\s/u.test(span) ? " " : span));
 
 /** The last directory the command changes to, so a relative write resolves against it. */
 const chdir = (text) => {
@@ -121,7 +127,10 @@ if (tool === "Bash") {
   const text = shellText(ti.command);
   if (CALLED.test(text)) decide(payloadIn(text));
   const base = chdir(text);
-  const named = commands(text).flatMap((one) => (WRITES.test(one) ? (one.match(MD_TOKEN) ?? []) : []));
+  const named = commands(text).flatMap((one) => {
+    const said = spoken(one);
+    return WRITES.test(said) ? (said.match(MD_TOKEN) ?? []) : [];
+  });
   const aimed = [...text.matchAll(REDIRECT)]
     .flatMap(([, path]) => unquote(path).match(MD_TOKEN) ?? []);
   if (named.length === 0 && aimed.length === 0) process.exit(0);

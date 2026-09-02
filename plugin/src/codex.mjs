@@ -518,12 +518,9 @@ export const hookRecord = (event, paths, told = () => false) => {
     if (added && !announce && !told(root)) announce = rel;
   }
   return announce
-    ? `You have changed a document in this turn (${announce}). Before you finish, consult codex — `
-      + `GPT-5 Codex, on another provider, with the log's memory of this repository:\n\n`
-      + `    echo "what I was doing and why, the plan, and the decisions I made" | forge codex consult\n\n`
-      + `Once, at the end, over everything you changed. The files travel with the prompt and it reads `
-      + `what else it needs; your intent is the one thing it cannot reach, the advisor's reply included. Then `
-      + `\`forge codex verdict\`. Why, and what to do with what comes back: \`forge hooks --how codex-turn\`.`
+    ? `You changed a document this turn (${announce}). Before you finish, once over everything changed: `
+      + `\`echo "<what you were doing, and what the advisor said>" | forge codex consult --diff --only `
+      + `blocker,major\`, then \`forge codex verdict\`. Why: \`forge hooks --how codex-turn\`.`
     : null;
 };
 

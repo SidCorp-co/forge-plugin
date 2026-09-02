@@ -53,3 +53,7 @@ test("two constants are a pair, not a list", () => {
 test("a file that checks nothing keeps its own lists", () => {
   assert.equal(nudge("colours.mjs", LIST), null);
 });
+
+test("a test file's case table is the point, so it is not a checker", () => {
+  assert.equal(nudge("status.test.mjs", LIST), null);
+});

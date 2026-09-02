@@ -8,5 +8,5 @@ How to clear it: derive the cases — read the enum, parse the switch, key on th
 enumerating *is* the point, say so in a comment directly above the literal, which silences it. Either
 way it asks once per file.
 
-Not judged: lists outside a checker, and the content of any list. It blocks rather than refuses, so
+Not judged: lists outside a checker, a test's case table, and the content of any list. It blocks rather than refuses, so
 nothing is lost to it.

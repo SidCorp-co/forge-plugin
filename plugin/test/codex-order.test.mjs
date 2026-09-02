@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { callHook } from "./fixtures.mjs";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -37,7 +37,8 @@ const gate = (command, records, { path } = {}) => {
     tool_name: "Bash",
     tool_input: { command },
     transcript_path: path ?? transcriptOf(records, `t${session}`),
-    session_id: `s${session}`,
+    /* Unique across runs: the once-per-session stamp lives in the temp directory and outlives the suite. */
+    session_id: `s${session}-${process.pid}-${Date.now()}`,
   };
   const run = callHook(HOOK, event, env);
   return run.stdout.trim() ? JSON.parse(run.stdout) : null;
@@ -74,8 +75,8 @@ test("a prompt after the advice does not refuse the re-run", () => {
 });
 
 test("the gate reads command position, not prose", () => {
-  const records = [userTurn("do it"), said("working")];
-  const denied = (command) => gate(command, records)?.hookSpecificOutput?.permissionDecision === "deny";
+  const records = [userTurn("do it"), advised(), said("working")];
+  const denied = (command) => gate(command, records)?.decision === "block";
   assert.ok(denied("echo why | forge codex consult a.mjs"), "a pipeline ending in the invocation");
   assert.ok(denied("cd /tmp && plugin/bin/forge codex consult a.mjs"), "after a separator, by path");
   /* A wrapper or construct this gate has never heard of must not open a hole: the runner is
@@ -86,23 +87,32 @@ test("the gate reads command position, not prose", () => {
   assert.ok(denied("sudo forge codex consult a.mjs"), "an unforeseen wrapper");
   assert.ok(!denied('git commit -m "docs: run forge codex consult after advisor"'), "a commit message");
   assert.ok(!denied("cat > d.md <<'MD'\necho i | forge codex consult a.mjs\nMD"), "a heredoc body");
+  /* One refusal here lost a whole edit: a python body asserting on the phrase in a regex literal. */
+  assert.ok(!denied("python3 - <<'PY'\nassert.match(x, /forge codex consult --diff/)\nPY"), "a program's literal");
+  assert.ok(
+    denied("python3 - <<'PY'\nimport subprocess\nsubprocess.run(\"echo i | forge codex consult a.mjs\", shell=True)\nPY"),
+    "unless the program can hand it to a shell",
+  );
 });
 
 test("the gate stands down when the advisor tool itself is off", () => {
-  const event = {
-    tool_name: "Bash",
-    tool_input: { command: "forge codex consult a.mjs" },
-    transcript_path: transcriptOf([userTurn("do it")], "off"),
-    session_id: "off",
-  };
-  const run = callHook(HOOK, event, { ...env, CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1" });
-  assert.equal(run.stdout.trim(), "", "an order nobody can satisfy is not enforced");
+  const records = [userTurn("do it"), advised(), said("acting")];
+  const run = callHook(
+    HOOK,
+    {
+      tool_name: "Bash",
+      tool_input: { command: "echo my own intent | forge codex consult a.mjs" },
+      transcript_path: transcriptOf(records, "off"),
+      session_id: `off-${process.pid}-${Date.now()}`,
+    },
+    { ...env, CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1" },
+  );
+  assert.equal(run.stdout.trim(), "", "no advisor, so nothing to carry — and nothing is asked");
 });
 
-test("a consult with no unspent advice is refused, with the fix named", () => {
-  const held = gate("echo intent | forge codex consult a.mjs", [userTurn("do the thing"), said("working")]);
-  assert.equal(held.hookSpecificOutput.permissionDecision, "deny");
-  assert.match(held.hookSpecificOutput.permissionDecisionReason, /advisor\(\)/);
+/* The order of the two was a rule here, and the user retired it: a consult needs no advisor first. */
+test("a consult with no advisor before it is asked nothing", () => {
+  assert.equal(gate("echo intent | forge codex consult a.mjs", [userTurn("do the thing"), said("working")]), null);
 });
 
 test("a consult carrying the advisor's points passes", () => {
@@ -144,7 +154,7 @@ test("nothing else is gated: another verb, another tool, or no transcript at all
 /* Blocked in sid-erp: `forge codex consult -h` is how a developer reads what to type, and the gate
    refused it — the way out of a refusal cannot itself be refused. */
 test("asking the consult what to type is not consulting", () => {
-  const records = [userTurn("do it"), said("working")];
+  const records = [userTurn("do it"), advised(), said("working")];
   for (const one of [
     "forge codex consult -h 2>&1 | head -40",
     "forge codex consult --help",
@@ -161,31 +171,13 @@ test("asking the consult what to type is not consulting", () => {
     "forge codex consult a.mjs |& grep --help",
   ]) {
     const still = gate(one, records);
-    assert.equal(still?.hookSpecificOutput?.permissionDecision, "deny", `somebody else's -h: ${one}`);
+    assert.equal(still?.decision, "block", `somebody else's -h: ${one}`);
   }
 });
 
-/* Also sid-erp: the commit gate asks for a second consult inside one turn, and under the spent rule
-   that needed a second advisor call — whose record arrives seconds after the consult is sent. */
-test("a turn holding two consults needs one advisor call, not two", () => {
-  const records = [userTurn("do it"), advised(), said("acting on it")];
-  const log = join(room, "forge", "codex-log.jsonl");
-  mkdirSync(join(room, "forge"), { recursive: true });
-  writeFileSync(
-    log,
-    `${JSON.stringify({ kind: "consult", at: new Date().toISOString(), root: process.cwd(), ok: true, reply: "CODEX: 0 findings" })}\n`,
-  );
-  assert.equal(
-    gate("echo 'the advisor said X, and this is the commit' | forge codex consult a.mjs", records),
-    null,
-    "the advice of this turn is what the gate asks about",
-  );
-  writeFileSync(log, "");
-});
-
-/* The user types mid-task, which ends the turn the advice was in — measured as the common case, not
-   the edge one. The advice is still unspent, so the second half of the rule carries it. */
-test("advice from the turn a prompt closed still clears a consult", () => {
+/* A nudge, so it reaches only this turn's advice: the user types mid-task, and asking about a reply
+   from a turn ago costs a whole-transcript read for a question nobody enforces. */
+test("advice from the turn a prompt closed is not asked about", () => {
   const records = [userTurn("do it"), advised(), said("acting"), userTurn("and the hook did not run")];
-  assert.equal(gate("echo 'the advisor said X' | forge codex consult a.mjs", records), null);
+  assert.equal(gate("echo 'my own intent' | forge codex consult a.mjs", records), null);
 });

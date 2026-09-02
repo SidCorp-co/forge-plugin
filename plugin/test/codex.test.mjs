@@ -385,8 +385,9 @@ test("the hook records a document once, and tells a repository once per turn", (
   clearState();
   const told = teller();
   const first = hookRecord({}, [join(REPO, "docs", "PLAN.md")], told("t1"));
-  assert.match(first, /forge codex consult/);
+  assert.match(first, /forge codex consult --diff --only blocker,major/, "the shape codex-second teaches");
   assert.match(first, /docs\/PLAN\.md/);
+  assert.ok(first.split("\n").length <= 2 && first.length < 400, `a note, not a page: ${first.length} chars`);
   assert.deepEqual(pendingIn(state(), REPO), ["docs/PLAN.md"]);
 
   assert.equal(hookRecord({}, [join(REPO, "docs", "PLAN.md")], told("t1")), null, "recorded already");

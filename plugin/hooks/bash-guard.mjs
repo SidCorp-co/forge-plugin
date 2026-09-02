@@ -4,7 +4,27 @@
 
 import { spawnSync } from "node:child_process";
 
-import { bodiless, deny, readEvent, starts, unwrapped, how } from "./_hook.mjs";
+import { RUNS, SPAWNS, bodiless, deny, readEvent, starts, unwrapped, how } from "./_hook.mjs";
+
+/* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec
+   bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. */
+const stagesEverything = (one) => {
+  const rest = /^(?:\S*\/)?git\s+add\b(.*)$/u.exec(one)?.[1];
+  if (rest === undefined) return false;
+  const tokens = rest.split(/\s+/u).filter(Boolean).map((t) => t.replace(/['"]/gu, ""));
+  const paths = [];
+  const flags = [];
+  let past = false;
+  for (let at = 0; at < tokens.length; at += 1) {
+    const t = tokens[at];
+    if (t === "--") past = true;
+    else if (/^\d*[<>]{1,2}(?:&\d)?$/u.test(t)) at += 1;
+    else if (!past && /^-/u.test(t)) flags.push(t);
+    else if (!/^\d*[<>]/u.test(t)) paths.push(t.replace(/^(?:\.\/+\.?|:\/|:\(top\))$/u, "."));
+  }
+  if (flags.some((t) => t === "--dry-run" || /^-[a-zA-Z]*n[a-zA-Z]*$/u.test(t))) return false;
+  return paths.includes(".") || (paths.length === 0 && flags.some((t) => /^(?:--all|-[a-zA-Z]*A[a-zA-Z]*)$/u.test(t)));
+};
 
 const RULES = [
   {
@@ -31,7 +51,7 @@ const RULES = [
       "is the one you established you may stop, then `kill <pid>`.",
   },
   {
-    pattern: /^(?:\S*\/)?git\s+add\s+["']?(?:-A\b|--all\b|\.(?:\s|$))/u,
+    pattern: { test: stagesEverything },
     needsDirtyTree: true,
     cause:
       "git add -A stages everything in the tree, including work in progress that is not yours " +
@@ -84,12 +104,13 @@ function treeIsDirty(cwd) {
 /* A literal inside a program an interpreter runs is data — a triple quote and an escape first, since
    read wrong its pairs skew and bare the rest. Unless it reaches a shell: there it is the command. */
 const QUOTED = /'''[\s\S]*?'''|"""[\s\S]*?"""|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/gu;
-const SPAWNS = /\b(?:subprocess|os\.system|os\.popen|child_process|execSync|spawnSync|shell\s*=\s*True)/u;
 
-const bare = (one) => (/^('''|""")/u.test(one) ? one.slice(3, -3) : one.slice(1, -1));
-
-/* An interpreter's `-c` body is the program a heredoc would hold; a shell's own is promoted before it. */
-const RUNS = /\b(?:python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*-c\s+('[^']*'|"[^"]*")/gu;
+/* As the shell hands it over: in double quotes a backslash escapes a quote or itself, and joins a line. */
+const bare = (one) => {
+  if (/^('''|""")/u.test(one)) return one.slice(3, -3);
+  const inner = one.slice(1, -1);
+  return one.startsWith('"') ? inner.replace(/\\\n/gu, "").replace(/\\(["\\$`])/gu, "$1") : inner;
+};
 
 const handed = [];
 const held = (body) => {
