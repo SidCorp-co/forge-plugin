@@ -1,0 +1,189 @@
+# SRS §7 — FR-05 — Earned transitions
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-02, BR-03, BR-04, BR-06 · Source: docs/issue-flow-contract.md
+
+← [Index](./README.md) · [§6 FR-04 Typed records](./fr-04-typed-records.md) · Next: [§8 FR-06 The second opinion](./fr-06-second-opinion.md)
+
+## Purpose
+
+*Why does this requirement exist?*
+
+A tracker transition succeeds whatever the issue's record holds, so a status meant to promise
+something to the next reader promises nothing. This requirement is the check that a status is
+*earned*: one verb reads the record, decides whether the next status's entry criteria are met, and
+either transitions or names every missing item beside the command that supplies it.
+
+It judges presence, recency and the commit a payload names — never fit. Whether an attachment is
+really a migration classification is the reviewer's call, and a check that tried to make it would
+refuse honest records and pass dishonest ones alike.
+
+## Actors
+
+*Who acts here?*
+
+- **The agent** holding the issue's lease (`FR-03`). It is the only actor that moves a status.
+- **A person**, who moves nothing here: their comments are what a park waits for, and `reopen` is
+  their word — this requirement covers no reopen, and the open items say why.
+
+## Use cases
+
+*What does the agent do with this, one case at a time?*
+
+### UC-05-1 — Ask what the next status is owed
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-02
+
+The agent asks what the next status would cost before spending anything. The answer names the
+status, then one line per missing item, each with the write that supplies it, and moves nothing.
+This is the rehearsal every phase begins with, and the reason a refusal is never the first time an
+agent learns what a status wants.
+
+- **AC-05-1-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  WHEN the agent asks what is owed THEN the CLI SHALL name the next status and every missing item
+  without writing to the tracker.
+- **AC-05-1-2** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  WHEN an item is missing THEN the CLI SHALL print the command that supplies that item beside it.
+- **AC-05-1-3** · Rev: 1 · Proof: none yet — ISS-12
+  WHEN the move being rehearsed is a park or a drop THEN the CLI SHALL rehearse it like any other
+  move rather than refusing to rehearse it.
+
+### UC-05-2 — Advance to the next status
+
+Rev: 1 · Actors: agent · Enforces: BR-02, BR-04
+
+The agent advances one status. The entry criteria of that status are checked against the issue's
+record — its typed payloads, its plan and criteria fields, its merged mark, its blocking relations
+— and against nothing else. Repository state is never read: what `git` knew was written onto the
+issue at the step that knew it, because a check that read the working tree would answer differently
+on every machine that ran it.
+
+- **AC-05-2-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  WHEN every entry criterion of the next status is met THEN the CLI SHALL transition the issue to
+  that status and report the status it left and the status it entered.
+- **AC-05-2-2** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  IF the record lacks an item the next status is earned by THEN the CLI SHALL refuse the transition
+  and name every missing item, not the first.
+- **AC-05-2-3** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  WHEN the same issue is advanced from two different checkouts THEN the CLI SHALL give the same
+  answer, since the record is what it reads.
+- **AC-05-2-4** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  WHEN a comment carries a record's tag but not the fields its shape declares THEN the CLI SHALL
+  treat it as no payload.
+
+### UC-05-3 — Refuse a jump
+
+Rev: 1 · Actors: agent · Enforces: BR-04
+
+A status may be named as the target, and the name is checked rather than obeyed: the only legal
+target is the next status in the sequence. A jump is not advancing, and a status reached without
+the payload below it is a promise nobody kept.
+
+- **AC-05-3-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  IF the named target is not the next status in the sequence THEN the CLI SHALL refuse and name the
+  status that is next.
+- **AC-05-3-2** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  WHEN the issue's status is the last of the sequence THEN the CLI SHALL refuse to advance and name
+  the action a person would take instead.
+
+### UC-05-4 — Park an issue for a person
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-03
+
+A judgement call that belongs to a person is recorded rather than skipped: a park writes its kind,
+its reason and its evidence, and lands the issue in the side status that kind implies. Each park
+kind speaks to exactly one reader, which is what decides the status.
+
+- **AC-05-4-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  WHEN the agent parks an issue THEN the CLI SHALL write a park record carrying the kind, the
+  reason and the status the issue left, and SHALL then transition to the side status that kind
+  implies.
+- **AC-05-4-2** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  WHERE a park kind exists the CLI SHALL have exactly one side status for it, so no kind can park
+  an issue nowhere.
+- **AC-05-4-3** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  WHEN a parked issue is advanced and the park has been answered THEN the CLI SHALL resume at the
+  status the park record says it left.
+- **AC-05-4-4** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  IF a park is unanswered THEN the CLI SHALL refuse to resume and name who the park is waiting on.
+- **AC-05-4-5** · Rev: 1 · Proof: none yet — ISS-13
+  WHEN a park was a mistake THEN the CLI SHALL require a correction naming the park and the status
+  resumed before it transitions back.
+
+### UC-05-5 — Drop an issue
+
+Rev: 1 · Actors: agent · Enforces: BR-02, BR-04
+
+An issue that should not be built is dropped, which always means no code landed. A confirmation
+whose finding is a disposition earns the drop with the same comment as its reason; anything else
+needs one given at the write. A drop is refused once the merged mark is set, because code that
+landed is closed, never dropped.
+
+- **AC-05-5-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  WHEN the latest confirmation's finding is a disposition THEN the CLI SHALL make the next status
+  dropped and SHALL take the finding as the reason.
+- **AC-05-5-2** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  IF the merged mark is set THEN the CLI SHALL refuse to drop the issue.
+
+### UC-05-6 — A later change unearns
+
+Rev: 1 · Actors: agent · Enforces: BR-04
+
+A review names the head it judged and a verdict names the commit and the criteria text it judged.
+When the merged commit moves, everything above `in_progress` is unearned; when the criteria change,
+everything above `developed` is. Nothing is deleted: the old review and the old verdicts stay as
+superseded history, and the check simply stops being met.
+
+- **AC-05-6-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  IF the latest approving review judged neither the commit the merged mark names nor the reviewed
+  head that mark records THEN the CLI SHALL refuse `developed` and name the commit judged beside the
+  commit marked.
+- **AC-05-6-2** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  IF a verdict judged a commit other than the merged commit THEN the CLI SHALL refuse `tested` and
+  name the criterion, the commit judged and the merged commit.
+- **AC-05-6-3** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  WHEN a criterion has no verdict THEN the CLI SHALL refuse `tested` and name that criterion.
+- **AC-05-6-4** · Rev: 1 · Proof: none yet — ISS-7
+  WHEN a new head is merged THEN the merged mark SHALL name that head, and the CLI SHALL judge
+  `developed` against the mark alone.
+
+### UC-05-7 — What the plan declared decides what the ship steps owe
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-02
+
+The plan's two declarations — whether this is a screen change, whether it couples to a schema — are
+read at the ship steps rather than at the write: a screen change owes a person's answer before
+`released`, and schema coupling owes the migration risk classification before `tested`.
+
+- **AC-05-7-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  IF the plan declares schema coupling and no attachment carries the migration risk classification
+  THEN the CLI SHALL refuse `tested` and name the attachment it wants.
+- **AC-05-7-2** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  IF the plan declares a screen change and no person has answered since the issue was parked for
+  review THEN the CLI SHALL refuse `released`.
+- **AC-05-7-3** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+  IF the plan declares neither THEN the CLI SHALL refuse `approved` and quote the two lines it
+  reads.
+
+### UC-05-8 — A record too large to read whole
+
+Rev: 1 · Actors: agent · Enforces: BR-02
+
+The check reads the whole record, so a record that cannot be read whole cannot be judged. Today
+every operation on such an issue is refused, which is safe and useless; ISS-17 owes the cursor and
+ISS-18 the rule that only a status-moving operation needs the whole record.
+
+- **AC-05-8-1** · Rev: 1 · Proof: none yet — ISS-17
+  IF the issue's comments exceed one page THEN the CLI SHALL refuse rather than judge a status on a
+  partial record.
+
+## Business rules enforced
+
+*Which rules of the BRD does this requirement carry out?*
+
+| Rule | How this requirement carries it |
+|---|---|
+| BR-01 | every refusal names the missing item and the one command that supplies it |
+| BR-02 | the record is read and the repository is not |
+| BR-03 | a superseded review or verdict stays on the record beside the new one |
+| BR-04 | the entry criteria are re-checked, so a moved commit or edited criteria fall the status back |
+| BR-06 | the same checks apply to a transition asked for through the tracker's own tool (ISS-5 owes the pre-hook half) |
