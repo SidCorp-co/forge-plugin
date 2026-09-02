@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "record-"));
 const {
-  CONTRACT, KINDS, SHAPES, USAGE, assemble, conjunctionsFor, criteriaLines, joinedCriteria, noteFrom, parse, render, unwrap,
+  CONTRACT, KINDS, SHAPES, USAGE, OUTCOMES, assemble, conjunctionsFor, criteriaLines, joinedCriteria, noteFrom, parse, render, unwrap,
 } = await import("../src/record.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
@@ -46,6 +46,20 @@ test("a correction says what moved and why, both required", () => {
   const body = render("correction", { moved: "package.json joins the files touched", why: "the ship path needs a version" });
   assert.match(body, /^- \*\*What moved:\*\* package\.json/mu);
   assert.equal(parse(body).kind, "correction");
+});
+
+test("a review names its reviewer, head and outcome, and each finding is an id with a verdict", () => {
+  const body = render("review", { reviewer: "codex", commit: "ea7967f", outcome: "approved", finding: ["F1 accepted", "F2 rejected: a re-record reviews nothing new"] });
+  assert.match(body, /^- \*\*Head judged:\*\* ea7967f$/mu);
+  assert.match(body, /^- \*\*Findings:\*\* F1 accepted; F2 rejected: a re-record reviews nothing new$/mu);
+  assert.equal(parse(body).kind, "review");
+  assert.deepEqual(OUTCOMES, ["approved", "changes-requested"]);
+  const { check } = SHAPES.review;
+  assert.equal(check({ finding: ["F1 accepted"] }), null);
+  assert.match(check({ finding: ["looks fine"] }), /each --finding as/u);
+  assert.match(check({ finding: ["F2 rejected"] }), /a reason after a rejected finding/u);
+  assert.match(check({ finding: ["1 accepted"] }), /each --finding as/u, "the F is not optional");
+  assert.match(check({ finding: ["F1 accepted: extra"] }), /each --finding as/u, "an accepted finding carries no reason");
 });
 
 test("a park records the status it left, and free text is no record", () => {

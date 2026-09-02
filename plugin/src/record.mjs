@@ -22,6 +22,8 @@ export const PARKS = [
   "unshippable", "blocked", "paused", "crashed", "release-decision",
 ];
 export const VERDICTS = ["pass", "fail", "skipped"];
+export const OUTCOMES = ["approved", "changes-requested"];
+const FINDING = /^F\d+ (?:accepted|rejected: .+)$/u;
 export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
 
 const COMMIT = /^[0-9a-f]{7,40}$/iu;
@@ -88,6 +90,22 @@ export const SHAPES = {
       return null;
     },
   },
+  review: {
+    heading: "Code review",
+    fields: [
+      FIELD("reviewer", "Reviewer"),
+      FIELD("commit", "Head judged", { commit: true }),
+      FIELD("outcome", "Outcome", { oneOf: OUTCOMES }),
+      FIELD("finding", "Findings", { many: true, least: 0 }),
+    ],
+    check: (got) => {
+      const bare = got.finding.find((one) => /^F\d+ rejected$/u.test(one));
+      if (bare) return `a reason after a rejected finding: \`${bare}: why\``;
+      const odd = got.finding.find((one) => !FINDING.test(one));
+      if (odd) return `each --finding as \`F1 accepted\` or \`F1 rejected: why\`, not \`${odd}\``;
+      return null;
+    },
+  },
   verification: {
     heading: "Release verification",
     fields: [
@@ -112,6 +130,7 @@ export const USAGE = [
   "  correction   --moved M --why W                                a plan or criteria change after approval",
   "  baseline     --gate G --result R --commit C",
   "  verdict      --criterion N --verdict pass|fail|skipped --commit C --evidence E... [--why W]",
+  "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding \"F1 accepted\"]...",
   "  verification --where W --commit C --evidence E...",
   "  note         --section S --user T [--technical T] | --skip --why W   S: " + SECTIONS.join("|"),
   "  criteria     <file.md|@file|->   numbered lines, one criterion each",
