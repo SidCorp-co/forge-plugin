@@ -44,7 +44,7 @@ test("a memory file that arrived by no route a check reads is caught after the f
   const first = landed(randomUUID(), "arrived-somehow.md");
   assert.match(first, /arrived-somehow\.md/u);
   assert.match(first, /Record only what cost a cycle/u);
-  assert.match(first, /which of the four conditions/u);
+  assert.match(first, /which of the five conditions/u);
   assert.match(first, /forge hooks --how learning-landed/u);
 });
 

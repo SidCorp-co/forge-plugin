@@ -467,10 +467,9 @@ with no comments costs nothing, and every comment on the page the tracker return
 has seen is the refusal itself, delivered once and re-sent against. The page is the reach of it,
 which is the same seam a cursor closes. A write naming its issue by uuid is checked exactly as one naming the
 key, since a form is not a route either. Nothing about a route is read out of a transcript,
-since the transcript of a delegated run is not the one a hook is handed. A comment the tracker wrote on a run's
-behalf, the merged mark's audit line, and one a client created past the CLI are comments nobody
-here has been shown, so the next write is refused once with them: the rule, not a fault. A batch
-worked on one branch pays this once per member. The tracker's own screens and unhooked clients are outside it: a status
+since the transcript of a delegated run is not the one a hook is handed. A comment this session did not create,
+whatever wrote it, is one it has not been shown, and a batch worked on one branch pays that delivery
+once per member. The tracker's own screens and unhooked clients are outside it: a status
 they set is unearned, and `advance --owed` on such an issue says what its record lacks. A check on
 the server is the tracker's to add, and this contract is its specification.
 

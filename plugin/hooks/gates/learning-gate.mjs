@@ -106,7 +106,7 @@ export const run = (ev) => {
     deny(
       `Hold — project memory${src ? `, written as \`${src}\`` : ""}.\n\n${BRIEF}\n\n` +
         `Re-send with metadata.checked set to the category it belongs in (${FORGE_SOURCES.join(" | ")}), ` +
-        `and say in one line which of the four conditions made it worth keeping.${how()}`,
+        `and say in one line which of the five conditions made it worth keeping.${how()}`,
     );
 
   /** One rule for one endpoint, whichever route reached it: the tool's arguments or the CLI's payload. */
@@ -145,8 +145,8 @@ export const run = (ev) => {
           `Hold — \`${basename(resolved)}\` is ${memory ? "a memory file" : "a skill's own text"}, written `
             + `through the shell.\n\n${BRIEF}\n\n`
             + (memory
-              ? `Do this: if all four hold, write it with Write and declare \`type:\` — ${FILE_TYPES.join(" | ")}. Otherwise write nothing.`
-              : `Do this: if all four hold, use Edit and name the kind — ${SKILL_CATEGORIES.join(" | ")}. Otherwise change nothing.`)
+              ? `Do this: if all five hold, write it with Write and declare \`type:\` — ${FILE_TYPES.join(" | ")}. Otherwise write nothing.`
+              : `Do this: if all five hold, use Edit and name the kind — ${SKILL_CATEGORIES.join(" | ")}. Otherwise change nothing.`)
             + how(),
         );
       }

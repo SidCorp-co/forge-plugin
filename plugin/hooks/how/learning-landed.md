@@ -4,11 +4,11 @@ Why: the gate before a write reads shapes, and a shape list is silent on the rou
 This one reads the disk instead, so a memory or a skill file that appeared unasked is still answered
 for.
 
-How to clear it: say in one line which of the four conditions the file meets. That is the whole
+How to clear it: say in one line which of the five conditions the file meets. That is the whole
 question — it was only ever asked late.
 
 If none holds, remove the file. Nothing here undoes the write: this fires after it, and a file kept
-because deleting it felt wasteful is what the four conditions are against.
+because deleting it felt wasteful is what the five conditions are against.
 
 How to avoid it: write a memory with `Write` and a skill's text with `Edit`, where the question comes
 first. The gate stamps what it asked about, so a write through it is never asked about twice.

@@ -9,8 +9,9 @@ export const SKILL_CATEGORIES = ["trap", "method", "invariant", "discovery", "bo
 export const FORGE_SOURCES = ["note", "knowledge", "decision", "policy"];
 
 export const BRIEF =
-  "Record only what cost a cycle, will recur, fails silently, and is not already written. Most "
-  + "rounds record nothing.";
+  "Record only what cost a cycle, will recur, fails silently, is not already written, and code "
+  + "cannot hold: a check, a default or a refusal that names the way is fixed or filed there instead, "
+  + "since a memory reminds one agent and code holds every run. Most rounds record nothing.";
 
 export const guarded = (path) =>
   GUARDED.test(path) && path.endsWith(".md") && basename(path) !== "MEMORY.md";

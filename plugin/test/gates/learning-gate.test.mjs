@@ -139,6 +139,8 @@ test("the tracker's own memory write is the same decision through the shell", ()
   const { allowed, reason } = decide(`forge call forge_memory_write '{"source":"note","text":"x"}'`);
   assert.equal(allowed, false);
   assert.match(reason, /Record only what cost a cycle/u);
+  assert.match(reason, /code cannot hold/u, "the hold sends a fixable fact to the code first");
+  assert.match(reason, /which of the five conditions/u, "the tracker route counts them as the brief does");
   assert.match(reason, /metadata\.checked/u);
   assert.equal(decide(`forge call forge_memory_search '{"q":"x"}'`).allowed, true, "recall is free");
 });
@@ -181,7 +183,7 @@ test("a heredoc through a variable-held memory path is refused", () => {
   assert.equal(allowed, false);
   assert.match(reason, /coolify-deploy-log-location\.md/);
   assert.match(reason, /Record only what cost a cycle/, "the rule, not only the tool");
-  assert.match(reason, /Do this: if all four hold, write it with Write/);
+  assert.match(reason, /Do this: if all five hold, write it with Write/);
 });
 
 test("the braced form resolves too", () => {
@@ -369,7 +371,7 @@ const skillWrite = (session, name) => {
 test("the refusal names the categories and does not reprint the test", () => {
   const first = skillWrite(randomUUID(), "SKILL.md");
   assert.match(first, /trap \| method \| invariant \| discovery \| boundary/);
-  assert.doesNotMatch(first, /it cost a cycle, not a thought/, "the four conditions belong to one file");
+  assert.doesNotMatch(first, /it cost a cycle, not a thought/, "the five conditions belong to one file");
   assert.ok(first.split("\n").length <= 10, `five lines, not twenty-five: got ${first.split("\n").length}`);
 });
 

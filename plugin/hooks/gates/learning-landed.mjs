@@ -28,7 +28,7 @@ export const run = (ev) => {
     block(
       `${asked.map((one) => `\`${one}\``).join(", ")} changed and nothing asked whether ${
         asked.length > 1 ? "they should" : "it should"
-      } exist — a route no check reads.\n\n${BRIEF}\n\nDo this: say in one line which of the four `
+      } exist — a route no check reads.\n\n${BRIEF}\n\nDo this: say in one line which of the five `
         + `conditions each file meets. If none does, remove it — or say it was somebody else's edit, and `
         + `it is not asked again. Reach for Write or Edit next time, where the question comes first.`
         + how(),
