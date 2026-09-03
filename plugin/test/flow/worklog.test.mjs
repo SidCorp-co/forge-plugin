@@ -54,7 +54,7 @@ test("a fresh capture clears a git fact that is no longer true, rather than keep
   assert.equal(one.worklog.base, undefined, "a null in the patch clears the field");
   assert.equal(one.worklog.touched, undefined);
   assert.equal(one.worklog.branch, "new", "and the ones it does know are replaced");
-  assert.deepEqual(Object.keys(gitNow()).sort(), ["at", "base", "branch", "head", "touched"],
+  assert.deepEqual(Object.keys(gitNow()).sort(), ["at", "base", "branch", "files", "head", "touched"],
     "so a capture names every git field, absent ones included");
 });
 
@@ -152,14 +152,17 @@ test("record report refuses a capture flag it was given, whatever the log had to
    two dry runs; two complete ones printed nothing either, so the flag's own author ran `forge
    resume` to see whether it had worked (ISS-65, ISS-66). */
 test("a capture says in one line what it holds", () => {
-  const held = { branch: "iss-65-rounds", head: "a9288a6fd11", base: "4e41dfd881e", touched: "one.mjs, two.mjs", at: "2026-09-03T15:00:00.000Z" };
+  const held = { branch: "iss-65-rounds", head: "a9288a6fd11", base: "4e41dfd881e", touched: "one.mjs, two.mjs", files: 2, at: "2026-09-03T15:00:00.000Z" };
   assert.equal(capturedLine(held), "--pushed: iss-65-rounds at a9288a6, base 4e41dfd, 2 file(s) touched.");
+  /* Counted from the list, never off the joined line: one name with ", " in it reads as two. */
+  assert.match(capturedLine({ ...held, files: undefined }), /nothing to capture/u);
 });
 
 test("a capture that captured nothing says so, and its worklog is not written", () => {
   const empty = { branch: "master", head: "4e41dfd881e", base: "4e41dfd881e", touched: null, at: "2026-09-03T15:00:00.000Z" };
   const why = [[empty, /the base is the head/u], [{ ...empty, base: null }, /no base/u],
-    [{ ...empty, base: "0000000" }, /no file does/u], [null, /git answered nothing/u]];
+    [{ ...empty, base: "0000000" }, /no file does/u], [null, /git answered nothing/u],
+    [{ ...empty, base: "0000000", files: null }, /would not read the diff/u]];
   for (const [one, said] of why) {
     assert.match(capturedLine(one), /nothing to capture/u, JSON.stringify(one));
     assert.match(capturedLine(one), said, "and the cause it states is the one that holds");

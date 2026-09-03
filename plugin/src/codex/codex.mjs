@@ -315,7 +315,9 @@ const consult = async (given) => {
   /* Asked for a diff and given nothing to diff, the tree answers: the round it replaces was reading
      `git diff --name-only` and typing the list back (ISS-65). */
   if (!rels.length && base) {
-    rels.push(...changedAgainst(root, base));
+    const changed = changedAgainst(root, base);
+    if (!changed) fail(`codex: --base ${base} is no ref this checkout can read, so what changed against it is unknown. Name the base, or name the files.`);
+    rels.push(...changed);
     if (rels.length) console.error(`codex: nothing named and nothing pending, so the ${rels.length} file(s) changed against ${base}: ${rels.join(", ")}.`);
   }
   if (!rels.length) {

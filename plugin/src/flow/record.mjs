@@ -366,7 +366,7 @@ const citedBy = (comments, kind) =>
    so what is behind a full page cannot be read at all, and the mark this would answer with may be
    the one cut off. A flag typed once beats a verdict written on the wrong commit. */
 /* And an upload needs every name the issue already carries, which past a full page cannot be read
-   either: a second document under one name is ambiguous to every verdict citing it (ISS-55). */
+   either — the collision `attachPlan` refuses cannot be seen from here, so nothing goes up. */
 const CROWDED = (kind) => `record ${kind} would put a file up, and this issue has more comments than `
   + `the ${COMMENT_PAGE} the tracker's list returns, so the names already on it cannot be read whole. `
   + `A name attached twice resolves to two documents. Cite a URL or a commit, or attach the file `

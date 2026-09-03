@@ -119,10 +119,11 @@ export const creditCaused = async (targets, ev = null) => {
     const shown = shownTo(session, documentId);
     const caused = comments.filter((one) => !shown.has(idOf(one)));
     if (!caused.length) continue;
-    console.error(`${ref}: ${caused.length} comment(s) arrived by the time this write finished, `
-      + "quoted below as the tracker returned them and credited as read, so the next write is not "
-      + "refused for them. Which the write caused is not knowable here: the mark's audit line "
-      + "arrives this way, and a comment another author posted meanwhile would too.");
+    console.error(`${ref}: the page read after this write held ${caused.length} comment(s) this `
+      + "session had not been shown, quoted below as the tracker returned them and credited as read, "
+      + "so a later write is refused for them again only where that credit could not be saved. Which "
+      + "of them this write caused is not knowable here: the mark's audit line arrives this way, and "
+      + "another author's would too.");
     for (const one of bodies(ref, caused)) console.error(one);
     noteShown(session, documentId, caused);
   }
@@ -134,8 +135,9 @@ export const creditCaused = async (targets, ev = null) => {
 export const creditAfter = async (name, targets) => {
   const landed = (code) => {
     if (!code) return;
-    console.error(`${name} landed and its answer is above; only the comments it may have caused `
-      + "went unlisted, so the next write to this issue is refused once to deliver them.");
+    console.error(`${name} landed and its answer is above; the page after it went unread, so `
+      + "whether it caused a comment is unverified. The next write to this issue is where the gate "
+      + "looks again, and it refuses once for whatever it finds unshown then.");
     process.exitCode = 0;
   };
   process.once("exit", landed);

@@ -63,7 +63,8 @@ test("what changed against a ref is what the tree says, a deletion included", ()
   assert.deepEqual(changedAgainst(root, "HEAD"), ["a.txt", "b.txt", "c.txt", "d.txt"],
     "the deleted file among them, since its diff is what says it is gone, and the untracked one, "
     + "which `git diff` never lists and a turn's new file always is");
-  assert.deepEqual(changedAgainst(root, "no-such-ref"), [], "and a ref git cannot read answers nothing");
+  assert.equal(changedAgainst(root, "no-such-ref"), null,
+    "and a ref git cannot read is null, never the empty set a clean tree answers with");
 });
 
 test("run_check is offered only where the checkout named a command", () => {

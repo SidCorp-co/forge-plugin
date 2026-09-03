@@ -12,7 +12,7 @@ import {
 export const KEY = "worklog";
 export const OPEN_KEPT = 8;
 
-const GIT = ["branch", "head", "base", "touched", "at"];
+const GIT = ["branch", "head", "base", "touched", "files", "at"];
 const REMOTES = ["origin/main", "origin/master"];
 
 const asLine = (value) => String(value ?? "").replace(/[\r\n]+/gu, " ").trim() || null;
@@ -41,9 +41,10 @@ export const merged = (held, patch) => {
   return { worklog: next, dropped: lines.slice(0, lines.length - kept.length) };
 };
 
+/* Null where git would not answer: otherwise a failed diff and an empty one read the same. */
 const git = (args) => {
   const run = spawnSync("git", args, { encoding: "utf8" });
-  return run.status === 0 ? run.stdout.trim() : "";
+  return run.status === 0 ? (run.stdout ?? "").trim() : null;
 };
 
 /* The project's own answer first; the two common names are a guess, tried only after it. */
@@ -61,12 +62,15 @@ export const gitNow = () => {
   const head = git(["rev-parse", "HEAD"]);
   if (!head) return null;
   const base = baseOf();
-  const touched = base ? git(["diff", "--name-only", `${base}..HEAD`]) : "";
+  const diffed = base ? git(["diff", "--name-only", `${base}..HEAD`]) : "";
+  const touched = (diffed ?? "").split("\n").filter(Boolean);
   return {
     branch: git(["rev-parse", "--abbrev-ref", "HEAD"]) || "detached",
     head,
     base: base || null,
-    touched: touched ? touched.split("\n").filter(Boolean).join(", ") : null,
+    touched: touched.length ? touched.join(", ") : null,
+    /* Counted from the list, since a name with ", " in it reads as two. */
+    files: diffed === null ? null : touched.length,
     at: new Date().toISOString(),
   };
 };
@@ -102,6 +106,7 @@ const EMPTY = {
   none: "git answered nothing about this checkout",
   base: "no base: the checkout names no remote head to measure from",
   same: "the base is the head, which is what a fast-forward leaves",
+  diff: "git would not read the diff between the base and the head",
   files: "the base and the head differ and no file does",
 };
 
@@ -109,11 +114,12 @@ const emptyWhy = (git) => {
   if (!git) return EMPTY.none;
   if (!git.base) return EMPTY.base;
   if (git.base === git.head) return EMPTY.same;
+  if (git.files === null) return EMPTY.diff;
   return EMPTY.files;
 };
 
 export const capturedLine = (git) => {
-  const files = git?.touched ? git.touched.split(", ").length : 0;
+  const files = git?.files ?? 0;
   if (!git || !files || !git.base || git.base === git.head) {
     return `--pushed: nothing to capture — ${emptyWhy(git)}. The worklog is unchanged, and what it `
       + "holds is whatever the last capture wrote. Capture at the push, before the merge.";

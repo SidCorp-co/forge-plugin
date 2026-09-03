@@ -110,10 +110,11 @@ test("a comment the write caused is delivered by that write and credited", async
     console.error = held;
   }
   const text = lines.join("\n");
-  assert.match(text, /ISS-65: 1 comment\(s\) arrived by the time this write finished/u);
+  assert.match(text, /ISS-65: the page read after this write held 1 comment\(s\)/u);
+  assert.match(text, /not knowable here/u, "and the boundary the list cannot see");
   assert.ok(text.includes(fenced("mark_merged target base: merged to master at 4e41dfd")),
     "the body whole, in the fence the tracker sent, because crediting the unshown is the gate defeated");
-  assert.equal(lines.filter((line) => line.includes("arrived by the time")).length, 1,
+  assert.equal(lines.filter((line) => line.includes("the page read after this write")).length, 1,
     "and a write that caused nothing says nothing");
   assert.equal((await asked()).refusal, null, "the next write to the issue is not refused for it");
 });

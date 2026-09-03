@@ -202,7 +202,7 @@ const changedIn = (root, rel, base) => {
 };
 
 /** For a consult asked to review a diff and given no file: every path git names, a deletion and an
- *  untracked one included, and nothing at all where the base is unreadable. */
+ *  untracked one included, or null where the base is no ref, which is not the same as no change. */
 export const changedAgainst = (root, base) => {
   const asked = (argv) => {
     const run = spawnSync("git", argv, { cwd: root, encoding: "utf8" });
@@ -210,7 +210,7 @@ export const changedAgainst = (root, base) => {
   };
   /* `-z` ahead of `--end-of-options`, past which every word is a path: a newline is a legal one. */
   const changed = asked(["diff", "--name-only", "-z", "--end-of-options", base]);
-  if (!changed) return [];
+  if (!changed) return null;
   return [...new Set([...changed, ...(asked(["ls-files", "--others", "--exclude-standard", "-z"]) ?? [])])].sort();
 };
 
