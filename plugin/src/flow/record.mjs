@@ -1,8 +1,7 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
    back by kind: docs/FORGE-CLI.md § record. The verb owns the shape; the tracker owns the fields. */
-import { readFileSync } from "node:fs";
-
 import { fail, translateTo } from "../resolve/settings.mjs";
+import { bodyFrom } from "../resolve/payload.mjs";
 import { pullRepeated, flags } from "../resolve/flags.mjs";
 import { COMMENT_PAGE, commentPage, postComment } from "../tracker/comments.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
@@ -196,7 +195,6 @@ export const USAGE = [
   "Evidence is an attachment name on the issue, a URL, or a commit of 7 to 40 hex digits.",
 ].join("\n");
 
-const bodyFrom = (path) => (path === "-" ? readFileSync(0, "utf8") : readFileSync(path.replace(/^@/u, ""), "utf8"));
 
 const wordIn = (word, text) => new RegExp(`(?:^|[^\\p{L}])${word}(?![\\p{L}])`, "iu").test(text);
 

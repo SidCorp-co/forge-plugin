@@ -32,12 +32,15 @@ test("every gate that points at its reasoning has some", () => {
 });
 
 /* A hook renamed leaves a document nothing reads, and `--how` would offer it. A shared topic is
-   allowed one, cited by the harness rather than listed, so the pair cannot drift. */
-test("every document names a hook, or a topic the harness cites", () => {
-  const harness = readFileSync(join(HOOKS, "_hook.mjs"), "utf8");
+   allowed one, cited from whatever prints the pointer: the harness, or a gate refusing two
+   unrelated things, which the ceiling below leaves no room to argue on one page. */
+test("every document names a hook, or a topic the code that prints it cites", () => {
+  const citing = [join(HOOKS, "_hook.mjs"), ...gates.map((one) => join(GATES, one))]
+    .map((path) => readFileSync(path, "utf8"))
+    .join("\n");
   for (const name of documented) {
-    const named = scripts.includes(`${name}.mjs`) || harness.includes(`how/${name}.md`);
-    assert.ok(named, `how/${name}.md names no hook, and _hook.mjs does not cite it`);
+    const named = scripts.includes(`${name}.mjs`) || citing.includes(`how/${name}.md`);
+    assert.ok(named, `how/${name}.md names no hook, and no harness or gate cites it`);
   }
 });
 

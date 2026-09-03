@@ -442,6 +442,18 @@ verdict naming the commit. The suite is the one that catches a path that stopped
 the one behaviour a move has, and the ninth dry run broke four of them. A verification for such a change
 names the identity check as its place, not a screen.
 
+**A fix is marked, and the mark says which payloads it owes.** A change whose body carries no rule
+and states one behaviour and its replacement is a fix, and the filing refuses it unless it is marked
+or routed onto an issue already open. The mark is a line in the description rather than a label,
+because the tracker creates no label it was not given and offers no route to read one back. What a
+fix owes is a shorter set: its plan is its confirmation and declares *no* on all three lines, its
+criteria are the one check that fails without the change, its review is the whole-file read of the
+touched set, its verification is that check green from the released copy, and a decision record and
+a release note are owed only where a person sees the change. `forge advance --owed` on a marked
+issue prints that set beside what the record still lacks. Nothing spends it yet: every entry check
+asks for the full set whatever the mark says, so the mark is a promise to the next reader rather
+than a discount. Open.
+
 **A criterion a program can decide ships as a check.** When the evidence a criterion asks for is a
 comparison a program can make — a gate exits zero, a count did not fall, every named path resolves —
 the verdict that earns it is a check in the tree that fails when what it guards is broken: for a new

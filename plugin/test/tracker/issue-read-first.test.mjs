@@ -248,3 +248,48 @@ test("this gate is last on the pre line, because its stand-down ends the process
   assert.match(pre, /issue-read-first"?\s*$/u,
     "issue-read-first stands down by exiting, so a gate named after it on this line would not run");
 });
+
+/* The other half of this gate: a filing carries no issue to read the comments of, and what it owes
+   is the shape the flow needs. The refusal is the lint's, and the pointer is its own topic page. */
+const WHOLE = "## Outcome\n\nThe filing is read where it is made, on every route.\n\n## Rules\n\n"
+  + "- A body that meets the shape files with nothing said.\n\n## Out of scope\n\nJudging whether it is true.";
+const TITLED = "the filing is read where it is made on every route";
+
+const filing = async (data, { name = "mcp__forge__forge_issues", url = live() } = {}) => {
+  endpoint(url);
+  const run = await callHookAsync(HOOK, { tool_name: name, tool_input: { action: "create", data }, cwd: process.cwd() }, {
+    ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: "probe-filing",
+  });
+  return { ...run, out: run.stdout.trim() ? JSON.parse(run.stdout) : null };
+};
+
+test("a create whose body cannot carry the flow is denied, and the pointer is the shape's own page", async () => {
+  const run = await filing({ title: "fix", description: "It is broken." });
+  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.match(because(run), /a heading naming the outcome/u);
+  assert.match(because(run), /forge hooks --how issue-shape/u,
+    "one gate refuses two things, and each argument has its own page");
+});
+
+test("a create through the raw call is denied where the tool is, because a form is no route", async () => {
+  const json = JSON.stringify({ action: "create", data: { title: "fix", description: "It is broken." } });
+  endpoint(live());
+  const run = await callHookAsync(HOOK, {
+    tool_name: "Bash", tool_input: { command: `forge call forge_issues '${json}'` }, cwd: process.cwd(),
+  }, { ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: "probe-filing" });
+  const said = JSON.parse(run.stdout);
+  assert.equal(said.hookSpecificOutput.permissionDecision, "deny");
+  assert.match(said.hookSpecificOutput.permissionDecisionReason, /forge hooks --how issue-shape/u);
+});
+
+test("a create that meets the shape is denied nothing, and neither is an update", async () => {
+  assert.equal((await filing({ title: TITLED, description: WHOLE })).out, null);
+  assert.equal((await filing({ title: "fix", description: "It is broken." }, { name: "mcp__forge__forge_comments" })).out, null,
+    "and a comment is not a filing");
+});
+
+test("with no endpoint saved a filing is not judged either", async () => {
+  const run = await filing({ title: "fix", description: "It is broken." }, { url: "" });
+  assert.equal(run.out, null);
+  assert.equal(run.status, 0);
+});

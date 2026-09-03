@@ -61,6 +61,12 @@ The shape, four rules of it enforced by the suite:
 - No absolute path, nothing under `docs/`, and nothing that restates or explains code — only `plugin/`
   travels into an installed copy, and mechanics belong to `-h` and to the source.
 
+**One gate may owe two arguments.** A gate that refuses two unrelated things cannot argue both
+inside that ceiling, and the ceiling is the rule that keeps these readable. So the second argument
+gets a page of its own, named for the topic rather than the hook, cited from the gate that prints
+the pointer and reached by the same `--how`. The switch stays the gate's: turning it off takes both
+refusals with it, and the page says so.
+
 Cut arguments freely and check every instruction against the code: one pass of that cutting shipped
 five wrong or missing claims — a lost `/dev/` exclusion, a stand-down described as something else, two
 harms collapsed into one sentence — and a diff review caught all five.

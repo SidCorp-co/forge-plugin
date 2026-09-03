@@ -1,5 +1,6 @@
 /* Which issues a call writes to, read from the arguments the verb takes and not searched for in the
-   text: a reference in a heredoc, a quoted value or a path is no target, and one by uuid is. */
+   text: a reference in a heredoc, a quoted value or a path is no target, and one by uuid is. And
+   which call files a new one, which names no issue yet and so owes no comment delivery. */
 import { HUMAN_REF, UUID } from "./issues.mjs";
 
 const READS = new Set(["list", "get"]);
@@ -37,8 +38,8 @@ export const targetsOfTool = (tool, input) => {
   return under(input, keys);
 };
 
-/* Quote removal as the shell does it, so the verb and this read one argument alike: a quote inside a
-   word is a join and not a character, and the hook cannot defer to whichever CLI is on PATH. */
+/* Quote removal as the shell does it, so the verb and this read one argument alike, and the hook
+   cannot defer to whichever CLI is on PATH: a quote inside a word joins it. */
 const ESCAPED = /["$`\\]/u;
 const unquoted = (word) => {
   let out = "";
@@ -77,6 +78,7 @@ const VERBS = {
 
 const CALL = /^(?:\S*\/)?forge\s+call\s+(forge_\w+)\b/u;
 const VERB = /^(?:\S*\/)?forge\s+([a-z]+)\b/u;
+const MCP = /^mcp__forge__(forge_\w+)$/u;
 
 const spokenTargets = (one) => {
   const called = CALL.exec(one);
@@ -89,9 +91,9 @@ const spokenTargets = (one) => {
   return verb.at.map((index) => args[index]).filter(isReference);
 };
 
-/** The physical lines a shell joins before it reads a word: the shared grammar cuts a command at a
- *  newline, which is right for asking where one starts and wrong for the word this then reads. A
- *  backslash escaping a backslash leaves the newline a separator, and single quotes join nothing. */
+/** The physical lines a shell joins before it reads a word: the shared grammar cuts at a newline,
+ *  right for where a command starts and wrong for the word this reads. A backslash escaping a
+ *  backslash leaves the newline a separator, and single quotes join nothing. */
 export const joined = (command) => {
   const text = String(command ?? "");
   let out = "";
@@ -113,7 +115,21 @@ export const joined = (command) => {
 /** Every issue one call writes to, so a compound is answered once — parsed for the tracker's own
  *  tool, and read where a command starts for a shell one. */
 export const writeTargets = ({ name, input }, spoken = []) => {
-  const tool = /^mcp__forge__(forge_\w+)$/u.exec(name ?? "")?.[1];
+  const tool = MCP.exec(name ?? "")?.[1];
   const found = tool ? targetsOfTool(tool, input) : spoken.flatMap(spokenTargets);
   return [...new Set(found)];
+};
+
+const filingOf = (args) =>
+  (args?.action === "create" && args?.data && typeof args.data === "object"
+    ? [{ title: String(args.data.title ?? ""), body: String(args.data.description ?? "") }]
+    : []);
+
+const spokenFilings = (one) => (CALL.exec(one)?.[1] === "forge_issues" ? filingOf(payload(one)) : []);
+
+/** `forge new` is absent: it reads its body off a file this cannot see, and refuses on this reader. */
+export const filingsOf = ({ name, input }, spoken = []) => {
+  const tool = MCP.exec(name ?? "")?.[1];
+  if (tool) return tool === "forge_issues" ? filingOf(input) : [];
+  return spoken.flatMap(spokenFilings);
 };

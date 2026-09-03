@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { tempHome } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance").path;
 const { PARKS, parse, render } = await import("../../src/flow/record.mjs");
@@ -468,4 +468,36 @@ test("a flag with no form to belong to is refused, never dropped", () => {
     assert.equal(run.stdout, "", `${argv.join(" ")} answered on stdout: ${run.stdout}`);
   }
   assert.ok(ask("advance").stdout.includes("Usage: forge advance"), "no argument is a question");
+});
+
+/* The light path is reported and not enforced, so what proves it is the line the verb prints on an
+   issue whose description carries the mark — spawned against a tracker, because `--owed` reads the
+   record before it says anything. */
+const OPEN = {
+  documentId: "light-uuid",
+  issueId: "ISS-90",
+  status: "open",
+  title: "the fix that rides the light path",
+  description: "`forge dep` should take the `data.relations` route.\n\nSize: fix.\n",
+};
+const state = { issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" }] };
+const tracker = await fakeTracker(state);
+test.after(() => tracker.close());
+const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);
+
+test("--owed on a marked fix says which payloads a fix owes and which it does not", async () => {
+  const run = await owed("ISS-90");
+  assert.equal(run.status, 0, "asked what is owed, the shortfall is the answer and not a refusal");
+  assert.match(run.stdout, /marked `Size: fix\.`/u);
+  assert.match(run.stdout, /owed {8}criteria: the one check that fails without the change/u);
+  assert.match(run.stdout, /not owed {4}a decision record/u);
+  assert.match(run.stdout, /still asks for the full set/u, "the mark reports; no check is relaxed by it");
+  assert.match(run.stdout, /no confirmation/u, "so the confirmation a fix's plan replaces is owed all the same");
+  assert.equal(state.calls.some((one) => one.args.action === "transition"), false, "and --owed moves nothing");
+});
+
+test("--owed on an issue with no mark says nothing about a light path", async () => {
+  const run = await owed("ISS-91");
+  assert.doesNotMatch(run.stdout, /light path/u);
+  assert.match(run.stdout, /no confirmation/u);
 });

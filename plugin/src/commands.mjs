@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
 import { fail, settings } from "./resolve/settings.mjs";
+import { bodyFrom } from "./resolve/payload.mjs";
 import { projectId, REFERENCE_KEYS, scoped, toolNamed, tools, write } from "./tracker/rpc.mjs";
 import {
   DEFAULT_LIMIT,
@@ -12,7 +13,8 @@ import {
   truncated,
 } from "./tracker/issues.mjs";
 import { credited, mustBeShown, postComment } from "./tracker/comments.mjs";
-import { targetsOfTool } from "./tracker/issue-read.mjs";
+import { refusalForFiling, withMark } from "./tracker/issue-shape.mjs";
+import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { flags } from "./resolve/flags.mjs";
@@ -27,12 +29,6 @@ import { spec } from "./spec/verbs.mjs";
 import { claim } from "./flow/claim.mjs";
 import { resume } from "./flow/resume.mjs";
 import { notAnothers, renew } from "./flow/lease.mjs";
-
-/* One rule for every payload: inline, `@path`, or `-` for stdin. */
-const bodyFrom = (path) => {
-  if (path === "-") return readFileSync(0, "utf8");
-  return readFileSync(path.startsWith("@") ? path.slice(1) : path, "utf8");
-};
 
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
@@ -178,6 +174,12 @@ export const commands = {
       targetsOfTool(name, args).map(async (ref) => ({ ref, documentId: await documentIdOf(ref) })),
     );
     if (targets.length) await mustBeShown(targets);
+    /* And the shape a filing owes, here rather than only in the hook: the payload may arrive from a
+       file or from stdin, which the hook reading the command line cannot see. */
+    for (const filing of filingsOf({ name: `mcp__forge__${name}`, input: args })) {
+      const refused = await refusalForFiling(filing);
+      if (refused) fail(refused);
+    }
     const answer = resolved.data ? await write(name, resolved) : await scoped(name, resolved);
     credited(name, resolved, answer);
     show(answer);
@@ -205,11 +207,39 @@ export const commands = {
     );
     show(full ? body : terse(body));
   },
-  /* `open` marks the active set; `draft` never dispatches. */
+  /* `open` marks the active set; `draft` never dispatches. A filing is read before it is made,
+     because the flow costs the same for one line as for a feature: how/issue-shape.md. */
   new: async ([path, ...rest]) => {
     if (!path) fail(usageOf("new"));
-    const data = { description: bodyFrom(path), status: "open", ...flags(rest, "new") };
-    if (!data.title) fail("An issue needs --title; the tracker refuses an untitled one.");
+    const { into, with: rides, size, ...given } = flags(rest, "new");
+    if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
+    if (size !== undefined && size !== "fix") {
+      fail(`--size takes \`fix\`, the one size the contract gives a light path, not \`${size}\`. `
+        + "A whole issue needs no size.");
+    }
+    /* Presence, never truth: the shared parser takes an empty string as a value, and a route read
+       by truthiness would drop `--into ""` on the floor and file the issue instead. */
+    const commenting = into !== undefined;
+    const relating = rides !== undefined;
+    if (commenting && relating) fail("--into posts a comment and --with files an issue. Ask for one of them.");
+    const filing = [...Object.keys(given).filter((one) => one !== "title"), ...(size === undefined ? [] : ["size"])];
+    if (commenting && filing.length) {
+      fail(`--into posts a comment, and ${filing.map((one) => `--${one}`).join(", ")} belongs to a filing. `
+        + "Drop it, or file the issue and comment on it separately.");
+    }
+    const body = bodyFrom(path);
+    /* A comment is not an issue and owes none of the shape; the read the write owes is still owed,
+       and it takes no lease, because a finding on an issue nobody holds is nobody's claim. */
+    if (commenting) {
+      const issue = await documentIdOf(into);
+      await mustBeShown([{ ref: into, documentId: issue }]);
+      return show(await postComment(issue, `## ${given.title}\n\n${body}`));
+    }
+    const description = size ? withMark(body) : body;
+    const refusal = await refusalForFiling({ title: given.title, body: description }, { routed: relating });
+    if (refusal) fail(refusal);
+    const data = { description, status: "open", ...given };
+    if (relating) data.relations = [{ kind: "relates", blocksId: await documentIdOf(rides) }];
     show(await write("forge_issues", { action: "create", data }));
   },
   comment: async ([reference, path]) => {

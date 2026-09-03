@@ -168,8 +168,10 @@ export function deny(reason) {
 }
 
 /** Where the argument for a rule lives. What a refusal prints costs context on every tool use, so
- *  it carries the shape and the action and ends with this. The name is the gate's. */
-export const how = () => `\n\nHow: \`forge hooks --how ${current || basename(process.argv[1] ?? "", ".mjs")}\``;
+ *  it carries the shape and the action and ends with this. The name is the gate's, or a topic's
+ *  where one gate refuses two unrelated things and each argument wants its own page. */
+export const how = (topic = null) =>
+  `\n\nHow: \`forge hooks --how ${topic || current || basename(process.argv[1] ?? "", ".mjs")}\``;
 
 export function block(reason) {
   logged("block", reason);

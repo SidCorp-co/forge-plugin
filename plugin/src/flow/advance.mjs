@@ -5,6 +5,7 @@ import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { COMMENT_PAGE, commentPage } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
+import { FIX_OWES, isFix } from "../tracker/issue-shape.mjs";
 import {
   PARKS,
   SHOWS_EVIDENCE,
@@ -126,6 +127,7 @@ export const checkTarget = (to, next, view, ref) => {
 /* Printed under the shortfall and under "the record earns it" alike, because the point of it is
    that a run reads it before the status it belongs to is the one being asked for. */
 const sayAhead = (view, ref) => {
+  if (isFix(view.issue.description)) console.log(`\n${FIX_OWES}`);
   const said = lookAhead(view, ref);
   if (said) console.log(`\n${said}`);
 };
