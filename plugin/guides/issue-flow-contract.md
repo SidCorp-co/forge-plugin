@@ -392,7 +392,10 @@ writes follow it: their finding, and the agent's triage of it. The triage is wha
 stages above say which way — the criteria, the code, or neither, when nothing about this issue's own
 work was wrong. Nothing is deleted there either. What a person found is not a status that quietly
 moved: it is a record with their words in it, and the count of reopens the tracker keeps beside it
-is the one fact saying this has happened before.
+is the one fact saying this has happened before. A defect the builder finds in the project's own change
+after its issue is closed is not a reopen either: it goes to the nearest open issue of that project
+that owns it, or to a new filing there, and the closed issue gets one note saying where. A defect
+in this plugin met along the way is the skill's feedback note, whichever project the run is in.
 
 **A disposition is a drop with its finding as the reason.** A confirmation whose finding is a
 disposition earns `confirmed` and, on the next advance, `dropped`; the same comment is the evidence
@@ -438,6 +441,10 @@ with its reason, so nothing of it stands once the reviewer's recheck on that hea
 standing, and approval is decided as before; a pass *with a qualification* earns the criterion, the
 qualification travels with the verdict onto the report and the trace page, and a qualification that
 says the criterion is not met is not a qualification but a fail (ISS-34 owes both grammars).
+
+**A recorded verdict is the author's and stands.** A recheck confirms or refutes the reviewer's
+findings; it does not rewrite the author's rulings on them, and a rejection with its reason is not
+replaced by an acceptance the recheck inferred (ISS-34 owes the fix; twice in the seventeenth run).
 
 **The reviewer read what it was shown.** A consult limited to a diff judges the diff; its truth
 pass on the rest answers *not verified* and says so. The recheck that earns an approving review runs
@@ -523,12 +530,21 @@ ninth dry run's most durable output was the one check the contract had not asked
 **A rehearsal writes no person's record.** A run that exercises a transition with no person behind
 it — a reopen route, a park a reviewer lifts — proves the route in a test or against the installed copy
 and writes nothing that quotes a person. A verdict that says *the installed copy* names the binary it
-invoked by path, because on a machine whose `forge` is the checkout the phrase proves the checkout
-(ISS-71). A finding with words nobody said is a false record, and a
+invoked by path, because on a machine whose `forge` is the checkout the phrase proves the checkout;
+each verdict says which artefact it judged, the tree or the installed copy, since only the second
+guards the next session; and a probe whose path does not resolve is a failure, never a pass
+that printed nothing (ISS-71). Every commit a payload names is read from git at the write and never
+typed: the seventeenth run typed one from memory and corrected it with a second mark. A finding with words nobody said is a false record, and a
 false record is corrected and never removed, so it is better never written; the tenth dry run built the
 reopen and left it unrehearsed on a live issue for this reason.
 
 ### Release and routes — the installed copy, the schema, and the gates every route shares
+
+**A change to a hook, a skill or a how page reaches a session at its next start.** The session
+that made it keeps the copy it loaded, and so does every session already open, so the release names
+those files and the run's report says a restart is owed before the next run trusts them; a dry run
+names the skill copy it ran under, since the seventeenth ran three releases behind the tree without
+knowing.
 
 **The version mark is part of the release.** The commit that moves the version is the one a rebase
 drops without a conflict when an identical bump already landed upstream, leaving a tree whose manifest

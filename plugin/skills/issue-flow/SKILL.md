@@ -7,7 +7,7 @@ description: >-
   listing or filing issues without implementing them, use the forge skill instead.
   Triggers on "work ISS-nn", "implement this issue", "fix ISS-nn", "làm issue",
   "xử lý ISS-nn", "ship this issue".
-version: 2.1.6
+version: 2.1.7
 ---
 
 # Skill: issue-flow
@@ -161,7 +161,9 @@ Baseline, gates and evidence: `references/verification.md`.
 ## Phase 5 — Prove it by running it, and post what you proved
 
 Read the acceptance criteria back off the issue rather than from memory and judge each one,
-one typed verdict per criterion, each citing its own evidence. **On every outcome, not only on
+one typed verdict per criterion, each citing its own evidence. A criterion is a claim too: judge
+it against the issue before judging the code against it, since code that matches a wrong
+criterion proves the wrong thing and the verdict reads as a pass. **On every outcome, not only on
 failure** — Rule 2 makes evidence a phase output, and a session transcript nobody else can
 reopen is not an output.
 
@@ -197,7 +199,8 @@ established, and report with the evidence rather than retrying past it.
 ## Phase 8 — Clean up, and consider whether anything was learned
 
 Clean up as soon as the evidence is captured, not at the end of the run: temporary servers,
-temporary data and scratch files go, and the user's stack is confirmed still answering.
+temporary data and scratch files go, and the user's stack is confirmed still answering. What
+outlives the run is what a verdict cites, attached where the verdict is; everything else goes.
 
 Then apply Rule 5. Most rounds record nothing. Check, do not write: every plugin defect the run
 met already has its note from the moment it was met, and one that does not is itself a defect of

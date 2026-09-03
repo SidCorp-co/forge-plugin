@@ -532,3 +532,44 @@ the second agent to run in a worktree, alongside ISS-70.
   the spine it was served differed from the one it wrote. A skill edit reaches only sessions that
   load it after.
 
+## Seventeenth dry run — ISS-70
+
+One agent scoped the codex-second gate to what a commit stages (3.35.10): the demand is the
+record's documents intersected with the staged set, in the tree the commit names, whether by
+`git -C`, an inherited `cd` or the shell's cwd; `forge codex pending` prints the same demand through
+the same function; the refusal names the root, the staged paths, the consult line as it can be sent,
+the unread discard and the escape that actually reaches a hook. Nine criteria, seven whole-set
+rounds, no `advance` refusal, and the first run alongside another agent from start to finish. A hook
+file changed, so the session owed a restart before the next agent.
+
+- The gate denied the agent's own first probe in a scratch repository, judged against the parent
+  checkout's pending documents: the defect firing on the person fixing it, and the run's best
+  evidence. The one shape that still misfired after per-root keying was a `cd` into the worktree
+  followed by the commit in the same call, which is exactly what a shell whose cwd resets between
+  calls produces.
+- Measured on a shared checkout with five hundred and twenty recorded files and two staged: the
+  refusal names two. The commit half is closed; the write branch still walks the whole tree and past
+  five hundred paths answers with the present moment, which no consult can beat. ISS-82.
+- The agent typed a sha from memory into the merged mark and read the real one afterwards; a second
+  mark corrects the first, and the released verdict cites the real hash. A sha is read, never typed:
+  the rule is now written.
+- A probe pointed at a path that did not exist printed no decision for eight cases and read exactly
+  like a gate standing down. The verdict rule now says a probe that cannot find its subject fails.
+- The Skill tool served this run the skill copy pinned at the parent session's start, three releases
+  behind the tree: none of the fourteenth run's fixes were in the text the agent read. Every run
+  since the skill-first change ran on the old skill. A skill change owes a restart before the next
+  agent as a hook change does, and a dry run names the skill copy it ran. On ISS-79.
+- `--recheck` overwrote recorded verdicts twice, once replacing a reasoned rejection with accepted;
+  the review grammar has nowhere to name the consult a finding came from. ISS-34.
+- The escape the refusal offers says "for the session" while `forge hooks --off` writes to the
+  account config and covers every project and every parallel agent, with no `--on` named. ISS-45.
+- A second release note replaced one the status already stood on, at `tested`. ISS-74. The
+  installed copy has no `plugin/` inside it: the versioned cache directory is the plugin. ISS-71.
+- No route existed for a defect found in what was just shipped once the issue is closed; the agent
+  chose the nearest open issue and a note on the closed one saying where. The contract now says so.
+- The skill's cleanup and evidence rules pulled opposite ways with nothing saying which artefacts
+  outlive the run, and Phase 5 read the criteria back without asking whether a criterion was true: the
+  agent's ninth criterion carried the error its code then shipped. Both get a sentence with this fold.
+- Folding this run, the parent's own write of this section was refused by the new gate: the heredoc
+  quoted a commit command as prose, and the gate read the command string whole. On ISS-82.
+
