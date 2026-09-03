@@ -17,7 +17,12 @@ description: >-
 says what to type for one of them and names the schema holding its arguments in full; `forge -h
 --full` adds the tracker's own rules for writing an issue. What follows is how to spend a call well. What is read
 once — where settings come from, what `doctor` reports, and the two verb families that are not the
-tracker — is in `references/`, named at the point it becomes relevant.
+tracker — is in `references/`, named at the point it becomes relevant. When this plugin is the
+problem — a refusal with no route, a flag that did not do what its help said, a hook that fired on
+the right shape, a call it made you spend twice — write a note into the plugin's feedback folder at
+the path `forge -h` prints, in the shape its README gives, before working around it; where `-h`
+says the folder cannot be located, the note goes in your report instead. The maintainer reads that
+folder; a workaround nobody wrote down is a defect nobody fixes.
 
 ## Payloads: inline, `@file`, or `-`
 
