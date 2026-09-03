@@ -1,4 +1,4 @@
-import { getLineMetrics, longestConsecutiveRun } from "./line-metrics.js";
+import { getLineMetrics, longestConsecutiveRun } from "../line-metrics.js";
 
 export default {
   meta: {

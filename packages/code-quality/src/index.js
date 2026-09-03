@@ -1,11 +1,11 @@
-import commentDensity from "./comment-density.js";
+import commentDensity from "./rules/comment-density.js";
 import noArbitrarySizes from "./design/no-arbitrary-sizes.js";
 import noRawColors from "./design/no-raw-colors.js";
 import noRawElements from "./design/no-raw-elements.js";
-import maxConsecutiveCommentLines from "./max-consecutive-comment-lines.js";
-import noDuplicateComment from "./no-duplicate-comment.js";
-import noHistoricalNarration from "./no-historical-narration.js";
-import noPassThroughWrapper from "./no-pass-through-wrapper.js";
+import maxConsecutiveCommentLines from "./rules/max-consecutive-comment-lines.js";
+import noDuplicateComment from "./rules/no-duplicate-comment.js";
+import noHistoricalNarration from "./rules/no-historical-narration.js";
+import noPassThroughWrapper from "./rules/no-pass-through-wrapper.js";
 
 export { DEFAULT_CONTRAST_THRESHOLDS, findContrastFailures } from "./design/contrast.js";
 export {
@@ -62,7 +62,7 @@ export {
   SOURCE_EXTENSIONS,
   walkDirectories,
 } from "./walk.js";
-export { HANDOFF_PATTERNS, NARRATION_PATTERNS } from "./no-historical-narration.js";
+export { HANDOFF_PATTERNS, NARRATION_PATTERNS } from "./rules/no-historical-narration.js";
 export {
   contentWords,
   DEFAULT_MIN_SENTENCE_LENGTH,

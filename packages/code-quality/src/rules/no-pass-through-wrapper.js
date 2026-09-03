@@ -1,5 +1,5 @@
-import { matchesFile } from "./design/tokens.js";
-import { PASS_THROUGH_WAIVER } from "./line-metrics.js";
+import { matchesFile } from "../design/tokens.js";
+import { PASS_THROUGH_WAIVER } from "../line-metrics.js";
 
 /**
  * A layer that forwards and adds nothing is a name for something that already has

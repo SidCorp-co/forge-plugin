@@ -1,11 +1,11 @@
-import { isIgnoredComment, isWaiver, RESTATEMENT_WAIVER } from "./line-metrics.js";
+import { isIgnoredComment, isWaiver, RESTATEMENT_WAIVER } from "../line-metrics.js";
 import {
   DEFAULT_MIN_SENTENCE_LENGTH,
   DEFAULT_OVERLAP_FLOOR,
   DEFAULT_OVERLAP_THRESHOLD,
   findOverlaps,
   splitSentences,
-} from "./text-overlap.js";
+} from "../text-overlap.js";
 
 /**
  * A constraint stated in two comments has two authorities and diverges the first time someone

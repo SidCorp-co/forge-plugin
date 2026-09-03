@@ -1,7 +1,7 @@
 import { RuleTester } from "eslint";
 import test from "node:test";
-import commentDensity from "../src/comment-density.js";
-import maxConsecutiveCommentLines from "../src/max-consecutive-comment-lines.js";
+import commentDensity from "../src/rules/comment-density.js";
+import maxConsecutiveCommentLines from "../src/rules/max-consecutive-comment-lines.js";
 
 const tester = new RuleTester({ languageOptions: { ecmaVersion: 2022 } });
 

@@ -1,6 +1,6 @@
 import { RuleTester } from "eslint";
 import test from "node:test";
-import rule from "../src/no-pass-through-wrapper.js";
+import rule from "../src/rules/no-pass-through-wrapper.js";
 
 const tester = new RuleTester({
   languageOptions: {

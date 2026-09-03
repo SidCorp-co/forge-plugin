@@ -1,6 +1,6 @@
 import { RuleTester } from "eslint";
 import test from "node:test";
-import rule, { isHistoricalNarration } from "../src/no-historical-narration.js";
+import rule, { isHistoricalNarration } from "../src/rules/no-historical-narration.js";
 
 const regressionComments = [
   "This used to use callbacks.",

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { RuleTester } from "eslint";
 import test from "node:test";
-import rule from "../src/no-duplicate-comment.js";
+import rule from "../src/rules/no-duplicate-comment.js";
 import {
   contentWords,
   findOverlaps,

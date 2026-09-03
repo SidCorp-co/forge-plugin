@@ -1,4 +1,4 @@
-import { isIgnoredComment } from "./line-metrics.js";
+import { isIgnoredComment } from "../line-metrics.js";
 
 export const NARRATION_PATTERNS = [
   /\b(?:used to|formerly|previously)\b/i,
