@@ -1,11 +1,13 @@
 /* The pick: the lease a run takes before it writes anything, the reclaim of one a dead run left
    behind, and the park a status that keeps crashing earns. docs/FORGE-CLI.md. */
 import { flags, pullRepeated } from "../resolve/flags.mjs";
+import { sessionOf } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rpc.mjs";
-import { commentPage, parse } from "./record.mjs";
+import { commentPage } from "../tracker/comments.mjs";
+import { parse } from "./record.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
 import { OPEN_KEPT, patchFrom, worklogFor } from "./worklog.mjs";
 import {
@@ -21,7 +23,6 @@ import {
   parkAnswers,
   parksAsCrashed,
   reclaimsOf,
-  sessionOf,
   setLease,
   stateOf,
 } from "./lease.mjs";

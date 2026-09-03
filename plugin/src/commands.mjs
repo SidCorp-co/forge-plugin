@@ -11,6 +11,8 @@ import {
   rowsOf,
   truncated,
 } from "./tracker/issues.mjs";
+import { credited, mustBeShown, postComment } from "./tracker/comments.mjs";
+import { targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { flags } from "./resolve/flags.mjs";
@@ -170,8 +172,14 @@ export const commands = {
       return fail(`Arguments for ${name} are not json: ${error.message}`);
     }
     const resolved = await resolveReferences(args);
-    /* `call` reaches the same writes the wrapped verbs do, so it takes the same gates. */
+    /* `call` reaches the same writes the wrapped verbs do, so it takes the same gates — and it is
+       the route that renews no lease, so the read-before-write check is made here by hand. */
+    const targets = await Promise.all(
+      targetsOfTool(name, args).map(async (ref) => ({ ref, documentId: await documentIdOf(ref) })),
+    );
+    if (targets.length) await mustBeShown(targets);
     const answer = resolved.data ? await write(name, resolved) : await scoped(name, resolved);
+    credited(name, resolved, answer);
     show(answer);
   },
   issues: async (rest) => {
@@ -208,7 +216,7 @@ export const commands = {
     if (!reference || !path) fail(usageOf("comment"));
     const issue = await documentIdOf(reference);
     await renew(issue, reference);
-    show(await write("forge_comments", { action: "create", data: { issue, body: bodyFrom(path) } }));
+    show(await postComment(issue, bodyFrom(path)));
   },
   /* A plan is a field, not a comment: one value, replaced rather than accumulated. Read back before
          reporting success — a field accepted and dropped answers 200 like one that was stored. */

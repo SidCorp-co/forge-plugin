@@ -1,12 +1,9 @@
 /* The issue's session field, read as a lease: who holds it, until when, the one line naming the
    step they are on, and the claims before this one. The tracker has no conditional write (ISS-7),
    so a write here is a read-back compare and the claim says so out loud. docs/FORGE-CLI.md. */
-import { randomUUID } from "node:crypto";
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
-
-import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
+import { sessionOf } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
+import { mustBeShown } from "../tracker/comments.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
@@ -23,7 +20,6 @@ export const ADVISORY =
 
 const UNKNOWN = "unknown";
 
-/* No file can name a run, so what placed a holder comes from the environment or from nowhere. */
 export const agentOf = () => process.env.AI_AGENT || UNKNOWN;
 export const pidOf = () => process.env.CLAUDE_PID || UNKNOWN;
 
@@ -35,26 +31,6 @@ export const nextLine = (given, flag = "--next") => {
     fail(`${flag} takes one line: the step whoever comes next starts on. This one holds a newline.`);
   }
   return line || null;
-};
-
-const sessionPath = () => join(configDir("forge"), "session.json");
-
-/* Read without minting: a reader asking whose lease this is must not write a file to find out. */
-export const sessionHeld = () =>
-  process.env.FORGE_SESSION_ID || process.env.CLAUDE_CODE_SESSION_ID || readJson(sessionPath())?.session || null;
-
-/* The file names a machine, where two runs look like one holder and neither is refused. */
-export const sessionOf = () => {
-  const held = sessionHeld();
-  if (held) return held;
-  const minted = `machine-${randomUUID()}`;
-  try {
-    mkdirSync(configDir("forge"), { recursive: true });
-    writeJsonPrivate(sessionPath(), { session: minted });
-  } catch {
-    /* A session id that cannot be saved is a holder for this process alone, never a failed call. */
-  }
-  return minted;
 };
 
 export const leaseOf = (context) => {
@@ -180,7 +156,9 @@ export const readContext = async (documentId) =>
   (await scoped("forge_issues", { action: "get", documentId, fields: [FIELD] }))?.[FIELD] ?? null;
 
 /* The compare-and-set the tracker owes (ISS-7): it cannot stop another run's write, only refuse. */
+/* And the one place every payload write reaches, so the unshown comments are delivered here. */
 export const setLease = async (documentId, next, ref) => {
+  await mustBeShown([{ ref, documentId }]);
   await write("forge_issues", { action: "update", documentId, data: { [FIELD]: next } });
   const back = await readContext(documentId);
   if (canonical(back) !== canonical(next)) {

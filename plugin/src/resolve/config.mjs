@@ -1,5 +1,6 @@
-/* The account's credentials and this CLI's cache, kept outside every repository at 0600 from the
-   moment the file exists. docs/FORGE-CLI.md. */
+/* The account's credentials, this CLI's cache and the run's own identity, kept outside every
+   repository at 0600 from the moment the file exists. docs/FORGE-CLI.md. */
+import { randomUUID } from "node:crypto";
 import {
   closeSync,
   mkdirSync,
@@ -82,4 +83,25 @@ export const saveConfig = (values) => {
   writeJsonPrivate(CONFIG_PATH, merged);
   Object.assign(userConfig(), merged);
   return CONFIG_PATH;
+};
+
+/* Which run this is: the lease's holder and what a session has been shown are both keyed by it. */
+export const sessionPath = () => join(configDir("forge"), "session.json");
+export const sessionAsked = () => process.env.FORGE_SESSION_ID || process.env.CLAUDE_CODE_SESSION_ID || null;
+export const sessionSaved = () => readJson(sessionPath())?.session || null;
+
+/* Read without minting: a reader asking whose lease this is must not write a file to find out. */
+export const sessionHeld = () => sessionAsked() || sessionSaved();
+
+export const sessionOf = () => {
+  const held = sessionHeld();
+  if (held) return held;
+  const minted = `machine-${randomUUID()}`;
+  try {
+    mkdirSync(configDir("forge"), { recursive: true });
+    writeJsonPrivate(sessionPath(), { session: minted });
+  } catch {
+    /* An id that cannot be saved is a holder for this process alone, never a failed call. */
+  }
+  return minted;
 };

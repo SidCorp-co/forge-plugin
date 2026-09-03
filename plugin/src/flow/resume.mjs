@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { flags } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { COMMENT_PAGE, Refused, commentPage, issueOf } from "./record.mjs";
+import { COMMENT_PAGE, commentPage } from "../tracker/comments.mjs";
+import { Refused, issueOf } from "./record.mjs";
 import { viewFrom } from "./earned.mjs";
 import { shortfall } from "./advance.mjs";
 import { worklogLines } from "./worklog.mjs";
@@ -22,8 +23,9 @@ export const USAGE = [
   "",
   "  --json    the same assembled object, for a tool rather than a reader",
   "",
-  "It writes nothing and needs no lease, so anyone may read any issue. It lists the issue's comments,",
-  "which is a read of them: a write refused for want of one is unblocked by having run this.",
+  "It writes nothing and needs no lease, so anyone may read any issue. It reads the comments to",
+  "assemble the record, and shows the typed kinds rather than the bodies, so it is no delivery of",
+  "them: a write held for want of one is cleared by the write's own refusal, which carries them.",
   "",
   "A fact a successor needed and did not find here belongs on the record or in the worklog, never in",
   "this verb: `forge claim <ref> --pushed --review --open \"<line>\"` and `--next` are where it goes.",

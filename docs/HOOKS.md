@@ -76,6 +76,12 @@ where the old arrangement let each print its own. A gate answers by throwing a d
 turns into the protocol, so the same gate text runs alone under `plugin/hooks/entries/<name>.mjs` for the suite
 and for `forge hooks --off <name>`, which reads the names off the line.
 
+One gate asks the tracker before it can answer, and a call it cannot make ends the process with its
+own reason on stderr. That is a stand-down and not a failure: the write it guards travels on the
+transport that just failed, so there is nothing left to guard. It is therefore registered last on
+its line, where no gate after it is lost to that exit, and a case asserts the order — a rule that
+lived in a comment asking the next author to be careful would be no rule.
+
 Those solo lines sit in `entries/` rather than beside the runner because one directory holding the
 harness, the runner and a line per gate is a list and not a shape — the width check says so at eleven
 files. `link-cli.mjs` stays beside the runner: it is no gate, it has no text under `gates/`, and a

@@ -460,9 +460,14 @@ entry criteria in the tool's own words. Nothing in the skill repeats them.
 
 **Every route this plugin sees is the same route.** The CLI enforces; the pre-hook applies the same
 check to the tracker tool called directly, so the contract cannot be stepped around by choosing a
-client the plugin serves. A delegated agent is a route too: the read-first gate looks for a read in
-the main session's transcript, so a subagent's read is invisible and a read from hours earlier
-counts, which is the same route only in name (ISS-33 owes it). The tracker's own screens and unhooked clients are outside it: a status
+client the plugin serves. A delegated agent is a route, and so is an argument form. What a run has
+been shown of an issue's comments is therefore state this plugin writes, keyed by the session an
+agent and the agents it delegates to share, and the write that owes a reading performs it: an issue
+with no comments costs nothing, and every comment on the page the tracker returns that nobody here
+has seen is the refusal itself, delivered once and re-sent against. The page is the reach of it,
+which is the same seam a cursor closes. A write naming its issue by uuid is checked exactly as one naming the
+key, since a form is not a route either. Nothing about a route is read out of a transcript,
+since the transcript of a delegated run is not the one a hook is handed. The tracker's own screens and unhooked clients are outside it: a status
 they set is unearned, and `advance --owed` on such an issue says what its record lacks. A check on
 the server is the tracker's to add, and this contract is its specification.
 
@@ -536,8 +541,9 @@ surprised by it.
   dot, which is what a verdict names and what the conjunction warning reads.
 - Attachments are returned by the full issue read and by nothing narrower, so an evidence reference
   is checked against that read.
-- The first write to an issue's comments is refused until its comments were read this session. The
-  verb reads the whole record before it decides, so it satisfies that gate on the way.
+- The first write to an issue is refused until this session has been shown that issue's comments, and
+  a verb reading the record to decide is not the session being shown it: the refusal carries the
+  bodies and the same command is sent again. Only a route that prints them counts as showing them.
 - Under the fixed turn hook, a document is recorded by content: reading, touching or naming a file the
   last consult already read at this content records nothing, verified live after the release. A
   verdict follows the same rule, judged by the hash of the criteria text and the commit, not by time.

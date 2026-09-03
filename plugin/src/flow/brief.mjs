@@ -1,7 +1,8 @@
 /* One issue's whole context assembled out of the record and the worklog, and nothing formatted:
    the printer is resume.mjs and `--json` is this object, so the screen and a tool's reading cannot
    disagree. Under earned.mjs's rule about what it may touch, for the same reason (ISS-44). */
-import { FIELD, leaseOf, sessionHeld, stateOf } from "./lease.mjs";
+import { sessionHeld } from "../resolve/config.mjs";
+import { FIELD, leaseOf, stateOf } from "./lease.mjs";
 import { Refused, unwrap } from "./record.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, methodOf, parkRecord } from "./earned.mjs";
 import { lookAhead, targetOf } from "./route.mjs";

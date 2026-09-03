@@ -14,9 +14,10 @@ process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
   ADVISORY, MINUTES, RECLAIMS_BEFORE_PARK, agentOf, canonical, claimRefusal, claimed, describe,
-  expiryOf, historyLine, leaseOf, nextLine, parksAsCrashed, pidOf, reclaimsOf, sessionOf, stateOf,
+  expiryOf, historyLine, leaseOf, nextLine, parksAsCrashed, pidOf, reclaimsOf, stateOf,
   writeRefusal,
 } = await import("../../src/flow/lease.mjs");
+const { sessionOf } = await import("../../src/resolve/config.mjs");
 const { retryOf } = await import("../../src/tracker/rpc.mjs");
 const { parkAnswers } = await import("../../src/flow/lease.mjs");
 const { USAGE, nextLines, parkWrite } = await import("../../src/flow/claim.mjs");

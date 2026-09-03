@@ -156,6 +156,28 @@ agent died mid-consult, and the one fact its record could not hold was which cod
 so the round was run again to find out. The verbs that write something other than a payload — a
 comment, the plan field, an upload, a dependency edge — renew the lease and leave the line alone.
 
+**Every write to an issue lists that issue's comments first**, because the read that looks complete
+returns none of them. The renew that precedes each payload write is where the list is made, and the
+one route that renews nothing, `forge call`, makes it from its own payload. An empty list costs one
+line and no round at all. Comments this session has not been shown *are* the refusal: every one on
+the page the list returns is printed whole, in the fence the tracker returned it in, with the count
+when the tracker holds more, and the same command sent again lands — so
+the round that is spent carries the content the rule exists to deliver rather than a pointer to it.
+The delivery is recorded under `~/.config/forge/`, which is what makes one process's reading the
+next one's and a run's reading its delegates' — the account's directory outlives both, where a
+transcript belongs to one of them. What it takes to owe a delivery again is one document, `forge
+hooks --how issue-read-first`, and the same state answers whichever route asks. Where nothing names
+a run — a bare shell, no harness — the machine is the session, because a key per process would
+refuse every command and no key at all would refuse forever. Two costs are the
+routes' own rather than that rule's: a comment created through the tracker's tool returns its id to
+a client no hook can see, so that one comment is handed back once; and nothing past the page the
+list returns is delivered at all, the seam a cursor closes and the reason `advance` refuses an issue
+with more comments than a page outright. The pre-hook makes the same list before the
+call, for the tracker's own tool and for a `forge` write in a shell command alike: the plugin copy a
+session loads and the `forge` on its PATH are separately installed and can be different versions, so
+neither is trusted to be the other — one list twice on the path where both hold is the price, and a
+gate switched off leaves the verb, which cannot be.
+
 ## `resume` — one issue's whole context, re-minted from what the last run wrote
 
 ISS-26's shell died mid-review. What made the recovery cheap was luck: a file the dying run happened
@@ -199,10 +221,10 @@ the reference holding that phase's method. `--json` is the assembled object the 
 from, so a tool and a reader cannot be told different things.
 
 Two smaller measurements. A section with nothing in it is left out, not printed empty, which is what
-made the brief fit a screen at all. And listing the comments is a read of them, so the gate that
-refuses a write to an issue nobody has read now recognises `forge resume` beside the raw listing —
-it is the same read under another name, and the verb performs it to assemble the brief whether the
-gate is watching or not.
+made the brief fit a screen at all. And the comments it reads are not shown as themselves: the typed
+kinds are, one line each, so a plain comment a person left reaches nobody through this verb. It
+therefore credits nothing to the read-before-write rule, which delivers the bodies in its own
+refusal instead — a digest of the record is not the record.
 
 ## `spec` — a clause answered by its identifier, and the storage known once
 

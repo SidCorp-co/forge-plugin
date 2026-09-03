@@ -1,36 +1,25 @@
 // Why the write is where this gate sits, and not the reading: how/issue-read-first.md.
 
-import { deny, shellText, starts, transcript, how, done } from "../_hook.mjs";
-import { unreadKeys, writesAnIssue } from "../../src/tracker/issue-read.mjs";
+import { deny, done, how, shellText, starts } from "../_hook.mjs";
+import { refusalFor, sessionKey } from "../../src/tracker/comments.mjs";
+import { joined, writeTargets } from "../../src/tracker/issue-read.mjs";
+import { documentIdOf } from "../../src/tracker/issues.mjs";
+import { accountCredentials } from "../../src/resolve/settings.mjs";
 
-export const run = (ev) => {
-  const current = { name: ev.tool_name, input: ev.tool_input };
-  // Which text answers which question: where a command starts for the write, the raw input for keys.
-  if (!writesAnIssue(current, starts(shellText(ev.tool_input?.command)))) done();
+const resolved = async (refs) => {
+  const seen = new Map();
+  for (const ref of refs) seen.set(await documentIdOf(ref), ref);
+  return [...seen].map(([documentId, ref]) => ({ ref, documentId }));
+};
 
-  const records = transcript(ev.transcript_path ?? "");
-  if (!records) done();
-
-  // Only the agent's own tool calls: a refusal names the read it asks for, and would satisfy the next.
-  const uses = [];
-  for (const record of records) {
-    const content = record?.message?.content;
-    if (!Array.isArray(content)) continue;
-    for (const block of content) {
-      if (block?.type === "tool_use") uses.push({ name: block.name, input: block.input });
-    }
-  }
-
-  const unread = unreadKeys(uses, current, (input) => starts(shellText(input?.command)));
-  if (unread.length === 0) done();
-
-  const key = unread[0];
-  deny(
-    `Hold — this writes to ${unread.join(", ")} and nothing in this session has read `
-      + `${unread.length > 1 ? "their comments" : "its comments"}, which \`forge issue --full\` does `
-      + "not return.\n\n"
-      + `Do this: forge call forge_comments '{"action":"list","filters":{"issue":"${key}"}}' — then `
-      + "re-send. An empty list satisfies this."
-      + how(),
-  );
+// A tracker that will not answer prints its reason and exits: this gate is last on the line for it.
+export const run = async (ev) => {
+  const said = starts(shellText(joined(ev.tool_input?.command)));
+  const refs = writeTargets({ name: ev.tool_name, input: ev.tool_input }, said);
+  if (!refs.length) done();
+  const { url, token } = accountCredentials();
+  if (!url.value || !token.value) done();
+  const { refusal } = await refusalFor(await resolved(refs), sessionKey(ev));
+  if (refusal) deny(refusal + how());
+  done();
 };

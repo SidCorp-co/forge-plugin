@@ -4,7 +4,8 @@ import { readFileSync } from "node:fs";
 
 import { fail, translateTo } from "../resolve/settings.mjs";
 import { pullRepeated, flags } from "../resolve/flags.mjs";
-import { documentIdOf, rowsOf } from "../tracker/issues.mjs";
+import { COMMENT_PAGE, commentPage, postComment } from "../tracker/comments.mjs";
+import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";
 import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
 import { nextLine, renew } from "./lease.mjs";
@@ -286,16 +287,6 @@ export const issueOf = async (reference) => {
   return { documentId, body };
 };
 
-export const COMMENT_PAGE = 200;
-
-/* The page is the tool's own maximum and it offers no cursor, so a fuller read cannot be asked
-   for: a reader that judges the record has to say it saw only part of it. */
-export const commentPage = (documentId) =>
-  scoped("forge_comments", { action: "list", filters: { issue: documentId }, limit: COMMENT_PAGE }).then((got) => ({
-    comments: rowsOf(got, "comments"),
-    hasMore: Boolean(got?.hasMore),
-  }));
-
 export const attachmentNames = (body, comments) => [
   ...(body.attachments ?? []).map((one) => one.name),
   ...comments.flatMap((one) => (one.attachments ?? []).map((two) => two.name)),
@@ -355,7 +346,7 @@ const gather = (kind, argv) => {
 export const post = async (documentId, body, ref = documentId, next = undefined, patch = null) => {
   refuseIfGated("forge_comments");
   await renew(documentId, ref, next, patch);
-  const answer = await write("forge_comments", { action: "create", data: { issue: documentId, body } });
+  const answer = await postComment(documentId, body);
   console.log(body);
   return answer;
 };

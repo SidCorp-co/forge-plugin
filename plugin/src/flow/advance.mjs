@@ -3,15 +3,14 @@
 import { flags, pullRepeated } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
+import { COMMENT_PAGE, commentPage } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
 import {
-  COMMENT_PAGE,
   PARKS,
   SHOWS_EVIDENCE,
   Refused,
   attachmentNames,
   checkEvidence,
-  commentPage,
   issueOf,
   post,
   refuse,
