@@ -74,6 +74,31 @@ test("a citation that is also a file here is cited and said, not refused", () =>
   assert.match(said.join("\n"), /is on this issue and is also a file here/u, "and the ambiguity is said");
 });
 
+/* A document called `deadbee` is seven hex digits too, and a verdict citing it as a commit points
+   at nothing: the file wins, and the line says the other reading was there (F2 of the final review). */
+test("a readable file whose name reads as a commit goes up as a file, and says so", () => {
+  writeFileSync(join(DIR, "deadbee"), "a document, not a sha\n");
+  const cwd = process.cwd();
+  const said = [];
+  const stderr = console.error;
+  console.error = (line) => said.push(line);
+  let plan = null;
+  try {
+    process.chdir(DIR);
+    plan = attachPlan(["deadbee"], [], held([]));
+  } finally {
+    process.chdir(cwd);
+    console.error = stderr;
+  }
+  assert.equal(plan.upload.length, 1, "the file goes up");
+  assert.match(plan.upload[0].path, /deadbee$/u);
+  assert.deepEqual(plan.cite, ["deadbee"]);
+  assert.match(said.join("\n"), /readable file here and goes up as one/u);
+  const nowhere = attachPlan(["deadbee"], [], held([]));
+  assert.deepEqual(nowhere.upload, [], "and the same value with no file behind it is cited as the commit");
+  assert.deepEqual(nowhere.cite, ["deadbee"]);
+});
+
 test("the upload answer is read for its url, and an unexpected body is printed whole", () => {
   assert.equal(uploaded(JSON.stringify({ id: "x", name: "n", url: "https://example.test/n" })), "https://example.test/n");
   assert.equal(uploaded("not json at all"), "not json at all");

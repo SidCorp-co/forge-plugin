@@ -78,18 +78,23 @@ export const attachPlan = (refs, names, held) => {
   const plan = { upload: [], cite: [], refusal: null };
   const taken = [...names];
   for (const ref of refs) {
+    /* A readable file is a file whatever its name reads as: `deadbee` is seven hex digits too. */
     const here = localFile(ref);
+    if (here && taken.includes(here.name)) {
+      plan.refusal = `${ref} is a file on disk and ${here.name} is already on this issue, or named `
+        + `twice in this command. A name attached twice resolves to two documents. Cite the one that `
+        + `is there:\n  --evidence ${here.name}\nor amend it under a name of its own and cite that.`;
+      return { ...plan, upload: [], cite: [] };
+    }
     /* Said, not refused: a refusal here would name the citation the author already made. */
-    if (here && held(ref)) {
+    if (here && names.includes(ref)) {
       console.error(`${ref} is on this issue and is also a file here; cited as the attachment that `
         + `is already up, which is not sent again. Amend it under a name of its own to cite the file.`);
     }
-    const file = held(ref) ? null : here;
-    if (file && taken.includes(file.name)) {
-      plan.refusal = `${ref} is a file on disk and ${file.name} is already on this issue, or named `
-        + `twice in this command. A name attached twice resolves to two documents. Cite the one that `
-        + `is there:\n  --evidence ${file.name}\nor amend it under a name of its own and cite that.`;
-      return { ...plan, upload: [], cite: [] };
+    const file = here && !names.includes(ref) ? here : null;
+    if (file && held(ref)) {
+      console.error(`${ref} is a readable file here and goes up as one; a URL or a commit of that `
+        + `name has to be cited from somewhere a file cannot be read.`);
     }
     if (file) {
       plan.upload.push(file);

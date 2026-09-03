@@ -103,6 +103,28 @@ test("the holder's own lapsed lease is renewed at the write, and the write says 
   assert.ok(Date.parse(leaseOf(field).renewedAt) > Date.now() - 60_000, "and the window starts again");
 });
 
+/* The notice says the write renewed it, so it waits for the write and its read-back: a claim printed
+   before the update is one a failed update would leave standing (F1 of the last recheck). */
+test("the notice is said after the write, not before it", async () => {
+  field = lease("this-run", ago(45));
+  const stub = globalThis.fetch;
+  const order = [];
+  globalThis.fetch = async (url, init) => {
+    const call = JSON.parse(init.body);
+    if (call.params?.arguments?.action === "update") order.push("write");
+    return stub(url, init);
+  };
+  const held = console.error;
+  console.error = (line) => order.push(line.includes("had expired") ? "notice" : "other");
+  try {
+    await renew(ISSUE, "ISS-65");
+  } finally {
+    console.error = held;
+    globalThis.fetch = stub;
+  }
+  assert.deepEqual(order.filter((one) => one !== "other"), ["write", "notice"]);
+});
+
 test("another run's lease is refused as it was, live or expired", async () => {
   field = lease("the-other-run", ago(1));
   const live = await refused(() => renew(ISSUE, "ISS-65"));
@@ -155,6 +177,28 @@ test("a lease inside its window is read once, because nobody may take it", async
   await said(() => renew(ISSUE, "ISS-65"));
   assert.deepEqual(sent.filter((one) => one.endsWith(":get")), ["forge_issues:get", "forge_issues:get"],
     "the read before the write and the read-back after it, and no third");
+});
+
+/* The last read is the whole authority, or the notice claims of a lease that is gone what only that
+   read could say (F1 of the final review). */
+test("a lease cleared between the two reads is free, and refuses", async () => {
+  field = lease("this-run", ago(45));
+  const stub = globalThis.fetch;
+  let gets = 0;
+  globalThis.fetch = async (url, init) => {
+    const call = JSON.parse(init.body);
+    if (call.params?.arguments?.action === "get") {
+      gets += 1;
+      if (gets === 2) field = null;
+    }
+    return stub(url, init);
+  };
+  try {
+    assert.match(await refused(() => renew(ISSUE, "ISS-65")), /carries no lease/u);
+    assert.equal(field, null, "and nothing was written over the cleared field");
+  } finally {
+    globalThis.fetch = stub;
+  }
 });
 
 test("an issue nobody claimed refuses the write, because a payload is the holder's", async () => {

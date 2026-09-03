@@ -165,7 +165,9 @@ const rounds = (entries) => {
   if (!by.length) return console.log(`No refusals logged, so no rounds to count. ${HOOK_LOG_PATH} holds the record.`);
   for (const one of by.sort((a, b) => b.per - a.per)) console.log(roundsLine(one));
   console.log("\nRefusals per refused write, not per write: only refusals are logged, so the writes "
-    + "that passed are not in the denominator. One is the rule working; two or more is a loop.");
+    + "that passed are not in the denominator. One is the rule working; two or more is a loop. Two "
+    + "refusals of one command inside a second count once — two gates answering one attempt — so a "
+    + "run re-sending that fast reads as one: the rate is a floor, and ISS-75 owns the attempt id.");
 };
 
 export const hooks = (argv) => {

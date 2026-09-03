@@ -157,11 +157,11 @@ export const canonical = (value) => {
 export const readContext = async (documentId) =>
   (await scoped("forge_issues", { action: "get", documentId, fields: [FIELD] }))?.[FIELD] ?? null;
 
-/* The compare-and-set the tracker owes (ISS-7): it cannot stop another run's write, only refuse. */
-/* And the one place every payload write reaches, so the unshown comments are delivered here. */
+/* The compare-and-set the tracker owes (ISS-7): it cannot stop another run's write, only refuse —
+   and the one place every payload write reaches, so the unshown comments are delivered here. */
 export const setLease = async (documentId, value, ref) => {
   await mustBeShown([{ ref, documentId }]);
-  /* Read after the gate: it is a round trip, and a write is built on the last read there was. */
+  /* A thunk runs here, after the gate: it is a round trip, and a write is built on the last read. */
   const next = typeof value === "function" ? await value() : value;
   await write("forge_issues", { action: "update", documentId, data: { [FIELD]: next } });
   const back = await readContext(documentId);
@@ -198,13 +198,16 @@ export const renew = async (documentId, ref, next = undefined, patch = null) => 
     worklog: worklogFor(from, patch),
   });
   if (state === "mine") return setLease(documentId, value(context, lease), ref);
-  /* Lapsed is the one state another run may take, so the read that decides is the last before the write. */
-  return setLease(documentId, async () => {
+  /* Lapsed is the one another run may take: the last read decides, and the notice waits for the write. */
+  let renewed = null;
+  const written = await setLease(documentId, async () => {
     const again = await readContext(documentId);
-    const now = leaseOf(again) ?? lease;
+    const now = leaseOf(again);
     const state = stateOf(now, holder);
     if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, now));
-    if (state === "lapsed") console.error(renewedLapsed(ref, now));
+    if (state === "lapsed") renewed = now;
     return value(again, now);
   }, ref);
+  if (renewed) console.error(renewedLapsed(ref, renewed));
+  return written;
 };
