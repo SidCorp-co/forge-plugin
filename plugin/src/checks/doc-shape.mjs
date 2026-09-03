@@ -9,11 +9,14 @@ const PROPOSAL = /^(?:#[^\n]*\n\s*)?\*\*Status: proposal for ((?:`forge [a-z]+`(
 
 /* The same claim in the source, printed or in a comment: either sends the next reader to a command,
    and one the CLI lacks costs a round (ISS-65). A `${…}` is checked as nothing. */
-const ARG = String.raw`(?:--?[\w-]+|<[^>\n]*>|\$\{[^}]*\}|[\w.@/=,'-]+)`;
+const ARG = String.raw`(?:--?[\w-]+|<[^>\n]*>|\$\{[^}]*\}|\\?"[^"\n]*\\?"|'[^'\n]*'|[\w.@/=,'-]+)`;
 const SOURCE_FORM = new RegExp(String.raw`forge ([a-z]+)((?:[ \t]+${ARG})*)`, "gu");
+const QUOTED = /\\?"[^"\n]*\\?"|'[^'\n]*'/gu;
 
 export const routeClaims = (text) => {
-  const calls = [...String(text).matchAll(SOURCE_FORM)].map(([, verb, rest]) => ({ verb, rest: rest ?? "" }));
+  /* A quoted value is data: read to find where the command ends, dropped before flags are counted. */
+  const calls = [...String(text).matchAll(SOURCE_FORM)]
+    .map(([, verb, rest]) => ({ verb, rest: (rest ?? "").replace(QUOTED, " ") }));
   return {
     calls,
     flags: calls.flatMap(({ verb, rest }) => (rest.match(FLAG) ?? []).map((flag) => ({ verb, flag }))),

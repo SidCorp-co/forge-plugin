@@ -17,17 +17,51 @@ export const uploaded = (answer) => {
   }
 };
 
-/* Bytes go to the presigned URL, never base64 through context. The URL is the credential. */
-export const uploadTo = async (target, targetId, path) => {
+/* Bytes go to the presigned URL, never base64 through context. The URL is the credential, and the
+   callback fires on the line before the PUT: from there on the file may be up, whatever follows. */
+export const uploadTo = async (target, targetId, path, sending = () => {}) => {
   const name = basename(path);
   const minted = await write("forge_uploads", { action: "request", data: { target, targetId, name } });
-  const url = minted.uploadUrl ?? `${new URL(settings().url).origin}${minted.uploadPath}`;
-  const put = await fetch(url, { method: "PUT", body: readFileSync(path) });
+  const url = new URL(minted.uploadUrl ?? `${new URL(settings().url).origin}${minted.uploadPath}`);
+  if (!["http:", "https:"].includes(url.protocol)) fail(`The upload URL for ${name} is ${url.protocol}, not http.`);
+  const body = readFileSync(path);
+  sending(name);
+  const put = await fetch(url, { method: "PUT", body });
   const answer = await put.text();
   if (!put.ok) fail(`Upload of ${name} answered ${put.status}: ${answer.slice(0, 300)}`);
   console.log(`${name}  ${uploaded(answer)}`);
   return name;
 };
+
+/* The three shapes a citation may take: an attachment's name, a URL, a commit, and nothing else. */
+const COMMIT = /^[0-9a-f]{7,40}$/iu;
+const URL_REF = /^https?:\/\//u;
+
+export const isCommit = (value) => COMMIT.test(String(value ?? ""));
+
+export const attachmentNames = (body, comments) => [
+  ...(body.attachments ?? []).map((one) => one.name),
+  ...comments.flatMap((one) => (one.attachments ?? []).map((two) => two.name)),
+];
+
+export const evidenceHeld = (ref, names) => URL_REF.test(ref) || COMMIT.test(ref) || names.includes(ref);
+
+/** The first value that is none of the three, or null; the caller is the one that refuses. */
+export const evidenceProblem = (refs, names) => {
+  const bad = refs.find((ref) => !evidenceHeld(ref, names));
+  if (!bad) return null;
+  return `Evidence \`${bad}\` is no attachment on this issue, no URL and no commit. `
+    + "Attach it first (forge attach issue <ref> <file>), or cite a URL or a commit."
+    + (names.length ? `\n  Attached: ${names.join(", ")}` : "");
+};
+
+/** What a command sent before it stopped. There is no delete for an upload, so the way out is to
+ *  cite what is there rather than to send the path again, whose name would collide (ISS-55). */
+export const strandedLine = (sent, reference) =>
+  `${sent.length} upload(s) to ${reference} were begun before this stopped: ${sent.join(", ")}. Each `
+  + `one the tracker acknowledged printed its URL above; whether any of the rest reached it is not `
+  + `knowable from here. Read ${reference}: what is there cannot be deleted, so cite it by name `
+  + `rather than by path, which would collide:\n  --evidence ${sent.join(" --evidence ")}`;
 
 export const localFile = (given) => {
   const path = resolve(String(given ?? ""));
@@ -44,7 +78,13 @@ export const attachPlan = (refs, names, held) => {
   const plan = { upload: [], cite: [], refusal: null };
   const taken = [...names];
   for (const ref of refs) {
-    const file = held(ref) ? null : localFile(ref);
+    const here = localFile(ref);
+    /* Said, not refused: a refusal here would name the citation the author already made. */
+    if (here && held(ref)) {
+      console.error(`${ref} is on this issue and is also a file here; cited as the attachment that `
+        + `is already up, which is not sent again. Amend it under a name of its own to cite the file.`);
+    }
+    const file = held(ref) ? null : here;
     if (file && taken.includes(file.name)) {
       plan.refusal = `${ref} is a file on disk and ${file.name} is already on this issue, or named `
         + `twice in this command. A name attached twice resolves to two documents. Cite the one that `

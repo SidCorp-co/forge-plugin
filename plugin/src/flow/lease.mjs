@@ -159,8 +159,10 @@ export const readContext = async (documentId) =>
 
 /* The compare-and-set the tracker owes (ISS-7): it cannot stop another run's write, only refuse. */
 /* And the one place every payload write reaches, so the unshown comments are delivered here. */
-export const setLease = async (documentId, next, ref) => {
+export const setLease = async (documentId, value, ref) => {
   await mustBeShown([{ ref, documentId }]);
+  /* Read after the gate: it is a round trip, and a write is built on the last read there was. */
+  const next = typeof value === "function" ? await value() : value;
   await write("forge_issues", { action: "update", documentId, data: { [FIELD]: next } });
   const back = await readContext(documentId);
   if (canonical(back) !== canonical(next)) {
@@ -184,28 +186,25 @@ export const notAnothers = async (documentId, ref) => {
 /* Every payload write renews the lease; another run's is refused, and a read needs none. */
 export const renew = async (documentId, ref, next = undefined, patch = null) => {
   const holder = sessionOf();
-  let context = await readContext(documentId);
-  let lease = leaseOf(context);
-  let state = stateOf(lease, holder);
-  if (state === "lapsed") {
-    /* The one state another run may legally take, so it is read again just before the write: what is
-       left is that write's own window rather than the check's, as far as a client without ISS-7 goes. */
-    context = await readContext(documentId);
-    const now = leaseOf(context);
-    state = stateOf(now, holder);
-    if (state === "lapsed") console.error(renewedLapsed(ref, lease));
-    lease = now ?? lease;
-  }
+  const context = await readContext(documentId);
+  const lease = leaseOf(context);
+  const state = stateOf(lease, holder);
   if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
-  return setLease(
-    documentId,
-    claimed(context, {
-      holder,
-      at: new Date().toISOString(),
-      minutes: lease.minutes,
-      next,
-      worklog: worklogFor(context, patch),
-    }),
-    ref,
-  );
+  const value = (from, held) => claimed(from, {
+    holder,
+    at: new Date().toISOString(),
+    minutes: held.minutes,
+    next,
+    worklog: worklogFor(from, patch),
+  });
+  if (state === "mine") return setLease(documentId, value(context, lease), ref);
+  /* Lapsed is the one state another run may take, so the read that decides is the last before the write. */
+  return setLease(documentId, async () => {
+    const again = await readContext(documentId);
+    const now = leaseOf(again) ?? lease;
+    const state = stateOf(now, holder);
+    if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, now));
+    if (state === "lapsed") console.error(renewedLapsed(ref, now));
+    return value(again, now);
+  }, ref);
 };

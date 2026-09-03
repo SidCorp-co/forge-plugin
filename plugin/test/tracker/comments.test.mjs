@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
 import { tempHome } from "../fixtures.mjs";
@@ -115,6 +116,21 @@ test("a comment the write caused is delivered by that write and credited", async
   assert.equal(lines.filter((line) => line.includes("arrived by the time")).length, 1,
     "and a write that caused nothing says nothing");
   assert.equal((await asked()).refusal, null, "the next write to the issue is not refused for it");
+});
+
+/* A landed write whose follow-up read fails is still a landed write: a caller keyed on the status
+   would send it a second time (F1). The read fails through `fail()`, which exits with no catch to
+   reach, so the proof is a child process and its status. */
+test("a write that landed keeps its success when the list after it fails", async () => {
+  const src = [
+    `globalThis.fetch = async () => { throw new Error("connection reset by peer"); };`,
+    `const { creditAfter } = await import(${JSON.stringify(new URL("../../src/tracker/comments.mjs", import.meta.url).href)});`,
+    `await creditAfter("forge_issues", [{ ref: "ISS-57", documentId: ${JSON.stringify(ISSUE)} }]);`,
+  ].join("\n");
+  const env = { ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: "session-one" };
+  const ran = spawnSync(process.execPath, ["--input-type=module", "-e", src], { env, encoding: "utf8" });
+  assert.match(ran.stderr, /forge_issues landed and its answer is above/u, "what the failure does not mean");
+  assert.equal(ran.status, 0, `a landed write exited ${ran.status}: ${ran.stderr}`);
 });
 
 test("what one session was shown, another was not", async () => {

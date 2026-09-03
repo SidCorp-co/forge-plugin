@@ -214,6 +214,26 @@ test("a commit the flag did not carry comes from the merged mark, and is said", 
     "--evidence iss65-evidence.md, as the latest verdict on this issue cites it."]);
 });
 
+/* Both defaults read one page and the tracker's list takes no cursor, so on a longer issue what
+   would answer may be the comment cut off: refused rather than guessed (F1 of the third recheck). */
+test("a default is refused where the comment list stopped with more behind it", () => {
+  const mark = { body: "mark_merged target base: merged to master at c8c3550", createdAt: "2026-09-03T10:00:00.000Z" };
+  const page = { comments: [mark], names: ["one.md"], hasMore: true };
+  assert.throws(() => fromRecord("verdict", { criterion: "1", verdict: "pass", evidence: ["one.md"] }, page),
+    /record verdict reads --commit off this issue[\s\S]*may be cut off[\s\S]*Name --commit/u);
+  assert.throws(() => fromRecord("verdict", { criterion: "1", verdict: "pass", commit: "c8c3550", evidence: [] }, page),
+    /reads --evidence off this issue/u, "and the evidence default the same way");
+  const said = [];
+  const held = console.error;
+  console.error = (line) => said.push(line);
+  try {
+    fromRecord("verdict", { criterion: "1", verdict: "pass", commit: "c8c3550", evidence: ["one.md"] }, page);
+  } finally {
+    console.error = held;
+  }
+  assert.deepEqual(said, [], "a write that names both flags reads nothing off the record and is not refused");
+});
+
 test("a record with no mark and no earlier citation is refused by the flag, and says what is there", () => {
   assert.throws(() => fromRecord("verdict", { verdict: "pass", evidence: [] }, { comments: [], names: [] }),
     /needs --commit \(commit\), and no merged mark on this issue names one/u);

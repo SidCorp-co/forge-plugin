@@ -6,17 +6,8 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { COMMENT_PAGE, commentPage } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
 import { FIX_OWES, isFix } from "../tracker/issue-shape.mjs";
-import {
-  PARKS,
-  SHOWS_EVIDENCE,
-  Refused,
-  attachmentNames,
-  checkEvidence,
-  issueOf,
-  post,
-  refuse,
-  render,
-} from "./record.mjs";
+import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
+import { PARKS, SHOWS_EVIDENCE, Refused, issueOf, post, refuse, render } from "./record.mjs";
 import { PARK_STATUS, SIDE, atLeast, payloadOwed, transitionCall, viewFrom } from "./earned.mjs";
 import { lookAhead, targetOf } from "./route.mjs";
 import { FIELD, leaseOf, nextLine, renew } from "./lease.mjs";
@@ -112,7 +103,8 @@ const park = async (view, ref, kind, why, evidence) => {
     refuse(`a ${kind} park names what the reviewer is to look at:\n`
       + `  forge advance ${ref} --park ${kind} --why "<why>" --evidence <attachment|url|sha>`);
   }
-  if (evidence.length) checkEvidence(evidence, attachmentNames(view.issue, view.comments));
+  const bad = evidence.length ? evidenceProblem(evidence, attachmentNames(view.issue, view.comments)) : null;
+  if (bad) refuse(bad);
   await parkAs(view, ref, kind, why, evidence);
 };
 

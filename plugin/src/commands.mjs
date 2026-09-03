@@ -9,7 +9,7 @@ import {
   rowsOf,
   truncated,
 } from "./tracker/issues.mjs";
-import { creditCaused, credited, mustBeShown, postComment } from "./tracker/comments.mjs";
+import { creditAfter, credited, mustBeShown, postComment } from "./tracker/comments.mjs";
 import { uploadTo, urlBearing } from "./tracker/evidence.mjs";
 import { refusalForFiling, withMark } from "./tracker/issue-shape.mjs";
 import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
@@ -177,21 +177,9 @@ export const commands = {
     const answer = wrote ? await write(name, resolved) : await scoped(name, resolved);
     credited(name, resolved, answer);
     show(answer);
-    /* The mark writes a comment of the tracker's own, and this is the route the mark takes. The
-       write has landed by here, so its own exit code is what the caller reads: a tracker that then
-       refuses the list exits through fail(), which no catch reaches, and the status of a landed
-       non-idempotent write must not become failure — a caller keyed on it would send it twice. */
-    if (wrote && targets.length) {
-      const landed = (code) => {
-        if (!code) return;
-        console.error(`${name} landed and its answer is above; only the comments it may have caused `
-          + "went unlisted, so the next write to this issue is refused once to deliver them.");
-        process.exitCode = 0;
-      };
-      process.once("exit", landed);
-      await creditCaused(targets);
-      process.off("exit", landed);
-    }
+    /* The mark writes a comment of the tracker's own and this is the route it takes, so the page is
+       read once more after the write and what it brought is delivered here (ISS-65). */
+    if (wrote && targets.length) await creditAfter(name, targets);
   },
   issues: async (rest) => {
     const { limit: raw, ...filters } = flags(rest, "issues");

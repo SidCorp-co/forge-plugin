@@ -2,19 +2,8 @@
    record read whole into one object. The verb that spends this is advance.mjs; nothing here
    writes, fetches or reads the repository. docs/issue-flow-contract.md holds the tables. */
 import { markedCommit, planFlags, reviewedHead, unwrap } from "./machine.mjs";
-import {
-  CONTRACT,
-  FINDINGS,
-  Refused,
-  SHAPES,
-  TRIAGES,
-  assemble,
-  attachmentNames,
-  criteriaLines,
-  evidenceHeld,
-  isCommit,
-  parse,
-} from "./record.mjs";
+import { attachmentNames, evidenceHeld, isCommit } from "../tracker/evidence.mjs";
+import { CONTRACT, FINDINGS, Refused, SHAPES, TRIAGES, assemble, criteriaLines, parse } from "./record.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
 export const ORDER = [

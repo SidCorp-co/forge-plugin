@@ -135,7 +135,14 @@ is an attachment name the issue carries, a URL or a commit, and a reference to a
 disk proved nothing — so a value that *is* a readable file goes up under its base name at the write
 and is cited by that name, which is the `forge attach` and the re-send an author paid by hand. A
 base name the issue already carries is refused there rather than attached twice, because a name
-attached twice resolves to two documents (ISS-55).
+attached twice resolves to two documents (ISS-55). The upload comes after every refusal the record's
+own shape can earn, so a shape a reader can fix costs no attachment; what is left cannot be undone,
+because the tracker publishes no delete for an upload — a lease lost mid-command, a second file that
+fails, or a comment gate that refuses the record after the first file went up. In each of those the
+command names what it sent and the `--evidence` line that cites it, since sending the path again
+would collide with the name already there. Named from before each PUT rather than after it: the
+tracker can take a file and lose the answer, and a file nobody was told about is the one nobody
+cites.
 
 Two flags are read off the record when they are absent, and each prints where its value came from: a
 commit from the merged mark's note, and evidence from the latest record of the same kind. The twelfth
@@ -145,7 +152,11 @@ what an issue's evidence is belongs to whoever cited it first: the one attachmen
 may be a design document nobody cited, and a default from it would turn a refused verdict into a
 passing one. It is not read per criterion — one document answers twenty of them, which is where the
 forty arguments went — so the line it prints names the record it came from and not the criterion. So the first of a loop names it — a path there goes up and is cited — and the rest inherit. A
-default nobody can see is one nobody can catch being wrong, which is why neither is silent. The release note and the criteria go
+default nobody can see is one nobody can catch being wrong, which is why neither is silent. And
+neither is read at all where the comment list stopped with more behind it: the list takes no cursor,
+200 is its ceiling, so past a full page the mark or the citation that would answer may be exactly
+the comment cut off — the flag is asked for instead, which costs one value typed against a record
+written on the wrong commit. The release note and the criteria go
 to their fields, which the tracker already types; everything else is a comment. `report` assembles
 the latest record of each kind and the latest verdict per criterion, and names the criteria no verdict
 covers. Nothing is stored twice. The contract this serves: `docs/issue-flow-contract.md`.
@@ -225,7 +236,10 @@ already read. What makes the renewal safe is what the refusal never used: the fi
 session, and a run that took the issue would have replaced the holder, so the two states that mean
 somebody else's lease still refuse. It is safe as far as the read, and no further — a reclaim
 landing between the read and the write is the ISS-7 window, which the refused route paid too,
-because `forge claim` is the same three calls. A reclaim is a handoff between two holders, though, so a holder
+because `forge claim` is the same three calls. That read is the last call before the write: the
+comment gate every write passes was a round trip sitting between the two, and a review of this
+issue's own change caught it there, widening a window the CLI cannot close by as long as a
+comments list takes. A reclaim is a handoff between two holders, though, so a holder
 taking its own lapsed lease back appends nothing to the history and brings no park closer.
 
 The holder is the harness's own session, read twice to check that it is stable for the life of a

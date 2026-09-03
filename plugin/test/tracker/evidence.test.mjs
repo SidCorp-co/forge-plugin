@@ -56,6 +56,24 @@ test("two files with one base name in the same command is the collision too", ()
   assert.match(plan.refusal, /named `?twice in this command/u);
 });
 
+/* The one case where a citation and a file are the same string: refusing it would name the citation
+   the author already made, and the default off the record cites exactly this (F2 of the recheck). */
+test("a citation that is also a file here is cited and said, not refused", () => {
+  const said = [];
+  const stderr = console.error;
+  console.error = (line) => said.push(line);
+  let plan = null;
+  try {
+    plan = attachPlan([FILE], [FILE], () => true);
+  } finally {
+    console.error = stderr;
+  }
+  assert.deepEqual(plan.upload, [], "what is up is not sent again");
+  assert.deepEqual(plan.cite, [FILE]);
+  assert.equal(plan.refusal, null, "a refusal here has no route to name");
+  assert.match(said.join("\n"), /is on this issue and is also a file here/u, "and the ambiguity is said");
+});
+
 test("the upload answer is read for its url, and an unexpected body is printed whole", () => {
   assert.equal(uploaded(JSON.stringify({ id: "x", name: "n", url: "https://example.test/n" })), "https://example.test/n");
   assert.equal(uploaded("not json at all"), "not json at all");

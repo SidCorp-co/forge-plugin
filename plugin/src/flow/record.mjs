@@ -5,7 +5,8 @@ import { blockOf, criterionNumber, markedCommit, readRecord, tagFor, unwrap } fr
 import { bodyFrom } from "../resolve/payload.mjs";
 import { pullRepeated, flags } from "../resolve/flags.mjs";
 import { COMMENT_PAGE, commentPage, postComment } from "../tracker/comments.mjs";
-import { attachPlan, uploadTo } from "../tracker/evidence.mjs";
+import { attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo }
+  from "../tracker/evidence.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";
 import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
@@ -37,9 +38,6 @@ export const OUTCOMES = ["approved", "changes-requested"];
 const FINDING = /^F\d+ (?:accepted|rejected: .+)$/u;
 export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
 
-const COMMIT = /^[0-9a-f]{7,40}$/iu;
-export const isCommit = (value) => COMMIT.test(String(value ?? ""));
-const URL_REF = /^https?:\/\//u;
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
 /* `many` flags repeat; `oneOf` names the values; `least` is the smallest count that is a payload. */
@@ -284,24 +282,6 @@ export const issueOf = async (reference) => {
   return { documentId, body };
 };
 
-export const attachmentNames = (body, comments) => [
-  ...(body.attachments ?? []).map((one) => one.name),
-  ...comments.flatMap((one) => (one.attachments ?? []).map((two) => two.name)),
-];
-
-export const evidenceHeld = (ref, names) => URL_REF.test(ref) || COMMIT.test(ref) || names.includes(ref);
-
-export const checkEvidence = (refs, names) => {
-  for (const ref of refs) {
-    if (evidenceHeld(ref, names)) continue;
-    refuse(
-      `Evidence \`${ref}\` is no attachment on this issue, no URL and no commit. ` +
-        `Attach it first (forge attach issue <ref> <file>), or cite a URL or a commit.` +
-        (names.length ? `\n  Attached: ${names.join(", ")}` : ""),
-    );
-  }
-};
-
 /* Filled from the record where the flag is absent (ISS-65): the merged mark holds the commit and
    the issue holds the one attachment, so a verdict loop typed neither. Deferred rather than
    defaulted here, because the values arrive with the issue and a flag error must cost no call. */
@@ -382,13 +362,29 @@ export const post = async (documentId, body, ref = documentId, next = undefined,
 const citedBy = (comments, kind) =>
   comments.map((one) => parse(one.body ?? "")).filter((one) => one?.kind === kind).at(-1)?.fields.evidence ?? [];
 
+/* Refused where the page stopped rather than guessed past it: the tracker's list takes no cursor,
+   so what is behind a full page cannot be read at all, and the mark this would answer with may be
+   the one cut off. A flag typed once beats a verdict written on the wrong commit. */
+/* And an upload needs every name the issue already carries, which past a full page cannot be read
+   either: a second document under one name is ambiguous to every verdict citing it (ISS-55). */
+const CROWDED = (kind) => `record ${kind} would put a file up, and this issue has more comments than `
+  + `the ${COMMENT_PAGE} the tracker's list returns, so the names already on it cannot be read whole. `
+  + `A name attached twice resolves to two documents. Cite a URL or a commit, or attach the file `
+  + `under a name nothing else could carry and cite that.`;
+
+const CUT = (kind, flag) => `record ${kind} reads --${flag} off this issue, which has more comments `
+  + `than the ${COMMENT_PAGE} the tracker's list returns, so the one it would read may be cut off. `
+  + `Name --${flag} for this write.`;
+
 /* The record answers for the flag it was not given, and says where the value came from: a default
    nobody can see is one nobody can catch being wrong. Where it cannot answer, the refusal says what
    the issue does carry, because the old one named a flag and left the reader to go and look. */
-export const fromRecord = (kind, got, { comments, names }) => {
+export const fromRecord = (kind, got, { comments, names, hasMore = false }) => {
   const shape = SHAPES[kind];
+  const cut = (flag) => hasMore && refuse(CUT(kind, flag));
   const commit = shape.fields.find((one) => one.commit);
   if (commit && got.commit === undefined) {
+    cut("commit");
     const marked = markedCommit(comments);
     if (!marked) {
       refuse(`record ${kind} needs --commit (${commit.label.toLowerCase()}), and no merged mark on `
@@ -404,6 +400,7 @@ export const fromRecord = (kind, got, { comments, names }) => {
   if ((evidence.least ?? 1) < 1 && !shape.check?.(got)) return;
   /* The author's own earlier citation, never the attachment set: a lone document the issue happens
      to carry is nobody's citation of it, and the first record of a loop still names one. */
+  cut(evidence.flag);
   const before = citedBy(comments, kind).filter((one) => evidenceHeld(one, names));
   if (!before.length) {
     refuse(`record ${kind} needs --evidence (repeatable), and no ${kind} on this issue cites one to `
@@ -415,31 +412,22 @@ export const fromRecord = (kind, got, { comments, names }) => {
   console.error(`--evidence ${before.join(", ")}, as the latest ${kind} on this issue cites it.`);
 };
 
-/* Uploaded once every refusal the record's own shape can earn has been earned: refused with its
-   file already up, a record leaves an attachment nobody cited and a corrected re-send collides with
-   the name (ISS-55). A lease lost mid-command can still strand one — the exposure `forge attach`
-   has always had, and why each upload renews first, which is that verb's own invariant. */
-const uploadPlanned = async (plan, documentId, reference) => {
-  for (const one of plan?.upload ?? []) {
-    await renew(documentId, reference);
-    await uploadTo("issue", documentId, one.path);
-  }
-};
-
 const recordShaped = async (kind, reference, argv, { next, patch }) => {
   const got = gather(kind, argv, DEFERRED);
   const { documentId, body } = await issueOf(reference);
   const shape = SHAPES[kind];
   const asks = shape.fields.some((one) => one.evidence || one.commit);
-  const comments = asks ? (await commentPage(documentId)).comments : [];
+  const { comments, hasMore } = asks ? await commentPage(documentId) : { comments: [], hasMore: false };
   const held = attachmentNames(body, comments);
   const plan = got.evidence?.length ? attachPlan(got.evidence, held, (ref) => evidenceHeld(ref, held)) : null;
   if (plan?.refusal) refuse(plan.refusal);
+  if (hasMore && plan?.upload.length) refuse(CROWDED(kind));
   if (plan) got.evidence = plan.cite;
   const names = [...held, ...(plan?.upload ?? []).map((one) => one.name)];
-  if (asks) fromRecord(kind, got, { comments, names });
+  if (asks) fromRecord(kind, got, { comments, names, hasMore });
   checked(kind, got);
-  if (got.evidence?.length) checkEvidence(got.evidence, names);
+  const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
+  if (bad) refuse(bad);
   /* A criterion is named by number and quoted as it stood, because the field can change later and
      the record has to say what it was about. Read off the shape, so every kind that cites one does
      it the same way and a citation of a criterion the issue has not got is refused. */
@@ -453,8 +441,20 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
   /* Asked here as well as in `post`, because a record that cannot be posted must not leave its
      evidence up: the two calls are one refusal a caller can act on and one nothing may skip. */
   refuseIfGated("forge_comments");
-  await uploadPlanned(plan, documentId, reference);
-  return post(documentId, render(kind, got, stamp), reference, next, patch);
+  /* Sent once every refusal the record's own shape can earn has been earned, and named from the
+     line before the PUT: a file the tracker took with the answer lost is up all the same. */
+  const sent = [];
+  const stranded = (code) => code && sent.length && console.error(strandedLine(sent, reference));
+  process.once("exit", stranded);
+  for (const one of plan?.upload ?? []) {
+    await renew(documentId, reference);
+    await uploadTo("issue", documentId, one.path, (name) => sent.push(name));
+  }
+  const written = await post(documentId, render(kind, got, stamp), reference, next, patch);
+  /* Dropped on the way out and never in a `finally`: a thrown failure unwinds through one before the
+     exit, and the notice would be gone for every route but `fail()`'s. */
+  process.off("exit", stranded);
+  return written;
 };
 
 const criteriaCount = (body) => {

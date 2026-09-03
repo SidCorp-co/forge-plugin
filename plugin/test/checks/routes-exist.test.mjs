@@ -79,6 +79,19 @@ test("a flag no verb takes, a verb the CLI lacks and a dead document each fail",
   ]);
 });
 
+/* The scan stopped at the first quote, so a flag after a quoted value went unread (F4). */
+test("a flag after a quoted value is read too", () => {
+  const said = routeProblems('fail(`forge record confirmation ${ref} --where "a b c" --nope x`);', held);
+  assert.deepEqual(said, ["`forge record --nope` is in no usage line"]);
+  assert.deepEqual(routeProblems('fail(`forge record confirmation ${ref} --where "a b c" --finding f`);', held), []);
+  assert.deepEqual(routeProblems('fail(`forge record note ${ref} --user "say --nonsense here"`);', held), [],
+    "and a flag-like run inside a quoted value is data, not a route");
+  const escaped = 'fail("forge record note ISS-1 --user \\"a b\\" --nope x");';
+  assert.deepEqual(routeProblems(escaped, held), ["`forge record --nope` is in no usage line"],
+    "a double-quoted source string escapes its own quotes, and the flag after one is still read");
+  assert.deepEqual(routeProblems('fail("forge record note ISS-1 --user \\"say --nonsense here\\"");', held), []);
+});
+
 /* The flags the worklog added to `claim` were in a refusal's own text and in neither table for two
    releases. This is the case that fails on the tree as it stood before this issue. */
 test("the three worklog flags are on claim's own line, which is what the tree lacked", () => {

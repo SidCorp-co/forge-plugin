@@ -138,6 +138,17 @@ test("a reclaim landing during the check is seen by the second read, and refuses
   }
 });
 
+/* The read that decides has to be the last read there was: the comment gate is a round trip of its
+   own, and a reclaim landing during it would be written over (F3 of the whole-set review). */
+test("the comment gate runs before the read that decides, not after it", async () => {
+  field = lease("this-run", ago(45));
+  sent.length = 0;
+  await said(() => renew(ISSUE, "ISS-65"));
+  const reads = sent.filter((one) => /:get$|forge_comments:list/u.test(one));
+  assert.deepEqual(reads, ["forge_issues:get", "forge_comments:list", "forge_issues:get", "forge_issues:get"],
+    "the state, the gate, the state again, then the write and its read-back");
+});
+
 test("a lease inside its window is read once, because nobody may take it", async () => {
   field = lease("this-run", ago(1));
   sent.length = 0;

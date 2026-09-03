@@ -128,6 +128,27 @@ export const creditCaused = async (targets, ev = null) => {
   }
 };
 
+/* The status of a write that landed must stay success: a caller keyed on it would send the write
+   twice. `fail()` inside the list exits with no catch to reach, so the code is repaired from an exit
+   listener; a thrown one is caught here, where the cause can be said. */
+export const creditAfter = async (name, targets) => {
+  const landed = (code) => {
+    if (!code) return;
+    console.error(`${name} landed and its answer is above; only the comments it may have caused `
+      + "went unlisted, so the next write to this issue is refused once to deliver them.");
+    process.exitCode = 0;
+  };
+  process.once("exit", landed);
+  try {
+    await creditCaused(targets);
+  } catch (error) {
+    console.error(String(error?.message ?? error));
+    landed(1);
+  } finally {
+    process.off("exit", landed);
+  }
+};
+
 /* Once per issue per process: one command makes four lease writes and owes one such line. */
 const told = new Set();
 
