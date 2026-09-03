@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { commonnessCutoff, diffIdentifiers, identifiers, rank } from "../src/blast-radius.mjs";
+import { commonnessCutoff, diffIdentifiers, identifiers, rank } from "../src/checks/blast-radius.mjs";
 
 test("prose shaped like a type name is not an identifier", () => {
   // The words that made the first measured run unreadable: capitalised English out of comments.

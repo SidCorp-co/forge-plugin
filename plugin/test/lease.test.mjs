@@ -16,10 +16,10 @@ const {
   ADVISORY, MINUTES, RECLAIMS_BEFORE_PARK, agentOf, canonical, claimRefusal, claimed, describe,
   expiryOf, historyLine, leaseOf, nextLine, parksAsCrashed, pidOf, reclaimsOf, sessionOf, stateOf,
   writeRefusal,
-} = await import("../src/lease.mjs");
-const { retryOf } = await import("../src/rpc.mjs");
-const { parkAnswers } = await import("../src/lease.mjs");
-const { USAGE, nextLines, parkWrite } = await import("../src/claim.mjs");
+} = await import("../src/flow/lease.mjs");
+const { retryOf } = await import("../src/tracker/rpc.mjs");
+const { parkAnswers } = await import("../src/flow/lease.mjs");
+const { USAGE, nextLines, parkWrite } = await import("../src/flow/claim.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 const AT = "2026-09-02T12:00:00.000Z";

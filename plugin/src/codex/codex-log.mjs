@@ -4,9 +4,9 @@
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { configDir, userConfig } from "./resolve/config.mjs";
-import { fail } from "./resolve/settings.mjs";
-import { flags, pullRepeated } from "./resolve/flags.mjs";
+import { configDir, userConfig } from "../resolve/config.mjs";
+import { fail } from "../resolve/settings.mjs";
+import { flags, pullRepeated } from "../resolve/flags.mjs";
 
 export const LOG_PATH = join(configDir("forge"), "codex-log.jsonl");
 export const BUDGET_MS = Number(userConfig().codex?.budgetMs || 900_000);

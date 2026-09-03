@@ -7,12 +7,12 @@ import { spawnSync } from "node:child_process";
 import { tempHome } from "./fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance").path;
-const { PARKS, render } = await import("../src/record.mjs");
+const { PARKS, render } = await import("../src/flow/record.mjs");
 const {
   CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, markedCommit,
   nextOf, planFlags, sameCommit, targetOf, viewFrom,
-} = await import("../src/earned.mjs");
-const { USAGE, nextHeld } = await import("../src/advance.mjs");
+} = await import("../src/flow/earned.mjs");
+const { USAGE, nextHeld } = await import("../src/flow/advance.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });

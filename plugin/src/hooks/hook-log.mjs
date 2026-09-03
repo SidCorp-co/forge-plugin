@@ -3,11 +3,11 @@
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { configDir } from "./resolve/config.mjs";
-import { didYouMean } from "./suggest.mjs";
+import { configDir } from "../resolve/config.mjs";
+import { didYouMean } from "../suggest.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, setHook } from "./hook-switch.mjs";
-import { fail } from "./resolve/settings.mjs";
-import { flags } from "./resolve/flags.mjs";
+import { fail } from "../resolve/settings.mjs";
+import { flags } from "../resolve/flags.mjs";
 
 export const HOOK_LOG_PATH = join(configDir("forge"), "hook-log.jsonl");
 const KEPT = 220;

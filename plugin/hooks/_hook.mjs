@@ -7,8 +7,8 @@ import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync, wr
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join, resolve, sep } from "node:path";
 
-import { logHook, scrubbed } from "../src/hook-log.mjs";
-import { hookOff } from "../src/hook-switch.mjs";
+import { logHook, scrubbed } from "../src/hooks/hook-log.mjs";
+import { hookOff } from "../src/hooks/hook-switch.mjs";
 
 const TOKEN = /[A-Za-z0-9_./@-]+\.[A-Za-z0-9]+/g;
 /** How long after a call a file's mtime still answers for it. */

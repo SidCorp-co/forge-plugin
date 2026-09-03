@@ -4,10 +4,10 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "./resolve/config.mjs";
-import { didYouMean } from "./suggest.mjs";
+import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "../resolve/config.mjs";
+import { didYouMean } from "../suggest.mjs";
 import { BUNDLED } from "./vi.mjs";
-import { accountCredentials, fail, mcpForgeIgnored, projectRoot, projectScope, translateScope } from "./resolve/settings.mjs";
+import { accountCredentials, fail, mcpForgeIgnored, projectRoot, projectScope, translateScope } from "../resolve/settings.mjs";
 import {
   MAX_CLAUDE_MD_LINES,
   checkClaims,
@@ -16,14 +16,14 @@ import {
   checkerRestated,
   readClaudeMd,
   reviewClaudeMd,
-} from "./claude-md.mjs";
+} from "../checks/claude-md.mjs";
 import { cloudflareAccounts } from "./cloudflare.mjs";
-import { modelBehind, profile } from "./codex-api.mjs";
+import { modelBehind, profile } from "../codex/codex-api.mjs";
 import { pluginCopy } from "./plugin-copy.mjs";
-import { LOG_PATH, consults, logEntries } from "./codex-log.mjs";
-import { flags } from "./resolve/flags.mjs";
-import { HOOKS_DIR, hookEvent, hookNames, offNow, strandedSwitches } from "./hook-switch.mjs";
-import { VERB_NAMES } from "./resolve/visibility.mjs";
+import { LOG_PATH, consults, logEntries } from "../codex/codex-log.mjs";
+import { flags } from "../resolve/flags.mjs";
+import { HOOKS_DIR, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
+import { VERB_NAMES } from "../resolve/visibility.mjs";
 
 const VI_CONFIG = join(configDir("vi-natural"), "config.json");
 
@@ -310,7 +310,7 @@ const checkAgainstGuides = async (scoped) => {
 
 /* Lazy: the transport exits the process when credentials have not resolved. */
 const checkEndpoint = async (full) => {
-  const { refreshTools, projectId, scoped } = await import("./rpc.mjs");
+  const { refreshTools, projectId, scoped } = await import("../tracker/rpc.mjs");
   const declared = await refreshTools();
   line(OK, "tool surface", `${declared.length} declared in ${groups(declared)} groups`);
   const { value: slug } = projectScope();

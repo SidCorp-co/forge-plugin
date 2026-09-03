@@ -56,7 +56,7 @@ the checker and does not restate what it says.
 | R-15 | A clause heading is followed by its field line. | The first non-blank line after an `FR-`, `UC-`, `NFR-` or `EI-` heading opens with `Rev:`; where a document carries a proposal line that line comes first and the field line is the first non-blank line after it; an acceptance criterion is a list item and its own first line is its field line. | the spec gate |
 | R-16 | Machinery never sits inside the sentence a person reads. | No identifier, revision, hash or path inside a `SHALL` sentence or a business rule statement, except the system the criterion names. | a person |
 | R-17 | Every list is renderable as a table. | Each list of clauses is a table, or a sequence of clauses with identical field keys. | the page lint |
-| R-18 | A clause never restates the argument for a rule; it states the duty and cites the argument's home. | No sentence of the tree overlaps a sentence of the rules file, a skill, a gate document or another document under `docs/` at 0.55 or above by the measure in `plugin/src/duplication.mjs`, over sentences of five words or more — counting prose, list items **and the text of table cells**, which that module strips and the gate therefore has to put back. | the spec gate |
+| R-18 | A clause never restates the argument for a rule; it states the duty and cites the argument's home. | No sentence of the tree overlaps a sentence of the rules file, a skill, a gate document or another document under `docs/` at 0.55 or above by the measure in `plugin/src/checks/duplication.mjs`, over sentences of five words or more — counting prose, list items **and the text of table cells**, which that module strips and the gate therefore has to put back. | the spec gate |
 | R-19 | The tree names nothing that does not resolve. | Every path in a code span or a link exists, read from the repository root or from the document's own directory; every verb named is one the CLI has, or one declared on the document's proposal line. | `plugin/test/doc-claims.test.mjs`, then the spec gate |
 
 **Why a revision by hand and a hash by machine (R-10).** Doorstop stores a parent's fingerprint in
@@ -77,7 +77,7 @@ rewritten to a duty plus a citation, and what remains at 0.50 is clauses stating
 their source describes — the specification doing its job. So the threshold is a measurement rather
 than a preference, recalibrated the way this repository already recalibrates one.
 
-**And the measure has to reach a table cell.** `plugin/src/duplication.mjs` strips every table row
+**And the measure has to reach a table cell.** `plugin/src/checks/duplication.mjs` strips every table row
 before it extracts sentences, so a rule restated in a cell is scored by nothing — and a cell is
 where a restated rule in this tree would most naturally sit, since the business rules, the
 constraints, the assumptions and the glossary are all tables. Measured separately with the cells put

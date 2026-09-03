@@ -4,9 +4,9 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { flags } from "./resolve/flags.mjs";
-import { fail } from "./resolve/settings.mjs";
-import { usageOf } from "./resolve/visibility.mjs";
+import { flags } from "../resolve/flags.mjs";
+import { fail } from "../resolve/settings.mjs";
+import { usageOf } from "../resolve/visibility.mjs";
 import { COMMENT_PAGE, Refused, commentPage, issueOf } from "./record.mjs";
 import { viewFrom } from "./earned.mjs";
 import { shortfall } from "./advance.mjs";
@@ -33,7 +33,7 @@ export const USAGE = [
    and under `plugin/` in the checkout, so one relative URL is right in both and a literal is not. */
 const methodPath = (reference) => {
   if (!reference) return null;
-  const path = fileURLToPath(new URL(`../${reference}`, import.meta.url));
+  const path = fileURLToPath(new URL(`../../${reference}`, import.meta.url));
   return existsSync(path) ? path : reference;
 };
 

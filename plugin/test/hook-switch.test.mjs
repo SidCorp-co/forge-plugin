@@ -11,7 +11,7 @@ import test from "node:test";
 
 import { callHook, dirtyRepo } from "./fixtures.mjs";
 
-import { hookEvents, hookNames } from "../src/hook-switch.mjs";
+import { hookEvents, hookNames } from "../src/hooks/hook-switch.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const HOOK = join(HERE, "..", "hooks", "entries", "bash-guard.mjs");
@@ -105,7 +105,7 @@ test("every hook honours the switch, not only the ones that read an event", () =
    Asserted against the module rather than by trying names, because the name a later layer picks is
    exactly what a suite sampling names cannot know. */
 test("the switch reads no environment variable", () => {
-  const source = readFileSync(join(HERE, "..", "src", "hook-switch.mjs"), "utf8");
+  const source = readFileSync(join(HERE, "..", "src", "hooks", "hook-switch.mjs"), "utf8");
   assert.equal(
     /process\.env/u.test(source),
     false,

@@ -4,8 +4,8 @@
 import { spawnSync } from "node:child_process";
 import { relative } from "node:path";
 
-import { checkClaims, readClaudeMd } from "../../src/claude-md.mjs";
-import { repoRoot } from "../../src/codex.mjs";
+import { checkClaims, readClaudeMd } from "../../src/checks/claude-md.mjs";
+import { repoRoot } from "../../src/codex/codex.mjs";
 import { block, remaining, touched, how, done } from "../_hook.mjs";
 
 /* The eight kinds `forge doctor` reports, in its words: how/claude-md.md. */

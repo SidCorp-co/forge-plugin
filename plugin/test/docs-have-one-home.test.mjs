@@ -5,8 +5,8 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { compare, sentences } from "../src/duplication.mjs";
-import { NARRATES } from "../src/doc-shape.mjs";
+import { compare, sentences } from "../src/checks/duplication.mjs";
+import { NARRATES } from "../src/checks/doc-shape.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const DOCS = join(ROOT, "docs");

@@ -28,7 +28,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { claims } from "../src/claude-md.mjs";
+import { claims } from "../src/checks/claude-md.mjs";
 
 const plugin = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const skillsRoot = join(plugin, "skills");

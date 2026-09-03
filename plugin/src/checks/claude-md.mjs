@@ -11,7 +11,7 @@ import {
   DEFAULT_OVERLAP_THRESHOLD,
   findOverlapsAgainst,
   splitSentences,
-} from "../hooks/vendor/text-overlap.js";
+} from "../../hooks/vendor/text-overlap.js";
 import { load } from "./duplication.mjs";
 
 /* Not the shared 0.34/5: that was calibrated on comments inside one file, where two copies share

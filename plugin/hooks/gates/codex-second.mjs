@@ -6,8 +6,8 @@ import { spawnSync } from "node:child_process";
 import { statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-import { ageOf, pendingState, repoRoot } from "../../src/codex.mjs";
-import { lastConsultAt, logEntries, unverdicted } from "../../src/codex-log.mjs";
+import { ageOf, pendingState, repoRoot } from "../../src/codex/codex.mjs";
+import { lastConsultAt, logEntries, unverdicted } from "../../src/codex/codex-log.mjs";
 import {
   advisedThisTurn,
   commitTree,

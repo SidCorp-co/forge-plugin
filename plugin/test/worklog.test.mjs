@@ -14,8 +14,8 @@ process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
   KEY, OPEN_KEPT, gitNow, merged, owedOn, patchFrom, worklogFor, worklogLines, worklogOf,
-} = await import("../src/worklog.mjs");
-const { claimed, leaseOf } = await import("../src/lease.mjs");
+} = await import("../src/flow/worklog.mjs");
+const { claimed, leaseOf } = await import("../src/flow/lease.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 const AT = "2026-09-03T02:00:00.000Z";

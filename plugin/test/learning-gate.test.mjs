@@ -268,7 +268,7 @@ test("the same shape aimed anywhere else stays free", () => {
 /* Twelve refusals in three days: a python body editing one file, its replacement string a sentence. */
 test("a sentence inside a string is prose, and the line that writes the file is a write", () => {
   const prose = `s = s.replace('''the route is write_text; see ${SKILL} for the rule''', "x")`;
-  assert.equal(decide(`python3 - <<'PY'\nfrom pathlib import Path\np = Path("plugin/src/vi.mjs")\ns = p.read_text()\n${prose}\np.write_text(s)\nPY`).allowed, true);
+  assert.equal(decide(`python3 - <<'PY'\nfrom pathlib import Path\np = Path("plugin/src/tools/vi.mjs")\ns = p.read_text()\n${prose}\np.write_text(s)\nPY`).allowed, true);
   assert.equal(decide(`python3 - <<'PY'\nfrom pathlib import Path\nPath("${SKILL}").write_text("x")\nPY`).allowed, false, "the path is the argument");
   assert.equal(decide(`python3 -c 'p = "${MEMORY}/trap.md"; open(p, "w")'`).allowed, false, "a -c body with spaces is code");
   const escaped = `python3 -c "open(\\"${MEMORY}/trap.md\\", \\"w\\").write(\\"x\\")"`;

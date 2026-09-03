@@ -4,8 +4,8 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { TOOLS, runTool, scopeFor, toolsFor } from "../src/codex-tools.mjs";
-import { roleFor } from "../src/codex-api.mjs";
+import { TOOLS, runTool, scopeFor, toolsFor } from "../src/codex/codex-tools.mjs";
+import { roleFor } from "../src/codex/codex-api.mjs";
 
 const repo = () => {
   const dir = mkdtempSync(join(tmpdir(), "codex-check-"));

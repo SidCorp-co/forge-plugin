@@ -4,10 +4,10 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { configDir, once, readJson } from "./resolve/config.mjs";
-import { suggest } from "./suggest.mjs";
-import { fail, projectScope, projectSlug, settings, translateScope } from "./resolve/settings.mjs";
-import { translated } from "./vi.mjs";
+import { configDir, once, readJson } from "../resolve/config.mjs";
+import { suggest } from "../suggest.mjs";
+import { fail, projectScope, projectSlug, settings, translateScope } from "../resolve/settings.mjs";
+import { translated } from "../tools/vi.mjs";
 
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// The command line over src/duplication.mjs.
+// The command line over src/checks/duplication.mjs.
 
 import { readFileSync, statSync } from "node:fs";
 
 import { DEFAULT_OVERLAP_FLOOR, DEFAULT_OVERLAP_THRESHOLD } from "../hooks/vendor/text-overlap.js";
-import { KINDS, compare, load, sentences } from "../src/duplication.mjs";
+import { KINDS, compare, load, sentences } from "../src/checks/duplication.mjs";
 
 function report(hits, limit) {
   const seen = new Set();

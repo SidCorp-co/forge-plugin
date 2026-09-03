@@ -9,7 +9,7 @@ import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { gitRootOf } from "./codex-tools.mjs";
-import { userConfig } from "./resolve/config.mjs";
+import { userConfig } from "../resolve/config.mjs";
 
 const PROFILE_PATH = process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
 export const MODEL = userConfig().codex?.model || "fable";

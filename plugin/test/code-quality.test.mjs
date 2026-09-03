@@ -44,7 +44,7 @@ test("a finding is refused in the delegate's protocol and written to the log lik
 });
 
 test("a clean file says nothing", () => {
-  const clean = join(REPO, "plugin", "src", "vi.mjs");
+  const clean = join(REPO, "plugin", "src", "tools", "vi.mjs");
   const run = callHook(
     HOOK,
     { session_id: randomUUID(), tool_name: "Write", tool_input: { file_path: clean }, cwd: REPO },

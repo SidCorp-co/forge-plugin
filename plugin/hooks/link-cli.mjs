@@ -4,8 +4,8 @@ import { lstatSync, mkdirSync, symlinkSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { hookOff } from "../src/hook-switch.mjs";
-import { pluginCopy } from "../src/plugin-copy.mjs";
+import { hookOff } from "../src/hooks/hook-switch.mjs";
+import { pluginCopy } from "../src/tools/plugin-copy.mjs";
 
 const root = process.argv[2];
 if (!root || hookOff("link-cli")) process.exit(0);

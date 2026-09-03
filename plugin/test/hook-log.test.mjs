@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 const room = mkdtempSync(join(tmpdir(), "hook-log-"));
 process.env.XDG_CONFIG_HOME = room;
-const { HOOK_LOG_PATH, hookEntries, scrubbed } = await import("../src/hook-log.mjs");
+const { HOOK_LOG_PATH, hookEntries, scrubbed } = await import("../src/hooks/hook-log.mjs");
 const CLI = new URL("../src/cli.mjs", import.meta.url).pathname;
 test.after(() => rmSync(room, { recursive: true, force: true }));
 

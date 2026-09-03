@@ -3,11 +3,11 @@
    knew and would otherwise go down with its shell (ISS-44). docs/FORGE-CLI.md. */
 import { spawnSync } from "node:child_process";
 
-import { fail } from "./resolve/settings.mjs";
+import { fail } from "../resolve/settings.mjs";
 
 import {
   answered, countedIn, logEntries, numbered, undecidedIn, unverdicted, verdictsBy,
-} from "./codex-log.mjs";
+} from "../codex/codex-log.mjs";
 
 export const KEY = "worklog";
 export const OPEN_KEPT = 8;

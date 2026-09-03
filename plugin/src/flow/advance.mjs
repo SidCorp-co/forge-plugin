@@ -1,9 +1,9 @@
 /* One verb between an agent and a status change: the entry criteria of the next status, checked
    against the issue's record and nothing else. docs/issue-flow-contract.md holds the tables. */
-import { flags, pullRepeated } from "./resolve/flags.mjs";
-import { fail } from "./resolve/settings.mjs";
-import { usageOf } from "./resolve/visibility.mjs";
-import { write } from "./rpc.mjs";
+import { flags, pullRepeated } from "../resolve/flags.mjs";
+import { fail } from "../resolve/settings.mjs";
+import { usageOf } from "../resolve/visibility.mjs";
+import { write } from "../tracker/rpc.mjs";
 import {
   COMMENT_PAGE,
   PARKS,

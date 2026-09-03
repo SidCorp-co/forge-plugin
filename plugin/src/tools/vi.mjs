@@ -6,9 +6,9 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-import { fail, translateTo } from "./resolve/settings.mjs";
+import { fail, translateTo } from "../resolve/settings.mjs";
 
-export const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "bin", "vi-natural");
+export const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "vi-natural");
 /* Every prose field an agent can write, not only the three the wrapped verbs started with. */
 const PROSE_FIELDS = ["title", "description", "body", "plan", "acceptanceCriteria"];
 

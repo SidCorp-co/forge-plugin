@@ -1,7 +1,7 @@
 // Why the write is where this gate sits, and not the reading: how/issue-read-first.md.
 
 import { deny, shellText, starts, transcript, how, done } from "../_hook.mjs";
-import { unreadKeys, writesAnIssue } from "../../src/issue-read.mjs";
+import { unreadKeys, writesAnIssue } from "../../src/tracker/issue-read.mjs";
 
 export const run = (ev) => {
   const current = { name: ev.tool_name, input: ev.tool_input };

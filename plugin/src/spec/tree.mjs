@@ -4,7 +4,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import { projectRoot } from "../resolve/settings.mjs";
-import { refuse } from "../record.mjs";
+import { refuse } from "../flow/record.mjs";
 import { clauseIndex } from "./index.mjs";
 
 export const TREE = "docs/requirements";

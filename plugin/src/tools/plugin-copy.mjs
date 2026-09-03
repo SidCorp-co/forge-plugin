@@ -6,7 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RECORD = join(homedir(), ".claude", "plugins", "installed_plugins.json");
-const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const read = (path) => {
   try {

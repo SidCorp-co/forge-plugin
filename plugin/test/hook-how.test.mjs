@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /* One home for what a document may not do; the rule itself is CLAUDE.md's. */
-import { NARRATES } from "../src/doc-shape.mjs";
+import { NARRATES } from "../src/checks/doc-shape.mjs";
 
 const PLUGIN = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const HOOKS = join(PLUGIN, "hooks");

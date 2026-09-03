@@ -16,7 +16,7 @@ writeFileSync(CONFIG, JSON.stringify({
 process.env.XDG_CONFIG_HOME = HOME;
 
 const { accountForZone, cloudflareAccounts, everyZone, recordLine, searchDns } = await import(
-  "../src/cloudflare.mjs"
+  "../src/tools/cloudflare.mjs"
 );
 const { pullRepeated } = await import("../src/resolve/flags.mjs");
 

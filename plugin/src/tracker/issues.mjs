@@ -1,5 +1,5 @@
 /* Paging, the browse projection and the reference-to-id lookup: docs/FORGE-CLI.md. */
-import { fail } from "./resolve/settings.mjs";
+import { fail } from "../resolve/settings.mjs";
 import { scoped } from "./rpc.mjs";
 
 /* No offset or cursor exists, so a full page is the only signal that rows were left behind. */

@@ -90,9 +90,15 @@ plugin/
   src/                            the forge CLI
     cli.mjs          argv, the usage list, the write-time rules
     commands.mjs     one function per verb
-    issues.mjs       paging, the browse projection, ISS-45 -> uuid
-    rpc.mjs          transport, retry, the cached tool surface, the write boundary
-    deps.mjs  doctor.mjs  vi.mjs  suggest.mjs
+    suggest.mjs      the near miss every refusal offers
+    flow/            the lease, the typed records, what each status is earned by
+    tracker/         paging, the browse projection, ISS-45 -> uuid, transport,
+                     retry, the cached tool surface, the write boundary
+    codex/           the consult, its tools, its log and what it owes
+    checks/          what this tree holds its own documents and code to
+    hooks/           the refusal log and the per-hook switch, shared with hooks/
+    tools/           cloudflare, vi-natural, doctor, which copy is running
+    spec/            the requirements tree, answered by identifier
     resolve/         what this run is: settings to { value, from }, ~/.config/forge
                      at 0600, the flag parser, and the verb table deciding what
                      this credential may see

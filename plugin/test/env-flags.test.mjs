@@ -48,7 +48,7 @@ const offences = (path) => {
     const named = /^\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)/u.exec(after);
     if (named && ALLOWED.has(named[1])) continue;
     /* doctor asks by computed name on purpose: it reports which kill switch holds a gate down. */
-    if (relative(ROOT, path) === "src/doctor.mjs" && /^\[/u.test(after)) continue;
+    if (relative(ROOT, path) === "src/tools/doctor.mjs" && /^\[/u.test(after)) continue;
     found.push(`${relative(ROOT, path)}: ${named ? named[1] : one[0].trim()}`);
   }
   return found;

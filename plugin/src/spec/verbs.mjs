@@ -1,12 +1,12 @@
 /* A clause of the requirements tree, asked for by identifier and printed as the phase implementing
    it needs it. What the identifiers mean and what a citation claims: docs/requirements/. */
-import { fail } from "./resolve/settings.mjs";
-import { usageOf } from "./resolve/visibility.mjs";
-import { Refused, refuse } from "./record.mjs";
-import { didYouMean } from "./suggest.mjs";
-import { KIND, parseRef } from "./spec/parse.mjs";
-import { ambiguousUnder, clauseOf, lookup, nearest, withDescendants } from "./spec/index.mjs";
-import { specTree } from "./spec/tree.mjs";
+import { fail } from "../resolve/settings.mjs";
+import { usageOf } from "../resolve/visibility.mjs";
+import { Refused, refuse } from "../flow/record.mjs";
+import { didYouMean } from "../suggest.mjs";
+import { KIND, parseRef } from "./parse.mjs";
+import { ambiguousUnder, clauseOf, lookup, nearest, withDescendants } from "./index.mjs";
+import { specTree } from "./tree.mjs";
 
 const FORMS = "FR-04 · UC-04-3 · AC-04-3-1 · NFR-02 · EI-01 · BR-09 · G-01 · M-01 · C-05 · A-02";
 const LINK = /\[([^\]]*)\]\([^)]*\)/gu;

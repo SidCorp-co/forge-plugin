@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
 import { fail, settings } from "./resolve/settings.mjs";
-import { projectId, REFERENCE_KEYS, scoped, toolNamed, tools, write } from "./rpc.mjs";
+import { projectId, REFERENCE_KEYS, scoped, toolNamed, tools, write } from "./tracker/rpc.mjs";
 import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -10,21 +10,21 @@ import {
   listIssues,
   rowsOf,
   truncated,
-} from "./issues.mjs";
+} from "./tracker/issues.mjs";
 import { callable, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { flags } from "./resolve/flags.mjs";
-import { doctor } from "./doctor.mjs";
-import { deps } from "./deps.mjs";
-import { cloudflare } from "./cloudflare.mjs";
-import { codex } from "./codex.mjs";
-import { hooks } from "./hook-log.mjs";
-import { record } from "./record.mjs";
-import { advance } from "./advance.mjs";
-import { spec } from "./spec.mjs";
-import { claim } from "./claim.mjs";
-import { resume } from "./resume.mjs";
-import { notAnothers, renew } from "./lease.mjs";
+import { doctor } from "./tools/doctor.mjs";
+import { deps } from "./tracker/deps.mjs";
+import { cloudflare } from "./tools/cloudflare.mjs";
+import { codex } from "./codex/codex.mjs";
+import { hooks } from "./hooks/hook-log.mjs";
+import { record } from "./flow/record.mjs";
+import { advance } from "./flow/advance.mjs";
+import { spec } from "./spec/verbs.mjs";
+import { claim } from "./flow/claim.mjs";
+import { resume } from "./flow/resume.mjs";
+import { notAnothers, renew } from "./flow/lease.mjs";
 
 /* One rule for every payload: inline, `@path`, or `-` for stdin. */
 const bodyFrom = (path) => {

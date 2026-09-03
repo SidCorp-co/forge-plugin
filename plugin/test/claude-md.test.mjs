@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { misScoped, overrideMarkers, reviewClaudeMd, statements } from "../src/claude-md.mjs";
+import { misScoped, overrideMarkers, reviewClaudeMd, statements } from "../src/checks/claude-md.mjs";
 
 const GUIDES = [
   {
@@ -92,7 +92,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { checkClaims, checkerOwned, claims } from "../src/claude-md.mjs";
+import { checkClaims, checkerOwned, claims } from "../src/checks/claude-md.mjs";
 
 function fixture() {
   const root = mkdtempSync(path.join(tmpdir(), "cm-claims-"));
@@ -183,7 +183,7 @@ test("a rule a checker declares is reported where CLAUDE.md explains it", () => 
   assert.deepEqual(checkerOwned("- `no-such-rule` does a thing that is long enough to be a statement.\n", root), []);
 });
 
-import { MAX_CLAUDE_MD_LINES, checkStructure } from "../src/claude-md.mjs";
+import { MAX_CLAUDE_MD_LINES, checkStructure } from "../src/checks/claude-md.mjs";
 
 test("the line target is the published one, and a short file passes it", () => {
   assert.equal(MAX_CLAUDE_MD_LINES, 200);
@@ -211,7 +211,7 @@ test("an @import is checked against the tree, and one in backticks is not an imp
   assert.deepEqual(found.brokenImports, ["docs/gone.md"]);
 });
 
-import { checkerRestated } from "../src/claude-md.mjs";
+import { checkerRestated } from "../src/checks/claude-md.mjs";
 
 const OWNED = "A process started outside the stack script reads production-shaped data and can write it.";
 

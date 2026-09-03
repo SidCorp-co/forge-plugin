@@ -10,10 +10,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
-import { CONFIG_PATH, userConfig } from "./resolve/config.mjs";
-import { fail, projectCodex, projectRecordPattern } from "./resolve/settings.mjs";
-import { flags, partition, pullRepeated } from "./resolve/flags.mjs";
-import { didYouMean } from "./suggest.mjs";
+import { CONFIG_PATH, userConfig } from "../resolve/config.mjs";
+import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
+import { flags, partition, pullRepeated } from "../resolve/flags.mjs";
+import { didYouMean } from "../suggest.mjs";
 import { afterTouch, ageOf, clearConsulted, pendingIn, readState, turnsOf, updateState } from "./codex-state.mjs";
 import { TOOLS, runTool, scopeFor, toolsFor } from "./codex-tools.mjs";
 import {

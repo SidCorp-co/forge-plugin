@@ -6,12 +6,12 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
-import { isIgnoredComment, isWaiver, RESTATEMENT_WAIVER } from "../hooks/vendor/line-metrics.js";
+import { isIgnoredComment, isWaiver, RESTATEMENT_WAIVER } from "../../hooks/vendor/line-metrics.js";
 import {
   DEFAULT_MIN_SENTENCE_LENGTH,
   findOverlapsAgainst,
   splitSentences,
-} from "../hooks/vendor/text-overlap.js";
+} from "../../hooks/vendor/text-overlap.js";
 
 const FENCE = /```[\s\S]*?```/g;
 const TABLE_ROW = /^[ \t]*\|.*\|[ \t]*$/gm;

@@ -2,11 +2,11 @@
    back by kind: docs/FORGE-CLI.md § record. The verb owns the shape; the tracker owns the fields. */
 import { readFileSync } from "node:fs";
 
-import { fail, translateTo } from "./resolve/settings.mjs";
-import { pullRepeated, flags } from "./resolve/flags.mjs";
-import { documentIdOf, rowsOf } from "./issues.mjs";
-import { scoped, write } from "./rpc.mjs";
-import { refuseIfGated, usageOf } from "./resolve/visibility.mjs";
+import { fail, translateTo } from "../resolve/settings.mjs";
+import { pullRepeated, flags } from "../resolve/flags.mjs";
+import { documentIdOf, rowsOf } from "../tracker/issues.mjs";
+import { scoped, write } from "../tracker/rpc.mjs";
+import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
 import { nextLine, renew } from "./lease.mjs";
 import { OPEN_KEPT, patchFrom } from "./worklog.mjs";
 

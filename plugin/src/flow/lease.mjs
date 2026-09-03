@@ -5,9 +5,9 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { configDir, readJson, writeJsonPrivate } from "./resolve/config.mjs";
-import { fail } from "./resolve/settings.mjs";
-import { scoped, write } from "./rpc.mjs";
+import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
+import { fail } from "../resolve/settings.mjs";
+import { scoped, write } from "../tracker/rpc.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
 export const FIELD = "sessionContext";

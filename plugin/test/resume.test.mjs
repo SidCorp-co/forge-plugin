@@ -12,11 +12,11 @@ import { tempHome } from "./fixtures.mjs";
 
 const HOME = tempHome("resume");
 process.env.XDG_CONFIG_HOME = HOME.path;
-const { render } = await import("../src/record.mjs");
-const { PHASE, ORDER, SIDE, methodOf, viewFrom } = await import("../src/earned.mjs");
-const { briefOf } = await import("../src/brief.mjs");
-const { USAGE } = await import("../src/resume.mjs");
-const { sessionHeld } = await import("../src/lease.mjs");
+const { render } = await import("../src/flow/record.mjs");
+const { PHASE, ORDER, SIDE, methodOf, viewFrom } = await import("../src/flow/earned.mjs");
+const { briefOf } = await import("../src/flow/brief.mjs");
+const { USAGE } = await import("../src/flow/resume.mjs");
+const { sessionHeld } = await import("../src/flow/lease.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
@@ -168,7 +168,7 @@ test("the assembled object is what --json can print, with nothing lost on the wa
 /* It takes no lease and renews none, so anyone may read any issue — including a run that is not the
    holder and a person with no session at all. The check is that no writing call is reachable. */
 test("nothing in the brief or its printer can write, because none of the writes is imported", () => {
-  for (const name of ["../src/resume.mjs", "../src/brief.mjs"]) {
+  for (const name of ["../src/flow/resume.mjs", "../src/flow/brief.mjs"]) {
     const text = readFileSync(fileURLToPath(new URL(name, import.meta.url)), "utf8");
     const imports = text.split("\n").filter((one) => /^import /u.test(one)).join(" ");
     for (const call of ["renew", "setLease", "claimed", "post", "write", "transitionTo", "worklogFor"]) {

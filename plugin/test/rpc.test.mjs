@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { keyPaths, REFERENCE_KEYS } from "../src/rpc.mjs";
+import { keyPaths, REFERENCE_KEYS } from "../src/tracker/rpc.mjs";
 
 /* The shape forge_issues declares: an id at the top, and `data` carrying a same-named field that
    means something else. That collision is the whole reason a key is never relocated for you. */

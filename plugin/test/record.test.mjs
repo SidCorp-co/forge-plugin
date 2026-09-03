@@ -10,7 +10,7 @@ import { join } from "node:path";
 process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "record-"));
 const {
   CONTRACT, KINDS, SHAPES, USAGE, OUTCOMES, assemble, conjunctionsFor, criteriaLines, joinedCriteria, noteFrom, parse, render, unwrap,
-} = await import("../src/record.mjs");
+} = await import("../src/flow/record.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });

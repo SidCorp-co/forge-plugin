@@ -36,7 +36,7 @@ globalThis.fetch = async (url, init) => {
   };
 };
 
-const { documentIdOf } = await import("../src/issues.mjs");
+const { documentIdOf } = await import("../src/tracker/issues.mjs");
 
 test("two references resolved at once share one list", async () => {
   const both = await Promise.all([documentIdOf("ISS-1"), documentIdOf("ISS-2")]);

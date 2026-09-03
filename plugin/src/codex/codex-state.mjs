@@ -4,8 +4,8 @@ import { closeSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFi
 import { randomBytes } from "node:crypto";
 import { basename, join } from "node:path";
 
-import { configDir, readJson, writeJsonPrivate } from "./resolve/config.mjs";
-import { logHook } from "./hook-log.mjs";
+import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
+import { logHook } from "../hooks/hook-log.mjs";
 
 export const STATE_PATH = join(configDir("forge"), "codex.json");
 

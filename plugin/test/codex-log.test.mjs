@@ -29,7 +29,7 @@ const {
   scoreOf,
   startedState,
   verdictsBy,
-} = await import("../src/codex-log.mjs");
+} = await import("../src/codex/codex-log.mjs");
 
 /* A verdict is a separate record; replaying advice without what was done with it made resolved /
    still open a guess. */

@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { diffIdentifiers, rank } from "../src/blast-radius.mjs";
+import { diffIdentifiers, rank } from "../src/checks/blast-radius.mjs";
 
 const MAX_BYTES = 512 * 1024;
 

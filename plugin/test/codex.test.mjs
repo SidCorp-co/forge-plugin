@@ -19,7 +19,7 @@ const {
   pendingIn,
   rounds,
   unchangedAll,
-} = await import("../src/codex.mjs");
+} = await import("../src/codex/codex.mjs");
 const {
   ANGLES,
   bundle,
@@ -34,8 +34,8 @@ const {
   roleFor,
   withDiffs,
   sameFamily,
-} = await import("../src/codex-api.mjs");
-const { runTool, scopeFor } = await import("../src/codex-tools.mjs");
+} = await import("../src/codex/codex-api.mjs");
+const { runTool, scopeFor } = await import("../src/codex/codex-tools.mjs");
 const { partition } = await import("../src/resolve/flags.mjs");
 const BOOLEANS = ["--allow-echo"];
 

@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { keysIn, readsComments, unreadKeys, writesAnIssue } from "../src/issue-read.mjs";
+import { keysIn, readsComments, unreadKeys, writesAnIssue } from "../src/tracker/issue-read.mjs";
 import { shellText, starts } from "../hooks/_hook.mjs";
 import { callHook } from "./fixtures.mjs";
 

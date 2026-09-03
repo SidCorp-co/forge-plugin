@@ -82,7 +82,7 @@ test("a second session is its own turn, whatever the first one was told", () => 
    the race hides. Four processes recording into two checkouts at once is contention, and without a
    lock the read-modify-write loses whatever another one wrote in between. */
 const STORM = `
-import { hookRecord } from "${new URL("../src/codex.mjs", import.meta.url).pathname}";
+import { hookRecord } from "${new URL("../src/codex/codex.mjs", import.meta.url).pathname}";
 /* With -e there is no script path, so the first argument is argv[1]. */
 const [root, mine, count] = process.argv.slice(1);
 for (let n = 0; n < Number(count); n += 1) {
@@ -155,7 +155,7 @@ test("a temp file a killed writer left behind is swept, and a live one is not", 
    reads "N refusal(s)" is what a false positive looks like from outside. */
 test("giving up on the lock leaves a note, and the note is not counted as a refusal", async () => {
   process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
-  const { holding } = await import("../src/codex.mjs");
+  const { holding } = await import("../src/codex/codex.mjs");
   const lock = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json.lock");
   mkdirSync(dirname(lock), { recursive: true });
   writeFileSync(lock, "somebody-still-holding-it");
@@ -182,7 +182,7 @@ test("giving up on the lock leaves a note, and the note is not counted as a refu
    config directory. */
 test("a writer whose lock was broken does not remove the one that replaced it", async () => {
   process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
-  const { holding } = await import("../src/codex.mjs");
+  const { holding } = await import("../src/codex/codex.mjs");
   const lock = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json.lock");
   let entered = false;
   holding(() => {
