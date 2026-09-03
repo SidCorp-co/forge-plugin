@@ -84,6 +84,8 @@ call, never a wrong answer.
 
 ```
 .claude-plugin/marketplace.json   the local marketplace, name: forge-local
+feedback/                         one Markdown file per note from an agent using the CLI anywhere;
+                                  the shape is in its README, the path is in `forge -h`
 plugin/
   .claude-plugin/plugin.json      the plugin manifest, name: forge
   bin/forge  bin/vi-natural       PATH entry points, symlink-resolving

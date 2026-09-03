@@ -77,3 +77,13 @@ test("what a verb takes is named, where there is anything to take", () => {
   assert.match(helpOf("issues"), /The fields the tracker takes: `forge schema forge_issues`/u);
   assert.ok(!helpOf("project").includes("forge schema"), helpOf("project"));
 });
+
+/* An agent in another project learns where feedback goes from `-h` or from nowhere. */
+test("both help forms name the checkout's feedback folder by absolute path", () => {
+  const folder = new URL("../../../feedback", import.meta.url).pathname;
+  for (const argv of [["-h"], ["-h", "--full"]]) {
+    const run = ask(...argv);
+    assert.equal(run.status, 0);
+    assert.ok(run.stdout.includes(`${folder}/`), `forge ${argv.join(" ")} does not name ${folder}`);
+  }
+});

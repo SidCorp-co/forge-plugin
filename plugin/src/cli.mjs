@@ -5,6 +5,7 @@ import { commands } from "./commands.mjs";
 import { suggest } from "./suggest.mjs";
 import { blockedBy, helpLine, helpOf, offeredVerbs } from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
+import { feedbackDir } from "./tools/plugin-copy.mjs";
 
 const offered = offeredVerbs();
 
@@ -37,6 +38,14 @@ const MORE = "\nWhat to type for one verb: `forge <verb> -h`, with the schema be
   + " fields it\ntakes, where it takes any. The write-time rules a first issue gets wrong:"
   + " `forge -h --full`.";
 
+const FEEDBACK_DIR = feedbackDir();
+const FEEDBACK = FEEDBACK_DIR
+  ? `\nFeedback on this CLI, from any project: one Markdown file per note in\n${FEEDBACK_DIR}/`
+    + " (its README carries the shape). A wrong refusal, a missing way out, a verb that surprised you:"
+    + " write it there, not in a tracker."
+  : "\nFeedback on this CLI goes in the feedback/ folder beside the plugin's source checkout, which this"
+    + " copy cannot locate: no local marketplace on this machine ships it.";
+
 const [command, ...rest] = process.argv.slice(2);
 const asked = command === "-h" || command === "--help";
 const needs = command ? blockedBy(command) : null;
@@ -59,7 +68,7 @@ if (asked || !command || !Object.hasOwn(commands, command)) {
     console.error(VERB_LIST);
     process.exit(1);
   }
-  console.log(rest.includes("--full") ? `${VERB_LIST}${PREAMBLE}` : `${VERB_LIST}${MORE}`);
+  console.log((rest.includes("--full") ? `${VERB_LIST}${PREAMBLE}` : `${VERB_LIST}${MORE}`) + FEEDBACK);
   process.exit(0);
 }
 

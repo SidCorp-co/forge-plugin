@@ -11,7 +11,10 @@ Two things make it more than a `curl` wrapper:
 
 1. **A written style contract** (`vi-natural/vi-text.mjs`) — xưng hô rules, bare
    imperative UI verbs, the specific calques to delete, which technical terms stay
-   in English. It is versioned with the code, so a bad translation is a diff you can
+   in English, and the tells of AI prose carried over from the source (marketing
+   adjectives, "not only… but also", sentence-opening connectors, a repeated object,
+   an intensifier the source lacks), each with its fix, read back over the draft before
+   it is returned. It is versioned with the code, so a bad translation is a diff you can
    argue with, not a prompt someone improvised.
 2. **A voice you choose.** `--register san-pham | trang-trong | than-mat` — product,
    formal commerce, or warm marketing. Vietnamese encodes the relationship in the
