@@ -41,13 +41,13 @@ test("a lease is read out of the field, and anything else in it is no lease", ()
   assert.deepEqual(leaseOf(field(held("a-run", AT, 30, "not a list"))).history, []);
 });
 
-test("the five states, and a lease past its duration is stale for its holder too", () => {
+test("the five states, and a lease past its duration is another run's to take", () => {
   assert.equal(stateOf(null, "mine", NOW), "free");
   assert.equal(stateOf(held("mine"), "mine", NOW), "mine");
   assert.equal(stateOf(held("other", AT, 30), "mine", NOW + 29 * 60_000), "live");
   assert.equal(stateOf(held("other", AT, 30), "mine", NOW + 31 * 60_000), "expired");
   assert.equal(stateOf(held("mine", AT, 30), "mine", NOW + 31 * 60_000), "lapsed",
-    "the holder past its own duration cannot know whether another run took over");
+    "the holder past its own duration, with the field still naming it, so nobody took over");
   assert.equal(stateOf(held("other", "not a time"), "mine", NOW), "expired", "a renew time nobody can read is past");
   assert.equal(expiryOf(held("other", AT, 30)), NOW + 30 * 60_000);
 });
@@ -61,7 +61,6 @@ test("every refusal names the holder, its renew time and the one command that cl
   }
   const free = writeRefusal("free", "ISS-4", null);
   assert.match(free, /forge claim ISS-4/u, "and a write with no lease at all says how to take one");
-  assert.match(writeRefusal("lapsed", "ISS-4", lease), /your own lease on ISS-4 has expired[\s\S]*forge claim ISS-4/u);
   assert.match(describe(lease), /session the-other-run \(a-test-agent, pid 4242\), renewed 2026-09-02T12:00 for 30 minute\(s\)/u);
 });
 
@@ -70,7 +69,7 @@ test("every refusal names the holder, its renew time and the one command that cl
 test("every refusal that names the holder names its agent and its process too", () => {
   const lease = leaseOf(field({ holder: "the-other-run", agent: "claude-code_2-1-258_agent", pid: 3830915, renewedAt: AT, minutes: 30 }));
   assert.equal(lease.pid, "3830915", "read back as a string, because printing it is all anything does");
-  const said = [claimRefusal("ISS-4", lease), writeRefusal("live", "ISS-4", lease), writeRefusal("expired", "ISS-4", lease), writeRefusal("lapsed", "ISS-4", lease)];
+  const said = [claimRefusal("ISS-4", lease), writeRefusal("live", "ISS-4", lease), writeRefusal("expired", "ISS-4", lease)];
   for (const one of said) {
     assert.match(one, /the-other-run/u, one);
     assert.match(one, /claude-code_2-1-258_agent/u, one);

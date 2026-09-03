@@ -55,9 +55,9 @@ export const expiryOf = (lease) => {
 
 const stamp = (ms) => (ms ? new Date(ms).toISOString().slice(0, 16) : "an unreadable time");
 
-/* A lease past its duration is stale for its holder too: a run that took over meanwhile is what
-   the tracker cannot yet refuse. A reclaim is a handoff, so a holder taking its own lapsed lease
-   appends none and counts toward no park. */
+/* A lease past its duration is another run's to take. The holder's own lapsed lease is a state of
+   its own because the field still naming this session is the proof no other run took the issue: a
+   reclaim would read as live or expired. A reclaim is a handoff, so retaking one's own appends none. */
 export const stateOf = (lease, holder, now = Date.now()) => {
   if (!lease) return "free";
   const live = expiryOf(lease) > now;
@@ -135,15 +135,17 @@ const WRITE_REFUSAL = {
   expired: (ref, lease) =>
     `the lease on ${ref} is another run's and has expired: ${describe(lease)}. A write of yours `
     + `beside it is stale. Reclaim it first:\n  forge claim ${ref}`,
-  lapsed: (ref, lease) =>
-    `your own lease on ${ref} has expired: ${describe(lease)}. Past its duration another run may `
-    + `have taken the issue, and nothing here would have refused it. Take it again:\n  forge claim ${ref}`,
 };
 
 export const writeRefusal = (state, ref, lease) => WRITE_REFUSAL[state](ref, lease);
 
-/* Key-order-blind: the tracker returns the object it stored in its own order, so a plain
-   serialisation of the two differs where nothing changed. */
+/* Said rather than refused (ISS-65): the command the old refusal named is one this write can make. */
+export const renewedLapsed = (ref, lease) =>
+  `your lease on ${ref} had expired at ${stamp(expiryOf(lease))} and this write renewed it: the read `
+  + `before it still named ${lease.holder}, so no other run had taken the issue by then. A reclaim is `
+  + `a handoff and this was none, so the claim history is unchanged.`;
+
+/* Key-order-blind: the tracker returns what it stored in its own order, so a plain compare differs. */
 export const canonical = (value) => {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (value && typeof value === "object") {
@@ -179,13 +181,22 @@ export const notAnothers = async (documentId, ref) => {
   if (stateOf(lease, sessionOf()) === "live") fail(writeRefusal("live", ref, lease));
 };
 
-/* Every payload write renews the lease; a write by anyone else is refused, and a read needs none. */
+/* Every payload write renews the lease; another run's is refused, and a read needs none. */
 export const renew = async (documentId, ref, next = undefined, patch = null) => {
   const holder = sessionOf();
-  const context = await readContext(documentId);
-  const lease = leaseOf(context);
-  const state = stateOf(lease, holder);
-  if (state !== "mine") fail(writeRefusal(state, ref, lease));
+  let context = await readContext(documentId);
+  let lease = leaseOf(context);
+  let state = stateOf(lease, holder);
+  if (state === "lapsed") {
+    /* The one state another run may legally take, so it is read again just before the write: what is
+       left is that write's own window rather than the check's, as far as a client without ISS-7 goes. */
+    context = await readContext(documentId);
+    const now = leaseOf(context);
+    state = stateOf(now, holder);
+    if (state === "lapsed") console.error(renewedLapsed(ref, lease));
+    lease = now ?? lease;
+  }
+  if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
   return setLease(
     documentId,
     claimed(context, {

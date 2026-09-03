@@ -43,7 +43,7 @@ globalThis.fetch = async (url, init) => {
   return { ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify({ jsonrpc: "2.0", id: 1, result }) };
 };
 
-const { KEPT, mustBeShown, postComment, refusalFor, sessionKey } = await import("../../src/tracker/comments.mjs");
+const { KEPT, creditCaused, mustBeShown, postComment, refusalFor, sessionKey } = await import("../../src/tracker/comments.mjs");
 
 const one = (id, text, at = "2026-09-03T05:22:18.757Z") =>
   ({ documentId: id, createdAt: at, body: fenced(text) });
@@ -95,9 +95,31 @@ test("a comment this session wrote refuses nothing of this session", async () =>
   assert.equal(page.comments.length, 4, "the comment is on the issue, and it is not owed back");
 });
 
+/* The mark writes a comment of the tracker's own, and the next write to the issue was refused to
+   deliver it: a round for a line this session caused (ISS-65). */
+test("a comment the write caused is delivered by that write and credited", async () => {
+  page = { comments: [...page.comments, one("m1", "mark_merged target base: merged to master at 4e41dfd")], hasMore: false };
+  const lines = [];
+  const held = console.error;
+  console.error = (line) => lines.push(line);
+  try {
+    await creditCaused([{ ref: "ISS-65", documentId: ISSUE }]);
+    await creditCaused([{ ref: "ISS-65", documentId: ISSUE }]);
+  } finally {
+    console.error = held;
+  }
+  const text = lines.join("\n");
+  assert.match(text, /ISS-65: 1 comment\(s\) arrived by the time this write finished/u);
+  assert.ok(text.includes(fenced("mark_merged target base: merged to master at 4e41dfd")),
+    "the body whole, in the fence the tracker sent, because crediting the unshown is the gate defeated");
+  assert.equal(lines.filter((line) => line.includes("arrived by the time")).length, 1,
+    "and a write that caused nothing says nothing");
+  assert.equal((await asked()).refusal, null, "the next write to the issue is not refused for it");
+});
+
 test("what one session was shown, another was not", async () => {
   const { refusal } = await asked("session-two");
-  assert.match(refusal, /4 of 4 comment\(s\) are new/u);
+  assert.match(refusal, /5 of 5 comment\(s\) are new/u);
   assert.equal((await asked("session-one")).refusal, null, "and the first session is unaffected");
 });
 

@@ -110,6 +110,24 @@ export const refusalFor = async (targets, session) => {
   return { none, refusal };
 };
 
+/* A write of ours causes the comment the mark's audit line is, and the next write was refused to
+   deliver it (ISS-65). Credited only once printed: crediting the unshown defeats the gate. */
+export const creditCaused = async (targets, ev = null) => {
+  const session = sessionKey(ev);
+  for (const { ref, documentId } of targets) {
+    const { comments } = await commentPage(documentId);
+    const shown = shownTo(session, documentId);
+    const caused = comments.filter((one) => !shown.has(idOf(one)));
+    if (!caused.length) continue;
+    console.error(`${ref}: ${caused.length} comment(s) arrived by the time this write finished, `
+      + "quoted below as the tracker returned them and credited as read, so the next write is not "
+      + "refused for them. Which the write caused is not knowable here: the mark's audit line "
+      + "arrives this way, and a comment another author posted meanwhile would too.");
+    for (const one of bodies(ref, caused)) console.error(one);
+    noteShown(session, documentId, caused);
+  }
+};
+
 /* Once per issue per process: one command makes four lease writes and owes one such line. */
 const told = new Set();
 

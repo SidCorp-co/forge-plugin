@@ -234,8 +234,13 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
 - **A claim is a lease, in a field the issue already has.** The issue's session field holds the
   holder's session, the renew time and the duration; every payload write renews it. A second agent
   that picks an issue with a live lease is refused, naming the holder. A lease past its duration is
-  reclaimable by any run, and a lapsed lease is stale for its own holder too: the first holder's later
-  writes are refused, and the fifth dry run caught a build that renewed a dead run's lease for it. A
+  reclaimable by any run, and its own holder's next write renews it rather than being refused: the
+  field still naming that session is what says no other run took the issue, since a claim replaces
+  the holder, so the only command the refusal could name is one the write makes for itself — and it
+  says on one line that it made it (ISS-65). It says so of the read it made, which is as far as any
+  route here reaches: the refusal named `forge claim`, whose own read-write-read carries the same
+  window, and closing that window is the tracker's conditional write below. What the fifth dry run caught is narrower than the rule
+  it wrote: a build that renewed a dead run's lease without reading the state at all, and silently. A
   reclaim is a handoff between two holders, so a holder retaking its own lapsed lease appends no
   reclaim and counts toward no park. The field also
   keeps the claim history, each claim and reclaim appended by the write that made it, so who held the

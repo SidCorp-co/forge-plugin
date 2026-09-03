@@ -204,10 +204,15 @@ a named read alone, because idempotence is documented for the merged mark and no
 actions those are is decided here rather than read off the arguments: one of them mutates with no
 payload field at all, and an action this list does not name is not retried.
 
-A lease past its duration is stale for its holder too. The first version renewed the holder's own
-expired lease instead, and a live run then showed a dead session writing payloads half an hour
-after its lease had gone: past the duration another run may hold the issue, and that is exactly
-what nothing here can refuse yet. A reclaim is a handoff between two holders, though, so a holder
+A lease past its duration is another run's to take, and the holder's own next write renews it and
+says so. The first version renewed it without reading the state at all, and a live run then showed
+a dead session writing payloads half an hour after its lease had gone, silently; the refusal that
+replaced it named `forge claim`, which cost the eleventh dry run two rounds for a value the CLI had
+already read. What makes the renewal safe is what the refusal never used: the field still names this
+session, and a run that took the issue would have replaced the holder, so the two states that mean
+somebody else's lease still refuse. It is safe as far as the read, and no further — a reclaim
+landing between the read and the write is the ISS-7 window, which the refused route paid too,
+because `forge claim` is the same three calls. A reclaim is a handoff between two holders, though, so a holder
 taking its own lapsed lease back appends nothing to the history and brings no park closer.
 
 The holder is the harness's own session, read twice to check that it is stable for the life of a
