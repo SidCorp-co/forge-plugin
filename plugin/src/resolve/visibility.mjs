@@ -12,6 +12,7 @@ export const VERBS = [
   ["claim", "<uuid|ISS-45> [--minutes n]", "take the issue's lease, or reclaim one a dead run left", "forge_issues"],
   ["record", "<kind> <uuid|ISS-45> [...]", "a contract payload in the one shape the CLI owns; read back by kind", "forge_issues"],
   ["advance", "<uuid|ISS-45> [...]", "the next status, earned by the record or refused with what it owes", "forge_issues"],
+  ["spec", "<id>[~<rev>]", "one clause of the requirements tree, read by its identifier"],
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context", "forge_uploads"],
   ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues"],
   ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm"],

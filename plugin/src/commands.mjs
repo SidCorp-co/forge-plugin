@@ -21,6 +21,7 @@ import { codex } from "./codex.mjs";
 import { hooks } from "./hook-log.mjs";
 import { record } from "./record.mjs";
 import { advance } from "./advance.mjs";
+import { spec } from "./spec.mjs";
 import { claim } from "./claim.mjs";
 import { notAnothers, renew } from "./lease.mjs";
 
@@ -135,6 +136,7 @@ export const commands = {
   claim,
   record,
   advance,
+  spec,
   deps,
   cloudflare,
   codex,
