@@ -36,15 +36,15 @@ The intent — what the author was trying to do — is the part the reviewer can
 sent alongside it is the codex reference's business. Which files are worth a second opinion is the
 checkout's decision rather than the account's, and `README.md` says why that level.
 
-- **AC-06-1-1** · Rev: 1 · Proof: plugin/test/codex.test.mjs
+- **AC-06-1-1** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs
   WHEN a consult runs THEN the pattern deciding which files it covers SHALL be taken from the
   checkout, else the account, else the default, in that order.
-- **AC-06-1-2** · Rev: 1 · Proof: plugin/test/codex.test.mjs
+- **AC-06-1-2** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs
   IF the review model resolves to this model's own family THEN the CLI SHALL refuse the consult.
-- **AC-06-1-3** · Rev: 1 · Proof: plugin/test/codex.test.mjs
+- **AC-06-1-3** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs
   IF a named path leaves the checkout, by relative segments or by a symbolic link, THEN the CLI
   SHALL refuse to send it.
-- **AC-06-1-4** · Rev: 1 · Proof: plugin/test/codex-tools.test.mjs
+- **AC-06-1-4** · Rev: 1 · Proof: plugin/test/codex/codex-tools.test.mjs
   WHERE the checkout names a command the reviewer may run, the CLI SHALL run it once per consult,
   from that checkout, and SHALL report its exit status and the tail of its output.
 
@@ -56,13 +56,13 @@ The reading is offered once at the end of a turn rather than at each write, for 
 `plugin/hooks/how/codex-turn.md` gives, and a document whose content the last consult already read
 is not offered again however recently it was touched.
 
-- **AC-06-2-1** · Rev: 1 · Proof: plugin/test/codex-turn.test.mjs
+- **AC-06-2-1** · Rev: 1 · Proof: plugin/test/gates/codex-turn.test.mjs
   WHEN the first document of a turn is written THEN the CLI SHALL ask once, and SHALL record the
   rest of that turn's documents without asking again.
-- **AC-06-2-2** · Rev: 1 · Proof: plugin/test/codex-turn.test.mjs
+- **AC-06-2-2** · Rev: 1 · Proof: plugin/test/gates/codex-turn.test.mjs
   IF the latest consult already read a document at its current content THEN the CLI SHALL not record
   it as unread, even when the document is named or touched again.
-- **AC-06-2-3** · Rev: 1 · Proof: plugin/test/codex-turn.test.mjs
+- **AC-06-2-3** · Rev: 1 · Proof: plugin/test/gates/codex-turn.test.mjs
   WHILE a turn is in progress the CLI SHALL never stop it for an unread document.
 
 ### UC-06-3 — A commit waits for the reading and for the verdict
@@ -73,16 +73,16 @@ Before a commit, three things are asked for: that the tree's newer work has been
 documents recorded and never consulted on are read, and that the last consult which made findings
 heard a disposition of each. A finding nobody ruled on is an open finding.
 
-- **AC-06-3-1** · Rev: 1 · Proof: plugin/test/codex-second.test.mjs
+- **AC-06-3-1** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs
   WHEN a commit is about to be made and work in the tree has never been consulted on THEN the gate
   SHALL refuse the commit and SHALL name the files it wants read.
-- **AC-06-3-2** · Rev: 1 · Proof: plugin/test/codex-second.test.mjs
+- **AC-06-3-2** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs
   IF the last consult made findings and heard no disposition THEN the gate SHALL refuse the commit
   and SHALL name the command that records one.
-- **AC-06-3-3** · Rev: 1 · Proof: plugin/test/codex-second.test.mjs
+- **AC-06-3-3** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs
   WHEN a commit names another tree THEN the gate SHALL judge it by that tree rather than by the
   shell's.
-- **AC-06-3-4** · Rev: 1 · Proof: plugin/test/codex-second.test.mjs
+- **AC-06-3-4** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs
   WHEN work is deleted rather than written THEN the gate SHALL treat the deletion as work in the
   tree, a whole directory included.
 
@@ -94,13 +94,13 @@ The two reviewers see disjoint things, and only one of them can be re-read after
 only moment the first one's reply can reach the second is the turn it was given in. What is lost by
 skipping the carry-in is in `plugin/hooks/how/codex-order.md`.
 
-- **AC-06-4-1** · Rev: 1 · Proof: plugin/test/codex-order.test.mjs
+- **AC-06-4-1** · Rev: 1 · Proof: plugin/test/gates/codex-order.test.mjs
   IF the advisor has spoken this turn and its advice is unspent THEN the gate SHALL ask once for that
   advice to be carried into the consult's intent, and SHALL then let the write through.
-- **AC-06-4-2** · Rev: 1 · Proof: plugin/test/codex-order.test.mjs
+- **AC-06-4-2** · Rev: 1 · Proof: plugin/test/gates/codex-order.test.mjs
   IF no advisor spoke before a consult THEN the gate SHALL ask nothing, since the order of the two
   is the author's.
-- **AC-06-4-3** · Rev: 1 · Proof: plugin/test/codex-order.test.mjs
+- **AC-06-4-3** · Rev: 1 · Proof: plugin/test/gates/codex-order.test.mjs
   WHEN the phrase appears only inside data — a document body, a quoted argument, a program's own
   string — THEN the gate SHALL not read it as a consult.
 
@@ -112,10 +112,10 @@ Each finding is accepted or rejected with a reason, by the identifier the review
 disposition is replayed into the next consult. Rejecting a finding with a reason is a legitimate
 outcome; leaving it unruled makes "resolved or still open" a guess.
 
-- **AC-06-5-1** · Rev: 1 · Proof: plugin/test/codex-log.test.mjs
+- **AC-06-5-1** · Rev: 1 · Proof: plugin/test/codex/codex-log.test.mjs
   WHEN a disposition is recorded THEN it SHALL be stored against the identifier the review gave, and
   SHALL travel into the next consult.
-- **AC-06-5-2** · Rev: 1 · Proof: plugin/test/codex-log.test.mjs
+- **AC-06-5-2** · Rev: 1 · Proof: plugin/test/codex/codex-log.test.mjs
   WHEN a credential appears in anything written to the log THEN it SHALL be masked before it is
   written down.
 

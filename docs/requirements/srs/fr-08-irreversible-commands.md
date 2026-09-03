@@ -34,13 +34,13 @@ Rev: 1 · Actors: agent · Enforces: BR-01, BR-15
 A refusal the agent believes is wrong goes to the user rather than into another attempt at the
 same command, and the gate's own document says what the message owes.
 
-- **AC-08-1-1** · Rev: 1 · Proof: plugin/test/bash-guard.test.mjs
+- **AC-08-1-1** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs
   WHEN a refused shape is about to run THEN the gate SHALL refuse the command and SHALL name the
   rule and one way out.
-- **AC-08-1-2** · Rev: 1 · Proof: plugin/test/bash-guard.test.mjs
+- **AC-08-1-2** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs
   IF a command answers a checker instead of the code THEN the gate SHALL refuse it, since it takes
   work and leaves the finding.
-- **AC-08-1-3** · Rev: 1 · Proof: plugin/test/bash-guard.test.mjs
+- **AC-08-1-3** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs
   WHEN a command reads the state a refused command would destroy THEN the gate SHALL allow it,
   because looking is not losing.
 
@@ -52,15 +52,15 @@ A rule applies at a command's start, so a phrase inside an argument is prose. Wh
 commits the gate to — quoting, wrappers, and a body handed to another interpreter — is the gate's
 own document; the duty here is that the reading is of command position and never of text.
 
-- **AC-08-2-1** · Rev: 1 · Proof: plugin/test/bash-guard.test.mjs
+- **AC-08-2-1** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs
   IF a refused phrase appears only inside an argument or a program's own string THEN the gate SHALL
   read it as prose and SHALL allow the command.
-- **AC-08-2-2** · Rev: 1 · Proof: plugin/test/bash-guard.test.mjs
+- **AC-08-2-2** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs
   WHEN a flag is quoted THEN the gate SHALL still read it as the flag.
-- **AC-08-2-3** · Rev: 1 · Proof: plugin/test/bash-guard.test.mjs
+- **AC-08-2-3** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs
   WHEN a command names another tree THEN the gate SHALL judge that tree, and SHALL read the tree's
   own options the way the tool reads them.
-- **AC-08-2-4** · Rev: 1 · Proof: plugin/test/bash-guard.test.mjs
+- **AC-08-2-4** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs
   WHERE a bound narrows a sweeping argument the gate SHALL allow it, since the bound is what makes
   the loss recoverable.
 

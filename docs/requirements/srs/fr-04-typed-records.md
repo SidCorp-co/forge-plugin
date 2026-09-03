@@ -36,10 +36,10 @@ are the workflow's: what was found, what was decided, what was asked, what alrea
 reviewed, what each criterion was judged to be, where the change now runs, what a release says, and
 a correction beside any of them.
 
-- **AC-04-1-1** · Rev: 1 · Proof: plugin/test/record.test.mjs
+- **AC-04-1-1** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs
   WHEN a record is written THEN the CLI SHALL refuse each missing field by name and SHALL name the
   kind and the contract version on the record's last line.
-- **AC-04-1-2** · Rev: 1 · Proof: plugin/test/record.test.mjs
+- **AC-04-1-2** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs
   IF free text is written where a record is expected THEN the reader SHALL treat it as no record.
 - **AC-04-1-3** · Rev: 1 · Proof: none yet — ISS-14
   WHEN a field holds several values THEN the record SHALL read back with exactly the values it was
@@ -54,10 +54,10 @@ issue, a URL, or a commit — has to exist at the moment the record is written, 
 again when the record is read back, because a comment may have been written by a hand or by a
 client no check sits in front of.
 
-- **AC-04-2-1** · Rev: 1 · Proof: plugin/test/record.test.mjs
+- **AC-04-2-1** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs
   IF a record cites an attachment that is not on the issue THEN the CLI SHALL refuse the record and
   SHALL say what the reference has to be.
-- **AC-04-2-2** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+- **AC-04-2-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs
   WHEN a record is read back THEN its evidence SHALL be checked again against the issue.
 
 ### UC-04-3 — A review is two voices in one record
@@ -68,7 +68,7 @@ Two voices share one record: the outcome belongs to the reviewer and covers one 
 finding lines belong to the author. What each may say, and why one can never be derived from the
 other, is the contract's "A review is two voices in one record".
 
-- **AC-04-3-1** · Rev: 1 · Proof: plugin/test/record.test.mjs
+- **AC-04-3-1** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs
   WHEN a review is recorded THEN it SHALL name the reviewer, the head judged and the outcome, and
   each finding SHALL be an identifier with a disposition.
 - **AC-04-3-2** · Rev: 1 · Proof: none yet — ISS-16
@@ -85,7 +85,7 @@ A record that can be quietly deleted and reposted is a record that can be made t
 correction says what moved and why, and it stands beside what it corrects; a plan or criteria change
 after approval is refused without one, so criteria cannot be relaxed to fit what got built.
 
-- **AC-04-4-1** · Rev: 1 · Proof: plugin/test/record.test.mjs
+- **AC-04-4-1** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs
   WHEN a correction is written THEN it SHALL carry what moved and why, and SHALL refuse without
   either.
 - **AC-04-4-2** · Rev: 1 · Proof: none yet — ISS-11
@@ -100,9 +100,9 @@ A criterion is a line opening with its number, which is what a verdict names. Wh
 is really two is a warning at the write and never a refusal: a lexical check cannot tell two claims
 from one sentence, and a run that read the warning and kept a list of accepted values was right to.
 
-- **AC-04-5-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+- **AC-04-5-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs
   WHEN the criteria field is read THEN prose without numbered lines SHALL be read as no criteria.
-- **AC-04-5-2** · Rev: 1 · Proof: plugin/test/record.test.mjs
+- **AC-04-5-2** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs
   IF a criterion holds a conjunction THEN the CLI SHALL warn at the write and SHALL still write it.
 
 ### UC-04-6 — A report is assembled, never remembered
@@ -113,7 +113,7 @@ What an issue holds is read off the record: the latest of each kind that can onl
 instance of a kind that repeats, the latest verdict per criterion, and what is still owed. Nobody
 counts, and nobody writes a report from memory.
 
-- **AC-04-6-1** · Rev: 1 · Proof: plugin/test/advance.test.mjs
+- **AC-04-6-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs
   WHEN a report is asked for THEN it SHALL name what is owed, so a criterion with no verdict is
   visible without anyone counting.
 

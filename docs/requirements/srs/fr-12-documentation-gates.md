@@ -39,16 +39,16 @@ own usage line cannot name them and holding it there would fail on every true do
 specifying something not yet built declares that on its first line and may then name only the verbs
 it declares.
 
-- **AC-12-1-1** · Rev: 1 · Proof: plugin/test/doc-claims.test.mjs
+- **AC-12-1-1** · Rev: 1 · Proof: plugin/test/checks/doc-claims.test.mjs
   WHEN a document names a command in a code span THEN the check SHALL hold the verb against the
   CLI's own verb table, and SHALL hold a flag against the verb's own usage line only where that
   verb carries its flags itself rather than under a sub-verb.
-- **AC-12-1-2** · Rev: 1 · Proof: plugin/test/doc-claims.test.mjs
+- **AC-12-1-2** · Rev: 1 · Proof: plugin/test/checks/doc-claims.test.mjs
   IF a document opens by declaring itself a proposal for named verbs THEN those verbs SHALL be
   allowed and no others the CLI lacks.
-- **AC-12-1-3** · Rev: 1 · Proof: plugin/test/doc-claims.test.mjs
+- **AC-12-1-3** · Rev: 1 · Proof: plugin/test/checks/doc-claims.test.mjs
   IF a document names a switch the code reads nowhere THEN the check SHALL fail.
-- **AC-12-1-4** · Rev: 1 · Proof: plugin/test/doc-claims.test.mjs
+- **AC-12-1-4** · Rev: 1 · Proof: plugin/test/checks/doc-claims.test.mjs
   WHILE the check runs it SHALL count the claims it found and SHALL fail when the count says its
   own pattern matched nothing.
 
@@ -60,13 +60,13 @@ A document saying what a help text, a skill or the repository's rules file alrea
 nobody updates. The measure is a sentence overlap against every place a fact may already live, at a
 threshold calibrated on real documents rather than guessed.
 
-- **AC-12-2-1** · Rev: 1 · Proof: plugin/test/docs-have-one-home.test.mjs
+- **AC-12-2-1** · Rev: 1 · Proof: plugin/test/checks/docs-have-one-home.test.mjs
   IF a document's sentence overlaps a skill, a gate document or the rules file past the threshold
   THEN the check SHALL fail and SHALL print both sentences and where the other one lives.
-- **AC-12-2-2** · Rev: 1 · Proof: plugin/test/docs-have-one-home.test.mjs
+- **AC-12-2-2** · Rev: 1 · Proof: plugin/test/checks/docs-have-one-home.test.mjs
   IF a document explains code THEN the check SHALL fail, since mechanics belong to the help text and
   to the source.
-- **AC-12-2-3** · Rev: 1 · Proof: plugin/test/docs-have-one-home.test.mjs
+- **AC-12-2-3** · Rev: 1 · Proof: plugin/test/checks/docs-have-one-home.test.mjs
   WHILE the check runs it SHALL assert that its own selector matched documents, because a selector
   matching nothing looks exactly like a clean repository.
 - **AC-12-2-4** · Rev: 1 · Proof: none yet — ISS-27
@@ -103,7 +103,7 @@ Rev: 1 · Actors: agent · Enforces: BR-13
 A character no one can see is not a character anyone chose. One reached a source file here: the file
 ran, the suite passed, the diff reported binary content and a search matched nothing in it.
 
-- **AC-12-4-1** · Rev: 1 · Proof: plugin/test/sources-are-text.test.mjs
+- **AC-12-4-1** · Rev: 1 · Proof: plugin/test/checks/sources-are-text.test.mjs
   IF a tracked source holds a control character a text file has no use for THEN the check SHALL fail
   and SHALL name the file.
 
@@ -115,10 +115,10 @@ A reader that mentions nothing the change renamed is invisible to a search of th
 a change can reach are listed and ranked, with a cutoff that scales with the tree and a floor for a
 small one.
 
-- **AC-12-5-1** · Rev: 1 · Proof: plugin/test/blast-radius.test.mjs
+- **AC-12-5-1** · Rev: 1 · Proof: plugin/test/checks/blast-radius.test.mjs
   WHEN a change is examined THEN the check SHALL list the files that can reach it and SHALL not
   report the changed file as its own reader.
-- **AC-12-5-2** · Rev: 1 · Proof: plugin/test/blast-radius.test.mjs
+- **AC-12-5-2** · Rev: 1 · Proof: plugin/test/checks/blast-radius.test.mjs
   WHEN an identifier is deleted THEN it SHALL still count, because a reader elsewhere may expect it.
 
 ## Business rules enforced

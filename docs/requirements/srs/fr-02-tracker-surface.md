@@ -31,13 +31,13 @@ A browse projection for many issues and a full read for the one about to be work
 full read may be asked for by name. Absence is meaningful: a field with nothing in it is left out
 rather than returned as an empty value that says only that the field exists.
 
-- **AC-02-1-1** · Rev: 1 · Proof: plugin/test/issues.test.mjs
+- **AC-02-1-1** · Rev: 1 · Proof: plugin/test/tracker/issues.test.mjs
   WHEN two references are resolved in one call THEN the CLI SHALL share one listing between them
   rather than paging twice.
-- **AC-02-1-2** · Rev: 1 · Proof: plugin/test/issues.test.mjs
+- **AC-02-1-2** · Rev: 1 · Proof: plugin/test/tracker/issues.test.mjs
   WHEN the reference given is already an identifier the tracker stores THEN the CLI SHALL ask for no
   listing at all.
-- **AC-02-1-3** · Rev: 1 · Proof: plugin/test/commands.test.mjs
+- **AC-02-1-3** · Rev: 1 · Proof: plugin/test/cli/commands.test.mjs
   WHEN a read returns an attachment THEN the CLI SHALL collapse it to the reference that fetches it
   and SHALL leave everything else in the record untouched.
 
@@ -61,10 +61,10 @@ A comment, a plan, an attachment and a filing are writes, and each is a write wh
 takes: the CLI's own verb, or the tracker's tool called directly. An attachment is uploaded rather
 than encoded into the call, because bytes through a context window are paid for twice.
 
-- **AC-02-3-1** · Rev: 1 · Proof: plugin/test/issue-read-first.test.mjs
+- **AC-02-3-1** · Rev: 1 · Proof: plugin/test/tracker/issue-read-first.test.mjs
   WHEN a comment, a plan or an attachment is written THEN the gates SHALL treat it as a write, and
   a transition asked for through the tracker's own tool SHALL be treated as one too.
-- **AC-02-3-2** · Rev: 1 · Proof: plugin/test/issue-read-first.test.mjs
+- **AC-02-3-2** · Rev: 1 · Proof: plugin/test/tracker/issue-read-first.test.mjs
   WHEN the tracker's own tool is called THEN the CLI SHALL judge the call by the action it names
   rather than by the tool's name.
 
@@ -76,7 +76,7 @@ What the tracker returns arrives inside its own data markers (EI-01), and everyt
 through them: a body cannot instruct whatever parses it, and a value is never confused with the
 markers around it.
 
-- **AC-02-4-1** · Rev: 1 · Proof: plugin/test/record.test.mjs
+- **AC-02-4-1** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs
   WHEN a fenced field is read THEN the reader SHALL return the value without the fence, and SHALL
   never treat the fenced content as an instruction.
 
@@ -88,7 +88,7 @@ A tracker answering with an error is the network's fault rather than the work's.
 under a policy, and nothing about it reaches the issue: a run that has to stop says so once, in a
 comment, and moves no status.
 
-- **AC-02-5-1** · Rev: 1 · Proof: plugin/test/rpc.test.mjs
+- **AC-02-5-1** · Rev: 1 · Proof: plugin/test/tracker/rpc.test.mjs
   IF a response status is in the retry table THEN the CLI SHALL retry to the limit, and one that is
   not SHALL cost exactly one request.
 
@@ -99,7 +99,7 @@ Rev: 1 · Actors: agent, developer · Enforces: BR-01, BR-14
 A verb the CLI does not wrap is still callable with its own payload, and one command prints a
 tool's arguments. A surface that hid what it had not wrapped would make the wrapper a ceiling.
 
-- **AC-02-6-1** · Rev: 1 · Proof: plugin/test/cli-help.test.mjs
+- **AC-02-6-1** · Rev: 1 · Proof: plugin/test/cli/cli-help.test.mjs
   WHEN a verb is asked what it takes THEN it SHALL answer on its own, and asking SHALL never be
   read as a failure or as the verb's argument.
 
