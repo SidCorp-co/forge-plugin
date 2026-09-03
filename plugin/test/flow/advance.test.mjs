@@ -7,12 +7,13 @@ import { spawnSync } from "node:child_process";
 import { tempHome } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance").path;
-const { PARKS, render } = await import("../../src/flow/record.mjs");
+const { PARKS, parse, render } = await import("../../src/flow/record.mjs");
 const {
-  CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, holdsBack, markedCommit,
-  nextOf, planFlags, sameCommit, targetOf, viewFrom,
+  CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, holdsBack,
+  markedCommit, nextOf, personLooks, planFlags, sameCommit, shapeGaps, viewFrom,
 } = await import("../../src/flow/earned.mjs");
-const { USAGE, nextHeld } = await import("../../src/flow/advance.mjs");
+const { lookAhead, targetOf } = await import("../../src/flow/route.mjs");
+const { USAGE, checkTarget, nextHeld } = await import("../../src/flow/advance.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
@@ -40,13 +41,17 @@ test("the flow table names one next status, and a disposition sends the issue to
   }
   assert.equal(nextOf("closed", {}), null, "closed is terminal");
   assert.equal(nextOf("dropped", {}), null, "and so is dropped");
-  const holds = { confirmation: { record: { fields: { Finding: "holds" } } } };
-  const obsolete = { confirmation: { record: { fields: { Finding: "obsolete" } } } };
-  assert.equal(nextOf("confirmed", holds), "clarified");
-  assert.equal(nextOf("confirmed", obsolete), "dropped", "the confirmation is the reason");
-  assert.equal(dispositionOf(obsolete), "obsolete");
-  assert.equal(dispositionOf(holds), null);
+  const said = (finding) => view({}, [recorded("confirmation", { where: ["a.mjs"], is: "it is this", finding })]);
+  assert.equal(nextOf("confirmed", said("holds")), "clarified");
+  assert.equal(nextOf("confirmed", said("obsolete")), "dropped", "the confirmation is the reason");
+  assert.equal(dispositionOf(said("obsolete")), "obsolete");
+  assert.equal(dispositionOf(said("holds")), null);
   assert.equal(dispositionOf({}), null);
+  /* `dropped` has no entry check of its own, so the confirmation that names the disposition is the
+     whole of what earns it, and a comment carrying the finding alone earns nothing. */
+  const thin = view({}, [comment("## Confirmation\n\n- **Finding:** obsolete\n\n`forge-record: confirmation · contract 1`")]);
+  assert.equal(dispositionOf(thin), null, "a confirmation that is not a whole payload disposes of nothing");
+  assert.equal(nextOf("confirmed", thin), "clarified");
 });
 
 test("every park kind lands in one side status, and none is left without a home", () => {
@@ -112,10 +117,13 @@ test("approved needs the plan with both its declarations, and numbered criteria"
     "the plan declares neither `Screen change: yes|no` nor `Schema coupling: yes|no`, and the "
       + "two decide what the ship steps owe",
   ]);
-  assert.deepEqual(planFlags(PLAN), { screen: "no", schema: "no" });
-  assert.deepEqual(planFlags("Screen change: YES\nSchema coupling: yes"), { screen: "yes", schema: "yes" });
-  assert.deepEqual(planFlags("this is a screen change, and the schema is untouched"), { screen: null, schema: null },
+  assert.deepEqual(planFlags(PLAN), { screen: "no", schema: "no", look: null });
+  assert.deepEqual(planFlags("Screen change: YES\nSchema coupling: yes"), { screen: "yes", schema: "yes", look: null });
+  assert.deepEqual(planFlags("this is a screen change, and the schema is untouched"), { screen: null, schema: null, look: null },
     "prose about the two is not the two declared");
+  assert.equal(planFlags("User-facing outcome: yes.").look, "yes", "and the third line is read the same way");
+  assert.deepEqual(missing("approved", view({ plan: fenced("User-facing outcome: yes."), acceptanceCriteria: fenced(CRITERIA) })).length, 1,
+    "which is optional: its absence is no, and only the two required lines are owed here");
 });
 
 test("in_progress waits for every blocker to be developed, and for a baseline", () => {
@@ -185,6 +193,67 @@ test("a blocked park is lifted by the same filter the entry check reads", () => 
   assert.deepEqual(mentioned.missing, [], "a mention never parked it, so it does not hold it either");
   const ordered = parked({ otherDisplayId: "ISS-33", otherStatus: "open", kind: "blocks", gatesDispatch: true });
   assert.match(ordered.missing[0].what, /^ISS-33 gates this by a blocks edge/u);
+});
+
+test("a jump past where the triage routes is refused, and a side status names the park", () => {
+  const held = { issue: { status: "reopen" } };
+  assert.equal(checkTarget(undefined, "developed", held, "ISS-3"), undefined, "no target named is no jump");
+  assert.equal(checkTarget("developed", "developed", held, "ISS-3"), undefined);
+  assert.throws(() => checkTarget("closed", "developed", held, "ISS-3"), /is reopen and developed is next, not closed/u);
+  assert.throws(() => checkTarget("on_hold", "developed", held, "ISS-3"), /is a side status, which a park reaches/u);
+});
+
+/* A wrong-test triage moves the criteria and no commit with them, so every verdict on the record
+   still names the merged commit: judged on those, the issue would pass back through `tested` on the
+   very judgement the person disagreed with. */
+test("a reopen judges again, so a verdict from before its triage earns nothing", () => {
+  const ruling = (outcome) => recorded("triage", { outcome, "would-have-caught": "a criterion naming the order" }, "0");
+  const judged = (verdict) => recorded("verdict", { criterion: "1 — The first outcome.", verdict, commit: "43b811e", evidence: ["run.txt"] });
+  const shipped = {
+    plan: fenced(PLAN), acceptanceCriteria: fenced("1. The first outcome."),
+    attachments: ATTACHED, mergedAt: "2026-09-02T16:00:00.000Z",
+  };
+  /* The fixture clock stamps each record as it is made, so the order they are made in is the order
+     the assembly reads them in — which is the whole of what this rule turns on. */
+  const marked = mark("merged to master at 43b811e");
+  const early = judged("pass");
+  const wrong = ruling("wrong-test");
+  assert.deepEqual(missing("tested", view(shipped, [marked, early, wrong])), [
+    "the verdict on criterion 1 was written before this reopen's triage, and a reopen judges again",
+  ]);
+  const late = judged("pass");
+  assert.deepEqual(missing("tested", view(shipped, [marked, early, wrong, late])), [],
+    "a verdict written since the triage earns it again");
+  assert.equal(missing("tested", view(shipped, [marked, early, ruling("not-met")])).length, 1,
+    "and not-met sends the judging back too, because the code moved under it");
+  assert.deepEqual(missing("tested", view(shipped, [marked, early, ruling("not-in-spec")])), [],
+    "and not-in-spec found nothing wrong with this issue's own judging");
+  /* A wrong-test correction may drop the criterion that was wrong, and a verdict cannot be written
+     for a number the field no longer holds: asked for one, the issue could never reach `tested`. */
+  const dropped = { ...shipped, acceptanceCriteria: fenced("2. The second outcome.") };
+  assert.deepEqual(missing("tested", view(dropped, [marked, early, wrong])), ["criterion 2 has no verdict"]);
+});
+
+/* A result nobody with a stake in it looked at is what a reopen is usually made of, and the plan's
+   screen line was the only thing that asked for that look. */
+test("a user-facing outcome owes a person's look, and --owed says so first", () => {
+  const looking = "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes.";
+  const shipped = {
+    status: "tested", plan: fenced(looking), acceptanceCriteria: fenced(CRITERIA),
+    attachments: ATTACHED, releaseNotes: { section: "Fixed" },
+  };
+  const ready = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["run.txt"] })];
+  assert.deepEqual(missing("released", view(shipped, ready)), [
+    "the plan declares a user-facing outcome, and no person has answered since it was parked for review",
+  ]);
+  assert.equal(personLooks({ look: "yes", screen: "no" }), "a user-facing outcome");
+  assert.equal(personLooks({ look: null, screen: "yes" }), "a screen change");
+  assert.equal(personLooks({ look: "no", screen: "no" }), null, "and a plan declaring neither owes nobody");
+  const ahead = lookAhead(view({ ...shipped, status: "developed" }, []), "ISS-3");
+  assert.match(ahead, /^Ahead: released owes a person's look, because the plan declares a user-facing outcome/u);
+  assert.match(ahead, /--park screen-review/u);
+  assert.equal(lookAhead(view({ ...shipped, plan: fenced(PLAN) }, []), "ISS-3"), null, "a plan declaring neither says nothing ahead");
+  assert.equal(lookAhead(view({ ...shipped, status: "released" }, []), "ISS-3"), null, "and past it there is nothing ahead");
 });
 
 test("developed needs the mark, its commit, and an approving review of that commit", () => {
@@ -268,6 +337,25 @@ test("released needs a verification and a release note, and closed needs only re
   assert.deepEqual(missing("dropped", view({})), [], "the confirmation that dropped it is the reason");
 });
 
+/* The write refuses a commit that is not one and a criterion that is not a number, and this reads
+   records the write never saw: a comment through an unhooked client, or a hand. */
+test("a record read back is measured by the write's own rules, and a future contract by none it has", () => {
+  const tagged = (body) => view({ attachments: ATTACHED }, [comment(body)]);
+  const junk = tagged("## Baseline\n\n- **Gate:** npm test\n- **Result:** green\n- **Commit:** c8c3550junk\n\n`forge-record: baseline · contract 1`");
+  assert.deepEqual(missing("in_progress", junk), ["the baseline on the record is not a whole payload: it lacks --commit `c8c3550junk`, which is no commit"]);
+  const unnumbered = tagged("## Verdict\n\n- **Criterion:** the first outcome\n- **Verdict:** pass\n- **Commit:** 43b811e\n- **Evidence:** run.txt\n\n`forge-record: verdict · contract 1`");
+  assert.match(shapeGaps("verdict", parse(unnumbered.comments[0].body), ["run.txt"]).join(" "), /which opens with no number/u);
+  const ahead = tagged("## Baseline\n\n- **Gate:** npm test\n- **Result:** green\n- **Commit:** 43b811e\n\n`forge-record: baseline · contract 9`");
+  assert.match(missing("in_progress", ahead)[0], /a contract 9 record, and this build reads contract 1/u);
+  /* The stamp is read off the issue at the write and is no flag, so a copy of the shape can carry
+     every flag and still not be a park: nothing on it says which status it left. */
+  const unstamped = view({ status: "waiting", attachments: ATTACHED }, [
+    comment("## Park\n\n- **Kind:** screen-review\n- **Why:** look at it\n\n`forge-record: park · contract 1`"),
+  ]);
+  assert.match(shapeGaps("park", parse(unstamped.comments[0].body), []).join(" "), /its Status left stamp/u);
+  assert.throws(() => targetOf(unstamped, "ISS-3"), /no park record/u, "and it resumes nothing");
+});
+
 test("a comment carrying the tag and little else is no payload", () => {
   const stamped = { mergedAt: "2026-09-02T13:49:51.777Z" };
   const landed = mark("merged to master at c8c3550");
@@ -284,14 +372,16 @@ test("a comment carrying the tag and little else is no payload", () => {
     "criterion 2 has no verdict",
     "the verdict on criterion 1 lacks --evidence (repeatable): a verdict with none is refused",
   ]);
-  assert.equal(dispositionOf({ confirmation: { record: { fields: { Finding: "maybe" } } } }), null,
-    "a finding off the list drops nothing");
+  assert.equal(dispositionOf(view({}, [recorded("confirmation", { where: ["a"], is: "b", finding: "maybe" })])), null,
+    "a finding off the list is no payload, and disposes of nothing");
 });
 
 /* The park record is written before the reply that answers it, and the fixture clock says so:
    a reply that predates the park answered something else. */
 test("a parked issue resumes where its park record says it left, once somebody answers", () => {
-  const asked = (kind, left) => recorded("park", { kind, why: "asked", evidence: [] }, left);
+  /* A park for a reviewer names what to look at, and the read-back holds it to that the way the
+     write does: the shape's own rule, so a hand's copy cannot skip it. */
+  const asked = (kind, left) => recorded("park", { kind, why: "asked", evidence: ["https://example.test/shot.png"] }, left);
   const at = (status, comments, issue = {}) => targetOf(view({ status, ...issue }, comments), "ISS-3");
   assert.throws(() => at("waiting", []), /no park record/u);
   assert.throws(() => at("waiting", [asked("code-review", "nowhere")]), /no step of the flow/u);
@@ -316,6 +406,13 @@ test("a parked issue resumes where its park record says it left, once somebody a
   assert.match(blocked("open").missing[0].what, /^ISS-4 gates this by a blocks edge/u);
   assert.deepEqual(blocked("developed").missing, [], "the next run picks up a blocked issue itself");
   assert.equal(blocked("developed").next, "approved");
+
+  /* The park that put the issue where it is, and not the last one written: a side status set from
+     outside, with an older park of another kind behind it, would resume by that park's policy. */
+  const stale = at("waiting", [asked("paused", "in_progress"), asked("screen-review", "tested")]);
+  assert.equal(stale.next, "tested", "the screen-review park is the one that lands in waiting");
+  assert.throws(() => at("needs_info", [asked("screen-review", "tested")]), /no park record/u,
+    "and a park of a kind that lands elsewhere resumes nothing");
 });
 
 /* The one piece of run state the sixth dry run lost was which codex round it was in, and --owed is

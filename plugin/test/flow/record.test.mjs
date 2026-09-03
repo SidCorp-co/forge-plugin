@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "record-"));
 const {
-  CONTRACT, KINDS, SHAPES, USAGE, OUTCOMES, assemble, conjunctionsFor, criteriaLines, joinedCriteria, noteFrom, parse, render, unwrap,
+  CONTRACT, KINDS, SHAPES, SHOWS_EVIDENCE, TRIAGES, USAGE, OUTCOMES, assemble, conjunctionsFor, criteriaLines, joinedCriteria, noteFrom, parse, render, unwrap,
 } = await import("../../src/flow/record.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -62,9 +62,62 @@ test("a review names its reviewer, head and outcome, and each finding is an id w
   assert.match(check({ finding: ["F1 accepted: extra"] }), /each --finding as/u, "an accepted finding carries no reason");
 });
 
+/* The person's voice and the agent's answer to it, the two writes a reopen is made of: before
+   them, what a person found lived in a plain comment the report never read (ISS-43). */
+test("a finding carries the person's words and at most one thing it is about", () => {
+  const body = render("finding", {
+    expected: "the list sorted by name", seen: "sorted by id",
+    evidence: ["run.txt"], quoted: "I cannot find anything in it",
+  });
+  assert.match(body, /^## Finding$/mu);
+  assert.match(body, /^- \*\*Expected:\*\* the list sorted by name$/mu);
+  assert.match(body, /^- \*\*In their words:\*\* I cannot find anything in it$/mu);
+  assert.equal(parse(body).kind, "finding");
+  const { check, fields, repeats } = SHAPES.finding;
+  assert.equal(check({ criterion: "3" }), null);
+  assert.equal(check({ uc: "UC-05-2" }), null);
+  assert.match(check({ criterion: "3", uc: "UC-05-2" }), /one of --criterion and --uc, not both/u);
+  assert.deepEqual(fields.filter((one) => !one.optional).map((one) => one.flag), ["expected", "seen", "evidence", "quoted"]);
+  assert.ok(repeats, "a second look finds a second thing, and the report shows both");
+  /* Stamped from the issue rather than typed, because a value the author could get wrong is the
+     very value the record is matched by when a second reopen asks which pair is its own. */
+  const stamped = render("finding", { expected: "e", seen: "s", evidence: ["run.txt"], quoted: "q" }, "2");
+  assert.match(stamped, /^- \*\*Reopen:\*\* 2$/mu);
+  assert.equal(parse(stamped).fields.Reopen, "2");
+  for (const kind of ["finding", "triage"]) {
+    assert.equal(SHAPES[kind].status, "Reopen", kind);
+    assert.equal(SHAPES[kind].from, "reopenCount", `${kind} reads its stamp off the issue`);
+    assert.ok(!SHAPES[kind].fields.some((one) => one.flag === "reopen"), `${kind} takes no --reopen`);
+  }
+  assert.equal(SHAPES.park.from, undefined, "and a park's stamp is still the status it left");
+});
+
+test("a triage rules on one of three outcomes and says what would have caught it", () => {
+  assert.deepEqual(TRIAGES, ["wrong-test", "not-met", "not-in-spec"]);
+  const body = render("triage", { outcome: "not-met", "would-have-caught": "a verdict judged against the list" });
+  assert.match(body, /^- \*\*Outcome:\*\* not-met$/mu);
+  assert.match(body, /^- \*\*Would have caught it:\*\* a verdict judged against the list$/mu);
+  assert.equal(parse(body).kind, "triage");
+  const { fields, repeats } = SHAPES.triage;
+  assert.deepEqual(fields.filter((one) => !one.optional).map((one) => one.flag), ["outcome", "would-have-caught"]);
+  assert.deepEqual(fields.find((one) => one.flag === "outcome").oneOf, TRIAGES);
+  assert.ok(repeats);
+  const run = ask("record", "triage", "ISS-43", "--outcome", "nope", "--would-have-caught", "a criterion");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--outcome takes one of wrong-test, not-met, not-in-spec/u, run.stderr);
+  assert.equal(run.stdout, "", "and it is refused before anything is fetched");
+});
+
 test("a park records the status it left, and free text is no record", () => {
   const body = render("park", { kind: "blocked", why: "ISS-9 first", evidence: [] }, "in_progress");
   assert.match(body, /^- \*\*Status left:\*\* in_progress$/mu);
+  /* One list for the three parks that speak to a reviewer, applied by the shape rather than by the
+     verb, so a record read back is held to it the way the write is. */
+  assert.deepEqual(SHOWS_EVIDENCE, ["screen-review", "code-review", "destructive-migration"]);
+  const { check } = SHAPES.park;
+  assert.match(check({ kind: "screen-review", evidence: [] }), /a screen-review park names what the reviewer is to look at/u);
+  assert.equal(check({ kind: "screen-review", evidence: ["run.txt"] }), null);
+  assert.equal(check({ kind: "blocked", evidence: [] }), null, "and a park nobody has to look at names nothing");
   assert.equal(parse("## Confirmation\n- **Finding:** holds\n"), null, "no parsed line, no record");
   assert.equal(parse("`forge-record: nonsense · contract 1`"), null, "an unknown kind is no record");
 });
@@ -107,6 +160,36 @@ test("the report keeps the latest of each kind, the latest verdict per criterion
   assert.equal(latest.confirmation.record.fields["What it is"], "new");
   assert.equal(verdicts.get(1).record.fields.Verdict, "pass", "the later verdict replaces");
   assert.deepEqual(owed, [3]);
+});
+
+/* The latest of a kind is right for a kind that can only be current, and wrong for one that
+   repeats: four corrections were written and one was reported in the fourth dry run. */
+test("every finding and every triage is on the report, not the latest of each", () => {
+  const at = (n) => `2026-09-03T05:0${n}:00.000Z`;
+  const found = (seen, when) => ({
+    createdAt: at(when),
+    body: render("finding", { expected: "sorted by name", seen, evidence: ["run.txt"], quoted: "cannot find it" }),
+  });
+  const ruled = (outcome, when) => ({
+    createdAt: at(when),
+    body: render("triage", { outcome, "would-have-caught": "a criterion naming the order" }),
+  });
+  const { latest, repeated } = assemble([found("sorted by id", 1), ruled("not-met", 2), found("still by id", 3), ruled("wrong-test", 4)], []);
+  assert.deepEqual(repeated.finding.map((one) => one.record.fields.Seen), ["sorted by id", "still by id"]);
+  assert.deepEqual(repeated.triage.map((one) => one.record.fields.Outcome), ["not-met", "wrong-test"]);
+  assert.equal(latest.finding.record.fields.Seen, "still by id", "and the latest of each is still there, for the brief");
+  assert.equal(repeated.confirmation, undefined, "a kind that can only be current keeps no list");
+  for (const kind of Object.keys(SHAPES)) {
+    assert.equal(Boolean(SHAPES[kind].repeats), ["finding", "triage"].includes(kind), `${kind} repeats or it does not`);
+  }
+});
+
+/* Every record carries the contract it was written under, and the reader judges all of them against
+   the one current set of shapes. That is honest while there is one version and wrong the moment
+   there are two, so this fails at the bump rather than after a payload has been re-judged by a rule
+   it was never written under. The reviewer asked for the tripwire rather than speculative shapes. */
+test("the shape reader is not versioned, so the contract may not be bumped until it is", () => {
+  assert.equal(CONTRACT, 1, "before this moves, shapeGaps has to dispatch on record.contract");
 });
 
 test("the shapes say what each field is called on the record", () => {

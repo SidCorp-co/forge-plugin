@@ -7,6 +7,7 @@ import { write } from "../tracker/rpc.mjs";
 import {
   COMMENT_PAGE,
   PARKS,
+  SHOWS_EVIDENCE,
   Refused,
   attachmentNames,
   checkEvidence,
@@ -16,14 +17,13 @@ import {
   refuse,
   render,
 } from "./record.mjs";
-import { PARK_STATUS, SIDE, atLeast, payloadOwed, targetOf, transitionCall, viewFrom } from "./earned.mjs";
+import { PARK_STATUS, SIDE, atLeast, payloadOwed, transitionCall, viewFrom } from "./earned.mjs";
+import { lookAhead, targetOf } from "./route.mjs";
 import { FIELD, leaseOf, nextLine, renew } from "./lease.mjs";
 
-/* A needs_info park owes the readings only the question shape carries; a reviewer's park owes
-   the thing to look at. Both are the payload the person on the other side reads. */
+/* A needs_info park owes the readings only the question shape carries. */
 const ASKS_A_QUESTION = "question";
 const ASKED_AT = ["open", "confirmed"];
-const SHOWS_EVIDENCE = ["screen-review", "code-review", "destructive-migration"];
 
 export const USAGE = [
   usageOf("advance"),
@@ -48,6 +48,10 @@ export const USAGE = [
   "  closed        released",
   "  dropped       a confirmation whose finding is a disposition, or --drop --why",
   "",
+  "A reopen is a person's word and the tracker's own status. From it the verb reads the person's",
+  "finding and the agent's triage of it, and routes: the criterion was the wrong test, back to",
+  "developed; it was not met, back to in_progress; the expectation is not in the specification, a",
+  "park behind the issue that owes it. Never above the status the reopen landed on.",
   "",
   "A transition clears the line the status it left had set, because that step is over. --owed",
   "prints the line when one is set and moves nothing.",
@@ -74,8 +78,8 @@ export const transitionTo = async (view, status, ref, note = "", next = null) =>
 
 /* The two writes of one park, in the order a reader of the record needs them: the typed reason
    first, then the status it sends the issue to. The crashed park a reclaim writes lands here too. */
-export const parkAs = async (view, ref, kind, why, evidence = []) => {
-  await post(view.documentId, render("park", { kind, why, evidence }, view.issue.status), ref);
+export const parkAs = async (view, ref, kind, why, evidence = [], left = null) => {
+  await post(view.documentId, render("park", { kind, why, evidence }, left ?? view.issue.status), ref);
   await transitionTo(view, PARK_STATUS[kind], ref);
 };
 
@@ -110,6 +114,21 @@ const park = async (view, ref, kind, why, evidence) => {
   }
   if (evidence.length) checkEvidence(evidence, attachmentNames(view.issue, view.comments));
   await parkAs(view, ref, kind, why, evidence);
+};
+
+/* A named target is checked rather than obeyed: the only legal one is where the route says the
+   issue goes, which for a reopen is wherever its triage decided. */
+export const checkTarget = (to, next, view, ref) => {
+  if (!to || to === next) return;
+  if (SIDE.includes(to)) refuse(`${to} is a side status, which a park reaches: forge advance ${ref} --park <kind> --why "<why>".`);
+  refuse(`${ref} is ${view.issue.status} and ${next} is next, not ${to}. A jump past a status is refused.`);
+};
+
+/* Printed under the shortfall and under "the record earns it" alike, because the point of it is
+   that a run reads it before the status it belongs to is the one being asked for. */
+const sayAhead = (view, ref) => {
+  const said = lookAhead(view, ref);
+  if (said) console.log(`\n${said}`);
 };
 
 export const shortfall = (ref, view, next, missing) => {
@@ -158,20 +177,23 @@ const run = async (argv) => {
   if (given.park || given.drop) {
     return park(view, ref, given.park ?? "dropped", given.why, given.evidence);
   }
-  const { next, missing, resumed } = targetOf(view, ref);
-  if (given.to && given.to !== next) {
-    if (SIDE.includes(given.to)) refuse(`${given.to} is a side status, which a park reaches: forge advance ${ref} --park <kind> --why "<why>".`);
-    refuse(`${ref} is ${view.issue.status} and ${next} is next, not ${given.to}. A jump past a status is refused.`);
-  }
+  const { next, missing, resumed, park: routed } = targetOf(view, ref);
+  checkTarget(given.to, next, view, ref);
   if (missing.length) {
     shortfall(ref, view, next, missing);
     const owed = `${missing.length} item(s) owed before ${next}.`;
     /* Asked what is owed, the answer is the answer; asked to move, the same list is a refusal. */
-    return given.owed ? console.log(`\n${owed}`) : fail(owed);
+    if (!given.owed) return fail(owed);
+    console.log(`\n${owed}`);
+    return sayAhead(view, ref);
   }
   if (given.owed) {
-    return console.log(`${ref} is ${view.issue.status}; ${next} is next and the record earns it. \`forge advance ${ref}\` moves it.`);
+    console.log(`${ref} is ${view.issue.status}; ${next} is next and the record earns it. \`forge advance ${ref}\` moves it.`);
+    return sayAhead(view, ref);
   }
+  /* The triage that puts the expectation outside the specification writes its park here, because a
+     park is a record and a status and the route decided both from the triage the record holds. */
+  if (routed) return parkAs(view, ref, routed.kind, routed.why, [], routed.left);
   return transitionTo(view, next, ref, resumed ? "  (resumed where its park left it)" : "", given.next ?? null);
 };
 

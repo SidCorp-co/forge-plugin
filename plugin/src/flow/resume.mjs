@@ -84,10 +84,12 @@ const owed = (brief, view, ref) => {
     console.log(`${ref} is ${brief.status}; ${brief.owed.next} is next and the record earns it.`);
     console.log(`  forge advance ${ref}${brief.owed.resumed ? "   (it resumes where its park left it)" : ""}`);
   } else console.log(`${ref} is ${brief.status}; nothing advances from it.`);
+  if (brief.ahead) console.log(`\n${brief.ahead}`);
 };
 
 const print = (brief, view, ref) => {
-  console.log(`${ref}  ${brief.status}${brief.phase ? `  —  phase owed: ${brief.phase}` : ""}`);
+  console.log(`${ref}  ${brief.status}${brief.phase ? `  —  phase owed: ${brief.phase}` : ""}`
+    + `${brief.reopens ? `  —  reopened ${brief.reopens} time(s)` : ""}`);
   block("Lease", held(brief));
   block("Plan", planLines(brief, ref));
   block("Criteria", brief.criteria.map((one) => `${one.mark.padEnd(10)} ${one.number}. ${one.text}`));

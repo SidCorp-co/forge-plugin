@@ -45,7 +45,7 @@ issue. They write to the project, never to a transition.
 | `in_progress` | code is being written against this plan | `approved`; every blocker that gates dispatch at least `developed`, read from the edge's own answer and not from the list it arrived in, so a mention gates nothing; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the review and the merge |
 | `developed` | the change was reviewed and is on the default branch | an approving review of the head that landed: the reviewer, the findings with a verdict on each by id, the outcome *approved*; a person's approval where the project asks for one; then the merged mark with its commit | 5 Prove |
 | `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all against the merged commit; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
-| `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; for a screen change, a review comment from a person | closing, by a person or the run's end |
+| `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; a review comment from a person where the plan declares a screen change or a user-facing outcome | closing, by a person or the run's end |
 | `closed` | nothing more happens unless reopened; code landed | `released` | none |
 
 The phase a status owes produces the payload that earns the next row, so reading the status is
@@ -54,7 +54,8 @@ never for fit: whether an attachment is really the migration classification, or 
 an approving screen review, is the reviewer's judgement, and a check that tried to make it would
 refuse honest records and pass dishonest ones alike. The tracker's `draft`, `testing` and `reopen` statuses are not steps and `advance`
 never enters them: `draft` is the reporter's, before `open`; `testing` is a label this contract has
-no use for, since `developed` already says where the change is; `reopen` is an action, below.
+no use for, since `developed` already says where the change is; `reopen` is a person's, and the verb
+reads the finding and the triage it leaves behind and routes what follows, below.
 
 **The parks are messages to a person, typed by who has to answer.** Each records the status it
 left, and `advance` resumes there. The other half is who lifts it: a reply from any author but the
@@ -114,7 +115,7 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 
 | Scenario | Writes | Goes to |
 |---|---|---|
-| the plan is possible | the plan in its field; numbered criteria in theirs; the screen and schema flags | `approved` |
+| the plan is possible | the plan in its field; numbered criteria in theirs; the screen and schema flags, and the user-facing outcome where a person judges the result | `approved` |
 | a criterion joined by a conjunction | a warning at the write, never a refusal | unchanged until the author splits it or keeps it |
 | planning proves the claim false | a new confirmation with a disposition finding | back to `confirmed`, then `dropped` |
 | the project names an approver | nothing more | `approved` once that person has commented |
@@ -151,8 +152,8 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 
 | Scenario | Writes | Goes to |
 |---|---|---|
-| shipped and seen running | a verification citing where it runs; the release note, or *Skip* with a reason; for a screen change, a person's review comment | `released` |
-| a screen change not yet reviewed | the rendered evidence, attached | `waiting`, kind screen review; the reviewer's comment resumes |
+| shipped and seen running | a verification citing where it runs; the release note, or *Skip* with a reason; a person's review comment where the plan declares a screen change or a user-facing outcome | `released` |
+| a result a person judges, not yet seen by one | the rendered evidence, attached | `waiting`, kind screen review; the reviewer's comment resumes |
 | the deploy fails and the route rolls it back | the rollback taken and its evidence | `on_hold`, kind rolled back |
 | the deploy fails and nothing rolls it back | what is lost, and the evidence | `on_hold`, kind no way back |
 | a fix lands meanwhile | nothing; the merged commit moved | unearned to `in_progress` until the new head is reviewed |
@@ -164,12 +165,31 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 | the run ends, or a person decides | nothing | `closed` |
 | a later regression | a new issue | unchanged |
 
-### `closed`, `dropped` — terminal
+### `closed`, `dropped` — terminal, until a person disagrees
 
 | Scenario | Writes | Goes to |
 |---|---|---|
-| a person disagrees with a drop | `reopen`, a person's word | the status held before the drop, its criteria rechecked |
-| a person disagrees with a close | `reopen` | `released`; a regression is a new issue, not a reopen |
+| a person disagrees with a close or a drop | `reopen`, a person's word, and a finding typed on their behalf: what they expected, what they saw, the evidence, the criterion or use case it concerns when they name one, and their own words quoted | `reopen`, which is where their word leaves the issue and is no step of the flow |
+| the criterion asked the wrong thing | a triage, outcome *wrong-test*, on a finding that names the criterion; the criteria corrected, and a correction written since the triage — the fall is refused without all three, and the finding's own quote of that line is what says whether it moved | `developed`, new verdicts owed and the old ones standing as superseded |
+| the criterion was right and was not met | a triage, outcome *not-met*; a failing verdict written since the triage, on the criterion the finding names where it names one, which the fall is refused without | `in_progress`, until the new head is reviewed |
+| nothing ever promised what they expected | a triage, outcome *not-in-spec*; a spec change or a new issue, blocking this one by an edge, which the park is refused without | `on_hold`, kind blocked, at the status the reopen landed on; nothing about this issue's own work was wrong |
+| a regression, rather than a result that was always wrong | a new issue naming this one | unchanged |
+
+Where the reopen landed is read from the merged mark: a mark means code landed, so a close was
+reopened and the issue lands on `released`; no mark means nothing landed, so a drop was reopened and
+it lands on the status its dropped park recorded. A triage says how far back the work goes and never
+how far forward, so the landing status is the ceiling — a reopened drop that landed at `clarified`
+is not sent to `developed` by a triage. A reopen with no finding, or a finding with no triage, moves
+nothing, and the refusal names both writes. Each outcome owes one write of its own before the fall,
+because a triage is a ruling about the record as it stands and the record has to change to match it.
+Every reopen owes a finding and a triage of
+its own, each stamped at the write with the reopen it belongs to and matched by that number, because
+the ruling on one look is not the ruling on the next. A reopen also judges again: every verdict
+written before this reopen's triage is unearned, since a *wrong-test* moves no commit and the
+verdicts already there would otherwise pass again on the judgement the person disagreed with. Every
+triage names
+what would have caught it, since a reopen whose lesson goes unwritten is one the next issue pays for
+again.
 
 Across every stage: a park records its kind, its evidence and the status it left; a refusal names
 the missing item and the command that supplies it.
@@ -331,9 +351,14 @@ compares for itself; when the criteria field changes, `tested`, `released` and
 `closed` are unearned and the issue falls back to `developed`. Old reviews and verdicts stay as
 superseded history and the new ones are written beside them. A plan or criteria edit after
 `approved` also owes a correction comment saying what moved and why, and the write is refused
-without it, so criteria cannot be quietly relaxed to fit what got built. `reopen` is a person's
-word: on `dropped` it returns the issue to the status it held before the drop, on `closed` to
-`released`, and `advance` picks up with that status's criteria rechecked.
+without it, so criteria cannot be quietly relaxed to fit what got built.
+
+**And a person's finding unearns like a change to the code.** `reopen` is a person's word, and two
+writes follow it: their finding, and the agent's triage of it. The triage is what unearns, and the
+stages above say which way — the criteria, the code, or neither, when nothing about this issue's own
+work was wrong. Nothing is deleted there either. What a person found is not a status that quietly
+moved: it is a record with their words in it, and the count of reopens the tracker keeps beside it
+is the one fact saying this has happened before.
 
 **A disposition is a drop with its finding as the reason.** A confirmation whose finding is a
 disposition earns `confirmed` and, on the next advance, `dropped`; the same comment is the evidence
@@ -387,10 +412,11 @@ mark's is not approving. Both sets are on the record; nothing inspects the repos
 output said the words.
 
 **Evidence is typed at the write.** Every payload above is a write of a shape the CLI owns — a
-confirmation, a decision record, a question, a review, a verdict, a verification — and a report is
+confirmation, a decision record, a question, a review, a verdict, a verification, a person's finding
+and the triage of it — and a report is
 assembled from the record rather than written from memory: the latest of each kind that can only
 be current, and every instance of a kind that repeats, so a report shows four corrections when
-four were written (owed by ISS-11; today only verdicts are kept per instance). A separator between
+four were written (owed by ISS-11; today only verdicts, findings and triages are kept per instance). A separator between
 repeated values must be one a value cannot contain, or the record does not read back as it was
 written (owed by ISS-14; today the pair that separates them can occur inside one), and a repeated
 flag value, which the verb keeps to one line at the write, renders as one line each, because six
@@ -444,9 +470,10 @@ the server is the tracker's to add, and this contract is its specification.
 - What a project with no deploy step writes for `released`.
 - Where the way back from each ship step is recorded — the plan, for a change with deploy
   coupling, or the project's settings once. Today it is checked nowhere.
-- Whether `advance` offers `reopen`. Today it refuses at `closed` and names the raw transition,
-  because reopening is a person's word; if that stands, the raw call is the documented route and
-  belongs here, not only in a refusal.
+- How a use case is marked as one a person judges. Today the plan declares it in a line of its own,
+  because a status may not be decided by reading the repository and the plan is where a declaration
+  about this change already lives; a field on the clause would let the criteria that cite it decide
+  instead, which is ISS-28's citation form once it lands.
 - What `advance` does on an issue whose comments exceed one page. Today it refuses every
   operation, `--owed` included, which is safe and useless; it wants a cursor from the tracker, or a
   rule that only a status-moving operation needs the whole record.

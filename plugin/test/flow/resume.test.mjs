@@ -61,7 +61,7 @@ test("the brief carries the status, the phase it owes and the reference that hol
   assert.equal(one.status, "in_progress");
   assert.equal(one.phase, "4 Implement, to the review and the merge");
   assert.equal(one.reference, "skills/issue-flow/references/verification.md");
-  for (const status of [...ORDER, "dropped"]) {
+  for (const status of [...ORDER, "dropped", "reopen"]) {
     assert.ok(PHASE[status], `${status} owes no phase, so a resuming run is told nothing`);
     const held = methodOf(status);
     assert.ok(existsSync(new URL(`../../${held.reference}`, import.meta.url)), `${held.reference} resolves nowhere`);
@@ -105,6 +105,22 @@ test("the latest confirmation, decision and correction come down to one line eac
   assert.match(long.latest.confirmation.said, /…$/u);
 });
 
+/* A reopen is the one thing the record could not show: what the person found lived in a plain
+   comment, and how often it had happened lived in a field nothing read (ISS-43). */
+test("the brief carries the finding, the triage and the reopen count", () => {
+  const one = brief({ reopenCount: 2 }, [
+    recorded("finding", { expected: "sorted by name", seen: "sorted by id", evidence: ["run.txt"], quoted: "I cannot find anything" }),
+    recorded("triage", { outcome: "not-met", "would-have-caught": "a verdict judged against the list" }),
+  ]);
+  assert.equal(one.latest.finding.said, "sorted by id", "the headline of a finding is what was seen");
+  assert.equal(one.latest.triage.said, "not-met", "and of a triage, the outcome that routes the fall");
+  assert.equal(one.reopens, 2);
+  assert.equal(brief().reopens, 0, "an issue nobody reopened says nothing about it");
+  assert.equal(brief().ahead, null, "and a plan declaring no person's look says nothing ahead");
+  const looking = brief({ plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes." });
+  assert.match(looking.ahead, /^Ahead: released owes a person's look/u);
+});
+
 test("the worklog and the lease's line are read out of the field, and never from the repository", () => {
   const one = brief();
   assert.deepEqual(one.worklog, WORKLOG, "what the last run wrote is what the brief says");
@@ -136,6 +152,14 @@ test("every blocking edge is named with its kind, and the park with the status i
   assert.equal(edgeSaid({ gates: false, satisfied: false }), "not an edge the tracker gates dispatch on");
   const parked = brief({ status: "on_hold" }, [recorded("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress")]);
   assert.match(parked.park.said, /three reclaims of in_progress/u);
+  /* The park the owed route resumes from, chosen the way that route chooses it: a newer park may
+     land in another side status, and a brief showing that one would disagree with its own owed. */
+  const both = brief({ status: "on_hold" }, [
+    recorded("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress"),
+    recorded("park", { kind: "screen-review", why: "look at it", evidence: ["https://example.test/x"] }, "tested"),
+  ]);
+  assert.match(both.park.said, /three reclaims of in_progress/u, "the newer park lands in waiting, not here");
+  assert.equal(both.owed.next, "in_progress", "and the owed route reads the same one");
   assert.ok(SIDE.includes("on_hold"));
 });
 

@@ -2,15 +2,17 @@
    record read whole into one object. The verb that spends this is advance.mjs; nothing here
    writes, fetches or reads the repository. docs/issue-flow-contract.md holds the tables. */
 import {
+  CONTRACT,
   FINDINGS,
   Refused,
   SHAPES,
+  TRIAGES,
   assemble,
   attachmentNames,
   criteriaLines,
   evidenceHeld,
+  isCommit,
   parse,
-  refuse,
   unwrap,
 } from "./record.mjs";
 
@@ -19,10 +21,9 @@ export const ORDER = [
   "open", "confirmed", "clarified", "approved", "in_progress", "developed", "tested", "released", "closed",
 ];
 
-/* The flow table's last column: which phase a status owes while it is held, and where the method
-   for it lives. The path is relative to the plugin root, which is one level above this module in
-   the checkout and in the installed copy alike. ISS-18 owns the day this is typed rather than a
-   pointer; until then a pointer beats a phase number nobody can look up. */
+/* The flow table's last column: which phase a status owes, and where its method lives, at a path
+   relative to the plugin root — one level above this module in the checkout and in the installed
+   copy alike. ISS-18 owns typing it; a pointer beats a number nobody can look up. */
 export const PHASE = {
   open: ["1 Triage", "triage.md"],
   confirmed: ["2 Clarify", "clarify.md"],
@@ -34,6 +35,7 @@ export const PHASE = {
   released: ["closing, by a person or the run's end", "release-note.md"],
   closed: ["none", "learning.md"],
   dropped: ["none", "learning.md"],
+  reopen: ["1 Triage, of the person's finding", "triage.md"],
 };
 
 export const methodOf = (status) => {
@@ -42,7 +44,7 @@ export const methodOf = (status) => {
 };
 
 /* Which reader each park kind speaks to, and so which side status it lands in. Every kind in PARKS
-   has a row: a park with nowhere to go would be a status set from nothing. */
+   has a row: a park with nowhere to go is a status set from nothing. */
 export const PARK_STATUS = {
   question: "needs_info",
   "screen-review": "waiting",
@@ -84,9 +86,10 @@ const lastMark = (comments) => {
 export const markedCommit = (comments) => AT_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
 export const reviewedHead = (comments) => HEAD_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
 
-/* `parse` reads the labels a record rendered and applies none of the shape's rules, so a comment
-   carrying the tag and little else — written by hand, or through a client no gate sits before —
-   is measured against its shape here before it earns anything. */
+/* `parse` reads the labels and applies none of the shape's rules, so a comment carrying the tag and
+   little else — by hand, or through a client no gate sits before — is measured against the write's
+   own rules here: every field, the stamp the write reads off the issue, the evidence, the contract.
+   A commit that is not one compares equal to a short sha by prefix, which is why the form counts. */
 export const shapeGaps = (kind, record, names = []) => {
   const shape = SHAPES[kind];
   const got = Object.fromEntries(shape.fields.map((field) => {
@@ -102,8 +105,16 @@ export const shapeGaps = (kind, record, names = []) => {
       return Boolean(field.oneOf) && !field.oneOf.includes(held);
     })
     .map((field) => `--${field.flag}`);
-  /* A written record had its evidence checked against the issue; one read back is checked again,
-     because the comment may have come from a hand or a client no check sits in front of. */
+  for (const field of shape.fields.filter((one) => !one.many)) {
+    const held = got[field.flag];
+    if (held === undefined) continue;
+    if (field.commit && !isCommit(held)) gaps.push(`--${field.flag} \`${held}\`, which is no commit`);
+    if (field.criterion && !/^\d+\b/u.test(held)) gaps.push(`--${field.flag} \`${held}\`, which opens with no number`);
+  }
+  if (shape.status && record.fields[shape.status] === undefined) gaps.push(`its ${shape.status} stamp`);
+  if (!(record.contract >= 1 && record.contract <= CONTRACT)) {
+    return [...gaps, `a contract ${record.contract} record, and this build reads contract 1 to ${CONTRACT}`];
+  }
   for (const field of shape.fields.filter((one) => one.evidence)) {
     for (const ref of got[field.flag]) {
       if (!evidenceHeld(ref, names)) gaps.push(`--${field.flag} \`${ref}\`, which is no attachment here, no URL and no commit`);
@@ -122,27 +133,43 @@ export const criteriaOf = (issue) => {
   }
 };
 
-export const dispositionOf = (latest) => {
-  const finding = latest.confirmation?.record.fields.Finding;
+/* Whole first: `dropped` has no checks of its own, so a confirmation carrying the finding and
+   nothing else would drop an issue on one line. */
+export const dispositionOf = (view) => {
+  const held = view.latest?.confirmation;
+  if (!held || shapeGaps("confirmation", held.record, view.names ?? []).length) return null;
+  const finding = held.record.fields.Finding;
   return FINDINGS.includes(finding) && finding !== "holds" ? finding : null;
 };
 
-export const nextOf = (status, latest) => {
-  if (status === "confirmed" && dispositionOf(latest)) return "dropped";
+export const nextOf = (status, view) => {
+  if (status === "confirmed" && dispositionOf(view)) return "dropped";
   const at = ORDER.indexOf(status);
   return at < 0 || at === ORDER.length - 1 ? null : ORDER[at + 1];
 };
 
-const need = (what, command) => ({ what, command });
+export const need = (what, command) => ({ what, command });
 
 /* The two declarations the plan owes, and the wording this verb reads them in: the contract asks
    the plan to state both and fixes no phrasing, so the refusal below carries the one it accepts. */
 const SCREEN = /screen change:\s*(yes|no)\b/iu;
 const SCHEMA = /schema coupling:\s*(yes|no)\b/iu;
+/* The third declaration, and the only optional one: a use case a person judges owes their look
+   before `released` whether a screen moved or not, and silence is no. FR-05's criterion names two
+   required lines and this issue may not edit the tree, which is why it stays optional. */
+const LOOK = /user-facing outcome:\s*(yes|no)\b/iu;
 export const planFlags = (plan) => ({
   screen: SCREEN.exec(plan)?.[1]?.toLowerCase() ?? null,
   schema: SCHEMA.exec(plan)?.[1]?.toLowerCase() ?? null,
+  look: LOOK.exec(plan)?.[1]?.toLowerCase() ?? null,
 });
+/* Which of the two declarations asks for a person, named so the refusal and the line warning of it
+   three statuses earlier read alike. The park is the same either way: a look at the evidence. */
+export const personLooks = ({ screen, look }) => {
+  if (look === "yes") return "a user-facing outcome";
+  return screen === "yes" ? "a screen change" : null;
+};
+
 const markCall = (documentId) =>
   `forge call forge_issues '{"action":"mark_merged","data":{"issueId":"${documentId}",`
   + `"target":"base","note":"merged to <branch> at <sha>; reviewed head <sha>"}}'`;
@@ -150,22 +177,19 @@ export const transitionCall = (documentId, status) =>
   `forge call forge_issues '{"action":"transition","documentId":"${documentId}","data":{"status":"${status}"}}'`;
 
 /* The tracker answers this on the edge itself, so the check reads the edge rather than inferring an
-   order from the list the edge arrived in: `relations.blockedBy` carries mentions beside orderings.
-   `kind` is the fallback where no such field came, and an edge carrying neither did not come from
-   the tracker, which sends both, so it holds nothing back. */
+   order from the list it arrived in: `relations.blockedBy` carries mentions beside orderings. `kind`
+   is the fallback where no such field came, and an edge carrying neither came from somewhere else. */
 const gatesDispatch = (edge) =>
   edge.gatesDispatch === undefined ? edge.kind === "blocks" : edge.gatesDispatch === true;
 
-/* The tracker gates on a merged mark and this contract's floor is `developed`, so the blocker's
-   status is a second and independent test. One exported answer, because a screen that derived its
-   own would contradict the shortfall printed under it. */
+/* The tracker gates on a merged mark and this contract's floor is `developed`, so the status is a
+   second and independent test. One exported answer, so no screen can derive a different one. */
 export const holdsBack = (edge) => gatesDispatch(edge) && !atLeast(edge.otherStatus, "developed");
 
-/* Named in the refusal, because an ordering constraint and a mention read alike once the edge is
-   gone and only the blocker's status is left on the line. */
+/* Named in the refusal: an ordering constraint and a mention read alike on a line of their own. */
 const edgeKind = (edge) => (edge.kind ? `a ${edge.kind} edge` : "an edge whose kind the tracker did not name");
 
-const blockersOwed = ({ issue }) =>
+export const blockersOwed = ({ issue }) =>
   (issue.relations?.blockedBy ?? [])
     .filter(holdsBack)
     .map((one) =>
@@ -223,6 +247,35 @@ const verdictsOwed = (view, ref) => {
   return out;
 };
 
+/* One reopen, one finding, one triage, matched by the reopen each was written at: routed on the
+   latest instead, a second look would be ruled on by the ruling on the first. The count is the
+   tracker's, so a tracker that never raises it leaves every record at reopen zero and the pair is
+   whichever was written — which is what a first reopen owes anyway. */
+export const atThisReopen = (view, kind) => {
+  const count = String(view.issue.reopenCount ?? 0);
+  const held = (view.repeated?.[kind] ?? []).filter((one) => one.record.fields.Reopen === count);
+  return held.length ? held.at(-1) : null;
+};
+
+/* A reopen sends the judging back to its start: a wrong-test triage moves the criteria and no commit
+   with them, so every verdict on the record still names the merged commit and would pass again. */
+const judgedSince = (view, ref) => {
+  const held = atThisReopen(view, "triage");
+  const outcome = held?.record.fields.Outcome;
+  if (!outcome || outcome === TRIAGES[2]) return [];
+  /* Only the criteria the issue still has: a wrong-test correction may drop or renumber the one
+     that was wrong, and a verdict asked for on a number the field no longer holds is refused at the
+     write, which would leave the issue unable to reach `tested` at all. */
+  const current = new Set(view.criteria.map((one) => one.number));
+  return [...view.verdicts]
+    .filter(([number, one]) => current.has(number) && one.at <= held.at)
+    .sort((a, b) => a[0] - b[0])
+    .map(([number]) => need(
+      `the verdict on criterion ${number} was written before this reopen's triage, and a reopen judges again`,
+      `forge record verdict ${ref} --criterion ${number} --verdict pass --commit <sha> --evidence <attachment|url|sha>`,
+    ));
+};
+
 /* One entry check per status, each answering with what the record lacks and the write that supplies
    it. Nothing here reads the repository: what git knows was written on at the step that knew it. */
 export const CHECKS = {
@@ -278,7 +331,7 @@ export const CHECKS = {
     if (!view.criteria.length) {
       return [need("the criteria field holds no numbered line, so there is nothing to judge", `forge record criteria ${ref} <criteria.md>`)];
     }
-    const out = verdictsOwed(view, ref);
+    const out = [...verdictsOwed(view, ref), ...judgedSince(view, ref)];
     if (planFlags(unwrap(view.issue.plan)).schema === "yes" && !view.names.length) {
       out.push(need(
         "the plan declares schema coupling, and no attachment carries the migration risk classification",
@@ -297,9 +350,10 @@ export const CHECKS = {
     if (!view.issue.releaseNotes?.section) {
       out.push(need("no release note and no withholding either", `forge record note ${ref} --section Added --user "<what the reporter sees>"`));
     }
-    if (planFlags(unwrap(view.issue.plan)).screen === "yes" && !answered(view, "screen-review")) {
+    const declared = personLooks(planFlags(unwrap(view.issue.plan)));
+    if (declared && !answered(view, "screen-review")) {
       out.push(need(
-        "the plan declares a screen change, and no person has answered since it was parked for review",
+        `the plan declares ${declared}, and no person has answered since it was parked for review`,
         `forge advance ${ref} --park screen-review --why "<why>" --evidence <attachment|url|sha>`,
       ));
     }
@@ -314,64 +368,19 @@ export const viewFrom = (documentId, issue, comments, whole = true) => {
   const names = attachmentNames(issue, comments);
   return { documentId, issue, comments, criteria, names, whole, ...assemble(comments, criteria) };
 };
-const parkRecord = (comments, kind = null) => {
-  const found = comments
+export const parkRecord = (view, wanted = () => true) => {
+  const found = view.comments
     .map((one) => ({ comment: one, record: parse(one.body ?? "") }))
-    .filter((one) => one.record?.kind === "park" && (!kind || one.record.fields.Kind === kind));
+    .filter((one) => one.record?.kind === "park" && wanted(one.record.fields.Kind))
+    .filter((one) => !shapeGaps("park", one.record, view.names).length);
   return found.length ? found.at(-1) : null;
 };
 
 /* A screen is the change a deploy does not undo for whoever already read it, so the contract asks
    a person: a comment the tracker did not mark as an agent's, later than the park that asked. */
-const answered = (view, kind) => {
-  const asked = parkRecord(view.comments, kind);
+export const answered = (view, kind) => {
+  const asked = parkRecord(view, (one) => one === kind);
   return Boolean(asked) && view.comments.some(
     (one) => one.isAi === false && (one.createdAt ?? "") > (asked.comment.createdAt ?? ""),
   );
-};
-
-/* A park is a checkpoint with a person at it: the reply that resumes it is a comment by somebody
-/* A park is a checkpoint with a person at it: the reply that resumes it is a comment by somebody
-   other than whoever parked the issue. A hold nobody was asked to answer resumes by hand. */
-const resumeOwed = (view, held) => {
-  const kind = held.record.fields.Kind;
-  const left = held.record.fields["Status left"];
-  const since = held.comment.createdAt ?? "";
-  const replied = view.comments.some(
-    (one) => (one.createdAt ?? "") > since && one.authorId && one.authorId !== held.comment.authorId,
-  );
-  if (view.issue.status === "on_hold") {
-    if (kind !== "blocked") {
-      return [need(`the hold is kind ${kind}, which a person lifts`, transitionCall(view.documentId, left))];
-    }
-    return blockersOwed(view);
-  }
-  return replied
-    ? []
-    : [need(
-      `the park is kind ${kind} and nobody has answered it since ${since.slice(0, 16)}`,
-      transitionCall(view.documentId, left),
-    )];
-};
-
-export const targetOf = (view, ref) => {
-  const status = view.issue.status;
-  const held = SIDE.includes(status) ? parkRecord(view.comments) : null;
-  if (SIDE.includes(status)) {
-    if (!held) {
-      refuse(`${ref} is ${status} with no park record, so nothing says where it came from. `
-        + `Write one (forge record park ${ref} --kind <kind> --why "<why>") or transition by hand:\n  ${transitionCall(view.documentId, "<status>")}`);
-    }
-    const left = held.record.fields["Status left"];
-    if (!ORDER.includes(left)) {
-      refuse(`the park record on ${ref} names \`${left}\` as the status it left, which is no step of the flow. `
-        + `Transition by hand:\n  ${transitionCall(view.documentId, "<status>")}`);
-    }
-    return { next: left, missing: resumeOwed(view, held), resumed: true };
-  }
-  const next = nextOf(status, view.latest);
-  if (!next) {
-    refuse(`${ref} is ${status}; nothing advances from it. A reopen is a person's word:\n  ${transitionCall(view.documentId, "reopen")}`);
-  }
-  return { next, missing: CHECKS[next](view, ref), resumed: false };
 };

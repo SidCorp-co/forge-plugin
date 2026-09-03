@@ -54,6 +54,14 @@ to their fields, which the tracker already types; everything else is a comment. 
 the latest record of each kind and the latest verdict per criterion, and names the criteria no verdict
 covers. Nothing is stored twice. The contract this serves: `docs/issue-flow-contract.md`.
 
+Two of the kinds exist because a reopen recorded nothing. The tracker has had a `reopen` status and a
+`reopenCount` field all along, and neither says what the person found: what they expected, what they
+actually saw and their own words went into a plain comment nothing read back, so the gap that let it
+ship was never named. A finding is that comment typed, written by the agent on the person's behalf
+and quoting them; a triage is the ruling on it, one of three outcomes and one line naming what would
+have caught it. Both are marked as repeating, so `report` shows every one: the fourth dry run wrote
+four corrections and reported one, because the assembly kept the latest of every kind.
+
 ## `advance` — a status is earned, and the record is the only witness
 
 ISS-1, ISS-2 and ISS-10 moved twenty-six statuses between them, every one a raw `forge call
@@ -70,6 +78,21 @@ git is asked at the step that knows the answer, and the answer is written onto t
 `--owed` is a question and answers zero; the same list without it is a refusal and answers one, so
 a caller can tell "not yet" from "here is what to type". The contract it serves, and the tables it
 carries in its own words: `docs/issue-flow-contract.md`.
+
+A reopen was the one thing it had nothing to say about. It refused at `closed`, named the raw
+transition, and a person's word then left the issue at a status no entry check answered for —
+`--owed` said nothing advances from it. Two records route it now, the finding and the triage, and
+where the reopen landed comes from the merged mark, because a mark is what says code landed and so
+which of a close and a drop was reopened. The one measurement that shaped the routing: an outcome
+alone would have sent a reopened drop *forward*, to `developed` from the `clarified` it fell back
+to, so the landing status is a ceiling rather than a starting point.
+
+And the plan gained a third declaration, `User-facing outcome`, which is the only optional one of
+the three. What asks for a person's look before `released` was the screen-change line and nothing
+else, so a result with no screen to it shipped with nobody having judged it; a use case a person
+judges cannot be read off the criteria at the transition, because the clause that would say so lives
+in the repository and no status here is decided from there. It stays optional because FR-05 carries
+a shipped criterion whose sentence says the plan declares two lines.
 
 A third measurement, two runs later: an edge the tracker had already answered for forced a raw
 transition twice. `relations.blockedBy` returns mentions beside orderings, each edge naming its kind

@@ -3,7 +3,8 @@
    disagree. Under earned.mjs's rule about what it may touch, for the same reason (ISS-44). */
 import { FIELD, leaseOf, sessionHeld, stateOf } from "./lease.mjs";
 import { Refused, unwrap } from "./record.mjs";
-import { SIDE, atLeast, holdsBack, methodOf, targetOf } from "./earned.mjs";
+import { PARK_STATUS, SIDE, atLeast, holdsBack, methodOf, parkRecord } from "./earned.mjs";
+import { lookAhead, targetOf } from "./route.mjs";
 import { worklogOf } from "./worklog.mjs";
 
 const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped" };
@@ -16,8 +17,10 @@ const HEADLINE = {
   decision: "Decision",
   correction: "What moved",
   park: "Why",
+  finding: "Seen",
+  triage: "Outcome",
 };
-const LATEST = ["confirmation", "decision", "correction"];
+const LATEST = ["confirmation", "decision", "correction", "finding", "triage"];
 
 const oneLine = (value) => {
   const line = String(value ?? "").replace(/\s+/gu, " ").trim();
@@ -97,9 +100,15 @@ export const briefOf = (view, ref) => {
     next: held?.next ?? null,
     worklog: worklogOf(view.issue?.[FIELD]),
     lease: held,
-    park: SIDE.includes(status) && view.latest.park ? headlineOf(view.latest.park, "park") : null,
+    /* The park the route resumes from, chosen the way the route chooses it: the newest park may
+       land in another side status, and a brief showing that one would disagree with its own owed. */
+    park: SIDE.includes(status) ? headlineOf(parkRecord(view, (one) => PARK_STATUS[one] === status), "park") : null,
     blockers: blockersOf(view),
+    /* The one fact that says this has happened before, and the tracker keeps it as a field rather
+       than a record, so nothing on the record would show it. */
+    reopens: view.issue.reopenCount ?? 0,
     owed: owedIn(view, ref),
+    ahead: lookAhead(view, ref),
     comments: commentsRead(view),
     whole: view.whole,
   };

@@ -24,12 +24,19 @@ export const PARKS = [
   "question", "screen-review", "destructive-migration", "rolled-back", "no-way-back",
   "unshippable", "blocked", "paused", "crashed", "release-decision", "code-review", "dropped",
 ];
+/* The three parks that speak to a reviewer, who cannot answer without the thing to look at. One
+   list, because the read-back judges a park a hand wrote by the same rule the write applies. */
+export const SHOWS_EVIDENCE = ["screen-review", "code-review", "destructive-migration"];
 export const VERDICTS = ["pass", "fail", "skipped"];
+/* What the agent may rule a person's finding to be: the criterion asked the wrong thing, the
+   criterion was not met, or nothing in the specification ever promised what the person expected. */
+export const TRIAGES = ["wrong-test", "not-met", "not-in-spec"];
 export const OUTCOMES = ["approved", "changes-requested"];
 const FINDING = /^F\d+ (?:accepted|rejected: .+)$/u;
 export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
 
 const COMMIT = /^[0-9a-f]{7,40}$/iu;
+export const isCommit = (value) => COMMIT.test(String(value ?? ""));
 /* The tracker fences what it returns as data; the fence is not part of the field. */
 const FENCE = /^⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧\s*$/gmu;
 export const unwrap = (text) => String(text ?? "").replace(FENCE, "").trim();
@@ -69,6 +76,10 @@ export const SHAPES = {
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
     ],
     status: "Status left",
+    check: (got) =>
+      (SHOWS_EVIDENCE.includes(got.kind) && !got.evidence.length
+        ? `--evidence: a ${got.kind} park names what the reviewer is to look at`
+        : null),
   },
   correction: {
     heading: "Correction",
@@ -109,6 +120,41 @@ export const SHAPES = {
       return null;
     },
   },
+  /* The person's voice, written by the agent on their behalf: a reopen with no finding is a status
+     that moved and nothing that says why. `repeats` because a second look finds a second thing. */
+  finding: {
+    heading: "Finding",
+    repeats: true,
+    fields: [
+      FIELD("expected", "Expected"),
+      FIELD("seen", "Seen"),
+      FIELD("evidence", "Evidence", { many: true, least: 1, evidence: true }),
+      FIELD("criterion", "Criterion", { criterion: true, optional: true }),
+      FIELD("uc", "Use case", { optional: true }),
+      FIELD("quoted", "In their words"),
+    ],
+    status: "Reopen",
+    from: "reopenCount",
+    check: (got) => {
+      if (got.criterion !== undefined && got.uc !== undefined) {
+        return "one of --criterion and --uc, not both: a finding names one thing it is about";
+      }
+      return null;
+    },
+  },
+  /* The agent's ruling on a finding, and the one thing the reopen is for: what would have caught
+     it. The outcome is what routes the fall, so a triage with none routes nothing. */
+  triage: {
+    heading: "Triage",
+    repeats: true,
+    fields: [
+      FIELD("outcome", "Outcome", { oneOf: TRIAGES }),
+      FIELD("would-have-caught", "Would have caught it"),
+      FIELD("detail", "Detail", { optional: true }),
+    ],
+    status: "Reopen",
+    from: "reopenCount",
+  },
   verification: {
     heading: "Release verification",
     fields: [
@@ -135,6 +181,8 @@ export const USAGE = [
   "  verdict      --criterion N --verdict pass|fail|skipped --commit C --evidence E... [--why W]",
   "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding \"F1 accepted\"]...",
   "  verification --where W --commit C --evidence E...",
+  "  finding      --expected E --seen S --evidence E... --quoted Q [--criterion N | --uc UC-nn-m]",
+  "  triage       --outcome O --would-have-caught W [--detail D]  O: " + TRIAGES.join("|"),
   "  note         --section S --user T [--technical T] | --skip --why W   S: " + SECTIONS.join("|"),
   "  criteria     <file.md|@file|->   numbered lines, one criterion each",
   "  report       the latest record of each kind, the latest verdict per criterion, and what is owed",
@@ -182,6 +230,9 @@ export const render = (kind, fields, status = null) => {
     if (value === undefined || value === null || (Array.isArray(value) && !value.length)) continue;
     lines.push(`- **${field.label}:** ${Array.isArray(value) ? value.join("; ") : value}`);
   }
+  /* One stamp, read off the issue at the write: which status a park left, which reopen a finding
+     belongs to. It is not a flag, because a value the author could type is a value they could get
+     wrong about the very thing the record is being matched by. */
   if (shape.status && status) lines.push(`- **${shape.status}:** ${status}`);
   lines.push("", `\`forge-record: ${kind} · contract ${CONTRACT}\``);
   return lines.join("\n");
@@ -211,12 +262,17 @@ export const assemble = (comments, criteria) => {
     .sort((a, b) => a.at.localeCompare(b.at));
   const latest = {};
   const verdicts = new Map();
+  const repeated = {};
   for (const { at, record } of records) {
-    if (record.kind === "verdict") verdicts.set(criterionOf(record), { at, record });
-    else latest[record.kind] = { at, record };
+    if (record.kind === "verdict") {
+      verdicts.set(criterionOf(record), { at, record });
+      continue;
+    }
+    latest[record.kind] = { at, record };
+    if (SHAPES[record.kind].repeats) (repeated[record.kind] ??= []).push({ at, record });
   }
   const owed = criteria.filter((one) => !verdicts.has(one.number)).map((one) => one.number);
-  return { latest, verdicts, owed };
+  return { latest, verdicts, owed, repeated };
 };
 
 const printRecord = ({ at, record }) => {
@@ -288,7 +344,7 @@ const gather = (kind, argv) => {
     if (field.oneOf && !field.oneOf.includes(value)) {
       refuse(`--${field.flag} takes one of ${field.oneOf.join(", ")}, not \`${value}\`.`);
     }
-    if (field.commit && !COMMIT.test(value)) refuse(`--commit takes 7 to 40 hex digits, not \`${value}\`.`);
+    if (field.commit && !isCommit(value)) refuse(`--commit takes 7 to 40 hex digits, not \`${value}\`.`);
     if (field.criterion && !/^\d+$/u.test(value)) refuse(`--criterion takes the criterion's number, not \`${value}\`.`);
   }
   const said = shape.check?.(got);
@@ -311,12 +367,17 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
   if (shape.fields.some((one) => one.evidence) && got.evidence?.length) {
     checkEvidence(got.evidence, attachmentNames(body, (await commentPage(documentId)).comments));
   }
-  if (kind === "verdict") {
-    const held = criteriaLines(unwrap(body.acceptanceCriteria)).find((one) => one.number === Number(got.criterion));
-    if (!held) refuse(`${reference} has no criterion ${got.criterion}; its field holds ${criteriaCount(body)}.`);
-    got.criterion = `${held.number} — ${held.text}`;
+  /* A criterion is named by number and quoted as it stood, because the field can change later and
+     the record has to say what it was about. Read off the shape, so every kind that cites one does
+     it the same way and a citation of a criterion the issue has not got is refused. */
+  const cites = shape.fields.find((one) => one.criterion);
+  if (cites && got[cites.flag] !== undefined) {
+    const held = criteriaLines(unwrap(body.acceptanceCriteria)).find((one) => one.number === Number(got[cites.flag]));
+    if (!held) refuse(`${reference} has no criterion ${got[cites.flag]}; its field holds ${criteriaCount(body)}.`);
+    got[cites.flag] = `${held.number} — ${held.text}`;
   }
-  return post(documentId, render(kind, got, shape.status ? body.status : null), reference, next, patch);
+  const stamp = shape.status ? String(body[shape.from ?? "status"] ?? "") : null;
+  return post(documentId, render(kind, got, stamp), reference, next, patch);
 };
 
 const criteriaCount = (body) => {
@@ -385,8 +446,11 @@ const recordReport = async (reference) => {
   }
   const { comments, hasMore } = await commentPage(documentId);
   if (hasMore) console.error(`More than ${COMMENT_PAGE} comments match and the list stops there: this report read the first ${COMMENT_PAGE}.`);
-  const { latest, verdicts, owed } = assemble(comments, criteria);
-  for (const kind of Object.keys(SHAPES)) if (latest[kind]) printRecord(latest[kind]);
+  const { latest, verdicts, owed, repeated } = assemble(comments, criteria);
+  for (const kind of Object.keys(SHAPES)) {
+    if (SHAPES[kind].repeats) for (const one of repeated[kind] ?? []) printRecord(one);
+    else if (latest[kind]) printRecord(latest[kind]);
+  }
   for (const number of [...verdicts.keys()].sort((a, b) => a - b)) printRecord(verdicts.get(number));
   if (body.releaseNotes?.section) console.log(`Release note  ${body.releaseNotes.section}: ${body.releaseNotes.userFacing}`);
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
