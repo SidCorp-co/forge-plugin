@@ -467,7 +467,10 @@ with no comments costs nothing, and every comment on the page the tracker return
 has seen is the refusal itself, delivered once and re-sent against. The page is the reach of it,
 which is the same seam a cursor closes. A write naming its issue by uuid is checked exactly as one naming the
 key, since a form is not a route either. Nothing about a route is read out of a transcript,
-since the transcript of a delegated run is not the one a hook is handed. The tracker's own screens and unhooked clients are outside it: a status
+since the transcript of a delegated run is not the one a hook is handed. A comment the tracker wrote on a run's
+behalf, the merged mark's audit line, and one a client created past the CLI are comments nobody
+here has been shown, so the next write is refused once with them: the rule, not a fault. A batch
+worked on one branch pays this once per member. The tracker's own screens and unhooked clients are outside it: a status
 they set is unearned, and `advance --owed` on such an issue says what its record lacks. A check on
 the server is the tracker's to add, and this contract is its specification.
 
@@ -807,3 +810,42 @@ refusals and both right; seventeen consult rounds on the second issue.
 - The brief said "files under 500 lines" and the checker counts code lines; the agent read the
   prose as a rule the repository states. It is the brief's sentence, not the repository's, and the
   brief now names the checker's measure.
+
+## Eleventh dry run — ISS-57 with ISS-33
+
+One agent rebuilt the read-first gate so it does the read itself, resolving two issues on one branch
+(3.34.0): a write verb lists the issue's comments, an empty list passes with one line, comments this
+session has not been shown come back inside the refusal, and what was shown is remembered on disk
+per session and issue. Twenty-two verdicts, no `advance` refusal, six gate denials each cleared by
+re-sending the same command.
+
+- A delegated agent's shell carries the parent session's id: measured from the hook log and the
+  state file, and it is the one fact that makes the disk state work for both. The transcript scan
+  is gone and a test keeps it gone.
+- The batch had no identity on the record: every shared payload was typed twice with the same
+  commit and evidence, and a divergence between the twins would have been noticed by nobody.
+  ISS-64.
+- Recording a finding on an issue nobody is working meant taking its lease and leaving a next
+  line that is a lie; the parent did the same four times folding the tenth run. ISS-63.
+- The merged mark's audit comment is a comment the tracker wrote, so the next write to that issue
+  is refused once with it; a comment created through an MCP client directly is not credited either.
+  Both are now said in the mechanics, so the first refusal reads as the rule and not a bug.
+- The tracker's token expired mid-run. The agent told the credential apart from the transport, sent
+  the live token nowhere but the tracker, probed with a fake one under a temporary config, stopped,
+  and resumed the same write once the person replaced it. Meanwhile two verbs answered from local
+  state and read as live; on ISS-45 with the other messages that say more than they know.
+- ISS-15 was already met by this change and was dropped as already fixed through its confirmation,
+  not closed; the one case its wording would have caught that the new gate does not is a client
+  with no hook installed, which no plugin-side check reaches.
+- FR-10 now describes a gate that no longer exists; the catch-up is on ISS-61 with the FR-05 one.
+- A flag no verb takes is kept silently with its value, so a misspelt flag lands a payload missing
+  its field. ISS-62.
+- Across eleven runs the hook log holds about 450 gate denials and 374 tool refusals inside
+  consults. Most protect something; a class of them names a next command the CLI already knew —
+  renew the holder's own lapsed lease, credit the mark's comment, attach the evidence a verdict
+  names, default a tool's path — and costs a round for nothing. ISS-65 owes those and a check that
+  every refusal names a route the CLI has.
+- Whether a session runs the checkout or a cache copy is disputed by the evidence: the marketplace
+  record says the install location is the checkout, the install record names a cache path per
+  version. The agent's gate fired live from the checkout because the CLI half of it runs from the
+  binary on PATH. Until measured from inside a fresh session, a hook change still owes a restart.
