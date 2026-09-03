@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { callHook, homeEnv } from "./fixtures.mjs";
 
-const HOOK = new URL("../hooks/code-quality.mjs", import.meta.url).pathname;
+const HOOK = new URL("../hooks/entries/code-quality.mjs", import.meta.url).pathname;
 const REPO = new URL("../..", import.meta.url).pathname.replace(/\/$/u, "");
 const HOME = homeEnv("code-quality");
 const LOG = join(HOME.XDG_CONFIG_HOME, "forge", "hook-log.jsonl");

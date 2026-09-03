@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { unspentAdvice } from "../hooks/_hook.mjs";
 import { lastConsultAt } from "../src/codex-log.mjs";
 
-const HOOK = new URL("../hooks/codex-order.mjs", import.meta.url).pathname;
+const HOOK = new URL("../hooks/entries/codex-order.mjs", import.meta.url).pathname;
 
 const userTurn = (text) => ({ type: "user", promptSource: "typed", message: { content: [{ type: "text", text }] } });
 const advised = (at = new Date().toISOString()) => ({

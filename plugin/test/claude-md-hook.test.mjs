@@ -11,7 +11,7 @@ import test from "node:test";
 
 import { callHook, homeEnv } from "./fixtures.mjs";
 
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "claude-md.mjs");
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "entries", "claude-md.mjs");
 const HOME = homeEnv("claude-md");
 
 const room = mkdtempSync(join(tmpdir(), "claude-md-hook-"));

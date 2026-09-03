@@ -8,7 +8,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const HOOK = new URL("../hooks/codex-second.mjs", import.meta.url).pathname;
+const HOOK = new URL("../hooks/entries/codex-second.mjs", import.meta.url).pathname;
 const room = mkdtempSync(join(tmpdir(), "codex-second-"));
 const REPO = join(room, "repo");
 mkdirSync(join(REPO, ".git"), { recursive: true });

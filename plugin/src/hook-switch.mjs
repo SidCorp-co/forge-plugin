@@ -8,17 +8,18 @@ import { fileURLToPath } from "node:url";
 import { once, readJson, saveConfig, userConfig } from "./resolve/config.mjs";
 
 export const HOOKS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks");
+export const ENTRIES_DIR = join(HOOKS_DIR, "entries");
 
-export const hookNames = () => {
+const scriptsIn = (dir) => {
   try {
-    return readdirSync(HOOKS_DIR)
-      .filter((name) => name.endsWith(".mjs") && !name.startsWith("_") && name !== "gate.mjs")
-      .map((name) => name.replace(/\.mjs$/u, ""))
-      .sort();
+    return readdirSync(dir).filter((name) => name.endsWith(".mjs") && !name.startsWith("_") && name !== "gate.mjs");
   } catch {
     return [];
   }
 };
+
+export const hookNames = () =>
+  [...scriptsIn(HOOKS_DIR), ...scriptsIn(ENTRIES_DIR)].map((name) => name.replace(/\.mjs$/u, "")).sort();
 
 /* The gates a line runs: `gate.mjs a b c` names three; any other script names itself. */
 const namesOn = (command) => {

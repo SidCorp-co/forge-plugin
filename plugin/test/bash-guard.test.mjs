@@ -10,7 +10,7 @@ import test from "node:test";
 
 import { callHook, dirtyRepo, homeEnv } from "./fixtures.mjs";
 
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "bash-guard.mjs");
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "entries", "bash-guard.mjs");
 const HOME = homeEnv("bash-guard");
 
 /* The git rules stand down on a clean tree, so the fixtures bring their own dirty one. */
@@ -79,7 +79,7 @@ test("a literal inside a program is data, and the line that ran it is not", () =
    quoted for a program that is not a shell is data, and which program owns it is what `starts` says. */
 test("a rule named in an argument is not a run", () => {
   assert.ok(decide(`echo "the note names ${STAGE_ALL} in prose" | forge codex consult`).allowed);
-  assert.ok(decide(`grep -n "${BY_NAME}" plugin/hooks/bash-guard.mjs`).allowed, "and a search for it");
+  assert.ok(decide(`grep -n "${BY_NAME}" plugin/hooks/entries/bash-guard.mjs`).allowed, "and a search for it");
   assert.equal(decide("sudo git reset --hard HEAD").allowed, false, "a runner still runs what follows");
   assert.equal(decide("sudo -u root git reset --hard").allowed, false, "past the runner's own options");
   const two = String.fromCharCode(34);

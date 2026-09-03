@@ -10,7 +10,7 @@ import test from "node:test";
 
 import { callHook, homeEnv } from "./fixtures.mjs";
 
-const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "learning-gate.mjs");
+const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "hooks", "entries", "learning-gate.mjs");
 /* A refusal writes to the config dir now, so a suite that skips this one logs onto the developer. */
 const HOME = homeEnv("learning-gate");
 /* A fixture path, not this machine's: the Bash cases need only a string holding /memory/, and

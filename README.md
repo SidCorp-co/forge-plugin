@@ -98,12 +98,13 @@ plugin/
                      this credential may see
   hooks/
     _hook.mjs             the event, the files a call wrote, deny/block, the once-per-session stamp
-    bash-guard.mjs        PreToolUse: the shell commands that cannot be undone
-    learning-gate.mjs     PreToolUse: one stop before a memory or skill write
-    learning-landed.mjs   PostToolUse: one that arrived by a route no shape reads
-    code-quality.mjs      PostToolUse: every written code file, to the project's own linter
-    derive-dont-list.mjs  PostToolUse: one nudge when a checker hard-codes its cases
     link-cli.mjs          SessionStart: both binaries onto PATH
+    entries/              one registered line each, running one gate alone
+      bash-guard.mjs        PreToolUse: the shell commands that cannot be undone
+      learning-gate.mjs     PreToolUse: one stop before a memory or skill write
+      learning-landed.mjs   PostToolUse: one that arrived by a route no shape reads
+      code-quality.mjs      PostToolUse: every written code file, to the project's own linter
+      derive-dont-list.mjs  PostToolUse: one nudge when a checker hard-codes its cases
     vendor/               copies of packages/code-quality — see below
   scripts/
     skill-dup.mjs         text stated twice — a skill's prose, or a tree's comments

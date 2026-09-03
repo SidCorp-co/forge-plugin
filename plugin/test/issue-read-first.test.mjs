@@ -134,7 +134,7 @@ test("an MCP comments listing satisfies it too", () => {
 
 /* End to end through the hook itself: the pure functions above decide, but the exit code, the
    refusal text and where the search looks are the hook's, and only running it measures those. */
-const HOOK = new URL("../hooks/issue-read-first.mjs", import.meta.url).pathname;
+const HOOK = new URL("../hooks/entries/issue-read-first.mjs", import.meta.url).pathname;
 const room = mkdtempSync(join(tmpdir(), "issue-read-first-"));
 const HOME = { ...process.env, XDG_CONFIG_HOME: room };
 test.after(() => rmSync(room, { recursive: true, force: true }));

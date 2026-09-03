@@ -16,7 +16,8 @@ const HOW = join(HOOKS, "how");
 const CLI = join(PLUGIN, "src", "cli.mjs");
 
 const GATES = join(HOOKS, "gates");
-const scripts = readdirSync(HOOKS).filter((one) => one.endsWith(".mjs") && !one.startsWith("_") && one !== "gate.mjs");
+const scripts = [...readdirSync(HOOKS), ...readdirSync(join(HOOKS, "entries"))]
+  .filter((one) => one.endsWith(".mjs") && !one.startsWith("_") && one !== "gate.mjs");
 const gates = readdirSync(GATES).filter((one) => one.endsWith(".mjs"));
 const documented = readdirSync(HOW).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3));
 

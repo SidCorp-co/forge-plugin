@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import { callHook, homeEnv } from "./fixtures.mjs";
 
-const HOOK = new URL("../hooks/derive-dont-list.mjs", import.meta.url).pathname;
+const HOOK = new URL("../hooks/entries/derive-dont-list.mjs", import.meta.url).pathname;
 const HOME = homeEnv("derive-dont-list");
 const room = mkdtempSync(join(tmpdir(), "derive-dont-list-"));
 

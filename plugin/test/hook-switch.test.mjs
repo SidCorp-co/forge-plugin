@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import test from "node:test";
 
 import { callHook, dirtyRepo } from "./fixtures.mjs";
@@ -14,7 +14,7 @@ import { callHook, dirtyRepo } from "./fixtures.mjs";
 import { hookEvents, hookNames } from "../src/hook-switch.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const HOOK = join(HERE, "..", "hooks", "bash-guard.mjs");
+const HOOK = join(HERE, "..", "hooks", "entries", "bash-guard.mjs");
 const CLI = join(HERE, "..", "src", "cli.mjs");
 /* Assembled, or this file is the fixture: the live gate reads the suite's own source. */
 const STAGES_EVERYTHING = `git add -${"A"}`;
@@ -86,10 +86,12 @@ test("doctor reports a switch wired to nothing", () => {
    made that true: link-cli proves an entry point can skip readEvent and stay active while
    `forge hooks --off` reports it off. So the promise is a case, not a convention. */
 test("every hook honours the switch, not only the ones that read an event", () => {
-  const dir = join(HERE, "..", "hooks");
-  const missing = readdirSync(dir)
-    .filter((name) => name.endsWith(".mjs") && !name.startsWith("_") && name !== "gate.mjs")
-    .filter((name) => !/\balone\("[\w-]+"\)|\bhookOff\(/u.test(readFileSync(join(dir, name), "utf8")));
+  const dirs = [join(HERE, "..", "hooks"), join(HERE, "..", "hooks", "entries")];
+  const missing = dirs
+    .flatMap((dir) => readdirSync(dir).map((name) => join(dir, name)))
+    .filter((path) => path.endsWith(".mjs") && !basename(path).startsWith("_") && basename(path) !== "gate.mjs")
+    .filter((path) => !/\balone\("[\w-]+"\)|\bhookOff\(/u.test(readFileSync(path, "utf8")))
+    .map((path) => basename(path));
   assert.deepEqual(
     missing,
     [],

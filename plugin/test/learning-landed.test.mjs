@@ -11,7 +11,7 @@ import { join } from "node:path";
 
 import { callHook, homeEnv } from "./fixtures.mjs";
 
-const HOOK = new URL("../hooks/learning-landed.mjs", import.meta.url).pathname;
+const HOOK = new URL("../hooks/entries/learning-landed.mjs", import.meta.url).pathname;
 const HOME = homeEnv("learning-landed");
 const room = join(mkdtempSync(join(tmpdir(), "landed-")), "memory");
 mkdirSync(room);
@@ -204,7 +204,7 @@ test("a guarded name that links out of the tree is swept as itself", () => {
    the gate asked about before the write is asked about again after it. */
 test("a swept link the gate already asked about is not asked again", () => {
   const session = randomUUID();
-  const gate = new URL("../hooks/learning-gate.mjs", import.meta.url).pathname;
+  const gate = new URL("../hooks/entries/learning-gate.mjs", import.meta.url).pathname;
   const project = mkdtempSync(join(tmpdir(), "landed-swept-asked-"));
   mkdirSync(join(project, "memory"));
   const outside = join(mkdtempSync(join(tmpdir(), "landed-swept-real-")), "kept.md");
@@ -300,7 +300,7 @@ test("a document outside the two guarded kinds is not this gate's", () => {
    from a tool's `file_path`, one realpathed off the disk. Keyed apart, every write is stopped twice. */
 test("a write the gate asked about before it landed is not asked about after", () => {
   const session = randomUUID();
-  const gate = new URL("../hooks/learning-gate.mjs", import.meta.url).pathname;
+  const gate = new URL("../hooks/entries/learning-gate.mjs", import.meta.url).pathname;
   const via = join(mkdtempSync(join(tmpdir(), "landed-link-")), "memory");
   symlinkSync(room, via);
   const asking = callHook(
@@ -315,7 +315,7 @@ test("a write the gate asked about before it landed is not asked about after", (
 /* A link to the file counts as much as a link to its directory: one resolves and the other did not. */
 test("a link to the file itself is the same file to both halves", () => {
   const session = randomUUID();
-  const gate = new URL("../hooks/learning-gate.mjs", import.meta.url).pathname;
+  const gate = new URL("../hooks/entries/learning-gate.mjs", import.meta.url).pathname;
   const elsewhere = join(mkdtempSync(join(tmpdir(), "landed-file-")), "memory");
   mkdirSync(elsewhere);
   writeFileSync(join(room, "by-a-link.md"), "a line\n");

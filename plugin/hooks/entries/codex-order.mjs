@@ -1,4 +1,4 @@
 #!/usr/bin/env node
-import { alone } from "./_hook.mjs";
+import { alone } from "../_hook.mjs";
 
 await alone("codex-order");

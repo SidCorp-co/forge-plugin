@@ -73,8 +73,14 @@ with three of them reading the transcript tail apart and five computing the touc
 in one process against one event, sharing those reads. Before a call the first refusal is the answer,
 as it was when each was a process; after one, every block and every context is kept and sent together,
 where the old arrangement let each print its own. A gate answers by throwing a decision the runner
-turns into the protocol, so the same gate text runs alone under `plugin/hooks/<name>.mjs` for the suite
+turns into the protocol, so the same gate text runs alone under `plugin/hooks/entries/<name>.mjs` for the suite
 and for `forge hooks --off <name>`, which reads the names off the line.
+
+Those solo lines sit in `entries/` rather than beside the runner because one directory holding the
+harness, the runner and a line per gate is a list and not a shape — the width check says so at eleven
+files. `link-cli.mjs` stays beside the runner: it is no gate, it has no text under `gates/`, and a
+person is told to run it by that path after a fresh install. The switchable names are therefore read
+off both directories, which is why nothing keeps a list of them.
 
 ## Every hook can be switched off, one at a time
 

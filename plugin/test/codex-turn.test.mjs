@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 
 import { callHook, homeEnv } from "./fixtures.mjs";
 
-const HOOK = new URL("../hooks/codex-turn.mjs", import.meta.url).pathname;
+const HOOK = new URL("../hooks/entries/codex-turn.mjs", import.meta.url).pathname;
 const HOME = homeEnv("codex-turn");
 const room = mkdtempSync(join(tmpdir(), "codex-turn-"));
 const STATE = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json");

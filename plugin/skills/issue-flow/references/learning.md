@@ -109,7 +109,7 @@ rewritten from a single bad round is fitted to that round. Then read
 `references/prior-art.md`, which says what the current shape already considered and turned
 down.
 
-**The gate is a hook, not this paragraph.** `hooks/learning-gate.mjs` stops the first write
+**The gate is a hook, not this paragraph.** `hooks/entries/learning-gate.mjs` stops the first write
 to a memory store *and* the first edit to a skill's own text, returning the four conditions
 and the categories. It exists because the failure it guards is a reflex — reaching for "save
 what I learned" as a way of ending a task — and a reflex is not interrupted by a document it

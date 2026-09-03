@@ -13,7 +13,7 @@ names is a claim about somebody's checkout, and the claim goes stale in silence 
 Three kinds of path are not that claim and are not reported:
 
   the skill's own          references/verification.md — resolves inside the skill directory
-  the plugin's own         hooks/learning-gate.mjs — resolves inside plugin/
+  the plugin's own         hooks/entries/learning-gate.mjs — resolves inside plugin/
   a bare filename          CLAUDE.md, eslint.config.mjs — a name any project has, not one path
 
 Exit 0 when clean, 1 when a path is found, 2 on a usage error.`;

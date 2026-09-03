@@ -75,7 +75,7 @@ test("a refusal from a live hook lands in the log, redacted", () => {
       message: { content: [{ type: "text", text: "go" }] },
     })}\n`,
   );
-  spawnSync(process.execPath, [new URL("../hooks/bash-guard.mjs", import.meta.url).pathname], {
+  spawnSync(process.execPath, [new URL("../hooks/entries/bash-guard.mjs", import.meta.url).pathname], {
     input: JSON.stringify({
       tool_name: "Bash",
       tool_input: { command: "coolify login --token 7|secretsecret && git add -A" },
