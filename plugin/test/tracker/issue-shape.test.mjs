@@ -67,9 +67,18 @@ test("each missing section is its own refusal, naming the headings read and the 
   assert.match(wants(noScope), /an out-of-scope heading, or one line/u);
 });
 
-test("a heading with nothing under it is no section", () => {
+test("a heading with nothing under it is no section, and the refusal names the floor", () => {
   const empty = WHOLE.replace("A filing is read against the shape the flow needs before the tracker ever sees it.", "TBD");
-  assert.match(wants(empty), /a heading naming the outcome/u, "four words is the floor for a line");
+  assert.match(wants(empty), /a heading naming the outcome/u);
+  /* A refusal that says only "at least one line" leaves an author with a three-word line stuck,
+     and the probe against the released copy is where that was found. */
+  assert.match(read(empty).join(" "), /nothing under it of 4 words or more/u);
+  assert.match(read(WHOLE.replace("## Outcome", "## Why")).join(" "), /no heading naming the outcome/u);
+  /* Both halves of the same defect: a missing heading and an empty one must not read alike, and
+     every wants line has to name the floor or the second refusal is the first one again. */
+  assert.match(wants(WHOLE.replace("## Outcome", "## Why")), /one line of 4 words or more/u);
+  const hollow = WHOLE.replace("Judging whether the issue is true.", "## Evidence\n\nnone");
+  assert.match(read(hollow).join(" "), /an out-of-scope heading with nothing under it/u);
 });
 
 test("a title says the behaviour after the change, and three shapes never do", () => {

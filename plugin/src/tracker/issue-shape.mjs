@@ -157,20 +157,32 @@ export const shapeOf = ({ title, body }) => {
   }
   const outcome = sectionUnder(text, OUTCOME);
   const rule = sectionUnder(text, RULE);
-  const scoped = Boolean(sectionUnder(text, SCOPE)) || NO_SCOPE.test(text);
+  const scope = sectionUnder(text, SCOPE);
+  const scoped = Boolean(scope?.trim()) || NO_SCOPE.test(text);
   const tokens = tokensNamed(text);
   if (isFix(text)) return { gaps, fix: false, tokens };
   if (!rule && !scoped && tokens.length) return { gaps, fix: true, tokens };
   const said = headingsOf(text);
-  const read = said.length ? `the headings ${said.map((one) => `\`${one}\``).join(", ")}` : "a body with no heading in it";
+  const among = said.length ? `among ${said.map((one) => `\`${one}\``).join(", ")}` : "and the body has no heading at all";
+  const readFor = (label, held) =>
+    (held === null
+      ? `no heading naming ${label}, ${among}`
+      : `a ${label} heading with nothing under it of ${SUBSTANTIAL} words or more`);
   if (!hasLine(outcome)) {
-    gaps.push(need(read, "a heading naming the outcome, and under it what is true after the change", `add \`## Outcome\` ${RESEND}`));
+    gaps.push(need(readFor("the outcome", outcome), "a heading naming the outcome, and under it one "
+      + `line of ${SUBSTANTIAL} words or more saying what is true after the change`,
+    `add \`## Outcome\` ${RESEND}`));
   }
   if (!hasLine(rule)) {
-    gaps.push(need(read, "a heading of rules, invariants or acceptance, and at least one line under it", `add \`## Rules\` with one line under it ${RESEND}`));
+    gaps.push(need(readFor("rules, invariants or acceptance", rule), "a heading of rules, invariants "
+      + `or acceptance, and under it one line of ${SUBSTANTIAL} words or more`,
+    `add \`## Rules\` with the rule under it ${RESEND}`));
   }
   if (!scoped) {
-    gaps.push(need(read, "an out-of-scope heading, or one line saying nothing is out of scope", `add \`## Out of scope\` ${RESEND}`));
+    gaps.push(need(
+      scope === null ? `no out-of-scope heading, ${among}, and no line saying there is none`
+        : "an out-of-scope heading with nothing under it",
+      "an out-of-scope heading, or one line saying nothing is out of scope", `add \`## Out of scope\` ${RESEND}`));
   }
   return { gaps, fix: false, tokens };
 };
