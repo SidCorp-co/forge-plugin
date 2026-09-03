@@ -149,12 +149,28 @@ const markCall = (documentId) =>
 export const transitionCall = (documentId, status) =>
   `forge call forge_issues '{"action":"transition","documentId":"${documentId}","data":{"status":"${status}"}}'`;
 
+/* The tracker answers this on the edge itself, so the check reads the edge rather than inferring an
+   order from the list the edge arrived in: `relations.blockedBy` carries mentions beside orderings.
+   `kind` is the fallback where no such field came, and an edge carrying neither did not come from
+   the tracker, which sends both, so it holds nothing back. */
+const gatesDispatch = (edge) =>
+  edge.gatesDispatch === undefined ? edge.kind === "blocks" : edge.gatesDispatch === true;
+
+/* The tracker gates on a merged mark and this contract's floor is `developed`, so the blocker's
+   status is a second and independent test. One exported answer, because a screen that derived its
+   own would contradict the shortfall printed under it. */
+export const holdsBack = (edge) => gatesDispatch(edge) && !atLeast(edge.otherStatus, "developed");
+
+/* Named in the refusal, because an ordering constraint and a mention read alike once the edge is
+   gone and only the blocker's status is left on the line. */
+const edgeKind = (edge) => (edge.kind ? `a ${edge.kind} edge` : "an edge whose kind the tracker did not name");
+
 const blockersOwed = ({ issue }) =>
   (issue.relations?.blockedBy ?? [])
-    .filter((one) => !atLeast(one.otherStatus, "developed"))
+    .filter(holdsBack)
     .map((one) =>
       need(
-        `${one.otherDisplayId} blocks this and is ${one.otherStatus}, which is not yet developed`,
+        `${one.otherDisplayId} gates this by ${edgeKind(one)} and is ${one.otherStatus}, which is not yet developed`,
         `forge advance ${one.otherDisplayId}`,
       ),
     );

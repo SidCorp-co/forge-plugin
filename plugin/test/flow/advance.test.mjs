@@ -9,7 +9,7 @@ import { tempHome } from "../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("advance").path;
 const { PARKS, render } = await import("../../src/flow/record.mjs");
 const {
-  CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, markedCommit,
+  CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, holdsBack, markedCommit,
   nextOf, planFlags, sameCommit, targetOf, viewFrom,
 } = await import("../../src/flow/earned.mjs");
 const { USAGE, nextHeld } = await import("../../src/flow/advance.mjs");
@@ -119,10 +119,12 @@ test("approved needs the plan with both its declarations, and numbered criteria"
 });
 
 test("in_progress waits for every blocker to be developed, and for a baseline", () => {
-  const blocked = (otherStatus) => ({ relations: { blockedBy: [{ otherDisplayId: "ISS-4", otherStatus }] } });
+  const blocked = (otherStatus) => ({
+    relations: { blockedBy: [{ otherDisplayId: "ISS-4", otherStatus, kind: "blocks", gatesDispatch: true }] },
+  });
   const said = CHECKS.in_progress(view(blocked("open")), "ISS-3");
   assert.deepEqual(said.map((one) => one.what), [
-    "ISS-4 blocks this and is open, which is not yet developed",
+    "ISS-4 gates this by a blocks edge and is open, which is not yet developed",
     "no baseline: the gate, what it already reports and the commit it ran at",
   ]);
   assert.equal(said[0].command, "forge advance ISS-4");
@@ -130,6 +132,59 @@ test("in_progress waits for every blocker to be developed, and for a baseline", 
   const baseline = [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: "43b811e" })];
   assert.deepEqual(missing("in_progress", view(blocked("closed"), baseline)), []);
   assert.deepEqual(missing("in_progress", view(blocked("developed"), baseline)), []);
+});
+
+/* The tracker puts a mention and an ordering constraint in the one list and carries the difference
+   on each edge, as `kind` and as its own answer about dispatch. The check read neither and refused
+   a transition on a *relates* edge in two dry runs (ISS-19). */
+test("only an edge that gates dispatch holds a status back, and the refusal names the kind", () => {
+  const ran = [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: "43b811e" })];
+  const edged = (...blockedBy) => view({ relations: { blockedBy } }, ran);
+  const relates = { otherDisplayId: "ISS-18", otherStatus: "open", kind: "relates", gatesDispatch: false };
+  const blocks = { otherDisplayId: "ISS-33", otherStatus: "open", kind: "blocks", gatesDispatch: true };
+  assert.deepEqual(missing("in_progress", edged(relates)), [], "a relates edge is a mention and orders nothing");
+  assert.deepEqual(missing("in_progress", edged(blocks)),
+    ["ISS-33 gates this by a blocks edge and is open, which is not yet developed"]);
+  assert.equal(missing("in_progress", edged(relates, blocks)).length, 1, "and the two are told apart in one list");
+  assert.deepEqual(missing("in_progress", edged({ ...blocks, gatesDispatch: false })), [],
+    "the tracker's answer about the edge decides, not the word written on it");
+  assert.deepEqual(missing("in_progress", edged({ ...blocks, otherStatus: "closed" })), [],
+    "and the blocker's status stays a second test beside that answer");
+});
+
+/* `gatesDispatch` is the tracker's own field and `kind` the fallback where it sent none; an edge
+   carrying neither did not come from the tracker, which sends both on every edge. */
+test("an edge the tracker sent no answer for falls back to its kind, and one with no kind gates nothing", () => {
+  const ran = [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: "43b811e" })];
+  const edged = (edge) => view({ relations: { blockedBy: [edge] } }, ran);
+  const bare = { otherDisplayId: "ISS-9", otherStatus: "open" };
+  assert.deepEqual(missing("in_progress", edged({ ...bare, kind: "blocks" })),
+    ["ISS-9 gates this by a blocks edge and is open, which is not yet developed"]);
+  assert.deepEqual(missing("in_progress", edged({ ...bare, kind: "relates" })), []);
+  assert.deepEqual(missing("in_progress", edged(bare)), []);
+  assert.deepEqual(missing("in_progress", edged({ ...bare, gatesDispatch: true })),
+    ["ISS-9 gates this by an edge whose kind the tracker did not name and is open, which is not yet developed"],
+    "the answer is the answer, and the line says the kind is missing rather than inventing one");
+  assert.ok(holdsBack({ kind: "blocks", otherStatus: "open" }), "the kind answers where the field does not");
+  assert.ok(!holdsBack({ kind: "relates", otherStatus: "open" }));
+  assert.ok(!holdsBack({ otherStatus: "open" }));
+  assert.ok(!holdsBack({ kind: "blocks", otherStatus: "developed", gatesDispatch: true }),
+    "and the one answer the screen reads is the one the check acted on, floor included");
+});
+
+/* The lift of a blocked park asks the same function the entry check does, so one filter answers
+   both and a mention cannot hold a parked issue either. */
+test("a blocked park is lifted by the same filter the entry check reads", () => {
+  const parked = (edge) => targetOf(
+    view({ status: "on_hold", relations: { blockedBy: [edge] } },
+      [recorded("park", { kind: "blocked", why: "ISS-33 first", evidence: [] }, "approved")]),
+    "ISS-3",
+  );
+  const mentioned = parked({ otherDisplayId: "ISS-18", otherStatus: "open", kind: "relates", gatesDispatch: false });
+  assert.equal(mentioned.next, "approved");
+  assert.deepEqual(mentioned.missing, [], "a mention never parked it, so it does not hold it either");
+  const ordered = parked({ otherDisplayId: "ISS-33", otherStatus: "open", kind: "blocks", gatesDispatch: true });
+  assert.match(ordered.missing[0].what, /^ISS-33 gates this by a blocks edge/u);
 });
 
 test("developed needs the mark, its commit, and an approving review of that commit", () => {
@@ -255,8 +310,10 @@ test("a parked issue resumes where its park record says it left, once somebody a
   assert.equal(paused.next, "in_progress");
   assert.match(paused.missing[0].what, /kind paused, which a person lifts/u);
   const blocked = (otherStatus) =>
-    at("on_hold", [asked("blocked", "approved")], { relations: { blockedBy: [{ otherDisplayId: "ISS-4", otherStatus }] } });
-  assert.match(blocked("open").missing[0].what, /^ISS-4 blocks this/u);
+    at("on_hold", [asked("blocked", "approved")], {
+      relations: { blockedBy: [{ otherDisplayId: "ISS-4", otherStatus, kind: "blocks", gatesDispatch: true }] },
+    });
+  assert.match(blocked("open").missing[0].what, /^ISS-4 gates this by a blocks edge/u);
   assert.deepEqual(blocked("developed").missing, [], "the next run picks up a blocked issue itself");
   assert.equal(blocked("developed").next, "approved");
 });

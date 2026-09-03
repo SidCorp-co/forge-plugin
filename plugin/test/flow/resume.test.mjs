@@ -15,7 +15,7 @@ process.env.XDG_CONFIG_HOME = HOME.path;
 const { render } = await import("../../src/flow/record.mjs");
 const { PHASE, ORDER, SIDE, methodOf, viewFrom } = await import("../../src/flow/earned.mjs");
 const { briefOf } = await import("../../src/flow/brief.mjs");
-const { USAGE } = await import("../../src/flow/resume.mjs");
+const { USAGE, edgeSaid } = await import("../../src/flow/resume.mjs");
 const { sessionHeld } = await import("../../src/flow/lease.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -117,14 +117,23 @@ test("the worklog and the lease's line are read out of the field, and never from
   assert.equal(brief({ sessionContext: null }).worklog, null, "an issue nobody wrote one for offers none");
 });
 
-/* Only a `blocks` edge gates dispatch, and the entry check reads the whole list (ISS-19), so the
-   brief has to let a reader see which kind each edge is. */
+/* A mention and an ordering constraint arrive in one list, so the brief names the kind of each
+   edge beside the tracker's own answer about whether it gates. */
 test("every blocking edge is named with its kind, and the park with the status it left", () => {
   assert.deepEqual(brief().blockers, [
-    { ref: "ISS-22", status: "closed", kind: "blocks", gates: false },
-    { ref: "ISS-18", status: "open", kind: "relates", gates: false },
+    { ref: "ISS-22", status: "closed", kind: "blocks", gates: false, satisfied: true },
+    { ref: "ISS-18", status: "open", kind: "relates", gates: false, satisfied: false },
   ]);
   assert.equal(brief().park, null, "an issue that is not parked is not parked");
+  /* The tracker's answer, not the word on the edge: a line derived from the kind would tell the
+     reader an edge gates nothing while the shortfall under it refuses on that very edge. */
+  assert.equal(edgeSaid({ kind: "relates", gates: true }), "holding this issue back now");
+  assert.equal(edgeSaid({ kind: "blocks", gates: false, satisfied: true }), "satisfied");
+  assert.equal(edgeSaid({ kind: "relates", gates: false, satisfied: true }), "satisfied",
+    "the blocker is far enough along, whatever the tracker called the edge");
+  assert.equal(edgeSaid({ kind: "blocks", gates: false, satisfied: false }), "not an edge the tracker gates dispatch on",
+    "and the tracker's own answer is the only thing that says a blocks edge gates nothing");
+  assert.equal(edgeSaid({ gates: false, satisfied: false }), "not an edge the tracker gates dispatch on");
   const parked = brief({ status: "on_hold" }, [recorded("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress")]);
   assert.match(parked.park.said, /three reclaims of in_progress/u);
   assert.ok(SIDE.includes("on_hold"));

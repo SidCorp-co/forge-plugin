@@ -3,7 +3,7 @@
    disagree. Under earned.mjs's rule about what it may touch, for the same reason (ISS-44). */
 import { FIELD, leaseOf, sessionHeld, stateOf } from "./lease.mjs";
 import { Refused, unwrap } from "./record.mjs";
-import { SIDE, methodOf, targetOf } from "./earned.mjs";
+import { SIDE, atLeast, holdsBack, methodOf, targetOf } from "./earned.mjs";
 import { worklogOf } from "./worklog.mjs";
 
 const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped" };
@@ -42,14 +42,15 @@ const markedCriteria = (view) =>
     };
   });
 
-/* Every edge, with the kind the tracker gave it: a *relates* edge gates nothing and is counted as a
-   blocker by the entry check today (ISS-19), so a reader of the brief can see which it is. */
+/* Every edge, with the kind the tracker gave it and whether it holds this status back read by the
+   entry check's own predicate, so the brief cannot say of an edge other than what that check did. */
 const blockersOf = (view) =>
   (view.issue.relations?.blockedBy ?? []).map((one) => ({
     ref: one.otherDisplayId,
     status: one.otherStatus,
     kind: one.kind,
-    gates: Boolean(one.gatesDispatch),
+    gates: holdsBack(one),
+    satisfied: atLeast(one.otherStatus, "developed"),
   }));
 
 const leaseIn = (view) => {

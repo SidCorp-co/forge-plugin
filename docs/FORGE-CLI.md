@@ -71,6 +71,14 @@ git is asked at the step that knows the answer, and the answer is written onto t
 a caller can tell "not yet" from "here is what to type". The contract it serves, and the tables it
 carries in its own words: `docs/issue-flow-contract.md`.
 
+A third measurement, two runs later: an edge the tracker had already answered for forced a raw
+transition twice. `relations.blockedBy` returns mentions beside orderings, each edge naming its kind
+and whether it gates dispatch, and the entry check filtered that list on the blocker's status alone
+— so a mention of an issue nobody will develop refused `in_progress` with nothing to type past it.
+The check reads the edge's own answer now, falling back to the kind where the tracker sent none, and
+keeps the blocker's status as a second test beside it: the tracker gates on a merged mark and this
+contract's floor is `developed`, so the two answer different questions.
+
 ## `claim` — one run holds an issue, as far as a client can promise
 
 The issue's session field was there from the start and nothing wrote it: measured 2026-09-02, a
@@ -161,10 +169,11 @@ holder itself may all read it; the printer and the brief import none of the writ
 is what a case asserts rather than a comment claiming it. It prints, in reading order: the status
 with the phase it owes, the plan bounded with a pointer to the whole field, every criterion with its
 verdict mark, one line each of the latest confirmation, decision and correction, the worklog, the
-parks and the blocking edges with the kind of each — only a `blocks` edge gates dispatch — the
-command the next status is owed in the same words `advance --owed` uses and from the same function,
-and the path of the reference holding that phase's method. `--json` is the assembled object the
-screen was printed from, so a tool and a reader cannot be told different things.
+parks and the blocking edges with the kind of each and whether it holds the status back — one
+answer, the entry check's own, never worked out a second time for the screen — the command the next
+status is owed in the same words `advance --owed` uses and from the same function, and the path of
+the reference holding that phase's method. `--json` is the assembled object the screen was printed
+from, so a tool and a reader cannot be told different things.
 
 Two smaller measurements. A section with nothing in it is left out, not printed empty, which is what
 made the brief fit a screen at all. And listing the comments is a read of them, so the gate that

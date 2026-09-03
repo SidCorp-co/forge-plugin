@@ -60,16 +60,18 @@ const held = (brief) => {
     + `${one.renewedAt.slice(0, 16)} for ${one.minutes} minute(s), ${one.claims} claim(s) on the record`];
 };
 
-/* The kind as the tracker gave it: only a `blocks` edge gates dispatch, and the shortfall below
-   reads the whole list, so a reader has to be able to see which of the two an edge is. */
-const edgeSaid = (one) => {
-  if (one.kind !== "blocks") return `a ${one.kind} edge does not gate dispatch`;
-  return one.gates ? "gating this issue now" : "satisfied";
+/* Two answers assembled with the record, never worked out here: whether the edge holds the status
+   back, which is the answer the shortfall below acted on, and whether its blocker is far enough
+   along. A line that inferred either from the edge's kind would contradict that shortfall the first
+   time the tracker gated an edge it had called something else. */
+export const edgeSaid = (one) => {
+  if (one.gates) return "holding this issue back now";
+  return one.satisfied ? "satisfied" : "not an edge the tracker gates dispatch on";
 };
 
 const parks = (brief) => [
   ...(brief.park ? [`parked: ${brief.park.said}  (${brief.park.at})`] : []),
-  ...brief.blockers.map((one) => `${one.kind} ${one.ref}, which is ${one.status} — ${edgeSaid(one)}`),
+  ...brief.blockers.map((one) => `${one.kind ?? "unnamed"} ${one.ref}, which is ${one.status} — ${edgeSaid(one)}`),
 ];
 
 /* The one owed list, printed by the same function `advance --owed` prints it with: a second copy
