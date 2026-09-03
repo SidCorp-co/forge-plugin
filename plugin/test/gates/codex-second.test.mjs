@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { callHook } from "../fixtures.mjs";
-import { commitTree, committing } from "../../hooks/_hook.mjs";
+import { committing } from "../../hooks/_hook.mjs";
+import { commitAim } from "../../hooks/gates/codex-second.mjs";
+import { stagedIn } from "../../src/codex/codex-state.mjs";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -32,7 +34,7 @@ const advised = (msAgo = 1000) => ({
 });
 
 let count = 0;
-const gate = (records, { consultAt, clean, staleBy, session, env = {}, writes, command, log, pending } = {}) => {
+const gate = (records, { consultAt, clean, staleBy, session, env = {}, writes, command, log, pending, stage } = {}) => {
   count += 1;
   const path = join(room, `t${count}.jsonl`);
   writeFileSync(path, `${records.map((one) => JSON.stringify(one)).join("\n")}\n`);
@@ -52,6 +54,9 @@ const gate = (records, { consultAt, clean, staleBy, session, env = {}, writes, c
   else writeFileSync(join(REPO, "work.mjs"), `// ${count}\n`);
   /* Work that predates the consult has been read already, whatever the tree still shows. */
   if (staleBy) utimesSync(join(REPO, "work.mjs"), new Date(now - staleBy), new Date(now - staleBy));
+  /* A commit is asked for what it stages, so the index is the case's to set and never the last one's. */
+  spawnSync("git", ["-C", REPO, "read-tree", "--empty"]);
+  if (stage) spawnSync("git", ["-C", REPO, "add", ...stage]);
   const run = callHook(
     HOOK,
     {
@@ -143,7 +148,7 @@ test("a stand-down on a tree with nothing in it does not silence the writes afte
 test("a commit is asked about even after the advice is spent", () => {
   const spent = [userTurn(), advised(300_000)];
   assert.equal(gate(spent, { consultAt: at(120_000) }), null, "the write is cleared");
-  const out = gate(spent, { consultAt: at(120_000), command: "git commit -m 'the work'" });
+  const out = gate(spent, { consultAt: at(120_000), command: "git commit -m 'the work'", stage: ["work.mjs"] });
   assert.ok(out, "the commit is not");
   assert.match(because(out), /this commit is where the turn stops being a draft/u);
 });
@@ -151,18 +156,72 @@ test("a commit is asked about even after the advice is spent", () => {
 test("a commit the consult already covered lands, and so does one with nothing behind it", () => {
   const records = [userTurn(), advised()];
   const command = "git commit -m 'the work'";
-  assert.equal(gate(records, { consultAt: at(120_000), staleBy: 300_000, command }), null, "read already");
+  assert.equal(gate(records, { consultAt: at(120_000), staleBy: 300_000, command, stage: ["work.mjs"] }), null, "read already");
   assert.equal(gate(records, { clean: true, command }), null, "and nothing to read");
 });
 
 /* Command position, and git's globals take arguments: `--git-dir /r/.git commit` is one. */
+const ev = (command) => ({ tool_name: "Bash", tool_input: { command } });
 test("a commit behind a quoted global with a space is a commit in that tree", () => {
-  const ev = (command) => ({ tool_name: "Bash", tool_input: { command } });
   assert.equal(committing(ev(`git -C "/tmp/a b" commit -m x`)), true);
   assert.equal(committing(ev(`git --no-pager -C '/tmp/a b' commit -m x`)), true);
-  assert.equal(commitTree(ev(`git -C "/tmp/a b" commit -m x`)), "/tmp/a b");
-  assert.equal(commitTree(ev("git --work-tree /w --git-dir /m/repo.git commit -m x")), "/w", "the work tree, not the last option");
-  assert.equal(commitTree(ev("git --git-dir /w/.git commit -m x")), "/w");
+  assert.equal(commitAim(ev(`git -C "/tmp/a b" commit -m x`)).tree, "/tmp/a b");
+  assert.equal(commitAim(ev("git --work-tree /w --git-dir /m/repo.git commit -m x")).tree, "/w", "the work tree, not the last option");
+  assert.equal(commitAim(ev("git --git-dir /w/.git commit -m x")).tree, "/w");
+});
+
+/* An agent whose shell resets its cwd commits into a worktree by moving there first, and a move the
+   commit never inherited — a subshell's, or one made after it — is not the tree it closes in. */
+test("the tree a commit closes in is the last move it inherited", () => {
+  assert.equal(commitAim(ev("cd /w && git commit -m x")).tree, "/w");
+  assert.equal(commitAim(ev("cd /w; git commit -m x")).tree, "/w");
+  assert.equal(commitAim(ev("cd /a && cd b && git commit -m x")).tree, "/a/b", "two relative moves compose");
+  assert.equal(commitAim(ev("(cd /a && true); git commit -m x")).tree, null, "a subshell's move dies with it");
+  /* The walk stops before the commit's own span, so a commit inside the subshell keeps the move. */
+  assert.equal(commitAim(ev("(cd /a && git commit -m x)")).tree, "/a", "a commit inside it does not");
+  assert.equal(commitAim(ev("(cd /a; git commit -m x)")).tree, "/a");
+  assert.equal(commitAim(ev("(cd /a && git commit -m x) && echo done")).tree, "/a");
+  assert.equal(commitAim(ev("cd /a && (git commit -m x)")).tree, "/a");
+  assert.equal(commitAim(ev("git commit -m x && cd /a")).tree, null, "and one after it moves nothing");
+  assert.equal(commitAim(ev("cd /a && git -C /b commit -m x")).tree, "/b", "the tree it names wins over the move");
+});
+
+/* Codex's F1 and F2: a pathspec needs no `--`, a pipeline's flags are not the commit's, and a value
+   a short flag ate is neither — `-ma` is a message, `-uall` is untracked-files, and `-am` is both. */
+test("what a commit closes over is read from its own flags", () => {
+  const aim = (command) => commitAim(ev(command));
+  assert.equal(aim("git commit -am x").all, true);
+  assert.equal(aim("git commit --all").all, true);
+  assert.equal(aim("git commit -ma").all, false, "a message whose text is `a`");
+  assert.equal(aim("git commit -uall -m x").all, false, "untracked-files, not all");
+  assert.equal(aim("git commit -m x | tee -a log").all, false, "the pipeline's flag is not the commit's");
+  assert.deepEqual(aim("git commit -m x docs/A.md").paths, ["docs/A.md"], "a pathspec without --");
+  assert.deepEqual(aim("git commit -m x -- docs/A.md 'docs/a b.md'").paths, ["docs/A.md", "docs/a b.md"]);
+  assert.deepEqual(aim("git commit -o docs/A.md -m x").paths, ["docs/A.md"], "-o takes no value");
+  assert.deepEqual(aim("git commit -am x").paths, [], "the message is not a path");
+  assert.deepEqual(aim("git commit -m work >/tmp/commit.log").paths, [], "and neither is a redirect's target");
+  assert.deepEqual(aim("git commit --author='a b' -m x").paths, [], "a long flag's attached value");
+  assert.deepEqual(aim("git commit --author 'a b' -m x").paths, [], "and its detached one");
+  assert.deepEqual(aim(String.raw`git commit -m x docs/a\ b.md`).paths, ["docs/a b.md"], "an escaped space is inside a word");
+  assert.equal(commitAim(ev(String.raw`cd /tmp/a\ b && git commit -m x`)).tree, "/tmp/a b", "and inside a moved-to path");
+});
+
+/* The recheck's own findings: one shape is read, so a call making two commits is not one shape, and
+   a pathspec list inside a file is not a list this can read. Either asks for the record whole. */
+test("a commit shape this cannot enumerate asks for the record whole", () => {
+  assert.equal(commitAim(ev("git commit -m first && git commit -am second")).unknown, true);
+  assert.equal(commitAim(ev("git commit --pathspec-from-file=list -m x")).unknown, true);
+  assert.equal(commitAim(ev("git commit --patch -m x")).unknown, true, "what --patch picks is picked after this answers");
+  assert.equal(commitAim(ev("git commit -p -m x")).unknown, true);
+  assert.equal(commitAim(ev("git commit -i docs/A.md -m x")).unknown, false, "-i is --include, and the index is read anyway");
+  assert.equal(commitAim(ev("git commit -m x")).unknown, false);
+  assert.equal(stagedIn("/nowhere", { unknown: true }), null);
+  assert.equal(commitAim(ev("cd /a && git -C child commit -m x")).tree, "/a/child", "a relative -C is from where the shell stands");
+  assert.equal(commitAim(ev("cd /a && git -C /b commit -m x")).tree, "/b", "and an absolute one is not");
+  /* Naming nothing is not asking for nothing: what `--patch` picks is judged as the whole tree was. */
+  const out = because(gate([userTurn(), advised()], { command: "git commit -p", stage: ["work.mjs"] }));
+  assert.match(out, /codex has not read what this commit stages/u, out);
+  assert.match(out, /work\.mjs/u, "and the tree's own files are what it names");
 });
 
 test("a commit is a commit where a command starts, git's globals in between", () => {
@@ -234,7 +293,7 @@ test("a deletion the consult already read is not asked about again", () => {
    work outside the tree and the commit went through. */
 test("a commit that redirects its output is still a commit in the tree", () => {
   const records = [userTurn(), advised(300_000)];
-  const out = gate(records, { consultAt: at(120_000), command: "git commit -m work >/tmp/commit.log" });
+  const out = gate(records, { consultAt: at(120_000), command: "git commit -m work >/tmp/commit.log", stage: ["work.mjs"] });
   assert.ok(out, "the redirect is not where the work is");
 });
 
@@ -243,7 +302,10 @@ test("a commit that redirects its output is still a commit in the tree", () => {
 const away = (dirty) => {
   const repo = mkdtempSync(join(tmpdir(), "codex-second-away-"));
   spawnSync("git", ["init", "-q", repo]);
-  if (dirty) writeFileSync(join(repo, "work.mjs"), "// a line\n");
+  if (dirty) {
+    writeFileSync(join(repo, "work.mjs"), "// a line\n");
+    spawnSync("git", ["-C", repo, "add", "work.mjs"]);
+  }
   return repo;
 };
 
@@ -383,7 +445,8 @@ test("past five hundred paths the tree is read as changed without a stat", () =>
     for (let at = 0; at < 520; at += 1) utimesSync(join(REPO, "many", `f${at}.txt`), new Date(now - 900_000), new Date(now - 900_000));
     utimesSync(join(REPO, "work.mjs"), new Date(now - 900_000), new Date(now - 900_000));
     const started = Date.now();
-    const held = gate([userTurn(), advised(300_000)], { consultAt: at(120_000), staleBy: 900_000, command: "git commit -m x" });
+    /* A write, because a commit is judged by what it stages and the walk is the tree's branch. */
+    const held = gate([userTurn(), advised(60_000)], { consultAt: at(120_000), staleBy: 900_000 });
     assert.ok(held, "every path is older than the consult, and the count alone says ask");
     assert.ok(Date.now() - started < 5000, "and it answered well inside the hook's clock");
   } finally {
@@ -392,15 +455,84 @@ test("past five hundred paths the tree is read as changed without a stat", () =>
 });
 
 /* 7 of 30 commits landed with the turn's documents recorded and unread, in turns the advisor never
-   spoke in. The commit is where the list is read; a write is not. */
-test("a commit waits for documents recorded and never consulted on, advisor or not", () => {
+   spoke in; then a three-file commit was refused for 726 paths in a shared checkout, 243 of them
+   another session's. The commit is where the list is read, and the list is what the commit stages. */
+test("a commit waits for the documents it stages, and not for one left dirty beside them", () => {
   const command = "git commit -m 'the work'";
-  const out = because(gate([userTurn()], { command, pending: ["docs/PLAN.md", "docs/a b.md"] }));
-  assert.match(out, /has not read the documents .*docs\/PLAN\.md 'docs\/a b\.md', recorded 2 minute\(s\) ago/u);
-  assert.match(out, /forge codex consult --diff --only blocker,major/u);
+  const record = ["docs/PLAN.md", "docs/a b.md", "docs/LATER.md"];
+  mkdirSync(join(REPO, "docs"), { recursive: true });
+  for (const one of record) writeFileSync(join(REPO, one), `# ${one}\n`);
+  const staged = ["docs/PLAN.md", "docs/a b.md"];
+  const out = because(gate([userTurn()], { command, pending: record, stage: staged }));
+  assert.match(out, /has not read what this commit stages in .*docs\/PLAN\.md 'docs\/a b\.md', recorded 2 minute\(s\) ago/u);
+  assert.doesNotMatch(out, /LATER/u, "an uncommitted file nobody staged is not this commit's to review");
+  assert.match(out, new RegExp(`stages in ${realpathSync(REPO)}`, "u"), "the tree whose record is being asked about");
+  assert.match(out, /forge codex consult --diff --only blocker,major docs\/PLAN\.md 'docs\/a b\.md'/u);
   assert.match(out, /pending --drop/u);
-  assert.equal(gate([userTurn()], { pending: ["docs/PLAN.md"] }), null, "a write is not where the list is read");
-  assert.equal(gate([userTurn()], { command, pending: ["docs/PLAN.md"], env: { FORGE_CODEX_DISABLE: "1" } }), null);
+  assert.equal(gate([userTurn()], { pending: record, stage: staged }), null, "a write is not where the list is read");
+  assert.equal(gate([userTurn()], { command, pending: record }), null, "and a commit staging none of them is held for none");
+  /* A pathspec commits tracked worktree content, which this fixture's tree has none of: the demand
+     for one is `stagedIn`'s case, and the parse is `commitAim`'s. */
+  assert.equal(gate([userTurn()], { command, pending: record, stage: staged, env: { FORGE_CODEX_DISABLE: "1" } }), null);
+});
+
+/* Reported: `FORGE_CODEX_DISABLE=1 git commit` was refused identically, because a hook is its own
+   process and reads the session's environment. The switch that works from inside a turn was in no
+   refusal, so for that reader the message named no way out at all. */
+test("every refusal names the switch a session can reach, and what an inline prefix does not do", () => {
+  const record = ["docs/PLAN.md"];
+  writeFileSync(join(REPO, "docs", "PLAN.md"), "# PLAN\n");
+  const found = { kind: "consult", id: "c9", at: at(300_000), root: realpathSync(REPO), ok: true, files: ["a.mjs"], reply: "- **F1 — New — major:** `a.mjs:1` — x." };
+  const said = [
+    because(gate([userTurn(), advised()])),
+    because(gate([userTurn()], { command: "git commit -m x", pending: record, stage: record })),
+    because(gate([userTurn()], { command: "git commit -m x", log: `${JSON.stringify(found)}\n` })),
+  ];
+  for (const one of said) {
+    assert.match(one, /forge hooks --off codex-second/u, one);
+    assert.match(one, /inline `FORGE_CODEX_DISABLE=1` prefix never reaches a hook/u, one);
+  }
+});
+
+/* Reported while several agents worked one repository from worktrees of it: a commit carrying only
+   feedback files was held for documents another agent had recorded elsewhere. A record belongs to a
+   tree, and which tree is the commit's to answer. */
+test("a document recorded in one tree does not hold a commit in another", () => {
+  const main = realpathSync(mkdtempSync(join(tmpdir(), "codex-second-main-")));
+  const run = (...args) => {
+    const out = spawnSync("git", args, { encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" } });
+    assert.equal(out.status, 0, out.stderr);
+  };
+  mkdirSync(join(main, "docs"), { recursive: true });
+  writeFileSync(join(main, "docs", "A.md"), "one\n");
+  run("init", "-q", main);
+  run("-C", main, "add", "-A");
+  run("-C", main, "commit", "-qm", "first");
+  const worktree = `${main}-wt`;
+  run("-C", main, "worktree", "add", "-q", worktree, "-b", "b1");
+  writeFileSync(join(main, "docs", "A.md"), "two\n");
+  run("-C", main, "add", "docs/A.md");
+  writeFileSync(join(worktree, "docs", "A.md"), "three\n");
+  run("-C", worktree, "add", "docs/A.md");
+  const home = mkdtempSync(join(tmpdir(), "codex-second-main-home-"));
+  mkdirSync(join(home, "forge"), { recursive: true });
+  writeFileSync(join(home, "forge", "codex-log.jsonl"), "");
+  const path = join(home, "worktree.jsonl");
+  writeFileSync(path, `${JSON.stringify(userTurn())}\n`);
+  const asked = (root) => {
+    writeFileSync(join(home, "forge", "codex.json"), JSON.stringify({ turns: { [root]: { files: ["docs/A.md"], at: now - 120_000 } } }));
+    const out = callHook(
+      HOOK,
+      { tool_name: "Bash", tool_input: { command: `cd ${worktree} && git commit -m x` }, transcript_path: path, session_id: `wt-${root}-${now}`, cwd: main },
+      { ...process.env, XDG_CONFIG_HOME: home },
+    );
+    return because(out.stdout.trim() ? JSON.parse(out.stdout) : null);
+  };
+  assert.equal(asked(main), "", "the main checkout's record is not the worktree commit's to answer for");
+  assert.match(asked(worktree), new RegExp(`stages in ${worktree}`, "u"), "and the worktree's own record still holds it");
+  rmSync(worktree, { recursive: true, force: true });
+  rmSync(main, { recursive: true, force: true });
+  rmSync(home, { recursive: true, force: true });
 });
 
 /* 37 consults made findings nobody ruled on. The one the gate asks about is the last that made any. */

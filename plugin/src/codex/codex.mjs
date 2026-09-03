@@ -4,7 +4,7 @@
    Four pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and
    its eval set (codex-log.mjs), the turn's bookkeeping (codex-state.mjs), and this — the verb and
    the hook halves. */
-export { STATE_PATH, afterTouch, ageOf, holding, pendingIn, pendingState } from "./codex-state.mjs";
+export { STATE_PATH, afterTouch, ageOf, demandIn, holding, pendingIn, pendingState, stagedIn } from "./codex-state.mjs";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -15,7 +15,7 @@ import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { afterTouch, ageOf, clearConsulted, pendingIn, readState, turnsOf, updateState } from "./codex-state.mjs";
+import { afterTouch, ageOf, clearConsulted, demandOf, pendingIn, readState, turnsOf, updateState } from "./codex-state.mjs";
 import { TOOLS, runTool, scopeFor, toolsFor } from "./codex-tools.mjs";
 import {
   ANGLES,
@@ -490,18 +490,31 @@ export const hookRecord = (event, paths, told = () => false, log = logEntries) =
 const SUBS = {
   consult,
   verdict: (rest) => verdict(rest, repoRoot(process.cwd())),
+  /* What the commit gate will compare, not the record it is drawn from: a list that named 726 paths
+     the gate never looked at cost five consults and cleared nothing (ISS-70). */
   pending: (rest) => {
     const { drop } = flags(rest, "codex pending", ["--drop"]);
     const root = repoRoot(process.cwd());
     const held = readState();
     const waiting = root ? pendingIn(held, root) : [];
     if (!waiting.length) return console.log("nothing pending");
+    const demand = demandOf(root, waiting);
+    const unstaged = waiting.filter((rel) => !demand.includes(rel));
     if (drop) {
-      updateState((now) => ({ ...now, turns: { ...turnsOf(now), [root]: { files: [], at: Date.now() } } }));
-      return console.log(`dropped ${waiting.length} unconsulted file(s).`);
+      if (!demand.length) {
+        return console.log(`nothing of the ${waiting.length} recorded file(s) is staged, so no commit is `
+          + "held for them and there is nothing to drop. Name one to a consult to clear it.");
+      }
+      const { left } = clearConsulted(root, demand);
+      console.log(`dropped ${demand.length} unconsulted file(s), which is what a commit made now would be asked for.`);
+      return left.length ? console.log(`still recorded, unstaged: ${left.join(", ")}`) : undefined;
     }
-    console.log(waiting.join("\n"));
-    console.log(`\nrecorded ${ageOf(held.turns?.[root]?.at)}; \`forge codex pending --drop\` clears it.`);
+    console.log(demand.length ? demand.join("\n") : "nothing staged that codex has not read");
+    console.log(`\nwhat a commit made now is asked for, out of ${waiting.length} file(s) recorded `
+      + `${ageOf(held.turns?.[root]?.at)}; \`forge codex pending --drop\` clears it.`);
+    if (unstaged.length) {
+      console.log(`recorded and not staged, which a commit takes only with -a or a pathspec: ${unstaged.join(", ")}`);
+    }
   },
   show,
   log: printLog,

@@ -422,12 +422,6 @@ export const gitTreeOf = (text) => {
   return basename(dir) === ".git" ? dirname(dir) : dir;
 };
 
-/** Which tree the draft closes in: `git -C other commit` is that repository's, not the cwd's. */
-export const commitTree = (ev) => {
-  const found = shellText((ev.tool_input ?? {}).command).match(COMMITS);
-  return found ? gitTreeOf(found[0]) : null;
-};
-
 /** Lexical: the file may not exist yet, and a relative target resolves against the cwd. */
 const under = (root, cwd, path) => {
   let base;

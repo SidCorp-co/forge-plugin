@@ -1,6 +1,7 @@
 /* The turn's bookkeeping: which files each checkout touched and has not consulted on, in one file
    for every repository on the machine, written under a lock. docs/FORGE-CLI.md. */
 import { closeSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { basename, join } from "node:path";
 
@@ -128,3 +129,39 @@ export const clearConsulted = (root, rels) => {
   });
   return { left, since };
 };
+
+/* What a commit carries, and what of this record it is asked for. `--name-only -z` needs no pairing
+   for a rename and answers on a repository with no commits; a git that failed is not an empty tree,
+   so it answers null, as a commit shape that cannot be enumerated does. `-a` adds every tracked
+   change and a pathspec the worktree under it, added rather than substituted: one name too many
+   costs a word, one too few loses the review. */
+const GIT_MS = 3_000;
+
+const names = (root, args, ms) => {
+  const run = spawnSync("git", ["-C", root, ...args], { encoding: "utf8", timeout: ms });
+  if (run.status !== 0) return null;
+  return (run.stdout ?? "").split("\0").filter(Boolean);
+};
+
+export const stagedIn = (root, { all = false, paths = [], unknown = false } = {}, ms = GIT_MS) => {
+  if (unknown) return null;
+  const out = new Set();
+  const add = (args) => {
+    const held = names(root, args, ms);
+    if (held === null) return false;
+    for (const one of held) out.add(one);
+    return true;
+  };
+  if (!add(["diff", "--cached", "--name-only", "-z"])) return null;
+  if (all && !add(["diff", "--name-only", "-z"])) return null;
+  if (paths.length && !add(["diff", "--name-only", "-z", "--", ...paths])) return null;
+  return [...out];
+};
+
+/* An uncommitted file nobody staged is not this commit's to review (ISS-70), and where git cannot
+   answer for the index the record stands whole: a gate that stands down on doubt is not a gate. */
+export const demandIn = (files, staged) =>
+  (staged === null ? [...files] : files.filter((rel) => staged.includes(rel)));
+
+export const demandOf = (root, files, shape, ms) =>
+  (files.length ? demandIn(files, stagedIn(root, shape, ms)) : []);
