@@ -7,7 +7,7 @@ description: >-
   listing or filing issues without implementing them, use the forge skill instead.
   Triggers on "work ISS-nn", "implement this issue", "fix ISS-nn", "làm issue",
   "xử lý ISS-nn", "ship this issue".
-version: 2.1.1
+version: 2.1.2
 ---
 
 # Skill: issue-flow
