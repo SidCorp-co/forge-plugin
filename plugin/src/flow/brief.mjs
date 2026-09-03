@@ -14,12 +14,12 @@ const HEADLINE_CHARS = 200;
 
 /* The field of each kind a reader wants on one line. The whole record is `forge record report`. */
 const HEADLINE = {
-  confirmation: "What it is",
-  decision: "Decision",
-  correction: "What moved",
-  park: "Why",
-  finding: "Seen",
-  triage: "Outcome",
+  confirmation: "is",
+  decision: "decision",
+  correction: "moved",
+  park: "why",
+  finding: "seen",
+  triage: "outcome",
 };
 const LATEST = ["confirmation", "decision", "correction", "finding", "triage"];
 
@@ -31,7 +31,8 @@ const oneLine = (value) => {
 const headlineOf = (held, kind) => {
   if (!held) return null;
   const fields = held.record.fields;
-  const said = fields[HEADLINE[kind]] ?? fields["None found"] ?? Object.values(fields)[0];
+  const one = fields[HEADLINE[kind]] ?? fields.none ?? Object.values(fields)[0];
+  const said = Array.isArray(one) ? one.join("; ") : one;
   return { at: String(held.at ?? "").slice(0, 16), said: oneLine(said) };
 };
 
@@ -41,8 +42,8 @@ const markedCriteria = (view) =>
     return {
       number: one.number,
       text: one.text,
-      mark: held ? MARK[held.record.fields.Verdict] ?? `? ${held.record.fields.Verdict ?? "unreadable"}` : NONE,
-      ...(held ? { commit: held.record.fields.Commit } : {}),
+      mark: held ? MARK[held.record.fields.verdict] ?? `? ${held.record.fields.verdict ?? "unreadable"}` : NONE,
+      ...(held ? { commit: held.record.fields.commit } : {}),
     };
   });
 

@@ -72,8 +72,8 @@ const crashedPark = (comments) => {
     .map((one) => ({ at: one.createdAt ?? "", record: parse(one.body ?? "") }))
     .filter((one) => one.record?.kind === "park");
   const last = parks.at(-1);
-  return last?.record.fields.Kind === "crashed"
-    ? { left: last.record.fields["Status left"], at: last.at }
+  return last?.record.fields.kind === "crashed"
+    ? { left: last.record.fields.left, at: last.at }
     : null;
 };
 

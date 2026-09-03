@@ -262,15 +262,20 @@ export const scoped = async (name, args, soft = false) => {
   return callTool(name, wants ? { projectId: await projectId(), ...args } : args, soft);
 };
 
-/* Every write announces its target: the cwd picks the project and there is no delete action. */
-export const write = async (name, args) => {
+/* Every write announces its target: the cwd picks the project and there is no delete action. The
+   payload it sent is handed back to a caller that asks, because on a project with a prose language
+   that copy and the one the caller wrote are different documents, and only the first can be read
+   back and compared. */
+export const write = async (name, args, onSent) => {
   const project = projectScope();
   const language = translateScope();
   console.error(
     `${name} -> project ${project.value ?? "(none)"} (from ${project.from ?? "nowhere"}), ` +
       `prose ${language.value ?? "as written"}`,
   );
-  return scoped(name, args.data ? { ...args, data: translated(args.data) } : args);
+  const data = args.data ? translated(args.data) : null;
+  onSent?.(data);
+  return scoped(name, data ? { ...args, data } : args);
 };
 
 /* `doctor` refreshes it, because a credential change can change which tools are declared. */

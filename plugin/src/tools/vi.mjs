@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 import { fail, translateTo } from "../resolve/settings.mjs";
+import { protectMachine } from "../flow/machine.mjs";
 
 export const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "vi-natural");
 /* Every prose field an agent can write, not only the three the wrapped verbs started with. */
@@ -62,7 +63,8 @@ export const translated = (payload) => {
   const done = { ...payload };
   for (const field of PROSE_FIELDS) {
     if (typeof done[field] !== "string" || !done[field].trim()) continue;
-    done[field] = field === "title" ? translatedTitle(done[field]) : translatedBody(done[field]);
+    const source = protectMachine(field, done[field]);
+    done[field] = field === "title" ? translatedTitle(source) : translatedBody(source);
     console.error(`--- ${field} as posted ---\n${done[field]}\n`);
   }
   return done;

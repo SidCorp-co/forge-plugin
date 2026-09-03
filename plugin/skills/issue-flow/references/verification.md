@@ -7,6 +7,10 @@ it a pre-existing red is indistinguishable from your regression, and you will ei
 defect or repair something that was never yours. If a baseline cannot be obtained, say so
 rather than proceeding as though it were green.
 
+**A gate that stops at its first failure has measured only what ran.** One red at the front
+leaves every step behind it unknown, and a baseline naming that one red is a baseline for
+nothing after it: run the remaining steps by hand and record what each answered.
+
 ## The order
 
 1. **The repo's own gates.** Whatever the project defines. Passing them is the floor.

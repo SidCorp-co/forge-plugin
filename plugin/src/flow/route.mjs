@@ -2,6 +2,7 @@
    word left it at, and the one target the verb may move it to. What each status is earned by, and
    the record it is read out of, is earned.mjs. docs/issue-flow-contract.md holds the tables. */
 import { TRIAGES, refuse, unwrap } from "./record.mjs";
+import { criterionNumber, planFlags } from "./machine.mjs";
 import {
   CHECKS,
   ORDER,
@@ -16,7 +17,6 @@ import {
   nextOf,
   parkRecord,
   personLooks,
-  planFlags,
   shapeGaps,
   transitionCall,
 } from "./earned.mjs";
@@ -24,8 +24,8 @@ import {
 /* A park is a checkpoint with a person at it: the reply that resumes it is a comment by somebody
    other than whoever parked the issue. A hold nobody was asked to answer resumes by hand. */
 const resumeOwed = (view, held) => {
-  const kind = held.record.fields.Kind;
-  const left = held.record.fields["Status left"];
+  const kind = held.record.fields.kind;
+  const left = held.record.fields.left;
   const since = held.comment.createdAt ?? "";
   const replied = view.comments.some(
     (one) => (one.createdAt ?? "") > since && one.authorId && one.authorId !== held.comment.authorId,
@@ -54,7 +54,7 @@ const FALLS_TO = { "wrong-test": "developed", "not-met": "in_progress" };
    the reopen of a drop and it goes back to the status the dropped park recorded. */
 const landedOn = (view, ref) => {
   if (view.issue.mergedAt) return "released";
-  const left = parkRecord(view, (one) => one === "dropped")?.record.fields["Status left"];
+  const left = parkRecord(view, (one) => one === "dropped")?.record.fields.left;
   if (!ORDER.includes(left)) {
     refuse(`${ref} is ${REOPEN} and has no merged mark, so nothing landed and this is the reopen of a `
       + `drop — but no park record of kind dropped names the status it left, so nothing says where it `
@@ -120,8 +120,8 @@ const OUTCOME_OWED = {
   /* Which criterion was the wrong test is the finding's to name, and its record quotes that line as
      it stood: so whether the field moved is on the record too, and needs no repository. */
   "wrong-test": (view, ref, since, found) => {
-    const cited = String(found?.record.fields.Criterion ?? "");
-    const number = Number(/^(\d+)/u.exec(cited)?.[1]);
+    const cited = String(found?.record.fields.criterion ?? "");
+    const number = criterionNumber(cited);
     if (!number) {
       return [need(
         "the triage rules a criterion the wrong test, and the finding names none, so nothing says which",
@@ -144,11 +144,11 @@ const OUTCOME_OWED = {
       : [];
   },
   "not-met": (view, ref, since, found) => {
-    const named = Number(/^(\d+)/u.exec(found?.record.fields.Criterion ?? "")?.[1]);
+    const named = criterionNumber(found?.record.fields.criterion);
     /* Whole, because a comment carrying the tag and little else reaches this the same way the
        finding and the triage do, and a verdict with no commit or no evidence supersedes nothing. */
     const failed = [...view.verdicts].some(([number, one]) =>
-      one.at > since && one.record.fields.Verdict === "fail" && (!named || number === named)
+      one.at > since && one.record.fields.verdict === "fail" && (!named || number === named)
       && !shapeGaps("verdict", one.record, view.names).length);
     if (failed) return [];
     return [need(
@@ -165,10 +165,10 @@ const reopenTarget = (view, ref) => {
   if (missing.length) return { next: landed, missing, resumed: false };
   const ruling = atThisReopen(view, "triage");
   const held = ruling.record.fields;
-  if (held.Outcome !== TRIAGES[2]) {
+  if (held.outcome !== TRIAGES[2]) {
     return {
-      next: lowerOf(landed, FALLS_TO[held.Outcome]),
-      missing: OUTCOME_OWED[held.Outcome](view, ref, ruling.at, atThisReopen(view, "finding")),
+      next: lowerOf(landed, FALLS_TO[held.outcome]),
+      missing: OUTCOME_OWED[held.outcome](view, ref, ruling.at, atThisReopen(view, "finding")),
       resumed: false,
     };
   }
@@ -176,7 +176,7 @@ const reopenTarget = (view, ref) => {
     next: PARK_STATUS.blocked,
     missing: blockingOwed(view),
     resumed: false,
-    park: { kind: "blocked", left: landed, why: `the triage rules the expectation not in the specification: ${held["Would have caught it"]}` },
+    park: { kind: "blocked", left: landed, why: `the triage rules the expectation not in the specification: ${held["would-have-caught"]}` },
   };
 };
 
@@ -200,7 +200,7 @@ export const targetOf = (view, ref) => {
       refuse(`${ref} is ${status} with no park record, so nothing says where it came from. `
         + `Write one (forge record park ${ref} --kind <kind> --why "<why>") or transition by hand:\n  ${transitionCall(view.documentId, "<status>")}`);
     }
-    const left = held.record.fields["Status left"];
+    const left = held.record.fields.left;
     if (!ORDER.includes(left)) {
       refuse(`the park record on ${ref} names \`${left}\` as the status it left, which is no step of the flow. `
         + `Transition by hand:\n  ${transitionCall(view.documentId, "<status>")}`);

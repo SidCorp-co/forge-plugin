@@ -8,8 +8,8 @@ where the next reader finds it costs less than a round trip, and it is correctab
 long as nothing was built on it.
 
 Ask when reversing would mean unpicking work rather than changing a value: a decision that
-moves code between packages, fixes a wire format, or sets what other decisions are made
-against. A number in a config file is not one of those; a package boundary is.
+moves code between packages, fixes a wire format nothing will go on reading the old form of, or
+sets what other decisions are made against. A number in a config file is not one of those; a package boundary is.
 
 ## How to ask, when you must
 

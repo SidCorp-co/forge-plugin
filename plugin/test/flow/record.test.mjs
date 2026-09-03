@@ -22,16 +22,20 @@ test("every kind is on the usage line, and -h prints it without touching the tra
   assert.ok(run.stdout.includes("Usage: forge record"), run.stdout);
 });
 
-test("a record renders for a person and its last line names the kind and the contract", () => {
+/* The keys are the flags and they sit in a fenced block, because a project with a prose language
+   rewrites every body on the way out and a rewrite renames prose. A label is no key. */
+test("a record renders for a person and its payload is a fenced block keyed by flag", () => {
   const body = render("confirmation", { where: ["a.mjs", "b.mjs"], is: "the hook keys by path", finding: "holds" });
   assert.match(body, /^## Confirmation$/mu);
-  assert.match(body, /^- \*\*Where looked:\*\* a\.mjs; b\.mjs$/mu);
-  assert.match(body, /^- \*\*Finding:\*\* holds$/mu);
+  assert.match(body, /^```forge-record$/mu);
+  assert.match(body, /^where: a\.mjs\nwhere: b\.mjs$/mu, "a repeated field is one line per value");
+  assert.match(body, /^finding: holds$/mu);
   assert.equal(body.trim().split("\n").at(-1), `\`forge-record: confirmation · contract ${CONTRACT}\``);
   assert.deepEqual(parse(body), {
     kind: "confirmation",
     contract: CONTRACT,
-    fields: { "Where looked": "a.mjs; b.mjs", "What it is": "the hook keys by path", Finding: "holds" },
+    rewritten: false,
+    fields: { where: ["a.mjs", "b.mjs"], is: "the hook keys by path", finding: "holds" },
   });
 });
 
@@ -44,14 +48,14 @@ test("the tracker's data fence around a field or a body is not part of it", () =
 
 test("a correction says what moved and why, both required", () => {
   const body = render("correction", { moved: "package.json joins the files touched", why: "the ship path needs a version" });
-  assert.match(body, /^- \*\*What moved:\*\* package\.json/mu);
+  assert.match(body, /^moved: package\.json/mu);
   assert.equal(parse(body).kind, "correction");
 });
 
 test("a review names its reviewer, head and outcome, and each finding is an id with a verdict", () => {
   const body = render("review", { reviewer: "codex", commit: "ea7967f", outcome: "approved", finding: ["F1 accepted", "F2 rejected: a re-record reviews nothing new"] });
-  assert.match(body, /^- \*\*Head judged:\*\* ea7967f$/mu);
-  assert.match(body, /^- \*\*Findings:\*\* F1 accepted; F2 rejected: a re-record reviews nothing new$/mu);
+  assert.match(body, /^commit: ea7967f$/mu);
+  assert.match(body, /^finding: F1 accepted\nfinding: F2 rejected: a re-record reviews nothing new$/mu);
   assert.equal(parse(body).kind, "review");
   assert.deepEqual(OUTCOMES, ["approved", "changes-requested"]);
   const { check } = SHAPES.review;
@@ -70,8 +74,8 @@ test("a finding carries the person's words and at most one thing it is about", (
     evidence: ["run.txt"], quoted: "I cannot find anything in it",
   });
   assert.match(body, /^## Finding$/mu);
-  assert.match(body, /^- \*\*Expected:\*\* the list sorted by name$/mu);
-  assert.match(body, /^- \*\*In their words:\*\* I cannot find anything in it$/mu);
+  assert.match(body, /^expected: the list sorted by name$/mu);
+  assert.match(body, /^quoted: I cannot find anything in it$/mu);
   assert.equal(parse(body).kind, "finding");
   const { check, fields, repeats } = SHAPES.finding;
   assert.equal(check({ criterion: "3" }), null);
@@ -82,21 +86,21 @@ test("a finding carries the person's words and at most one thing it is about", (
   /* Stamped from the issue rather than typed, because a value the author could get wrong is the
      very value the record is matched by when a second reopen asks which pair is its own. */
   const stamped = render("finding", { expected: "e", seen: "s", evidence: ["run.txt"], quoted: "q" }, "2");
-  assert.match(stamped, /^- \*\*Reopen:\*\* 2$/mu);
-  assert.equal(parse(stamped).fields.Reopen, "2");
+  assert.match(stamped, /^reopen: 2$/mu);
+  assert.equal(parse(stamped).fields.reopen, "2");
   for (const kind of ["finding", "triage"]) {
-    assert.equal(SHAPES[kind].status, "Reopen", kind);
-    assert.equal(SHAPES[kind].from, "reopenCount", `${kind} reads its stamp off the issue`);
+    assert.equal(SHAPES[kind].stamp.label, "Reopen", kind);
+    assert.equal(SHAPES[kind].stamp.from, "reopenCount", `${kind} reads its stamp off the issue`);
     assert.ok(!SHAPES[kind].fields.some((one) => one.flag === "reopen"), `${kind} takes no --reopen`);
   }
-  assert.equal(SHAPES.park.from, undefined, "and a park's stamp is still the status it left");
+  assert.equal(SHAPES.park.stamp.from, undefined, "and a park's stamp is still the status it left");
 });
 
 test("a triage rules on one of three outcomes and says what would have caught it", () => {
   assert.deepEqual(TRIAGES, ["wrong-test", "not-met", "not-in-spec"]);
   const body = render("triage", { outcome: "not-met", "would-have-caught": "a verdict judged against the list" });
-  assert.match(body, /^- \*\*Outcome:\*\* not-met$/mu);
-  assert.match(body, /^- \*\*Would have caught it:\*\* a verdict judged against the list$/mu);
+  assert.match(body, /^outcome: not-met$/mu);
+  assert.match(body, /^would-have-caught: a verdict judged against the list$/mu);
   assert.equal(parse(body).kind, "triage");
   const { fields, repeats } = SHAPES.triage;
   assert.deepEqual(fields.filter((one) => !one.optional).map((one) => one.flag), ["outcome", "would-have-caught"]);
@@ -110,7 +114,7 @@ test("a triage rules on one of three outcomes and says what would have caught it
 
 test("a park records the status it left, and free text is no record", () => {
   const body = render("park", { kind: "blocked", why: "ISS-9 first", evidence: [] }, "in_progress");
-  assert.match(body, /^- \*\*Status left:\*\* in_progress$/mu);
+  assert.match(body, /^left: in_progress$/mu);
   /* One list for the three parks that speak to a reviewer, applied by the shape rather than by the
      verb, so a record read back is held to it the way the write is. */
   assert.deepEqual(SHOWS_EVIDENCE, ["screen-review", "code-review", "destructive-migration"]);
@@ -118,7 +122,7 @@ test("a park records the status it left, and free text is no record", () => {
   assert.match(check({ kind: "screen-review", evidence: [] }), /a screen-review park names what the reviewer is to look at/u);
   assert.equal(check({ kind: "screen-review", evidence: ["run.txt"] }), null);
   assert.equal(check({ kind: "blocked", evidence: [] }), null, "and a park nobody has to look at names nothing");
-  assert.equal(parse("## Confirmation\n- **Finding:** holds\n"), null, "no parsed line, no record");
+  assert.equal(parse("## Confirmation\nfinding: holds\n"), null, "no tag, no record");
   assert.equal(parse("`forge-record: nonsense · contract 1`"), null, "an unknown kind is no record");
 });
 
@@ -157,8 +161,8 @@ test("the report keeps the latest of each kind, the latest verdict per criterion
   ];
   const criteria = [{ number: 1, text: "a" }, { number: 2, text: "b" }, { number: 3, text: "c" }];
   const { latest, verdicts, owed } = assemble(comments, criteria);
-  assert.equal(latest.confirmation.record.fields["What it is"], "new");
-  assert.equal(verdicts.get(1).record.fields.Verdict, "pass", "the later verdict replaces");
+  assert.equal(latest.confirmation.record.fields.is, "new");
+  assert.equal(verdicts.get(1).record.fields.verdict, "pass", "the later verdict replaces");
   assert.deepEqual(owed, [3]);
 });
 
@@ -175,9 +179,9 @@ test("every finding and every triage is on the report, not the latest of each", 
     body: render("triage", { outcome, "would-have-caught": "a criterion naming the order" }),
   });
   const { latest, repeated } = assemble([found("sorted by id", 1), ruled("not-met", 2), found("still by id", 3), ruled("wrong-test", 4)], []);
-  assert.deepEqual(repeated.finding.map((one) => one.record.fields.Seen), ["sorted by id", "still by id"]);
-  assert.deepEqual(repeated.triage.map((one) => one.record.fields.Outcome), ["not-met", "wrong-test"]);
-  assert.equal(latest.finding.record.fields.Seen, "still by id", "and the latest of each is still there, for the brief");
+  assert.deepEqual(repeated.finding.map((one) => one.record.fields.seen), ["sorted by id", "still by id"]);
+  assert.deepEqual(repeated.triage.map((one) => one.record.fields.outcome), ["not-met", "wrong-test"]);
+  assert.equal(latest.finding.record.fields.seen, "still by id", "and the latest of each is still there, for the brief");
   assert.equal(repeated.confirmation, undefined, "a kind that can only be current keeps no list");
   for (const kind of Object.keys(SHAPES)) {
     assert.equal(Boolean(SHAPES[kind].repeats), ["finding", "triage"].includes(kind), `${kind} repeats or it does not`);

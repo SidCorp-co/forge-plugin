@@ -1,6 +1,7 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
    back by kind: docs/FORGE-CLI.md § record. The verb owns the shape; the tracker owns the fields. */
 import { fail, translateTo } from "../resolve/settings.mjs";
+import { blockOf, criterionNumber, readRecord, tagFor } from "./machine.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { pullRepeated, flags } from "../resolve/flags.mjs";
 import { COMMENT_PAGE, commentPage, postComment } from "../tracker/comments.mjs";
@@ -75,7 +76,7 @@ export const SHAPES = {
       FIELD("why", "Why"),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
     ],
-    status: "Status left",
+    stamp: FIELD("left", "Status left"),
     check: (got) =>
       (SHOWS_EVIDENCE.includes(got.kind) && !got.evidence.length
         ? `--evidence: a ${got.kind} park names what the reviewer is to look at`
@@ -133,8 +134,7 @@ export const SHAPES = {
       FIELD("uc", "Use case", { optional: true }),
       FIELD("quoted", "In their words"),
     ],
-    status: "Reopen",
-    from: "reopenCount",
+    stamp: FIELD("reopen", "Reopen", { from: "reopenCount" }),
     check: (got) => {
       if (got.criterion !== undefined && got.uc !== undefined) {
         return "one of --criterion and --uc, not both: a finding names one thing it is about";
@@ -152,8 +152,7 @@ export const SHAPES = {
       FIELD("would-have-caught", "Would have caught it"),
       FIELD("detail", "Detail", { optional: true }),
     ],
-    status: "Reopen",
-    from: "reopenCount",
+    stamp: FIELD("reopen", "Reopen", { from: "reopenCount" }),
   },
   verification: {
     heading: "Release verification",
@@ -220,38 +219,22 @@ export const criteriaLines = (text) => {
 export const joinedCriteria = (criteria, words) =>
   criteria.filter((one) => words.some((word) => wordIn(word, one.text))).map((one) => one.number);
 
-/* Rendered for a person first: a heading, one line per field, and the parsed line last. */
+/* A heading for a person, the payload in a fenced block the prose rewrite copies byte for byte, and
+   the tag last in a code span for the same reason. The stamp is read off the issue at the write —
+   which status a park left, which reopen a finding belongs to — and is no flag, because a value the
+   author could type is one they could get wrong about the very thing the record is matched by. */
 export const render = (kind, fields, status = null) => {
   const shape = SHAPES[kind];
-  const lines = [`## ${shape.heading}`, ""];
-  for (const field of shape.fields) {
-    const value = fields[field.flag];
-    if (value === undefined || value === null || (Array.isArray(value) && !value.length)) continue;
-    lines.push(`- **${field.label}:** ${Array.isArray(value) ? value.join("; ") : value}`);
-  }
-  /* One stamp, read off the issue at the write: which status a park left, which reopen a finding
-     belongs to. It is not a flag, because a value the author could type is a value they could get
-     wrong about the very thing the record is being matched by. */
-  if (shape.status && status) lines.push(`- **${shape.status}:** ${status}`);
-  lines.push("", `\`forge-record: ${kind} · contract ${CONTRACT}\``);
-  return lines.join("\n");
+  const entries = shape.fields
+    .map((field) => [field.flag, fields[field.flag]])
+    .filter(([, value]) => !(value === undefined || value === null || (Array.isArray(value) && !value.length)));
+  if (shape.stamp && status) entries.push([shape.stamp.flag, status]);
+  return [`## ${shape.heading}`, "", blockOf(entries), "", tagFor(kind, CONTRACT)].join("\n");
 };
 
-const TAG = /`?forge-record: ([a-z]+) · contract (\d+)`?\s*$/u;
-const LINE = /^- \*\*([^*]+):\*\* (.*)$/u;
+export const parse = (body) => readRecord(unwrap(body), (kind) => SHAPES[kind]);
 
-export const parse = (body) => {
-  const tag = TAG.exec(unwrap(body));
-  if (!tag || !SHAPES[tag[1]]) return null;
-  const fields = {};
-  for (const line of unwrap(body).split("\n")) {
-    const match = LINE.exec(line.trim());
-    if (match) fields[match[1]] = match[2];
-  }
-  return { kind: tag[1], contract: Number(tag[2]), fields };
-};
-
-const criterionOf = (record) => Number(/^(\d+)/u.exec(record.fields.Criterion ?? "")?.[1]);
+const criterionOf = (record) => criterionNumber(record.fields.criterion);
 
 /* Latest of each kind, latest verdict per criterion, and the criteria no verdict names. */
 export const assemble = (comments, criteria) => {
@@ -262,21 +245,34 @@ export const assemble = (comments, criteria) => {
   const latest = {};
   const verdicts = new Map();
   const repeated = {};
+  /* A verdict whose criterion this build cannot read is kept apart rather than keyed by what the
+     read produced: keying by that is how an owed list came to name a criterion `NaN`. */
+  const unreadable = [];
   for (const { at, record } of records) {
     if (record.kind === "verdict") {
-      verdicts.set(criterionOf(record), { at, record });
+      const number = criterionOf(record);
+      if (number === null) unreadable.push({ at, record });
+      else verdicts.set(number, { at, record });
       continue;
     }
     latest[record.kind] = { at, record };
     if (SHAPES[record.kind].repeats) (repeated[record.kind] ??= []).push({ at, record });
   }
   const owed = criteria.filter((one) => !verdicts.has(one.number)).map((one) => one.number);
-  return { latest, verdicts, owed, repeated };
+  return { latest, verdicts, owed, repeated, unreadable };
 };
 
+/* The label is the shape's, never the record's: a record carries keys, and two forms of one record
+   read back under one heading. A rewritten one carries no key and says so instead of nothing. */
 const printRecord = ({ at, record }) => {
-  console.log(`${SHAPES[record.kind].heading}  (${at.slice(0, 16)}, contract ${record.contract})`);
-  for (const [label, value] of Object.entries(record.fields)) console.log(`  ${label}: ${value}`);
+  const shape = SHAPES[record.kind];
+  console.log(`${shape.heading}  (${at.slice(0, 16)}, contract ${record.contract})`);
+  if (record.rewritten) return console.log("  rewritten by the prose pipeline: no field of this shape reads back");
+  for (const field of [...shape.fields, ...(shape.stamp ? [shape.stamp] : [])]) {
+    const value = record.fields[field.flag];
+    if (value === undefined || (Array.isArray(value) && !value.length)) continue;
+    for (const one of Array.isArray(value) ? value : [value]) console.log(`  ${field.label}: ${one}`);
+  }
 };
 
 export const issueOf = async (reference) => {
@@ -341,8 +337,24 @@ const gather = (kind, argv) => {
   return got;
 };
 
+/* What the stored copy will be, said where the write is made: the payload block is the record and
+   travels as written, and everything a rewrite reaches is prose around it. */
+const REWRITTEN = {
+  record: "the payload block is stored as written; the heading above it is rewritten",
+  criteria: "the criteria are rewritten, and the numbers a verdict names are what survives",
+  note: "the release note is not rewritten at all, so its user-facing half stays English (ISS-46)",
+};
+
+export const sayStored = (which, language = translateTo()) => {
+  if (!language) return null;
+  const said = `prose ${language}: ${REWRITTEN[which]}.`;
+  console.error(said);
+  return said;
+};
+
 export const post = async (documentId, body, ref = documentId, next = undefined, patch = null) => {
   refuseIfGated("forge_comments");
+  sayStored("record");
   await renew(documentId, ref, next, patch);
   const answer = await postComment(documentId, body);
   console.log(body);
@@ -365,7 +377,7 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
     if (!held) refuse(`${reference} has no criterion ${got[cites.flag]}; its field holds ${criteriaCount(body)}.`);
     got[cites.flag] = `${held.number} — ${held.text}`;
   }
-  const stamp = shape.status ? String(body[shape.from ?? "status"] ?? "") : null;
+  const stamp = shape.stamp ? String(body[shape.stamp.from ?? "status"] ?? "") : null;
   return post(documentId, render(kind, got, stamp), reference, next, patch);
 };
 
@@ -395,17 +407,28 @@ export const noteFrom = (argv) => {
   return { section: rest.section, userFacing: rest.user, technical: rest.technical ?? null };
 };
 
-/* The read-back is owed here for the reason it is owed on `plan`, stated once beside that verb. */
+/* The read-back is owed here for the reason it is owed on `plan`, stated once beside that verb, and
+   it compares the copy the boundary sent: a project with a prose language sends a rewrite of what it
+   was handed, and comparing the source would refuse every write that landed. */
 const updateField = async (documentId, field, value, same, ref, next, patch) => {
   await renew(documentId, ref, next, patch);
-  await write("forge_issues", { action: "update", documentId, data: { [field]: value } });
+  let sent = value;
+  await write("forge_issues", { action: "update", documentId, data: { [field]: value } }, (data) => {
+    sent = data?.[field] ?? value;
+  });
   const back = await scoped("forge_issues", { action: "get", documentId, fields: [field] });
-  if (!same(back?.[field])) refuse(`The update answered success but ${field} did not read back as written. Nothing to rely on.`);
+  if (!same(back?.[field], sent)) refuse(`The update answered success but ${field} did not read back as written. Nothing to rely on.`);
 };
+
+/* The field as it comes back against the copy that went out, which on a project with a prose
+   language is a rewrite of what the caller wrote: comparing the caller's copy refuses a write that
+   landed, and a caller told their write is untrustworthy re-sends it or stops. */
+export const landedAs = (held, sent) => unwrap(held) === String(sent).trim();
 
 const recordNote = async (reference, argv, { next, patch }) => {
   const releaseNotes = noteFrom(argv);
   const { documentId } = await issueOf(reference);
+  sayStored("note");
   const same = (held) => ["section", "userFacing", "technical"].every((key) => (held?.[key] ?? null) === releaseNotes[key]);
   await updateField(documentId, "releaseNotes", releaseNotes, same, reference, next, patch);
   console.log(JSON.stringify(releaseNotes, null, 2));
@@ -418,7 +441,8 @@ const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
   const joined = joinedCriteria(criteria, conjunctionsFor());
   const { documentId } = await issueOf(reference);
   const acceptanceCriteria = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");
-  await updateField(documentId, "acceptanceCriteria", acceptanceCriteria, (held) => unwrap(held) === acceptanceCriteria, reference, next, patch);
+  sayStored("criteria");
+  await updateField(documentId, "acceptanceCriteria", acceptanceCriteria, landedAs, reference, next, patch);
   for (const number of joined) {
     console.error(`criterion ${number} holds a conjunction: is it two? A verdict judges one outcome.`);
   }
@@ -435,12 +459,13 @@ const recordReport = async (reference) => {
   }
   const { comments, hasMore } = await commentPage(documentId);
   if (hasMore) console.error(`More than ${COMMENT_PAGE} comments match and the list stops there: this report read the first ${COMMENT_PAGE}.`);
-  const { latest, verdicts, owed, repeated } = assemble(comments, criteria);
+  const { latest, verdicts, owed, repeated, unreadable } = assemble(comments, criteria);
   for (const kind of Object.keys(SHAPES)) {
     if (SHAPES[kind].repeats) for (const one of repeated[kind] ?? []) printRecord(one);
     else if (latest[kind]) printRecord(latest[kind]);
   }
   for (const number of [...verdicts.keys()].sort((a, b) => a - b)) printRecord(verdicts.get(number));
+  for (const one of unreadable) printRecord(one);
   if (body.releaseNotes?.section) console.log(`Release note  ${body.releaseNotes.section}: ${body.releaseNotes.userFacing}`);
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
 };

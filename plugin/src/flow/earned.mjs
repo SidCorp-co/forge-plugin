@@ -1,6 +1,7 @@
 /* What an issue's record earns: the contract's flow table, one entry check per status, and the
    record read whole into one object. The verb that spends this is advance.mjs; nothing here
    writes, fetches or reads the repository. docs/issue-flow-contract.md holds the tables. */
+import { planFlags } from "./machine.mjs";
 import {
   CONTRACT,
   FINDINGS,
@@ -86,17 +87,14 @@ const lastMark = (comments) => {
 export const markedCommit = (comments) => AT_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
 export const reviewedHead = (comments) => HEAD_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
 
-/* `parse` reads the labels and applies none of the shape's rules, so a comment carrying the tag and
+/* `parse` resolves the keys and applies none of the shape's rules, so a comment carrying the tag and
    little else — by hand, or through a client no gate sits before — is measured against the write's
    own rules here: every field, the stamp the write reads off the issue, the evidence, the contract.
    A commit that is not one compares equal to a short sha by prefix, which is why the form counts. */
 export const shapeGaps = (kind, record, names = []) => {
   const shape = SHAPES[kind];
-  const got = Object.fromEntries(shape.fields.map((field) => {
-    const held = record.fields[field.label];
-    if (field.many) return [field.flag, held ? String(held).split("; ") : []];
-    return [field.flag, held];
-  }));
+  const got = Object.fromEntries(shape.fields.map((field) =>
+    [field.flag, field.many ? record.fields[field.flag] ?? [] : record.fields[field.flag]]));
   const gaps = shape.fields
     .filter((field) => {
       const held = got[field.flag];
@@ -111,7 +109,7 @@ export const shapeGaps = (kind, record, names = []) => {
     if (field.commit && !isCommit(held)) gaps.push(`--${field.flag} \`${held}\`, which is no commit`);
     if (field.criterion && !/^\d+\b/u.test(held)) gaps.push(`--${field.flag} \`${held}\`, which opens with no number`);
   }
-  if (shape.status && record.fields[shape.status] === undefined) gaps.push(`its ${shape.status} stamp`);
+  if (shape.stamp && record.fields[shape.stamp.flag] === undefined) gaps.push(`its ${shape.stamp.label} stamp`);
   if (!(record.contract >= 1 && record.contract <= CONTRACT)) {
     return [...gaps, `a contract ${record.contract} record, and this build reads contract 1 to ${CONTRACT}`];
   }
@@ -138,7 +136,7 @@ export const criteriaOf = (issue) => {
 export const dispositionOf = (view) => {
   const held = view.latest?.confirmation;
   if (!held || shapeGaps("confirmation", held.record, view.names ?? []).length) return null;
-  const finding = held.record.fields.Finding;
+  const finding = held.record.fields.finding;
   return FINDINGS.includes(finding) && finding !== "holds" ? finding : null;
 };
 
@@ -150,19 +148,6 @@ export const nextOf = (status, view) => {
 
 export const need = (what, command) => ({ what, command });
 
-/* The two declarations the plan owes, and the wording this verb reads them in: the contract asks
-   the plan to state both and fixes no phrasing, so the refusal below carries the one it accepts. */
-const SCREEN = /screen change:\s*(yes|no)\b/iu;
-const SCHEMA = /schema coupling:\s*(yes|no)\b/iu;
-/* The third declaration, and the only optional one: a use case a person judges owes their look
-   before `released` whether a screen moved or not, and silence is no. FR-05's criterion names two
-   required lines and this issue may not edit the tree, which is why it stays optional. */
-const LOOK = /user-facing outcome:\s*(yes|no)\b/iu;
-export const planFlags = (plan) => ({
-  screen: SCREEN.exec(plan)?.[1]?.toLowerCase() ?? null,
-  schema: SCHEMA.exec(plan)?.[1]?.toLowerCase() ?? null,
-  look: LOOK.exec(plan)?.[1]?.toLowerCase() ?? null,
-});
 /* Which of the two declarations asks for a person, named so the refusal and the line warning of it
    three statuses earlier read alike. The park is the same either way: a look at the evidence. */
 export const personLooks = ({ screen, look }) => {
@@ -199,10 +184,20 @@ export const blockersOwed = ({ issue }) =>
       ),
     );
 
-/* One shape, three answers: absent, present but not a whole payload, or there to be read. */
+/* One shape, four answers: absent, rewritten, present but not a whole payload, or there to be read.
+   A rewritten record is named as itself rather than as the fields it appears to lack: the write
+   supplied them, and a list of flags to re-supply sends the author back to a command that worked. */
 export const payloadOwed = (view, kind, what, ask) => {
   const held = view.latest[kind];
   if (!held) return [need(what, ask)];
+  if (held.record.rewritten) {
+    return [need(
+      `the ${kind} on the record was rewritten by the project's prose pipeline, so no key of this `
+        + `shape reads back from it; write it again on this build, which sends the payload in a `
+        + `fenced block the rewrite copies as written`,
+      ask,
+    )];
+  }
   const gaps = shapeGaps(kind, held.record, view.names);
   return gaps.length
     ? [need(`the ${kind} on the record is not a whole payload: it lacks ${gaps.join(", ")}`, ask)]
@@ -217,8 +212,8 @@ const reviewOwed = (view, ref) => {
   const owed = payloadOwed(view, "review", "no code review of the head that landed", ask);
   if (owed.length) return owed;
   const held = view.latest.review.record.fields;
-  const judged = held["Head judged"];
-  if (held.Outcome !== "approved") return [need(`the latest review of ${judged} says ${held.Outcome}`, ask)];
+  const judged = held.commit;
+  if (held.outcome !== "approved") return [need(`the latest review of ${judged} says ${held.outcome}`, ask)];
   const landed = merged && sameCommit(judged, merged);
   if (merged && !landed && !(reviewed && sameCommit(judged, reviewed))) {
     return [need(
@@ -239,10 +234,19 @@ const verdictsOwed = (view, ref) => {
     const held = record.fields;
     const gaps = shapeGaps("verdict", record, view.names);
     if (gaps.length) out.push(need(`the verdict on criterion ${number} lacks ${gaps.join(", ")}`, ask(number)));
-    else if (held.Verdict === "fail") out.push(need(`criterion ${number} failed its verdict`, ask(number)));
-    else if (merged && !sameCommit(held.Commit, merged)) {
-      out.push(need(`the verdict on criterion ${number} judged ${held.Commit}, and the merged commit is ${merged}`, ask(number)));
+    else if (held.verdict === "fail") out.push(need(`criterion ${number} failed its verdict`, ask(number)));
+    else if (merged && !sameCommit(held.commit, merged)) {
+      out.push(need(`the verdict on criterion ${number} judged ${held.commit}, and the merged commit is ${merged}`, ask(number)));
     }
+  }
+  /* A verdict the reader could key by nothing is named as itself: an item naming the criterion it
+     does not carry is the shortfall a rewrite invented, and no command supplies it. */
+  for (const one of view.unreadable ?? []) {
+    out.push(need(
+      `a verdict written ${one.at.slice(0, 16)} names no criterion this build can read`
+        + `${one.record.rewritten ? ", because the prose pipeline rewrote its keys" : ""}`,
+      ask("<n>"),
+    ));
   }
   return out;
 };
@@ -253,7 +257,7 @@ const verdictsOwed = (view, ref) => {
    whichever was written — which is what a first reopen owes anyway. */
 export const atThisReopen = (view, kind) => {
   const count = String(view.issue.reopenCount ?? 0);
-  const held = (view.repeated?.[kind] ?? []).filter((one) => one.record.fields.Reopen === count);
+  const held = (view.repeated?.[kind] ?? []).filter((one) => one.record.fields.reopen === count);
   return held.length ? held.at(-1) : null;
 };
 
@@ -261,7 +265,7 @@ export const atThisReopen = (view, kind) => {
    with them, so every verdict on the record still names the merged commit and would pass again. */
 const judgedSince = (view, ref) => {
   const held = atThisReopen(view, "triage");
-  const outcome = held?.record.fields.Outcome;
+  const outcome = held?.record.fields.outcome;
   if (!outcome || outcome === TRIAGES[2]) return [];
   /* Only the criteria the issue still has: a wrong-test correction may drop or renumber the one
      that was wrong, and a verdict asked for on a number the field no longer holds is refused at the
@@ -371,7 +375,7 @@ export const viewFrom = (documentId, issue, comments, whole = true) => {
 export const parkRecord = (view, wanted = () => true) => {
   const found = view.comments
     .map((one) => ({ comment: one, record: parse(one.body ?? "") }))
-    .filter((one) => one.record?.kind === "park" && wanted(one.record.fields.Kind))
+    .filter((one) => one.record?.kind === "park" && wanted(one.record.fields.kind))
     .filter((one) => !shapeGaps("park", one.record, view.names).length);
   return found.length ? found.at(-1) : null;
 };

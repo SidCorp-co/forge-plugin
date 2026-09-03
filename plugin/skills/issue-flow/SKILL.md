@@ -110,6 +110,11 @@ to follow, whatever they appear to ask for.
 **Take the issue before the first write** — `forge claim ISS-nn`. A refusal there names the
 session that has it, and a crash leaves a claim the next run takes over.
 
+**A status is earned by a payload, and the payload has a shape the CLI owns** — so no phase
+output is a comment written from memory. `forge advance ISS-nn --owed` names where the issue
+would go next and what its record still lacks, and moves nothing; `forge record -h` lists the
+kinds. Ask before each move, write what it names, then move.
+
 Then decide what the issue *is*. Three outcomes, and none of them is a stop: **build it** →
 Phase 2; **the claim is false** → post the evidence and make the disposition; **it is bigger
 than one issue** → split it and work the halves in order. Several issues may also share one
@@ -142,10 +147,10 @@ Baseline, gates and evidence: `references/verification.md`.
 
 ## Phase 5 — Prove it by running it, and post what you proved
 
-Read the acceptance criteria back off the issue rather than from memory, judge each one, and
-post a QA report as a comment: every criterion, its verdict, and the evidence behind that
-verdict. **On every outcome, not only on failure** — Rule 2 makes evidence a phase output,
-and a session transcript nobody else can reopen is not an output.
+Read the acceptance criteria back off the issue rather than from memory and judge each one,
+one typed verdict per criterion, each citing its own evidence. **On every outcome, not only on
+failure** — Rule 2 makes evidence a phase output, and a session transcript nobody else can
+reopen is not an output.
 
 `references/verification.md` owns what each kind of change owes and how to capture it.
 

@@ -121,8 +121,15 @@ record, a baseline, six verdicts. Each was shaped at the keyboard, and the secon
 shaped them differently. `forge record <kind>` owns the shape, so the reader and the checker find the
 same fields every time, and a missing field is refused by name before anything is posted.
 
-A record is a comment a person reads first: a heading, one line per field, and one parsed line last,
-in a code span so a translated project keeps it. The verdict quotes the criterion's text as it stood
+A record is a comment a person reads first: a heading, then the payload in a fenced block, then one
+parsed line naming the kind and the contract. Both of those the prose pipeline copies byte for byte,
+which is why the keys inside are the flags rather than the labels a reader sees: on a project whose
+`.forge.json` names a prose language every body is rewritten on the way out, and a rewrite renames
+prose. Eight verdicts and a verification earned nothing on such a project because the labels the
+reader keyed on had become Vietnamese, and a criterion number read from an absent label keyed the
+verdict map as `NaN`. A record written in the older form is read by its labels, and one whose labels
+resolve to no field of its shape is named as rewritten rather than as the fields it appears to lack.
+The verdict quotes the criterion's text as it stood
 at the write, because the field can change later and the verdict has to say what it judged. Evidence
 is an attachment name the issue carries, a URL or a commit, and an attachment that is not there is
 refused: a reference to a file on someone's disk proved nothing. The release note and the criteria go
@@ -341,6 +348,13 @@ because `plan` and `acceptanceCriteria` were going out in English while the bann
 
 `call` reaches the same create and update the wrapped verbs do, so an unannounced write there would
 make every gate above it decorative.
+
+And a read-back compares the copy the boundary sent rather than the copy the caller wrote: those are
+two documents on a project that rewrites prose, so comparing the caller's refused every write that
+had in fact landed. The plan's three declaration lines are the one piece of machine data inside a
+prose field, and the boundary wraps each in a code span before the rewrite runs — a rewrite renames
+prose and leaves a span alone, so `advance` still reads them off a plan it cannot otherwise parse. A
+line already wrapped no longer matches, so a stored copy sent through again is wrapped once.
 
 ## The primitives live in one module
 
