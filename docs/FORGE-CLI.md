@@ -51,7 +51,7 @@ guides on its first call of a run, and two contracts at that moment cost a round
 
 So the verb reads them through a disposition of its own, one row per guide in
 `plugin/src/tracker/guides.mjs`: a slug, why, the rules replaced in the guide's own words beside
-what holds instead, and where to go — a verb this CLI has, or a document in this checkout. It is
+what holds instead, and where to go — a verb this CLI has, or a file the installed copy carries. It is
 code and not a project setting because it is this plugin's reading of the tracker, and a
 contradiction is not a thing a project can rightly turn back on.
 
@@ -63,6 +63,18 @@ list of twelve beside the table is not a copy of names the server publishes in t
 above forbids: nothing answers a guide from it, its whole purpose is to differ from the live list
 when the tracker moves, and a row this record lacks fails the suite, so the change that notices a
 retirement is the change that drops the row.
+
+The contract those rows send a reader to is answered by the same verb, and it had to move to be
+answerable at all: installing copies `plugin/` and nothing beside it, so for six releases every one
+of those rows named a file that existed on one machine. It is `plugin/guides/issue-flow-contract.md`
+now, and `docs/` keeps a pointer so the requirement clauses citing a section still land. Whole it is
+fifty thousand characters, most of them about a stage the reader is not at, so the verb serves it cut
+at its own headings: a bare `forge guide contract` answers with the parts, their sizes and the call
+for each, and a named part answers with that part. Two consequences worth knowing before either
+surprises somebody. A heading is the address, so renaming one moves the call that reaches it and the
+suite fails until the change admits that. And `forge doctor` prints the file's absolute path and the
+contract number it declares, because a copy that arrived without it is indistinguishable, from
+inside, from a copy whose rules simply say nothing.
 
 The overlap measure has the same premise the verb just abandoned — the guide is the authority, the
 project's own file the copy — so it no longer scores a superseded guide. It would otherwise ask a
@@ -159,7 +171,7 @@ the comment cut off — the flag is asked for instead, which costs one value typ
 written on the wrong commit. The release note and the criteria go
 to their fields, which the tracker already types; everything else is a comment. `report` assembles
 the latest record of each kind and the latest verdict per criterion, and names the criteria no verdict
-covers. Nothing is stored twice. The contract this serves: `docs/issue-flow-contract.md`.
+covers. Nothing is stored twice. The contract this serves: `forge guide contract`.
 
 Two of the kinds exist because a reopen recorded nothing. The tracker has had a `reopen` status and a
 `reopenCount` field all along, and neither says what the person found: what they expected, what they
@@ -183,8 +195,9 @@ decides whether they are the same commit. Nothing is read from the repository at
 git is asked at the step that knows the answer, and the answer is written onto the issue there.
 
 `--owed` is a question and answers zero; the same list without it is a refusal and answers one, so
-a caller can tell "not yet" from "here is what to type". The contract it serves, and the tables it
-carries in its own words: `docs/issue-flow-contract.md`.
+a caller can tell "not yet" from "here is what to type". Asked what is owed, it ends by naming the
+contract's part for the status it would enter and the call that prints it, so the rule arrives at
+the stage that needs it instead of at the start of the run: `forge guide contract <status>`.
 
 A reopen was the one thing it had nothing to say about. It refused at `closed`, named the raw
 transition, and a person's word then left the issue at a status no entry check answered for —

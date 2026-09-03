@@ -7,7 +7,7 @@ description: >-
   listing or filing issues without implementing them, use the forge skill instead.
   Triggers on "work ISS-nn", "implement this issue", "fix ISS-nn", "làm issue",
   "xử lý ISS-nn", "ship this issue".
-version: 2.1.4
+version: 2.1.5
 ---
 
 # Skill: issue-flow
@@ -118,6 +118,12 @@ output is a comment written from memory. `forge advance ISS-nn --owed` names whe
 would go next and what its record still lacks, and moves nothing; `forge record -h` lists the
 kinds. Ask before each move, write what it names, then move.
 
+The rules those payloads answer to are the contract's, and the contract ships inside the plugin
+rather than in any checkout: `forge guide contract` is its table of contents, one part per line,
+and `forge guide contract <status>` is the part governing the status the issue is about to enter.
+Take that part when you arrive at the phase, the way the references below are taken — a run handed
+all of it at the start is a run that has lost the part it needs by the time it needs it.
+
 Then decide what the issue *is*. Three outcomes, and none of them is a stop: **build it** →
 Phase 2; **the claim is false** → post the evidence and make the disposition; **it is bigger
 than one issue** → split it and work the halves in order. Several issues may also share one
@@ -155,7 +161,9 @@ one typed verdict per criterion, each citing its own evidence. **On every outcom
 failure** — Rule 2 makes evidence a phase output, and a session transcript nobody else can
 reopen is not an output.
 
-`references/verification.md` owns what each kind of change owes and how to capture it.
+`references/verification.md` owns what each kind of change owes and how to capture it;
+`forge guide contract developed` and `forge guide contract tested` say what a record has to
+hold before either is earned, which is not this skill's to say.
 
 **A change to a screen parks the issue for human review before Phase 7 ships it.** The
 rendered evidence is attached, the reason is recorded, and you move to the next issue.
@@ -176,7 +184,8 @@ Drafted here, posted in Phase 7. `references/release-note.md`.
 
 Take the integration and deploy path Phase 0 discovered, not one assumed from another
 project. Verify the change where it now runs, then post the release note, then move the
-status — `references/release-note.md` says why that order.
+status — `references/release-note.md` says why that order, and `forge guide contract released`
+says what the move itself is owed.
 
 **A failure anywhere along the path is condition 3**: roll back by the route Phase 0
 established, and report with the evidence rather than retrying past it.
@@ -209,4 +218,5 @@ Read on arrival at the phase that cites it.
 | `references/release-note.md` | Phases 6, 7 |
 | `references/learning.md` | Phase 8, and any time a rule needs a home |
 | `references/prior-art.md` | When changing this workflow |
+| `forge guide contract <status>` | The phase whose status the issue is entering |
 | `forge -h`, `forge schema <tool>` | Any tracker write |

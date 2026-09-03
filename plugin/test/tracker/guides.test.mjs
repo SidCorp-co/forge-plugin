@@ -24,13 +24,15 @@ const {
 } = await import("../../src/tracker/guides.mjs");
 const { VERB_NAMES } = await import("../../src/resolve/visibility.mjs");
 
-const ROOT = new URL("../../../", import.meta.url).pathname;
+const PLUGIN = new URL("../../", import.meta.url).pathname;
+/* Inside the plugin and not inside the checkout: an installed copy is `plugin/` and nothing else, so
+   a route naming a path only this tree holds is a route only this machine can follow (ISS-78). */
 const review = (extra = {}) =>
   reviewGuideTable({
     served: REVIEWED,
     listed: visibleGuides(REVIEWED),
     verbs: new Set(VERB_NAMES),
-    resolves: (ref) => existsSync(join(ROOT, ref)),
+    resolves: (ref) => existsSync(join(PLUGIN, ref)),
     ...extra,
   });
 
@@ -54,12 +56,13 @@ test("a served guide the table never reviewed is named, and judged by nobody", (
   assert.deepEqual(review({ served: [...REVIEWED, "release-trains"] }).unreviewed, ["release-trains"]);
 });
 
-test("every replacement resolves to a verb this CLI has or a path this repository holds", () => {
+test("every replacement resolves to a verb this CLI has or a path the installed copy carries", () => {
   assert.deepEqual(review().unresolved, []);
-  const wrong = [{ slug: "agent-setup", disposition: "superseded", why: "x".repeat(30), replaced: [], by: ["forge remember", "docs/nothing-here.md"] }];
+  const wrong = [{ slug: "agent-setup", disposition: "superseded", why: "x".repeat(30), replaced: [], by: ["forge remember", "docs/issue-flow-contract.md"] }];
   assert.deepEqual(
     review({ table: wrong }).unresolved.map((one) => one.ref),
-    ["forge remember", "docs/nothing-here.md"],
+    ["forge remember", "docs/issue-flow-contract.md"],
+    "which is where every row of this table pointed until ISS-78: a file the checkout has and no install does",
   );
 });
 
@@ -79,7 +82,7 @@ test("the replacement is one line, and none of it is the guide's own text", () =
   const line = replacementLine(dispositionOf("pipeline-and-issue-lifecycle"));
   assert.equal(line.includes("\n"), false, line);
   assert.match(line, /superseded/u);
-  assert.match(line, /docs\/issue-flow-contract\.md/u, "and it says where to read instead");
+  assert.match(line, /forge guide contract/u, "and it says where to read instead");
   assert.match(line, /--tracker/u, "and how to read the tracker's own");
   assert.doesNotMatch(line, /RECONCILE|blockquote|runner slot/u, "no sentence of the body");
 });
@@ -124,9 +127,11 @@ const asked = async (...argv) => {
   return { ...run, guideCalls: (state.calls ?? []).filter((one) => one.name === "forge_guide") };
 };
 
-test("the listing carries the seven the plugin stands behind", async () => {
+test("the listing carries the seven the plugin stands behind, under the contract that outranks them", async () => {
   const run = await asked();
   assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.stdout.startsWith("contract\n"), true, `the contract is listed first:\n${run.stdout}`);
+  assert.match(run.stdout.split("\n")[1], /this plugin's own, not the tracker's/u);
   for (const slug of supersededSlugs()) {
     assert.equal(run.stdout.includes(`${slug}\n`), false, `${slug} is still listed`);
   }
@@ -169,10 +174,30 @@ test("a flag the verb does not take is refused rather than kept", async () => {
   assert.match(run.stderr, /Usage: forge guide/u);
 });
 
+/* The whole point of moving it: a copy with no tracker reachable still reads the rule. The fake one
+   here is reachable, so the assertion is on the calls it never received. */
+test("the contract is answered off disk, by part, and costs no call at all", async () => {
+  const contents = await asked("contract");
+  assert.equal(contents.status, 0, contents.stderr);
+  assert.match(contents.stdout, /^The issue-flow contract — this plugin's own, contract \d+/u);
+  assert.deepEqual(contents.guideCalls, [], "no call for the listing");
+  const part = await asked("contract", "released");
+  assert.equal(part.status, 0, part.stderr);
+  assert.match(part.stdout, /^### `released`/u);
+  assert.deepEqual(part.guideCalls, [], "and none for a part");
+  const refused = await asked("contract", "--tracker");
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /the contract is this plugin's/u);
+  assert.deepEqual(refused.guideCalls, []);
+});
+
 test("a second positional and a bare --tracker are refused, never dropped", async () => {
   const extra = await asked("deploy-safety", "elsewhere");
   assert.equal(extra.status, 1);
   assert.match(extra.stderr, /one slug/u);
+  const two = await asked("contract", "released", "elsewhere");
+  assert.equal(two.status, 1);
+  assert.match(two.stderr, /contract takes one part/u, "and the contract's own second positional too");
   const bare = await asked("--tracker");
   assert.equal(bare.status, 1);
   assert.match(bare.stderr, /name it/u);

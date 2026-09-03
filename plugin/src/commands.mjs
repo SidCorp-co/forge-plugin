@@ -24,6 +24,7 @@ import {
   visibleGuides,
   withheldLine,
 } from "./tracker/guides.mjs";
+import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./tracker/contract.mjs";
 import { doctor } from "./tools/doctor.mjs";
 import { deps } from "./tracker/deps.mjs";
 import { cloudflare } from "./tools/cloudflare.mjs";
@@ -284,7 +285,9 @@ export const commands = {
     show(await write("forge_project_pm", { action: "set_dependency", fromIssueId, toIssueId, kind }));
   },
   /* Read through this plugin's disposition of them, which tracker/guides.mjs holds and explains. A
-     superseded slug costs no call: the table answers it, and only --tracker fetches the body. */
+     superseded slug costs no call: the table answers it, and only --tracker fetches the body. The
+     contract is this plugin's own and on disk, so it is answered before the transport is touched —
+     an installed copy with no tracker reachable still reads the rule. */
   guide: async (argv) => {
     const { positionals, flagArgv } = partition(argv, ["--tracker"]);
     const asked = flags(flagArgv, "guide", ["--tracker"]);
@@ -292,9 +295,16 @@ export const commands = {
       if (key !== "tracker") fail(`guide: no --${key} flag. ${usageOf("guide")}`);
     }
     const [slug, ...extra] = positionals;
+    if (slug === CONTRACT_SLUG) {
+      const [part, ...rest] = extra;
+      const answer = contractAnswer({ part, extra: rest, tracker: asked.tracker });
+      if (answer.refusal) fail(`guide: ${answer.refusal}`);
+      return console.log(answer.lines.join("\n"));
+    }
     if (extra.length) fail(`guide: one slug, not \`${positionals.join(" ")}\`. ${usageOf("guide")}`);
     if (!slug && asked.tracker) fail(`guide: --tracker is one guide's own text; name it. ${usageOf("guide")}`);
     if (!slug) {
+      console.log(CONTRACT_ROW);
       const rows = rowsOf(await scoped("forge_guide", { action: "list" }), "guides");
       const shown = new Set(visibleGuides(rows.map((one) => one.slug)));
       for (const guide of rows) {

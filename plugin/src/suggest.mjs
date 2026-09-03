@@ -1,7 +1,7 @@
 /* "Did you mean" for every name this CLI accepts. An agent recalls a name from the wrong SHAPE,
    not the wrong keys, so the match is on the separator-stripped form. */
 
-const bare = (name) => name.replace(/[._\- ]/gu, "").toLowerCase();
+export const bare = (name) => name.replace(/[._\- ]/gu, "").toLowerCase();
 
 const distance = (left, right) => {
   let previous = [...Array(right.length + 1).keys()];

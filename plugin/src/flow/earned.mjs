@@ -1,9 +1,11 @@
 /* What an issue's record earns: the contract's flow table, one entry check per status, and the
    record read whole into one object. The verb that spends this is advance.mjs; nothing here
-   writes, fetches or reads the repository. docs/issue-flow-contract.md holds the tables. */
+   writes, fetches or reads the repository. What it checks against is the contract's table for that
+   status, printed by `forge guide contract`. */
 import { markedCommit, planFlags, reviewedHead, unwrap } from "./machine.mjs";
 import { attachmentNames, evidenceHeld, isCommit } from "../tracker/evidence.mjs";
-import { CONTRACT, FINDINGS, Refused, SHAPES, TRIAGES, assemble, criteriaLines, parse } from "./record.mjs";
+import { FINDINGS, Refused, SHAPES, TRIAGES, assemble, criteriaLines, parse } from "./record.mjs";
+import { CONTRACT } from "../tracker/contract.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
 export const ORDER = [

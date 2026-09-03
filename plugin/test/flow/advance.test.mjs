@@ -481,7 +481,13 @@ const OPEN = {
   title: "the fix that rides the light path",
   description: "`forge dep` should take the `data.relations` route.\n\nSize: fix.\n",
 };
-const state = { issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" }] };
+const EARNS = { ...OPEN, documentId: "earning-uuid", issueId: "ISS-92", description: "no mark here" };
+const state = {
+  issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" }, EARNS],
+  comments: {
+    "earning-uuid": [recorded("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" })],
+  },
+};
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);
@@ -495,6 +501,21 @@ test("--owed on a marked fix says which payloads a fix owes and which it does no
   assert.match(run.stdout, /still asks for the full set/u, "the mark reports; no check is relaxed by it");
   assert.match(run.stdout, /no confirmation/u, "so the confirmation a fix's plan replaces is owed all the same");
   assert.equal(state.calls.some((one) => one.args.action === "transition"), false, "and --owed moves nothing");
+});
+
+/* The rule for the status a run is entering arrives at that status, and never the whole contract:
+   fifty thousand characters at the start of a run is the rule for `released` already forgotten. */
+test("--owed ends by naming the contract's part for the status it would enter, on both answers", async () => {
+  const short = await owed("ISS-91");
+  assert.match(short.stdout, /no confirmation/u, "the shortfall first");
+  const earns = await owed("ISS-92");
+  assert.match(earns.stdout, /confirmed is next and the record earns it/u, "and the same line where nothing is owed");
+  for (const run of [short, earns]) {
+    const last = run.stdout.trim().split("\n").at(-1);
+    assert.match(last, /^Contract, the confirmed stage — reads the confirmation and the code behind it/u, run.stdout);
+    assert.match(last, /`forge guide contract confirmed` \(\d+ characters\)/u);
+    assert.equal(run.stdout.includes("| Scenario | Writes | Goes to |"), false, "and none of the part with it");
+  }
 });
 
 test("--owed on an issue with no mark says nothing about a light path", async () => {

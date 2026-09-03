@@ -25,6 +25,7 @@ import { flags } from "../resolve/flags.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../tracker/guides.mjs";
+import { contractPath, contractProblems, readContract, statesContract } from "../tracker/contract.mjs";
 
 const VI_CONFIG = join(configDir("vi-natural"), "config.json");
 
@@ -322,6 +323,20 @@ const reportGuideTable = (served) => {
   return retired.length;
 };
 
+/* The rules that are not code travel inside the plugin, so a copy without them is a copy whose every
+   route to them is a dead end — which is what an installed copy was before ISS-78. */
+const checkContract = () => {
+  const path = contractPath();
+  const text = readContract();
+  const wrong = contractProblems({ text, path });
+  for (const said of wrong) {
+    line(BAD, "contract", `${said} — install the plugin again for a whole copy`);
+  }
+  if (wrong.length) return wrong.length;
+  line(OK, "contract", `${path} states contract ${statesContract(text)} — \`forge guide contract\``);
+  return 0;
+};
+
 /* The guide half, which needs the server. */
 const checkAgainstGuides = async (scoped) => {
   const guides = await guideBodies(scoped);
@@ -427,11 +442,12 @@ export const doctor = async (rest) => {
     line(NOTE, "plugin copy", `${copy.running} here, ${copy.installed} installed — a session keeps the `
       + "copy it started with: `claude plugin update` then restart");
   }
+  const contractBroken = checkContract();
   const vi = checkVi();
   const canWrite = language.value ? language.value === "vi" && vi : true;
   checkCloudflare(full);
   checkCodex();
-  const local = checkClaudeMdLocally();
+  const local = checkClaudeMdLocally() + contractBroken;
 
   if (!url.value || !token.value) {
     console.log("\nNot reaching the endpoint: the account half is incomplete.");

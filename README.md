@@ -89,13 +89,15 @@ feedback/                         one Markdown file per note from an agent using
 plugin/
   .claude-plugin/plugin.json      the plugin manifest, name: forge
   bin/forge  bin/vi-natural       PATH entry points, symlink-resolving
+  guides/issue-flow-contract.md   the contract a status is earned under, served a part at a time
   src/                            the forge CLI
     cli.mjs          argv, the usage list, the write-time rules
     commands.mjs     one function per verb
     suggest.mjs      the near miss every refusal offers
     flow/            the lease, the typed records, what each status is earned by
     tracker/         paging, the browse projection, ISS-45 -> uuid, transport,
-                     retry, the cached tool surface, the write boundary
+                     retry, the cached tool surface, the write boundary, and the
+                     contract above cut at its own headings
     codex/           the consult, its tools, its log and what it owes
     checks/          what this tree holds its own documents and code to
     hooks/           the refusal log and the per-hook switch, shared with hooks/

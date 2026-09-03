@@ -7,13 +7,12 @@ import { pullRepeated, flags } from "../resolve/flags.mjs";
 import { COMMENT_PAGE, commentPage, postComment } from "../tracker/comments.mjs";
 import { attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo }
   from "../tracker/evidence.mjs";
+import { CONTRACT } from "../tracker/contract.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";
 import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
 import { nextLine, renew } from "./lease.mjs";
 import { OPEN_KEPT, patchFrom } from "./worklog.mjs";
-
-export const CONTRACT = 1;
 
 /* Thrown, not exited: the helpers are tested in-process, and the verb turns one into a refusal.
    `advance` reads the same record and refuses the same way, so both share this one class. */

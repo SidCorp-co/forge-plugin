@@ -1,5 +1,6 @@
 /* One verb between an agent and a status change: the entry criteria of the next status, checked
-   against the issue's record and nothing else. docs/issue-flow-contract.md holds the tables. */
+   against the issue's record and nothing else. The rule a status is earned by, stage by stage:
+   `forge guide contract <status>`. */
 import { flags, pullRepeated } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
@@ -7,6 +8,7 @@ import { COMMENT_PAGE, commentPage } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
 import { FIX_OWES, isFix } from "../tracker/issue-shape.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
+import { partsOf, readContract, stageLine } from "../tracker/contract.mjs";
 import { PARKS, SHOWS_EVIDENCE, Refused, issueOf, post, refuse, render } from "./record.mjs";
 import { PARK_STATUS, SIDE, atLeast, payloadOwed, transitionCall, viewFrom } from "./earned.mjs";
 import { lookAhead, targetOf } from "./route.mjs";
@@ -118,10 +120,11 @@ export const checkTarget = (to, next, view, ref) => {
 
 /* Printed under the shortfall and under "the record earns it" alike, because the point of it is
    that a run reads it before the status it belongs to is the one being asked for. */
-const sayAhead = (view, ref) => {
+const sayAhead = (view, ref, next) => {
   if (isFix(view.issue.description)) console.log(`\n${FIX_OWES}`);
   const said = lookAhead(view, ref);
   if (said) console.log(`\n${said}`);
+  console.log(`\n${stageLine(next, partsOf(readContract()))}`);
 };
 
 export const shortfall = (ref, view, next, missing) => {
@@ -178,11 +181,11 @@ const run = async (argv) => {
     /* Asked what is owed, the answer is the answer; asked to move, the same list is a refusal. */
     if (!given.owed) return fail(owed);
     console.log(`\n${owed}`);
-    return sayAhead(view, ref);
+    return sayAhead(view, ref, next);
   }
   if (given.owed) {
     console.log(`${ref} is ${view.issue.status}; ${next} is next and the record earns it. \`forge advance ${ref}\` moves it.`);
-    return sayAhead(view, ref);
+    return sayAhead(view, ref, next);
   }
   /* The triage that puts the expectation outside the specification writes its park here, because a
      park is a record and a status and the route decided both from the triage the record holds. */

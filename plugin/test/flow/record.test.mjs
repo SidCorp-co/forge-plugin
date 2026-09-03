@@ -9,9 +9,10 @@ import { join } from "node:path";
 
 process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "record-"));
 const {
-  CONTRACT, KINDS, SHAPES, SHOWS_EVIDENCE, TRIAGES, USAGE, OUTCOMES, assemble, conjunctionsFor, criteriaLines, fromRecord, joinedCriteria, noteFrom, parse, render,
+  KINDS, SHAPES, SHOWS_EVIDENCE, TRIAGES, USAGE, OUTCOMES, assemble, conjunctionsFor, criteriaLines, fromRecord, joinedCriteria, noteFrom, parse, render,
 } = await import("../../src/flow/record.mjs");
 const { unwrap } = await import("../../src/flow/machine.mjs");
+const { CONTRACT } = await import("../../src/tracker/contract.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });

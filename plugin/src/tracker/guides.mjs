@@ -3,7 +3,7 @@
    rule the contract has replaced, so a passthrough hands every agent two contracts on its first
    read. The disposition is code and not configuration because it is this plugin's reading of the
    tracker, and a project cannot rightly turn a contradiction back on. docs/FORGE-CLI.md carries
-   what the stale rules cost; docs/issue-flow-contract.md is what holds instead. */
+   what the stale rules cost; `forge guide contract` prints what holds instead. */
 
 /* `superseded` is withheld from the list and answers with its replacement; `partly` prints the
    tracker's body under a first line naming the half that does not apply. A slug in no row is the
@@ -38,7 +38,7 @@ export const GUIDE_TABLE = [
         instead: "nothing landing earns `dropped`, which stamps no mark and needs no undo",
       },
     ],
-    by: ["docs/issue-flow-contract.md", "forge advance --owed"],
+    by: ["forge guide contract", "forge advance --owed"],
   },
   {
     slug: "writing-an-issue",
@@ -71,7 +71,7 @@ export const GUIDE_TABLE = [
           + " no mark, so `closed` stays what code that landed earns",
       },
     ],
-    by: ["forge new", "docs/issue-flow-contract.md"],
+    by: ["forge new", "forge guide contract"],
   },
   {
     slug: "agent-setup",
@@ -93,7 +93,7 @@ export const GUIDE_TABLE = [
         instead: "the agent writes them itself, at `approved`, and a status with no payload is unearned",
       },
     ],
-    by: ["forge resume", "docs/issue-flow-contract.md"],
+    by: ["forge resume", "forge guide contract"],
   },
   {
     slug: "update-pipeline-reconcile",
@@ -203,7 +203,9 @@ export const withheldLine = (count) =>
 
 /* Pure over its inputs, so a case can hand it a table that fails each assertion: a closed-over
    table is a checker nobody can watch fire. An absent resolver leaves every reference unresolved
-   rather than unchecked, because a check that passes on nothing looks exactly like a clean tree. */
+   rather than unchecked, because a check that passes on nothing looks exactly like a clean tree.
+   A path is resolved inside the installed copy and never inside the checkout: a route naming a
+   file only this tree carries is where every row here pointed before ISS-78. */
 export function reviewGuideTable({
   table = GUIDE_TABLE,
   served = [],
