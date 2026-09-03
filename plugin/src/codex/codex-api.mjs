@@ -201,8 +201,21 @@ const changedIn = (root, rel, base) => {
   return known.status === 0 ? { unchanged: true } : { untracked: true };
 };
 
+/** For a consult asked to review a diff and given no file: every path git names, a deletion and an
+ *  untracked one included, and nothing at all where the base is unreadable. */
+export const changedAgainst = (root, base) => {
+  const asked = (argv) => {
+    const run = spawnSync("git", argv, { cwd: root, encoding: "utf8" });
+    return run.status === 0 ? (run.stdout ?? "").split("\0").filter(Boolean) : null;
+  };
+  /* `-z` ahead of `--end-of-options`, past which every word is a path: a newline is a legal one. */
+  const changed = asked(["diff", "--name-only", "-z", "--end-of-options", base]);
+  if (!changed) return [];
+  return [...new Set([...changed, ...(asked(["ls-files", "--others", "--exclude-standard", "-z"]) ?? [])])].sort();
+};
+
 export const withDiffs = (root, parts, base) =>
-  parts.map((part) => (part.missing ? part : { ...part, diff: changedIn(root, part.rel, base) }));
+  parts.map((part) => ({ ...part, diff: changedIn(root, part.rel, base) }));
 
 const diffBlock = (diff) => {
   if (!diff) return "";
@@ -216,7 +229,8 @@ const diffBlock = (diff) => {
 /* With tools, the body is a fetch away, and sending it anyway was paid for twice: a reviewer that
    re-reads a file it already holds spends a whole model call, and a call is the unit of wall time. */
 const fileBlock = (part, bodies) => {
-  if (part.missing) return `### ${part.rel}\n(could not be read: ${part.missing})`;
+  /* A deleted path named with nothing under it is a change the reviewer cannot see (ISS-65). */
+  if (part.missing) return `### ${part.rel}\n(could not be read: ${part.missing})${diffBlock(part.diff)}`;
   const note = part.clipped ? ` — CLIPPED, ${part.chars} chars in the file, first part only` : "";
   if (bodies) {
     return `### ${part.rel}${note}${diffBlock(part.diff)}\nFULL TEXT, for context:\n\`\`\`\n${part.text}\n\`\`\``;

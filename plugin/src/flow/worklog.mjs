@@ -96,13 +96,42 @@ export const reviewNow = (root = process.cwd()) => {
   };
 };
 
+/** What a capture holds, or why it holds nothing: after a fast-forward the base is the head and the
+ *  touched set reads as none, which three captures wrote in silence and two wrote whole (ISS-65). */
+const EMPTY = {
+  none: "git answered nothing about this checkout",
+  base: "no base: the checkout names no remote head to measure from",
+  same: "the base is the head, which is what a fast-forward leaves",
+  files: "the base and the head differ and no file does",
+};
+
+const emptyWhy = (git) => {
+  if (!git) return EMPTY.none;
+  if (!git.base) return EMPTY.base;
+  if (git.base === git.head) return EMPTY.same;
+  return EMPTY.files;
+};
+
+export const capturedLine = (git) => {
+  const files = git?.touched ? git.touched.split(", ").length : 0;
+  if (!git || !files || !git.base || git.base === git.head) {
+    return `--pushed: nothing to capture — ${emptyWhy(git)}. The worklog is unchanged, and what it `
+      + "holds is whatever the last capture wrote. Capture at the push, before the merge.";
+  }
+  return `--pushed: ${git.branch} at ${git.head.slice(0, 7)}, base ${git.base.slice(0, 7)}, `
+    + `${files} file(s) touched.`;
+};
+
+const captured = (git) => Boolean(git?.touched) && Boolean(git.base) && git.base !== git.head;
+
 /* Asked for and not made is not written silently: no git is the wrong directory, no consult is early. */
 export const patchFrom = ({ pushed = false, review = false, open = [] }) => {
   const patch = {};
   if (pushed) {
     const now = gitNow();
     if (!now) fail(`--pushed reads the branch and head from git, and ${process.cwd()} is no checkout.`);
-    Object.assign(patch, now);
+    console.error(capturedLine(now));
+    if (captured(now)) Object.assign(patch, now);
   }
   const held = review ? reviewNow() : null;
   if (review && !held) console.error("--review: no answered consult for this checkout yet, so the review block is unchanged.");

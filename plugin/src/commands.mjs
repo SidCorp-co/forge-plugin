@@ -152,7 +152,7 @@ export const commands = {
     if (!name) fail(usageOf("call"));
     if (!(await toolNamed(name))) fail(await suggestTool(name));
     refuseIfGated(name);
-    const raw = json === undefined || json === "-" || json.startsWith("@") ? bodyFrom(json ?? "-") : json;
+    const raw = json === undefined || json === "-" || json.startsWith("@") ? await bodyFrom(json ?? "-") : json;
     if (!raw.trim()) fail(`No arguments given for ${name}. Pass json as an argument or on stdin.`);
     let args;
     try {
@@ -236,7 +236,7 @@ export const commands = {
       fail(`--into posts a comment, and ${filing.map((one) => `--${one}`).join(", ")} belongs to a filing. `
         + "Drop it, or file the issue and comment on it separately.");
     }
-    const body = bodyFrom(path);
+    const body = await bodyFrom(path);
     /* A comment is not an issue and owes none of the shape; the read the write owes is still owed,
        and it takes no lease, because a finding on an issue nobody holds is nobody's claim. */
     if (commenting) {
@@ -255,14 +255,14 @@ export const commands = {
     if (!reference || !path) fail(usageOf("comment"));
     const issue = await documentIdOf(reference);
     await renew(issue, reference);
-    show(await postComment(issue, bodyFrom(path)));
+    show(await postComment(issue, await bodyFrom(path)));
   },
   /* A plan is a field, not a comment: one value, replaced rather than accumulated. Read back before
          reporting success — a field accepted and dropped answers 200 like one that was stored. */
   plan: async ([reference, path]) => {
     if (!reference || !path) fail(usageOf("plan"));
     const documentId = await documentIdOf(reference);
-    const plan = bodyFrom(path);
+    const plan = await bodyFrom(path);
     if (!plan.trim()) fail("An empty plan would clear the field; pass the plan itself.");
     await renew(documentId, reference);
     await write("forge_issues", { action: "update", documentId, data: { plan } });

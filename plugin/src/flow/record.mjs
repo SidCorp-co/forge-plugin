@@ -513,7 +513,7 @@ const recordNote = async (reference, argv, { next, patch }) => {
 const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
   if (!path) refuse("record criteria takes the file holding the numbered lines, or - for stdin.");
   if (extra.length) refuse(`record criteria takes one file and nothing after it, not \`${extra.join(" ")}\`.`);
-  const criteria = criteriaLines(bodyFrom(path));
+  const criteria = criteriaLines(await bodyFrom(path));
   const joined = joinedCriteria(criteria, conjunctionsFor());
   const { documentId } = await issueOf(reference);
   const acceptanceCriteria = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");

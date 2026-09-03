@@ -257,15 +257,22 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
   do: a lease past its duration is the record of a break, the board (ISS-24) shows it, and the
   worklog beside the lease (ISS-44) is what the successor reads first. The worklog is checkpointed
   by the same write that renews the lease, so every payload write, every push and every codex round
-  leaves it current, and it holds the state the record does not: branch, head and base, the files
+  that has something to capture leaves it current. Each block carries the time it was taken, and a
+  capture with nothing in it changes nothing rather than replacing a true statement about an earlier
+  push with none, so what a successor reads is that block and the time on it. It holds the state the
+  record does not: branch, head and base, the files
   touched, the one-line next step, the consult id and round with whether a recheck is owed, and the
   scratch decisions. A run that dies between two writes loses at most the work since the last one,
   and a successor that cannot continue from the record and the worklog has found a fact that belongs
   in one of them. The push capture is made at the push, before the merge: after a fast-forward the
   base equals the head and the files touched read as none, which the eighth dry run recorded on its
   own issue and the twelfth wrote three times over. A capture that captures nothing says so in one
-  line and writes no worklog, because a record that looks like one and holds nothing is what a
-  successor reads first (ISS-65). The worklog's set is the run's note and scopes nothing; the set that scopes the earning
+  line, names which of the four reasons held and writes no worklog, because a record that looks like
+  one and holds nothing is what a successor reads first; what a capture holds is said on one line
+  too, since a flag whose silence means both success and nothing at all is one an author reads back
+  with a second call (ISS-65). An earlier capture is left where it is, dated as it always was: it is
+  a true statement about an earlier push, and deleting it to keep a line honest would take the last
+  known head with it. The worklog's set is the run's note and scopes nothing; the set that scopes the earning
   review is the one the merging run writes into the mark from the commit that actually landed, and
   where a queue landed a different commit the mark's set is the truth and the worklog is refreshed
   from it. A brief that shows part of the record says how much it left out and where the rest is.

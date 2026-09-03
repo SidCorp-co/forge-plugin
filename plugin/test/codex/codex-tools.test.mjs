@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { TOOLS, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
-import { roleFor } from "../../src/codex/codex-api.mjs";
+import { changedAgainst, roleFor } from "../../src/codex/codex-api.mjs";
 
 const repo = () => {
   const dir = mkdtempSync(join(tmpdir(), "codex-check-"));
@@ -14,11 +14,56 @@ const repo = () => {
   return dir;
 };
 
-test("a refused path names what the checkout holds at its top", () => {
+/* A path that is not there and a path that was left out were 34 refusals in the log, and each
+   answer is one the checkout could have given (ISS-65). */
+test("a path that is not there is answered with the nearest directory that is", () => {
   const root = repo();
   const scope = scopeFor(root);
-  assert.match(runTool(scope, "grep", { path: "test", pattern: "x" }).text, /test is not a readable path in .*; at its top: a\.txt/u);
-  assert.match(runTool(scope, "list_dir", {}).text, /needs a `path`; at its top: a\.txt/u);
+  mkdirSync(join(root, "plugin", "test"), { recursive: true });
+  writeFileSync(join(root, "plugin", "one.mjs"), "x\n");
+  const deep = runTool(scope, "read_file", { path: "plugin/two.mjs" }).text;
+  assert.match(deep, /plugin\/two\.mjs is not a readable path in /u);
+  assert.match(deep, /plugin holds: one\.mjs, test$/u, "the siblings of where it would have been");
+  assert.match(runTool(scope, "grep", { path: "nope", pattern: "x" }).text, /the root holds: a\.txt, plugin/u);
+  assert.match(runTool(scope, "read_file", { path: "../outside" }).text, /is not a readable path in /u);
+});
+
+test("the tools whose path is the checkout take it when none was given", () => {
+  const root = repo();
+  const scope = scopeFor(root);
+  assert.match(runTool(scope, "list_dir", {}).text, /^a\.txt$/mu, "the root, listed");
+  assert.equal(runTool(scope, "list_dir", {}).error, undefined);
+  writeFileSync(join(root, "a.txt"), "y\n");
+  execFileSync("git", ["-C", root, "add", "a.txt"]);
+  execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "one"]);
+  writeFileSync(join(root, "a.txt"), "z\n");
+  const whole = runTool(scope, "git_diff", {});
+  assert.equal(whole.error, undefined);
+  assert.match(whole.text, /a\.txt/u, "the checkout's own diff, with no path to narrow it");
+  assert.match(runTool(scope, "git_diff", { base: "-x" }).text, /is not a ref this will pass to git/u,
+    "and a base in option position is still refused");
+  const owed = runTool(scope, "read_file", {});
+  assert.equal(owed.error, true);
+  assert.match(owed.text, /read_file needs a `path`; at its top: a\.txt/u, "the one tool with no default");
+});
+
+/* Asked for a diff and given no file, the consult read "nothing to consult on" and the author read
+   `git diff --name-only` and typed the list back (ISS-65). */
+test("what changed against a ref is what the tree says, a deletion included", () => {
+  const root = repo();
+  const git = (...argv) => execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv]);
+  writeFileSync(join(root, "b.txt"), "y\n");
+  git("add", ".");
+  git("commit", "-qm", "one");
+  writeFileSync(join(root, "a.txt"), "changed\n");
+  writeFileSync(join(root, "c.txt"), "new\n");
+  git("add", "c.txt");
+  git("rm", "-q", "b.txt");
+  writeFileSync(join(root, "d.txt"), "untracked\n");
+  assert.deepEqual(changedAgainst(root, "HEAD"), ["a.txt", "b.txt", "c.txt", "d.txt"],
+    "the deleted file among them, since its diff is what says it is gone, and the untracked one, "
+    + "which `git diff` never lists and a turn's new file always is");
+  assert.deepEqual(changedAgainst(root, "no-such-ref"), [], "and a ref git cannot read answers nothing");
 });
 
 test("run_check is offered only where the checkout named a command", () => {

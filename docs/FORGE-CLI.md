@@ -143,8 +143,8 @@ dry run's verdict loop typed the same two values twenty times each, and both wer
 record. Evidence is read from the latest record of that kind rather than from the attachment set, because
 what an issue's evidence is belongs to whoever cited it first: the one attachment an issue carries
 may be a design document nobody cited, and a default from it would turn a refused verdict into a
-passing one. It is not read per criterion — one document answers twenty of them, which is the loop
-being removed — so the line it prints names the record it came from and not the criterion. So the first of a loop names it — a path there goes up and is cited — and the rest inherit. A
+passing one. It is not read per criterion — one document answers twenty of them, which is where the
+forty arguments went — so the line it prints names the record it came from and not the criterion. So the first of a loop names it — a path there goes up and is cited — and the rest inherit. A
 default nobody can see is one nobody can catch being wrong, which is why neither is silent. The release note and the criteria go
 to their fields, which the tracker already types; everything else is a comment. `report` assembles
 the latest record of each kind and the latest verdict per criterion, and names the criteria no verdict
@@ -296,7 +296,12 @@ new one arrives. Nothing in it earns a status — the record still does that, an
 worklog that a check needed would be a fact in the wrong place.
 
 Three flags write it, on `forge claim` and on any `forge record` kind that writes: `--pushed` reads
-the git block, `--review` reads the consult log, and `--open` appends a line. **None of them is
+the git block, `--review` reads the consult log, and `--open` appends a line. What `--pushed` captured
+is one line at the write — branch, head, base, and how many files — because two captures that wrote a
+complete block printed nothing but the lease renewal, and their author ran `forge resume` to find out
+whether the flag had worked. A capture with nothing in it says which of the four reasons held, and
+leaves the block an earlier capture wrote: that block carries the time it was taken, so it is a true
+statement about an earlier push rather than a stale one. **None of them is
 automatic, and that is a decision rather than an omission.** A renew is made from wherever the shell
 happens to be, and a write from another checkout would name that checkout's branch as this issue's,
 or another project's review state as this one's. So the flags name the moment a run knows the values
@@ -442,6 +447,31 @@ Thinking tokens come out of the same ceiling as the reply, which is why 8,000 wa
 the review began. `reasoning_effort` is a request rather than a lever — the same puzzle answers
 identically at minimal and at high — and the minutes go on the reviewer's own reading, which is the
 argument for medium.
+
+**An open stdin is not an intent that has not arrived yet.** The consult reads its intent from
+stdin, and inside a harness the shell's stdin is a pipe nobody is writing to: read to EOF, it never
+returns. Two consults ran 17 and 13 minutes on 2026-09-03 and were killed by pid, which is the
+largest single round a dry run has lost. What is bounded now is silence rather than the whole read —
+two seconds before the first byte and between any two, ten for a payload a verb cannot proceed
+without — because a producer that writes one byte and stalls is the same unbounded wait. A silence
+after bytes have arrived is a refusal and never a short payload: a plan read in half would be stored
+as the plan. The line naming what the consult is about to do prints before the read, so a stall says
+where it is.
+
+**Asked for a diff and given nothing, the tree answers.** `--diff` with no file named and nothing
+pending answered "nothing to consult on", and what an author then did was run `git diff --name-only`
+and type the list back. The names come from there now and are printed on stderr, so the review's
+scope is legible without a second call. A deletion is among them, and so is an untracked file: the
+diff step used to pass over a path that is not on disk, which named the file and said nothing about
+it, and `git diff` never lists a file git has not been told about, which a turn's new file always
+is.
+
+**Three of the reviewer's four tools take the checkout when no path came.** `list_dir`, `git_diff`
+and `grep` default to the root: 34 refusals in the log were that argument left out, and a reviewer
+that meant the repository has nowhere else to mean. `read_file` keeps its path, having no such
+default. And a path that is not there is answered with the entries of the nearest directory above it
+that is, rather than the root's top — a leaf six levels down has siblings, and the root says nothing
+about them.
 
 **A follow-up round verifies; it does not roam.** Six rounds on one patch, each a full review, each
 finding a narrower hole than the last with no signal to stop on. `--recheck` replays the previous

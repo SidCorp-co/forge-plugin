@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
+const NEAREST_UP = 12;
 const RESULT_CHARS = 20_000;
 const LIST_ENTRIES = 400;
 const GREP_LINES = 200;
@@ -39,11 +40,10 @@ export const TOOLS = [
   },
   {
     name: "list_dir",
-    description: "List a directory under review, one name per line, directories marked with a slash.",
+    description: "List a directory under review, one name per line, directories marked with a slash. The checkout's own root by default.",
     input_schema: {
       type: "object",
-      properties: { path: { type: "string" } },
-      required: ["path"],
+      properties: { path: { type: "string", description: "Repo-relative; the repository root if you omit it." } },
     },
   },
   {
@@ -60,14 +60,13 @@ export const TOOLS = [
   },
   {
     name: "git_diff",
-    description: "What changed in a path, against a ref. Empty output means nothing changed there.",
+    description: "What changed in a path, against a ref. Empty output means nothing changed there. The whole checkout by default.",
     input_schema: {
       type: "object",
       properties: {
-        path: { type: "string" },
+        path: { type: "string", description: "Repo-relative; the whole checkout if you omit it." },
         base: { type: "string", description: "Ref to diff against; HEAD by default." },
       },
-      required: ["path"],
     },
   },
 ];
@@ -154,20 +153,39 @@ export const located = (scope, given) => {
     }
     return { refused: `${given} is outside the checkouts under review` };
   }
-  return { refused: `${given} is not a readable path in ${scope.roots.join(", ")}; ${topOf(scope)}` };
+  return { refused: `${given} is not a readable path in ${scope.roots.join(", ")}; ${nearestOf(scope, given)}` };
 };
 
 /* A refusal that names what is there: `grep test` was refused five times and retried blind, because
    the directory is `plugin/test` and nothing said so. */
 const TOP_ENTRIES = 24;
-const topOf = (scope) => {
-  const root = scope.roots[0];
+const entriesOf = (dir) => {
   try {
-    const names = readdirSync(root).filter((one) => one !== ".git").sort().slice(0, TOP_ENTRIES);
-    return `at its top: ${names.join(", ")}`;
+    return readdirSync(dir).filter((one) => one !== ".git").sort().slice(0, TOP_ENTRIES).join(", ");
   } catch {
-    return "its top level could not be listed";
+    return null;
   }
+};
+
+const topOf = (scope) => {
+  const names = entriesOf(scope.roots[0]);
+  return names ? `at its top: ${names}` : "its top level could not be listed";
+};
+
+/* Beside where the path would have been, not at the root: a leaf six levels down has siblings, and
+   the root's own top says nothing about them. */
+const nearestOf = (scope, given) => {
+  let dir = isAbsolute(given) ? resolve(given) : resolve(scope.roots[0], given);
+  for (let up = 0; up < NEAREST_UP; up += 1) {
+    dir = join(dir, "..");
+    const real = canonical(dir);
+    if (!scope.roots.some((root) => withinRoot(root, real)) && !scope.roots.includes(real)) break;
+    if (statSafe(real)?.isDirectory()) {
+      const names = entriesOf(real);
+      if (names) return `${relative(scope.roots[0], real) || "the root"} holds: ${names}`;
+    }
+  }
+  return topOf(scope);
 };
 
 const clipped = (text) =>
@@ -216,9 +234,10 @@ const diffOf = (held, base) => {
   if (ref.startsWith("-")) throw new Error(`${ref} is not a ref this will pass to git`);
   const owner = held.in ?? gitRootOf(held.real);
   if (!owner) return "not in a git repository, so it has no diff";
+  const rel = relative(owner, held.real);
   const run = spawnSync(
     "git",
-    ["diff", "--no-color", "--no-ext-diff", "--end-of-options", ref, "--", relative(owner, held.real)],
+    ["diff", "--no-color", "--no-ext-diff", "--end-of-options", ref, ...(rel ? ["--", rel] : [])],
     { cwd: owner, encoding: "utf8", timeout: TOOL_MS },
   );
   if (run.status !== 0) return `git diff failed: ${(run.stderr ?? "").trim().slice(0, 200)}`;
@@ -232,9 +251,11 @@ export const runTool = (scope, name, given = {}) => {
      throw here ends the consult, where a refusal is something the reviewer can answer. */
   const input = given && typeof given === "object" ? given : {};
   if (name === "run_check") return checkOnce(scope);
-  const needsPath = name !== "grep";
-  const held = input.path ? located(scope, input.path) : null;
-  if (needsPath && !held) return { text: `this tool needs a \`path\`; ${topOf(scope)}`, error: true };
+  /* Optional for three of the four: the checkout is what a reviewer means by no path, and 34
+     refusals in the log were that argument left out (ISS-65). read_file has no such default. */
+  const rooted = name !== "read_file";
+  const held = input.path ? located(scope, input.path) : (rooted ? { real: scope.roots[0], in: scope.roots[0] } : null);
+  if (!held) return { text: `read_file needs a \`path\`; ${topOf(scope)}`, error: true };
   if (held?.refused) return { text: held.refused, error: true };
   try {
     if (name === "read_file") return { text: readOne(held, input) };

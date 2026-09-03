@@ -13,7 +13,7 @@ process.env.XDG_CONFIG_HOME = HOME.path;
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
-  KEY, OPEN_KEPT, gitNow, merged, owedOn, patchFrom, worklogFor, worklogLines, worklogOf,
+  KEY, OPEN_KEPT, capturedLine, gitNow, merged, owedOn, patchFrom, worklogFor, worklogLines, worklogOf,
 } = await import("../../src/flow/worklog.mjs");
 const { claimed, leaseOf } = await import("../../src/flow/lease.mjs");
 
@@ -146,6 +146,28 @@ test("record report refuses a capture flag it was given, whatever the log had to
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /record report writes nothing/u);
   assert.match(run.stderr, /--review/u, "and names the flag it will not take");
+});
+
+/* Three captures after a fast-forward wrote base equal to head and no touched set, in silence, over
+   two dry runs; two complete ones printed nothing either, so the flag's own author ran `forge
+   resume` to see whether it had worked (ISS-65, ISS-66). */
+test("a capture says in one line what it holds", () => {
+  const held = { branch: "iss-65-rounds", head: "a9288a6fd11", base: "4e41dfd881e", touched: "one.mjs, two.mjs", at: "2026-09-03T15:00:00.000Z" };
+  assert.equal(capturedLine(held), "--pushed: iss-65-rounds at a9288a6, base 4e41dfd, 2 file(s) touched.");
+});
+
+test("a capture that captured nothing says so, and its worklog is not written", () => {
+  const empty = { branch: "master", head: "4e41dfd881e", base: "4e41dfd881e", touched: null, at: "2026-09-03T15:00:00.000Z" };
+  const why = [[empty, /the base is the head/u], [{ ...empty, base: null }, /no base/u],
+    [{ ...empty, base: "0000000" }, /no file does/u], [null, /git answered nothing/u]];
+  for (const [one, said] of why) {
+    assert.match(capturedLine(one), /nothing to capture/u, JSON.stringify(one));
+    assert.match(capturedLine(one), said, "and the cause it states is the one that holds");
+    assert.match(capturedLine(one), /The worklog is unchanged/u);
+    assert.match(capturedLine(one), /before the merge/u, "and the command that would have captured it");
+  }
+  assert.equal(merged({ branch: "iss-65-rounds" }, null).worklog.branch, "iss-65-rounds",
+    "a patch nobody made leaves the last capture alone");
 });
 
 test("the two captures and the open line are on the flag list of both verbs that write", () => {

@@ -11,6 +11,7 @@ import { randomBytes } from "node:crypto";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
 import { CONFIG_PATH, userConfig } from "../resolve/config.mjs";
+import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
@@ -22,6 +23,7 @@ import {
   MODEL,
   askApi,
   bundle,
+  changedAgainst,
   defaultEffort,
   digest,
   inside,
@@ -244,13 +246,6 @@ export const rounds = async (values, model, opening, scope, onDelta, ask = askAp
 /** What a tool call was for, in one line of a terminal: the path, or the pattern grep was given. */
 const detail = (input = {}) => input.path ?? (input.pattern ? `/${input.pattern}/` : "");
 
-const stdinText = async () => {
-  if (process.stdin.isTTY) return "";
-  const chunks = [];
-  for await (const chunk of process.stdin) chunks.push(chunk);
-  return Buffer.concat(chunks).toString("utf8").trim();
-};
-
 /* Repeated `--verify`, then positionals apart from flag values, then the rest — three passes
    because a flag can carry a value and a file cannot. */
 export const consultArgs = (given) => {
@@ -317,7 +312,15 @@ const consult = async (given) => {
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
   const { named, risks, only, allowEcho, base, effort, cap, bodies, recheck, angles } = consultArgs(given);
   const rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
-  if (!rels.length) fail("codex: nothing to consult on. Name a file, or write one first.");
+  /* Asked for a diff and given nothing to diff, the tree answers: the round it replaces was reading
+     `git diff --name-only` and typing the list back (ISS-65). */
+  if (!rels.length && base) {
+    rels.push(...changedAgainst(root, base));
+    if (rels.length) console.error(`codex: nothing named and nothing pending, so the ${rels.length} file(s) changed against ${base}: ${rels.join(", ")}.`);
+  }
+  if (!rels.length) {
+    fail(`codex: nothing to consult on. Name a file, or write one first.${base ? ` Nothing differs from ${base} either.` : ""}`);
+  }
   const entries = logEntries();
   const plan = recheck ? recheckPlan(entries, root, rels) : null;
   const offset = risks.length;
@@ -334,7 +337,12 @@ const consult = async (given) => {
     fail(`codex: the ${MODEL} slot resolves to ${model}, this model's own family — that echoes rather `
       + "than reviews. Point `codex.model` at another slot, or pass --allow-echo.");
   }
-  const intent = await stdinText();
+  /* Said before the read, so a stall says where it is, and the read waits on the first byte alone:
+     an open stdin with nothing on it was read to EOF and never returned (ISS-65). */
+  console.error(`codex: ${rels.length} file(s) to review; reading the intent from stdin.`);
+  const said = await stdinText();
+  if (said === null) console.error(`codex: nothing on stdin inside ${INTENT_MS}ms, so the consult carries no intent.`);
+  const intent = (said ?? "").trim();
   const id = randomBytes(3).toString("hex");
 
   const parts = base ? withDiffs(root, bundle(root, rels), base) : bundle(root, rels);
