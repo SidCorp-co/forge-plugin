@@ -102,8 +102,15 @@ test("the git block is what git said when it was asked, with the time it was ask
 test("a patch is built only from what was asked for, and nothing else is invented", () => {
   assert.equal(patchFrom({}), null, "a write that captures nothing writes no block");
   assert.deepEqual(patchFrom({ open: ["a dead end"] }), { open: ["a dead end"] });
-  assert.ok(patchFrom({ pushed: true }).head, "--pushed is the git block");
-  assert.equal(patchFrom({ pushed: true }).review, undefined, "and says nothing about the review");
+  /* A branch ahead of its base is captured whole; a head that is its own base writes no block. */
+  const now = gitNow();
+  const block = patchFrom({ pushed: true });
+  if (now.touched && now.base && now.base !== now.head) {
+    assert.ok(block.head, "--pushed is the git block");
+    assert.equal(block.review, undefined, "and says nothing about the review");
+  } else {
+    assert.equal(block, null, "a capture that captures nothing writes no block");
+  }
 });
 
 /* The log records rulings and verdicts, not rounds; what it can answer is whether anything is

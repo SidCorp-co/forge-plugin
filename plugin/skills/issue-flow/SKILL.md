@@ -7,7 +7,7 @@ description: >-
   listing or filing issues without implementing them, use the forge skill instead.
   Triggers on "work ISS-nn", "implement this issue", "fix ISS-nn", "làm issue",
   "xử lý ISS-nn", "ship this issue".
-version: 2.1.3
+version: 2.1.4
 ---
 
 # Skill: issue-flow
@@ -162,6 +162,11 @@ rendered evidence is attached, the reason is recorded, and you move to the next 
 
 If it proves unshippable, that is an outcome: post the finding, leave the branch named,
 park the issue. Do not carry an unsound change forward because the phases go that way.
+
+Something you found that belongs to an issue you are not working is written with
+`forge new <file|-> --title "<one line>" --into ISS-nn`, and that route asks you for no lease.
+Claiming the issue to comment on it instead rewrites the line its holder left for the next run,
+so `forge comment` is the holder's verb and not the finder's.
 
 ## Phase 6 — Draft the release note
 

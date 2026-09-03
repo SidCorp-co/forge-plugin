@@ -431,7 +431,16 @@ beside the head so the transition can see the scope without the repository (ISS-
 with the consult ids); the merging run, which is the one that knows, writes the touched files into
 the mark's note beside the commit and the base, and a review whose recorded set is narrower than the
 mark's is not approving. Both sets are on the record; nothing inspects the repository. The sixth dry run caught three *not verified* answers only because the
-output said the words.
+output said the words. A recheck confirms and does not discover: it answers, finding by finding,
+whether the fix stands, and a finding it raises for the first time stands only with a clause naming
+what made it invisible the round before. The review ends when every finding raised has its verdict,
+fixed or rejected with the reason on the review record, and the last whole-file round raised nothing
+new that this change caused. Scope is causal, not positional: a finding on a line the change did not
+touch is in scope when it names the changed line that breaks it, a caller or a test the new interface
+no longer fits, and is outside the change otherwise, rejected as such or filed on its own issue. A
+round whose only new findings are outside the change is the last round, since a reviewer that re-reads
+the whole set each time need never grant zero (the fifteenth dry run ran eleven rounds to learn this;
+ISS-77 owes the harness half).
 
 **Evidence is typed at the write.** Every payload above is a write of a shape the CLI owns — a
 confirmation, a decision record, a question, a review, a verdict, a verification, a person's finding
@@ -516,7 +525,10 @@ been shown of an issue's comments is therefore state this plugin writes, keyed b
 agent and the agents it delegates to share, and the write that owes a reading performs it: an issue
 with no comments costs nothing, and every comment on the page the tracker returns that nobody here
 has seen is the refusal itself, delivered once and re-sent against. The page is the reach of it,
-which is the same seam a cursor closes. A write naming its issue by uuid is checked exactly as one naming the
+which is the same seam a cursor closes. Past the page, an issue whose thread outgrew what the tracker
+lists, every verb that reads the record refuses by name, the transition by hand through `forge call` is
+the supported route and evidence goes up through `forge attach`, and each refusal says so rather than
+leaving the route to be derived from three refusals (ISS-17 closes the seam). A write naming its issue by uuid is checked exactly as one naming the
 key, since a form is not a route either. Nothing about a route is read out of a transcript,
 since the transcript of a delegated run is not the one a hook is handed. A comment this session did not create,
 whatever wrote it, is one it has not been shown, and a batch worked on one branch pays that delivery
@@ -1013,3 +1025,38 @@ skill fell short.
 - The installed skill text changed and the running session kept the old wording: the agent saw its
   own edit absent from the skill body it was re-shown. A skill edit is not a hook edit and owes no
   restart, but it reaches only sessions that load the skill after it.
+
+## Fifteenth dry run — ISS-65
+
+One agent removed the rounds the CLI used to charge the agent (3.35.7): a payload write by a lapsed
+lease's own holder renews the lease and says so, the merged mark's audit comment is credited by the
+write that caused it, a verdict's evidence is uploaded and cited in one call, `record` and `advance`
+read the record themselves, and a check in the tree fails when a refusal names a route the CLI does
+not have. Twenty-three verdicts, a refusal rate measured from the hook log before and after, and the
+first run cut twice by a provider incident and resumed from the record each time.
+
+- The issue's own verdict loop crossed the tracker's two-hundred-comment page. Past it `advance`, both
+  record defaults and the evidence upload refused, each correctly and none naming the others, and the
+  last three statuses moved by hand. The route is now written above; ISS-17 closes the seam. A
+  thoroughly worked issue outgrows its own flow, and nothing warned before the page was full.
+- The recheck loop had no terminator: eleven whole-set rounds, the last arguing whether a valid URL
+  may be rejected by `fetch`. The rule above ends it; ISS-77 owns the harness that made it so.
+- The refusal rate is a floor: two gates answering one attempt inside a second count once. ISS-75
+  owes the attempt id.
+- Three verdicts cited a section of an attachment that stopped one section short; the section lived in
+  a later copy. The agent found its own defect re-reading the record and re-sent the three with the
+  cause. ISS-73's reader gets the line.
+- A release commit at 3.35.6 was never installed; 3.35.7 is. Two bumps for one change, the first
+  unproven, which the version-mark rule above already names.
+- Two compactions under a provider incident lost the early refusal text; `advance --owed` recovered
+  the state and nothing recovered the record of how it was reached. The hook log holds every refusal,
+  which the report could have read; ISS-75's payload is where that belongs.
+- Routing a finding to another issue cost a lease each time and overwrote four issues' next lines,
+  ISS-70's among them. The finding-only route is `--into`; the skill now says so, and ISS-63 still
+  owes the refusal that names it.
+- The known check failure that agents were told to step around for a week was an untracked scratch
+  file in the parent's care. It is out of the tree, and `npm run check` is expected to run to its end
+  for the first time since the ninth run.
+- The hook log's own view, `forge hooks --rounds`: the session that ran this work sat at one point one
+  six refusals per refused write, against six point five for a session on the MCP route with twelve
+  refusals of one tool. The five changes were sized against that row.
