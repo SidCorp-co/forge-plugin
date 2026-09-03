@@ -258,7 +258,9 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
   and a successor that cannot continue from the record and the worklog has found a fact that belongs
   in one of them. The push capture is made at the push, before the merge: after a fast-forward the
   base equals the head and the files touched read as none, which the eighth dry run recorded on its
-  own issue. The worklog's set is the run's note and scopes nothing; the set that scopes the earning
+  own issue and the twelfth wrote three times over. A capture that captures nothing says so in one
+  line and writes no worklog, because a record that looks like one and holds nothing is what a
+  successor reads first (ISS-65). The worklog's set is the run's note and scopes nothing; the set that scopes the earning
   review is the one the merging run writes into the mark from the commit that actually landed, and
   where a queue landed a different commit the mark's set is the truth and the worklog is refreshed
   from it. A brief that shows part of the record says how much it left out and where the rest is.
@@ -289,7 +291,8 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
   backoff; a hook that refuses a command is a command to rewrite; neither reaches the issue. A run
   that has to stop — the tracker unreachable past its budget, the stack down, the agent's own budget
   spent — writes one comment saying so when the tracker allows it, and moves no status. The next run
-  finds the lease stale and resumes.
+  finds the lease stale and resumes. That is the run's own write; a gate holding someone else's
+  write answers the same failure differently, under the routes below.
 - **A rule change owes nothing backwards.** Every typed write carries the contract version it was
   written under. A held status whose payload exists, under the version on that payload, stands even
   if today's rule asks for more. A held status with no payload at all is unearned whatever the
@@ -304,7 +307,7 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
 | the agent dies between two writes, say merged but not marked | git shows the merge, the record shows no mark | `advance --owed` names the missing mark; the step that knows the commit writes it | unchanged, then `developed` |
 | the same status reclaimed a third time | three reclaims of one status in the claim history | the issue parks with that history as evidence | `on_hold`, kind crashed |
 | two agents pick the same issue | a live lease held by another session | the second is refused, naming the holder and the renew time | unchanged |
-| the tracker answers with an error | nothing | retry with backoff; past the budget, the run stops; nothing is written | unchanged |
+| the tracker answers with an error | nothing | retry with backoff; past the budget, the run's write stops and nothing is written; a gate's hold ends instead, and the write passes with a line saying what went unchecked | unchanged |
 | a hook refuses a write | nothing | the command is rewritten to satisfy the gate; not an issue event | unchanged |
 | the environment breaks: stack down, ports taken | one comment saying the run stopped and why | the run stops; the next run reads why | unchanged |
 | a person pauses or reprioritises mid-run | a person's comment | the branch is left named; nothing else changes | `on_hold`, kind paused; resumes by hand |
@@ -452,7 +455,9 @@ touched set, its verification is that check green from the released copy, and a 
 a release note are owed only where a person sees the change. `forge advance --owed` on a marked
 issue prints that set beside what the record still lacks. Nothing spends it yet: every entry check
 asks for the full set whatever the mark says, so the mark is a promise to the next reader rather
-than a discount. Open.
+than a discount. The size is the tracker's the day it has a field for one, and the line goes the same
+day; until then the line is the only source, read wherever it appears, since a mark that survives the
+tracker's own screens is one anyone can type. Open.
 
 **A criterion a program can decide ships as a check.** When the evidence a criterion asks for is a
 comparison a program can make — a gate exits zero, a count did not fall, every named path resolves —
@@ -484,6 +489,17 @@ whatever wrote it, is one it has not been shown, and a batch worked on one branc
 once per member. The tracker's own screens and unhooked clients are outside it: a status
 they set is unearned, and `advance --owed` on such an issue says what its record lacks. A check on
 the server is the tracker's to add, and this contract is its specification.
+
+**When the tracker will not answer, the verb refuses and the gate lets the write through.** The
+route is the same; the failure is not. A verb is a step the run can retry, so it fails closed with
+the reason and the retry. A gate is a hold on a step the session is waiting on, and a hold that
+outlives what the session waits for is a denial nobody chose: the ISS-59 gate cost one tracker call
+for a plain filing and four for one naming three tokens, and one run in sixteen sat out a rate
+limit longer than its registered budget. So a gate's retries fit inside the budget it registered,
+past it the write goes through unchecked, and the pass is owed a line the session sees naming what
+was not checked and the command that checks it after the fact. A gate that passes silently on an
+expired token, a missing slug or a slow tracker is the one case the record cannot tell from a check
+that ran; ISS-36 owes the budget and the line.
 
 ## What it does not do
 
@@ -860,3 +876,42 @@ re-sending the same command.
   record says the install location is the checkout, the install record names a cache path per
   version. The agent's gate fired live from the checkout because the CLI half of it runs from the
   binary on PATH. Until measured from inside a fresh session, a hook change still owes a restart.
+
+## Twelfth dry run — ISS-59
+
+One agent built the filing lint (3.35.1) on every route a filing arrives by, including the payload
+`forge call` reads from a file or stdin where a hook watching the command line sees nothing; what it
+refuses and the three routes a small change takes are the how page's. Twenty verdicts, three reviews for three heads, thirteen consults with eleven
+findings folded and two rejected on the record, no `advance` refusal past the first per status.
+
+- The gate did not get an eleventh file: both hook directories held ten, so the shape check went
+  into the read-first gate, where a filing refused owes no comment delivery, and its second argument
+  into a topic page because the how pages are capped. A width limit shaped the design and the
+  design is better for it.
+- The mark is a line in the description and not a label or the complexity field, ruled out on
+  evidence: the tracker creates no label it was not given and this projection cannot read the enum
+  back. The undo is on the record; the day the tracker owns a size, the line goes.
+- Forty-seven of seventy open issues would fail the shape they were filed without. Nothing
+  re-lints them; a filing is judged once, at the filing, and the record of an issue written under an
+  older rule is judged by the payloads it earns.
+- The release at 3.35.0 was a no-op: the cache is keyed by version and the version was already
+  installed, so the probe cited the old code. The bump is its own commit and says why.
+- Three worklog captures after the fast-forward recorded base equal to head and no touched set,
+  silently, as the eighth run had. The capture now owes a line (above, and ISS-65).
+- The verdict loop typed one commit and one evidence name twenty times; the merged mark already
+  holds both. ISS-65.
+- The gate's cost went from zero tracker calls to up to four serial ones in this change, and one run
+  in sixteen outlived its registered budget on a rate limit, passing unlinted with the reason on a
+  stream the session does not show. The failure rule is now written above; ISS-36 owes the budget.
+- `forge new --into` writes a comment through a verb the read-first table does not list, so a
+  finding posted that way took no lease and was read by no gate. ISS-36.
+- A `-h` on a record kind answered with a refusal for a missing field: ISS-45, live again.
+- The contract's own payloads have the failure the filing lint fixes: a confirmation with no
+  finding or a criterion nobody can decide is accepted whole and judged only at the transition.
+  ISS-73 gives `forge record` the same reader.
+- A token expired four times in one run and the run had nowhere to put what it learned while the
+  tracker refused; it went to a file and was folded back after. The feedback folder is that place
+  for other agents; for this one the file was right.
+- A verification on a deployed host with no credential on record was reported from another
+  project the same day: eight rendered-state criteria unjudgeable, routing evidence standing in.
+  ISS-72 asks for the credential where the deploy path is discovered, or names the fallback.
