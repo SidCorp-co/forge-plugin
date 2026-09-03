@@ -328,9 +328,11 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
 | a finding whose disclosure is a decision | release note withheld with *Skip* and the reason; the decision handed to a person | `waiting`, kind release decision |
 | a regression after release | a new issue naming this one | unchanged |
 
-Across all of them: the status and the typed payloads are written only by the agent that holds the
-lease; people write comments, replies, reviews and `reopen` at any time, need no lease and renew
-none, and those writes are what the parks wait for. The branch is pushed as it moves, and the status
+Across all of them: the status and the typed payloads that earn it are written only by the agent that
+holds the lease; people write comments, replies, reviews and `reopen` at any time, need no lease and renew
+none, and those writes are what the parks wait for. A run that finds something on an issue it is not
+working posts it the same way, as a finding through `forge new --into`, and takes no lease: the lease
+says who is moving the status, and a finding moves nothing (ISS-63 owes the refusal that says so). The branch is pushed as it moves, and the status
 is the resume point. Nothing about the run has to be remembered
 by anyone, because nothing about it is held anywhere but the record.
 
@@ -423,7 +425,12 @@ assembled from the record rather than written from memory: the latest of each ki
 be current, and every instance of a kind that repeats, so a report shows four corrections when
 four were written (owed by ISS-11; today only verdicts, findings and triages are kept per instance). A separator between
 repeated values must be one a value cannot contain, or the record does not read back as it was
-written (owed by ISS-14; today the pair that separates them can occur inside one), and a repeated
+written (owed by ISS-14; today the pair that separates them can occur inside one). A kind kept
+latest-wins is not overwritten while the status it earned still stands: the second write is refused
+unless it names what it corrects, and the correction is printed beside the record it corrects. A
+write after a change that unearned the status is not a second write but the new evidence the
+re-earning owes, and passes (owed by ISS-74; today a release note on a closed issue is replaced in
+silence), and a repeated
 flag value, which the verb keeps to one line at the write, renders as one line each, because six
 decision triples read back as one paragraph are six decisions nobody will read; a multi-line field
 is one value and is rendered whole. A kind that repeats across occasions — a finding, a triage — is
@@ -468,7 +475,9 @@ ninth dry run's most durable output was the one check the contract had not asked
 
 **A rehearsal writes no person's record.** A run that exercises a transition with no person behind
 it — a reopen route, a park a reviewer lifts — proves the route in a test or against the installed copy
-and writes nothing that quotes a person. A finding with words nobody said is a false record, and a
+and writes nothing that quotes a person. A verdict that says *the installed copy* names the binary it
+invoked by path, because on a machine whose `forge` is the checkout the phrase proves the checkout
+(ISS-71). A finding with words nobody said is a false record, and a
 false record is corrected and never removed, so it is better never written; the tenth dry run built the
 reopen and left it unrehearsed on a live issue for this reason.
 
@@ -915,3 +924,34 @@ findings folded and two rejected on the record, no `advance` refusal past the fi
 - A verification on a deployed host with no credential on record was reported from another
   project the same day: eight rendered-state criteria unjudgeable, routing evidence standing in.
   ISS-72 asks for the credential where the deploy path is discovered, or names the fallback.
+
+## Thirteenth dry run — ISS-66
+
+One agent gave `forge guide` a disposition of its own (3.35.2): a table in code names, per guide
+slug, the rules the contract replaced and what replaced them; the list withholds those, the slug
+answers from the table, `--tracker` returns the tracker's text as the tracker's, and two guides pass
+through under a first line withdrawing the half that is not this plugin's. Twenty verdicts, three
+`advance` refusals all correct, one read-first denial on the mark's own audit comment, seven
+findings posted on other issues through `--into`, none on this one's lease. No hook file changed.
+
+- Contradiction is meaning: `forge doctor` reports the two halves a program can decide — a table row
+  the tracker no longer serves is a finding, a served slug the table never saw is a note dated to the
+  review — and judges no guide's fit. The replacement paths are checked by the suite, where this
+  repository's documents are on disk to resolve against; the installed copy ships `plugin/` alone.
+- A guide that is simply not this plugin's has an empty replacement and a line that says so; codex
+  raised it as a superseded row with nothing after it, and refuted itself on recheck. The rule was
+  the issue's own.
+- A stray `--skip` note in a tidy-up command replaced the earned release note of a closed issue, and
+  three corrections written read back as one. Nothing warned. ISS-74 for the refusal and the
+  side-by-side; ISS-11 for the count, which already asked.
+- The agent wrote a review naming a finding id no consult had raised, and corrected it. ISS-73's
+  reader would have refused the write.
+- Two routes for a finding on someone else's issue carried opposite rules; the contract now names
+  `--into` as the finding-only route and the lease as the mover's. ISS-63 keeps the refusal.
+- "Verified against the installed copy" was true in a narrow sense: the `forge` on PATH is the
+  checkout, so the agent invoked the cache copy by absolute path and said so. The verdict rule above
+  now asks for the path. ISS-71.
+- A recheck recorded *accepted* over the author's rejection; on ISS-34. Three `--fields` names the
+  help offers were refused live; on ISS-45. Six decisions read back as seven; on ISS-14.
+- Every entry check refused with the exact command that clears it, and every refusal cleared on the
+  next write. Thirteen runs in, that half of the contract has stopped producing findings.
