@@ -14,6 +14,11 @@ prints this folder's absolute path so the note lands here and nowhere else.
 4. **Where**: the project slug, the plugin version from `forge doctor`, and whether you were a
    delegated agent or the main session.
 
+Nothing here but this README is tracked by git, so a note is written without touching the
+repository's own work. A note the maintainer has read moves to `feedback/archive/` on this machine
+with a **Triaged** section naming the issue it became or was folded onto, so the folder itself holds
+only what nobody has read yet; the issue is the durable record, not the note.
+
 Never paste a token, a credential or a person's email. A note is not an issue: do not file it in
 your own project's tracker, and do not file it in this plugin's tracker either — the maintainer
 reads this folder and turns notes into issues, grouping the small ones, which is the size rule the

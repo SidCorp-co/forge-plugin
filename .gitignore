@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 node_modules/
 node_modules/
+
+# Notes other agents leave for this CLI (feedback/README.md says how); the folder is theirs to write into,
+# so nothing in it but the README is tracked, and a read note moves to feedback/archive/ locally.
+feedback/*
+!feedback/README.md
