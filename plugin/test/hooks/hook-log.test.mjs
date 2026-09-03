@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 const room = mkdtempSync(join(tmpdir(), "hook-log-"));
 process.env.XDG_CONFIG_HOME = room;
-const { HOOK_LOG_PATH, hookEntries, scrubbed } = await import("../../src/hooks/hook-log.mjs");
+const { HOOK_LOG_PATH, hookEntries, roundsBy, scrubbed } = await import("../../src/hooks/hook-log.mjs");
 const CLI = new URL("../../src/cli.mjs", import.meta.url).pathname;
 test.after(() => rmSync(room, { recursive: true, force: true }));
 
@@ -148,4 +148,65 @@ test("a filtered listing still points at the notes, and says what it cut", () =>
   assert.equal(tailed.stdout.trim().split("\n").filter((one) => one.startsWith("2026")).length, 1);
   assert.match(tailed.stdout, /refusal\(s\), last 1 shown:/u, "the count is not the lines");
   assert.doesNotMatch(denied.stdout, /shown:/u, "and nothing is said when nothing was cut");
+});
+
+/* A class of refusal that names a next command the CLI already knew costs a round and teaches
+   nothing, and an agent that meets three in a row is looping rather than working. What is countable
+   from this log is refusals per refused write: only refusals are written down (ISS-65). */
+test("the rounds count is per session, per refused write, and says which write repeated", () => {
+  const entry = (session, decision, target, at = "2026-09-03T10:00:00.000Z", tool = "Bash") =>
+    ({ at, hook: "issue-read-first", decision, tool, target, session });
+  const held = roundsBy([
+    entry("one", "deny", "forge record verdict ISS-65 --criterion 1"),
+    entry("one", "deny", "forge record verdict ISS-65 --criterion 1", "2026-09-03T10:05:00.000Z"),
+    entry("one", "deny", "forge advance ISS-65", "2026-09-03T10:06:00.000Z"),
+    entry("one", "block", "forge advance ISS-65", "2026-09-03T10:06:00.400Z"),
+    entry("one", "note", "forge advance ISS-65"),
+    entry("one", "deny", "git add -A"),
+    entry("two", "block", "rm -rf /"),
+  ]);
+  const [first] = held.filter((one) => one.session === "one");
+  assert.equal(first.refusals, 5, "a note is no refusal, and a shell command that is no write still is one");
+  assert.equal(first.writes, 2, "two writes were refused");
+  assert.equal(first.spent, 3, "and the second gate to answer one attempt is not a second round");
+  assert.equal(first.per, 1.5);
+  assert.deepEqual(first.worst, { target: "forge record verdict ISS-65 --criterion 1", times: 2 },
+    "and the one that repeated is named, because that is the loop");
+  /* The tracker's own tool carries the write in the tool name: the target holds a path or nothing,
+     so a call through a client rather than a shell counted as no write at all. */
+  const mcp = roundsBy([
+    entry("three", "deny", "", "2026-09-03T10:00:00.000Z", "mcp__forge__forge_issues"),
+    entry("three", "deny", "", "2026-09-03T10:01:00.000Z", "mcp__forge__forge_issues"),
+    entry("three", "deny", "/some/path.md", "2026-09-03T10:02:00.000Z", "Edit"),
+  ]);
+  assert.equal(mcp[0].writes, 1, "one write, refused twice");
+  assert.equal(mcp[0].per, 2, "which is the loop the number exists to show");
+  const read = roundsBy([
+    { ...entry("four", "deny", "", "2026-09-03T10:00:00.000Z", "mcp__forge__forge_issues"), hook: "codex-second" },
+    entry("four", "deny", `forge call forge_issues '{"action":"get","documentId":"ISS-65"}'`, "2026-09-03T10:01:00.000Z"),
+  ]);
+  assert.equal(read[0].writes, 0,
+    "a gate that does not read the event for its issues could have refused a read, and `call` reaches "
+    + "the reads by name: neither is a write");
+  const [second] = held.filter((one) => one.session === "two");
+  assert.equal(second.writes, 0, "a session whose refusals guarded no write divides by nothing");
+  assert.equal(second.per, 0);
+  assert.equal(second.worst, null, "and nothing repeated is nothing to name");
+});
+
+test("the count is offered by the verb, and reads the log the gates write", () => {
+  const forge = (...argv) =>
+    spawnSync(process.execPath, [CLI, "hooks", ...argv], {
+      encoding: "utf8",
+      env: { PATH: process.env.PATH, HOME: room, XDG_CONFIG_HOME: room },
+    });
+  appendFileSync(
+    HOOK_LOG_PATH,
+    `${JSON.stringify({ at: new Date().toISOString(), hook: "issue-read-first", decision: "deny", tool: "Bash", target: "forge claim ISS-65", reason: "r", session: "a-session" })}\n`,
+  );
+  const said = forge("--rounds");
+  assert.equal(said.status, 0, said.stderr);
+  assert.match(said.stdout, /a-sessio\s+\d+ refusal\(s\)/u, "one line per session");
+  assert.match(said.stdout, /1 of them before a tracker write, over 1 refused write = 1 per write/u);
+  assert.match(said.stdout, /only refusals are logged/u, "and the line says what the number is not");
 });

@@ -17,7 +17,7 @@ const SEARCH_ZONE_CAP = 15;
 const ID_WIDTH = 34;
 const NAME_WIDTH = 30;
 
-const USAGE = [
+export const USAGE = [
   "Usage: forge cloudflare <zones|zone|dns|purge|search|login|accounts> [args]",
   "Zones and DNS against api.cloudflare.com. Credentials are the accounts `login` saved",
   "under ~/.config/forge, and nothing else: the environment is not a source.",

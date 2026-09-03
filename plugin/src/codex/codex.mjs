@@ -56,7 +56,7 @@ const DEFAULT_PATH_RE = "^docs/.*\\.md$";
    caller is billed for and not one more. Three, measured: docs/FORGE-CLI.md carries the numbers. */
 const DEFAULT_CALLS = 3;
 
-const USAGE = [
+export const USAGE = [
   "Usage: forge codex <consult|verdict|pending|show|log> [args]",
   "GPT-5 Codex reviews the files you name, streamed over the gateway's own API. The files travel",
   "with the prompt; beyond them it reads for itself — read_file, list_dir, grep and git_diff, over",

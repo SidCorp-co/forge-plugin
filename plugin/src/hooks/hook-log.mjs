@@ -4,6 +4,7 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { join } from "node:path";
 
 import { configDir } from "../resolve/config.mjs";
+import { readAction } from "../tracker/issue-read.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, setHook } from "./hook-switch.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -100,9 +101,77 @@ const reasoning = (name) => {
 /* Refusals as against notes, which do not inflate the count. Why they are logged: `_hook.mjs`. */
 const REFUSALS = ["deny", "block"];
 
+/* The write a refusal stood in front of, the unit a loop is counted in. */
+const WRITE = /forge\s+(?:claim|record|advance|comment|plan|attach|dep|new)\b|forge\s+call\s+forge_\w+/u;
+const TOOL = /^mcp__forge__forge_\w+$/u;
+/* The one gate whose refusal of that tool is a write by construction, since it reads the event for
+   the issues written to: the log keeps no operation, and ISS-75 owns the category it lacks. */
+const WRITE_GATE = "issue-read-first";
+
+const writeIn = (one) => {
+  const target = String(one.target ?? "");
+  /* `call` reaches the reads too: the gate's own reader answers which action it was. */
+  if (WRITE.test(target)) return readAction(target) ? null : target.slice(0, 80);
+  const tool = String(one.tool ?? "");
+  return TOOL.test(tool) && one.hook === WRITE_GATE ? `${tool} ${target}`.trim().slice(0, 80) : null;
+};
+
+/* Per session, and named for what it is: the log holds refusals alone (docs/FORGE-CLI.md), so the
+   denominator is the writes that were refused and never the writes that were made — one is the
+   design working, three is a run looping, and a true rate wants a counter in the transport. */
+export const roundsBy = (entries) => {
+  const held = new Map();
+  const seen = new Set();
+  for (const one of entries.filter((two) => REFUSALS.includes(two.decision))) {
+    const key = one.session ?? "(no session)";
+    const mine = held.get(key) ?? { refusals: 0, writes: new Map(), first: one.at, last: one.at };
+    mine.refusals += 1;
+    mine.last = one.at;
+    const write = writeIn(one);
+    /* One attempt, however many gates answered it: two refusals of one command in the same second
+       are one round spent, and counting both would read a gate pair as a loop. */
+    const once = `${key}|${write}|${String(one.at).slice(0, 19)}`;
+    if (write && !seen.has(once)) {
+      seen.add(once);
+      mine.writes.set(write, (mine.writes.get(write) ?? 0) + 1);
+    }
+    held.set(key, mine);
+  }
+  return [...held].map(([session, one]) => {
+    const counts = [...one.writes.values()];
+    const spent = counts.reduce((sum, two) => sum + two, 0);
+    const worst = [...one.writes].sort((a, b) => b[1] - a[1])[0] ?? null;
+    return {
+      session,
+      refusals: one.refusals,
+      writes: one.writes.size,
+      spent,
+      per: one.writes.size ? Number((spent / one.writes.size).toFixed(2)) : 0,
+      worst: worst && worst[1] > 1 ? { target: worst[0], times: worst[1] } : null,
+      from: one.first,
+      to: one.last,
+    };
+  });
+};
+
+const roundsLine = (one) =>
+  `${(one.session.slice(0, 8) || "(none)").padEnd(8)}  ${String(one.refusals).padStart(4)} refusal(s), `
+  + `${String(one.spent).padStart(4)} of them before a tracker write, over ${one.writes} refused `
+  + `${one.writes === 1 ? "write" : "writes"} = ${one.per} per write`
+  + (one.worst ? `; worst: ${one.worst.times} on \`${one.worst.target}\`` : "");
+
+const rounds = (entries) => {
+  const by = roundsBy(entries);
+  if (!by.length) return console.log(`No refusals logged, so no rounds to count. ${HOOK_LOG_PATH} holds the record.`);
+  for (const one of by.sort((a, b) => b.per - a.per)) console.log(roundsLine(one));
+  console.log("\nRefusals per refused write, not per write: only refusals are logged, so the writes "
+    + "that passed are not in the denominator. One is the rule working; two or more is a loop.");
+};
+
 export const hooks = (argv) => {
-  const held = flags(argv, "hooks", ["--deny", "--block", "--notes"]);
+  const held = flags(argv, "hooks", ["--deny", "--block", "--notes", "--rounds"]);
   if (held.how) return reasoning(held.how);
+  if (held.rounds) return rounds(hookEntries());
   /* Switching answers with the new state and stops: the refusal log is a different question. */
   if (held.off || held.on) return switched(held.off ?? held.on, Boolean(held.off));
   for (const { name, event } of offNow()) {
