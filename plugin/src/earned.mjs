@@ -19,6 +19,28 @@ export const ORDER = [
   "open", "confirmed", "clarified", "approved", "in_progress", "developed", "tested", "released", "closed",
 ];
 
+/* The flow table's last column: which phase a status owes while it is held, and where the method
+   for it lives. The path is relative to the plugin root, which is one level above this module in
+   the checkout and in the installed copy alike. ISS-18 owns the day this is typed rather than a
+   pointer; until then a pointer beats a phase number nobody can look up. */
+export const PHASE = {
+  open: ["1 Triage", "triage.md"],
+  confirmed: ["2 Clarify", "clarify.md"],
+  clarified: ["3 Plan", "plan.md"],
+  approved: ["4 Implement, to the branch", "verification.md"],
+  in_progress: ["4 Implement, to the review and the merge", "verification.md"],
+  developed: ["5 Prove", "verification.md"],
+  tested: ["6, 7 Ship", "release-note.md"],
+  released: ["closing, by a person or the run's end", "release-note.md"],
+  closed: ["none", "learning.md"],
+  dropped: ["none", "learning.md"],
+};
+
+export const methodOf = (status) => {
+  const held = PHASE[status];
+  return held ? { phase: held[0], reference: `skills/issue-flow/references/${held[1]}` } : null;
+};
+
 /* Which reader each park kind speaks to, and so which side status it lands in. Every kind in PARKS
    has a row: a park with nowhere to go would be a status set from nothing. */
 export const PARK_STATUS = {

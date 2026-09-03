@@ -21,7 +21,7 @@ export const run = (ev) => {
     }
   }
 
-  const unread = unreadKeys(uses, current);
+  const unread = unreadKeys(uses, current, (input) => starts(shellText(input?.command)));
   if (unread.length === 0) done();
 
   const key = unread[0];

@@ -11,6 +11,9 @@ import { callHook } from "./fixtures.mjs";
 const bash = (command) => ({ name: "Bash", input: { command } });
 /* The hook's own wiring: the write test reads where a command starts, so it is given the starts. */
 const writes = (command) => writesAnIssue(bash(command), starts(shellText(command)));
+/* The same parser, injected the same way: a separator inside a quoted string is not a command. */
+const SPOKEN = (input) => starts(shellText(input?.command));
+const reads = (key, command) => readsComments(key, bash(command), SPOKEN);
 const LIST = bash(`forge call forge_comments '{"action":"list","filters":{"issue":"ISS-29"}}'`);
 
 test("a comment, a plan and an attach are writes", () => {
@@ -41,35 +44,92 @@ test("the key shape is a prefix and a number, so a tracker need not be named ISS
 });
 
 test("`forge issue --full` is not a comments read — it returns none of them", () => {
-  assert.equal(readsComments("ISS-29", bash("forge issue ISS-29 --full")), false);
-  assert.equal(readsComments("ISS-29", LIST), true);
+  assert.equal(reads("ISS-29", "forge issue ISS-29 --full"), false);
+  assert.equal(readsComments("ISS-29", LIST, SPOKEN), true);
 });
 
 test("a command that only MENTIONS both is not a read — measured against a real transcript", () => {
   // The first version searched the whole command for the key and the tool name, so a grep looking
   // for one that named the other cleared the gate. Its own diagnostics did it.
   const grep = bash(`python3 -c "if 'ISS-29' in t and 'forge_comments' in t: print(t)"`);
-  assert.equal(readsComments("ISS-29", grep), false);
+  assert.equal(readsComments("ISS-29", grep, SPOKEN), false);
 });
 
 test("the call and the key have to be on one line, not merely in one command", () => {
   const apart = bash(`forge call forge_comments '{"action":"list"}'\necho ISS-29`);
-  assert.equal(readsComments("ISS-29", apart), false);
+  assert.equal(readsComments("ISS-29", apart, SPOKEN), false);
+});
+
+/* The verb reads the whole record to assemble its brief, so it is a read of the comments — the same
+   read the gate's own refusal asks for, by another name (ISS-44). */
+test("forge resume is a read of the comments, and of the key it names alone", () => {
+  assert.equal(reads("ISS-29", "forge resume ISS-29"), true);
+  assert.equal(reads("ISS-29", "forge resume ISS-29 --json"), true);
+  assert.equal(reads("ISS-29", "forge resume ISS-30"), false,
+    "a brief of another issue read nothing about this one");
+  assert.equal(reads("ISS-29", "forge resume ISS-30 && echo ISS-29"), false,
+    "the key has to be the issue resume was given, not another word on the line");
+  assert.equal(reads("ISS-29", "echo '; forge resume ISS-29'"), false,
+    "and a separator inside a quoted string is not a command position");
+  assert.equal(reads("ISS-29", "cd /tmp && forge resume ISS-29"), true, "after a separator it is the verb");
+  assert.equal(reads("ISS-29", "/usr/local/bin/forge resume ISS-29"), true, "and a path before it is still it");
+});
+
+/* A mention is not a run, on either form: a line that merely names the verb and the key credited the
+   read, and the write side has always judged command position. One anchor, so the two cannot drift. */
+test("a line that only names the read verb credits nothing, on either form", () => {
+  for (const command of [
+    "echo forge resume ISS-29",
+    `echo 'forge call forge_comments {"issue":"ISS-29"}'`,
+    "grep -rn 'forge resume ISS-29' docs/",
+  ]) {
+    assert.equal(reads("ISS-29", command), false, command);
+  }
+  assert.equal(reads("ISS-29", `forge call forge_comments '{"action":"list","filters":{"issue":"ISS-29"}}'`), true,
+    "while the call itself still counts");
+  assert.equal(reads("ISS-29", `forge call forge_comments '{"filters":{"issue":"ISS-29"}}'`), false,
+    "and a call naming no action is not demonstrably a read, which is how the write side reads it too");
+  /* JSON keeps the last of two keys of one name and a text search finds the first, so a payload
+     saying `action` twice could read as a list and post a comment. It counts as neither. */
+  const twice = `forge call forge_comments '{"action":"list","action":"create","data":{"issue":"ISS-29","body":"x"}}'`;
+  assert.equal(reads("ISS-29", twice), false, "a payload that names the action twice names none");
+  assert.equal(writes(twice), true, "and the write side calls it a write, which is the safe way round");
+  const escaped = `forge call forge_comments '{"action":"list","\\u0061ction":"create","data":{"issue":"ISS-29"}}'`;
+  assert.equal(reads("ISS-29", escaped), false, "and an escaped spelling of the key is the same key to JSON");
+  assert.equal(writes(escaped), true);
+  const mangled = `forge call forge_comments '{"action":"list"`;
+  assert.equal(reads("ISS-29", mangled), false, "a payload nothing can parse says nothing about itself");
+  assert.equal(writesAnIssue({ name: "mcp__forge__forge_comments", input: { action: "list" } }, []), false,
+    "while the tool's own object needs no parsing: the client already resolved its keys");
+  assert.equal(writes("forge resume ISS-29"), false, "and it is not itself a write");
+  assert.deepEqual(unreadKeys([bash("forge resume ISS-29")], bash("forge comment ISS-29 @n.md"), SPOKEN), [],
+    "so a write to the issue it read is allowed");
+  assert.deepEqual(unreadKeys([bash("forge resume ISS-30")], bash("forge comment ISS-29 @n.md"), SPOKEN), ["ISS-29"]);
+});
+
+/* The gate tells a write from a read by the action it names, and then credited any comments call
+   naming the key — a `create`, including one it had itself refused, read nothing. */
+test("a comments call that writes is no read of them, by either route", () => {
+  const posted = { name: "mcp__forge__forge_comments", input: { action: "create", data: { issue: "ISS-29", body: "x" } } };
+  assert.equal(readsComments("ISS-29", posted, SPOKEN), false, "posting a comment is not reading them");
+  assert.equal(reads("ISS-29", `forge call forge_comments '{"action":"create","data":{"issue":"ISS-29"}}'`), false);
+  assert.equal(reads("ISS-29", `forge call forge_comments '{"action":"get","filters":{"issue":"ISS-29"}}'`), true,
+    "while a get is a read, as the write side already reads the same two actions");
 });
 
 test("a listing of a different issue does not satisfy this one", () => {
-  assert.equal(readsComments("ISS-30", LIST), false);
+  assert.equal(readsComments("ISS-30", LIST, SPOKEN), false);
 });
 
 test("every key the command names has to have been read", () => {
   const write = bash("forge comment ISS-29 @n.md # relates to ISS-30");
-  assert.deepEqual(unreadKeys([LIST], write), ["ISS-30"]);
-  assert.deepEqual(unreadKeys([], write), ["ISS-29", "ISS-30"]);
+  assert.deepEqual(unreadKeys([LIST], write, SPOKEN), ["ISS-30"]);
+  assert.deepEqual(unreadKeys([], write, SPOKEN), ["ISS-29", "ISS-30"]);
 });
 
 test("an MCP comments listing satisfies it too", () => {
   const read = { name: "mcp__forge__forge_comments", input: { action: "list", filters: { issue: "ISS-29" } } };
-  assert.deepEqual(unreadKeys([read], bash("forge plan ISS-29 -")), []);
+  assert.deepEqual(unreadKeys([read], bash("forge plan ISS-29 -"), SPOKEN), []);
 });
 
 /* End to end through the hook itself: the pure functions above decide, but the exit code, the

@@ -8,6 +8,7 @@ import { documentIdOf, rowsOf } from "./issues.mjs";
 import { scoped, write } from "./rpc.mjs";
 import { refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { nextLine, renew } from "./lease.mjs";
+import { OPEN_KEPT, patchFrom } from "./worklog.mjs";
 
 export const CONTRACT = 1;
 
@@ -139,6 +140,9 @@ export const USAGE = [
   "  report       the latest record of each kind, the latest verdict per criterion, and what is owed",
   "",
   "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
+  "  --pushed        the branch, head, base and files touched, read from git at this moment",
+  "  --review        the last codex consult, its findings and what it owes, read from the log now",
+  `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
   "",
   "Evidence is an attachment name on the issue, a URL, or a commit of 7 to 40 hex digits.",
 ].join("\n");
@@ -292,15 +296,15 @@ const gather = (kind, argv) => {
   return got;
 };
 
-export const post = async (documentId, body, ref = documentId, next = undefined) => {
+export const post = async (documentId, body, ref = documentId, next = undefined, patch = null) => {
   refuseIfGated("forge_comments");
-  await renew(documentId, ref, next);
+  await renew(documentId, ref, next, patch);
   const answer = await write("forge_comments", { action: "create", data: { issue: documentId, body } });
   console.log(body);
   return answer;
 };
 
-const recordShaped = async (kind, reference, argv, next) => {
+const recordShaped = async (kind, reference, argv, { next, patch }) => {
   const got = gather(kind, argv);
   const { documentId, body } = await issueOf(reference);
   const shape = SHAPES[kind];
@@ -312,7 +316,7 @@ const recordShaped = async (kind, reference, argv, next) => {
     if (!held) refuse(`${reference} has no criterion ${got.criterion}; its field holds ${criteriaCount(body)}.`);
     got.criterion = `${held.number} — ${held.text}`;
   }
-  return post(documentId, render(kind, got, shape.status ? body.status : null), reference, next);
+  return post(documentId, render(kind, got, shape.status ? body.status : null), reference, next, patch);
 };
 
 const criteriaCount = (body) => {
@@ -342,29 +346,29 @@ export const noteFrom = (argv) => {
 };
 
 /* The read-back is owed here for the reason it is owed on `plan`, stated once beside that verb. */
-const updateField = async (documentId, field, value, same, ref, next) => {
-  await renew(documentId, ref, next);
+const updateField = async (documentId, field, value, same, ref, next, patch) => {
+  await renew(documentId, ref, next, patch);
   await write("forge_issues", { action: "update", documentId, data: { [field]: value } });
   const back = await scoped("forge_issues", { action: "get", documentId, fields: [field] });
   if (!same(back?.[field])) refuse(`The update answered success but ${field} did not read back as written. Nothing to rely on.`);
 };
 
-const recordNote = async (reference, argv, next) => {
+const recordNote = async (reference, argv, { next, patch }) => {
   const releaseNotes = noteFrom(argv);
   const { documentId } = await issueOf(reference);
   const same = (held) => ["section", "userFacing", "technical"].every((key) => (held?.[key] ?? null) === releaseNotes[key]);
-  await updateField(documentId, "releaseNotes", releaseNotes, same, reference, next);
+  await updateField(documentId, "releaseNotes", releaseNotes, same, reference, next, patch);
   console.log(JSON.stringify(releaseNotes, null, 2));
 };
 
-const recordCriteria = async (reference, [path, ...extra], next) => {
+const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
   if (!path) refuse("record criteria takes the file holding the numbered lines, or - for stdin.");
   if (extra.length) refuse(`record criteria takes one file and nothing after it, not \`${extra.join(" ")}\`.`);
   const criteria = criteriaLines(bodyFrom(path));
   const joined = joinedCriteria(criteria, conjunctionsFor());
   const { documentId } = await issueOf(reference);
   const acceptanceCriteria = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");
-  await updateField(documentId, "acceptanceCriteria", acceptanceCriteria, (held) => unwrap(held) === acceptanceCriteria, reference, next);
+  await updateField(documentId, "acceptanceCriteria", acceptanceCriteria, (held) => unwrap(held) === acceptanceCriteria, reference, next, patch);
   for (const number of joined) {
     console.error(`criterion ${number} holds a conjunction: is it two? A verdict judges one outcome.`);
   }
@@ -388,28 +392,50 @@ const recordReport = async (reference) => {
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
 };
 
-/* Pulled before the kind is dispatched, so no shape gains a field: the line is about the run and
-   not about the payload, and `criteria` takes a bare path where a shape takes flags. */
-const pullNext = (argv) => {
-  const at = argv.indexOf("--next");
-  if (at < 0) return { next: undefined, rest: argv };
+const pullOne = (argv, flag) => {
+  const at = argv.indexOf(flag);
+  if (at < 0) return { value: undefined, rest: argv };
   const value = argv[at + 1];
-  if (value === undefined || value.startsWith("--")) refuse("record: --next was given no value.");
-  return { next: nextLine(value), rest: [...argv.slice(0, at), ...argv.slice(at + 2)] };
+  if (value === undefined || value.startsWith("--")) refuse(`record: ${flag} was given no value.`);
+  return { value, rest: [...argv.slice(0, at), ...argv.slice(at + 2)] };
+};
+
+/* Pulled before the kind is dispatched, so no shape gains a field: these say what the run is doing
+   and not what the payload holds, and `criteria` takes a bare path where a shape takes flags. */
+const pullRun = (argv) => {
+  const lines = pullRepeated(argv, "--open", "record");
+  const line = pullOne(lines.rest, "--next");
+  let rest = line.rest;
+  const took = {};
+  for (const flag of ["--pushed", "--review"]) {
+    took[flag.slice(2)] = rest.includes(flag);
+    rest = rest.filter((one) => one !== flag);
+  }
+  return {
+    next: nextLine(line.value),
+    patch: patchFrom({ ...took, open: lines.values }),
+    /* Asked for, not produced: a capture that found nothing to write would otherwise let a
+       read-only kind through the refusal below on the strength of an empty log. */
+    asked: line.value !== undefined || lines.values.length || Object.values(took).some(Boolean),
+    rest,
+  };
 };
 
 const run = async ([kind, reference, ...argv]) => {
   if (!kind || kind === "-h" || kind === "--help") return console.log(USAGE);
   if (!KINDS.includes(kind)) refuse(`record knows no kind \`${kind}\`. Kinds: ${KINDS.join(", ")}.`);
   if (!reference) refuse(USAGE.split("\n")[0]);
-  const { next, rest } = pullNext(argv);
-  if (kind === "note") return recordNote(reference, rest, next);
-  if (kind === "criteria") return recordCriteria(reference, rest, next);
+  const { next, patch, asked, rest } = pullRun(argv);
+  const run = { next, patch };
+  if (kind === "note") return recordNote(reference, rest, run);
+  if (kind === "criteria") return recordCriteria(reference, rest, run);
   if (kind === "report") {
-    if (next !== undefined) refuse("record report writes nothing, so it renews no lease and carries no --next.");
+    if (asked) {
+      refuse("record report writes nothing, so it renews no lease and carries no --next, --pushed, --review or --open.");
+    }
     return recordReport(reference);
   }
-  return recordShaped(kind, reference, rest, next);
+  return recordShaped(kind, reference, rest, run);
 };
 
 export const record = async (argv) => {

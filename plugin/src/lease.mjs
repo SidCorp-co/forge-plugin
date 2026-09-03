@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { configDir, readJson, writeJsonPrivate } from "./resolve/config.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { scoped, write } from "./rpc.mjs";
+import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
 export const FIELD = "sessionContext";
 export const KEY = "lease";
@@ -38,11 +39,13 @@ export const nextLine = (given, flag = "--next") => {
 
 const sessionPath = () => join(configDir("forge"), "session.json");
 
+/* Read without minting: a reader asking whose lease this is must not write a file to find out. */
+export const sessionHeld = () =>
+  process.env.FORGE_SESSION_ID || process.env.CLAUDE_CODE_SESSION_ID || readJson(sessionPath())?.session || null;
+
 /* The file names a machine, where two runs look like one holder and neither is refused. */
 export const sessionOf = () => {
-  const given = process.env.FORGE_SESSION_ID || process.env.CLAUDE_CODE_SESSION_ID;
-  if (given) return given;
-  const held = readJson(sessionPath())?.session;
+  const held = sessionHeld();
   if (held) return held;
   const minted = `machine-${randomUUID()}`;
   try {
@@ -116,13 +119,14 @@ export const parkAnswers = (lease, status, parkedAt) =>
 
 /* Read, not passed: a caller that could supply the writer's own identity could supply a false one.
    Silence about `next` means unchanged, or a claim would drop the note the dead run left. */
-export const claimed = (context, { holder, at, minutes, next, how = null, status = null }) => {
+export const claimed = (context, { holder, at, minutes, next, worklog, how = null, status = null }) => {
   const held = leaseOf(context);
   const history = [...(held?.history ?? [])];
   /* The outgoing line, not the incoming one: what a crash loop is asked is where each attempt died. */
   if (how) history.push({ holder, at, how, status, next: held?.next ?? null });
   return {
     ...(context && typeof context === "object" ? context : {}),
+    ...(worklog ? { [WORKLOG]: worklog } : {}),
     [KEY]: {
       holder,
       agent: agentOf(),
@@ -198,7 +202,7 @@ export const notAnothers = async (documentId, ref) => {
 };
 
 /* Every payload write renews the lease; a write by anyone else is refused, and a read needs none. */
-export const renew = async (documentId, ref, next = undefined) => {
+export const renew = async (documentId, ref, next = undefined, patch = null) => {
   const holder = sessionOf();
   const context = await readContext(documentId);
   const lease = leaseOf(context);
@@ -206,7 +210,13 @@ export const renew = async (documentId, ref, next = undefined) => {
   if (state !== "mine") fail(writeRefusal(state, ref, lease));
   return setLease(
     documentId,
-    claimed(context, { holder, at: new Date().toISOString(), minutes: lease.minutes, next }),
+    claimed(context, {
+      holder,
+      at: new Date().toISOString(),
+      minutes: lease.minutes,
+      next,
+      worklog: worklogFor(context, patch),
+    }),
     ref,
   );
 };

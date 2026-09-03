@@ -1,12 +1,13 @@
 /* The pick: the lease a run takes before it writes anything, the reclaim of one a dead run left
    behind, and the park a status that keeps crashing earns. docs/FORGE-CLI.md. */
-import { flags } from "./resolve/flags.mjs";
+import { flags, pullRepeated } from "./resolve/flags.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { usageOf } from "./resolve/visibility.mjs";
 import { documentIdOf } from "./issues.mjs";
 import { scoped } from "./rpc.mjs";
 import { commentPage, parse } from "./record.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
+import { OPEN_KEPT, patchFrom, worklogFor } from "./worklog.mjs";
 import {
   ADVISORY,
   MINUTES,
@@ -36,6 +37,12 @@ export const USAGE = [
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
   "  --next <line>   one line, the step whoever comes next starts on; a transition clears it",
+  "  --pushed        the branch, head, base and files touched, read from git at this moment",
+  "  --review        the last codex consult, its findings and what it owes, read from the log now",
+  `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
+  "",
+  "Those three write the worklog beside the lease, which is what `forge resume` reads first. Neither",
+  "capture is automatic: a write made from another checkout would name that one as this issue's.",
   "",
   "The lease names the agent type and the process id beside the session, so a refusal says what",
   "held the issue and not only which uuid. A claim that takes over prints the line the last holder",
@@ -115,13 +122,15 @@ export const claim = async (argv) => {
   if (!argv.length || argv[0] === "-h" || argv[0] === "--help") return console.log(USAGE);
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
-  const given = flags(rest, "claim");
-  const takes = ["minutes", "next"];
+  const pulled = pullRepeated(rest, "--open", "claim");
+  const given = flags(pulled.rest, "claim", ["--pushed", "--review"]);
+  const takes = ["minutes", "next", "pushed", "review"];
   for (const one of Object.keys(given)) {
-    if (!takes.includes(one)) fail(`claim takes no --${one}. Flags: ${takes.map((two) => `--${two}`).join(" ")}`);
+    if (!takes.includes(one)) fail(`claim takes no --${one}. Flags: ${takes.map((two) => `--${two}`).join(" ")} --open`);
   }
   const asked = minutesFrom(given.minutes);
   const line = nextLine(given.next);
+  const patch = patchFrom({ pushed: given.pushed, review: given.review, open: pulled.values });
   const documentId = await documentIdOf(ref);
   const issue = await scoped("forge_issues", { action: "get", documentId });
   const context = issue?.sessionContext ?? null;
@@ -132,7 +141,9 @@ export const claim = async (argv) => {
   const left = lease?.next ?? null;
   const how = { free: "claim", expired: "reclaim", mine: null, lapsed: null }[state];
   const minutes = asked ?? (lease && lease.holder === holder ? lease.minutes : MINUTES);
-  const next = claimed(context, { holder, at: new Date().toISOString(), minutes, next: line, how, status: issue.status });
+  const next = claimed(context, {
+    holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,
+  });
   await setLease(documentId, next, ref);
   const taken = leaseOf(next);
   console.log(`${ref}  ${how ?? "renewed"}: ${describe(taken)}`);

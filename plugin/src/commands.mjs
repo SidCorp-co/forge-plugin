@@ -23,6 +23,7 @@ import { record } from "./record.mjs";
 import { advance } from "./advance.mjs";
 import { spec } from "./spec.mjs";
 import { claim } from "./claim.mjs";
+import { resume } from "./resume.mjs";
 import { notAnothers, renew } from "./lease.mjs";
 
 /* One rule for every payload: inline, `@path`, or `-` for stdin. */
@@ -134,6 +135,7 @@ const suggestTool = async (name) =>
 export const commands = {
   doctor,
   claim,
+  resume,
   record,
   advance,
   spec,

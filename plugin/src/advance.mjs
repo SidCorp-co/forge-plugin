@@ -112,7 +112,7 @@ const park = async (view, ref, kind, why, evidence) => {
   await parkAs(view, ref, kind, why, evidence);
 };
 
-const shortfall = (ref, view, next, missing) => {
+export const shortfall = (ref, view, next, missing) => {
   console.log(`${ref} is ${view.issue.status}; ${next} is next and the record does not earn it.`);
   for (const one of missing) console.log(`\n  ${one.what}\n    ${one.command}`);
 };
