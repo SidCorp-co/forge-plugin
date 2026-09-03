@@ -61,6 +61,18 @@ test("an override naming no guide is marked unknown", () => {
   ]);
 });
 
+/* The measure's premise is that the guide is the authority, which a rule this plugin's contract has
+   replaced is not: scoring it would send a developer to defer to the rule the CLI stopped serving.
+   The override half keeps the whole list, so a waiver naming one still waives what it names. */
+test("a guide the plugin supersedes is scored against nothing, and is still a known override", () => {
+  const superseded = new Set(["deploy-safety"]);
+  assert.deepEqual(reviewClaudeMd(RESTATES, GUIDES, { superseded }).overlaps, []);
+  const declared = "- A rule of our own. overrides: deploy-safety — staging has no page to open.\n";
+  assert.deepEqual(reviewClaudeMd(declared, GUIDES, { superseded }).overrides, [
+    { line: 1, slug: "deploy-safety", reason: "staging has no page to open.", known: true },
+  ]);
+});
+
 test("a marker with no reason is not a marker", () => {
   assert.deepEqual(overrideMarkers("- A rule. overrides: deploy-safety\n"), []);
   assert.deepEqual(overrideMarkers("- A rule. overrides: deploy-safety —\n"), []);

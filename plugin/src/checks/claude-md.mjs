@@ -1,5 +1,5 @@
-/* The CLAUDE.md half of `forge doctor`: the guides are the authority and a project file that
-   restates one has forked it. Why a pair is reported and never classified: docs/FORGE-CLI.md. */
+/* The CLAUDE.md half of `forge doctor`: a guide this plugin stands behind is the authority and a
+   project file restating one has forked it. Which, and why a pair is unclassified: docs/FORGE-CLI.md. */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
@@ -90,14 +90,21 @@ export function misScoped(guides) {
   return found;
 }
 
-const guideUnits = (guides) =>
-  guides.flatMap((guide) =>
-    statements(String(guide.body ?? "")).map(([, sentence]) => [guide.slug, sentence]),
-  );
+/* A superseded guide is no authority, so its sentences are scored against nothing. */
+const guideUnits = (guides, superseded) =>
+  guides
+    .filter((guide) => !superseded.has(guide.slug))
+    .flatMap((guide) =>
+      statements(String(guide.body ?? "")).map(([, sentence]) => [guide.slug, sentence]),
+    );
 
 /** Pure over its inputs: `guides` is data, so nothing here reaches the network. */
 export function reviewClaudeMd(text, guides, options = {}) {
-  const { threshold = GUIDE_OVERLAP_THRESHOLD, floor = GUIDE_OVERLAP_FLOOR } = options;
+  const {
+    threshold = GUIDE_OVERLAP_THRESHOLD,
+    floor = GUIDE_OVERLAP_FLOOR,
+    superseded = new Set(),
+  } = options;
   const known = new Set(guides.map((guide) => guide.slug));
   const markers = overrideMarkers(text);
   const claimed = (span, slug) =>
@@ -107,7 +114,7 @@ export function reviewClaudeMd(text, guides, options = {}) {
   const seen = new Set();
   for (const [score, [span, ours], [slug, theirs]] of findOverlapsAgainst(
     statements(text),
-    guideUnits(guides),
+    guideUnits(guides, superseded),
     { threshold, floor },
   )) {
     const key = `${slug}\0${theirs}\0${span.start}\0${ours}`;

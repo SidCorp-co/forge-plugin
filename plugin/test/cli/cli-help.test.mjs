@@ -87,3 +87,14 @@ test("both help forms name the checkout's feedback folder by absolute path", () 
     assert.ok(run.stdout.includes(`${folder}/`), `forge ${argv.join(" ")} does not name ${folder}`);
   }
 });
+
+/* It paraphrased the tracker's `agent-setup`, five of whose rules the contract has replaced. */
+test("the preamble carries this CLI's rules and not the runner's", () => {
+  const full = ask("-h", "--full").stdout;
+  for (const runner of ["forge_memory", "clarify", "draft"]) {
+    assert.ok(!full.includes(runner), `the runner's ${runner} is still in the preamble: ${full}`);
+  }
+  assert.match(full, /`forge new` refuses/u, "what a filing is refused without");
+  assert.match(full, /A status is earned, not set/u, "and that a status is earned");
+  assert.match(full, /`forge plan` and\n\s+`forge record criteria`/u, "by the agent, through these");
+});

@@ -18,7 +18,7 @@ export const VERBS = [
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context", "forge_uploads"],
   ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues"],
   ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm"],
-  ["guide", "[slug]", "the tracker's own guides", "forge_guide"],
+  ["guide", "[slug] [--tracker]", "the tracker's guides, less the rules this plugin's contract replaces", "forge_guide"],
   ["project", "", "the resolved project id", "forge_projects.list"],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials"],
   ["codex", "<consult|verdict|pending|show|log>", "a second model reviews what this turn changed"],

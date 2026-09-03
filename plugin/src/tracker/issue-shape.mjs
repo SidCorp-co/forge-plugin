@@ -112,8 +112,8 @@ const CARRIER = new Set("a an the to for of in on at and or it its this that".sp
 
 const need = (read, wants, clear) => ({ read, wants, clear });
 /* The shape is the tracker's own tool description: a description is a requirements contract. Its
-   writing-an-issue guide states an older six-block form and is not the source (ISS-66), so no line
-   below sends a reader to a guide — what to add is the way out. */
+   writing-an-issue guide states an older six-block form, which `forge guide` no longer serves, so
+   no line below sends a reader to a guide — what to add is the way out. */
 const RESEND = "and re-send the same command";
 const RETITLE = '--title "<what is true after the change>"';
 

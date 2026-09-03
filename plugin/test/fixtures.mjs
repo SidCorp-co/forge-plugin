@@ -108,7 +108,14 @@ export const fakeTracker = async (state) => {
     (state.calls ??= []).push({ name, args });
     let result = { tools: DECLARED.map((one) => ({ name: one, inputSchema: { properties: {} } })) };
     const own = (state.answer ?? {})[name];
-    if (own) result = { structuredContent: own(args) };
+    /* A handler answering `{ refused }` is the tool's own refusal, which the transport reads from
+       `isError` and no structured content: the shape a verb's way out is reached by. */
+    if (own) {
+      const answered = own(args);
+      result = answered?.refused
+        ? { isError: true, content: [{ type: "text", text: answered.refused }] }
+        : { structuredContent: answered };
+    }
     else if (name === "forge_issues") result = { structuredContent: issues(args) };
     else if (name === "forge_comments") result = { structuredContent: comments(args) };
     else if (name) result = { structuredContent: {} };

@@ -38,6 +38,38 @@ tokenizing worse than the character it stands for.
 Nothing here keeps its own copy of names the server already publishes — a local list goes stale
 against the thing it describes, silently, and reports the server's newest feature as a typo.
 
+## The guides are the tracker's, and five of them are not this flow's
+
+Read guide by guide on 2026-09-03, five of the twelve the tracker serves state a rule this plugin's
+contract has replaced, and `pipeline-and-issue-lifecycle` disagrees with itself inside one page: use
+`dropped` for anything discarded, and three paragraphs later, the recommended discard for non-work is
+`closed` plus `unmark`. None of it is the tracker's fault — those pages describe the pipeline runner
+it ships. The cost is what a passthrough did to agents in another project the same week: one wrote a
+body to `writing-an-issue`'s six blocks and the filing lint refused it heading by heading, and the
+same agent paid four calls taking non-work down the `closed`-plus-`unmark` route. An agent reads the
+guides on its first call of a run, and two contracts at that moment cost a round every time.
+
+So the verb reads them through a disposition of its own, one row per guide in
+`plugin/src/tracker/guides.mjs`: a slug, why, the rules replaced in the guide's own words beside
+what holds instead, and where to go — a verb this CLI has, or a document in this checkout. It is
+code and not a project setting because it is this plugin's reading of the tracker, and a
+contradiction is not a thing a project can rightly turn back on.
+
+What is decidable by code is the slug and nothing more. `forge doctor` reports a row the tracker has
+stopped serving, and notes a guide it has started serving that no row has been read against; whether
+that new guide contradicts the contract is meaning, and the one mechanical signal available — the
+overlap measure below — is blind to negation, so a restatement and a contradiction score alike. The
+list of twelve beside the table is not a copy of names the server publishes in the sense the rule
+above forbids: nothing answers a guide from it, its whole purpose is to differ from the live list
+when the tracker moves, and a row this record lacks fails the suite, so the change that notices a
+retirement is the change that drops the row.
+
+The overlap measure has the same premise the verb just abandoned — the guide is the authority, the
+project's own file the copy — so it no longer scores a superseded guide. It would otherwise ask a
+developer to delete their line and defer to the rule the CLI stopped serving. An `overrides:` marker
+still resolves against all twelve: a waiver names a guide, and which of them this plugin stands
+behind is not the waiver's business.
+
 ## `new` — the shape is read before the tracker sees the body
 
 What the flow charges per issue barely moves with the work: ten payloads and eight transitions

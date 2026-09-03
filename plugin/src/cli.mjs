@@ -18,20 +18,25 @@ const VERB_LIST = [
   ...offered.map(helpLine),
 ].join("\n");
 
-/* The tracker's write-time rules, carried rather than fetched: ten lines nobody asked for. */
+/* The write-time rules this CLI itself refuses without, carried rather than fetched: ten lines
+   nobody asked for. They were the tracker's runner's until ISS-66 — src/tracker/guides.mjs. */
 const PREAMBLE = [
   "",
   "Before you write:",
-  "  Recall first. Project memory is not loaded for you — forge_memory.search is a call you make,",
-  "    and every hit is point-in-time: verify it against live code before relying on it.",
-  "  `open` dispatches the issue for work; `draft` never does. A note or a decision is not an issue",
-  "    at all — write it to memory. Nobody browses the issue list for notes.",
-  "  A description is a requirements contract — outcome, business rules, invariants, out-of-scope.",
-  "    Not an implementation script naming files: those claims go stale and outrank live reading.",
-  "  Do not pre-fill `plan` or `acceptanceCriteria`; the clarify and plan steps write them.",
+  "  A description is a requirements contract — an outcome, a rule or an invariant, an out-of-scope,",
+  "    read by heading. `forge new` refuses a body missing any of them, and a title saying only what",
+  "    was done to a file; `forge hooks --how issue-shape` has the three routes a small change takes.",
+  "  A status is earned, not set. Each costs the payload the contract names, `forge advance --owed`",
+  "    says which, and a jump is refused. Take the lease before the first write — `forge claim`.",
+  "  You write the plan and the criteria yourself, at `approved`, through `forge plan` and",
+  "    `forge record criteria`. Nothing here dispatches an issue or fills a field on your behalf.",
+  "  Nothing landing is `dropped`. `closed` stamps the merged mark and releases every issue blocked",
+  "    on this one, so it is what code that landed earns and nothing else.",
   "  Ordering needs a `blocks` edge. Prose gates nothing — `forge deps` reads prose, not edges.",
   "  Attach a file rather than pasting it; nested config is replace-not-merge, so read before you",
   "    patch `pipelineConfig` or `projectFacts`.",
+  "  The tracker's guides belong to the runner it ships, and this contract replaces five of them:",
+  "    `forge guide` lists what stands, and a superseded slug answers with what replaced it.",
 ].join("\n");
 
 const MORE = "\nWhat to type for one verb: `forge <verb> -h`, with the schema behind the tracker"

@@ -17,7 +17,15 @@ import { refusalForFiling, withMark } from "./tracker/issue-shape.mjs";
 import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { flags } from "./resolve/flags.mjs";
+import { flags, partition } from "./resolve/flags.mjs";
+import {
+  caveatLine,
+  dispositionOf,
+  replacementLine,
+  trackerHeader,
+  visibleGuides,
+  withheldLine,
+} from "./tracker/guides.mjs";
 import { doctor } from "./tools/doctor.mjs";
 import { deps } from "./tracker/deps.mjs";
 import { cloudflare } from "./tools/cloudflare.mjs";
@@ -296,18 +304,38 @@ export const commands = {
     await renew(toIssueId, to);
     show(await write("forge_project_pm", { action: "set_dependency", fromIssueId, toIssueId, kind }));
   },
-  /* Ask for the guide; reach for the list only when the slug was wrong. */
-  guide: async ([slug]) => {
+  /* Read through this plugin's disposition of them, which tracker/guides.mjs holds and explains. A
+     superseded slug costs no call: the table answers it, and only --tracker fetches the body. */
+  guide: async (argv) => {
+    const { positionals, flagArgv } = partition(argv, ["--tracker"]);
+    const asked = flags(flagArgv, "guide", ["--tracker"]);
+    for (const key of Object.keys(asked)) {
+      if (key !== "tracker") fail(`guide: no --${key} flag. ${usageOf("guide")}`);
+    }
+    const [slug, ...extra] = positionals;
+    if (extra.length) fail(`guide: one slug, not \`${positionals.join(" ")}\`. ${usageOf("guide")}`);
+    if (!slug && asked.tracker) fail(`guide: --tracker is one guide's own text; name it. ${usageOf("guide")}`);
     if (!slug) {
-      const listed = await scoped("forge_guide", { action: "list" });
-      for (const guide of rowsOf(listed, "guides")) console.log(`${guide.slug}\n  ${guide.summary}`);
+      const rows = rowsOf(await scoped("forge_guide", { action: "list" }), "guides");
+      const shown = new Set(visibleGuides(rows.map((one) => one.slug)));
+      for (const guide of rows) {
+        if (shown.has(guide.slug)) console.log(`${guide.slug}\n  ${guide.summary}`);
+      }
+      if (rows.length > shown.size) console.log(withheldLine(rows.length - shown.size));
+      return;
+    }
+    const row = dispositionOf(slug);
+    if (row?.disposition === "superseded" && !asked.tracker) {
+      console.log(replacementLine(row));
       return;
     }
     const answer = await scoped("forge_guide", { action: "get", slug }, true);
     if (answer?.refused) {
-      const listed = await scoped("forge_guide", { action: "list" });
-      fail(didYouMean("guide", slug, rowsOf(listed, "guides").map((one) => one.slug)));
+      const rows = rowsOf(await scoped("forge_guide", { action: "list" }), "guides");
+      fail(didYouMean("guide", slug, visibleGuides(rows.map((one) => one.slug))));
     }
+    const header = asked.tracker ? trackerHeader(row) : (row ? [caveatLine(row)] : []);
+    if (header.length) console.log(`${header.join("\n")}\n`);
     /* Markdown, not Markdown escaped inside JSON: every `\n` tokenizes worse than the character. */
     show(answer?.guide?.body ?? answer);
   },

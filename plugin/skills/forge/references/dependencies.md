@@ -20,6 +20,5 @@ reports how many issues carry no such prose, because that is silence and not an 
 dependencies. The sentence it looks for defaults to English and is configurable per tracker with
 `deps: { marker, blockedBy, blocks }` in `.forge.json`.
 
-Forge's own `agent-setup` guide names **`prose-deps`** as a red flag: *only the edge gates dispatch;
-prose gates nothing.* Treat `forge deps` as a reading of what the bodies claim, never as dispatch
-truth.
+**Only the edge gates dispatch**, which `forge -h --full` carries as a rule of its own. Treat
+`forge deps` as a reading of what the bodies claim, never as dispatch truth.

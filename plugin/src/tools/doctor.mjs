@@ -24,6 +24,7 @@ import { LOG_PATH, consults, logEntries } from "../codex/codex-log.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
+import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../tracker/guides.mjs";
 
 const VI_CONFIG = join(configDir("vi-natural"), "config.json");
 
@@ -116,7 +117,7 @@ const checkCodex = () => {
 
 /* Declared is not callable — all 67 are declared to a PAT and six then refuse. Probed, read-only. */
 const CAPABILITIES = [
-  ["guides", "forge_guide", { action: "list" }, "the lifecycle rules an agent works from"],
+  ["guides", "forge_guide", { action: "list" }, "the tracker's own lifecycle rules"],
   ["dependency graph", "forge_project_pm", { action: "graph" }, "blocks/relates edges"],
   ["knowledge", "forge_knowledge", { action: "list" }, "codebase context"],
   ["memory", "forge_memory.search", { query: "forge", topK: 1 }, "recall across sessions"],
@@ -301,11 +302,34 @@ const checkClaudeMdLocally = () => {
   return broken;
 };
 
+/* Whether an unknown guide contradicts the contract is a read and not a check: contradiction is
+   meaning, and the one mechanical signal here is the slug. So a retired row is a finding and a
+   guide the table has never seen is a note saying so. The replacements the rows name are checked by
+   the suite instead, where this repository's own documents are on disk to resolve against. */
+const reportGuideTable = (served) => {
+  const { retired, unreviewed } = reviewGuideTable({ served });
+  for (const slug of retired) {
+    line(BAD, "guide table", `${slug} has a row in src/tracker/guides.mjs and the tracker no longer`
+      + " serves it — drop the row, in the change that notices");
+  }
+  for (const slug of unreviewed) {
+    line(NOTE, "guide table", `${slug} is new since ${REVIEWED_AT}: whether it contradicts the`
+      + " contract is a read nobody has made");
+  }
+  if (!retired.length) {
+    line(OK, "guide table", `${GUIDE_TABLE.length} disposition(s), every slug still served`);
+  }
+  return retired.length;
+};
+
 /* The guide half, which needs the server. */
 const checkAgainstGuides = async (scoped) => {
+  const guides = await guideBodies(scoped);
+  const broken = reportGuideTable(guides.map((guide) => guide.slug));
   const found = readClaudeMd(projectRoot());
-  if (!found) return 0;
-  return reportClaudeMd(reviewClaudeMd(found.text, await guideBodies(scoped)), found.path);
+  if (!found) return broken;
+  const review = reviewClaudeMd(found.text, guides, { superseded: supersededSlugs() });
+  return broken + reportClaudeMd(review, found.path);
 };
 
 /* Lazy: the transport exits the process when credentials have not resolved. */
