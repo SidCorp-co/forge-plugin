@@ -1,12 +1,21 @@
 /* How Claude Code calls a gate. Unwrapping the answer stays each suite's: `deny()` and `block()` do
    not answer alike, and the git rules need a tree with work to lose. */
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 export const callHook = (hook, event, env = process.env) =>
   spawnSync(process.execPath, [hook], { input: JSON.stringify(event), encoding: "utf8", env });
+
+/* The suite has left thousands of these behind (ISS-42) and filled the mount a shell needed. The
+   removal is registered here, where no caller can forget it, and handed back so a case proves it. */
+export const tempHome = (name) => {
+  const path = mkdtempSync(join(tmpdir(), `${name}-home-`));
+  const remove = () => rmSync(path, { recursive: true, force: true });
+  process.on("exit", remove);
+  return { path, remove };
+};
 
 export const homeEnv = (name) => ({
   ...process.env,

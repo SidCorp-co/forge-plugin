@@ -103,6 +103,28 @@ costs three calls for the lease — the read, the write, the read back — and e
 because a park is three writes and an upload of four files is four: a run reclaimed halfway through
 has to be refused at the next of them rather than carried to the end.
 
+Two facts beside the lease itself. **The holder names the kind of agent and the process id
+beside the session**, because a uuid places nobody: when ISS-26's shell died, whoever had to decide
+between waiting for that run and taking the issue off it could read only a uuid, and could not tell
+what had held it or whether it still ran. Every refusal that names a holder names all three. Both
+come from the environment, since no file can name a run, and both read `unknown` where the harness
+set neither — a lease written before they existed is still a lease.
+
+**And the lease carries one line naming the step whoever comes next starts on.** `--next` sets it on
+the claim, on `forge advance` and on any `forge record` that writes; every renew keeps it, because a
+payload write is not a new step; and the transition it precedes clears it, because that step is over.
+A claim that takes an issue over prints it, `forge advance --owed` prints it above the shortfall,
+and the claim history keeps the line that was current at each reclaim, so a crash loop shows where each attempt
+died rather than only that it did. Nothing checks the sentence — it earns no status and it is the
+run's note to its successor, not a payload. It is written by the renew that precedes the write it
+belongs to, which is the same call that refuses a stale holder, so a write that then fails can leave
+the line describing a step that never started; that costs a sentence and never a fact, because what
+earns anything is the record, and a second lease write to close the gap would cost three more calls
+on every payload and leave a gap of its own between the two. The measurement that asked for it: the sixth dry run's
+agent died mid-consult, and the one fact its record could not hold was which codex round it was in,
+so the round was run again to find out. The verbs that write something other than a payload — a
+comment, the plan field, an upload, a dependency edge — renew the lease and leave the line alone.
+
 ## `spec` — a clause answered by its identifier, and the storage known once
 
 One file per requirement, one per section of business intent, and an agent implementing a clause

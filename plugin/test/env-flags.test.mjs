@@ -9,8 +9,10 @@ import test from "node:test";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /* Decided, not derived: where config lives, what the platform passes in, a kill switch for when
-   config is what broke, and the session's own identity — no file names a run. */
+   config broke, and a run's identity — no file names a run, its kind or its pid (ISS-4, ISS-22). */
 const ALLOWED = new Set([
+  "AI_AGENT",
+  "CLAUDE_PID",
   "XDG_CONFIG_HOME",
   "CLAUDE_PROXY_ENV",
   "CLAUDE_PLUGIN_ROOT",

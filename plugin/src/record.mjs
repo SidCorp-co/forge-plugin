@@ -7,7 +7,7 @@ import { pullRepeated, flags } from "./resolve/flags.mjs";
 import { documentIdOf, rowsOf } from "./issues.mjs";
 import { scoped, write } from "./rpc.mjs";
 import { refuseIfGated, usageOf } from "./resolve/visibility.mjs";
-import { renew } from "./lease.mjs";
+import { nextLine, renew } from "./lease.mjs";
 
 export const CONTRACT = 1;
 
@@ -137,6 +137,8 @@ export const USAGE = [
   "  note         --section S --user T [--technical T] | --skip --why W   S: " + SECTIONS.join("|"),
   "  criteria     <file.md|@file|->   numbered lines, one criterion each",
   "  report       the latest record of each kind, the latest verdict per criterion, and what is owed",
+  "",
+  "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
   "",
   "Evidence is an attachment name on the issue, a URL, or a commit of 7 to 40 hex digits.",
 ].join("\n");
@@ -290,15 +292,15 @@ const gather = (kind, argv) => {
   return got;
 };
 
-export const post = async (documentId, body, ref = documentId) => {
+export const post = async (documentId, body, ref = documentId, next = undefined) => {
   refuseIfGated("forge_comments");
-  await renew(documentId, ref);
+  await renew(documentId, ref, next);
   const answer = await write("forge_comments", { action: "create", data: { issue: documentId, body } });
   console.log(body);
   return answer;
 };
 
-const recordShaped = async (kind, reference, argv) => {
+const recordShaped = async (kind, reference, argv, next) => {
   const got = gather(kind, argv);
   const { documentId, body } = await issueOf(reference);
   const shape = SHAPES[kind];
@@ -310,7 +312,7 @@ const recordShaped = async (kind, reference, argv) => {
     if (!held) refuse(`${reference} has no criterion ${got.criterion}; its field holds ${criteriaCount(body)}.`);
     got.criterion = `${held.number} — ${held.text}`;
   }
-  return post(documentId, render(kind, got, shape.status ? body.status : null), reference);
+  return post(documentId, render(kind, got, shape.status ? body.status : null), reference, next);
 };
 
 const criteriaCount = (body) => {
@@ -340,29 +342,29 @@ export const noteFrom = (argv) => {
 };
 
 /* The read-back is owed here for the reason it is owed on `plan`, stated once beside that verb. */
-const updateField = async (documentId, field, value, same, ref) => {
-  await renew(documentId, ref);
+const updateField = async (documentId, field, value, same, ref, next) => {
+  await renew(documentId, ref, next);
   await write("forge_issues", { action: "update", documentId, data: { [field]: value } });
   const back = await scoped("forge_issues", { action: "get", documentId, fields: [field] });
   if (!same(back?.[field])) refuse(`The update answered success but ${field} did not read back as written. Nothing to rely on.`);
 };
 
-const recordNote = async (reference, argv) => {
+const recordNote = async (reference, argv, next) => {
   const releaseNotes = noteFrom(argv);
   const { documentId } = await issueOf(reference);
   const same = (held) => ["section", "userFacing", "technical"].every((key) => (held?.[key] ?? null) === releaseNotes[key]);
-  await updateField(documentId, "releaseNotes", releaseNotes, same, reference);
+  await updateField(documentId, "releaseNotes", releaseNotes, same, reference, next);
   console.log(JSON.stringify(releaseNotes, null, 2));
 };
 
-const recordCriteria = async (reference, [path, ...extra]) => {
+const recordCriteria = async (reference, [path, ...extra], next) => {
   if (!path) refuse("record criteria takes the file holding the numbered lines, or - for stdin.");
   if (extra.length) refuse(`record criteria takes one file and nothing after it, not \`${extra.join(" ")}\`.`);
   const criteria = criteriaLines(bodyFrom(path));
   const joined = joinedCriteria(criteria, conjunctionsFor());
   const { documentId } = await issueOf(reference);
   const acceptanceCriteria = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");
-  await updateField(documentId, "acceptanceCriteria", acceptanceCriteria, (held) => unwrap(held) === acceptanceCriteria, reference);
+  await updateField(documentId, "acceptanceCriteria", acceptanceCriteria, (held) => unwrap(held) === acceptanceCriteria, reference, next);
   for (const number of joined) {
     console.error(`criterion ${number} holds a conjunction: is it two? A verdict judges one outcome.`);
   }
@@ -386,14 +388,28 @@ const recordReport = async (reference) => {
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
 };
 
-const run = async ([kind, reference, ...rest]) => {
+/* Pulled before the kind is dispatched, so no shape gains a field: the line is about the run and
+   not about the payload, and `criteria` takes a bare path where a shape takes flags. */
+const pullNext = (argv) => {
+  const at = argv.indexOf("--next");
+  if (at < 0) return { next: undefined, rest: argv };
+  const value = argv[at + 1];
+  if (value === undefined || value.startsWith("--")) refuse("record: --next was given no value.");
+  return { next: nextLine(value), rest: [...argv.slice(0, at), ...argv.slice(at + 2)] };
+};
+
+const run = async ([kind, reference, ...argv]) => {
   if (!kind || kind === "-h" || kind === "--help") return console.log(USAGE);
   if (!KINDS.includes(kind)) refuse(`record knows no kind \`${kind}\`. Kinds: ${KINDS.join(", ")}.`);
   if (!reference) refuse(USAGE.split("\n")[0]);
-  if (kind === "note") return recordNote(reference, rest);
-  if (kind === "criteria") return recordCriteria(reference, rest);
-  if (kind === "report") return recordReport(reference);
-  return recordShaped(kind, reference, rest);
+  const { next, rest } = pullNext(argv);
+  if (kind === "note") return recordNote(reference, rest, next);
+  if (kind === "criteria") return recordCriteria(reference, rest, next);
+  if (kind === "report") {
+    if (next !== undefined) refuse("record report writes nothing, so it renews no lease and carries no --next.");
+    return recordReport(reference);
+  }
+  return recordShaped(kind, reference, rest, next);
 };
 
 export const record = async (argv) => {

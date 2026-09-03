@@ -3,17 +3,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
-process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "advance-"));
+import { tempHome } from "./fixtures.mjs";
+
+process.env.XDG_CONFIG_HOME = tempHome("advance").path;
 const { PARKS, render } = await import("../src/record.mjs");
 const {
   CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, markedCommit,
   nextOf, planFlags, sameCommit, targetOf, viewFrom,
 } = await import("../src/earned.mjs");
-const { USAGE } = await import("../src/advance.mjs");
+const { USAGE, nextHeld } = await import("../src/advance.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
@@ -262,6 +261,33 @@ test("a parked issue resumes where its park record says it left, once somebody a
   assert.equal(blocked("developed").next, "approved");
 });
 
+/* The one piece of run state the sixth dry run lost was which codex round it was in, and --owed is
+   where a resuming run asks. Read from the field, because nothing else survives the run. */
+test("--owed reads the line the last write left, and an issue without one offers none", () => {
+  const leased = (extra) => ({ sessionContext: { lease: { holder: "a-run", renewedAt: at(), minutes: 30, ...extra } } });
+  assert.equal(nextHeld(view(leased({ next: "recheck the four files" }))), "recheck the four files");
+  assert.equal(nextHeld(view(leased({}))), null, "a holder that left no line offers none");
+  assert.equal(nextHeld(view({})), null, "and an issue nobody claimed offers none either");
+});
+
+/* Asserted on the refusal rather than on the exit code: under a config directory with no endpoint
+   every one of these exits 1 anyway, so a status alone would pass with the rule taken out. An empty
+   value is a request to clear the line and is falsy, which is how it got past two of them. */
+test("a --next the form cannot take is refused by name, empty or not", () => {
+  for (const [argv, said] of [
+    [["advance", "ISS-3", "--owed", "--next", "a write on a verb that moves nothing"], /--owed moves nothing/u],
+    [["advance", "ISS-3", "--owed", "--next", ""], /--owed moves nothing/u],
+    [["advance", "ISS-3", "--park", "blocked", "--why", "w", "--next", "said in --why"], /a park says what it waits for/u],
+    [["advance", "ISS-3", "--drop", "--why", "w", "--next", ""], /a park says what it waits for/u],
+    [["advance", "ISS-3", "--next", "one\ntwo"], /--next takes one line/u],
+  ]) {
+    const run = ask(...argv);
+    assert.equal(run.status, 1, argv.join(" "));
+    assert.match(run.stderr, said, `${argv.join(" ")} answered: ${run.stderr}`);
+    assert.equal(run.stdout, "", `${argv.join(" ")} answered on stdout`);
+  }
+});
+
 test("`-h` answers what each status is earned by, and asks the tracker nothing", () => {
   const run = ask("advance", "-h");
   assert.equal(run.status, 0, run.stderr);
@@ -269,6 +295,7 @@ test("`-h` answers what each status is earned by, and asks the tracker nothing",
   for (const status of [...ORDER.slice(1), "dropped"]) {
     assert.match(USAGE, new RegExp(`^  ${status}\\s`, "mu"), status);
   }
+  assert.match(USAGE, /^  --next <line>/mu, "the line the status it enters starts on is a flag");
   assert.equal(run.stderr, "", "and nothing is fetched to answer it");
 });
 

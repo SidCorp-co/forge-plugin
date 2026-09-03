@@ -3,27 +3,35 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { existsSync } from "node:fs";
 
-process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "lease-"));
+import { tempHome } from "./fixtures.mjs";
+
+const HOME = tempHome("lease");
+process.env.XDG_CONFIG_HOME = HOME.path;
+/* Fixed here, so what the lease says about its writer is the fixture's and not the suite runner's. */
+process.env.AI_AGENT = "a-test-agent";
+process.env.CLAUDE_PID = "4242";
 const {
-  ADVISORY, MINUTES, RECLAIMS_BEFORE_PARK, canonical, claimRefusal, claimed, describe, expiryOf,
-  historyLine, leaseOf, parksAsCrashed, reclaimsOf, sessionOf, stateOf, writeRefusal,
+  ADVISORY, MINUTES, RECLAIMS_BEFORE_PARK, agentOf, canonical, claimRefusal, claimed, describe,
+  expiryOf, historyLine, leaseOf, nextLine, parksAsCrashed, pidOf, reclaimsOf, sessionOf, stateOf,
+  writeRefusal,
 } = await import("../src/lease.mjs");
 const { retryOf } = await import("../src/rpc.mjs");
 const { parkAnswers } = await import("../src/lease.mjs");
-const { USAGE } = await import("../src/claim.mjs");
+const { USAGE, nextLines, parkWrite } = await import("../src/claim.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 const AT = "2026-09-02T12:00:00.000Z";
 const NOW = Date.parse(AT);
 const field = (lease, extra = {}) => ({ ...extra, lease });
-const held = (holder, at = AT, minutes = 30, history = []) => ({ holder, renewedAt: at, minutes, history });
+const held = (holder, at = AT, minutes = 30, history = []) =>
+  ({ holder, agent: "a-test-agent", pid: "4242", renewedAt: at, minutes, next: null, history });
 
 test("a lease is read out of the field, and anything else in it is no lease", () => {
-  assert.deepEqual(leaseOf(field(held("a-run"))), { holder: "a-run", renewedAt: AT, minutes: 30, history: [] });
+  assert.deepEqual(leaseOf(field(held("a-run"))), {
+    holder: "a-run", agent: "a-test-agent", pid: "4242", renewedAt: AT, minutes: 30, next: null, history: [],
+  });
   assert.equal(leaseOf(null), null, "an issue nobody claimed");
   assert.equal(leaseOf({ notes: "something else" }), null, "a field another client wrote");
   assert.equal(leaseOf(field({ renewedAt: AT })), null, "a lease with no holder holds nothing");
@@ -53,7 +61,99 @@ test("every refusal names the holder, its renew time and the one command that cl
   const free = writeRefusal("free", "ISS-4", null);
   assert.match(free, /forge claim ISS-4/u, "and a write with no lease at all says how to take one");
   assert.match(writeRefusal("lapsed", "ISS-4", lease), /your own lease on ISS-4 has expired[\s\S]*forge claim ISS-4/u);
-  assert.match(describe(lease), /session the-other-run, renewed 2026-09-02T12:00 for 30 minute\(s\)/u);
+  assert.match(describe(lease), /session the-other-run \(a-test-agent, pid 4242\), renewed 2026-09-02T12:00 for 30 minute\(s\)/u);
+});
+
+/* A uuid places nobody: the run whose shell died in ISS-26 was named by one, and a person deciding
+   whether to wait for it or take the issue could not tell what it was or whether it still ran. */
+test("every refusal that names the holder names its agent and its process too", () => {
+  const lease = leaseOf(field({ holder: "the-other-run", agent: "claude-code_2-1-258_agent", pid: 3830915, renewedAt: AT, minutes: 30 }));
+  assert.equal(lease.pid, "3830915", "read back as a string, because printing it is all anything does");
+  const said = [claimRefusal("ISS-4", lease), writeRefusal("live", "ISS-4", lease), writeRefusal("expired", "ISS-4", lease), writeRefusal("lapsed", "ISS-4", lease)];
+  for (const one of said) {
+    assert.match(one, /the-other-run/u, one);
+    assert.match(one, /claude-code_2-1-258_agent/u, one);
+    assert.match(one, /pid 3830915/u, one);
+  }
+  const older = leaseOf(field({ holder: "a-run", renewedAt: AT, minutes: 30 }));
+  assert.equal(older.agent, "unknown", "a lease written before this change is still a lease");
+  assert.equal(older.pid, "unknown");
+  assert.equal(older.next, null, "and carries no line");
+  assert.equal(leaseOf(field({ holder: "a-run", renewedAt: AT, minutes: 30, pid: "" })).pid, "unknown");
+  assert.equal(agentOf(), "a-test-agent", "and what the writer is comes from the environment, never a file");
+  assert.equal(pidOf(), "4242");
+});
+
+test("the next line is one line, trimmed, and an empty value clears it", () => {
+  assert.equal(nextLine(undefined), undefined, "silence leaves whatever is there alone");
+  assert.equal(nextLine(null), null, "and a caller that means to clear it says so");
+  assert.equal(nextLine("  fold F2, then recheck the four files  "), "fold F2, then recheck the four files");
+  assert.equal(nextLine(""), null);
+  assert.equal(nextLine("   "), null);
+});
+
+/* claimed() rebuilds the lease from the keys it names, so a key it did not name was dropped by
+   every renew: an input read and silently lost, the family ISS-2 found six of. */
+test("a renew keeps the line the lease already held, and only a caller that says so clears it", () => {
+  const first = claimed(null, { holder: "one", at: AT, minutes: 30, next: "write the review record", how: "claim", status: "in_progress" });
+  assert.equal(leaseOf(first).next, "write the review record");
+  const renewed = claimed(first, { holder: "one", at: AT, minutes: 30 });
+  assert.equal(leaseOf(renewed).next, "write the review record", "a payload write is not a new step");
+  const replaced = claimed(renewed, { holder: "one", at: AT, minutes: 30, next: "recheck the eight files" });
+  assert.equal(leaseOf(replaced).next, "recheck the eight files");
+  const cleared = claimed(replaced, { holder: "one", at: AT, minutes: 30, next: null });
+  assert.equal(leaseOf(cleared).next, null, "which is what a transition passes, because that step is over");
+});
+
+/* Where each attempt died is the line the run that died left, never the one its successor is about
+   to set: the sixth dry run lost only which codex round it was in, and this is that fact. */
+test("the history entry carries the line current before the reclaim, not the one after it", () => {
+  const first = claimed(null, { holder: "one", at: AT, minutes: 30, next: "fold F1", how: "claim", status: "in_progress" });
+  const second = claimed(first, { holder: "two", at: AT, minutes: 30, next: "start over", how: "reclaim", status: "in_progress" });
+  const entries = leaseOf(second).history;
+  assert.equal(entries[0].next, null, "nobody had left a line when the issue was first claimed");
+  assert.equal(entries[1].next, "fold F1", "the reclaim records where the run it took over from was");
+  assert.equal(leaseOf(second).next, "start over", "while the lease itself carries the new holder's");
+});
+
+test("the lease says which agent and which process wrote it, whatever holder it is given", () => {
+  const written = leaseOf(claimed(null, { holder: "one", at: AT, minutes: 30, how: "claim", status: "open" }));
+  assert.equal(written.agent, "a-test-agent");
+  assert.equal(written.pid, "4242", "read here, so no caller can write an identity it does not have");
+});
+
+/* A reclaim takes over a line and may set its own, and the two are not one fact: saying the dead
+   run left the note its successor wrote is the provenance falsified. */
+test("a reclaim reads out the line it took over and the line it took on, and tells them apart", () => {
+  assert.deepEqual(nextLines("reclaim", "fold F1", "fold F1"), ["Next, left by the run before: fold F1"],
+    "carried on unchanged, it is one line and one provenance");
+  assert.deepEqual(nextLines("reclaim", "fold F1", "start over"),
+    ["Next, left by the run before: fold F1", "Next: start over"]);
+  assert.deepEqual(nextLines("reclaim", null, "start over"), ["Next: start over"],
+    "a run that left nothing is not quoted as having left something");
+  assert.deepEqual(nextLines("claim", null, null), [], "and an issue with no line says nothing about one");
+  assert.deepEqual(nextLines("claim", null, "write the plan"), ["Next: write the plan"]);
+});
+
+/* Three writes make a park and the third carried the field it read before the second: it put back
+   the line the transition had just cleared. */
+test("the write that acknowledges a park clears the line, as its transition did", () => {
+  const holding = claimed(null, { holder: "one", at: AT, minutes: 30, next: "fold F1", how: "claim", status: "in_progress" });
+  const parked = claimed(holding, { ...parkWrite(leaseOf(holding)), how: "parked", status: "in_progress" });
+  assert.equal(leaseOf(parked).next, null, "a park is a transition, and the step it left is over");
+  assert.equal(leaseOf(parked).history.at(-1).next, "fold F1", "while the history keeps where it died");
+  const asked = claimed(holding, { ...parkWrite(leaseOf(holding), "read the history first"), how: "parked", status: "in_progress" });
+  assert.equal(leaseOf(asked).next, "read the history first",
+    "and a line this claim asked for survives the park, or the claim printed one it then took away");
+});
+
+/* Two runs of this suite left 6198 temp directories behind, and one run of it filled the mount a
+   shell needed (ISS-42). The fixture that makes one owns removing it. */
+test("the temporary config directory a fixture makes is gone once it is asked to go", () => {
+  const one = tempHome("lease-proof");
+  assert.ok(existsSync(one.path), "the fixture hands back a directory that is really there");
+  one.remove();
+  assert.ok(!existsSync(one.path), "and the same removal is what it registered to run at exit");
 });
 
 /* Read from the history the claim just wrote rather than from the run making it: a park whose
@@ -97,7 +197,7 @@ test("a park older than the crashes it would answer answers none of them", () =>
 
 test("the claim history is appended by the write that made it, and a renew appends nothing", () => {
   const first = claimed(null, { holder: "one", at: AT, minutes: 30, how: "claim", status: "open" });
-  assert.deepEqual(leaseOf(first).history, [{ holder: "one", at: AT, how: "claim", status: "open" }]);
+  assert.deepEqual(leaseOf(first).history, [{ holder: "one", at: AT, how: "claim", status: "open", next: null }]);
   const again = claimed(first, { holder: "two", at: AT, minutes: 45, how: "reclaim", status: "open" });
   assert.equal(leaseOf(again).history.length, 2, "the history is the record of who held it when");
   assert.equal(leaseOf(again).minutes, 45);
@@ -176,9 +276,13 @@ test("the verb says what to type, and says the lease is advisory", () => {
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /Usage: forge claim <uuid\|ISS-45> \[--minutes n\]/u);
   assert.match(run.stdout, /--minutes/u, "every flag it takes is on the line");
+  assert.match(run.stdout, /--next <line>/u, "the line a successor starts on among them");
   assert.ok(run.stdout.includes(ADVISORY), "the output says what the lease cannot promise");
   assert.ok(USAGE.includes(ADVISORY));
   const wrong = spawnSync(FORGE, ["claim", "--minutes", "9"], { encoding: "utf8", env: process.env });
   assert.equal(wrong.status, 1, "the issue comes first, and a flag in its place is not one");
   assert.match(wrong.stderr, /claim takes the issue first/u);
+  const folded = spawnSync(FORGE, ["claim", "ISS-1", "--next", "one\ntwo"], { encoding: "utf8", env: process.env });
+  assert.equal(folded.status, 1, "and a line that is two lines is refused before anything is read");
+  assert.match(folded.stderr, /--next takes one line/u);
 });

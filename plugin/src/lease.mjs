@@ -1,6 +1,6 @@
-/* The issue's session field, read as a lease: a holder, a renew time, a duration and the claims
-   before this one. The tracker has no conditional write (ISS-7), so a write here is a read-back
-   compare and the claim says so out loud. docs/FORGE-CLI.md. */
+/* The issue's session field, read as a lease: who holds it, until when, the one line naming the
+   step they are on, and the claims before this one. The tracker has no conditional write (ISS-7),
+   so a write here is a read-back compare and the claim says so out loud. docs/FORGE-CLI.md. */
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -19,6 +19,22 @@ export const ADVISORY =
   "The lease is advisory: the tracker refuses no stale write yet (ISS-7), so two runs that both "
   + "find no lease both claim, and the later write erases the earlier. A project running more than "
   + "one agent at a time needs the tracker's refusal before it can trust this.";
+
+const UNKNOWN = "unknown";
+
+/* No file can name a run, so what placed a holder comes from the environment or from nowhere. */
+export const agentOf = () => process.env.AI_AGENT || UNKNOWN;
+export const pidOf = () => process.env.CLAUDE_PID || UNKNOWN;
+
+export const nextLine = (given, flag = "--next") => {
+  if (given === undefined) return undefined;
+  if (given === null) return null;
+  const line = String(given).trim();
+  if (/[\r\n]/u.test(line)) {
+    fail(`${flag} takes one line: the step whoever comes next starts on. This one holds a newline.`);
+  }
+  return line || null;
+};
 
 const sessionPath = () => join(configDir("forge"), "session.json");
 
@@ -44,8 +60,11 @@ export const leaseOf = (context) => {
   const minutes = Number(held.minutes);
   return {
     holder: held.holder,
+    agent: held.agent ? String(held.agent) : UNKNOWN,
+    pid: held.pid === undefined || held.pid === null || held.pid === "" ? UNKNOWN : String(held.pid),
     renewedAt: String(held.renewedAt ?? ""),
     minutes: Number.isFinite(minutes) && minutes > 0 ? minutes : MINUTES,
+    next: typeof held.next === "string" && held.next ? held.next : null,
     history: Array.isArray(held.history) ? held.history : [],
   };
 };
@@ -68,8 +87,9 @@ export const stateOf = (lease, holder, now = Date.now()) => {
 };
 
 export const describe = (lease) =>
-  `session ${lease.holder}, renewed ${stamp(Date.parse(lease.renewedAt))} for ${lease.minutes} `
-  + `minute(s), expiring ${stamp(expiryOf(lease))}`;
+  `session ${lease.holder} (${lease.agent}, pid ${lease.pid}), renewed `
+  + `${stamp(Date.parse(lease.renewedAt))} for ${lease.minutes} minute(s), expiring `
+  + `${stamp(expiryOf(lease))}`;
 
 /* Counted since the park that answered them: a resumed issue does not walk straight back in. */
 const since = (history, status) => {
@@ -94,13 +114,24 @@ const lastReclaimAt = (lease, status) =>
 export const parkAnswers = (lease, status, parkedAt) =>
   parksAsCrashed(lease, status) && lastReclaimAt(lease, status) <= String(parkedAt ?? "");
 
-export const claimed = (context, { holder, at, minutes, how = null, status = null }) => {
+/* Read, not passed: a caller that could supply the writer's own identity could supply a false one.
+   Silence about `next` means unchanged, or a claim would drop the note the dead run left. */
+export const claimed = (context, { holder, at, minutes, next, how = null, status = null }) => {
   const held = leaseOf(context);
   const history = [...(held?.history ?? [])];
-  if (how) history.push({ holder, at, how, status });
+  /* The outgoing line, not the incoming one: what a crash loop is asked is where each attempt died. */
+  if (how) history.push({ holder, at, how, status, next: held?.next ?? null });
   return {
     ...(context && typeof context === "object" ? context : {}),
-    [KEY]: { holder, renewedAt: at, minutes, history: history.slice(-HISTORY_KEPT) },
+    [KEY]: {
+      holder,
+      agent: agentOf(),
+      pid: pidOf(),
+      renewedAt: at,
+      minutes,
+      next: next === undefined ? held?.next ?? null : nextLine(next),
+      history: history.slice(-HISTORY_KEPT),
+    },
   };
 };
 
@@ -167,7 +198,7 @@ export const notAnothers = async (documentId, ref) => {
 };
 
 /* Every payload write renews the lease; a write by anyone else is refused, and a read needs none. */
-export const renew = async (documentId, ref) => {
+export const renew = async (documentId, ref, next = undefined) => {
   const holder = sessionOf();
   const context = await readContext(documentId);
   const lease = leaseOf(context);
@@ -175,7 +206,7 @@ export const renew = async (documentId, ref) => {
   if (state !== "mine") fail(writeRefusal(state, ref, lease));
   return setLease(
     documentId,
-    claimed(context, { holder, at: new Date().toISOString(), minutes: lease.minutes }),
+    claimed(context, { holder, at: new Date().toISOString(), minutes: lease.minutes, next }),
     ref,
   );
 };

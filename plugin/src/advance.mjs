@@ -17,7 +17,7 @@ import {
   render,
 } from "./record.mjs";
 import { PARK_STATUS, SIDE, atLeast, payloadOwed, targetOf, transitionCall, viewFrom } from "./earned.mjs";
-import { renew } from "./lease.mjs";
+import { FIELD, leaseOf, nextLine, renew } from "./lease.mjs";
 
 /* A needs_info park owes the readings only the question shape carries; a reviewer's park owes
    the thing to look at. Both are the payload the person on the other side reads. */
@@ -31,7 +31,8 @@ export const USAGE = [
   "transition or every missing item beside the one command that supplies it. Nothing is read from",
   "the repository: what git knew was written onto the issue at the step that knew it.",
   "",
-  "  --owed                  what the next status is owed, moving nothing",
+  "  --owed                  what the next status is owed, moving nothing, and the line last left",
+  "  --next <line>           the step the status it enters starts on, for whoever comes next",
   "  --to <status>           refused unless that status is the next one; a jump is not advancing",
   "  --park <kind> --why W [--evidence E]...  a park record, then the side status the kind implies",
   "  --drop --why W          park as dropped; refused once the merged mark is set",
@@ -47,6 +48,10 @@ export const USAGE = [
   "  closed        released",
   "  dropped       a confirmation whose finding is a disposition, or --drop --why",
   "",
+  "",
+  "A transition clears the line the status it left had set, because that step is over. --owed",
+  "prints the line when one is set and moves nothing.",
+  "",
   `A park kind: ${PARKS.join("|")}.`,
   "A parked issue resumes where its park record says it left, once a reply or its blocker clears it.",
 ].join("\n");
@@ -57,8 +62,10 @@ const viewOf = async (reference) => {
   return viewFrom(documentId, body, comments, !hasMore);
 };
 
-export const transitionTo = async (view, status, ref, note = "") => {
-  await renew(view.documentId, ref);
+/* The renew before it is where the line is cleared: the transition is refused before this runs
+   unless the record earns it, and a second lease write would cost three more calls. */
+export const transitionTo = async (view, status, ref, note = "", next = null) => {
+  await renew(view.documentId, ref, next);
   const answer = await write("forge_issues", { action: "transition", documentId: view.documentId, data: { status } });
   const held = answer?.status ?? answer?.issue?.status;
   if (held && held !== status) refuse(`The transition answered with status ${held}, not ${status}. Nothing to rely on.`);
@@ -110,7 +117,9 @@ const shortfall = (ref, view, next, missing) => {
   for (const one of missing) console.log(`\n  ${one.what}\n    ${one.command}`);
 };
 
-const KNOWN = ["owed", "park", "drop", "why", "to"];
+const KNOWN = ["owed", "park", "drop", "why", "to", "next"];
+
+export const nextHeld = (view) => leaseOf(view.issue?.[FIELD])?.next ?? null;
 
 const readFlags = (rest) => {
   const pulled = pullRepeated(rest, "--evidence", "advance");
@@ -126,7 +135,10 @@ const readFlags = (rest) => {
   if (writes && !given.why) refuse(`--${given.park ? "park" : "drop"} needs --why: a park is a message to a person.`);
   if (given.why && !writes) refuse("--why belongs to --park or --drop; nothing else here takes a reason.");
   if (evidence.length && !writes) refuse("--evidence belongs to the park record; a check reads the evidence already on the issue.");
-  return { ...given, evidence };
+  const asked = given.next !== undefined;
+  if (asked && given.owed) refuse("--owed moves nothing and --next is a write. Ask for one.");
+  if (asked && writes) refuse("a park says what it waits for in --why; the claim that resumes it sets --next.");
+  return { ...given, evidence, next: nextLine(given.next) };
 };
 
 const run = async (argv) => {
@@ -135,6 +147,8 @@ const run = async (argv) => {
   if (ref.startsWith("--")) refuse(`advance takes the issue first. ${USAGE.split("\n")[0]}`);
   const given = readFlags(rest);
   const view = await viewOf(ref);
+  const left = nextHeld(view);
+  if (given.owed && left) console.log(`Next, as the last write left it: ${left}`);
   /* Judged on part of a record, an answer is a guess: the page is the whole read this tool has. */
   if (!view.whole) {
     refuse(`${ref} carries more than the ${COMMENT_PAGE} comments the tracker's list returns, and it offers no `
@@ -158,7 +172,7 @@ const run = async (argv) => {
   if (given.owed) {
     return console.log(`${ref} is ${view.issue.status}; ${next} is next and the record earns it. \`forge advance ${ref}\` moves it.`);
   }
-  return transitionTo(view, next, ref, resumed ? "  (resumed where its park left it)" : "");
+  return transitionTo(view, next, ref, resumed ? "  (resumed where its park left it)" : "", given.next ?? null);
 };
 
 export const advance = async (argv) => {
