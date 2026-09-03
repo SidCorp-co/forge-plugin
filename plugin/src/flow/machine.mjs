@@ -103,6 +103,6 @@ export const protectMachine = (field, text) => {
   if (!pattern) return text;
   return String(text)
     .split(new RegExp(SPAN.source, "gu"))
-    .map((part, at) => (at % 2 ? part : part.replace(pattern, (whole, name, value) => `\`${name}: ${value}\``)))
+    .map((part, at) => (at % 2 ? part : part.replace(pattern, (_whole, name, value) => `\`${name}: ${value}\``)))
     .join("");
 };

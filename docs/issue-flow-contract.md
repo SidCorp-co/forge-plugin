@@ -385,7 +385,10 @@ member's commits is the project's revert policy, not this contract's.
 criteria, and either transitions or prints the shortfall. `forge advance ISS-nn --owed` prints
 the shortfall without moving. A jump past a status is refused; a park is a transition to one of
 the side statuses with a typed reason, so a judgement call is recorded rather than skipped, and a
-drop is refused once the merged mark is set.
+drop is refused once the merged mark is set. A shortfall names only what the shape has: no item for
+a field the kind does not take, no number the record did not carry, and one named item rather than a
+list when the stored copy cannot be read, since a list of everything is a shortfall the record does
+not have.
 
 **A review is two voices in one record.** The outcome is the reviewer's word about the diff at
 the head it judged, and nothing else: *approved* means the reviewer stood behind that head. The
@@ -425,7 +428,11 @@ assembled from the record rather than written from memory: the latest of each ki
 be current, and every instance of a kind that repeats, so a report shows four corrections when
 four were written (owed by ISS-11; today only verdicts, findings and triages are kept per instance). A separator between
 repeated values must be one a value cannot contain, or the record does not read back as it was
-written (owed by ISS-14; today the pair that separates them can occur inside one). A kind kept
+written (owed by ISS-14; a record in the fenced form written from 3.35.4 puts one value per line,
+and the pair that separates them can still occur inside a bullet-form value the reader accepts). A
+payload is machine data: it travels in a form the project's prose rewrite leaves alone, and its field
+names are the flags the verb took, never the labels a screen renders, because a reader keyed on labels
+was conformant in English and blind in Vietnamese (the fourteenth dry run). A kind kept
 latest-wins is not overwritten while the status it earned still stands: the second write is refused
 unless it names what it corrects, and the correction is printed beside the record it corrects. A
 write after a change that unearned the status is not a second write but the new evidence the
@@ -480,6 +487,12 @@ invoked by path, because on a machine whose `forge` is the checkout the phrase p
 (ISS-71). A finding with words nobody said is a false record, and a
 false record is corrected and never removed, so it is better never written; the tenth dry run built the
 reopen and left it unrehearsed on a live issue for this reason.
+
+**The version mark is part of the release.** The commit that moves the version is the one a rebase
+drops without a conflict when an identical bump already landed upstream, leaving a tree whose manifest
+names a version that carries none of the change and nothing red to say so. A release is proven by the
+installed copy naming the merged commit, so the merged mark's evidence carries that pair, version and
+commit, read from the installed copy and not from the tree (ISS-71).
 
 **The schema is the document.** `forge schema forge_issues` and `forge advance --owed` carry the
 entry criteria in the tool's own words. Nothing in the skill repeats them.
@@ -955,3 +968,36 @@ findings posted on other issues through `--into`, none on this one's lease. No h
   help offers were refused live; on ISS-45. Six decisions read back as seven; on ISS-14.
 - Every entry check refused with the exact command that clears it, and every refusal cleared on the
   next write. Thirteen runs in, that half of the contract has stopped producing findings.
+
+## Fourteenth dry run — ISS-67
+
+One agent made a typed record survive a project whose prose language rewrites every comment
+(3.35.4): a payload travels as a fenced block keyed by flag with a tag outside it, the reader keys on
+the flags and still reads the bullet form older builds wrote, a record it cannot read is named as
+rewritten in one item, and a record verb in such a project says at the write that the stored copy
+will be rewritten. Six verdicts, five review rounds, nine transitions with no wrong refusal; the
+pre-fix behaviour reproduced live at the base commit on a real rewritten body. This was the first run
+driven through the issue-flow skill rather than a brief, and the first with a section on where the
+skill fell short.
+
+- The skill never said a status is earned by a payload. Its Phase 1 named the claim and no other flow
+  verb, its Phase 5 asked for a prose QA comment where the contract wants one typed verdict per
+  criterion, its verification reference took a baseline from a gate that stops at its first failure,
+  and its clarify reference would have parked this very issue as a wire-format change. Thirteen runs
+  under briefs had hidden all four; the agent fixed each on the branch. What the staged ladder is when
+  a terminal is the caller is larger than a sentence: ISS-76.
+- Master moved under the agent when the parent released the feedback rule from a worktree. The
+  rebase dropped the agent's identical version bump as already upstream and nothing went red; the
+  agent caught it in the log. The rule above; the finding on ISS-71.
+- The CLI's own write boundary was the rewriter: the plan's three declarations and every field label
+  went through it, so `approved` could never be earned in such a project and every read-back
+  mismatched. Both folded as adjacent blockers, with the write reporting the copy it actually sent.
+- The tracker caps a release note's technical half at five hundred characters and says so with no
+  route; on ISS-46. `--fields status` is refused on the one field every verb prints; on ISS-45. A
+  recheck after a rebase finds no consult to recheck and names no route; on ISS-51.
+- The read-first gate refused the first write once with the bodies inside, as designed, and the
+  skill says nothing about it, so a fresh agent reads the rule as a failure. One sentence in Phase 1,
+  shipped with this fold.
+- The installed skill text changed and the running session kept the old wording: the agent saw its
+  own edit absent from the skill body it was re-shown. A skill edit is not a hook edit and owes no
+  restart, but it reaches only sessions that load the skill after it.
