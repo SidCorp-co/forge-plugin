@@ -9,8 +9,9 @@ import { join } from "node:path";
 
 process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "record-"));
 const {
-  CONTRACT, KINDS, SHAPES, SHOWS_EVIDENCE, TRIAGES, USAGE, OUTCOMES, assemble, conjunctionsFor, criteriaLines, joinedCriteria, noteFrom, parse, render, unwrap,
+  CONTRACT, KINDS, SHAPES, SHOWS_EVIDENCE, TRIAGES, USAGE, OUTCOMES, assemble, conjunctionsFor, criteriaLines, fromRecord, joinedCriteria, noteFrom, parse, render,
 } = await import("../../src/flow/record.mjs");
+const { unwrap } = await import("../../src/flow/machine.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
@@ -192,6 +193,56 @@ test("every finding and every triage is on the report, not the latest of each", 
    the one current set of shapes. That is honest while there is one version and wrong the moment
    there are two, so this fails at the bump rather than after a payload has been re-judged by a rule
    it was never written under. The reviewer asked for the tripwire rather than speculative shapes. */
+/* The verdict loop typed one commit and one evidence name twenty times, and the record held both
+   (the twelfth dry run). Each is read from where it already is, and said, because a default nobody
+   sees is one nobody catches being wrong. */
+test("a commit the flag did not carry comes from the merged mark, and is said", () => {
+  const mark = { body: "mark_merged target base: merged to master at c8c3550; reviewed head 91b0e7f", createdAt: "2026-09-03T10:00:00.000Z" };
+  const first = { body: render("verdict", { criterion: "1 — one", verdict: "pass", commit: "c8c3550", evidence: ["iss65-evidence.md"] }), createdAt: "2026-09-03T10:30:00.000Z" };
+  const said = [];
+  const held = console.error;
+  console.error = (line) => said.push(line);
+  const got = { criterion: "1", verdict: "pass", evidence: [] };
+  try {
+    fromRecord("verdict", got, { comments: [mark, first], names: ["iss65-evidence.md"] });
+  } finally {
+    console.error = held;
+  }
+  assert.equal(got.commit, "c8c3550");
+  assert.deepEqual(got.evidence, ["iss65-evidence.md"], "and the evidence the first verdict of the loop cited");
+  assert.deepEqual(said, ["--commit c8c3550, from the merged mark's note.",
+    "--evidence iss65-evidence.md, as the latest verdict on this issue cites it."]);
+});
+
+test("a record with no mark and no earlier citation is refused by the flag, and says what is there", () => {
+  assert.throws(() => fromRecord("verdict", { verdict: "pass", evidence: [] }, { comments: [], names: [] }),
+    /needs --commit \(commit\), and no merged mark on this issue names one/u);
+  const marked = [{ body: "mark_merged: merged to master at c8c3550" }];
+  assert.throws(() => fromRecord("verdict", { verdict: "pass", evidence: [] }, { comments: marked, names: ["one.md", "two.md"] }),
+    /no verdict on this issue cites one[\s\S]*2 attachment\(s\): one\.md, two\.md/u,
+    "a document the issue happens to carry is nobody's citation of it");
+  assert.throws(() => fromRecord("verdict", { verdict: "pass", evidence: [] }, { comments: marked, names: [] }),
+    /no attachment/u);
+  const stale = [...marked, { body: render("verdict", { criterion: "1 — one", verdict: "pass", commit: "c8c3550", evidence: ["gone.md"] }) }];
+  assert.throws(() => fromRecord("verdict", { verdict: "pass", evidence: [] }, { comments: stale, names: ["one.md"] }),
+    /no verdict on this issue cites one/u, "and an earlier citation the issue no longer carries is none");
+});
+
+test("a kind that owes no evidence is given none, and a flag that was passed is left alone", () => {
+  const cited = [{ body: "mark_merged at c8c3550" },
+    { body: render("verdict", { criterion: "1 — one", verdict: "pass", commit: "c8c3550", evidence: ["one.md"] }) }];
+  const skipped = { criterion: "1", verdict: "skipped", why: "the gate needs a screen", evidence: [] };
+  fromRecord("verdict", skipped, { comments: cited, names: ["one.md"] });
+  assert.deepEqual(skipped.evidence, [], "a skipped verdict owes a reason, not evidence");
+  const park = { kind: "unshippable", why: "no route", evidence: [] };
+  fromRecord("park", park, { comments: [], names: ["one.md"] });
+  assert.deepEqual(park.evidence, [], "and a park kind that shows nobody anything owes none either");
+  const asked = { criterion: "1", verdict: "pass", commit: "1234567", evidence: ["two.md"] };
+  fromRecord("verdict", asked, { comments: cited, names: ["one.md", "two.md"] });
+  assert.equal(asked.commit, "1234567", "what the caller typed is never replaced by a default");
+  assert.deepEqual(asked.evidence, ["two.md"]);
+});
+
 test("the shape reader is not versioned, so the contract may not be bumped until it is", () => {
   assert.equal(CONTRACT, 1, "before this moves, shapeGaps has to dispatch on record.contract");
 });

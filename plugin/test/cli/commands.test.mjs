@@ -3,7 +3,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { terse, uploaded, urlBearing } from "../../src/commands.mjs";
+import { terse } from "../../src/commands.mjs";
+import { uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
 
 /* The shape forge_uploads returns, as observed on ISS-22's one attachment. */
 const ATTACHMENT = {

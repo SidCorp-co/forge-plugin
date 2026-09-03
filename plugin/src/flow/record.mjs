@@ -1,10 +1,11 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
    back by kind: docs/FORGE-CLI.md § record. The verb owns the shape; the tracker owns the fields. */
 import { fail, translateTo } from "../resolve/settings.mjs";
-import { blockOf, criterionNumber, readRecord, tagFor } from "./machine.mjs";
+import { blockOf, criterionNumber, markedCommit, readRecord, tagFor, unwrap } from "./machine.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { pullRepeated, flags } from "../resolve/flags.mjs";
 import { COMMENT_PAGE, commentPage, postComment } from "../tracker/comments.mjs";
+import { attachPlan, uploadTo } from "../tracker/evidence.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";
 import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
@@ -38,9 +39,6 @@ export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
 
 const COMMIT = /^[0-9a-f]{7,40}$/iu;
 export const isCommit = (value) => COMMIT.test(String(value ?? ""));
-/* The tracker fences what it returns as data; the fence is not part of the field. */
-const FENCE = /^⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧\s*$/gmu;
-export const unwrap = (text) => String(text ?? "").replace(FENCE, "").trim();
 const URL_REF = /^https?:\/\//u;
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
@@ -191,7 +189,12 @@ export const USAGE = [
   "  --review        the last codex consult, its findings and what it owes, read from the log now",
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
   "",
-  "Evidence is an attachment name on the issue, a URL, or a commit of 7 to 40 hex digits.",
+  "Evidence is an attachment name on the issue, a URL, a commit of 7 to 40 hex digits, or a path to",
+  "a readable file, which goes up under its base name and is cited by it. A name already attached is",
+  "refused rather than attached twice.",
+  "",
+  "--commit and --evidence are read off the record where the flag is absent: the commit from the",
+  "merged mark's note, the evidence from what the latest record of this kind cited. Each is printed.",
 ].join("\n");
 
 
@@ -299,8 +302,13 @@ export const checkEvidence = (refs, names) => {
   }
 };
 
+/* Filled from the record where the flag is absent (ISS-65): the merged mark holds the commit and
+   the issue holds the one attachment, so a verdict loop typed neither. Deferred rather than
+   defaulted here, because the values arrive with the issue and a flag error must cost no call. */
+export const DEFERRED = ["commit", "evidence"];
+
 /* One pass over the shape: every flag read, every rule applied, before anything is written. */
-const gather = (kind, argv) => {
+const gather = (kind, argv, defer = []) => {
   const shape = SHAPES[kind];
   let rest = argv;
   const got = {};
@@ -319,11 +327,15 @@ const gather = (kind, argv) => {
     const value = got[field.flag];
     if (field.many) {
       const least = field.least ?? 1;
-      if (value.length < least) refuse(`record ${kind} needs --${field.flag}${least > 1 ? ` ${least} or more times` : ""}.`);
+      if (value.length < least && !defer.includes(field.flag)) {
+        refuse(`record ${kind} needs --${field.flag}${least > 1 ? ` ${least} or more times` : ""}.`);
+      }
       continue;
     }
     if (value === undefined) {
-      if (!field.optional) refuse(`record ${kind} needs --${field.flag} (${field.label.toLowerCase()}).`);
+      if (!field.optional && !defer.includes(field.flag)) {
+        refuse(`record ${kind} needs --${field.flag} (${field.label.toLowerCase()}).`);
+      }
       continue;
     }
     if (field.oneOf && !field.oneOf.includes(value)) {
@@ -332,9 +344,12 @@ const gather = (kind, argv) => {
     if (field.commit && !isCommit(value)) refuse(`--commit takes 7 to 40 hex digits, not \`${value}\`.`);
     if (field.criterion && !/^\d+$/u.test(value)) refuse(`--criterion takes the criterion's number, not \`${value}\`.`);
   }
-  const said = shape.check?.(got);
-  if (said) refuse(`record ${kind} needs ${said}.`);
   return got;
+};
+
+export const checked = (kind, got) => {
+  const said = SHAPES[kind].check?.(got);
+  if (said) refuse(`record ${kind} needs ${said}.`);
 };
 
 /* What the stored copy will be, said where the write is made: the payload block is the record and
@@ -361,13 +376,70 @@ export const post = async (documentId, body, ref = documentId, next = undefined,
   return answer;
 };
 
+/* Read off the record rather than off the issue: what this issue's evidence is belongs to whoever
+   wrote the first record of the kind, and the rest of a loop inherit that citation rather than a
+   guess. Not per criterion — one document answers twenty of them, which is the loop it removes. */
+const citedBy = (comments, kind) =>
+  comments.map((one) => parse(one.body ?? "")).filter((one) => one?.kind === kind).at(-1)?.fields.evidence ?? [];
+
+/* The record answers for the flag it was not given, and says where the value came from: a default
+   nobody can see is one nobody can catch being wrong. Where it cannot answer, the refusal says what
+   the issue does carry, because the old one named a flag and left the reader to go and look. */
+export const fromRecord = (kind, got, { comments, names }) => {
+  const shape = SHAPES[kind];
+  const commit = shape.fields.find((one) => one.commit);
+  if (commit && got.commit === undefined) {
+    const marked = markedCommit(comments);
+    if (!marked) {
+      refuse(`record ${kind} needs --commit (${commit.label.toLowerCase()}), and no merged mark on `
+        + "this issue names one to read it from.");
+    }
+    got.commit = marked;
+    console.error(`--commit ${marked}, from the merged mark's note.`);
+  }
+  const evidence = shape.fields.find((one) => one.evidence);
+  /* Owed by the shape's own rules, whichever of the two says so: a verdict's least is zero and its
+     check is what refuses, and a park's evidence is owed by the kind it carries. */
+  if (!evidence || got[evidence.flag]?.length) return;
+  if ((evidence.least ?? 1) < 1 && !shape.check?.(got)) return;
+  /* The author's own earlier citation, never the attachment set: a lone document the issue happens
+     to carry is nobody's citation of it, and the first record of a loop still names one. */
+  const before = citedBy(comments, kind).filter((one) => evidenceHeld(one, names));
+  if (!before.length) {
+    refuse(`record ${kind} needs --evidence (repeatable), and no ${kind} on this issue cites one to `
+      + `read it from. This issue carries `
+      + `${names.length ? `${names.length} attachment(s): ${names.join(", ")}` : "no attachment"}. `
+      + "Name an attachment, a URL, a commit, or a file to put up.");
+  }
+  got[evidence.flag] = before;
+  console.error(`--evidence ${before.join(", ")}, as the latest ${kind} on this issue cites it.`);
+};
+
+/* Uploaded once every refusal the record's own shape can earn has been earned: refused with its
+   file already up, a record leaves an attachment nobody cited and a corrected re-send collides with
+   the name (ISS-55). A lease lost mid-command can still strand one — the exposure `forge attach`
+   has always had, and why each upload renews first, which is that verb's own invariant. */
+const uploadPlanned = async (plan, documentId, reference) => {
+  for (const one of plan?.upload ?? []) {
+    await renew(documentId, reference);
+    await uploadTo("issue", documentId, one.path);
+  }
+};
+
 const recordShaped = async (kind, reference, argv, { next, patch }) => {
-  const got = gather(kind, argv);
+  const got = gather(kind, argv, DEFERRED);
   const { documentId, body } = await issueOf(reference);
   const shape = SHAPES[kind];
-  if (shape.fields.some((one) => one.evidence) && got.evidence?.length) {
-    checkEvidence(got.evidence, attachmentNames(body, (await commentPage(documentId)).comments));
-  }
+  const asks = shape.fields.some((one) => one.evidence || one.commit);
+  const comments = asks ? (await commentPage(documentId)).comments : [];
+  const held = attachmentNames(body, comments);
+  const plan = got.evidence?.length ? attachPlan(got.evidence, held, (ref) => evidenceHeld(ref, held)) : null;
+  if (plan?.refusal) refuse(plan.refusal);
+  if (plan) got.evidence = plan.cite;
+  const names = [...held, ...(plan?.upload ?? []).map((one) => one.name)];
+  if (asks) fromRecord(kind, got, { comments, names });
+  checked(kind, got);
+  if (got.evidence?.length) checkEvidence(got.evidence, names);
   /* A criterion is named by number and quoted as it stood, because the field can change later and
      the record has to say what it was about. Read off the shape, so every kind that cites one does
      it the same way and a citation of a criterion the issue has not got is refused. */
@@ -378,6 +450,10 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
     got[cites.flag] = `${held.number} — ${held.text}`;
   }
   const stamp = shape.stamp ? String(body[shape.stamp.from ?? "status"] ?? "") : null;
+  /* Asked here as well as in `post`, because a record that cannot be posted must not leave its
+     evidence up: the two calls are one refusal a caller can act on and one nothing may skip. */
+  refuseIfGated("forge_comments");
+  await uploadPlanned(plan, documentId, reference);
   return post(documentId, render(kind, got, stamp), reference, next, patch);
 };
 

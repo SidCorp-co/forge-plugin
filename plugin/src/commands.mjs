@@ -1,7 +1,4 @@
-import { readFileSync } from "node:fs";
-import { basename } from "node:path";
-
-import { fail, settings } from "./resolve/settings.mjs";
+import { fail } from "./resolve/settings.mjs";
 import { bodyFrom } from "./resolve/payload.mjs";
 import { projectId, REFERENCE_KEYS, scoped, toolNamed, tools, write } from "./tracker/rpc.mjs";
 import {
@@ -13,6 +10,7 @@ import {
   truncated,
 } from "./tracker/issues.mjs";
 import { creditCaused, credited, mustBeShown, postComment } from "./tracker/comments.mjs";
+import { uploadTo, urlBearing } from "./tracker/evidence.mjs";
 import { refusalForFiling, withMark } from "./tracker/issue-shape.mjs";
 import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
@@ -55,8 +53,6 @@ const filled = (record) => {
 /* An attachment answers with its id, name, mime, size and timestamp, and a reader acts on none
    of them: the url is what gets fetched. Keyed on carrying a url rather than on the field being
    called `attachments`, so a payload that grows another such list is covered. */
-export const urlBearing = (item) => Boolean(item) && typeof item === "object" && typeof item.url === "string";
-
 export const terse = (value) => {
   if (Array.isArray(value)) {
     return value.map((item) => (urlBearing(item) ? item.url : terse(item)));
@@ -65,17 +61,6 @@ export const terse = (value) => {
     return Object.fromEntries(Object.entries(value).map(([key, held]) => [key, terse(held)]));
   }
   return value;
-};
-
-/* The upload reply is that same object, and the name is already on the line. Unparseable is
-   printed whole: a body that is not the expected shape is the one worth seeing. */
-export const uploaded = (answer) => {
-  try {
-    const parsed = JSON.parse(answer);
-    return urlBearing(parsed) ? parsed.url : answer;
-  } catch {
-    return answer;
-  }
 };
 
 /* A pattern without a format is kept — that one carries the only copy of its rule. */
@@ -288,7 +273,6 @@ export const commands = {
     }
     show({ documentId, plan: stored });
   },
-  /* Bytes go to the presigned URL, never base64 through context. The URL is the credential. */
   attach: async ([target, targetRef, ...paths]) => {
     if (!target || !targetRef || !paths.length) fail(usageOf("attach"));
     if (!["issue", "comment"].includes(target)) {
@@ -299,16 +283,7 @@ export const commands = {
       /* Every payload write renews, uploads included; a comment id names no issue to read a lease
          from, and the tracker offers no route from one to the other. */
       if (target === "issue") await renew(targetId, targetRef);
-      const name = basename(path);
-      const minted = await write("forge_uploads", {
-        action: "request",
-        data: { target, targetId, name },
-      });
-      const url = minted.uploadUrl ?? `${new URL(settings().url).origin}${minted.uploadPath}`;
-      const put = await fetch(url, { method: "PUT", body: readFileSync(path) });
-      const answer = await put.text();
-      if (!put.ok) fail(`Upload of ${name} answered ${put.status}: ${answer.slice(0, 300)}`);
-      console.log(`${name}  ${uploaded(answer)}`);
+      await uploadTo(target, targetId, path);
     }
   },
   /* An edge changes the order the blocked issue is worked in, so its lease is the one that covers

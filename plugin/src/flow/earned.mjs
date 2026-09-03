@@ -1,7 +1,7 @@
 /* What an issue's record earns: the contract's flow table, one entry check per status, and the
    record read whole into one object. The verb that spends this is advance.mjs; nothing here
    writes, fetches or reads the repository. docs/issue-flow-contract.md holds the tables. */
-import { planFlags } from "./machine.mjs";
+import { markedCommit, planFlags, reviewedHead, unwrap } from "./machine.mjs";
 import {
   CONTRACT,
   FINDINGS,
@@ -14,7 +14,6 @@ import {
   evidenceHeld,
   isCommit,
   parse,
-  unwrap,
 } from "./record.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
@@ -63,9 +62,6 @@ export const PARK_STATUS = {
 
 export const SIDE = ["needs_info", "waiting", "on_hold"];
 
-const MARK = /^mark_merged\b/u;
-const AT_SHA = /\bat ([0-9a-f]{7,40})\b/iu;
-const HEAD_SHA = /\breviewed head ([0-9a-f]{7,40})\b/iu;
 export const atLeast = (status, floor) =>
   ORDER.indexOf(status) >= 0 && ORDER.indexOf(status) >= ORDER.indexOf(floor);
 
@@ -76,16 +72,6 @@ export const sameCommit = (one, two) => {
   const width = Math.min(left.length, right.length);
   return left.slice(0, width) === right.slice(0, width);
 };
-
-/* mark_merged has no commit field, so the commit lives in the note it writes as `at <sha>`, and
-   a squash that changed the hash leaves the head that was reviewed there beside it. */
-const lastMark = (comments) => {
-  const marks = comments.map((one) => unwrap(one.body)).filter((body) => MARK.test(body));
-  return marks.length ? marks.at(-1) : null;
-};
-
-export const markedCommit = (comments) => AT_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
-export const reviewedHead = (comments) => HEAD_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
 
 /* `parse` resolves the keys and applies none of the shape's rules, so a comment carrying the tag and
    little else — by hand, or through a client no gate sits before — is measured against the write's

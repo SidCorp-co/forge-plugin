@@ -10,9 +10,9 @@ process.env.XDG_CONFIG_HOME = tempHome("advance").path;
 const { PARKS, parse, render } = await import("../../src/flow/record.mjs");
 const {
   CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, holdsBack,
-  markedCommit, nextOf, personLooks, sameCommit, shapeGaps, viewFrom,
+  nextOf, personLooks, sameCommit, shapeGaps, viewFrom,
 } = await import("../../src/flow/earned.mjs");
-const { planFlags } = await import("../../src/flow/machine.mjs");
+const { markedCommit, planFlags } = await import("../../src/flow/machine.mjs");
 const { lookAhead, targetOf } = await import("../../src/flow/route.mjs");
 const { USAGE, checkTarget, nextHeld } = await import("../../src/flow/advance.mjs");
 

@@ -82,6 +82,22 @@ export const criterionNumber = (value) => {
   return found ? Number(found[1]) : null;
 };
 
+/* The fence a field comes back in is not part of it, and the mark's note is where the commit is. */
+const FENCE = /^⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧\s*$/gmu;
+export const unwrap = (text) => String(text ?? "").replace(FENCE, "").trim();
+
+const MARK = /^mark_merged\b/u;
+const AT_SHA = /\bat ([0-9a-f]{7,40})\b/iu;
+const HEAD_SHA = /\breviewed head ([0-9a-f]{7,40})\b/iu;
+
+const lastMark = (comments) => {
+  const marks = comments.map((one) => unwrap(one.body)).filter((body) => MARK.test(body));
+  return marks.length ? marks.at(-1) : null;
+};
+
+export const markedCommit = (comments) => AT_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
+export const reviewedHead = (comments) => HEAD_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
+
 /* Machine data inside prose, read by this wording; `look` is optional, since FR-05 names two. */
 const DECLARED = { screen: "screen change", schema: "schema coupling", look: "user-facing outcome" };
 const lineFor = (name) => new RegExp(`${name}:\\s*(yes|no)\\b`, "iu");

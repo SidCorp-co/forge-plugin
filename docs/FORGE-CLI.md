@@ -131,8 +131,21 @@ verdict map as `NaN`. A record written in the older form is read by its labels, 
 resolve to no field of its shape is named as rewritten rather than as the fields it appears to lack.
 The verdict quotes the criterion's text as it stood
 at the write, because the field can change later and the verdict has to say what it judged. Evidence
-is an attachment name the issue carries, a URL or a commit, and an attachment that is not there is
-refused: a reference to a file on someone's disk proved nothing. The release note and the criteria go
+is an attachment name the issue carries, a URL or a commit, and a reference to a file on someone's
+disk proved nothing — so a value that *is* a readable file goes up under its base name at the write
+and is cited by that name, which is the `forge attach` and the re-send an author paid by hand. A
+base name the issue already carries is refused there rather than attached twice, because a name
+attached twice resolves to two documents (ISS-55).
+
+Two flags are read off the record when they are absent, and each prints where its value came from: a
+commit from the merged mark's note, and evidence from the latest record of the same kind. The twelfth
+dry run's verdict loop typed the same two values twenty times each, and both were already on the
+record. Evidence is read from the latest record of that kind rather than from the attachment set, because
+what an issue's evidence is belongs to whoever cited it first: the one attachment an issue carries
+may be a design document nobody cited, and a default from it would turn a refused verdict into a
+passing one. It is not read per criterion — one document answers twenty of them, which is the loop
+being removed — so the line it prints names the record it came from and not the criterion. So the first of a loop names it — a path there goes up and is cited — and the rest inherit. A
+default nobody can see is one nobody can catch being wrong, which is why neither is silent. The release note and the criteria go
 to their fields, which the tracker already types; everything else is a comment. `report` assembles
 the latest record of each kind and the latest verdict per criterion, and names the criteria no verdict
 covers. Nothing is stored twice. The contract this serves: `docs/issue-flow-contract.md`.

@@ -1,8 +1,8 @@
 /* Where an issue goes next, and what that costs: the park it resumes from, the reopen a person's
    word left it at, and the one target the verb may move it to. What each status is earned by, and
    the record it is read out of, is earned.mjs. docs/issue-flow-contract.md holds the tables. */
-import { TRIAGES, refuse, unwrap } from "./record.mjs";
-import { criterionNumber, planFlags } from "./machine.mjs";
+import { TRIAGES, refuse } from "./record.mjs";
+import { criterionNumber, planFlags, unwrap } from "./machine.mjs";
 import {
   CHECKS,
   ORDER,
