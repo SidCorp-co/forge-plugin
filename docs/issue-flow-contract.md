@@ -224,6 +224,17 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
   plan; until it exists the lease is advisory: two runs that both find no lease may both claim, the
   later write can erase the earlier, and nothing on the record promises to show it. A project that
   runs more than one agent at a time needs the tracker's refusal before it can trust the lease.
+- **A run that cannot write cannot say it died.** Every tracker write is the CLI and the CLI is
+  the shell, so a run that loses its shell cannot park, correct or release its lease; ISS-26 sat an
+  hour in `in_progress` with no sign. The interruption is therefore read from what the run could not
+  do: a lease past its duration is the record of a break, the board (ISS-24) shows it, and the
+  worklog beside the lease (ISS-44) is what the successor reads first. The worklog is checkpointed
+  by the same write that renews the lease, so every payload write, every push and every codex round
+  leaves it current, and it holds the state the record does not: branch, head and base, the files
+  touched, the one-line next step, the consult id and round with whether a recheck is owed, and the
+  scratch decisions. A run that dies between two writes loses at most the work since the last one,
+  and a successor that cannot continue from the record and the worklog has found a fact that belongs
+  in one of them.
 - **Crashed is not failed.** An expired lease says nothing about the work. The status stands, the
   payloads written so far stand, and the next run resumes the phase the status owes. The third
   reclaim of one status parks the issue as `on_hold`, kind crashed, with the claim history as
@@ -347,7 +358,15 @@ review over four rounds has four findings called F1 (ISS-34 owes the grammar). D
 answered is an open finding, and *approved* is written only from the reviewer's answer on the same
 head with nothing standing, which for codex is the recheck that found none. A record that could
 only say *approved* or *changes requested* made the honest value and the passable value differ,
-and the fourth dry run wrote the passable one. ISS-16 owes the separate value.
+and the fourth dry run wrote the passable one. ISS-16 owes the separate value. A review is not
+terminal either: a round folded before the earning recheck is on the record as *pending* with its
+round, because a run that stopped between rounds otherwise reads as a run that never reviewed, which
+is what ISS-26 read as for an hour. A disposition may be partial, on a finding and on a verdict
+alike, with their meaning fixed: *accepted in part* names the half folded and the half rejected
+with its reason, so nothing of it stands once the reviewer's recheck on that head found none
+standing, and approval is decided as before; a pass *with a qualification* earns the criterion, the
+qualification travels with the verdict onto the report and the trace page, and a qualification that
+says the criterion is not met is not a qualification but a fail (ISS-34 owes both grammars).
 
 **The reviewer read what it was shown.** A consult limited to a diff judges the diff; its truth
 pass on the rest answers *not verified* and says so. The recheck that earns an approving review runs
@@ -600,4 +619,32 @@ codex loop, the lease lapsed, and the same agent resumed on the same tree.
   the merged commit; it lives in `/tmp` and is ISS-27's first fixture in all but name. Two numbers it
   measured are recorded beside the rules: the duplication scorer strips table rows, which is where a
   restated rule sits in a spec, and its threshold for documents is wrong for a spec by a factor of two.
+
+## Seventh dry run — ISS-26
+
+ISS-26 built the spec reader and was the first run whose shell died: the temp directory this
+repository's own tests had been filling for weeks hit its quota, and every command answered exit
+code 1 with no output. The run stopped before its earning recheck and wrote its round-by-round
+review to the one mount that still took writes.
+
+- The record was enough, again: the tree was staged, master had not moved, and the resumed run
+  reclaimed, wrote a correction and picked up at the recheck. Two rounds and an hour lost, nothing
+  rebuilt. What made it cheap was luck, a file written outside the repository; the rule above turns
+  the luck into a mechanism.
+- The run that died could not say so. It could not park, could not correct, could not release the
+  lease. The correction was written by the next run, an hour later, because a person relayed it.
+- The review looked like no review for an hour, because the record has approved or nothing. Rule
+  above: *pending* with its round. A partial disposition came up twice in one issue, on a finding
+  accepted in one half and on two verdicts that pass with a qualification.
+- The read-first gate denied a subagent's write two calls after the subagent's read (ISS-33), and
+  then denied the uuid route too, because the file being attached was named `ISS-26-…` and a token in
+  a path reads as an issue key (ISS-36). Renaming the file cleared it. The two defects compose, and
+  neither refusal hints at the other.
+- The tests leak their temp directories: 89 prefixes, two runs of the suite left 6198 directories,
+  one test file 3234 of them. ISS-42.
+- `forge record <kind> -h` answers with a missing-field refusal, so a kind's flags are discoverable
+  only from the one-line table. ISS-45. The release note's 500-character cap is the tracker's and is
+  documented nowhere; three trims. ISS-46.
+- Five codex rounds; the earning recheck ran on all eight files and found nothing. The reviewer
+  read the bulk this time because the rule from the sixth run said it must.
 
