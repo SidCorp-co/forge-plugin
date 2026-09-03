@@ -47,10 +47,12 @@ issue. They write to the project, never to a transition.
 | `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all against the merged commit; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
 | `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; a review comment from a person where the plan declares a screen change or a user-facing outcome | closing, by a person or the run's end |
 | `closed` | nothing more happens unless reopened; code landed | `released` | none |
+| `reopen` | a person disagreed with a close or a drop, and their finding is here | a person's word; nothing earns it and the verb never enters it | the finding typed on their behalf and the triage of it, then the fall the triage decides: `developed`, `in_progress`, or `on_hold` blocked |
 
 The phase a status owes produces the payload that earns the next row, so reading the status is
-reading the phase. Every *earned by* is checked for presence, recency and the commit it names,
-never for fit: whether an attachment is really the migration classification, or a comment really
+reading the phase. Every *earned by* is checked for presence, recency, the commit it names and,
+where a rule says *since* or *later than*, its order against the record it names — a correction since
+a triage, a verdict later than it — never for fit: whether an attachment is really the migration classification, or a comment really
 an approving screen review, is the reviewer's judgement, and a check that tried to make it would
 refuse honest records and pass dishonest ones alike. The tracker's `draft`, `testing` and `reopen` statuses are not steps and `advance`
 never enters them: `draft` is the reporter's, before `open`; `testing` is a label this contract has
@@ -421,7 +423,9 @@ repeated values must be one a value cannot contain, or the record does not read 
 written (owed by ISS-14; today the pair that separates them can occur inside one), and a repeated
 flag value, which the verb keeps to one line at the write, renders as one line each, because six
 decision triples read back as one paragraph are six decisions nobody will read; a multi-line field
-is one value and is rendered whole. A verdict names its criterion
+is one value and is rendered whole. A kind that repeats across occasions — a finding, a triage — is
+stamped at the write with the occasion it belongs to, the tracker's count of reopens today, and is
+matched by that stamp, so no reader counts backwards to guess which look a ruling was about. A verdict names its criterion
 by number and quotes the text it judged; one with no evidence is refused; a criterion with no
 verdict keeps the issue out of `tested`. An evidence document is attached once under one name, and
 an amended one goes up under a new name that the later verdicts cite, because a name attached twice
@@ -444,6 +448,12 @@ the verdict that earns it is a check in the tree that fails when what it guards 
 rule, on the tree without the change; for a property preserved, when the tree and the base differ. The
 criterion names the check. A verdict written from one run proves that run; a check proves every run after it, and the
 ninth dry run's most durable output was the one check the contract had not asked for.
+
+**A rehearsal writes no person's record.** A run that exercises a transition with no person behind
+it — a reopen route, a park a reviewer lifts — proves the route in a test or against the installed copy
+and writes nothing that quotes a person. A finding with words nobody said is a false record, and a
+false record is corrected and never removed, so it is better never written; the tenth dry run built the
+reopen and left it unrehearsed on a live issue for this reason.
 
 **The schema is the document.** `forge schema forge_issues` and `forge advance --owed` carry the
 entry criteria in the tool's own words. Nothing in the skill repeats them.
@@ -757,3 +767,37 @@ commits, 3.32.1. Every payload was typed and every transition was the verb's.
 - Moving a file one level deeper broke four modules that each count `..` to the plugin root (ISS-52).
   The gate's out-of-scope crash and its split output streams are ISS-54; a
   round lost to `git_diff` with no path is ISS-56.
+
+## Tenth dry run — ISS-19 and ISS-43
+
+One agent fixed the edge-kind filter (3.32.2) and built the reopen: a finding and a triage as typed
+records, the fall routed by the triage's outcome, the person's look owed before `released` when the
+outcome is user-facing (3.33.0). Twenty-three criteria, twenty-three verdicts, two `--owed`
+refusals and both right; seventeen consult rounds on the second issue.
+
+- The reopen could not be rehearsed: a finding needs a person's words, and quoting words nobody
+  said is a false record. Proven by tests and a probe against the installed copy instead. The rule
+  above says so, and the flow table now has the `reopen` row the reader was missing.
+- Three new rules read the record's order — a correction since the triage, a verdict later than it —
+  and the contract had named presence, recency and commit as the only checks. Order is the fourth,
+  above. The stamp a repeating kind carries is a rule too.
+- The read-first gate refused three writes after the reads it named had run, once after the exact
+  command it printed. The mechanism is now confirmed on ISS-33: the gate reads the parent
+  session's transcript and a delegated run writes its own, and the uuid form steps around the gate
+  because it carries no key. ISS-57 takes both.
+- A rejected finding, refuted by the reviewer's own verify pass, had nowhere to live but a
+  correction beside an approved review; seventeen rounds read as one line. ISS-34's grammar owes
+  both, said there.
+- The shape reader judges every payload against today's shapes whatever contract number its tag
+  carries; the first bump would re-judge years of records. A tripwire in the tests forbids the
+  bump until the reader is versioned. ISS-60.
+- FR-05 has no clause for the edge kind, names two plan lines where there are now three, and no
+  use case for the reopen. The spec catches up through an issue, not the run that built it. ISS-61.
+- `--owed` on a reopen with nothing decided names the landing status as next; the owed list is
+  right. A message defect, folded into ISS-45 with the other refusals that say more than they know.
+- No verb releases a lease, so a closed issue reads as held for the rest of its window. On ISS-7.
+- A criteria renumber has no checker: six criteria were repointed and a gap found by reading.
+  Open; a verdict quotes the text it judged, and nothing yet compares the quote to the field.
+- The brief said "files under 500 lines" and the checker counts code lines; the agent read the
+  prose as a rule the repository states. It is the brief's sentence, not the repository's, and the
+  brief now names the checker's measure.
