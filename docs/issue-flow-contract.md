@@ -361,7 +361,9 @@ finding lines are the author's disposition of each finding by id, accepted or re
 reason; an id names the consult that issued it, because every consult numbers from one and a
 review over four rounds has four findings called F1 (ISS-34 owes the grammar). Dispositions never add up to an approval: a rejected finding the reviewer never saw
 answered is an open finding, and *approved* is written only from the reviewer's answer on the same
-head with nothing standing, which for codex is the recheck that found none. A record that could
+head with nothing standing, which for codex is a read of the whole touched set that found none
+standing: the recheck after findings, or the first pass itself when it read the set whole and found
+nothing. A record that could
 only say *approved* or *changes requested* made the honest value and the passable value differ,
 and the fourth dry run wrote the passable one. ISS-16 owes the separate value. A review is not
 terminal either: a round folded before the earning recheck is on the record as *pending* with its
@@ -375,7 +377,9 @@ says the criterion is not met is not a qualification but a fail (ISS-34 owes bot
 
 **The reviewer read what it was shown.** A consult limited to a diff judges the diff; its truth
 pass on the rest answers *not verified* and says so. The recheck that earns an approving review runs
-on the whole set of files the change touched, never on a diff, and the review record names that set
+on the whole set of files the change touched, never on a diff; a clean pass over a diff owes a whole-file pass, which
+today the recheck verb refuses to run because no finding was logged (ISS-51 owes the route). The review
+record names that set
 beside the head so the transition can see the scope without the repository (ISS-34 owes the field
 with the consult ids); the merging run, which is the one that knows, writes the touched files into
 the mark's note beside the commit and the base, and a review whose recorded set is narrower than the
@@ -393,10 +397,27 @@ flag value, which the verb keeps to one line at the write, renders as one line e
 decision triples read back as one paragraph are six decisions nobody will read; a multi-line field
 is one value and is rendered whole. A verdict names its criterion
 by number and quotes the text it judged; one with no evidence is refused; a criterion with no
-verdict keeps the issue out of `tested`. The kind of evidence a criterion needs is its author's to
+verdict keeps the issue out of `tested`. An evidence document is attached once under one name, and
+an amended one goes up under a new name that the later verdicts cite, because a name attached twice
+resolves to two documents and every verdict naming it is ambiguous (ISS-55 owes the refusal). The kind of evidence a criterion needs is its author's to
 name and the reviewer's to judge; the contract checks presence and the commit, not truth. Whether
 a criterion is really two is a warning at the write, from a conjunction list the project's prose
 language supplies, never a refusal.
+
+**A change that claims no behaviour change earns `tested` by identity.** A refactor has nothing to
+observe, so its criteria are the three things a move can break: the export surface of every touched
+module diffed name for name against the base, the suite green from the new locations with the count
+of tests it ran before and after, and history reaching each moved file through the rename. Each has a
+verdict naming the commit. The suite is the one that catches a path that stopped resolving, which is
+the one behaviour a move has, and the ninth dry run broke four of them. A verification for such a change
+names the identity check as its place, not a screen.
+
+**A criterion a program can decide ships as a check.** When the evidence a criterion asks for is a
+comparison a program can make — a gate exits zero, a count did not fall, every named path resolves —
+the verdict that earns it is a check in the tree that fails when what it guards is broken: for a new
+rule, on the tree without the change; for a property preserved, when the tree and the base differ. The
+criterion names the check. A verdict written from one run proves that run; a check proves every run after it, and the
+ninth dry run's most durable output was the one check the contract had not asked for.
 
 **The schema is the document.** `forge schema forge_issues` and `forge advance --owed` carry the
 entry criteria in the tool's own words. Nothing in the skill repeats them.
@@ -679,3 +700,33 @@ one was the verb's.
 - The read-first gate now credits `forge resume` as a read of the first page of comments, and says
   when more exist. A gate satisfied by a partial read is a seam; ISS-17's cursor is what closes it.
 
+## Ninth dry run — ISS-49
+
+One agent turned on the directory-width check and moved most of `plugin/src`, `plugin/test` and
+`plugin/hooks` into responsibility-named subdirectories: no behaviour change, eighty renames, four
+commits, 3.32.1. Every payload was typed and every transition was the verb's.
+
+- The contract had no shape for "the same code, elsewhere". The agent invented identity evidence —
+  the export surface diffed, the test count held, history reaching each file — and it is now the
+  rule above.
+- Four of eleven criteria were properties a program can decide; three became checks in the tree and
+  one stayed prose because nothing resolves a `Proof:` path in the spec (ISS-53). The rule above says
+  a decidable criterion ships as a check.
+- Six consults, all clean, and the recheck verb was unreachable: it refuses when no finding was
+  logged. The earning read was two whole-file passes named as such in a correction, which the rule
+  above now allows; ISS-51 owes the verb.
+- The evidence file was attached twice under one name after a section was appended, and ten verdicts
+  cite the name. ISS-55; the rule above says an amendment takes a new name.
+- `git add -A docs/` passed the bash guard and staged the untracked file the brief had forbidden;
+  the agent caught it in the commit's file list and amended. ISS-50.
+- The read-first gate refused `forge plan` twice after the comments had been listed, because a
+  subagent's read is invisible (ISS-33); the same gate never looked at `record`, `advance` or
+  `claim`, which write the record now (ISS-57, blocked by ISS-33).
+- The brief handed the agent the claim's `--pushed` flag with a head after it, and the flag takes no
+  value; the CLI was right. A brief is a document too, and a form in it that the verb refuses costs a round.
+- The agent's correction record said the rechecks ran on whole files when the consult sent diffs and
+  the reviewer read the files itself; the agent posted a comment correcting its own record. Honest,
+  and the second time a correction has needed a correction.
+- Moving a file one level deeper broke four modules that each count `..` to the plugin root (ISS-52).
+  The gate's out-of-scope crash and its split output streams are ISS-54; a
+  round lost to `git_diff` with no path is ISS-56.
