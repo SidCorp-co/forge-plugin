@@ -234,7 +234,12 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
   touched, the one-line next step, the consult id and round with whether a recheck is owed, and the
   scratch decisions. A run that dies between two writes loses at most the work since the last one,
   and a successor that cannot continue from the record and the worklog has found a fact that belongs
-  in one of them.
+  in one of them. The push capture is made at the push, before the merge: after a fast-forward the
+  base equals the head and the files touched read as none, which the eighth dry run recorded on its
+  own issue. The worklog's set is the run's note and scopes nothing; the set that scopes the earning
+  review is the one the merging run writes into the mark from the commit that actually landed, and
+  where a queue landed a different commit the mark's set is the truth and the worklog is refreshed
+  from it. A brief that shows part of the record says how much it left out and where the rest is.
 - **Crashed is not failed.** An expired lease says nothing about the work. The status stands, the
   payloads written so far stand, and the next run resumes the phase the status owes. The third
   reclaim of one status parks the issue as `on_hold`, kind crashed, with the claim history as
@@ -647,4 +652,30 @@ review to the one mount that still took writes.
   documented nowhere; three trims. ISS-46.
 - Five codex rounds; the earning recheck ran on all eight files and found nothing. The reviewer
   read the bulk this time because the rule from the sixth run said it must.
+
+## Eighth dry run — ISS-22 and ISS-44
+
+One agent worked the lease's `next` line and holder identity, then the worklog and `forge resume`,
+two issues in sequence with its context intact. Every payload was typed and every transition but
+one was the verb's.
+
+- The one raw transition was ISS-19 again: a *relates* edge to an open issue counted as a blocker
+  at `in_progress`, the second run to pay for it. The tracker sends `gatesDispatch` on every edge
+  and the check ignores it; the fix is one filter. ISS-19 moves to the front of the queue.
+- `forge resume` on its own issue, judged by its author: one screen, a stranger could continue,
+  and four things missing. It headlines three record kinds and never says twenty more payloads
+  exist or where they print; the latest correction hides the earlier ones; `touched` was empty
+  because the capture ran after the merge; the `next` line was rightly cleared at `closed`. The
+  first two are ISS-47, the third is the rule above.
+- Both review records say `F1 accepted` for reviews of four and nine rounds, six and seventeen
+  findings, one rejected and re-accepted, one re-raised. A correction beside each is the only
+  honest record of the escalation; ISS-34 owes the grammar and until it lands the correction is the
+  route, said here so no run has to discover it.
+- A decision whose text began with the literal `--next` was refused as a flag with no value. The
+  parser is right; the constraint belongs in the verb's help (ISS-45).
+- A refused `--fields` name offers no route out, three times in a row. ISS-48.
+- The agent's own fixtures removed their temp directories and proved it; the rest of the suite left
+  244 in the same run. ISS-42 stands.
+- The read-first gate now credits `forge resume` as a read of the first page of comments, and says
+  when more exist. A gate satisfied by a partial read is a seam; ISS-17's cursor is what closes it.
 
