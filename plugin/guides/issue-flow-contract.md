@@ -354,6 +354,17 @@ by anyone, because nothing about it is held anywhere but the record.
 
 ## The mechanics
 
+This address is the index of the mechanics, and holds nothing else. How the record is kept honest
+between the stages is served in four parts, each taken when the stage that leans on it is reached:
+`forge guide contract earning-and-unearning` for what moves a status and what takes it back, read
+at `open` through `approved`; `forge guide contract the-review` for what a reviewer judged and when
+a review is done, read at `developed`; `forge guide contract evidence` for the shapes a payload
+takes and the checks that stand in for one, read at `tested`; `forge guide contract
+release-and-routes` for the installed copy, the schema and the gates every route shares, read at
+`released` and by anyone building a route.
+
+### Earning and unearning — what moves a status and what takes it back
+
 **Two sources, one recorded.** The tracker record is the only thing checked, so anything the
 repository knows — which commit merged, which commit a verdict judged — is written onto the issue
 at the step that knows it: the merged mark carries its commit, a review the head it judged, a
@@ -406,6 +417,8 @@ a field the kind does not take, no number the record did not carry, and one name
 list when the stored copy cannot be read, since a list of everything is a shortfall the record does
 not have.
 
+### The review — what a reviewer judged and when it is done
+
 **A review is two voices in one record.** The outcome is the reviewer's word about the diff at
 the head it judged, and nothing else: *approved* means the reviewer stood behind that head. The
 finding lines are the author's disposition of each finding by id, accepted or rejected with a
@@ -445,6 +458,8 @@ no longer fits, and is outside the change otherwise, rejected as such or filed o
 round whose only new findings are outside the change is the last round, since a reviewer that re-reads
 the whole set each time need never grant zero (the fifteenth dry run ran eleven rounds to learn this;
 ISS-77 owes the harness half).
+
+### Evidence — the shapes a payload takes and the checks that stand in for one
 
 **Evidence is typed at the write.** Every payload above is a write of a shape the CLI owns — a
 confirmation, a decision record, a question, a review, a verdict, a verification, a person's finding
@@ -512,6 +527,8 @@ invoked by path, because on a machine whose `forge` is the checkout the phrase p
 (ISS-71). A finding with words nobody said is a false record, and a
 false record is corrected and never removed, so it is better never written; the tenth dry run built the
 reopen and left it unrehearsed on a live issue for this reason.
+
+### Release and routes — the installed copy, the schema, and the gates every route shares
 
 **The version mark is part of the release.** The commit that moves the version is the one a rebase
 drops without a conflict when an identical bump already landed upstream, leaving a tree whose manifest

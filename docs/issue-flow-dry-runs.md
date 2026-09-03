@@ -493,3 +493,42 @@ first run cut twice by a provider incident and resumed from the record each time
 - The hook log's own view, `forge hooks --rounds`: the session that ran this work sat at one point one
   six refusals per refused write, against six point five for a session on the MCP route with twelve
   refusals of one tool. The five changes were sized against that row.
+
+## Sixteenth dry run — ISS-78
+
+One agent moved the contract into the plugin (3.35.9): the file lives under `plugin/guides/`, the
+`docs/` path is a pointer, `forge guide contract` prints a table of parts with a size and a command
+each, `forge guide contract <status>` prints one part off disk with no tracker call, every replacement
+route in the guide table names that verb instead of a checkout path, `forge advance --owed` ends with
+the line naming the part for the status it would enter, and `forge doctor` reports a copy whose
+contract file is missing, unnumbered or from another build. Twelve criteria, eight of them checks;
+the second agent to run in a worktree, alongside ISS-70.
+
+- The contract states its own number on its second line and the build reads it: two `CONTRACT = 1`
+  constants had been living in two modules, and the fold gave the number one home.
+- Codex caught a heading pattern that contradicted its own comment and a version range that would
+  have passed an older file silently once the number moved; both folded, each with a test that fails
+  without it.
+- `closed` and `dropped` share one part, `released` earns a hundred and ninety characters, and the
+  mechanics are seventeen thousand behind one address. Served by stage, the shape of the headings is
+  the shape of the read; the mechanics now carry subheadings, and the terminal pair stays one part
+  because the reopen table is the same for both.
+- The skill cited the contract nowhere, which is the whole reason a brief had carried it; Phase 1
+  now sets the read-at-the-stage discipline, and Phases 2 to 4 get their citations with this fold.
+  `references/plan.md` never named the plan's machine lines the contract requires.
+- A `git pull` that rewrote a file to the same bytes cost its verdict, and `--drop` then called the
+  file unconsulted; on ISS-70 as a distinct finding, which content rather than whose file.
+- `forge doctor` called a cache copy running and installed on the version alone while its skill text
+  was three paragraphs older than master's at the same version; on ISS-71.
+- No verb releases a lease, so a closed issue keeps a live holder for thirty minutes; the gate
+  delivered the tenth run's identical finding inside the refusal of the duplicate, which is the gate
+  doing its job. ISS-7.
+- The learning gate held a command whose only mention of a skill was a `grep` of it before a redirect
+  elsewhere, and the deny lost twelve unrelated appends. Written to the feedback folder before the
+  workaround, under the skill's own rule; ISS-81.
+- The brief said to probe a worktree's copy with `node …/bin/forge`, and the wrapper is a shell
+  script. The brief was wrong and is fixed.
+- The running session's skill copy stayed at the prior version while the agent edited the file, so
+  the spine it was served differed from the one it wrote. A skill edit reaches only sessions that
+  load it after.
+

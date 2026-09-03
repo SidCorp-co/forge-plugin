@@ -7,7 +7,7 @@ description: >-
   listing or filing issues without implementing them, use the forge skill instead.
   Triggers on "work ISS-nn", "implement this issue", "fix ISS-nn", "làm issue",
   "xử lý ISS-nn", "ship this issue".
-version: 2.1.5
+version: 2.1.6
 ---
 
 # Skill: issue-flow
@@ -134,16 +134,20 @@ What each outcome owes, and what a batch must keep true: `references/triage.md`.
 ## Phase 2 — Decide; clarify only under condition 2
 
 The default is to decide and record the assumption; asking is condition 2, and it parks the
-issue. `references/clarify.md`.
+issue. `references/clarify.md`; what the decision record earns: `forge guide contract clarified`.
 
 ## Phase 3 — Plan and acceptance criteria, in the issue's own fields
 
 Both land in fields of the issue, one each — never a local file: invisible to whoever reads
-the tracker, stale the moment the branch merges. `references/plan.md`.
+the tracker, stale the moment the branch merges. `references/plan.md`; the lines the plan must
+declare and what the criteria earn: `forge guide contract approved`.
 
 ## Phase 4 — Implement
 
-One branch cut from the project's actual default branch, named for the issues on it.
+One branch cut from the project's actual default branch, named for the issues on it. Where more
+than one session works the same checkout, each takes its own worktree, and the codex gate on a
+commit asks for what that commit stages. What `in_progress` reads: `forge guide contract
+in_progress`.
 
 **Do not silently expand scope** — a newly required file is a plan correction posted before
 you write it, not a forbidden edit.

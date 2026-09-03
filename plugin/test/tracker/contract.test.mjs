@@ -50,7 +50,8 @@ test("every status of the flow has a part, and the sections are the file's own h
   assert.deepEqual(keysOfAll(PARTS), [
     "the-issue-flow-contract", "the-constraint", "two-layers-one-record", "the-flow",
     "the-stages-scenario-by-scenario", ...STAGED.slice(0, 9), "dropped", "when-the-run-breaks",
-    "breaks-mid-run", "findings-mid-development", "the-mechanics", "what-it-does-not-do",
+    "breaks-mid-run", "findings-mid-development", "the-mechanics", "earning-and-unearning", "the-review",
+    "evidence", "release-and-routes", "what-it-does-not-do",
     "open-questions", "where-the-rules-came-from",
   ], "a heading renamed, dropped or added moves the command that reaches it, and says so here");
   const keys = keysOfAll(PARTS);
