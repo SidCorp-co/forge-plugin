@@ -164,6 +164,14 @@ const escapeOr = (got, wanted, said) => {
     : null;
 };
 
+/* When a kind owes evidence, answered once: the field says so for the deferred fill and the check
+   refuses by the same answer, so a check that also refuses something else cannot be mistaken for
+   this. A kind absent here owes none whatever its check says. */
+const OWES = {
+  park: (got) => SHOWS_EVIDENCE.includes(got.kind),
+  verdict: (got) => got.verdict !== "skipped",
+};
+
 export const SHAPES = {
   confirmation: {
     heading: "Confirmation",
@@ -191,11 +199,11 @@ export const SHAPES = {
     fields: [
       FIELD("kind", "Kind", { oneOf: PARKS }),
       FIELD("why", "Why"),
-      FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
+      FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.park }),
     ],
     stamp: FIELD("left", "Status left"),
     check: (got) =>
-      (SHOWS_EVIDENCE.includes(got.kind) && !got.evidence.length
+      (OWES.park(got) && !got.evidence.length
         ? `--evidence: a ${got.kind} park names what the reviewer is to look at`
         : null),
   },
@@ -213,12 +221,12 @@ export const SHAPES = {
       FIELD("criterion", "Criterion", { criterion: true }),
       FIELD("verdict", "Verdict", { oneOf: VERDICTS }),
       FIELD("commit", "Commit", { commit: true }),
-      FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
+      FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
       FIELD("why", "Why", { optional: true }),
     ],
     check: (got) => {
       if (got.verdict === "skipped" && !got.why) return "--why, for a skipped check";
-      if (got.verdict !== "skipped" && !got.evidence.length) return "--evidence (repeatable): a verdict with none is refused";
+      if (OWES.verdict(got) && !got.evidence.length) return "--evidence (repeatable): a verdict with none is refused";
       return null;
     },
   },

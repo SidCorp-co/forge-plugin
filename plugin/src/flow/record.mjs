@@ -260,10 +260,10 @@ export const fromRecord = (kind, got, { comments, names, hasMore = false }) => {
     console.error(`--commit ${marked}, from the merged mark's note.`);
   }
   const evidence = shape.fields.find((one) => one.evidence);
-  /* Owed by the shape's own rules, whichever of the two says so: a verdict's least is zero and its
-     check is what refuses, and a park's evidence is owed by the kind it carries. */
+  /* Asked of the field, never inferred from the check: a check refusing something else entirely
+     would otherwise read as the shape asking for evidence. */
   if (!evidence || got[evidence.flag]?.length) return;
-  if ((evidence.least ?? 1) < 1 && !shape.check?.(got)) return;
+  if ((evidence.least ?? 1) < 1 && !evidence.owed?.(got)) return;
   /* The author's own earlier citation, never the attachment set: a lone document the issue happens
      to carry is nobody's citation of it, and the first record of a loop still names one. */
   cut(evidence.flag);

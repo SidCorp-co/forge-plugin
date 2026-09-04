@@ -298,6 +298,21 @@ test("a routed finding names where it went, or says nothing was routed", () => {
   assert.match(refusedBy("routed", { none: "none came up", to: "ISS-80" }) ?? "", /--none is the whole record, so it takes no --to\./u);
   assert.match(refusedBy("routed", { none: "none came up", evidence: ["run.txt"] }) ?? "", /takes no --evidence\./u,
     "and the exclusion is read off what was given, so a field the check's own list omits is caught too");
+  /* The deferred fill reads a non-null check as the shape asking for evidence, which is true of the
+     two kinds whose field says so and false of one whose check refuses something else. */
+  for (const kind of Object.keys(SHAPES)) {
+    const held = SHAPES[kind].fields.find((one) => one.evidence);
+    if (!held || (held.least ?? 1) >= 1) continue;
+    assert.equal(typeof held.owed === "function", ["park", "verdict"].includes(kind),
+      `${kind}: when evidence is owed is the field's to answer, not the check's to imply`);
+  }
+  const filled = { comments: [], names: [], hasMore: false };
+  const half = { what: "a defect elsewhere", evidence: [] };
+  fromRecord("routed", half, filled);
+  assert.deepEqual(half.evidence, [], "a routed record missing --to is not asked for evidence it never owed");
+  const skipped = { criterion: "1", verdict: "skipped", commit: "117978d", evidence: [] };
+  fromRecord("verdict", skipped, filled);
+  assert.deepEqual(skipped.evidence, [], "and a skipped verdict owing only --why is not asked for evidence either");
 });
 
 test("a gap says where the method did not answer and what was done instead", () => {
