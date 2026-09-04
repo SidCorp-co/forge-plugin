@@ -2,7 +2,8 @@
 
 ## Before you edit
 
-Take a **baseline**: run the project's gate once, whole, and record what already fails. Without
+Take a **baseline**: run the project's gate once, whole and distrusting any remembered pass (`--full`
+here), and record what already fails. Without
 it a pre-existing red is indistinguishable from your regression, and you will either hide a
 defect or repair something that was never yours. If a baseline cannot be obtained, say so
 rather than proceeding as though it were green.
@@ -11,13 +12,13 @@ rather than proceeding as though it were green.
 leaves every step behind it unknown, and a baseline naming that one red is a baseline for
 nothing after it: run the remaining steps by hand and record what each answered.
 
-**That is one of the two whole runs a change owes, and the change's own tests run in between.**
-The baseline is the first; the second is on the tree the review commit will carry; every check between those is the test
-file of the change, or the one gate step a refusal named. Seven runs measured on 2026-09-04 ran the
-whole gate 111 times — a minute and a half each, 84 minutes of waiting for answers a targeted test
-gives in seconds — and the release step runs it once more on the same tree. A whole run after a
-one-line edit proves nothing the targeted test did not, and costs the turn.
-
+**Run the project's gate as often as the work changes it, and let the gate decide what that costs.**
+A gate that reads the diff and remembers its passes answers a one-line edit in seconds and an
+unchanged tree in none; one that runs everything every time is the gate's defect (ISS-119 reviews
+it), not a reason to run it less. Between whole runs, the test file of the change is still the
+fastest answer to one question. Seven runs measured on 2026-09-04 ran an unscoped gate 111 times,
+84 minutes of waiting; the scoped gate that replaced it on the same day answers a docs edit with
+three of twelve steps.
 ## The order
 
 1. **The repo's own gates.** Whatever the project defines. Passing them is the floor.

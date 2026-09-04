@@ -1039,3 +1039,26 @@ record.
   sighting; the record report reads the same thread fine, which is the discriminator.
 - `record criteria` reads the *and* inside a hyphenated slug as a conjunction, a warning; ISS-73. The
   worktree feedback path, again; ISS-123 is running on the tracker route that replaces the folder.
+
+## Thirty-sixth dry run — ISS-117
+
+One agent gave this repository the gate sid-growth already had (3.35.38 to 3.35.40): `npm run check`
+is one runner over twelve declared steps, scoped to the merge-base diff, widening when a changed path
+belongs to no step or the diff touches the runner, skipping a step whose inputs hash to its last green
+digest under the common git directory, `--full` to distrust it, and a gate step in the release script.
+Measured: a docs-only edit runs three of twelve steps, a test-file edit six, an unchanged tree none in
+no time; the full gate is green at the released head. Two fix releases followed a review of its own
+work, each with a case watched failing without it: a flag counted uncommitted paths where the help said
+it named them; a directory of document tests claimed by three filenames would have let a fourth skip on
+a docs edit; and the step table was checked in one direction, so a script no step named was invisible —
+a check that stops running on a tree that stays green — itself shadowed by a step labelled *test*. No
+restart owed. Folded from the record.
+
+- The rules file's verifying section changed with it, and the skill's verification reference, which
+  said this morning that the whole gate runs twice, was relaxed the same day: that rule was measured
+  against the unscoped gate, and a gate that reads the diff makes the count moot.
+- The consult's `--base <branch>` diffs two-dot, so a base that moved under the branch showed the other
+  side's commits as this branch's deletions and two findings were rejected by name that were artefacts;
+  filed as a bug. `forge comment --body` leaks a filesystem errno for a flag; ISS-73.
+- Four feedback notes from this run, two rescued from the worktree by looking before cleanup: the
+  folder defect ISS-123 is replacing. ISS-124, the scratch-directory leak, was ISS-125 again; dropped.
