@@ -1,3 +1,5 @@
+import { under } from "./scope.mjs";
+
 /* The gate's steps and the paths each one reads. Nothing is inferred: every step is a script this
    repository owns, spent as `npm run <label>`, so its reads were taken off that script. A step
    whose reads are too narrow does not fail — it passes without having run. */
@@ -5,13 +7,11 @@
 // Each top-level directory by name, `.` being the top-level files: three steps read the whole tree.
 export const EVERYTHING = [".", ".claude-plugin", "docs", "feedback", "packages", "plugin", "tools"];
 
-/* The suite's whole-repository readers: `sources-are-text` reads every tracked file, `contract`
-   every tracked `.md`, and the three under `checks/docs/` all of `docs/` against CLAUDE.md and the
-   skills. Left in one `test` step they make its honest reads the whole tree (ISS-117). */
+/* The suite's whole-repository readers: every tracked file, every tracked `.md`, and all of `docs/`
+   against CLAUDE.md and the skills. Left in one `test` step they make its honest reads the whole
+   tree; `checks/docs` is claimed whole so a fourth document test cannot miss it (ISS-117). */
 export const WHOLE_TREE_TESTS = [
-  "plugin/test/checks/docs/doc-claims.test.mjs",
-  "plugin/test/checks/docs/doc-index.test.mjs",
-  "plugin/test/checks/docs/docs-have-one-home.test.mjs",
+  "plugin/test/checks/docs",
   "plugin/test/checks/sources-are-text.test.mjs",
   "plugin/test/tracker/contract.test.mjs",
 ];
@@ -54,13 +54,15 @@ export const STEPS = [
   },
 ];
 
+export const readsWholeTree = (path) => WHOLE_TREE_TESTS.some((claim) => under(path, claim));
+
 export const gateSteps = (found) => {
-  const absent = WHOLE_TREE_TESTS.filter((one) => !found.includes(one));
+  const absent = WHOLE_TREE_TESTS.filter((claim) => !found.some((one) => under(one, claim)));
   if (absent.length > 0) {
-    throw new Error(`git reports no ${absent.join(", ")}, and tools/gates/steps.mjs names it as a `
-      + `whole-tree test. Correct the name there, or the suite runs it in no step.`);
+    throw new Error(`git reports no test file at ${absent.join(", ")}, and tools/gates/steps.mjs `
+      + `claims it as a whole-tree read. Correct it there, or the suite runs it in no step.`);
   }
-  const files = { named: WHOLE_TREE_TESTS, rest: found.filter((one) => !WHOLE_TREE_TESTS.includes(one)) };
+  const files = { named: found.filter(readsWholeTree), rest: found.filter((one) => !readsWholeTree(one)) };
   return STEPS.map((step) => {
     if (step.reads.length === 0) {
       throw new Error(`step ${step.label} declares no reads, so nothing can say when it is stale. `

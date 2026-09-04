@@ -41,9 +41,20 @@ test("a step declaring no reads is refused, and the refusal names it", () => {
   }
 });
 
-test("a named whole-tree test git does not report is refused rather than dropped", () => {
-  const short = tracked().filter((one) => one !== WHOLE_TREE_TESTS[0]);
-  assert.throws(() => gateSteps(short), new RegExp(`git reports no ${WHOLE_TREE_TESTS[0]}`, "u"));
+test("a claimed whole-tree read git reports nothing under is refused rather than dropped", () => {
+  const gone = WHOLE_TREE_TESTS[0];
+  const short = tracked().filter((one) => !under(one, gone));
+  assert.throws(() => gateSteps(short), new RegExp(`git reports no test file at ${gone}`, "u"));
+});
+
+/* A claim by directory rather than by name, because the half that runs the rest declares it does
+   not read `docs/`: a fourth document test named into it would skip on a docs-only edit. */
+test("a document test added under checks/docs joins the half that reads the whole tree", () => {
+  const found = [...tracked(), "plugin/test/checks/docs/a-fourth.test.mjs"];
+  assert.ok(filesOf(gateSteps(found), "test:tree").includes("plugin/test/checks/docs/a-fourth.test.mjs"));
+  for (const one of tracked().filter((path) => path.startsWith("plugin/test/checks/docs/"))) {
+    assert.ok(filesOf(gateSteps(tracked()), "test:tree").includes(one), `${one} runs in the narrow half`);
+  }
 });
 
 test("a test step whose half is empty is refused, because it would pass having run nothing", () => {
@@ -56,6 +67,26 @@ test("each script step names a script package.json defines", () => {
   const { scripts } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
   for (const step of STEPS.filter((one) => !one.tests)) {
     assert.ok(scripts[step.label], `no npm script named ${step.label}, which the gate spends by name`);
+  }
+});
+
+/* The other direction, which the runner's own refusals cannot reach: a gate script with no step in
+   the table is not a red step, it is a check that stopped running, and the tree stays green. */
+test("every script this repository gates with has a step, or is named as spent otherwise", () => {
+  const { scripts } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+  const labels = STEPS.map((step) => step.label);
+  const otherwise = {
+    check: "this runner",
+    test: "the whole suite at once, which test:tree and test split between them",
+    version: "npm's own hook on a version bump",
+    "sync:skills": "the writer sync:skills:check gates; running it would edit the tree",
+  };
+  for (const name of Object.keys(scripts)) {
+    assert.ok(labels.includes(name) || otherwise[name],
+      `npm script ${name} is in no gate step and tools/gates/steps.mjs does not say why`);
+  }
+  for (const name of Object.keys(otherwise)) {
+    assert.ok(scripts[name], `${name} is exempted here as ${otherwise[name]} and package.json has no such script`);
   }
 });
 

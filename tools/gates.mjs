@@ -73,18 +73,25 @@ if (elsewhere) {
 }
 
 const dirty = uncommittedInShared(ROOT);
+const listed = (say) => {
+  for (const one of dirty) say(`    ${one}`);
+};
 
 if (dirty.length > 0 && !allowDirty) {
   console.error(`${ROOT} is the checkout every session shares and it holds ${dirty.length} `
     + `uncommitted path(s), so a gate run here judges a tree nobody owns:`);
-  for (const one of dirty) console.error(`    ${one}`);
+  listed((line) => console.error(line));
   console.error(`Gate from a worktree of your own: node tools/run.mjs start <ISS-nn>`);
   console.error(`Or gate this tree as it stands, said out loud: npm run check -- ${ANYWAY}`);
   process.exit(1);
 }
 
 const banner = `gating ${ROOT} with ${dirty.length} uncommitted path(s), asked for with ${ANYWAY}`;
-if (dirty.length > 0) console.log(`\n${banner}`);
+
+if (dirty.length > 0) {
+  console.log(`\n${banner}`);
+  listed((line) => console.log(line));
+}
 
 /* Every exit past the banner, not the green one alone: the run that stops at a failing step is the
    one whose reader most needs to know it was told about a tree two sessions were writing. */

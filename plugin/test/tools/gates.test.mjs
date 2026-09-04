@@ -29,6 +29,8 @@ const write = (work, path, text) => {
   writeFileSync(join(work, path), text);
 };
 
+const NAMED = WHOLE_TREE_TESTS.map((one) => one.endsWith(".test.mjs") ? one : join(one, "one.test.mjs"));
+
 const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
 
 const run = (work, argv = [], cwd = work) =>
@@ -45,7 +47,7 @@ const scratch = (name, failing) => {
   const at = mkdtempSync(join(tmpdir(), `${name}-`));
   const work = join(at, "checkout");
   for (const one of COPIED) write(work, one, readFileSync(join(ROOT, one), "utf8"));
-  for (const one of [...PLACED, ...WHOLE_TREE_TESTS, "plugin/test/tools/one.test.mjs"]) {
+  for (const one of [...PLACED, ...NAMED, "plugin/test/tools/one.test.mjs"]) {
     write(work, one, one.endsWith(".test.mjs") ? `import test from "node:test";\ntest("${one}", () => {});\n` : `${one}\n`);
   }
   write(work, "package.json", JSON.stringify({ name: "scratch", version: "1.0.0", scripts: scripts(failing) }, null, 2));
@@ -208,6 +210,8 @@ test("the dirty shared checkout is refused, --anyway gates it and says so at bot
     assert.equal(anyway.status, 0, anyway.stdout + anyway.stderr);
     const banners = anyway.stdout.match(/asked for with --anyway/gu) ?? [];
     assert.equal(banners.length, 2, `the opt-in is named ${banners.length} time(s), not at both ends`);
+    // A count is not the paths, and the run's reader is the one who has to recognise them as theirs.
+    assert.match(anyway.stdout.split("=== scope:")[0], /asked for with --anyway\n {4}docs\/three\.md/u, anyway.stdout);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
