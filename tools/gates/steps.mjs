@@ -7,10 +7,11 @@ import { under } from "./scope.mjs";
 // Each top-level directory by name, `.` being the top-level files: three steps read the whole tree.
 export const EVERYTHING = [".", ".claude-plugin", "docs", "packages", "plugin", "tools"];
 
-/* The suite's whole-repository readers: every tracked file, every tracked `.md`, and all of `docs/`
-   against CLAUDE.md and the skills. Left in one `test` step they make its honest reads the whole
-   tree; `checks/docs` is claimed whole so a fourth document test cannot miss it (ISS-117). */
+/* The suite's whole-repository readers: every tracked file, every `.md`, all of `docs/` against
+   CLAUDE.md and the skills, and every path this repository's own prose cites. Left in one `test` step
+   they make its honest reads the whole tree; `checks/docs` is claimed whole (ISS-117). */
 export const WHOLE_TREE_TESTS = [
+  "plugin/test/checks/cited-paths.test.mjs",
   "plugin/test/checks/docs",
   "plugin/test/checks/sources-are-text.test.mjs",
   "plugin/test/tracker/contract.test.mjs",
@@ -25,8 +26,8 @@ export const STEPS = [
   {
     label: "test",
     tests: "rest",
-    /* No root document, proven not assumed: with all 29 non-`requirements` docs plus CLAUDE.md,
-       README.md and VI-NATURAL.md overwritten in a copy of the tree, these were 706 pass, 0 fail. */
+    /* No root document, proven not assumed: with all 31 non-`requirements` docs plus CLAUDE.md,
+       README.md and VI-NATURAL.md overwritten in place and restored, these were 860 pass, 0 fail. */
     reads: [
       ".claude-plugin",
       ".forge.json",

@@ -1,5 +1,5 @@
-/* Every case runs the real population through the real walk: one reaching neither the requirements
-   tree nor the scripts is a clean report and not a clean tree. */
+/* Every case runs the real population through the real walk: one reaching no file this repository
+   describes itself in is a clean report and not a clean tree. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
@@ -17,19 +17,45 @@ const list = (...args) =>
     .split("\n")
     .filter(Boolean);
 
-/* The population is the part of the tree that is clean today; widening it is an edit here. */
+/* The population is a decision and not the part of the tree that happened to be clean (ISS-191): the
+   files this repository describes itself in, because only there is a named path a claim this check can
+   judge. What is out carries its reason, and the case below holds the two to covering the whole tree. */
 const TREE = list();
 const READ = /\.(?:mjs|md)$/u;
-const POPULATION = list("docs/requirements", "plugin/scripts").filter((one) => READ.test(one));
+const DESCRIBES_THIS_TREE = ["CLAUDE.md", "README.md", "docs", "eslint.config.mjs", "packages",
+  "plugin/guides", "plugin/scripts", "plugin/src", "plugin/vi-natural", "tools"];
+const ANOTHER_TREE = {
+  "VI-NATURAL.md": "the vi-natural CLI's own manual, whose locale paths are its caller's",
+  "packages/code-quality/CHANGELOG.md": "history: an entry's paths were its consumer's when written",
+  "packages/code-quality/README.md": "its examples are literal config values a consumer types, so no"
+    + " root can be put in front of them — ISS-201",
+  "packages/code-quality/claude-plugin": "the copy sync:skills:check pins to plugin/skills",
+  "plugin/hooks": "module specifiers node resolves and the working tree does not — ISS-197",
+  "plugin/skills": "method loaded into another checkout, held by check:skill-paths to naming no path",
+  "plugin/test": "a fixture path is invented on purpose, and every case below is one",
+};
+const out = (rel) =>
+  Object.keys(ANOTHER_TREE).some((claim) => rel === claim || rel.startsWith(`${claim}/`));
+const POPULATION = list(...DESCRIBES_THIS_TREE).filter((one) => READ.test(one) && !out(one));
 const files = POPULATION.map((rel) => ({ rel, text: readFileSync(join(ROOT, rel), "utf8") }));
 
 const said = (rel, text) => problems([{ rel, text }], TREE);
 
-test("no clause and no script cites a path that names no file", () => {
+test("nothing this repository says of itself cites a path that names no file", () => {
   assert.ok(TREE.length > 300, `${TREE.length} path(s) tracked; the tree is read too narrowly`);
-  assert.ok(files.length > 20, `${files.length} file(s) in the population; the selector matches too little`);
+  assert.ok(files.length > 150,
+    `${files.length} file(s) in the population; the selector matches too little`);
   const found = problems(files, TREE);
   assert.deepEqual(found, [], `a citation names no file:\n${found.join("\n")}`);
+});
+
+/* A part of the tree in neither list is one nothing decided about, and it reads as a clean run. */
+test("every source and document in the tree is read, or left out for a reason named here", () => {
+  const claimed = [...DESCRIBES_THIS_TREE, ...Object.keys(ANOTHER_TREE)];
+  const unplaced = TREE.filter((one) => READ.test(one))
+    .filter((one) => !claimed.some((claim) => one === claim || one.startsWith(`${claim}/`)));
+  assert.deepEqual(unplaced, [], `neither read nor accounted for:\n${unplaced.join("\n")}`);
+  assert.ok(Object.values(ANOTHER_TREE).every((why) => why.length > 30), "each exclusion says why");
 });
 
 /* Each in the form it was in: a header comment, and a criterion's `Proof:` field. */

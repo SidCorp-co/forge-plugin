@@ -272,8 +272,8 @@ const packageScripts = (root) => {
   return names;
 };
 
-/* Dangling and imprecise deserve different weight: `lib/formatters.ts` against
-   `dashboard/frontend/src/lib/utils/formatters.ts` is stale, not missing. */
+/* Dangling and imprecise deserve different weight: `<project>/lib/formatters.ts` against
+   `<project>/dashboard/frontend/src/lib/utils/formatters.ts` is stale, not missing — the read tree's. */
 const basenames = (root) => {
   const found = new Set();
   const visit = (dir, depth) => {

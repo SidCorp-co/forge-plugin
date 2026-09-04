@@ -146,7 +146,8 @@ if (py.status !== 0) {
 }
 const theirs = JSON.parse(py.stdout);
 // `order` has no python counterpart: python dicts already keep insertion order, so the property
-// only needs proving on the node side, which tools/check-order.mjs does.
+// only needs proving on the node side, which this script's own `--goldens` mode does: the
+// goldens hold `order` and that run compares every key, this one being the only skip.
 const bad = report(theirs, mine, new Set(["order"]));
 process.stdout.write(bad ? `${bad} behaviour(s) differ\n` : "node and python agree on every case\n");
 process.exit(bad ? 1 : 0);

@@ -73,7 +73,7 @@ Run it first when anything refuses.
 
 ### What else lives in `~/.config/forge/`
 
-`config.json` also holds two keys `doctor` writes and the rest of the CLI reads:
+`~/.config/forge/config.json` also holds two keys `doctor` writes and the rest of the CLI reads:
 
 - **`capabilities`** — per project, which tools refused this credential and when. The usage list,
   `forge tools` and `forge schema` withhold anything recorded here, so **a verb can be missing

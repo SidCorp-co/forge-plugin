@@ -10,9 +10,9 @@ const SOURCE = "(?:mjs|cjs|js|[jt]sx?|json|md|sql|ya?ml|sh|py|toml)";
 const SEGMENT = "[\\w.@-]+";
 const NAMED = new RegExp(`^(?:\\.\\.?/)?${SEGMENT}(?:/${SEGMENT})*\\.${SOURCE}$`, "u");
 
-/* An extension used as a noun is not a path; a fragment is a place in a file. A lone filename is
-   read only in a span or a link target, R-19's line. The right boundary is the whole of it, or
-   `docs/a.md.bak` reads as `docs/a.md` and a citation of no file passes on a prefix of one. */
+/* An extension used as a noun is not a path; a fragment is a place in a file; a lone filename is
+   read only in a span or a link, R-19's line. Each end bounds it: `docs/a.md.bak` is not cut back to
+   the `.md` that resolves, and none starts after a separator — `<project>/lib/x.ts` is another tree's. */
 const A_NOUN = /^\.[\w.]+$/u;
 const PLACE = /[#?].*$/u;
 const SHAPES = [

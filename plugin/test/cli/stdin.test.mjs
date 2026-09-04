@@ -6,6 +6,7 @@ import test from "node:test";
 import { PassThrough } from "node:stream";
 import { spawnSync } from "node:child_process";
 
+import { homeEnv } from "../fixtures.mjs";
 import { INTENT_MS, PAYLOAD_MS, stdinText } from "../../src/resolve/payload.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -93,15 +94,20 @@ test("a pipe that closes with nothing on it is a caller who meant to send someth
 });
 
 /* The verb that reads a payload from `-` and the consult that reads an intent share the reader, so
-   neither can wait forever while the other does not. */
+   neither can wait forever while the other does not. On `feedback` and not `new`, whose priority rank
+   is fetched off the tracker's declaration before the body is read: with a fresh config directory that
+   spends the retries and refuses on the endpoint, so the case passed only where the developer's own
+   credential answered (ISS-177). `feedback` reaches the reader before anything is resolved. */
 test("a `-` payload on a silent pipe is refused with the deadline in the refusal", () => {
-  const run = spawnSync(FORGE, ["new", "-", "--title", "never filed"], {
+  const run = spawnSync(FORGE, ["feedback", "-", "--title", "never filed"], {
     encoding: "utf8",
-    env: process.env,
+    env: homeEnv("stdin-deadline"),
     input: "",
     timeout: 30_000,
   });
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /`-` read nothing from stdin/u);
+  assert.doesNotMatch(run.stderr, /No Forge endpoint/u,
+    "and it is the reader's refusal, not the one an unconfigured endpoint produces first");
   assert.ok(PAYLOAD_MS >= 5 * INTENT_MS, "a payload waits far longer than an intent, being the command itself");
 });

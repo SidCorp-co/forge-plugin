@@ -210,8 +210,8 @@ const CLAIMS = [
   ["uncitedIdentifiers", "claude.md id", "is cited and is defined nowhere else in the repo"],
 ];
 
-/* Imprecise rather than dangling — the file exists, under another path. Volume is the reason this
-   is a count: `port-plan.md` for `docs/port-plan.md` is worth one line, not twenty-nine. */
+/* Imprecise rather than dangling — the file exists, under another path. Volume is the reason this is
+   a count: port-plan.md for the read tree's `<project>/docs/port-plan.md` is one line, not twenty-nine. */
 const reportStale = (stale) => {
   if (!stale.length) return;
   const shown = stale.slice(0, 3).join(", ");

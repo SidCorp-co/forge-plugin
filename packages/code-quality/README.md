@@ -619,7 +619,7 @@ import { directivesFor, FIX_POLICY, CROWDED_DIRECTORY_DIRECTIVE } from "eslint-p
 directivesFor(["max-lines", "code-quality/comment-density"]); // one string, deduped
 ```
 
-The hook ships a verbatim copy because Claude Code installs `claude-plugin/` alone into a versioned cache; `test/plugin-isolation.test.js` pins the two together.
+The hook ships a verbatim copy because Claude Code installs `claude-plugin/` alone into a versioned cache; `test/cli/plugin-isolation.test.js` pins the two together.
 
 ## Claude Code plugin
 
