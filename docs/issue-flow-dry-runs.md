@@ -1062,3 +1062,28 @@ restart owed. Folded from the record.
   filed as a bug. `forge comment --body` leaks a filesystem errno for a flag; ISS-73.
 - Four feedback notes from this run, two rescued from the worktree by looking before cleanup: the
   folder defect ISS-123 is replacing. ISS-124, the scratch-directory leak, was ISS-125 again; dropped.
+
+## Thirty-seventh dry run — ISS-125
+
+One agent made every test's scratch directory come from one helper (3.35.41): each room sits inside a
+single root per test process, named for its pid, removed once at exit, and — since a kill runs no
+handler — any root of an exited process is swept when the next room is asked for; a directory the
+fixture never named is never touched. A hundred and eighteen lines across fifty-two files, the
+code-quality package carrying its own copy because it travels alone. Three cases, each watched failing:
+what a process leaves in a temp directory of its own, a planted root of a dead pid swept by the next
+process, and the raw temp-directory call refused in any tracked test file. Measured with the temp
+directory redirected: a suite that left twenty-nine directories leaves none, the package's hundred leave
+none, a whole gate leaves nothing of ours. Codex raised five: three were the moved base read two-dot
+(ISS-129, the same day), two were real — a killed process and a literal-only match — and became the pid
+sweep and the identifier match. Closed by its run. Folded from the record.
+
+- Measuring anything machine-global is unreadable while parallel agents run: the first post-fix count
+  showed sixty-three new directories and read exactly like a fix that had not worked; they were two
+  other worktrees on the old fixtures. The method: give the measured run its own temp directory and
+  count inside it. The gap record landed after the close, so the journal is where it is read.
+- Fourteen criteria judged against a merged commit that moved twice made forty-two verdict comments,
+  which is what capped the page and sent the last three transitions by hand. The agent filed ISS-131
+  for the CLI half — the refusal reads a payload cap as a count and routes to the one write nothing
+  checks — beside ISS-17's tracker half; its edge to ISS-17 was refused for want of a lease.
+- The ESLint rule that would ban the raw call at the source and a fixture kept for inspection behind a
+  flag stay on ISS-42 and ISS-124 as finder's notes; the agent's own check case covers the suite.
