@@ -1678,3 +1678,27 @@ next reading. No restart owed. Closed by its run. Folded from the record.
 - Two shas on the record deliberately: the review cites the reviewed head and the landing another,
   with the mark's note carrying both and the byte-identical patch as the reason — ISS-156's rule, spent
   the first time by a run other than its own.
+
+## Sixty-fourth dry run — ISS-51
+
+One agent retired the workaround every brief this week carried by hand (3.35.73). The recheck refusal
+had shared one sentence, naming no route, across three situations — no answered consult on the files, an
+answered one that read only part of the set, and a whole-set pass that found nothing — and each now
+carries the exact command that clears it, quoted for the shell. The reviewer's diff tool, asked with no
+path, had handed over the whole checkout against the head, so a review judged the branch for code it
+never touched; it now answers with the diff the consult is anchored to over the files named, and reports
+a scoped failure instead of widening. Six review rounds, ten findings, all accepted and refuted. The
+anchor wiring is covered by a real recheck against a stand-in gateway, since no unit test reaches it. No
+restart owed. Closed by its run. Folded from the record.
+
+- The most useful outcome of the rounds was a deletion: the whole-set branch had been asserting a
+  contract-level conclusion — no further round owed — out of log fields, and three rounds each found
+  another way the fields could lie, so the claim is gone and the document says a refusal reports the log
+  and stops there. A refusal states what it read, never what it concludes.
+- The other half is elsewhere: the flow's owed reading still reports a recheck owed after a clean
+  whole-set pass, so until that lands the flow keeps pointing runs at a verb the CLI now refuses. The run
+  posted it on an issue that had already closed; re-homed by the parent as ISS-230, the same lesson the
+  batch review taught one run earlier.
+- The run corrected its own filing: an out-of-scope clause said the ship's version commit conflicting on
+  every rebase was worth a note if it recurred, and it had recurred twice inside that run; the note was
+  posted rather than leaving a prediction the run had itself falsified (ISS-225).
