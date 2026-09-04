@@ -5,7 +5,7 @@ import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { fail, keepOnFailure, projectScope, translateScope, useProject } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { agentOf } from "../flow/lease.mjs";
-import { copyToRun, pluginCopy } from "./plugin-copy.mjs";
+import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { MAX_LIMIT, listIssues, rowsOf } from "../tracker/issues.mjs";
 import { postComment } from "../tracker/comments.mjs";
 import { inFlowWords, openTitles, shapeOf, shapeRefusal, trackerFields } from "../tracker/issue-shape.mjs";
@@ -39,14 +39,13 @@ export const USAGE = [
 const whereSection = () => {
   const caller = projectScope();
   const prose = translateScope();
-  const copy = copyToRun();
-  const mine = pluginCopy();
-  const stale = mine?.stale ? `, with ${mine.installed} installed` : "";
+  const mine = hereCopy();
+  const held = pluginCopy();
+  const stale = held?.stale ? `, and ${held.installed} is the installed one` : "";
   return [
     "## Where",
     "",
-    `- forge ${mine?.running ?? copy.version ?? "an unreadable version"}${stale}`,
-    `- the ${copy.kind} copy at ${copy.dir}`,
+    `- forge ${mine.version ?? "an unreadable version"} at ${mine.dir}${stale}`,
     `- met from project ${caller.value ?? "(none)"} (${caller.from ?? "nowhere"}), prose ${prose.value ?? "as written"}`,
     `- agent ${agentOf()}, in ${process.cwd()}`,
   ].join("\n");

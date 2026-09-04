@@ -68,8 +68,7 @@ test("the Where section is written by the verb and names the copy, the version a
   const run = await send(["feedback", note(), "--title", TITLE]);
   const filed = run.filed.args.data.description;
   assert.match(filed, /^## Where$/mu);
-  assert.match(filed, /^- forge \d+\.\d+\.\d+/mu);
-  assert.match(filed, /^- the (?:checkout|installed|this) copy at \//mu);
+  assert.match(filed, /^- forge \d+\.\d+\.\d+ at \/.*\/plugin(?:,|$)/mu);
   assert.match(filed, /^- met from project somewhere-else \(\.forge\.json\), prose vi$/mu);
   assert.match(filed, /^- agent .+, in /mu);
 });

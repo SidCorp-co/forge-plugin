@@ -68,6 +68,9 @@ const installedAbleToRun = (name, entry, record) => {
 
 const versionAt = (dir) => read(join(dir, ".claude-plugin", "plugin.json"))?.version ?? null;
 
+/** The copy running this, whatever any record holds: `copyToRun` answers which one the link would. */
+export const hereCopy = (root = HERE) => ({ dir: resolve(root), version: versionAt(root) });
+
 /** Which copy a call through the link on PATH runs, and why that one: the checkout the working
  *  directory sits in, else the newest installed copy that resolves, else this one. `entry` defaults
  *  to this CLI's, which is the copy doctor asks about. */
