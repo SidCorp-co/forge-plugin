@@ -104,12 +104,12 @@ export const dirtyRepo = () => {
 };
 
 const DECLARED = ["forge_issues", "forge_comments", "forge_projects.list", "forge_uploads",
-  "forge_projects.get", "forge_config"];
+  "forge_projects.get", "forge_config", "forge_memory.search"];
 /* `scoped` reads the schema to know whether to send the project id, so a tool declared with no
    properties is one a verb calls unscoped — which is a real call the tracker would refuse. Both of
    these declare one, so the id lookup runs, and the listing that answers it is served below from
    this repository's own slug rather than left for every suite to stub. */
-const TAKES_PROJECT = ["forge_projects.get", "forge_config"];
+const TAKES_PROJECT = ["forge_projects.get", "forge_config", "forge_memory.search"];
 const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
 const ownSlug = () =>
   JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", ".forge.json"), "utf8")).slug;
@@ -156,6 +156,16 @@ export const fakeTracker = async (state) => {
     const held = (state.comments ?? {})[args.filters?.issue] ?? [];
     return { comments: held, returned: held.length, hasMore: false };
   };
+  /* `state.memory` is `[issue, score]` per strategy; the uuid a hit carries is resolved here. */
+  const memory = ({ strategy }) =>
+    ((state.memory ?? {})[strategy] ?? []).map(([key, score]) => ({
+      source: "issue",
+      sourceRef: [...(state.issues ?? []), ...(state.hidden ?? [])]
+        .find((one) => one.issueId === key)?.documentId ?? key,
+      text: `${key} as it was embedded`,
+      score,
+      stale: false,
+    }));
   const served = createServer(async (request, response) => {
     if (state.status) {
       response.writeHead(state.status, { "Content-Type": "text/plain" });
@@ -172,10 +182,17 @@ export const fakeTracker = async (state) => {
        `isError` and no structured content: the shape a verb's way out is reached by. */
     if (own) {
       const answered = own(args);
+      /* `{ http: n }` is the transport failing rather than the tool refusing: only one catchable. */
+      if (answered?.http) {
+        response.writeHead(answered.http, { "Content-Type": "text/plain" });
+        response.end("gateway");
+        return;
+      }
       result = answered?.refused
         ? { isError: true, content: [{ type: "text", text: answered.refused }] }
         : { structuredContent: answered };
     }
+    else if (name === "forge_memory.search") result = { structuredContent: { hits: memory(args) } };
     else if (name === "forge_issues") result = { structuredContent: issues(args) };
     else if (name === "forge_comments") result = { structuredContent: comments(args) };
     else if (name === "forge_projects.list") {

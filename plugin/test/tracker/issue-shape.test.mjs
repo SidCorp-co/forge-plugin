@@ -271,7 +271,12 @@ test("the verb refuses a fix with the three routes and the open issues naming wh
   assert.equal(run.status, 1);
   assert.match(run.stderr, /--into ISS-nn/u);
   assert.match(run.stderr, /--with ISS-nn/u);
-  assert.match(run.stderr, /--size fix\s+file it marked/u);
+  /* The mark stopped meaning "files it": where an open issue both reads like the filing and names
+     its place, the mark lands it there instead, and the route that promised a filing would be a
+     refusal telling a filer the wrong thing (ISS-139). */
+  assert.match(run.stderr, /--size fix\s+mark it, and the flow carries it on the light path/u);
+  assert.doesNotMatch(run.stderr, /--size fix\s+file it marked/u);
+  assert.match(run.stderr, /the mark lands it there as a finding/u);
   assert.match(run.stderr, /ISS-45/u, "the candidate is searched on the token the body names");
   assert.doesNotMatch(run.stderr, /ISS-70/u, "and a closed issue is no candidate");
   assert.match(run.stderr, /Name a route:/u, "and what it says is the whole of what to do");

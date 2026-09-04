@@ -7,9 +7,10 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { agentOf } from "../flow/lease.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { MAX_LIMIT, listIssues, rowsOf } from "../tracker/issues.mjs";
-import { postComment } from "../tracker/comments.mjs";
-import { filedAs, inFlowWords, openTitles, rankOf, shapeOf, shapeRefusal, trackerFields }
+import { mustBeShown, postComment } from "../tracker/comments.mjs";
+import { filedAs, inFlowWords, isFix, openTitles, rankOf, shapeOf, shapeRefusal, trackerFields }
   from "../tracker/issue-shape.mjs";
+import { foldOnto, foldedInto, neighboursOf, suggestionLines } from "../tracker/neighbours.mjs";
 import { write } from "../tracker/rpc.mjs";
 
 /** This plugin's project, read from no checkout: the caller's `.forge.json` says where a note came
@@ -26,6 +27,12 @@ export const USAGE = [
   "",
   "  --title T   what is true once it is fixed, one line. A title already open on that project",
   "              takes the note as a comment instead of filing a second issue.",
+  "  --new       file it even where the mark would have folded it onto a neighbour, and say which",
+  "",
+  "Past the title, every note is measured against what is already open on that project the way a",
+  "filing is: `forge new -h` carries the two questions, the floor and the fold, and this verb prints",
+  "the same block under its result. A note marked `Size: fix.` lands on the nearest of the",
+  "neighbours that name its place, as a finding rather than as an issue of its own.",
   "",
   `The body is read against the ${KIND} shape: What happened, Outcome, Rules and Out of scope are`,
   "required, and `forge new -h` prints what each wants. Where is filled in for you — the plugin",
@@ -57,12 +64,13 @@ const whereSection = () => {
    caller can predict. */
 const plain = (title) => String(title ?? "").toLowerCase().replace(/\s+/gu, " ").trim();
 
-/* The page and a search both, the listing offering no cursor (ISS-17 owes it). */
+/* The page and a search both, the listing offering no cursor (ISS-17 owes it), and the page handed
+   back: what is open beside the note is asked of it rather than of a third call. */
 const openUnder = async (title) => {
   const page = openTitles(rowsOf(await listIssues({}, MAX_LIMIT)));
   const found = openTitles(rowsOf(await listIssues({ search: title }, MAX_LIMIT)));
   const byKey = new Map([...page, ...found].map((one) => [one.issueId, one]));
-  return [...byKey.values()].find((one) => plain(one.title) === plain(title)) ?? null;
+  return { live: page, held: [...byKey.values()].find((one) => plain(one.title) === plain(title)) ?? null };
 };
 
 const lost = (what, refused) => fail(`${PROJECT} refused ${what}: ${refused}`);
@@ -72,12 +80,13 @@ export const feedback = async (argv) => {
   if (wantsHelp(argv)) return console.log(USAGE);
   const [path, ...rest] = argv;
   if (!path) fail(usageOf("feedback"));
-  const { title, ...extra } = flags(rest, "feedback");
+  const { title, new: fresh, ...extra } = flags(rest, "feedback", ["--new"]);
   if (!title) fail("A note needs --title: one line saying what is true once it is fixed.");
   const unknown = Object.keys(extra);
   if (unknown.length) {
-    fail(`feedback takes --title and nothing else; ${unknown.map((one) => `--${one}`).join(", ")} names`
-      + ` no flag of it. The kind is always ${KIND}, the project is always ${PROJECT}, and Where is filled in.`);
+    fail(`feedback takes --title and --new and nothing else; ${unknown.map((one) => `--${one}`).join(", ")}`
+      + ` names no flag of it. The kind is always ${KIND}, the project is always ${PROJECT}, and Where is`
+      + " filled in.");
   }
   /* Registered the instant there is one to lose, a body from stdin being held nowhere else. What
      it claims, and the one refusal above this line that it cannot reach: docs/cli/feedback.md. */
@@ -87,17 +96,32 @@ export const feedback = async (argv) => {
   const body = `${written.replace(/\s*$/u, "")}\n\n${whereSection()}\n`;
   keep(body);
   /* Body-only: the tracker-reading refusal refuses a near-duplicate, and this takes one as a comment. */
-  const refusal = shapeRefusal(shapeOf({ title, body, kind: KIND }, { everySection: true }));
+  const shape = shapeOf({ title, body, kind: KIND }, { everySection: true });
+  const refusal = shapeRefusal(shape);
   if (refusal) fail(refusal);
   /* Before the first call: everything below reaches the plugin's project, in its language. */
   useProject({ slug: PROJECT, from: "the CLI, for feedback on this plugin" });
-  const held = await openUnder(title);
+  const { live, held } = await openUnder(title);
   if (held) {
     const answer = await postComment(held.documentId, `## ${title}\n\n${body}`, null, true);
     if (answer?.refused) lost(`a comment on ${held.issueId}`, answer.refused);
     keepOnFailure(null);
     console.log(`${held.issueId} is open on ${PROJECT} under this title, so the note is a comment on it`
       + " rather than a second issue. No lease was taken.");
+    return undefined;
+  }
+  /* Asked second: a note whose title is already open belongs there whatever the memory says. */
+  const beside = await neighboursOf(shape, live);
+  const nearest = foldOnto(beside.suggestions);
+  const foldable = isFix(body);
+  const would = foldable && !fresh ? nearest : null;
+  if (would) {
+    await mustBeShown([{ ref: would.issueId, documentId: would.documentId }]);
+    const answer = await postComment(would.documentId, `## ${title}\n\n${body}`, null, true);
+    if (answer?.refused) lost(`a comment on ${would.issueId}`, answer.refused);
+    keepOnFailure(null);
+    console.log(`No open issue on ${PROJECT} carries this title, and ${foldedInto(would)}`);
+    for (const line of suggestionLines(beside, { nearest, foldable })) console.log(line);
     return undefined;
   }
   const ranked = await rankOf();
@@ -109,5 +133,6 @@ export const feedback = async (argv) => {
   console.log(`No open issue on ${PROJECT} carries this title, so the note is a new ${KIND} there.`);
   console.log(filedAs(answer, ranked.said));
   console.log(JSON.stringify(inFlowWords(answer), null, 2));
+  for (const line of suggestionLines(beside, { nearest, foldable, fresh: Boolean(fresh) })) console.log(line);
   return undefined;
 };

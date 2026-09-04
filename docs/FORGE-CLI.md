@@ -27,6 +27,7 @@ needs that topic and by nobody else.
 | [codex — the consult](cli/codex-the-consult.md) | Why no local agent is spawned, what travels instead of the bodies, what a round buys, and what a recheck is anchored to. |
 | [codex — the request](cli/codex-the-request.md) | Which cache the request is written for, what a consult replays, and what a path may reach. |
 | [codex — the log](cli/codex-the-log.md) | What the log makes a session out of, what the stats window answers, and what the commit gate demands before a commit. |
+| [`beside`](cli/beside.md) | What the create path asks the tracker before it files, the floor it drops a neighbour under, why a fix-size filing folds onto one only when two independent answers agree, and the cases it still cannot reach. |
 | [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue and not a file, where the destination project is held, and why a matching title routes on an exact match rather than an overlap score. |
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, what is withheld by default, and how the CLAUDE.md claims were calibrated. |

@@ -1,8 +1,8 @@
 /* `forge deps` — the graph as the issue BODIES state it, not the recorded edges, which no PAT can
    read. Two issues that disagree are the finding this verb exists for: docs/cli/deps.md. */
 import { depsConvention, fail } from "../resolve/settings.mjs";
-import { scoped } from "./rpc.mjs";
-import { MAX_LIMIT, listIssues, rowsOf, truncated } from "./issues.mjs";
+import { scoped } from "../tracker/rpc.mjs";
+import { MAX_LIMIT, listIssues, rowsOf, truncated } from "../tracker/issues.mjs";
 
 /* The marker sentence, and only it; the trailing period separates a claim from prose about one.
    The phrases come from the tracker's own `.forge.json`. */

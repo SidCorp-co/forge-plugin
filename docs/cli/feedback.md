@@ -36,6 +36,12 @@ refused. Both are routes a note does not have. A note is one shape, always the b
 shortcuts are switched off for it and every section is read; without that a note missing two of its
 four sections filed clean.
 
+**Past the title, a note is measured the way a filing is.** Both routes that file ask the tracker's
+own memory what is open beside what they are about to write, print it under the result, and land a
+marked note on the neighbour that shares its place rather than filing a second issue. The rules, the
+floor and the reason the fold answers to two signals instead of one are [`beside`](beside.md)'s,
+including why that reverses the paragraph above for the fold and not for the title.
+
 **It declares no backing tool, though it writes to one.** Every other verb with a tracker tool
 behind it names that tool, and a credential the server refuses it to loses the verb from `-h` and
 from the dispatcher. Those measurements are recorded per project — the one `forge doctor` ran in —

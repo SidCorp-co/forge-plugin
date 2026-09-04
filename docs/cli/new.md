@@ -27,9 +27,12 @@ than its shape, and three flags take such a filing instead of the tracker. `--in
 body as a comment there and files nothing, which is the route for a finding that belongs on an issue already open; it renews no lease,
 because a finding on an issue nobody holds is nobody's claim. `--with ISS-45` files it and writes a
 relates edge in the same create, so one branch, one review and one release carry both; it writes no
-mark, because the flow such a filing is carried by is the related issue's. `--size fix` files it
-marked. The refusal lists all three and, from a search on the token the body names, the open
-issues that are candidates for the first two.
+mark, because the flow such a filing is carried by is the related issue's. `--size fix` marks it,
+and a marked filing no longer always becomes an issue: where one already open both reads like it and
+names the same place, the mark lands it there as a finding instead, and `--new` is how a filer
+declines that. What is asked of the tracker to know, and why the fold needs two answers rather than
+one: [`beside`](beside.md). The refusal lists all three flags and, from a search on the token the
+body names, the open issues that are candidates for the first two.
 
 An empty body is refused before any heading is looked for, and the payload `-` refuses a stdin that
 is a terminal or that closed with nothing on it: reading to EOF on one nobody fed waited two minutes
@@ -92,6 +95,6 @@ tracker's own name for that field and for the size beside it sit in the one writ
 either of them instead is refused with the word that reads the body. The tracker's name for the size
 is refused tree-wide in any string a developer is shown; its name for the kind is an ordinary English
 word a gate prints for an unrelated meaning, so that one is held by a case over the kinds' own text
-rather than by a pattern over the tree. `--size fix` still writes the mark and nothing else: the flow's word for a size and the tracker's value for it meet in one statement, read
+rather than by a pattern over the tree. `--size fix` writes the mark and nothing else in the payload: the flow's word for a size and the tracker's value for it meet in one statement, read
 on the way back rather than written on the way in, because the line in the description is the only
 thing deciding the light path and a second copy would survive the undo above.

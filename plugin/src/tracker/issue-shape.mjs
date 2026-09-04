@@ -262,6 +262,22 @@ export const tokensNamed = (body, most = TOKENS) => {
   return found.slice(0, most);
 };
 
+/* The two queries the memory search is asked, off the same scan as the shape, and how much of a
+   section seeds the semantic one. Both, and the fold they feed: docs/cli/beside.md. */
+const SEED = 1000;
+
+export const placeIn = (body) => {
+  const where = sectionUnder(body, WHERE.heading);
+  return tokensNamed(where ?? "", 1)[0] ?? tokensNamed(body, 1)[0] ?? null;
+};
+
+export const seedFor = ({ title, body, kind = null }) => {
+  const text = String(body ?? "").replace(FENCE, "").replace(MARK, "");
+  const under = shapeFor(kind)?.needs.map((one) => sectionUnder(text, one.heading))
+    .find((one) => one?.trim());
+  return `${String(title ?? "").trim()}\n\n${(under ?? text).trim().slice(0, SEED)}`.trim();
+};
+
 const MODAL = /\b(?:should|must|shall|needs? to|ought to)\b/iu;
 const JOIN = " and ";
 const SENTENCE = /[^.!?\n]+[.!?]/gu;
@@ -373,8 +389,9 @@ const sectionGaps = (text, shape, among) =>
 export const shapeOf = ({ title, body, kind = null }, { everySection = false } = {}) => {
   const text = String(body ?? "");
   const written = text.replace(FENCE, "").replace(MARK, "").trim();
+  const asks = { place: placeIn(text), seed: seedFor({ title, body: text, kind }) };
   if (!written) {
-    return { gaps: [need(`${text.length} character(s) of body and no text in them`, "the issue itself: "
+    return { ...asks, gaps: [need(`${text.length} character(s) of body and no text in them`, "the issue itself: "
       + "what is true after the change, the rule that says so, and what is out of scope",
       "write the body to a file and name it, or pipe it in")], fix: false, tokens: [], said: null };
   }
@@ -399,12 +416,12 @@ export const shapeOf = ({ title, body, kind = null }, { everySection = false } =
   if (namesKind(kind) && !KIND_NAMES.includes(kind)) {
     gaps.push(need(`a kind of \`${kind}\`, which this CLI does not define`, KIND_WANTS,
       `set the kind to one of ${KIND_NAMES.join(", ")} ${RESEND}`));
-    return { gaps, fix: false, tokens, said: null };
+    return { ...asks, gaps, fix: false, tokens, said: null };
   }
   if (!everySection) {
-    if (isFix(text)) return { gaps, fix: false, tokens, said: null };
+    if (isFix(text)) return { ...asks, gaps, fix: false, tokens, said: null };
     if (tokens.length && !held(text, SCOPE).ok && !sectionUnder(text, RULES.heading)) {
-      return { gaps, fix: true, tokens, said: null };
+      return { ...asks, gaps, fix: true, tokens, said: null };
     }
   }
   const shape = shapeFor(kind);
@@ -414,7 +431,8 @@ export const shapeOf = ({ title, body, kind = null }, { everySection = false } =
     : "and the body has no heading at all";
   gaps.push(...sectionGaps(text, shape, among));
   const left = shape.says.filter((section) => !held(text, section).ok);
-  return { gaps, fix: false, tokens, said: noticeFor({ kind: shape.kind, named: namesKind(kind), left }) };
+  return { ...asks, gaps, fix: false, tokens,
+    said: noticeFor({ kind: shape.kind, named: namesKind(kind), left }) };
 };
 
 /** The newest page of issues still open to work, by title: the projection carries no description and
@@ -456,7 +474,8 @@ const alsoNamed = async (tokens, live) => {
 const fixRoutes = (tokens, candidates) => [
   `  --into ISS-nn   post this body as a comment on that issue and file nothing`,
   `  --with ISS-nn   file it and relate it, so one branch, one review and one release carry both`,
-  `  --size fix      file it marked, and the flow carries it on the light path`,
+  `  --size fix      mark it, and the flow carries it on the light path — where an open issue both`,
+  `                  reads like it and names the same place, the mark lands it there as a finding`,
   candidates.length
     ? `Naming ${tokens[0]}, still open: ${candidates.map((one) => `${one.issueId} ${one.title}`).join("; ")}`
     : `No open issue names ${tokens[0]}, so --size fix is the route unless you know one.`,
@@ -476,10 +495,10 @@ export const shapeRefusal = ({ gaps }) =>
  *  scanned twice for one filing is the reading done twice. Which way round matters — this asks the
  *  tracker what else is open, the line owes no such read, so the line is never fetched through here.
  *  `routed` is a route the command named and the body cannot show: a fix riding another issue's
- *  branch owes no mark, its flow being that issue's. */
-export const refusalFrom = async (filing, { gaps, fix, tokens }, { routed = false } = {}) => {
+ *  branch owes no mark, its flow being that issue's. `page` is a projection already fetched. */
+export const refusalFrom = async (filing, { gaps, fix, tokens }, { routed = false, page = null } = {}) => {
   const owesRoute = fix && !routed;
-  const { live, short } = await liveTitles();
+  const { live, short } = page ?? await liveTitles();
   const wider = [...live, ...await alsoNamed(tokens, live)];
   if (short) {
     console.error(`the duplicate check read the newest ${MAX_LIMIT} issues and the tracker holds more, `

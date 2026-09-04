@@ -22,10 +22,14 @@ const READS = ["list", "get", "listTasks", "snapshot", "graph", "runner_load", "
 const AMBIGUOUS = "This call may have been processed and is not sent again: idempotence is "
   + "documented for the merged mark alone, so a repeat could write twice. Read the record first.";
 
+/* A tool naming its action in its own name carries none in its arguments: docs/cli/beside.md. */
+const DOTTED = /\.([a-z_]+)$/u;
+const actionOf = (params) => params?.arguments?.action ?? DOTTED.exec(params?.name ?? "")?.[1] ?? null;
+
 const repeatable = (params) => {
   const args = params?.arguments;
   if (!args || !Object.keys(args).length) return true;
-  return READS.includes(args.action) && !args.data;
+  return READS.includes(actionOf(params)) && !args.data;
 };
 export const retryOf = (status, params) => {
   if (status === RATE_LIMITED) return "rate-limited";
@@ -148,7 +152,7 @@ const post = async (method, params) => {
   });
 };
 
-export const rpc = async (method, params) => {
+export const rpc = async (method, params, soft = false) => {
   let text = "";
   let response = null;
   let dropped = null;
@@ -170,24 +174,27 @@ export const rpc = async (method, params) => {
     await sleep(wait);
   }
   const owed = repeatable(params) ? "" : `\n${AMBIGUOUS}`;
-  if (dropped) fail(`Forge did not answer: ${dropped.message}.${owed}`);
+  const stop = (message) => (soft ? { refused: message } : fail(message));
+  if (dropped) return stop(`Forge did not answer: ${dropped.message}.${owed}`);
   if (!response.ok) {
-    fail(`Forge answered ${response.status}: ${text.slice(0, 400)}${TRANSIENT.includes(response.status) ? owed : ""}`);
+    return stop(`Forge answered ${response.status}: ${text.slice(0, 400)}`
+      + `${TRANSIENT.includes(response.status) ? owed : ""}`);
   }
   const frame = text.startsWith("event:") || text.startsWith("data:") ? sseData(text) : text;
   let parsed;
   try {
     parsed = JSON.parse(frame);
   } catch {
-    return fail(`Forge answered unparseable body: ${text.slice(0, 400)}`);
+    return stop(`Forge answered unparseable body: ${text.slice(0, 400)}`);
   }
-  if (parsed.error) fail(`Forge refused: ${JSON.stringify(parsed.error)}`);
+  if (parsed.error) return stop(`Forge refused: ${JSON.stringify(parsed.error)}`);
   return parsed.result;
 };
 
 /* `isError` is the tool's own refusal, not a transport failure, and must not read as success. */
-export const callTool = async (name, args, soft = false) => {
-  const result = await rpc("tools/call", { name, arguments: args });
+export const callTool = async (name, args, soft = false, transport = false) => {
+  const result = await rpc("tools/call", { name, arguments: args }, transport);
+  if (result?.refused) return result;
   const text = (result?.content ?? [])
     .filter((part) => part.type === "text")
     .map((part) => part.text)
@@ -250,23 +257,48 @@ export const toolNamed = async (name) => {
   return undefined;
 };
 
-/* An issue's project never changes, so the slug-to-id answer is cached with the tools. */
-export const projectId = async () => {
-  const slug = projectSlug();
+/* An issue's project never changes, so the slug-to-id answer is cached with the tools. Soft for the
+   caller whose call is a check beside its real work: the lookup is itself a call. */
+const idOfProject = async (soft) => {
+  const aimed = projectTarget().value;
+  if (!aimed && soft) return { refused: "no project slug is set" };
+  const slug = aimed ?? projectSlug();
   const known = stored().projects?.[slug];
-  if (known) return known;
-  const listed = await callTool("forge_projects.list", {});
+  if (known) return { id: known };
+  const listed = await callTool("forge_projects.list", {}, soft, soft);
+  if (listed?.refused) return listed;
   const projects = listed?.projects ?? listed?.data ?? (Array.isArray(listed) ? listed : []);
   const found = projects.find((project) => project.slug === slug || project.key === slug);
-  if (!found) fail(`No Forge project has slug ${slug}. Seen: ${projects.map((p) => p.slug)}`);
+  if (!found) {
+    const said = `No Forge project has slug ${slug}. Seen: ${projects.map((p) => p.slug)}`;
+    return soft ? { refused: said } : fail(said);
+  }
   writeCache({ projects: { ...(stored().projects ?? {}), [slug]: found.id } });
-  return found.id;
+  return { id: found.id };
 };
 
-/* The schema decides, not a list here that would go stale against the server it describes. */
-export const scoped = async (name, args, soft = false) => {
-  const wants = Boolean((await toolNamed(name))?.inputSchema?.properties?.projectId);
-  return callTool(name, wants ? { projectId: await projectId(), ...args } : args, soft);
+export const projectId = async () => (await idOfProject(false)).id;
+
+/* The schema decides, not a list that would go stale against the server it describes. */
+const aimed = async (name, args) =>
+  (Boolean((await toolNamed(name))?.inputSchema?.properties?.projectId)
+    ? { projectId: await projectId(), ...args }
+    : args);
+
+export const scoped = async (name, args, soft = false) => callTool(name, await aimed(name, args), soft);
+
+/* Aiming is itself calls, and `fail()` in one exits past the caller holding the refusal. */
+const readied = async (name) => {
+  const declared = (stored().tools ?? []).find((tool) => tool.name === name);
+  if (!declared) return { refused: `${name} is in no tool list this process has resolved` };
+  if (!declared.inputSchema?.properties?.projectId) return { args: {} };
+  const found = await idOfProject(true);
+  return found.refused ? found : { args: { projectId: found.id } };
+};
+
+export const tried = async (name, args) => {
+  const aim = await readied(name);
+  return aim.refused ? aim : callTool(name, { ...aim.args, ...args }, true, true);
 };
 
 /* One seat rather than a list of the payload kinds that may carry a secret, which is a list that

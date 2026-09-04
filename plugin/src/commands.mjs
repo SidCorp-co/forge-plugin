@@ -1,4 +1,4 @@
-import { fail } from "./resolve/settings.mjs";
+import { fail, keepOnFailure } from "./resolve/settings.mjs";
 import { bodyFrom } from "./resolve/payload.mjs";
 import { projectId, REFERENCE_KEYS, enumAt, scoped, toolNamed, tools, write } from "./tracker/rpc.mjs";
 import {
@@ -21,13 +21,17 @@ import {
   filedAs,
   inFlowWords,
   insteadOf,
+  isFix,
   kindRefusal,
+  liveTitles,
   rankOf,
   refusalFrom,
   shapeOf,
   trackerFields,
   withMark,
 } from "./tracker/issue-shape.mjs";
+import { BESIDE_HELP, foldOnto, foldedInto, neighboursOf, suggestionLines }
+  from "./tracker/neighbours.mjs";
 import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
@@ -36,7 +40,7 @@ import { dispositionOf, trackerHeader, visibleGuides } from "./tracker/guides.mj
 import { projectLines, releasePolicy, stagingDeploy } from "./tracker/project-config.mjs";
 import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./tracker/contract.mjs";
 import { doctor } from "./tools/doctor.mjs";
-import { deps } from "./tracker/deps.mjs";
+import { deps } from "./tools/deps.mjs";
 import { cloudflare } from "./tools/cloudflare.mjs";
 import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
@@ -52,13 +56,20 @@ const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
 
 /* Both routes that file an issue, refusing and saying through one place: what each says was pinned
-   to what the other says by hand, which is a pair of copies agreeing until one is corrected. The
-   read is taken here and passed on, so one body is scanned once however much is asked of it. */
+   to what the other says by hand, which is a pair of copies agreeing until one is corrected. One
+   body scanned once, and one open-issues page for the duplicate check and for what is open beside
+   the filing both. */
 const readFiling = async (filing, options) => {
   const shape = shapeOf(filing);
-  const refusal = await refusalFrom(filing, shape, options);
+  const page = await liveTitles();
+  const refusal = await refusalFrom(filing, shape, { ...options, page });
   if (refusal) fail(refusal);
   if (shape.said) console.error(shape.said);
+  return { shape, live: page.live };
+};
+
+const sayBeside = (beside, options) => {
+  for (const line of suggestionLines(beside, options)) console.log(line);
 };
 
 /* Absence means empty; the schema already says the field exists. */
@@ -144,7 +155,7 @@ const suggestTool = async (name) =>
 
 /* The one verb whose help is longer than its row: what a body is read against depends on the kind
    it names, and the table of that is the kinds' own. */
-const NEW_USAGE = `${helpOf("new")}\n\n${PRIORITY_HELP}\n\n${KINDS_HELP}`;
+const NEW_USAGE = `${helpOf("new")}\n\n${BESIDE_HELP}\n\n${PRIORITY_HELP}\n\n${KINDS_HELP}`;
 
 export const commands = {
   doctor,
@@ -177,6 +188,7 @@ export const commands = {
     if (!(await toolNamed(name))) fail(await suggestTool(name));
     refuseIfGated(name);
     const raw = json === undefined || json === "-" || json.startsWith("@") ? await bodyFrom(json ?? "-") : json;
+    if (json === undefined || json === "-") keepOnFailure(`Your payload, so that nothing loses it:\n\n${raw}`);
     if (!raw.trim()) fail(`No arguments given for ${name}. Pass json as an argument or on stdin.`);
     let args;
     try {
@@ -192,12 +204,19 @@ export const commands = {
     );
     if (targets.length) await mustBeShown(targets);
     /* And the shape a filing owes, here rather than only in the hook: the payload may arrive from a
-       file or from stdin, which the hook reading the command line cannot see. */
-    for (const filing of filingsOf({ name: `mcp__forge__${name}`, input: args })) await readFiling(filing);
+       file or from stdin, which the hook reading the command line cannot see. Told what is open
+       beside the filing and never folded onto it: this route asked for a create. */
+    let beside = null;
+    for (const filing of filingsOf({ name: `mcp__forge__${name}`, input: args })) {
+      const read = await readFiling(filing);
+      beside = await neighboursOf(read.shape, read.live);
+    }
     const wrote = Boolean(resolved.data);
     const answer = wrote ? await write(name, resolved) : await scoped(name, resolved);
     credited(name, resolved, answer);
+    keepOnFailure(null);
     show(answer);
+    if (beside) sayBeside(beside);
     /* The mark writes a comment of the tracker's own and this is the route it takes, so the page is
        read once more after the write and what it brought is delivered here (ISS-65). */
     if (wrote && targets.length) await creditAfter(name, targets);
@@ -231,7 +250,7 @@ export const commands = {
     if (wantsHelp(argv)) return console.log(NEW_USAGE);
     const [path, ...rest] = argv;
     if (!path) fail(usageOf("new"));
-    const { into, with: rides, size, kind, priority, ...given } = flags(rest, "new");
+    const { into, with: rides, size, kind, priority, new: fresh, ...given } = flags(rest, "new", ["--new"]);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
     if (size !== undefined && !SIZE_WORDS.includes(size)) {
       fail(`--size takes \`${SIZE_WORDS.join("`, `")}\`, the one size the contract gives a light path,`
@@ -248,6 +267,10 @@ export const commands = {
     const commenting = into !== undefined;
     const relating = rides !== undefined;
     if (commenting && relating) fail("--into posts a comment and --with files an issue. Ask for one of them.");
+    if (commenting && fresh) {
+      fail("--into posts the body on the issue you named and --new refuses to post it on an issue at "
+        + "all. Ask for one of them.");
+    }
     const named = [...(size === undefined ? [] : ["size"]), ...(kind === undefined ? [] : ["kind"]),
       ...(priority === undefined ? [] : ["priority"])];
     const filing = [...Object.keys(given).filter((one) => one !== "title"), ...named];
@@ -256,6 +279,9 @@ export const commands = {
         + "Drop it, or file the issue and comment on it separately.");
     }
     const body = await bodyFrom(path);
+    /* Registered the moment there is something to lose, and only then: a body from a file is on
+       disk, and one from stdin cannot be sent a second time. */
+    if (path === "-") keepOnFailure(`Your body, so that nothing here loses it:\n\n${body}`);
     /* A comment is not an issue and owes none of the shape; the read the write owes is still owed,
        and it takes no lease, because a finding on an issue nobody holds is nobody's claim. */
     if (commenting) {
@@ -265,12 +291,26 @@ export const commands = {
     }
     const description = size ? withMark(body) : body;
     const read = { title: given.title, body: description, kind: kind ?? null };
-    await readFiling(read, { routed: relating });
+    const { shape, live } = await readFiling(read, { routed: relating });
+    const beside = await neighboursOf(shape, live);
+    const nearest = foldOnto(beside.suggestions);
+    const foldable = isFix(description) && !relating;
+    const would = foldable && !fresh ? nearest : null;
+    if (would) {
+      /* The gate the named route takes, and owed more here: docs/cli/beside.md. */
+      await mustBeShown([{ ref: would.issueId, documentId: would.documentId }]);
+      show(await postComment(would.documentId, `## ${given.title}\n\n${description}`));
+      keepOnFailure(null);
+      console.log(foldedInto(would));
+      return sayBeside(beside, { nearest, foldable });
+    }
     const data = { description, status: "open", priority: ranked.value, ...given, ...trackerFields({ kind }) };
     if (relating) data.relations = [{ kind: "relates", blocksId: await documentIdOf(rides) }];
     const answer = await write("forge_issues", { action: "create", data });
+    keepOnFailure(null);
     show(inFlowWords(answer));
     console.log(filedAs(answer, ranked.said));
+    return sayBeside(beside, { nearest, foldable, fresh: Boolean(fresh) });
   },
   comment: async ([reference, path]) => {
     if (!reference || !path) fail(usageOf("comment"));
