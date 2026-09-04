@@ -753,3 +753,32 @@ the record.
 - `record note` announces two tracker calls and spends both before the tracker's own 500-character
   limit refuses, with no limit in the verb's help; routed to ISS-73, which owns reading a payload's
   shape where it is typed.
+
+## Twenty-fourth dry run — ISS-87
+
+One agent made the CLI document an index (3.35.24): one heading, one paragraph, one table of
+twenty-four rows, each naming a decision and the topic file under `docs/cli/` that holds it, every
+word of the twenty-two sections moved unaltered but for five retargeted cross-references, and a
+check holding the shape — block order, a resolving link per row, one row per topic, a cap on every
+document under `docs/` outside the requirements tree and this journal. Twelve verdicts, the check
+watched red on eight shapes and a near miss either side of both exemptions. Codex accepted four
+findings at one round. The parent's rule that a `docs/` path in a source comment resolves now has a
+checker, which found one dead path on its first run and it was an example in a code span. Folded from
+the record.
+
+- The issue named a cap the tree it described could not meet: `docs/HOOKS.md` stays one file and is
+  over it. The agent measured, chose the round number above the largest file kept whole, and
+  recorded the deviation before the plan rather than after the refusal.
+- The one-home check read `docs/` flat, so the split would have moved sixty-seven thousand
+  characters out of its reach with nothing failing; it walks now, excluding the requirements tree
+  whose own rules say why.
+- Another developer pushed to master mid-batch: the tracker dropped the field that said whether a
+  comment's author claimed to be a model, and the park's answer now reads whether the writing token
+  is a device's. An agent on a person's token can answer a park, which the commit names as the price.
+  The commit's comment was three lines over density, and lint is the gate's first step, so every
+  branch cut from it was red before any other gate ran; the agent ran the ten remaining gates by
+  hand and filed ISS-96. Fixed in this fold. A push to master that skips the gate costs every lane
+  the suite by hand, the same lesson as ISS-94 from the other direction.
+- Two agents were told which files the other holds; the collision they could not avoid — the CLI
+  document both write — was one line per file, because the first to land retargeted the other's
+  citations and said so.
