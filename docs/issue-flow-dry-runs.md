@@ -907,3 +907,30 @@ restart owed. Folded from the record.
   ISS-94 lesson holds for a topic file as much as for this journal.
 - The past-the-page misread was met a fourth time, in a second verb: the verdict's evidence
   attachment. ISS-17, with the verb named; one reader for both.
+
+## Thirtieth dry run — ISS-111, the second review run
+
+One agent read the six releases since the first mark as one change (3.35.33) and moved the mark to
+the head it shipped, so the ship step's count restarts there. One fix commit: the how file an agent
+reads after the filing gate refuses it still promised that an outcome, a rule and an out-of-scope file
+silently — false for two of the three kinds since the twenty-ninth run — and it was a second copy of the
+shape, so it went rather than growing to three; two exports nothing imported went module-local, five
+commits after the first review had removed three others from the same module. Help and refusal text
+byte-identical before and after; the how-file ceiling caught the first version of the paragraph and the
+prose was tightened rather than the ceiling. Four issues filed, each naming the runs that left it. A
+hook document moved, so the restart already owed stood. Folded from the record.
+
+- The ship step's own printed route names a value the CLI refuses: `--size` takes one word and
+  *feature* is a kind. The checker that holds that rule walks two directories, and even in scope it
+  reads flag names where the usage line spells the value one token on. ISS-118, the one to read first.
+- A dead export recurred inside one range because no gate refuses one; ISS-114. The article on the
+  kind line is a literal beside a helper that already picks it; ISS-115, which the parent had filed
+  the same hour as ISS-113 from the other side — dropped as the duplicate. One filing's shape is read
+  twice on both routes; ISS-116.
+- The mark now covers the review's own two commits, which no cross-run reading will read; the
+  script says so, on the ground that a review's commit has its own second review. A price stated,
+  not a defect.
+- Evidence upload refuses a `.json` file as an octet stream, naming neither the allowed set nor a
+  route, and the failed call costs the verdict too. ISS-80, its third sighting. The note itself was
+  written into the worktree's feedback folder and left with the worktree; the finding survived only
+  because the hand-back named it.
