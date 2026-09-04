@@ -44,7 +44,8 @@ export const queued = (rows, order = []) => {
 /* Whether a page was whole, and what one reader of it is owed where it was not: the two caps, and
    why `limit` is taken rather than defaulted, are in docs/cli/the-projections.md. */
 export const cut = (payload, rows, limit) =>
-  payload?.hasMore === true || payload?.truncated === true || rows.length >= limit;
+  payload?.hasMore === true || payload?.truncated === true
+  || Boolean(payload?.truncatedBy) || rows.length >= limit;
 
 export const cutBy = (payload, rows, limit) => (cut(payload, rows, limit)
   ? {

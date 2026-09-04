@@ -215,3 +215,14 @@ test("a short page from a server that reports nothing is read as whole", async (
   assert.doesNotMatch(run.stdout, /was cut to/u);
   state.answer = undefined;
 });
+
+/* A page that names the cap that cut it is a cut page, whichever of the envelope's other fields the
+   answer happens to carry: a reading resting on one field alone is the defect again, one field over. */
+test("a page naming only the cap that bit is still read as cut", async () => {
+  state.issues = ROWS;
+  state.answer = { forge_issues: () => ({ issues: ROWS.slice(0, 2), returned: 2, truncatedBy: "response-size" }) };
+  const run = await ran(["issues"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /was cut to the 2 row\(s\) read, by response-size/u);
+  state.answer = undefined;
+});
