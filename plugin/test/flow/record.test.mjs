@@ -155,6 +155,24 @@ test("criteria are numbered lines, and a conjunction is a warning the caller dec
   assert.throws(() => criteriaLines("1. A.\n1. B.\n"), /Two criteria are numbered 1/u);
 });
 
+/* The kind whose payload is a bare path: the flag went to `open()` and the run ended on an fs error
+   naming no verb, no flag and no route (ISS-240). The set offered is the four flags it does take. */
+test("a flag where the criteria file goes is refused as a flag, and the four it does take are named", () => {
+  const run = ask("record", "criteria", "ISS-1", "--read");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No record criteria flag named --read\./u);
+  assert.match(run.stderr, /The set is --open, --next, --pushed, --review\./u);
+  assert.match(run.stderr, /takes the file holding the numbered lines, or - for stdin/u);
+  assert.doesNotMatch(run.stderr, /ENOENT|no such file/u);
+});
+
+/* The run flags are read by a fourth copy of the value test, so the rule holds there too. */
+test("a run flag takes a value whose first word is a flag name", () => {
+  const run = ask("record", "decision", "ISS-1", "--next", "--limit is where the next run starts",
+    "--decision", "a | b | c");
+  assert.doesNotMatch(run.stderr, /was given no value/u, run.stderr);
+});
+
 test("a release note has two forms, and a flag from the other form is refused, not dropped", () => {
   assert.deepEqual(noteFrom(["--section", "Fixed", "--user", "You see it now."]), { section: "Fixed", userFacing: "You see it now.", technical: null });
   assert.deepEqual(noteFrom(["--skip", "--why", "internal only"]), { section: "Skip", userFacing: "internal only", technical: null });

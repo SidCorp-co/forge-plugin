@@ -65,5 +65,12 @@ const fromStdin = async () => {
   return text;
 };
 
-export const bodyFrom = async (path) =>
-  (path === "-" ? fromStdin() : readFileSync(path.startsWith("@") ? path.slice(1) : path, "utf8"));
+/* A path opening with two dashes is a flag, not a file — docs/cli/did-you-mean.md (ISS-240). */
+export const notABody = (path) =>
+  `\`${path}\` is a flag, not a body: this slot takes a file, \`@file\`, or \`-\` for stdin. A file `
+  + `whose own name opens that way is passed as \`./${path}\`.`;
+
+export const bodyFrom = async (path, refusal = null) => {
+  if (path.startsWith("--")) fail(refusal ?? notABody(path));
+  return path === "-" ? fromStdin() : readFileSync(path.startsWith("@") ? path.slice(1) : path, "utf8");
+};

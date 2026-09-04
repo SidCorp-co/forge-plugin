@@ -1,5 +1,5 @@
 import { fail, keepOnFailure } from "./resolve/settings.mjs";
-import { bodyFrom } from "./resolve/payload.mjs";
+import { bodyFrom, notABody } from "./resolve/payload.mjs";
 import { projectId, REFERENCE_KEYS, enumAt, scoped, toolNamed, tools, write } from "./tracker/rpc.mjs";
 import {
   DEFAULT_LIMIT,
@@ -296,6 +296,8 @@ export const commands = {
     if (wantsHelp(argv)) return console.log(NEW_USAGE);
     const [path, ...rest] = argv;
     if (!path) fail(usageOf("new"));
+    const row = { usage: usageOf("new"), hidden: INSTEAD_FLAGS };
+    if (path.startsWith("--")) fail(unknownFlag("new", [path], row) ?? notABody(path));
     onlyFlags("new", rest, INSTEAD_FLAGS);
     const { into, with: rides, size, kind, priority, new: fresh, ...given } = flags(rest, "new", ["--new"]);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");

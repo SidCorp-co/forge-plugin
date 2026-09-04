@@ -19,10 +19,16 @@ that row already decides whether a verb takes a value at all: a second list besi
 that drifts, and the row is what the caller was shown. The check runs before the parser asks what value
 a token was given, because *given no value* said of a flag nobody has names a mistake the caller did not
 make; and it runs before an endpoint is resolved, because a local slip should cost no credential and no
-call. A token opening with `--` is read as a flag wherever it stands, so a path whose name opens that
-way is passed as `./--name`, which is what every other CLI asks for too. Where the candidates are a set
-the tracker owns — a filter, a rank, a guide slug, a tool name — the live read stays where it is and the
-refusal waits for it.
+call. Where a path or another positional stands, a token opening with `--` is read as a flag and refused
+by name rather than opened as a file, so a path whose own name opens that way is passed as `./--name`,
+which is what every other CLI asks for too. A **value** slot reads it the other way about: the shell has
+already bound that argument to its flag, so whatever it opens with is the value, and only a bare flag
+word — two dashes with no space in it — is still read as the next flag. A record whose
+sentence has to name a flag first is the case that settles it. Where the value is that one word and
+nothing else it is still refused, and the refusal names the token it read rather than the consequence,
+because *given no value* said of a value sitting quoted in the same argument names a mistake the caller
+did not make either. Where the candidates are a set the tracker owns — a filter, a rank, a guide slug,
+a tool name — the live read stays where it is and the refusal waits for it.
 
 A flag accepted and named nowhere is declared beside the verb that takes it rather than on its row.
 [Withholding a verb](withholding-a-verb.md) is the reason for the two only a maintainer can act on, and

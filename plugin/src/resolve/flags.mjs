@@ -2,6 +2,16 @@
    flag silently, which reads as an unfiltered answer. */
 import { fail } from "./settings.mjs";
 
+/* A flag is one word with no `=` in it; a value slot refuses that alone — docs/cli/did-you-mean.md. */
+export const FLAG_WORD = /^--[^\s=]*$/u;
+
+export const noValue = (verb, flag, value) =>
+  (value === undefined
+    ? `${verb}: ${flag} was given no value.`
+    : `${verb}: ${flag} was given no value: \`${value}\` after it reads as the next flag, since a `
+      + "flag is one word and that is one. A value saying more than the one word is taken as the "
+      + `value, so write the sentence \`${value}\` belongs to.`);
+
 export const flags = (argv, verb, boolean = []) => {
   const found = {};
   for (const flag of boolean) if (argv.includes(flag)) found[flag.slice(2)] = true;
@@ -10,8 +20,9 @@ export const flags = (argv, verb, boolean = []) => {
     const key = pairs[index];
     if (!key.startsWith("--")) fail(`${verb}: expected a --flag, got \`${key}\`.`);
     if (key.includes("=")) fail(`${verb}: write \`${key.split("=")[0]} <value>\`; --flag=value is not read.`);
+    if (key === "--") fail(`${verb}: \`--\` names no flag, and read as one it would take the next word as its value.`);
     const value = pairs[index + 1];
-    if (value === undefined || value.startsWith("--")) fail(`${verb}: ${key} was given no value.`);
+    if (value === undefined || FLAG_WORD.test(value)) fail(noValue(verb, key, value));
     found[key.slice(2)] = value;
     index += 1;
   }
@@ -32,7 +43,7 @@ export const pullRepeated = (argv, flag, verb) => {
       continue;
     }
     const value = argv[index + 1];
-    if (value === undefined || value.startsWith("--")) fail(`${verb}: ${flag} was given no value.`);
+    if (value === undefined || FLAG_WORD.test(value)) fail(noValue(verb, flag, value));
     values.push(value);
     index += 1;
   }
@@ -53,7 +64,7 @@ export const partition = (argv, booleans = []) => {
     flagArgv.push(token);
     if (booleans.includes(token)) continue;
     const value = argv[index + 1];
-    if (value !== undefined && !value.startsWith("--")) {
+    if (value !== undefined && !FLAG_WORD.test(value)) {
       flagArgv.push(value);
       index += 1;
     }

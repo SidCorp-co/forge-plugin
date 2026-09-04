@@ -6,7 +6,7 @@ import {
   readRecord, tagFor, unwrap,
 } from "./machine.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
-import { pullRepeated, flags } from "../resolve/flags.mjs";
+import { FLAG_WORD, noValue, pullRepeated, flags } from "../resolve/flags.mjs";
 import { commentPage, cutLine, postComment } from "../tracker/comments.mjs";
 import { attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo }
   from "../tracker/evidence.mjs";
@@ -15,6 +15,7 @@ import { releaseLine, releasePolicy } from "../tracker/project-config.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";
 import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
+import { didYouMean } from "../suggest.mjs";
 import { FIELD as SESSION, nextLine, renew } from "./lease.mjs";
 import { OPEN_KEPT, patchFrom, worklogLines, worklogOf } from "./worklog.mjs";
 
@@ -26,6 +27,12 @@ export const refuse = (message) => {
 };
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
+
+/* Named once: `pullRun` strips them, and `criteria` offers them back to a caller who typed one. */
+const RUN_FLAGS = ["--open", "--next", "--pushed", "--review"];
+const [OPEN, NEXT, ...TOGGLES] = RUN_FLAGS;
+
+const CRITERIA_BODY = "record criteria takes the file holding the numbered lines, or - for stdin.";
 
 export const KINDS = [...Object.keys(SHAPES), "note", "criteria", "report"];
 
@@ -388,7 +395,8 @@ const recordNote = async (reference, argv, { next, patch }) => {
 };
 
 const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
-  if (!path) refuse("record criteria takes the file holding the numbered lines, or - for stdin.");
+  if (!path) refuse(CRITERIA_BODY);
+  if (path.startsWith("--")) refuse(`${didYouMean("record criteria flag", path, RUN_FLAGS)} ${CRITERIA_BODY}`);
   if (extra.length) refuse(`record criteria takes one file and nothing after it, not \`${extra.join(" ")}\`.`);
   const criteria = criteriaLines(await bodyFrom(path));
   const joined = joinedCriteria(criteria, conjunctionsFor());
@@ -436,18 +444,18 @@ const pullOne = (argv, flag) => {
   const at = argv.indexOf(flag);
   if (at < 0) return { value: undefined, rest: argv };
   const value = argv[at + 1];
-  if (value === undefined || value.startsWith("--")) refuse(`record: ${flag} was given no value.`);
+  if (value === undefined || FLAG_WORD.test(value)) refuse(noValue("record", flag, value));
   return { value, rest: [...argv.slice(0, at), ...argv.slice(at + 2)] };
 };
 
 /* Pulled before the kind is dispatched, so no shape gains a field: these say what the run is doing
    and not what the payload holds, and `criteria` takes a bare path where a shape takes flags. */
 const pullRun = (argv) => {
-  const lines = pullRepeated(argv, "--open", "record");
-  const line = pullOne(lines.rest, "--next");
+  const lines = pullRepeated(argv, OPEN, "record");
+  const line = pullOne(lines.rest, NEXT);
   let rest = line.rest;
   const took = {};
-  for (const flag of ["--pushed", "--review"]) {
+  for (const flag of TOGGLES) {
     took[flag.slice(2)] = rest.includes(flag);
     rest = rest.filter((one) => one !== flag);
   }

@@ -4,8 +4,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { didYouMean, flagsNamed, unknownFlag } from "../../src/suggest.mjs";
-import { homeEnv, ranAsync } from "../fixtures.mjs";
+import { FLAG_WORD, flags, partition, pullRepeated } from "../../src/resolve/flags.mjs";
+import { bodyFrom, notABody } from "../../src/resolve/payload.mjs";
+import { homeEnv, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const KINDS = ["bug", "enhancement", "feature"];
 const NINE = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
@@ -48,6 +53,61 @@ test("a flag no row names is accepted where the call site declares it, and offer
   assert.doesNotMatch(said, /--tracker\b/u, "the hidden flag is in no refusal either");
 });
 
+/* A flag is one word. The shell has already bound a quoted value to its flag, so re-reading that
+   value for flags is what refused a decision record naming `--limit` first (ISS-255). */
+test("a flag is one word, so a value saying more than that word is not one", () => {
+  assert.equal(FLAG_WORD.test("--limit"), true);
+  assert.equal(FLAG_WORD.test("--limit becomes the count of rows printed"), false);
+  assert.equal(FLAG_WORD.test("--"), true, "two dashes and nothing else is an attempt at one");
+  assert.equal(FLAG_WORD.test("--fields=plan"), false, "the `=` form is the parser's own to refuse");
+});
+
+test("a value the shell bound to its flag is that flag's value, whatever it opens with", () => {
+  const said = "--limit becomes the count of rows printed | a limit is about rows | one line";
+  assert.deepEqual(flags(["--decision", said], "record decision"), { decision: said });
+  assert.deepEqual(pullRepeated(["--open", said], "--open", "claim").values, [said]);
+});
+
+/* The third site: it decides value from positional, so a value left unread lands in the flag argv
+   as a key and the parser then refuses a flag nobody typed. */
+test("the partitioner reads a value opening with two dashes as the value, not as a positional", () => {
+  const held = partition(["a.mjs", "--only", "--limit and its friends", "b.mjs"], []);
+  assert.deepEqual(held.positionals, ["a.mjs", "b.mjs"]);
+  assert.deepEqual(held.flagArgv, ["--only", "--limit and its friends"]);
+});
+
+/* A body slot is the one place the sentence above cannot reach: the path is split off before the
+   tail is read, so the token went to `open()` and the run ended on an fs error (ISS-240). */
+test("a flag standing where a body goes is refused as a flag, never opened as a file", async () => {
+  const said = notABody("--read");
+  assert.match(said, /`--read` is a flag, not a body/u);
+  assert.match(said, /`-` for stdin/u, "and the route out is in the refusal itself");
+  assert.match(said, /`\.\/--read`/u, "as is the way to a file whose own name opens that way");
+  const held = process.exit;
+  const stderr = console.error;
+  const shouted = [];
+  process.exit = () => {
+    throw new Error("exited");
+  };
+  console.error = (line) => shouted.push(line);
+  try {
+    await assert.rejects(() => bodyFrom("--read"), /exited/u);
+    assert.equal(shouted.join("\n"), said);
+    assert.doesNotMatch(shouted.join("\n"), /ENOENT/u, "and no fs error for a path nobody named");
+  } finally {
+    process.exit = held;
+    console.error = stderr;
+  }
+});
+
+test("a file whose own name opens with two dashes is still reachable", async () => {
+  const room = tempRoom("body-");
+  const named = join(room, "--body.md");
+  writeFileSync(named, "the body itself");
+  assert.equal(await bodyFrom(named), "the body itself");
+  assert.equal(await bodyFrom(`@${named}`), "the body itself");
+});
+
 /* `--flag=value` has its own refusal in the parser, which says the form to write instead. */
 test("the form the parser refuses is left to the parser", () => {
   const usage = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full]";
@@ -82,6 +142,50 @@ test("a verb taking no flag at all says what it does take", async () => {
   assert.match(run.stderr, /No comment flag named --body\./u);
   assert.match(run.stderr, /Usage: forge comment <uuid\|ISS-45> <file\.md\|@file\|->/u);
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
+});
+
+test("a flag standing in the body slot is this verb's own unknown flag", async () => {
+  const run = await ran("new", "--read", "--title", "T");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No new flag named --read\./u);
+  assert.match(run.stderr, /Usage: forge new <file\.md\|@file\|->/u);
+  assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
+  assert.doesNotMatch(run.stderr, /No Forge endpoint/u, "nor after a credential was looked for");
+});
+
+/* `onlyFlags` turns away what it does not know, so a flag the row DOES name went straight past it
+   and the parser then refused the title as a key it could not read. */
+/* It names no flag, so read as one it would silently take the next word as its value and the verb
+   would answer with the filter nobody asked for. */
+test("two dashes and nothing after them is refused by name, never read as a field", async () => {
+  const run = await ran("issue", "ISS-1", "--", "status");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No issue flag named --\./u);
+  const bare = await ran("codex", "consult", "--", "x");
+  assert.match(bare.stderr, /`--` names no flag/u, bare.stderr);
+});
+
+test("a flag the verb declares is refused in the body slot too, by what the slot takes", async () => {
+  const run = await ran("new", "--title", "T");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /`--title` is a flag, not a body/u);
+  assert.match(run.stderr, /`-` for stdin/u);
+});
+
+/* The preflight reads the whole argv, values with it, so the rule above has to hold there too or a
+   verb that runs it turns away a value the parser would have taken. */
+test("a value the shell bound to its flag is not turned away by the preflight either", async () => {
+  const body = join(tempRoom("filing-"), "body.md");
+  writeFileSync(body, "## Outcome\n\nIt reads.\n");
+  const run = await ran("new", body, "--title", "--limit becomes the count of rows printed");
+  assert.doesNotMatch(run.stderr, /No new flag named/u, run.stderr);
+});
+
+test("a bare flag word in a value slot is refused by naming the token, not the consequence", async () => {
+  const run = await ran("record", "decision", "ISS-1", "--decision", "--limit");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /`--limit` after it reads as the next flag/u);
+  assert.match(run.stderr, /saying more than the one word is taken as the value/u);
 });
 
 test("a flag a row deliberately omits still runs", async () => {
