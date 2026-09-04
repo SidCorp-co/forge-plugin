@@ -859,3 +859,24 @@ ship — the bootstrap plant skips the ancestry test — and it is ISS-104. Fold
   read. Routed to ISS-104 with the gap it already holds.
 - The same past-the-page refusal, worded for the wrong cap, was hit for the third time today and
   written up a third time; ISS-17 has all three, and the note was archived unread past its title.
+
+## Twenty-eighth dry run — ISS-100
+
+One agent restored the rank the hook harness reads a git command's tree by (3.35.29): a directory
+flag outranks what a git-dir flag implies, as git reads it and as the doc comment already said; a
+command naming only a git dir now answers no tree, and both gates resolve that against the event's own
+directory as they already did. Eight verdicts, three cases watched red against the unfixed body, both
+gates probed from the installed copy's entries. Codex found one thing the fix missed: the path normaliser
+stripped a root hop to the empty string, which is falsy, so a hop to the root still lost the rank; fixed,
+a criterion added by correction. A hook file moved, so the session owed a restart. Folded from the record.
+
+- The reporter's trigger was narrower than the defect: an absolute git dir ending in `.git` regressed
+  too, because taking its parent never returns to the directory the other flag named. The agent
+  widened the row and chose the gate case by what discriminates — only a wrong tree that is a real,
+  clean repository proves anything, since the dirty check answers true on any error.
+- A test's title stated the rule the code had stopped keeping, one file over from the defect; the
+  assertions were right and the title was wrong, and the correction record names it rather than
+  leaving a reader to notice.
+- The ship step's first count fired on its third release: three releases, thirty-six lines. The rule
+  as first set counts releases or lines, so three one-line fixes owe a reading as much as one large
+  batch does; whether that is the threshold wanted is the user's to say.
