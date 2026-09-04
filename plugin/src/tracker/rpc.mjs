@@ -235,6 +235,13 @@ export const tools = async ({ refresh = false } = {}) => {
   return declared;
 };
 
+/** What a tool declares at a path under its input schema, or nothing where it declares none. Here
+ *  rather than at either caller: an enum read in two places is two ideas of what silence means. */
+export const enumAt = async (tool, path) => {
+  const declared = await toolNamed(tool);
+  return path.reduce((held, key) => held?.[key], declared?.inputSchema?.properties) ?? [];
+};
+
 /* Refetch before erroring: an absent name may be a typo or a tool the server grew. */
 export const toolNamed = async (name) => {
   const first = (await tools()).find((tool) => tool.name === name);

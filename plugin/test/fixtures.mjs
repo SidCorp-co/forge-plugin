@@ -113,9 +113,16 @@ const TAKES_PROJECT = ["forge_projects.get", "forge_config"];
 const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
 const ownSlug = () =>
   JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", ".forge.json"), "utf8")).slug;
+/* The browse order and the rank refusal read this; `scoped` keys on `projectId` alone. */
+const RANKS = ["critical", "high", "medium", "low", "none"];
 const declaration = (name) => ({
   name,
-  inputSchema: { properties: TAKES_PROJECT.includes(name) ? { projectId: { type: "string" } } : {} },
+  inputSchema: {
+    properties: {
+      ...(TAKES_PROJECT.includes(name) ? { projectId: { type: "string" } } : {}),
+      ...(name === "forge_issues" ? { data: { properties: { priority: { enum: RANKS } } } } : {}),
+    },
+  },
 });
 
 /** A tracker a verb can be spawned against, answering out of `state` at request time so a case that

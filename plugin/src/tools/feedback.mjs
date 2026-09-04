@@ -8,7 +8,8 @@ import { agentOf } from "../flow/lease.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { MAX_LIMIT, listIssues, rowsOf } from "../tracker/issues.mjs";
 import { postComment } from "../tracker/comments.mjs";
-import { inFlowWords, openTitles, shapeOf, shapeRefusal, trackerFields } from "../tracker/issue-shape.mjs";
+import { filedAs, inFlowWords, openTitles, rankOf, shapeOf, shapeRefusal, trackerFields }
+  from "../tracker/issue-shape.mjs";
 import { write } from "../tracker/rpc.mjs";
 
 /** This plugin's project, read from no checkout: the caller's `.forge.json` says where a note came
@@ -32,7 +33,8 @@ export const USAGE = [
   "typed, and a body carrying its own Where heading gets this one after it.",
   "",
   "No lease is taken and none is renewed. This is the finder's route, like `forge new --into`:",
-  "an issue you do not hold is commented on without claiming it.",
+  "an issue you do not hold is commented on without claiming it. Nothing here ranks the note either,",
+  "so it is filed unranked and says so: whoever maintains this plugin raises it, not whoever met it.",
 ].join("\n");
 
 /* Typed by no caller: which version was running, which copy of it, whose project, and who met it. */
@@ -98,11 +100,14 @@ export const feedback = async (argv) => {
       + " rather than a second issue. No lease was taken.");
     return undefined;
   }
-  const data = { title, description: body, status: "open", ...trackerFields({ kind: KIND }) };
+  const ranked = await rankOf();
+  if (ranked.refusal) fail(ranked.refusal);
+  const data = { title, description: body, status: "open", priority: ranked.value, ...trackerFields({ kind: KIND }) };
   const answer = await write("forge_issues", { action: "create", data }, undefined, true);
   if (answer?.refused) lost("this filing", answer.refused);
   keepOnFailure(null);
   console.log(`No open issue on ${PROJECT} carries this title, so the note is a new ${KIND} there.`);
+  console.log(filedAs(answer, ranked.said));
   console.log(JSON.stringify(inFlowWords(answer), null, 2));
   return undefined;
 };

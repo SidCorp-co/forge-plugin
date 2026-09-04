@@ -8,8 +8,8 @@ import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 
 const home = tempHome("issue-shape");
 process.env.XDG_CONFIG_HOME = home.path;
-const { FIX_OWES, SIZE_LINE, duplicateOf, isFix, partsIn, refusalFrom, shapeOf, tokensNamed, twoChangesIn, withMark } =
-  await import("../../src/tracker/issue-shape.mjs");
+const { FIX_OWES, SIZE_LINE, UNRANKED, duplicateOf, filedAs, isFix, partsIn, priorityFor, refusalFrom,
+  shapeOf, tokensNamed, twoChangesIn, withMark } = await import("../../src/tracker/issue-shape.mjs");
 const { filingsOf } = await import("../../src/tracker/issue-read.mjs");
 
 const WHOLE = [
@@ -174,6 +174,54 @@ test("a create is found on the tracker's own tool and on a raw call, and nothing
     [{ title: "t", body: "b", kind: "bug" }]);
   assert.deepEqual(filingsOf({ name: "Bash", input: {} }, ["forge new body.md --title t"]), [],
     "and the verb reads its own file, so this does not guess at one");
+});
+
+/* A rank is not a shape, and it is read in the same place for the same reason: two routes file, and
+   the value written has to be the value said. */
+const RANKS = ["critical", "high", "medium", "low", "none"];
+
+test("a filing nobody ranked is the bottom of the set, and the line says by default", () => {
+  const ranked = priorityFor(undefined, RANKS);
+  assert.equal(ranked.value, UNRANKED);
+  assert.equal(ranked.said, "priority low, by default");
+  assert.equal(ranked.refusal, undefined);
+  assert.equal(RANKS.at(-2), UNRANKED, "the bottom a queue can be worked from, `none` being no rank at all");
+});
+
+test("a rank the filer typed is kept, and the line says it was theirs", () => {
+  assert.deepEqual(priorityFor("high", RANKS), { value: "high", said: "priority high, as given" });
+});
+
+test("a rank outside the tracker's set is refused with the set and the nearest name", () => {
+  const { refusal, value } = priorityFor("hgh", RANKS);
+  assert.equal(value, undefined, "nothing is filed under a rank that was refused");
+  assert.match(refusal, /No priority named hgh\. Did you mean: high\?/u);
+  assert.match(refusal, /The set is critical, high, medium, low, none, the tracker's own/u);
+});
+
+/* The schema is the only authority on the set, so a schema that answered with nothing leaves the
+   value alone rather than refusing on a set this CLI would have had to invent. */
+test("a set the schema did not declare refuses nothing", () => {
+  assert.deepEqual(priorityFor("urgent", []), { value: "urgent", said: "priority urgent, as given" });
+  assert.equal(priorityFor(undefined, []).value, UNRANKED);
+});
+
+/* The default answers to the same set a typed value does. Held to nothing, a tracker that renamed
+   this rank would refuse every unranked filing in its own words, at the write, with no route out. */
+test("a set that no longer holds the default refuses the filing and names the plugin as the fix", () => {
+  const { refusal, value } = priorityFor(undefined, ["critical", "high", "medium", "none"]);
+  assert.equal(value, undefined);
+  assert.match(refusal, /files an issue nobody ranked as `low`/u);
+  assert.match(refusal, /the tracker's set is now critical, high, medium, none/u);
+  assert.match(refusal, /Name one with --priority/u);
+  assert.match(refusal, /the default is what has to change/u);
+});
+
+test("the filed line names the key, and degrades to what the reply did carry", () => {
+  const said = priorityFor(undefined, RANKS).said;
+  assert.equal(filedAs({ issueId: "ISS-157", documentId: "u" }, said), "ISS-157 is filed, priority low, by default.");
+  assert.equal(filedAs({ documentId: "u" }, said), "u is filed, priority low, by default.");
+  assert.match(filedAs({}, said), /^Filed, priority low, by default; the reply named no key/u);
 });
 
 /* End to end: the refusal text, the mark landing in the description and the two routes are the
@@ -414,6 +462,48 @@ test("--size fix marks the description and sends the tracker nothing for a size"
   const create = state.calls.find((one) => one.args.action === "create");
   assert.match(create.args.data.description, new RegExp(SIZE_LINE, "u"));
   assert.equal("complexity" in create.args.data, false, "one source for the light path, and it is the line");
+});
+
+test("a filing that named no rank is filed at the bottom, and the reply says which line ranked it", async () => {
+  state.calls = [];
+  const run = await filed(WHOLE, "--title", TITLE);
+  assert.equal(run.status, 0, run.stderr);
+  const create = state.calls.find((one) => one.args.action === "create");
+  assert.equal(create.args.data.priority, "low", "the tracker was left to fill its own middle");
+  assert.match(run.stdout, /^filed-uuid is filed, priority low, by default\.$/mu);
+});
+
+test("a rank the filer typed is what is written, and the reply says it was theirs", async () => {
+  state.calls = [];
+  const run = await filed(WHOLE, "--title", TITLE, "--priority", "high");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(state.calls.find((one) => one.args.action === "create").args.data.priority, "high");
+  assert.match(run.stdout, /is filed, priority high, as given\.$/mu);
+});
+
+/* The set is the tracker's, declared in its own schema: read at the call, so a rank outside it is
+   refused here rather than filed and read back later as one somebody chose. */
+test("a rank outside the tracker's set is refused before the body is even read", async () => {
+  state.calls = [];
+  const run = await filed(WHOLE, "--title", TITLE, "--priority", "urgent");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No priority named urgent/u);
+  assert.match(run.stderr, /The set is critical, high, medium, low, none/u);
+  assert.equal(state.calls.some((one) => one.args.action === "create"), false, "a refused rank filed an issue");
+});
+
+test("a rank is a filing flag, so the comment route refuses it rather than dropping it", async () => {
+  state.calls = [];
+  const run = await filed(WHOLE, "--title", TITLE, "--into", "ISS-45", "--priority", "high");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /--priority belongs to a filing/u);
+  assert.equal(state.calls.some((one) => one.name === "forge_comments"), false);
+});
+
+test("`forge new -h` says what a filing with no rank gets", async () => {
+  const run = await ranAsync(FORGE, ["new", "-h"], tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /absent it a filing is low/u);
 });
 
 test("`forge new -h` lists every kind with the sections it requires", async () => {

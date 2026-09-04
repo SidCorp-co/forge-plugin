@@ -1,11 +1,12 @@
 import { fail } from "./resolve/settings.mjs";
 import { bodyFrom } from "./resolve/payload.mjs";
-import { projectId, REFERENCE_KEYS, scoped, toolNamed, tools, write } from "./tracker/rpc.mjs";
+import { projectId, REFERENCE_KEYS, enumAt, scoped, toolNamed, tools, write } from "./tracker/rpc.mjs";
 import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
   documentIdOf,
   listIssues,
+  queued,
   rowsOf,
   truncated,
 } from "./tracker/issues.mjs";
@@ -14,10 +15,14 @@ import { attachmentNames, uploadRead, uploadTo, urlBearing } from "./tracker/evi
 import {
   KINDS_HELP,
   KIND_NAMES,
+  PRIORITY_AT,
+  PRIORITY_HELP,
   SIZE_WORDS,
+  filedAs,
   inFlowWords,
   insteadOf,
   kindRefusal,
+  rankOf,
   refusalFrom,
   shapeOf,
   trackerFields,
@@ -92,12 +97,6 @@ const trimPatterns = (node) => {
   return out;
 };
 
-const enumAt = async (tool, path) => {
-  const declared = await toolNamed(tool);
-  const node = path.reduce((held, key) => held?.[key], declared?.inputSchema?.properties);
-  return node ?? [];
-};
-
 const checkNames = async (given, tool, path, kind, extra = []) => {
   const allowed = [...(await enumAt(tool, path)), ...extra];
   if (!allowed.length) return;
@@ -113,15 +112,18 @@ const limitFrom = (raw) => {
   return value;
 };
 
-/* One line per issue: the uuid column was 22% of this verb and bought nothing. */
-const printIssues = (payload, limit) => {
-  const issues = rowsOf(payload);
+/* One line per issue: the uuid column was 22% of this verb and bought nothing, and the rank is here
+   because an order a reader cannot see reads as a shuffle. */
+const printIssues = (payload, limit, order) => {
+  const issues = queued(rowsOf(payload), order);
   for (const issue of issues) {
-    console.log(`${(issue.issueId ?? "").padEnd(8)} ${(issue.status ?? "").padEnd(12)} ${issue.title}`);
+    console.log(`${(issue.issueId ?? "").padEnd(8)} ${(issue.priority ?? "").padEnd(8)} `
+      + `${(issue.status ?? "").padEnd(12)} ${issue.title}`);
   }
   console.log(`\n${issues.length} issue(s)`);
   if (truncated(issues, limit)) {
-    console.log(`Full page of ${limit}; there are more. Raise --limit (max ${MAX_LIMIT}).`);
+    console.log(`Full page of ${limit}; there are more, and the order above ranks this page alone —`
+      + ` the tracker chose it by what was touched last. Raise --limit (max ${MAX_LIMIT}).`);
   }
 };
 
@@ -142,7 +144,7 @@ const suggestTool = async (name) =>
 
 /* The one verb whose help is longer than its row: what a body is read against depends on the kind
    it names, and the table of that is the kinds' own. */
-const NEW_USAGE = `${helpOf("new")}\n\n${KINDS_HELP}`;
+const NEW_USAGE = `${helpOf("new")}\n\n${PRIORITY_HELP}\n\n${KINDS_HELP}`;
 
 export const commands = {
   doctor,
@@ -209,7 +211,7 @@ export const commands = {
         fail(didYouMean("filter", `--${given}`, [...allowed.map((one) => `--${one}`), "--limit"]));
       }
     }
-    printIssues(await listIssues(filters, limit), limit);
+    printIssues(await listIssues(filters, limit), limit, await enumAt("forge_issues", PRIORITY_AT));
   },
   /* Three tiers, and the payload is what costs. Fetch narrow, then fetch again. */
   issue: async ([reference, ...rest]) => {
@@ -229,13 +231,16 @@ export const commands = {
     if (wantsHelp(argv)) return console.log(NEW_USAGE);
     const [path, ...rest] = argv;
     if (!path) fail(usageOf("new"));
-    const { into, with: rides, size, kind, ...given } = flags(rest, "new");
+    const { into, with: rides, size, kind, priority, ...given } = flags(rest, "new");
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
     if (size !== undefined && !SIZE_WORDS.includes(size)) {
       fail(`--size takes \`${SIZE_WORDS.join("`, `")}\`, the one size the contract gives a light path,`
         + ` not \`${size}\`. A whole issue needs no size.`);
     }
     if (kind !== undefined && !KIND_NAMES.includes(kind)) fail(kindRefusal(kind));
+    /* Before the body is read, and the default answers to the same set a typed rank does. */
+    const ranked = await rankOf(priority);
+    if (ranked.refusal) fail(ranked.refusal);
     const instead = insteadOf(given);
     if (instead) fail(instead);
     /* Presence, never truth: the shared parser takes an empty string as a value, and a route read
@@ -243,7 +248,8 @@ export const commands = {
     const commenting = into !== undefined;
     const relating = rides !== undefined;
     if (commenting && relating) fail("--into posts a comment and --with files an issue. Ask for one of them.");
-    const named = [...(size === undefined ? [] : ["size"]), ...(kind === undefined ? [] : ["kind"])];
+    const named = [...(size === undefined ? [] : ["size"]), ...(kind === undefined ? [] : ["kind"]),
+      ...(priority === undefined ? [] : ["priority"])];
     const filing = [...Object.keys(given).filter((one) => one !== "title"), ...named];
     if (commenting && filing.length) {
       fail(`--into posts a comment, and ${filing.map((one) => `--${one}`).join(", ")} belongs to a filing. `
@@ -260,9 +266,11 @@ export const commands = {
     const description = size ? withMark(body) : body;
     const read = { title: given.title, body: description, kind: kind ?? null };
     await readFiling(read, { routed: relating });
-    const data = { description, status: "open", ...given, ...trackerFields({ kind }) };
+    const data = { description, status: "open", priority: ranked.value, ...given, ...trackerFields({ kind }) };
     if (relating) data.relations = [{ kind: "relates", blocksId: await documentIdOf(rides) }];
-    show(inFlowWords(await write("forge_issues", { action: "create", data })));
+    const answer = await write("forge_issues", { action: "create", data });
+    show(inFlowWords(answer));
+    console.log(filedAs(answer, ranked.said));
   },
   comment: async ([reference, path]) => {
     if (!reference || !path) fail(usageOf("comment"));

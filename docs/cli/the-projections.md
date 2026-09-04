@@ -10,3 +10,16 @@ tokenizing worse than the character it stands for.
 
 Nothing here keeps its own copy of names the server already publishes — a local list goes stale
 against the thing it describes, silently, and reports the server's newest feature as a typo.
+
+The browse verb sorts the page it is handed. The tracker's `list` takes no order argument at all and
+answers in the order rows were last touched, which is a reading order: the issue somebody commented
+on this morning arrives above the one that has been waiting a month for someone to start it. So the
+rank comes first and age breaks the tie, oldest first, and the rank is printed on every row — an
+order a reader cannot see reads as a shuffle, and one they cannot see the key of reads as a wrong
+one. The ranking itself is the tracker's, in the order its own schema declares it, which is why a
+page returned against a schema that declares none is left exactly as it arrived rather than sorted
+against a list kept here.
+
+A page cut short by the limit is ranked as far as it goes and no further: the tracker chose those
+rows by recency before this saw them, so the line under a full page says the order covers the page
+alone.

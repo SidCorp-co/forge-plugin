@@ -42,6 +42,24 @@ no tool to read one back, so a mark it owns could not be relied on; a line the C
 every route, a person reading the issue sees it, and `forge advance --owed` reads it back off the
 record like everything else. Its undo is an update that rewrites the description without the line.
 
+## A rank is written for every filing, and the empty field the kind keeps is not the model
+
+Two issues filed on 2026-09-04 with nothing said about their rank came back reading `medium`, which
+is also what an issue somebody weighed and called medium reads. A backlog sorted on that field cannot
+tell the two apart, so it was sorted by hand instead, and the field bought nothing.
+
+The reason the kind's field is left empty does not carry over, and the difference is the tracker's,
+not this CLI's: leaving the kind out leaves it out, while leaving the rank out fills it with the
+middle of the set. So the choice is not between a default and no default — it is between an unjudged
+middle and an unjudged bottom, and only the bottom leaves a list workable from the top. Both filing
+routes write it; the reply says whether the filer chose it or the CLI did, because a filer who meant
+more than the bottom finds out while the command is still in their hand. The set behind it is read
+from the tracker's own schema at the call, and a rank outside it is refused before anything is
+filed — this CLI keeps no copy of those five names.
+
+The defect route ranks nothing at all. Whoever met a defect in this plugin is not whoever schedules
+the fix, and a note that ranked itself would be one finder's estimate of another's queue.
+
 ## The kind decides which sections, and the set is what this backlog writes
 
 The tracker's schema is the base and this project never changes it: its field for a kind takes any

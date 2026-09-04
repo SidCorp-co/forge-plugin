@@ -7,7 +7,9 @@
    plugin/hooks/how/issue-shape.md. */
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
+import { didYouMean } from "../suggest.mjs";
 import { MAX_LIMIT, listIssues, rowsOf, truncated } from "./issues.mjs";
+import { enumAt } from "./rpc.mjs";
 
 const SETTLED = ["closed", "dropped"];
 const CANDIDATES = 4;
@@ -145,6 +147,40 @@ export const insteadOf = (given) => {
 
 /** The one writer, and nothing where no kind was named: a default reads later as one somebody chose. */
 export const trackerFields = ({ kind }) => (kind ? { category: kind } : {});
+
+/* What a filing is ranked, in one place. The kind's field above is left empty and this one cannot
+   be — left out, the tracker fills the middle of its own set; docs/cli/new.md holds the rest. */
+export const PRIORITY_AT = ["data", "properties", "priority", "enum"];
+
+export const UNRANKED = "low";
+
+export const priorityFor = (given, allowed = []) => {
+  const wanted = given ?? UNRANKED;
+  const said = given === undefined ? `priority ${UNRANKED}, by default` : `priority ${given}, as given`;
+  if (!allowed.length || allowed.includes(wanted)) return { value: wanted, said };
+  if (given === undefined) {
+    return { refusal: `This CLI files an issue nobody ranked as \`${UNRANKED}\`, and the tracker's set is`
+      + ` now ${listed(allowed)}. Name one with --priority, and file this against the plugin: the`
+      + " default is what has to change, not the filing." };
+  }
+  return { refusal: `${didYouMean("priority", given, allowed)} The set is ${listed(allowed)},`
+    + " the tracker's own, and this CLI holds no copy of it." };
+};
+
+/** The reading with the set fetched, which is where both filing routes take it from: the schema path
+ *  is named once, and neither route decides for itself what a schema declaring nothing means. */
+export const rankOf = async (given) => priorityFor(given, await enumAt("forge_issues", PRIORITY_AT));
+
+export const filedAs = (answer, said) => {
+  const key = answer?.issueId ?? answer?.documentId ?? null;
+  return key ? `${key} is filed, ${said}.` : `Filed, ${said}; the reply named no key to say it of.`;
+};
+
+export const PRIORITY_HELP = [
+  `--priority takes the tracker's own set, read at the call, and absent it a filing is ${UNRANKED}.`,
+  "The reply says which of the two it was. An issue nobody ranked sorts to the bottom of the browse",
+  "verb rather than into the middle of it, so what is left there is what nobody has judged yet.",
+].join("\n");
 
 export const inFlowWords = (record) => {
   if (!record || typeof record !== "object" || Array.isArray(record)) return record;
