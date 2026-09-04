@@ -1840,3 +1840,29 @@ carries its text at the top level. No restart owed. Closed by its run. Folded fr
 - Two defects filed: the half that belongs in held files — the first phase reading the store, a review
   writing a half-followed convention as a rule (ISS-238); and a flag in a body-path slot opened as a
   filename at three verbs, with one place to fix it (ISS-240).
+
+## Seventy-first dry run — ISS-236 and ISS-230
+
+One agent gave the read that earns a review its place and silenced the owed line's refused verb
+(3.35.83). ISS-236: the whole-set read is the review phase's last step, taken after the replay onto
+the default branch's head — chosen because the flow's phase table and the figure's arrow already read
+the review as that phase's, and ISS-218's check pins the cell across three surfaces. The second half
+answered: a landing owes no recheck at all, since the replay is the earning read's own first step; a
+landing that moves one of the change's own paths owes a fresh whole-set read and its verdicts again,
+never a recheck. Synced in one pass across the spine, the reference, the contract and the figure; the
+retired clause is gone from every surface and a case pins the order, not merely the presence, on all
+four. ISS-230: the owed line delegates to the same reading the refusal uses, so the two cannot disagree
+by construction. Twenty-four verdicts pass. Two skill files moved, so a restart is owed. Both closed by
+the run. Folded from the record.
+
+- The run's own review found the figure's tested cell still stating the verdict-commit rule ISS-156
+  replaced: the figure's copies of the contract's tables are held equal in one column and drift in the
+  rest. Filed as ISS-241 — a check that pins one column proves one column.
+- The planned mutation proof on the skill was refused by the learning gate, which reads a skill path out
+  of a command's text rather than out of what the command writes, so a heredoc merely naming the file is
+  turned away; the proof was taken on the contract instead and the gate's defect filed (ISS-242).
+- One gap stated rather than hidden: the new order was walked end to end but for one clause about
+  commit-gate consults, because this change's own shape never demanded one. A clause reviewed but not
+  walked is named as such until a run walks it.
+- The run named the fold it could not make — this journal is outside a delegated run's place — so the
+  parent would not read the omission as a miss.
