@@ -19,7 +19,7 @@ const COPIED = [RUNNER, join("tools", "checkout.mjs"), join("tools", "gates", "s
 /* One file per top-level entry the table claims, plus one under every path a step reads, so a
    scratch run scopes the way the real one does instead of widening on a path nothing owns. */
 const PLACED = ["eslint.config.mjs", ".forge.json", "package-lock.json", "docs/one.md",
-  "docs/requirements/one.md", "feedback/one.md", ".claude-plugin/one.json", "plugin/src/one.mjs",
+  "docs/requirements/one.md", ".claude-plugin/one.json", "plugin/src/one.mjs",
   "plugin/scripts/one.mjs", "plugin/skills/one.md", "plugin/vi-natural/one.mjs",
   "plugin/hooks/vendor/one.mjs", "tools/check-vi-text.mjs", "tools/sync-skills.mjs",
   "packages/code-quality/claude-quality.mjs", "packages/code-quality/claude-plugin/skills/one.md"];

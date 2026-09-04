@@ -5,7 +5,7 @@ import { under } from "./scope.mjs";
    whose reads are too narrow does not fail — it passes without having run. */
 
 // Each top-level directory by name, `.` being the top-level files: three steps read the whole tree.
-export const EVERYTHING = [".", ".claude-plugin", "docs", "feedback", "packages", "plugin", "tools"];
+export const EVERYTHING = [".", ".claude-plugin", "docs", "packages", "plugin", "tools"];
 
 /* The suite's whole-repository readers: every tracked file, every tracked `.md`, and all of `docs/`
    against CLAUDE.md and the skills. Left in one `test` step they make its honest reads the whole
