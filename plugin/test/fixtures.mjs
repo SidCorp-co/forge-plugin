@@ -111,12 +111,20 @@ export const cleanRepo = () => {
 };
 
 const DECLARED = ["forge_issues", "forge_comments", "forge_projects.list", "forge_uploads",
-  "forge_projects.get", "forge_config", "forge_memory.search"];
+  "forge_projects.get", "forge_config", "forge_memory.search", "forge_knowledge"];
 /* `scoped` reads the schema to know whether to send the project id, so a tool declared with no
    properties is one a verb calls unscoped — which is a real call the tracker would refuse. Both of
    these declare one, so the id lookup runs, and the listing that answers it is served below from
    this repository's own slug rather than left for every suite to stub. */
-const TAKES_PROJECT = ["forge_projects.get", "forge_config", "forge_memory.search"];
+const TAKES_PROJECT = ["forge_projects.get", "forge_config", "forge_memory.search", "forge_knowledge"];
+/* Deliberately not the tracker's sets: a verb reading its enums off the schema at the call accepts
+   `fixture-only` and refuses `guide`, which a verb holding a copy of the real sets does the reverse
+   of. So the fixture is what proves there is no copy. */
+export const FIXTURE_ENUMS = {
+  kind: ["reference", "rule", "fixture-only"],
+  injection: ["always", "none"],
+  confidence: ["verified", "inferred"],
+};
 const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
 const ownSlug = () =>
   JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", ".forge.json"), "utf8")).slug;
@@ -128,6 +136,9 @@ const declaration = (name) => ({
     properties: {
       ...(TAKES_PROJECT.includes(name) ? { projectId: { type: "string" } } : {}),
       ...(name === "forge_issues" ? { data: { properties: { priority: { enum: RANKS } } } } : {}),
+      ...(name === "forge_knowledge"
+        ? Object.fromEntries(Object.entries(FIXTURE_ENUMS).map(([field, values]) => [field, { enum: values }]))
+        : {}),
     },
   },
 });

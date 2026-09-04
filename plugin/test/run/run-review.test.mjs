@@ -82,7 +82,8 @@ test("past the threshold the step files the reading's issue itself, and prints t
     `the title names no commit pair: ${filing.argv.join(" ")}`);
 
   for (const said of ["## Outcome", "## Rules", "## Out of scope", "1 file(s) and 501 changed line(s)",
-    `git diff ${from}..${to} -- plugin/src plugin/hooks plugin/bin`, "ISS-77", `review --done ${to}`]) {
+    `git diff ${from}..${to} -- plugin/src plugin/hooks plugin/bin`, "ISS-77", `review --done ${to}`,
+    "forge knowledge write module-<name>", "project-brief"]) {
     assert.ok(filing.body.includes(said), `the body carries no ${said}:\n${filing.body}`);
   }
   assert.ok(owed.stdout.includes("filed ISS-777"), owed.stdout);

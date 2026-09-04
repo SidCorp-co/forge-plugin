@@ -23,6 +23,7 @@ needs that topic and by nobody else.
 | [two writes that lie about themselves](cli/two-writes-that-lie.md) | Why a field is reported written only after the server shows it, and why the read-back compares the copy the boundary sent. |
 | [the primitives](cli/the-primitives.md) | What two verbs' own copies of the paging primitives cost, why one list serves a process, and the measurements behind the markdown set the checkers share. |
 | [`deps`](cli/deps.md) | What the marker sentence has to be for an edge to count, and why the graph is one ASCII line per blocker. |
+| [`knowledge`](cli/knowledge.md) | What the store held after forty-three runs, why a write carries forward what the caller did not name, and who refuses an entry that restates a rules file. |
 | [cloudflare](cli/cloudflare.md) | Why this is a second API rather than a route through the first, and how the account holding a zone is found. |
 | [codex — the consult](cli/codex-the-consult.md) | Why no local agent is spawned, what travels instead of the bodies, which single pass earns a review, and where a base is read from. |
 | [codex — the round](cli/codex-the-round.md) | Why calls are the only lever on wall time, what moves the effort a round is asked at, what a review that could not check is owed, and what a recheck is anchored to. |

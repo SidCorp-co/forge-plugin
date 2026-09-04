@@ -27,6 +27,8 @@ export const VERBS = [
   ["project", "[--credentials]",
     "the id, the branches a change lands on, and the staging deploy to walk it against",
     "forge_projects.list"],
+  ["knowledge", "<list|get|write|search|delete>",
+    "what a run learned of this codebase, stored where the next one reads it", "forge_knowledge"],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials"],
   ["codex", "<consult|verdict|pending|show|log|stats|replay>", "a second model reviews what this turn changed"],
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",

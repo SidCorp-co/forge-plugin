@@ -44,6 +44,7 @@ import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } fr
 import { doctor } from "./tools/doctor.mjs";
 import { deps } from "./tools/deps.mjs";
 import { cloudflare } from "./tools/cloudflare.mjs";
+import { knowledge } from "./tools/knowledge.mjs";
 import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
 import { hooks } from "./hooks/hook-log.mjs";
@@ -178,6 +179,7 @@ export const commands = {
   advance,
   spec,
   deps,
+  knowledge,
   cloudflare,
   feedback,
   codex,

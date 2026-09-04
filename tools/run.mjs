@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { pluginCopy } from "../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, REMOTE, Stop, stop } from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
+import { REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
@@ -17,13 +18,7 @@ const LINKED = ["node_modules", join("packages", "code-quality", "node_modules")
 
 /* Each delegated run reviews its own diff and stops there, so a helper two of them each wrote, or a
    parameter one stopped passing, is inside no run's range and found by nobody (ISS-95). The reading
-   that spans them is owed by this count rather than by anyone's judgement per issue. */
-const REVIEWED = "refs/forge/reviewed";
-const REVIEW_PATHS = ["plugin/src", "plugin/hooks", "plugin/bin"];
-/* Volume alone, because the release count fired first on both readings it ever triggered — three
-   releases at thirty-six changed lines the first time — so the trigger was the calendar of
-   releases and not the code there is to read (ISS-112). Releases are still printed. */
-const REVIEW_LINES = 500;
+   that spans them is owed by this count, and what one owes is `run/review.mjs`'s. */
 const NO_MARK = `no ${REVIEWED} in this repository, so what is owed a reading cannot be counted. `
   + `The first review reads from the release that introduced this rule: ${SELF} review --done <that release>.`;
 
@@ -273,57 +268,6 @@ const reviewSays = (tree, from) => {
   };
 };
 
-const KEY = /ISS-\d+/gu;
-
-/** The issues whose work the range carries, ascending, read off the subjects rather than from any
- *  list a person keeps: a release commit names no issue, and the commits it released do. */
-const spanned = (tree, from) => {
-  const subjects = gitOut(["log", "--first-parent", "--format=%s", `${from}..HEAD`], tree) ?? "";
-  return [...new Set(subjects.match(KEY) ?? [])].sort((one, two) => Number(one.slice(4)) - Number(two.slice(4)));
-};
-
-/** What a reading of one batch is owed, which lives here and in no prompt: the run reads it off the
- *  issue, and a person types none of it. */
-const reviewBody = (tree, from, to, volume) => {
-  const keys = spanned(tree, from);
-  const paths = REVIEW_PATHS.join(" ");
-  return [
-    "## Outcome",
-    "",
-    `The whole of ${from.slice(0, 7)}..${to.slice(0, 7)} is read once, as one batch, by a run that`,
-    `wrote none of it: ${volume} under ${REVIEW_PATHS.join(", ")}. What that reading finds is landed`,
-    `or filed, and ${REVIEWED} then names the head it read to, so the next batch counts from there.`,
-    "",
-    "## Rules",
-    "",
-    `- The range is a commit pair and the reading is its diff under those three paths, from the run's`,
-    `  own tree: \`git diff ${from}..${to} -- ${paths}\`.`,
-    "- What it looks for is what no single issue's review can see: a helper two runs each wrote, a",
-    "  simplification two changes apart, a parameter nothing passes any more, a shape one run left",
-    "  half moved.",
-    "- Behaviour stays as it is. A finding lands as one commit that only simplifies, reviewed like any",
-    "  other commit; anything that would alter what the code does is filed as its own issue naming",
-    "  this one, never fixed here.",
-    `- Issues whose releases this range spans: ${keys.join(", ") || "none, so the range is unreleased work"}.`,
-    `- The run ends from its own tree with \`${SELF} review --done ${to}\`, after its own ship. The ref`,
-    "  is named and not defaulted: it is this range's end, which is the head the reading reached, and",
-    "  other runs land on this branch while the reading is read (ISS-146).",
-    "",
-    "## Out of scope",
-    "",
-    "Each issue's own diff, which its own run already reviewed, and any change of behaviour, which is",
-    "a filing rather than a fix.",
-    "",
-    "## Why",
-    "",
-    "Every delegated run reviews its own diff and stops there, so what two runs each wrote is inside",
-    "no run's range and is found by nobody (ISS-95). The ship step counts the volume since the mark",
-    `and files this reading itself once ${REVIEW_LINES} changed line(s) have landed, so nobody has to`,
-    "notice.",
-    "",
-  ].join("\n");
-};
-
 const CLI = join(HERE, "plugin", "bin", "forge");
 const CLI_MS = 60_000;
 const launch = (key) => `Work ${key}. Use the Skill tool: skill forge:issue-flow, args ${key}.`;
@@ -375,7 +319,7 @@ const fileReview = (tree, from, volume) => {
   const title = `The batch ${from.slice(0, 7)}..${to.slice(0, 7)} is read once as a whole by a run `
     + `that wrote none of it, and the mark moves`;
   const filed = forgeSays(tree, ["new", "-", "--title", title, "--kind", "feature"],
-    reviewBody(tree, from, to, volume));
+    reviewBody({ tree, from, to, volume, self: SELF }));
   /* The refusal's own phrase, not any key: a reason quotes paths, and a worktree carries a key. Only
      this check's duplicate line writes `against <a key>`, so one carrying it is its by construction. */
   if (filed.why) {

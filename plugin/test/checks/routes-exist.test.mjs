@@ -15,13 +15,14 @@ import { USAGE as RESUME } from "../../src/flow/resume.mjs";
 import { USAGE as SPEC } from "../../src/spec/verbs.mjs";
 import { USAGE as CODEX } from "../../src/codex/codex.mjs";
 import { USAGE as CLOUDFLARE } from "../../src/tools/cloudflare.mjs";
+import { USAGE as KNOWLEDGE } from "../../src/tools/knowledge.mjs";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 const HOW = join(ROOT, "plugin", "hooks", "how");
 
 const OWN = {
   claim: CLAIM, advance: ADVANCE, record: RECORD, resume: RESUME, spec: SPEC, codex: CODEX,
-  cloudflare: CLOUDFLARE,
+  cloudflare: CLOUDFLARE, knowledge: KNOWLEDGE,
 };
 
 /* The row `forge -h` prints, where it names flags at all: that list is what an agent reads before
