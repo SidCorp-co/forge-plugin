@@ -1219,3 +1219,39 @@ from the record.
 - Two findings were set down in the confirmation rather than filed: an empty retired-names registry
   proven by its own test passing an entry, and the closed-status skip of the comment page stated in the
   verb's usage as the intent.
+
+## Forty-fourth dry run — ISS-131
+
+One agent made a long issue passable again (3.35.51): `forge advance` judges the record on the page
+the tracker returns instead of refusing every move on it, on the ground that the tracker's notice is true
+— the cut keeps the most recent rows, so a page that earns a status cannot be a page hiding an
+unearning — and the refusal that remains says what cut the page, the response-size cap and the count
+returned, never a limit of two hundred the thread did not reach; the route it hands out is the tracker's
+own escape plus the write that supplies the missing item, not a hand transition writing a status nothing
+checked. One correction: the review record named the wrong head and was corrected to the judged one.
+Codex: one consult, one recheck, nothing standing. Closed by its run. Folded from the record. Nine runs
+had met this refusal today; the eight sightings on ISS-17 were re-read as its CLI half done, and its
+cursor-shaped requirement is noted as stale.
+
+- A resume reads the newest park of the matching kind, so a park already answered can transition an
+  issue again; ISS-142. The issue-flow diagram carries a hand-copied rule table from the contract, and
+  it is stale; ISS-148. `forge issue --fields` refuses two fields the same verb prints under `--full`;
+  ISS-151. `forge record <kind> -h` was filed a second time and dropped as ISS-128's duplicate — the
+  same-place fold (ISS-139) is what stops that.
+
+## Forty-fifth dry run — ISS-130
+
+One agent made a skill name only what resolves (3.35.52): the skill-paths check refuses any path a
+skill's text names that does not resolve inside that skill's own directory, by real-path containment so
+a climb or a symlink out is caught, with two remedies in the refusal — a project's path is the project's
+to name, and this plugin's own has no name a skill can write, so state the method or the how route. The
+two citations of scripts that shipped nowhere became the migration classification and the identifier
+sweep stated as judgements. Six cases; an acceptance clause added; two skill-gate tests moved to a
+directory of their own because the checks directory hit the folder limit. Three skill files moved, so
+the restart owed stood. Closed by its run. Folded from the record.
+
+- Two path defects outside the hold were left standing and are filed together as ISS-154: a script's header
+  comment names a source path that does not resolve, and an acceptance clause cites a test file under
+  the directory it left. Both pass today because the claims check matches on the basename alone.
+- The evidence-upload MIME refusal was met again and went to ISS-80 as a comment — after the rename
+  workaround rather than before it, which the rule asks the other way round; the run said so itself.
