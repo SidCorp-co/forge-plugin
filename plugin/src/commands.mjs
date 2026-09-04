@@ -321,8 +321,8 @@ export const commands = {
     if (row && !asked.tracker) await noSuchGuide();
     const answer = await scoped("forge_guide", { action: "get", slug }, true);
     if (answer?.refused) await noSuchGuide();
-    const header = asked.tracker ? trackerHeader(row) : [];
-    if (header.length) console.log(`${header.join("\n")}\n`);
+    /* `trackerHeader` answers on every path, a row or none, so --tracker alone decides the header. */
+    if (asked.tracker) console.log(`${trackerHeader(row).join("\n")}\n`);
     /* Markdown, not Markdown escaped inside JSON: every `\n` tokenizes worse than the character. */
     show(answer?.guide?.body ?? answer);
   },

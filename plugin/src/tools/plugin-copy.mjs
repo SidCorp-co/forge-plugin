@@ -45,11 +45,16 @@ export const pluginCopy = (root = HERE) => {
   };
 };
 
+const shippedBy = (path, name) => {
+  if (typeof path !== "string") return null;
+  const ships = read(join(path, ".claude-plugin", "marketplace.json"))?.plugins ?? [];
+  return ships.find((one) => one?.name === name && typeof one?.source === "string") ?? null;
+};
+
 /* The nearest checkout answers, runnable or not: falling through would run released code silently. */
 const checkoutAbove = (from, name) => {
   for (let at = resolve(from); ; at = dirname(at)) {
-    const ships = read(join(at, ".claude-plugin", "marketplace.json"))?.plugins ?? [];
-    const mine = ships.find((one) => one?.name === name && typeof one?.source === "string");
+    const mine = shippedBy(at, name);
     if (mine) return resolve(at, mine.source);
     if (dirname(at) === at) return null;
   }
@@ -84,9 +89,7 @@ export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"),
 };
 
 const folderOf = (path, name) => {
-  if (typeof path !== "string") return null;
-  const ships = read(join(path, ".claude-plugin", "marketplace.json"))?.plugins ?? [];
-  const mine = ships.find((one) => one?.name === name && typeof one?.source === "string");
+  const mine = shippedBy(path, name);
   if (!mine) return null;
   const folder = join(path, mine.source, "..", "feedback");
   return existsSync(join(folder, "README.md")) ? folder : null;

@@ -6,8 +6,8 @@ import { once } from "../resolve/config.mjs";
 import { slugIfAny } from "../resolve/settings.mjs";
 import { scoped } from "./rpc.mjs";
 
-export const CONFIG_SOURCE = "the tracker's project config";
-export const DEPLOY_SOURCE = "the tracker's project detail";
+const CONFIG_SOURCE = "the tracker's project config";
+const DEPLOY_SOURCE = "the tracker's project detail";
 
 export const releaseFrom = (config) => ({
   staging: config?.baseBranch ?? null,
@@ -49,7 +49,7 @@ const HOST = /^https?:\/\//u;
 const NOTES = "notes";
 
 /* One walk serves three readers: what to print, what to withhold, what a payload must not carry. */
-export const leaves = (value, at = []) => {
+const leaves = (value, at = []) => {
   if (typeof value === "string") return value ? [{ at, value }] : [];
   if (Array.isArray(value)) return value.flatMap((one, index) => leaves(one, [...at, String(index)]));
   if (value && typeof value === "object") {

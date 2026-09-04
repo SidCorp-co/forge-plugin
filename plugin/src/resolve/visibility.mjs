@@ -47,8 +47,6 @@ export const usageOf = (verb) => {
   return `Usage: forge ${verb}${row?.[1] ? ` ${row[1]}` : ""}`;
 };
 
-/** What `-h` on a verb answers: what to type, what it is for, and which schema holds the fields the
- *  tracker itself takes — the detail, fetched only when it is asked for. */
 /* A usage line holding only flags takes no field of the tracker's, whatever tool answers behind it,
    and the pointer would read as an invitation to pass one. Read off the line rather than declared,
    so a verb that grows a value gets the pointer without anyone remembering to add it. */
@@ -58,6 +56,8 @@ const takesAValue = (args = "") =>
     .split(/\s+/u)
     .some((one) => one && !one.startsWith("-"));
 
+/** What `-h` on a verb answers: what to type, what it is for, and which schema holds the fields the
+ *  tracker itself takes — the detail, fetched only when it is asked for. */
 export const helpOf = (verb) => {
   const row = rowFor(verb);
   const detail = takesAValue(row?.[1]) && row?.[3]
