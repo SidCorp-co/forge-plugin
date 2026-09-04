@@ -6,6 +6,7 @@ import { join } from "node:path";
 
 import { configDir, userConfig } from "../resolve/config.mjs";
 import { masked } from "../hooks/hook-log.mjs";
+import { typed } from "../hooks/shell-spans.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags, pullRepeated } from "../resolve/flags.mjs";
 
@@ -257,9 +258,7 @@ export const recheckRisks = (entries, root, rels) => recheckPlan(entries, root, 
 
 /* Six and a count in the sentence keeps a refusal readable; the command carries every path, since a pass over six of thirty earns nothing while looking as though it did — quoted where a shell would split it, pathed where this CLI's own parser would eat it as a flag. */
 const SHOWN = 6;
-const PLAIN = /^[\w./@+][\w./@+-]*$/u;
-const shell = (one) => (PLAIN.test(one) ? one : `'${one.replace(/'/gu, String.raw`'\''`)}'`);
-const quoted = (one) => (one.startsWith("-") ? `./${one}` : shell(one));
+const quoted = (one) => (one.startsWith("-") ? `./${one}` : typed(one));
 const listed = (rels) => {
   const shown = rels.slice(0, SHOWN).map(quoted).join(" ");
   return rels.length > SHOWN ? `${shown} and ${rels.length - SHOWN} more` : shown;

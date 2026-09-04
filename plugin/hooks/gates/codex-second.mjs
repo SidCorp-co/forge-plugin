@@ -20,6 +20,7 @@ import {
   shellText,
   spans,
   spelled as bare,
+  typed,
   turnRecords,
   unspentAdvice,
   how,
@@ -149,9 +150,6 @@ export const commitAim = (ev) => {
     others: [...new Set(made.slice(1).map((one) => treeAt(text, one)))],
   };
 };
-
-const typed = (one) =>
-  /^[\w./@+][\w./@+-]*$/u.test(one) ? one : `'${one.replace(/'/gu, String.raw`'\''`)}'`;
 
 /* The switch a refused agent can reach, first, and then the variable as what it is: written as a
    prefix on the refused command it reached no hook, and that refusal named no way out (ISS-70). */

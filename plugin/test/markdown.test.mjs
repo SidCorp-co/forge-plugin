@@ -1,7 +1,8 @@
-/* A primitive declared twice is a selector that can drift on one side only, which is what happened
-   here: one run added a copy of each without ever seeing the set (ISS-101). So the copies are gone,
-   a guard says they cannot come back, and each pattern whose bytes moved is watched on the input
-   that moved it — over this repository's own markdown, not over invented lines. */
+/* A primitive declared twice is a selector that can drift on one side only, which is what happened here:
+   one run added a copy of each without ever seeing the set (ISS-101). So the copies are gone, a guard says
+   they cannot come back over every home and not only the markdown one — two copies of the shell-word quoter
+   survived a scan of two directories — and each pattern whose bytes moved is watched on the input that
+   moved it, over this repository's own markdown and its own paths, not over invented lines. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
@@ -19,10 +20,12 @@ import {
   withoutMarkup,
   withoutSpans,
 } from "../src/markdown.mjs";
+import { typed } from "../src/hooks/shell-spans.mjs";
 import { checkStructure } from "../src/checks/claude-md.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const HOME = "plugin/src/markdown.mjs";
+const MARKDOWN = "plugin/src/markdown.mjs";
+const SHELL = "plugin/src/hooks/shell-spans.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -39,20 +42,25 @@ const OLD = {
   dupMarkup: /[*`_>[\]()]/g,
 };
 
+/* The escape is the whole call and not the four bytes `'\''`, which is how anything quotes for a shell:
+   written short it refuses a module with its own reason to write them, and names no route out. */
+const SHELL_ESCAPE = ".replace(/'/gu, String.raw`'\\''`)";
+
 const NEEDLES = [
-  ["an inline code span", [CODE_SPAN_PATTERN]],
-  ["a link target", [LINK_TARGET_PATTERN]],
-  ["a link text", [LINK_TEXT_PATTERN]],
-  ["a table row", [String.raw`\|.*\|`, String.raw`\|(.*)\|`]],
-  ["a table separator", [String.raw`[\s:|-]+\|`, String.raw`[\s|:-]+\|`]],
-  ["a markup class", [MARKUP_PATTERN]],
+  ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
+  ["a link target", MARKDOWN, [LINK_TARGET_PATTERN]],
+  ["a link text", MARKDOWN, [LINK_TEXT_PATTERN]],
+  ["a table row", MARKDOWN, [String.raw`\|.*\|`, String.raw`\|(.*)\|`]],
+  ["a table separator", MARKDOWN, [String.raw`[\s:|-]+\|`, String.raw`[\s|:-]+\|`]],
+  ["a markup class", MARKDOWN, [MARKUP_PATTERN]],
+  ["a shell word", SHELL, [String.raw`[\w./@+][\w./@+-]*`, SHELL_ESCAPE]],
 ];
 
 const redeclared = (sources) =>
   sources.flatMap(({ rel, text }) =>
     NEEDLES
-      .filter(([, needles]) => needles.some((one) => text.includes(one)))
-      .map(([what]) => `${rel} declares ${what} of its own; ${HOME} holds it`));
+      .filter(([, home, needles]) => rel !== home && needles.some((one) => text.includes(one)))
+      .map(([what, home]) => `${rel} declares ${what} of its own; ${home} holds it`));
 
 const listed = (...paths) =>
   execFileSync("git", ["-C", ROOT, "ls-files", "-z", ...paths], { encoding: "utf8", maxBuffer: 8e6 })
@@ -60,12 +68,14 @@ const listed = (...paths) =>
     .filter(Boolean);
 
 const read = (rel) => ({ rel, text: readFileSync(join(ROOT, rel), "utf8") });
-const modules = () => listed("plugin/src/checks", "plugin/src/spec").filter((one) => one.endsWith(".mjs")).map(read);
+/* Every module, since a copy lands wherever a run writes: this read `checks` and `spec` and both quoter copies sat outside them. `vendor/` is another package's, and its `.js` is not this filter's. */
+const modules = () => listed("plugin/src", "plugin/hooks").filter((one) => one.endsWith(".mjs")).map(read);
 const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.endsWith(".md")).map(read);
 
-test("no module under checks or spec declares a primitive of its own", () => {
+test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
-  assert.ok(found.length >= 10, `${found.length} module(s) scanned; the selector matches too little`);
+  assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
+  assert.ok(found.some(({ rel }) => rel === SHELL), `${SHELL} is out of the scan the guard runs`);
   assert.deepEqual(redeclared(found), []);
 });
 
@@ -75,13 +85,23 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "b.mjs", text: String.raw`const ROW = /^\s*\|(.*)\|\s*$/u;` },
     { rel: "c.mjs", text: String.raw`const SEP = /^\|[\s|:-]+\|$/u;` },
     { rel: "d.mjs", text: "const MARKUP = /[*`_>[\\]()]/g;" },
+    { rel: "e.mjs", text: String.raw`const bare = /^[\w./@+][\w./@+-]*$/u;` },
+    { rel: "f.mjs", text: "const q = (one) => `'${one.replace(/'/gu, String.raw`'\\''`)}'`;" },
   ];
   assert.deepEqual(redeclared(copies), [
-    `a.mjs declares an inline code span of its own; ${HOME} holds it`,
-    `b.mjs declares a table row of its own; ${HOME} holds it`,
-    `c.mjs declares a table separator of its own; ${HOME} holds it`,
-    `d.mjs declares a markup class of its own; ${HOME} holds it`,
+    `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
+    `b.mjs declares a table row of its own; ${MARKDOWN} holds it`,
+    `c.mjs declares a table separator of its own; ${MARKDOWN} holds it`,
+    `d.mjs declares a markup class of its own; ${MARKDOWN} holds it`,
+    `e.mjs declares a shell word of its own; ${SHELL} holds it`,
+    `f.mjs declares a shell word of its own; ${SHELL} holds it`,
   ]);
+});
+
+test("escaping an apostrophe for a shell is not re-declaring the quoter", () => {
+  const own = String.raw`const wrap = (one) => "'" + one.split("'").join("'\''") + "'";`;
+  assert.ok(own.includes(String.raw`'\''`), "the idiom is there, so only the whole call tells a copy apart");
+  assert.deepEqual(redeclared([{ rel: "g.mjs", text: own }]), []);
 });
 
 /* The margin admits a carriage return because the CLAUDE.md checker runs on checkouts this tree
@@ -162,4 +182,36 @@ test("no pattern called output-neutral disagrees with the form it replaced", () 
     }
   }
   assert.deepEqual(moved, []);
+});
+
+/* The two forms replaced, as they stood at b8cd67d in codex-log.mjs and codex-second.mjs — byte-identical
+   to each other, which is the drift this guard exists to keep from starting. */
+const SHELL_WAS = {
+  log: (one) => (/^[\w./@+][\w./@+-]*$/u.test(one) ? one : `'${one.replace(/'/gu, String.raw`'\''`)}'`),
+  gate: (one) =>
+    /^[\w./@+][\w./@+-]*$/u.test(one) ? one : `'${one.replace(/'/gu, String.raw`'\''`)}'`,
+};
+
+/* A refusal names this repository's own paths; the rest are shapes no tracked path has. */
+const SHELL_CASES = ["", " ", "a b.md", "it's.md", "-flag", "'", "''", "a'b'c", "a\nb", "a\tb",
+  "$HOME", "`x`", "~/x", "a;b", "a|b", "*.md", "a\\b", "ü.md", "a b 'c' -d"];
+
+test("the shared shell word agrees with both forms it replaced, over every path this repository tracks", () => {
+  const paths = listed();
+  assert.ok(paths.length >= 300, `${paths.length} path(s) read; the corpus is too small to judge on`);
+  const moved = [];
+  for (const one of [...paths, ...SHELL_CASES]) {
+    for (const [where, was] of Object.entries(SHELL_WAS)) {
+      if (typed(one) !== was(one)) moved.push(`${where}: ${JSON.stringify(one)} -> ${JSON.stringify(typed(one))}`);
+    }
+  }
+  assert.deepEqual(moved, []);
+});
+
+test("a shell word is quoted where a shell would split it and bare where it would not", () => {
+  assert.equal(typed("plain.md"), "plain.md");
+  assert.equal(typed("a b.md"), "'a b.md'");
+  assert.equal(typed("it's.md"), String.raw`'it'\''s.md'`);
+  assert.equal(typed(""), "''", "an empty word has to survive as an argument");
+  assert.equal(typed("-flag"), "'-flag'", "a leading dash is quoted here; the ./ layer is codex-log's own");
 });

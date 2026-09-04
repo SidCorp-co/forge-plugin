@@ -97,6 +97,10 @@ const STAGE = /(?:^|[^|])\|&?\s*$/u;
 const COMMENT = /^#[^\n]*/u;
 export const spelled = (one) =>
   one.replace(/['"]/gu, "").replace(/\\(.)/gu, "$1").replace(/^~(?=\/|$)/u, homedir());
+/** `spelled` run the other way — the word written back into a command a refusal tells a developer to run: bare where a shell hands it on unchanged, quoted where it would split, and since a quoted run has no escape, an apostrophe closes the quote, escapes, reopens. */
+const PLAIN = /^[\w./@+][\w./@+-]*$/u;
+export const typed = (one) =>
+  PLAIN.test(one) ? one : `'${one.replace(/'/gu, String.raw`'\''`)}'`;
 const named = (to) => to !== "" && to !== "-" && !to.includes("$");
 const onto = (base, to) => {
   if (to === NOWHERE) return NOWHERE;
