@@ -393,6 +393,30 @@ test("a reading that finds nothing moves the mark in one line, and the count sta
   assert.match(nowhere.stderr, /`no-such-ref` is no commit in this tree/u, nowhere.stderr);
 });
 
+/* The plant is the one moment nothing else checks, and a mark off this history opens a range that
+   still counts and still prints a plausible number, so no threshold is reached honestly (ISS-104). */
+test("the first plant proves the target is this history's, apart from a mark behind the head", () => {
+  const { work } = pushed("offhistory");
+  const held = git(work, "rev-parse", "HEAD^{tree}").stdout.trim();
+  const orphan = git(work, "commit-tree", held, "-m", "a commit on no branch of this repository").stdout.trim();
+
+  const off = runIn(work, ["review", "--done", orphan], BARE);
+  assert.equal(off.status, 1, off.stdout);
+  assert.match(off.stderr, /is on no history reaching this tree's head/u, off.stderr);
+  assert.doesNotMatch(off.stderr, /is not a descendant of the mark/u,
+    "a target off this history is not a target behind the mark, and the two send a reader to different fixes");
+  assert.ok(off.stderr.includes(`git update-ref refs/forge/reviewed ${orphan.slice(0, 7)}`),
+    `the plant's escape has to carry the two-argument form:\n${off.stderr}`);
+  assert.doesNotMatch(off.stderr, /update-ref refs\/forge\/reviewed [0-9a-f]{7} [0-9a-f]{7}/u,
+    "there is no old value on the plant path, so a compare-and-swap escape refuses a second time");
+  assert.match(off.stderr, /fetch/u, "a tree that has not fetched is the usual reason, so the refusal names that read");
+  assert.equal(ref(work), "", "the refused plant left no mark");
+
+  const planted = runIn(work, ["review", "--done", "HEAD"], BARE);
+  assert.equal(planted.status, 0, planted.stderr);
+  assert.match(planted.stdout, /planted at [0-9a-f]{7}/u, planted.stdout);
+});
+
 /* A mark moved back hands the next reading a range it has already been told was read — a codex
    finding on this change, alongside the shared ref two review worktrees both write. */
 test("the mark only ever moves forward, and the refusal carries the way past a wrong one", () => {
