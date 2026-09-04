@@ -934,3 +934,26 @@ hook document moved, so the restart already owed stood. Folded from the record.
   route, and the failed call costs the verdict too. ISS-80, its third sighting. The note itself was
   written into the worktree's feedback folder and left with the worktree; the finding survived only
   because the hand-back named it.
+
+## Thirty-first dry run — ISS-108
+
+One agent made a retired name refused on every surface that could still read it (3.35.35): a registry
+of retired names, each with the release it went in, held once in a checker that walks the plugin and
+docs trees and matches a name where the CLI's own surface would use it — after the verb, as a code span
+or quoted token, as a flag, as a tool name, as a file basename — never as a bare word, because the verbs
+are ordinary English across the docs and a bare match was measured to fire on prose. The registry ships
+empty, since nothing has ever been retired, and the case that proves the checker fires runs a fixture
+entry naming a live verb through the real walk. Doctor gets no row until the first retirement has
+something to print: a row with nothing to show is code nobody can watch fire. Codex: one finding closed
+in the document, one fixed in the test, one rejected on measurement. No restart owed. Folded from the
+record.
+
+- An active requirements clause can go on prescribing a retired verb, because the checker exempts the
+  requirements tree as history; the residual went to ISS-27, whose gate owns that tree.
+- The run recorded no gap in the method: advance named each payload, the contract part named what each
+  status reads, and the two refusals met printed the shape or the limit they wanted. The two rounds
+  they cost — a flag typed on the wrong verb, a note written twice against a 500-character field —
+  are ISS-62's and ISS-46's already.
+- The run ended at `released` under the skill pinned before ISS-105 landed; the report from the new
+  copy already said *owed: the close*, and the parent closed it through `forge advance`, which now
+  reads the status alone for that step.
