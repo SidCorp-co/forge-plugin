@@ -1278,3 +1278,23 @@ feedback folder. Two consults, no findings. Closed by its run; no restart owed. 
   attach verb now shares (ISS-155).
 - A mid-run collision: the ship's rebase brought ISS-131's landing, which made the comment page size
   private; the run posted a correction before rewriting to the shared cut line, as the contract asks.
+
+## Forty-seventh dry run — ISS-129
+
+One agent made a named review base part where the branch parted (3.35.54): `--base <ref>` now anchors
+the consult at the merge-base of that ref and the head, so a master that moved under the branch no
+longer puts another run's commits into this run's review; the row records the resolved commit, a stderr
+line names the parting point, and the nothing-differs refusal suggests a base that parts at the same
+place. Four new cases. The live case was real on this repository: master had taken a journal commit under
+the branch. One consult finding — three sites resolving the base separately could disagree on a ref
+moving mid-consult — accepted and closed by one answer per checkout and ref, refuted on recheck. Closed
+by its run; no restart owed. Folded from the record.
+
+- The run declined the issue's literal three-dot form, having probed it: three dots make the head the
+  other side and drop the working tree, so an edited uncommitted file vanishes from the review. The
+  merge-base as one side keeps the tree as the other. Said in the confirmation, the plan, the criterion
+  and the docs rather than taken silently — the correct route for an issue whose stated fix is wrong.
+- All ten verdicts were re-posted verbatim after the ship's rebase, the same cost ISS-137's run paid;
+  this run's data went to ISS-156 as a comment. Its first move was to file a duplicate (ISS-162), caught
+  and dropped by the run itself — the same-place search at creation that ISS-139 asks for would have
+  caught it before the filing.
