@@ -1382,3 +1382,28 @@ range. Twenty cases. Four issues filed onward. No restart owed. Closed by its ru
 - The batch took the longest of the day, at over two hours: four issues sharing one branch means four
   sets of records, and the rebase brought two landings mid-run. The rule for sharing a run is for fixes
   the size of one change; four is where the saving turns into serial waiting.
+
+## Fifty-second dry run — ISS-166
+
+One agent gave the gate a memory of its own seconds (3.35.61): each step's ledger entry carries how
+long its pass took, one append-only line per green run records the whole figure and how many of the
+table's steps it spent, and the release's last step prints that figure beside the code-volume count as a
+ratio against the run before it — subtracting only between whole-gate runs of the same table size, and
+leading with a scoped run's own figure named as scoped. Five defects found in its own first cut, each
+reproduced and pinned by a case watched red: a ratio that could never fire here, a run evicting its own
+predecessor, unequal tables subtracted, a read-modify-write over a file two worktrees share, one line
+printed twice. Fourteen criteria pass, each citing an attachment rather than a temporary path. No
+restart owed. Closed by its run. Folded from the record.
+
+- The last defect took two rounds: the first fix only delayed the compaction, the recheck rightly kept
+  the finding, and the compaction was deleted rather than guarded, because no lock could ship with a case
+  that fails without it. A guard that cannot be watched failing is not a fix.
+- A finding went to the gate-review skill's issue: three real readings moved a third either way on
+  machine contention alone, so a trigger that is a ratio of wall clock will spend a delegated agent on
+  noise. The skill's prose already made the trigger conditional; the number needs a load-aware companion.
+- The release that lands a change to the ship's last step is the one release that cannot print it: the
+  shared checkout's copy of the script is loaded before the step that pulls the change in. Said in the
+  verification record rather than passed off as a defect.
+- Two plugin defects filed: the note kind's help names no length limit, so the cap arrives from the
+  tracker after three round trips (ISS-181); a comment verb given a flag it does not know reports a
+  missing file named after the flag (ISS-182).
