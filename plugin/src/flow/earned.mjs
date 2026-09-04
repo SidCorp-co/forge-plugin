@@ -360,11 +360,8 @@ export const parkRecord = (view, wanted = () => true) => {
   return found.length ? found.at(-1) : null;
 };
 
-/* A screen is the change a deploy does not undo for whoever already read it, so the contract asks
-   a person: a comment written on something other than a device token, later than the park that
-   asked. `authorDeviceId` replaced `isAi` on 2026-09-04 — Forge stopped storing what a writer
-   claimed to be and kept what its token is. A drive job holds a device token, so its own comments
-   still cannot answer its own park; an agent on a person's PAT can, and that is the known price. */
+/* A screen is the change a deploy does not undo for whoever already read it, so a person answers: a
+   comment from a token that is not a device's, later than the park. An agent on a person's PAT can. */
 export const answered = (view, kind) => {
   const asked = parkRecord(view, (one) => one === kind);
   return Boolean(asked) && view.comments.some(
