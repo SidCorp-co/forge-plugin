@@ -156,11 +156,13 @@ const escapeOr = (got, wanted, said) => {
     const also = Object.entries(got)
       .filter(([flag, value]) => flag !== "none" && (Array.isArray(value) ? value.length : value !== undefined))
       .map(([flag]) => `--${flag}`);
-    return also.length ? `--none is the whole record, so it takes no ${also.join(" or ")}.` : null;
+    return also.length
+      ? `--none alone: it is the whole record, so ${also.join(" or ")} has no place beside it`
+      : null;
   }
   const missing = wanted.filter((one) => got[one] === undefined);
   return missing.length
-    ? `${missing.map((one) => `--${one}`).join(", ")}, or --none "<why>" when this run ${said}.`
+    ? `${missing.map((one) => `--${one}`).join(", ")}, or --none "<why>" when this run ${said}`
     : null;
 };
 

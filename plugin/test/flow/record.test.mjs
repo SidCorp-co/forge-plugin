@@ -294,9 +294,9 @@ test("a routed finding names where it went, or says nothing was routed", () => {
   assert.equal(parse(render("routed", { none: "nothing outside this issue came up" })).fields.none, "nothing outside this issue came up");
   assert.equal(refusedBy("routed", { what: "a defect elsewhere", to: "ISS-80" }), null);
   assert.equal(refusedBy("routed", { none: "none came up" }), null);
-  assert.match(refusedBy("routed", { what: "a defect elsewhere" }) ?? "", /--to, or --none "<why>" when this run routed nothing\./u);
-  assert.match(refusedBy("routed", { none: "none came up", to: "ISS-80" }) ?? "", /--none is the whole record, so it takes no --to\./u);
-  assert.match(refusedBy("routed", { none: "none came up", evidence: ["run.txt"] }) ?? "", /takes no --evidence\./u,
+  assert.match(refusedBy("routed", { what: "a defect elsewhere" }) ?? "", /^record routed needs --to, or --none "<why>" when this run routed nothing\.$/u);
+  assert.match(refusedBy("routed", { none: "none came up", to: "ISS-80" }) ?? "", /^record routed needs --none alone: it is the whole record, so --to has no place beside it\.$/u);
+  assert.match(refusedBy("routed", { none: "none came up", evidence: ["run.txt"] }) ?? "", /so --evidence has no place beside it\.$/u,
     "and the exclusion is read off what was given, so a field the check's own list omits is caught too");
   /* The deferred fill reads a non-null check as the shape asking for evidence, which is true of the
      two kinds whose field says so and false of one whose check refuses something else. */
@@ -320,5 +320,5 @@ test("a gap says where the method did not answer and what was done instead", () 
   assert.match(body, /^lacked: the declaration lines approved reads$/mu);
   assert.equal(parse(body).kind, "gap");
   assert.equal(refusedBy("gap", { none: "the skill answered every step" }), null);
-  assert.match(refusedBy("gap", { where: "SKILL.md", lacked: "the release path" }) ?? "", /--did, or --none "<why>" when this run met no gap\./u);
+  assert.match(refusedBy("gap", { where: "SKILL.md", lacked: "the release path" }) ?? "", /^record gap needs --did, or --none "<why>" when this run met no gap\.$/u);
 });
