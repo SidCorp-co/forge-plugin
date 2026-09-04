@@ -160,6 +160,9 @@ const carried = (given, stored) => {
       continue;
     }
     if (stored?.[field] === undefined || stored?.[field] === null) continue;
+    /* And nothing is carried from an empty one: `metadata {}` named in the carry line is a field
+       the reader has to check to find that nothing was kept in it. */
+    if (typeof stored[field] === "object" && !Object.keys(stored[field]).length) continue;
     out[field] = stored[field];
     kept.push(`${field} ${typeof stored[field] === "object" ? JSON.stringify(stored[field]) : stored[field]}`);
   }

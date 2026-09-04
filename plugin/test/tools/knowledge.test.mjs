@@ -105,6 +105,15 @@ test("a replace naming nothing keeps every field the upsert would have reset, an
   assert.equal(store.get("module-knowledge").injection, "always");
 });
 
+test("an empty stored field is not named as carried", async () => {
+  await ran(["knowledge", "write", "module-knowledge", "-", "--kind", "reference", "--title", "T"], BODY);
+  const run = await ran(["knowledge", "write", "module-knowledge", "-"], "a later body\n");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /carried from the stored entry/u, run.stdout);
+  assert.doesNotMatch(run.stdout, /metadata \{\}/u,
+    `a field with nothing in it is named as kept: ${run.stdout}`);
+});
+
 test("--meta overlays the stored keys rather than replacing them", async () => {
   await created();
   const run = await ran(["knowledge", "write", "module-knowledge", "-", "--meta", "correctedBy=ISS-232"],
