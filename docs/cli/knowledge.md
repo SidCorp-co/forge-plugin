@@ -103,6 +103,12 @@ accepted and dropped answers success exactly like one that was stored.
 ## What this verb is not
 
 It does not touch the tracker's embedding or its injection modes beyond passing a caller's choice
-through, and it writes nothing to the checkout — an entry lives in the tracker, which is the point of
-having one. The project brief that ISS-147 adds is an entry like any other, at slug `project-brief`,
-and is read by the project verb rather than by this one.
+through, and **an entry is not translated** where an issue body on the same project would be: the
+prose language applies to what a project's people read, and an entry is a reading of a codebase,
+which this repository keeps in English for the reason CLAUDE.md gives. That falls out of where the
+body travels rather than from a branch, so nothing here reads as a choice and this paragraph is
+where the choice is. Reversing it is not a flag: the tracker would have to declare a translatable
+payload for this tool, and whoever declared it would first have to decide whose language a store
+two projects share is in. It writes nothing to the checkout — an entry lives in the tracker,
+which is the point of having one. The project brief that ISS-147 adds is an entry like any other,
+at slug `project-brief`, and is read by the project verb rather than by this one.
