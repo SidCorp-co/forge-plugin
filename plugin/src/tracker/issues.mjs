@@ -1,8 +1,9 @@
 /* Paging, the browse projection and the reference-to-id lookup: docs/cli/the-projections.md. */
-import { fail } from "../resolve/settings.mjs";
+import { fail, slugIfAny } from "../resolve/settings.mjs";
 import { scoped } from "./rpc.mjs";
 
-/* No offset or cursor exists, and this number is not the cap that bites: docs/cli/the-projections.md. */
+/* What the browse verb PRINTS, out of the whole set the walk below reads. The wire ask is always
+   MAX_LIMIT and neither number is the cap that bites: docs/cli/the-projections.md. */
 export const DEFAULT_LIMIT = 200;
 export const MAX_LIMIT = 500;
 
@@ -41,41 +42,37 @@ export const queued = (rows, order = []) => {
     .map((held) => held.row);
 };
 
-/* Whether a page was whole, and what one reader of it is owed where it was not: the two caps, and
-   why `limit` is taken rather than defaulted, are in docs/cli/the-projections.md. */
 export const cut = (payload, rows, limit) =>
   payload?.hasMore === true || payload?.truncated === true
   || Boolean(payload?.truncatedBy) || rows.length >= limit;
 
-export const cutBy = (payload, rows, limit) => (cut(payload, rows, limit)
-  ? {
-    returned: rows.length,
-    by: payload?.truncatedBy ? String(payload.truncatedBy) : "a cap the tracker did not name",
-    notice: payload?.notice ? String(payload.notice) : null,
-  }
-  : null);
-
-export const cutSaid = (held, what) =>
-  `${what} was cut to the ${held.returned} row(s) read, by ${held.by}.`
-  + (held.notice ? ` ${held.notice}` : "");
-
-/* The floor of the interval a first window is bisected from, no row predating the clock's own. */
 const EPOCH = 0;
 
 const iso = (ms) => new Date(ms).toISOString();
 
-/** One window, absorbed into `index`, and whether the answer covered what it asked for.
- *  `createdBefore` is exclusive and `createdAfter` inclusive, so `[after, before)` tiles cleanly. */
-const window = async (index, before, after) => {
+/* The caller's own bound is the walk's ceiling or floor: a frontier subdivides that interval and
+   may never widen past either end of it. */
+const stampIn = (filters, key, absent) => {
+  const at = Date.parse(String(filters?.[key] ?? ""));
+  return Number.isFinite(at) ? at : absent;
+};
+
+/** One window, absorbed into `held`. `createdBefore` is exclusive and `createdAfter` inclusive, so
+ *  `[after, before)` tiles cleanly, and the caller's own bounds ride every one of them. */
+const window = async (held, before, after) => {
   const payload = await listIssues({
+    ...held.filters,
     ...(before === null ? {} : { createdBefore: iso(before) }),
     ...(after === null ? {} : { createdAfter: iso(after) }),
   }, MAX_LIMIT);
+  held.pages += 1;
   const rows = rowsOf(payload);
   for (const row of rows) {
     const key = String(row?.issueId ?? "").toUpperCase();
-    if (key) index.set(key, row.documentId);
+    if (key) held.index.set(key, row.documentId);
+    held.rows.set(row?.documentId ?? key, row);
   }
+  held.notice = payload?.notice ? String(payload.notice) : held.notice;
   return { rows, whole: !cut(payload, rows, MAX_LIMIT) };
 };
 
@@ -83,67 +80,99 @@ const stamps = (rows) =>
   [...new Set(rows.map((row) => Date.parse(row?.createdAt ?? "")).filter(Number.isFinite))]
     .sort((one, other) => other - one);
 
-/** The newest whole window under `held.frontier`: the stamps a cut page returned open the search
- *  and no more, and what narrows is the interval. Why: docs/cli/the-projections.md. */
+/** The newest whole window under the frontier: the stamps open the search, the interval is what
+ *  narrows, and only a millisecond is indivisible. Why: docs/cli/the-projections.md. */
 const narrowed = async (held) => {
   const marks = stamps(held.page.rows);
-  const top = held.frontier ?? Date.now();
-  let lower = marks.length ? marks[Math.floor(marks.length / 2)] : EPOCH;
+  const top = held.frontier ?? held.ceiling ?? Date.now();
+  let lower = marks.length ? marks[Math.floor(marks.length / 2)] : held.floor;
   for (;;) {
-    const tile = await window(held.index, held.frontier, lower);
-    held.pages += 1;
+    const tile = await window(held, held.frontier, lower);
     if (tile.whole) return lower;
     if (top - lower <= 1) return null;
     lower += Math.ceil((top - lower) / 2);
   }
 };
 
-/* One tile off the newest end of what is owed. `held.page` is always the answer for everything
-   older than `held.frontier`, so the walk is done when that page comes back whole. */
 const stepped = async (held) => {
   const lower = await narrowed(held);
   if (lower === null) return false;
   held.frontier = lower;
-  held.page = await window(held.index, lower, null);
-  held.pages += 1;
+  held.page = await window(held, lower, null);
   return true;
 };
 
-/* One index per process, and the PROMISE is what is shared: `dep <a> <b>` resolves two references
-   at once, so a memo assigned after the await lets each of them fetch the same 41 KB. */
-let pending = null;
-const referenceIndex = () =>
-  (pending ??= (async () => {
-    const index = new Map();
-    const page = await window(index, null, null);
-    return { index, page, frontier: null, stuck: false, pages: 1 };
-  })());
+/* One walk per process per ask, and the PROMISE is shared: `dep <a> <b>` resolves two references at
+   once, and a memo assigned after the await lets each fetch the same 41 KB. Keyed by project too,
+   `forge feedback` aiming a later call at another one. */
+const walks = new Map();
 
-/* Concurrent misses share the walk: the second waits for the step the first took, then looks. */
-let walking = Promise.resolve();
-const reach = async (held, wanted) => {
-  while (!held.index.has(wanted) && !held.page.whole && !held.stuck) {
-    walking = walking.then(async () => {
-      if (held.index.has(wanted) || held.page.whole || held.stuck) return;
+const walkFor = (filters) => {
+  const key = JSON.stringify([slugIfAny() ?? "", filters]);
+  if (!walks.has(key)) {
+    walks.set(key, (async () => {
+      const held = {
+        filters,
+        ceiling: stampIn(filters, "createdBefore", null),
+        floor: stampIn(filters, "createdAfter", EPOCH),
+        index: new Map(),
+        rows: new Map(),
+        notice: null,
+        frontier: null,
+        stuck: false,
+        pages: 0,
+        walking: Promise.resolve(),
+      };
+      held.page = await window(held, null, null);
+      return held;
+    })());
+  }
+  return walks.get(key);
+};
+
+/* Concurrent readers share it: the second waits for the step the first took, then looks. */
+const walked = async (held, done) => {
+  while (!done() && !held.page.whole && !held.stuck) {
+    held.walking = held.walking.then(async () => {
+      if (done() || held.page.whole || held.stuck) return;
       if (!(await stepped(held))) held.stuck = true;
     });
-    await walking;
+    await held.walking;
   }
 };
 
-/* The set as measured, never the limit asked for, and a cut reading is not absence. */
-const missing = (reference, held) => {
-  const read = `${held.index.size} issue(s) over ${held.pages} page(s)`;
-  return held.page.whole
-    ? `${reference} is not on this project's tracker; ${read} read, which is the whole backlog.\n`
-      + `The keys it does hold are on \`forge issues\`, one per line; \`--status\` reaches past a cut page.`
-    : `${reference} is not among the ${read} this lookup could reach, and the reading is incomplete:`
-      + ` a window one millisecond wide still came back cut by the tracker's response-size cap. So`
-      + ` this is the lookup's ceiling and not the issue's absence.\nA narrower set comes back whole`
-      + ` where this one did not — add filters until \`hasMore\` is false:\n  forge call forge_issues`
-      + ` '{"action":"list","filters":{"status":"open"}}'\nEach row carries the key and`
-      + ` the uuid every verb here also takes.`;
+const readOf = (held) => ({
+  rows: [...held.rows.values()],
+  whole: held.page.whole,
+  pages: held.pages,
+  notice: held.notice,
+});
+
+/** Every row matching `filters`, walked until a window with no lower bound came back whole, which is
+ *  the only reading on this transport that licenses a count. `whole` false is a ceiling, not absence. */
+export const everyIssue = async (filters = {}) => {
+  const held = await walkFor(filters);
+  await walked(held, () => false);
+  return readOf(held);
 };
+
+export const readSaid = (read) => `${read.rows.length} issue(s) over ${read.pages} page(s)`;
+
+/** What an incomplete reading owes its reader, and null where it was whole. The tracker's own notice
+ *  rides along: it is the sentence that knows which cap bit, and paraphrasing it invents advice. */
+export const shortOf = (read, what) => (read.whole ? null
+  : `${what} reached ${readSaid(read)} and the reading is incomplete: a window one millisecond wide`
+    + ` still came back cut by the tracker's response-size cap.${read.notice ? ` The tracker said:`
+      + ` ${read.notice}` : ""}\nA narrower ask comes back whole where this one did not — add filters`
+    + " until `hasMore` is false:\n  forge issues --status open");
+
+/* The set as measured, never the limit asked for, and a cut reading is not absence. */
+const missing = (reference, read) => (read.whole
+  ? `${reference} is not on this project's tracker; ${readSaid(read)} read, which is the whole backlog.\n`
+    + "The keys it does hold are on `forge issues`, one per line."
+  : `${reference} is not among the rows this lookup could reach, which is the lookup's ceiling and not`
+    + ` the issue's absence.\n${shortOf(read, "The walk")}\nEach row a narrower ask returns carries`
+    + " the key and the uuid every verb here also takes.");
 
 /* Refused before the first call: rejecting a citation cost the whole backlog, and routed nowhere. */
 const notAKey = (reference) =>
@@ -154,13 +183,14 @@ const notAKey = (reference) =>
       + ` looked for on the tracker at all: \`forge spec ${reference}\` reads that clause off disk.`
     : "");
 
+/* Walked no further than the key: a lookup owes the whole backlog only where the key is not in it. */
 export const documentIdOf = async (reference) => {
   if (UUID.test(reference)) return reference;
   if (!HUMAN_REF.test(reference)) fail(notAKey(reference));
   const wanted = reference.toUpperCase();
-  const held = await referenceIndex();
-  if (!held.index.has(wanted)) await reach(held, wanted);
+  const held = await walkFor({});
+  await walked(held, () => held.index.has(wanted));
   const found = held.index.get(wanted);
-  if (!found) fail(missing(reference, held));
+  if (!found) fail(missing(reference, readOf(held)));
   return found;
 };

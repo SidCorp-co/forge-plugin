@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { terse } from "../../src/commands.mjs";
 import { uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
-import { boundByLimit, fakeTracker, pageOf, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, pageOf, ranAsync, tempRoom } from "../fixtures.mjs";
 
 /* The shape forge_uploads returns, as observed on ISS-22's one attachment. */
 const ATTACHMENT = {
@@ -148,61 +148,90 @@ test("a note taken as a comment on a title already open ranks nothing at all", a
   assert.doesNotMatch(run.stdout, /priority/u);
 });
 
-/* The cut that matters is by response BYTES, so the page comes back SHORTER than the ask and a test
-   of `rows.length === limit` is false exactly where the reader most needs a warning: this page is
-   two rows of four, against a limit of 500. Without the envelope reading, every case below prints
-   nothing at all. */
+/* The cut that matters is by response BYTES, so no ask of any size gets past it: two rows of four
+   come back against a limit of 500. What the verb owes is the other two, and the tracker answers a
+   window, so the browse verb walks one. */
 const cutByBytes = () => {
   state.issues = ROWS;
   state.answer = { forge_issues: pageOf(ROWS.map((one, at) => ({ ...one, touched: ROWS.length - at })), 2) };
 };
 
-test("a page the byte cap cut is not reported as the whole backlog", async () => {
+const keysOf = (run) =>
+  run.stdout.split("\n").filter((line) => line.startsWith("ISS-")).map((line) => line.split(" ")[0]);
+
+test("a page the byte cap cut is walked until every matching row is in hand", async () => {
   cutByBytes();
   const run = await ran(["issues"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /was cut to the 2 row\(s\) read/u,
-    "two rows of four came back, and the ask was 500 — the length test called that a whole page");
+  assert.deepEqual(keysOf(run).sort(), ["ISS-10", "ISS-11", "ISS-12", "ISS-13"],
+    "two of the four fit one answer, and the verb printed all four");
 });
 
-test("the line states the count returned and never the limit it asked for", async () => {
+test("the count line says the whole set and how many requests it took", async () => {
   cutByBytes();
   const run = await ran(["issues"]);
-  const said = run.stdout.split("\n").find((line) => line.includes("was cut to")) ?? "";
-  assert.match(said, /2 row\(s\)/u);
+  const said = /4 issue\(s\) over (\d+) page\(s\), which is every row matching this ask/u.exec(run.stdout);
+  assert.ok(said, `no count line in:\n${run.stdout}`);
+  assert.ok(Number(said[1]) > 1, "one answer held two of the four, so the reading took more than one");
+});
+
+test("a walked reading claims no cut", async () => {
+  cutByBytes();
+  const run = await ran(["issues"]);
+  assert.doesNotMatch(run.stdout, /incomplete/u, "nothing was withheld, so nothing is owed to say so");
+});
+
+/* Every row on one timestamp: an interval one millisecond wide is the only indivisible one, so this
+   is the only shape a walk cannot get past, and the honest sentence is what is left. */
+const ALWAYS_CUT = ROWS.map((one) => ({ ...one, createdAt: "2026-01-01T00:00:00.000Z" }));
+const stuckAt = (fits) => {
+  state.issues = ALWAYS_CUT;
+  state.answer = { forge_issues: pageOf(ALWAYS_CUT.map((one, at) => ({ ...one, touched: at })), fits) };
+};
+
+test("a reading that stays cut says so, in the count it measured", async () => {
+  stuckAt(2);
+  const run = await ran(["issues"]);
+  assert.equal(run.status, 0, run.stderr);
+  const said = run.stdout.split("\n").find((line) => line.includes("incomplete")) ?? "";
+  assert.match(said, /2 issue\(s\) over \d+ page\(s\)/u);
   assert.doesNotMatch(said, /\b(?:200|500)\b/u, "a limit in this sentence is the one thing that cannot help");
 });
 
-test("the line names the cap that bit", async () => {
-  cutByBytes();
-  const run = await ran(["issues"]);
-  assert.match(run.stdout, /by response-size/u);
-});
-
 test("the tracker's own notice reaches the reader, which is where the route lives", async () => {
-  cutByBytes();
+  stuckAt(2);
   const run = await ran(["issues"]);
   assert.match(run.stdout, /A higher limit will NOT help/u,
     "the only sentence that knows which cap bit, and it is the tracker's");
 });
 
-/* The one thing the length test got right, and the case a bare MAX_LIMIT fallback would have lost:
-   here the caller's OWN limit bound the page, so raising it is what helps and the notice says so. */
-test("a page the reader's own limit bound still warns, and is told the opposite thing", async () => {
-  state.issues = ROWS;
-  state.answer = { forge_issues: boundByLimit(ROWS) };
-  const run = await ran(["issues", "--limit", "2"]);
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /was cut to the 2 row\(s\) read, by limit/u);
-  assert.match(run.stdout, /Raise limit/u, "here a higher limit is exactly what helps");
+test("that reading routes to an ask narrow enough to come back whole", async () => {
+  stuckAt(2);
+  const run = await ran(["issues"]);
+  assert.match(run.stdout, /forge issues --status open/u);
 });
 
-test("a page the tracker reports whole prints no cut line at all", async () => {
+/* `--limit` stopped being the wire ask when the answer became a union of windows: it is how many of
+   the whole set print, and the rows it drops are the tail of an order the reader can see. */
+test("the limit prints that many of the whole set and says what it left out", async () => {
+  cutByBytes();
+  const run = await ran(["issues", "--limit", "2"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(keysOf(run), ["ISS-11", "ISS-13"], "the top two of the order, not the two that fit");
+  assert.match(run.stdout, /2 of 4 issue\(s\)/u);
+  assert.match(run.stdout, /tail of the order above/u);
+  assert.match(run.stdout, /--limit/u, "the flag that prints more of it");
+});
+
+test("a page the tracker reports whole is read in one request", async () => {
   state.issues = ROWS;
   state.answer = undefined;
+  state.calls = [];
   const run = await ran(["issues"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.doesNotMatch(run.stdout, /was cut to/u);
+  assert.doesNotMatch(run.stdout, /incomplete/u);
+  assert.equal(state.calls.filter((one) => one.name === "forge_issues").length, 1,
+    "a whole answer is not a reason to walk");
 });
 
 /* A server that answers with no envelope at all: silence is not a cut, and four rows under a limit
@@ -212,17 +241,25 @@ test("a short page from a server that reports nothing is read as whole", async (
   state.answer = { forge_issues: () => ({ issues: ROWS }) };
   const run = await ran(["issues"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.doesNotMatch(run.stdout, /was cut to/u);
+  assert.doesNotMatch(run.stdout, /incomplete/u);
   state.answer = undefined;
 });
 
 /* A page that names the cap that cut it is a cut page, whichever of the envelope's other fields the
    answer happens to carry: a reading resting on one field alone is the defect again, one field over. */
-test("a page naming only the cap that bit is still read as cut", async () => {
+test("a page naming only the cap that bit is still walked past", async () => {
   state.issues = ROWS;
-  state.answer = { forge_issues: () => ({ issues: ROWS.slice(0, 2), returned: 2, truncatedBy: "response-size" }) };
+  let asked = 0;
+  state.answer = {
+    forge_issues: () => {
+      asked += 1;
+      return asked === 1
+        ? { issues: ROWS.slice(0, 2), returned: 2, truncatedBy: "response-size" }
+        : { issues: ROWS.slice(2), returned: 2 };
+    },
+  };
   const run = await ran(["issues"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /was cut to the 2 row\(s\) read, by response-size/u);
+  assert.ok(asked > 1, "one field was enough to read the cut and walk on");
   state.answer = undefined;
 });

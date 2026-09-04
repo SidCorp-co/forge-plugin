@@ -4,12 +4,11 @@ import { projectId, REFERENCE_KEYS, enumAt, scoped, toolNamed, tools, write } fr
 import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
-  cutBy,
-  cutSaid,
   documentIdOf,
-  listIssues,
+  everyIssue,
   queued,
   rowsOf,
+  shortOf,
 } from "./tracker/issues.mjs";
 import { commentPage, creditAfter, credited, cutLine, mustBeShown, postComment } from "./tracker/comments.mjs";
 import { attachmentNames, uploadRead, uploadTo, urlBearing } from "./tracker/evidence.mjs";
@@ -126,20 +125,25 @@ const limitFrom = (raw) => {
   return value;
 };
 
+/* Every matching row being in hand, the only cut left is the printed one — by the order above. */
+const countSaid = (shown, read) => (shown < read.rows.length
+  ? `${shown} of ${read.rows.length} issue(s) over ${read.pages} page(s). The ${read.rows.length - shown}`
+    + ` not printed are the tail of the order above — \`--limit\` up to ${MAX_LIMIT} prints more of it,`
+    + " and a filter narrows the ask."
+  : `${read.rows.length} issue(s) over ${read.pages} page(s)`
+    + (read.whole ? ", which is every row matching this ask." : "."));
+
 /* One line per issue: the uuid column was 22% of this verb and bought nothing, and the rank is here
    because an order a reader cannot see reads as a shuffle. */
-const printIssues = (payload, limit, order) => {
-  const issues = queued(rowsOf(payload), order);
-  for (const issue of issues) {
+const printIssues = (read, limit, order) => {
+  const shown = queued(read.rows, order).slice(0, limit);
+  for (const issue of shown) {
     console.log(`${(issue.issueId ?? "").padEnd(8)} ${(issue.priority ?? "").padEnd(8)} `
       + `${(issue.status ?? "").padEnd(12)} ${issue.title}`);
   }
-  console.log(`\n${issues.length} issue(s)`);
-  const held = cutBy(payload, issues, limit);
-  if (held) {
-    console.log(`${cutSaid(held, "This page")} The order above ranks the page alone — the tracker`
-      + " chose which rows survived, by what was touched last.");
-  }
+  console.log(`\n${countSaid(shown.length, read)}`);
+  const said = shortOf(read, "This reading");
+  if (said) console.log(said);
 };
 
 const resolveReferences = async (value, key) => {
@@ -249,7 +253,7 @@ export const commands = {
         fail(didYouMean("filter", `--${given}`, [...allowed.map((one) => `--${one}`), "--limit"]));
       }
     }
-    printIssues(await listIssues(filters, limit), limit, await enumAt("forge_issues", PRIORITY_AT));
+    printIssues(await everyIssue(filters), limit, await enumAt("forge_issues", PRIORITY_AT));
   },
   /* Three tiers, and the payload is what costs. Fetch narrow, then fetch again. */
   issue: async ([reference, ...rest]) => {

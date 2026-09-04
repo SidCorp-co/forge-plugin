@@ -97,7 +97,7 @@ test("a reading that stayed cut says so, and claims no absence", async () => {
 test("that refusal routes to a set narrow enough to come back whole, and names no limit", async () => {
   cutTo(ONE_TIMESTAMP, 2);
   const run = await ran(["issue", "ISS-99"]);
-  assert.match(run.stderr, /forge call forge_issues/u, "the one route a reader holding only a key can run");
+  assert.match(run.stderr, /forge issues --status open/u, "the one route a reader holding only a key can run");
   assert.doesNotMatch(run.stderr, /500/u);
 });
 

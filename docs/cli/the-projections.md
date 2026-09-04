@@ -11,55 +11,74 @@ tokenizing worse than the character it stands for.
 Nothing here keeps its own copy of names the server already publishes — a local list goes stale
 against the thing it describes, silently, and reports the server's newest feature as a typo.
 
-The browse verb sorts the page it is handed. The tracker's `list` takes no order argument at all and
+The browse verb sorts the set it read. The tracker's `list` takes no order argument at all and
 answers in the order rows were last touched, which is a reading order: the issue somebody commented
 on this morning arrives above the one that has been waiting a month for someone to start it. So the
 rank comes first and age breaks the tie, oldest first, and the rank is printed on every row — an
 order a reader cannot see reads as a shuffle, and one they cannot see the key of reads as a wrong
 one. The ranking itself is the tracker's, in the order its own schema declares it, which is why a
-page returned against a schema that declares none is left exactly as it arrived rather than sorted
+set returned against a schema that declares none is left exactly as it arrived rather than sorted
 against a list kept here.
 
-A page cut short is ranked as far as it goes and no further: the tracker chose those rows by
-recency before this saw them, so the line under a cut page says the order covers the page alone.
+## A list is read to exhaustion, not reported as a page
 
-## Whether a page was whole is the answer's to say, not the page's
+One unfiltered `list` at `limit: 500` came back holding 97 of the 249 issues this project then held,
+`hasMore: true`, `truncatedBy: "response-size"`, and a notice calling the 97 the most recent of
+them. They were not: the cut keeps what was touched most recently, and about forty rows from the
+middle of the created range were missing, ISS-67 among them though it was created inside the
+returned window. Paging the way that notice implies made it worse — a second call bounded by the
+oldest `createdAt` returned 35 rows and `hasMore: false`, so two pages held 132 of 249 and the
+caller had been told there was no more. A run that enumerated the backlog to decide a disposition
+took that answer and was wrong (ISS-14, ISS-221).
+
+So every reader of a whole set walks. `createdBefore` is exclusive and `createdAfter` inclusive, so
+windows tile half-open and divide as finely as asked; a window whose answer is not cut is complete
+for that window, and that is the only thing on this transport that licenses a count. The walk keeps
+the rows of every window it asked for and ends at one with no lower bound that came back whole. The
+browse verb, the reference lookup, both of the dependency graph's sets, the duplicate check on a
+filing and the near-duplicate check on a feedback note all take it, because a set one of them calls
+whole and another calls cut is two answers to a question with one answer. A `search` is walked where
+its answer is the set — the issues carrying dependency prose *are* that graph's nodes — and left as
+one answer where it only reaches past a walk that already fell short, since a name is the last axis
+left there and never a claim about the backlog.
+
+That leaves `--limit` as the count of rows *printed*, out of the whole set, every wire call asking
+the tracker's own ceiling. Keeping it as the ask is incoherent once the answer is a union of
+windows — the union exceeds the number asked for — and a ranked top-N is only truthful over the
+whole set, since a `critical` row a month old sits in the last window as easily as the first. Where
+the print cut bites, the count line says how many of how many, which order the rest are the tail of,
+and the flag that prints more: a cut a caller cannot act on is the defect this file is about.
+
+The enum filters the tracker's own notice recommends — status, priority, category, label — were the
+other candidate, and they cannot subdivide without limit. The cap being on bytes, a bucket overflows
+too: `status=open` alone came back cut, at 100 of 142. An axis that runs out of subdivisions puts
+the miss back, quieter.
+
+## Whether an answer was whole is the answer's to say, not its length's
 
 Two caps can cut a list and the envelope is what tells them apart: `truncatedBy: "limit"` where the
-caller's own ask bound it, `truncatedBy: "response-size"` where the byte cap did. Only the second is
-unfixable by asking for more, and the tracker says which in a `notice` written for a reader. So
-truncation is read from `hasMore`, `truncated` and `truncatedBy`, and a length equal to the limit is
-kept only as the fallback for a server that reports nothing at all.
+caller's own ask bound it, `truncatedBy: "response-size"` where the byte cap did. Both mean the
+window needs subdividing, since the ask is already the ceiling. So truncation is read from
+`hasMore`, `truncated` and `truncatedBy`, and a length equal to the limit is kept only as the
+fallback for a server that reports nothing at all.
 
 Testing the length instead inverts the answer exactly where it matters: the byte cap returns fewer
-rows than were asked for, so a page of 97 out of 191 compares unequal to the 500 requested and reads
-as complete. Every reader therefore takes that reading from one function — the browse notice, the
-duplicate check, the dependency graph, the near-duplicate check on a filing — because a page one of
-them calls whole and another calls cut is two answers to a question with one answer. A reader that
-paraphrases the notice instead of passing it through invents advice; the tracker's sentence is the
-one that knows which cap bit.
+rows than were asked for, so a page of 97 out of 249 compares unequal to the 500 requested and reads
+as complete. One function answers it for every window, and a reader that paraphrases the tracker's
+notice instead of passing it through invents advice: that sentence is the one that knows which cap
+bit.
 
-A warning states the count it measured and the cap that bit, and never the limit it asked for — the
-same rule the refusal below answers to, and for the same reason. Where a check's correctness depends
-on having read the whole backlog, an incomplete reading is said out loud rather than folded into a
-pass: a duplicate check that saw half the issues and reports nothing has reported a clean result.
+An incomplete reading is said out loud rather than folded into a pass, and it states the count it
+measured and never the limit it asked for. Where a check's correctness depends on having read
+everything, silence is a claim: a duplicate check that saw half the issues and reports nothing has
+reported a clean result.
 
-## A key is not resolved by a page
+## A key is not resolved by a page either
 
-The cap that bites is on response bytes, not on the limit asked for, and it is declared in the
-answer rather than in the ask: a 500-row request came back `returned: 97, hasMore: true,
-truncatedBy: "response-size"` against a backlog of 191, with a notice saying a higher limit will not
-help. So the length of a page says nothing and its envelope says everything. What survives the cut
-is what was touched most recently, which is not what was created most recently — an issue filed
-after one that is on the page can be missing from it, so no frontier read off a cut page holds in
-created order, and a walk that trusts one skips whatever fell through.
-
-There is no cursor and no lookup by key: `documentId` is a uuid and `ISS-14` is refused outright.
-What the tracker does answer is a window — `createdBefore` exclusive, `createdAfter` inclusive,
-which tile half-open and divide as finely as asked. A window whose answer is not cut is complete for
-that window, and that is the only thing on this transport that licenses the word absent. So a key
-the first page cannot carry is looked for in windows walked oldest-ward, one accepted window at a
-time, ending at the key or at a window with no lower bound that came back whole.
+There is no cursor and no lookup by key: `documentId` is a uuid and `ISS-14` is refused outright. So
+a key the first window cannot carry is looked for in the same walk, oldest-ward, one accepted window
+at a time — ending at the key rather than at the end of the backlog, which is the one thing the
+lookup wants that an enumeration does not.
 
 What a window is narrowed by is the interval and not the timestamps a cut answer happened to carry.
 Those are the rows that survived a cut made in the order things were touched, so the newest creation
@@ -68,10 +87,10 @@ almost as wide as it was, and a walk that treats it as the last subdivision avai
 the key still reachable. The stamps open the search; halving the interval toward its top is what
 closes it, and only an interval one millisecond wide is genuinely indivisible.
 
-The enum filters the tracker's own notice recommends — status, priority, category, label — were the
-other candidate, and they cannot subdivide without limit. The cap being on bytes, a bucket overflows
-too: `status=open` alone came back cut. An axis that runs out of subdivisions puts the miss back,
-quieter.
+The interval the walk halves is the caller's own, where the caller gave one. `--createdBefore` is a
+ceiling and `--createdAfter` a floor, and a frontier is a subdivision between them rather than a
+replacement for either: a window that overrode the ceiling with a frontier read above it would hand
+back rows the caller excluded, silently, in an answer shaped exactly like a correct one.
 
 A refusal therefore names what was read as measured, and never the limit it asked for. A limit in
 that sentence sends the reader to raise the one thing that cannot help, and calls an issue the

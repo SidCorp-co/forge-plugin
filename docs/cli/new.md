@@ -14,13 +14,13 @@ out-of-scope — matched by heading rather than by prose; its `writing-an-issue`
 six-block form and is not the source. A title of one word, a title that is only a work verb and a
 title carrying a file path each say nothing about the behaviour after the change. One sentence asking
 two things of two different named tokens is the contract's split rule. A duplicate is measured
-against the titles the browse projection returns for issues still open to work, at the threshold
-this repository's own documents are held to: over the four filed that day it found one real
-duplicate at 0.60 and no false positive. That page has no cursor behind it, so past it the
-measure is what the tracker's own search returns for the tokens the body names — the same search the
-fix route uses for its candidates, which is why a duplicate about the same thing is reachable past
-that page, to the tracker's own ceiling for a search rather than for the backlog. What neither the page nor that search reaches is said on the way past, because
-refusing every filing on a backlog that large is a refusal nobody can act on.
+against the titles of every issue still open to work, at the threshold this repository's own
+documents are held to: over the four filed that day it found one real duplicate at 0.60 and no false
+positive. "Every" is a walk rather than a page — `docs/cli/the-projections.md` says why one answer
+is not the backlog. Where that walk comes back whole it is the whole measure, and the tokens the
+body names are searched for only past its ceiling, since a search can name nothing a whole reading
+did not already hold. What neither reaches is said on the way past, because refusing every filing on
+a backlog that large is a refusal nobody can act on.
 
 Where nothing in the body is a rule and nothing is out of scope, its size is the finding rather
 than its shape, and three flags take such a filing instead of the tracker. `--into ISS-45` posts the

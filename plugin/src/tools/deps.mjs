@@ -2,7 +2,7 @@
    read. Two issues that disagree are the finding this verb exists for: docs/cli/deps.md. */
 import { depsConvention, fail } from "../resolve/settings.mjs";
 import { scoped } from "../tracker/rpc.mjs";
-import { MAX_LIMIT, cutBy, cutSaid, listIssues, rowsOf } from "../tracker/issues.mjs";
+import { everyIssue, shortOf } from "../tracker/issues.mjs";
 
 /* The marker sentence, and only it; the trailing period separates a claim from prose about one.
    The phrases come from the tracker's own `.forge.json`. */
@@ -139,18 +139,21 @@ const MARKER_SEARCH = PROSE.marker;
 export const deps = async (rest) => {
   const long = rest.includes("--long");
   const [focus] = rest.filter((argument) => argument !== "--long");
-  /* Ranked against every issue, not only those carrying prose, and issued in parallel. */
-  const [all, matched] = await Promise.all([
-    listIssues({}, MAX_LIMIT),
-    listIssues({ search: MARKER_SEARCH }, MAX_LIMIT),
-  ]);
-  const universe = rowsOf(all);
-  const held = cutBy(all, universe, MAX_LIMIT);
-  if (held) {
-    console.error(`warning: ${cutSaid(held, "the page every node here is ranked against")} So this graph`
-      + " is partial by that much: an edge whose end fell outside those rows cannot appear.");
+  /* Both sets walked, and issued in parallel: the ranking is against every issue rather than only
+     those carrying prose, and the carriers are every issue whose body claims an edge. */
+  const [all, matched] = await Promise.all([everyIssue(), everyIssue({ search: MARKER_SEARCH })]);
+  const universe = all.rows;
+  const ranked = shortOf(all, "the set every node here is ranked against");
+  if (ranked) {
+    console.error(`warning: ${ranked}\nSo this graph is partial by that much: an edge whose end fell`
+      + " outside what was reached cannot appear.");
   }
-  const candidates = rowsOf(matched);
+  /* A short carrier set costs the graph nodes rather than their rank, so it is its own sentence. */
+  const carriers = shortOf(matched, "the set of issues claiming an edge");
+  if (carriers) {
+    console.error(`warning: ${carriers}\nSo a node this graph does not show may claim edges anyway.`);
+  }
+  const candidates = matched.rows;
   if (!candidates.length) {
     fail(
       `No issue carries the sentence "${PROSE.marker}" (${depsConvention().from}).\n` +

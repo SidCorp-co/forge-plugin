@@ -45,10 +45,11 @@ Three tiers, and the payload is what costs — a round trip is ~20 bytes of comm
 Measured on a 50-issue tracker: the list is 6,602 bytes against ~1,700 for a single body, so
 drilling into 48 of the 50 one at a time still costs less than one call returning them all.
 
-**`issues` returns one page.** The server's default is 25; this CLI asks for 200 and `--limit` caps
-at 500. There is no cursor, so a count equal to the limit means rows were left behind — the CLI
-says so on that line. Filters and `--fields` are validated against the server's own schema before
-the call, so a typo answers `Did you mean: --status?` rather than costing a round trip.
+**`issues` returns every matching row.** One `list` answer is capped by response bytes, so the CLI
+walks the set in created-time windows and prints the count and the requests it took; `--limit` is
+how many of them print, out of that whole set, and the line says what the print cut left out.
+Filters and `--fields` are validated against the server's own schema before the call, so a typo
+answers `Did you mean: --status?` rather than costing a round trip.
 
 **`ISS-45` works wherever a uuid does** — including inside a raw `call` payload, in `documentId`,
 `dependsOnId`, `blocksId`, `fromIssueId` and `toIssueId`.

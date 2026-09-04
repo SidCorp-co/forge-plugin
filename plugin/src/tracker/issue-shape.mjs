@@ -8,7 +8,7 @@
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { MAX_LIMIT, cutBy, cutSaid, keysIn, listIssues, rowsOf } from "./issues.mjs";
+import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
 import { enumAt } from "./rpc.mjs";
 
 const SETTLED = ["closed", "dropped"];
@@ -438,13 +438,12 @@ export const shapeOf = ({ title, body, kind = null }, { everySection = false } =
     said: noticeFor({ kind: shape.kind, named: namesKind(kind), left }) };
 };
 
-/** The newest page of issues still open to work, by title: the projection carries no description and
- *  the list offers no cursor, so the page alone is a floor. What reaches past it is the search
- *  below, and what neither reaches is said aloud. ISS-17 owes the cursor. */
+/** Every issue still open to work, by title: the projection carries no description, so a title is
+ *  all a duplicate is measured on. `read` travels with them — a reading that fell short changes what
+ *  a silent answer means. */
 export const liveTitles = async () => {
-  const payload = await listIssues({}, MAX_LIMIT);
-  const rows = rowsOf(payload);
-  return { live: openTitles(rows), short: cutBy(payload, rows, MAX_LIMIT) };
+  const read = await everyIssue();
+  return { live: openTitles(read.rows), read };
 };
 
 /** At the threshold this repository's own documents are held to, so one measure covers both. */
@@ -460,9 +459,8 @@ const searched = async (token, most = CANDIDATES) => {
   return openTitles(rowsOf(await listIssues({ search: token }, asked))).slice(0, most);
 };
 
-/* The page is a floor, and a search for a name is bound only by the tracker's own ceiling: what the
-   body names is asked for by name, so a duplicate about the same thing is reachable past the page.
-   A search that fails is not caught: swallowed, it would read as a backlog with nothing like this. */
+/* Reached only past the walk's ceiling, where a name is the one axis left. A search that fails is
+   not caught: swallowed, it would read as a backlog with nothing like this. */
 const alsoNamed = async (tokens, live) => {
   const found = await Promise.all(tokens.map((one) => searched(one, SEARCHED)));
   const held = new Set(live.map((one) => one.issueId));
@@ -502,12 +500,14 @@ export const shapeRefusal = ({ gaps }) =>
  *  branch owes no mark, its flow being that issue's. `page` is a projection already fetched. */
 export const refusalFrom = async (filing, { gaps, fix, tokens }, { routed = false, page = null } = {}) => {
   const owesRoute = fix && !routed;
-  const { live, short } = page ?? await liveTitles();
-  const wider = [...live, ...await alsoNamed(tokens, live)];
-  if (short) {
-    console.error(`${cutSaid(short, "the page the duplicate check read")} There is no cursor to page by, so `
-      + `past the cut it saw only what a search for ${tokens.join(", ") || "nothing"} returned, and one `
-      + "sharing no such name is not measured");
+  const { live, read } = page ?? await liveTitles();
+  /* Searched only where the walk fell short: a whole reading already holds every open issue. */
+  const said = shortOf(read, "the set the duplicate check read");
+  const wider = said ? [...live, ...await alsoNamed(tokens, live)] : live;
+  if (said) {
+    console.error(`${said}\nPast that ceiling the measure is what a search for `
+      + `${tokens.join(", ") || "nothing"} returned, and a duplicate sharing no such name is not `
+      + "measured.");
   }
   const same = duplicateOf(filing, wider);
   const out = [...gaps];

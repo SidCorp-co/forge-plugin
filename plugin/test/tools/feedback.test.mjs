@@ -200,29 +200,42 @@ const OPEN_ROWS = Array.from({ length: 4 }, (_, at) => ({
   touched: 4 - at,
 }));
 
-test("a note checked against a cut page is told the check was partial", async () => {
+/* One timestamp on every row: the interval a walk cannot subdivide, which is the only reading left
+   that a note can be checked against incompletely. */
+const ONE_TIMESTAMP = OPEN_ROWS.map((one) => ({ ...one, createdAt: "2026-01-01T00:00:00.000Z" }));
+
+test("a note checked against a cut page is checked against the walked set instead", async () => {
   const run = await send(["feedback", note(), "--title", TITLE], {
     issues: OPEN_ROWS,
     answer: { forge_issues: pageOf(OPEN_ROWS, 2) },
   });
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stderr, /the page this note was checked against was cut to the 2 row\(s\) read, by response-size/u);
+  assert.doesNotMatch(run.stderr, /incomplete/u, "two of the four fit one answer, and the walk read all four");
 });
 
-test("that warning says what the cut costs the note, which is being filed twice", async () => {
+test("a note the walk could not finish reading for is told the check was partial", async () => {
   const run = await send(["feedback", note(), "--title", TITLE], {
-    issues: OPEN_ROWS,
-    answer: { forge_issues: pageOf(OPEN_ROWS, 2) },
+    issues: ONE_TIMESTAMP,
+    answer: { forge_issues: pageOf(ONE_TIMESTAMP, 2) },
+  });
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /the set this note was checked against reached 2 issue\(s\)/u);
+});
+
+test("that warning says what the short reading costs the note, which is being filed twice", async () => {
+  const run = await send(["feedback", note(), "--title", TITLE], {
+    issues: ONE_TIMESTAMP,
+    answer: { forge_issues: pageOf(ONE_TIMESTAMP, 2) },
   });
   assert.match(run.stderr, /filed as a second issue rather than folded onto it/u);
 });
 
 test("that warning names no limit, and carries the tracker's own instruction", async () => {
   const run = await send(["feedback", note(), "--title", TITLE], {
-    issues: OPEN_ROWS,
-    answer: { forge_issues: pageOf(OPEN_ROWS, 2) },
+    issues: ONE_TIMESTAMP,
+    answer: { forge_issues: pageOf(ONE_TIMESTAMP, 2) },
   });
-  const said = run.stderr.split("\n").find((line) => line.includes("checked against was cut")) ?? "";
+  const said = run.stderr.split("\n").find((line) => line.includes("checked against reached")) ?? "";
   assert.doesNotMatch(said, /\b500\b/u);
   assert.match(said, /A higher limit will NOT help/u);
 });
@@ -230,5 +243,5 @@ test("that warning names no limit, and carries the tracker's own instruction", a
 test("a whole page leaves the note's filing silent about truncation", async () => {
   const run = await send(["feedback", note(), "--title", TITLE], { issues: OPEN_ROWS });
   assert.equal(run.status, 0, run.stderr);
-  assert.doesNotMatch(run.stderr, /was cut to/u);
+  assert.doesNotMatch(run.stderr, /incomplete/u);
 });

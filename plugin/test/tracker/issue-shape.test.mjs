@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { fakeTracker, pageOf, ranAsync, tempHome } from "../fixtures.mjs";
 
 const home = tempHome("issue-shape");
 process.env.XDG_CONFIG_HOME = home.path;
@@ -388,15 +388,41 @@ test("`-` with nothing on stdin is refused, and never read as an empty body", as
   assert.equal(state.calls.some((one) => one.args.action === "create"), false);
 });
 
-/* The page has no cursor, so a duplicate past it is reachable only by name — which is what the body
-   already names, and what the fix route already searches for. */
-test("a duplicate the listing never returned is still found, through a search for what the body names", async () => {
+/* A reading the walk could not finish is the only thing left with rows behind it, and past that
+   ceiling the one axis is the name — which is what the body already names, and what the fix route
+   already searches for. Every row on one timestamp is the interval a walk cannot subdivide. */
+test("a duplicate past a reading the walk could not finish is still found, through a search for what the body names", async () => {
+  const rows = state.issues.map((one, at) => ({ ...one, createdAt: "2026-01-01T00:00:00.000Z", touched: at }));
+  const page = pageOf(rows, 1);
+  state.answer = {
+    forge_issues: (args) => {
+      if (args.action !== "list") return { documentId: state.mint ?? "filed-uuid", ...(args.data ?? {}) };
+      const wanted = String(args.filters?.search ?? "").toLowerCase();
+      if (!wanted) return page(args);
+      const pool = [...state.issues, ...state.hidden];
+      const found = pool.filter((one) => JSON.stringify(one).toLowerCase().includes(wanted));
+      return { issues: found, returned: found.length, hasMore: false };
+    },
+  };
   const body = "## Outcome\n\nThe reviewer's `git_diff` answers a call with no path.\n\n## Rules\n\n"
     + "- A call with no path returns the diff the consult was given.\n\n## Out of scope\n\nThe other tools.";
   const run = await filed(body, "--title", "codex's git_diff without a path returns the consult's diff");
+  state.answer = undefined;
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /ISS-99/u);
   assert.match(run.stderr, /--into ISS-99/u);
+});
+
+/* The same body against a reading that came back whole: every open issue is already in it, so a
+   search for the tokens the body names can add nothing, and the verb asks for none. */
+test("a whole reading buys the filing no search at all", async () => {
+  const body = "## Outcome\n\nThe reviewer's `git_diff` answers a call with no path.\n\n## Rules\n\n"
+    + "- A call with no path returns the diff the consult was given.\n\n## Out of scope\n\nThe other tools.";
+  state.calls = [];
+  const run = await filed(body, "--title", "a title nothing open here comes close to sharing");
+  assert.equal(run.status, 0, run.stderr);
+  const searches = state.calls.filter((one) => one.name === "forge_issues" && one.args.filters?.search);
+  assert.deepEqual(searches, [], "the hidden row is unreachable and nothing was asked for it");
 });
 
 /* The kinds end to end: what the verb refuses before it reads anything, what it sends the tracker
@@ -521,9 +547,8 @@ test("`forge new -h` lists every kind with the sections it requires", async () =
   assert.match(run.stdout, /Usage: forge new/u, "and what to type is still the first line of it");
 });
 
-/* The duplicate check's own line, which fired only at a page of exactly MAX_LIMIT and so never
-   fired at all: the byte cap returns FEWER rows than the ask. Called in process — the line is a
-   console.error beside a refusal that may be null, so spawning a verb would judge the wrong thing. */
+/* The duplicate check's own line. Called in process — the line is a console.error beside a refusal
+   that may be null, so spawning a verb would judge the wrong thing. */
 const said = async (page) => {
   const kept = console.error;
   const lines = [];
@@ -536,32 +561,35 @@ const said = async (page) => {
   return lines.join("\n");
 };
 
-const CUT_PAGE = {
-  returned: 97,
-  by: "response-size",
+/* What the walk hands back where a window one millisecond wide still came back cut: 97 rows of a
+   backlog nobody can count, over the 36 requests that proved the ceiling. */
+const SHORT_READ = {
+  rows: Array.from({ length: 97 }, () => ({})),
+  whole: false,
+  pages: 36,
   notice: "More rows match than were returned: the response-size cap cut this to the 97 most recent"
     + " of them. A higher limit will NOT help — add status/priority/category/label filters instead.",
 };
 
-test("the duplicate check says its page was cut when the tracker says so, not when a length matches", async () => {
-  const out = await said({ live: [], short: CUT_PAGE });
-  assert.match(out, /was cut to the 97 row\(s\) read, by response-size/u,
-    "97 rows against an ask of 500 is the shape the length test read as whole");
+test("the duplicate check says its reading was short, in the count it measured", async () => {
+  const out = await said({ live: [], read: SHORT_READ });
+  assert.match(out, /reached 97 issue\(s\) over 36 page\(s\)/u);
+  assert.match(out, /A higher limit will NOT help/u, "the tracker's own sentence, unparaphrased");
 });
 
 test("that line names no limit it asked for", async () => {
-  const out = await said({ live: [], short: CUT_PAGE });
+  const out = await said({ live: [], read: SHORT_READ });
   assert.doesNotMatch(out, /\b500\b/u, "and the old line named 500 twice");
 });
 
-test("that line still says what the cut costs the check", async () => {
-  const out = await said({ live: [], short: CUT_PAGE });
-  assert.match(out, /no cursor to page by/u);
-  assert.match(out, /sharing no such name is not measured/u);
+test("that line still says what the short reading costs the check", async () => {
+  const out = await said({ live: [], read: SHORT_READ });
+  assert.match(out, /Past that ceiling the measure is what a search for/u);
+  assert.match(out, /sharing no such name is not/u);
 });
 
-test("a page the tracker reported whole leaves the check silent", async () => {
-  assert.equal(await said({ live: [], short: null }), "");
+test("a reading the walk finished leaves the check silent", async () => {
+  assert.equal(await said({ live: [], read: { rows: [], whole: true, pages: 1, notice: null } }), "");
 });
 
 /* The third place the loose shape lived (ISS-36). Two keys were demanded on a parts line precisely

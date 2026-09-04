@@ -24,9 +24,11 @@ const ROWS = [
    page, so a case about anything else asks for nothing it has to describe. */
 let scene = () => ({ issues: ROWS });
 const asked = [];
+const filters = [];
 globalThis.fetch = async (url, init) => {
   const sent = JSON.parse(init.body);
   asked.push(sent.params?.name ?? sent.method);
+  if (sent.params?.name === "forge_issues") filters.push(sent.params?.arguments?.filters ?? {});
   const result =
     sent.method === "tools/list"
       ? { tools: [{ name: "forge_issues", inputSchema: { properties: {} } }] }
@@ -171,4 +173,71 @@ const TOUCHED_BACKWARDS = CUT.map((one, place) => ({ ...one, touched: CUT.length
 test("a cut page whose newest stamp is nowhere near the newest creation still resolves", async () => {
   const resolve = await walking(TOUCHED_BACKWARDS);
   assert.equal(await resolve("ISS-6"), "six", "narrowing to a stamp the page returned would stop short");
+});
+
+/* The walk keeps the rows now, not only the key it was walking for: every reader of the whole set
+   takes it, and a reader that took one page reported a fifth of the backlog as all of it (ISS-221). */
+const reading = async (rows = CUT, fits = 2) => {
+  scene = pageOf(rows, fits);
+  asked.length = 0;
+  filters.length = 0;
+  cases += 1;
+  return (await import(`../../src/tracker/issues.mjs?case=${cases}`)).everyIssue;
+};
+
+const found = (read) => read.rows.map((one) => one.issueId).sort();
+
+test("a set no single answer can hold comes back whole anyway", async () => {
+  const everyIssue = await reading();
+  const read = await everyIssue();
+  assert.deepEqual(found(read), ["ISS-1", "ISS-2", "ISS-3", "ISS-4", "ISS-5", "ISS-6"]);
+  assert.equal(read.whole, true, "a window with no lower bound came back uncut, which is the only licence");
+  assert.ok(read.pages > 1, `${read.pages} request(s) for six rows two at a time`);
+});
+
+test("a set one answer holds costs one request and says so", async () => {
+  const everyIssue = await reading(CUT, 6);
+  const read = await everyIssue();
+  assert.equal(read.rows.length, 6);
+  assert.deepEqual({ whole: read.whole, pages: read.pages }, { whole: true, pages: 1 });
+});
+
+/* The caller's own interval is the walk's ceiling and floor. A frontier read off a window is a
+   subdivision of it, and a walk that let one widen past the bound would hand back rows the caller
+   excluded — silently, and looking exactly like a correct answer. */
+const before = (at) => filters.every((one) => !one.createdBefore || Date.parse(one.createdBefore) <= at);
+const after = (at) => filters.every((one) => !one.createdAfter || Date.parse(one.createdAfter) >= at);
+
+test("a walk under the caller's createdBefore never widens past it", async () => {
+  const everyIssue = await reading(TOUCHED_BACKWARDS);
+  const read = await everyIssue({ createdBefore: day(4) });
+  assert.deepEqual(found(read), ["ISS-1", "ISS-2", "ISS-3"], "the bound is exclusive, so ISS-4 is out");
+  assert.ok(before(Date.parse(day(4))), `a window asked past the caller's ceiling: ${JSON.stringify(filters)}`);
+});
+
+test("a walk over the caller's createdAfter never widens below it", async () => {
+  const everyIssue = await reading(TOUCHED_BACKWARDS);
+  const read = await everyIssue({ createdAfter: day(4) });
+  assert.deepEqual(found(read), ["ISS-4", "ISS-5", "ISS-6"], "the bound is inclusive, so ISS-4 is in");
+  assert.ok(after(Date.parse(day(4))), `a window asked below the caller's floor: ${JSON.stringify(filters)}`);
+});
+
+test("two readers of one ask share the walk, and a second ask is walked on its own", async () => {
+  const everyIssue = await reading();
+  const [one, other] = await Promise.all([everyIssue(), everyIssue()]);
+  assert.deepEqual(found(one), found(other));
+  const shared = lists();
+  await everyIssue({ createdAfter: day(4) });
+  assert.ok(lists() > shared, "a different set of filters is a different set of rows");
+});
+
+/* Every row on one timestamp: the interval a walk cannot subdivide, and the one reading that has to
+   report a ceiling rather than a count. */
+const ONE_TIMESTAMP = CUT.map((one) => ({ ...one, createdAt: day(1) }));
+
+test("a reading that stayed cut is handed back as one, with what it reached", async () => {
+  const everyIssue = await reading(ONE_TIMESTAMP);
+  const read = await everyIssue();
+  assert.equal(read.whole, false, "a millisecond-wide window still came back cut, so nothing licenses a count");
+  assert.equal(read.rows.length, 2, "and what it reached is what it reached");
 });

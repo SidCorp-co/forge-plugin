@@ -6,7 +6,7 @@ import { fail, keepOnFailure, projectScope, translateScope, useProject } from ".
 import { usageOf } from "../resolve/visibility.mjs";
 import { agentOf } from "../flow/lease.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
-import { MAX_LIMIT, cutBy, cutSaid, listIssues, rowsOf } from "../tracker/issues.mjs";
+import { MAX_LIMIT, everyIssue, listIssues, rowsOf, shortOf } from "../tracker/issues.mjs";
 import { mustBeShown, postComment } from "../tracker/comments.mjs";
 import { filedAs, inFlowWords, isFix, openTitles, rankOf, shapeOf, shapeRefusal, trackerFields }
   from "../tracker/issue-shape.mjs";
@@ -64,17 +64,17 @@ const whereSection = () => {
    caller can predict. */
 const plain = (title) => String(title ?? "").toLowerCase().replace(/\s+/gu, " ").trim();
 
-/* The page and a search both, the listing offering no cursor (ISS-17 owes it), and the page handed
-   back: what is open beside the note is asked of it rather than of a third call. */
+/* Every open issue, walked, and the reading handed back with them: what is open beside the note is
+   asked of it rather than of a second call. A search for the title is asked only where the walk fell
+   short, since a whole reading already holds every issue such a search could name. */
 const openUnder = async (title) => {
-  const payload = await listIssues({}, MAX_LIMIT);
-  const rows = rowsOf(payload);
-  const page = openTitles(rows);
-  const found = openTitles(rowsOf(await listIssues({ search: title }, MAX_LIMIT)));
+  const read = await everyIssue();
+  const page = openTitles(read.rows);
+  const found = read.whole ? [] : openTitles(rowsOf(await listIssues({ search: title }, MAX_LIMIT)));
   const byKey = new Map([...page, ...found].map((one) => [one.issueId, one]));
   return {
     live: page,
-    short: cutBy(payload, rows, MAX_LIMIT),
+    read,
     held: [...byKey.values()].find((one) => plain(one.title) === plain(title)) ?? null,
   };
 };
@@ -107,12 +107,13 @@ export const feedback = async (argv) => {
   if (refusal) fail(refusal);
   /* Before the first call: everything below reaches the plugin's project, in its language. */
   useProject({ slug: PROJECT, from: "the CLI, for feedback on this plugin" });
-  const { live, short, held } = await openUnder(title);
+  const { live, read, held } = await openUnder(title);
   /* Said whether the note lands as a comment or as a filing: what the near-duplicate check could
      not see is the same either way, and it was silent on both routes until now. */
+  const short = shortOf(read, "the set this note was checked against");
   if (short) {
-    console.error(`warning: ${cutSaid(short, "the page this note was checked against")} A note whose`
-      + " twin fell outside those rows is filed as a second issue rather than folded onto it.");
+    console.error(`warning: ${short}\nA note whose twin fell outside what was reached is filed as a`
+      + " second issue rather than folded onto it.");
   }
   if (held) {
     const answer = await postComment(held.documentId, `## ${title}\n\n${body}`, null, true);
