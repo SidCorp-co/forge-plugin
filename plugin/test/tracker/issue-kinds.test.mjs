@@ -185,7 +185,7 @@ test("the payload a call hands back is in the CLI's words, and the rest of it is
 });
 
 /* A name a reader has to translate back costs a round, and this is the surface where both of the
-   tracker's names would otherwise appear. `plugin/test/tracker/tracker-names.test.mjs` holds the
+   tracker's names would otherwise appear. `plugin/test/checks/tracker-names.test.mjs` holds the
    rule over the whole source; this holds it over the text these two fields are printed by. */
 test("nothing the kinds surface prints names the tracker's field for either of them", () => {
   const printed = [

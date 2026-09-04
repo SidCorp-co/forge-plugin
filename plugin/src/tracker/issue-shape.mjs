@@ -23,7 +23,7 @@ const MARK = /^[ \t]*size:[ \t]*fix\.?[ \t]*$/imu;
 export const isFix = (description) => MARK.test(String(description ?? ""));
 export const withMark = (body) => (isFix(body) ? body : `${String(body).replace(/\s*$/u, "")}\n\n${SIZE_LINE}\n`);
 
-export const SUBSTANTIAL = 4;
+const SUBSTANTIAL = 4;
 
 const LINE = `and under it one line of ${SUBSTANTIAL} words or more`;
 
@@ -113,9 +113,9 @@ export const shapeFor = (kind) => KINDS.find((one) => one.kind === (kind || DEFA
 const listed = (names) => names.join(", ");
 const titles = (sections) => sections.map((one) => one.title);
 
-/** The set and the route past it, borrowed by both refusals: a kind this CLI does not define is a
- *  section list nobody has decided, not a filing to fix by guessing. */
-export const KIND_WANTS = `one of ${listed(KIND_NAMES)} — a filing needing another kind, or another`
+/* The set and the route past it, borrowed by both refusals: a kind this CLI does not define is a
+   section list nobody has decided, not a filing to fix by guessing. */
+const KIND_WANTS = `one of ${listed(KIND_NAMES)} — a filing needing another kind, or another`
   + " section under one, files an issue against this plugin rather than inventing the value";
 
 export const kindRefusal = (given) =>
