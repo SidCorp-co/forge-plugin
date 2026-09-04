@@ -606,12 +606,14 @@ a status earns it and only a shortfall can be one the cut invented. What a refus
 therefore the write that supplies the item, that the item may already be behind the cut, and the
 tracker's own screens for the whole thread; evidence too long to name goes up through `forge attach`.
 A transition by hand is not among them: it writes a status no entry check read and leaves the lease's
-next line as the last write set it. It is named only where no write earns the way back and a
-person owns the status: a hold of a kind a person lifts, which no comment resumes; a side
-status the flow did not set, whose park record would have to name the side status itself as the
-status it left; and a reopen whose dropped park says nowhere to go back to. A question nobody has
-answered is not among them — the answer is the write that earns the resume, and that is what the
-shortfall names. Each says there what it skips (ISS-17 closes the seam, and ISS-131 the reading of it). A write naming its issue by uuid is checked exactly as one naming the
+next line as the last write set it. It is named only where the status is a person's to set and no
+write of this flow earns it — a hold a person lifts, a reopen, a status the flow did not set, a park
+record naming nowhere to go back to — and never in place of a write that would earn it. A page a
+verb could not read whole is not one of those places: what the cut hid is a payload some write
+supplies, and the shortfall names that write. Where the cut may have hid the status itself, which no
+write of this flow sets, the refusal says the page was cut before it names anything else. A question
+nobody has answered is the plainest case: the answer is the write that earns the resume, and the
+shortfall names it (ISS-17 closes the seam, and ISS-131 the reading of it). A write naming its issue by uuid is checked exactly as one naming the
 key, since a form is not a route either. Nothing about a route is read out of a transcript,
 since the transcript of a delegated run is not the one a hook is handed. A comment this session did not create,
 whatever wrote it, is one it has not been shown, and a batch worked on one branch pays that delivery
