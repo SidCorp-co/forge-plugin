@@ -124,10 +124,8 @@ const versionAt = (root, ref) => {
   }
 };
 
-/** A release is a commit whose manifest version differs from its first parent's, so a ship whose
- *  rebase dropped the bump is read by the version it pushed rather than by a subject line nothing
- *  enforces. Both readers of a range take it from here: what a batch released, and what a change
- *  landed as, which is every commit of the range but this one. */
+/** A release is a commit whose manifest version differs from its first parent's, so a rebase that
+ *  dropped the bump is still read by the version pushed. Both readers of a range take it here. */
 const isRelease = (tree, sha) => versionAt(tree, sha) !== versionAt(tree, `${sha}^`);
 
 const worktreePath = (root, key) => join(dirname(root), `wt-${key}`);
@@ -220,13 +218,9 @@ const restartOwed = (tree, base) => {
   for (const one of held) console.log(`    ${one}`);
 };
 
-/** The sha the change landed as. Step 6 prints the push's own line, whose ends are the head the
- *  remote had and the head the release left; the rebase two steps earlier rewrote the commit the run
- *  reviewed, and the version commit sits above it. So the sha a merged mark takes was in no step's
- *  output, and the run that needed one read it off a log by eye — a run that read the commit it had
- *  reviewed instead would have marked a commit on no branch (ISS-169). Taken from the ref the push
- *  updated, so the value is the remote's answer and not the local guess the rebase invalidated once.
- */
+/** The sha the change landed as, which is neither end of the line the push prints: the rebase
+ *  rewrote the commit the run reviewed, and the version commit sits above it. Read from the ref the
+ *  push updated, so a mark takes the remote's answer and not a local sha it invalidated (ISS-169). */
 const landedAs = (tree, base) => {
   const was = shipFrom(tree);
   const head = gitOut(["rev-parse", `${REMOTE}/${base}`], tree);
@@ -252,10 +246,9 @@ const landedAs = (tree, base) => {
 
 const reviewedAt = (tree) => gitOut(["rev-parse", "--verify", "--quiet", REVIEWED], tree);
 
-/** What has landed in a range. The walk is `--first-parent` for the same reason `isRelease` reads a
- *  first parent at all: off it, a merge that carried a bump in from a side branch is dropped as TREESAME
- *  while the side branch's own bumps are each counted, and neither is a release of this branch.
- *  A binary file is `-\t-` in numstat and has no lines to add. */
+/** What has landed in a range, walked `--first-parent` for the reason `isRelease` reads one: off it a
+ *  merge that carried a bump in from a side branch is TREESAME while the side branch's own bumps are
+ *  each counted, and neither is a release of this branch. Binary is `-\t-` and has no lines to add. */
 const landed = (tree, from) => {
   const bumps = (gitOut(["log", "--first-parent", "--format=%H", `${from}..HEAD`, "--", "package.json"], tree) ?? "")
     .split("\n").filter(Boolean);
@@ -345,12 +338,9 @@ const forgeSays = (tree, args, input) => {
   return { out: run.stdout };
 };
 
-/* The clause `forge new` opens every refusal of its own shape check with. A non-zero exit from a
-   spawned CLI is an answer, not a silence, and the two answers a filing can earn have two routes
-   out: a body this script generates that the check reads as wrong is this repository's to fix, and a
-   tracker that did not answer is the next ship's to ask again (ISS-163). The literal is typed here
-   because nothing imports an entry point's dependencies for a string, and the case below is what
-   holds the two copies to each other. */
+/* The head `forge new` opens a refusal of its own shape check with. A non-zero exit is an answer and
+   not a silence, and the two answers a filing earns have two routes out: a generated body the check
+   reads as wrong is this repository's, a tracker that did not answer is the next ship's (ISS-163). */
 const CHECK_SAYS = "this files an issue the flow cannot carry";
 
 const NOT_A_READING = "dropped";
@@ -386,9 +376,8 @@ const fileReview = (tree, from, volume) => {
     + `that wrote none of it, and the mark moves`;
   const filed = forgeSays(tree, ["new", "-", "--title", title, "--kind", "feature"],
     reviewBody(tree, from, to, volume));
-  /* The refusal's own phrase, not any key: a reason quotes paths, and a worktree carries a key.
-     Only the duplicate line of this plugin's filing check writes `against <a key>`, so a reason
-     carrying one is that check's by construction and needs no head read to say so. */
+  /* The refusal's own phrase, not any key: a reason quotes paths, and a worktree carries a key. Only
+     this check's duplicate line writes `against <a key>`, so one carrying it is its by construction. */
   if (filed.why) {
     const collided = /against (ISS-\d+)/u.exec(filed.why)?.[1] ?? null;
     const mine = filed.why.includes(CHECK_SAYS);
@@ -434,8 +423,7 @@ const reviewOwed = (tree) => {
       + `growing until one of them files`);
     return;
   }
-  /* A body no person typed, so a check that reads it as wrong is a defect of this script and not a
-     filing anyone can retry: the route is the repository's, and never the filing just refused. */
+  /* A body no person typed, so the route is this repository's and never the filing just refused. */
   if (asked.mine) {
     console.error(`  this plugin's own filing check refused the body this step generates, and named `
       + `no issue to fold it onto: ${asked.why}`);
