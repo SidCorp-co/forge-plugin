@@ -91,6 +91,13 @@ test("a kind this CLI does not define is refused with the set and the route past
   assert.match(refused.gaps[0].clear, /set the kind to one of bug, enhancement, feature/u);
   for (const name of KIND_NAMES) assert.ok(kindRefusal("chore").includes(name), name);
   assert.match(kindRefusal("chore"), /files an issue against this plugin/u);
+  /* Presence, never truth: a payload carries the field as it likes, and `""` is a value nobody
+     defined rather than a filing that named nothing. */
+  for (const given of ["", false, 0]) {
+    const read = gapsOf(body("outcome", "rules", "scope"), given);
+    assert.equal(read.gaps.length, 1, JSON.stringify(given));
+    assert.match(read.gaps[0].read, /which this CLI does not define/u);
+  }
 });
 
 test("a nice-to-have section left out is said in one line, and refuses nothing", () => {

@@ -290,6 +290,7 @@ const titleGaps = (title) => {
   return out;
 };
 
+const namesKind = (kind) => kind !== null && kind !== undefined;
 const VOWEL = /^[aeiou]/iu;
 const article = (word) => (VOWEL.test(word) ? "an" : "a");
 
@@ -354,8 +355,9 @@ export const shapeOf = ({ title, body, kind = null }) => {
   }
   const tokens = tokensNamed(text);
   /* Before the mark, which exempts the sections and not the set: a kind nobody has decided the
-     sections of is not made one by the filing calling itself small. */
-  if (kind && !KIND_NAMES.includes(kind)) {
+     sections of is not made one by the filing calling itself small. Presence, never truth — a
+     payload may carry the field as `""`, which is a value nobody defined and not an absence. */
+  if (namesKind(kind) && !KIND_NAMES.includes(kind)) {
     gaps.push(need(`a kind of \`${kind}\`, which this CLI does not define`, KIND_WANTS,
       `set the kind to one of ${KIND_NAMES.join(", ")} ${RESEND}`));
     return { gaps, fix: false, tokens, said: null };
@@ -370,7 +372,7 @@ export const shapeOf = ({ title, body, kind = null }) => {
     : "and the body has no heading at all";
   gaps.push(...sectionGaps(text, shape, among));
   const left = shape.says.filter((section) => !held(text, section).ok);
-  return { gaps, fix: false, tokens, said: noticeFor({ kind: shape.kind, named: Boolean(kind), left }) };
+  return { gaps, fix: false, tokens, said: noticeFor({ kind: shape.kind, named: namesKind(kind), left }) };
 };
 
 /** The line `forge new` says on a filing it did not refuse, or nothing. Off `shapeOf`, which reads
