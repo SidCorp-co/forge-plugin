@@ -51,6 +51,41 @@ const committed = (work, message) => {
   git(work, "commit", "-m", message);
 };
 
+/* Step 7 is reached only from a tree that is not the checkout, so every fixture shipping from the
+   scratch root early-returns past it (ISS-143). `pull.rebase` is set in the scratch repository
+   rather than left to the developer's: off it, this case turns on a setting the test does not hold. */
+test("step 7 follows to the pushed head over a dirty checkout, and stops where a fast-forward cannot", () => {
+  const { at, work } = pushed("follows");
+  git(work, "config", "pull.rebase", "true");
+  landIn(work, join("docs", "another-run.md"), 1, "a fold another run keeps open");
+  git(work, "push", "origin", "HEAD:master");
+  const tree = join(at, "wt-ISS-143");
+  git(work, "worktree", "add", tree, "-b", "iss-143");
+  landIn(tree, join("plugin", "src", "one.mjs"), 4, "the change this release ships");
+  const theirs = join(work, "docs", "another-run.md");
+  writeFileSync(theirs, "the fold, as that run has it now\n");
+
+  const run = runIn(tree, ["ship"], BARE);
+  assert.match(run.stdout, /step 7\/10  the checkout follows/u, run.stdout);
+  assert.match(run.stderr, /stopped at step 8 \(marketplace scratch-local\)/u,
+    `step 7 stopped on a checkout it had only to fast-forward:\n${run.stdout}${run.stderr}`);
+  assert.equal(git(work, "rev-parse", "HEAD").stdout.trim(), git(tree, "rev-parse", "HEAD").stdout.trim(),
+    "the marketplace installs from the checkout's working tree, so it has to reach the pushed head");
+  assert.equal(readFileSync(theirs, "utf8"), "the fold, as that run has it now\n",
+    "a dirty path the release does not move is another run's work, and losing it is worse than the stop");
+
+  /* A checkout holding a commit of its own is the case that genuinely cannot fast-forward, and the
+     stop has to name a route: the two a run reaches for unaided are both worse than the failure. */
+  landIn(work, join("docs", "local.md"), 1, "a commit the checkout has and the remote does not");
+  landIn(tree, join("plugin", "src", "two.mjs"), 4, "another change");
+  const stopped = runIn(tree, ["ship"], BARE);
+  assert.match(stopped.stderr, /stopped at step 7 \(the checkout follows\)/u, stopped.stderr);
+  assert.match(stopped.stderr, /status --short/u, `no read for the path in the way:\n${stopped.stderr}`);
+  assert.match(stopped.stderr, /log --oneline origin\/master\.\.HEAD/u,
+    `no read for the commits that are not upstream:\n${stopped.stderr}`);
+  assert.match(stopped.stderr, /git stash/u, "the route a run must not take is named, being the one it reaches for");
+});
+
 /* A scratch checkout with a bare origin it has already pushed to, which is the state every step
    past the first reads: without it the fetch has nothing to name and the range is undefined. */
 const pushed = (name) => {

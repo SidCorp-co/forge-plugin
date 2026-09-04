@@ -416,7 +416,15 @@ const shipSteps = (tree, root, base, note) => {
         stop(`the checkout at ${root} is on ${on}, and the marketplace installs from its working tree. `
           + `Put it on ${base} — git -C ${root} checkout ${base} — then resume.`);
       }
-      loud("git", ["-C", root, "pull", "--ff-only"], root, `Something landed in ${root} that is not upstream.`);
+      /* The fast-forward itself, never `pull`: a pull under `pull.rebase` is a rebase, which refuses a
+         dirty worktree even for a no-op, and runs share this checkout. Its refs are already this
+         repository's own, moved by the push a step ago, so there is nothing to fetch (ISS-143). */
+      loud("git", ["-C", root, "merge", "--ff-only", `${REMOTE}/${base}`], root,
+        `${root} cannot fast-forward to the pushed head, and the marketplace installs from its working `
+        + `tree. Read what is in the way: git -C ${root} status --short for a path the fast-forward `
+        + `needs, git -C ${root} log --oneline ${REMOTE}/${base}..HEAD for a commit it holds that is not `
+        + `upstream. Land that commit, or move that one path. Not \`git stash\` and not a commit of a `
+        + `file this run did not write: other runs' work is open in that tree.`);
     }],
     [`marketplace ${market}`, () => loud("claude", ["plugin", "marketplace", "update", market], root,
       "The cache is keyed by version, so an update at an installed version is a no-op.")],
