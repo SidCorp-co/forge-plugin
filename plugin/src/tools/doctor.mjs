@@ -30,12 +30,20 @@ import { contractPath, contractProblems, readContract, statesContract } from "..
 const VI_CONFIG = join(configDir("vi-natural"), "config.json");
 
 const OK = "  ok  ";
+/* Counted in `line` below, so the level and the exit code cannot disagree: the tally the checks
+   threaded back left nine sites outside the sum, each printing this and failing nothing (ISS-102). */
 const BAD = " miss ";
-/* A finding doctor cannot resolve and the exit code must not gate on: prose it measured but cannot
-   classify, and a guide belonging to the server rather than to this checkout. */
+/* Whose the finding is, never how bad: prose doctor cannot classify, a guide the server owns, a
+   field of the tracker's own project no edit here clears, a credential no verb here waits on. A
+   check that stays red until somebody else acts gets switched off. */
 const NOTE = " note ";
 
-const line = (mark, label, detail) => console.log(`[${mark}] ${label.padEnd(22)} ${detail}`);
+let missed = 0;
+
+const line = (mark, label, detail) => {
+  if (mark === BAD) missed += 1;
+  console.log(`[${mark}] ${label.padEnd(22)} ${detail}`);
+};
 
 /* Reports that each part resolved and from where, never the values: a credential fragment in a
    transcript is still a credential. `--full` is for a human holding two tokens. */
@@ -70,36 +78,33 @@ const envHeld = () => {
 };
 
 /* Reported every run and, like cloudflare's, gating nothing by itself: the vi-natural skill
-   translates a locale file with no tracker in sight. `translate` decides only whether the
-   tracker's own writes wait on it. */
-const checkVi = () => {
+   translates a locale file with no tracker in sight. `translate` decides whether the tracker's own
+   writes wait on it, so it decides the level too. The bundled copy is this plugin's own file. */
+const checkVi = (waited) => {
   const bundled = BUNDLED;
   const run = spawnSync(bundled, ["--help"], { encoding: "utf8" });
   if (run.error || run.status !== 0) {
     line(BAD, "vi-natural", `bundled copy will not run: ${run.error?.message ?? run.status}`);
-    return false;
+    return;
   }
   line(OK, "vi-natural", bundled);
+  const login = waited ? BAD : NOTE;
   const saved = readJson(VI_CONFIG) ?? {};
   const viSetting = (field) => (saved[field] ? VI_CONFIG : null);
-  const url = viSetting("base_url");
-  if (url) line(OK, "vi-natural gateway", url);
-  else line(BAD, "vi-natural gateway", "run `vi-natural login --base-url <url>` — there is no default host");
-  const key = viSetting("api_key");
-  if (key) line(OK, "vi-natural key", key);
-  else line(BAD, "vi-natural key", "run `vi-natural login --key <key>` — no issue can be posted");
-  const model = viSetting("model");
-  if (model) line(OK, "vi-natural model", model);
-  else line(BAD, "vi-natural model", "run `vi-natural login --model <id>` — `vi-natural models` lists them");
-  return Boolean(url && key && model);
+  if (viSetting("base_url")) line(OK, "vi-natural gateway", VI_CONFIG);
+  else line(login, "vi-natural gateway", "run `vi-natural login --base-url <url>` — there is no default host");
+  if (viSetting("api_key")) line(OK, "vi-natural key", VI_CONFIG);
+  else line(login, "vi-natural key", "run `vi-natural login --key <key>` — no issue can be posted");
+  if (viSetting("model")) line(OK, "vi-natural model", VI_CONFIG);
+  else line(login, "vi-natural model", "run `vi-natural login --model <id>` — `vi-natural models` lists them");
 };
 
 /* Cloudflare's credentials are this machine's, not the tracker's, so they resolve and report here
-   and gate nothing: every other verb works with none saved. */
+   and gate nothing: every other verb works with none saved, which is why the absence is a note. */
 const checkCloudflare = (full) => {
   const { accounts, from } = cloudflareAccounts();
   if (!accounts.length) {
-    line(BAD, "cloudflare", "no account — `forge cloudflare login --name n --account-id a --token t`");
+    line(NOTE, "cloudflare", "no account — `forge cloudflare login --name n --account-id a --token t`");
     return;
   }
   const held = accounts.map((account) => `${account.name} ${masked(account.apiToken, full)}`);
@@ -107,12 +112,12 @@ const checkCloudflare = (full) => {
 };
 
 /* codex answers from a gateway of the user's own, over one HTTPS call, so it reports and gates
-   nothing: a missing profile costs the second opinion and no verb. */
+   nothing: a missing profile costs the second opinion and no verb, so both halves are notes. */
 const checkCodex = () => {
   const { problem, values } = profile();
-  if (problem) return line(BAD, "codex", `${problem} — \`forge codex\` cannot consult`);
+  if (problem) return line(NOTE, "codex", `${problem} — \`forge codex\` cannot consult`);
   const model = modelBehind(values);
-  if (!model) return line(BAD, "codex", "the profile maps that model slot to nothing");
+  if (!model) return line(NOTE, "codex", "the profile maps that model slot to nothing");
   line(OK, "codex", `${model}  ${consults(logEntries()).length} consult(s) logged at ${LOG_PATH}`);
 };
 
@@ -143,7 +148,7 @@ const probe = async (scoped, slug) => {
     findings[tool] = refusal;
     if (refusal) {
       gated += 1;
-      line(BAD, label, `${tool} is declared but refuses: ${refusal} — ${why}`);
+      line(NOTE, label, `${tool} is declared but refuses: ${refusal} — ${why}`);
     } else {
       line(OK, label, `${tool} answers — ${why}`);
     }
@@ -165,21 +170,17 @@ const guideBodies = async (scoped) => {
    claims which of the two a pair is — the measurement is blind to negation, so a contradiction and
    a restatement score alike, and saying which would be a resolution it does not have. */
 const reportClaudeMd = (review, path) => {
-  let broken = 0;
   for (const marker of review.overrides) {
     const where = `CLAUDE.md:${marker.line}`;
     if (marker.known) line(OK, "claude.md override", `${marker.slug} — ${marker.reason} (${where})`);
-    else {
-      broken += 1;
-      line(BAD, "claude.md override", `${where} names no guide called ${marker.slug}`);
-    }
+    else line(BAD, "claude.md override", `${where} names no guide called ${marker.slug}`);
   }
   for (const { slug, evidence } of review.misScoped) {
     line(NOTE, "guide scope", `${slug} is global and names ${evidence.join(", ")} — one project's tools`);
   }
   if (!review.overlaps.length) {
     line(OK, "claude.md", `${path} restates no guide`);
-    return broken;
+    return;
   }
   line(NOTE, "claude.md", `${review.overlaps.length} statement(s) a guide already owns — ${path}`);
   for (const hit of review.overlaps) {
@@ -193,11 +194,7 @@ const reportClaudeMd = (review, path) => {
       "This is a measure of shared wording, not of meaning: a restatement and a contradiction score\n" +
       "alike, and only reading the pair tells you which you have.",
   );
-  return broken;
 };
-
-/* An override naming no guide waives nothing, so the exit code follows it. A pair doctor cannot
-   classify does not: a check that stays red until someone edits prose gets switched off. */
 
 /* A claim about the repo is the kind that rots without anyone noticing, and the kind a command can
    settle. Measured over 28 real CLAUDE.md files; the shapes that produced only false positives —
@@ -223,17 +220,13 @@ const reportStale = (stale) => {
 };
 
 /* The published rules, not taste: code.claude.com/docs/en/memory gives the line target and the
-   emphasis rule, docs/en/best-practices the include/exclude table. Only the two mechanical ones
-   gate — a file legitimately has no deploy section, and "vague" is a reading. */
+   emphasis rule, docs/en/best-practices the include/exclude table. */
 const reportStructure = (root, text) => {
   const found = checkStructure(text, root);
-  let broken = 0;
   if (found.overLineTarget) {
-    broken += 1;
     line(BAD, "claude.md size", `${found.lines} lines — target is under ${MAX_CLAUDE_MD_LINES}`);
   }
   for (const rel of found.brokenImports) {
-    broken += 1;
     line(BAD, "claude.md import", `@${rel} resolves to no file, and an import loads at launch`);
   }
   if (found.emphasisDiluted) {
@@ -245,15 +238,14 @@ const reportStructure = (root, text) => {
   if (found.absentTopics.length) {
     line(NOTE, "claude.md covers", `nothing on ${found.absentTopics.join(", ")} — a gap to look at, not a fault`);
   }
-  return broken;
 };
 
 const reportClaims = (root, text) => {
   const found = checkClaims(text, root);
-  let broken = 0;
+  let named = 0;
   for (const [key, label, why] of CLAIMS) {
     for (const name of found[key]) {
-      broken += 1;
+      named += 1;
       line(BAD, label, `\`${name}\` ${why}`);
     }
   }
@@ -261,9 +253,8 @@ const reportClaims = (root, text) => {
   for (const { rule, line: at } of checkerOwned(text, root)) {
     line(NOTE, "claude.md restates", `\`${rule}\` has a checker (CLAUDE.md:${at})`);
   }
-  if (broken) console.log(CLAIM_REMEDY);
-  if (!broken) line(OK, "claude.md claims", "every path, script, `-h`, ref and id it names is real");
-  return broken;
+  if (named) console.log(CLAIM_REMEDY);
+  else line(OK, "claude.md claims", "every path, script, `-h`, ref and id it names is real");
 };
 
 /* Printed once for the group: the move is the same whichever claim broke, and a report that names a
@@ -296,11 +287,11 @@ const reportRestated = (hits) => {
 const checkClaudeMdLocally = () => {
   const root = projectRoot();
   const found = readClaudeMd(root);
-  if (!found) return 0;
-  const broken = reportStructure(root, found.text) + reportClaims(root, found.text);
+  if (!found) return;
+  reportStructure(root, found.text);
+  reportClaims(root, found.text);
   if (checkerOwned(found.text, root).length) console.log(RESTATES);
   reportRestated(checkerRestated(found.text, root));
-  return broken;
 };
 
 /* Whether an unknown guide contradicts the contract is a read and not a check: contradiction is
@@ -320,7 +311,6 @@ const reportGuideTable = (served) => {
   if (!retired.length) {
     line(OK, "guide table", `${GUIDE_TABLE.length} disposition(s), every slug still served`);
   }
-  return retired.length;
 };
 
 /* The rules that are not code travel inside the plugin, so a copy without them is a copy whose every
@@ -332,26 +322,24 @@ const checkContract = () => {
   for (const said of wrong) {
     line(BAD, "contract", `${said} — install the plugin again for a whole copy`);
   }
-  if (wrong.length) return wrong.length;
+  if (wrong.length) return;
   line(OK, "contract", `${path} states contract ${statesContract(text)} — \`forge guide contract\``);
-  return 0;
 };
 
 /* The guide half, which needs the server. */
 const checkAgainstGuides = async (scoped) => {
   const guides = await guideBodies(scoped);
-  const broken = reportGuideTable(guides.map((guide) => guide.slug));
+  reportGuideTable(guides.map((guide) => guide.slug));
   const found = readClaudeMd(projectRoot());
-  if (!found) return broken;
+  if (!found) return;
   const review = reviewClaudeMd(found.text, guides, { superseded: supersededSlugs() });
-  return broken + reportClaudeMd(review, found.path);
+  reportClaudeMd(review, found.path);
 };
 
 /* The project's own release policy and the deploy the flow walks a change against, printed under
    the names its owner uses rather than the tracker's columns — `forge project` is the verb that
    answers this and doctor is the second view of it. Where the two branches differ, `released` is
-   staging and promotion is a step of its own; where a branch is named and no deploy is, the
-   verification `released` owes cites the branch alone, which is a note and not a failure. */
+   staging and promotion is a step of its own. */
 const checkRelease = async () => {
   const { deployed, releaseConflict, releasePolicy, stagingDeploy, waitsForPerson } =
     await import("../tracker/project-config.mjs");
@@ -359,11 +347,11 @@ const checkRelease = async () => {
   const deploy = await stagingDeploy();
   if (!policy) {
     line(NOTE, "release policy", "the project config did not answer — the park before released stands");
-    return 0;
+    return;
   }
   const branch = (label, held) => {
     if (held) return line(OK, label, `${held}  ← ${policy.from}`);
-    return line(BAD, label, `unset on the project — a release has no named ${label}, and the park`
+    return line(NOTE, label, `unset on the project — a release has no named ${label}, and the park`
       + " before released stands until it is set");
   };
   branch("staging branch", policy.staging);
@@ -380,7 +368,6 @@ const checkRelease = async () => {
   }
   const said = releaseConflict(policy);
   if (said) line(BAD, "release policy", said);
-  return said ? 1 : 0;
 };
 
 /* Lazy: the transport exits the process when credentials have not resolved. */
@@ -391,12 +378,13 @@ const checkEndpoint = async (full) => {
   const { value: slug } = projectScope();
   if (!slug) {
     console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
-    return 0;
+    return;
   }
   const id = await projectId();
   line(OK, "project id", full ? id : `resolved from the slug (--full to print it)`);
   const findings = await probe(scoped, slug);
-  const broken = (await checkRelease()) + (findings.forge_guide ? 0 : await checkAgainstGuides(scoped));
+  await checkRelease();
+  if (!findings.forge_guide) await checkAgainstGuides(scoped);
   const gated = findings.gated;
   if (gated) {
     console.log(
@@ -404,7 +392,6 @@ const checkEndpoint = async (full) => {
         "recorded, so `forge tools`, `forge schema` and the usage list now withhold them.",
     );
   }
-  return broken;
 };
 
 const install = (values) => {
@@ -462,7 +449,9 @@ export const doctor = async (rest) => {
   }
   const { value: slug, from } = projectScope();
   if (slug) line(OK, "project slug", `${slug}  ← ${from}`);
-  else line(BAD, "project slug", "project-scoped calls will refuse; account-level ones still work");
+  /* Not the miss the endpoint and the token are: only the scoped verbs refuse, and counting it
+     would fail the run that just saved a working credential from outside any checkout. */
+  else line(NOTE, "project slug", "project-scoped calls will refuse; account-level ones still work");
 
   const language = translateScope();
   if (language.value === "vi") {
@@ -483,21 +472,18 @@ export const doctor = async (rest) => {
   const dispatched = copyToRun();
   line(OK, "copy on PATH", `${dispatched.kind} ${dispatched.version ?? "?"} at ${dispatched.dir}`
     + ` — ${dispatched.why}`);
-  const contractBroken = checkContract();
-  const vi = checkVi();
-  const canWrite = language.value ? language.value === "vi" && vi : true;
+  checkContract();
+  /* Reads and writes differ: `new` translates before it posts, and a read never asks. */
+  checkVi(language.value === "vi");
   checkCloudflare(full);
   checkCodex();
-  const local = checkClaudeMdLocally() + contractBroken;
+  checkClaudeMdLocally();
 
   if (!url.value || !token.value) {
     console.log("\nNot reaching the endpoint: the account half is incomplete.");
     process.exit(1);
   }
-  const broken = local + (await checkEndpoint(full));
+  await checkEndpoint(full);
   if (full) console.log(`\nConfig file: ${CONFIG_PATH}`);
-  if (broken) process.exit(1);
-  /* Reads and writes differ here — `new` translates before it posts — and the exit code follows the
-         stricter one. */
-  if (!canWrite) process.exit(1);
+  if (missed) process.exit(1);
 };

@@ -1,6 +1,6 @@
 /* A setting doctor does not read is a green report in front of a command that cannot run. */
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -28,6 +28,7 @@ const report = (viConfig, extra = {}, project = {}) => {
   return run.stdout;
 };
 
+
 const MCP_FORGE = JSON.stringify({
   mcpServers: { forge: { url: "https://old.example/mcp", headers: { Authorization: "Bearer t" } } },
 });
@@ -48,7 +49,7 @@ test("a slug header alone is reported, with where to put it instead", () => {
     mcpServers: { forge: { headers: { "X-Forge-Project-Slug": "sid-growth" } } },
   });
   const out = report(null, {}, { ".mcp.json": slugOnly });
-  assert.match(out, /\[ miss \] project slug/, "the header is not a source");
+  assert.match(out, /\[ note \] project slug/, "the header is not a source");
   assert.match(out, /\[ miss \] mcp.json[^\n]+`\{ "slug": "<project>" \}` in a \.forge\.json/);
   assert.doesNotMatch(out, /mcp.json[^\n]+--token/, "nothing about credentials it does not carry");
 });
@@ -59,8 +60,15 @@ test("no .mcp.json means no line about one", () => {
 
 test("a saved key with no gateway is reported, not passed", () => {
   const out = report({ api_key: "k-abc123" });
-  assert.match(out, /\[ miss \] vi-natural gateway\s+run `vi-natural login --base-url/);
+  assert.match(out, /\[ note \] vi-natural gateway\s+run `vi-natural login --base-url/);
   assert.match(out, /\[ {2}ok {2}\] vi-natural key/, "the half that is configured still reads as configured");
+});
+
+/* Two verbs ask for these and every other one runs with neither saved (ISS-102). */
+test("a machine with neither cloudflare nor codex configured reads as notes", () => {
+  const out = report(null);
+  assert.match(out, /\[ note \] cloudflare\s+no account — `forge cloudflare login/);
+  assert.match(out, /\[ note \] codex\s+\S/);
 });
 
 test("all three configured read as configured", () => {
@@ -72,19 +80,27 @@ test("all three configured read as configured", () => {
 
 test("a model is the third setting, and its absence is reported too", () => {
   const out = report({ api_key: "k-abc123", base_url: "https://gateway.example/v1" });
-  assert.match(out, /\[ miss \] vi-natural model\s+run `vi-natural login --model/);
+  assert.match(out, /\[ note \] vi-natural model\s+run `vi-natural login --model/);
+});
+
+/* Reads and writes differ: `new` translates before it posts, and a read never asks. */
+test("the same absent gateway is a miss where the project declares vi", () => {
+  const out = report(null, {}, { ".forge.json": JSON.stringify({ slug: "x", translate: "vi" }) });
+  assert.match(out, /\[ miss \] vi-natural gateway/);
+  assert.match(out, /\[ miss \] vi-natural key/);
+  assert.match(out, /\[ miss \] vi-natural model/);
 });
 
 /* The config file is the only source: a variable that once answered for the gateway now answers
    for nothing, and the report has to keep saying MISSING rather than counting it. */
 test("the environment is not a source for the gateway", () => {
   const out = report(null, { VI_NATURAL_BASE_URL: "https://gateway.example/v1" });
-  assert.match(out, /\[ miss \] vi-natural gateway/);
-  assert.match(out, /\[ miss \] vi-natural key/);
+  assert.match(out, /\[ note \] vi-natural gateway/);
+  assert.match(out, /\[ note \] vi-natural key/);
 });
 
 test("the gateway is reported with no translate scope set", () => {
-  assert.match(report(null), /\[ miss \] vi-natural gateway/);
+  assert.match(report(null), /\[ note \] vi-natural gateway/);
 });
 
 /* Which copy `forge` on PATH is depends on where it is typed, and one link serves the machine, so
@@ -103,31 +119,39 @@ test("the copy a call through the link would run is reported, with why that one"
 });
 
 /* The project's release policy is the tracker's to answer, and the report names it in the words its
-   owner uses: the staging branch, never the field's own name (ISS-90). */
-const releaseReport = async (config, previewDeploy = null) => {
+   owner uses: the staging branch, never the field's own name (ISS-90). It is also the only fixture
+   whose exit code means anything, `report` above exiting 1 on its missing credential alone; and
+   `forge_guide` refuses because a tracker serving no guide retires every row the plugin holds. */
+const whole = async (config, { previewDeploy = null, saved = {}, project = {} } = {}) => {
   const tracker = await fakeTracker({
     answer: {
       "forge_projects.list": () => ({ projects: [{ slug: "release-fixture", id: "1e1c1a1e-0000-4000-8000-000000000001" }] }),
       forge_config: () => ({ config }),
       "forge_projects.get": () => ({ project: { previewDeploy } }),
+      forge_guide: () => ({ refused: "this credential may not read guides" }),
     },
   });
+  const held = join(tracker.env.XDG_CONFIG_HOME, "forge", "config.json");
+  writeFileSync(held, JSON.stringify({ ...JSON.parse(readFileSync(held, "utf8")), ...saved }));
   const cwd = tempRoom("doctor-release-");
   writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "release-fixture" }));
+  for (const [name, body] of Object.entries(project)) writeFileSync(join(cwd, name), body);
   /* Awaited, not waited on: this test is the tracker the report asks, and spawnSync holds the loop
      that would answer it. */
-  const out = await new Promise((done) => {
+  const answered = await new Promise((done) => {
     const child = spawn(process.execPath, [CLI, "doctor"], { cwd, env: tracker.env });
-    let held = "";
+    let out = "";
     child.stdout.on("data", (chunk) => {
-      held += chunk;
+      out += chunk;
     });
-    child.on("close", () => done(held));
+    child.on("close", (status) => done({ out, status }));
     child.stdin.end();
   });
   tracker.close();
-  return out;
+  return answered;
 };
+
+const releaseReport = async (config, previewDeploy = null) => (await whole(config, { previewDeploy })).out;
 
 test("the three release values are reported with where they came from", async () => {
   const out = await releaseReport({
@@ -143,7 +167,8 @@ test("an automatic production deploy with no branch to land on is a finding", as
   const out = await releaseReport({
     baseBranch: null, productionBranch: "master", pipelineConfig: { autoProdDeploy: true },
   });
-  assert.match(out, /\[ miss \] staging branch\s+unset on the project/u);
+  assert.match(out, /\[ note \] staging branch\s+unset on the project/u,
+    "the blank itself belongs to the tracker's project config and is a note");
   assert.match(out, /\[ miss \] release policy\s+production deploys are automatic and the staging branch is unset/u);
   assert.match(out, /a person's look is owed until the branch is set/u);
   assert.match(out, /production deploy\s+automatic — a user-facing change waits for a person's look/u,
@@ -169,4 +194,41 @@ test("a deploy on record is reported by count, and its credential is not printed
   assert.match(out, /forge project --credentials/u, "the report says where the value is read, never the value");
   assert.doesNotMatch(out, /correct-horse-battery/u);
   assert.doesNotMatch(out, /previewDeploy/u, "and the tracker's own field name is not what a reader is shown");
+});
+
+/* The other half of every level above, and the half no stdout assertion sees (ISS-102). */
+test("a project whose branches are unset prints notes and exits 0", async () => {
+  const { out, status } = await whole({
+    baseBranch: null, productionBranch: null, pipelineConfig: { autoProdDeploy: false },
+  });
+  assert.match(out, /\[ note \] staging branch\s+unset on the project/u);
+  assert.match(out, /\[ note \] production branch\s+unset on the project/u);
+  assert.doesNotMatch(out, /\[ miss \]/u, "and nothing else in a report of notes says otherwise");
+  assert.equal(status, 0, "a report with no miss in it exits 0");
+});
+
+/* AC-01-3-2: a gate somebody believes is off must not be silently on. */
+test("a switch naming no hook here is a miss, and the report exits 1 for it alone", async () => {
+  const { out, status } = await whole(
+    { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true } },
+    { saved: { hooksOff: ["no-such-gate"] } },
+  );
+  assert.match(out, /\[ miss \] hooks off\s+no-such-gate is switched off and is no hook here/u);
+  assert.equal(status, 1, "one miss anywhere in the report is the exit code");
+});
+
+test("an automatic deploy with no branch to land on exits 1", async () => {
+  const { out, status } = await whole({
+    baseBranch: null, productionBranch: null, pipelineConfig: { autoProdDeploy: true },
+  });
+  assert.match(out, /\[ miss \] release policy\s+production deploys are automatic/u);
+  assert.equal(status, 1);
+});
+
+test("a declared tool that refuses this credential is a note", async () => {
+  const { out, status } = await whole({
+    baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true },
+  });
+  assert.match(out, /\[ note \] guides\s+forge_guide is declared but refuses/u);
+  assert.equal(status, 0, "a refusal the tracker owns fails nothing here");
 });

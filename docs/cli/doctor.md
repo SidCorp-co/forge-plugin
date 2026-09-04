@@ -46,8 +46,14 @@ the waiver names the guide and gives a reason, and one naming a guide that does 
 that is mechanical. A global guide whose body calls a foreign MCP namespace is a finding against the
 guide, and a note, since nobody can fix it from the checkout.
 
-Writes translate before they post, so a missing `vi-natural` key fails writes while reads stay green:
-the exit code follows the stricter one. The gateway url and model are read beside the key, because a
+**It exits non-zero when it printed a `miss` and never for a `note`.** So the level is a judgement
+about whose the finding is rather than about how bad it looks: a credential no verb here waits on, a
+branch on the tracker's own project, a tool the server gates against this token and prose nobody can
+classify are notes, and each still names its route out. Nine lines once said `miss` and failed
+nothing, which is a report that teaches a caller to read neither half (ISS-102).
+
+Writes translate before they post, so a missing `vi-natural` key is a miss exactly where the project
+declares the language that waits on it. The gateway url and model are read beside the key, because a
 saved key alone is configuration that looks complete and dies at the first call.
 
 **And it names the copy a call from here would run.** `~/.local/bin/forge` is one symlink for the
