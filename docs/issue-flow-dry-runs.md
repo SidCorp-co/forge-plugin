@@ -1627,3 +1627,27 @@ record.
   the issue reader's field flag refusing every field the answer carries (ISS-219); the conjunction check
   reading inside code spans (ISS-220). The dependency verb's refusal under a personal token was confirmed
   live (ISS-8) and the edge recorded by the route the refusal named.
+
+## Sixty-second dry run — ISS-14
+
+One agent dropped the oldest high-priority issue as already fixed, in twenty minutes and with no
+commit. The premise as filed was gone: the fenced record form landed for another issue in 3.35.4,
+whose plan named this one as the part it deferred and whose ninth criterion is this issue's first rule;
+six adversarial values round-trip byte for byte, and a suite already pins both directions. What survives
+is the legacy bullet-form reader, which still splits a repeated field on the separator — which is what
+the issue's own second rule asks of it, and which cannot recover a boundary it did not join. Folded from
+the record.
+
+- The drop was earned by a measurement, not a reading: every issue on the tracker read whole, three
+  hundred legacy records found on seventeen issues, every one on a closed or dropped issue, and the
+  advance's own assembly run over all of them with no status-bearing record failing its shape. The bound
+  was stated — sixteen comment pages came back cut with nothing to read behind them, all on closed
+  issues — and the reopen path was argued closed, since a reopen unearns the old verdicts and the fresh
+  records are fenced.
+- The first scan concluded there were no legacy records anywhere, off a list that returned fewer than
+  half the project's rows while claiming it had kept the most recent; the seventeen issues were in the
+  missing part. Filed high as ISS-221: any agent picking work off the unfiltered list silently misses a
+  fifth of the backlog. The working route is a status-and-priority walk, every page complete.
+- Three surfaces still cite the dropped issue as owing the separator rule; two were outside the hold and
+  the retirement rule forbids clearing one surface without the others, so it went as ISS-226 rather than
+  a partial edit.
