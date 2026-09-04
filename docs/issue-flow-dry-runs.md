@@ -1579,3 +1579,28 @@ now lives in a third file the two it named import. Closed by its run. Folded fro
   (ISS-200); the move reading answers the same nothing for never-moved and unnameable (ISS-211); one
   token inside data in a heredoc flips every literal in the body into a shell command, which refused
   the write of this issue's own cases (ISS-212).
+
+## Sixtieth dry run — ISS-156
+
+One agent let a verdict survive the landing that follows it (3.35.70): a verdict may cite the head a
+run judged rather than the commit the landing produced, where the mark's note says the landing moved
+none of the change's own paths — the note's grammar gained the judged head and what the landing moved,
+the tested entry check spends them as one refusal item for the whole set, and the rule lives once in the
+contract with its boundary stated: the equivalence is about paths, not behaviour. The run proved it on
+itself — sixteen criteria judged at the branch head, shipped, the diff between the judged and the landed
+head restricted to the change's ten paths measured empty, and the advance answered that the record
+earns it with nothing re-posted. Two skill files changed, so a restart is owed. Closed by its run.
+Folded from the record.
+
+- The issue wrote half of a larger disagreement and said so: the skill judges at one phase and ships
+  two later, while the contract's ladder earns the developed status from a landing. The shape all four
+  re-posting runs stood in is now ISS-218; the finer per-criterion rule the outcome asked for is
+  undecidable from the record because a verdict's evidence never names a path, and is ISS-207.
+- A test file split at its line ceiling moved four cases to a new file, and three acceptance clauses
+  still cite the old one as their proof — green throughout, because the cited-paths check asks only
+  whether a path resolves, not whether the thing it is cited for is still there. Routed as ISS-217
+  because the tree was held; the check's next rule is written in that filing.
+- The contract credits a review grammar the record verb does not accept, so a partial disposition had
+  to be written as a rejection with the folded half in the reason; a comment on the issue that made the
+  grammar. A version typed by hand into the release note named the version before the one the step took;
+  nothing reads the subject, so it stands, but the note is a value the step should fill.
