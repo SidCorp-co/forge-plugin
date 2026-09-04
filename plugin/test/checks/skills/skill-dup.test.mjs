@@ -3,8 +3,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-import { commentSentences, load, sentences } from "../../src/checks/duplication.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { commentSentences, load, sentences } from "../../../src/checks/duplication.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
 const A = "The sequence assigns a master-data code whenever the field is left blank.";
 const B = "Uniqueness of that code is a database constraint and not application discipline.";

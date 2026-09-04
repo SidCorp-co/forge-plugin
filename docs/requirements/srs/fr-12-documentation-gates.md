@@ -84,7 +84,7 @@ skills whose descriptions cover the same ground are one skill under two names; w
 taken over the descriptions rather than left to a reviewer's reading is in
 `plugin/scripts/skill-boundaries.mjs`'s own help.
 
-- **AC-12-3-1** · Rev: 1 · Proof: plugin/scripts/skill-paths.mjs
+- **AC-12-3-1** · Rev: 1 · Proof: plugin/test/checks/skills/skill-paths.test.mjs
   IF a skill's own text names a repository path THEN the check SHALL fail and SHALL name the skill
   and the path.
 - **AC-12-3-2** · Rev: 1 · Proof: plugin/scripts/skill-boundaries.mjs
@@ -96,6 +96,10 @@ taken over the descriptions rather than left to a reviewer's reading is in
 - **AC-12-3-4** · Rev: 1 · Proof: plugin/scripts/skill-dup.mjs
   IF the same prose appears twice in one tree THEN the check SHALL report it, and a waiver SHALL
   require a reason to be accepted.
+- **AC-12-3-5** · Rev: 1 · Proof: plugin/test/checks/skills/skill-paths.test.mjs
+  IF a path a skill names does not resolve inside that skill's own directory THEN the check SHALL
+  fail even where the path resolves elsewhere in this repository, because a skill is loaded against
+  a checkout that holds none of it, and SHALL carry the remedy for the kind of path it found.
 
 ### UC-12-4 — A source file is text a reader can see
 

@@ -61,9 +61,9 @@ a mistake can be detected and undone without the user.
 
 Stop for exactly these:
 
-1. **A destructive migration.** `scripts/migration-risk.mjs` classifies it: re-adding a
-   dropped column restores the schema and not the values, so no automatic rollback exists.
-   Say what is lost, and ask.
+1. **A destructive migration.** Re-adding a dropped column restores the schema and not the
+   values, so no automatic rollback exists. Which migrations are that, rather than additive or
+   tightening, is classified in `references/verification.md`. Say what is lost, and ask.
 2. **An ambiguity of the kind Rule 3 admits**, and only that kind.
 3. **A failure with no way back**: a deploy that will not roll back, a gate still red after
    the fix, an integration path that changed underneath you.

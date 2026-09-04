@@ -3,9 +3,9 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
-const SCRIPT = new URL("../../scripts/skill-boundaries.mjs", import.meta.url).pathname;
+const SCRIPT = new URL("../../../scripts/skill-boundaries.mjs", import.meta.url).pathname;
 
 const roomWith = (skills) => {
   const root = tempRoom("skill-boundaries-");

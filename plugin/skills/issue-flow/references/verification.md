@@ -24,17 +24,21 @@ three of twelve steps.
 1. **The repo's own gates.** Whatever the project defines. Passing them is the floor.
 2. **Schema and deployment coupling, if the change has any.** Establish how a migration
    reaches the deployed environment before the merge — an entrypoint that migrates at boot
-   means merging *is* a schema change. Then classify it: `scripts/migration-risk.mjs` sorts
-   additive from tightening from destructive, and only the last of those stops the pipeline.
-   Test reversibility only where the project's migration system supports it and only against
-   a disposable database.
+   means merging *is* a schema change. Then classify it, statement by statement, by what
+   deploying it does to rows that already exist and to readers already running: **additive**
+   where both come through untouched and the old code still works, **tightening** where an
+   existing row or an older writer can violate what the statement now demands, **destructive**
+   where it discards a value that running the migration backwards does not put back. Only the
+   last of those stops the pipeline. Test reversibility only where the project's migration
+   system supports it and only against a disposable database.
 3. **Blast radius.** Grep for what you changed — the renamed symbol, the removed field, the
    altered response shape. Nothing asserts what nothing covers. **That grep is blind to a
    change of provenance**: where every identifier stays and only who assigns the value moved,
    the code still reading the old convention mentions no line of the diff, and the sweep comes
-   back clean. `scripts/blast-radius.mjs` covers that case, ranking the files that share the
-   diff's narrow identifiers and sit outside it. Its output is a reading list and not findings
-   — say, of the top entries, whether the change alters what each one reads.
+   back clean. Cover that case by hand: take the identifiers the diff touches, drop the ones
+   the whole tree uses, and list the files outside the diff that share what is left, the most
+   shared first. That list is a reading list and not findings — say, of the top entries,
+   whether the change alters what each one reads.
 4. **Proof suited to what you changed** (below).
 5. **Look at the result.** The only step with no substitute.
 

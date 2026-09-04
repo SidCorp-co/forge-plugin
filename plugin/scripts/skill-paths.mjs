@@ -8,13 +8,18 @@ const HELP = `Find repository paths named in a skill's own text.
 
 A skill is method, not project facts: issue-flow says so in its own second paragraph. A path it
 names is a claim about somebody's checkout, and the claim goes stale in silence — issue-flow cited
-\`scripts/migration-risk.mjs\` for months against a repo that had no such file.
+\`scripts/migration-risk.mjs\` for months, and the run that finally typed it resolved it against the
+skill's own directory and found nothing there. That citation is what this check now catches.
 
-Three kinds of path are not that claim and are not reported:
+A skill is loaded with its own directory as the root, so that is the one root a path may resolve
+against. Two kinds are not a claim about a checkout and are not reported:
 
   the skill's own          references/verification.md — resolves inside the skill directory
-  the plugin's own         hooks/entries/learning-gate.mjs — resolves inside plugin/
   a bare filename          CLAUDE.md, eslint.config.mjs — a name any project has, not one path
+
+A path resolving inside this plugin but not inside the skill is reported like any other: the skill
+is read from wherever it is installed, so this plugin's own files are no more addressable from its
+text than the project's are.
 
 Exit 0 when clean, 1 when a path is found, 2 on a usage error.`;
 
@@ -24,8 +29,8 @@ if (args.includes("-h") || args.includes("--help")) {
   process.exit(0);
 }
 
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { readFileSync, readdirSync, realpathSync } from "node:fs";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { claims } from "../src/checks/claude-md.mjs";
@@ -58,25 +63,59 @@ const skillDirs = args.length
       .filter((entry) => entry.isDirectory())
       .map((entry) => join(skillsRoot, entry.name));
 
+/* Containment of the real file, not existence at the written path: `..` normalises away and a
+   symlink resolves elsewhere, so either can name a file that exists while the copy of the skill a
+   reader installs holds nothing there. `realpathSync` throws on an absent path, which is the same
+   answer. */
+const real = (path) => {
+  try {
+    return realpathSync(path);
+  } catch {
+    return null;
+  }
+};
+
+const holds = (root, target) => {
+  const [base, file] = [real(root), real(target)];
+  return base !== null && file !== null && (file === base || file.startsWith(`${base}${sep}`));
+};
+
 const found = [];
 for (const dir of skillDirs) {
   for (const file of markdown(dir)) {
     for (const path of claims(readFileSync(file, "utf8")).paths) {
       if (!NAMES_A_FILE.test(path)) continue;
-      if (existsSync(join(dir, path)) || existsSync(join(plugin, path))) continue;
-      found.push([relative(plugin, file), path]);
+      if (holds(dir, resolve(dir, path))) continue;
+      const inPlugin = holds(plugin, resolve(dir, path)) || holds(plugin, resolve(plugin, path));
+      const shown = relative(plugin, file);
+      found.push([shown.startsWith("..") ? file : shown, path, inPlugin]);
     }
   }
 }
 
-for (const [file, path] of found) console.log(`  ${file}\n      ${path}`);
+const ours = found.filter(([, , inPlugin]) => inPlugin);
+for (const [file, path, inPlugin] of found) {
+  console.log(`  ${file}\n      ${path}${inPlugin ? "   — this plugin's own, and unaddressable from a skill" : ""}`);
+}
 if (found.length === 0) {
-  console.log(`  clean — ${skillDirs.length} skill(s) name no repository path`);
+  console.log(`  clean — ${skillDirs.length} skill(s) name no path they cannot open`);
   process.exit(0);
 }
-console.log(
-  `\n  ${found.length} repository path(s) in skill text. A skill carries method; a path is a fact\n` +
-    "  about one checkout, and it is wrong silently. State what the project must supply, and let\n" +
-    "  the project name it.",
-);
+// The two kinds need different remedies: a project's file is the project's to name, and this
+// plugin's own has no name a skill can write at all.
+console.log(`\n  ${found.length} path(s) in skill text that no reader of that skill can open.`);
+if (found.length > ours.length) {
+  console.log(
+    "\n  A skill carries method; a path is a fact about one checkout, and it is wrong silently.\n" +
+      "  State what the project must supply, and let the project name it.",
+  );
+}
+if (ours.length > 0) {
+  console.log(
+    `\n  ${ours.length} path(s) inside this plugin, which a skill cannot reach: it is loaded from\n` +
+      "  wherever it is installed, against a checkout that holds no plugin directory. State the\n" +
+      "  method in the text instead, or name the route a run can type — `forge hooks --how <hook>`,\n" +
+      "  `forge <verb> -h`.",
+  );
+}
 process.exit(1);
