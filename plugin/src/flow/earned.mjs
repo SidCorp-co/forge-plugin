@@ -2,8 +2,10 @@
    record read whole into one object. The verb that spends this is advance.mjs; nothing here
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
-import { FINDINGS, SHAPES, TRIAGES, lightens, looksTo, markedCommit, planFlags, reviewedHead, sizeReport, unwrap }
-  from "./machine.mjs";
+import {
+  FINDINGS, SHAPES, TRIAGES, judgedHead, landingMoved, lightens, looksTo, markedCommit, planFlags,
+  reviewedHead, sizeReport, unwrap,
+} from "./machine.mjs";
 import { attachmentNames, evidenceHeld, isCommit } from "../tracker/evidence.mjs";
 import { SIZE_LINE, isFix } from "../tracker/issue-shape.mjs";
 import { Refused, assemble, criteriaLines, parse } from "./record.mjs";
@@ -150,7 +152,8 @@ export const fixReport = (view, ref) => sizeReport(sizeOf(view), ref);
 
 const markCall = (documentId) =>
   `forge call forge_issues '{"action":"mark_merged","data":{"issueId":"${documentId}",`
-  + `"target":"base","note":"merged to <branch> at <sha>; reviewed head <sha>"}}'`;
+  + `"target":"base","note":"merged to <branch> at <sha>; reviewed head <sha>; judged head <sha>; `
+  + `landing moved <the paths of this change the landing moved, or the word nothing>"}}'`;
 export const transitionCall = (documentId, status) =>
   `forge call forge_issues '{"action":"transition","documentId":"${documentId}","data":{"status":"${status}"}}'`;
 
@@ -217,21 +220,50 @@ const reviewOwed = (view, ref) => {
   return [];
 };
 
+/* One item for the set: fourteen copies of one path list is what a run reads past. */
+const equivalenceOwed = (view, ref, judged, moved, numbers) => {
+  const at = `the verdict${numbers.length > 1 ? "s" : ""} on criterion ${numbers.join(", ")}`;
+  if (moved === null) {
+    return need(
+      `${at} judged ${judged}, which the mark names as the judged head, and the mark says nothing `
+        + `about what the landing moved, so nothing says those verdicts survived it`,
+      markCall(view.documentId),
+    );
+  }
+  return need(
+    `the landing moved ${moved.join(", ")}, which this change touched, so ${at} judged ${judged} `
+      + `and the evidence was taken before those paths moved`,
+    `forge record verdict ${ref} --criterion <n> --verdict pass --commit ${markedCommit(view.comments)} `
+      + `--evidence <attachment|url|sha>`,
+  );
+};
+
+/* A landing brings other people's commits and leaves this change's own diff alone, so a verdict
+   judged before it judged the code that landed; the review's recheck at the landed head guards the
+   tree they sit on. The note carries the predicate because git is asked where it can answer (ISS-156). */
 const verdictsOwed = (view, ref) => {
   const merged = markedCommit(view.comments);
+  const judged = judgedHead(view.comments);
+  const moved = judged ? landingMoved(view.comments) : null;
+  const stands = Boolean(judged) && moved?.length === 0;
   const ask = (number) =>
     `forge record verdict ${ref} --criterion ${number} --verdict pass --commit ${merged ?? "<sha>"} `
     + `--evidence <attachment|url|sha>`;
   const out = view.owed.map((number) => need(`criterion ${number} has no verdict`, ask(number)));
+  const atJudged = [];
   for (const [number, { record }] of [...view.verdicts].sort((a, b) => a[0] - b[0])) {
     const held = record.fields;
     const gaps = shapeGaps("verdict", record, view.names);
     if (gaps.length) out.push(need(`the verdict on criterion ${number} lacks ${gaps.join(", ")}`, ask(number)));
     else if (held.verdict === "fail") out.push(need(`criterion ${number} failed its verdict`, ask(number)));
-    else if (merged && !sameCommit(held.commit, merged)) {
+    else if (!merged || sameCommit(held.commit, merged)) continue;
+    else if (judged && sameCommit(held.commit, judged)) {
+      if (!stands) atJudged.push(number);
+    } else {
       out.push(need(`the verdict on criterion ${number} judged ${held.commit}, and the merged commit is ${merged}`, ask(number)));
     }
   }
+  if (atJudged.length) out.push(equivalenceOwed(view, ref, judged, moved, atJudged));
   /* A verdict the reader could key by nothing is named as itself: an item naming the criterion it
      does not carry is the shortfall a rewrite invented, and no command supplies it. */
   for (const one of view.unreadable ?? []) {

@@ -8,17 +8,17 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { tempHome } from "../fixtures.mjs";
+import { tempHome } from "../../fixtures.mjs";
 
 const HOME = tempHome("resume");
 process.env.XDG_CONFIG_HOME = HOME.path;
-const { render } = await import("../../src/flow/record.mjs");
-const { PHASE, ORDER, SIDE, methodOf, viewFrom } = await import("../../src/flow/earned.mjs");
-const { briefOf } = await import("../../src/flow/brief.mjs");
-const { USAGE, edgeSaid } = await import("../../src/flow/resume.mjs");
-const { sessionHeld } = await import("../../src/resolve/config.mjs");
+const { render } = await import("../../../src/flow/record.mjs");
+const { PHASE, ORDER, SIDE, methodOf, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { briefOf } = await import("../../../src/flow/brief.mjs");
+const { USAGE, edgeSaid } = await import("../../../src/flow/resume.mjs");
+const { sessionHeld } = await import("../../../src/resolve/config.mjs");
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
 
 const fenced = (text) =>
@@ -64,7 +64,7 @@ test("the brief carries the status, the phase it owes and the reference that hol
   for (const status of [...ORDER, "dropped", "reopen"]) {
     assert.ok(PHASE[status], `${status} owes no phase, so a resuming run is told nothing`);
     const held = methodOf(status);
-    assert.ok(existsSync(new URL(`../../${held.reference}`, import.meta.url)), `${held.reference} resolves nowhere`);
+    assert.ok(existsSync(new URL(`../../../${held.reference}`, import.meta.url)), `${held.reference} resolves nowhere`);
   }
 });
 
@@ -73,7 +73,7 @@ test("the brief carries the status, the phase it owes and the reference that hol
 test("every reference the table names resolves from this module, in either layout", () => {
   const named = new Set(Object.values(PHASE).map(([, file]) => file));
   for (const file of named) {
-    assert.ok(existsSync(new URL(`../../skills/issue-flow/references/${file}`, import.meta.url)), file);
+    assert.ok(existsSync(new URL(`../../../skills/issue-flow/references/${file}`, import.meta.url)), file);
   }
   assert.ok(named.size >= 4, "one reference for every phase a status can owe");
 });
@@ -211,7 +211,7 @@ test("the assembled object is what --json can print, with nothing lost on the wa
 /* It takes no lease and renews none, so anyone may read any issue — including a run that is not the
    holder and a person with no session at all. The check is that no writing call is reachable. */
 test("nothing in the brief or its printer can write, because none of the writes is imported", () => {
-  for (const name of ["../../src/flow/resume.mjs", "../../src/flow/brief.mjs"]) {
+  for (const name of ["../../../src/flow/resume.mjs", "../../../src/flow/brief.mjs"]) {
     const text = readFileSync(fileURLToPath(new URL(name, import.meta.url)), "utf8");
     const imports = text.split("\n").filter((one) => /^import /u.test(one)).join(" ");
     for (const call of ["renew", "setLease", "claimed", "post", "write", "transitionTo", "worklogFor"]) {

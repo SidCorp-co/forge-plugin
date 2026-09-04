@@ -46,6 +46,20 @@ three of twelve steps.
 said.** A library has no deployment; a CLI has no screen. Silence about a skipped step
 reads as a step that passed.
 
+## Judge the head that will land
+
+A verdict claims the evidence beside it was taken on the code that landed, so it names the commit it
+judged — and that commit has to be the one the landing carries. **Bring the branch onto the
+project's default branch before you judge**, once, and prove it from there. A branch cut days ago
+and brought forward only at the landing is one whose proved head never lands, and every criterion
+then costs a second verdict at a head the first could not have known.
+
+That leaves the landing whatever it adds of its own, and whatever other people landed while you were
+judging, which where several runs work one tree at once is not nothing. Neither is a re-judging:
+what a landing brings is other people's commits, and this change's own diff is unchanged by them.
+Which of the two the flow makes you pay, and what the merged mark has to say for the verdicts to
+stand: `forge guide contract developed`.
+
 ## What each kind of change owes as evidence
 
 | Changed | Proof |

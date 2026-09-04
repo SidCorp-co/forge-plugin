@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempHome, tempRoom } from "../fixtures.mjs";
+import { tempHome, tempRoom } from "../../fixtures.mjs";
 
 const HOME = tempHome("worklog");
 process.env.XDG_CONFIG_HOME = HOME.path;
@@ -17,10 +17,10 @@ process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
   KEY, OPEN_KEPT, capturedLine, gitNow, merged, owedOn, patchFrom, worklogFor, worklogLines, worklogOf,
-} = await import("../../src/flow/worklog.mjs");
-const { claimed, leaseOf } = await import("../../src/flow/lease.mjs");
+} = await import("../../../src/flow/worklog.mjs");
+const { claimed, leaseOf } = await import("../../../src/flow/lease.mjs");
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
 /* A checkout with a remote head behind its own: `captured` writes nothing without one, and a patch
    that captured nothing would let an absent copy field pass for a present one. */

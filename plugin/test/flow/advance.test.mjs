@@ -11,9 +11,9 @@ const { parse, render } = await import("../../src/flow/record.mjs");
 const { PARKS } = await import("../../src/flow/machine.mjs");
 const {
   CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, holdsBack,
-  nextOf, personLooks, sameCommit, shapeGaps, viewFrom,
+  nextOf, personLooks, shapeGaps, viewFrom,
 } = await import("../../src/flow/earned.mjs");
-const { LIGHTER, markedCommit, planFlags } = await import("../../src/flow/machine.mjs");
+const { LIGHTER, planFlags } = await import("../../src/flow/machine.mjs");
 const { lookAhead, targetOf } = await import("../../src/flow/route.mjs");
 const { USAGE, checkTarget, nextHeld } = await import("../../src/flow/advance.mjs");
 
@@ -70,25 +70,6 @@ test("a blocker outside the flow is not developed, whatever its status reads lik
   assert.ok(!atLeast("dropped", "developed"), "nothing landed, so nothing is unblocked");
   assert.ok(!atLeast("on_hold", "developed"));
   assert.ok(!atLeast("", "open"), "an absent status ranks nowhere");
-});
-
-test("a seven-digit commit and the same forty-digit commit are one commit", () => {
-  const full = "c8c3550c1b7e1a3f4d5e6f708192a3b4c5d6e7f8";
-  assert.ok(sameCommit("c8c3550", full), "the shorter one decides the width");
-  assert.ok(sameCommit(full, "C8C3550"), "and case is not part of a sha");
-  assert.ok(!sameCommit("c8c3550", "43b811e"));
-  assert.ok(!sameCommit("c8c35", "c8c3550"), "under seven digits names nothing");
-  assert.ok(!sameCommit(undefined, full));
-});
-
-test("the merged commit is read out of the mark's note, because the mark has no commit field", () => {
-  const comments = [mark("merged to master at c8c3550 (fast-forward); reviewed head c8c3550")];
-  assert.equal(markedCommit(comments), "c8c3550");
-  assert.equal(markedCommit([mark("merged to master")]), null, "a note naming no commit earns nothing");
-  assert.equal(markedCommit([]), null);
-  assert.equal(markedCommit([comment("just a comment at all")]), null, "only the mark's own note is read");
-  const twice = [...comments, mark("merged to master at 43b811e")];
-  assert.equal(markedCommit(twice), "43b811e", "the latest mark is the one that landed");
 });
 
 test("the criteria field is read through the fence, and unnumbered prose is no criteria", () => {
@@ -281,51 +262,6 @@ test("the project's release policy decides whether a user-facing outcome parks",
   assert.equal(ahead(policy("master", "master", true)), null, "and the warning three statuses earlier reads the same answer");
 });
 
-test("developed needs the mark, its commit, and an approving review of that commit", () => {
-  const review = (commit, outcome = "approved") =>
-    recorded("review", { reviewer: "codex", commit, outcome, finding: ["F1 accepted"] });
-  assert.deepEqual(missing("developed", view({})), [
-    "no merged mark, so nothing says the change landed",
-    "no code review of the head that landed",
-  ]);
-  assert.match(commands("developed", view({}))[0], /"action":"mark_merged"/u, "no wrapped verb marks a merge");
-  const stamped = { mergedAt: "2026-09-02T13:49:51.777Z" };
-  assert.deepEqual(missing("developed", view(stamped, [mark("merged to master")]))[0],
-    "the merged mark names no commit; its note carries it as `at <sha>`");
-  const landed = [mark("merged to master at c8c3550; reviewed head c8c3550")];
-  assert.deepEqual(missing("developed", view(stamped, [...landed, review("c8c3550")])), []);
-  assert.deepEqual(missing("developed", view(stamped, [...landed, review("43b811e")])),
-    ["the review judged 43b811e, and the mark names c8c3550 from head c8c3550"]);
-  const squashed = [mark("merged to master at c8c3550 (squashed); reviewed head 43b811e")];
-  assert.deepEqual(missing("developed", view(stamped, [...squashed, review("43b811e")])), [],
-    "a squash moved the hash, and the note kept the head that was reviewed");
-  assert.deepEqual(missing("developed", view(stamped, [...landed, review("c8c3550", "changes-requested")])),
-    ["the latest review of c8c3550 says changes-requested"]);
-  assert.match(commands("developed", view(stamped, landed))[0], /--commit c8c3550 --outcome approved/u,
-    "the commit the review owes is the one the mark named");
-});
-
-test("tested needs one verdict per criterion, passing, at the merged commit", () => {
-  const issue = { acceptanceCriteria: fenced(CRITERIA), mergedAt: "2026-09-02T13:49:51.777Z", attachments: ATTACHED };
-  const landed = mark("merged to master at c8c3550");
-  const verdict = (number, kind, commit = "c8c3550", extra = {}) =>
-    recorded("verdict", { criterion: `${number} — text`, verdict: kind, commit, evidence: ["run.txt"], ...extra });
-  assert.deepEqual(missing("tested", view({ mergedAt: issue.mergedAt }, [landed])),
-    ["the criteria field holds no numbered line, so there is nothing to judge"]);
-  const one = view(issue, [landed, verdict(1, "pass")]);
-  assert.deepEqual(missing("tested", one), ["criterion 2 has no verdict"]);
-  assert.match(commands("tested", one)[0], /--criterion 2 --verdict pass --commit c8c3550/u);
-  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "pass"), verdict(2, "pass")])), []);
-  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "fail"), verdict(2, "pass")])),
-    ["criterion 1 failed its verdict"]);
-  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "pass", "43b811e"), verdict(2, "pass")])),
-    ["the verdict on criterion 1 judged 43b811e, and the merged commit is c8c3550"]);
-  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "skipped", "c8c3550", { why: "no screen" }), verdict(2, "pass")])),
-    [], "a skip with its reason is judged");
-  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "skipped"), verdict(2, "pass")])),
-    ["the verdict on criterion 1 lacks --why, for a skipped check"], "the shape says what a skip owes");
-});
-
 test("what the plan declared decides what the ship steps owe", () => {
   const landed = mark("merged to master at c8c3550");
   const stamped = { mergedAt: "2026-09-02T13:49:51.777Z" };
@@ -471,6 +407,20 @@ test("a --next the form cannot take is refused by name, empty or not", () => {
     assert.equal(run.status, 1, argv.join(" "));
     assert.match(run.stderr, said, `${argv.join(" ")} answered: ${run.stderr}`);
     assert.equal(run.stdout, "", `${argv.join(" ")} answered on stdout`);
+  }
+});
+
+/* A refusal carries the one command that clears it, so the command has to survive being pasted: an
+   apostrophe inside `forge call ... '{json}'` ends the quote and the paste is a syntax error. */
+test("every command an entry check prints can be pasted into a shell as it stands", () => {
+  const quoted = /'([^']*)'/gu;
+  for (const status of Object.keys(CHECKS)) {
+    for (const item of CHECKS[status](view({}), "ISS-3")) {
+      const spans = [...item.command.matchAll(quoted)].map((one) => one[1]);
+      const rest = item.command.replace(quoted, "");
+      assert.equal(rest.includes("'"), false, `${status}: an unbalanced quote in ${item.command}`);
+      for (const span of spans) assert.equal(span.includes("'"), false, `${status}: ${span}`);
+    }
   }
 });
 

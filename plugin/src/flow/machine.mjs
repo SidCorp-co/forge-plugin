@@ -89,6 +89,11 @@ export const unwrap = (text) => String(text ?? "").replace(FENCE, "").trim();
 const MARK = /^mark_merged\b/u;
 const AT_SHA = /\bat ([0-9a-f]{7,40})\b/iu;
 const HEAD_SHA = /\breviewed head ([0-9a-f]{7,40})\b/iu;
+const JUDGED_SHA = /\bjudged head ([0-9a-f]{7,40})\b/iu;
+const MOVED = /\blanding moved ([^;\n]+)/iu;
+/* Enumerated, because matching it stands every verdict: `nothingness` and `nothing generated` are
+   paths, and a clause that parses to no path at all says nothing rather than none. */
+const NONE = /^nothing(?: of this change| this change touched)?\.?$/iu;
 
 const lastMark = (comments) => {
   const marks = comments.map((one) => unwrap(one.body)).filter((body) => MARK.test(body));
@@ -97,6 +102,15 @@ const lastMark = (comments) => {
 
 export const markedCommit = (comments) => AT_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
 export const reviewedHead = (comments) => HEAD_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
+export const judgedHead = (comments) => JUDGED_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
+
+export const landingMoved = (comments) => {
+  const said = MOVED.exec(lastMark(comments) ?? "")?.[1]?.trim();
+  if (!said) return null;
+  if (NONE.test(said)) return [];
+  const paths = said.split(",").map((one) => one.trim()).filter(Boolean);
+  return paths.length ? paths : null;
+};
 
 /* Machine data inside prose, read by this wording; `look` is optional, since FR-05 names two. */
 const DECLARED = { screen: "screen change", schema: "schema coupling", look: "user-facing outcome" };

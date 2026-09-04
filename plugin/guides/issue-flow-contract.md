@@ -48,7 +48,7 @@ issue. They write to the project, never to a transition.
 | `approved` | object to the plan now, not after | plan and numbered criteria, one per line, each in its own field; the plan states whether this is a screen change and whether it touches the schema | 4 Implement, to the branch |
 | `in_progress` | code is being written against this plan | `approved`; every blocker that gates dispatch at least `developed`, read from the edge's own answer and not from the list it arrived in, so a mention gates nothing; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the review and the merge |
 | `developed` | the change was reviewed and is on the default branch | an approving review of the head that landed: the reviewer, the findings with a verdict on each by id, the outcome *approved*; a person's approval where the project asks for one; then the merged mark with its commit | 5 Prove |
-| `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all against the merged commit; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
+| `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all at the commit the `developed` stage says a verdict may cite; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
 | `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; a review comment from a person where the plan declares a screen change or a user-facing outcome and the project's config asks for one | 7 Ship, the close |
 | `closed` | nothing more happens unless reopened; code landed | `released` | none |
 | `reopen` | a person disagreed with a close or a drop, and their finding is here | a person's word; nothing earns it and the verb never enters it | the finding typed on their behalf and the triage of it, then the fall the triage decides: `developed`, `in_progress`, or `on_hold` blocked |
@@ -189,7 +189,7 @@ prints both routes off, because a rule whose way out has to be inferred is a ref
 
 | Scenario | Writes | Goes to |
 |---|---|---|
-| every criterion judged | one verdict per criterion with evidence, all at the merged commit; skipped checks named with reasons; the migration classification when the schema flag is set | `tested` |
+| every criterion judged | one verdict per criterion with evidence, all at the merged commit or at the judged head the mark names; skipped checks named with reasons; the migration classification when the schema flag is set | `tested` |
 | a criterion fails | its failing verdict | unchanged; the fix moves the merged commit, so the issue falls to `in_progress` until the new head is reviewed, and judging starts over |
 | proves unshippable | the finding | `on_hold`, kind unshippable |
 
@@ -198,6 +198,33 @@ cannot take, a call that exits rather than answers — is read against every cri
 verdict, and a criterion the review proved impossible is corrected in the open, by a correction naming
 the file that settles it, and judged as corrected; a verdict on the old wording passes a claim the code
 cannot make.
+
+**A verdict cites the commit it judged, and a landing that did not touch this change does not move
+it.** Where a repository's landing *is* the merge — a rebase onto the default branch, a version
+commit above it, a push — the merged commit does not exist until the change has shipped, so a run
+that judges before it cites a head the landing replaces. Re-judging every criterion there buys
+nothing: what a landing brings is other people's commits, this change's own diff is unchanged, and
+the tree those commits sit on is what the rebase clause above already sends back for a recheck. So
+the mark's note names the judged head beside the landed one, and says which of the paths this change
+touched the landing moved — *nothing*, or the paths themselves. Named as nothing, every verdict at
+the judged head stands and none is written twice; naming paths, the verdicts at that head are
+re-judged at the landed one, and the refusal names those paths. A note saying neither leaves the
+verdicts owed at the merged commit, which is what every mark written before this rule says. The
+predicate is `git diff <judged>..<landed>` over the paths the change touched, and it is run by the
+landing run rather than by the transition: git is asked at the step that knows the answer, and the
+answer is written onto the issue there — the same division the review's two path sets are held to
+below. So the run brings its branch onto the default branch before it judges, which leaves the
+landing nothing to move but the version commit. Four runs on 2026-09-04 re-posted every verdict
+after their ship, one of them twenty-eight records where fourteen carried the meaning (ISS-156).
+Refusing only the criteria the moved paths reached is ISS-207's: a verdict's evidence is an
+attachment, a URL or a sha, and none of the three names a path.
+
+**The equivalence is about paths and it is not about behaviour**, so it stops short of a criterion
+whose evidence rested on the tree rather than on the paths this change touched: a gate's result, a
+suite's count, a rendered screen, a fixture or a generated input a foreign commit could have moved
+without touching one path of this change. Those are judged again at the landed head whatever the
+clause says, and the author is who knows which they are — the check reads the clause and the commit,
+never the truth of either, exactly as it does every other field of a record.
 
 ### `tested` — reads the verdicts, the plan's flags and the release note field
 

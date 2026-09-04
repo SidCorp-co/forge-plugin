@@ -166,9 +166,11 @@ criterion proves the wrong thing and the verdict reads as a pass. **On every out
 failure** — Rule 2 makes evidence a phase output, and a session transcript nobody else can
 reopen is not an output.
 
-`references/verification.md` owns what each kind of change owes and how to capture it;
-`forge guide contract developed` and `forge guide contract tested` say what a record has to
-hold before either is earned, which is not this skill's to say.
+**A verdict cites the head the landing will carry, so the branch comes onto the default branch
+before the judging and not after it.** `references/verification.md` owns that, and what each kind
+of change owes as evidence and how to capture it; `forge guide contract developed` and `forge guide
+contract tested` say what a record has to hold before either is earned, which is not this skill's
+to say.
 
 **A change to a screen parks the issue for human review before Phase 7 ships it.** The
 rendered evidence is attached, the reason is recorded, and you move to the next issue.

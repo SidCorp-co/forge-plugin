@@ -63,3 +63,21 @@ and asks only to be sent again. A park or a drop from the same status
 still reads it: the kind, the evidence and the question a held issue owes are all on the record, and
 an exemption wider than the criterion would have bought them the same refusal for nothing. What a
 partial page costs the statuses whose criteria really do live there is ISS-17's to answer.
+
+A fifth, and the one the verb was already half built for. The review's check read two hashes off the
+mark's note — the commit that landed and, where a squash moved it, the head that was reviewed — and
+the verdicts' check read only the first. Where a repository's landing is the merge, the merged commit
+exists only after the ship, so a run that judged before it cited a head the landing replaced and paid
+one re-posted verdict per criterion: four runs on 2026-09-04, one of them twenty-eight records where
+fourteen carried the meaning. The verdicts' check now takes the same escape the review's has, off two
+more clauses of the same note; the rule those clauses answer to is the contract's `developed` part and
+is not repeated here.
+
+Two things about the shape of it, which are this verb's and not the contract's. The predicate is a
+clause on the record rather than a `git diff` at the transition, because the landing run has all three
+refs and the change's own paths in hand, and the transition has an issue, a page of comments and a
+machine that need not be the one that shipped — the division every other fact git knows is already
+held to here. And a broken equivalence answers in one item naming the paths and every criterion that
+stood on that head, not one item per criterion: fourteen copies of one path list is what a run reads
+past. The finer rule, refusing only the criteria those paths reached, waits on ISS-207 — a verdict's
+evidence is an attachment, a URL or a sha, and none of the three names a path.
