@@ -1792,3 +1792,27 @@ already drifted. Two skill files moved, so a restart is owed. Closed by its run.
   criterion that pins a hash pins the drift beside it.
 - The ship printed the owed batch reading's launch line twice in one run — once per release. A line a
   step prints is owed once per range, not once per ship.
+
+## Sixty-ninth dry run — ISS-231
+
+One agent made a proof name its case (3.35.79): a reader of the acceptance clauses reports the clause
+whose named case is gone, with the nearest names in that file, whose test-file citation carries no name,
+or whose escape names no issue; a suite runs it over the requirements against the real test tree with
+floors on what it read. A hundred and sixty clauses now name their case and eleven take the escape with
+one issue's key (ISS-237). No clause was re-revised: every identifier-and-revision pair is byte-identical
+before and after, the bound ISS-217 had found and written into this issue's body. Three review findings
+accepted before the commit — the escape requires a key, the case reader takes every quote style the
+linter allows and refuses a computed name, and the reader is handed the citing document so it tries both
+stated bases instead of skipping a clause in silence. No restart owed. Closed by its run. Folded from the
+record.
+
+- The run stopped once mid-run, waiting on a consult it had started, and was sent back by the parent to
+  finish. A run waits on its own background work in the same turn; a stop with a consult in flight reads
+  to the parent as a hand-back with nothing in it.
+- A coupling to carry forward: renaming or deleting a test case now turns a requirements clause red, and
+  most clauses cite files other runs hold. The run checked the two releases that landed after its own
+  and found no case removed, so nothing is red today; the next run to rename a case learns the rule from
+  the gate.
+- A gap recorded: the method has no route for an approved issue whose out-of-scope line contradicts its
+  own outcome, which cost a decision record and a correction. An issue reviewed against itself before
+  the plan would have caught it in the confirmation.
