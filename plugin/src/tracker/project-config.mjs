@@ -2,7 +2,7 @@
    checkout: the staging branch — the tracker's field alone calls it `baseBranch` — the production
    branch, and whether production deploys go unasked. Unread keeps today's behaviour, since no
    decision is not a decision to ship without a person: no slug, a refusal `scoped` softens, a
-   config missing the fields, a null branch the schema forbids defaulting. docs/FORGE-CLI.md. */
+   config missing the fields, a null branch the schema forbids defaulting. docs/cli/settings.md. */
 import { once } from "../resolve/config.mjs";
 import { slugIfAny } from "../resolve/settings.mjs";
 import { scoped } from "./rpc.mjs";

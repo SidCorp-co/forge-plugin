@@ -1,5 +1,5 @@
 /* `forge doctor` — every finding at once, because "not configured" and "configured in the wrong
-   file" look identical from inside one failing command. docs/FORGE-CLI.md. */
+   file" look identical from inside one failing command. docs/cli/doctor.md. */
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
