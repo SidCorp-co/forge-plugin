@@ -33,14 +33,34 @@ The claim to test is the declaration, not the plumbing, and they need separate e
    answer moved, the declaration was too narrow and the step has been silently switched off for
    every tree of that shape.
 
-The second is the half that gets left out of reports, and it is the only one that can catch a
-coverage hole.
+3. **The disclaimed set is complete, and its members are tried in combination.** One path at a
+   time is not enough. An excluded configuration file, a generated input or a mode selector often
+   matters only *together* with a violation the step does catch: the config alone changes no
+   answer, the violation alone is caught, and the tree holding both is skipped and accepted. So
+   derive the disclaimed paths from what the step reads transitively, group them into classes —
+   configuration, generated inputs, mode selectors, data — and try each class once alone and once
+   beside a real violation.
+
+The second is the half that gets left out of reports. The third is the one a refusal inventory
+cannot reach, because an inventory tries every rule on its own and this failure only exists when
+two things are true at once.
 
 ## Where concurrency changed
 
-Spend the suite several times at the new concurrency and report how many. A shared-state failure is
-intermittent by construction, so one green run at a new concurrency carries no information about
-the state the units share.
+"Several times" is not a criterion, so fix the number before starting, and take it from the
+project's own tolerance rather than from patience: a project accepting one red run in fifty needs
+enough runs for a one-in-fifty race to have had its chance, and a project treating any flake as a
+defect needs more runs than a review can afford — which is itself the answer, and means the
+parallelism is proposed rather than shipped. Report the count, the tolerance it came from, and
+what a failure at that rate would cost.
+
+Then vary the schedule instead of repeating one: more than one concurrency level, a different unit
+order, a loaded machine as well as an idle one. Repetition at a fixed schedule re-runs a single
+interleaving and finds the same nothing every time.
+
+And compare *failures*, not passes. Spend the units that fail at the old concurrency and at the new
+one and read both: a race announces itself as a failure changing shape, never as a green run
+staying green.
 
 Where the machine differs from the one the gate normally runs on, say what both are. Parallelism
 that helps on many cores can be neutral or worse on few, and a saving measured only on the wide

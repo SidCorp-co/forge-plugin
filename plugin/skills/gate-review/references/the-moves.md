@@ -4,13 +4,20 @@ Four, roughly in the order they pay.
 
 ## Remove work spent twice
 
-Take this one first. It is the only move here that cannot introduce a new failure mode: two steps
-compiling the same sources become one, the later step reads the artefact the earlier produced, and
-no unit has been touched.
+Take this one first: it is the cheapest to find and the easiest to argue for. Two steps compiling
+the same sources become one, and the later step reads the artefact the earlier produced.
 
-**The hole:** the second spend was not identical. One of the two ran a different configuration, a
-different input set or a stricter mode, and the one you kept is the looser. So before collapsing
-them, diff the two invocations and their inputs — not their names.
+**The first hole:** the second spend was not identical. One of the two ran a different
+configuration, a different input set or a stricter mode, and the one you kept is the looser. So
+before collapsing them, diff the two invocations *and* their outputs — matching commands over
+matching inputs can still differ by toolchain state, by environment, or by something a step
+between them mutated.
+
+**The second hole:** the rebuild *was* the check. A step building from nothing proves the build
+works from nothing; make it read a neighbour's artefact and that proof is gone, replaced by a
+coupling — the step now fails when its neighbour's output is stale and passes when the two are
+wrong the same way. Collapsing is safe only where the later step was never relying on its own
+clean start.
 
 ## Run independent units at once
 
@@ -77,8 +84,16 @@ fail in seconds.
 Worth stating because it saves nothing on a green run — the same work is spent either way — and
 saves a great deal on the red ones, which are the runs somebody is actually waiting on.
 
-**The hole:** the slow half quietly becomes optional. Splitting is not skipping; both halves still
-run on every gate. If the slow half is now conditional, a limit was raised in a new costume.
+**It does change one thing, and that has to be declared.** On a gate stopping at its first
+failure, reordering changes *which* failure a rejected tree is told about. The set of trees refused
+is identical; the message a developer reads is not. That is a change to the diagnostic rather than
+to the answer, so it is allowed — but it goes in the report, because anyone comparing refusal
+messages across the change will otherwise read it as a step that broke.
+
+**The hole:** the slow half quietly becomes optional. Splitting is not skipping, and the test is
+whether the slow half is conditional on the fast half's *verdict*. A gate spending both halves in
+turn until one fails is the same gate; a gate spending the slow half only when somebody asks for
+it has raised a limit in a new costume.
 
 ## The fifth move, which is not one of these
 

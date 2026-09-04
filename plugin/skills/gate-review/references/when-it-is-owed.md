@@ -29,8 +29,13 @@ somebody made, and little enough to still be cheap to undo.
 
 ## What the arithmetic reads
 
-Where the harness keeps a duration for each run it passes, that series is what the trigger reads,
-and the answer is a subtraction.
+Where the harness keeps a duration for each run it passes, that series is what the trigger reads —
+but a series is not a baseline. Say which of it you are comparing against, and reduce it to one
+number first: the figure the previous review recorded, or the median of the runs taken under
+comparable conditions since then. Never the fastest, and never the single most recent, which is one
+sample of a noisy quantity. Drift is then a ratio rather than a difference — `current / baseline`,
+firing at 1.25 — because a quarter of a three-minute gate and a quarter of an hour-long one are not
+the same amount of anything.
 
 Where it keeps only pass or fail there is no series, and the figure the previous review wrote down
 is all there is. Say which of the two you read: a comparison against one prior figure is a weaker

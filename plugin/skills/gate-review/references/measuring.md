@@ -25,17 +25,27 @@ unchanged on the two a CI runner has, and that is a result to report rather than
 
 ## 1. The whole run, then every step alone
 
-Time the gate the way the project spends it. Then time each step on its own and add the parts up:
-the gap between the sum and the whole is what the harness itself costs — process startup, an
-install, the orchestration, the reading of its own record.
+Time the gate the way the project spends it. Then time each step on its own and add the parts up.
+
+Where the sum and the whole disagree, that gap is a question and not yet an answer. It can be
+orchestration the harness pays for — process startup, an install, the reading of its own record —
+and it can just as easily be a cache the second measurement found warm, a setup one run shared and
+the other repeated per step, or contention that existed during only one of them. So chase it down
+before attributing it, or measure spans inside the run rather than differencing two runs from
+outside.
 
 Where the harness already prints per-step seconds, that is the measurement. Take it instead of
 re-timing by hand; a second clock disagreeing with the first is a question nobody needed.
 
 Read shares, not seconds. One step at three quarters of the run means the other steps are not
-worth touching yet, whatever they cost. A run with no dominant step is a different problem: the
-cost is the number of steps and the overhead each pays, so the move is fewer processes rather than
-a faster anything.
+worth touching yet, whatever they cost.
+
+A run whose steps are all of a size is the harder case, and it does not settle itself. It may be
+many steps each doing real work — no single win exists, and the moves apply to several steps in
+turn — or it may be per-step overhead paid n times, each step spending most of its seconds starting
+up and reaching for inputs. Which one it is comes from measuring a step's fixed cost against its
+marginal cost: spend it over a trivial input and over the real one. Merging steps helps only in the
+second case; in the first it buys nothing and spends whatever parallelism the steps had.
 
 ## 2. The slowest units inside the slowest step
 

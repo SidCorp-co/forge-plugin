@@ -60,7 +60,7 @@ than paraphrasing a reading of it.
 
 | Measurement | What only measuring can tell you |
 |---|---|
-| the whole run, then every step on its own clock | which single step holds the majority of the run — there is usually one |
+| the whole run, then every step on its own clock | whether one step holds the majority of the run or the cost is spread evenly — two different problems |
 | inside that step, its slowest units and their durations | whether the cost sits in a handful of units or lies flat across all of them |
 | what a run leaves behind, sized and counted before and after | growth that never comes back: fixtures, caches, temporary trees |
 | the same work spent in two steps | a compile a test step repeats, one linter run under two configurations |
