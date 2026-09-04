@@ -1702,3 +1702,23 @@ restart owed. Closed by its run. Folded from the record.
 - The run corrected its own filing: an out-of-scope clause said the ship's version commit conflicting on
   every rebase was worth a note if it recurred, and it had recurred twice inside that run; the note was
   posted rather than leaving a prediction the run had itself falsified (ISS-225).
+
+## Sixty-fifth dry run — ISS-217
+
+One agent corrected three acceptance clauses whose proof cited a test file the cases had left
+(3.35.74): a three-line fix, eleven criteria pass, the full gate green, the reviewer confirming each path
+case by case. Only the citation half was built: the check that can tell a proof citation from a path
+that merely resolves needs the proof field to name a case rather than a file, a per-clause judgement over
+two hundred clauses, so it was filed as ISS-231 with a next line rather than half-built. The ship filed
+the next batch reading itself, ISS-232. No restart owed. Closed by its run. Folded from the record.
+
+- The filing for the second half carries a fact that corrects a plausible assumption: the proof field
+  sits outside the clause digest, so the edit left every hash byte-identical and extending the field owes
+  no re-revision — and that same fact is why the rot was silent. A bound found while reading goes into
+  the next issue's body, where the next run reads it first.
+- The run corrected a belief it had carried in: that the flow ends at released. The record report now
+  says a run ends at closed, and the run followed the tool. What the tool says outranks what a run
+  remembers, which is the reason the tool says it.
+- Every plugin defect met was already on the tracker, under six keys for one verb; nothing new was
+  filed and the sibling link went in prose on both bodies. The dependency verb's refusals are the most
+  repeated cost of the week and its issues the most numerous.
