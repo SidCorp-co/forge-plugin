@@ -361,10 +361,13 @@ export const parkRecord = (view, wanted = () => true) => {
 };
 
 /* A screen is the change a deploy does not undo for whoever already read it, so the contract asks
-   a person: a comment the tracker did not mark as an agent's, later than the park that asked. */
+   a person: a comment written on something other than a device token, later than the park that
+   asked. `authorDeviceId` replaced `isAi` on 2026-09-04 — Forge stopped storing what a writer
+   claimed to be and kept what its token is. A drive job holds a device token, so its own comments
+   still cannot answer its own park; an agent on a person's PAT can, and that is the known price. */
 export const answered = (view, kind) => {
   const asked = parkRecord(view, (one) => one === kind);
   return Boolean(asked) && view.comments.some(
-    (one) => one.isAi === false && (one.createdAt ?? "") > (asked.comment.createdAt ?? ""),
+    (one) => !one.authorDeviceId && (one.createdAt ?? "") > (asked.comment.createdAt ?? ""),
   );
 };

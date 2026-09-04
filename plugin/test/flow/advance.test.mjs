@@ -339,11 +339,14 @@ test("what the plan declared decides what the ship steps owe", () => {
   const verified = [recorded("verification", { where: "staging", commit: "c8c3550", evidence: ["c8c3550"] })];
   const owed = ["the plan declares a screen change, and no person has answered since it was parked for review"];
   assert.deepEqual(missing("released", view(shipped, verified)), owed);
-  const person = () => comment("looks right to me", { isAi: false, authorId: "a-person" });
+  const person = () => comment("looks right to me", { authorId: "a-person" });
+  const runner = () => comment("job done", { authorId: "a-person", authorDeviceId: "a-device" });
   assert.deepEqual(missing("released", view(shipped, [...verified, person()])), owed,
     "a person who spoke before the review was asked for reviewed something else");
   const asked = recorded("park", { kind: "screen-review", why: "the new column", evidence: ["c8c3550"] }, "tested");
   assert.deepEqual(missing("released", view(shipped, [...verified, asked])), owed, "asked and unanswered");
+  assert.deepEqual(missing("released", view(shipped, [...verified, asked, runner()])), owed,
+    "a device token cannot answer its own park — that is the whole guarantee left after is_ai went");
   assert.deepEqual(missing("released", view(shipped, [...verified, asked, person()])), []);
 });
 
