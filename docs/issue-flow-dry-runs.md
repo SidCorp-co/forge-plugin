@@ -1298,3 +1298,23 @@ by its run; no restart owed. Folded from the record.
   this run's data went to ISS-156 as a comment. Its first move was to file a duplicate (ISS-162), caught
   and dropped by the run itself — the same-place search at creation that ISS-139 asks for would have
   caught it before the filing.
+
+## Forty-eighth dry run — ISS-144
+
+One agent gave every filing a rank (3.35.55): both filing routes write a priority from one reading —
+the filer's value or `low` — and end on a line naming it; the set is the tracker's own enum read at the
+call, a rank outside it refused with the set before anything is filed, and the default held to that
+same set rather than refused later at the write. The browse page sorts rank first, oldest first within
+a rank, and prints the rank on every row. Eleven cases watched red first. Nine criteria, eight pass, one
+skipped with its reason. Codex found two: the default not held to the enum, accepted and fixed; a page
+the tracker cut by recency cannot be ranked past, rejected and filed as ISS-160 since the list takes
+no order and no cursor. Closed by its run; no restart owed. Folded from the record.
+
+- The run declined a third documentation file the issue named, because two existing homes already
+  held the decisions and a third would owe an index row — a deviation said on the record.
+- Two plugin defects met at ship were filed rather than worked around: the ship's own auto-filing of
+  the owed review was refused by this CLI's duplicate check and blamed on the tracker, so the owed
+  reading is filed nowhere (ISS-163); and the attach verb prints a URL that the evidence field then
+  refuses, which cost six retried verdicts (ISS-164).
+- A finding on the running ISS-104 batch went to that issue as a comment: the browse row grew a column
+  and the ship's mark-reader now captures the status into the group it calls the title.
