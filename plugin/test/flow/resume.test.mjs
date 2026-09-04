@@ -195,8 +195,8 @@ test("the brief names the comments it read, which is the read the gate asks for"
   assert.equal(one.comments[0].kind, "baseline", "a typed record is named by its kind");
   assert.equal(one.comments[1].kind, undefined, "and a plain comment is a comment");
   assert.equal(one.whole, true);
-  assert.equal(briefOf(viewFrom("the-uuid", issue(), [], false), "ISS-44").whole, false,
-    "a record too large to read whole says so, rather than answering from a page");
+  assert.equal(briefOf(viewFrom("the-uuid", issue(), [], "the list returned 36 of more"), "ISS-44").whole, false,
+    "a page the tracker cut is a brief that says so, rather than one that reads as the whole thread");
 });
 
 /* --json is the assembled object and the screen is printed from the same one, so a Map or a class

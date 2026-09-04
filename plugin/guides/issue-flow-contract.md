@@ -599,9 +599,19 @@ agent and the agents it delegates to share, and the write that owes a reading pe
 with no comments costs nothing, and every comment on the page the tracker returns that nobody here
 has seen is the refusal itself, delivered once and re-sent against. The page is the reach of it,
 which is the same seam a cursor closes. Past the page, an issue whose thread outgrew what the tracker
-lists, every verb that reads the record refuses by what cut the page, a count or a response size, never by
-a count it did not measure; the transition by hand through `forge call` is the supported route and evidence goes up through `forge attach`, and each refusal says so rather than
-leaving the route to be derived from three refusals (ISS-17 closes the seam). A write naming its issue by uuid is checked exactly as one naming the
+lists, every verb says what cut the page — a count or a response size — and the count the tracker
+returned, never a count it did not measure, and then reads what it was sent: the cut keeps the most
+recent rows, which is the end every entry check and every unearning rule reads, so a page that earns
+a status earns it and only a shortfall can be one the cut invented. What a refusal past the page hands an agent is
+therefore the write that supplies the item, that the item may already be behind the cut, and the
+tracker's own screens for the whole thread; evidence too long to name goes up through `forge attach`.
+A transition by hand is not among them: it writes a status no entry check read and leaves the lease's
+next line as the last write set it. It is named only where no write earns the way back and a
+person owns the status: a hold of a kind a person lifts, which no comment resumes; a side
+status the flow did not set, whose park record would have to name the side status itself as the
+status it left; and a reopen whose dropped park says nowhere to go back to. A question nobody has
+answered is not among them — the answer is the write that earns the resume, and that is what the
+shortfall names. Each says there what it skips (ISS-17 closes the seam, and ISS-131 the reading of it). A write naming its issue by uuid is checked exactly as one naming the
 key, since a form is not a route either. Nothing about a route is read out of a transcript,
 since the transcript of a delegated run is not the one a hook is handed. A comment this session did not create,
 whatever wrote it, is one it has not been shown, and a batch worked on one branch pays that delivery

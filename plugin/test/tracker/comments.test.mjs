@@ -44,7 +44,7 @@ globalThis.fetch = async (url, init) => {
   return { ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify({ jsonrpc: "2.0", id: 1, result }) };
 };
 
-const { KEPT, creditCaused, mustBeShown, postComment, refusalFor, sessionKey } = await import("../../src/tracker/comments.mjs");
+const { KEPT, creditCaused, cutLine, mustBeShown, postComment, refusalFor, sessionKey } = await import("../../src/tracker/comments.mjs");
 
 const one = (id, text, at = "2026-09-03T05:22:18.757Z") =>
   ({ documentId: id, createdAt: at, body: fenced(text) });
@@ -142,11 +142,34 @@ test("what one session was shown, another was not", async () => {
 
 /* A page that stops short must still clear, or the gate is unclearable on a busy issue — worse
    than the uuid bypass it replaces. The count is said; it decides nothing. */
-test("a page the tracker has more behind still clears, and says so", async () => {
-  page = { comments: [one("d1", "the first of many")], hasMore: true };
+test("a page the tracker has more behind still clears, and says what cut it", async () => {
+  page = {
+    comments: [one("d1", "the first of many")],
+    hasMore: true,
+    truncated: true,
+    truncatedBy: "response-size",
+  };
   const { refusal } = await asked("session-three");
-  assert.match(refusal, /and the tracker holds more than the 200 this page carries/u);
+  assert.match(refusal, /returned 1 comment\(s\) and reported more behind them, cut by response size/u, refusal);
+  assert.doesNotMatch(refusal, /200/u, "the limit it asked for is not a cap that fired");
   assert.equal((await asked("session-three")).refusal, null);
+});
+
+/* Eight sightings on ISS-17, every one the same sentence: a message named 200 — the number the
+   request asked for — on threads of 29 to 42 rows, cut by response size. So the count a message may
+   name is the count the tracker returned, and the cap it may name is the cap the tracker named. */
+test("the cut is described by what the tracker reported, and by nothing measured here", () => {
+  const size = cutLine({ returned: 41, by: "response-size", notice: "cut this to the 41 most recent" });
+  assert.match(size, /returned 41 comment\(s\)/u);
+  assert.match(size, /cut by response size, which a higher limit does not raise/u);
+  assert.match(size, /The tracker's words: cut this to the 41 most recent/u, "and its own notice travels with it");
+  assert.match(cutLine({ returned: 200, by: "count" }), /returned 200 comment\(s\) and reported more behind them, cut by count\./u,
+    "a count cut is the other cap, and it is the one a higher limit could have raised");
+  assert.match(cutLine({ returned: 7 }), /cut for a reason it did not name/u,
+    "an envelope that said only hasMore is not a reason to invent one");
+  for (const said of [size, cutLine({ returned: 7 })]) {
+    assert.match(said, /takes no cursor/u, "every one of them says what nothing here can do about it");
+  }
 });
 
 test("a comment with no id credits nothing, so nothing is silently passed", async () => {
@@ -315,6 +338,18 @@ test("every tracker write in the source is behind the check, or named as exempt"
   assert.deepEqual(found, [], `${found.join("\n")}\nEvery write to an issue passes the comments check `
     + "first: renew() for a payload write, mustBeShown() for a raw call. Add one, or name the site "
     + "in EXEMPT here with the reason it needs none.");
+});
+
+/* The limit is what the request asked for, and no cap that fired: naming it in a message is the
+   defect ISS-131 was filed on, at three call sites of one reader. Held to this module, a message
+   cannot name it, and the sentence every message spends is built where the answer was read. */
+test("the request's own limit is spent where the request is made, and nowhere else", () => {
+  const named = sources(SRC)
+    .filter((path) => readFileSync(path, "utf8").includes("COMMENT_PAGE"))
+    .map((path) => path.slice(SRC.length + 1));
+  assert.deepEqual(named, ["tracker/comments.mjs"], `${named.join(", ")} spends the limit the list was `
+    + "asked for. A message says what the tracker returned and what it said cut the page: read the "
+    + "page with commentPage() and describe it with cutLine().");
 });
 
 test("one check is one comments list, and no read of the issue at all", async () => {

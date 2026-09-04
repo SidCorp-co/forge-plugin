@@ -270,13 +270,13 @@ test("the project's release policy decides whether a user-facing outcome parks",
   const ready = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["run.txt"] })];
   const asked = "the plan declares a user-facing outcome, and no person has answered since it was parked for review";
   const policy = (staging, production, autoProd) => ({ staging, production, autoProd, from: "the tracker's project config" });
-  const seen = (release) => CHECKS.released(viewFrom("the-uuid", shipped, ready, true, release), "ISS-3").map((one) => one.what);
+  const seen = (release) => CHECKS.released(viewFrom("the-uuid", shipped, ready, null, release), "ISS-3").map((one) => one.what);
   assert.deepEqual(seen(policy("master", "master", false)), [asked], "one branch and no automatic deploy is today's behaviour");
   assert.deepEqual(seen(null), [asked], "and so is a config that did not answer");
   assert.deepEqual(seen(policy(null, "master", true)), [asked], "an unset branch is unread, and the strict reading stands");
   assert.deepEqual(seen(policy("master", "master", true)), [], "the same record earns released where the project deploys production itself");
   assert.deepEqual(seen(policy("staging", "master", false)), [], "and where released is the staging branch, which is where a person looks");
-  const ahead = (release) => lookAhead(viewFrom("the-uuid", { ...shipped, status: "developed" }, [], true, release), "ISS-3");
+  const ahead = (release) => lookAhead(viewFrom("the-uuid", { ...shipped, status: "developed" }, [], null, release), "ISS-3");
   assert.match(ahead(policy("master", "master", false)), /^Ahead: released owes a person's look/u);
   assert.equal(ahead(policy("master", "master", true)), null, "and the warning three statuses earlier reads the same answer");
 });
@@ -419,7 +419,11 @@ test("a parked issue resumes where its park record says it left, once somebody a
   assert.equal(unanswered.next, "confirmed");
   assert.equal(unanswered.resumed, true);
   assert.match(unanswered.missing[0].what, /kind question and nobody has answered it/u);
-  assert.match(unanswered.missing[0].command, /"action":"transition"/u);
+  /* The write that supplies the item, and not the transition that skips the criterion the item is:
+     an answer is what earns the resume, and a raw transition writes the status over an unanswered
+     park and leaves the lease's next line as the park set it (ISS-131). */
+  assert.match(unanswered.missing[0].command, /^forge comment ISS-3 /u);
+  assert.doesNotMatch(unanswered.missing[0].command, /"action":"transition"/u);
   assert.deepEqual(at("needs_info", [question, comment("the answer", { authorId: "the-reporter" })]).missing, []);
   assert.equal(at("needs_info", [question, comment("still mine", { authorId: "agent" })]).missing.length, 1,
     "the author of the question cannot answer it");

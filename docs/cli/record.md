@@ -36,11 +36,12 @@ what an issue's evidence is belongs to whoever cited it first: the one attachmen
 may be a design document nobody cited, and a default from it would turn a refused verdict into a
 passing one. It is not read per criterion — one document answers twenty of them, which is where the
 forty arguments went — so the line it prints names the record it came from and not the criterion. So the first of a loop names it — a path there goes up and is cited — and the rest inherit. A
-default nobody can see is one nobody can catch being wrong, which is why neither is silent. And
-neither is read at all where the comment list stopped with more behind it: the list takes no cursor,
-200 is its ceiling, so past a full page the mark or the citation that would answer may be exactly
-the comment cut off — the flag is asked for instead, which costs one value typed against a record
-written on the wrong commit. The release note and the criteria go
+default nobody can see is one nobody can catch being wrong, which is why neither is silent. And where the comment list stopped with more behind it, each is
+read from the page when the page carries one — the cut keeps the most recent rows, so a mark or a
+citation found there is the latest — and asked for by name only where the page carries none, since
+then the one that would answer may be exactly a comment behind the cut. The refusal says which cap
+the tracker named and how many rows it returned: for a year it said 200, the number the request asked
+for, on threads of half that (ISS-131). The release note and the criteria go
 to their fields, which the tracker already types; everything else is a comment. `report` assembles
 the latest record of each kind and the latest verdict per criterion, and names the criteria no verdict
 covers. Nothing is stored twice. The contract this serves: `forge guide contract`.

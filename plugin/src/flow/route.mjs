@@ -23,7 +23,7 @@ import {
 
 /* A park is a checkpoint with a person at it: the reply that resumes it is a comment by somebody
    other than whoever parked the issue. A hold nobody was asked to answer resumes by hand. */
-const resumeOwed = (view, held) => {
+const resumeOwed = (view, held, ref) => {
   const kind = held.record.fields.kind;
   const left = held.record.fields.left;
   const since = held.comment.createdAt ?? "";
@@ -32,15 +32,18 @@ const resumeOwed = (view, held) => {
   );
   if (view.issue.status === "on_hold") {
     if (kind !== "blocked") {
-      return [need(`the hold is kind ${kind}, which a person lifts`, transitionCall(view.documentId, left))];
+      return [need(`the hold is kind ${kind}, which a person lifts, and lifting it writes a status no `
+        + "entry check read", transitionCall(view.documentId, left))];
     }
     return blockersOwed(view);
   }
   return replied
     ? []
     : [need(
-      `the park is kind ${kind} and nobody has answered it since ${since.slice(0, 16)}`,
-      transitionCall(view.documentId, left),
+      `the park is kind ${kind} and nobody has answered it since ${since.slice(0, 16)}, and an answer `
+        + "is a comment by somebody other than whoever parked it: the advance that reads one resumes "
+        + `the issue to ${left}`,
+      `forge comment ${ref} <file|->    (from whoever the park asks, and this run is not that reader)`,
     )];
 };
 
@@ -57,8 +60,10 @@ const landedOn = (view, ref) => {
   const left = parkRecord(view, (one) => one === "dropped")?.record.fields.left;
   if (!ORDER.includes(left)) {
     refuse(`${ref} is ${REOPEN} and has no merged mark, so nothing landed and this is the reopen of a `
-      + `drop — but no park record of kind dropped names the status it left, so nothing says where it `
-      + `goes back to. Transition by hand:\n  ${transitionCall(view.documentId, "<status>")}`);
+      + `drop — but no park record of kind dropped on the page names the status it left, so nothing `
+      + `says where it goes back to. ${view.cut ? `${view.cut} The record that would say may be behind `
+      + `the cut. ` : ""}Whoever knows where it belongs sets it, and this writes a status no entry `
+      + `check read:\n  ${transitionCall(view.documentId, "<status>")}`);
   }
   return left;
 };
@@ -197,15 +202,19 @@ export const targetOf = (view, ref) => {
   const held = SIDE.includes(status) ? parkRecord(view, (one) => PARK_STATUS[one] === status) : null;
   if (SIDE.includes(status)) {
     if (!held) {
-      refuse(`${ref} is ${status} with no park record, so nothing says where it came from. `
-        + `Write one (forge record park ${ref} --kind <kind> --why "<why>") or transition by hand:\n  ${transitionCall(view.documentId, "<status>")}`);
+      /* No write earns the way back: a park now would stamp the side status as the one it left. */
+      refuse(`${ref} is ${status} and no park record on the page says where it came from. `
+        + `${view.cut ? `${view.cut} The record that would say may be behind the cut. ` : ""}`
+        + `A park written now would name ${status} as the status it left, which is no step of the `
+        + `flow, so nothing here earns the way back. Whoever knows where it belongs sets it, and `
+        + `this writes a status no entry check read:\n  ${transitionCall(view.documentId, "<status>")}`);
     }
     const left = held.record.fields.left;
     if (!ORDER.includes(left)) {
       refuse(`the park record on ${ref} names \`${left}\` as the status it left, which is no step of the flow. `
-        + `Transition by hand:\n  ${transitionCall(view.documentId, "<status>")}`);
+        + `Whoever knows where it belongs sets it, and this writes a status no entry check read:\n  ${transitionCall(view.documentId, "<status>")}`);
     }
-    return { next: left, missing: resumeOwed(view, held), resumed: true };
+    return { next: left, missing: resumeOwed(view, held, ref), resumed: true };
   }
   if (status === REOPEN) return reopenTarget(view, ref);
   const next = nextOf(status, view);

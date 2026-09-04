@@ -8,13 +8,27 @@ import { fail } from "../resolve/settings.mjs";
 import { rowsOf } from "./issues.mjs";
 import { scoped, write } from "./rpc.mjs";
 
-export const COMMENT_PAGE = 200;
+/* What the request asked for, and no cap that fires: the tracker cuts by response size (ISS-131). */
+const COMMENT_PAGE = 200;
 
 export const commentPage = (documentId) =>
   scoped("forge_comments", { action: "list", filters: { issue: documentId }, limit: COMMENT_PAGE }).then((got) => ({
     comments: rowsOf(got, "comments"),
     hasMore: Boolean(got?.hasMore),
+    returned: Number(got?.returned ?? rowsOf(got, "comments").length),
+    by: got?.truncatedBy ? String(got.truncatedBy) : null,
+    notice: got?.notice ? String(got.notice) : null,
   }));
+
+/* What a message spends on a cut page: the tracker's own count, cap and notice, and none of ours. */
+export const cutLine = ({ returned = 0, by = null, notice = null } = {}) => {
+  const cap = by === "response-size"
+    ? "cut by response size, which a higher limit does not raise"
+    : (by ? `cut by ${by}` : "cut for a reason it did not name");
+  return `The comment list returned ${returned} comment(s) and reported more behind them, ${cap}. `
+    + "It takes no cursor, so nothing here reaches past the cut and the tracker's own screens are "
+    + `the whole read.${notice ? ` The tracker's words: ${notice}` : ""}`;
+};
 
 const STATE = () => join(configDir("forge"), "comments-shown.json");
 /* Bounded everywhere: eviction costs a delivery, and the touched issue is appended last so a cap
@@ -82,9 +96,9 @@ const bodies = (ref, unshown) =>
   unshown.map((one, index) => `--- ${ref}, comment ${index + 1} of ${unshown.length}, posted `
     + `${at(one)} ---\n${String(one?.body ?? "")}`);
 
-const heading = ({ ref, comments, hasMore, unshown }) =>
+const heading = ({ ref, comments, hasMore, unshown, ...page }) =>
   `${ref}: ${unshown.length} of ${comments.length} comment(s) are new to this session`
-  + (hasMore ? `, and the tracker holds more than the ${COMMENT_PAGE} this page carries` : "");
+  + (hasMore ? `. ${cutLine(page)}` : "");
 
 export const delivery = (owed) => [
   `Hold — this writes to ${owed.map((one) => one.ref).join(", ")}, and every comment on the page the `

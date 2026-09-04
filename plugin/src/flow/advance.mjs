@@ -4,7 +4,7 @@
 import { flags, pullRepeated } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { COMMENT_PAGE, commentPage } from "../tracker/comments.mjs";
+import { commentPage, cutLine } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
 import { FIX_OWES, isFix } from "../tracker/issue-shape.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
@@ -43,8 +43,9 @@ export const USAGE = [
   "  closed        released",
   "  dropped       a confirmation whose finding is a disposition, or --drop --why",
   "",
-  "`closed` is the one entry criterion that is a status, so no comment is read to judge a close: the",
-  "page a long thread outgrows refuses every other move and never that one. A run ends by making it.",
+  "`closed` is the one entry criterion that is a status, so a close reads no comment at all. Every",
+  "other move is judged on the page the tracker returns, and where it shortened one the shortfall",
+  "says so: what a page earns it earns, and what it says is owed may be a record behind the cut.",
   "",
   "A reopen is a person's word and the tracker's own status. From it the verb reads the person's",
   "finding and the agent's triage of it, and routes: the criterion was the wrong test, back to",
@@ -62,17 +63,17 @@ export const USAGE = [
    declaring neither line owes no person whatever the project says, and pays no round to hear it. */
 export const policyFor = async (plan) => (personLooks(planFlags(unwrap(plan))) ? releasePolicy() : null);
 
-/* A plain advance from `released`, whose whole entry criterion is that status. A park or a drop from
-   it is another transition: its kind, its evidence and the question a needs_info park owes are all
-   judged against the record, so those read the page as every other status does. */
+/* A plain advance from `released`, whose whole entry criterion is that status, so the page is not
+   worth the call. A park or a drop from it is another transition: its kind, its evidence and the
+   question a needs_info park owes are all judged against the record, so those read the page. */
 const readsTheRecord = (body, given) =>
   body.status !== CLOSES_FROM || Boolean(given.park) || Boolean(given.drop);
 
 const viewOf = async (reference, given) => {
   const { documentId, body } = await issueOf(reference);
-  if (!readsTheRecord(body, given)) return viewFrom(documentId, body, [], true, null);
-  const { comments, hasMore } = await commentPage(documentId);
-  return viewFrom(documentId, body, comments, !hasMore, await policyFor(body.plan));
+  if (!readsTheRecord(body, given)) return viewFrom(documentId, body, [], null, null);
+  const page = await commentPage(documentId);
+  return viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, await policyFor(body.plan));
 };
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs
@@ -143,6 +144,17 @@ const sayAhead = (view, ref, next) => {
   console.log(`\n${stageLine(next, partsOf(readContract()))}`);
 };
 
+/* The page is the whole read this tool has, and the tracker shortens a long one to its most recent
+   rows. Every entry criterion is a presence check, and every rule that unearns a status fires on the
+   newer record — the end the cut keeps — so a shortfall computed from a shortened page can only be
+   longer than the true one, never shorter: what a page earns, it earns. That asymmetry is why the
+   move is judged rather than refused, and why the route out of a shortfall is the write that
+   supplies the item and never a transition no entry check saw (ISS-131). */
+const cutSays = (view) =>
+  `${view.cut} The cut keeps the most recent rows, so what the page earns it earns, and anything it `
+  + "says is owed may be a record written behind the cut: write it again for this status, or read "
+  + "the thread whole and take it up there.";
+
 export const shortfall = (ref, view, next, missing) => {
   console.log(`${ref} is ${view.issue.status}; ${next} is next and the record does not earn it.`);
   for (const one of missing) console.log(`\n  ${one.what}\n    ${one.command}`);
@@ -180,12 +192,7 @@ const run = async (argv) => {
   const view = await viewOf(ref, given);
   const left = nextHeld(view);
   if (given.owed && left) console.log(`Next, as the last write left it: ${left}`);
-  /* Judged on part of a record, an answer is a guess: the page is the whole read this tool has. */
-  if (!view.whole) {
-    refuse(`${ref} carries more than the ${COMMENT_PAGE} comments the tracker's list returns, and it offers no `
-      + `cursor: neither what it owes nor what it earns can be read from a page. Read the thread, and `
-      + `transition by hand if you decide to:\n  ${transitionCall(view.documentId, "<status>")}`);
-  }
+  if (!view.whole) console.log(cutSays(view));
   if (given.park || given.drop) {
     return park(view, ref, given.park ?? "dropped", given.why, given.evidence);
   }

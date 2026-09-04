@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { flags } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { COMMENT_PAGE, commentPage } from "../tracker/comments.mjs";
+import { commentPage, cutLine } from "../tracker/comments.mjs";
 import { Refused, issueOf } from "./record.mjs";
 import { viewFrom } from "./earned.mjs";
 import { policyFor, shortfall } from "./advance.mjs";
@@ -103,7 +103,7 @@ const print = (brief, view, ref) => {
   if (method) console.log(`\nThe method for this phase: ${method}`);
   console.log(`\nRead: ${brief.comments.length} comment(s) on this issue`
     + `${brief.comments.length ? `, latest ${brief.comments.at(-1).at}` : ""}.`);
-  if (!brief.whole) console.log(`More than ${COMMENT_PAGE} comments match and the list stops there: this brief read the first ${COMMENT_PAGE}.`);
+  if (view.cut) console.log(`${view.cut} This brief was minted from those rows and from no others.`);
 };
 
 const run = async (argv) => {
@@ -113,8 +113,8 @@ const run = async (argv) => {
   const given = flags(rest, "resume", ["--json"]);
   for (const one of Object.keys(given)) if (one !== "json") fail(`resume takes no --${one}. Flags: --json`);
   const { documentId, body } = await issueOf(ref);
-  const { comments, hasMore } = await commentPage(documentId);
-  const view = viewFrom(documentId, body, comments, !hasMore, await policyFor(body.plan));
+  const page = await commentPage(documentId);
+  const view = viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, await policyFor(body.plan));
   const brief = briefOf(view, ref);
   return given.json ? console.log(JSON.stringify(brief, null, 2)) : print(brief, view, ref);
 };

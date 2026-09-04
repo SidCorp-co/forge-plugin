@@ -7,7 +7,7 @@ import {
 } from "./machine.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { pullRepeated, flags } from "../resolve/flags.mjs";
-import { COMMENT_PAGE, commentPage, postComment } from "../tracker/comments.mjs";
+import { commentPage, cutLine, postComment } from "../tracker/comments.mjs";
 import { attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo }
   from "../tracker/evidence.mjs";
 import { CONTRACT } from "../tracker/contract.mjs";
@@ -231,29 +231,28 @@ export const post = async (documentId, body, ref = documentId, next = undefined,
 const citedBy = (comments, kind) =>
   comments.map((one) => parse(one.body ?? "")).filter((one) => one?.kind === kind).at(-1)?.fields.evidence ?? [];
 
-/* Refused where the page stopped rather than guessed past it: the tracker's list takes no cursor,
-   so what is behind a full page is unreadable — the mark this would answer with, and the names an
-   upload needs, so the collision `attachPlan` refuses cannot be seen and nothing goes up. A flag
-   typed once beats a verdict written on the wrong commit. */
-const CROWDED = (kind) => `record ${kind} would put a file up, and this issue has more comments than `
-  + `the ${COMMENT_PAGE} the tracker's list returns, so the names already on it cannot be read whole. `
-  + `A name attached twice resolves to two documents. Cite a URL or a commit, or attach the file `
-  + `under a name nothing else could carry and cite that.`;
+/* An upload is refused where the page was cut rather than risked past it: a name it has to be
+   unique against may live on a comment the cut held back, and one attached twice is two documents. */
+const CROWDED = (kind, cut) => `record ${kind} would put a file up, and the names already on this `
+  + `issue cannot be read whole. ${cut} A name attached twice resolves to two documents, and every `
+  + `record citing it is then ambiguous. Cite a URL or a commit, or attach the file under a name `
+  + `nothing else could carry and cite that.`;
 
-const CUT = (kind, flag) => `record ${kind} reads --${flag} off this issue, which has more comments `
-  + `than the ${COMMENT_PAGE} the tracker's list returns, so the one it would read may be cut off. `
-  + `Name --${flag} for this write.`;
+/* A default read off the page is the latest of its kind, the cut keeping the most recent. Found
+   nowhere, on a cut page, it may be the comment behind it, so the flag is asked for (ISS-131). */
+const BEHIND = (kind, flag, cut) => `record ${kind} reads --${flag} off this issue and the page `
+  + `carries none to read. ${cut} The one that would answer may be a comment behind the cut, so `
+  + `name --${flag} for this write.`;
 
 /* The record answers for the flag it was not given, and says where the value came from: a default
    nobody can see is one nobody can catch being wrong. Where it cannot answer, the refusal says what
    the issue does carry, because the old one named a flag and left the reader to go and look. */
-export const fromRecord = (kind, got, { comments, names, hasMore = false }) => {
+export const fromRecord = (kind, got, { comments, names, cut = null }) => {
   const shape = SHAPES[kind];
-  const cut = (flag) => hasMore && refuse(CUT(kind, flag));
   const commit = shape.fields.find((one) => one.commit);
   if (commit && got.commit === undefined) {
-    cut("commit");
     const marked = markedCommit(comments);
+    if (!marked && cut) refuse(BEHIND(kind, "commit", cut));
     if (!marked) {
       refuse(`record ${kind} needs --commit (${commit.label.toLowerCase()}), and no merged mark on `
         + "this issue names one to read it from.");
@@ -268,8 +267,8 @@ export const fromRecord = (kind, got, { comments, names, hasMore = false }) => {
   if ((evidence.least ?? 1) < 1 && !evidence.owed?.(got)) return;
   /* The author's own earlier citation, never the attachment set: a lone document the issue happens
      to carry is nobody's citation of it, and the first record of a loop still names one. */
-  cut(evidence.flag);
   const before = citedBy(comments, kind).filter((one) => evidenceHeld(one, names));
+  if (!before.length && cut) refuse(BEHIND(kind, evidence.flag, cut));
   if (!before.length) {
     refuse(`record ${kind} needs --evidence (repeatable), and no ${kind} on this issue cites one to `
       + `read it from. This issue carries `
@@ -292,14 +291,16 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
   const { documentId, body } = await issueOf(reference);
   const shape = SHAPES[kind];
   const asks = shape.fields.some((one) => one.evidence || one.commit);
-  const { comments, hasMore } = asks ? await commentPage(documentId) : { comments: [], hasMore: false };
+  const page = asks ? await commentPage(documentId) : { comments: [], hasMore: false };
+  const { comments } = page;
+  const cut = page.hasMore ? cutLine(page) : null;
   const held = attachmentNames(body, comments);
   const plan = got.evidence?.length ? attachPlan(got.evidence, held, (ref) => evidenceHeld(ref, held)) : null;
   if (plan?.refusal) refuse(plan.refusal);
-  if (hasMore && plan?.upload.length) refuse(CROWDED(kind));
+  if (cut && plan?.upload.length) refuse(CROWDED(kind, cut));
   if (plan) got.evidence = plan.cite;
   const names = [...held, ...(plan?.upload ?? []).map((one) => one.name)];
-  if (asks) fromRecord(kind, got, { comments, names, hasMore });
+  if (asks) fromRecord(kind, got, { comments, names, cut });
   checked(kind, got);
   await derive(kind, got);
   const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
@@ -409,8 +410,10 @@ const recordReport = async (reference) => {
   } catch {
     criteria = [];
   }
-  const { comments, hasMore } = await commentPage(documentId);
-  if (hasMore) console.error(`More than ${COMMENT_PAGE} comments match and the list stops there: this report read the first ${COMMENT_PAGE}.`);
+  const page = await commentPage(documentId);
+  const { comments } = page;
+  if (page.hasMore) console.error(`${cutLine(page)} This report was assembled from those rows and `
+    + "from no others.");
   const { latest, verdicts, owed, repeated, unreadable } = assemble(comments, criteria);
   for (const kind of Object.keys(SHAPES)) {
     if (SHAPES[kind].repeats) for (const one of repeated[kind] ?? []) printRecord(one);

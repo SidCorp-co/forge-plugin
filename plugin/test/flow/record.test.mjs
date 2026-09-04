@@ -214,24 +214,39 @@ test("a commit the flag did not carry comes from the merged mark, and is said", 
     "--evidence iss65-evidence.md, as the latest verdict on this issue cites it."]);
 });
 
-/* Both defaults read one page and the tracker's list takes no cursor, so on a longer issue what
-   would answer may be the comment cut off: refused rather than guessed (F1 of the third recheck). */
-test("a default is refused where the comment list stopped with more behind it", () => {
+/* The cut keeps the most recent rows, so a mark or a citation the page carries is the latest one and
+   reading it is sound. What the page does not carry may be the comment behind the cut, and there the
+   flag is asked for by name with the cut as the reason — not on every long issue whether the record
+   answered or not, which is what ISS-131 measured on eight runs. */
+const CUT = "The comment list returned 1 comment(s) and reported more behind them, cut by response size.";
+test("a default is read off a cut page that carries it, and asked for where the page carries none", () => {
   const mark = { body: "mark_merged target base: merged to master at c8c3550", createdAt: "2026-09-03T10:00:00.000Z" };
-  const page = { comments: [mark], names: ["one.md"], hasMore: true };
-  assert.throws(() => fromRecord("verdict", { criterion: "1", verdict: "pass", evidence: ["one.md"] }, page),
-    /record verdict reads --commit off this issue[\s\S]*may be cut off[\s\S]*Name --commit/u);
-  assert.throws(() => fromRecord("verdict", { criterion: "1", verdict: "pass", commit: "c8c3550", evidence: [] }, page),
-    /reads --evidence off this issue/u, "and the evidence default the same way");
+  const verdict = {
+    body: render("verdict", { criterion: "1", verdict: "pass", commit: "c8c3550", evidence: ["one.md"] }),
+    createdAt: "2026-09-03T10:01:00.000Z",
+  };
   const said = [];
   const held = console.error;
   console.error = (line) => said.push(line);
   try {
-    fromRecord("verdict", { criterion: "1", verdict: "pass", commit: "c8c3550", evidence: ["one.md"] }, page);
+    const got = { criterion: "1", verdict: "pass" };
+    fromRecord("verdict", got, { comments: [mark, verdict], names: ["one.md"], cut: CUT });
+    assert.equal(got.commit, "c8c3550", "the mark on the page is the latest one, cut or not");
+    assert.deepEqual(got.evidence, ["one.md"], "and so is the citation");
   } finally {
     console.error = held;
   }
-  assert.deepEqual(said, [], "a write that names both flags reads nothing off the record and is not refused");
+  assert.equal(said.length, 2, said.join(" | "));
+  const bare = { comments: [], names: [], cut: CUT };
+  assert.throws(() => fromRecord("verdict", { criterion: "1", verdict: "pass", evidence: ["one.md"] }, bare),
+    /reads --commit off this issue and the page carries none[\s\S]*cut by response size[\s\S]*behind the cut, so name --commit/u,
+    "and where the page carries none, the flag is asked for and the cut is the reason");
+  assert.throws(() => fromRecord("verdict", { criterion: "1", verdict: "pass", commit: "c8c3550", evidence: [] }, bare),
+    /reads --evidence off this issue and the page carries none/u, "the evidence default the same way");
+  assert.throws(() => fromRecord("verdict", { criterion: "1", verdict: "pass", evidence: ["one.md"] },
+    { comments: [], names: [], cut: null }),
+    /needs --commit \(commit\), and no merged mark/u,
+    "and on a whole page the refusal says the record has none, with no cut to blame");
 });
 
 test("a record with no mark and no earlier citation is refused by the flag, and says what is there", () => {
@@ -305,7 +320,7 @@ test("a routed finding names where it went, or says nothing was routed", () => {
     assert.equal(typeof held.owed === "function", ["park", "verdict"].includes(kind),
       `${kind}: when evidence is owed is the field's to answer, not the check's to imply`);
   }
-  const filled = { comments: [], names: [], hasMore: false };
+  const filled = { comments: [], names: [], cut: null };
   const half = { what: "a defect elsewhere", evidence: [] };
   fromRecord("routed", half, filled);
   assert.deepEqual(half.evidence, [], "a routed record missing --to is not asked for evidence it never owed");

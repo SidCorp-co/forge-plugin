@@ -347,10 +347,10 @@ export const CHECKS = {
   dropped: () => [],
 };
 /* The whole record in one object, so every check reads fields rather than fetching. */
-export const viewFrom = (documentId, issue, comments, whole = true, release = null) => {
+export const viewFrom = (documentId, issue, comments, cut = null, release = null) => {
   const criteria = criteriaOf(issue);
   const names = attachmentNames(issue, comments);
-  return { documentId, issue, comments, criteria, names, whole, release, ...assemble(comments, criteria) };
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, ...assemble(comments, criteria) };
 };
 export const parkRecord = (view, wanted = () => true) => {
   const found = view.comments
