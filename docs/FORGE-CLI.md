@@ -478,14 +478,36 @@ call is 1.6–2.0s and this payload with one word asked for is 6.1s, so input si
 minutes go. Eleven runs over a fixture with two planted defects: given ten calls it used two on a
 two-file review and four on a four-file one with three named risks, and a cap of three lost no finding
 while saving a third of the time (99s against 145s). Every run found both defects at every cap from one
-upward, so rounds are for *reaching* code, not for thinking longer. The last call is served no tools
-and is warned one round early: a model told mid-answer that its tools are gone has already spent the
-round it would have read in.
+upward, so rounds are for *reaching* code, not for thinking longer. The last call is warned one round
+early: a model told mid-answer that its tools are gone has already spent the round it would have read
+in.
+
+**Three was a constant, and it was the wrong shape.** Over 487 answered consults, 384 ended at exactly
+three calls, and what a reply then said tracked the cap and not the difficulty: a clause saying the
+reviewer could not check something appears in none of the 22 one-call replies, 10 of the 75 two-call
+ones and 251 of the 384 three-call ones. Three is now where a consult *starts*, and the payload moves
+it — a `bodies` pass holds every file it was asked about and has nothing to fetch, so it starts a call
+lower; each clipped file is the one thing that reliably costs a retrieval round, so it earns one back.
+`--rounds n` is still used exactly as typed.
+
+**A review that says it could not check is not shown and then patched by the next consult.** It is one
+attempt short, so it gets one more at `codex.roundsMax`, and the caller sees nothing until that one
+answers. Which is why the first attempt is buffered rather than streamed: "retried before it is shown"
+and a stream to stdout cannot both hold, and what streaming was actually for — telling a slow review
+from a hung one — is the `call N of M` and tool lines, which print either way. The predicate is one
+definition, shared by the field on the row, the retry's trigger and the stats line, and the one thing
+it must never match is `CANNOT TELL`: that ruling is what the verification grammar *asks for* on a risk
+the reviewer cannot decide, and retrying there buys the same answer at twice the price.
 
 Thinking tokens come out of the same ceiling as the reply, which is why 8,000 was mostly spent before
 the review began. `reasoning_effort` is a request rather than a lever — the same puzzle answers
-identically at minimal and at high — and the minutes go on the reviewer's own reading, which is the
-argument for medium.
+identically at minimal and at high — and the minutes go on the reviewer's own reading, which is why
+medium is the base rather than the answer. It was also the *only* level anything ran at: medium on 384
+of the 393 consults that recorded one, high on four. What moves it now is the round and the size, one
+step and never two, the round winning where both apply. A recheck is asked a narrower question than the
+pass that raised the findings, so it steps down; a change under `codex.effortLines.small` steps down and
+one over `.large` steps up, measured on the diff where the consult is anchored to one and on the bodies
+where it is not.
 
 **An open stdin is not an intent that has not arrived yet.** The consult reads its intent from
 stdin, and inside a harness the shell's stdin is a pipe nobody is writing to: read to EOF, it never
@@ -516,16 +538,34 @@ about them.
 finding a narrower hole than the last with no signal to stop on. `--recheck` replays the previous
 consult's findings as the verification list, which is the shape the reviewer is reliable in.
 
+That was half of what stops a consult repeating itself. The other half is that 100 of 196 rechecks raised something marked
+New, and each one cost the head another fix and another round — a recheck asked to confirm went looking
+instead. So a recheck now anchors to the head its findings were made against, which puts the diff since
+that head in front of the reviewer instead of the whole file it has to find the change in again; where
+nothing differs from that head the consult runs without a diff rather than refusing, because the
+findings are still owed a ruling. And its system prompt carries a clause the first pass does not: the
+round exists to close findings, not open them. It does not forbid a New one — a defect the fix itself
+introduced is real — it requires the bullet to name why the earlier round could not have seen it, which
+is the sentence a wasted round cannot write. `newFindings` on the row is what says how often that
+worked.
+
 **Angles are the checkout's.** On this CLI three of the four wrote "nothing material" in every one of
 92 consults — output paid for, and the reader skimming past the one angle that mattered. The board
 stays for a product with screens; `.forge.json` names the angles that fit.
 
-**The history is marked for caching and chosen by file.** Zero cache reads in 92 consults, with the
-role and the replayed history resent on every call: both now carry a cache breakpoint. Measured on the
-first consult sent with them, the gateway created and read nothing — it caches on its own terms, so
-like `reasoning_effort` this is a request and not a lever, and it costs nothing to ask. The last three consults
-were the last three by date whatever they were about; one sharing a file comes first now, because that
-is the one "still open" can be answered against.
+**The cache is the provider's prefix, not a breakpoint we place.** The role and the replayed history
+each carry a `cache_control` marker, and over 487 answered consults `cache_creation_input_tokens` was
+0 on every single one: nothing this end asks for is honoured, because the slot resolves to a model on
+another provider whose caching is automatic and keyed on the longest matching prefix of the request.
+Reads do happen, and the one thing that visibly moved them was the tool list. A consult whose last call
+was served `tools: []` read 11% of its input from cache; one that never reached that call read 22% —
+the tool-less call is the only difference between those two groups, and system-and-tools is exactly the
+front of the prefix. So the list now stays in the request on every call of a consult and the last one
+is sent `tool_choice` of none instead. The cap is unchanged and stays this end's, which already refuses
+and records a tool call made past it. `codex.toolChoiceNone: false` sends the empty list again.
+
+The last three consults were the last three by date whatever they were about; one sharing a file comes
+first now, because that is the one "still open" can be answered against.
 
 **Containment is physical, not lexical.** `..` is the traversal you can see; a symlink committed inside
 the repository is the one you cannot. A path is admitted by realpath and by being a regular file, for a
@@ -552,6 +592,24 @@ last call alone, `log --score` counted a third of the input. A `started` entry i
 that dies mid-flight reaches no handler and a review that vanished is what an eval most wants to see.
 Each entry carries the commit, a per-file sha256 and whether the file was clipped: advice that cannot
 be tied to bytes cannot be checked.
+
+**A harness with no numbers on itself is tuned by memory.** `forge codex stats` reads a window —
+`--last n`, `--days n`, `--root p` or `--here` — and answers the questions a change to the harness is
+judged by: how many consults ended at the budget they were given, how many replies said they could not
+check, how many were retried at the ceiling, how many rechecks raised something New, the tokens by
+kind, and which prompt versions ran. A row written before a field existed is counted from its own
+reply, using the same predicate the field is written with, so the window before a change and the window
+after it are read the same way rather than one of them looking clean for want of a column.
+
+**A prompt is versioned because "it seems better" is not a comparison.** Every consult records the
+system prompt's version and the digest of the text actually sent, so an edit nobody bumped for still
+shows. `forge codex replay --prompt <file>` is the other half, and it is honest about how little of it
+there is: the log keeps each sent file's sha256 and never its bytes, so a consult can only be rebuilt
+where `git show <head>:<path>` still produces bytes that hash to what was sent. A consult is run on a
+dirty tree by nature, so most cannot — over the last thirty, two rebuild. The verb prints the window,
+what it kept, and what it lost with the reason, rather than replaying approximately and calling the
+comparison a measurement. Storing the prompt whole would make it exact at roughly 140 KB a consult,
+which is the trade the log does not take.
 
 What counts as a document is `codex.pathRe`, `^docs/.*\.md$` by default, because prose is what nothing
 else here checks — and a document written by a heredoc is a document. The turn is keyed by canonical git

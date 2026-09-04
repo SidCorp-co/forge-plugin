@@ -24,7 +24,7 @@ export const VERBS = [
     "forge_guide"],
   ["project", "", "the resolved project id", "forge_projects.list"],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials"],
-  ["codex", "<consult|verdict|pending|show|log>", "a second model reviews what this turn changed"],
+  ["codex", "<consult|verdict|pending|show|log|stats|replay>", "a second model reviews what this turn changed"],
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
     "what the gates refused, why one does, which are off", null],
   ["doctor", "[--token t] [--url u] [--hide v|--show v] [--full]", "what resolves, and from where"],

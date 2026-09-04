@@ -5,6 +5,8 @@
    its eval set (codex-log.mjs), the turn's bookkeeping (codex-state.mjs), and this — the verb and
    the hook halves. */
 export { STATE_PATH, afterTouch, ageOf, demandIn, holding, pendingIn, pendingState, stagedIn } from "./codex-state.mjs";
+export { reviewed, rounds } from "./codex-rounds.mjs";
+export { plannedFor } from "./codex-plan.mjs";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -16,19 +18,20 @@ import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mj
 import { flags, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { afterTouch, ageOf, clearConsulted, demandOf, pendingIn, readState, turnsOf, updateState } from "./codex-state.mjs";
-import { TOOLS, runTool, scopeFor, toolsFor } from "./codex-tools.mjs";
+import { TOOLS, scopeFor } from "./codex-tools.mjs";
+import { reviewed } from "./codex-rounds.mjs";
+import { EFFORTS, defaultEffort, incompleteIn, newFindingsIn, plannedFor, plannedLimits } from "./codex-plan.mjs";
 import {
   ANGLES,
-  EFFORTS,
   MODEL,
   askApi,
   bundle,
   changedAgainst,
-  defaultEffort,
   digest,
   inside,
   locate,
   modelBehind,
+  promptMark,
   canonical,
   withDiffs,
   openingFor,
@@ -36,10 +39,11 @@ import {
   roleFor,
   sameFamily,
 } from "./codex-api.mjs";
+import { printReplay, printStats } from "./codex-stats.mjs";
 import {
-  BUDGET_MS,
   LOG_PATH,
   consults,
+  numbered,
   historyFor,
   logConsult,
   logEntries,
@@ -52,12 +56,9 @@ import {
 } from "./codex-log.mjs";
 
 const DEFAULT_PATH_RE = "^docs/.*\\.md$";
-/* Model calls in total, not extra rounds: the last one is served no tools, so the cap is what the
-   caller is billed for and not one more. Three, measured: docs/FORGE-CLI.md carries the numbers. */
-const DEFAULT_CALLS = 3;
 
 export const USAGE = [
-  "Usage: forge codex <consult|verdict|pending|show|log> [args]",
+  "Usage: forge codex <consult|verdict|pending|show|log|stats|replay> [args]",
   "GPT-5 Codex reviews the files you name, streamed over the gateway's own API. The files travel",
   "with the prompt; beyond them it reads for itself — read_file, list_dir, grep and git_diff, over",
   "this checkout and any other you name a file in, and nothing else on the machine. The log is what",
@@ -73,6 +74,11 @@ export const USAGE = [
   "  show                      profile, model, history and pending, in effect here",
   "  log [--last n] [--id i] [--full]   past consults, for scoring the advice later",
   "  log --score               per model: consults, findings, what was kept, time, cache",
+  "  stats [--last n] [--days n] [--root p] [--here]   what the harness did over a window: calls",
+  "                            against their budget, replies that could not check, rechecks that",
+  "                            raised something New, tokens by kind, and the prompt versions that ran",
+  "  replay --prompt <file> [--last n] [--root p]      which of a window a candidate prompt could be",
+  "                            scored against, rebuilt from git and kept only where the bytes still match",
   "",
   "A `codex` object in ~/.config/forge/config.json, every key optional",
   "  model                     model slot to ask for (default fable)",
@@ -80,7 +86,11 @@ export const USAGE = [
   "                            a `codex.pathRe` in the checkout's .forge.json wins over this",
   "  budgetMs                  how long one consult may take (default 900000)",
   "  maxTokens                 reply ceiling, thinking included (default 32000)",
-  "  rounds                    model calls one consult may make, the last served no tools (3)",
+  "  rounds                    model calls a consult starts with; the payload moves it (3)",
+  "  roundsMax                 what a review that could not finish is retried at (5)",
+  "  effortLines               { small, large } changed lines: under the first the effort steps down,",
+  "                            over the second it steps up (40, 400)",
+  "  toolChoiceNone            keep the tool list on the last call and ask for none (true)",
   "  send                      diffs | bodies — what travels with the prompt (diffs)",
   "  effort                    reasoning effort asked of the slot (default medium)",
   "  angles                    which of tech | ba | user | ux review (default all four);",
@@ -91,9 +101,9 @@ export const USAGE = [
   "  --diff         send each file's diff and refuse findings that are only about code this turn",
   "                 did not touch. Raises precision more than anything else.",
   "  --base ref     what to diff against; implies --diff. HEAD unless you say otherwise.",
-  "  --effort e     minimal | low | medium | high, for this consult only. Medium by default,",
-  "                 because the reading is what costs, not the thinking.",
-  "  --rounds n     model calls this consult may make. Wall time is calls times about 45s.",
+  "  --effort e     minimal | low | medium | high, for this consult only. Derived from the round",
+  "                 and the change's size unless you say otherwise.",
+  "  --rounds n     model calls this consult may make, used as given. Wall time is calls times 45s.",
   "  --send m       diffs (default) sends each file's change and its size, and the reviewer reads",
   "                 what it needs; bodies sends every file whole, for a consult with nothing to read.",
   "  --verify risk  a named risk to rule on rather than an open review; repeatable. A reviewer",
@@ -150,6 +160,11 @@ export const recordable = (rel) => new RegExp(recordPattern().value).test(rel);
 
 export const unchangedAll = (parts) => parts.length > 0 && parts.every((part) => part.missing || part.diff?.unchanged);
 
+/* A head logged days ago may be gone: a worktree branch deleted, a rebase, another checkout. An
+   unreadable one is not an error — the recheck simply carries no diff. */
+const readableRef = (root, ref) =>
+  spawnSync("git", ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], { cwd: root, encoding: "utf8" }).status === 0;
+
 /* An entry that cannot be tied to code cannot be checked, so an eval over the log needs the commit. */
 const commitAt = (root) => {
   const head = spawnSync("git", ["rev-parse", "--short", "HEAD"], { cwd: root, encoding: "utf8" });
@@ -158,10 +173,6 @@ const commitAt = (root) => {
   return { head: (head.stdout ?? "").trim(), dirty: Boolean((changed.stdout ?? "").trim()) };
 };
 
-/* More than one call, and a bounded number: a round exists so the reviewer can SEE what it was not
-   given, and seeing has a fixed point. The last call is served no tools, so it answers. What it
-   still never gets is a shell — one command the checkout named, once, is the whole exception; the
-   version that could run commands took eleven minutes and had to be killed by pid. */
 const BOOLEAN = ["--allow-echo", "--diff", "--recheck"];
 const SEVERITIES = ["blocker", "major", "minor"];
 
@@ -172,79 +183,14 @@ const severities = (raw) => {
   return asked;
 };
 
-const callBudget = (asked) => {
-  const raw = asked ?? userConfig().codex?.rounds;
-  if (raw === undefined) return DEFAULT_CALLS;
+/* Refused rather than defaulted: a caller who typed `--rounds two` asked for something, and a
+   consult that silently ran at three would bill them for an answer to a question they did not ask. */
+const askedRounds = (raw) => {
+  if (raw === undefined) return undefined;
   const value = Number(raw);
-  if (!Number.isInteger(value) || value < 1) {
-    const where = asked === undefined ? `\`codex.rounds\` in ${CONFIG_PATH}` : "--rounds";
-    fail(`codex: ${where} takes an integer of 1 or more, not \`${raw}\`.`);
-  }
+  if (!Number.isInteger(value) || value < 1) fail(`codex: --rounds takes an integer of 1 or more, not \`${raw}\`.`);
   return value;
 };
-
-export const rounds = async (values, model, opening, scope, onDelta, ask = askApi, held = {}) => {
-  const { effort, cap, system } = held;
-  const signal = AbortSignal.timeout(BUDGET_MS);
-  const calls = callBudget(cap);
-  const messages = [{ role: "user", content: opening }];
-  const used = [];
-  const refused = [];
-  /* Summed over the calls: logged from the last one alone, `log --score` counted a third of the input. */
-  const spent = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
-  let thought = 0;
-  const charge = (one) => {
-    for (const key of Object.keys(spent)) spent[key] += one.usage?.[key] ?? 0;
-    thought += one.thought ?? 0;
-  };
-  for (let call = 1; ; call += 1) {
-    const last = call === calls;
-    console.error(`codex: call ${call} of ${calls}${used.length ? ` after ${used.length} tool call(s)` : ""}...`);
-    const held = await ask(values, model, messages, { onDelta, signal, effort, system, tools: last ? [] : toolsFor(scope) });
-    charge(held);
-    if (!held.calls.length) return { ...held, usage: spent, thought, tools: used, refused, calls: call };
-    /* The cap is the loop's to keep: a gateway that answers the tool-less call with tool calls anyway
-       would otherwise be served round `calls + 1`, with tools, until the budget expired. And a capped
-       reply that is only tool calls answered nothing, so it fails rather than returns: returned, it
-       would log as a consult, spend the advice and clear the files for a review never made. */
-    if (last) {
-      if (!held.text.trim()) {
-        throw new Error(`spent all ${calls} call(s) reading and never answered. Raise \`codex.rounds\` in ${CONFIG_PATH}.`);
-      }
-      const unserved = held.calls.map((one) => `${one.name} ${detail(one.input)} (past the call cap)`);
-      return { ...held, usage: spent, thought, tools: used, refused: [...refused, ...unserved], calls: call };
-    }
-    const results = [];
-    for (const one of held.calls) {
-      const ran = runTool(scope, one.name, one.input);
-      used.push({ name: one.name, input: one.input, chars: ran.text.length, error: Boolean(ran.error) });
-      console.error(`codex:   ${one.name} ${detail(one.input)}${ran.error ? ` — ${ran.text}` : ""}`);
-      if (ran.error) refused.push(`${one.name} ${detail(one.input)}: ${ran.text}`);
-      results.push({
-        type: "tool_result",
-        tool_use_id: one.id,
-        content: ran.text,
-        ...(ran.error ? { is_error: true } : {}),
-      });
-    }
-    messages.push({
-      role: "assistant",
-      content: [
-        ...(held.text ? [{ type: "text", text: held.text }] : []),
-        ...held.calls.map((one) => ({ type: "tool_use", id: one.id, name: one.name, input: one.input })),
-      ],
-    });
-    /* Warned one round early: a model told mid-answer that its tools are gone has already spent the
-       round it would have read in. */
-    const closing = call + 1 === calls
-      ? [{ type: "text", text: "No further tool calls will be served. Answer now, and say what you could not check." }]
-      : [];
-    messages.push({ role: "user", content: [...results, ...closing] });
-  }
-};
-
-/** What a tool call was for, in one line of a terminal: the path, or the pattern grep was given. */
-const detail = (input = {}) => input.path ?? (input.pattern ? `/${input.pattern}/` : "");
 
 /* Repeated `--verify`, then positionals apart from flag values, then the rest — three passes
    because a flag can carry a value and a file cannot. */
@@ -262,7 +208,7 @@ export const consultArgs = (given) => {
        being silently dropped — one fewer rule to learn and one fewer way to be ignored. */
     base: held.base ?? (held.diff ? "HEAD" : null),
     effort: chosenEffort(held.effort),
-    cap: held.rounds === undefined ? undefined : Number(held.rounds),
+    cap: askedRounds(held.rounds),
     /* Bodies off by default when the reviewer has tools: it reads what it needs and the payload
        stops paying twice. `--send bodies` is the old shape, for a consult with no repository to
        read from. */
@@ -300,7 +246,7 @@ const chosenSend = (raw) => {
 /* Named rather than clamped: an unknown value would otherwise be sent to the gateway, which accepts
    anything and reports nothing, so the consult would run at a level nobody chose. */
 const chosenEffort = (raw) => {
-  if (raw === undefined) return defaultEffort();
+  if (raw === undefined) return undefined;
   if (!EFFORTS.includes(raw)) fail(`codex: --effort takes ${EFFORTS.join(" | ")}, not \`${raw}\`.`);
   return raw;
 };
@@ -310,7 +256,7 @@ const consult = async (given) => {
   if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
-  const { named, risks, only, allowEcho, base, effort, cap, bodies, recheck, angles } = consultArgs(given);
+  const { named, risks, only, allowEcho, base, effort: askedEffort, cap, bodies, recheck, angles } = consultArgs(given);
   const rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
   /* Asked for a diff and given nothing to diff, the tree answers: the round it replaces was reading
      `git diff --name-only` and typing the list back (ISS-65). */
@@ -330,6 +276,13 @@ const consult = async (given) => {
     if (!plan?.risks.length) fail("codex: --recheck needs an answered consult with findings on these files, and none is logged.");
     risks.push(...plan.risks);
   }
+  /* The diff since the head the findings were made against, which is what a recheck is asking about:
+     re-sending the whole file makes the reviewer find the change before it can rule on the fix. Only
+     where the caller named no base of their own, and only where that head is still a readable ref. */
+  const anchor = recheck && !base && plan.judged.head && readableRef(root, plan.judged.head)
+    ? plan.judged.head
+    : base;
+  if (anchor !== base) console.error(`codex: a recheck of ${plan.judged.id ?? plan.judged.at}, so the diff since ${anchor} travels with it.`);
 
   const model = modelBehind(values);
   if (!model) fail(`codex: ${path} maps the ${MODEL} slot to no model.`);
@@ -347,15 +300,24 @@ const consult = async (given) => {
   const intent = (said ?? "").trim();
   const id = randomBytes(3).toString("hex");
 
-  const parts = base ? withDiffs(root, bundle(root, rels), base) : bundle(root, rels);
-  /* A review of nothing is still billed: after a commit every file reads UNCHANGED against HEAD. */
-  if (base && unchangedAll(parts)) {
+  const bundled = anchor ? withDiffs(root, bundle(root, rels), anchor) : bundle(root, rels);
+  /* A review of nothing is still billed: after a commit every file reads UNCHANGED against HEAD. A
+     recheck is the one case that carries on: its base was chosen for it, so an unmoved tree means
+     nothing to diff and not nothing to ask, and the findings are still owed a ruling. */
+  const still = anchor && unchangedAll(bundled);
+  if (still && anchor === base) {
     const where = commitAt(root).dirty ? "the files named" : "the tree is clean, so the change is committed";
     fail(`codex: nothing differs from ${base} in ${rels.join(", ")} — ${where}. Pass --base ${base}~1 to review the last commit.`);
   }
-  const clipped = parts.filter((part) => part.clipped).map((part) => part.rel);
+  if (still) console.error(`codex: nothing differs from ${anchor}, so this recheck carries no diff — the findings are asked for on the tree as it stands.`);
+  const parts = still ? bundle(root, rels) : bundled;
+  const anchoredTo = still ? null : anchor;
+  const { clipped, lines, budget, ceiling, effort } = plannedFor({ parts, bodies, recheck, asked: cap, effort: askedEffort });
   if (clipped.length) console.error(`codex: sent clipped, too long to fit whole: ${clipped.join(", ")}.`);
   const history = historyFor(entries, root, undefined, rels);
+  const system = roleFor(angles, { check: Boolean(projectCheck()), recheck });
+  console.error(`codex: ${budget} call(s) at ${effort} effort for ${lines} changed line(s)`
+    + `${clipped.length ? `, ${clipped.length} of them clipped` : ""}${budget < ceiling ? `, up to ${ceiling} if the review comes back incomplete` : ""}.`);
   const started = Date.now();
   const record = {
     id,
@@ -369,8 +331,14 @@ const consult = async (given) => {
     history: history.length,
     effort,
     angles,
+    budget,
+    ceiling,
+    lines,
+    send: bodies ? "bodies" : "diffs",
+    prompt: promptMark(system),
+    ...(cap === undefined ? {} : { cap }),
     ...(recheck ? { recheck: true } : {}),
-    ...(base ? { anchoredTo: base } : {}),
+    ...(anchoredTo ? { anchoredTo } : {}),
     ...(risks.length ? { risks } : {}),
     ...(only.length ? { only } : {}),
     ...commitAt(root),
@@ -385,11 +353,12 @@ const consult = async (given) => {
   };
   try {
     const opening = openingFor(intent, parts, history, { risks, only, bodies });
-    const check = projectCheck();
-    const held = await rounds(
-      values, model, opening, scopeFor(root, rels.filter(isAbsolute), check), streamed, askApi,
-      { effort, cap, system: roleFor(angles, { check: Boolean(check) }) },
+    const held = await reviewed(
+      values, model, opening, scopeFor(root, rels.filter(isAbsolute), projectCheck()), streamed, askApi,
+      { effort, budget, ceiling, system },
     );
+    /* Buffered while a retry was still possible, so the review lands here in one piece. */
+    if (!held.streamed) process.stdout.write(held.text);
     process.stdout.write("\n");
     logConsult({
       ...record,
@@ -402,6 +371,9 @@ const consult = async (given) => {
       tools: held.tools,
       refused: held.refused,
       calls: held.calls,
+      attempt: held.attempt,
+      incomplete: incompleteIn(held.text),
+      ...(recheck ? { newFindings: newFindingsIn(numbered(held.text, rels)) } : {}),
       reply: held.text,
     });
     const { left, since } = clearConsulted(root, rels);
@@ -441,7 +413,11 @@ const show = () => {
   console.log(`repo root : ${root ?? "<not in a git repository>"}`);
   console.log(`history   : ${root ? historyFor(entries, root).length : 0} prior exchange(s) replayed`);
   console.log(`records   : ${recordPattern().value}  \u2190 ${recordPattern().from}`);
-  console.log(`tools     : ${TOOLS.map((one) => one.name).join(", ")} over ${callBudget()} call(s)`);
+  const limits = plannedLimits();
+  console.log(`tools     : ${TOOLS.map((one) => one.name).join(", ")} over ${limits.base} call(s), `
+    + `${limits.ceiling} when a review comes back incomplete`);
+  console.log(`effort    : ${defaultEffort()}, a step down on a recheck or under ${limits.small} `
+    + `changed line(s), a step up over ${limits.large}`);
   console.log(`angles    : ${chosenAngles(undefined).join(", ")}`);
   console.log(`check     : ${projectCheck()?.command ?? "none — codex.check in .forge.json names one"}`);
   console.log(`pending   : ${waiting.length ? waiting.join(", ") : "nothing"}`);
@@ -518,6 +494,8 @@ const SUBS = {
   },
   show,
   log: printLog,
+  stats: printStats,
+  replay: printReplay,
 };
 
 export const codex = async ([sub, ...rest]) => {

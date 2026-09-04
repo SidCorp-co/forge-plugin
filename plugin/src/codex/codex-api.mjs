@@ -8,6 +8,7 @@ import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
+import { defaultEffort } from "./codex-plan.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { userConfig } from "../resolve/config.mjs";
 
@@ -16,10 +17,6 @@ export const MODEL = userConfig().codex?.model || "fable";
 const MAX_TOKENS = Number(userConfig().codex?.maxTokens || 32_000);
 /* Accepted by the gateway and not observable from here: the same puzzle answers the same at high and
    at minimal, in the same seconds. Sent because the slot is the account's to configure. */
-/* Medium by default: the reviewer's own reading is where a consult's minutes go, and high bought
-   no measurable difference when probed. `--effort` raises it for the review that needs it. */
-export const EFFORTS = ["minimal", "low", "medium", "high"];
-export const defaultEffort = () => userConfig().codex?.effort || "medium";
 
 /* A file is sent whole or reported as clipped; a silently halved file is a review of half a file. */
 const FILE_CHARS = 80_000;
@@ -36,7 +33,21 @@ export const ANGLES = {
   ux: "UI/UX — screens, flows, empty/error/loading states, information architecture, accessibility. If nothing describes an interface, say so rather than inventing one.",
 };
 
-export const roleFor = (angles = Object.keys(ANGLES), { check = false } = {}) => {
+/* Bumped by hand; the digest catches the edits nobody bumped for. Both ride every row, so a prompt
+   change is a line in the stats rather than a thing somebody remembers doing. */
+export const PROMPT_VERSION = 2;
+
+export const promptMark = (system) => ({ v: PROMPT_VERSION, sha: digest(String(system ?? "")) });
+
+/* The round exists to close findings, not open them. It does not forbid a New one — a real defect
+   found late is still real — it asks for the sentence a wasted round cannot write. */
+const RECHECK = `THIS IS A RECHECK, NOT A NEW REVIEW.
+You made the findings in the verification list yourself, in an earlier round on these same files. Your whole job now is to say whether each still stands. Answer the list, and stop.
+- Do not go looking for anything else. The reading you would do for a fresh review, you already did.
+- If something genuinely NEW is unavoidable — a defect the fix itself introduced, or one the earlier round could not have seen — you may raise it, but its bullet must carry a clause naming why it was not visible to you before. A New finding without that clause is one you should have made the first time, and it is left out.
+- A finding you are no longer sure of is REFUTED, not restated in weaker words.`;
+
+export const roleFor = (angles = Object.keys(ANGLES), { check = false, recheck = false } = {}) => {
   const named = angles.map((one) => ANGLES[one]);
   const board = named.length === 1
     ? `Reply as the ${named[0].split(" — ")[0]}:`
@@ -61,7 +72,7 @@ RULES
 - Earlier consults on this repository are quoted above where there are any. On a file you have seen before, report Resolved / Still open / New, and never repeat an argument you already made.
 - The coding agent will push back with context you cannot see. Weigh it honestly: concede when it is right, hold when it is not, and give the better reason either way.
 - Where you are given a diff, the diff is what is under review. Context you were given for reading is not the subject.
-- Terse. No preamble, no praise, no summary of what the file already says.`;
+- Terse. No preamble, no praise, no summary of what the file already says.${recheck ? `\n\n${RECHECK}` : ""}`;
 };
 
 const ENV_LINE = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/;
@@ -100,9 +111,8 @@ export const modelBehind = (values, slot = MODEL) =>
 
 export const sameFamily = (model) => Boolean(model) && /claude/i.test(model);
 
-/* Containment is physical, not lexical: `..` is only the traversal you can see, and a symlink
-   committed inside the repository resolves to anywhere its author liked. Every path is realpath'd
-   and checked against the realpath'd root, and anything that is not a regular file is refused. */
+/* Containment is physical, not lexical: a symlink committed inside the repository resolves to
+   anywhere its author liked, so every path is realpath'd and only a regular file is taken. */
 const resolvedInside = (root, path) => {
   let base;
   let real;
@@ -123,9 +133,8 @@ const resolvedInside = (root, path) => {
 
 export const inside = (root, path) => resolvedInside(root, path)?.rel ?? null;
 
-/** A file to review, named as this repository sees it or as an absolute path in another checkout —
- *  the account configures one reviewer, so a caller may point it at a sibling project. What the
- *  MODEL may then read for itself is a narrower question: codex-tools.mjs. */
+/** Named as this repository sees it, or absolute in another checkout: the account configures one
+ *  reviewer. What the MODEL may then read for itself is codex-tools.mjs's narrower question. */
 export const locate = (root, given) => {
   const held = resolvedInside(root, given);
   if (held) return held;
@@ -311,9 +320,8 @@ const frameEvent = (frame) => {
   }
 };
 
-/* Streamed because a reply is written over a minute and more, and a caller staring at a blank
-   terminal cannot tell a slow review from a hung one. The deltas are handed out as they land; the
-   whole text is still returned, because the log wants the answer and not the frames. */
+/* The deltas are handed out as they land; the whole text is still returned, because the log wants
+   the answer and not the frames. */
 const FRAME_END = /\r?\n\r?\n/;
 
 export const consume = async (body, onDelta) => {
@@ -382,7 +390,9 @@ const parsedInput = (json) => {
   }
 };
 
-export const askApi = async (values, model, messages, { onDelta = () => {}, signal, tools, effort, system } = {}) => {
+/* The tool list stays in the request on the call that may not use one, and `tool_choice` says so:
+   the provider caches by prefix, and system-and-tools is that prefix. docs/FORGE-CLI.md. */
+export const askApi = async (values, model, messages, { onDelta = () => {}, signal, tools, serve = true, effort, system } = {}) => {
   const answer = await fetch(`${values.ANTHROPIC_BASE_URL}/v1/messages`, {
     method: "POST",
     headers: {
@@ -398,7 +408,7 @@ export const askApi = async (values, model, messages, { onDelta = () => {}, sign
       stream: true,
       messages,
       reasoning_effort: effort ?? defaultEffort(),
-      ...(tools?.length ? { tools } : {}),
+      ...(tools?.length ? { tools, ...(serve ? {} : { tool_choice: { type: "none" } }) } : {}),
     }),
     signal,
   });

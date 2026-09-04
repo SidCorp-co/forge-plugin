@@ -328,11 +328,14 @@ test("a base that is an option is refused rather than handed to git", () => {
 });
 
 /* `codex.rounds` is what the account is billed, so the loop cannot leave the cap to the gateway:
-   the last call is served no tools, and tool calls in its answer are reported, not run. */
+   the last call is asked for no tools, and tool calls in its answer are reported, not run. The list
+   itself stays in the request — the provider caches by prefix, and system-and-tools is the prefix. */
 test("the call cap is the loop's, and a tool call past it is refused not served", async () => {
   const asked = [];
+  const served = [];
   const stub = async (values, model, messages, held) => {
     asked.push((held.tools ?? []).length);
+    served.push(held.serve);
     return {
       text: "answered",
       calls: [{ id: `call_${asked.length}`, name: "read_file", input: { path: "docs/PLAN.md" } }],
@@ -347,7 +350,8 @@ test("the call cap is the loop's, and a tool call past it is refused not served"
   assert.deepEqual(held.usage, { input_tokens: 20, output_tokens: 4, cache_read_input_tokens: 8, cache_creation_input_tokens: 0 }, "usage is the consult's, summed over its calls");
   assert.equal(held.thought, 12);
   assert.equal(asked.length, 4);
-  assert.equal(asked.at(-1), 0, "the last call is served no tools");
+  assert.ok(asked.at(-1) > 0 && new Set(asked).size === 1, "every call is sent the same tool list");
+  assert.deepEqual(served, [true, true, true, false], "and only the last is told none will be run");
   assert.equal(held.tools.length, 3, "the tool call answering the capped request is not run");
   assert.match(held.refused.at(-1), /past the call cap/u);
 });
@@ -590,7 +594,7 @@ test("asking an action what to type prints the usage", () => {
     const run = spawnSync(forge, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), "codex-help-")) } });
     assert.equal(run.status, 0, `${argv.join(" ")}: ${run.stderr}`);
     /* The usage line alone is what a generic handler would print while deleting the actions. */
-    assert.match(`${run.stdout}${run.stderr}`, /Usage: forge codex <consult\|verdict\|pending\|show\|log>/u);
+    assert.match(`${run.stdout}${run.stderr}`, /Usage: forge codex <consult\|verdict\|pending\|show\|log\|stats\|replay>/u);
     assert.match(`${run.stdout}${run.stderr}`, /--verify risk/u, "with the actions still documented");
   }
 });
