@@ -144,6 +144,27 @@ has moved past is told to restart, and one running the installed copy is told no
 - **AC-07-6-3** · Rev: 1 · Proof: plugin/test/checks/shipped-version.test.mjs
   WHEN the plugin is packaged THEN every manifest SHALL carry the version its package is at.
 
+### UC-07-7 — What a gate remembers is reaped by the gate that wrote it
+
+Rev: 1 · Actors: agent · Enforces: BR-07
+
+A gate that asks once has nowhere in the file it guards to keep the answer, so the asking is
+remembered beside it — one small file per session, per subject, per kind. Nothing removed them and
+they reached 29,626 files, taking a machine's temporary filesystem to 97% of its inodes at 58% of
+its bytes; the next suite to start died before its first test, on a shared-memory failure whose
+message named space. The machine is not this product's, so what the gates leave on it is bounded by
+the writer clearing what nobody can still be reading.
+
+- **AC-07-7-1** · Rev: 1 · Proof: plugin/test/hooks/stamps.test.mjs
+  WHEN a gate remembers what it asked THEN the record SHALL land in one directory named for this
+  product, which the harness makes for itself.
+- **AC-07-7-2** · Rev: 1 · Proof: plugin/test/hooks/stamps.test.mjs
+  WHEN one of them is written THEN every record in that directory past the harness's bound SHALL be
+  removed, whatever gate wrote it.
+- **AC-07-7-3** · Rev: 1 · Proof: plugin/test/hooks/stamps.test.mjs
+  IF a record is inside that bound THEN it SHALL survive the write, since a session running now may
+  still read it.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*
@@ -151,6 +172,6 @@ has moved past is told to restart, and one running the installed copy is told no
 | Rule | How this requirement carries it |
 |---|---|
 | BR-01 | the shape of every refusal and the shape of the document behind it are both checked |
-| BR-07 | the switch and the scope are the account's and the project's, never assumed |
+| BR-07 | the switch and the scope are the account's and the project's, never assumed; and what the gates leave on a machine of someone else's is bounded |
 | BR-08 | one account of what a write is, one place a gate is switched off |
 | BR-13 | every refusal is logged by the act of refusing, so a false positive is findable |

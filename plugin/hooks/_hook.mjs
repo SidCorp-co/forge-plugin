@@ -2,13 +2,14 @@
 // hands one event to every gate of its kind in one process, and the once-per-file-per-session stamp.
 // Why write detection asks the disk, not the shell: docs/HOOKS.md.
 
-import { createHash } from "node:crypto";
-import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 
 import { logHook, scrubbed } from "../src/hooks/hook-log.mjs";
 import { hookOff } from "../src/hooks/hook-switch.mjs";
+
+export { askedAlready, askedByAnyone } from "../src/hooks/stamps.mjs";
 
 const TOKEN = /[A-Za-z0-9_./@-]+\.[A-Za-z0-9]+/g;
 /** How long after a call a file's mtime still answers for it. */
@@ -197,34 +198,6 @@ export const settled = (path) => {
     return full;
   }
 };
-
-/** A file edit has no field to hold an acknowledgement, and forcing one into the content would
- *  write this gate's bookkeeping into the file it guards. So the answer is that the question was
- *  put — recorded outside the file, once per session. */
-export function askedAlready(ev, path, kind, { set = true } = {}) {
-  const key = createHash("sha1")
-    .update(`${ev.session_id ?? ""}\0${path}`)
-    .digest("hex")
-    .slice(0, 16);
-  const stamp = join(tmpdir(), `${kind}-${key}`);
-  try {
-    statSync(stamp);
-    return true;
-  } catch {
-    /* first time */
-  }
-  if (!set) return false;
-  try {
-    writeFileSync(stamp, "");
-  } catch {
-    /* a stamp we cannot write means we ask again; that is the safe direction */
-  }
-  return false;
-}
-
-/** Keyed for whoever asks next: a guarded directory is the project's, not one session's. */
-export const askedByAnyone = (ev, path, kind, options) =>
-  askedAlready({ ...ev, session_id: "" }, path, kind, options);
 
 /** No hook fires for the advisor, but every call leaves an `advisor_tool_result` in the transcript. */
 const blocksOf = (record) => {
