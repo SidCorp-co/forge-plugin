@@ -166,9 +166,11 @@ criterion proves the wrong thing and the verdict reads as a pass. **On every out
 failure** — Rule 2 makes evidence a phase output, and a session transcript nobody else can
 reopen is not an output.
 
-**A verdict cites the head the landing will carry, so the branch comes onto the default branch
-before the judging and not after it.** `references/verification.md` owns that, and what each kind
-of change owes as evidence and how to capture it; `forge guide contract developed` and `forge guide
+**The landing is Phase 7's, so the judging happens here and before it**, and a verdict cites the
+head the landing will carry: the change is replayed on top of the default branch's head first, which
+moves the change and lands none of it. Nothing advances from this phase — `developed` and `tested`
+both move at the ship, on the record written here. `references/verification.md` owns which head that
+is, and what each kind of change owes as evidence and how to capture it; `forge guide contract developed` and `forge guide
 contract tested` say what a record has to hold before either is earned, which is not this skill's
 to say.
 
@@ -190,9 +192,14 @@ Drafted here, posted in Phase 7. `references/release-note.md`.
 ## Phase 7 — Ship
 
 Take the integration and deploy path Phase 0 discovered, not one assumed from another
-project. Verify the change where it now runs, then post the release note, then move the
-status — `references/release-note.md` says why that order, and `forge guide contract released`
-says what the move itself is owed.
+project. **The landing is this phase's first step**: the change goes onto the default branch here,
+after the judging, and the merged mark written at the landing is what earns `developed` and `tested`
+— two moves made in this phase, on the record Phase 5 wrote. What that mark has to carry for a
+verdict judged before the landing to stand: `forge guide contract developed`.
+
+Then verify the change where it now runs, post the release note, and move the status —
+`references/release-note.md` says why that order, and `forge guide contract released` says what the
+move itself is owed.
 
 **Then close it, in this phase.** `released` is a status a change passes through on its way to
 `closed`, and a run that stops on it has handed a person the one keystroke this workflow exists to

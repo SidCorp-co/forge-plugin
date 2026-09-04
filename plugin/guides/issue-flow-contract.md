@@ -46,7 +46,7 @@ issue. They write to the project, never to a transition.
 | `confirmed` | we read the code; the problem is real and it is this | a confirmation: where the reader looked, what the issue is in the code's own terms, and a finding — *holds*, or one of the dispositions the triage reference admits | 2 Clarify |
 | `clarified` | every ambiguity is decided or answered | a decision record: each reading decided, its assumption and the sentence that undoes it, or an explicit *none found*; no question left open | 3 Plan |
 | `approved` | object to the plan now, not after | plan and numbered criteria, one per line, each in its own field; the plan states whether this is a screen change and whether it touches the schema | 4 Implement, to the branch |
-| `in_progress` | code is being written against this plan | `approved`; every blocker that gates dispatch at least `developed`, read from the edge's own answer and not from the list it arrived in, so a mention gates nothing; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the review and the merge |
+| `in_progress` | code is being written against this plan | `approved`; every blocker that gates dispatch at least `developed`, read from the edge's own answer and not from the list it arrived in, so a mention gates nothing; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the review; 5 Prove; then 7's landing |
 | `developed` | the change was reviewed and is on the default branch | an approving review of the head that landed: the reviewer, the findings with a verdict on each by id, the outcome *approved*; a person's approval where the project asks for one; then the merged mark with its commit | 5 Prove |
 | `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all at the commit the `developed` stage says a verdict may cite; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
 | `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; a review comment from a person where the plan declares a screen change or a user-facing outcome and the project's config asks for one | 7 Ship, the close |
@@ -54,11 +54,17 @@ issue. They write to the project, never to a transition.
 | `reopen` | a person disagreed with a close or a drop, and their finding is here | a person's word; nothing earns it and the verb never enters it | the finding typed on their behalf and the triage of it, then the fall the triage decides: `developed`, `in_progress`, or `on_hold` blocked |
 
 The phase a status owes produces the payload that earns the next row, so reading the status is
-reading the phase. Every *earned by* is checked for presence, recency, the commit it names and,
-where a rule says *since* or *later than*, its order against the record it names — a correction since
-a triage, a verdict later than it — never for fit: whether an attachment is really the migration classification, or a comment really
-an approving screen review, is the reviewer's judgement, and a check that tried to make it would
-refuse honest records and pass dishonest ones alike. The tracker's `draft`, `testing` and `reopen` statuses are not steps and `advance`
+reading the phase — with one break, and it is the `in_progress` row. The landing that earns
+`developed` is a step of Phase 7, so the judging that earns `tested` is done while the issue is
+still `in_progress`, and both statuses move after the mark on a record written before it. Which
+order the phases run in is the skill's to say and its Phases 5 and 7 say it; what a verdict
+written before the landing has to cite is under `developed` below.
+
+Every *earned by* is checked for presence, recency, the commit it names and, where a rule says
+*since* or *later than*, its order against the record it names — a correction since a triage, a
+verdict later than it — never for fit: whether an attachment is really the migration classification,
+or a comment really an approving screen review, is the reviewer's judgement, and a check that tried
+to make it would refuse honest records and pass dishonest ones alike. The tracker's `draft`, `testing` and `reopen` statuses are not steps and `advance`
 never enters them: `draft` is the reporter's, before `open`; `testing` is a label this contract has
 no use for, since `developed` already says where the change is; `reopen` is a person's, and the verb
 reads the finding and the triage it leaves behind and routes what follows, below.

@@ -49,10 +49,11 @@ reads as a step that passed.
 ## Judge the head that will land
 
 A verdict claims the evidence beside it was taken on the code that landed, so it names the commit it
-judged — and that commit has to be the one the landing carries. **Bring the branch onto the
-project's default branch before you judge**, once, and prove it from there. A branch cut days ago
-and brought forward only at the landing is one whose proved head never lands, and every criterion
-then costs a second verdict at a head the first could not have known.
+judged — and that commit has to be the one the landing carries. **Replay the change on top of the
+project's default branch head before you judge**, once, and prove it from there: that direction
+moves the change and lands none of it. A branch cut days ago and brought forward only at the landing
+is one whose proved head never lands, and every criterion then costs a second verdict at a head the
+first could not have known.
 
 That leaves the landing whatever it adds of its own, and whatever other people landed while you were
 judging, which where several runs work one tree at once is not nothing. Neither is a re-judging:

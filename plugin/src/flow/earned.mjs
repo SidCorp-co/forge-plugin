@@ -25,7 +25,7 @@ export const PHASE = {
   confirmed: ["2 Clarify", "clarify.md"],
   clarified: ["3 Plan", "plan.md"],
   approved: ["4 Implement, to the branch", "verification.md"],
-  in_progress: ["4 Implement, to the review and the merge", "verification.md"],
+  in_progress: ["4 Implement, to the review; 5 Prove; then 7's landing", "verification.md"],
   developed: ["5 Prove", "verification.md"],
   tested: ["6, 7 Ship", "release-note.md"],
   released: ["7 Ship, the close", "release-note.md"],

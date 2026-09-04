@@ -59,7 +59,7 @@ const brief = (extra = {}, comments = []) => briefOf(viewFrom("the-uuid", issue(
 test("the brief carries the status, the phase it owes and the reference that holds its method", () => {
   const one = brief();
   assert.equal(one.status, "in_progress");
-  assert.equal(one.phase, "4 Implement, to the review and the merge");
+  assert.equal(one.phase, "4 Implement, to the review; 5 Prove; then 7's landing");
   assert.equal(one.reference, "skills/issue-flow/references/verification.md");
   for (const status of [...ORDER, "dropped", "reopen"]) {
     assert.ok(PHASE[status], `${status} owes no phase, so a resuming run is told nothing`);

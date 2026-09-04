@@ -24,7 +24,7 @@ const {
   stageLine,
   statesContract,
 } = await import("../../src/tracker/contract.mjs");
-const { CHECKS, ORDER, viewFrom } = await import("../../src/flow/earned.mjs");
+const { CHECKS, ORDER, PHASE, viewFrom } = await import("../../src/flow/earned.mjs");
 const { LIGHTER } = await import("../../src/flow/machine.mjs");
 const { render } = await import("../../src/flow/record.mjs");
 
@@ -75,6 +75,44 @@ test("a heading becomes its own address, and a heading of statuses becomes one p
   assert.deepEqual(partsOf("## Two\n\na\n\n#### Deeper still\n\nb\n").map((part) => part.keys),
     [["two"], ["deeper-still"]], "every heading level is an address, so none of the text is unreachable");
   assert.deepEqual(partsOf("## Two layers, one record\n\nz\n")[0].keys, ["two-layers-one-record"]);
+});
+
+/* The fourth column of the flow table, keyed by the status in its first: a row of the contract's
+   own markdown, and a row of the figure's copy of it, read the same way so neither is transcribed
+   by eye. Read off the part rather than the file, so a table added under another heading feeds
+   nothing here. */
+const FIGURE = join(ROOT, "docs", "diagrams", "issue-flow.html");
+const bare = (cell) => cell.replace(/<[^>]+>/gu, "").replace(/`/gu, "").trim();
+const tableCells = (text) => Object.fromEntries(
+  text.split("\n")
+    .filter((line) => /^\| `\w+` \|/u.test(line))
+    .map((line) => line.split("|").slice(1, -1).map(bare))
+    .map((fields) => [fields[0], fields[3]]),
+);
+const figureCells = (html) => {
+  const flow = /<table class="flow">[\s\S]*?<\/table>/u.exec(html)?.[0] ?? "";
+  return Object.fromEntries(
+    [...flow.matchAll(/<tr>((?:<td>[\s\S]*?<\/td>)+)<\/tr>/gu)]
+      .map((row) => [...row[1].matchAll(/<td>([\s\S]*?)<\/td>/gu)].map((cell) => bare(cell[1])))
+      .map((fields) => [fields[0], fields[3]]),
+  );
+};
+
+/* One order, and three places that state it: the flow table, the PHASE table `advance` and `resume`
+   print a phase owed from, and the figure. A run reads whichever it reaches first, so two of them
+   disagreeing is how a phase order comes to be discovered by a refusal (ISS-218). Only the sequence
+   is compared: `reopen` is a route rather than a phase, and its cell in each table says so. */
+test("the phase a status owes is one string, and every surface that states it says that one", () => {
+  const table = tableCells(partFor(PARTS, "the-flow").text);
+  const figure = figureCells(readFileSync(FIGURE, "utf8"));
+  for (const held of [table, figure]) {
+    assert.equal(Object.keys(held).length, ORDER.length + 1, "each flow table is the flow's rows and reopen");
+  }
+  for (const status of ORDER) {
+    const owed = PHASE[status][0];
+    assert.equal(table[status], owed, `the flow table says ${status} owes \`${table[status]}\` and PHASE says \`${owed}\``);
+    assert.equal(figure[status], owed, `${FIGURE} says ${status} owes \`${figure[status]}\` and PHASE says \`${owed}\``);
+  }
 });
 
 test("a separator misremembered costs no round", () => {
