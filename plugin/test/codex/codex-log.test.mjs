@@ -25,6 +25,7 @@ const {
   historyFor,
   logConsult,
   logEntries,
+  logLine,
   LOG_PATH,
   pairedLog,
   recheckOwed,
@@ -433,4 +434,57 @@ test("a credential two levels into a record is masked, and the ids around it are
   const entry = logEntries().at(-1);
   assert.equal(entry.dropped.F2, "not ours: the fixture logs in with ***");
   assert.deepEqual([entry.of, entry.kept, entry.accepted], ["mask-1", ["F1"], 1], "the record is otherwise itself");
+});
+
+/* The write-side mask above reaches nothing written before it, and the log is append-only with no
+   pass that rewrites it (ISS-266). So the printer masks what it prints: an entry stored unmasked —
+   every entry before 3.35.88 — comes back masked whichever way this verb is asked for it. */
+const STORED_UNMASKED = {
+  kind: "consult",
+  id: "old-1",
+  at: "2026-08-01T00:00:00.000Z",
+  root: "/a",
+  ok: true,
+  ms: 2000,
+  head: "abc1234",
+  files: ["a.mjs"],
+  sent: [{ rel: "a.mjs", sha: "9f2c", chars: 812 }],
+  reply: `CODEX: 2 findings (1 major, 1 minor)\n- **F1 — major:** \`a.mjs:3\` — it ships --token ${FAKE} in the header.`,
+};
+
+test("an entry written before the write-side mask is masked on the way out", () => {
+  const said = logLine(STORED_UNMASKED, true);
+  assert.ok(!said.includes("notarealtoken"), "no part of the value reaches the session");
+  assert.match(said, /it ships --token \*\*\* in the header/u, "and the prose around it is still readable");
+});
+
+test("a verdict's note is masked too, which is the other stored string this verb prints", () => {
+  const said = logLine({
+    kind: "verdict",
+    at: "2026-08-01T00:01:00.000Z",
+    of: "old-1",
+    accepted: 1,
+    rejected: 1,
+    note: `kept F1: the fixture really did log in with ${FAKE}`,
+  }, false);
+  assert.ok(!said.includes("notarealtoken"));
+  assert.match(said, /verdict on old-1: 1 accepted, 1 rejected {2}kept F1: the fixture really did log in with \*\*\*/u);
+});
+
+/* Masking shortens a reply, so a count taken off the masked copy would report a smaller eval set
+   than was reviewed. The prose is the masked copy's; the numbers are the entry's own. */
+test("the counts are read off the entry and not off what printed", () => {
+  const said = logLine(STORED_UNMASKED, false);
+  assert.match(said, new RegExp(`\\s${STORED_UNMASKED.reply.length}ch\\s`, "u"),
+    "the reply's own length, not the masked one's");
+  assert.match(said, /2 finding\(s\)/u);
+});
+
+/* What licenses masking at both ends: they answer different questions — what accumulates on disk
+   from here, and what reaches a transcript now — and running both changes nothing twice. */
+test("an entry already masked at the write passes through unchanged", () => {
+  const clean = { ...STORED_UNMASKED, reply: STORED_UNMASKED.reply.replace(FAKE, "***") };
+  const said = logLine(clean, true);
+  assert.ok(said.includes(clean.reply), "a record written since 3.35.88 prints its stored prose verbatim");
+  assert.match(said, new RegExp(`\\s${clean.reply.length}ch\\s`, "u"), "and reports its own length");
 });

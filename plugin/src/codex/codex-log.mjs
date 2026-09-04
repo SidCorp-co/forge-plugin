@@ -378,7 +378,8 @@ const countFrom = (raw, floor = 1, fallback = LOG_TAIL) => {
   return value;
 };
 
-const logLine = (entry, full) => {
+export const logLine = (stored, full) => {
+  const entry = maskedDeep(stored);
   if (entry.kind === "started") {
     return `${entry.id ? `${entry.id}  ` : ""}${entry.at}  ${startedState(entry)} on ${(entry.files ?? []).join(" ")}`;
   }
@@ -386,11 +387,11 @@ const logLine = (entry, full) => {
     const note = entry.note ? `  ${entry.note}` : "";
     return `${entry.at}  verdict on ${entry.of}: ${entry.accepted} accepted, ${entry.rejected} rejected${note}`;
   }
-  const answer = entry.ok ? `${(entry.reply ?? "").length}ch` : `failed: ${entry.error ?? "?"}`;
+  const answer = stored.ok ? `${(stored.reply ?? "").length}ch` : `failed: ${entry.error ?? "?"}`;
   const id = entry.id ? `${entry.id}  ` : "";
   const at = entry.head ? `${entry.head}${entry.dirty ? "+dirty" : ""}` : "no commit";
   const served = entry.served?.length ? `  +${entry.served.length} served` : "";
-  const counted = countedIn(entry.reply);
+  const counted = countedIn(stored.reply);
   const many = counted ? `  ${counted.total} finding(s)` : "";
   const head = `${id}${entry.at}  ${entry.model ?? entry.slot ?? "?"}  ${Math.round((entry.ms ?? 0) / 1000)}s  ${at}  ${answer}${many}${served}`;
   const files = `  files  ${(entry.files ?? []).join(" ")}`;

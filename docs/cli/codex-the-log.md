@@ -22,6 +22,22 @@ direction chosen, so a review's own prose about a credential comes back with `**
 masking runs on each value rather than over the finished line: a mask reaching to the next space would
 eat a closing quote and leave an entry nothing can parse.
 
+That mask reaches nothing written before it, and the log is append-only, so the printer masks again
+over the entries it is about to print. The seat is the print and not the read: masking a 2,248-entry
+log costs 377ms against the 23ms it takes to parse one, and the hook path parses it on every consult.
+A line's counts are taken from the stored entry rather than the masked copy, because a mask shortens
+a reply and an eval number that moved is a wrong one. The two ends answer different questions — what
+accumulates on disk from here, and what reaches a transcript now — and neither makes the other
+redundant.
+
+What is deliberately not done is a pass that rewrites the file. Counted on the machine that raised
+it, no on-sight credential shape matches any entry at all: only the two *named* patterns fire, on 42
+entries of prose about credentials. So a rewrite would remove nothing and would destroy text in an
+append-only eval set nothing backs up, on a file already at 0600 in the config directory. The residue
+stays, and every route that prints an entry back to the caller is masked (ISS-266). What a consult
+replays into its *next request* is a separate question with a different reason on each side, and
+ISS-268 holds it rather than this paragraph.
+
 **A harness with no numbers on itself is tuned by memory.** `forge codex stats` reads a window —
 `--last n`, `--days n`, `--root p` or `--here` — and answers the questions a change to the harness is
 judged by: how many consults ended at the budget they were given, how many replies said they could not
