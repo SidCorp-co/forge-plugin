@@ -1506,3 +1506,24 @@ the new. No restart owed. Closed by its run. Folded from the record.
 - The run's consults ran under a temporary config directory, as its brief said before the correction,
   so its review has no row in the live log and the four findings were verified again at the end against
   the shipped code: the cost ISS-189 names, paid once more.
+
+## Fifty-seventh dry run — ISS-132 and ISS-168
+
+One agent took the two filings of one defect as one run (3.35.67): the key-to-id lookup behind every
+verb that takes an issue key walks the backlog in half-open windows by creation time and accepts only
+uncut answers, so a key the browse page lists resolves whatever page it sits on, and a genuine miss
+names what was measured rather than asserting absence. The four oldest high-priority issues became
+readable again with it. The concurrency of the walk was verified against the released copy with two
+keys at opposite ends of a reversed backlog. No restart owed. Closed by its run. Folded from the record.
+
+- A predicate that reads a page as cut only when the row count equals the limit never fires on a
+  response-size cut, and four callers read a cut page as whole. Found in the same file, deliberately
+  left out because the callers need re-judging and not only the predicate; filed as ISS-203. The
+  boundary of a fix-size run is drawn by what must be re-judged, not by what sits in the same file.
+- Three refusals met were routed to the issues that already hold them, named on the record: the
+  dependency verb under a personal token, the release-note cap, and the recheck flag printing help.
+  The run posted the same comment twice on one of them in a compound line and said so beneath, since
+  no verb deletes a comment — one more reason a write stays on its own line.
+- One verdict was flagged by the run as proving less than its criterion reads: the full-projection case
+  proves the key resolves under the flag, not what the flag adds. Said on the verdict rather than
+  cited later as more than it is.
