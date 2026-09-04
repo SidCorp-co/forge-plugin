@@ -219,8 +219,9 @@ verdicts owed at the merged commit, which is what every mark written before this
 predicate is `git diff <judged>..<landed>` over the paths the change touched, and it is run by the
 landing run rather than by the transition: git is asked at the step that knows the answer, and the
 answer is written onto the issue there — the same division the review's two path sets are held to
-below. So the run brings its branch onto the default branch before it judges, which leaves the
-landing nothing to move but the version commit. Four runs on 2026-09-04 re-posted every verdict
+below. So the run replays its change on top of the default branch's head before it judges — that
+direction moves the change and lands none of it — which leaves the landing nothing of the change's
+own paths to move. Four runs on 2026-09-04 re-posted every verdict
 after their ship, one of them twenty-eight records where fourteen carried the meaning (ISS-156).
 Refusing only the criteria the moved paths reached is ISS-207's: a verdict's evidence is an
 attachment, a URL or a sha, and none of the three names a path.
