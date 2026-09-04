@@ -1913,3 +1913,27 @@ revision of the eleven moved. No restart owed. Both closed by the run. Folded fr
 - Five clauses whose proof lives in held files were filed with their holders named (ISS-246, ISS-247)
   or as their own (ISS-251, ISS-252, ISS-253), one of them noting that the contract's first-stamp wording
   and a test's latest-mark reading disagree.
+
+## Seventy-fourth dry run — ISS-226 and ISS-241
+
+One agent retired a dropped issue's citations and held the figure to the contract (3.35.86).
+ISS-226: three surfaces citing the dropped issue were retired in one commit — the contract keeps the
+separator rule word for word and says where it is met, the figure's row says the same, the open-items
+register lost the row and its header now covers any terminal status rather than a close alone — with a
+case holding all three free of the key, watched to fire on each. ISS-241: three checks hold every table
+the figure copies equal to its contract part cell for cell — the flow table, eleven scenario tables
+paired by heading, both rules tables paired per table — and the repair was generated from the contract,
+not typed: four rows the figure never grew, three stale cells, one renamed lead, two rules with no row.
+The parks table is excluded by name with its reason in the check. Thirteen criteria pass. No restart
+owed. Both closed by the run. Folded from the record.
+
+- The review's one major finding was that the two rules tables had been flattened into one, so a rule
+  moved between them passed under the wrong heading. A check that pairs by table proves the pairing; one
+  that pools proves membership. Fixed, and each finding watched to fire after the fix.
+- A fourth surface citing the dropped issue sat in the held requirements tree and went as ISS-249; its
+  own description misstated the mechanism, corrected by comment through the finder's route. The figure's
+  cited paths are checked by nothing, because the path check declares the docs directory whole but reads
+  two extensions (ISS-263).
+- Two defects filed as feedback: the note cap stated nowhere before the write, met again; and a terminal
+  transition leaving the lease live, so two closed issues hold a finished run's lease and past the
+  duration that reads as a run that broke. A finished run has no way to say it finished.
