@@ -71,9 +71,17 @@ const loud = (command, args, cwd, why) => {
   if (run.status !== 0) stop(`${command} ${args.join(" ")} exited ${run.status}. ${why}`);
 };
 
+const parsed = (text) => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
 const read = (path) => {
   try {
-    return JSON.parse(readFileSync(path, "utf8"));
+    return parsed(readFileSync(path, "utf8"));
   } catch {
     return null;
   }
@@ -305,9 +313,15 @@ const issueFor = (tree, from) => {
   const at = from.slice(0, 7);
   const found = forgeSays(tree, ["issues", "--search", at, "--limit", "100"]);
   if (found.why) return { why: found.why, call: "the lookup" };
-  const rows = found.out.split("\n").map((line) => /^(ISS-\d+)\s+(\S+)\s+(.*)$/u.exec(line.trim()));
-  const row = rows.find((one) => one?.[3].includes(`${at}..`) && one[2] !== NOT_A_READING);
-  return { key: row?.[1] ?? null, status: row?.[2] ?? null };
+  /* The row says which issue, the issue what status: those columns grew a rank mid-batch. */
+  const key = found.out.split("\n").map((line) => /^(ISS-\d+)\s+(.*)$/u.exec(line.trim()))
+    .find((row) => row?.[2].includes(`${at}..`))?.[1] ?? null;
+  if (!key) return { key: null, status: null };
+  const said = forgeSays(tree, ["issue", key]);
+  if (said.why) return { key, unread: said.why };
+  const status = parsed(said.out)?.status ?? null;
+  if (!status) return { key, unread: `${key} answered with no status:\n${said.out.trim()}` };
+  return status === NOT_A_READING ? { key: null, status: null } : { key, status };
 };
 
 /* Never twice outranks filing promptly, so a list that does not answer files nothing either: the
@@ -351,6 +365,12 @@ const reviewOwed = (tree) => {
     console.log(`    read it:         forge issue ${asked.collided}`);
     console.log(`    it is this mark's reading, or a title that only resembles one; the refusal's own `
       + `route says which write it leaves open, and the count keeps growing either way`);
+    return;
+  }
+  if (asked.unread) {
+    console.error(`  ${asked.key} is this mark's reading, so nothing was filed; what could not be read `
+      + `is that issue's own status: ${asked.unread}`);
+    console.log(`    read it:         forge issue ${asked.key}`);
     return;
   }
   if (asked.why) {

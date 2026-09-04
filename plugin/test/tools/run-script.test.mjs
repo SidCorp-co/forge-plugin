@@ -131,12 +131,24 @@ if (existsSync(join(room, "forge-refuses"))) {
   process.exit(1);
 }
 const rows = join(room, "forge-rows.txt");
+const STATUS_AT = 2;
 if (argv[0] === "issues") {
   const want = argv.includes("--status") ? argv[argv.indexOf("--status") + 1] : null;
   const all = (existsSync(rows) ? readFileSync(rows, "utf8") : "").split("\\n").filter(Boolean);
-  const kept = want ? all.filter((line) => line.trim().split(/\\s+/)[1] === want) : all;
+  const kept = want ? all.filter((line) => line.trim().split(/\\s+/)[STATUS_AT] === want) : all;
   for (const line of kept) process.stdout.write(line + "\\n");
   process.stdout.write(\`\\n\${kept.length} issue(s)\\n\`);
+  process.exit(0);
+}
+if (argv[0] === "issue") {
+  if (existsSync(join(room, "forge-unread"))) {
+    process.stderr.write("forge issue failed: fetch failed\\n");
+    process.exit(1);
+  }
+  const row = (existsSync(rows) ? readFileSync(rows, "utf8") : "").split("\\n")
+    .find((line) => line.startsWith(argv[1]));
+  const status = row ? row.trim().split(/\\s+/)[STATUS_AT] : "open";
+  process.stdout.write(JSON.stringify({ issueId: argv[1], status }, null, 2));
   process.exit(0);
 }
 if (existsSync(join(room, "forge-collides"))) {
@@ -147,7 +159,7 @@ if (existsSync(join(room, "forge-collides"))) {
   process.exit(1);
 }
 const title = argv[argv.indexOf("--title") + 1];
-appendFileSync(rows, \`\${"ISS-777".padEnd(8)} \${"open".padEnd(12)} \${title}\\n\`);
+appendFileSync(rows, \`\${"ISS-777".padEnd(8)} \${"medium".padEnd(8)} \${"open".padEnd(12)} \${title}\\n\`);
 process.stdout.write(JSON.stringify({ documentId: "d", issueId: "ISS-777", title }, null, 2));
 `;
 
@@ -399,8 +411,11 @@ test("a second ship at the same mark names the issue already there and files not
    between them. The window `open` was right for is the one before anybody starts work (ISS-140). */
 test("the mark's issue is found at whatever status it has reached, and the lookup asks for none", () => {
   const { at, work, from } = owedAt("statuses");
+  /* The row's own shape, rank and all: this projection grew a column between two ships of this
+     batch, and a fixture one column short reads the rank as the status and proves nothing. */
   const seed = (key, status) => writeFileSync(join(at, "forge-rows.txt"),
-    `${key.padEnd(8)} ${status.padEnd(12)} The batch ${from.slice(0, 7)}..deadbee is read once as a whole\n`);
+    `${key.padEnd(8)} ${"medium".padEnd(8)} ${status.padEnd(12)} `
+    + `The batch ${from.slice(0, 7)}..deadbee is read once as a whole\n`);
 
   seed("ISS-501", "in_progress");
   const held = lastStep(work);
@@ -411,6 +426,8 @@ test("the mark's issue is found at whatever status it has reached, and the looku
   const lookup = called(at).find((one) => one.argv[0] === "issues");
   assert.ok(!lookup.argv.includes("--status"),
     `the question is whether an issue for this mark exists, and a status is no part of it: ${lookup.argv.join(" ")}`);
+  assert.ok(called(at).some((one) => one.argv[0] === "issue" && one.argv[1] === "ISS-501"),
+    "the status is read off the issue, the row's columns being a projection that grows without notice");
 
   /* A finished reading whose mark was never moved is a state of its own: the count keeps growing,
      and the route out is the move, never a second filing of a reading already done. */
@@ -427,6 +444,24 @@ test("the mark's issue is found at whatever status it has reached, and the looku
   assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 1,
     `a dropped reading left the range with no issue and no filing:\n${again.stdout}${again.stderr}`);
   assert.ok(again.stdout.includes("filed ISS-777"), again.stdout);
+});
+
+/* Nothing may invite a duplicate of an issue it has already found: only that issue's status went
+   unread, and the count keeps growing until someone reads it. */
+test("an issue found but unread files nothing, and is not routed to a filing of its replacement", () => {
+  const { at, work, from } = owedAt("unread");
+  writeFileSync(join(at, "forge-rows.txt"),
+    `${"ISS-504".padEnd(8)} ${"medium".padEnd(8)} ${"tested".padEnd(12)} `
+    + `The batch ${from.slice(0, 7)}..deadbee is read once as a whole\n`);
+  writeFileSync(join(at, "forge-unread"), "");
+
+  const run = lastStep(work);
+  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 0,
+    `an issue already found was replaced because its status would not read:\n${run.stdout}${run.stderr}`);
+  assert.match(run.stderr, /ISS-504 is this mark's reading, so nothing was filed/u, run.stderr);
+  assert.match(run.stdout, /forge issue ISS-504/u, run.stdout);
+  assert.doesNotMatch(run.stdout, /forge new - --title/u,
+    `a route that files a replacement for an issue already found:\n${run.stdout}`);
 });
 
 /* The tracker's own duplicate gate was the only thing that stopped a second issue for a mark that
