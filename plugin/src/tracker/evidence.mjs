@@ -73,6 +73,8 @@ export const localFile = (given) => {
   }
 };
 
+const TWICE = "A name attached twice resolves to two documents.";
+
 /** A name to cite as it stands, a file to put up under its base name, or a collision: a name
  *  attached twice resolves to two documents and every verdict citing it is ambiguous (ISS-55). */
 export const attachPlan = (refs, names, held) => {
@@ -83,8 +85,8 @@ export const attachPlan = (refs, names, held) => {
     const here = localFile(ref);
     if (here && taken.includes(here.name)) {
       plan.refusal = `${ref} is a file on disk and ${here.name} is already on this issue, or named `
-        + `twice in this command. A name attached twice resolves to two documents. Cite the one that `
-        + `is there:\n  --evidence ${here.name}\nor amend it under a name of its own and cite that.`;
+        + `twice in this command. ${TWICE} Cite the one that is there:\n  --evidence ${here.name}`
+        + `\nor amend it under a name of its own and cite that.`;
       return { ...plan, upload: [], cite: [] };
     }
     /* Said, not refused: a refusal here would name the citation the author already made. */
@@ -106,3 +108,26 @@ export const attachPlan = (refs, names, held) => {
   return plan;
 };
 
+/** A bare upload's `refusal` where a base name is already a document on the issue, and its `said`
+ *  where the comment page stopped short — said, never refused: `record` cites a URL or a commit
+ *  instead, and a verb that only uploads, against a list capped with no cursor, cannot (ISS-137). */
+export const uploadRead = (paths, names, { reference, cut }) => {
+  const taken = [...names];
+  for (const path of paths) {
+    const name = basename(path);
+    if (taken.includes(name)) {
+      return {
+        refusal: `${name} is already a document on ${reference}, or is named twice in this command. `
+          + `${TWICE} Nothing was sent. What is up can be neither deleted nor replaced, so cite it `
+          + `by that name, or send the file under a name of its own.`,
+      };
+    }
+    taken.push(name);
+  }
+  if (!cut) return {};
+  return {
+    said: `The names already on ${reference} cannot be read whole. ${cut} ${names.length} were read `
+      + `here and one behind the cut cannot be seen. ${TWICE} Sending anyway, this verb having no `
+      + `citation to make instead: read ${reference} before a record cites the name.`,
+  };
+};

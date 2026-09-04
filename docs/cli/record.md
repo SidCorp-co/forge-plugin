@@ -19,7 +19,10 @@ is an attachment name the issue carries, a URL or a commit, and a reference to a
 disk proved nothing — so a value that *is* a readable file goes up under its base name at the write
 and is cited by that name, which is the `forge attach` and the re-send an author paid by hand. A
 base name the issue already carries is refused there rather than attached twice, because a name
-attached twice resolves to two documents (ISS-55). The upload comes after every refusal the record's
+attached twice resolves to two documents (ISS-55) — and `forge attach` refuses on the same read,
+because the ambiguity belongs to the name and not to the route that sent it; where the comment page
+is cut at its cap that verb says so and sends anyway, having no citation to make instead of the
+upload the way this one has (ISS-137). The upload comes after every refusal the record's
 own shape can earn, so a shape a reader can fix costs no attachment; what is left cannot be undone,
 because the tracker publishes no delete for an upload — a lease lost mid-command, a second file that
 fails, or a comment gate that refuses the record after the first file went up. In each of those the

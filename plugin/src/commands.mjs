@@ -9,8 +9,8 @@ import {
   rowsOf,
   truncated,
 } from "./tracker/issues.mjs";
-import { creditAfter, credited, mustBeShown, postComment } from "./tracker/comments.mjs";
-import { uploadTo, urlBearing } from "./tracker/evidence.mjs";
+import { commentPage, creditAfter, credited, cutLine, mustBeShown, postComment } from "./tracker/comments.mjs";
+import { attachmentNames, uploadRead, uploadTo, urlBearing } from "./tracker/evidence.mjs";
 import {
   KINDS_HELP,
   KIND_NAMES,
@@ -292,6 +292,20 @@ export const commands = {
       fail(`attach takes \`issue\` or \`comment\` as its target, not \`${target}\`.`);
     }
     const targetId = target === "issue" ? await documentIdOf(targetRef) : targetRef;
+    /* One name on one issue names one document, whichever verb attached it (ISS-137), and the read
+       comes before the first PUT: what is up can be neither deleted nor replaced, so a collision
+       seen afterwards is one nobody can clear. A comment id names no issue, here as for the lease
+       below, so that route reads no names and refuses on none. */
+    if (target === "issue") {
+      const [page, body] = await Promise.all([
+        commentPage(targetId),
+        scoped("forge_issues", { action: "get", documentId: targetId }),
+      ]);
+      const cut = page.hasMore ? cutLine(page) : null;
+      const read = uploadRead(paths, attachmentNames(body, page.comments), { reference: targetRef, cut });
+      if (read.refusal) fail(read.refusal);
+      if (read.said) console.error(read.said);
+    }
     for (const path of paths) {
       /* Every payload write renews, uploads included; a comment id names no issue to read a lease
          from, and the tracker offers no route from one to the other. */
