@@ -13,6 +13,12 @@ import {
   splitSentences,
 } from "../../hooks/vendor/text-overlap.js";
 import { load } from "./duplication.mjs";
+import {
+  CODE_SPAN_PATTERN,
+  LINK_TARGET_PATTERN,
+  TABLE_ROW_PATTERN,
+  withoutSpans,
+} from "../markdown.mjs";
 
 /* Not the shared 0.34/5: that was calibrated on comments inside one file, where two copies share
    twice the vocabulary two documents do. Measured over 28 CLAUDE.md files — docs/cli/doctor.md. */
@@ -21,7 +27,7 @@ export const GUIDE_OVERLAP_FLOOR = 3;
 
 const FENCE = /^\s*(?:```|~~~)/u;
 const HEADING = /^#{1,6}\s/u;
-const TABLE_ROW = /^\s*\|.*\|\s*$/u;
+const TABLE_ROW = new RegExp(TABLE_ROW_PATTERN, "u");
 const BULLET = /^\s*(?:[-*+]|\d+[.)])\s+/u;
 const MARKUP = /[*`_>[\]()]/gu;
 
@@ -176,7 +182,7 @@ export function readClaudeMd(root) {
    that lost its entry, a `-h` nobody wired. Each of the three found a live defect in sid-erp on
    the day it was written. Backticks and link targets only — prose naming a file is not a claim. */
 const CODE_SPAN = /`([^`\n]+)`/g;
-const LINK_TARGET = /\]\(([^)\s]+)\)/g;
+const LINK_TARGET = new RegExp(LINK_TARGET_PATTERN, "gu");
 const NPM_SCRIPT = /\bnpm (?:run ([\w:-]+)|(test)\b)/g;
 /* Two shapes of "ask it with -h": a script this repo holds, and a command on PATH. */
 const SCRIPT_HELP = /`([\w./-]+\.(?:mjs|js|sh|py))\s+(?:-h|--help)`/g;
@@ -390,15 +396,17 @@ const EXPECTED = [
   ["gotchas", /never|must not|do not|silent|trap|gotcha|danger/iu],
 ];
 
-/* A file naming these words as an anti-pattern quotes them, and a quoted span is not its own prose. */
-const unquoted = (text) => text.replace(/`[^`\n]*`|"[^"\n]*"|«[^»\n]*»/gu, " ");
+/* A file naming these words as an anti-pattern quotes them. One alternation and never a pass each:
+   where a span and a quoted run overlap, whichever delimiter opens first has to win. */
+const QUOTED = new RegExp([CODE_SPAN_PATTERN, String.raw`"[^"\n]*"`, String.raw`«[^»\n]*»`].join("|"), "gu");
+const unquoted = (text) => text.replace(QUOTED, " ");
 
 /** Pure over the text, except the imports, which have to resolve against the tree. */
 export function checkStructure(text, root) {
   const lines = text.split("\n");
   const bullets = lines.filter((line) => ANY_BULLET.test(line));
   const emphasised = bullets.filter((line) => BULLET_LEAD.test(line));
-  const imports = [...text.replace(/`[^`\n]*`/gu, " ").matchAll(IMPORT)].map((m) => m[2]);
+  const imports = [...withoutSpans(text).matchAll(IMPORT)].map((m) => m[2]);
   return {
     lines: lines.length,
     overLineTarget: lines.length > MAX_CLAUDE_MD_LINES,

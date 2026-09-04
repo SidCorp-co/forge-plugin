@@ -12,19 +12,16 @@ import {
   findOverlapsAgainst,
   splitSentences,
 } from "../../hooks/vendor/text-overlap.js";
+import { TABLE_ROW_PATTERN, withoutSpans } from "../markdown.mjs";
 
 const FENCE = /```[\s\S]*?```/g;
-const TABLE_ROW = /^[ \t]*\|.*\|[ \t]*$/gm;
+const TABLE_ROW = new RegExp(TABLE_ROW_PATTERN, "gmu");
 const HEADING = /^#{1,6}\s.*$/gm;
 const MARKUP = /[*`_>[\]()]/g;
-const INLINE = /`[^`\n]*`/g;
 
-/** An inline span goes with the fences: two texts naming one command are about that command, which is
- *  not either of them restating the other. */
+/** The sentences of a document's own prose, which is the unit a restatement is measured in. */
 export function sentences(text) {
-  const stripped = text
-    .replace(FENCE, " ")
-    .replace(INLINE, " ")
+  const stripped = withoutSpans(text.replace(FENCE, " "))
     .replace(TABLE_ROW, " ")
     .replace(HEADING, " ")
     .replace(MARKUP, "");

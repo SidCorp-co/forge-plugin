@@ -2,6 +2,12 @@
    the rules, `srs/01-introduction.md` the grammar. No file is read here, so a fixture proves it. */
 import { createHash } from "node:crypto";
 
+import {
+  LINK_TEXT_PATTERN,
+  TABLE_ROW_PATTERN,
+  TABLE_SEPARATOR_PATTERN,
+} from "../markdown.mjs";
+
 export const KIND = {
   FR: "requirement",
   UC: "use case",
@@ -30,12 +36,12 @@ const CITED = new RegExp(`${idPattern(PREFIXES)}~(\\d+)(?![\\w-])`, "gu");
 
 const HEADING = /^(#{1,6})\s+(.+)$/u;
 const AC_ITEM = /^\s*[-*]\s+\*\*(AC-\d+(?:-\d+)*)\*\*\s*(?:·\s*)?(.*)$/u;
-const ROW = /^\s*\|(.*)\|\s*$/u;
-const RULE_ROW = /^\s*\|[\s:|-]+\|\s*$/u;
+const ROW = new RegExp(TABLE_ROW_PATTERN, "u");
+const RULE_ROW = new RegExp(TABLE_SEPARATOR_PATTERN, "u");
 const NAV = /^\s*←/u;
 const PROPOSAL = /^\s*\*\*Status: proposal\b/u;
 const FIELD_LINE = /^Rev:/u;
-const LINK = /\[([^\]]*)\]\([^)]*\)/gu;
+const LINK = new RegExp(LINK_TEXT_PATTERN, "gu");
 const BULLET = /^\s*(?:#{1,6}\s+|[-*+]\s+)/u;
 const DIGITS = /^\d+$/u;
 

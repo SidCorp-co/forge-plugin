@@ -72,6 +72,18 @@ test("every document a source file cites is one that is there", () => {
   assert.ok(cited > 20, `${cited} document citation(s) in the source: the pattern found nothing`);
 });
 
+/* One trailing space on the separator refused a correct index and named a missing header, which is
+   a refusal nobody can act on: the character is invisible (ISS-101). The strict form it replaced is
+   compiled here, because a widening this file did not watch is one that could drift back. */
+test("a separator carrying invisible whitespace is a separator, where the strict form refused it", () => {
+  const rows = "| Topic | The decision it holds |\n|---|---| \n| [`new`](cli/new.md) | what it reads |";
+  const text = `# A title\n\nWhat it is for.\n\n${rows}`;
+  assert.deepEqual(indexProblems({ text, topics: ["cli/new.md"] }), []);
+  const strict = /^\|[\s|:-]+\|$/u;
+  assert.equal(strict.test("|---| "), false, "the form replaced read that row as no separator at all");
+  assert.equal(strict.test("|---|"), true, "and read the same row without the space as one");
+});
+
 /* Four shapes, each of which the split could have shipped and nothing would have failed. */
 test("a second paragraph, a dead row, an unindexed topic and an oversized file each fail", () => {
   const rows = "| Topic | The decision it holds |\n|---|---|\n| [`new`](cli/new.md) | what it reads |";

@@ -2,6 +2,8 @@
    nowhere, and a file no row names is a topic nobody is told exists (ISS-87). Capped by default and
    exempt by kind, so a document written later is in scope without anyone remembering it: the
    requirements tree answers to its own gate, and the journal a run appends to is read by date. */
+import { LINK_TARGET_PATTERN, TABLE_SEPARATOR_PATTERN, withoutSpans } from "../markdown.mjs";
+
 export const TOPIC_MAX = 9000;
 const UNCAPPED = /^docs\/requirements\/|^docs\/issue-flow-dry-runs\.md$/u;
 
@@ -13,8 +15,8 @@ export const overCap = (docs, max = TOPIC_MAX) =>
       + " docs/HOOKS.md, the one document this repository keeps whole");
 
 const ROW = /^\|/u;
-const LINK = /\]\(([^)\s]+)\)/u;
-const SEPARATOR = /^\|[\s|:-]+\|$/u;
+const LINK = new RegExp(LINK_TARGET_PATTERN, "u");
+const SEPARATOR = new RegExp(TABLE_SEPARATOR_PATTERN, "u");
 const CELLS = /^\|([^|]*)\|([^|]*)\|$/u;
 
 /* Order and the header are checked, not just the counts: a table before the paragraph reads as an
@@ -53,9 +55,8 @@ export const indexProblems = ({ text, topics, path = "the index" }) => {
   return out;
 };
 
-/* `port-plan.md` for `docs/port-plan.md` is a comment quoting a finding, so a span is not a claim. */
+/* Where a document sends a reader: a `docs/…` inside a span is a quotation, not a topic named. */
 const CITED_DOC = /\bdocs\/[\w./-]*\.md\b/gu;
-const SPANNED = /`[^`\n]*`/gu;
 
 export const docsCited = (text) =>
-  [...new Set(String(text ?? "").replace(SPANNED, " ").match(CITED_DOC) ?? [])].sort();
+  [...new Set(withoutSpans(text).match(CITED_DOC) ?? [])].sort();
