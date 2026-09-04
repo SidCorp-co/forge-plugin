@@ -1318,3 +1318,25 @@ no order and no cursor. Closed by its run; no restart owed. Folded from the reco
   refuses, which cost six retried verdicts (ISS-164).
 - A finding on the running ISS-104 batch went to that issue as a comment: the browse row grew a column
   and the ship's mark-reader now captures the status into the group it calls the title.
+
+## Forty-ninth dry run — ISS-141
+
+One agent gave the flow a light path (3.35.58): the size a filing declares decides the ladder, so a
+fix's entry checks ask for less — the confirmation stays, the plan and the review shrink to what a fix
+can carry, a fix declaring a user-facing outcome still owes its note on every project — and one table
+in the flow's shared machine is read by both the checks that enforce the path and the report that
+states it, because a hand-written second copy had already drifted once inside the run. A mis-filed fix
+is re-sized by a correction record in one narrow form, honoured whenever written since it only ever adds
+demands. Six decisions on the record, each with its undo. Codex: three findings, all accepted and fixed.
+Nine criteria pass. Closed by its run; no restart owed. Folded from the record.
+
+- Two of the issue's own claims were corrected in the open: the size is the description line and not
+  the tracker's complexity field, and the parent's "under half a feature run" is a measured thirty
+  percent over payload writes — the eight transitions survive by design, so a measure over every call
+  would judge the wrong thing.
+- The plan named the file the table would live in before measuring it; that file sat at the comment
+  ceiling and its folder at the file limit, so the table went to the machine and the criterion was
+  corrected with the reason. Measuring the landing place is part of the plan, not of the build.
+- Three plugin defects filed as met: a correction record does not repeat (ISS-161); a key the browse
+  page prints was refused by the reference resolver, whose projection disagrees with search (ISS-168);
+  the ship never prints the sha its own rebase landed the change as (ISS-169).
