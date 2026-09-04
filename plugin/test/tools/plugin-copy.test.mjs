@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -70,68 +70,4 @@ test("an install record this cannot read is silence, not a warning", () => {
   assert.doesNotMatch(started({ version: 2 }), /Restart/u);
   assert.doesNotMatch(started({ version: 2, plugins: { "forge@forge-local": "not a list" } }), /Restart/u);
   assert.doesNotMatch(started({ version: 2, plugins: { "other@elsewhere": [{ version: "1.0.0" }] } }), /Restart/u);
-});
-
-test("the feedback folder is the checkout's, found beside this copy or through the marketplace record", async () => {
-  const { feedbackDir } = await import("../../src/tools/plugin-copy.mjs");
-  const room = tempRoom("feedback-dir-");
-  try {
-    const checkout = join(room, "checkout");
-    mkdirSync(join(checkout, "feedback"), { recursive: true });
-    writeFileSync(join(checkout, "feedback", "README.md"), "# shape\n");
-    const plugin = (root, name) => {
-      mkdirSync(join(root, ".claude-plugin"), { recursive: true });
-      writeFileSync(join(root, ".claude-plugin", "plugin.json"), JSON.stringify({ name, version: "1.0.0" }));
-    };
-    plugin(join(checkout, "plugin"), "forge");
-    mkdirSync(join(checkout, ".claude-plugin"));
-    writeFileSync(
-      join(checkout, ".claude-plugin", "marketplace.json"),
-      JSON.stringify({ plugins: [{ name: "forge", source: "./plugin" }] }),
-    );
-    const other = join(room, "other");
-    mkdirSync(join(other, "feedback"), { recursive: true });
-    mkdirSync(join(other, ".claude-plugin"));
-    writeFileSync(join(other, "feedback", "README.md"), "# someone else's\n");
-    writeFileSync(join(other, ".claude-plugin", "marketplace.json"), JSON.stringify({ plugins: [{ name: "x", source: "./p" }] }));
-    const cache = join(room, "cache", "plugin");
-    plugin(cache, "forge");
-    const markets = join(room, "known_marketplaces.json");
-    writeFileSync(markets, JSON.stringify({
-      other: { source: { source: "directory", path: other } },
-      local: { source: { source: "directory", path: checkout } },
-    }));
-    const none = join(room, "missing.json");
-    assert.equal(feedbackDir(join(checkout, "plugin"), markets, none), join(checkout, "feedback"));
-    assert.equal(feedbackDir(cache, markets, none), join(checkout, "feedback"), "one marketplace ships forge: the cache copy finds it");
-    assert.equal(feedbackDir(cache, none, none), null, "no checkout reachable is no path at all");
-    const twin = join(room, "twin");
-    plugin(join(twin, "plugin"), "forge");
-    mkdirSync(join(twin, "feedback"), { recursive: true });
-    mkdirSync(join(twin, ".claude-plugin"));
-    writeFileSync(join(twin, "feedback", "README.md"), "# a second forge\n");
-    writeFileSync(join(twin, ".claude-plugin", "marketplace.json"), JSON.stringify({ plugins: [{ name: "forge", source: "./plugin" }] }));
-    const both = join(room, "both.json");
-    writeFileSync(both, JSON.stringify({
-      twin: { source: { source: "directory", path: twin } },
-      local: { source: { source: "directory", path: checkout } },
-    }));
-    assert.equal(feedbackDir(cache, both, none), null, "two marketplaces ship forge and no record says which installed this copy");
-    const record = join(room, "installed_plugins.json");
-    writeFileSync(record, JSON.stringify({ plugins: { "forge@local": [{ installPath: cache, version: "1.0.0" }] } }));
-    assert.equal(feedbackDir(cache, both, record), join(checkout, "feedback"), "the install record names the marketplace");
-    writeFileSync(record, JSON.stringify({ plugins: {
-      "forge@twin": [{ installPath: join(room, "elsewhere"), version: "1.0.0" }],
-      "forge@local": [{ installPath: cache, version: "1.0.0" }],
-    } }));
-    assert.equal(feedbackDir(cache, both, record), join(checkout, "feedback"), "the exact install path outranks a shared version");
-    writeFileSync(record, JSON.stringify({ plugins: {
-      "forge@twin": [{ installPath: join(room, "a"), version: "1.0.0" }],
-      "forge@local": [{ installPath: join(room, "b"), version: "1.0.0" }],
-    } }));
-    assert.equal(feedbackDir(cache, both, record), null, "a version two marketplaces hold names neither");
-    assert.equal(feedbackDir(cache, markets, record), null, "and an ambiguous record is not rescued by the one marketplace still known");
-  } finally {
-    rmSync(room, { recursive: true, force: true });
-  }
 });

@@ -186,9 +186,11 @@ export const noticeFor = ({ kind, named, left }) => {
 };
 
 const FENCE = /^⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧\s*$/gmu;
-const working = (rows) =>
+
+export const openTitles = (rows) =>
   rows.filter((one) => !SETTLED.includes(one.status)).map((one) => ({
     issueId: one.issueId ?? "",
+    documentId: one.documentId ?? null,
     title: String(one.title ?? "").replace(FENCE, "").trim(),
   }));
 
@@ -331,8 +333,9 @@ const sectionGaps = (text, shape, among) =>
   });
 
 /** Every gap the body decides with no tracker read, and the one line a shortfall no gap refuses
- *  earns. `fix` is returned rather than refused: what clears it is the route the caller named. */
-export const shapeOf = ({ title, body, kind = null }) => {
+ *  earns. `fix` is returned rather than refused: what clears it is the route the caller named.
+ *  `everySection` is for a filing with no such route and no light path — docs/cli/feedback.md. */
+export const shapeOf = ({ title, body, kind = null }, { everySection = false } = {}) => {
   const text = String(body ?? "");
   const written = text.replace(FENCE, "").replace(MARK, "").trim();
   if (!written) {
@@ -363,9 +366,11 @@ export const shapeOf = ({ title, body, kind = null }) => {
       `set the kind to one of ${KIND_NAMES.join(", ")} ${RESEND}`));
     return { gaps, fix: false, tokens, said: null };
   }
-  if (isFix(text)) return { gaps, fix: false, tokens, said: null };
+  if (!everySection && isFix(text)) return { gaps, fix: false, tokens, said: null };
   const rule = sectionUnder(text, RULES.heading);
-  if (!rule && !held(text, SCOPE).ok && tokens.length) return { gaps, fix: true, tokens, said: null };
+  if (!everySection && !rule && !held(text, SCOPE).ok && tokens.length) {
+    return { gaps, fix: true, tokens, said: null };
+  }
   const shape = shapeFor(kind);
   const headings = headingsOf(text);
   const among = headings.length
@@ -381,7 +386,7 @@ export const shapeOf = ({ title, body, kind = null }) => {
  *  below, and what neither reaches is said aloud. ISS-17 owes the cursor. */
 export const liveTitles = async () => {
   const rows = rowsOf(await listIssues({}, MAX_LIMIT));
-  return { live: working(rows), short: truncated(rows, MAX_LIMIT) };
+  return { live: openTitles(rows), short: truncated(rows, MAX_LIMIT) };
 };
 
 /** At the threshold this repository's own documents are held to, so one measure covers both. */
@@ -394,7 +399,7 @@ export const duplicateOf = ({ title, body }, live, threshold = DEFAULT_OVERLAP_T
 
 const searched = async (token, most = CANDIDATES) => {
   const asked = Math.min(most + SETTLED.length, MAX_LIMIT);
-  return working(rowsOf(await listIssues({ search: token }, asked))).slice(0, most);
+  return openTitles(rowsOf(await listIssues({ search: token }, asked))).slice(0, most);
 };
 
 /* The page is a floor, and a search for a name is bound only by the tracker's own ceiling: what the
@@ -423,6 +428,12 @@ const fixRoutes = (tokens, candidates) => [
 
 const rendered = (gaps) =>
   gaps.map((one) => `- read: ${one.read}\n  wants: ${one.wants}\n  clear: ${one.clear}`).join("\n");
+
+const SHAPE_HEAD = "Hold — this files an issue the flow cannot carry. Each line below is what was read, "
+  + "what the shape wants and the one command that clears it.";
+
+export const shapeRefusal = ({ gaps }) =>
+  (gaps.length ? [SHAPE_HEAD, rendered(gaps)].join("\n\n") : null);
 
 /** The refusal, or null, and the guide with it. The read is handed in rather than taken: what a
  *  caller wants off one body may be this or the line `shapeOf` returns beside the gaps, and a body
@@ -454,8 +465,7 @@ export const refusalFrom = async (filing, { gaps, fix, tokens }, { routed = fals
     ? `Hold — this body names ${tokens[0]}, carries no rule or invariant and no out-of-scope, and reads as a `
       + "fix: the flow costs a confirmation, a decision, a plan, criteria, a baseline, a review, a verdict per "
       + "criterion, a verification, a release note and eight transitions whatever the size. Name a route:"
-    : "Hold — this files an issue the flow cannot carry. Each line below is what was read, what the shape "
-      + "wants and the one command that clears it.";
+    : SHAPE_HEAD;
   return [head, out.length ? rendered(out) : null, routes].filter(Boolean).join("\n\n");
 };
 

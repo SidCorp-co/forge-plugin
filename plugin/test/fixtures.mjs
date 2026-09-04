@@ -11,9 +11,9 @@ export const callHook = (hook, event, env = process.env) =>
 
 /* A child awaited rather than waited on: anything that asks a server the test itself is running
    deadlocks under `spawnSync`, which holds the loop that would answer it. */
-export const ranAsync = (command, argv, env = process.env) =>
+export const ranAsync = (command, argv, env = process.env, cwd = process.cwd(), stdin = null) =>
   new Promise((done) => {
-    const child = spawn(command, argv, { env });
+    const child = spawn(command, argv, { env, cwd });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => {
@@ -23,7 +23,7 @@ export const ranAsync = (command, argv, env = process.env) =>
       stderr += chunk;
     });
     child.on("close", (status) => done({ stdout, stderr, status }));
-    child.stdin.end();
+    child.stdin.end(stdin ?? undefined);
   });
 
 export const callHookAsync = (hook, event, env = process.env) =>
@@ -150,10 +150,15 @@ export const fakeTracker = async (state) => {
     return { comments: held, returned: held.length, hasMore: false };
   };
   const served = createServer(async (request, response) => {
+    if (state.status) {
+      response.writeHead(state.status, { "Content-Type": "text/plain" });
+      response.end("no");
+      return;
+    }
     const call = await body(request);
     const name = call.params?.name;
     const args = call.params?.arguments ?? {};
-    (state.calls ??= []).push({ name, args });
+    (state.calls ??= []).push({ name, args, slug: request.headers["x-forge-project-slug"] });
     let result = { tools: DECLARED.map(declaration) };
     const own = (state.answer ?? {})[name];
     /* A handler answering `{ refused }` is the tool's own refusal, which the transport reads from

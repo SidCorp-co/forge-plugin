@@ -56,9 +56,16 @@ export const noteShown = (session, documentId, comments) => {
   }
 };
 
-/* A comment this run wrote is one it read: credited, or its own record refuses its next write. */
-export const postComment = async (documentId, body, ev = null) => {
-  const answer = await write("forge_comments", { action: "create", data: { issue: documentId, body } });
+/* A comment this run wrote is one it read: credited, or its own record refuses its next write. A
+   refusal handed back credits nothing, there being no comment to have read. */
+export const postComment = async (documentId, body, ev = null, soft = false) => {
+  const answer = await write(
+    "forge_comments",
+    { action: "create", data: { issue: documentId, body } },
+    undefined,
+    soft,
+  );
+  if (answer?.refused) return answer;
   noteShown(sessionKey(ev), documentId, [answer, answer?.comment].filter(Boolean));
   return answer;
 };

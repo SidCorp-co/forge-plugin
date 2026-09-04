@@ -33,6 +33,7 @@ import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } fr
 import { doctor } from "./tools/doctor.mjs";
 import { deps } from "./tracker/deps.mjs";
 import { cloudflare } from "./tools/cloudflare.mjs";
+import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
 import { hooks } from "./hooks/hook-log.mjs";
 import { record } from "./flow/record.mjs";
@@ -152,6 +153,7 @@ export const commands = {
   spec,
   deps,
   cloudflare,
+  feedback,
   codex,
   hooks,
   tools: async (rest) => {
@@ -367,3 +369,4 @@ export const commands = {
 };
 
 commands.new.answersHelp = true;
+commands.feedback.answersHelp = true;

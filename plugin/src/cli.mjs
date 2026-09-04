@@ -5,7 +5,7 @@ import { commands } from "./commands.mjs";
 import { suggest } from "./suggest.mjs";
 import { blockedBy, helpLine, helpOf, offeredVerbs } from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
-import { feedbackDir } from "./tools/plugin-copy.mjs";
+import { fail } from "./resolve/settings.mjs";
 
 const offered = offeredVerbs();
 
@@ -44,13 +44,9 @@ const MORE = "\nWhat to type for one verb: `forge <verb> -h`, with the schema be
   + " fields it\ntakes, where it takes any. The write-time rules a first issue gets wrong:"
   + " `forge -h --full`.";
 
-const FEEDBACK_DIR = feedbackDir();
-const FEEDBACK = FEEDBACK_DIR
-  ? `\nFeedback on this CLI, from any project: one Markdown file per note in\n${FEEDBACK_DIR}/`
-    + " (its README carries the shape). A wrong refusal, a missing way out, a verb that surprised you:"
-    + " write it there, not in a tracker."
-  : "\nFeedback on this CLI goes in the feedback/ folder beside the plugin's source checkout, which this"
-    + " copy cannot locate: no local marketplace on this machine ships it.";
+const FEEDBACK = "\nFeedback on this CLI, from any project: `forge feedback <note.md> --title \"<one"
+  + ' line>"`, which files it as a bug on this plugin\'s own project wherever you are standing. A wrong'
+  + " refusal, a missing way out, a verb that surprised you: send it there, before the workaround.";
 
 const [command, ...rest] = process.argv.slice(2);
 const asked = command === "-h" || command === "--help";
@@ -88,6 +84,6 @@ if (!commands[command].answersHelp && wantsHelp(rest)) {
 try {
   await commands[command](rest);
 } catch (error) {
-  console.error(`forge ${command} failed: ${error?.message ?? error}`);
-  process.exit(1);
+  /* Through `fail`, so a verb holding a payload nothing else holds gets it printed on a throw too. */
+  fail(`forge ${command} failed: ${error?.message ?? error}`);
 }

@@ -47,12 +47,11 @@ have known: [`references/two-levels.md`](references/two-levels.md).
 
 **5. Learn selectively, and encode rather than write.** Most rounds record nothing.
 `references/learning.md` holds the test, the categories and the destinations. One thing is
-always written, the moment it happens: a defect in this plugin — `forge` refused you and left
-no route, a gate fired on the right shape, a phase here sent you wrong — goes as a note into the
-plugin's feedback folder, whose path `forge -h` prints and whose README gives the shape; where
-`-h` says this copy cannot locate the folder, the same note goes in the run's final report under
-its own heading. It is written before the workaround, not after: a wall worked around in silence
-stands for the next run too, and the note is how the plugin learns.
+always filed, the moment it happens: a defect in this plugin — `forge` refused you and left
+no route, a gate fired on the right shape, a phase here sent you wrong — goes to the plugin's own
+backlog through `forge feedback`, whichever project the run is in, and the verb takes no lease.
+It is filed before the workaround, not after: a wall worked around in silence stands for the next
+run too, and the issue is how the plugin learns. Its key goes in the run's report.
 
 ## Autonomy, and the three things that stop it
 
@@ -209,8 +208,8 @@ temporary data and scratch files go, and the user's stack is confirmed still ans
 outlives the run is what a verdict cites, attached where the verdict is; everything else goes.
 
 Then apply Rule 5. Most rounds record nothing. Check, do not write: every plugin defect the run
-met already has its note from the moment it was met, and one that does not is itself a defect of
-this run to report.
+met is already an issue on the plugin's backlog from the moment it was met, and one that is not is
+itself a defect of this run to report.
 
 **Then go back to Phase 1.** The run ends when no unblocked issue is left, not when one
 issue is done — a workflow that stops after each issue makes the user the scheduler, which

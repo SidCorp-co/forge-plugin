@@ -31,6 +31,9 @@ export const VERBS = [
   ["codex", "<consult|verdict|pending|show|log|stats|replay>", "a second model reviews what this turn changed"],
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
     "what the gates refused, why one does, which are off", null],
+  /* No `needs`, though it writes: the gates below are the CALLER's project's — docs/cli/feedback.md. */
+  ["feedback", "<file.md|@file|-> --title T",
+    "a defect in this plugin, filed as a bug on the plugin's own project from any checkout", null],
   ["doctor", "[--token t] [--url u] [--hide v|--show v] [--full]", "what resolves, and from where"],
   ["tools", "[--all]", "the reachable surface"],
   ["schema", "<tool>", "one tool's arguments"],
@@ -41,7 +44,6 @@ export const VERB_NAMES = VERBS.map(([verb]) => verb);
 
 const rowFor = (verb) => VERBS.find(([name]) => name === verb);
 
-/* The usage line lived twice and had drifted four ways. */
 export const usageOf = (verb) => {
   const row = rowFor(verb);
   return `Usage: forge ${verb}${row?.[1] ? ` ${row[1]}` : ""}`;

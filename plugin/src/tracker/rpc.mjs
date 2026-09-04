@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 import { configDir, once, readJson } from "../resolve/config.mjs";
 import { suggest } from "../suggest.mjs";
-import { fail, projectScope, projectSlug, settings, translateScope } from "../resolve/settings.mjs";
+import { fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
 
 const RETRY_ATTEMPTS = 4;
@@ -135,7 +135,7 @@ const misplaced = async (name, rendered) => {
 
 const post = async (method, params) => {
   const { url, token } = settings();
-  const slug = projectScope().value;
+  const slug = projectTarget().value;
   return fetch(url, {
     method: "POST",
     headers: {
@@ -274,21 +274,22 @@ export const refuseCredential = async (value, what) => {
   if (found) fail(held.leakRefusal(found, what));
 };
 
-/* Every write announces its target: the cwd picks the project and there is no delete action. The
-   payload it sent is handed back to a caller that asks, because on a project with a prose language
-   that copy and the one the caller wrote are different documents, and only the first can be read
-   back and compared. */
-export const write = async (name, args, onSent) => {
+/* Every write announces its target: the cwd usually picks the project, one verb aims it elsewhere,
+   and there is no delete action. The payload it sent is handed back to a caller that asks, because
+   on a project with a prose language that copy and the one the caller wrote are different
+   documents, and only the first can be read back and compared. `soft` hands the tool's own refusal
+   back instead of exiting, for the caller that has something to say before the body is lost. */
+export const write = async (name, args, onSent, soft = false) => {
   await refuseCredential(args.data, `The payload ${name} was about to send`);
-  const project = projectScope();
-  const language = translateScope();
+  const project = projectTarget();
+  const language = translateTarget();
   console.error(
     `${name} -> project ${project.value ?? "(none)"} (from ${project.from ?? "nowhere"}), ` +
       `prose ${language.value ?? "as written"}`,
   );
   const data = args.data ? translated(args.data) : null;
   onSent?.(data);
-  return scoped(name, data ? { ...args, data } : args);
+  return scoped(name, data ? { ...args, data } : args, soft);
 };
 
 /* `doctor` refreshes it, because a credential change can change which tools are declared. */

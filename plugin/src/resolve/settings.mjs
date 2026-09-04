@@ -6,8 +6,16 @@ import { dirname, join, resolve } from "node:path";
 
 import { CONFIG_PATH, once, readJson, userConfig } from "./config.mjs";
 
+/* Registered by a caller holding something no exit may lose — a body that arrived on stdin. */
+let kept = null;
+
+export const keepOnFailure = (text) => {
+  kept = text;
+};
+
 export const fail = (message) => {
   console.error(message);
+  if (kept) console.error(kept);
   process.exit(1);
 };
 
@@ -89,6 +97,15 @@ export const settings = once(() => {
 
 export const projectScope = once(() => sourced(".forge.json", forgeJson().parsed?.slug));
 
+/* Where a project-scoped call GOES, which is not always the checkout it came from: docs/cli/feedback.md. */
+let aimed = null;
+
+export const useProject = ({ slug, from, prose = null }) => {
+  aimed = { value: slug, from, prose };
+};
+
+export const projectTarget = () => (aimed ? { value: aimed.value, from: aimed.from } : projectScope());
+
 /* Which paths, and which angles, are the checkout's answer: the account's covers every one. */
 export const projectRecordPattern = () => sourced(".forge.json", forgeJson().parsed?.codex?.pathRe);
 export const projectCodex = () => forgeJson().parsed?.codex ?? {};
@@ -99,10 +116,10 @@ export const projectCodex = () => forgeJson().parsed?.codex ?? {};
 export const projectRoot = once(() => forgeJson().root ?? checkoutRoot());
 
 /* The slug is a header when there is one, and an error only for a call needing a project id. */
-export const slugIfAny = () => projectScope().value;
+export const slugIfAny = () => projectTarget().value;
 
 export const projectSlug = () => {
-  const { value } = projectScope();
+  const { value } = projectTarget();
   if (!value) {
     fail(
       'This call is project-scoped and no project slug is set. Put `{ "slug": "<project>" }`\n' +
@@ -121,7 +138,10 @@ export const translateScope = once(() => {
   return off ? { value: null, from: chosen.from } : { value: String(chosen.value), from: chosen.from };
 });
 
-export const translateTo = () => translateScope().value;
+export const translateTarget = () =>
+  (aimed ? { value: aimed.prose, from: aimed.from } : translateScope());
+
+export const translateTo = () => translateTarget().value;
 
 const DEFAULT_PROSE = {
   marker: "those edges are recorded",

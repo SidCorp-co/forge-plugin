@@ -76,13 +76,13 @@ test("what a verb takes is named, where there is anything to take", () => {
   assert.ok(!helpOf("project").includes("forge schema"), helpOf("project"));
 });
 
-/* An agent in another project learns where feedback goes from `-h` or from nowhere. */
-test("both help forms name the checkout's feedback folder by absolute path", () => {
-  const folder = new URL("../../../feedback", import.meta.url).pathname;
+/* An agent in another project learns where a defect in this plugin goes from `-h` or from nowhere. */
+test("both help forms name the verb a plugin defect is filed with, and no folder", () => {
   for (const argv of [["-h"], ["-h", "--full"]]) {
     const run = ask(...argv);
     assert.equal(run.status, 0);
-    assert.ok(run.stdout.includes(`${folder}/`), `forge ${argv.join(" ")} does not name ${folder}`);
+    assert.match(run.stdout, /forge feedback/u, `forge ${argv.join(" ")} names no route for a defect`);
+    assert.doesNotMatch(run.stdout, /feedback\//u, `forge ${argv.join(" ")} still points at a folder`);
   }
 });
 

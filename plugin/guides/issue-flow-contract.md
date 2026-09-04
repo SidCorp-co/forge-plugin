@@ -423,7 +423,8 @@ moved: it is a record with their words in it, and the count of reopens the track
 is the one fact saying this has happened before. A defect the builder finds in the project's own change
 after its issue is closed is not a reopen either: it goes to the nearest open issue of that project
 that owns it, or to a new filing there, and the closed issue gets one note saying where. A defect
-in this plugin met along the way is the skill's feedback note, whichever project the run is in.
+in this plugin met along the way goes to the plugin's own backlog through `forge feedback`,
+whichever project the run is in.
 
 **A disposition is a drop with its finding as the reason.** A confirmation whose finding is a
 disposition earns `confirmed` and, on the next advance, `dropped`; the same comment is the evidence
