@@ -1177,3 +1177,21 @@ from the record.
 - The page refusal again, at forty-three comments with the tracker saying which cap bit; the correction
   went to ISS-17 rather than a duplicate, and a gap record says the last two transitions were by hand.
   ISS-131 is running on the CLI half.
+
+## Forty-second dry run — ISS-102
+
+One agent made every miss doctor prints reach its exit code and no note (3.35.48): the tally moved
+into the one function that prints a line, the per-check threading went, so a level and the status
+cannot disagree. The issue named three uncounted sites; the run found nine and judged each on its own —
+a cloudflare credential, the codex key at two sites, a server-gated probe, an absent project slug and an
+unset release branch are notes that still name their fix; the translation login is a miss only where the
+project declares translation; a stale MCP file and a switch naming no hook stay misses and now fail the run, so
+anything reading doctor's exit code sees one where it saw zero. Thirteen verdicts, ten of nineteen cases
+red against the pre-change file, both halves verified from the installed copy. Codex's one major — the
+document claimed the exit code was the count of misses — accepted and fixed before the commit. A skill
+reference moved, so the restart owed stood. Closed by its run. Folded from the record.
+
+- The ship step looks up a mark's review issue with an open-status filter, so the review issue leaving
+  `open` between two ships made the same mark answer twice; the second filed a duplicate that only the
+  tracker's own gate stopped, then reported the refusal as the tracker not answering and printed the
+  refused filing as the route out. ISS-140, filed against the script another run held.
