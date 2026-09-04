@@ -134,7 +134,7 @@ plugin/
     gateway/              config, the streaming client, the batch engine with its gate
     commands/             one file per verb
   skills/forge  skills/vi-natural  skills/issue-flow
-  skills/audit-code-quality  skills/setup-code-quality
+  skills/audit-code-quality  skills/setup-code-quality  skills/gate-review
 ```
 
 ## Two levels
