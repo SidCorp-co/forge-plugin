@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Argument parsing and command dispatch for `vi-natural`.
 
+import { pathToFileURL } from "node:url";
+
 import { CliError, err } from "./util.mjs";
 import { Client } from "./gateway/client.mjs";
 import { Config, DEFAULT_EFFORT, EFFORTS, EFFORT_BY_VERB } from "./gateway/config.mjs";
@@ -159,7 +161,7 @@ export async function main(argv) {
   }
 }
 
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   process.on("SIGINT", () => {
     err("interrupted");
     process.exit(130);

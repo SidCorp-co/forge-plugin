@@ -1,7 +1,9 @@
 #!/usr/bin/env sh
 # Resolve through symlinks so ~/.local/bin/vi-natural finds the package.
 SELF="$0"
+LINKED=""
 while [ -L "$SELF" ]; do
+  LINKED=1
   LINK=$(readlink "$SELF")
   case "$LINK" in
     /*) SELF="$LINK" ;;
@@ -9,4 +11,7 @@ while [ -L "$SELF" ]; do
   esac
 done
 DIR=$(cd "$(dirname "$SELF")/.." && pwd)
+# The rule `forge` follows, for the same reason: one link, one machine, and whichever session wrote
+# it last decides nothing.
+[ -n "$LINKED" ] && exec node "$DIR/src/dispatch.mjs" vi-natural/cli.mjs "$@"
 exec node "$DIR/vi-natural/cli.mjs" "$@"

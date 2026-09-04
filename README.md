@@ -22,6 +22,11 @@ claude plugin install forge@forge-local
 The `SessionStart` hook symlinks both binaries into `~/.local/bin`. After a fresh install, run
 `node plugin/hooks/link-cli.mjs "$PWD/plugin"` once rather than waiting for the next session.
 
+One symlink serves the machine and the session that wrote it last decided where it points, so what
+it runs is decided per call instead: inside a checkout of this plugin, that checkout; anywhere else,
+the newest installed copy. A tree mid-refactor is therefore nobody else's problem, and `forge
+doctor` names the copy a call from the current directory would run.
+
 `install` **copies** this tree into `~/.claude/plugins/cache/forge-local/forge/<version>/`, and the
 symlinks point there. `claude plugin update` compares versions only, so an edit made without
 bumping `plugin.json` never reaches the cache — bump the version, or uninstall and install again.
@@ -88,10 +93,11 @@ feedback/                         one Markdown file per note from an agent using
                                   the shape is in its README, the path is in `forge -h`
 plugin/
   .claude-plugin/plugin.json      the plugin manifest, name: forge
-  bin/forge  bin/vi-natural       PATH entry points, symlink-resolving
+  bin/forge  bin/vi-natural       PATH entry points; reached through the link, they dispatch
   guides/issue-flow-contract.md   the contract a status is earned under, served a part at a time
   src/                            the forge CLI
     cli.mjs          argv, the usage list, the write-time rules
+    dispatch.mjs     which copy a call through the PATH link runs
     commands.mjs     one function per verb
     suggest.mjs      the near miss every refusal offers
     flow/            the lease, the typed records, what each status is earned by

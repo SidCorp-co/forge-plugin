@@ -19,7 +19,7 @@ import {
 } from "../checks/claude-md.mjs";
 import { cloudflareAccounts } from "./cloudflare.mjs";
 import { modelBehind, profile } from "../codex/codex-api.mjs";
-import { pluginCopy } from "./plugin-copy.mjs";
+import { copyToRun, pluginCopy } from "./plugin-copy.mjs";
 import { LOG_PATH, consults, logEntries } from "../codex/codex-log.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
@@ -442,6 +442,11 @@ export const doctor = async (rest) => {
     line(NOTE, "plugin copy", `${copy.running} here, ${copy.installed} installed — a session keeps the `
       + "copy it started with: `claude plugin update` then restart");
   }
+  /* Which copy `forge` on PATH is, from here — the answer changes with the directory, and the link
+     itself names one copy for the whole machine. */
+  const dispatched = copyToRun();
+  line(OK, "copy on PATH", `${dispatched.kind} ${dispatched.version ?? "?"} at ${dispatched.dir}`
+    + ` — ${dispatched.why}`);
   const contractBroken = checkContract();
   const vi = checkVi();
   const canWrite = language.value ? language.value === "vi" && vi : true;

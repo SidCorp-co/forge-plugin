@@ -85,3 +85,18 @@ test("the environment is not a source for the gateway", () => {
 test("the gateway is reported with no translate scope set", () => {
   assert.match(report(null), /\[ miss \] vi-natural gateway/);
 });
+
+/* Which copy `forge` on PATH is depends on where it is typed, and one link serves the machine, so
+   the report answers for this directory and says what decided it. */
+test("the copy a call through the link would run is reported, with why that one", () => {
+  const outside = report(null);
+  assert.match(outside, /\[ {2}ok {2}\] copy on PATH\s+this \S+ at \S+ — no checkout at or above the working directory/u);
+  const home = mkdtempSync(join(tmpdir(), "doctor-home-"));
+  const tree = join(dirname(CLI), "..", "..");
+  const inside = spawnSync(process.execPath, [CLI, "doctor"], {
+    encoding: "utf8",
+    cwd: tree,
+    env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+  });
+  assert.match(inside.stdout, /\[ {2}ok {2}\] copy on PATH\s+checkout \S+ at \S+ — the working directory is inside the checkout/u);
+});

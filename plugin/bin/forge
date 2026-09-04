@@ -1,7 +1,9 @@
 #!/usr/bin/env sh
 # Resolve through symlinks so ~/.local/bin/forge finds the package.
 SELF="$0"
+LINKED=""
 while [ -L "$SELF" ]; do
+  LINKED=1
   LINK=$(readlink "$SELF")
   case "$LINK" in
     /*) SELF="$LINK" ;;
@@ -9,4 +11,7 @@ while [ -L "$SELF" ]; do
   esac
 done
 DIR=$(cd "$(dirname "$SELF")/.." && pwd)
+# A link is the one on PATH, so the copy is ambient and the working directory picks it. Invoked by
+# its own path, this copy is the one the caller named: run it.
+[ -n "$LINKED" ] && exec node "$DIR/src/dispatch.mjs" src/cli.mjs "$@"
 exec node "$DIR/src/cli.mjs" "$@"

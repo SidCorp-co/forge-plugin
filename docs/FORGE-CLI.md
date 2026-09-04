@@ -709,6 +709,16 @@ Writes translate before they post, so a missing `vi-natural` key fails writes wh
 the exit code follows the stricter one. The gateway url and model are read beside the key, because a
 saved key alone is configuration that looks complete and dies at the first call.
 
+**And it names the copy a call from here would run.** `~/.local/bin/forge` is one symlink for the
+machine, written from whichever plugin root a session started with, so for two days every project on
+this machine ran this checkout: one of them died on a `SyntaxError` from a refactor half-finished
+here, and another silently ran an unreleased build. A call that arrived through that link now picks
+its copy per call — the checkout the working directory sits in, else the newest installed copy the
+record resolves to — and the report has to answer for a directory rather than for the machine,
+because the answer changes with `cd`. A call that names a copy by its own path still runs that copy:
+the probe of a worktree, the suite's own spawns and the bundled `vi-natural` all mean the copy they
+name, and a caller who typed a path was not asking.
+
 ## Which gates run
 
 The names are the hooks directory, read, so a hook added later is switchable without editing anything
