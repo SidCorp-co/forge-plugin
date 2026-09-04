@@ -109,3 +109,20 @@ test("a payload holding no credential is sent, and a project holding none refuse
   assert.equal(through.status, 0, through.stderr);
   state.deploy = deploy;
 });
+
+test("a record carrying the credential is refused too, since the guard reads no list of kinds", async () => {
+  const run = await ask("record", "park", "ISS-1", "--kind", "paused",
+    "--why", `stopped at the login wall; the password on file is ${PASSWORD}`);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /carries this project's test credentials · password, at [a-zA-Z]/u);
+});
+
+test("a write goes through where the deploy could not be read at all", async () => {
+  const room = tempHome("project-unread");
+  const body = join(room.path, "secret.md");
+  writeFileSync(body, `Signed in with ${PASSWORD}.\n`);
+  state.answer["forge_projects.get"] = () => ({ refused: "this credential may not read the project" });
+  const run = await ask("comment", "ISS-1", body);
+  state.answer["forge_projects.get"] = () => ({ project: { previewDeploy: state.deploy } });
+  assert.equal(run.status, 0, `a refusal caused by a read this CLI could not make has no way out: ${run.stderr}`);
+});

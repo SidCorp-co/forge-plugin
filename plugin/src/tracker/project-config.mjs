@@ -58,8 +58,8 @@ export const leaves = (value, at = []) => {
   return [];
 };
 
-/* In words: an index distinguishes nothing, `url` alone says nothing the heading does not. */
 const labelOf = (at) => {
+  /* An index distinguishes nothing, and `url` alone says nothing the heading does not. */
   const path = at
     .filter((one) => !/^\d+$/u.test(one))
     .map((one) => one.replace(/([a-z0-9])([A-Z])/gu, "$1 $2").toLowerCase());
@@ -112,8 +112,7 @@ export const stagingDeploy = once(async () => {
 });
 
 /* Above the length, refused wherever a payload holds it; below it, only where a field is it,
-   quoting aside — a credential field can hold `admin`, and refusing that word refuses everything.
-   That edge is stated in docs/FORGE-CLI.md: a wider claim is one this cannot keep. */
+   quoting aside — a field can hold `admin`. docs/FORGE-CLI.md states that edge rather than more. */
 const SECRET = 12;
 const bare = (text) => text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
 
@@ -149,8 +148,11 @@ export const projectLines = ({ id, policy, deploy, credentials }) => {
   for (const one of deploy.urls) out.push(`  ${one.label}: ${one.url}`);
   for (const one of deploy.notes) out.push(`  notes: ${one}`);
   const held = deploy.withheld;
-  out.push(`  test credentials: ${held.length ? "present, forge project --credentials" : "none"}`);
-  if (!credentials) {
+  const asked = credentials && held.length;
+  /* The without-flag wording is the issue's, and pointing at a flag the caller just used is not. */
+  out.push(`  test credentials: ${held.length
+    ? (asked ? "below, printed once" : "present, forge project --credentials") : "none"}`);
+  if (!asked) {
     if (held.length) out.push(`  held, not printed: ${held.map((one) => one.label).join(", ")}`);
     return out;
   }

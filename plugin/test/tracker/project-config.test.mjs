@@ -123,6 +123,8 @@ test("the flag prints the values, and nothing else moves", () => {
   assert.match(out, /^ {2}test credentials · password: correct-horse-battery$/mu);
   assert.match(out, /^ {2}test credentials · username: qa@example\.test$/mu);
   assert.doesNotMatch(out, /held, not printed/u);
+  assert.match(out, /^ {2}test credentials: below, printed once$/mu,
+    "and the summary stops pointing at the flag the caller just used");
   assert.match(out, /^ {2}staging url: https:\/\/beta\.example\.test$/mu);
 });
 
