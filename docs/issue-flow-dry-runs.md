@@ -1156,3 +1156,24 @@ measure and decide by volume" — is the repository's, and nothing about a readi
   evidence route refuses; it bit this run's own evidence. ISS-137.
 - The ship step's first automatic filing spanned twelve releases because the mark had waited for this
   change; the review it filed runs as the fortieth run closes.
+
+## Forty-first dry run — ISS-101
+
+One agent gave the checkers' markdown primitives one home (3.35.46): the code-span strip, the table row
+and separator, the link target, declared once and imported by every checker, with two copies beyond the
+issue's inventory found and folded — a fourth span strip inside a structure check and a link-text pattern
+declared twice byte for byte — and declared in the plan before the work. The three decisions the issue
+demanded were measured: the unquoted form stays one alternation because two sequential passes are
+provably not equivalent where a span and a quoted run interleave; the row margin admits a carriage return
+because the plain form would have silently stopped one gate breaking a block at a table row on a CRLF
+checkout in a repository this tree cannot see; the separator became whitespace-tolerant because the
+strict copy refused a correct index with a message naming a missing header. Five probes watched the guards
+fire, and one showed the corpus test could not tell the link-target change, so a pinning test was added
+and the criterion corrected in the open. Codex found nothing. No restart owed. Closed by its run. Folded
+from the record.
+
+- Two copies remain and were named only in the closed plan, which would have reproduced the very
+  condition the issue documented; ISS-138 carries them.
+- The page refusal again, at forty-three comments with the tracker saying which cap bit; the correction
+  went to ISS-17 rather than a duplicate, and a gap record says the last two transitions were by hand.
+  ISS-131 is running on the CLI half.
