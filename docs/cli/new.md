@@ -63,7 +63,9 @@ Required is refused and nice-to-have is said, because the two shortfalls cost di
 missing the section its kind is defined by cannot be confirmed at all, and pays that again at every
 status; one that does not say where costs a reader a single search. A filing naming no kind is read
 as a feature — the shape every filing was held to before kinds existed, so nothing filed under the
-older rule is refused for having followed it — and told so on the way past. The field is left empty
+older rule is refused for having followed it — and told so on the way past. A body carrying the mark
+is read against no section and against no kind, so it is told nothing: the mark is already the answer
+to what shape the flow should ask of it. The field is left empty
 rather than defaulted, because a value written there for a filing that chose nothing reads later as
 a kind somebody chose, and the measurement above is what that spoils.
 

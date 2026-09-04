@@ -168,8 +168,9 @@ export const KINDS_HELP = [
   ...KINDS.flatMap(kindRows),
   "",
   "A heading is matched by family and not by that wording: `Business rules` is a rule section and",
-  "`What it is now` is a today one. A body marked `Size: fix.` is read against no section at all.",
-  `A filing naming no kind is read as a ${DEFAULT_KIND} and told so.`,
+  `\`What it is now\` is a today one. A filing naming no kind is read as a ${DEFAULT_KIND} and told`,
+  "so. A body marked `Size: fix.` is read against no section and against no kind, so nothing is read",
+  "of it and nothing is said.",
 ].join("\n");
 
 /** One line or nothing: what the body was read as, and what it left out. Neither is a refusal. */

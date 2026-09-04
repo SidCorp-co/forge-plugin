@@ -126,8 +126,10 @@ test("a body marked `Size: fix.` is read against no section, whatever kind it na
   for (const kind of [...KIND_NAMES, null]) {
     const read = gapsOf(marked, kind);
     assert.deepEqual(read.gaps, [], String(kind));
-    assert.equal(read.said, null, "and nothing is said about a section it was never read for");
+    assert.equal(read.said, null, "and nothing is said about a reading that did not happen");
   }
+  assert.match(KINDS_HELP, /no section and against no kind, so nothing is read\nof it and nothing is said/u,
+    "which is what the help says, so the two cannot drift into promising a line the mark suppresses");
   /* The mark exempts the sections and not the set, and the tracker's own tool is the route that
      can carry both at once. */
   const outside = gapsOf(marked, "chore");
