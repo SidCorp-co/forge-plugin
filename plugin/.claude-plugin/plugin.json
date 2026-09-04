@@ -1,7 +1,7 @@
 {
   "name": "forge",
   "description": "Drive a Forge issue tracker from the terminal — browse, read, file and comment over the MCP endpoint with no MCP client connected, writing every issue in natural Vietnamese through the bundled vi-natural CLI. Also the global half of the two-level rule arrangement: it guards the shell commands that cannot be undone, stops once before a memory or skill write, and routes every code file a call wrote — through Edit or through the shell — to the project's own eslint, whose rules stay the project's.",
-  "version": "3.35.20",
+  "version": "3.35.21",
   "author": {
     "name": "Thanh Nguyen",
     "email": "thanhnh@sidcorp.co"
