@@ -18,15 +18,20 @@ const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
 const runIn = (cwd, argv, env = process.env) =>
   spawnSync(process.execPath, [SCRIPT, ...argv], { cwd, encoding: "utf8", env });
 
-/* The two files the script is: itself, and the one module it reads the install record through. */
-const scratch = (name) => {
+/* The three files the script is: itself, the module it reads the install record through, and the
+   git helpers it shares with the gate runner. `check` stands in for the repository's own gate,
+   which ship spends by name — the real one needs a tree this scratch checkout is not. */
+const GATE = "node -e \"console.log('scratch gate ran')\"";
+
+const scratch = (name, gate = GATE) => {
   const at = mkdtempSync(join(tmpdir(), `${name}-`));
   const work = join(at, "checkout");
-  for (const one of [SCRIPT, join("plugin", "src", "tools", "plugin-copy.mjs")]) {
+  for (const one of [SCRIPT, join("tools", "checkout.mjs"), join("plugin", "src", "tools", "plugin-copy.mjs")]) {
     mkdirSync(join(work, dirname(one)), { recursive: true });
     cpSync(join(ROOT, one), join(work, one));
   }
-  writeFileSync(join(work, "package.json"), JSON.stringify({ name: "scratch", version: "1.0.0" }, null, 2));
+  writeFileSync(join(work, "package.json"),
+    JSON.stringify({ name: "scratch", version: "1.0.0", scripts: { check: gate } }, null, 2));
   mkdirSync(join(work, ".claude-plugin"), { recursive: true });
   writeFileSync(join(work, ".claude-plugin", "marketplace.json"), JSON.stringify({ name: "scratch-local" }));
   mkdirSync(join(work, "plugin", ".claude-plugin"), { recursive: true });
@@ -60,11 +65,11 @@ const landIn = (work, path, lines, message) => {
   git(work, "commit", "-m", message);
 };
 
-/* Step 7 is `claude`, which BARE does not carry, so the release runs as far as it can and the last
+/* Step 8 is `claude`, which BARE does not carry, so the release runs as far as it can and the last
    step is then reached in a process of its own — which is how a resume reaches it too. */
 const lastStep = (work) => {
   runIn(work, ["ship"], BARE);
-  return runIn(work, ["ship", "--from", "9"], BARE);
+  return runIn(work, ["ship", "--from", "10"], BARE);
 };
 
 const ref = (work) => git(work, "rev-parse", "--verify", "--quiet", "refs/forge/reviewed").stdout.trim();
@@ -75,7 +80,7 @@ test("-h names all three steps, the resume flag and the threshold it counts agai
   const run = runIn(ROOT, ["-h"]);
   assert.equal(run.status, 0, run.stderr);
   for (const said of ["start <ISS-nn>", "ship [--from N]", "review [--done [ref]]", "--from N",
-    "worktree", "restart", "refs/forge/reviewed", "3 release(s)", "500 changed line(s)"]) {
+    "worktree", "restart", "refs/forge/reviewed", "3 release(s)", "500 changed line(s)", "npm run check"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
 });
@@ -118,9 +123,30 @@ test("ship takes a version above the remote head, pushes, and stops at the first
     `1.0.0 was already upstream, so the release owed 1.0.1:\n${run.stdout}`);
   assert.equal(git(at, "-C", join(at, "origin.git"), "rev-parse", "master").stdout.trim(),
     git(work, "rev-parse", "HEAD").stdout.trim(), "the push did not land the bump it made");
-  assert.match(run.stderr, /stopped at step 7 \(marketplace scratch-local\)/u, run.stderr);
-  assert.match(run.stderr, /Resume from there: node \S+ ship --from 7/u, run.stderr);
+  assert.ok(run.stdout.includes("scratch gate ran"), `the gate step did not spend the tree's own gate:\n${run.stdout}`);
+  assert.match(run.stderr, /stopped at step 8 \(marketplace scratch-local\)/u, run.stderr);
+  assert.match(run.stderr, /Resume from there: node \S+ ship --from 8/u, run.stderr);
   assert.ok(!run.stdout.includes("Released."), "nothing may claim a release it did not finish");
+});
+
+/* A release ships what a gate has passed. Before ISS-117 nothing here gated at all: the head was
+   pushed on the strength of whatever the session remembered running. */
+test("a red gate stops the ship before it bumps, pushes or installs anything", () => {
+  const { at, work } = scratch("gated", "node -e \"process.exit(1)\"");
+  git(at, "init", "--bare", "origin.git");
+  git(work, "init", "-b", "master");
+  committed(work, "one");
+  git(work, "remote", "add", "origin", join(at, "origin.git"));
+  git(work, "push", "origin", "HEAD:master");
+  landIn(work, "one.txt", 1, "the change");
+
+  const run = runIn(work, ["ship"], BARE);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /stopped at step 4 \(the gate\)/u, run.stderr);
+  assert.equal(JSON.parse(readFileSync(join(work, "package.json"), "utf8")).version, "1.0.0",
+    "the version was raised past a gate that had not passed");
+  assert.equal(git(join(at, "origin.git"), "rev-parse", "master").stdout.trim(),
+    git(work, "rev-parse", "HEAD~1").stdout.trim(), "the change was pushed past a red gate");
 });
 
 /* Every resume runs in a process that watched none of the steps before it, so a step reading what
@@ -138,14 +164,15 @@ test("a resumed ship commits a bump left on disk, and never says nothing moved w
   runIn(work, ["ship"], BARE);
 
   const headVersion = () => JSON.parse(git(work, "show", "HEAD:package.json").stdout).version;
-  writeFileSync(join(work, "package.json"), JSON.stringify({ name: "scratch", version: "1.0.2" }, null, 2));
-  runIn(work, ["ship", "--from", "4"], BARE);
+  writeFileSync(join(work, "package.json"),
+    JSON.stringify({ name: "scratch", version: "1.0.2", scripts: { check: GATE } }, null, 2));
+  runIn(work, ["ship", "--from", "5"], BARE);
   assert.equal(headVersion(), "1.0.2", "a version raised on disk and left uncommitted is committed by the resume");
 
-  const told = runIn(work, ["ship", "--from", "9"], BARE);
+  const told = runIn(work, ["ship", "--from", "10"], BARE);
   assert.match(told.stdout, /moved since [0-9a-f]{7}/u, told.stdout + told.stderr);
   rmSync(join(work, ".git", "forge-ship-from"));
-  const blind = runIn(work, ["ship", "--from", "9"], BARE);
+  const blind = runIn(work, ["ship", "--from", "10"], BARE);
   assert.match(blind.stderr, /no forge-ship-from in this tree's git directory/u, blind.stderr);
   assert.doesNotMatch(blind.stdout, /moved since/u, "a run that cannot compare may not tell a session it is safe");
 });

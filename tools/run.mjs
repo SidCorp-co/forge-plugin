@@ -9,12 +9,11 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { pluginCopy } from "../plugin/src/tools/plugin-copy.mjs";
+import { checkoutRoot, defaultBranch, git, gitOut, REMOTE, Stop, stop } from "./checkout.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
-const REMOTE = "origin";
 const LINKED = ["node_modules", join("packages", "code-quality", "node_modules")];
-const FALLBACK = ["master", "main"];
 
 /* Each delegated run reviews its own diff and stops there, so a helper two of them each wrote, or a
    parameter one stopped passing, is inside no run's range and found by nobody (ISS-95). The reading
@@ -34,9 +33,10 @@ const USAGE = [
   "  start <ISS-nn> [slug]   add the worktree beside this checkout, link both node_modules, and",
   "                          print the wrapper a probe of the change must invoke",
   "  ship [--from N] [--note S]",
-  "                          clean tree, fetch, rebase, a version above the remote head, push,",
-  "                          the checkout pulled, the marketplace and the plugin updated, then the",
-  "                          installed copy named and every plugin/hooks/ file the release moved",
+  "                          clean tree, fetch, rebase, `npm run check`, a version above the remote",
+  "                          head, push, the checkout pulled, the marketplace and the plugin",
+  "                          updated, then the installed copy named and every plugin/hooks/ file",
+  "                          the release moved",
   "  review [--done [ref]]   the range the next review reads, or --done to move the mark to it",
   "",
   "  --from N     resume at step N, which a failed step prints for you",
@@ -55,18 +55,6 @@ const USAGE = [
   "how a skipped reading stays visible at the next ship.",
 ].join("\n");
 
-class Stop extends Error {}
-const stop = (message) => {
-  throw new Stop(message);
-};
-
-const git = (args, cwd = process.cwd()) => spawnSync("git", args, { cwd, encoding: "utf8" });
-
-const gitOut = (args, cwd) => {
-  const run = git(args, cwd);
-  return run.status === 0 ? (run.stdout ?? "").trim() : null;
-};
-
 /* Run for the person watching: a step's own output is the evidence that it did what it says. */
 const loud = (command, args, cwd, why) => {
   const run = spawnSync(command, args, { cwd, encoding: "utf8", stdio: "inherit" });
@@ -80,26 +68,6 @@ const read = (path) => {
   } catch {
     return null;
   }
-};
-
-/* The worktree's own .git is a file pointing into the checkout's, so the common dir is the one
-   answer that is the checkout from either side of the pair. */
-const checkoutRoot = (from = HERE) => {
-  const common = gitOut(["rev-parse", "--path-format=absolute", "--git-common-dir"], from);
-  if (!common) stop(`${from} is no git checkout, so there is no repository to work in.`);
-  return dirname(common);
-};
-
-/* The remote's own answer first: a project whose default branch is neither of the two guesses is
-   exactly the project a hard-coded name ships to the wrong place. A checkout with no remote still
-   answers for `start`, and `ship` fails loudly at its fetch rather than shipping somewhere local. */
-const defaultBranch = (root) => {
-  const named = gitOut(["rev-parse", "--abbrev-ref", `${REMOTE}/HEAD`], root);
-  if (named) return named.replace(`${REMOTE}/`, "");
-  for (const ref of ["refs/remotes/origin", "refs/heads"]) {
-    for (const name of FALLBACK) if (gitOut(["rev-parse", "--verify", `${ref}/${name}`], root)) return name;
-  }
-  return stop(`no branch named ${FALLBACK.join(" or ")} resolves here and ${REMOTE} names no default. Set ${REMOTE}/HEAD.`);
 };
 
 const parts = (version) => String(version ?? "").split(".").map((one) => Number.parseInt(one, 10));
@@ -137,7 +105,7 @@ const worktreePath = (root, key) => join(dirname(root), `wt-${key}`);
 const start = ([given, slug]) => {
   const key = String(given ?? "").toUpperCase();
   if (!/^ISS-\d+$/u.test(key)) stop(`start takes the issue key it works, \`ISS-nn\`, not \`${given ?? ""}\`.`);
-  const root = checkoutRoot();
+  const root = checkoutRoot(HERE);
   const path = worktreePath(root, key);
   if (existsSync(path)) {
     stop(`${path} is already there, and start never touches a worktree it did not make. Work in it, `
@@ -317,6 +285,11 @@ const shipSteps = (tree, root, base, note) => {
     }],
     [`rebase onto ${REMOTE}/${base}`, () =>
       loud("git", ["rebase", `${REMOTE}/${base}`], tree, `Resolve it, or \`git rebase --abort\`, then ${SELF} ship --from 3`)],
+    /* After the rebase, because the range is what the release actually ships, and before the bump,
+       because the gate's record is keyed on the manifests too: run it after and every release pays
+       for a whole gate over a change of one version string. */
+    ["the gate", () => loud("npm", ["run", "check"], tree,
+      "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run.")],
     [`a version above ${REMOTE}/${base}`, () => versionAbove(tree, base, note)],
     [`push to ${REMOTE}/${base}`, () =>
       loud("git", ["push", REMOTE, `HEAD:${base}`], tree,

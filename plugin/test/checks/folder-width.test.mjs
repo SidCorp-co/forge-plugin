@@ -8,6 +8,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { STEPS } from "../../../tools/gates/steps.mjs";
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const GATE = join(ROOT, "packages", "code-quality", "bin", "code-quality-gate.mjs");
 const LIMIT = 10;
@@ -52,13 +54,12 @@ test("the same tree passes with the width check off", () => {
   }
 });
 
-/* The step, not the check: a gate that fails only when someone runs it by hand is not a gate. */
-test("the check script runs the width gate as a step of its own", () => {
+/* The step, not the check: a gate that fails only when someone runs it by hand is not a gate. The
+   step table is where a step is named, so that is where this one has to appear. */
+test("the gate runner runs the width gate as a step of its own", () => {
   const { scripts } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
   assert.match(scripts["lint:code-quality"], /\bcode-quality-gate\b/u);
-  assert.match(
-    scripts.check,
-    /\bnpm run lint:code-quality\b/u,
-    "npm run check has to name the width step, or the tree is held to it only by hand",
-  );
+  const step = STEPS.find((one) => one.label === "lint:code-quality");
+  assert.ok(step, `the gate's step table names ${STEPS.length} step(s) and none of them is the width gate`);
+  assert.ok(step.reads.length > 0, "the width step declares no reads, so nothing can say when it is stale");
 });
