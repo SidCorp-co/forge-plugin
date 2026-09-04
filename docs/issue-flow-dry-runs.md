@@ -2047,3 +2047,25 @@ reads. No restart owed. Both closed by the run. Folded from the record.
   repository asks for, so the run recorded nothing new for it.
 - Eight open issues already cover the dependency verb's refusal under a personal token; the run checked
   the list first and filed no ninth. A defect filed eight times is a fact about the filer, not the defect.
+
+## Eightieth dry run — ISS-262
+
+One agent re-landed a proven simplification the batch review had backed out (3.35.93): the shell
+typing helper lives once beside its sibling in the hooks' source module, the harness re-exports it on an
+existing line since the file is at its ceiling, and both the commit gate and the consult log spend it.
+Neutrality was re-proven against this head rather than inherited: the shared form and both replaced
+forms agree on every tracked path plus twenty built cases, and the two refusals probed end to end diff
+to nothing against the base tree. Two hook files moved, so a restart is owed. Closed by its run. Folded
+from the record.
+
+- The guard was the real deliverable: the one-copy test read two directories, which is why two copies
+  survived; it now reads every source file under the plugin's source and hooks, each row carrying its own
+  home, and was watched firing on the real shape one copy at a time. A guard that reads part of the tree
+  proves that part.
+- The review's one finding: the shell row's needle was the four bytes any shell quoting writes, so a
+  module with its own reason to write them would have been refused with no route out. Narrowed to the
+  whole escaping call, a criterion added, a correction recorded in the open. A needle that matches the
+  idiom catches the idiom, not the copy.
+- One clause deliberately not landed and handed on: the module's header still summarises what it held
+  before two helpers moved in. It sits in the issue's out-of-scope and the issue is closed, so it goes to
+  the third reading rather than landing unrecorded.
