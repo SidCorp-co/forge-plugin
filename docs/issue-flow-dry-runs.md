@@ -1816,3 +1816,27 @@ record.
 - A gap recorded: the method has no route for an approved issue whose out-of-scope line contradicts its
   own outcome, which cost a decision record and a correction. An issue reviewed against itself before
   the plan would have caught it in the confirmation.
+
+## Seventieth dry run — ISS-152
+
+One agent gave the project's knowledge store its verb (3.35.80 to 3.35.82): list, read, write and
+search over the tracker's store, the write carrying the shape the schema declares, and the rule that a
+batch reading ends by writing what it learned of the codebase — one entry per module as a reference, and
+the project brief. Three releases: the verb, one carry line the review found, and one paragraph recording
+a decision that had been true by accident — on a project with a prose language an issue description is
+translated and a knowledge entry is not, because the writer translates one argument and the store's tool
+carries its text at the top level. No restart owed. Closed by its run. Folded from the record.
+
+- The next batch reading's body (ISS-232) was frozen at its filing and predates the rule this run
+  added, because the ship generates a body only when no issue is open for the mark. The run told ISS-232
+  by the finder's route and verified the comment on the tracker; without that, the reading the parent had
+  named as next would not have been told to write anything. A rule added mid-flight is posted to every
+  open run it binds.
+- The reading's range end is pinned at a named commit, so it stops short of this run's own three
+  releases; the verb falls into the batch after. The named-not-defaulted end is what makes that a fact
+  rather than a surprise, and the ship's volume figure is the mark-to-head count, not the reading's scope.
+- The store still reads zero entries. The verb shipped; nothing has been written. A verb is not a use,
+  and the first use is the batch reading's to make.
+- Two defects filed: the half that belongs in held files — the first phase reading the store, a review
+  writing a half-followed convention as a rule (ISS-238); and a flag in a body-path slot opened as a
+  filename at three verbs, with one place to fix it (ISS-240).
