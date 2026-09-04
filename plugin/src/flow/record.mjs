@@ -1,7 +1,9 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
    back by kind: docs/FORGE-CLI.md § record. The verb owns the shape; the tracker owns the fields. */
 import { fail, translateTo } from "../resolve/settings.mjs";
-import { blockOf, criterionNumber, markedCommit, readRecord, tagFor, unwrap } from "./machine.mjs";
+import {
+  FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, blockOf, criterionNumber, markedCommit, readRecord, tagFor, unwrap,
+} from "./machine.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { pullRepeated, flags } from "../resolve/flags.mjs";
 import { COMMENT_PAGE, commentPage, postComment } from "../tracker/comments.mjs";
@@ -11,8 +13,8 @@ import { CONTRACT } from "../tracker/contract.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";
 import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
-import { nextLine, renew } from "./lease.mjs";
-import { OPEN_KEPT, patchFrom } from "./worklog.mjs";
+import { FIELD as SESSION, nextLine, renew } from "./lease.mjs";
+import { OPEN_KEPT, patchFrom, worklogLines, worklogOf } from "./worklog.mjs";
 
 /* Thrown, not exited: the helpers are tested in-process, and the verb turns one into a refusal.
    `advance` reads the same record and refuses the same way, so both share this one class. */
@@ -21,143 +23,7 @@ export const refuse = (message) => {
   throw new Refused(message);
 };
 
-export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false"];
-export const PARKS = [
-  "question", "screen-review", "destructive-migration", "rolled-back", "no-way-back",
-  "unshippable", "blocked", "paused", "crashed", "release-decision", "code-review", "dropped",
-];
-/* The three parks that speak to a reviewer, who cannot answer without the thing to look at. One
-   list, because the read-back judges a park a hand wrote by the same rule the write applies. */
-export const SHOWS_EVIDENCE = ["screen-review", "code-review", "destructive-migration"];
-export const VERDICTS = ["pass", "fail", "skipped"];
-/* What the agent may rule a person's finding to be: the criterion asked the wrong thing, the
-   criterion was not met, or nothing in the specification ever promised what the person expected. */
-export const TRIAGES = ["wrong-test", "not-met", "not-in-spec"];
-export const OUTCOMES = ["approved", "changes-requested"];
-const FINDING = /^F\d+ (?:accepted|rejected: .+)$/u;
-export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
-
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
-
-/* `many` flags repeat; `oneOf` names the values; `least` is the smallest count that is a payload. */
-const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
-
-export const SHAPES = {
-  confirmation: {
-    heading: "Confirmation",
-    fields: [
-      FIELD("where", "Where looked", { many: true }),
-      FIELD("is", "What it is"),
-      FIELD("finding", "Finding", { oneOf: FINDINGS }),
-      FIELD("detail", "Detail", { optional: true }),
-    ],
-  },
-  decision: {
-    heading: "Decision record",
-    fields: [FIELD("decision", "Decision", { many: true, least: 0 }), FIELD("none", "None found", { optional: true })],
-    check: (got) => {
-      if (!got.decision.length && !got.none) return "--decision (repeatable) or --none <why>";
-      return null;
-    },
-  },
-  question: {
-    heading: "Question",
-    fields: [FIELD("reading", "Reading", { many: true, least: 2 }), FIELD("to", "To", { optional: true })],
-  },
-  park: {
-    heading: "Park",
-    fields: [
-      FIELD("kind", "Kind", { oneOf: PARKS }),
-      FIELD("why", "Why"),
-      FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
-    ],
-    stamp: FIELD("left", "Status left"),
-    check: (got) =>
-      (SHOWS_EVIDENCE.includes(got.kind) && !got.evidence.length
-        ? `--evidence: a ${got.kind} park names what the reviewer is to look at`
-        : null),
-  },
-  correction: {
-    heading: "Correction",
-    fields: [FIELD("moved", "What moved"), FIELD("why", "Why")],
-  },
-  baseline: {
-    heading: "Baseline",
-    fields: [FIELD("gate", "Gate"), FIELD("result", "Result"), FIELD("commit", "Commit", { commit: true })],
-  },
-  verdict: {
-    heading: "Verdict",
-    fields: [
-      FIELD("criterion", "Criterion", { criterion: true }),
-      FIELD("verdict", "Verdict", { oneOf: VERDICTS }),
-      FIELD("commit", "Commit", { commit: true }),
-      FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
-      FIELD("why", "Why", { optional: true }),
-    ],
-    check: (got) => {
-      if (got.verdict === "skipped" && !got.why) return "--why, for a skipped check";
-      if (got.verdict !== "skipped" && !got.evidence.length) return "--evidence (repeatable): a verdict with none is refused";
-      return null;
-    },
-  },
-  review: {
-    heading: "Code review",
-    fields: [
-      FIELD("reviewer", "Reviewer"),
-      FIELD("commit", "Head judged", { commit: true }),
-      FIELD("outcome", "Outcome", { oneOf: OUTCOMES }),
-      FIELD("finding", "Findings", { many: true, least: 0 }),
-    ],
-    check: (got) => {
-      const bare = got.finding.find((one) => /^F\d+ rejected$/u.test(one));
-      if (bare) return `a reason after a rejected finding: \`${bare}: why\``;
-      const odd = got.finding.find((one) => !FINDING.test(one));
-      if (odd) return `each --finding as \`F1 accepted\` or \`F1 rejected: why\`, not \`${odd}\``;
-      return null;
-    },
-  },
-  /* The person's voice, written by the agent on their behalf: a reopen with no finding is a status
-     that moved and nothing that says why. `repeats` because a second look finds a second thing. */
-  finding: {
-    heading: "Finding",
-    repeats: true,
-    fields: [
-      FIELD("expected", "Expected"),
-      FIELD("seen", "Seen"),
-      FIELD("evidence", "Evidence", { many: true, least: 1, evidence: true }),
-      FIELD("criterion", "Criterion", { criterion: true, optional: true }),
-      FIELD("uc", "Use case", { optional: true }),
-      FIELD("quoted", "In their words"),
-    ],
-    stamp: FIELD("reopen", "Reopen", { from: "reopenCount" }),
-    check: (got) => {
-      if (got.criterion !== undefined && got.uc !== undefined) {
-        return "one of --criterion and --uc, not both: a finding names one thing it is about";
-      }
-      return null;
-    },
-  },
-  /* The agent's ruling on a finding, and the one thing the reopen is for: what would have caught
-     it. The outcome is what routes the fall, so a triage with none routes nothing. */
-  triage: {
-    heading: "Triage",
-    repeats: true,
-    fields: [
-      FIELD("outcome", "Outcome", { oneOf: TRIAGES }),
-      FIELD("would-have-caught", "Would have caught it"),
-      FIELD("detail", "Detail", { optional: true }),
-    ],
-    stamp: FIELD("reopen", "Reopen", { from: "reopenCount" }),
-  },
-  verification: {
-    heading: "Release verification",
-    fields: [
-      FIELD("where", "Where it runs"),
-      FIELD("commit", "Commit", { commit: true }),
-      FIELD("evidence", "Evidence", { many: true, least: 1, evidence: true }),
-    ],
-  },
-};
 
 export const KINDS = [...Object.keys(SHAPES), "note", "criteria", "report"];
 
@@ -174,6 +40,8 @@ export const USAGE = [
   "  baseline     --gate G --result R --commit C",
   "  verdict      --criterion N --verdict pass|fail|skipped --commit C --evidence E... [--why W]",
   "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding \"F1 accepted\"]...",
+  "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
+  "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
   "  verification --where W --commit C --evidence E...",
   "  finding      --expected E --seen S --evidence E... --quoted Q [--criterion N | --uc UC-nn-m]",
   "  triage       --outcome O --would-have-caught W [--detail D]  O: " + TRIAGES.join("|"),
@@ -362,10 +230,9 @@ const citedBy = (comments, kind) =>
   comments.map((one) => parse(one.body ?? "")).filter((one) => one?.kind === kind).at(-1)?.fields.evidence ?? [];
 
 /* Refused where the page stopped rather than guessed past it: the tracker's list takes no cursor,
-   so what is behind a full page cannot be read at all, and the mark this would answer with may be
-   the one cut off. A flag typed once beats a verdict written on the wrong commit. */
-/* And an upload needs every name the issue already carries, which past a full page cannot be read
-   either — the collision `attachPlan` refuses cannot be seen from here, so nothing goes up. */
+   so what is behind a full page is unreadable — the mark this would answer with, and the names an
+   upload needs, so the collision `attachPlan` refuses cannot be seen and nothing goes up. A flag
+   typed once beats a verdict written on the wrong commit. */
 const CROWDED = (kind) => `record ${kind} would put a file up, and this issue has more comments than `
   + `the ${COMMENT_PAGE} the tracker's list returns, so the names already on it cannot be read whole. `
   + `A name attached twice resolves to two documents. Cite a URL or a commit, or attach the file `
@@ -542,6 +409,9 @@ const recordReport = async (reference) => {
   for (const number of [...verdicts.keys()].sort((a, b) => a - b)) printRecord(verdicts.get(number));
   for (const one of unreadable) printRecord(one);
   if (body.releaseNotes?.section) console.log(`Release note  ${body.releaseNotes.section}: ${body.releaseNotes.userFacing}`);
+  /* The run's own captures: no payload, and all of what a fold asks for beyond the payloads. */
+  const lines = worklogLines(worklogOf(body[SESSION]));
+  if (lines.length) console.log(["", "The run, from its own captures:", ...lines.map((one) => `  ${one}`)].join("\n"));
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
 };
 

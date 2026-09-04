@@ -35,6 +35,13 @@ Fail any of the four and the round ends with nothing recorded. That is the norma
 
 ## Where a skill learning goes
 
+**Type the gap where you met it, before deciding what it earns.** A phase with no branch for what
+happened, a reference that sent the run the wrong way, a rule that contradicted the tracker's own —
+each goes onto the issue's record at that moment, under the kind the tracker CLI owns for it. The
+four conditions below are then judged against what was typed rather than what is remembered, and a
+run that met none says so on the record too. A closing message written from memory keeps the
+workaround and loses the gap that forced it.
+
 **1. Into the plugin's code.** A trap a program can recognise belongs in the program: a
 hook that refuses the command, a check in the CLI, a validation that makes the mistake
 unrepresentable. It is the only destination that cannot be missed — prose is read by an

@@ -9,9 +9,9 @@ import { join } from "node:path";
 
 process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "record-"));
 const {
-  KINDS, SHAPES, SHOWS_EVIDENCE, TRIAGES, USAGE, OUTCOMES, assemble, conjunctionsFor, criteriaLines, fromRecord, joinedCriteria, noteFrom, parse, render,
+  KINDS, USAGE, assemble, checked, conjunctionsFor, criteriaLines, fromRecord, joinedCriteria, noteFrom, parse, render,
 } = await import("../../src/flow/record.mjs");
-const { unwrap } = await import("../../src/flow/machine.mjs");
+const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES, unwrap } = await import("../../src/flow/machine.mjs");
 const { CONTRACT } = await import("../../src/tracker/contract.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -186,7 +186,7 @@ test("every finding and every triage is on the report, not the latest of each", 
   assert.equal(latest.finding.record.fields.seen, "still by id", "and the latest of each is still there, for the brief");
   assert.equal(repeated.confirmation, undefined, "a kind that can only be current keeps no list");
   for (const kind of Object.keys(SHAPES)) {
-    assert.equal(Boolean(SHAPES[kind].repeats), ["finding", "triage"].includes(kind), `${kind} repeats or it does not`);
+    assert.equal(Boolean(SHAPES[kind].repeats), ["finding", "gap", "routed", "triage"].includes(kind), `${kind} repeats or it does not`);
   }
 });
 
@@ -273,4 +273,37 @@ test("the shapes say what each field is called on the record", () => {
     assert.ok(shape.heading, kind);
     for (const field of shape.fields) assert.ok(field.flag && field.label, `${kind} --${field.flag}`);
   }
+});
+
+/* Two kinds whose honest answer may be *none*, and whose whole point is that the parent reads them
+   instead of a prose report: a half-written one, or one that repeats only in its latest, is the
+   silence the record exists to break (ISS-79). */
+const refusedBy = (kind, got) => {
+  try {
+    checked(kind, { evidence: [], ...got });
+    return null;
+  } catch (error) {
+    return error.message;
+  }
+};
+
+test("a routed finding names where it went, or says nothing was routed", () => {
+  const body = render("routed", { what: "the gate reads a checkout's mtime as a write", to: "ISS-80, filed" });
+  assert.match(body, /^to: ISS-80, filed$/mu);
+  assert.deepEqual(parse(body).fields, { what: "the gate reads a checkout's mtime as a write", to: "ISS-80, filed" });
+  assert.equal(parse(render("routed", { none: "nothing outside this issue came up" })).fields.none, "nothing outside this issue came up");
+  assert.equal(refusedBy("routed", { what: "a defect elsewhere", to: "ISS-80" }), null);
+  assert.equal(refusedBy("routed", { none: "none came up" }), null);
+  assert.match(refusedBy("routed", { what: "a defect elsewhere" }) ?? "", /--to, or --none "<why>" when this run routed nothing\./u);
+  assert.match(refusedBy("routed", { none: "none came up", to: "ISS-80" }) ?? "", /--none is the whole record, so it takes no --to\./u);
+  assert.match(refusedBy("routed", { none: "none came up", evidence: ["run.txt"] }) ?? "", /takes no --evidence\./u,
+    "and the exclusion is read off what was given, so a field the check's own list omits is caught too");
+});
+
+test("a gap says where the method did not answer and what was done instead", () => {
+  const body = render("gap", { where: "references/plan.md", lacked: "the declaration lines approved reads", did: "read them off the contract" });
+  assert.match(body, /^lacked: the declaration lines approved reads$/mu);
+  assert.equal(parse(body).kind, "gap");
+  assert.equal(refusedBy("gap", { none: "the skill answered every step" }), null);
+  assert.match(refusedBy("gap", { where: "SKILL.md", lacked: "the release path" }) ?? "", /--did, or --none "<why>" when this run met no gap\./u);
 });

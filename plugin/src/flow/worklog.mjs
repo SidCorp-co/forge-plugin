@@ -4,6 +4,7 @@
 import { spawnSync } from "node:child_process";
 
 import { fail } from "../resolve/settings.mjs";
+import { pluginCopy } from "../tools/plugin-copy.mjs";
 
 import {
   answered, countedIn, logEntries, numbered, undecidedIn, unverdicted, verdictsBy,
@@ -12,7 +13,8 @@ import {
 export const KEY = "worklog";
 export const OPEN_KEPT = 8;
 
-const GIT = ["branch", "head", "base", "touched", "files", "at"];
+/* Read off the run, never typed; without the last one a run behind the tree reads like one on it. */
+const FACTS = ["branch", "head", "base", "touched", "files", "at", "copy"];
 const REMOTES = ["origin/main", "origin/master"];
 
 const asLine = (value) => String(value ?? "").replace(/[\r\n]+/gu, " ").trim() || null;
@@ -21,7 +23,7 @@ export const worklogOf = (context) => {
   const held = context?.[KEY];
   if (!held || typeof held !== "object") return null;
   const out = {};
-  for (const name of GIT) if (held[name]) out[name] = String(held[name]);
+  for (const name of FACTS) if (held[name]) out[name] = String(held[name]);
   if (held.review && typeof held.review === "object") out.review = held.review;
   const open = Array.isArray(held.open) ? held.open.map(asLine).filter(Boolean) : [];
   if (open.length) out.open = open;
@@ -130,6 +132,14 @@ export const capturedLine = (git) => {
 
 const captured = (git) => Boolean(git?.touched) && Boolean(git.base) && git.base !== git.head;
 
+/* Null where the install record says nothing: a copy invented here is the very fact this prevents. */
+const copyNow = () => {
+  const held = pluginCopy();
+  if (!held) return null;
+  const behind = held.stale ? ", in no install record" : held.running === held.installed ? "" : `, ${held.installed} installed`;
+  return `${held.name} ${held.running}${behind}`;
+};
+
 /* Asked for and not made is not written silently: no git is the wrong directory, no consult is early. */
 export const patchFrom = ({ pushed = false, review = false, open = [] }) => {
   const patch = {};
@@ -137,7 +147,7 @@ export const patchFrom = ({ pushed = false, review = false, open = [] }) => {
     const now = gitNow();
     if (!now) fail(`--pushed reads the branch and head from git, and ${process.cwd()} is no checkout.`);
     console.error(capturedLine(now));
-    if (captured(now)) Object.assign(patch, now);
+    if (captured(now)) Object.assign(patch, now, { copy: copyNow() });
   }
   const held = review ? reviewNow() : null;
   if (review && !held) console.error("--review: no answered consult for this checkout yet, so the review block is unchanged.");
@@ -166,6 +176,7 @@ export const worklogLines = (worklog, next = null) => {
   }
   if (worklog?.touched) out.push(`touched     ${worklog.touched}`);
   if (worklog?.at) out.push(`captured    ${worklog.at.slice(0, 16)}, from git at that moment`);
+  if (worklog?.copy) out.push(`copy        ${worklog.copy}`);
   if (worklog?.review) out.push(`review      ${reviewLine(worklog.review)}`);
   for (const one of worklog?.open ?? []) out.push(`open        ${one}`);
   return out;

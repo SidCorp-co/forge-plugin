@@ -10,7 +10,8 @@ import { join } from "node:path";
 
 process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "rewrite-"));
 const { protectInline, restoreInline, segment } = await import("../../vi-natural/format/doc.mjs");
-const { SHAPES, assemble, landedAs, parse, render, sayStored } = await import("../../src/flow/record.mjs");
+const { assemble, landedAs, parse, render, sayStored } = await import("../../src/flow/record.mjs");
+const { SHAPES } = await import("../../src/flow/machine.mjs");
 const { planFlags, protectMachine } = await import("../../src/flow/machine.mjs");
 const { CHECKS, ORDER, viewFrom } = await import("../../src/flow/earned.mjs");
 
@@ -58,6 +59,8 @@ const FIELDS = {
   review: { reviewer: "codex", commit: "117978d", outcome: "approved", finding: ["F1 accepted"] },
   finding: { expected: "the list sorted", seen: "sorted by id", evidence: ["run.txt"], quoted: "I cannot find it" },
   triage: { outcome: "not-met", "would-have-caught": "a verdict on the order" },
+  routed: { what: "the gate reads a stale mtime", to: "ISS-80, filed", evidence: [], none: undefined },
+  gap: { where: "references/plan.md", lacked: "the three declaration lines it owes", did: "read them off the contract", none: undefined },
   verification: { where: "the installed copy", commit: "117978d", evidence: ["run.txt"] },
 };
 

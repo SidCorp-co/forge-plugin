@@ -60,6 +60,12 @@ that the answer is good.
 points the `XDG_CONFIG_HOME` environment variable at a temporary directory first; a test that skips
 it runs on the developer's own credential, then overwrites it.
 
+## The steps around a change are the repository's
+
+Where a delegated run works, and what puts its commit in the plugin copy the next session loads, are
+one script: `node tools/run.mjs -h`. A prompt that carries them instead is a second copy of a
+procedure, read by one session, with nothing to fail when it goes stale.
+
 ## Verifying
 
 Run `npm run check`. It stops at the first failure, so a passing run after a fix is the only

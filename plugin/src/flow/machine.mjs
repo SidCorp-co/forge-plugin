@@ -122,3 +122,187 @@ export const protectMachine = (field, text) => {
     .map((part, at) => (at % 2 ? part : part.replace(pattern, (_whole, name, value) => `\`${name}: ${value}\``)))
     .join("");
 };
+
+/* What a payload of each kind holds, in the one table the write, the read-back and the usage
+   list all read: a field named in two places is a shape that disagrees with itself. Kept beside
+   the block it is written into, and importing nothing, so either side may reach it. */
+export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false"];
+export const PARKS = [
+  "question", "screen-review", "destructive-migration", "rolled-back", "no-way-back",
+  "unshippable", "blocked", "paused", "crashed", "release-decision", "code-review", "dropped",
+];
+/* The three parks that speak to a reviewer, who cannot answer without the thing to look at. One
+   list, because the read-back judges a park a hand wrote by the same rule the write applies. */
+export const SHOWS_EVIDENCE = ["screen-review", "code-review", "destructive-migration"];
+export const VERDICTS = ["pass", "fail", "skipped"];
+/* What the agent may rule a person's finding to be: the criterion asked the wrong thing, the
+   criterion was not met, or nothing in the specification ever promised what the person expected. */
+export const TRIAGES = ["wrong-test", "not-met", "not-in-spec"];
+export const OUTCOMES = ["approved", "changes-requested"];
+const FINDING = /^F\d+ (?:accepted|rejected: .+)$/u;
+export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
+
+/* `many` flags repeat; `oneOf` names the values; `least` is the smallest count that is a payload. */
+const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
+
+/* The shape `decision` established: a kind whose honest answer may be *none* asks for every field
+   or for the reason there is none, and never for half of one, so an absent record and an unasked
+   question stop reading the same. Checked here rather than by the field loop, which cannot see
+   that one flag excuses three. */
+const escapeOr = (got, wanted, said) => {
+  if (got.none) {
+    /* Every other flag of the shape, read off what was given rather than off `wanted`: an optional
+       field left out of that list would be storable beside the answer saying there is nothing. */
+    const also = Object.entries(got)
+      .filter(([flag, value]) => flag !== "none" && (Array.isArray(value) ? value.length : value !== undefined))
+      .map(([flag]) => `--${flag}`);
+    return also.length ? `--none is the whole record, so it takes no ${also.join(" or ")}.` : null;
+  }
+  const missing = wanted.filter((one) => got[one] === undefined);
+  return missing.length
+    ? `${missing.map((one) => `--${one}`).join(", ")}, or --none "<why>" when this run ${said}.`
+    : null;
+};
+
+export const SHAPES = {
+  confirmation: {
+    heading: "Confirmation",
+    fields: [
+      FIELD("where", "Where looked", { many: true }),
+      FIELD("is", "What it is"),
+      FIELD("finding", "Finding", { oneOf: FINDINGS }),
+      FIELD("detail", "Detail", { optional: true }),
+    ],
+  },
+  decision: {
+    heading: "Decision record",
+    fields: [FIELD("decision", "Decision", { many: true, least: 0 }), FIELD("none", "None found", { optional: true })],
+    check: (got) => {
+      if (!got.decision.length && !got.none) return "--decision (repeatable) or --none <why>";
+      return null;
+    },
+  },
+  question: {
+    heading: "Question",
+    fields: [FIELD("reading", "Reading", { many: true, least: 2 }), FIELD("to", "To", { optional: true })],
+  },
+  park: {
+    heading: "Park",
+    fields: [
+      FIELD("kind", "Kind", { oneOf: PARKS }),
+      FIELD("why", "Why"),
+      FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
+    ],
+    stamp: FIELD("left", "Status left"),
+    check: (got) =>
+      (SHOWS_EVIDENCE.includes(got.kind) && !got.evidence.length
+        ? `--evidence: a ${got.kind} park names what the reviewer is to look at`
+        : null),
+  },
+  correction: {
+    heading: "Correction",
+    fields: [FIELD("moved", "What moved"), FIELD("why", "Why")],
+  },
+  baseline: {
+    heading: "Baseline",
+    fields: [FIELD("gate", "Gate"), FIELD("result", "Result"), FIELD("commit", "Commit", { commit: true })],
+  },
+  verdict: {
+    heading: "Verdict",
+    fields: [
+      FIELD("criterion", "Criterion", { criterion: true }),
+      FIELD("verdict", "Verdict", { oneOf: VERDICTS }),
+      FIELD("commit", "Commit", { commit: true }),
+      FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
+      FIELD("why", "Why", { optional: true }),
+    ],
+    check: (got) => {
+      if (got.verdict === "skipped" && !got.why) return "--why, for a skipped check";
+      if (got.verdict !== "skipped" && !got.evidence.length) return "--evidence (repeatable): a verdict with none is refused";
+      return null;
+    },
+  },
+  review: {
+    heading: "Code review",
+    fields: [
+      FIELD("reviewer", "Reviewer"),
+      FIELD("commit", "Head judged", { commit: true }),
+      FIELD("outcome", "Outcome", { oneOf: OUTCOMES }),
+      FIELD("finding", "Findings", { many: true, least: 0 }),
+    ],
+    check: (got) => {
+      const bare = got.finding.find((one) => /^F\d+ rejected$/u.test(one));
+      if (bare) return `a reason after a rejected finding: \`${bare}: why\``;
+      const odd = got.finding.find((one) => !FINDING.test(one));
+      if (odd) return `each --finding as \`F1 accepted\` or \`F1 rejected: why\`, not \`${odd}\``;
+      return null;
+    },
+  },
+  /* The person's voice, written by the agent on their behalf: a reopen with no finding is a status
+     that moved and nothing that says why. `repeats` because a second look finds a second thing. */
+  finding: {
+    heading: "Finding",
+    repeats: true,
+    fields: [
+      FIELD("expected", "Expected"),
+      FIELD("seen", "Seen"),
+      FIELD("evidence", "Evidence", { many: true, least: 1, evidence: true }),
+      FIELD("criterion", "Criterion", { criterion: true, optional: true }),
+      FIELD("uc", "Use case", { optional: true }),
+      FIELD("quoted", "In their words"),
+    ],
+    stamp: FIELD("reopen", "Reopen", { from: "reopenCount" }),
+    check: (got) => {
+      if (got.criterion !== undefined && got.uc !== undefined) {
+        return "one of --criterion and --uc, not both: a finding names one thing it is about";
+      }
+      return null;
+    },
+  },
+  /* The agent's ruling on a finding, and the one thing the reopen is for: what would have caught
+     it. The outcome is what routes the fall, so a triage with none routes nothing. */
+  triage: {
+    heading: "Triage",
+    repeats: true,
+    fields: [
+      FIELD("outcome", "Outcome", { oneOf: TRIAGES }),
+      FIELD("would-have-caught", "Would have caught it"),
+      FIELD("detail", "Detail", { optional: true }),
+    ],
+    stamp: FIELD("reopen", "Reopen", { from: "reopenCount" }),
+  },
+  /* A finding this run made about something it is not working, and where it went: without the
+     destination the parent has to chase it, which is a round nobody can bill to this issue. */
+  routed: {
+    heading: "Routed finding",
+    repeats: true,
+    fields: [
+      FIELD("what", "What was found", { optional: true }),
+      FIELD("to", "Where it went", { optional: true }),
+      FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
+      FIELD("none", "None found", { optional: true }),
+    ],
+    check: (got) => escapeOr(got, ["what", "to"], "routed nothing"),
+  },
+  /* Where the method this run followed did not answer, typed at the moment it did not: a report
+     written from memory at the end keeps the workaround and loses the gap that forced it. */
+  gap: {
+    heading: "Gap in the method",
+    repeats: true,
+    fields: [
+      FIELD("where", "Where", { optional: true }),
+      FIELD("lacked", "What it did not say", { optional: true }),
+      FIELD("did", "What was done instead", { optional: true }),
+      FIELD("none", "None found", { optional: true }),
+    ],
+    check: (got) => escapeOr(got, ["where", "lacked", "did"], "met no gap"),
+  },
+  verification: {
+    heading: "Release verification",
+    fields: [
+      FIELD("where", "Where it runs"),
+      FIELD("commit", "Commit", { commit: true }),
+      FIELD("evidence", "Evidence", { many: true, least: 1, evidence: true }),
+    ],
+  },
+};

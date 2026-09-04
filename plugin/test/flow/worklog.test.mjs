@@ -6,6 +6,9 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { tempHome } from "../fixtures.mjs";
 
 const HOME = tempHome("worklog");
@@ -18,6 +21,25 @@ const {
 const { claimed, leaseOf } = await import("../../src/flow/lease.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+
+/* A checkout with a remote head behind its own: `captured` writes nothing without one, and a patch
+   that captured nothing would let an absent copy field pass for a present one. */
+const pushedRepo = () => {
+  const at = mkdtempSync(join(tmpdir(), "pushed-"));
+  const run = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
+  run(at, "init", "--bare", "origin.git");
+  run(at, "clone", join(at, "origin.git"), "work");
+  const work = join(at, "work");
+  for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) run(work, "config", key, value);
+  writeFileSync(join(work, "one.txt"), "one\n");
+  run(work, "add", "one.txt");
+  run(work, "commit", "-m", "one");
+  run(work, "push", "origin", "HEAD:master");
+  writeFileSync(join(work, "two.txt"), "two\n");
+  run(work, "add", "two.txt");
+  run(work, "commit", "-m", "two");
+  return work;
+};
 const AT = "2026-09-03T02:00:00.000Z";
 const field = (worklog, lease = null) => ({ ...(lease ? { lease } : {}), [KEY]: worklog });
 const lines = (many) => Array.from({ length: many }, (one, at) => `line ${at + 1}`);
@@ -187,5 +209,24 @@ test("the two captures and the open line are on the flag list of both verbs that
     for (const flag of ["--pushed", "--review", "--open"]) {
       assert.ok(run.stdout.includes(flag), `${argv[0]} -h does not name ${flag}`);
     }
+  }
+});
+
+/* A run three releases behind the tree writes records that read exactly like one on the tree's own
+   head, and the seventeenth dry run was that run. The capture answers it, from the install record
+   rather than from anything typed (ISS-79). */
+test("a capture carries the plugin copy it was made under, and the lines print it", () => {
+  const held = worklogOf(field({ head: "abc1234", copy: "forge 3.35.12" }));
+  assert.equal(held.copy, "forge 3.35.12", "and it round-trips like any other fact of the run");
+  assert.ok(worklogLines(held).some((one) => /^copy\s+forge 3\.35\.12$/u.test(one)), worklogLines(held).join("\n"));
+  assert.equal(worklogLines({ head: "abc1234" }).some((one) => one.startsWith("copy")), false,
+    "a capture made where no install record answers prints no copy at all");
+  const was = process.cwd();
+  try {
+    process.chdir(pushedRepo());
+    const made = patchFrom({ pushed: true });
+    assert.ok(made && "copy" in made, "a capture that read the git facts read the copy too");
+  } finally {
+    process.chdir(was);
   }
 });

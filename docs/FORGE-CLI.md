@@ -181,6 +181,18 @@ and quoting them; a triage is the ruling on it, one of three outcomes and one li
 have caught it. Both are marked as repeating, so `report` shows every one: the fourth dry run wrote
 four corrections and reported one, because the assembly kept the latest of every kind.
 
+Two more exist because the fold of a run was prose. A parent reading `report` got every payload that
+earned a status and nothing about what the run met on the way: a defect it found on something else
+and sent to the issue that owns it, and a place the method it followed did not answer. Sixteen runs
+put both in a closing message instead, typed at the end out of whatever the agent still held, which
+is the one moment neither is accurate. `routed` names what was found and where it went;
+`gap` names where the method fell short and what was done instead. Each takes `--none` with a
+reason, the way `decision` does, so a run that met neither answers rather than leaving an absent
+record to read like an unasked question. Neither earns a status: a payload nothing told an older
+copy about would refuse a run for a rule it could not have read, and the point of the record is that
+nothing has to be told. `report` closes with the run's own worklog — the branch, the head, what it
+touched and the plugin copy the capture was made under — so one read answers which copy typed it.
+
 ## `advance` — a status is earned, and the record is the only witness
 
 ISS-1, ISS-2 and ISS-10 moved twenty-six statuses between them, every one a raw `forge call
