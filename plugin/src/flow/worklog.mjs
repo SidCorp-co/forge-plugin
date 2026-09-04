@@ -7,7 +7,8 @@ import { fail } from "../resolve/settings.mjs";
 import { pluginCopy } from "../tools/plugin-copy.mjs";
 
 import {
-  answered, countedIn, logEntries, numbered, undecidedIn, unverdicted, verdictsBy,
+  answered, countedIn, logEntries, numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted,
+  verdictsBy,
 } from "../codex/codex-log.mjs";
 
 export const KEY = "worklog";
@@ -77,15 +78,15 @@ export const gitNow = () => {
   };
 };
 
-/* What the review owes, from what the log can answer and nothing invented: a verdict on findings
-   nobody decided, a recheck where the last word was not one, or clean. */
+/* What the review owes: a verdict on findings nobody decided, or the recheck one folded owes — and
+   whether a recheck is takeable at all is the refusal's own reading, never a second one (ISS-230). */
 export const owedOn = (entries, last) => {
   const open = unverdicted(entries, last.root);
   if (open) return `verdict owed on ${open.open.join(", ")}`;
   const ids = numbered(last.reply).map((one) => one.id);
-  const made = countedIn(last.reply)?.total ?? ids.length;
-  if (!made) return last.recheck ? "clean" : "recheck owed: the last word was not a recheck";
-  return undecidedIn(ids, verdictsBy(entries).get(last.id ?? last.at)).length ? "verdict owed" : "recheck owed";
+  if (undecidedIn(ids, verdictsBy(entries).get(last.id ?? last.at)).length) return "verdict owed";
+  const rels = last.files ?? [];
+  return recheckOwed(recheckPlan(entries, last.root, rels), rels) ? "clean" : "recheck owed";
 };
 
 /* The consult id is the round: the log numbers no rounds, and a streak rule only this code knew

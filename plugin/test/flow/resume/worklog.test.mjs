@@ -19,6 +19,7 @@ const {
   KEY, OPEN_KEPT, capturedLine, gitNow, merged, owedOn, patchFrom, worklogFor, worklogLines, worklogOf,
 } = await import("../../../src/flow/worklog.mjs");
 const { claimed, leaseOf } = await import("../../../src/flow/lease.mjs");
+const { recheckOwed, recheckPlan } = await import("../../../src/codex/codex-log.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -135,18 +136,36 @@ test("a patch is built only from what was asked for, and nothing else is invente
   }
 });
 
-/* The log records rulings and verdicts, not rounds; what it can answer is whether anything is
-   undecided and whether the last word was a recheck. */
-test("what the review owes is read from the log, and a clean word is only a recheck's", () => {
-  const entry = (extra) => ({ root: "/nowhere", id: "abc123", ok: true, reply: "CODEX: 0 findings", ...extra });
-  assert.equal(owedOn([], entry({ recheck: true })), "clean");
-  assert.match(owedOn([], entry({ recheck: false })), /recheck owed/u,
-    "a diff-limited round that found nothing has not judged the whole set");
-  const found = entry({ recheck: true, reply: "CODEX: 1 findings\n- **F1 — major:** x" });
-  assert.equal(owedOn([], found), "verdict owed", "a finding nobody decided is a verdict owed");
-  const decided = [found, { kind: "verdict", of: "abc123", kept: ["F1"], dropped: {}, accepted: 1, rejected: 0 }];
-  assert.equal(owedOn(decided, found), "recheck owed",
-    "and one folded still owes the round that finds none");
+/* Which pass the last word was is not the reading: a clean diff round and a clean whole-set one both
+   leave no finding, the CLI refuses a recheck after either, and the line asked for one anyway
+   (ISS-230). The rule is one-directional — the recheck word only where the verb would take it, since
+   an owed verdict outranks a takeable recheck. Each shape is a whole log, not one field. */
+test("the owed line names a recheck only where `consult --recheck` would take one", () => {
+  const rels = ["plugin/src/flow/worklog.mjs", "plugin/src/flow/earned.mjs"];
+  const consult = (extra) => ({
+    kind: "consult", id: "abc123", at: "2026-09-05T01:00:00.000Z", root: "/nowhere", ok: true,
+    files: rels, send: "diffs", reply: "CODEX: 0 findings",
+    sent: rels.map((rel) => ({ rel, sha: "deadbee", chars: 40, clipped: false })),
+    ...extra,
+  });
+  const found = consult({ reply: "CODEX: 1 findings\n- **F1 — major:** x" });
+  const folded = { kind: "verdict", of: "abc123", kept: ["F1"], dropped: {}, accepted: 1, rejected: 0 };
+  const shapes = [
+    ["a whole-set pass that found nothing", [consult({ send: "bodies", head: "abc1234" })], "clean"],
+    ["a diff round that found nothing", [consult({})], "clean"],
+    ["a recheck that found nothing", [consult({ recheck: true })], "clean"],
+    ["a header counting findings the log cannot name", [consult({ reply: "CODEX: 3 findings\n\nprose, no bullet" })], "clean"],
+    ["a finding nobody decided", [found], "verdict owed on F1"],
+    ["a finding the record folded", [found, folded], "recheck owed"],
+  ];
+  for (const [what, entries, said] of shapes) {
+    const owed = owedOn(entries, entries[0]);
+    assert.equal(owed, said, what);
+    assert.ok(
+      !/recheck/u.test(owed) || recheckOwed(recheckPlan(entries, "/nowhere", rels), rels) === null,
+      `${what}: the line says \`${owed}\` and the verb refuses one`,
+    );
+  }
 });
 
 test("the block prints one line per fact, and a fact nobody wrote is left out", () => {
