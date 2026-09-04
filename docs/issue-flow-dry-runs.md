@@ -812,3 +812,30 @@ fix. A skill reference changed, so the session owed a restart. Folded from the r
   last, so nothing that filters on status saw a note before a release.
 - A benign query string makes a URL land in the withheld bucket, so *test credentials: present* can
   fire on a project holding none; the fail-safe direction, measured and left.
+
+## Twenty-sixth dry run — ISS-99, the first review run
+
+One agent read the batch from 3.35.17 to 3.35.26 as one change (3.35.27): forty-four files under the
+source, hook and bin paths across seven runs, the full diff plus the modules around it for their call
+sites, in three sweeps — reuse, changed signatures against every caller tree-wide, selectors a later
+run made unreachable. Four output-neutral fixes in one reviewed commit: a marketplace read folded from
+two places into one helper, three exports nothing imported made private, a header re-derivation
+collapsed, a doc comment moved back above its function. Fifteen verdicts, the help and guide surfaces
+captured byte-identical before and after, no test touched and the totals equal on both sides. Three
+findings filed rather than fixed, each naming the run that left it; two more considered and not filed,
+with the reason in the plan. This is the run the user asked for on 2026-09-04: not every issue, but
+by a rule, and ISS-95 is the rule. Folded from the record.
+
+- The review found what no run's own criteria could: `gitTreeOf` lost the rank its own doc comment
+  states — a directory flag outranks a git-dir flag — so a commit carrying both passes the codex gate
+  ungated and the destructive-command guard skips its dirty-tree refusals. ISS-82's run wrote the
+  comment and the code in one commit. ISS-100, a correctness regression and the next dispatch.
+- The checkers declare the same markdown primitives five times over across two directories; ISS-87's
+  run added one copy of each. ISS-101. Doctor prints a miss it cannot count into its exit code; ISS-92's
+  run wrote both halves of that function. ISS-102.
+- The reviewer's own comment came back out when the extraction lowered the file's comment allowance:
+  the source was fixed, not the gate, and the record says so.
+- `forge advance` refused the last transition on forty comments and said two hundred: the tracker cut
+  the page by response size and said so in a field the CLI does not read. ISS-17, with the field named.
+- The review's release note is a withholding with its reason: neutrality was the point, and the
+  findings carry their own notes when they ship.
