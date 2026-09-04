@@ -115,7 +115,7 @@ outcome; leaving it unruled makes "resolved or still open" a guess.
 - **AC-06-5-1** · Rev: 1 · Proof: plugin/test/codex/codex-log.test.mjs "a verdict names findings by id, and a name the reply never gave is refused"
   WHEN a disposition is recorded THEN it SHALL be stored against the identifier the review gave, and
   SHALL travel into the next consult.
-- **AC-06-5-2** · Rev: 1 · Proof: none yet — ISS-248
+- **AC-06-5-2** · Rev: 1 · Proof: plugin/test/codex/codex-log.test.mjs "a credential in a consult record is masked before the line is written"
   WHEN a credential appears in anything written to the log THEN it SHALL be masked before it is
   written down.
 

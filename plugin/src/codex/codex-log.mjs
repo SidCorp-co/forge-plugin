@@ -5,6 +5,7 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { join } from "node:path";
 
 import { configDir, userConfig } from "../resolve/config.mjs";
+import { masked } from "../hooks/hook-log.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags, pullRepeated } from "../resolve/flags.mjs";
 
@@ -16,12 +17,23 @@ const HISTORY_CHARS = 6000;
 const INTENT_CHARS = 1500;
 const LOG_TAIL = 10;
 
+/* One seat, not a list of the fields that may carry a credential (rpc.mjs); at every depth, since the
+   last leak got through a redaction that missed one; per value, since a line-wide mask eats a quote. */
+const maskedDeep = (value) => {
+  if (typeof value === "string") return masked(value);
+  if (Array.isArray(value)) return value.map(maskedDeep);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, one]) => [key, maskedDeep(one)]));
+  }
+  return value;
+};
+
 /* It warns and carries on: failing closed would mean a full disk costs the review itself. */
 export const logConsult = (record) => {
   try {
     mkdirSync(configDir("forge"), { recursive: true });
     if (!existsSync(LOG_PATH)) closeSync(openSync(LOG_PATH, "a", 0o600));
-    appendFileSync(LOG_PATH, `${JSON.stringify(record)}\n`);
+    appendFileSync(LOG_PATH, `${JSON.stringify(maskedDeep(record))}\n`);
     return true;
   } catch (error) {
     console.error(`codex: could not write ${LOG_PATH} (${error.message}); this consult is unlogged.`);

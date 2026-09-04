@@ -2,6 +2,8 @@
    round is asked to verify are decided here — on entries handed in, never on this machine's file. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
+
 import { tempRoom } from "../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves, so the two tests that read the real log path read a sandbox. */
@@ -21,7 +23,9 @@ const {
   verdictFromRulings,
   verdictRecord,
   historyFor,
+  logConsult,
   logEntries,
+  LOG_PATH,
   pairedLog,
   recheckOwed,
   recheckPlan,
@@ -376,4 +380,57 @@ test("history replays the findings, rulings and outcomes, not the prose", () => 
   assert.equal(digestOf("## Tech Lead\n\nA paragraph of reasons.\n\nCODEX: 0 findings\n\nMore prose after.", null), "CODEX: 0 findings", "a converged reply is one line");
   const [replayed] = historyFor([{ kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs"], intent: "x", reply: "Preamble.\n- **F1 — New — major:** `a.mjs:1` — x." }], "/a", 3, ["a.mjs"]);
   assert.equal(replayed.reply, "CODEX: 1 findings\n- F1 — New — major: `a.mjs:1` — x.", "what travels is the digest");
+});
+
+/* The log is a file on disk and `forge codex log` prints it back into a session, so a credential a
+   reviewed file carried into the reply must not survive the write. A fake shape, at three depths:
+   the last real leak of this kind got through a redaction that missed one level. */
+const FAKE = "7|notarealtokennotarealtokennotarealtoken";
+
+test("a credential in a consult record is masked before the line is written", () => {
+  const long = `A paragraph of review prose. ${"x".repeat(400)}`;
+  const record = {
+    kind: "consult",
+    id: "mask-1",
+    at: "2026-09-04T00:00:00.000Z",
+    root: "/a",
+    ok: true,
+    ms: 1200,
+    files: ["a.mjs"],
+    sent: [{ rel: "a.mjs", sha: "9f2c", chars: 812, clipped: false }],
+    usage: { input_tokens: 5, cache_read_input_tokens: 7 },
+    intent: `check the header we send with --token ${FAKE}`,
+    risks: [`Your earlier finding F1 still stands — COOLIFY_TOKEN=${FAKE} is committed.`],
+    reply: `CODEX: 1 findings\n- **F1 — major:** \`a.mjs:3\` — hardcodes COOLIFY_TOKEN=${FAKE}. ${long}`,
+  };
+  logConsult(record);
+  assert.ok(!readFileSync(LOG_PATH, "utf8").includes("notarealtoken"), "no part of the value is on disk");
+  const entry = logEntries().at(-1);
+  assert.equal(entry.intent, "check the header we send with --token ***");
+  assert.deepEqual(entry.risks, ["Your earlier finding F1 still stands — COOLIFY_TOKEN=*** is committed."]);
+  /* To the next space, punctuation included: masking less leaves most of a passphrase behind. */
+  assert.match(entry.reply, /hardcodes COOLIFY_TOKEN=\*\*\* A paragraph/u);
+  /* The refusal log clips at 220 characters; a reply is the eval set this log is kept for. */
+  assert.ok(entry.reply.endsWith(long.slice(-40)), "the reply comes back whole, not clipped");
+  assert.deepEqual(numbered(entry.reply).map((one) => one.id), ["F1"], "and it is still read for its findings");
+  const blanked = { intent: null, risks: null, reply: null };
+  assert.deepEqual({ ...entry, ...blanked }, { ...record, ...blanked },
+    "everything a reader is keyed on — the shas, the numbers, the nested usage — survives field for field");
+});
+
+test("a credential two levels into a record is masked, and the ids around it are not", () => {
+  logConsult({
+    kind: "verdict",
+    at: "2026-09-04T00:01:00.000Z",
+    of: "mask-1",
+    files: ["a.mjs"],
+    accepted: 1,
+    rejected: 1,
+    kept: ["F1"],
+    dropped: { F2: `not ours: the fixture logs in with ${FAKE}` },
+  });
+  assert.ok(!readFileSync(LOG_PATH, "utf8").includes("notarealtoken"), "a rejection reason is caller prose");
+  const entry = logEntries().at(-1);
+  assert.equal(entry.dropped.F2, "not ours: the fixture logs in with ***");
+  assert.deepEqual([entry.of, entry.kept, entry.accepted], ["mask-1", ["F1"], 1], "the record is otherwise itself");
 });

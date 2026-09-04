@@ -14,6 +14,14 @@ that dies mid-flight reaches no handler and a review that vanished is what an ev
 Each entry carries the commit, a per-file sha256 and whether the file was clipped: advice that cannot
 be tied to bytes cannot be checked.
 
+**It is a file on disk, and `forge codex log` prints it back into a session.** So every string in a
+record is masked at the write, at every depth, by the same seat the refusal log reads: a second set of
+patterns is the one that misses the level the first set learned about. It does not take that log's
+220-character clip with it — a reply is the eval set this log is kept for. Over-masking is the
+direction chosen, so a review's own prose about a credential comes back with `***` in it, and the
+masking runs on each value rather than over the finished line: a mask reaching to the next space would
+eat a closing quote and leave an entry nothing can parse.
+
 **A harness with no numbers on itself is tuned by memory.** `forge codex stats` reads a window —
 `--last n`, `--days n`, `--root p` or `--here` — and answers the questions a change to the harness is
 judged by: how many consults ended at the budget they were given, how many replies said they could not

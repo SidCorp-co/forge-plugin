@@ -34,9 +34,15 @@ const SECRETS = [
   [/("(?:password|token|secret|api[-_]?key)"\s*:\s*")[^"]*/giu, "$1***"],
 ];
 
-export const scrubbed = (text) => {
+/* The masking without the clip: a consult reply is an eval set, not a refusal line (codex-log.mjs). */
+export const masked = (text) => {
   let out = String(text ?? "");
   for (const [pattern, mask] of SECRETS) out = out.replace(pattern, mask);
+  return out;
+};
+
+export const scrubbed = (text) => {
+  const out = masked(text);
   return out.length > KEPT ? `${out.slice(0, KEPT)}\u2026` : out;
 };
 
