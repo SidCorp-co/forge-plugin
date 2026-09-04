@@ -1480,3 +1480,29 @@ resolve its key, and the run stopped rather than working around the reader. Fold
   hole. Recorded as a gap.
 - ISS-36's finding, made in passing — the reference pattern still accepts a spec citation as a key — was
   posted on the key-lookup batch that holds the file, since ISS-36 itself could not be reached.
+
+## Fifty-sixth dry run — ISS-169 and ISS-163
+
+One agent took two fix-size defects in the ship's last step as one run (3.35.66). ISS-169: the step
+names the sha the change landed as, read from the mark for the pre-push head and from the tree for the
+post-push one, says which end a merged mark takes when the change is more than one commit, and says when
+a release carried nothing but its own bump. ISS-163: the refusal of the ship's own review filing now
+names the right party — this plugin's duplicate check, a tracker that did not answer, or a CLI that
+would not start, the third a party the review found. Eleven criteria pass. The predicted quirk
+occurred as briefed: the release that changed the last step printed the old one, and the next printed
+the new. No restart owed. Closed by its run. Folded from the record.
+
+- The hypothesis handed in — that ISS-163 was already fixed by an earlier landing — was tested and
+  found false: the earlier fix corrected the lookup and stopped the route pointing at the refused
+  filing, but the party blamed was still wrong. A hypothesis in a brief is a thing to check, not a
+  finding to record.
+- The test file crossed the code-line ceiling and its directory the file limit in the same change, so
+  it split into fixtures and two suites under a directory of their own; any brief naming the old path
+  is stale. The ship script itself now sits three lines under its ceiling, so the next change to it
+  splits it by responsibility first.
+- The remote-tracking ref of the base branch is shared by every worktree of a repository, so no
+  per-run step may read it to describe its own release — it names whichever run pushed last. Found
+  by the review as a finding; other tooling could carry the same bug.
+- The run's consults ran under a temporary config directory, as its brief said before the correction,
+  so its review has no row in the live log and the four findings were verified again at the end against
+  the shipped code: the cost ISS-189 names, paid once more.
