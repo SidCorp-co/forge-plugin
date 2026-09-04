@@ -1889,3 +1889,27 @@ Folded from the record.
 - A checker that landed mid-run — the proof reader from ISS-231 — caught the run's own test-file split
   breaking two requirements clauses. Rather than edit the held requirements, the two cited cases went back
   to the file the clauses name. The gate that lands under a run is the run's gate from that moment.
+
+## Seventy-third dry run — ISS-233 and ISS-237
+
+One agent took two requirements defects as one run (3.35.85). ISS-233: the clause that still stated
+the verdict rule ISS-156 replaced was re-revised to refuse a verdict at a commit that is neither the
+merged one nor the judged head the mark records, and a clause for the equivalence added. ISS-237: all
+eleven proof escapes resolved and nothing in the tree names the issue. Thirty criteria pass, no
+revision of the eleven moved. No restart owed. Both closed by the run. Folded from the record.
+
+- The issue proposed seven re-citations; verification refused three and the review two more, each a
+  case that would stay green while the clause broke. Two cases were written instead, both watched
+  failing against deliberately broken sources. A proof is a case that fails when the clause does, and a
+  citation that merely exists is the rot ISS-231 was built to catch.
+- A credential defect found incidentally while checking one citation: the consult log appends the
+  record raw, file bodies included, so a token in a reviewed file reaches the log on disk verbatim and
+  the log verb prints it back. Filed as ISS-248, medium; dispatched next by the parent as the one
+  finding of the day with a secret in it.
+- One wall stands open six times: the feedback verb prints its near-duplicate block after filing and
+  never folds at the documented threshold, so the dependency verb's refusal under a personal token is
+  filed under six keys. The run dropped its own seventh and moved its one new fact onto the oldest
+  (ISS-250 for the verb). A duplicate check that reports after the write is a report, not a check.
+- Five clauses whose proof lives in held files were filed with their holders named (ISS-246, ISS-247)
+  or as their own (ISS-251, ISS-252, ISS-253), one of them noting that the contract's first-stamp wording
+  and a test's latest-mark reading disagree.
