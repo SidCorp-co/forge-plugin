@@ -81,7 +81,7 @@ test("what the caller asked for is used as asked, and only the rest is derived",
   const asked = plannedFor({ parts, bodies: false, recheck: false, asked: 1, effort: "high" });
   assert.equal(asked.budget, 1, "--rounds is used as given");
   assert.equal(asked.effort, "high", "--effort is used as given");
-  assert.equal(asked.ceiling, 5, "and the ceiling still holds above it");
+  assert.equal(asked.ceiling, 1, "and no retry spends calls past what was asked for");
 });
 
 /* The size an effort is priced on: a diff's own moved lines where there is one, the body otherwise. */
@@ -147,11 +147,15 @@ test("a recorded field is believed over the reply it was read from", () => {
   assert.equal(held.atBudget, 1, "and a recorded budget is counted against");
 });
 
+/* A three-call exhaustion answered by a one-call retry is a consult that DID end at a budget, and a
+   row that reported only the answering attempt read as one that never came near it. */
 test("stats count a retry and the tokens both attempts spent", () => {
   const held = statsOf([
     ROW({ calls: 5, budget: 5, attempt: 2, usage: { input_tokens: 800, cache_read_input_tokens: 200 } }),
   ]);
   assert.equal(held.retried, 1);
+  const short = statsOf([ROW({ calls: 1, budget: 5, attempt: 2, retriedFrom: 3 })]);
+  assert.equal(short.atBudget, 1, "the attempt it left behind ended at its own budget");
   assert.equal(held.sent, 1000);
   assert.equal(Math.round(held.cached * 100), 20);
 });

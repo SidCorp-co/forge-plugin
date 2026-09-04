@@ -73,7 +73,8 @@ export const plannedFor = ({ parts, bodies, recheck, asked, effort }) => {
     clipped: clipped.map((part) => part.rel),
     lines,
     budget,
-    ceiling: Math.max(budget, limits.ceiling),
+    /* `--rounds 1` asked for one call; a ladder spending five more is the overrun it prevents. */
+    ceiling: asked ?? Math.max(budget, limits.ceiling),
     effort: effort ?? effortFor({ base: defaultEffort(), recheck, lines, small: limits.small, large: limits.large }),
   };
 };

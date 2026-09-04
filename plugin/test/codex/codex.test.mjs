@@ -222,6 +222,18 @@ test("the checkout picks the angles, and one angle is not a board", () => {
   assert.deepEqual(Object.keys(ANGLES), ["tech", "ba", "user", "ux"]);
   assert.deepEqual(consultArgs(["a.mjs", "--angles", "tech,ux"]).angles, ["tech", "ux"]);
   assert.equal(consultArgs(["a.mjs", "--recheck"]).recheck, true);
+  /* HEAD from `--diff` is this end's guess at a base and a recheck may improve on it with the head
+     its findings were made against; a base the caller typed is theirs and is never moved. Read as
+     one field, `--recheck --diff` silently lost the anchor and reviewed the working tree instead. */
+  assert.deepEqual(
+    [consultArgs(["a.mjs", "--recheck", "--diff"]).base, consultArgs(["a.mjs", "--recheck", "--diff"]).namedBase],
+    ["HEAD", null],
+  );
+  assert.deepEqual(
+    [consultArgs(["a.mjs", "--base", "origin/master"]).base, consultArgs(["a.mjs", "--base", "origin/master"]).namedBase],
+    ["origin/master", "origin/master"],
+  );
+  assert.equal(consultArgs(["a.mjs"]).base, null, "and no diff asked for is no base at all");
   assert.equal(consultArgs(["a.mjs"]).recheck, false);
 });
 

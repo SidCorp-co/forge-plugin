@@ -51,7 +51,7 @@ export const statsOf = (rows) => {
     const budget = budgetOf(row);
     if (budget !== null) {
       held.budgeted += 1;
-      if ((row.calls ?? 0) >= budget) held.atBudget += 1;
+      if (row.retriedFrom !== undefined || (row.calls ?? 0) >= budget) held.atBudget += 1;
     }
     calls.set(row.calls ?? 0, (calls.get(row.calls ?? 0) ?? 0) + 1);
     if (wasIncomplete(row)) held.incomplete += 1;

@@ -205,8 +205,11 @@ export const consultArgs = (given) => {
     only: severities(held.only),
     allowEcho: Boolean(held["allow-echo"]),
     /* Asking what to diff against is asking for the diff, so `--base` implies `--diff` rather than
-       being silently dropped — one fewer rule to learn and one fewer way to be ignored. */
+       being silently dropped — one fewer rule to learn and one fewer way to be ignored. Kept apart
+       from `named` because HEAD from `--diff` is this end's guess and a recheck may still improve
+       on it, where a base the caller typed is theirs and is never moved. */
     base: held.base ?? (held.diff ? "HEAD" : null),
+    namedBase: held.base ?? null,
     effort: chosenEffort(held.effort),
     cap: askedRounds(held.rounds),
     /* Bodies off by default when the reviewer has tools: it reads what it needs and the payload
@@ -256,7 +259,7 @@ const consult = async (given) => {
   if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
-  const { named, risks, only, allowEcho, base, effort: askedEffort, cap, bodies, recheck, angles } = consultArgs(given);
+  const { named, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, bodies, recheck, angles } = consultArgs(given);
   const rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
   /* Asked for a diff and given nothing to diff, the tree answers: the round it replaces was reading
      `git diff --name-only` and typing the list back (ISS-65). */
@@ -276,10 +279,9 @@ const consult = async (given) => {
     if (!plan?.risks.length) fail("codex: --recheck needs an answered consult with findings on these files, and none is logged.");
     risks.push(...plan.risks);
   }
-  /* The diff since the head the findings were made against, which is what a recheck is asking about:
-     re-sending the whole file makes the reviewer find the change before it can rule on the fix. Only
-     where the caller named no base of their own, and only where that head is still a readable ref. */
-  const anchor = recheck && !base && plan.judged.head && readableRef(root, plan.judged.head)
+  /* The diff since the head the findings were made against: re-sending the whole file makes the
+     reviewer find the change before it can rule on the fix. Only where that head is a readable ref. */
+  const anchor = recheck && !namedBase && plan.judged.head && readableRef(root, plan.judged.head)
     ? plan.judged.head
     : base;
   if (anchor !== base) console.error(`codex: a recheck of ${plan.judged.id ?? plan.judged.at}, so the diff since ${anchor} travels with it.`);
@@ -305,9 +307,9 @@ const consult = async (given) => {
      recheck is the one case that carries on: its base was chosen for it, so an unmoved tree means
      nothing to diff and not nothing to ask, and the findings are still owed a ruling. */
   const still = anchor && unchangedAll(bundled);
-  if (still && anchor === base) {
+  if (still && anchor === namedBase) {
     const where = commitAt(root).dirty ? "the files named" : "the tree is clean, so the change is committed";
-    fail(`codex: nothing differs from ${base} in ${rels.join(", ")} — ${where}. Pass --base ${base}~1 to review the last commit.`);
+    fail(`codex: nothing differs from ${namedBase} in ${rels.join(", ")} — ${where}. Pass --base ${namedBase}~1 to review the last commit.`);
   }
   if (still) console.error(`codex: nothing differs from ${anchor}, so this recheck carries no diff — the findings are asked for on the tree as it stands.`);
   const parts = still ? bundle(root, rels) : bundled;
@@ -331,7 +333,6 @@ const consult = async (given) => {
     history: history.length,
     effort,
     angles,
-    budget,
     ceiling,
     lines,
     send: bodies ? "bodies" : "diffs",
@@ -345,7 +346,7 @@ const consult = async (given) => {
   };
   /* Written before the call: a consult that dies mid-flight never reaches either handler, and a
      review that vanished is the one an eval most wants to see. The result closes the pair on `id`. */
-  logConsult({ ...record, kind: "started" });
+  logConsult({ ...record, kind: "started", budget });
   let shown = 0;
   const streamed = (text) => {
     shown += text.length;
@@ -371,6 +372,10 @@ const consult = async (given) => {
       tools: held.tools,
       refused: held.refused,
       calls: held.calls,
+      /* The attempt that answered, not the one that was planned: a three-call exhaustion followed
+         by a one-call retry logged as budget 3 / calls 1 read as a consult that never reached it. */
+      budget: held.budget ?? budget,
+      ...(held.retriedFrom === undefined ? {} : { retriedFrom: held.retriedFrom }),
       attempt: held.attempt,
       incomplete: incompleteIn(held.text),
       ...(recheck ? { newFindings: newFindingsIn(numbered(held.text, rels)) } : {}),
@@ -391,7 +396,7 @@ const consult = async (given) => {
     if (left.length) console.error(`codex: ${left.length} file(s) still pending, recorded ${ageOf(since)}: ${left.join(", ")}.`);
     if (held.stop === "max_tokens") console.error("codex: the reply hit `codex.maxTokens`.");
   } catch (error) {
-    logConsult({ ...record, kind: "consult", ms: Date.now() - started, ok: false, error: error.message });
+    logConsult({ ...record, kind: "consult", budget, ms: Date.now() - started, ok: false, error: error.message });
     const partial = shown ? `\n\ncodex: the ${shown} characters above are an incomplete reply and were `
       + "not recorded as a consult." : "";
     fail(`${partial}\ncodex: ${error.message}`);
