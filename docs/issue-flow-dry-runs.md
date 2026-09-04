@@ -1866,3 +1866,26 @@ the run. Folded from the record.
   walked is named as such until a run walks it.
 - The run named the fold it could not make — this journal is outside a delegated run's place — so the
   parent would not read the omission as a miss.
+
+## Seventy-second dry run — ISS-211 and ISS-212
+
+One agent closed two defects in the gates' shell reading as one run (3.35.84). ISS-211: the move
+reading answered the same nothing for never-moved and for a destination the text does not carry, so the
+commit gate asked a different repository what a commit staged; the sentinel now travels to its one
+caller, which refuses and names both ways to spell the tree out. ISS-212: the escape names were one set
+for every interpreter, so one token inside a python body's data turned the body into commands and, a
+deny losing the whole command, the write vanished; the names are now asked for by the body's own
+language, with the whole set kept for a runner the reading cannot place, and three gates ask the one
+lookup. Eight mechanisms reverted alone, each turning its own cases red. Verified against the installed
+copy through its own hook entries. Seven hook files moved, so a restart is owed. Both closed by the run.
+Folded from the record.
+
+- The opposite direction was found and deliberately left: a shell heredoc whose body names any escape
+  has its own commands dropped, so a body that adds one such line is allowed where the same body without
+  it is refused. A false negative the issue's scope did not hold, filed as ISS-239 with the reproduction.
+- A criterion asked the how-page to enumerate the escapes per language, which neither fits its character
+  ceiling nor belongs there, since the sets are the code's; a correction narrowed it to the language
+  deciding with one named in each, and the verdict says it was judged as corrected.
+- A checker that landed mid-run — the proof reader from ISS-231 — caught the run's own test-file split
+  breaking two requirements clauses. Rather than edit the held requirements, the two cited cases went back
+  to the file the clauses name. The gate that lands under a run is the run's gate from that moment.
