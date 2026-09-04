@@ -207,3 +207,22 @@ test("--work-tree names the work tree whatever --git-dir says after it", () => {
   const from = (cwd, command) => callHook(HOOK, { tool_name: "Bash", tool_input: { command }, cwd, session_id: "c" }, homeEnv("bash-guard")).stdout;
   assert.match(from(clean, `git --work-tree ${dirty} --git-dir ${meta}/repo.git reset --hard`), /reset --hard discards/u);
 });
+
+/* ISS-100: with both given, `-C` lost the rank to `--git-dir`, and a wrong tree that reads clean
+   stands the git rules down — so `reset --hard` was allowed against the tree `-C` actually names.
+   The discriminating wrong tree is a real, *clean* repository: `treeIsDirty` answers true on any
+   error, so a `--git-dir` naming no repository at all was refused before the fix as well. */
+test("-C outranks what --git-dir implies, so the tree at stake is the tree judged", () => {
+  const dirty = dirtyRepo();
+  const clean = mkdtempSync(join(tmpdir(), "clean-"));
+  spawnSync("git", ["init", "-q", clean]);
+  const third = mkdtempSync(join(tmpdir(), "third-"));
+  spawnSync("git", ["init", "-q", third]);
+  const from = (cwd, command) => callHook(HOOK, { tool_name: "Bash", tool_input: { command }, cwd, session_id: "c" }, homeEnv("bash-guard")).stdout;
+  assert.match(from(third, `git -C ${dirty} --git-dir ${clean}/.git reset --hard`), /reset --hard discards/u);
+  assert.equal(
+    from(third, `git -C ${clean} --git-dir ${dirty}/.git reset --hard`).trim(),
+    "",
+    "and the clean tree it names has nothing to lose, so the rank is what answered and not the refusal",
+  );
+});

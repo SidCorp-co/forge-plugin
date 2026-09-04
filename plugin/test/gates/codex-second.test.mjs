@@ -393,14 +393,22 @@ test("an untracked directory is named by its files", () => {
 });
 
 /* Raised by codex against ISS-70's change: one value kept per option dropped every `-C` hop but the
-   last. Each expectation below was probed against git rather than read off its manual. */
-test("a repeated -C composes, and the other two options are read from where it left", () => {
+   last. Each expectation below was probed against git rather than read off its manual, the rank
+   ISS-82's chaining lost among them (ISS-100). */
+test("a repeated -C composes, and -C outranks what a --git-dir implies", () => {
   assert.equal(commitAim(ev("git -C /a -C b commit -m x")).tree, "/a/b");
   assert.equal(commitAim(ev("git -C /a -C /b commit -m x")).tree, "/b", "an absolute hop replaces what preceded it");
   assert.equal(commitAim(ev("cd /p && git -C a -C b commit -m x")).tree, "/p/a/b", "a relative chain is still the shell's to place");
   assert.equal(commitAim(ev("git -C /a --work-tree=w commit -m x")).tree, "/a/w");
   assert.equal(commitAim(ev("git -C /a --git-dir=.git commit -m x")).tree, "/a");
   assert.equal(commitAim(ev("git --work-tree /w --git-dir /m/repo.git commit -m x")).tree, "/w", "and the ranking survives");
+  assert.equal(commitAim(ev("git -C /b --git-dir /m/repo.git commit -m x")).tree, "/b", "a bare git directory is no tree");
+  assert.equal(commitAim(ev("git -C /b --git-dir /repo/.git/worktrees/x commit -m y")).tree, "/b", "and worktree metadata is none either");
+  assert.equal(commitAim(ev("git -C /dirty --git-dir /clean/.git commit -m x")).tree, "/dirty", "an absolute .git left the base behind too");
+  assert.equal(commitAim(ev("git -C /a -C b --git-dir /m/repo.git commit -m x")).tree, "/a/b", "outranked by a chain as by one hop");
+  assert.equal(commitAim(ev("git --git-dir /w/.git commit -m x")).tree, "/w", "with no -C the implication is still what answers");
+  assert.equal(commitAim(ev("git -C / --git-dir /clean/.git commit -m x")).tree, "/", "a root hop is a hop, whatever trimming its own separator leaves");
+  assert.equal(commitAim(ev("git -C / --work-tree=w commit -m x")).tree, "/w", "and it is a base like any other");
 });
 
 /* Also raised against ISS-70: only the first commit is judged, and the refusal did not admit it. */
@@ -432,6 +440,17 @@ test("a commit is judged by the tree it names, not the shell's", () => {
     new RegExp(`Do this: \`cd ${elsewhere} && echo`, "u"),
     "the command runs where the commit lands",
   );
+});
+
+/* `repoRoot` of a bare git directory is `null`, and a null root ends the run before any judgement. */
+test("a --git-dir naming no tree does not carry the commit out of this gate", () => {
+  const meta = mkdtempSync(join(tmpdir(), "codex-second-meta-"));
+  const elsewhere = realpathSync(away(true));
+  const out = because(gate([userTurn(), advised()], {
+    command: `git -C ${elsewhere} --git-dir ${join(meta, "repo.git")} commit -m x`,
+  }));
+  assert.match(out, /codex has not read what this commit stages/u, out);
+  assert.match(out, new RegExp(`cd ${elsewhere} && echo`, "u"), "and it is consulted in the tree -C named");
 });
 
 /* A shell call is only this gate's business if it writes, and a descriptor sent to `/dev/null` is

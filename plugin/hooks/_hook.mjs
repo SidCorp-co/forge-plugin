@@ -408,21 +408,22 @@ export const committing = (ev) =>
   ev.tool_name === "Bash" && COMMITS.test(shellText((ev.tool_input ?? {}).command));
 
 /** The work tree a git command names: `--work-tree` outranks `-C` outranks what `--git-dir` implies.
- *  A repeated `-C` is a chain git composes, the other two are read from where it left, and a relative answer stays relative for the caller to place against its own event's cwd. */
+ *  A repeated `-C` is a chain git composes and `--work-tree` is read from where it left; what a `--git-dir` implies answers only where neither named a tree, because git takes the current directory as the top of the working tree and `-C` is what sets that. A relative answer stays relative for the caller to place against its own event's cwd. */
 const AIMS = /(?:^|\s)(-C|--work-tree|--git-dir)(?:\s+|=)("[^"]*"|'[^']*'|\S+)/gu;
 export const gitTreeOf = (text) => {
   const said = {};
   let at = null;
   for (const [, option, value] of String(text ?? "").matchAll(AIMS)) {
-    const one = value.replace(/['"]/gu, "").replace(/\/+$/u, "");
+    const one = value.replace(/['"]/gu, "").replace(/(?!^)\/+$/u, "");
     if (option !== "-C") said[option] = one;
     else at = at && !isAbsolute(one) ? join(at, one) : one;
   }
   const from = (one) => (at && !isAbsolute(one) ? join(at, one) : one);
   if (said["--work-tree"]) return from(said["--work-tree"]);
+  if (at) return at;
   const dir = said["--git-dir"];
-  if (!dir) return at;
-  return from(basename(dir) === ".git" ? dirname(dir) : dir);
+  if (!dir) return null;
+  return basename(dir) === ".git" ? dirname(dir) : dir;
 };
 
 /** Lexical: the file may not exist yet, and a relative target resolves against the cwd. */
