@@ -192,7 +192,7 @@ test("a rank outside the tracker's set is refused with the set and the nearest n
   const { refusal, value } = priorityFor("hgh", RANKS);
   assert.equal(value, undefined, "nothing is filed under a rank that was refused");
   assert.match(refusal, /No priority named hgh\. Did you mean: high\?/u);
-  assert.match(refusal, /The set is critical, high, medium, low, none, the tracker's own/u);
+  assert.match(refusal, /The set is critical, high, medium, low, none\. That set is the tracker's own/u);
 });
 
 /* The schema is the only authority on the set, so a schema that answered with nothing leaves the
@@ -298,7 +298,8 @@ test("--size fix files the same body, with the mark the CLI writes into the desc
 test("a size the contract has no path for is refused rather than kept", async () => {
   const run = await filed(WHOLE, "--title", TITLE, "--size", "small");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /--size takes `fix`/u);
+  assert.match(run.stderr, /No size named small\. The set is fix\./u);
+  assert.match(run.stderr, /the one size the contract gives a light path/u);
 });
 
 test("--into posts the body where it belongs and files nothing, lint or no lint", async () => {
@@ -422,7 +423,7 @@ test("a kind outside the set is refused with the set, before a single tracker ca
   state.calls = [];
   const run = await filed(BUG, "--title", TITLE, "--kind", "chore");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /--kind takes one of bug, enhancement, feature/u);
+  assert.match(run.stderr, /No kind named chore\. The set is bug, enhancement, feature\./u);
   assert.match(run.stderr, /read as a feature/u, "and the kind a filing naming none is read as");
   assert.deepEqual(state.calls, [], "nothing was asked of the tracker to find that out");
 });

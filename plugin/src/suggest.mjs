@@ -33,8 +33,31 @@ export const suggest = (given, candidates, limit = 5) =>
     .slice(0, limit)
     .map((scored) => scored.candidate);
 
+/* A set this short beats a route to it; past it a set is a list rather than a sentence. */
+const SET_SHOWN = 8;
+
+const setSaid = (candidates, close) =>
+  candidates.length < SET_SHOWN && candidates.length > close.length
+    ? ` The set is ${candidates.join(", ")}.`
+    : "";
+
+/** What was given, the nearest names, the short set — and the hint only where the set is not said. */
 export const didYouMean = (kind, given, candidates, hint) => {
   const close = suggest(given, candidates);
-  if (close.length) return `No ${kind} named ${given}. Did you mean: ${close.join(", ")}?`;
-  return `No ${kind} named ${given}.${hint ? ` ${hint}` : ""}`;
+  const nearest = close.length ? ` Did you mean: ${close.join(", ")}?` : "";
+  const set = setSaid(candidates, close);
+  const route = nearest || set || !hint ? "" : ` ${hint}`;
+  return `No ${kind} named ${given}.${nearest}${set}${route}`;
+};
+
+export const flagsNamed = (usage) => [...new Set(usage.match(/--[a-z][\w-]*/gu) ?? [])];
+
+/** Asked before the parser asks what value a token was given. A `=` form is the parser's own to
+ *  refuse, and a flag no row names is accepted here and offered to nobody — did-you-mean.md. */
+export const unknownFlag = (verb, argv, { usage, hidden = [] }) => {
+  const named = flagsNamed(usage);
+  const known = [...named, ...hidden];
+  const given = argv.find((token) =>
+    token.startsWith("--") && !token.includes("=") && !known.includes(token));
+  return given ? didYouMean(`${verb} flag`, given, named, usage) : null;
 };

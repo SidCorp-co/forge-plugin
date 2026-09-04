@@ -114,14 +114,15 @@ export const shapeFor = (kind) => KINDS.find((one) => one.kind === (kind || DEFA
 const listed = (names) => names.join(", ");
 const titles = (sections) => sections.map((one) => one.title);
 
-/* The set and the route past it, borrowed by both refusals: a kind this CLI does not define is a
-   section list nobody has decided, not a filing to fix by guessing. */
-const KIND_WANTS = `one of ${listed(KIND_NAMES)} — a filing needing another kind, or another`
-  + " section under one, files an issue against this plugin rather than inventing the value";
+/* The route past the set, borrowed by both refusals: a kind this CLI does not define is a section
+   list nobody has decided, not a filing to fix by guessing. */
+const KIND_ROUTE = "a filing needing another kind, or another section under one, files an issue"
+  + " against this plugin rather than inventing the value";
+const KIND_WANTS = `one of ${listed(KIND_NAMES)} — ${KIND_ROUTE}`;
 
 export const kindRefusal = (given) =>
-  `--kind takes ${KIND_WANTS}.\nIt was given \`${given}\`, which names no shape to read the body`
-  + ` against. A filing naming no kind is read as a ${DEFAULT_KIND}.`;
+  `${didYouMean("kind", given, KIND_NAMES)}\nIt names no shape to read the body against, and`
+  + ` ${KIND_ROUTE}. A filing naming no kind is read as a ${DEFAULT_KIND}.`;
 
 /** The flow's word for a size beside the tracker's value for it, in the one place they meet. The
  *  mark is a line in the description, so this is read on the way back and written by nothing. */
@@ -144,6 +145,8 @@ export const insteadOf = (given) => {
     : null;
 };
 
+export const INSTEAD_FLAGS = Object.keys(FLOW).map((one) => `--${one}`);
+
 /** The one writer, and nothing where no kind was named: a default reads later as one somebody chose. */
 export const trackerFields = ({ kind }) => (kind ? { category: kind } : {});
 
@@ -162,8 +165,8 @@ export const priorityFor = (given, allowed = []) => {
       + ` now ${listed(allowed)}. Name one with --priority, and file this against the plugin: the`
       + " default is what has to change, not the filing." };
   }
-  return { refusal: `${didYouMean("priority", given, allowed)} The set is ${listed(allowed)},`
-    + " the tracker's own, and this CLI holds no copy of it." };
+  return { refusal: `${didYouMean("priority", given, allowed)} That set is the tracker's own, and`
+    + " this CLI holds no copy of it." };
 };
 
 /** The reading with the set fetched, which is where both filing routes take it from: the schema path

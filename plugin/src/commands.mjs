@@ -14,6 +14,7 @@ import {
 import { commentPage, creditAfter, credited, cutLine, mustBeShown, postComment } from "./tracker/comments.mjs";
 import { attachmentNames, uploadRead, uploadTo, urlBearing } from "./tracker/evidence.mjs";
 import {
+  INSTEAD_FLAGS,
   KINDS_HELP,
   KIND_NAMES,
   PRIORITY_AT,
@@ -35,7 +36,7 @@ import { BESIDE_HELP, foldOnto, foldedInto, neighboursOf, suggestionLines }
   from "./tracker/neighbours.mjs";
 import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
-import { didYouMean } from "./suggest.mjs";
+import { didYouMean, unknownFlag } from "./suggest.mjs";
 import { flags, partition, wantsHelp } from "./resolve/flags.mjs";
 import { dispositionOf, trackerHeader, visibleGuides } from "./tracker/guides.mjs";
 import { projectLines, releasePolicy, stagingDeploy } from "./tracker/project-config.mjs";
@@ -152,11 +153,21 @@ const resolveReferences = async (value, key) => {
   return value;
 };
 
+/* Asked before the parser reads a value, and before an endpoint is resolved: a token no verb takes
+   is a local mistake, and answering it costs no credential and no call. */
+const onlyFlags = (verb, argv, hidden = []) => {
+  const said = unknownFlag(verb, argv, { usage: usageOf(verb), hidden });
+  if (said) fail(said);
+};
+
 const suggestTool = async (name) =>
   didYouMean("tool", name, callable(await tools()).map((tool) => tool.name), "Ask `forge tools`.");
 
 /* The one verb whose help is longer than its row: what a body is read against depends on the kind
    it names, and the table of that is the kinds' own. */
+/* Two names, and the one place they are stated: `attach` reads its target from them. */
+const ATTACH_TARGETS = ["issue", "comment"];
+
 const NEW_USAGE = `${helpOf("new")}\n\n${BESIDE_HELP}\n\n${PRIORITY_HELP}\n\n${KINDS_HELP}`;
 
 export const commands = {
@@ -172,6 +183,7 @@ export const commands = {
   codex,
   hooks,
   tools: async (rest) => {
+    onlyFlags("tools", rest);
     const { all } = flags(rest, "tools", ["--all"]);
     for (const tool of await tools()) {
       if (all || !isGated(tool.name)) console.log(tool.name);
@@ -179,14 +191,17 @@ export const commands = {
   },
   schema: async ([name, ...rest]) => {
     if (!name) fail(usageOf("schema"));
+    onlyFlags("schema", rest, ["--all"]);
     const { all } = flags(rest, "schema", ["--all"]);
     const tool = await toolNamed(name);
     if (!tool) fail(await suggestTool(name));
     refuseIfGated(name, all);
     show({ description: tool.description, inputSchema: trimPatterns(tool.inputSchema) });
   },
-  call: async ([name, json]) => {
+  call: async (argv) => {
+    const [name, json] = argv;
     if (!name) fail(usageOf("call"));
+    onlyFlags("call", argv);
     if (!(await toolNamed(name))) fail(await suggestTool(name));
     refuseIfGated(name);
     const raw = json === undefined || json === "-" || json.startsWith("@") ? await bodyFrom(json ?? "-") : json;
@@ -237,6 +252,7 @@ export const commands = {
   /* Three tiers, and the payload is what costs. Fetch narrow, then fetch again. */
   issue: async ([reference, ...rest]) => {
     if (!reference) fail(usageOf("issue"));
+    onlyFlags("issue", rest);
     const { fields, full } = flags(rest, "issue", ["--full"]);
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
     if (names) await checkNames(names, "forge_issues", ["fields", "items", "enum"], "field");
@@ -252,18 +268,19 @@ export const commands = {
     if (wantsHelp(argv)) return console.log(NEW_USAGE);
     const [path, ...rest] = argv;
     if (!path) fail(usageOf("new"));
+    onlyFlags("new", rest, INSTEAD_FLAGS);
     const { into, with: rides, size, kind, priority, new: fresh, ...given } = flags(rest, "new", ["--new"]);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
     if (size !== undefined && !SIZE_WORDS.includes(size)) {
-      fail(`--size takes \`${SIZE_WORDS.join("`, `")}\`, the one size the contract gives a light path,`
-        + ` not \`${size}\`. A whole issue needs no size.`);
+      fail(`${didYouMean("size", size, SIZE_WORDS)} It is the one size the contract gives a light`
+        + " path, and a whole issue needs none.");
     }
     if (kind !== undefined && !KIND_NAMES.includes(kind)) fail(kindRefusal(kind));
+    const instead = insteadOf(given);
+    if (instead) fail(instead);
     /* Before the body is read, and the default answers to the same set a typed rank does. */
     const ranked = await rankOf(priority);
     if (ranked.refusal) fail(ranked.refusal);
-    const instead = insteadOf(given);
-    if (instead) fail(instead);
     /* Presence, never truth: the shared parser takes an empty string as a value, and a route read
        by truthiness would drop `--into ""` on the floor and file the issue instead. */
     const commenting = into !== undefined;
@@ -314,7 +331,9 @@ export const commands = {
     console.log(filedAs(answer, ranked.said));
     return sayBeside(beside, { nearest, foldable, fresh: Boolean(fresh) });
   },
-  comment: async ([reference, path]) => {
+  comment: async (argv) => {
+    onlyFlags("comment", argv);
+    const [reference, path] = argv;
     if (!reference || !path) fail(usageOf("comment"));
     const issue = await documentIdOf(reference);
     await renew(issue, reference);
@@ -322,7 +341,9 @@ export const commands = {
   },
   /* A plan is a field, not a comment: one value, replaced rather than accumulated. Read back before
          reporting success — a field accepted and dropped answers 200 like one that was stored. */
-  plan: async ([reference, path]) => {
+  plan: async (argv) => {
+    onlyFlags("plan", argv);
+    const [reference, path] = argv;
     if (!reference || !path) fail(usageOf("plan"));
     const documentId = await documentIdOf(reference);
     const plan = await bodyFrom(path);
@@ -336,11 +357,11 @@ export const commands = {
     }
     show({ documentId, plan: stored });
   },
-  attach: async ([target, targetRef, ...paths]) => {
+  attach: async (argv) => {
+    onlyFlags("attach", argv);
+    const [target, targetRef, ...paths] = argv;
     if (!target || !targetRef || !paths.length) fail(usageOf("attach"));
-    if (!["issue", "comment"].includes(target)) {
-      fail(`attach takes \`issue\` or \`comment\` as its target, not \`${target}\`.`);
-    }
+    if (!ATTACH_TARGETS.includes(target)) fail(didYouMean("attach target", target, ATTACH_TARGETS));
     const targetId = target === "issue" ? await documentIdOf(targetRef) : targetRef;
     /* One name on one issue names one document, whichever verb attached it (ISS-137), and the read
        comes before the first PUT: what is up can be neither deleted nor replaced, so a collision
@@ -365,7 +386,9 @@ export const commands = {
   },
   /* An edge changes the order the blocked issue is worked in, so its lease is the one that covers
      the write: a new issue filed to block the one in hand renews the one in hand. */
-  dep: async ([from, to, kind = "blocks"]) => {
+  dep: async (argv) => {
+    onlyFlags("dep", argv);
+    const [from, to, kind = "blocks"] = argv;
     if (!from || !to) fail(usageOf("dep"));
     const [fromIssueId, toIssueId] = await Promise.all([documentIdOf(from), documentIdOf(to)]);
     await notAnothers(fromIssueId, from);
@@ -381,10 +404,8 @@ export const commands = {
      an installed copy with no tracker reachable still reads the rule. */
   guide: async (argv) => {
     const { positionals, flagArgv } = partition(argv, ["--tracker"]);
+    onlyFlags("guide", flagArgv, ["--tracker"]);
     const asked = flags(flagArgv, "guide", ["--tracker"]);
-    for (const key of Object.keys(asked)) {
-      if (key !== "tracker") fail(`guide: no --${key} flag. ${usageOf("guide")}`);
-    }
     const [slug, ...extra] = positionals;
     if (slug === CONTRACT_SLUG) {
       const [part, ...rest] = extra;
@@ -410,7 +431,7 @@ export const commands = {
     /* The one place a slug the verb does not serve is refused, so a held one and an unserved one
        answer in the same words. A held slug reaches it without the get: the body is not wanted. */
     const noSuchGuide = async () =>
-      fail(didYouMean("guide", slug, (await listed()).map((one) => one.slug),
+      fail(didYouMean("guide", slug, [CONTRACT_SLUG, ...(await listed()).map((one) => one.slug)],
         "`forge guide` lists the guides this plugin stands behind."));
     if (row && !asked.tracker) await noSuchGuide();
     const answer = await scoped("forge_guide", { action: "get", slug }, true);
@@ -421,6 +442,7 @@ export const commands = {
     show(answer?.guide?.body ?? answer);
   },
   project: async (argv) => {
+    onlyFlags("project", argv);
     const asked = flags(argv, "project", ["--credentials"]);
     const lines = projectLines({
       id: await projectId(),

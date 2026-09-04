@@ -2,7 +2,7 @@
 /* The Forge issue tracker over its own HTTP endpoint: `forge -h`. A verb whose backing tool this
    credential may not call is not listed and does not run — docs/cli/withholding-a-verb.md. */
 import { commands } from "./commands.mjs";
-import { suggest } from "./suggest.mjs";
+import { didYouMean } from "./suggest.mjs";
 import { blockedBy, helpLine, helpOf, offeredVerbs } from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
 import { fail } from "./resolve/settings.mjs";
@@ -63,8 +63,9 @@ if (needs) {
 /* `Object.hasOwn`: `commands.toString` is inherited and callable, so a mistyped verb naming a
    prototype member ran it and exited 0. */
 if (asked || !command || !Object.hasOwn(commands, command)) {
-  const close = command && !asked ? suggest(command, offered.map(([verb]) => verb)) : [];
-  if (close.length) console.error(`No verb named ${command}. Did you mean: ${close.join(", ")}?\n`);
+  if (command && !asked) {
+    console.error(`${didYouMean("verb", command, offered.map(([verb]) => verb))}\n`);
+  }
   /* An answer, not a failure: on stderr, `forge -h | head` printed nothing. */
   if (!asked) {
     console.error(VERB_LIST);

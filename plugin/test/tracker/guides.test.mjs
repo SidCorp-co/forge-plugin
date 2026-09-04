@@ -171,11 +171,20 @@ test("a near miss is offered from the guides that stand", async () => {
   }
 });
 
+/* The verb prints it first in the listing and answers it off disk, so a refusal that read only the
+   tracker's list offered every slug but the one the caller was most likely reaching for. */
+test("the slug this verb answers off disk is among the candidates", async () => {
+  const run = await asked("contrct");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /Did you mean: contract/u);
+});
+
 test("a flag the verb does not take is refused rather than kept", async () => {
   const run = await asked("deploy-safety", "--verbose", "yes");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /no --verbose flag/u);
+  assert.match(run.stderr, /No guide flag named --verbose\./u);
   assert.match(run.stderr, /Usage: forge guide/u);
+  assert.doesNotMatch(run.stderr, /--tracker/u, "and the flag no help text names is named in none");
 });
 
 /* The whole point of moving it: a copy with no tracker reachable still reads the rule. The fake one
