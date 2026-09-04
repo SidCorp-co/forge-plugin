@@ -34,10 +34,10 @@ read from the account's own configuration file at owner-only permissions. The en
 source and neither is any file inside a repository — a credential that answers by directory is an
 account setting in name only.
 
-- **AC-01-1-1** · Rev: 1 · Proof: plugin/test/cli/env-flags.test.mjs
+- **AC-01-1-1** · Rev: 1 · Proof: plugin/test/cli/env-flags.test.mjs "no value is read from the environment"
   WHERE a setting could be taken from the environment the CLI SHALL take none, and the test SHALL
   fail when a new environment read is added.
-- **AC-01-1-2** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs
+- **AC-01-1-2** · Rev: 1 · Proof: none yet — ISS-237
   WHEN the credential is written THEN the CLI SHALL store it at owner-only permissions outside the
   repository.
 
@@ -50,10 +50,10 @@ a call that needs a project identifier. The identifier itself is never configure
 from the slug at runtime, so a copied settings file cannot point one project's calls at another's
 records.
 
-- **AC-01-2-1** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs
+- **AC-01-2-1** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "a slug header alone is reported, with where to put it instead"
   WHEN a call needs a project identifier THEN the CLI SHALL look it up from the slug and SHALL
   accept no identifier as input.
-- **AC-01-2-2** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs
+- **AC-01-2-2** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "a .mcp.json naming a forge server is reported and not read"
   IF a competing configuration is present — a client configuration naming a server of this product,
   or a project header set elsewhere — THEN the report SHALL name it, SHALL not read it, and SHALL
   print the command that saves the same value properly.
@@ -65,10 +65,10 @@ Rev: 1 · Actors: developer, agent · Enforces: BR-01, BR-08
 One verb prints every resolved setting, the source that answered for it, and whether the endpoint
 can be reached. It is what a refusal points at, so it answers before the question is asked twice.
 
-- **AC-01-3-1** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs
+- **AC-01-3-1** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the three release values are reported with where they came from"
   WHEN the report runs THEN it SHALL name each setting with the source that answered, and SHALL
   report a setting that resolved to nothing as absent rather than omitting it.
-- **AC-01-3-2** · Rev: 1 · Proof: plugin/test/hooks/hook-switch.test.mjs
+- **AC-01-3-2** · Rev: 1 · Proof: plugin/test/hooks/hook-switch.test.mjs "doctor reports a switch wired to nothing"
   IF a switch names a gate that does not exist THEN the report SHALL say so, so a gate somebody
   believes is off cannot be silently on.
 
@@ -80,7 +80,7 @@ Two things can shorten the usage list: a record of which tools refused this cred
 developer hiding a verb by hand. Because a verb can be missing for either reason, the CLI says so
 rather than behaving as though the verb never existed.
 
-- **AC-01-4-1** · Rev: 1 · Proof: plugin/test/cli/cli-help.test.mjs
+- **AC-01-4-1** · Rev: 1 · Proof: plugin/test/cli/cli-help.test.mjs "no run of anything else is advertised"
   WHEN the usage list is printed THEN it SHALL advertise only what this credential may run.
 - **AC-01-4-2** · Rev: 1 · Proof: none yet — ISS-8
   WHEN a tool refuses this credential THEN the CLI SHALL record which tool, for which project, and

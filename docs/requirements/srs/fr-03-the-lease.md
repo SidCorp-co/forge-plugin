@@ -37,13 +37,13 @@ A claim writes the holder, the renew time and the duration, and appends itself t
 in the same write — so who held the issue when is on the record with no second write that could
 fail or lie.
 
-- **AC-03-1-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs
+- **AC-03-1-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the claim history is appended by the write that made it, and a renew appends nothing"
   WHEN an issue is claimed THEN the CLI SHALL record the holder, the renew time, the duration and
   the claim itself in one write.
-- **AC-03-1-2** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs
+- **AC-03-1-2** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "a lease is read out of the field, and anything else in it is no lease"
   IF the field holds anything that is not a lease THEN the CLI SHALL read it as no lease rather than
   as a claim it can renew.
-- **AC-03-1-3** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs
+- **AC-03-1-3** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "a renew keeps the line the lease already held, and only a caller that says so clears it"
   WHEN a payload is written THEN the CLI SHALL renew the lease as part of that write.
 
 ### UC-03-2 — Refuse a second run
@@ -53,7 +53,7 @@ Rev: 1 · Actors: agent · Enforces: BR-01, BR-05
 A live lease held by another run refuses the claim and every payload write, and the refusal names
 the holder and the renew time — the two facts a person needs to decide whether to wait.
 
-- **AC-03-2-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs
+- **AC-03-2-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "every refusal names the holder, its renew time and the one command that clears it"
   IF a live lease is held by another run THEN the CLI SHALL refuse and SHALL name that run, its
   renew time and the one command that clears the refusal.
 - **AC-03-2-2** · Rev: 1 · Proof: none yet — ISS-7
@@ -68,10 +68,10 @@ Once the duration has passed the lease is open to any run, and the run that held
 privileged than any other. The live test that settled that — and what it caught a build doing — is
 in the contract's fifth dry run.
 
-- **AC-03-3-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs
+- **AC-03-3-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the five states, and a lease past its duration is another run's to take"
   IF a lease is past its duration THEN the CLI SHALL let any run reclaim it, and SHALL refuse the
   former holder's next write as stale.
-- **AC-03-3-2** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs
+- **AC-03-3-2** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the claim history is appended by the write that made it, and a renew appends nothing"
   WHEN a holder retakes its own lapsed lease THEN the CLI SHALL append no handoff and SHALL count it
   toward no park.
 
@@ -83,13 +83,13 @@ Repeated reclaims of one status mean the work is not merely slow. Past a thresho
 for a person with the claim history as its evidence, rather than being picked up again by a run
 that will die the same way.
 
-- **AC-03-4-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs
+- **AC-03-4-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the third reclaim of one status parks the issue, and other statuses do not count"
   WHEN one status has been reclaimed past the threshold THEN the CLI SHALL park the issue for a
   person and SHALL cite the claim history.
-- **AC-03-4-2** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs
+- **AC-03-4-2** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the third reclaim of one status parks the issue, and other statuses do not count"
   IF the reclaims are spread across different statuses THEN the CLI SHALL not park, since progress
   between crashes is progress.
-- **AC-03-4-3** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs
+- **AC-03-4-3** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "a park older than the crashes it would answer answers none of them"
   IF a park already answered is older than the crashes it would answer THEN the CLI SHALL park
   again rather than treat the old answer as covering them.
 - **AC-03-4-4** · Rev: 1 · Proof: none yet — ISS-35

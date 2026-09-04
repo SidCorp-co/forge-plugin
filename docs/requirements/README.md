@@ -49,7 +49,7 @@ the checker and does not restate what it says.
 | R-08 | Every use case has at least one acceptance criterion. | Each `UC-` heading is followed, before the next `UC-`, by at least one `AC-` line. | the spec gate |
 | R-09 | Every business rule is enforced somewhere. | Each `BR-` in `brd/04-business-rules.md` appears in at least one clause's `Enforces:` field. | the spec gate |
 | R-10 | A citation carries the revision it was written against. | Every citation is `<id>~<rev>`; the gate hashes the clause's content, compares it with the hash recorded for that revision, and reports the citation suspect when the two differ. | the spec gate |
-| R-11 | An acceptance criterion is in EARS form and names its proof. | Two lines: a field line opening with the identifier and carrying `Proof:` — a path that resolves, or `none yet` with an issue key — then a sentence opening with `WHEN`, `IF`, `WHILE` or `WHERE`, holding `SHALL`, and holding `THEN` when it opened with `WHEN` or `IF`. | the spec gate |
+| R-11 | An acceptance criterion is in EARS form and names the case that proves it. | Two lines: a field line opening with the identifier and carrying `Proof:` — a path that resolves, carrying after it the case's own name in double quotes where that path is a test file, or `none yet` with an issue key — then a sentence opening with `WHEN`, `IF`, `WHILE` or `WHERE`, holding `SHALL`, and holding `THEN` when it opened with `WHEN` or `IF`. | `plugin/test/spec/proof-cases.test.mjs`, then the spec gate |
 | R-12 | An identifier is never reused and never renumbered. | A retired clause keeps its number and is marked retired; no number appears twice in the tree. | the spec gate |
 | R-13 | Each document carries the sections its kind declares. | The section list below, matched against the headings of each file. | the spec gate |
 | R-14 | A section heading is followed by the question it answers. | The first non-blank line after a `##` heading ends in a question mark. | the spec gate |
@@ -58,6 +58,19 @@ the checker and does not restate what it says.
 | R-17 | Every list is renderable as a table. | Each list of clauses is a table, or a sequence of clauses with identical field keys. | the page lint |
 | R-18 | A clause never restates the argument for a rule; it states the duty and cites the argument's home. | No sentence of the tree overlaps a sentence of the rules file, a skill, a gate document or another document under `docs/` at 0.55 or above by the measure in `plugin/src/checks/duplication.mjs`, over sentences of five words or more — counting prose, list items **and the text of table cells**, which that module strips and the gate therefore has to put back. | the spec gate |
 | R-19 | The tree names nothing that does not resolve. | Every path in a code span or a link exists, read from the repository root or from the document's own directory; every verb named is one the CLI has, or one declared on the document's proposal line. | `plugin/test/checks/docs/doc-claims.test.mjs`, then the spec gate |
+
+**Why a Proof names a case and not only a file (R-11).** A path that resolves cannot be told from a
+path that proves: three clauses cited a live test file for three releases after the cases moved out
+of it, and the rule read green throughout (ISS-217). So the claim is the case, written as the file
+spells it and in double quotes, which is what makes it cheap to obey — the name is copied from the
+source and `grep -F` takes it back. The name sits in the field line rather than in the criterion,
+where R-16 would refuse it, and it costs no revision: an acceptance criterion's field line is
+outside what is hashed, so a Proof that moves leaves every citation of that clause standing. A
+clause with no case to name keeps the escape it already had rather than gaining a second one, and a
+proof that is a checker rather than a test is cited by its path alone, since there is no case in it
+to name. Cite the path whole from the root: the two bases R-19 states are the two the case reader is
+given, so a name that resolves only as the tail of some path leaves the case unread and the clause
+green either way.
 
 **Why a revision by hand and a hash by machine (R-10).** Doorstop stores a parent's fingerprint in
 the child link and marks the link suspect when the parent changes; OpenFastTrace puts a revision in

@@ -18,10 +18,10 @@ the request. The tracker owns its state machine, its fields and its data fence; 
 none of them. Its errors are the network's fault rather than the work's, and are retried and never
 recorded (UC-02-5).
 
-- **AC-19-1-1** · Rev: 1 · Proof: plugin/test/tracker/rpc.test.mjs
+- **AC-19-1-1** · Rev: 1 · Proof: plugin/test/tracker/rpc.test.mjs "the identifying argument is derivable from the reference set"
   WHEN the tracker declares a surface THEN the CLI SHALL read the declaration rather than assume
   it, and SHALL refresh the cached copy when a name lookup misses.
-- **AC-19-1-2** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs
+- **AC-19-1-2** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "the tracker's data fence around a field or a body is not part of it"
   WHEN a field arrives inside the tracker's data fence THEN the reader SHALL take the value and
   never the fence.
 
@@ -33,10 +33,10 @@ A model from another provider, reached over its own gateway. It is worth its tok
 is a different family, so a slot resolving to this model's own family is refused (C-09). Every tool
 call it makes is printed as it runs, and a path it asks for outside the checkout is refused.
 
-- **AC-19-2-1** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs
+- **AC-19-2-1** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs "the model slot resolves through the profile, not the flag"
   WHEN the review model is resolved THEN the resolution SHALL come from the profile rather than
   from a flag, and an own-family slot SHALL be refused.
-- **AC-19-2-2** · Rev: 1 · Proof: plugin/test/codex/codex-tools.test.mjs
+- **AC-19-2-2** · Rev: 1 · Proof: plugin/test/codex/codex-tools.test.mjs "a path that is not there is answered with the nearest directory that is"
   IF the reviewer asks for a path outside the checkout THEN the CLI SHALL refuse and SHALL name what
   the checkout holds at its top.
 
@@ -48,9 +48,9 @@ The session host hands each gate an event and reads back a decision. What the ho
 one registration per event, no per-gate switch (C-06), and a copy of the plugin taken at install
 time (C-01). How a gate's answer becomes that protocol is `docs/HOOKS.md`'s.
 
-- **AC-19-3-1** · Rev: 1 · Proof: plugin/test/hooks/gate.test.mjs
+- **AC-19-3-1** · Rev: 1 · Proof: plugin/test/hooks/gate.test.mjs "after a call, every gate's block and context travel together"
   WHEN a gate decides THEN the runner SHALL express that decision in the host's own protocol.
-- **AC-19-3-2** · Rev: 1 · Proof: plugin/test/hooks/link-cli.test.mjs
+- **AC-19-3-2** · Rev: 1 · Proof: plugin/test/hooks/link-cli.test.mjs "an empty bin gets both"
   WHEN a session starts THEN the product SHALL put its binaries on the path from the copy that is
   running.
 
@@ -62,7 +62,7 @@ Reached through its own entry point, which resolves the workspace, the binary an
 configuration. Which copy of it answers is `README.md`'s; a project with neither is silence
 (NFR-09).
 
-- **AC-19-4-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs
+- **AC-19-4-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
   WHEN a file is linted THEN the finding SHALL come from the project's own configuration, and the
   product SHALL add no rule of its own.
 
@@ -74,7 +74,7 @@ A streaming model call per segment, with its own key in its own configuration fi
 accounting and segmentation are this product's; the prose is the model's and is judged by a person
 (NFR-10).
 
-- **AC-19-5-1** · Rev: 1 · Proof: plugin/test/tools/vi-gateway.test.mjs
+- **AC-19-5-1** · Rev: 1 · Proof: none yet — ISS-237
   WHEN a batch is sent THEN the result SHALL be accepted only if every placeholder is accounted
   for.
 
@@ -86,7 +86,7 @@ Zones, records and cache purges on the developer's own credential, from the same
 configuration as everything else — one source, so nothing about which credential answered is a
 precedence rule.
 
-- **AC-19-6-1** · Rev: 1 · Proof: plugin/test/tools/cloudflare.test.mjs
+- **AC-19-6-1** · Rev: 1 · Proof: plugin/test/tools/cloudflare.test.mjs "an environment pair is not an account"
   WHEN a zone or record call is made THEN the credential SHALL come from the account's own
   configuration.
 
@@ -99,6 +99,6 @@ to decide what a call wrote and what a commit would land, and it writes nothing 
 own accord. What the repository knows is written onto the issue at the step that knew it, and never
 read back at judging time.
 
-- **AC-19-7-1** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs
+- **AC-19-7-1** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "a commit is judged by the tree it names, not the shell's"
   WHEN a commit is judged THEN the tree judged SHALL be the one the command names rather than the
   shell's.

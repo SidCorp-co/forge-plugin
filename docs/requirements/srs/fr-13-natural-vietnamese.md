@@ -50,10 +50,10 @@ A translation that loses a placeholder, or invents one, breaks the caller rather
 Every placeholder in the source has to appear in the result, and the order of a catalog's keys is
 preserved so a locale file stays diffable against its source.
 
-- **AC-13-2-1** · Rev: 1 · Proof: plugin/test/tools/vi-gateway.test.mjs
+- **AC-13-2-1** · Rev: 1 · Proof: none yet — ISS-237
   WHEN a segment is translated THEN every placeholder in the source SHALL be present in the result,
   and none SHALL be invented.
-- **AC-13-2-2** · Rev: 1 · Proof: plugin/test/tools/vi-gateway.test.mjs
+- **AC-13-2-2** · Rev: 1 · Proof: none yet — ISS-237
   WHEN a catalog is written back THEN its key order SHALL be preserved.
 
 ### UC-13-3 — The output is judged by reading it

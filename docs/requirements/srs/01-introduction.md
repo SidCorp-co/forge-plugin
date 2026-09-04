@@ -50,7 +50,7 @@ clause's heading, and it holds `Key: value` pairs separated by `·`:
 | `Rev` | every clause | an integer, 1 at first writing, bumped when the obligation changes |
 | `Actors` | a requirement, a use case | who acts, from the actor list in [02-system-overview.md](./02-system-overview.md) |
 | `Enforces` | a requirement, a use case | the business rules this clause carries out |
-| `Proof` | an acceptance criterion | the test or checker that fails when the criterion is broken, or `none yet` with the issue that owes it |
+| `Proof` | an acceptance criterion | the test or checker that fails when the criterion is broken — a test file with the name of the case in it, in double quotes — or `none yet` with the issue that owes it |
 | `Source` | a requirement | where in this repository the behaviour is already stated, so a reader can see the clause was drawn rather than invented |
 | `Status` | a clause not yet in force | `proposal`, with the issue that would build it; absent means in force |
 
@@ -61,7 +61,7 @@ particular words, and it is the form a tracker verdict uses.
 **An acceptance criterion is two lines**, because it is a list item rather than a heading and its
 field line has nowhere else to go:
 
-    - **AC-<fr>-<uc>-<n>** · Rev: 1 · Proof: <a test, a checker, or none yet with an issue>
+    - **AC-<fr>-<uc>-<n>** · Rev: 1 · Proof: <a test file> "<the case in it>"
       WHEN <event> THEN <the part that answers> SHALL <what it does>.
 
 The first line is the field line, opening with the identifier. The second is the criterion itself,

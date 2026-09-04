@@ -41,17 +41,17 @@ Linting is the slowest thing a post-call gate does and the whole line shares one
 deadline, so the number of files one call can carry is capped — which is why the cap is a clause
 here rather than an implementation detail.
 
-- **AC-11-1-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs
+- **AC-11-1-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
   WHEN a call writes code files THEN the gate SHALL hand them to the project's own linter, up to the
   cap the event's deadline imposes.
 - **AC-11-1-5** · Rev: 1 · Proof: none yet — ISS-38
   IF a call wrote more files than that cap THEN the gate SHALL name the files it did not lint.
-- **AC-11-1-2** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs
+- **AC-11-1-2** · Rev: 1 · Proof: none yet — ISS-237
   IF the project configures no linter THEN the gate SHALL say nothing.
-- **AC-11-1-3** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs
+- **AC-11-1-3** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
   WHEN a file has already been reported at its current content THEN naming it again SHALL not be
   answered twice.
-- **AC-11-1-4** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs
+- **AC-11-1-4** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
   WHEN a finding is reported THEN the report SHALL name the rules that fired, and a clean file SHALL
   produce nothing.
 
@@ -63,16 +63,16 @@ Every kind of claim is settled by running something rather than by an opinion �
 themselves, and what counts as a claim at all, are listed in the gate's own document. The duty here
 is that the file a claim names is the authority over the claim.
 
-- **AC-11-2-1** · Rev: 1 · Proof: plugin/test/gates/claude-md-hook.test.mjs
+- **AC-11-2-1** · Rev: 1 · Proof: plugin/test/gates/claude-md-hook.test.mjs "a claim the write introduces is refused, named, with one move and where the argument is"
   IF a write introduces a claim the repository does not bear out THEN the gate SHALL refuse the
   write, SHALL name the claim, and SHALL name one move that clears it.
-- **AC-11-2-2** · Rev: 1 · Proof: plugin/test/gates/claude-md-hook.test.mjs
+- **AC-11-2-2** · Rev: 1 · Proof: plugin/test/gates/claude-md-hook.test.mjs "a claim already broken in the committed file is not this write's doing"
   IF the claim is already broken in the committed file THEN this write SHALL not be refused for it,
   so the edit that fixes an inherited file lands.
-- **AC-11-2-3** · Rev: 1 · Proof: plugin/test/checks/claude-md.test.mjs
+- **AC-11-2-3** · Rev: 1 · Proof: plugin/test/checks/claude-md.test.mjs "a rule a checker declares is reported where CLAUDE.md explains it"
   WHERE a rule is already enforced by a checker the report SHALL raise it where a person is reading
   rather than refusing the write.
-- **AC-11-2-4** · Rev: 1 · Proof: plugin/test/gates/claude-md-hook.test.mjs
+- **AC-11-2-4** · Rev: 1 · Proof: plugin/test/gates/claude-md-hook.test.mjs "a project's own guides and every other file are its business"
   WHERE a file belongs to the project rather than to this product the gate SHALL leave it to the
   project.
 
