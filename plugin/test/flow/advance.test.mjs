@@ -258,6 +258,29 @@ test("a user-facing outcome owes a person's look, and --owed says so first", () 
   assert.equal(lookAhead(view({ ...shipped, status: "released" }, []), "ISS-3"), null, "and past it there is nothing ahead");
 });
 
+/* The park is the project's to keep or to waive, and its own config is the answer: two branches
+   that differ make `released` staging, one automatic production deploy releases without a person,
+   and anything unread stays as it was (ISS-90). */
+test("the project's release policy decides whether a user-facing outcome parks", () => {
+  const looking = "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes.";
+  const shipped = {
+    status: "tested", plan: fenced(looking), acceptanceCriteria: fenced(CRITERIA),
+    attachments: ATTACHED, releaseNotes: { section: "Fixed" },
+  };
+  const ready = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["run.txt"] })];
+  const asked = "the plan declares a user-facing outcome, and no person has answered since it was parked for review";
+  const policy = (staging, production, autoProd) => ({ staging, production, autoProd, from: "the tracker's project config" });
+  const seen = (release) => CHECKS.released(viewFrom("the-uuid", shipped, ready, true, release), "ISS-3").map((one) => one.what);
+  assert.deepEqual(seen(policy("master", "master", false)), [asked], "one branch and no automatic deploy is today's behaviour");
+  assert.deepEqual(seen(null), [asked], "and so is a config that did not answer");
+  assert.deepEqual(seen(policy(null, "master", true)), [asked], "an unset branch is unread, and the strict reading stands");
+  assert.deepEqual(seen(policy("master", "master", true)), [], "the same record earns released where the project deploys production itself");
+  assert.deepEqual(seen(policy("staging", "master", false)), [], "and where released is the staging branch, which is where a person looks");
+  const ahead = (release) => lookAhead(viewFrom("the-uuid", { ...shipped, status: "developed" }, [], true, release), "ISS-3");
+  assert.match(ahead(policy("master", "master", false)), /^Ahead: released owes a person's look/u);
+  assert.equal(ahead(policy("master", "master", true)), null, "and the warning three statuses earlier reads the same answer");
+});
+
 test("developed needs the mark, its commit, and an approving review of that commit", () => {
   const review = (commit, outcome = "approved") =>
     recorded("review", { reviewer: "codex", commit, outcome, finding: ["F1 accepted"] });
@@ -483,15 +506,49 @@ const OPEN = {
   description: "`forge dep` should take the `data.relations` route.\n\nSize: fix.\n",
 };
 const EARNS = { ...OPEN, documentId: "earning-uuid", issueId: "ISS-92", description: "no mark here" };
+/* Shipped but for the person: what the project's own config decides is whether that person is owed,
+   and an issue declaring neither line must not cost the call that asks (ISS-90). */
+const LOOKING = {
+  documentId: "looking-uuid",
+  issueId: "ISS-93",
+  status: "tested",
+  title: "the change a person may have to look at",
+  description: "no mark here",
+  plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes.",
+  acceptanceCriteria: "1. The first outcome.",
+  releaseNotes: { section: "Fixed", userFacing: "it works" },
+};
+const QUIET = { ...LOOKING, documentId: "quiet-uuid", issueId: "ISS-94", plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no." };
 const state = {
-  issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" }, EARNS],
+  calls: [],
+  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" }, EARNS, LOOKING, QUIET],
   comments: {
     "earning-uuid": [recorded("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" })],
+    "looking-uuid": [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] })],
+    "quiet-uuid": [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] })],
   },
+  answer: { forge_config: () => ({ config: state.config }) },
 };
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);
+
+test("the project's config is asked once the plan declares a person, and never before", async () => {
+  const asked = () => state.calls.filter((one) => one.name === "forge_config").length;
+  const quiet = asked();
+  const nobody = await owed("ISS-94");
+  assert.match(nobody.stdout, /the record earns it/u, "a plan declaring neither owes no person");
+  assert.equal(asked(), quiet, "and pays no round to hear what the project would have said");
+  const parked = await owed("ISS-93");
+  assert.match(parked.stdout, /no person has answered since it was parked for review/u,
+    "one branch and no automatic production deploy is the park as it always was");
+  assert.ok(asked() > quiet, "asked, because this plan's answer depends on it");
+  state.config = { ...state.config, pipelineConfig: { autoProdDeploy: true } };
+  const ships = await owed("ISS-93");
+  assert.match(ships.stdout, /released is next and the record earns it/u,
+    "and the same record earns released where the project releases production itself");
+});
 
 test("--owed on a marked fix says which payloads a fix owes and which it does not", async () => {
   const run = await owed("ISS-90");

@@ -1,11 +1,13 @@
 /* A setting doctor does not read is a green report in front of a command that cannot run. */
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
+
+import { fakeTracker } from "../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
 
@@ -99,4 +101,51 @@ test("the copy a call through the link would run is reported, with why that one"
     env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
   assert.match(inside.stdout, /\[ {2}ok {2}\] copy on PATH\s+checkout \S+ at \S+ — the working directory is inside the checkout/u);
+});
+
+/* The project's release policy is the tracker's to answer, and the report names it in the words its
+   owner uses: the staging branch, never the field's own name (ISS-90). */
+const releaseReport = async (config) => {
+  const tracker = await fakeTracker({
+    answer: {
+      "forge_projects.list": () => ({ projects: [{ slug: "release-fixture", id: "1e1c1a1e-0000-4000-8000-000000000001" }] }),
+      forge_config: () => ({ config }),
+    },
+  });
+  const cwd = mkdtempSync(join(tmpdir(), "doctor-release-"));
+  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "release-fixture" }));
+  /* Awaited, not waited on: this test is the tracker the report asks, and spawnSync holds the loop
+     that would answer it. */
+  const out = await new Promise((done) => {
+    const child = spawn(process.execPath, [CLI, "doctor"], { cwd, env: tracker.env });
+    let held = "";
+    child.stdout.on("data", (chunk) => {
+      held += chunk;
+    });
+    child.on("close", () => done(held));
+    child.stdin.end();
+  });
+  tracker.close();
+  return out;
+};
+
+test("the three release values are reported with where they came from", async () => {
+  const out = await releaseReport({
+    baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true },
+  });
+  assert.match(out, /\[ {2}ok {2}\] staging branch\s+master {2}← the tracker's project config/u);
+  assert.match(out, /\[ {2}ok {2}\] production branch\s+master {2}← the tracker's project config/u);
+  assert.match(out, /\[ {2}ok {2}\] production deploy\s+automatic — a user-facing change ships without a person's look/u);
+  assert.doesNotMatch(out, /baseBranch/u, "and the tracker's own field name is not what a reader is shown");
+});
+
+test("an automatic production deploy with no branch to land on is a finding", async () => {
+  const out = await releaseReport({
+    baseBranch: null, productionBranch: "master", pipelineConfig: { autoProdDeploy: true },
+  });
+  assert.match(out, /\[ miss \] staging branch\s+unset on the project/u);
+  assert.match(out, /\[ miss \] release policy\s+production deploys are automatic and the staging branch is unset/u);
+  assert.match(out, /a person's look is owed until the branch is set/u);
+  assert.match(out, /production deploy\s+automatic — a user-facing change waits for a person's look/u,
+    "the strict reading is what the report says too");
 });

@@ -9,9 +9,10 @@ import { write } from "../tracker/rpc.mjs";
 import { FIX_OWES, isFix } from "../tracker/issue-shape.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../tracker/contract.mjs";
-import { PARKS, SHOWS_EVIDENCE } from "./machine.mjs";
+import { PARKS, SHOWS_EVIDENCE, planFlags, unwrap } from "./machine.mjs";
+import { releasePolicy } from "../tracker/project-config.mjs";
 import { Refused, issueOf, post, refuse, render } from "./record.mjs";
-import { PARK_STATUS, SIDE, atLeast, payloadOwed, transitionCall, viewFrom } from "./earned.mjs";
+import { PARK_STATUS, SIDE, atLeast, payloadOwed, personLooks, transitionCall, viewFrom } from "./earned.mjs";
 import { lookAhead, targetOf } from "./route.mjs";
 import { FIELD, leaseOf, nextLine, renew } from "./lease.mjs";
 
@@ -54,10 +55,14 @@ export const USAGE = [
   "A parked issue resumes where its park record says it left, once a reply or its blocker clears it.",
 ].join("\n");
 
+/* The project's release policy is a call, so it is made only where its answer is read: a plan
+   declaring neither line owes no person whatever the project says, and pays no round to hear it. */
+export const policyFor = async (plan) => (personLooks(planFlags(unwrap(plan))) ? releasePolicy() : null);
+
 const viewOf = async (reference) => {
   const { documentId, body } = await issueOf(reference);
   const { comments, hasMore } = await commentPage(documentId);
-  return viewFrom(documentId, body, comments, !hasMore);
+  return viewFrom(documentId, body, comments, !hasMore, await policyFor(body.plan));
 };
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs

@@ -61,7 +61,7 @@ const valuesFor = (entries, field) => {
   return held.length ? held[0] : undefined;
 };
 
-/* A body whose keys resolve to none of the shape's is named rewritten, never read as empty. */
+/* Keys resolving to none of the shape's is rewritten, not empty; and no body sources a derived one. */
 export const readRecord = (body, shapeOf) => {
   const tag = TAG.exec(body ?? "");
   const shape = tag ? shapeOf(tag[1]) : null;
@@ -69,7 +69,7 @@ export const readRecord = (body, shapeOf) => {
   const fenced = payloadIn(body);
   const { entries, rewritten } = fenced ? { entries: fenced, rewritten: false } : labelledIn(body, shape);
   const fields = {};
-  for (const field of [...shape.fields, ...(shape.stamp ? [shape.stamp] : [])]) {
+  for (const field of [...shape.fields.filter((one) => !one.derived), ...(shape.stamp ? [shape.stamp] : [])]) {
     const held = valuesFor(entries, field);
     if (held !== undefined) fields[field.flag] = held;
   }
@@ -313,6 +313,8 @@ export const SHAPES = {
       FIELD("where", "Where it runs"),
       FIELD("commit", "Commit", { commit: true }),
       FIELD("evidence", "Evidence", { many: true, least: 1, evidence: true }),
+      FIELD("review", "Review", { optional: true, derived: true }),
+      FIELD("promotion", "Promotion", { optional: true, derived: true }),
     ],
   },
 };

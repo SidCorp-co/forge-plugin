@@ -347,6 +347,30 @@ const checkAgainstGuides = async (scoped) => {
   return broken + reportClaudeMd(review, found.path);
 };
 
+/* The project's own release policy, printed under the names its owner uses: the tracker's
+   `baseBranch` is the staging branch, and nothing but this reader calls it by the column's name.
+   Where the two branches differ, `released` is staging and promotion is a step of its own. */
+const checkRelease = async () => {
+  const { releaseConflict, releasePolicy, waitsForPerson } = await import("../tracker/project-config.mjs");
+  const policy = await releasePolicy();
+  if (!policy) {
+    line(NOTE, "release policy", "the project config did not answer — the park before released stands");
+    return 0;
+  }
+  const branch = (label, held) => {
+    if (held) return line(OK, label, `${held}  ← ${policy.from}`);
+    return line(BAD, label, `unset on the project — a release has no named ${label}, and the park`
+      + " before released stands until it is set");
+  };
+  branch("staging branch", policy.staging);
+  branch("production branch", policy.production);
+  line(OK, "production deploy", `${policy.autoProd ? "automatic" : "a person's"} — a user-facing change`
+    + `${waitsForPerson(policy) ? " waits for" : " ships without"} a person's look  ← ${policy.from}`);
+  const said = releaseConflict(policy);
+  if (said) line(BAD, "release policy", said);
+  return said ? 1 : 0;
+};
+
 /* Lazy: the transport exits the process when credentials have not resolved. */
 const checkEndpoint = async (full) => {
   const { refreshTools, projectId, scoped } = await import("../tracker/rpc.mjs");
@@ -360,7 +384,7 @@ const checkEndpoint = async (full) => {
   const id = await projectId();
   line(OK, "project id", full ? id : `resolved from the slug (--full to print it)`);
   const findings = await probe(scoped, slug);
-  const broken = findings.forge_guide ? 0 : await checkAgainstGuides(scoped);
+  const broken = (await checkRelease()) + (findings.forge_guide ? 0 : await checkAgainstGuides(scoped));
   const gated = findings.gated;
   if (gated) {
     console.log(

@@ -7,6 +7,8 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { fakeTracker, ranAsync } from "../fixtures.mjs";
+
 process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "record-"));
 const {
   KINDS, USAGE, assemble, checked, conjunctionsFor, criteriaLines, fromRecord, joinedCriteria, noteFrom, parse, render,
@@ -321,4 +323,69 @@ test("a gap says where the method did not answer and what was done instead", () 
   assert.equal(parse(body).kind, "gap");
   assert.equal(refusedBy("gap", { none: "the skill answered every step" }), null);
   assert.match(refusedBy("gap", { where: "SKILL.md", lacked: "the release path" }) ?? "", /^record gap needs --did, or --none "<why>" when this run met no gap\.$/u);
+});
+
+/* The one line on a record no author writes: what the project's config says about who releases.
+   Spawned, because the value is a call and the point is that the writer makes it (ISS-90). */
+const shipped = {
+  documentId: "shipped-uuid",
+  issueId: "ISS-3",
+  status: "tested",
+  title: "the change that is about to be released",
+  description: "no mark here",
+};
+const project = {
+  calls: [],
+  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  issues: [shipped],
+  comments: { "shipped-uuid": [] },
+  answer: {
+    forge_config: () => ({ config: project.config }),
+    /* The lease is the write's own gate, so the fixture keeps what a claim puts on the issue. */
+    forge_issues: (args) => {
+      if (args.action === "list") return { issues: project.issues, returned: 1, hasMore: false };
+      if (args.action === "get") return shipped;
+      if (args.action === "update") return Object.assign(shipped, args.data);
+      return { documentId: args.documentId, ...(args.data ?? {}) };
+    },
+  },
+};
+const tracker = await fakeTracker(project);
+test.after(() => tracker.close());
+await ranAsync(FORGE, ["claim", "ISS-3"], tracker.env);
+const verify = () =>
+  ranAsync(FORGE, ["record", "verification", "ISS-3", "--where", "the installed plugin",
+    "--commit", "43b811e", "--evidence", "43b811e"], tracker.env);
+
+test("the verification says who released it, in the project's own words and never the author's", async () => {
+  const kept = await verify();
+  assert.equal(kept.status, 0, kept.stderr);
+  assert.doesNotMatch(kept.stdout, /^review:/mu, "a project whose park stands says nothing");
+  project.config = { ...project.config, pipelineConfig: { autoProdDeploy: true } };
+  const alone = await verify();
+  assert.match(alone.stdout, /^review: none, by project config$/mu, "and one that releases production itself says so");
+  project.config = { baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } };
+  const promoted = await verify();
+  assert.match(promoted.stdout, /^promotion: to master, a person's, owed$/mu, "two branches make promotion a step of its own");
+  project.config = { ...project.config, pipelineConfig: { autoProdDeploy: true } };
+  const automatic = await verify();
+  assert.match(automatic.stdout, /^promotion: to master, automatic$/mu, "and the config says whether anyone owes it");
+});
+
+test("no flag puts the project's answer on a record", () => {
+  const derived = SHAPES.verification.fields.filter((one) => one.derived).map((one) => one.flag);
+  assert.deepEqual(derived, ["review", "promotion"], "the two the project answers, and no others");
+  const run = ask("record", "verification", "ISS-3", "--where", "here", "--commit", "43b811e",
+    "--evidence", "43b811e", "--promotion", "whatever an author would like it to say");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /record verification takes no --promotion/u, "refused before any call");
+  const offered = /Fields: ([^\n]*)/u.exec(run.stderr)[1];
+  for (const flag of derived) assert.doesNotMatch(offered, new RegExp(`--${flag}\b`, "u"), flag);
+  /* Nor by hand: a comment carrying the key, through a client no gate sits before, reads back
+     without it, because the value is the CLI's answer about the project and a body is no source. */
+  const typed = render("verification", { where: "here", commit: "43b811e", evidence: ["43b811e"] })
+    .replace(/^where: here$/mu, "where: here\nreview: none, by project config\npromotion: to master, automatic");
+  assert.match(typed, /^review: none, by project config$/mu, "the body really carries it");
+  const read = parse(typed).fields;
+  for (const flag of derived) assert.equal(read[flag], undefined, `${flag} read back off a hand-written body`);
 });

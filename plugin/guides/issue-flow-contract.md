@@ -49,7 +49,7 @@ issue. They write to the project, never to a transition.
 | `in_progress` | code is being written against this plan | `approved`; every blocker that gates dispatch at least `developed`, read from the edge's own answer and not from the list it arrived in, so a mention gates nothing; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the review and the merge |
 | `developed` | the change was reviewed and is on the default branch | an approving review of the head that landed: the reviewer, the findings with a verdict on each by id, the outcome *approved*; a person's approval where the project asks for one; then the merged mark with its commit | 5 Prove |
 | `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all against the merged commit; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
-| `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; a review comment from a person where the plan declares a screen change or a user-facing outcome | closing, by a person or the run's end |
+| `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; a review comment from a person where the plan declares a screen change or a user-facing outcome and the project's config asks for one | closing, by a person or the run's end |
 | `closed` | nothing more happens unless reopened; code landed | `released` | none |
 | `reopen` | a person disagreed with a close or a drop, and their finding is here | a person's word; nothing earns it and the verb never enters it | the finding typed on their behalf and the triage of it, then the fall the triage decides: `developed`, `in_progress`, or `on_hold` blocked |
 
@@ -165,13 +165,23 @@ change:** no`, is a declaration it does not find.
 
 | Scenario | Writes | Goes to |
 |---|---|---|
-| shipped and seen running | a verification citing where it runs; the release note, or *Skip* with a reason; a person's review comment where the plan declares a screen change or a user-facing outcome | `released` |
+| shipped and seen running | a verification citing where it runs; the release note, or *Skip* with a reason; a person's review comment where the plan declares a screen change or a user-facing outcome and the project's config asks for one | `released` |
 | a result a person judges, not yet seen by one | the rendered evidence, attached | `waiting`, kind screen review; the reviewer's comment resumes |
 | the deploy fails and the route rolls it back | the rollback taken and its evidence | `on_hold`, kind rolled back |
 | the deploy fails and nothing rolls it back | what is lost, and the evidence | `on_hold`, kind no way back |
 | a fix lands meanwhile | nothing; the merged commit moved | unearned to `in_progress` until the new head is reviewed |
 
+Whether a user-facing change waits for that person is the project's answer and not this contract's:
+the tracker's project config names the staging branch, the production branch and whether production
+deploys go without being asked, and a project whose release lands on staging, or which deploys
+production itself, does not park here.
+
 ### `released` — reads nothing more
+
+`released` means the change is on the project's staging branch and running wherever that branch
+deploys, which is what the verification cites; where the production branch is a different one,
+promotion to it is a step outside this ladder — automatic or a person's, as the project's config
+says, and the verification carries the line that says which.
 
 | Scenario | Writes | Goes to |
 |---|---|---|

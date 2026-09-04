@@ -183,7 +183,7 @@ const reopenTarget = (view, ref) => {
 /* What `released` will want, said at the rehearsal rather than at the refusal three statuses later:
    the fourth dry run's lesson is that an obligation nobody is told about early is one that slips. */
 export const lookAhead = (view, ref) => {
-  const said = personLooks(planFlags(unwrap(view.issue.plan)));
+  const said = personLooks(planFlags(unwrap(view.issue.plan)), view.release);
   if (!said || atLeast(view.issue.status, "released") || answered(view, "screen-review")) return null;
   return `Ahead: released owes a person's look, because the plan declares ${said}. Ask for it with
 `

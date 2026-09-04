@@ -247,6 +247,17 @@ judges cannot be read off the criteria at the transition, because the clause tha
 in the repository and no status here is decided from there. It stays optional because FR-05 carries
 a shipped criterion whose sentence says the plan declares two lines.
 
+Whether that look is owed at all is the project's, and the answer was already on the tracker: a
+project has a staging branch, a production branch and a setting saying whether production deploys go
+without being asked. So nothing new was declared in `.forge.json` — a second place to say it would
+have been a precedence rule, a report that has to name which one answered, and an undo that misses
+one of them. The verb reads that config where it reads the plan's declarations, and only where the
+plan declares one of them, because an issue that owes no person owes no round to find out. A release
+onto a staging branch is one a person can still look at afterwards, so it does not park; a project
+that deploys its own production branch has said the same thing about production. What comes back is
+one derived line on the verification — the project's answer, in a field no flag can supply, because a
+line an author could type proves only that they typed it.
+
 A third measurement, two runs later: an edge the tracker had already answered for forced a raw
 transition twice. `relations.blockedBy` returns mentions beside orderings, each edge naming its kind
 and whether it gates dispatch, and the entry check filtered that list on the blocker's status alone
@@ -786,6 +797,13 @@ The once-only memo remembers *that* it ran, not what it returned — four of the
 the value for truthiness and re-ran on a valid `null`. Unmemoised, one `forge issues` spawned
 `git rev-parse` nine times. Flag parsing lives in one place: three verbs had grown their own copy and
 two dropped a valueless flag silently, which reads as an unfiltered answer.
+
+**A project's release policy is the tracker's and not a checkout's.** The staging branch, the
+production branch and the automatic production deploy are project columns already, and doctor prints
+them under the names their owner uses — the tracker's `baseBranch` is the staging branch everywhere
+but in the one reader that fetches it. An automatic production deploy onto a branch the tracker
+holds as null is the incoherence its own schema warns of, and it is reported: until the branch is
+set, the person's look stands.
 
 **`translate` off by default was measured, 2026-08-27:** sid-growth is Vietnamese and forge-dev is
 English, so posting one convention into both is a wrong-language issue no verb can delete afterwards.

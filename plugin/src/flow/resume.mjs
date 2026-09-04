@@ -10,7 +10,7 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { COMMENT_PAGE, commentPage } from "../tracker/comments.mjs";
 import { Refused, issueOf } from "./record.mjs";
 import { viewFrom } from "./earned.mjs";
-import { shortfall } from "./advance.mjs";
+import { policyFor, shortfall } from "./advance.mjs";
 import { worklogLines } from "./worklog.mjs";
 import { briefOf } from "./brief.mjs";
 
@@ -114,7 +114,7 @@ const run = async (argv) => {
   for (const one of Object.keys(given)) if (one !== "json") fail(`resume takes no --${one}. Flags: --json`);
   const { documentId, body } = await issueOf(ref);
   const { comments, hasMore } = await commentPage(documentId);
-  const view = viewFrom(documentId, body, comments, !hasMore);
+  const view = viewFrom(documentId, body, comments, !hasMore, await policyFor(body.plan));
   const brief = briefOf(view, ref);
   return given.json ? console.log(JSON.stringify(brief, null, 2)) : print(brief, view, ref);
 };

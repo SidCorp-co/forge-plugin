@@ -6,6 +6,7 @@ import { FINDINGS, SHAPES, TRIAGES, markedCommit, planFlags, reviewedHead, unwra
 import { attachmentNames, evidenceHeld, isCommit } from "../tracker/evidence.mjs";
 import { Refused, assemble, criteriaLines, parse } from "./record.mjs";
 import { CONTRACT } from "../tracker/contract.mjs";
+import { waitsForPerson } from "../tracker/project-config.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
 export const ORDER = [
@@ -126,8 +127,10 @@ export const nextOf = (status, view) => {
 export const need = (what, command) => ({ what, command });
 
 /* Which of the two declarations asks for a person, named so the refusal and the line warning of it
-   three statuses earlier read alike. The park is the same either way: a look at the evidence. */
-export const personLooks = ({ screen, look }) => {
+   three statuses earlier read alike. The park is the same either way: a look at the evidence, which
+   the project's own policy may say it does not want. */
+export const personLooks = ({ screen, look }, policy = null) => {
+  if (policy && !waitsForPerson(policy)) return null;
   if (look === "yes") return "a user-facing outcome";
   return screen === "yes" ? "a screen change" : null;
 };
@@ -331,7 +334,7 @@ export const CHECKS = {
     if (!view.issue.releaseNotes?.section) {
       out.push(need("no release note and no withholding either", `forge record note ${ref} --section Added --user "<what the reporter sees>"`));
     }
-    const declared = personLooks(planFlags(unwrap(view.issue.plan)));
+    const declared = personLooks(planFlags(unwrap(view.issue.plan)), view.release);
     if (declared && !answered(view, "screen-review")) {
       out.push(need(
         `the plan declares ${declared}, and no person has answered since it was parked for review`,
@@ -344,10 +347,10 @@ export const CHECKS = {
   dropped: () => [],
 };
 /* The whole record in one object, so every check reads fields rather than fetching. */
-export const viewFrom = (documentId, issue, comments, whole = true) => {
+export const viewFrom = (documentId, issue, comments, whole = true, release = null) => {
   const criteria = criteriaOf(issue);
   const names = attachmentNames(issue, comments);
-  return { documentId, issue, comments, criteria, names, whole, ...assemble(comments, criteria) };
+  return { documentId, issue, comments, criteria, names, whole, release, ...assemble(comments, criteria) };
 };
 export const parkRecord = (view, wanted = () => true) => {
   const found = view.comments

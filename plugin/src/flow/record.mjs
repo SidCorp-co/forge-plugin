@@ -10,6 +10,7 @@ import { COMMENT_PAGE, commentPage, postComment } from "../tracker/comments.mjs"
 import { attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo }
   from "../tracker/evidence.mjs";
 import { CONTRACT } from "../tracker/contract.mjs";
+import { releaseLine, releasePolicy } from "../tracker/project-config.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";
 import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
@@ -165,7 +166,7 @@ const gather = (kind, argv, defer = []) => {
     rest = pulled.rest;
   }
   const single = flags(rest, `record ${kind}`);
-  const known = new Set(shape.fields.map((one) => one.flag));
+  const known = new Set(shape.fields.filter((one) => !one.derived).map((one) => one.flag));
   for (const given of Object.keys(single)) {
     if (!known.has(given)) refuse(`record ${kind} takes no --${given}. Fields: ${[...known].map((one) => `--${one}`).join(" ")}`);
   }
@@ -278,6 +279,13 @@ export const fromRecord = (kind, got, { comments, names, hasMore = false }) => {
   console.error(`--evidence ${before.join(", ")}, as the latest ${kind} on this issue cites it.`);
 };
 
+/* From the project's config, because a line an author could type proves only that they typed it. */
+const derive = async (kind, got) => {
+  if (kind !== "verification") return;
+  const held = releaseLine(await releasePolicy());
+  if (held) got[held[0]] = held[1];
+};
+
 const recordShaped = async (kind, reference, argv, { next, patch }) => {
   const got = gather(kind, argv, DEFERRED);
   const { documentId, body } = await issueOf(reference);
@@ -292,6 +300,7 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
   const names = [...held, ...(plan?.upload ?? []).map((one) => one.name)];
   if (asks) fromRecord(kind, got, { comments, names, hasMore });
   checked(kind, got);
+  await derive(kind, got);
   const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
   if (bad) refuse(bad);
   /* A criterion is named by number and quoted as it stood, because the field can change later and

@@ -151,17 +151,27 @@ Rev: 1 · Actors: agent · Enforces: BR-01, BR-02
 
 The plan's two declarations — whether this is a screen change, whether it couples to a schema — are
 read at the ship steps rather than at the write: a screen change owes a person's answer before
-`released`, and schema coupling owes the migration risk classification before `tested`.
+`released`, and schema coupling owes the migration risk classification before `tested`. Whether that
+person is owed at all is the project's to decide in its own configuration, because a project whose
+release lands where a person can still look at it afterwards is not the product the rule was written
+for.
 
 - **AC-05-7-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs
   IF the plan declares schema coupling and no attachment carries the migration risk classification
   THEN the CLI SHALL refuse `tested` and name the attachment it wants.
-- **AC-05-7-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs
-  IF the plan declares a screen change and no person has answered since the issue was parked for
-  review THEN the CLI SHALL refuse `released`.
+- **AC-05-7-2** · Rev: 2 · Proof: plugin/test/flow/advance.test.mjs
+  IF the plan declares a screen change or a user-facing outcome, the project's configuration asks
+  for a person, and no person has answered since the issue was parked for review THEN the CLI SHALL
+  refuse `released`.
 - **AC-05-7-3** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs
   IF the plan declares neither THEN the CLI SHALL refuse `approved` and quote the two lines it
   reads.
+- **AC-05-7-4** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs
+  WHERE the project's configuration releases without a person, the CLI SHALL earn `released` from
+  the verification and the release note as for any other change.
+- **AC-05-7-5** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs
+  WHEN a release verification is written, the CLI SHALL carry the project's own answer about who
+  releases on that record, from a value no author supplies.
 
 ### UC-05-8 — A record too large to read whole
 
