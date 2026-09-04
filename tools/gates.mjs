@@ -12,6 +12,7 @@ import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
 import { ledgerFor, LEDGER_UNSEEN, recordPass } from "./gates/ledger.mjs";
 import { editsDerivation, mergeBaseDiff, planFor } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
+import { recordDir, recordRun, runSays } from "./gates/timing.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SELF), "..");
@@ -30,7 +31,12 @@ its own modules.
 Past that, a step whose inputs are byte for byte what they were when it last passed is skipped and
 says which digest matched. Only passes are recorded, so a red step is red again next time. The
 record lives under the common git directory, so a worktree's pass counts for the checkout's re-run
-of the same tree.
+of the same tree, and carries the seconds that step took when it passed.
+
+Beside it, one line per green run: the whole run's seconds and how many of the table's steps it
+actually spent. A scoped run's figure is not a whole-gate one and is never compared with one, so the
+count is part of the record; the release prints the newest figure and its change. Only a run that
+spent every step measures this gate, which is what --full is for.
 
 ${LEDGER_UNSEEN}
 
@@ -141,7 +147,10 @@ if (!full) {
   ledger = orRefuse("cannot read its own record", () => ledgerFor(planned, { root: ROOT, files, runner: SELF }));
   const green = ledger.entries.filter((step) => step.green);
   console.log(`\n=== ledger: ${green.length} of ${ledger.entries.length} step(s) green already ===`);
-  for (const step of green) console.log(`skip ${step.label.padEnd(22)} digest ${step.digest}`);
+  for (const step of green) {
+    console.log(`skip ${step.label.padEnd(22)} digest ${step.digest}`
+      + (step.took === null ? ", passing before this record kept seconds" : `, ${step.took}s when it passed`));
+  }
   console.log(`${ledger.dir}\n${LEDGER_UNSEEN}`);
   planned = ledger.entries.filter((step) => !step.green);
 }
@@ -152,16 +161,31 @@ for (const step of planned) {
   console.log(`\n=== ${step.label} ===`);
   const at = Date.now();
   const { status, error } = spawnSync(step.argv[0], step.argv.slice(1), { cwd: ROOT, stdio: "inherit" });
-  console.log(`\n--- ${step.label}: ${Math.round((Date.now() - at) / 1000)}s`);
+  const took = Math.round((Date.now() - at) / 1000);
+  console.log(`\n--- ${step.label}: ${took}s`);
   if (error || status !== 0) {
     console.error(`\nGate failed: ${step.label}${error ? ` (${error.message})` : ""} — the tree judged: ${ROOT}`);
     finish(status ?? 1);
   }
-  if (ledger) recordPass(ledger.dir, step);
+  if (ledger) recordPass(ledger.dir, step, took);
 }
 
 const elapsed = Math.round((Date.now() - started) / 1000);
 const held = ledger?.entries.filter((step) => step.green).length ?? 0;
 const spared = held > 0 ? ` (${held} the ledger already held)` : "";
 console.log(`\nAll ${planned.length} gate step(s) passed in ${elapsed}s${spared} — the tree judged: ${ROOT}`);
+
+/* Past the verdict, and only on the green one: a figure a red run left would be the seconds spent
+   reaching a failure. The directory is resolved here rather than taken off the ledger, which --full
+   never builds — and a --full run is the one producing a figure this gate can be compared by.
+   Said and not refused: every step has already passed, and a tree that cannot be timed is still a
+   tree this gate answered for. */
+try {
+  const dir = recordDir(ROOT);
+  recordRun(dir, { seconds: elapsed, ran: planned.length, total: steps.length });
+  console.log(`recorded: ${runSays(dir)}`);
+} catch (error) {
+  console.error(`This gate passed and could not record how long it took: ${error.message}`);
+}
+
 finish(0);

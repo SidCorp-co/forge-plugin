@@ -9,12 +9,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { STEPS, WHOLE_TREE_TESTS } from "../../../tools/gates/steps.mjs";
+import { recordRun, runSays, runSeries } from "../../../tools/gates/timing.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
 const RUNNER = join("tools", "gates.mjs");
 const COPIED = [RUNNER, join("tools", "checkout.mjs"), join("tools", "gates", "steps.mjs"),
-  join("tools", "gates", "scope.mjs"), join("tools", "gates", "ledger.mjs")];
+  join("tools", "gates", "scope.mjs"), join("tools", "gates", "ledger.mjs"),
+  join("tools", "gates", "timing.mjs")];
 
 /* One file per top-level entry the table claims, plus one under every path a step reads, so a
    scratch run scopes the way the real one does instead of widening on a path nothing owns. */
@@ -66,10 +68,13 @@ const landed = (work, path, text) => {
 };
 
 const ledgerFile = (work, label) => join(work, ".git", "gate-ledger", label.replace(/[^\w.-]+/gu, "-"));
+const runsFile = (work) => join(work, ".git", "gate-ledger", "runs");
+const runs = (work) => readFileSync(runsFile(work), "utf8").trim().split("\n");
 
 test("-h names the two flags and what the record cannot see", () => {
   const said = run(ROOT.replace(/\/$/u, ""), ["-h"]).stdout;
-  for (const one of ["--full", "--anyway", "node_modules", "merge-base", "tree judged"]) {
+  for (const one of ["--full", "--anyway", "node_modules", "merge-base", "tree judged",
+    "seconds that step took", "one line per green run"]) {
     assert.ok(said.includes(one), `${one} is not in the usage:\n${said}`);
   }
 });
@@ -243,4 +248,121 @@ test("another tree's copy of the runner is refused rather than answered about th
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
+});
+
+/* The gate measured the whole run and every step and the process took both with it, so the question
+   "has this gate grown" had nothing to subtract and the first review of it would have had to plant
+   its own baseline by hand (ISS-166). */
+test("a pass records the seconds it took, the skip line says them, and an older entry still passes", () => {
+  const { at, work } = scratch("seconds");
+  try {
+    landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
+    assert.equal(run(work).status, 0);
+    const entry = readFileSync(ledgerFile(work, "lint"), "utf8").trim();
+    assert.match(entry, /^[0-9a-f]{12} \d+s lint$/u, `the pass carries no seconds: ${entry}`);
+
+    const again = run(work);
+    assert.match(again.stdout, /skip lint {19}digest [0-9a-f]{12}, \d+s when it passed/u, again.stdout);
+
+    // The form written before seconds were kept: it names a pass, and reading it as a miss re-runs
+    // every step in the repository the day the release lands.
+    writeFileSync(ledgerFile(work, "lint"), `${entry.replace(/ \d+s /u, " ")}\n`);
+    const older = run(work);
+    assert.match(older.stdout, /skip lint {19}digest [0-9a-f]{12}, passing before this record kept seconds/u,
+      `an entry without seconds read as a miss:\n${older.stdout}`);
+    assert.ok(!older.stdout.includes("=== lint ==="), `the step ran anyway:\n${older.stdout}`);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+test("a green run records its whole-run seconds and how many steps it spent; a red run records none", () => {
+  const { at, work } = scratch("series");
+  try {
+    landed(work, "docs/two.md", "a second document\n");
+    const scoped = run(work);
+    assert.equal(scoped.status, 0, scoped.stdout + scoped.stderr);
+    assert.equal(runs(work).length, 1, `one green run left ${runs(work).length} figure(s)`);
+    assert.match(runs(work)[0], new RegExp(`^\\S+ \\d+s 3/${STEPS.length}$`, "u"), runs(work)[0]);
+    assert.match(scoped.stdout, new RegExp(`recorded: \\d+s over 3 of ${STEPS.length} step\\(s\\)`, "u"), scoped.stdout);
+
+    const whole = run(work, ["--full"]);
+    assert.equal(whole.status, 0, whole.stdout + whole.stderr);
+    assert.equal(runs(work).length, 2, "a --full run left no figure, and it is the comparable one");
+    assert.match(runs(work)[1], new RegExp(`^\\S+ \\d+s ${STEPS.length}/${STEPS.length}$`, "u"), runs(work)[1]);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+test("a run whose step failed leaves no figure", () => {
+  const { at, work } = scratch("no-figure", "lint");
+  try {
+    landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
+    assert.equal(run(work).status, 1);
+    assert.ok(!existsSync(runsFile(work)), "the seconds spent reaching a failure were recorded as a run");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The sentence, on a planted record rather than on real timings: every step of a scratch checkout
+   is `node -e ""`, so a run there measures process startup and no comparison would be stable. */
+const planted = (lines) => {
+  const dir = join(tempRoom("said-"), "gate-ledger");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "runs"), lines.length === 0 ? "" : `${lines.join("\n")}\n`);
+  return dir;
+};
+
+const FULL = "2026-01-01T00:00:00.000Z 80s 12/12";
+
+test("a figure is compared only with a whole-gate figure, and what is comparable is always named", () => {
+  assert.match(runSays(planted([])), /no run is recorded/u);
+  assert.match(runSays(planted([])), /npm run check -- --full/u);
+
+  /* The shape this repository actually produces: scoped ship-gate runs between the full ones. Read
+     off the newest two *runs* the comparison would never subtract anything at all. */
+  const apart = runSays(planted([FULL, "2026-01-02T00:00:00.000Z 9s 3/12", "2026-01-03T00:00:00.000Z 100s 12/12"]));
+  assert.match(apart, /100s over 12 of 12 step\(s\) on 2026-01-03, 1\.25x the 80s before it/u,
+    `two whole-gate figures with a scoped run between them were not subtracted:\n${apart}`);
+
+  const scoped = runSays(planted([FULL, "2026-01-03T00:00:00.000Z 9s 3/12"]));
+  assert.match(scoped, /^9s over 3 of 12 step\(s\) on 2026-01-03, which is scoped and measures less/u, scoped);
+  assert.match(scoped, /the whole gate last took 80s over 12 of 12 step\(s\) on 2026-01-01, the only whole-gate figure recorded/u,
+    `a scoped run that names no comparable figure leaves the reader to assume one:\n${scoped}`);
+
+  const first = runSays(planted(["2026-01-04T00:00:00.000Z 9s 3/12"]));
+  assert.match(first, /no run recorded spent the whole table; npm run check -- --full plants a figure/u, first);
+
+  // A gate under a second is the scratch case, and a ratio over it is a division by zero.
+  assert.match(runSays(planted(["2026-01-05T00:00:00.000Z 0s 12/12", "2026-01-06T00:00:00.000Z 3s 12/12"])),
+    /3s more than the one before it, which took under a second, so there is no ratio/u);
+});
+
+// Only the newest two decide anything, so the file is a window and not a history to grow.
+test("the record keeps the runs the question needs and drops the rest", () => {
+  const dir = planted(Array.from({ length: 30 }, (one, nth) => `2026-01-01T00:00:0${nth % 10}.000Z ${nth}s 12/12`));
+  recordRun(dir, { seconds: 7, ran: 12, total: 12 });
+  const held = runSeries(dir);
+  assert.equal(held.length, 20, `the record holds ${held.length} run(s)`);
+  assert.equal(held.at(-1).seconds, 7);
+  assert.equal(held.at(-2).seconds, 29, "the oldest went, not the newest");
+});
+
+/* Scoped runs are most of what a checkout spends, so a window dropping by age alone loses the
+   figures a comparison reads within a day of the release that started keeping them — and loses the
+   predecessor to the very run that needed one. */
+test("the newest two whole-gate figures survive a window filled with scoped runs", () => {
+  const scoped = Array.from({ length: 25 }, (one, nth) => `2026-02-0${(nth % 9) + 1}T00:00:00.000Z 9s 3/12`);
+  const dir = planted([FULL, ...scoped]);
+  recordRun(dir, { seconds: 9, ran: 3, total: 12 });
+  assert.deepEqual(runSeries(dir)[0], { at: "2026-01-01T00:00:00.000Z", seconds: 80, ran: 12, total: 12 });
+  assert.match(runSays(dir), /the whole gate last took 80s over 12 of 12 step\(s\)/u, runSays(dir));
+
+  // The full run that follows them must not be the run that evicts its own predecessor.
+  recordRun(dir, { seconds: 96, ran: 12, total: 12 });
+  const held = runSeries(dir).filter((one) => one.ran === one.total);
+  assert.equal(held.length, 2, `${held.length} whole-gate figure(s) survived, and a change needs two`);
+  assert.match(runSays(dir), /96s over 12 of 12 step\(s\).*1\.20x the 80s before it/u, runSays(dir));
 });

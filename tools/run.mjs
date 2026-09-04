@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { pluginCopy } from "../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, REMOTE, Stop, stop } from "./checkout.mjs";
+import { recordDir, runSays } from "./gates/timing.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
@@ -48,7 +49,9 @@ const USAGE = [
   "ship stops at the first failure and writes nothing past it, and a resume past the gate spends",
   "the gate first, so nothing that pushes runs against a tree no gate has passed. A change under",
   "plugin/hooks/ or plugin/skills/ reaches a session at its next start, so the last step says",
-  "whether a restart is owed before anything trusts the release.",
+  "whether a restart is owed before anything trusts the release. It says beside that what the gate",
+  "run a step earlier took and how that compares with the run before it, so a release that made the",
+  "gate slower is visible where a release that wrote a lot of unread code already is.",
   "",
   `That last step also counts what landed under ${REVIEW_PATHS.join(", ")} since ${REVIEWED}, and`,
   `says one reading of the whole of it is owed once the range holds ${REVIEW_LINES} changed line(s).`,
@@ -346,6 +349,17 @@ const fileReview = (tree, from, volume) => {
     : { why: `the filing answered with no issue key:\n${filed.out.trim()}`, call: "the filing" };
 };
 
+/* Beside the volume count and not on a surface of its own: both are what this run left for the next
+   one to answer for, and a second place to look is a second thing to remember to read. The gate
+   this release just spent wrote the newest figure, so the release is where it is freshest. */
+const gateGrew = (tree) => {
+  try {
+    console.log(`  the gate: ${runSays(recordDir(tree))}`);
+  } catch (error) {
+    console.error(`  what this tree's gate runs have taken could not be read: ${error.message}`);
+  }
+};
+
 /* The mark is never planted here. One planted where none was found would read exactly like a
    reading that has just finished, and the skipped reading it hid would surface at no later ship. */
 const reviewOwed = (tree) => {
@@ -495,6 +509,7 @@ const shipSteps = (tree, root, base, note) => {
         ? `  ${copy.name} ${copy.running} running, ${copy.installed} installed${copy.stale ? " — this version is in no install record" : ""}`
         : "  no install record answers for this plugin");
       restartOwed(tree, base);
+      gateGrew(tree);
       reviewOwed(tree);
     }],
   ];

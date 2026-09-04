@@ -1,15 +1,15 @@
-/* What each step's inputs hashed to when it last passed. Keyed on content, never on a sha: a rebase
-   rewrites the sha and leaves the code alone, and the tree a session gates most has no sha at all.
-   One file per step under the common git directory, the one path every worktree resolves to. */
+/* What each step's inputs hashed to when it last passed, and how long that pass took. Keyed on
+   content, never on a sha: a rebase rewrites the sha, and the tree a session gates most has none. */
 import { createHash } from "node:crypto";
 import { lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { gitCommonDir } from "../checkout.mjs";
 import { derivationFiles, under } from "./scope.mjs";
+import { recordDir } from "./timing.mjs";
 
 const DIGEST_LENGTH = 12;
-const ENTRY = new RegExp(`^([0-9a-f]{${DIGEST_LENGTH}}) (.+)$`, "u");
+// Seconds before the label, the last capture, which on `.+` swallows a suffix; optional, so an older entry still reads as a pass.
+const ENTRY = new RegExp(`^([0-9a-f]{${DIGEST_LENGTH}}) (?:(\\d+)s )?(.+)$`, "u");
 
 // Every step's input: a dependency change can break any of them, and no step declares node_modules.
 const SHARED = /^package(?:-lock)?\.json$/u;
@@ -53,26 +53,26 @@ const digestOf = (root, files) => {
 const fileFor = (dir, label) => join(dir, label.replace(/[^\w.-]+/gu, "-"));
 
 // Unreadable, truncated, or another step's are all "no entry"; none of them may read as "passed".
-const recordedDigest = (dir, label) => {
+const recorded = (dir, label) => {
   try {
-    const [, digest, saved] = ENTRY.exec(readFileSync(fileFor(dir, label), "utf8").trim()) ?? [];
-    return saved === label ? digest : undefined;
+    const [, digest, seconds, saved] = ENTRY.exec(readFileSync(fileFor(dir, label), "utf8").trim()) ?? [];
+    return saved === label ? { digest, seconds: seconds === undefined ? null : Number(seconds) } : {};
   } catch {
-    return undefined;
+    return {};
   }
 };
 
-export const recordPass = (dir, step) => {
+export const recordPass = (dir, step, seconds) => {
   const staging = `${fileFor(dir, step.label)}.${process.pid}`;
   mkdirSync(dir, { recursive: true });
-  writeFileSync(staging, `${step.digest} ${step.label}\n`);
+  writeFileSync(staging, `${step.digest} ${seconds}s ${step.label}\n`);
   renameSync(staging, fileFor(dir, step.label));
 };
 
 /** One `reads` decides both whether the diff reaches a step and what its digest covers, so the
  *  ledger can never trust a wider or narrower set of inputs than the scoping already trusted. */
 export const ledgerFor = (steps, { root, files, runner }) => {
-  const dir = join(gitCommonDir(root), "gate-ledger");
+  const dir = recordDir(root);
   const derivation = derivationFiles(runner, root);
   const entries = steps.map((step) => {
     const inputs = new Set(derivation);
@@ -80,7 +80,8 @@ export const ledgerFor = (steps, { root, files, runner }) => {
       if (SHARED.test(file) || step.reads.some((claim) => under(file, claim))) inputs.add(file);
     }
     const digest = digestOf(root, inputs);
-    return { ...step, digest, green: recordedDigest(dir, step.label) === digest };
+    const was = recorded(dir, step.label);
+    return { ...step, digest, green: was.digest === digest, took: was.seconds };
   });
   return { dir, entries };
 };

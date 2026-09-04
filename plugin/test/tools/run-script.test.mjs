@@ -23,15 +23,16 @@ const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
 const runIn = (cwd, argv, env = process.env) =>
   spawnSync(process.execPath, [SCRIPT, ...argv], { cwd, encoding: "utf8", env });
 
-/* The three files the script is: itself, the module it reads the install record through, and the
-   git helpers it shares with the gate runner. `check` stands in for the repository's own gate,
+/* The four files the script is: itself, the module it reads the install record through, the git
+   helpers it shares with the gate runner, and the gate's own record of how long its runs take. `check` stands in for the repository's own gate,
    which ship spends by name — the real one needs a tree this scratch checkout is not. */
 const GATE = "node -e \"console.log('scratch gate ran')\"";
 
 const scratch = (name, gate = GATE) => {
   const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
-  for (const one of [SCRIPT, join("tools", "checkout.mjs"), join("plugin", "src", "tools", "plugin-copy.mjs")]) {
+  for (const one of [SCRIPT, join("tools", "checkout.mjs"), join("tools", "gates", "timing.mjs"),
+    join("plugin", "src", "tools", "plugin-copy.mjs")]) {
     mkdirSync(join(work, dirname(one)), { recursive: true });
     cpSync(join(ROOT, one), join(work, one));
   }
@@ -599,4 +600,29 @@ test("the mark only ever moves forward, and the refusal carries the way past a w
   assert.match(back.stderr, /git update-ref refs\/forge\/reviewed [0-9a-f]{7} [0-9a-f]{7}/u,
     "a refusal over a mark that is itself the mistake has to carry the way past it");
   assert.equal(ref(work), git(work, "rev-parse", "HEAD").stdout.trim(), "the refused write moved nothing");
+});
+
+/* The gate this release spent a step earlier wrote the newest figure, so the release is where it is
+   freshest — and beside the volume count, because both are what this run left the next one to
+   answer for and a second place to look is a second thing to remember to read (ISS-166). */
+test("the last step prints the newest whole-run figure beside the volume count, and says when it has none", () => {
+  const { work } = pushed("timing");
+  runIn(work, ["review", "--done"], BARE);
+  landIn(work, join("plugin", "src", "one.mjs"), 4, "the change");
+
+  const blank = lastStep(work);
+  assert.match(blank.stdout, /the gate: no run is recorded, so nothing says whether this gate has grown/u, blank.stdout);
+  assert.match(blank.stdout, /npm run check -- --full/u, "a tree with no figure is told what plants one");
+
+  const dir = join(work, ".git", "gate-ledger");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "runs"), "2026-01-01T00:00:00.000Z 80s 12/12\n2026-01-02T00:00:00.000Z 100s 12/12\n");
+  const said = lastStep(work);
+  assert.match(said.stdout, /the gate: 100s over 12 of 12 step\(s\) on 2026-01-02, 1\.25x the 80s before it/u,
+    said.stdout);
+
+  const lines = said.stdout.split("\n");
+  const figure = lines.findIndex((one) => one.includes("the gate: 100s"));
+  const volume = lines.findIndex((one) => one.includes("changed line(s) under"));
+  assert.equal(volume - figure, 1, `the figure and the volume count are not one place:\n${said.stdout}`);
 });
