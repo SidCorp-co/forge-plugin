@@ -1340,3 +1340,24 @@ Nine criteria pass. Closed by its run; no restart owed. Folded from the record.
 - Three plugin defects filed as met: a correction record does not repeat (ISS-161); a key the browse
   page prints was refused by the reference resolver, whose projection disagrees with search (ISS-168);
   the ship never prints the sha its own rebase landed the change as (ISS-169).
+
+## Fiftieth dry run — ISS-119
+
+One agent wrote the sixth skill (3.35.60): a gate-review skill, prose only — how a project's gate is
+measured, the moves that make it faster, how a move is proven not to have changed the answer, and when
+the review is owed. The method was spent on this repository before it was written down: twelve steps
+with the test step at most of the time, the slowest single file a floor no concurrency passes, one
+linter run twice over the same files, and the gate's runner spawned inside the step that schedules it —
+every figure carrying the caveat that the machine was five times oversubscribed while it was read, and
+one unexplained reading reported as unattributed rather than as a saving. Codex raised seven, all
+accepted: two were overclaims the skill would have taught. One line in the layout block. Restart owed.
+Closed by its run. Folded from the record.
+
+- Prose only, by a recorded decision: the skill-paths check refuses a skill naming a path outside its
+  own directory, and a verb would have needed the held command table. The undo is a scripts directory
+  inside the skill.
+- Two of the issue's premises were stale — the fixture leak the issue measured was fixed two releases
+  earlier, and the whole-gate reruns it counted are what the scoped runner was written against. The run
+  checked before building on them, and said so.
+- The half that lives in the held ship script — a green run recording its seconds and the ship printing
+  the figure — was routed as ISS-166. The record note's unstated length cap cost one round (ISS-170).
