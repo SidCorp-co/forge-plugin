@@ -1604,3 +1604,26 @@ Folded from the record.
   to be written as a rejection with the folded half in the reason; a comment on the issue that made the
   grammar. A version typed by hand into the release note named the version before the one the step took;
   nothing reads the subject, so it stands, but the note is a value the step should fill.
+
+## Sixty-first dry run — ISS-203 and ISS-36
+
+One agent took two tracker defects as one run (3.35.71). ISS-203: a page says whether it was whole
+from the envelope the tracker sent, with the caller's own limit as the fallback bound, replacing a
+length-equals-limit test the byte cap never satisfied; one shared reading serves the four callers,
+including a warning that had never fired at all. ISS-36: an issue key is the tracker's own shape — the
+prefix and digits — so a spec citation is refused before the first call and routed to the spec verb,
+retiring the third copy of a loose pattern. No restart owed. Both closed by the run. Folded from the
+record.
+
+- The tracker answered a shape neither issue anticipated — both caps at once in one field — and the
+  code was right by construction because it prints what the envelope said, while the issue body and the
+  projections document describe the caps as alternatives. The doc is incomplete rather than wrong, and
+  the run said which, so the next run on that file knows.
+- The issue's own out-of-scope pointed at a home that had been dropped, so a fresh filing was needed
+  where a comment would have done; anything else routed into that home is orphaned with it. A drop
+  should name where its routed findings go.
+- Five defects filed as met: a gate self-guard that flakes under load (ISS-213); the finder's comment
+  route invisible to the read-first gate (ISS-214); a gate budget that fails open in silence (ISS-215);
+  the issue reader's field flag refusing every field the answer carries (ISS-219); the conjunction check
+  reading inside code spans (ISS-220). The dependency verb's refusal under a personal token was confirmed
+  live (ISS-8) and the edge recorded by the route the refusal named.
