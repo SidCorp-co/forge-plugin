@@ -700,3 +700,27 @@ restart before the next agent. Folded from the record.
 - Two release commits in the same hour carry subjects naming the wrong version, one per run through
   the ship script; ISS-88 is the fix and both stand on master unrewritten.
 
+## Twenty-second dry run — ISS-85
+
+One agent made a withheld guide not there at all (3.35.21): the list carries the contract and the
+guides the table holds no row for, closes on the last of them with no count, and a held slug answers
+exactly as an unknown one, without asking the tracker for it; a near-miss typo of a held slug is offered
+no held slug; no help form and no refusal names the maintainer's flag; `docs/FORGE-CLI.md` states once
+that doctor is the only surface allowed to name what a copy or credential cannot use. Fourteen verdicts,
+ten cases red against the pre-change source, doctor's findings byte-identical before and after. The user
+amended the issue mid-run and the agent took it as a correction before the plan. Parked at `tested` for
+a person to read the wording; the parent read it and answered on the user's standing word. Folded from
+the record.
+
+- The tracker renamed a guide between two runs, and doctor said so at once: a table row the tracker
+  no longer serves and a served slug nobody has read. ISS-89 owes the row; until then the renamed
+  guide, half of it the runner's, is listed as one the plugin stands behind.
+- The maintainer's route to a hidden guide's own text moved off the verb and has no home yet; doctor
+  is ISS-71's file and the finding went there.
+- Two release commits from two runs in one hour carry each other's version in their subjects, a
+  concurrent ship taking the lower number between the note and the push; ISS-88, again.
+- The park for a person's reading, on a change whose wording the person had dictated, cost a round
+  and a hand transition past the page; ISS-90 is where a project says it does not want the park.
+- Three feedback notes, each already carried by an open issue (ISS-17, ISS-68, ISS-88): the notes
+  confirm and add nothing, which is what a folder read daily should mostly find.
+
