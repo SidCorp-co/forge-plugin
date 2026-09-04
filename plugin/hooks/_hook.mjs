@@ -136,12 +136,14 @@ function touching(ev, freshMs) {
 
   const cwd = ev.cwd || process.cwd();
   const now = Date.now();
+  const tokens = String(ti.command ?? "").match(TOKEN) ?? [];
+  const since = tokens.length ? callAt(turnRecords(ev.transcript_path ?? "")) : 0;
   const out = new Set();
-  for (const token of String(ti.command ?? "").match(TOKEN) ?? []) {
+  for (const token of tokens) {
     for (const cand of [token, join(cwd, token)]) {
       try {
         const st = statSync(cand);
-        if (st.isFile() && now - st.mtimeMs <= freshMs) {
+        if (st.isFile() && st.mtimeMs >= since && now - st.mtimeMs <= freshMs) {
           out.add(realpathSync(cand));
           break;
         }
@@ -453,6 +455,14 @@ export const promptIndex = (records) => {
 };
 
 export const turnAt = (records) => records[promptIndex(records)]?.timestamp ?? "";
+
+/** When this call began, in epoch ms, and 0 where the transcript cannot say: the last assistant record asks for this tool and lands before the tool runs, so a stamp older than it is the checkout's and not the call's. `forge hooks --how writes`. */
+export const callAt = (records) => {
+  for (let at = (records ?? []).length - 1; at >= 0; at -= 1) {
+    if (records[at]?.type === "assistant") return Date.parse(records[at].timestamp) || 0;
+  }
+  return 0;
+};
 
 /** Whether the advisor has spoken since the last prompt. how/codex-second.md. */
 export function advisedThisTurn(records) {

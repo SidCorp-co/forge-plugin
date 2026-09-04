@@ -77,6 +77,32 @@ test("a second session is its own turn, whatever the first one was told", () => 
   assert.equal(fired(ONE, "docs/E.md", at, "s2"), null);
 });
 
+/* A worktree per session is this repository's shape, and `git worktree add` stamps every file in the
+   tree: for two minutes the first read of any of them raised a debt the turn did not owe (ISS-200).
+   The record is real time, because the window is. */
+test("a read in a checkout stamped moments ago is no document this turn changed", () => {
+  const root = repo("fresh-checkout");
+  const file = wrote(root, "docs/F.md");
+  /* Stamped a moment back rather than now: a record carries whole milliseconds and an mtime does not,
+     so a file written inside the same one answers for the call, which is the safe direction to err. */
+  const cut = new Date(Date.now() - 30_000);
+  utimesSync(file, cut, cut);
+  const path = join(room, "t-fresh.jsonl");
+  writeFileSync(path, [
+    JSON.stringify({ type: "user", promptSource: "typed", timestamp: "2026-09-01T12:00:00.000Z" }),
+    JSON.stringify({ type: "assistant", timestamp: new Date().toISOString(), message: { content: [{ type: "tool_use", name: "Bash", input: {} }] } }),
+    "",
+  ].join("\n"));
+  const run = callHook(
+    HOOK,
+    { session_id: "s3", tool_name: "Bash", tool_input: { command: `cat ${file}` }, transcript_path: path, cwd: root },
+    HOME,
+  );
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.stdout.trim(), "", "the read was announced as a change");
+  assert.deepEqual(pending(root), [], "and recorded as one");
+});
+
 /* A storm, because spawning ten hooks does not overlap them: process start staggers the writes and
    the race hides. Four processes recording into two checkouts at once is contention, and without a
    lock the read-modify-write loses whatever another one wrote in between. */

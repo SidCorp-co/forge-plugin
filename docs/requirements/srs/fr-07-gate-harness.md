@@ -50,15 +50,19 @@ rest are not asked; after one, every gate's answer travels together.
 
 ### UC-07-2 — What counts as a write
 
-Rev: 1 · Actors: agent · Enforces: BR-08, BR-09
+Rev: 2 · Actors: agent · Enforces: BR-08, BR-09
 
 Most edits arrive through a shell, so a gate watching the host's edit routes sees a fraction of
 them. One account answers for every gate that asks: after a call the disk answers, and before a
 call the command's text does, judged where a command starts.
 
 The reach of that account is exactly its mechanism, and the clause says so rather than promising
-more: after a call, a token in the command that names a real file changed within the last breath is
-a write, so a route that spells its target is covered and one that computes the name is not.
+more: after a call, a token in the command that names a real file whose mtime is at or after the
+moment that call was asked for is a write, so a route that spells its target is covered, one that
+computes the name is not, and a tree stamped whole before the call is nobody's work. Three cases sit
+outside it and are claimed by nothing: a write that lands after its own call has been judged, a
+route that preserves a timestamp it did not set, and a file written by another call of the same
+request.
 
 - **AC-07-2-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs
   WHEN a call has written a file whose name the command spells THEN the gates SHALL see that file,
@@ -71,6 +75,9 @@ a write, so a route that spells its target is covered and one that computes the 
 - **AC-07-2-4** · Rev: 1 · Proof: none yet — ISS-37
   IF a call wrote a file under a name the command never spells THEN the gates SHALL either see that
   file or SHALL say that they could not.
+- **AC-07-2-5** · Rev: 1 · Proof: plugin/test/hooks/writes.test.mjs
+  WHERE a checkout stamped every file in it moments before a call, a call that only reads one of
+  those files SHALL count as no write.
 
 ### UC-07-3 — A refusal, and the document behind it
 
