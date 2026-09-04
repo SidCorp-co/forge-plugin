@@ -1651,3 +1651,30 @@ the record.
 - Three surfaces still cite the dropped issue as owing the separator rule; two were outside the hold and
   the retirement rule forbids clearing one surface without the others, so it went as ISS-226 rather than
   a partial edit.
+
+## Sixty-third dry run — ISS-165
+
+One agent read a batch of twenty releases as a whole (3.35.72), the first reading the ship's volume rule
+filed for itself. Eight simplifications from one read: a shared markup pattern in the markdown module
+with two local copies removed, a reader collapsed to one call, one predicate spent at three walks, dead
+locals dropped in three tools. Neutrality was proven by running — a before-tree taken from the range's
+start, one probe over every markdown file and twenty-odd call cases, and each of the nine mechanisms
+reverted alone leaving the probe's output identical. The one-copy guard grew a row and was watched
+firing both ways. The mark moved to the range's named end; the fifteen releases since stay owed to the
+next reading. No restart owed. Closed by its run. Folded from the record.
+
+- The dispatch cited the gate-review skill for a code-simplification reading; that skill is about a
+  gate's wall clock, and no skill covers a batch reading. The run stood on the contract's review part and
+  the issue's own rules. A batch review dispatched this way will meet the same gap every time until a
+  reference says what a whole-range reading owes.
+- Findings posted into another run's issue with the finder's route die with that issue: two holders
+  closed before the comments landed, and three findings had to be re-homed as issues of their own
+  (ISS-222, ISS-223, ISS-224), a fourth pre-emptively (ISS-228). A finding on a live issue is a comment;
+  a finding on an issue about to close is a filing. The dependency verb demanding the target's lease is
+  what made every routing prose instead of an edge, filed as a plugin defect.
+- One finding was refused on the issue's own scope rule — a double tree-walk whose removal is a real
+  change rather than a neutral one — and holds its own issue (ISS-216). A review that simplifies is held
+  to the range's behaviour; what would change it is the next issue.
+- Two shas on the record deliberately: the review cites the reviewed head and the landing another,
+  with the mark's note carrying both and the byte-identical patch as the reason — ISS-156's rule, spent
+  the first time by a run other than its own.
