@@ -534,7 +534,10 @@ comparison a program can make — a gate exits zero, a count did not fall, every
 the verdict that earns it is a check in the tree that fails when what it guards is broken: for a new
 rule, on the tree without the change; for a property preserved, when the tree and the base differ. The
 criterion names the check. A verdict written from one run proves that run; a check proves every run after it, and the
-ninth dry run's most durable output was the one check the contract had not asked for.
+ninth dry run's most durable output was the one check the contract had not asked for. The case is proven red against a tree without the change: a
+second worktree at the base, or the file checked out from the base in place and restored after, never
+`git stash`, which is one stack for every worktree of the repository and traded two agents' work in the
+twenty-first run.
 
 **A rehearsal writes no person's record.** A run that exercises a transition with no person behind
 it — a reopen route, a park a reviewer lifts — proves the route in a test or against the installed copy

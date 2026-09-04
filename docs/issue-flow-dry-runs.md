@@ -673,3 +673,30 @@ change is machine-wide, and the contract sends such a change to a person before 
 - The agent posted a correction onto ISS-80 through the finding-only route: the attach refusal did
   not abort the whole batch, the first file had already landed, so a retry re-attaches a name.
 
+## Twenty-first dry run — ISS-82
+
+One agent bounded the write half of the codex-second gate and taught the tree reader to read git's
+options the way git does (3.35.20): in a tree past the walk cap the gate asks about what the record
+names and nothing else, so a checkout carrying five hundred and twenty dirty paths passes a write when
+the record is empty and refuses it naming only the recorded file when that file is newer than the last
+consult; a repeated `-C` composes, an absolute hop replaces what preceded it, a relative work tree is
+read from where the chain left the command; a call closing in two trees names the one it judged and
+says the other went unchecked. Thirteen verdicts probed against the installed copy, no `advance`
+refusal, three issues filed on the way and one gap typed. A hook file changed; the session owed a
+restart before the next agent. Folded from the record.
+
+- `git stash` is one stack for every worktree of a repository. Two agents each stashed and popped
+  and traded their work; the recovered patch went to the holder issue, then turned out to be
+  superseded because the work had reached master on its own. The method said a new rule ships with a
+  case that fails without it and said nothing about how to take the source away for one run. The
+  contract now says: a second tree at the base, or the file checked out from the base and restored
+  after, never a stash.
+- bash-guard judges a destructive git command against the event's directory and does not read a
+  `cd` earlier in the call, so a worktree's command is judged by the wrong tree. ISS-86.
+- The commit refusal offers a consult command naming six files, and a consult clears only what it was
+  given, so a record over six costs one consult per six. ISS-91, raised by codex against the change.
+- A shell metacharacter inside a quoted argument opens a command position, so a call writing about a
+  commit is judged as making one; twice in this run, and the parent met it two runs earlier. ISS-93.
+- Two release commits in the same hour carry subjects naming the wrong version, one per run through
+  the ship script; ISS-88 is the fix and both stand on master unrewritten.
+
