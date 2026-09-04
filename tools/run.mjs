@@ -345,6 +345,14 @@ const forgeSays = (tree, args, input) => {
   return { out: run.stdout };
 };
 
+/* The clause `forge new` opens every refusal of its own shape check with. A non-zero exit from a
+   spawned CLI is an answer, not a silence, and the two answers a filing can earn have two routes
+   out: a body this script generates that the check reads as wrong is this repository's to fix, and a
+   tracker that did not answer is the next ship's to ask again (ISS-163). The literal is typed here
+   because nothing imports an entry point's dependencies for a string, and the case below is what
+   holds the two copies to each other. */
+const CHECK_SAYS = "this files an issue the flow cannot carry";
+
 const NOT_A_READING = "dropped";
 const READ = "closed";
 
@@ -355,7 +363,7 @@ const READ = "closed";
 const issueFor = (tree, from) => {
   const at = from.slice(0, 7);
   const found = forgeSays(tree, ["issues", "--search", at, "--limit", "100"]);
-  if (found.why) return { why: found.why, call: "the lookup" };
+  if (found.why) return { why: found.why, whose: "the tracker did not answer the lookup" };
   /* The row says which issue, the issue what status: those columns grew a rank mid-batch. */
   const key = found.out.split("\n").map((line) => /^(ISS-\d+)\s+(.*)$/u.exec(line.trim()))
     .find((row) => row?.[2].includes(`${at}..`))?.[1] ?? null;
@@ -373,20 +381,23 @@ const fileReview = (tree, from, volume) => {
   const held = issueFor(tree, from);
   if (held.why || held.key) return held;
   const to = gitOut(["rev-parse", "HEAD"], tree);
-  if (!to) return { why: `${tree} has no HEAD to name as the range's end.`, call: "this tree" };
+  if (!to) return { why: `${tree} has no HEAD to name as the range's end.`, whose: "this tree could not answer" };
   const title = `The batch ${from.slice(0, 7)}..${to.slice(0, 7)} is read once as a whole by a run `
     + `that wrote none of it, and the mark moves`;
   const filed = forgeSays(tree, ["new", "-", "--title", title, "--kind", "feature"],
     reviewBody(tree, from, to, volume));
-  /* The refusal's own phrase, not any key: a reason quotes paths, and a worktree carries a key. */
+  /* The refusal's own phrase, not any key: a reason quotes paths, and a worktree carries a key.
+     Only the duplicate line of this plugin's filing check writes `against <a key>`, so a reason
+     carrying one is that check's by construction and needs no head read to say so. */
   if (filed.why) {
     const collided = /against (ISS-\d+)/u.exec(filed.why)?.[1] ?? null;
-    return { why: filed.why, call: "the filing", collided };
+    const mine = filed.why.includes(CHECK_SAYS);
+    return { why: filed.why, collided, mine, whose: "the tracker did not answer the filing" };
   }
   const key = /"issueId":\s*"(ISS-\d+)"/u.exec(filed.out)?.[1];
   return key
     ? { key, filed: true }
-    : { why: `the filing answered with no issue key:\n${filed.out.trim()}`, call: "the filing" };
+    : { why: filed.out.trim(), whose: "the filing answered with no issue key" };
 };
 
 /* Beside the volume count and not on a surface of its own: both are what this run left for the next
@@ -413,12 +424,24 @@ const reviewOwed = (tree) => {
   console.log(`  a review of ${range} is owed: ${count} under ${REVIEW_PATHS.join(", ")}, at or past `
     + `${REVIEW_LINES} line(s). It is a delegated run of its own:`);
   const asked = fileReview(tree, from, volume);
-  /* Read, never launched: the gate collides on title similarity, so the key may not be a reading. */
+  /* Read, never launched: the check collides on similarity, so the key may not be a reading. */
   if (asked.collided) {
-    console.error(`  the tracker refused the filing, and its answer names ${asked.collided}: ${asked.why}`);
+    console.error(`  this plugin's own filing check refused the body, the tracker having answered: it `
+      + `reads as ${asked.collided}: ${asked.why}`);
     console.log(`    read it:         forge issue ${asked.collided}`);
-    console.log(`    it is this mark's reading, or a title that only resembles one; the refusal's own `
-      + `route says which write it leaves open, and the count keeps growing either way`);
+    console.log(`    it is this mark's reading under another range, or a title that only resembles `
+      + `one; the refusal's own \`clear:\` line is the write it leaves open, and the count keeps `
+      + `growing until one of them files`);
+    return;
+  }
+  /* A body no person typed, so a check that reads it as wrong is a defect of this script and not a
+     filing anyone can retry: the route is the repository's, and never the filing just refused. */
+  if (asked.mine) {
+    console.error(`  this plugin's own filing check refused the body this step generates, and named `
+      + `no issue to fold it onto: ${asked.why}`);
+    console.log(`    the body is ${SELF}'s own, so what the check asks for is this repository's to `
+      + `write. File that: forge feedback - --title "<what the check asked the review body for>"`);
+    console.log(`    the count keeps growing until the body it generates is one the check accepts`);
     return;
   }
   if (asked.unread) {
@@ -428,8 +451,7 @@ const reviewOwed = (tree) => {
     return;
   }
   if (asked.why) {
-    console.error(`  the tracker did not answer ${asked.call}, so nothing is filed and the next ship `
-      + `asks again: ${asked.why}`);
+    console.error(`  ${asked.whose}, so nothing is filed and the next ship asks again: ${asked.why}`);
     console.log(`    file its issue:  forge new - --title "review ${range}" --kind feature`);
     console.log(`    give it a tree:  ${SELF} start <that ISS-nn>`);
     console.log(`    it ends by moving the mark, finding or none: ${SELF} review --done <the range's end>`);

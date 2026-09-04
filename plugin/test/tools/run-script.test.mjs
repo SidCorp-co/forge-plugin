@@ -159,6 +159,14 @@ if (existsSync(join(room, "forge-collides"))) {
     + "  clear: forge new <body> --title T --into ISS-135\\n");
   process.exit(1);
 }
+if (existsSync(join(room, "forge-shape-refuses"))) {
+  process.stderr.write("forge_issues -> project scratch (from .forge.json), prose as written\\n"
+    + "Hold \u2014 this files an issue the flow cannot carry. Each line below is what was read, "
+    + "what the shape wants and the one command that clears it.\\n\\n"
+    + "- read: no heading naming the outcome\\n  wants: a heading naming the outcome\\n"
+    + "  clear: add a heading ## Outcome and re-send the same command\\n");
+  process.exit(1);
+}
 const title = argv[argv.indexOf("--title") + 1];
 appendFileSync(rows, \`\${"ISS-777".padEnd(8)} \${"medium".padEnd(8)} \${"open".padEnd(12)} \${title}\\n\`);
 process.stdout.write(JSON.stringify({ documentId: "d", issueId: "ISS-777", title }, null, 2));
@@ -513,25 +521,47 @@ test("an issue found but unread files nothing, and is not routed to a filing of 
     `a route that files a replacement for an issue already found:\n${run.stdout}`);
 });
 
-/* The tracker's own duplicate gate was the only thing that stopped a second issue for a mark that
-   already had one, and the step then reported that refusal as a silence and printed the filing the
-   gate had just refused as the route out of it (ISS-140). */
-test("a filing refused by name is reported as refused, and not routed back to the filing it forbade", () => {
+/* The duplicate line is this plugin's own filing check, decided in the CLI this step spawns, and it
+   was the only thing that stopped a second issue for a mark that already had one. The step reported
+   that refusal as a silence and printed the filing the check had just refused as the route out of it
+   (ISS-140), and then reported it as the tracker's, which had answered (ISS-163). */
+test("a filing refused by name is reported as refused, by the check whose it was, and not routed back to the filing it forbade", () => {
   const { at, work } = owedAt("wt-ISS-999");
   writeFileSync(join(at, "forge-collides"), "");
 
   const run = lastStep(work);
-  assert.match(run.stderr, /the tracker refused the filing, and its answer names ISS-135/u,
-    `a refusal and a silence are different findings:\n${run.stderr}`);
+  assert.match(run.stderr, /this plugin's own filing check refused the body, the tracker having answered: it reads as ISS-135/u,
+    `a refusal and a silence are different findings, and so are a check of this plugin's and the tracker's answer:\n${run.stderr}`);
   assert.doesNotMatch(run.stderr, /did not answer/u, "the tracker answered — by name, with what it collided with");
   assert.doesNotMatch(run.stdout, /forge new - --title/u,
     `the route under a refusal has to be one the refusal leaves open:\n${run.stdout}`);
   assert.match(run.stdout, /forge issue ISS-135/u, run.stdout);
   assert.doesNotMatch(run.stdout, /Work ISS-135\./u,
     `the gate collides on title similarity, so the key it names is nothing to launch a run on:\n${run.stdout}`);
-  assert.match(run.stderr, /names ISS-135:/u, run.stderr);
+  assert.match(run.stderr, /as ISS-135:/u, run.stderr);
   assert.doesNotMatch(run.stdout, /ISS-999/u,
     `the collision is the key the tracker named, and a path in its reason carries one too:\n${run.stdout}`);
+});
+
+/* The body is generated here, so a check that reads it as wrong is this script's defect and not a
+   filing anyone can retry. Reported as the tracker's silence, the route printed under it was the
+   same `forge new` the check had just refused, and the next ship earned the refusal again (ISS-163). */
+test("a shape refusal of the body this step generates is named as this plugin's, and routed to this repository", () => {
+  const { at, work } = owedAt("shape");
+  writeFileSync(join(at, "forge-shape-refuses"), "");
+
+  const run = lastStep(work);
+  assert.match(run.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\), 1 file\(s\), 501 changed line\(s\)/u,
+    `the range and the count are printed whatever becomes of the filing:\n${run.stdout}`);
+  assert.match(run.stderr, /this plugin's own filing check refused the body this step generates, and named no issue/u,
+    `a check of this plugin's, reported as the tracker's:\n${run.stderr}`);
+  assert.doesNotMatch(run.stderr, /the tracker did not answer/u,
+    "the tracker answered; the refusal was this plugin's own reading of a body this script wrote");
+  assert.match(run.stdout, /forge feedback -/u,
+    `the gap is in this repository, and the route has to reach it:\n${run.stdout}`);
+  assert.doesNotMatch(run.stdout, /forge new - --title/u,
+    `the route printed is the filing the check just refused:\n${run.stdout}`);
+  assert.doesNotMatch(run.stdout, /Work ISS-/u, "nothing was filed, so there is no run to launch");
 });
 
 /* A review is never lost for want of a network: nothing is filed, the count and the route print as
