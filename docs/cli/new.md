@@ -41,3 +41,37 @@ The mark is the line `Size: fix.` in the description. The tracker auto-creates n
 no tool to read one back, so a mark it owns could not be relied on; a line the CLI writes survives
 every route, a person reading the issue sees it, and `forge advance --owed` reads it back off the
 record like everything else. Its undo is an update that rewrites the description without the line.
+
+## The kind decides which sections, and the set is what this backlog writes
+
+The tracker's schema is the base and this project never changes it: its field for a kind takes any
+string of a hundred characters, so the strictness is this CLI's. What the CLI adds is a set of kinds
+and, per kind, the sections a body of that kind carries. `forge new -h` is the table of both, stated
+there and read from there by the lint, the refusal and the help alike.
+
+The set is three, measured rather than picked. Across the 101 issues this project had filed, the
+tracker's field for a kind was empty on every one, so nothing could be read off the field and the
+bodies answered instead. Of the 90 carrying headings, 20 open with a past-tense section and never a
+present-tense one, 51 open with a present-tense one and never a past-tense one, and 19 open with
+neither; the overlap between those two families is zero. Under them: an outcome in 89, an
+out-of-scope in 89, a rule-family heading in 94, a *Why* in 15 — and *Expected*, *Where*, *Steps*
+and *Reproduce* in none at all. So a defect's *expected* is the outcome heading 89 bodies already
+write it under, and *Where* is asked for and not required: a section no filing has ever carried
+would be a refusal nobody could learn the habit from.
+
+Required is refused and nice-to-have is said, because the two shortfalls cost differently. A body
+missing the section its kind is defined by cannot be confirmed at all, and pays that again at every
+status; one that does not say where costs a reader a single search. A filing naming no kind is read
+as a feature — the shape every filing was held to before kinds existed, so nothing filed under the
+older rule is refused for having followed it — and told so on the way past. The field is left empty
+rather than defaulted, because a value written there for a filing that chose nothing reads later as
+a kind somebody chose, and the measurement above is what that spoils.
+
+Both words are the CLI's. `--kind` is the flag, `kind` is what the answer comes back saying, and the
+tracker's own name for that field and for the size beside it sit in the one writer — a flag naming
+either of them instead is refused with the word that reads the body. The tracker's name for the size
+is refused tree-wide in any string a developer is shown; its name for the kind is an ordinary English
+word a gate prints for an unrelated meaning, so that one is held by a case over the kinds' own text
+rather than by a pattern over the tree. `--size fix` still writes the mark and nothing else: the flow's word for a size and the tracker's value for it meet in one statement, read
+on the way back rather than written on the way in, because the line in the description is the only
+thing deciding the light path and a second copy would survive the undo above.

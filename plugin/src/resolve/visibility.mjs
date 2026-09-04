@@ -7,8 +7,8 @@ import { fail, projectScope } from "./settings.mjs";
 export const VERBS = [
   ["issues", "[--status s] [--search q] [--limit n]", "the browse projection", "forge_issues"],
   ["issue", "<uuid|ISS-45> [--fields a,b] [--full]", "one body, or named parts of it", "forge_issues"],
-  ["new", "<file.md|@file|-> --title T [--status S] [--priority P] [--size fix] [--into ISS-45] [--with ISS-45]",
-    "file one, read against the shape the flow needs; --into comments there instead", "forge_issues"],
+  ["new", "<file.md|@file|-> --title T [--kind K] [--status S] [--priority P] [--size fix] [--into ISS-45] [--with ISS-45]",
+    "file one, read against the shape its kind needs; --into comments there instead", "forge_issues"],
   ["comment", "<uuid|ISS-45> <file.md|@file|->", "post a comment", "forge_comments"],
   ["plan", "<uuid|ISS-45> <file.md|@file|->", "write the issue's plan field, and read it back", "forge_issues"],
   ["claim", "<uuid|ISS-45> [--minutes n] [--next line] [--pushed] [--review] [--open line]",

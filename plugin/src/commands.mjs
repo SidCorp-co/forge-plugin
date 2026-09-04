@@ -11,11 +11,22 @@ import {
 } from "./tracker/issues.mjs";
 import { creditAfter, credited, mustBeShown, postComment } from "./tracker/comments.mjs";
 import { uploadTo, urlBearing } from "./tracker/evidence.mjs";
-import { refusalForFiling, withMark } from "./tracker/issue-shape.mjs";
+import {
+  KINDS_HELP,
+  KIND_NAMES,
+  SIZE_WORDS,
+  inFlowWords,
+  insteadOf,
+  kindRefusal,
+  noticeForFiling,
+  refusalForFiling,
+  trackerFields,
+  withMark,
+} from "./tracker/issue-shape.mjs";
 import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
-import { callable, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
+import { callable, helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { flags, partition } from "./resolve/flags.mjs";
+import { flags, partition, wantsHelp } from "./resolve/flags.mjs";
 import { dispositionOf, trackerHeader, visibleGuides } from "./tracker/guides.mjs";
 import { projectLines, releasePolicy, stagingDeploy } from "./tracker/project-config.mjs";
 import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./tracker/contract.mjs";
@@ -118,6 +129,10 @@ const resolveReferences = async (value, key) => {
 const suggestTool = async (name) =>
   didYouMean("tool", name, callable(await tools()).map((tool) => tool.name), "Ask `forge tools`.");
 
+/* The one verb whose help is longer than its row: what a body is read against depends on the kind
+   it names, and the table of that is the kinds' own. */
+const NEW_USAGE = `${helpOf("new")}\n\n${KINDS_HELP}`;
+
 export const commands = {
   doctor,
   claim,
@@ -197,24 +212,30 @@ export const commands = {
     const body = filled(
       await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: names } : {}) }),
     );
-    show(full ? body : terse(body));
+    show(inFlowWords(full ? body : terse(body)));
   },
   /* `open` marks the active set; `draft` never dispatches. A filing is read before it is made,
      because the flow costs the same for one line as for a feature: how/issue-shape.md. */
-  new: async ([path, ...rest]) => {
+  new: async (argv) => {
+    if (wantsHelp(argv)) return console.log(NEW_USAGE);
+    const [path, ...rest] = argv;
     if (!path) fail(usageOf("new"));
-    const { into, with: rides, size, ...given } = flags(rest, "new");
+    const { into, with: rides, size, kind, ...given } = flags(rest, "new");
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
-    if (size !== undefined && size !== "fix") {
-      fail(`--size takes \`fix\`, the one size the contract gives a light path, not \`${size}\`. `
-        + "A whole issue needs no size.");
+    if (size !== undefined && !SIZE_WORDS.includes(size)) {
+      fail(`--size takes \`${SIZE_WORDS.join("`, `")}\`, the one size the contract gives a light path,`
+        + ` not \`${size}\`. A whole issue needs no size.`);
     }
+    if (kind !== undefined && !KIND_NAMES.includes(kind)) fail(kindRefusal(kind));
+    const instead = insteadOf(given);
+    if (instead) fail(instead);
     /* Presence, never truth: the shared parser takes an empty string as a value, and a route read
        by truthiness would drop `--into ""` on the floor and file the issue instead. */
     const commenting = into !== undefined;
     const relating = rides !== undefined;
     if (commenting && relating) fail("--into posts a comment and --with files an issue. Ask for one of them.");
-    const filing = [...Object.keys(given).filter((one) => one !== "title"), ...(size === undefined ? [] : ["size"])];
+    const named = [...(size === undefined ? [] : ["size"]), ...(kind === undefined ? [] : ["kind"])];
+    const filing = [...Object.keys(given).filter((one) => one !== "title"), ...named];
     if (commenting && filing.length) {
       fail(`--into posts a comment, and ${filing.map((one) => `--${one}`).join(", ")} belongs to a filing. `
         + "Drop it, or file the issue and comment on it separately.");
@@ -228,11 +249,14 @@ export const commands = {
       return show(await postComment(issue, `## ${given.title}\n\n${body}`));
     }
     const description = size ? withMark(body) : body;
-    const refusal = await refusalForFiling({ title: given.title, body: description }, { routed: relating });
+    const read = { title: given.title, body: description, kind: kind ?? null };
+    const refusal = await refusalForFiling(read, { routed: relating });
     if (refusal) fail(refusal);
-    const data = { description, status: "open", ...given };
+    const notice = noticeForFiling(read);
+    if (notice) console.error(notice);
+    const data = { description, status: "open", ...given, ...trackerFields({ kind }) };
     if (relating) data.relations = [{ kind: "relates", blocksId: await documentIdOf(rides) }];
-    show(await write("forge_issues", { action: "create", data }));
+    show(inFlowWords(await write("forge_issues", { action: "create", data })));
   },
   comment: async ([reference, path]) => {
     if (!reference || !path) fail(usageOf("comment"));
@@ -337,3 +361,5 @@ export const commands = {
     for (const said of lines) console.log(said);
   },
 };
+
+commands.new.answersHelp = true;

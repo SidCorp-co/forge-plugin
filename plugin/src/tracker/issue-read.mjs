@@ -120,9 +120,14 @@ export const writeTargets = ({ name, input }, spoken = []) => {
   return [...new Set(found)];
 };
 
+/* The kind travels with the body: what a description is read against is the kind's own shape. */
 const filingOf = (args) =>
   (args?.action === "create" && args?.data && typeof args.data === "object"
-    ? [{ title: String(args.data.title ?? ""), body: String(args.data.description ?? "") }]
+    ? [{
+      title: String(args.data.title ?? ""),
+      body: String(args.data.description ?? ""),
+      kind: args.data.category ?? null,
+    }]
     : []);
 
 const spokenFilings = (one) => (CALL.exec(one)?.[1] === "forge_issues" ? filingOf(payload(one)) : []);

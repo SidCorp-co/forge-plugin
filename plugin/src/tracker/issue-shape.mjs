@@ -1,7 +1,10 @@
-/* What a filing has to carry before the flow can carry it, and the size read off that shape rather
-   than off a length. One module, because the verb that files an issue and the gate that refuses one
-   through the tracker's own tool have to refuse the same body: the shape is read here, and the two
-   callers only supply the route. docs/cli/new.md; plugin/hooks/how/issue-shape.md. */
+/* What a filing has to carry before the flow can carry it: the kinds this CLI defines and the
+   sections each one's body owes, stated once below, and the reading of a body against them. One
+   module, because the verb that files an issue and the gate that refuses one through the tracker's
+   own tool have to refuse the same body, and because a set of sections held apart from the reader of
+   them is two places to correct. The tracker's half of the schema is read live from its own schema
+   and copied nowhere. Why three kinds and why these sections: docs/cli/new.md;
+   plugin/hooks/how/issue-shape.md. */
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
 import { MAX_LIMIT, listIssues, rowsOf, truncated } from "./issues.mjs";
@@ -20,6 +23,167 @@ const MARK = /^[ \t]*size:[ \t]*fix\.?[ \t]*$/imu;
 export const isFix = (description) => MARK.test(String(description ?? ""));
 export const withMark = (body) => (isFix(body) ? body : `${String(body).replace(/\s*$/u, "")}\n\n${SIZE_LINE}\n`);
 
+export const SUBSTANTIAL = 4;
+
+const LINE = `and under it one line of ${SUBSTANTIAL} words or more`;
+
+const section = ({ spoken = null, substantial = true, ...rest }) =>
+  ({ ...rest, spoken, substantial, add: `## ${rest.title}` });
+
+const OUTCOME = section({
+  title: "Outcome",
+  reads: "the outcome",
+  bare: "outcome",
+  wants: `a heading naming the outcome, ${LINE} saying what is true after the change`,
+  heading: /\boutcome\b/iu,
+});
+const RULES = section({
+  title: "Rules",
+  reads: "rules, invariants or acceptance",
+  bare: "rule",
+  wants: `a heading of rules, invariants or acceptance, ${LINE}`,
+  heading: /\b(?:rules?|invariants?|acceptance|behaviours?)\b/iu,
+});
+/* The one section a sentence may carry instead: refusing it would teach an empty heading. */
+const SCOPE = section({
+  title: "Out of scope",
+  reads: "the out-of-scope",
+  bare: "out-of-scope",
+  wants: "an out-of-scope heading, or one line saying nothing is out of scope",
+  heading: /\bout[\s-]of[\s-]scope\b/iu,
+  spoken: /\bnothing\b[^.\n]{0,60}\bout[\s-]of[\s-]scope\b/iu,
+  substantial: false,
+});
+const HAPPENED = section({
+  title: "What happened",
+  reads: "what happened",
+  bare: "what-happened",
+  wants: `a heading saying what happened, ${LINE} naming the failure a reader has to reproduce`,
+  heading: /\bwhat happened\b|\bwhat went wrong\b|\bwhat broke\b/iu,
+});
+const TODAY = section({
+  title: "What happens today",
+  reads: "what happens today",
+  bare: "what-happens-today",
+  wants: `a heading saying what happens today, ${LINE} describing the behaviour being replaced`,
+  heading: /\btoday\b|\b(?:it|there) is now\b|\bit does now\b|\bcurrently\b/iu,
+});
+const WHERE = section({
+  title: "Where",
+  reads: "where",
+  bare: "where",
+  wants: "the file, the verb or the screen it happens on",
+  heading: /\bwhere\b/iu,
+});
+const WHY = section({
+  title: "Why",
+  reads: "why",
+  bare: "why",
+  wants: "what makes it worth a round of the flow",
+  heading: /\bwhy\b/iu,
+});
+
+/* Three, measured: nothing here names a kind, so the set is the body shapes this backlog writes. */
+export const KINDS = [
+  {
+    kind: "bug",
+    is: "something that worked, or was meant to, and does not",
+    needs: [HAPPENED, OUTCOME, RULES, SCOPE],
+    says: [WHERE],
+  },
+  {
+    kind: "enhancement",
+    is: "something that works, and should work better",
+    needs: [TODAY, OUTCOME, RULES, SCOPE],
+    says: [WHY],
+  },
+  {
+    kind: "feature",
+    is: "something that is not there at all",
+    needs: [OUTCOME, RULES, SCOPE],
+    says: [WHY],
+  },
+];
+
+export const DEFAULT_KIND = "feature";
+export const KIND_NAMES = KINDS.map((one) => one.kind);
+
+export const shapeFor = (kind) => KINDS.find((one) => one.kind === (kind || DEFAULT_KIND)) ?? null;
+
+const listed = (names) => names.join(", ");
+const titles = (sections) => sections.map((one) => one.title);
+
+/** The set and the route past it, borrowed by both refusals: a kind this CLI does not define is a
+ *  section list nobody has decided, not a filing to fix by guessing. */
+export const KIND_WANTS = `one of ${listed(KIND_NAMES)} — a filing needing another kind, or another`
+  + " section under one, files an issue against this plugin rather than inventing the value";
+
+export const kindRefusal = (given) =>
+  `--kind takes ${KIND_WANTS}.\nIt was given \`${given}\`, which names no shape to read the body`
+  + ` against. A filing naming no kind is read as a ${DEFAULT_KIND}.`;
+
+/** The flow's word for a size beside the tracker's value for it, in the one place they meet. The
+ *  mark is a line in the description, so this is read on the way back and written by nothing. */
+export const SIZES = { xs: "fix" };
+export const SIZE_WORDS = Object.values(SIZES);
+
+/* Each name held as a key, never a string a developer is shown: one to translate back costs a round. */
+const FLOW = {
+  category: { word: "kind" },
+  complexity: { word: "size", said: (held) => SIZES[held] ?? held },
+};
+
+/** A flag naming the tracker's field instead of the CLI's word: taken, it would reach the tracker
+ *  around the shape the kind decides, so it is refused with the word that reads the body. */
+export const insteadOf = (given) => {
+  const [key] = Object.keys(FLOW).filter((one) => Object.hasOwn(given, one));
+  return key
+    ? `--${key} is the tracker's own name for it, and a value passed under that name is read against`
+      + ` nothing. This CLI's flag is --${FLOW[key].word}, and \`forge new -h\` names what it reads.`
+    : null;
+};
+
+/** The one writer, and nothing where no kind was named: a default reads later as one somebody chose. */
+export const trackerFields = ({ kind }) => (kind ? { category: kind } : {});
+
+export const inFlowWords = (record) => {
+  if (!record || typeof record !== "object" || Array.isArray(record)) return record;
+  return Object.fromEntries(Object.entries(record).map(([key, held]) => {
+    const found = Object.hasOwn(FLOW, key) ? FLOW[key] : null;
+    return found ? [found.word, found.said ? found.said(held) : held] : [key, held];
+  }));
+};
+
+const ROW = 15;
+const kindRows = (one) => [
+  `  ${one.kind.padEnd(ROW)}${one.is}`,
+  `    required   ${listed(titles(one.needs))}`,
+  `    nice       ${listed(titles(one.says))}`,
+];
+
+export const KINDS_HELP = [
+  "The kinds, and the sections a body of each carries. A required section missing is refused with",
+  "the section named; a nice-to-have one missing is said in a line and filed.",
+  "",
+  ...KINDS.flatMap(kindRows),
+  "",
+  "A heading is matched by family and not by that wording: `Business rules` is a rule section and",
+  "`What it is now` is a today one. A body marked `Size: fix.` is read against no section at all.",
+  `A filing naming no kind is read as a ${DEFAULT_KIND} and told so.`,
+].join("\n");
+
+/** One line or nothing: what the body was read as, and what it left out. Neither is a refusal. */
+export const noticeFor = ({ kind, named, left }) => {
+  if (named && !left.length) return null;
+  const head = named
+    ? `Read as a ${kind}.`
+    : `Read as a ${DEFAULT_KIND}, the kind a filing naming none is read as.`;
+  const rest = left.length
+    ? ` It leaves out ${listed(titles(left))}, nice to have on a ${kind} and refused on nothing.`
+    : "";
+  return `${head}${rest}`;
+};
+
 const FENCE = /^⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧\s*$/gmu;
 const working = (rows) =>
   rows.filter((one) => !SETTLED.includes(one.status)).map((one) => ({
@@ -28,11 +192,6 @@ const working = (rows) =>
   }));
 
 const HEADING = /^#{1,6}[ \t]+(.*)$/gmu;
-const OUTCOME = /\boutcome\b/iu;
-const RULE = /\b(?:rules?|invariants?|acceptance|behaviours?)\b/iu;
-const SCOPE = /\bout[\s-]of[\s-]scope\b/iu;
-const NO_SCOPE = /\bnothing\b[^.\n]{0,60}\bout[\s-]of[\s-]scope\b/iu;
-const SUBSTANTIAL = 4;
 
 const headingsOf = (body) => [...String(body).matchAll(HEADING)].map((one) => one[1].trim());
 
@@ -131,15 +290,53 @@ const titleGaps = (title) => {
   return out;
 };
 
-/** Every gap the body decides with no tracker read. `fix` is returned rather than refused: what
- *  clears it is the route the caller named. */
-export const shapeOf = ({ title, body }) => {
+const VOWEL = /^[aeiou]/iu;
+const article = (word) => (VOWEL.test(word) ? "an" : "a");
+
+/* Whether the section is there, and the text under it for the line that says what was read. */
+const held = (text, section) => {
+  const under = sectionUnder(text, section.heading);
+  const spoken = section.spoken?.test(text) ?? false;
+  const ok = spoken || (section.substantial ? hasLine(under) : Boolean(under?.trim()));
+  return { under, ok };
+};
+
+const readFor = (section, under, among) => {
+  if (under !== null) {
+    const floor = section.substantial ? ` of ${SUBSTANTIAL} words or more` : "";
+    return `${article(section.bare)} ${section.bare} heading with nothing under it${floor}`;
+  }
+  const spoken = section.spoken ? ", and no line saying there is none" : "";
+  return `no heading naming ${section.reads}, ${among}${spoken}`;
+};
+
+/* A heading already there is the one read: `sectionUnder` takes the first of its family, so adding
+   a second would leave the thin one answering and the refusal would not clear. */
+const clearFor = (section, under) => {
+  if (under === null) return `add \`${section.add}\` ${RESEND}`;
+  const floor = section.substantial ? `one line of ${SUBSTANTIAL} words or more` : "one line";
+  return `write ${floor} under the ${section.bare} heading already there ${RESEND}`;
+};
+
+const sectionGaps = (text, shape, among) =>
+  shape.needs.flatMap((section) => {
+    const { under, ok } = held(text, section);
+    return ok ? [] : [need(
+      readFor(section, under, among),
+      `${section.wants}, required of ${article(shape.kind)} ${shape.kind}`,
+      clearFor(section, under),
+    )];
+  });
+
+/** Every gap the body decides with no tracker read, and the one line a shortfall no gap refuses
+ *  earns. `fix` is returned rather than refused: what clears it is the route the caller named. */
+export const shapeOf = ({ title, body, kind = null }) => {
   const text = String(body ?? "");
   const written = text.replace(FENCE, "").replace(MARK, "").trim();
   if (!written) {
     return { gaps: [need(`${text.length} character(s) of body and no text in them`, "the issue itself: "
       + "what is true after the change, the rule that says so, and what is out of scope",
-      "write the body to a file and name it, or pipe it in")], fix: false, tokens: [] };
+      "write the body to a file and name it, or pipe it in")], fix: false, tokens: [], said: null };
   }
   const gaps = titleGaps(title ?? "");
   const split = twoChangesIn(text) ?? null;
@@ -155,37 +352,30 @@ export const shapeOf = ({ title, body }) => {
     gaps.push(need(`a line naming ${parts.keys.join(" and ")} as this issue's parts`,
       "the parts themselves as issues, each naming the others", "file each part on its own, and confirm this one as the first of them"));
   }
-  const outcome = sectionUnder(text, OUTCOME);
-  const rule = sectionUnder(text, RULE);
-  const scope = sectionUnder(text, SCOPE);
-  const scoped = Boolean(scope?.trim()) || NO_SCOPE.test(text);
   const tokens = tokensNamed(text);
-  if (isFix(text)) return { gaps, fix: false, tokens };
-  if (!rule && !scoped && tokens.length) return { gaps, fix: true, tokens };
-  const said = headingsOf(text);
-  const among = said.length ? `among ${said.map((one) => `\`${one}\``).join(", ")}` : "and the body has no heading at all";
-  const readFor = (label, held) =>
-    (held === null
-      ? `no heading naming ${label}, ${among}`
-      : `a ${label} heading with nothing under it of ${SUBSTANTIAL} words or more`);
-  if (!hasLine(outcome)) {
-    gaps.push(need(readFor("the outcome", outcome), "a heading naming the outcome, and under it one "
-      + `line of ${SUBSTANTIAL} words or more saying what is true after the change`,
-    `add \`## Outcome\` ${RESEND}`));
+  /* Before the mark, which exempts the sections and not the set: a kind nobody has decided the
+     sections of is not made one by the filing calling itself small. */
+  if (kind && !KIND_NAMES.includes(kind)) {
+    gaps.push(need(`a kind of \`${kind}\`, which this CLI does not define`, KIND_WANTS,
+      `set the kind to one of ${KIND_NAMES.join(", ")} ${RESEND}`));
+    return { gaps, fix: false, tokens, said: null };
   }
-  if (!hasLine(rule)) {
-    gaps.push(need(readFor("rules, invariants or acceptance", rule), "a heading of rules, invariants "
-      + `or acceptance, and under it one line of ${SUBSTANTIAL} words or more`,
-    `add \`## Rules\` with the rule under it ${RESEND}`));
-  }
-  if (!scoped) {
-    gaps.push(need(
-      scope === null ? `no out-of-scope heading, ${among}, and no line saying there is none`
-        : "an out-of-scope heading with nothing under it",
-      "an out-of-scope heading, or one line saying nothing is out of scope", `add \`## Out of scope\` ${RESEND}`));
-  }
-  return { gaps, fix: false, tokens };
+  if (isFix(text)) return { gaps, fix: false, tokens, said: null };
+  const rule = sectionUnder(text, RULES.heading);
+  if (!rule && !held(text, SCOPE).ok && tokens.length) return { gaps, fix: true, tokens, said: null };
+  const shape = shapeFor(kind);
+  const headings = headingsOf(text);
+  const among = headings.length
+    ? `among ${headings.map((one) => `\`${one}\``).join(", ")}`
+    : "and the body has no heading at all";
+  gaps.push(...sectionGaps(text, shape, among));
+  const left = shape.says.filter((section) => !held(text, section).ok);
+  return { gaps, fix: false, tokens, said: noticeFor({ kind: shape.kind, named: Boolean(kind), left }) };
 };
+
+/** The line `forge new` says on a filing it did not refuse, or nothing. Off `shapeOf`, which reads
+ *  the body alone: the refusal below asks the tracker what else is open, and this owes no such read. */
+export const noticeForFiling = (filing) => shapeOf(filing).said;
 
 /** The newest page of issues still open to work, by title: the projection carries no description and
  *  the list offers no cursor, so the page alone is a floor. What reaches past it is the search

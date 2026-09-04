@@ -14,7 +14,7 @@ needs that topic and by nobody else.
 | [the way in](cli/the-way-in.md) | Why `-h` is intercepted before the verb, answers on stdout, and carries the tracker's write-time rules in the binary. |
 | [what the projections leave out](cli/the-projections.md) | Which fields the browse and issue projections drop, and why no local copy of a name the server publishes is kept. |
 | [the guides](cli/the-guides.md) | Why seven of the twelve guides the tracker serves are withheld, and what the disposition table still decides. |
-| [`new`](cli/new.md) | What a title and a body are read against before the tracker sees them, and the three flags that take a filing the shape refuses. |
+| [`new`](cli/new.md) | What a title and a body are read against before the tracker sees them, the kinds that decide which sections that is, and the three flags that take a filing the shape refuses. |
 | [`record`](cli/record.md) | Why the CLI owns every payload's shape, which two flags are read off the record, and what a record cannot undo. |
 | [`advance`](cli/advance.md) | What the entry criteria are read from, why nothing is read from the repository at the transition, and how a reopen is routed. |
 | [`claim`](cli/claim.md) | How far a lease can be promised without a conditional write, what the step line is for, and why every write lists the issue's comments first. |

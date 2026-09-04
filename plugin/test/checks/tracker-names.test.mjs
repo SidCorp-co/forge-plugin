@@ -41,6 +41,10 @@ test("the reader that fetches a column passes, and a string holding the same nam
     "printer.mjs:1 prints baseBranch",
     "printer.mjs:2 prints previewDeploy",
   ]);
+  /* The field the flow's own size word maps onto: the CLI says `size`, and a reader who has to
+     translate that back to the tracker's name spends a round on it. */
+  assert.deepEqual(printedColumns("fail(`no complexity on ${slug}`);", "printer.mjs"),
+    ["printer.mjs:1 prints complexity"]);
 });
 
 test("a comment may name the column it fetches, which is the carve-out the rule keeps", () => {

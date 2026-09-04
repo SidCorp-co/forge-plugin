@@ -162,12 +162,15 @@ test("a filing that overlaps an open issue's title is a duplicate, and a settled
 
 test("a create is found on the tracker's own tool and on a raw call, and nothing else is", () => {
   const mcp = (action, data) => filingsOf({ name: "mcp__forge__forge_issues", input: { action, data } }, []);
-  assert.deepEqual(mcp("create", { title: "t", description: "b" }), [{ title: "t", body: "b" }]);
+  assert.deepEqual(mcp("create", { title: "t", description: "b" }), [{ title: "t", body: "b", kind: null }]);
   assert.deepEqual(mcp("update", { title: "t" }), [], "an update files nothing");
   assert.deepEqual(filingsOf({ name: "mcp__forge__forge_comments", input: { action: "create", data: {} } }, []), []);
   const said = filingsOf({ name: "Bash", input: {} },
     [`forge call forge_issues '{"action":"create","data":{"title":"t","description":"b"}}'`]);
-  assert.deepEqual(said, [{ title: "t", body: "b" }]);
+  assert.deepEqual(said, [{ title: "t", body: "b", kind: null }]);
+  /* The kind travels with the body, so the gate on this route reads the same shape the verb does. */
+  assert.deepEqual(mcp("create", { title: "t", description: "b", category: "bug" }),
+    [{ title: "t", body: "b", kind: "bug" }]);
   assert.deepEqual(filingsOf({ name: "Bash", input: {} }, ["forge new body.md --title t"]), [],
     "and the verb reads its own file, so this does not guess at one");
 });
@@ -311,4 +314,84 @@ test("a duplicate the listing never returned is still found, through a search fo
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /ISS-99/u);
   assert.match(run.stderr, /--into ISS-99/u);
+});
+
+/* The kinds end to end: what the verb refuses before it reads anything, what it sends the tracker
+   for the kind it was given, and what it says about a shortfall it files anyway. */
+const BUG = [
+  "## What happened",
+  "",
+  "`forge new` answered success and stored a description with no section in it.",
+  "",
+  "## Outcome",
+  "",
+  "A filing is read against the shape the kind it names asks for.",
+  "",
+  "## Rules",
+  "",
+  "- The refusal names the missing section and the kind that requires it.",
+  "",
+  "## Out of scope",
+  "",
+  "Any change to the tracker.",
+].join("\n");
+
+test("a kind outside the set is refused with the set, before a single tracker call", async () => {
+  state.calls = [];
+  const run = await filed(BUG, "--title", TITLE, "--kind", "chore");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /--kind takes one of bug, enhancement, feature/u);
+  assert.match(run.stderr, /read as a feature/u, "and the kind a filing naming none is read as");
+  assert.deepEqual(state.calls, [], "nothing was asked of the tracker to find that out");
+});
+
+test("the kind the filing names is what the body is read against, and what the tracker is sent", async () => {
+  state.calls = [];
+  const refused = await filed(WHOLE, "--title", TITLE, "--kind", "bug");
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /no heading naming what happened/u);
+  assert.match(refused.stderr, /required of a bug/u);
+  state.calls = [];
+  const run = await filed(BUG, "--title", TITLE, "--kind", "bug");
+  assert.equal(run.status, 0, run.stderr);
+  const create = state.calls.find((one) => one.args.action === "create");
+  assert.equal(create.args.data.category, "bug");
+  assert.match(run.stdout, /"kind": "bug"/u, "and the answer is read back in the CLI's own word");
+  assert.doesNotMatch(run.stdout, /category/u);
+});
+
+test("a filing naming no kind is filed as it was before kinds, and told what it was read as", async () => {
+  state.calls = [];
+  const run = await filed(WHOLE, "--title", TITLE);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /Read as a feature, the kind a filing naming none is read as/u);
+  const create = state.calls.find((one) => one.args.action === "create");
+  assert.equal("category" in create.args.data, false, "and the field is left for a filing that chose");
+});
+
+test("a nice-to-have section left out is said on the way past, and the issue is filed", async () => {
+  state.calls = [];
+  const run = await filed(BUG, "--title", TITLE, "--kind", "bug");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /leaves out Where, nice to have on a bug/u);
+  assert.ok(state.calls.some((one) => one.args.action === "create"), "said, not refused");
+});
+
+test("--size fix marks the description and sends the tracker nothing for a size", async () => {
+  state.calls = [];
+  const run = await filed("`forge dep` should take the `data.relations` route.",
+    "--title", "forge dep writes an edge a token can write", "--size", "fix");
+  assert.equal(run.status, 0, run.stderr);
+  const create = state.calls.find((one) => one.args.action === "create");
+  assert.match(create.args.data.description, new RegExp(SIZE_LINE, "u"));
+  assert.equal("complexity" in create.args.data, false, "one source for the light path, and it is the line");
+});
+
+test("`forge new -h` lists every kind with the sections it requires", async () => {
+  const run = await ranAsync(FORGE, ["new", "-h"], tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  for (const kind of ["bug", "enhancement", "feature"]) assert.match(run.stdout, new RegExp(`\\n  ${kind} `, "u"));
+  assert.match(run.stdout, /required {3}What happened, Outcome, Rules, Out of scope/u);
+  assert.match(run.stdout, /nice {7}Where/u);
+  assert.match(run.stdout, /Usage: forge new/u, "and what to type is still the first line of it");
 });
