@@ -130,11 +130,20 @@ if (existsSync(join(room, "forge-refuses"))) {
   process.stderr.write("the tracker did not answer: getaddrinfo ENOTFOUND\\n");
   process.exit(1);
 }
-const rows = join(room, "forge-open.txt");
+const rows = join(room, "forge-rows.txt");
 if (argv[0] === "issues") {
-  process.stdout.write(existsSync(rows) ? readFileSync(rows, "utf8") : "");
-  process.stdout.write("\\n0 issue(s)\\n");
+  const want = argv.includes("--status") ? argv[argv.indexOf("--status") + 1] : null;
+  const all = (existsSync(rows) ? readFileSync(rows, "utf8") : "").split("\\n").filter(Boolean);
+  const kept = want ? all.filter((line) => line.trim().split(/\\s+/)[1] === want) : all;
+  for (const line of kept) process.stdout.write(line + "\\n");
+  process.stdout.write(\`\\n\${kept.length} issue(s)\\n\`);
   process.exit(0);
+}
+if (existsSync(join(room, "forge-collides"))) {
+  process.stderr.write("Hold — this files an issue the flow cannot carry.\\n\\n"
+    + "- read: the title of this filing, against ISS-135, overlapping at 1.00\\n"
+    + "  clear: forge new <body> --title T --into ISS-135\\n");
+  process.exit(1);
 }
 const title = argv[argv.indexOf("--title") + 1];
 appendFileSync(rows, \`\${"ISS-777".padEnd(8)} \${"open".padEnd(12)} \${title}\\n\`);
@@ -372,7 +381,7 @@ test("the generated title and body are a filing this CLI's own shape reader acce
   assert.equal(shape.said, null, `the filing draws a notice the step cannot answer: ${shape.said}`);
 });
 
-test("a second ship at the same mark names the issue already open and files nothing", () => {
+test("a second ship at the same mark names the issue already there and files nothing", () => {
   const { at, work } = owedAt("twice");
   lastStep(work);
 
@@ -384,6 +393,57 @@ test("a second ship at the same mark names the issue already open and files noth
   assert.ok(again.stdout.includes("Work ISS-777."), `the run still has one thing to do:\n${again.stdout}`);
 });
 
+/* Two ships fifteen minutes apart read one mark and answered differently: its issue had left `open`
+   between them. The window `open` was right for is the one before anybody starts work (ISS-140). */
+test("the mark's issue is found at whatever status it has reached, and the lookup asks for none", () => {
+  const { at, work, from } = owedAt("statuses");
+  const seed = (key, status) => writeFileSync(join(at, "forge-rows.txt"),
+    `${key.padEnd(8)} ${status.padEnd(12)} The batch ${from.slice(0, 7)}..deadbee is read once as a whole\n`);
+
+  seed("ISS-501", "in_progress");
+  const held = lastStep(work);
+  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 0,
+    `an issue the tracker already holds for this mark was filed again:\n${held.stdout}${held.stderr}`);
+  assert.match(held.stdout, /ISS-501 is in_progress for this mark already, so nothing was filed/u, held.stdout);
+  assert.ok(held.stdout.includes("Work ISS-501."), held.stdout);
+  const lookup = called(at).find((one) => one.argv[0] === "issues");
+  assert.ok(!lookup.argv.includes("--status"),
+    `the question is whether an issue for this mark exists, and a status is no part of it: ${lookup.argv.join(" ")}`);
+
+  /* A finished reading whose mark was never moved is a state of its own: the count keeps growing,
+     and the route out is the move, never a second filing of a reading already done. */
+  seed("ISS-502", "closed");
+  const done = lastStep(work);
+  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 0, done.stdout);
+  assert.match(done.stdout, /ISS-502 is closed for this mark and the mark never moved/u, done.stdout);
+  assert.match(done.stdout, /review --done/u, `the route out of a finished reading is the move:\n${done.stdout}`);
+  assert.doesNotMatch(done.stdout, /Work ISS-502\./u, "a closed issue is nothing to launch a run on");
+
+  /* Counted, a dropped reading would leave the range an issue nobody reads and no route to another. */
+  seed("ISS-503", "dropped");
+  const again = lastStep(work);
+  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 1,
+    `a dropped reading left the range with no issue and no filing:\n${again.stdout}${again.stderr}`);
+  assert.ok(again.stdout.includes("filed ISS-777"), again.stdout);
+});
+
+/* The tracker's own duplicate gate was the only thing that stopped a second issue for a mark that
+   already had one, and the step then reported that refusal as a silence and printed the filing the
+   gate had just refused as the route out of it (ISS-140). */
+test("a filing refused by name is reported as refused, and not routed back to the filing it forbade", () => {
+  const { at, work } = owedAt("collides");
+  writeFileSync(join(at, "forge-collides"), "");
+
+  const run = lastStep(work);
+  assert.match(run.stderr, /the tracker refused the filing, and its answer names ISS-135/u,
+    `a refusal and a silence are different findings:\n${run.stderr}`);
+  assert.doesNotMatch(run.stderr, /did not answer/u, "the tracker answered — by name, with what it collided with");
+  assert.doesNotMatch(run.stdout, /forge new - --title/u,
+    `the route under a refusal has to be one the refusal leaves open:\n${run.stdout}`);
+  assert.match(run.stdout, /forge issue ISS-135/u, run.stdout);
+  assert.ok(run.stdout.includes("Work ISS-135."), run.stdout);
+});
+
 /* A review is never lost for want of a network: nothing is filed, the count and the route print as
    they did before anything filed itself, and the next ship asks again. */
 test("a tracker that does not answer files nothing, prints the route, and leaves the next ship to file it", () => {
@@ -393,7 +453,8 @@ test("a tracker that does not answer files nothing, prints the route, and leaves
   const blind = lastStep(work);
   assert.equal(blind.status, 0, blind.stderr);
   assert.match(blind.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\), 1 file\(s\), 501 changed line\(s\)/u, blind.stdout);
-  assert.match(blind.stderr, /the tracker did not answer, so nothing is filed and the next ship asks again/u, blind.stderr);
+  assert.match(blind.stderr, /the tracker did not answer the lookup, so nothing is filed and the next ship asks again/u,
+    `a silence names which call it was, so a refusal is not read as one:\n${blind.stderr}`);
   assert.match(blind.stdout, /forge new - --title "review [0-9a-f]{7}\.\.HEAD" --kind feature/u,
     `the route it prints has to run as printed, and --size takes only \`fix\` (ISS-118):\n${blind.stdout}`);
   assert.match(blind.stdout, /start <that ISS-nn>/u, blind.stdout);

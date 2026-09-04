@@ -290,31 +290,40 @@ const forgeSays = (tree, args, input) => {
   return { out: run.stdout };
 };
 
-/** The review issue already open for this mark, or nothing. The row projection carries no
- *  description, so the filing puts the mark in the title too and one read decides it; the tracker's
- *  search is ranked rather than exact, so what it returns is filtered here on the mark itself. */
-const openFor = (tree, from) => {
+const NOT_A_READING = "dropped";
+const READ = "closed";
+
+/** The review issue for this mark, at whatever status it has reached, or nothing: a run claims and
+ *  advances its issue in its first minute, so `open` was the answer only before anybody had started
+ *  (ISS-140). A dropped reading answers nothing — counted, it leaves the range an issue nobody reads
+ *  and no route that files another. The filter is on the range's start, so a moved mark misses it. */
+const issueFor = (tree, from) => {
   const at = from.slice(0, 7);
-  const found = forgeSays(tree, ["issues", "--status", "open", "--search", at, "--limit", "100"]);
-  if (found.why) return found;
-  const rows = found.out.split("\n").map((line) => /^(ISS-\d+)\s+\S+\s+(.*)$/u.exec(line.trim()));
-  return { key: rows.find((row) => row?.[2].includes(`${at}..`))?.[1] ?? null };
+  const found = forgeSays(tree, ["issues", "--search", at, "--limit", "100"]);
+  if (found.why) return { why: found.why, call: "the lookup" };
+  const rows = found.out.split("\n").map((line) => /^(ISS-\d+)\s+(\S+)\s+(.*)$/u.exec(line.trim()));
+  const row = rows.find((one) => one?.[3].includes(`${at}..`) && one[2] !== NOT_A_READING);
+  return { key: row?.[1] ?? null, status: row?.[2] ?? null };
 };
 
 /* Never twice outranks filing promptly, so a list that does not answer files nothing either: the
    count keeps growing and the next ship reads the backlog again. */
 const fileReview = (tree, from, volume) => {
-  const held = openFor(tree, from);
+  const held = issueFor(tree, from);
   if (held.why || held.key) return held;
   const to = gitOut(["rev-parse", "HEAD"], tree);
-  if (!to) return { why: `${tree} has no HEAD to name as the range's end.` };
+  if (!to) return { why: `${tree} has no HEAD to name as the range's end.`, call: "this tree" };
   const title = `The batch ${from.slice(0, 7)}..${to.slice(0, 7)} is read once as a whole by a run `
     + `that wrote none of it, and the mark moves`;
   const filed = forgeSays(tree, ["new", "-", "--title", title, "--kind", "feature"],
     reviewBody(tree, from, to, volume));
-  if (filed.why) return filed;
+  /* Whether the answer names what it collided with is the axis the route turns on: a collision makes
+     an identical retry pointless, a silence makes it right, and the exit code carries neither. */
+  if (filed.why) return { why: filed.why, call: "the filing", collided: /ISS-\d+/u.exec(filed.why)?.[0] ?? null };
   const key = /"issueId":\s*"(ISS-\d+)"/u.exec(filed.out)?.[1];
-  return key ? { key, filed: true } : { why: `the filing answered with no issue key:\n${filed.out.trim()}` };
+  return key
+    ? { key, filed: true }
+    : { why: `the filing answered with no issue key:\n${filed.out.trim()}`, call: "the filing" };
 };
 
 /* The mark is never planted here. One planted where none was found would read exactly like a
@@ -330,14 +339,28 @@ const reviewOwed = (tree) => {
   console.log(`  a review of ${range} is owed: ${count} under ${REVIEW_PATHS.join(", ")}, at or past `
     + `${REVIEW_LINES} line(s). It is a delegated run of its own:`);
   const asked = fileReview(tree, from, volume);
+  if (asked.collided) {
+    console.error(`  the tracker refused the filing, and its answer names ${asked.collided}: ${asked.why}`);
+    console.log(`    read it:         forge issue ${asked.collided}`);
+    console.log(`  ${launch(asked.collided)}`);
+    return;
+  }
   if (asked.why) {
-    console.error(`  the tracker did not answer, so nothing is filed and the next ship asks again: ${asked.why}`);
+    console.error(`  the tracker did not answer ${asked.call}, so nothing is filed and the next ship `
+      + `asks again: ${asked.why}`);
     console.log(`    file its issue:  forge new - --title "review ${range}" --kind feature`);
     console.log(`    give it a tree:  ${SELF} start <that ISS-nn>`);
     console.log(`    it ends by moving the mark, finding or none: ${SELF} review --done`);
     return;
   }
-  console.log(asked.filed ? `    filed ${asked.key}` : `    ${asked.key} is open for this mark already, so nothing was filed`);
+  if (asked.status === READ) {
+    return console.log(`    ${asked.key} is ${READ} for this mark and the mark never moved, so the `
+      + `count keeps growing. Read it, then move the mark to the head that reading reached: `
+      + `${SELF} review --done <that head>`);
+  }
+  console.log(asked.filed
+    ? `    filed ${asked.key}`
+    : `    ${asked.key} is ${asked.status} for this mark already, so nothing was filed`);
   console.log(`  ${launch(asked.key)}`);
 };
 
