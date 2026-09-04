@@ -1014,3 +1014,28 @@ restart owed stood. Folded from the record.
   that fills the disk it runs on stops every lane.
 - The ship step's count fired again at three releases and a hundred and thirty lines; ISS-112 makes
   it volume alone.
+
+## Thirty-fifth dry run — ISS-89
+
+One agent re-keyed the guide table's row to the tracker's rename (3.35.37) and doctor's guide table
+reads *ok*: the page had moved in both directions, so the row was re-keyed rather than dropped; its
+decompose half had converged on the contract, retiring the old row's only replaced rule, and its new
+closing section diverged — file at `draft` to save a runner slot, where the contract says `draft` is the
+reporter's status and `advance` never enters it — so a row is still owed and the disposition stays
+*partly*. Twenty-three verdicts at the merged commit, the run closed its own issue. Folded from the
+record.
+
+- A codex claim that a flag did not exist was wrong, and checking it found the entry's own claim about
+  that flag false in the way that mattered: the flag writes a *relates* edge, so pointing an agent at it
+  for an ordering edge hands them a grouping label. The entry now names the verb that writes an
+  ordering edge and says what the flag is not.
+- The suite's near-miss case tested a typo of the retired slug, which after the re-key fails outright
+  because the echoed typo contains the new held slug; it had to move, and it now tests a typo of the
+  live slug under a guard that each string still ranks against something held.
+- ISS-103 asked for exactly this, filed three hours later; the run posted the finding there as the
+  finder and left the disposition to a holder. The parent dropped it as the duplicate.
+- Twenty-three criteria judged twice — once on the review tree, once at the merged commit the rebase
+  forced — put the thread past the page, and the last three moves went by hand. ISS-17's seventh
+  sighting; the record report reads the same thread fine, which is the discriminator.
+- `record criteria` reads the *and* inside a hyphenated slug as a conjunction, a warning; ISS-73. The
+  worktree feedback path, again; ISS-123 is running on the tracker route that replaces the folder.
