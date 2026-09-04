@@ -321,8 +321,7 @@ const fileReview = (tree, from, volume) => {
     + `that wrote none of it, and the mark moves`;
   const filed = forgeSays(tree, ["new", "-", "--title", title, "--kind", "feature"],
     reviewBody(tree, from, to, volume));
-  /* The refusal's own phrase and not any key it carries: a reason quotes paths, and this tool names
-     a worktree for the issue it works. A collision makes a retry pointless, a silence makes it right. */
+  /* The refusal's own phrase, not any key: a reason quotes paths, and a worktree carries a key. */
   if (filed.why) {
     const collided = /against (ISS-\d+)/u.exec(filed.why)?.[1] ?? null;
     return { why: filed.why, call: "the filing", collided };
@@ -346,10 +345,12 @@ const reviewOwed = (tree) => {
   console.log(`  a review of ${range} is owed: ${count} under ${REVIEW_PATHS.join(", ")}, at or past `
     + `${REVIEW_LINES} line(s). It is a delegated run of its own:`);
   const asked = fileReview(tree, from, volume);
+  /* Read, never launched: the gate collides on title similarity, so the key may not be a reading. */
   if (asked.collided) {
     console.error(`  the tracker refused the filing, and its answer names ${asked.collided}: ${asked.why}`);
     console.log(`    read it:         forge issue ${asked.collided}`);
-    console.log(`  ${launch(asked.collided)}`);
+    console.log(`    it is this mark's reading, or a title that only resembles one; the refusal's own `
+      + `route says which write it leaves open, and the count keeps growing either way`);
     return;
   }
   if (asked.why) {

@@ -443,7 +443,8 @@ test("a filing refused by name is reported as refused, and not routed back to th
   assert.doesNotMatch(run.stdout, /forge new - --title/u,
     `the route under a refusal has to be one the refusal leaves open:\n${run.stdout}`);
   assert.match(run.stdout, /forge issue ISS-135/u, run.stdout);
-  assert.ok(run.stdout.includes("Work ISS-135."), run.stdout);
+  assert.doesNotMatch(run.stdout, /Work ISS-135\./u,
+    `the gate collides on title similarity, so the key it names is nothing to launch a run on:\n${run.stdout}`);
   assert.match(run.stderr, /names ISS-135:/u, run.stderr);
   assert.doesNotMatch(run.stdout, /ISS-999/u,
     `the collision is the key the tracker named, and a path in its reason carries one too:\n${run.stdout}`);
