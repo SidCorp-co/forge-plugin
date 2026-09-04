@@ -2,7 +2,8 @@
    back by kind: docs/cli/record.md. The verb owns the shape; the tracker owns the fields. */
 import { fail, translateTo } from "../resolve/settings.mjs";
 import {
-  FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, blockOf, criterionNumber, markedCommit, readRecord, tagFor, unwrap,
+  CLOSES_FROM, FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, blockOf, criterionNumber, markedCommit,
+  readRecord, tagFor, unwrap,
 } from "./machine.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { pullRepeated, flags } from "../resolve/flags.mjs";
@@ -422,6 +423,10 @@ const recordReport = async (reference) => {
   const lines = worklogLines(worklogOf(body[SESSION]));
   if (lines.length) console.log(["", "The run, from its own captures:", ...lines.map((one) => `  ${one}`)].join("\n"));
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
+  /* A run's end is measured by `closed`, and five of one day's runs stopped short of it (ISS-105). */
+  if (body.status === CLOSES_FROM) {
+    console.log(`Owed: the close. A run ends at closed, not at ${CLOSES_FROM}:\n  forge advance ${reference}`);
+  }
 };
 
 const pullOne = (argv, flag) => {

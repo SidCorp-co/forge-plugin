@@ -9,7 +9,7 @@ import { write } from "../tracker/rpc.mjs";
 import { FIX_OWES, isFix } from "../tracker/issue-shape.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../tracker/contract.mjs";
-import { PARKS, SHOWS_EVIDENCE, planFlags, unwrap } from "./machine.mjs";
+import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE, planFlags, unwrap } from "./machine.mjs";
 import { releasePolicy } from "../tracker/project-config.mjs";
 import { Refused, issueOf, post, refuse, render } from "./record.mjs";
 import { PARK_STATUS, SIDE, atLeast, payloadOwed, personLooks, transitionCall, viewFrom } from "./earned.mjs";
@@ -43,6 +43,9 @@ export const USAGE = [
   "  closed        released",
   "  dropped       a confirmation whose finding is a disposition, or --drop --why",
   "",
+  "`closed` is the one entry criterion that is a status, so no comment is read to judge a close: the",
+  "page a long thread outgrows refuses every other move and never that one. A run ends by making it.",
+  "",
   "A reopen is a person's word and the tracker's own status. From it the verb reads the person's",
   "finding and the agent's triage of it, and routes: the criterion was the wrong test, back to",
   "developed; it was not met, back to in_progress; the expectation is not in the specification, a",
@@ -59,8 +62,15 @@ export const USAGE = [
    declaring neither line owes no person whatever the project says, and pays no round to hear it. */
 export const policyFor = async (plan) => (personLooks(planFlags(unwrap(plan))) ? releasePolicy() : null);
 
-const viewOf = async (reference) => {
+/* A plain advance from `released`, whose whole entry criterion is that status. A park or a drop from
+   it is another transition: its kind, its evidence and the question a needs_info park owes are all
+   judged against the record, so those read the page as every other status does. */
+const readsTheRecord = (body, given) =>
+  body.status !== CLOSES_FROM || Boolean(given.park) || Boolean(given.drop);
+
+const viewOf = async (reference, given) => {
   const { documentId, body } = await issueOf(reference);
+  if (!readsTheRecord(body, given)) return viewFrom(documentId, body, [], true, null);
   const { comments, hasMore } = await commentPage(documentId);
   return viewFrom(documentId, body, comments, !hasMore, await policyFor(body.plan));
 };
@@ -167,7 +177,7 @@ const run = async (argv) => {
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) refuse(`advance takes the issue first. ${USAGE.split("\n")[0]}`);
   const given = readFlags(rest);
-  const view = await viewOf(ref);
+  const view = await viewOf(ref, given);
   const left = nextHeld(view);
   if (given.owed && left) console.log(`Next, as the last write left it: ${left}`);
   /* Judged on part of a record, an answer is a guess: the page is the whole read this tool has. */

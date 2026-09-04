@@ -24,7 +24,7 @@ export const PHASE = {
   in_progress: ["4 Implement, to the review and the merge", "verification.md"],
   developed: ["5 Prove", "verification.md"],
   tested: ["6, 7 Ship", "release-note.md"],
-  released: ["closing, by a person or the run's end", "release-note.md"],
+  released: ["7 Ship, the close", "release-note.md"],
   closed: ["none", "learning.md"],
   dropped: ["none", "learning.md"],
   reopen: ["1 Triage, of the person's finding", "triage.md"],

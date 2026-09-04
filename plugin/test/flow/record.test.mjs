@@ -334,18 +334,36 @@ const shipped = {
   title: "the change that is about to be released",
   description: "no mark here",
 };
+/* And one a run has released: its criteria are judged, its note is up, and what it still owes is
+   the close — which the report reads off the status, because that is all the close is earned by. */
+const closing = {
+  documentId: "closing-uuid",
+  issueId: "ISS-4",
+  status: "released",
+  title: "the change a run has released",
+  description: "no mark here",
+  acceptanceCriteria: "1. The first outcome.",
+  releaseNotes: { section: "Fixed", userFacing: "it works" },
+};
 const project = {
   calls: [],
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
-  issues: [shipped],
-  comments: { "shipped-uuid": [] },
+  issues: [shipped, closing],
+  comments: {
+    "shipped-uuid": [],
+    "closing-uuid": [{
+      createdAt: "2026-09-02T10:01:00.000Z",
+      body: render("verdict", { criterion: "1 — The first outcome.", verdict: "pass", commit: "43b811e", evidence: ["43b811e"] }),
+    }],
+  },
   answer: {
     forge_config: () => ({ config: project.config }),
     /* The lease is the write's own gate, so the fixture keeps what a claim puts on the issue. */
     forge_issues: (args) => {
-      if (args.action === "list") return { issues: project.issues, returned: 1, hasMore: false };
-      if (args.action === "get") return shipped;
-      if (args.action === "update") return Object.assign(shipped, args.data);
+      if (args.action === "list") return { issues: project.issues, returned: project.issues.length, hasMore: false };
+      const held = project.issues.find((one) => one.documentId === args.documentId) ?? shipped;
+      if (args.action === "get") return held;
+      if (args.action === "update") return Object.assign(held, args.data);
       return { documentId: args.documentId, ...(args.data ?? {}) };
     },
   },
@@ -388,4 +406,16 @@ test("no flag puts the project's answer on a record", () => {
   assert.match(typed, /^review: none, by project config$/mu, "the body really carries it");
   const read = parse(typed).fields;
   for (const flag of derived) assert.equal(read[flag], undefined, `${flag} read back off a hand-written body`);
+});
+
+/* Five of one day's runs left their issues at `released` and a person closed them by hand, so what
+   a run reads at the end of one says the close is owed rather than leaving it to be noticed. */
+test("the report says the close is owed on an issue a run has released", async () => {
+  const run = await ranAsync(FORGE, ["record", "report", "ISS-4"], project.env ?? tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^Every criterion has a verdict\.$/mu, "the criteria are judged");
+  assert.match(run.stdout, /^Owed: the close\. A run ends at closed, not at released:$/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}forge advance ISS-4$/mu, "with the one command that makes it");
+  const quiet = await ranAsync(FORGE, ["record", "report", "ISS-3"], tracker.env);
+  assert.doesNotMatch(quiet.stdout, /the close/u, "and an issue not yet released is owed no close");
 });

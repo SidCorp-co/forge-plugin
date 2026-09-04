@@ -176,6 +176,16 @@ test("the owed section is what advance would say, and a refusal becomes the line
   assert.equal(brief({ status: "closed" }).owed.next, null);
 });
 
+/* A run's end is measured by `closed`, so a brief re-minted on an issue at `released` says the close
+   is owed rather than leaving the phase's name to imply that somebody else might make it (ISS-105). */
+test("a brief on a released issue owes the close, and names the phase that makes it", () => {
+  const one = brief({ status: "released" });
+  assert.equal(one.phase, "7 Ship, the close");
+  assert.equal(one.owed.next, "closed");
+  assert.deepEqual(one.owed.missing, [], "the status is the whole of what a close is earned by");
+  assert.equal(one.ahead, null, "and nothing is ahead of it");
+});
+
 test("the brief names the comments it read, which is the read the gate asks for", () => {
   const one = brief({}, [
     recorded("baseline", { gate: "npm test", result: "one known failure", commit: "aaa1111" }),

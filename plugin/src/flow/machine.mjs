@@ -127,6 +127,8 @@ export const protectMachine = (field, text) => {
    list all read: a field named in two places is a shape that disagrees with itself. Kept beside
    the block it is written into, and importing nothing, so either side may reach it. */
 export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false"];
+/* The status `closed` is entered from. Here, not beside ORDER: record.mjs cannot import earned.mjs. */
+export const CLOSES_FROM = "released";
 export const PARKS = [
   "question", "screen-review", "destructive-migration", "rolled-back", "no-way-back",
   "unshippable", "blocked", "paused", "crashed", "release-decision", "code-review", "dropped",
