@@ -415,3 +415,17 @@ test("--new on an unmarked filing names the neighbour that would have qualified"
   assert.match(run.stdout, /--new declined nothing to decline: ISS-45 would have qualified/u);
   assert.doesNotMatch(run.stdout, /no open issue both reads like this filing/u);
 });
+
+/* A body from a file is on disk and one from stdin exists nowhere else, so the second is registered
+   before the first tracker read: a refusal past that point — the shape's, the duplicate's, a hold
+   from the fold — would otherwise be the body gone with the process. */
+test("a body piped in is printed back by a refusal that comes after the read", async () => {
+  before();
+  const body = "## Outcome\n\nthe piped body reaches the refusal and comes back out of it\n";
+  const argv = ["new", "-", "--title", "the piped body survives what refuses it"];
+  const run = await ranAsync(FORGE, argv, tracker.env, process.cwd(), body);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /Your body, so that nothing here loses it:/u);
+  assert.match(run.stderr, /the piped body reaches the refusal and comes back out of it/u);
+  assert.equal(created(), undefined);
+});
