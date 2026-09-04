@@ -86,6 +86,6 @@ export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"),
     return { ...installed, kind: "installed", installed,
       why: "no checkout at or above the working directory, and this is the newest install record that resolves" };
   }
-  return { dir: resolve(root), version: versionAt(root), kind: "this", installed: null,
+  return { ...hereCopy(root), kind: "this", installed: null,
     why: "no checkout at or above the working directory and no install record that resolves, so the copy on PATH" };
 };

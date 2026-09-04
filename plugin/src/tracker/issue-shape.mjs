@@ -366,10 +366,11 @@ export const shapeOf = ({ title, body, kind = null }, { everySection = false } =
       `set the kind to one of ${KIND_NAMES.join(", ")} ${RESEND}`));
     return { gaps, fix: false, tokens, said: null };
   }
-  if (!everySection && isFix(text)) return { gaps, fix: false, tokens, said: null };
-  const rule = sectionUnder(text, RULES.heading);
-  if (!everySection && !rule && !held(text, SCOPE).ok && tokens.length) {
-    return { gaps, fix: true, tokens, said: null };
+  if (!everySection) {
+    if (isFix(text)) return { gaps, fix: false, tokens, said: null };
+    if (tokens.length && !held(text, SCOPE).ok && !sectionUnder(text, RULES.heading)) {
+      return { gaps, fix: true, tokens, said: null };
+    }
   }
   const shape = shapeFor(kind);
   const headings = headingsOf(text);

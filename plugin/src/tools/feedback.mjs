@@ -56,11 +56,11 @@ const whereSection = () => {
 const plain = (title) => String(title ?? "").toLowerCase().replace(/\s+/gu, " ").trim();
 
 /* The page and a search both, the listing offering no cursor (ISS-17 owes it). */
-const openOnProject = async (title) => {
+const openUnder = async (title) => {
   const page = openTitles(rowsOf(await listIssues({}, MAX_LIMIT)));
   const found = openTitles(rowsOf(await listIssues({ search: title }, MAX_LIMIT)));
   const byKey = new Map([...page, ...found].map((one) => [one.issueId, one]));
-  return [...byKey.values()];
+  return [...byKey.values()].find((one) => plain(one.title) === plain(title)) ?? null;
 };
 
 const lost = (what, refused) => fail(`${PROJECT} refused ${what}: ${refused}`);
@@ -89,7 +89,7 @@ export const feedback = async (argv) => {
   if (refusal) fail(refusal);
   /* Before the first call: everything below reaches the plugin's project, in its language. */
   useProject({ slug: PROJECT, from: "the CLI, for feedback on this plugin" });
-  const held = (await openOnProject(title)).find((one) => plain(one.title) === plain(title));
+  const held = await openUnder(title);
   if (held) {
     const answer = await postComment(held.documentId, `## ${title}\n\n${body}`, null, true);
     if (answer?.refused) lost(`a comment on ${held.issueId}`, answer.refused);

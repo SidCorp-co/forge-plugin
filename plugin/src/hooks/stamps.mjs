@@ -35,9 +35,7 @@ function place(room, stamp) {
   try {
     mkdirSync(room, { recursive: true });
     writeFileSync(stamp, "");
-  } catch {
-    return;
-  }
+  } catch {}
 }
 
 export function askedAlready(ev, path, kind, { set = true } = {}) {

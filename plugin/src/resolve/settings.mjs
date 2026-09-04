@@ -97,14 +97,14 @@ export const settings = once(() => {
 
 export const projectScope = once(() => sourced(".forge.json", forgeJson().parsed?.slug));
 
-/* Where a project-scoped call GOES, which is not always the checkout it came from: docs/cli/feedback.md. */
+/* Where a project-scoped call GOES and in whose prose — the target's, not the caller's: docs/cli/feedback.md. */
 let aimed = null;
 
-export const useProject = ({ slug, from, prose = null }) => {
-  aimed = { value: slug, from, prose };
+export const useProject = ({ slug, from }) => {
+  aimed = { value: slug, from };
 };
 
-export const projectTarget = () => (aimed ? { value: aimed.value, from: aimed.from } : projectScope());
+export const projectTarget = () => aimed ?? projectScope();
 
 /* Which paths, and which angles, are the checkout's answer: the account's covers every one. */
 export const projectRecordPattern = () => sourced(".forge.json", forgeJson().parsed?.codex?.pathRe);
@@ -139,7 +139,7 @@ export const translateScope = once(() => {
 });
 
 export const translateTarget = () =>
-  (aimed ? { value: aimed.prose, from: aimed.from } : translateScope());
+  (aimed ? { value: null, from: aimed.from } : translateScope());
 
 export const translateTo = () => translateTarget().value;
 
