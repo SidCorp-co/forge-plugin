@@ -1455,3 +1455,28 @@ No restart owed. Closed by its run. Folded from the record.
   the developer's live credential (ISS-177); the baseline named it so no later red would be blamed here.
 - Two known defects were worked around rather than re-filed, each named with its issue: the dependency
   verb under a personal token (ISS-149) and the note cap (ISS-170).
+
+## Fifty-fifth dry run — ISS-86 and ISS-36
+
+One agent took two hook-gate bugs as one run and finished one (3.35.64). ISS-86: which tree a git
+command runs in is now read from the shell's own moves, in the harness, shared by two gates — and the
+answer is every directory a call could stand in, not one, since only a conjunction proves a change of
+directory both ran and succeeded, while a pipeline stage, a background job and a subshell lose the move.
+Where the tree is uncertain the refusal says so and names the form that makes it certain. Thirteen
+verdicts pass, one with a divergence reasoned on the verdict itself; the before-state was reconstructed
+from the parent commit into a copy of the plugin and re-probed rather than asserted. Four hook files
+moved, so a restart is owed. ISS-36 was left open with nothing written to it: the issue reader cannot
+resolve its key, and the run stopped rather than working around the reader. Folded from the record.
+
+- Five review rounds, because the commit gate demands a consult on whatever stages, so each fix forced
+  another; four closed a regression the run itself introduced, one opened a new class. The rounds were
+  earned, and their count is the cost of a change that reads shell syntax.
+- One shape shipped as a deliberate over-report in production code: the failed branch of a conjunction
+  list is not carried, so a disjunction in front of a command keeps the caller's directory live even
+  where it is unreachable. Chosen because it can only add a candidate and never drop one, so it cannot
+  miss a refusal; it costs an occasional refusal naming the conjunction. That and six further shapes
+  are ISS-188, whose first step is moving the reading out of a harness file at its line ceiling — twice
+  a correct reading cost one line more than the file had, and the form that fitted was the one with a
+  hole. Recorded as a gap.
+- ISS-36's finding, made in passing — the reference pattern still accepts a spec citation as a key — was
+  posted on the key-lookup batch that holds the file, since ISS-36 itself could not be reached.
