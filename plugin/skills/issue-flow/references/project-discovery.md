@@ -32,6 +32,10 @@ the command list.
 
 ## What to establish before working an issue
 
+This list is also the brief's line set: a project's brief answers these one line at a time, each
+with where it was read, so the second run reads what the first established. A run that had to
+establish one of them by hand refreshes that line before it leaves.
+
 - How to build, test and lint, and which of those the project treats as the gate.
 - How to run something locally, and whether the project provides that or expects you to.
 - **How a change reaches the default branch, and how it reaches production.** Review,
@@ -53,23 +57,34 @@ the command list.
 
 ## Order of lookup
 
-**1. `CLAUDE.md` at the repository root**, then the nested ones nearer the files you are
+**1. `forge project`.** The branch a change lands on, whether production deploys unasked, the
+staging hosts a change can be walked against and whether test credentials exist —
+`--credentials` for their values. Under those, the project's **brief**: one line per item in
+the list above, each carrying where it was read, written by an earlier run and read by this
+one. Ask it before searching the repository, and ask it *here*: a credential discovered at
+Phase 7 arrives after the criteria it was needed for have already gone unjudged.
+
+**Two things the brief hands back to you, and only those two.** A line reading *not stated*
+is a question this project has not answered, so establish it from 2 to 5 below and refresh the
+brief on the way out. A `stale:` line names a file the brief was read from that has moved
+since — read the lines citing that file, and nothing else. Where there is no brief at all, the
+whole of this file is the phase, and writing one is what the run leaves behind.
+
+**2. The rest of the tracker.** Its knowledge store, searched with the issue's own title:
+whatever an earlier reading established about the module this issue touches, kept somewhere
+later sessions can reach it rather than sealed inside a closed issue. And its memory, which is
+accumulated findings and point-in-time. Both are leads to check against the source they cite,
+and neither is a fact to quote.
+
+**3. `CLAUDE.md` at the repository root**, then the nested ones nearer the files you are
 touching. The root file holds what is true everywhere; a directory's file holds what is
 true only there. A one-line file that imports another (`@AGENTS.md`) is a pointer, not an
 absence — follow it.
 
-**2. What the root file points at** — a README, an architecture note, a spec directory. The
+**4. What the root file points at** — a README, an architecture note, a spec directory. The
 rules file names the contract; the mechanics file holds the layout and the stack.
 
-**3. The tracker.** Its memory (accumulated findings, point-in-time — verify against live
-code), its knowledge store (ask it before a broad file search), and its project settings.
-**`forge project` is that last one in one call** — the branch a change lands on, whether
-production deploys unasked, the staging hosts a change can be walked against and whether test
-credentials exist, `--credentials` for their values. Ask it before searching the repository,
-and ask it *here*: a credential discovered at Phase 7 arrives after the criteria it was needed
-for have already gone unjudged.
-
-**4. The code, which is the tiebreaker for mechanics.** A container entrypoint and a stack
+**5. The code, which is the tiebreaker for mechanics.** A container entrypoint and a stack
 script each settle a question that prose about them gets wrong — what runs at boot, and what
 the wrapper overrides on the way in.
 

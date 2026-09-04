@@ -36,9 +36,10 @@ import { BESIDE_HELP, foldOnto, foldedInto, neighboursOf, suggestionLines }
 import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean, unknownFlag } from "./suggest.mjs";
-import { flags, partition, wantsHelp } from "./resolve/flags.mjs";
+import { flags, partition, pullRepeated, wantsHelp } from "./resolve/flags.mjs";
 import { dispositionOf, trackerHeader, visibleGuides } from "./tracker/guides.mjs";
-import { projectLines, releasePolicy, stagingDeploy } from "./tracker/project-config.mjs";
+import { briefLines, projectLines, readBrief, refreshBrief, releasePolicy, stagingDeploy }
+  from "./tracker/project-config.mjs";
 import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./tracker/contract.mjs";
 import { doctor } from "./tools/doctor.mjs";
 import { deps } from "./tools/deps.mjs";
@@ -177,6 +178,24 @@ const suggestTool = async (name) =>
 const ATTACH_TARGETS = ["issue", "comment"];
 
 const NEW_USAGE = `${helpOf("new")}\n\n${BESIDE_HELP}\n\n${PRIORITY_HELP}\n\n${KINDS_HELP}`;
+
+/* Its own, rather than the row's: the row now takes a value, and the derived pointer that earns
+   would send a reader to the schema of the tool behind the branches, which the brief is not. */
+const PROJECT_USAGE = [
+  usageOf("project"),
+  "the id, the branches a change lands on, the staging deploy to walk it against, and the",
+  "project's brief — the one entry Phase 0 reads instead of learning the repository by hand.",
+  "",
+  "The brief prints with a `stale:` line naming which of the files it was read from have moved",
+  "since, so a run refreshes the lines those files carried and spends one call on the rest.",
+  "--refresh takes the corrected brief itself: nothing here writes its prose, because no program",
+  "reads a repository's dangers out of its README. The digests are stamped from that same body in",
+  "the same call, which is what stops a re-stamp of a brief nobody corrected.",
+  "",
+  "The entry is `forge knowledge`'s in every other respect — one slug, `project-brief`, kind",
+  "`overview`, injection `always` — and --title, --confidence and --meta mean there what they mean",
+  "here. Injection is not a flag: a brief a session has to ask for is the call this entry removes.",
+].join("\n");
 
 export const commands = {
   doctor,
@@ -451,17 +470,26 @@ export const commands = {
     show(answer?.guide?.body ?? answer);
   },
   project: async (argv) => {
+    if (wantsHelp(argv)) return console.log(PROJECT_USAGE);
     onlyFlags("project", argv);
-    const asked = flags(argv, "project", ["--credentials"]);
-    const lines = projectLines({
-      id: await projectId(),
-      policy: await releasePolicy(),
-      deploy: await stagingDeploy(),
-      credentials: Boolean(asked.credentials),
-    });
-    for (const said of lines) console.log(said);
+    const { values: pairs, rest } = pullRepeated(argv, "--meta", "project");
+    const asked = flags(rest, "project", ["--credentials"]);
+    const said = asked.refresh
+      ? await refreshBrief(asked.refresh, { ...asked, pairs })
+      : [
+        ...projectLines({
+          id: await projectId(),
+          policy: await releasePolicy(),
+          deploy: await stagingDeploy(),
+          credentials: Boolean(asked.credentials),
+        }),
+        ...briefLines(await readBrief()),
+      ];
+    for (const line of said) console.log(line);
   },
 };
+
+commands.project.answersHelp = true;
 
 commands.new.answersHelp = true;
 commands.feedback.answersHelp = true;

@@ -62,3 +62,6 @@ reaches them by property access, so neither the rule nor the code it guards is a
 exemption is needed — an exemption list is where a rule like this goes to die. `forge schema` and
 `forge call` are outside it on purpose: they pass the server's own text and JSON through, and masking
 the tracker's words in the tracker's own answer would be a different and worse thing.
+
+The brief this verb also serves — why `--refresh` takes the answer it is meant to produce, which
+files a digest covers, and what a store that will not answer is not: [the brief](the-brief.md).

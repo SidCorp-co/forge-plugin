@@ -196,6 +196,46 @@ export const boundByLimit = (rows) => (args) => {
 /** A tracker a verb can be spawned against, answering out of `state` at request time so a case that
  *  changes the state changes the answer. `state.calls` collects every call for a case to assert on;
  *  a handler in `state.answer` keyed by tool takes precedence over the defaults below. */
+/* The knowledge store as probed on 2026-09-04: `upsert` writes the row it was handed and nothing
+   of the row it replaces, `get` refuses an absent slug, `delete` says whether there was one. Two
+   suites answer with it — the store's own verb and the project verb's brief — so the tracker's
+   replace-not-merge behaviour is declared once. */
+export const fakeStore = () => {
+  const store = new Map();
+  const entry = (slug, held) => ({
+    id: `k-${slug}`,
+    slug,
+    kind: held.kind ?? "guide",
+    title: held.title ?? "",
+    body: held.body ?? "",
+    injection: held.injection ?? "on_demand",
+    confidence: held.confidence ?? "inferred",
+    authoredBy: "agent",
+    metadata: held.metadata ?? {},
+    updatedAt: "2026-09-04T21:00:00.000Z",
+  });
+  const knowledge = (args) => {
+    if (args.action === "list") {
+      const rows = [...store.values()]
+        .filter((one) => !args.kindFilter || one.kind === args.kindFilter)
+        .filter((one) => !args.injectionFilter || one.injection === args.injectionFilter);
+      return { rows, returned: rows.length, total: rows.length, truncated: false };
+    }
+    if (args.action === "get") {
+      return store.get(args.slug) ?? { refused: "Error: knowledge entry not found" };
+    }
+    if (args.action === "upsert") {
+      if (!args.title) return { refused: "Error: title is required for action=upsert" };
+      store.set(args.slug, entry(args.slug, args));
+      return { id: `k-${args.slug}`, slug: args.slug, degraded: false };
+    }
+    if (args.action === "delete") return { deleted: store.delete(args.slug) };
+    const hits = [...store.values()].map((one) => ({ ...one, score: 0.5, origin: "knowledge" }));
+    return { knowledge: hits, memory: [] };
+  };
+  return { store, knowledge };
+};
+
 export const fakeTracker = async (state) => {
   const body = (request) =>
     new Promise((done) => {

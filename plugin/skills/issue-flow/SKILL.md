@@ -90,7 +90,20 @@ Two obligations replace the gate that used to sit before them:
 
 ## Phase 0 — Learn the project
 
-Follow `references/project-discovery.md`. Report what you found and what is missing.
+**`forge project` first.** It answers the branches and the deploy, and under them the project's own
+brief: one line per thing this phase establishes, each with where it was read. What is left to
+discover by hand is a line reading *not stated* and a source the `stale:` line says has moved —
+`references/project-discovery.md` is how, and is the whole of this phase where a project has no
+brief yet.
+
+Then **search the knowledge store with the issue's own title**. An entry a reading wrote about the
+module this issue touches is read before the code is; it is a lead to verify against the source it
+cites, exactly as a memory hit is under Phase 1, and never a fact to quote. `forge knowledge -h` and
+`forge project -h` own both surfaces.
+
+A brief this run found wrong is corrected on the way out rather than worked around, and the
+confirmation record says which of its sources the run checked. Report what you found and what is
+missing.
 
 **If a Forge runner handed you this issue** — the prompt names a pipeline run and tells you to
 reach Forge with `forge-runner api` — read `references/forge-driver.md` first. It holds the three literals this workflow

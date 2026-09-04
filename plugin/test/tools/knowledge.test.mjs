@@ -4,50 +4,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FIXTURE_ENUMS, fakeTracker, ranAsync } from "../fixtures.mjs";
+import { FIXTURE_ENUMS, fakeStore, fakeTracker, ranAsync } from "../fixtures.mjs";
 import { credentialLeak, deployFrom } from "../../src/tracker/project-config.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
 
-const store = new Map();
-
-const entry = (slug, held) => ({
-  id: `k-${slug}`,
-  slug,
-  kind: held.kind ?? "guide",
-  title: held.title ?? "",
-  body: held.body ?? "",
-  injection: held.injection ?? "on_demand",
-  confidence: held.confidence ?? "inferred",
-  authoredBy: "agent",
-  metadata: held.metadata ?? {},
-  updatedAt: "2026-09-04T21:00:00.000Z",
-});
-
-/* The tracker as probed: `upsert` writes the row it was handed and nothing of the row it replaces,
-   `get` refuses an absent slug, `delete` says whether there was one. */
-const knowledge = (args) => {
-  if (args.action === "list") {
-    const rows = [...store.values()]
-      .filter((one) => !args.kindFilter || one.kind === args.kindFilter)
-      .filter((one) => !args.injectionFilter || one.injection === args.injectionFilter);
-    return { rows, returned: rows.length, total: rows.length, truncated: false };
-  }
-  if (args.action === "get") {
-    return store.get(args.slug) ?? { refused: "Error: knowledge entry not found" };
-  }
-  if (args.action === "upsert") {
-    if (!args.title) return { refused: "Error: title is required for action=upsert" };
-    store.set(args.slug, entry(args.slug, args));
-    return { id: `k-${args.slug}`, slug: args.slug, degraded: false };
-  }
-  if (args.action === "delete") {
-    return { deleted: store.delete(args.slug) };
-  }
-  const hits = [...store.values()].map((one) => ({ ...one, score: 0.5, origin: "knowledge" }));
-  return { knowledge: hits, memory: [] };
-};
+const { store, knowledge } = fakeStore();
 
 const state = { issues: [], comments: {}, calls: [], answer: { forge_knowledge: knowledge } };
 const tracker = await fakeTracker(state);
@@ -302,4 +265,17 @@ test("neither a body nor a slug carrying it reaches the tracker", async () => {
   } finally {
     delete state.answer["forge_projects.get"];
   }
+});
+
+/* `not found` alone was the reading, and a refusal about anything else that carries those two words
+   would have sent the write down the create path and replaced the row it could not read. */
+test("a refusal naming something else that is not found is not read as an absent entry", async () => {
+  await created();
+  state.answer.forge_knowledge = (args) =>
+    (args.action === "get" ? { refused: "Error: project not found for this credential" } : knowledge(args));
+  const run = await ran(["knowledge", "write", "module-knowledge", "-"], "A third body.\n");
+  state.answer.forge_knowledge = knowledge;
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /the store could not be read for module-knowledge/u);
+  assert.equal(store.get("module-knowledge").body, BODY, "and the stored entry is untouched");
 });

@@ -2,8 +2,16 @@
    tracker and never re-declared in a checkout. Unread keeps today's behaviour, since no decision
    is not a decision to ship without a person. The tracker's own column names are reached by
    property access and printed nowhere — src/checks/tracker-names.mjs. docs/cli/the-project.md. */
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { once } from "../resolve/config.mjs";
-import { slugIfAny } from "../resolve/settings.mjs";
+import { keepOnFailure, projectRoot, slugIfAny } from "../resolve/settings.mjs";
+import { bodyFrom } from "../resolve/payload.mjs";
+import { citedIn } from "../checks/cited-paths.mjs";
+import { BRIEF_SLUG, metaFrom, softEntryAt, upsertEntry, wroteLines }
+  from "../tools/knowledge.mjs";
 import { scoped } from "./rpc.mjs";
 
 const CONFIG_SOURCE = "the tracker's project config";
@@ -165,3 +173,115 @@ export const leakRefusal = (found, what) =>
   + "at the authentication step and echoed nowhere after it — the tracker's own project-settings "
   + "guide, rule 2, and there is no delete for what the tracker has taken. Take the value out and "
   + "say where it is read instead:\n  forge project --credentials";
+
+/* The project's brief: the one entry Phase 0 reads instead of learning the repository by hand. Its
+   prose is a run's — no program reads a repository's dangers out of its README — and what the CLI
+   owns is whether the files it was read from moved. docs/cli/the-brief.md. */
+const BRIEF_KIND = "overview";
+/* Not a flag: a brief nobody injects is one a run still has to ask for, the call it exists to remove. */
+const BRIEF_INJECTION = "always";
+const SOURCE_MARK = "←";
+const DIGESTS = "digests";
+const DIGEST_WIDTH = 16;
+
+/** Only the tail after a line's mark is a source: the body maps the tree too, and hashing every
+ *  path it cites would call the brief stale on any release that touched a module. */
+export const briefSources = (body) => {
+  const found = new Set();
+  for (const line of String(body ?? "").split("\n")) {
+    const at = line.lastIndexOf(SOURCE_MARK);
+    if (at < 0) continue;
+    for (const { path } of citedIn(line.slice(at + SOURCE_MARK.length))) found.add(path);
+  }
+  return [...found].sort();
+};
+
+/* Against the project root: this is the project's own brief, read inside the checkout it pins. */
+const hashOf = (path) => {
+  try {
+    return createHash("sha256").update(readFileSync(join(projectRoot(), path))).digest("hex")
+      .slice(0, DIGEST_WIDTH);
+  } catch {
+    return null;
+  }
+};
+
+/** Null rather than dropped: dropped, an unresolved source reaches no reader, and a brief naming
+ *  only those would report as one naming none. */
+export const digestsFor = (body) =>
+  Object.fromEntries(briefSources(body).map((path) => [path, hashOf(path)]));
+
+/** `gone`: named and no longer here. `moved`: here, and not the bytes the brief was read from. */
+export const staleIn = (digests) => {
+  const gone = [];
+  const moved = [];
+  for (const [path, hash] of Object.entries(digests ?? {})) {
+    const now = hashOf(path);
+    if (now === null) gone.push(path);
+    else if (now !== hash) moved.push(path);
+  }
+  return { gone, moved };
+};
+
+const NONE_STORED = [
+  "project brief: none stored, so Phase 0 has this project's files and nothing else",
+  "  write one: forge project --refresh <brief.md> --title <one line> --meta written-by=ISS-nn",
+];
+
+const NO_SOURCES = "  no line of this brief names a source, so nothing was hashed and no later run "
+  + "can be told which of them moved";
+
+/** A read the store refused is never printed as an absence: a run that took it for one would write
+ *  over a brief it never saw. */
+export const briefLines = (read) => {
+  if (!read) return [];
+  if (read.refused) {
+    return [`project brief: the store would not answer, so this is not an absence — ${read.refused}`];
+  }
+  if (!read.entry) return NONE_STORED;
+  const digests = read.entry.metadata?.[DIGESTS] ?? {};
+  const { gone, moved } = staleIn(digests);
+  const out = [`project brief  ← the knowledge store, slug ${BRIEF_SLUG}, `
+    + `written ${(read.entry.updatedAt ?? "").slice(0, 10)}`];
+  if (!Object.keys(digests).length) out.push(NO_SOURCES);
+  if (moved.length) {
+    out.push(`  stale: ${moved.join(", ")} — moved since the brief was read. Re-read the lines `
+      + "whose source is named here, and refresh those: forge project --refresh <brief.md>");
+  }
+  if (gone.length) {
+    out.push(`  gone: ${gone.join(", ")} — named as a source and not in this checkout`);
+  }
+  return [...out, "", read.entry.body ?? ""];
+};
+
+export const readBrief = async () => (slugIfAny() ? softEntryAt(BRIEF_SLUG) : null);
+
+/** One call, so no hash is freshened without a body passing through the caller's hands — which is
+ *  not proof it was corrected. docs/cli/the-brief.md states that edge. */
+export const refreshBrief = async (path, { pairs, ...meta }) => {
+  const body = await bodyFrom(path);
+  if (path === "-") keepOnFailure(`Your brief, so that nothing here loses it:\n\n${body}`);
+  const digests = digestsFor(body);
+  const wrote = await upsertEntry({
+    slug: BRIEF_SLUG,
+    body,
+    kind: BRIEF_KIND,
+    title: meta.title,
+    injection: BRIEF_INJECTION,
+    confidence: meta.confidence,
+    meta: { ...metaFrom(pairs), [DIGESTS]: digests },
+  });
+  const named = Object.keys(digests);
+  const missing = named.filter((path) => digests[path] === null);
+  const hashed = named.filter((path) => digests[path] !== null);
+  return [
+    ...wroteLines(wrote),
+    hashed.length
+      ? `  digests: ${hashed.join(", ")}`
+      : "  digests: none — no line of this brief names a source this checkout holds, so nothing "
+        + "later can say one moved",
+    ...(missing.length
+      ? [`  named and not here: ${missing.join(", ")} — kept, and read back as gone until they appear`]
+      : []),
+  ];
+};

@@ -6,9 +6,11 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { fakeStore, fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const ROOT = new URL("../../..", import.meta.url).pathname;
+const { store, knowledge } = fakeStore();
 const ISSUE = "22222222-2222-4222-8222-222222222222";
 const PASSWORD = "correct-horse-battery";
 
@@ -36,13 +38,14 @@ const state = {
       config: { baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
     }),
     "forge_projects.get": () => ({ project: { previewDeploy: state.deploy } }),
+    forge_knowledge: knowledge,
   },
   deploy,
 };
 
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
-const ask = (...argv) => ranAsync(FORGE, argv, tracker.env);
+const ask = (...argv) => ranAsync(FORGE, argv, tracker.env, ROOT);
 await ask("claim", "ISS-1");
 
 test("the verb answers where a change lands and what it can be walked against", async () => {
@@ -125,4 +128,129 @@ test("a write goes through where the deploy could not be read at all", async () 
   const run = await ask("comment", "ISS-1", body);
   state.answer["forge_projects.get"] = () => ({ project: { previewDeploy: state.deploy } });
   assert.equal(run.status, 0, `a refusal caused by a read this CLI could not make has no way out: ${run.stderr}`);
+});
+
+/* The brief. Its sources are this repository's own files, because that is what the verb resolves a
+   line's source against — a stubbed hash would prove the arithmetic and not the resolution. */
+const BRIEF = [
+  "# The map",
+  "",
+  "Test and lint, and the gate: `npm run check`.  ← `CLAUDE.md`",
+  "Prose language: *not stated*.",
+  "",
+].join("\n");
+
+const briefAt = (room, text = BRIEF) => {
+  const path = join(room.path, "brief.md");
+  writeFileSync(path, text);
+  return path;
+};
+
+test("the brief is absent until one is written, and the absence names the write", async () => {
+  store.clear();
+  const run = await ask("project");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^project brief: none stored/mu);
+  assert.match(run.stdout, /forge project --refresh <brief\.md>/u);
+});
+
+test("a refresh writes the brief and stamps a digest for each source its own lines name", async () => {
+  store.clear();
+  const room = tempHome("project-brief");
+  const run = await ask("project", "--refresh", briefAt(room), "--title", "The map",
+    "--confidence", "inferred", "--meta", "written-by=ISS-147");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^created {2}project-brief/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}digests: CLAUDE\.md$/mu,
+    `only the source a line names is hashed: ${run.stdout}`);
+  const held = store.get("project-brief");
+  assert.equal(held.kind, "overview");
+  assert.equal(held.injection, "always", "a brief a session has to ask for is the call it removes");
+  assert.equal(held.metadata["written-by"], "ISS-147");
+  assert.deepEqual(Object.keys(held.metadata.digests), ["CLAUDE.md"]);
+});
+
+test("the verb then prints the brief it wrote, with no stale line while the sources hold", async () => {
+  const run = await ask("project");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^project brief {2}← the knowledge store, slug project-brief/mu);
+  assert.match(run.stdout, /^# The map$/mu);
+  assert.doesNotMatch(run.stdout, /stale:|gone:/u);
+});
+
+test("a source that moved under a stored brief is named, and only that source", async () => {
+  const held = store.get("project-brief");
+  store.set("project-brief", {
+    ...held,
+    metadata: { ...held.metadata, digests: { ...held.metadata.digests, "CLAUDE.md": "0000000000000000" } },
+  });
+  const run = await ask("project");
+  assert.match(run.stdout, /^ {2}stale: CLAUDE\.md — moved since the brief was read\./mu, run.stdout);
+});
+
+test("a source the checkout no longer holds is gone rather than stale", async () => {
+  const held = store.get("project-brief");
+  store.set("project-brief", { ...held, metadata: { digests: { "docs/was-here.md": "0000000000000000" } } });
+  const run = await ask("project");
+  assert.match(run.stdout, /^ {2}gone: docs\/was-here\.md — named as a source and not in this checkout$/mu);
+});
+
+test("a refresh naming nothing keeps the kind, title and confidence the stored entry holds", async () => {
+  const room = tempHome("project-brief-again");
+  const run = await ask("project", "--refresh", briefAt(room, "# A second map\n\nBuild: none.  ← `README.md`\n"));
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^replaced {2}project-brief/mu, run.stdout);
+  assert.match(run.stdout, /title The map/u, `the title nobody typed was dropped: ${run.stdout}`);
+  assert.deepEqual(Object.keys(store.get("project-brief").metadata.digests), ["README.md"],
+    "the digests of a body nobody carried forward are the new body's, never the old body's");
+});
+
+test("a brief citing no source stores an empty digest map rather than the one it replaced", async () => {
+  const room = tempHome("project-brief-bare");
+  const run = await ask("project", "--refresh", briefAt(room, "# A map with nothing to check\n"));
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^ {2}digests: none — no line of this brief names a source/mu, run.stdout);
+  assert.deepEqual(store.get("project-brief").metadata.digests, {},
+    "carrying the old digests here would freshen a hash over prose nobody corrected");
+});
+
+test("a brief carrying this project's credential is refused before anything is sent", async () => {
+  const room = tempHome("project-brief-secret");
+  const before = store.get("project-brief").body;
+  const run = await ask("project", "--refresh",
+    briefAt(room, `# The map\n\nCredentials: sign in with ${PASSWORD}.  ← \`CLAUDE.md\`\n`));
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /carries this project's test credentials · password/u);
+  assert.equal(store.get("project-brief").body, before, "and the stored brief is untouched");
+});
+
+test("the verb's own help names the refresh and what it takes", async () => {
+  const run = await ask("project", "-h");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /--refresh <file\.md\|@file\|->/u);
+  assert.doesNotMatch(run.stdout, /forge schema forge_projects\.list/u,
+    "the derived pointer would send a reader to the schema of the tool behind the branches");
+});
+
+test("a named source this checkout lacks is kept and read back as gone, not dropped", async () => {
+  const room = tempHome("project-brief-missing");
+  const run = await ask("project", "--refresh",
+    briefAt(room, "# The map\n\nBuild: none.  ← `docs/was-here.md`\n"));
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^ {2}named and not here: docs\/was-here\.md/mu, run.stdout);
+  const said = await ask("project");
+  assert.match(said.stdout, /^ {2}gone: docs\/was-here\.md/mu, said.stdout);
+  assert.doesNotMatch(said.stdout, /no line of this brief names a source/u,
+    "a brief naming only what this checkout lacks is not a brief naming nothing");
+});
+
+/* The reserved slug: a write through the store's own verb would replace the body and keep the
+   digests of the body it replaced, and the stale line would then say nothing had moved. */
+test("the brief's slug is refused by the generic writer, which names the verb that owns it", async () => {
+  const room = tempHome("project-brief-reserved");
+  const before = store.get("project-brief").body;
+  const run = await ask("knowledge", "write", "project-brief", briefAt(room), "--kind", "overview");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /forge project --refresh/u);
+  assert.equal(store.get("project-brief").body, before, "and nothing was written");
 });

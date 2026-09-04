@@ -74,12 +74,28 @@ a sentence that ends up in both is a correction waiting to be missed in one of t
 
 ## Where project knowledge goes, since it will come up in the same breath
 
-Under the destination's own categories, never as one undifferentiated entry. The tracker's
-memory classifies by `source`: **`knowledge`** (how this codebase actually works — you had
-to trace it), **`decision`** (a choice among alternatives, with the reason), **`policy`** (a
-rule whose violation is a defect regardless of tests passing), **`note`** (episodic — why
-this one issue happened). The agent's own memory files classify by `type`: **`user`**,
-**`feedback`**, **`project`**, **`reference`**.
+Three destinations, and they are not interchangeable.
+
+**The knowledge store.** A module's owners, its shared helpers, the thing inside it that trapped
+you: that belongs there, so whoever comes after does not repeat the tracing. Two kinds of it earn
+their own mention here:
+
+- The **project brief**, one per project, which is Phase 0's whole first call. A run that had to
+  establish by hand something the brief left *not stated*, or that read a source the brief's stale
+  line named, refreshes that line before it leaves — otherwise the next run pays the same reading.
+- A **convention two runs each half-followed** — one wrote it one way, one the other, and a third
+  is about to guess. The store is where that goes, and a fix is not: correcting one side leaves the
+  convention unwritten, and the run after it guesses in a third direction. What the entry then has
+  to carry is the store verb's to say, not this file's.
+
+**The tracker's memory**, which classifies by `source`: **`knowledge`** (how this codebase
+actually works — you had to trace it), **`decision`** (a choice among alternatives, with the
+reason), **`policy`** (a rule whose violation is a defect regardless of tests passing),
+**`note`** (episodic — why this one issue happened). **The agent's own memory files**
+classify by `type`: **`user`**, **`feedback`**, **`project`**, **`reference`**.
+
+Nothing about a payload's shape belongs here: the store's verb owns that, and its own help is
+where a run reads it.
 
 **One entry is one fact** — an entry holding three things is found by none of the three
 queries that wanted one of them. And **a lesson about the user is never a lesson about the

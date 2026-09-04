@@ -70,10 +70,12 @@ test("an argument is not a question", () => {
   assert.ok(!wantsHelp(["forge_issues", '{"note":"-h"}']), "and a json field may hold it");
 });
 
-/* The detail is the schema, and a verb that takes nothing has none to offer. */
+/* `project` takes a local file, so the pointer its row earns names the wrong tool: its own help. */
 test("what a verb takes is named, where there is anything to take", () => {
   assert.match(helpOf("issues"), /The fields the tracker takes: `forge schema forge_issues`/u);
-  assert.ok(!helpOf("project").includes("forge schema"), helpOf("project"));
+  const said = ask("project", "-h");
+  assert.equal(said.status, 0, said.stderr);
+  assert.ok(!said.stdout.includes("forge schema"), said.stdout);
 });
 
 /* An agent in another project learns where a defect in this plugin goes from `-h` or from nowhere. */

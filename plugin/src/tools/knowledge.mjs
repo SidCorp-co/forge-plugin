@@ -57,16 +57,27 @@ const checked = async (value, field) => {
   return value;
 };
 
-/* Only the tracker's own not-found is an absent entry. A permission or transport refusal read as one
-   sends the write down the create branch, which replaces the row it could not read. */
-const ABSENT = /not found/iu;
+/* The tracker's whole phrase, probed live, not `not found`: a scope refusal naming a project that is
+   not found would send the write down the create branch, over the row it could not read. */
+const ABSENT = /knowledge entry not found/iu;
 
-const held = async (slug) => {
+/* The one slug this verb refuses; here because this is the store's home. docs/cli/the-brief.md. */
+export const BRIEF_SLUG = "project-brief";
+
+export const entryAt = async (slug) => {
   const answer = await scoped("forge_knowledge", { action: "get", slug }, true);
   if (!answer?.refused) return answer;
   if (ABSENT.test(answer.refused)) return null;
   return fail(`the store could not be read for ${slug}, and a write here would replace what it `
     + `holds without carrying any of it: ${answer.refused}`);
+};
+
+/** The same read without the refusal, for a reader that prints rather than writes: an absent entry
+ *  and a store that would not answer are two different sentences, and only the first is an absence. */
+export const softEntryAt = async (slug) => {
+  const answer = await scoped("forge_knowledge", { action: "get", slug }, true);
+  if (!answer?.refused) return { entry: answer };
+  return ABSENT.test(answer.refused) ? { entry: null } : { refused: answer.refused };
 };
 
 const slugsHere = async () => {
@@ -78,7 +89,7 @@ const noSuchEntry = async (slug) =>
   fail(didYouMean("entry", slug, await slugsHere(),
     "`forge knowledge list` prints what this project's store holds."));
 
-const entryLine = (row) =>
+export const entryLine = (row) =>
   `${(row.slug ?? "").padEnd(SLUG_WIDTH)} ${(row.kind ?? "").padEnd(KIND_WIDTH)} `
   + `${(row.injection ?? "").padEnd(10)} ${(row.confidence ?? "").padEnd(10)} `
   + `${(row.updatedAt ?? "").slice(0, 10)}  ${row.title ?? ""}`;
@@ -112,7 +123,7 @@ const FIELDS = ["slug", "kind", "injection", "confidence", "authoredBy", "update
 const get = async ([slug, ...rest]) => {
   if (!slug) fail(`Usage: forge knowledge get <slug>\n${USAGE}`);
   asked("knowledge get", rest, USAGE);
-  const entry = await held(slug);
+  const entry = await entryAt(slug);
   if (!entry) await noSuchEntry(slug);
   for (const field of FIELDS) console.log(`${field}: ${entry[field] ?? ""}`);
   if (Object.keys(entry.metadata ?? {}).length) {
@@ -124,7 +135,7 @@ const get = async ([slug, ...rest]) => {
 
 /* `k=v`, splitting on the first `=` only, so a value carrying one survives. Overlaid on what is
    stored rather than replacing it: a correction adds `correctedBy` and keeps what was there. */
-const metaFrom = (pairs) => {
+export const metaFrom = (pairs) => {
   const out = {};
   for (const pair of pairs) {
     const at = pair.indexOf("=");
@@ -172,43 +183,57 @@ const carried = (given, stored) => {
 const WRITE_USAGE = "Usage: forge knowledge write <slug> <file.md|@file|-> --kind K [--title T] "
   + "[--injection I] [--confidence C] [--meta k=v]...";
 
-const written = async (argv) => {
-  const { values: pairs, rest } = pullRepeated(argv, "--meta", "knowledge write");
-  const [slug, path, ...flagArgv] = rest;
-  if (!slug || !path) fail(`${WRITE_USAGE}\n${USAGE}`);
-  asked("knowledge write", flagArgv, WRITE_USAGE);
-  const given = flags(flagArgv, "knowledge write");
-  const kind = await checked(given.kind, "kind");
-  const injection = await checked(given.injection, "injection");
-  const confidence = await checked(given.confidence, "confidence");
-  const stored = await held(slug);
-  if (!stored && !kind) fail(NO_KIND);
+/** One home for the write, spent by this verb and by the project verb's brief: the not-found
+ *  reading, the carry, the credential seat and the read-back are the store's rules, not a caller's. */
+export const upsertEntry = async ({ slug, body, meta = {}, ...given }) => {
+  const stored = await entryAt(slug);
+  if (!stored && !given.kind) fail(NO_KIND);
   if (!stored && !given.title) fail("a new entry needs --title; the tracker refuses an untitled one.");
-  const body = await bodyFrom(path);
-  if (path === "-") keepOnFailure(`Your entry, so that nothing here loses it:\n\n${body}`);
   if (!body.trim()) fail("an empty body would store nothing; pass the entry itself.");
-  const meta = metaFrom(pairs);
   const metadata = Object.keys(meta).length ? { ...(stored?.metadata ?? {}), ...meta } : undefined;
-  const { payload, kept } = carried(
-    { kind, title: given.title, injection, confidence, metadata },
-    stored,
-  );
+  const { payload, kept } = carried({ ...given, metadata }, stored);
   await refuseCredential({ slug, ...payload, body }, "The knowledge entry this write was about to send");
   const sent = { body, ...payload };
   await write("forge_knowledge", { action: "upsert", slug, ...sent });
   keepOnFailure(null);
-  const back = await held(slug);
+  const back = await entryAt(slug);
   if (!back) fail(`forge_knowledge answered success but ${slug} is not in the store. Nothing was written.`);
   const dropped = Object.keys(sent).filter((field) => !same(sent[field], back[field]));
   if (dropped.length) {
     fail(`forge_knowledge answered success and ${slug} came back with ${dropped.join(", ")} not as `
       + `sent, so the entry now holds something no caller asked for. Read it: forge knowledge get ${slug}`);
   }
-  console.log(`${stored ? "replaced" : "created"}  ${entryLine(back)}`);
-  if (kept.length) {
-    console.log(`  carried from the stored entry, which this upsert would otherwise have replaced: `
-      + `${kept.join(", ")}`);
+  return { back, kept, replaced: Boolean(stored) };
+};
+
+/** What a caller prints after a write, so two writers say the same thing about the same act. */
+export const wroteLines = ({ back, kept, replaced }) => [
+  `${replaced ? "replaced" : "created"}  ${entryLine(back)}`,
+  ...(kept.length
+    ? [`  carried from the stored entry, which this upsert would otherwise have replaced: ${kept.join(", ")}`]
+    : []),
+];
+
+const written = async (argv) => {
+  const { values: pairs, rest } = pullRepeated(argv, "--meta", "knowledge write");
+  const [slug, path, ...flagArgv] = rest;
+  if (!slug || !path) fail(`${WRITE_USAGE}\n${USAGE}`);
+  if (slug === BRIEF_SLUG) {
+    fail(`${BRIEF_SLUG} is the project verb's: a write here would replace the body and keep the `
+      + `digests of the body it replaced, so the next run reads a brief nothing says has moved.\n`
+      + `  forge project --refresh ${path}`);
   }
+  asked("knowledge write", flagArgv, WRITE_USAGE);
+  const given = flags(flagArgv, "knowledge write");
+  const kind = await checked(given.kind, "kind");
+  const injection = await checked(given.injection, "injection");
+  const confidence = await checked(given.confidence, "confidence");
+  const body = await bodyFrom(path);
+  if (path === "-") keepOnFailure(`Your entry, so that nothing here loses it:\n\n${body}`);
+  const wrote = await upsertEntry({
+    slug, body, kind, title: given.title, injection, confidence, meta: metaFrom(pairs),
+  });
+  for (const said of wroteLines(wrote)) console.log(said);
 };
 
 const limitFrom = (raw) => {

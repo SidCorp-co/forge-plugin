@@ -111,4 +111,4 @@ where the choice is. Reversing it is not a flag: the tracker would have to decla
 payload for this tool, and whoever declared it would first have to decide whose language a store
 two projects share is in. It writes nothing to the checkout — an entry lives in the tracker,
 which is the point of having one. The project brief that ISS-147 adds is an entry like any other,
-at slug `project-brief`, and is read by the project verb rather than by this one.
+at slug `project-brief`, and is read by the project verb rather than by this one — docs/cli/the-brief.md.
