@@ -238,9 +238,9 @@ const landedLine = (was, all, own, pushed) => {
   if (own.length === 1) return `  the change landed as ${tip}; ${pushed}`;
   const range = `${was.slice(0, 7)}..${tip}`;
   return all.indexOf(own.at(-1)) === own.length - 1
-    ? `  the change landed as ${own.length} commits, ${range}; a mark takes one sha, so take the last, ${tip}. ${pushed}`
+    ? `  the change landed as ${own.length} commits, ${range}, of which a mark takes the last, ${tip}; ${pushed}`
     : `  the change landed as ${own.length} commits, the last of them ${tip}, which a mark takes; a `
-      + `release commit sits among them, so ${range} holds more than the change. ${pushed}`;
+      + `release commit sits among them, so ${range} holds more than the change; ${pushed}`;
 };
 
 const reviewedAt = (tree) => gitOut(["rev-parse", "--verify", "--quiet", REVIEWED], tree);

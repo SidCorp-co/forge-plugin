@@ -228,8 +228,8 @@ test("a change of more than one commit prints the range and the end a mark takes
   const tip = git(work, "rev-parse", "HEAD").stdout.trim();
 
   const run = lastStep(work);
-  assert.match(run.stdout, new RegExp(`the change landed as 2 commits, ${was.slice(0, 7)}\\.\\.${tip.slice(0, 7)}; `
-    + `a mark takes one sha, so take the last, ${tip.slice(0, 7)}`, "u"),
+  assert.match(run.stdout, new RegExp(`the change landed as 2 commits, ${was.slice(0, 7)}\\.\\.${tip.slice(0, 7)}, `
+    + `of which a mark takes the last, ${tip.slice(0, 7)}; the head this tree pushed to master is`, "u"),
     `the range and the end a mark takes are not both named:\n${run.stdout}`);
   assert.deepEqual(
     git(work, "log", "--first-parent", "--format=%H", `${was}..${tip}`).stdout.trim().split("\n"),
