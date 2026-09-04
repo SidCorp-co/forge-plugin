@@ -112,7 +112,7 @@ export const stagingDeploy = once(async () => {
 });
 
 /* Above the length, refused wherever a payload holds it; below it, only where a field is it,
-   quoting aside — a field can hold `admin`. docs/FORGE-CLI.md states that edge rather than more. */
+   quoting aside — a field can hold `admin`. docs/cli/the-project.md states that edge rather than more. */
 const SECRET = 12;
 const bare = (text) => text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
 

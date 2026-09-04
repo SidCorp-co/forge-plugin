@@ -782,3 +782,33 @@ the record.
 - Two agents were told which files the other holds; the collision they could not avoid — the CLI
   document both write — was one line per file, because the first to land retargeted the other's
   citations and said so.
+
+## Twenty-fifth dry run — ISS-92
+
+One agent made `forge project` the project's own answer (3.35.25): the id and its source, the
+staging branch, the production branch, whether production deploys on its own, and the staging deploy
+the tracker holds — its hosts under labels derived from the field paths, never the tracker's own
+column names, the notes on what a test account reaches, and whether test sign-in details exist, printed
+only under `--credentials`. One guard at the write boundary refuses any comment, record or upload whose
+payload carries a credential the project holds, naming the field, before a slot is minted; a payload
+the deploy could not be read against goes through, since a refusal with no route out is worse. A
+check keeps the tracker's column names out of printed strings tree-wide, and doctor reports the deploy
+by count. Twenty-nine verdicts, codex approved, the gate green whole after the rebase carried ISS-96's
+fix. A skill reference changed, so the session owed a restart. Folded from the record.
+
+- Twenty-eight verdicts cite a commit the rebase left on no branch; the agent proved on the thread
+  that the rebased head differs from it only by another lane's two files and did not repost them,
+  because the thread was already past the page. A verdict that cites a commit should survive a rebase
+  that changes nothing of its own: the record wants the tree hash or the rebased head written once.
+- `forge advance` refused the last transition at thirty-three comments and blamed two hundred: the
+  tracker answered thirty-three of a requested two hundred and still set `hasMore`, so the refusal was
+  right and its sentence wrong by six, and it taught the wrong lesson — trim the record. The raw
+  transition it hands out skips every entry check and leaves the lease's next line stale. ISS-17
+  owns the cursor; the sentence and the stale line went there as a finding.
+- Two comment citations of the CLI document, written before ISS-87's index landed under the run,
+  were missed at the rebase and left open rather than reshipped: a commit on top would have
+  invalidated the verification that earned `released`. Fixed in this fold.
+- The release-note record was written before the deploy rather than after; the status still moved
+  last, so nothing that filters on status saw a note before a release.
+- A benign query string makes a URL land in the withheld bucket, so *test credentials: present* can
+  fire on a project holding none; the fail-safe direction, measured and left.
