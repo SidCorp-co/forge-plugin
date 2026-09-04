@@ -155,6 +155,15 @@ you write it, not a forbidden edit.
 establish which one process you may stop before stopping anything. A plugin hook refuses the
 command shapes that cannot be aimed.
 
+**The last step is the read that earns the review.** Replay the change onto the default branch's
+head — that direction moves the change and lands none of it — and then take the read of the whole
+set of files the change touched, at that head. It is the head Phase 5 judges and Phase 7 lands, so
+one read answers for the review, for every verdict and for both heads the mark's note names. A
+consult taken to clear a commit gate is not this read, whatever it found: a reviewer shown a diff
+judged the diff. Judging first spends every verdict on a head this read can still move, and each one
+is then owed again. The pass's own shape, and what
+the review record holds: `forge guide contract the-review`.
+
 Baseline, gates and evidence: `references/verification.md`.
 
 ## Phase 5 — Prove it by running it, and post what you proved
@@ -167,8 +176,8 @@ failure** — Rule 2 makes evidence a phase output, and a session transcript nob
 reopen is not an output.
 
 **The landing is Phase 7's, so the judging happens here and before it**, and a verdict cites the
-head the landing will carry: the change is replayed on top of the default branch's head first, which
-moves the change and lands none of it. Nothing advances from this phase — `developed` and `tested`
+head Phase 4's last step left: the replayed one, which the review was earned on and the landing will
+carry. Nothing advances from this phase — `developed` and `tested`
 both move at the ship, on the record written here. `references/verification.md` owns which head that
 is, and what each kind of change owes as evidence and how to capture it; `forge guide contract developed` and `forge guide
 contract tested` say what a record has to hold before either is earned, which is not this skill's

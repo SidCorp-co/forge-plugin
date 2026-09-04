@@ -55,6 +55,10 @@ moves the change and lands none of it. A branch cut days ago and brought forward
 is one whose proved head never lands, and every criterion then costs a second verdict at a head the
 first could not have known.
 
+The replay and the read that earns the review are Phase 4's last two steps, in that order, so the
+head the reviewer judged and the head every verdict names are one head. A run that judges before
+that read has bought its verdicts against a head the read can still move.
+
 That leaves the landing whatever it adds of its own, and whatever other people landed while you were
 judging, which where several runs work one tree at once is not nothing. Neither is a re-judging:
 what a landing brings is other people's commits, and this change's own diff is unchanged by them.

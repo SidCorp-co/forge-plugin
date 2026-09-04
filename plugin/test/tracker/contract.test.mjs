@@ -115,6 +115,47 @@ test("the phase a status owes is one string, and every surface that states it sa
   }
 });
 
+const SKILL = join(PLUGIN, "skills", "issue-flow", "SKILL.md");
+const VERIFICATION = join(PLUGIN, "skills", "issue-flow", "references", "verification.md");
+const CONTRACT_REL = contractPath();
+/* Split rather than matched to a lookahead: a lazy body against a multiline `$` ends at the first
+   line break, and every phase then reads as empty. */
+const flat = (text) => text.replace(/\s+/gu, " ");
+const phasesOf = (text) => Object.fromEntries(
+  text.split(/^## /mu)
+    .map((one) => [/^Phase (\d)/u.exec(one)?.[1], flat(one)])
+    .filter(([n]) => n),
+);
+
+/* The pass that earns a review has a place as well as a shape, and the place is the last step of the
+   phase the ladder names the review in: met after the judging instead, it moves a path and every
+   verdict is owed again — thirty-eight records for nineteen criteria, once (ISS-236). Three surfaces
+   state it, and none of them may send a landing back for a recheck, which the CLI refuses after a
+   clean whole-set pass and has since 3.35.73 (ISS-51, ISS-230). */
+test("the read that earns the review has one place, and no landing owes a recheck", () => {
+  const phases = phasesOf(readFileSync(SKILL, "utf8"));
+  assert.match(PHASE.in_progress[0], /to the review/u, "the ladder names the review in Phase 4");
+  const naming = Object.keys(phases).filter((n) => /read that earns the review/u.test(phases[n]));
+  assert.deepEqual(naming, ["4"], "and the spine names that read in Phase 4 and in no other phase");
+  /* By place and not by presence: a read named before the replay leaves both phrases in the section
+     and judges a head earlier than the one the mark's note can bridge. */
+  const order = (text, first, then) => text.includes(first) && text.indexOf(first) < text.indexOf(then);
+  assert.ok(order(phases["4"], "Replay the change onto", "the read of the whole set"),
+    "the replay comes before the read it is taken after");
+  const held = flat(partFor(PARTS, "in_progress").text);
+  assert.ok(order(held, "the replay onto", "the one read of the whole set"), "and in the contract's own row");
+  for (const [what, text] of [["the contract", held], ["the figure", readFileSync(FIGURE, "utf8")]]) {
+    assert.match(text, /the pass the review is earned by/u, `${what} names what earns the review`);
+    assert.match(text, /never a recheck/u, `${what} says what a landing owes instead`);
+  }
+  /* Every surface, not the two that state the rule: one left prescribing the retired round is a run
+     reading that one and taking a step the CLI refuses. */
+  for (const rel of [CONTRACT_REL, FIGURE, SKILL, VERIFICATION]) {
+    assert.doesNotMatch(readFileSync(rel, "utf8"), /owes its own recheck/u,
+      `${rel} sends a landing back for a recheck`);
+  }
+});
+
 test("a separator misremembered costs no round", () => {
   assert.equal(partFor(PARTS, "in-progress"), partFor(PARTS, "in_progress"));
   assert.equal(partFor(PARTS, "mechanics"), null, "and only a separator or a case is forgiven");

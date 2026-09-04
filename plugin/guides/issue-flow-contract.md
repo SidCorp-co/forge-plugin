@@ -183,10 +183,10 @@ prints both routes off, because a rule whose way out has to be inferred is a ref
 
 | Scenario | Writes | Goes to |
 |---|---|---|
-| the change is ready | a review record: who reviewed, the head judged, each finding by id either accepted or rejected with the reason, the outcome | unchanged, until the merge |
+| the change is ready | the replay onto the default branch's head, then the one read of the whole set of files the change touched, taken at that head, which is the pass the review is earned by; a review record: who reviewed, the head judged, each finding by id either accepted or rejected with the reason, the outcome | unchanged, until the merge |
 | the reviewer requests changes | the fixes; a new head earns a new review | unchanged |
 | the project asks a person to review | the head and the diff to look at | `waiting`, kind code review; their comment resumes |
-| reviewed, and on the default branch | the merged mark with its commit and the base it landed on; where a squash changed the hash, the note names the reviewed head; a rebase changes the tree, so its result is a new head that owes its own recheck before the mark | `developed` |
+| reviewed, and on the default branch | the merged mark with its commit and the base it landed on; where a squash changed the hash, the note names the reviewed head. The replay is the earning read's own first step, so no landing owes a round of its own: one that moves a path this change touched leaves a head nobody has read, and that head owes a fresh whole-set read and its verdicts again — never a recheck, which answers findings, and a clean pass leaves none | `developed` |
 | scope grows | a plan correction before the edit | unchanged |
 | a destructive migration | the classification, attached | `waiting`, kind destructive migration; a reviewer's comment resumes |
 | it cannot be built soundly | the finding; the branch left named | `on_hold`, kind unshippable |
@@ -210,7 +210,8 @@ it.** Where a repository's landing *is* the merge — a rebase onto the default 
 commit above it, a push — the merged commit does not exist until the change has shipped, so a run
 that judges before it cites a head the landing replaces. Re-judging every criterion there buys
 nothing: what a landing brings is other people's commits, this change's own diff is unchanged, and
-the tree those commits sit on is what the rebase clause above already sends back for a recheck. So
+the tree those commits sit on is the one the read that earned the review judged, the replay being
+that read's first step. So
 the mark's note names the judged head beside the landed one, and says which of the paths this change
 touched the landing moved — *nothing*, or the paths themselves. Named as nothing, every verdict at
 the judged head stands and none is written twice; naming paths, the verdicts at that head are
@@ -547,7 +548,11 @@ replaced by an acceptance the recheck inferred (ISS-34 owes the fix; twice in th
 **The reviewer read what it was shown.** A consult limited to a diff judges the diff; its truth
 pass on the rest answers *not verified* and says so. So the pass that earns an approving review is
 one read of the whole set of files the change touched (`--send bodies`), taken once, at the commit;
-diff passes are for the rounds between edits and none is owed. A recheck follows a finding and
+diff passes are for the rounds between edits and none is owed. Its place is the last step before the
+criteria are judged, after the replay onto the default branch's head, so the head the reviewer
+judged, the head every verdict names and both heads in the mark's note are one head: a run that
+judges first owes every verdict again wherever the read moves a path, which cost the sixty-eighth
+dry run thirty-eight records on nineteen criteria. A recheck follows a finding and
 nothing else: over one hundred consults on 2026-09-04, fifteen rechecks confirmed fixes and not one
 raised anything new, so a recheck after a clean whole-set pass is a round that buys nothing. The review
 record names that set
