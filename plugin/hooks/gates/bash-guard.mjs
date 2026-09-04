@@ -4,7 +4,7 @@
 import { spawnSync } from "node:child_process";
 import { isAbsolute, resolve } from "node:path";
 
-import { GIT_GLOBALS, NOWHERE, RUNS, SPAWNS, bodiless, deny, gitTreeOf, remaining, standsIn, startsAt, unwrapped, how, done } from "../_hook.mjs";
+import { GIT_GLOBALS, NOWHERE, RUNS, bodiless, deny, gitTreeOf, remaining, spawnsIn, standsIn, startsAt, unwrapped, how, done } from "../_hook.mjs";
 
 /* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec
    bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. */
@@ -117,14 +117,14 @@ const bare = (one) => {
 /* A handed program keeps its interpreter's position, so it inherits that point's moves: hence the pad. */
 const instructions = (given) => {
   const handed = [];
-  const held = (body, at) => {
-    if (!SPAWNS.test(body)) return body.replace(QUOTED, " ");
+  const held = (body, at, runner) => {
+    if (!spawnsIn(runner).test(body)) return body.replace(QUOTED, " ");
     handed.push(...[...body.matchAll(QUOTED)].map((one) => ({ text: bare(one[0]), at })));
     return " ";
   };
   const outer = bodiless(given, held).replace(
     RUNS,
-    (all, body, at) => held(bare(body), at) && " ".repeat(all.length),
+    (all, runner, body, at) => held(bare(body), at, runner) && " ".repeat(all.length),
   );
   return { outer, handed };
 };

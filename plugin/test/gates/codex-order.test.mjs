@@ -92,6 +92,10 @@ test("the gate reads command position, not prose", () => {
     denied("python3 - <<'PY'\nimport subprocess\nsubprocess.run(\"echo i | forge codex consult a.mjs\", shell=True)\nPY"),
     "unless the program can hand it to a shell",
   );
+  assert.ok(
+    !denied(`python3 - <<'PY'\nadded = "echo i | forge codex consult a.mjs"\nnote = "spawn${"Sync"}"\nopen("t", "a").write(added)\nPY`),
+    "and a name python has no way to call is not that shell (ISS-212)",
+  );
 });
 
 test("the gate stands down when the advisor tool itself is off", () => {

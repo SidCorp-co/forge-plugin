@@ -15,7 +15,7 @@ const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
    line of prose. A path and a mode hold no space, so a span with one is prose; a `-c` body is code. */
 const spoken = (text) =>
   text
-    .replace(RUNS, (all, body) => ` ${body.slice(1, -1)} `)
+    .replace(RUNS, (all, runner, body) => ` ${body.slice(1, -1)} `)
     .replace(QUOTED, (span) => (/\s/u.test(span) ? " " : span));
 
 /** The last directory the command changes to, so a relative write resolves against it. */

@@ -16,6 +16,7 @@ import {
   deny,
   gitTreeOf,
   movedTo,
+  NOWHERE,
   shellText,
   spans,
   spelled as bare,
@@ -98,10 +99,12 @@ const OPAQUE = ["--pathspec-from-file", "--patch", "--interactive"];
    record whole rather than for what one shape enumerates. */
 const TWICE = new RegExp(COMMITS.source, "gu");
 /* A relative `-C` is that tree from where the shell stands, which a move before this commit — and
-   not one after it — has changed. */
+   not one after it — has changed. Where the shell stands nowhere the text names, only an absolute
+   `-C` still answers, and the sentinel travels on: `resolve` would throw on it. */
 const treeAt = (text, one) => {
   const named = gitTreeOf(one[0]);
   const moved = movedTo(text, one.index);
+  if (moved === NOWHERE) return named && isAbsolute(named) ? named : NOWHERE;
   return named && !isAbsolute(named) && moved ? resolve(moved, named) : named ?? moved;
 };
 
@@ -159,13 +162,19 @@ const ESCAPE = "For the session: `forge hooks --off codex-second` — an inline 
    inspected by nothing. Saying which was judged is what the reader needs to split the call. */
 const unjudged = (ev, root, others) => {
   const left = [];
+  let unnamed = false;
   for (const one of others) {
+    if (one === NOWHERE) {
+      unnamed = true;
+      continue;
+    }
     const path = resolve(ev.cwd ?? process.cwd(), one ?? ".");
     const there = repoRoot(path) ?? path;
     if (there !== root && !left.includes(there)) left.push(there);
   }
-  if (!left.length) return "";
-  return ` Judged ${typed(root)}; this call also commits in ${left.map(typed).join(", ")}, which went unchecked.`;
+  if (!left.length && !unnamed) return "";
+  const rest = [...left.map(typed), ...(unnamed ? ["a tree it does not name"] : [])];
+  return ` Judged ${typed(root)}; this call also commits in ${rest.join(", ")}, which went unchecked.`;
 };
 
 export const run = (ev) => {
@@ -175,6 +184,16 @@ export const run = (ev) => {
 
   /* The tree the commit names, not the shell's; and a commit is in it by construction, redirect or not. */
   const aim = closing ? commitAim(ev) : null;
+  /* No tree to pick and no way to ask about one: the event's cwd is a different repository's answer. */
+  if (aim?.tree === NOWHERE) {
+    deny(
+      "Which tree this commit closes over cannot be read from the command — a `cd -`, a bare `cd` or a "
+        + "destination built from a value names no directory this reading can check, so what the commit "
+        + "stages cannot be asked for.\n\nDo this: spell the tree out — `cd <path> && git commit …`, or "
+        + `\`git -C <path> commit …\` — then re-send. ${ESCAPE}`
+        + how(),
+    );
+  }
   const root = repoRoot(resolve(ev.cwd ?? process.cwd(), aim?.tree ?? "."));
   if (!root) done();
 

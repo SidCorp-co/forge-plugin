@@ -209,13 +209,19 @@ const blocksOf = (record) => {
   return Array.isArray(content) ? content.filter((one) => one && typeof one === "object") : [];
 };
 
-/** A program that can hand a string to a shell, and an interpreter's inline program: literals there are code. */
-export const SPAWNS = /\b(?:subprocess|os\.system|os\.popen|child_process|execSync|spawnSync|shell\s*=\s*True)/u;
-export const RUNS = /\b(?:python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*(?:-c|-e|--eval)\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")/gu;
+/** A program that can hand a string to a shell, and an interpreter's inline program: literals there are
+ *  code — by the name that body's own language has, `spawnSync` running nothing from python. An unnamed runner keeps all. */
+const anyOf = (names) => new RegExp(String.raw`\b(?:${names.join("|")})`, "u");
+const PYTHON = anyOf([String.raw`subprocess`, String.raw`os\.system`, String.raw`os\.popen`, String.raw`shell\s*=\s*True`]);
+const NODE = anyOf([String.raw`child_process`, String.raw`execSync`, String.raw`spawnSync`]);
+const SPAWNS = anyOf([PYTHON.source, NODE.source]);
+const ESCAPES = { python: PYTHON, python3: PYTHON, node: NODE, deno: NODE, bun: NODE };
+export const spawnsIn = (runner) => ESCAPES[runner] ?? SPAWNS;
+export const RUNS = /\b(python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*(?:-c|-e|--eval)\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")/gu;
 
 /** Where a heredoc body is a program rather than data. how/learning-gate.md. */
 export const EXECUTES_STDIN =
-  /(?:^|[\s;&|(])(?:python3?|node|deno|bun|perl|ruby|php|sh|bash|zsh)(?:\s+-\S+)*\s*-?\s*$/u;
+  /(?:^|[\s;&|(])(python3?|node|deno|bun|perl|ruby|php|sh|bash|zsh)(?:\s+-\S+)*\s*-?\s*$/u;
 
 /** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. */
 export const REDIRECT = new RegExp(
@@ -227,8 +233,8 @@ const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
 export const QUOTED = /'[^']*'|"(?:[^"\\]|\\[\s\S])*"/gu;
 
-/** A heredoc body is data; `onProgram` reads one an interpreter executes, and is told where in the
- *  text being returned the interpreter sits — what a caller needs to know which `cd` it inherited.
+/** A heredoc body is data; `onProgram` reads one an interpreter executes, and is told where in the text
+ *  being returned the interpreter sits — for the `cd` it inherited — and which interpreter it is.
  *  how/learning-gate.md. */
 export const bodiless = (text, onProgram = (body) => body) => {
   let out = "";
@@ -241,7 +247,8 @@ export const bodiless = (text, onProgram = (body) => body) => {
     out += `${line} ${rest.slice(after, nl + 1)}`;
     rest = rest.slice(nl + 1);
     const end = new RegExp(`^[ \\t]*${m[2]}[ \\t]*$`, "mu").exec(rest);
-    if (EXECUTES_STDIN.test(line)) out += onProgram(end ? rest.slice(0, end.index) : rest, out.length);
+    const runs = EXECUTES_STDIN.exec(line);
+    if (runs) out += onProgram(end ? rest.slice(0, end.index) : rest, out.length, runs[1]);
     rest = end ? rest.slice(end.index + end[0].length) : "";
   }
   return out + rest;

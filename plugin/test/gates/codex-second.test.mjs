@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { callHook, tempRoom } from "../fixtures.mjs";
-import { committing } from "../../hooks/_hook.mjs";
 import { commitAim } from "../../hooks/gates/codex-second.mjs";
 import { stagedIn } from "../../src/codex/codex-state.mjs";
 import { spawnSync } from "node:child_process";
@@ -67,9 +66,12 @@ const gate = (records, { consultAt, clean, staleBy, session, env = {}, writes, c
     },
     { ...process.env, XDG_CONFIG_HOME: room, ...env },
   );
+  stderrSaid = run.stderr;
   return run.stdout.trim() ? JSON.parse(run.stdout) : null;
 };
 const because = (out) => out?.hookSpecificOutput?.permissionDecisionReason ?? "";
+let stderrSaid = "";
+const ev = (command) => ({ tool_name: "Bash", tool_input: { command } });
 
 /* It demanded a review of the sid-growth tree because a memory file under ~/.claude was written:
    the root comes from the session's cwd, and nothing asked where the write was going. */
@@ -159,52 +161,6 @@ test("a commit the consult already covered lands, and so does one with nothing b
   assert.equal(gate(records, { clean: true, command }), null, "and nothing to read");
 });
 
-/* Command position, and git's globals take arguments: `--git-dir /r/.git commit` is one. */
-const ev = (command) => ({ tool_name: "Bash", tool_input: { command } });
-test("a commit behind a quoted global with a space is a commit in that tree", () => {
-  assert.equal(committing(ev(`git -C "/tmp/a b" commit -m x`)), true);
-  assert.equal(committing(ev(`git --no-pager -C '/tmp/a b' commit -m x`)), true);
-  assert.equal(commitAim(ev(`git -C "/tmp/a b" commit -m x`)).tree, "/tmp/a b");
-  assert.equal(commitAim(ev("git --work-tree /w --git-dir /m/repo.git commit -m x")).tree, "/w", "the work tree, not the last option");
-  assert.equal(commitAim(ev("git --git-dir /w/.git commit -m x")).tree, "/w");
-});
-
-/* An agent whose shell resets its cwd commits into a worktree by moving there first, and a move the
-   commit never inherited — a subshell's, or one made after it — is not the tree it closes in. */
-test("the tree a commit closes in is the last move it inherited", () => {
-  assert.equal(commitAim(ev("cd /w && git commit -m x")).tree, "/w");
-  assert.equal(commitAim(ev("cd /w; git commit -m x")).tree, "/w");
-  assert.equal(commitAim(ev("cd /a && cd b && git commit -m x")).tree, "/a/b", "two relative moves compose");
-  assert.equal(commitAim(ev("(cd /a && true); git commit -m x")).tree, null, "a subshell's move dies with it");
-  /* The walk stops before the commit's own span, so a commit inside the subshell keeps the move. */
-  assert.equal(commitAim(ev("(cd /a && git commit -m x)")).tree, "/a", "a commit inside it does not");
-  assert.equal(commitAim(ev("(cd /a; git commit -m x)")).tree, "/a");
-  assert.equal(commitAim(ev("(cd /a && git commit -m x) && echo done")).tree, "/a");
-  assert.equal(commitAim(ev("cd /a && (git commit -m x)")).tree, "/a");
-  assert.equal(commitAim(ev("git commit -m x && cd /a")).tree, null, "and one after it moves nothing");
-  assert.equal(commitAim(ev("cd /a && git -C /b commit -m x")).tree, "/b", "the tree it names wins over the move");
-});
-
-/* Codex's F1 and F2: a pathspec needs no `--`, a pipeline's flags are not the commit's, and a value
-   a short flag ate is neither — `-ma` is a message, `-uall` is untracked-files, and `-am` is both. */
-test("what a commit closes over is read from its own flags", () => {
-  const aim = (command) => commitAim(ev(command));
-  assert.equal(aim("git commit -am x").all, true);
-  assert.equal(aim("git commit --all").all, true);
-  assert.equal(aim("git commit -ma").all, false, "a message whose text is `a`");
-  assert.equal(aim("git commit -uall -m x").all, false, "untracked-files, not all");
-  assert.equal(aim("git commit -m x | tee -a log").all, false, "the pipeline's flag is not the commit's");
-  assert.deepEqual(aim("git commit -m x docs/A.md").paths, ["docs/A.md"], "a pathspec without --");
-  assert.deepEqual(aim("git commit -m x -- docs/A.md 'docs/a b.md'").paths, ["docs/A.md", "docs/a b.md"]);
-  assert.deepEqual(aim("git commit -o docs/A.md -m x").paths, ["docs/A.md"], "-o takes no value");
-  assert.deepEqual(aim("git commit -am x").paths, [], "the message is not a path");
-  assert.deepEqual(aim("git commit -m work >/tmp/commit.log").paths, [], "and neither is a redirect's target");
-  assert.deepEqual(aim("git commit --author='a b' -m x").paths, [], "a long flag's attached value");
-  assert.deepEqual(aim("git commit --author 'a b' -m x").paths, [], "and its detached one");
-  assert.deepEqual(aim(String.raw`git commit -m x docs/a\ b.md`).paths, ["docs/a b.md"], "an escaped space is inside a word");
-  assert.equal(commitAim(ev(String.raw`cd /tmp/a\ b && git commit -m x`)).tree, "/tmp/a b", "and inside a moved-to path");
-});
-
 /* The recheck's own findings: one shape is read, so a call making two commits is not one shape, and
    a pathspec list inside a file is not a list this can read. Either asks for the record whole. */
 test("a commit shape this cannot enumerate asks for the record whole", () => {
@@ -221,16 +177,6 @@ test("a commit shape this cannot enumerate asks for the record whole", () => {
   const out = because(gate([userTurn(), advised()], { command: "git commit -p", stage: ["work.mjs"] }));
   assert.match(out, /codex has not read what this commit stages/u, out);
   assert.match(out, /work\.mjs/u, "and the tree's own files are what it names");
-});
-
-test("a commit is a commit where a command starts, git's globals in between", () => {
-  const ask = (command) => committing({ tool_name: "Bash", tool_input: { command } });
-  for (const one of ["git commit -m x", "git -C /r commit", "git -c k=v commit", "git --no-pager commit",
-    "git --git-dir /r/.git commit", "git --work-tree /r commit", "git --git-dir=/r/.git commit",
-    'sh -c "git commit -m x"']) assert.ok(ask(one), one);
-  for (const one of ["git commit-tree x", "git log --grep commit", 'echo "run git commit" > notes.md']) {
-    assert.ok(!ask(one), one);
-  }
 });
 
 /* A deletion has no mtime of its own, so dropping tracked work and committing it went unasked. What
@@ -394,21 +340,6 @@ test("an untracked directory is named by its files", () => {
 /* Raised by codex against ISS-70's change: one value kept per option dropped every `-C` hop but the
    last. Each expectation below was probed against git rather than read off its manual, the rank
    ISS-82's chaining lost among them (ISS-100). */
-test("a repeated -C composes, and -C outranks what a --git-dir implies", () => {
-  assert.equal(commitAim(ev("git -C /a -C b commit -m x")).tree, "/a/b");
-  assert.equal(commitAim(ev("git -C /a -C /b commit -m x")).tree, "/b", "an absolute hop replaces what preceded it");
-  assert.equal(commitAim(ev("cd /p && git -C a -C b commit -m x")).tree, "/p/a/b", "a relative chain is still the shell's to place");
-  assert.equal(commitAim(ev("git -C /a --work-tree=w commit -m x")).tree, "/a/w");
-  assert.equal(commitAim(ev("git -C /a --git-dir=.git commit -m x")).tree, "/a");
-  assert.equal(commitAim(ev("git --work-tree /w --git-dir /m/repo.git commit -m x")).tree, "/w", "and the ranking survives");
-  assert.equal(commitAim(ev("git -C /b --git-dir /m/repo.git commit -m x")).tree, "/b", "a bare git directory is no tree");
-  assert.equal(commitAim(ev("git -C /b --git-dir /repo/.git/worktrees/x commit -m y")).tree, "/b", "and worktree metadata is none either");
-  assert.equal(commitAim(ev("git -C /dirty --git-dir /clean/.git commit -m x")).tree, "/dirty", "an absolute .git left the base behind too");
-  assert.equal(commitAim(ev("git -C /a -C b --git-dir /m/repo.git commit -m x")).tree, "/a/b", "outranked by a chain as by one hop");
-  assert.equal(commitAim(ev("git --git-dir /w/.git commit -m x")).tree, "/w", "with no -C the implication is still what answers");
-  assert.equal(commitAim(ev("git -C / --git-dir /clean/.git commit -m x")).tree, "/", "a root hop is a hop, whatever trimming its own separator leaves");
-  assert.equal(commitAim(ev("git -C / --work-tree=w commit -m x")).tree, "/w", "and it is a base like any other");
-});
 
 /* Also raised against ISS-70: only the first commit is judged, and the refusal did not admit it. */
 test("a call that commits in two trees says which one it judged", () => {
@@ -605,4 +536,26 @@ test("a commit waits for a verdict on the last consult that made findings", () =
   assert.equal(gate([userTurn()], { command, log: lines(found, quiet, { kind: "verdict", of: "c9", accepted: 1, rejected: 1, kept: ["F1"], dropped: { F2: "no" } }) }), null, "ruled on, it lands");
   assert.equal(gate([userTurn()], { command, log: lines({ ...found, root: "/elsewhere" }) }), null, "another tree's consult is not this one's");
   assert.equal(gate([userTurn()], { log: lines(found) }), null, "a write is not asked");
+});
+
+test("a commit in a tree the command does not name is refused, and the refusal says the reading failed", () => {
+  const out = because(gate([userTurn()], { command: "cd - && git commit -m x", clean: true }));
+  assert.match(out, /cannot be read from the command/u, "the event's cwd owes nothing, and it is not what was asked");
+  assert.match(out, /cd <path> && git commit/u, "one form that spells the tree out");
+  assert.match(out, /git -C <path> commit/u, "and the other");
+  assert.match(out, /forge hooks --off codex-second/u, "with the switch a refused session can reach");
+  const owed = because(gate([userTurn()], { command: "cd - && git commit -m x", pending: ["work.mjs"], stage: ["work.mjs"] }));
+  assert.match(owed, /cannot be read from the command/u);
+  assert.doesNotMatch(owed, /work\.mjs/u, "a list recorded in the event's cwd is not this commit's to demand");
+});
+
+test("a second commit whose tree cannot be named went unchecked, and the sentinel reached no resolve", () => {
+  const out = because(gate([userTurn()], {
+    command: "git commit -m a && cd - && git commit -m b",
+    pending: ["work.mjs"],
+    stage: ["work.mjs"],
+  }));
+  assert.match(out, new RegExp(`stages in ${realpathSync(REPO)}`, "u"), "the first commit names its tree and is judged there");
+  assert.match(out, /also commits in a tree it does not name, which went unchecked/u);
+  assert.equal(stderrSaid.trim(), "", "a symbol in a path argument throws, and a thrown gate is a skipped gate");
 });

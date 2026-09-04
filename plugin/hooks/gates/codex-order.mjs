@@ -4,7 +4,7 @@
 import {
   EXECUTES_STDIN,
   QUOTED,
-  SPAWNS,
+  spawnsIn,
   advisedThisTurn,
   askedAlready,
   invocations,
@@ -31,12 +31,16 @@ const invoked = (text) =>
     );
   });
 
-/* A program's literal is data unless it can reach a shell: a test asserting on the phrase lost an edit. */
+/* A program's literal is data unless it can reach a shell: a test asserting on the phrase lost an edit.
+   Which names reach one is the launching interpreter's, so that line is read for the runner it names. */
 const programs = (command) =>
   [...command.matchAll(HEREDOC)]
-    .filter((m) => EXECUTES_STDIN.test(command.slice(command.lastIndexOf("\n", m.index) + 1, m.index)))
-    .map((m) => m[0])
-    .filter((body) => SPAWNS.test(body));
+    .map((m) => ({
+      body: m[0],
+      runs: EXECUTES_STDIN.exec(command.slice(command.lastIndexOf("\n", m.index) + 1, m.index)),
+    }))
+    .filter(({ body, runs }) => runs && spawnsIn(runs[1]).test(body))
+    .map(({ body }) => body);
 
 const consults = (command) => {
   const text = String(command);

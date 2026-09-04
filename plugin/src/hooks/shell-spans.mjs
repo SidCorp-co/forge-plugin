@@ -85,7 +85,7 @@ const AHEAD = String.raw`(?:[({]\s*|\b(?:if|elif|while|until|then|else|do)\s+)*`
 const WORD = String.raw`(?:'[^']*'|"[^"]*"|\\.|[^\s;&|()<>])+`;
 const MOVES = new RegExp(`^${AHEAD}cd(?=\\s|$)(?:\\s+-[\\w-]+)*(?:\\s+(${WORD}))?`, "u");
 /** A destination the text does not carry — `cd -`, a bare `cd`, one still holding a `$`. Guessed it would
- *  answer for a tree nobody named; `movedTo` never hands it back, that answer being resolved as a path. */
+ *  answer for a tree nobody named; `movedTo` hands it back rather than the cwd, and `resolve` throws on it. */
 export const NOWHERE = Symbol("a tree the command does not name");
 /** What each separator says about the move, and what a `then` or `do` after one proves — except after
  *  an `until`, whose body runs where the `cd` failed, so there the doubt is what holds. */
@@ -129,5 +129,5 @@ export const standsIn = (text, before) => {
 
 export const movedTo = (text, before) => {
   const [first] = standsIn(text, before);
-  return typeof first === "string" ? first : null;
+  return typeof first === "string" || first === NOWHERE ? first : null;
 };
