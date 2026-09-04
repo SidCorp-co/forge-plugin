@@ -1112,3 +1112,25 @@ run. Folded from the record.
   absent from the unfiltered page. ISS-132, with the guessed cause corrected by a measured comment.
 - A relates edge was refused for want of a device (ISS-8, ISS-45), so the link between the two issues
   this run filed lives in their prose.
+
+## Thirty-ninth dry run — ISS-123
+
+One agent made a plugin defect an issue on the tracker from the moment it is met (3.35.44): `forge
+feedback <file|@file|-> --title T` files a bug on this plugin's own project from any checkout — the
+destination fixed in the CLI, the caller's slug recorded as a fact that decides nothing — and a title
+matching an open feedback issue comments there instead, which the run proved by sending one title three
+times. The local folder, its README, the gitignore entry, the help sentence, both skills' paragraphs and
+the resolver's folder lookup went in the same commit under the retirement rule; the step table that named
+the directory lost the name too. The issue was rewritten by the user before the plan — "no more local
+file" — and taken as a correction. Two skill files moved, so the restart owed stood. Closed by its run.
+Folded from the record.
+
+- Fifty-seven already-routed notes in the checkout's archive turned from ignored to untracked when the
+  gitignore line went, and would have blocked the next ship's clean-tree step; the agent moved them
+  whole to a directory beside the checkouts rather than deleting them. They are history the journal
+  already carries.
+- The first defect filed with the new verb is about the verb family it joined: `forge record <kind>
+  -h` answers a missing-flag refusal instead of usage, and one flag requires one of six words silently.
+  ISS-128, which ISS-73 had as a finding since the morning.
+- The parent's fold no longer reads a folder. Thirty-eight runs of notes went through one; from here a
+  feedback issue is triaged on the tracker like any other and the journal cites it by key.
