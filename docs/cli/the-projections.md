@@ -47,7 +47,10 @@ the tracker's own ceiling. Keeping it as the ask is incoherent once the answer i
 windows — the union exceeds the number asked for — and a ranked top-N is only truthful over the
 whole set, since a `critical` row a month old sits in the last window as easily as the first. Where
 the print cut bites, the count line says how many of how many, which order the rest are the tail of,
-and the flag that prints more: a cut a caller cannot act on is the defect this file is about.
+and the flag that prints more: a cut a caller cannot act on is the defect this file is about. At the
+ceiling it drops that flag and names the filter alone — the cut only bites where the print count
+equals the limit, so a limit already at the maximum makes "raise it" the same unactionable advice a
+refusal is forbidden below.
 
 The enum filters the tracker's own notice recommends — status, priority, category, label — were the
 other candidate, and they cannot subdivide without limit. The cap being on bytes, a bucket overflows

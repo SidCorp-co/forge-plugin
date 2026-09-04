@@ -126,10 +126,13 @@ const limitFrom = (raw) => {
 };
 
 /* Every matching row being in hand, the only cut left is the printed one — by the order above. */
+const routeSaid = (shown) => (shown < MAX_LIMIT
+  ? ` — \`--limit\` up to ${MAX_LIMIT} prints more of it, and a filter narrows the ask.`
+  : " — a filter narrows the ask.");
+
 const countSaid = (shown, read) => (shown < read.rows.length
   ? `${shown} of ${read.rows.length} issue(s) over ${read.pages} page(s). The ${read.rows.length - shown}`
-    + ` not printed are the tail of the order above — \`--limit\` up to ${MAX_LIMIT} prints more of it,`
-    + " and a filter narrows the ask."
+    + ` not printed are the tail of the order above${routeSaid(shown)}`
   : `${read.rows.length} issue(s) over ${read.pages} page(s)`
     + (read.whole ? ", which is every row matching this ask." : "."));
 
