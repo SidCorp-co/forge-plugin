@@ -79,7 +79,7 @@ export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"),
   const installed = name ? installedAbleToRun(name, entry, record) : null;
   const checkout = name ? checkoutAbove(cwd, name) : null;
   if (checkout) {
-    return { dir: checkout, version: versionAt(checkout), kind: "checkout", installed,
+    return { ...hereCopy(checkout), kind: "checkout", installed,
       why: `the working directory is inside the checkout that ships ${name}` };
   }
   if (installed) {

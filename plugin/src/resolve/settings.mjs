@@ -135,7 +135,7 @@ export const projectSlug = () => {
 export const translateScope = once(() => {
   const chosen = sourced(".forge.json", forgeJson().parsed?.translate);
   const off = !chosen.value || chosen.value === "off" || chosen.value === "false";
-  return off ? { value: null, from: chosen.from } : { value: String(chosen.value), from: chosen.from };
+  return { value: off ? null : String(chosen.value), from: chosen.from };
 });
 
 export const translateTarget = () =>

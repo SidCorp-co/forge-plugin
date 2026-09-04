@@ -17,6 +17,7 @@ import {
   CODE_SPAN_PATTERN,
   LINK_TARGET_PATTERN,
   TABLE_ROW_PATTERN,
+  withoutMarkup,
   withoutSpans,
 } from "../markdown.mjs";
 
@@ -29,7 +30,6 @@ const FENCE = /^\s*(?:```|~~~)/u;
 const HEADING = /^#{1,6}\s/u;
 const TABLE_ROW = new RegExp(TABLE_ROW_PATTERN, "u");
 const BULLET = /^\s*(?:[-*+]|\d+[.)])\s+/u;
-const MARKUP = /[*`_>[\]()]/gu;
 
 /* The waiver grammar the ESLint rules use: a marker, an em dash, a reason that is not optional. */
 const OVERRIDE = /overrides:\s*([a-z0-9][a-z0-9-]*)\s*(?:—|--)\s*(\S.*?)\s*$/u;
@@ -52,7 +52,7 @@ export function statements(text, minLength = DEFAULT_MIN_SENTENCE_LENGTH) {
   let block = [];
   let start = 0;
   const flush = (end) => {
-    const prose = block.join(" ").replace(MARKUP, "");
+    const prose = withoutMarkup(block.join(" "));
     for (const sentence of splitSentences(prose, minLength)) units.push([{ start, end }, sentence]);
     block = [];
   };
@@ -135,6 +135,8 @@ export function reviewClaudeMd(text, guides, options = {}) {
   };
 }
 
+const SKIPPED = (name) => name.startsWith(".") || name === "node_modules";
+
 const readDir = (dir) => {
   try {
     return readdirSync(dir, { withFileTypes: true });
@@ -170,12 +172,8 @@ const readJson = (path) => {
 export function readClaudeMd(root) {
   if (!root) return null;
   const path = join(root, "CLAUDE.md");
-  if (!existsSync(path)) return null;
-  try {
-    return { path, text: readFileSync(path, "utf8") };
-  } catch {
-    return null;
-  }
+  const text = readText(path);
+  return text === null ? null : { path, text };
 }
 
 /* Claims about the repo, which are the ones that rot silently: a path that was renamed, a script
@@ -263,7 +261,7 @@ const packageScripts = (root) => {
     }
     if (depth === 0) return;
     for (const entry of readDir(dir)) {
-      if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules") {
+      if (entry.isDirectory() && !SKIPPED(entry.name)) {
         visit(join(dir, entry.name), depth - 1);
       }
     }
@@ -278,7 +276,7 @@ const basenames = (root) => {
   const found = new Set();
   const visit = (dir, depth) => {
     for (const entry of readDir(dir)) {
-      if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+      if (SKIPPED(entry.name)) continue;
       found.add(entry.name);
       if (depth > 0 && entry.isDirectory()) visit(join(dir, entry.name), depth - 1);
     }
@@ -300,7 +298,7 @@ const configuredRules = (root) => {
   const names = new Set();
   const visit = (dir, depth, inRules) => {
     for (const entry of readDir(dir)) {
-      if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+      if (SKIPPED(entry.name)) continue;
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
         if (depth > 0) visit(full, depth - 1, inRules || entry.name === "rules");

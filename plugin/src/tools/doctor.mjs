@@ -30,8 +30,7 @@ import { contractPath, contractProblems, readContract, statesContract } from "..
 const VI_CONFIG = join(configDir("vi-natural"), "config.json");
 
 const OK = "  ok  ";
-/* Counted in `line` below, so the level and the exit code cannot disagree: the tally the checks
-   threaded back left nine sites outside the sum, each printing this and failing nothing (ISS-102). */
+/* Counted in `line`, so the level and the exit code cannot disagree (ISS-102). */
 const BAD = " miss ";
 /* Whose the finding is, never how bad: prose doctor cannot classify, a guide the server owns, a
    field of the tracker's own project no edit here clears, a credential no verb here waits on. A
@@ -81,21 +80,20 @@ const envHeld = () => {
    translates a locale file with no tracker in sight. `translate` decides whether the tracker's own
    writes wait on it, so it decides the level too. The bundled copy is this plugin's own file. */
 const checkVi = (waited) => {
-  const bundled = BUNDLED;
-  const run = spawnSync(bundled, ["--help"], { encoding: "utf8" });
+  const run = spawnSync(BUNDLED, ["--help"], { encoding: "utf8" });
   if (run.error || run.status !== 0) {
     line(BAD, "vi-natural", `bundled copy will not run: ${run.error?.message ?? run.status}`);
     return;
   }
-  line(OK, "vi-natural", bundled);
+  line(OK, "vi-natural", BUNDLED);
   const login = waited ? BAD : NOTE;
   const saved = readJson(VI_CONFIG) ?? {};
-  const viSetting = (field) => (saved[field] ? VI_CONFIG : null);
-  if (viSetting("base_url")) line(OK, "vi-natural gateway", VI_CONFIG);
+  const held = (field) => Boolean(saved[field]);
+  if (held("base_url")) line(OK, "vi-natural gateway", VI_CONFIG);
   else line(login, "vi-natural gateway", "run `vi-natural login --base-url <url>` — there is no default host");
-  if (viSetting("api_key")) line(OK, "vi-natural key", VI_CONFIG);
+  if (held("api_key")) line(OK, "vi-natural key", VI_CONFIG);
   else line(login, "vi-natural key", "run `vi-natural login --key <key>` — no issue can be posted");
-  if (viSetting("model")) line(OK, "vi-natural model", VI_CONFIG);
+  if (held("model")) line(OK, "vi-natural model", VI_CONFIG);
   else line(login, "vi-natural model", "run `vi-natural login --model <id>` — `vi-natural models` lists them");
 };
 
@@ -385,10 +383,9 @@ const checkEndpoint = async (full) => {
   const findings = await probe(scoped, slug);
   await checkRelease();
   if (!findings.forge_guide) await checkAgainstGuides(scoped);
-  const gated = findings.gated;
-  if (gated) {
+  if (findings.gated) {
     console.log(
-      `\n${gated} declared capability(ies) refuse this credential. Declared is not callable —\n` +
+      `\n${findings.gated} declared capability(ies) refuse this credential. Declared is not callable —\n` +
         "recorded, so `forge tools`, `forge schema` and the usage list now withhold them.",
     );
   }

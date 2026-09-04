@@ -13,8 +13,10 @@ import {
   CODE_SPAN_PATTERN,
   LINK_TARGET_PATTERN,
   LINK_TEXT_PATTERN,
+  MARKUP_PATTERN,
   TABLE_ROW_PATTERN,
   TABLE_SEPARATOR_PATTERN,
+  withoutMarkup,
   withoutSpans,
 } from "../src/markdown.mjs";
 import { checkStructure } from "../src/checks/claude-md.mjs";
@@ -22,8 +24,9 @@ import { checkStructure } from "../src/checks/claude-md.mjs";
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const HOME = "plugin/src/markdown.mjs";
 
-/* The forms replaced, as they stood at 70674ca. A copy in a test is a historical record and not a
-   second authority: it exists so a later run cannot move a selector with nothing to notice. */
+/* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
+   in a test is a historical record and not a second authority: it exists so a later run cannot move
+   a selector with nothing to notice. */
 const OLD = {
   claudeRow: /^\s*\|.*\|\s*$/u,
   specRow: /^\s*\|(.*)\|\s*$/u,
@@ -32,6 +35,8 @@ const OLD = {
   linkTarget: /\]\(([^)\s]+)\)/g,
   docIndexLink: /\]\(([^)\s]+)\)/u,
   linkText: /\[([^\]]*)\]\([^)]*\)/gu,
+  claudeMarkup: /[*`_>[\]()]/gu,
+  dupMarkup: /[*`_>[\]()]/g,
 };
 
 const NEEDLES = [
@@ -40,6 +45,7 @@ const NEEDLES = [
   ["a link text", [LINK_TEXT_PATTERN]],
   ["a table row", [String.raw`\|.*\|`, String.raw`\|(.*)\|`]],
   ["a table separator", [String.raw`[\s:|-]+\|`, String.raw`[\s|:-]+\|`]],
+  ["a markup class", [MARKUP_PATTERN]],
 ];
 
 const redeclared = (sources) =>
@@ -68,11 +74,13 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "a.mjs", text: `const SPANNED = /${CODE_SPAN_PATTERN}/gu;` },
     { rel: "b.mjs", text: String.raw`const ROW = /^\s*\|(.*)\|\s*$/u;` },
     { rel: "c.mjs", text: String.raw`const SEP = /^\|[\s|:-]+\|$/u;` },
+    { rel: "d.mjs", text: "const MARKUP = /[*`_>[\\]()]/g;" },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${HOME} holds it`,
     `b.mjs declares a table row of its own; ${HOME} holds it`,
     `c.mjs declares a table separator of its own; ${HOME} holds it`,
+    `d.mjs declares a markup class of its own; ${HOME} holds it`,
   ]);
 });
 
@@ -137,6 +145,8 @@ test("no pattern called output-neutral disagrees with the form it replaced", () 
   const moved = [];
   for (const { rel, text } of docs) {
     if (withoutSpans(text) !== text.replace(OLD.span, " ")) moved.push(`${rel}: the span strip`);
+    if (withoutMarkup(text) !== text.replace(OLD.claudeMarkup, "")) moved.push(`${rel}: the claude-md markup strip`);
+    if (withoutMarkup(text) !== text.replace(OLD.dupMarkup, "")) moved.push(`${rel}: the duplication markup strip`);
     for (const [index, line] of text.split("\n").entries()) {
       const at = `${rel}:${index + 1}`;
       if (row.test(line) !== OLD.claudeRow.test(line)) moved.push(`${at}: the claude-md row`);

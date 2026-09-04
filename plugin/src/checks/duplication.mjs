@@ -12,19 +12,17 @@ import {
   findOverlapsAgainst,
   splitSentences,
 } from "../../hooks/vendor/text-overlap.js";
-import { TABLE_ROW_PATTERN, withoutSpans } from "../markdown.mjs";
+import { TABLE_ROW_PATTERN, withoutMarkup, withoutSpans } from "../markdown.mjs";
 
 const FENCE = /```[\s\S]*?```/g;
 const TABLE_ROW = new RegExp(TABLE_ROW_PATTERN, "gmu");
 const HEADING = /^#{1,6}\s.*$/gm;
-const MARKUP = /[*`_>[\]()]/g;
 
 /** The sentences of a document's own prose, which is the unit a restatement is measured in. */
 export function sentences(text) {
-  const stripped = withoutSpans(text.replace(FENCE, " "))
+  const stripped = withoutMarkup(withoutSpans(text.replace(FENCE, " "))
     .replace(TABLE_ROW, " ")
-    .replace(HEADING, " ")
-    .replace(MARKUP, "");
+    .replace(HEADING, " "));
   return splitSentences(stripped, DEFAULT_MIN_SENTENCE_LENGTH);
 }
 
