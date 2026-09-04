@@ -16,8 +16,18 @@ const REMOTE = "origin";
 const LINKED = ["node_modules", join("packages", "code-quality", "node_modules")];
 const FALLBACK = ["master", "main"];
 
+/* Each delegated run reviews its own diff and stops there, so a helper two of them each wrote, or a
+   parameter one stopped passing, is inside no run's range and found by nobody (ISS-95). The reading
+   that spans them is owed by this count rather than by anyone's judgement per issue. */
+const REVIEWED = "refs/forge/reviewed";
+const REVIEW_PATHS = ["plugin/src", "plugin/hooks", "plugin/bin"];
+const REVIEW_RELEASES = 3;
+const REVIEW_LINES = 500;
+const NO_MARK = `no ${REVIEWED} in this repository, so what is owed a reading cannot be counted. `
+  + `The first review reads from the release that introduced this rule: ${SELF} review --done <that release>.`;
+
 const USAGE = [
-  `Usage: ${SELF} <start|ship> [args]`,
+  `Usage: ${SELF} <start|ship|review> [args]`,
   "The repository's own steps around one change: the worktree a run works in, and the release that",
   "puts its commit in the plugin copy the next session loads. Everything else is the change itself.",
   "",
@@ -27,13 +37,22 @@ const USAGE = [
   "                          clean tree, fetch, rebase, a version above the remote head, push,",
   "                          the checkout pulled, the marketplace and the plugin updated, then the",
   "                          installed copy named and every plugin/hooks/ file the release moved",
+  "  review [--done [ref]]   the range the next review reads, or --done to move the mark to it",
   "",
-  "  --from N   resume at step N, which a failed step prints for you",
-  "  --note S   the subject of the version commit, when the release has to make one",
+  "  --from N     resume at step N, which a failed step prints for you",
+  "  --note S     the subject of the version commit, when the release has to make one",
+  "  --done [ref] the mark moves to ref, HEAD by default, and only ever from here",
   "",
   "ship stops at the first failure and writes nothing past it. A change under plugin/hooks/ or",
   "plugin/skills/ reaches a session at its next start, so the last step says whether a restart is",
   "owed before anything trusts the release.",
+  "",
+  `That last step also counts what landed under ${REVIEW_PATHS.join(", ")} since ${REVIEWED}, and`,
+  `says one reading of the whole of it is owed once the range holds ${REVIEW_RELEASES} release(s) or`,
+  `${REVIEW_LINES} changed line(s). That reading is a delegated run in a worktree of its own, under`,
+  "the same contract and the same gates; it ends with --done from that tree, after its own ship, so",
+  "the mark names the pushed head it read to. A mark left unmoved keeps the count growing, which is",
+  "how a skipped reading stays visible at the next ship.",
 ].join("\n");
 
 class Stop extends Error {}
@@ -201,6 +220,87 @@ const restartOwed = (tree, base) => {
   for (const one of held) console.log(`    ${one}`);
 };
 
+const reviewedAt = (tree) => gitOut(["rev-parse", "--verify", "--quiet", REVIEWED], tree);
+
+/** What has landed in a range. A release is a commit whose manifest version differs from its first
+ *  parent's, so a ship whose rebase dropped the bump is counted by the version it pushed rather
+ *  than by a subject line nothing enforces. The walk is `--first-parent` for the same reason the
+ *  comparison is: off it, a merge that carried a bump in from a side branch is dropped as TREESAME
+ *  while the side branch's own bumps are each counted, and neither is a release of this branch.
+ *  A binary file is `-\t-` in numstat and has no lines to add. */
+const landed = (tree, from) => {
+  const bumps = (gitOut(["log", "--first-parent", "--format=%H", `${from}..HEAD`, "--", "package.json"], tree) ?? "")
+    .split("\n").filter(Boolean);
+  const rows = (gitOut(["diff", "--numstat", `${from}..HEAD`, "--", ...REVIEW_PATHS], tree) ?? "")
+    .split("\n").filter(Boolean);
+  return {
+    releases: bumps.filter((sha) => versionAt(tree, sha) !== versionAt(tree, `${sha}^`)).length,
+    files: rows.length,
+    lines: rows.reduce((sum, row) => sum + row.split("\t").slice(0, 2)
+      .reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0), 0),
+  };
+};
+
+/** The one sentence both readers of the count print, so ship's last step and the review verb can
+ *  never disagree about what the range holds or whether it is enough. */
+const reviewSays = (tree, from) => {
+  const { releases, files, lines } = landed(tree, from);
+  return {
+    owed: releases >= REVIEW_RELEASES || lines >= REVIEW_LINES,
+    range: `${from.slice(0, 7)}..HEAD`,
+    count: `${releases} release(s), ${files} file(s), ${lines} changed line(s)`,
+  };
+};
+
+/* The mark is never planted here. One planted where none was found would read exactly like a
+   reading that has just finished, and the skipped reading it hid would surface at no later ship. */
+const reviewOwed = (tree) => {
+  const from = reviewedAt(tree);
+  if (!from) return console.error(`  ${NO_MARK}`);
+  const { owed, range, count } = reviewSays(tree, from);
+  if (!owed) {
+    return console.log(`  ${count} under ${REVIEW_PATHS.join(", ")} since ${from.slice(0, 7)}, short `
+      + `of the ${REVIEW_RELEASES} release(s) or ${REVIEW_LINES} line(s) that call for a reading`);
+  }
+  console.log(`  a review of ${range} is owed: ${count} under ${REVIEW_PATHS.join(", ")}, at or past `
+    + `${REVIEW_RELEASES} release(s) or ${REVIEW_LINES} line(s). It is a delegated run of its own:`);
+  console.log(`    file its issue:  forge new - --title "review ${range}" --size feature`);
+  console.log(`    give it a tree:  ${SELF} start <that ISS-nn>`);
+  console.log(`    it ends by moving the mark, finding or none: ${SELF} review --done`);
+};
+
+/* The mark's only writer, so nothing else has to agree with it about where a reading reached. */
+const review = (argv) => {
+  const tree = process.cwd();
+  const at = argv.indexOf("--done");
+  const from = reviewedAt(tree);
+  if (at < 0) {
+    if (!from) stop(NO_MARK);
+    const { owed, range, count } = reviewSays(tree, from);
+    console.log(`${range} is the next review's, and holds ${count} under ${REVIEW_PATHS.join(", ")}.`);
+    console.log(`  git diff ${from}..HEAD -- ${REVIEW_PATHS.join(" ")}`);
+    return console.log(owed
+      ? `A review is owed: ${REVIEW_RELEASES} release(s) or ${REVIEW_LINES} line(s) call for one, and this range is past that.`
+      : `Short of the ${REVIEW_RELEASES} release(s) or ${REVIEW_LINES} line(s) that call for a reading.`);
+  }
+  const asked = argv[at + 1] ?? "HEAD";
+  const to = gitOut(["rev-parse", "--verify", `${asked}^{commit}`], tree);
+  if (!to) stop(`\`${asked}\` is no commit in this tree, and the mark records where a reading reached.`);
+  if (from && git(["merge-base", "--is-ancestor", from, to], tree).status !== 0) {
+    stop(`${to.slice(0, 7)} is not a descendant of the mark at ${from.slice(0, 7)}, and a mark that `
+      + `moves backwards hands the next reading a range already read. Name a commit ahead of it — or, `
+      + `where the mark itself is the mistake, move it by hand and say so: `
+      + `git update-ref ${REVIEWED} ${to.slice(0, 7)} ${from.slice(0, 7)}`);
+  }
+  /* Two review worktrees share this ref, so the old value goes with the write: the second to finish
+     is refused rather than silently dropping the range the first had already read. */
+  loud("git", ["update-ref", REVIEWED, to, from ?? ""], tree,
+    `The mark is not where this run read it. Another reading finished first: ${SELF} review, then move it again.`);
+  console.log(from
+    ? `${REVIEWED} ${from.slice(0, 7)} -> ${to.slice(0, 7)}; the next review reads from there.`
+    : `${REVIEWED} planted at ${to.slice(0, 7)}; the next review reads from there.`);
+};
+
 const named = () => ({
   market: read(join(HERE, ".claude-plugin", "marketplace.json"))?.name,
   plugin: read(join(HERE, "plugin", ".claude-plugin", "plugin.json"))?.name,
@@ -242,6 +342,7 @@ const shipSteps = (tree, root, base, note) => {
         ? `  ${copy.name} ${copy.running} running, ${copy.installed} installed${copy.stale ? " — this version is in no install record" : ""}`
         : "  no install record answers for this plugin");
       restartOwed(tree, base);
+      reviewOwed(tree);
     }],
   ];
 };
@@ -279,7 +380,8 @@ const main = (argv) => {
   if (!verb || verb === "-h" || verb === "--help") return console.log(USAGE);
   if (verb === "start") return start(rest);
   if (verb === "ship") return ship(rest);
-  stop(`no step \`${verb}\`. It is start or ship; \`${SELF} -h\` says what each does.`);
+  if (verb === "review") return review(rest);
+  stop(`no step \`${verb}\`. It is start, ship or review; \`${SELF} -h\` says what each does.`);
 };
 
 try {

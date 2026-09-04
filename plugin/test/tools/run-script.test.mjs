@@ -41,10 +41,41 @@ const committed = (work, message) => {
   git(work, "commit", "-m", message);
 };
 
-test("-h names both steps and the resume flag, and touches nothing", () => {
+/* A scratch checkout with a bare origin it has already pushed to, which is the state every step
+   past the first reads: without it the fetch has nothing to name and the range is undefined. */
+const pushed = (name) => {
+  const { at, work } = scratch(name);
+  git(at, "init", "--bare", "origin.git");
+  git(work, "init", "-b", "master");
+  committed(work, "one");
+  git(work, "remote", "add", "origin", join(at, "origin.git"));
+  git(work, "push", "origin", "HEAD:master");
+  return { at, work };
+};
+
+const landIn = (work, path, lines, message) => {
+  mkdirSync(join(work, dirname(path)), { recursive: true });
+  writeFileSync(join(work, path), "the change\n".repeat(lines));
+  git(work, "add", path);
+  git(work, "commit", "-m", message);
+};
+
+/* Step 7 is `claude`, which BARE does not carry, so the release runs as far as it can and the last
+   step is then reached in a process of its own — which is how a resume reaches it too. */
+const lastStep = (work) => {
+  runIn(work, ["ship"], BARE);
+  return runIn(work, ["ship", "--from", "9"], BARE);
+};
+
+const ref = (work) => git(work, "rev-parse", "--verify", "--quiet", "refs/forge/reviewed").stdout.trim();
+
+/* The threshold and the mark are typed here rather than imported: nothing imports an entry point,
+   and a second party that has to agree with the constants is what pins them to the help at all. */
+test("-h names all three steps, the resume flag and the threshold it counts against", () => {
   const run = runIn(ROOT, ["-h"]);
   assert.equal(run.status, 0, run.stderr);
-  for (const said of ["start <ISS-nn>", "ship [--from N]", "--from N", "worktree", "restart"]) {
+  for (const said of ["start <ISS-nn>", "ship [--from N]", "review [--done [ref]]", "--from N",
+    "worktree", "restart", "refs/forge/reviewed", "3 release(s)", "500 changed line(s)"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
 });
@@ -117,4 +148,104 @@ test("a resumed ship commits a bump left on disk, and never says nothing moved w
   const blind = runIn(work, ["ship", "--from", "9"], BARE);
   assert.match(blind.stderr, /no forge-ship-from in this tree's git directory/u, blind.stderr);
   assert.doesNotMatch(blind.stdout, /moved since/u, "a run that cannot compare may not tell a session it is safe");
+});
+
+/* Every delegated run reviews its own diff and stops, so what two runs each wrote is in no run's
+   range. The count that spans them is the release step's, not anyone's judgement per issue. */
+test("with no mark, the last step says it cannot count and plants nothing", () => {
+  const { work } = pushed("unmarked");
+  landIn(work, join("plugin", "src", "one.mjs"), 4, "the change");
+
+  const run = lastStep(work);
+  assert.match(run.stderr, /no refs\/forge\/reviewed in this repository/u, run.stderr);
+  assert.match(run.stderr, /the release that introduced this rule/u, run.stderr);
+  assert.doesNotMatch(run.stdout, /release\(s\)/u, "a run that cannot count may not report a count");
+  assert.equal(ref(work), "", "the release step is not the mark's writer");
+
+  const asked = runIn(work, ["review"], BARE);
+  assert.equal(asked.status, 1, asked.stdout);
+  assert.match(asked.stderr, /no refs\/forge\/reviewed/u, asked.stderr);
+});
+
+test("the third release since the mark is owed a reading, and the two before it are not", () => {
+  const { work } = pushed("releases");
+  const planted = runIn(work, ["review", "--done"], BARE);
+  assert.match(planted.stdout, /refs\/forge\/reviewed planted at [0-9a-f]{7}/u, planted.stdout);
+  assert.equal(ref(work), git(work, "rev-parse", "HEAD").stdout.trim());
+
+  for (const nth of [1, 2]) {
+    landIn(work, join("plugin", "hooks", `gate-${nth}.mjs`), 4, `the ${nth} change`);
+    const under = lastStep(work);
+    assert.match(under.stdout, new RegExp(`${nth} release\\(s\\), ${nth} file\\(s\\)`, "u"), under.stdout);
+    assert.doesNotMatch(under.stdout, /a review of/u, `${nth} release(s) is short of the threshold`);
+  }
+
+  landIn(work, join("plugin", "bin", "one"), 4, "the third change");
+  const owed = lastStep(work);
+  assert.match(owed.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 3 release\(s\)/u, owed.stdout);
+  assert.match(owed.stdout, /forge new - --title "review [0-9a-f]{7}\.\.HEAD"/u, owed.stdout);
+  assert.match(owed.stdout, /start <that ISS-nn>/u, owed.stdout);
+});
+
+/* Both halves of the threshold have to fire on their own, or a repository that ships rarely and
+   changes a lot is never read. Read through the verb rather than through a ship, so the release
+   count stays at zero and the line half is the only thing that can be what fired. */
+test("the five hundredth changed line is owed a reading, and only in the counted paths", () => {
+  const { work } = pushed("lines");
+  runIn(work, ["review", "--done"], BARE);
+
+  landIn(work, join("docs", "long.md"), 600, "prose, which the one-home check reads");
+  const outside = runIn(work, ["review"], BARE);
+  assert.match(outside.stdout, /holds 0 release\(s\), 0 file\(s\), 0 changed line\(s\)/u, outside.stdout);
+  assert.match(outside.stdout, /^Short of the 3 release\(s\) or 500 line\(s\)/mu, "docs/ is not a path this count reads");
+
+  landIn(work, join("plugin", "src", "wide.mjs"), 499, "a module a run grew");
+  const under = runIn(work, ["review"], BARE);
+  assert.match(under.stdout, /holds 0 release\(s\), 1 file\(s\), 499 changed line\(s\)/u, under.stdout);
+  assert.match(under.stdout, /^Short of the/mu, "499 is one line short, and the boundary is exact");
+
+  landIn(work, join("plugin", "src", "wide.mjs"), 500, "the line that crosses it");
+  const owed = runIn(work, ["review"], BARE);
+  assert.match(owed.stdout, /holds 0 release\(s\), 1 file\(s\), 500 changed line\(s\)/u, owed.stdout);
+  assert.match(owed.stdout, /^A review is owed:/mu, owed.stdout);
+  assert.match(lastStep(work).stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\)/u,
+    "the release step says it too, on a release count of its own bump alone");
+});
+
+test("a reading that finds nothing moves the mark in one line, and the count starts again there", () => {
+  const { work } = pushed("moved");
+  runIn(work, ["review", "--done"], BARE);
+  landIn(work, join("plugin", "src", "wide.mjs"), 501, "a module a run grew");
+  assert.match(lastStep(work).stdout, /a review of/u, "501 lines under plugin/src is past the threshold");
+
+  const before = ref(work);
+  const asked = runIn(work, ["review"], BARE);
+  assert.match(asked.stdout, /[0-9a-f]{7}\.\.HEAD is the next review's, and holds 1 release\(s\)/u, asked.stdout);
+  assert.match(asked.stdout, /git diff [0-9a-f]{40}\.\.HEAD -- plugin\/src plugin\/hooks plugin\/bin/u, asked.stdout);
+  assert.equal(ref(work), before, "reading the range moves nothing");
+
+  const done = runIn(work, ["review", "--done"], BARE);
+  assert.match(done.stdout, /refs\/forge\/reviewed [0-9a-f]{7} -> [0-9a-f]{7}/u, done.stdout);
+  assert.equal(ref(work), git(work, "rev-parse", "HEAD").stdout.trim());
+  assert.doesNotMatch(lastStep(work).stdout, /a review of/u, "the range restarts at the mark it just moved");
+
+  const nowhere = runIn(work, ["review", "--done", "no-such-ref"], BARE);
+  assert.equal(nowhere.status, 1, nowhere.stdout);
+  assert.match(nowhere.stderr, /`no-such-ref` is no commit in this tree/u, nowhere.stderr);
+});
+
+/* A mark moved back hands the next reading a range it has already been told was read — a codex
+   finding on this change, alongside the shared ref two review worktrees both write. */
+test("the mark only ever moves forward, and the refusal carries the way past a wrong one", () => {
+  const { work } = pushed("forward");
+  const first = git(work, "rev-parse", "HEAD").stdout.trim();
+  landIn(work, join("plugin", "src", "one.mjs"), 4, "the change");
+  runIn(work, ["review", "--done"], BARE);
+
+  const back = runIn(work, ["review", "--done", first], BARE);
+  assert.equal(back.status, 1, back.stdout);
+  assert.match(back.stderr, /is not a descendant of the mark at [0-9a-f]{7}/u, back.stderr);
+  assert.match(back.stderr, /git update-ref refs\/forge\/reviewed [0-9a-f]{7} [0-9a-f]{7}/u,
+    "a refusal over a mark that is itself the mistake has to carry the way past it");
+  assert.equal(ref(work), git(work, "rev-parse", "HEAD").stdout.trim(), "the refused write moved nothing");
 });
