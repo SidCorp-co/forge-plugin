@@ -2,7 +2,7 @@
    rewrites the sha and leaves the code alone, and the tree a session gates most has no sha at all.
    One file per step under the common git directory, the one path every worktree resolves to. */
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { gitCommonDir } from "../checkout.mjs";
@@ -19,18 +19,24 @@ It cannot see node_modules as installed, anything outside the repository, or a t
 
 const hashed = new Map();
 
-/* An absent file hashes to a value of its own rather than throwing: git lists a path it has been
-   told to delete, and that deletion is exactly a change the digest has to carry. */
-const hashFile = (path) => {
-  if (!hashed.has(path)) {
-    let content;
-    try {
-      content = readFileSync(path);
-    } catch {
-      content = "absent";
-    }
-    hashed.set(path, createHash("sha256").update(content).digest("hex"));
+/* The mode with the bytes, because the suite executes files of this tree; a deletion answers as
+   itself; and a path git calls a file that the disk does not is a shape no digest here models. */
+const digested = (path) => {
+  let found;
+  try {
+    found = lstatSync(path);
+  } catch {
+    return "absent";
   }
+  if (!found.isFile()) {
+    throw new Error(`git reports ${path} as a file and the disk has ${found.isDirectory() ? "a directory" : "something else"} `
+      + `there, so it is a submodule or a link no digest here models. Gate with --full until it is.`);
+  }
+  return createHash("sha256").update(found.mode & 0o111 ? "x" : "-").update(readFileSync(path)).digest("hex");
+};
+
+const hashFile = (path) => {
+  if (!hashed.has(path)) hashed.set(path, digested(path));
   return hashed.get(path);
 };
 

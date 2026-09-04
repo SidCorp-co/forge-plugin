@@ -147,6 +147,13 @@ test("a red gate stops the ship before it bumps, pushes or installs anything", (
     "the version was raised past a gate that had not passed");
   assert.equal(git(join(at, "origin.git"), "rev-parse", "master").stdout.trim(),
     git(work, "rev-parse", "HEAD~1").stdout.trim(), "the change was pushed past a red gate");
+
+  /* The run that most needs a gate is the one that edited something to get past a failed step, so
+     a resume aimed past the gate spends it first rather than pushing on the last run's word. */
+  const resumed = runIn(work, ["ship", "--from", "6"], BARE);
+  assert.match(resumed.stderr, /stopped at step 4 \(the gate\)/u, resumed.stderr);
+  assert.equal(git(join(at, "origin.git"), "rev-parse", "master").stdout.trim(),
+    git(work, "rev-parse", "HEAD~1").stdout.trim(), "a resume past the gate pushed an ungated tree");
 });
 
 /* Every resume runs in a process that watched none of the steps before it, so a step reading what

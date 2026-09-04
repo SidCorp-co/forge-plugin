@@ -95,18 +95,19 @@ const finish = (code) => {
 
 const files = gitFiles(ROOT);
 
-/* A table this file cannot use is a broken gate, not a failing step: it is refused before anything
-   runs, so nothing reads as covered by a step the runner never had. */
-const built = () => {
+/* A gate that cannot build its table or read its record is broken, not red: it refuses before
+   anything runs, so nothing reads as covered by a step the runner never had. */
+const orRefuse = (what, build) => {
   try {
-    return gateSteps(files.filter((one) => TEST_FILE.test(one)));
+    return build();
   } catch (error) {
-    console.error(`This gate has no runnable step table: ${error.message}`);
+    console.error(`This gate ${what}: ${error.message}`);
     return finish(1);
   }
 };
 
-const steps = built();
+const steps = orRefuse("has no runnable step table",
+  () => gateSteps(files.filter((one) => TEST_FILE.test(one))));
 
 const scoped = () => {
   const diff = mergeBaseDiff(ROOT);
@@ -130,7 +131,7 @@ if (!full) {
   const plan = scoped();
   if (plan.full) console.log(`\n=== scope: the full gate — ${plan.reason} ===`);
   else planned = plan.steps.filter((step) => step.run);
-  ledger = ledgerFor(planned, { root: ROOT, files, runner: SELF });
+  ledger = orRefuse("cannot read its own record", () => ledgerFor(planned, { root: ROOT, files, runner: SELF }));
   const green = ledger.entries.filter((step) => step.green);
   console.log(`\n=== ledger: ${green.length} of ${ledger.entries.length} step(s) green already ===`);
   for (const step of green) console.log(`skip ${step.label.padEnd(22)} digest ${step.digest}`);

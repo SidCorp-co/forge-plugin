@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -124,6 +124,42 @@ test("a step whose inputs have not moved since it passed is skipped by digest, a
     const moved = run(work);
     assert.match(moved.stdout, /=== lint ===/u, moved.stdout);
     assert.equal(moved.status, 0, moved.stdout + moved.stderr);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The suite executes files of this repository, so a mode alone decides a verdict: a digest over the
+   bytes would schedule the step and then hand it the last pass's answer. */
+test("a mode change alone is not a step the record calls green", () => {
+  const { at, work } = scratch("mode");
+  try {
+    landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
+    assert.equal(run(work).status, 0);
+    chmodSync(join(work, "plugin/src/two.mjs"), 0o755);
+    git(work, "add", "-A");
+    git(work, "commit", "-m", "made it executable");
+    const said = run(work);
+    assert.match(said.stdout, /=== lint ===/u, said.stdout);
+    assert.ok(!said.stdout.includes("skip lint "), `the record answered for a mode it never hashed:\n${said.stdout}`);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+// A digest reading a gitlink as absent holds one answer across every revision of the submodule.
+test("a gitlink is refused rather than hashed as absent", () => {
+  const { at, work } = scratch("gitlink");
+  try {
+    landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
+    const sha = git(work, "rev-parse", "HEAD").stdout.trim();
+    git(work, "update-index", "--add", "--cacheinfo", `160000,${sha},plugin/sub`);
+    mkdirSync(join(work, "plugin", "sub"), { recursive: true });
+    git(work, "commit", "-m", "the submodule");
+    const said = run(work);
+    assert.equal(said.status, 1, said.stdout);
+    assert.match(said.stderr, /cannot read its own record: git reports \S+\/plugin\/sub as a file/u, said.stderr);
+    assert.match(said.stderr, /--full/u, said.stderr);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }

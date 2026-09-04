@@ -5,7 +5,8 @@ import { join, relative, resolve } from "node:path";
 
 import { defaultBranch, gitOut, lines } from "../checkout.mjs";
 
-const RELATIVE_IMPORT = /\bfrom\s+["'](\.[^"']*)["']/gu;
+// Every relative form: a module this misses decides what a run may skip and reads as ordinary.
+const RELATIVE_IMPORT = /(?:\bfrom|\bimport|\brequire)\s*\(?\s*["'](\.[^"']*)["']/gu;
 
 const moduleGraph = (entry, seen = new Set()) => {
   if (seen.has(entry) || !existsSync(entry)) return seen;
@@ -16,7 +17,6 @@ const moduleGraph = (entry, seen = new Set()) => {
   return seen;
 };
 
-// Every file that decides what a run may skip, which is the runner and what it imports.
 export const derivationFiles = (runner, root) =>
   [...moduleGraph(runner)].map((file) => relative(root, file)).sort();
 

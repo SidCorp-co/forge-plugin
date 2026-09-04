@@ -3,12 +3,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { EVERYTHING, gateSteps, STEPS, TEST_FILE, WHOLE_TREE_TESTS } from "../../../tools/gates/steps.mjs";
-import { planFor, under } from "../../../tools/gates/scope.mjs";
+import { derivationFiles, planFor, under } from "../../../tools/gates/scope.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
 
@@ -58,6 +59,20 @@ test("each script step names a script package.json defines", () => {
   }
 });
 
+// Every relative specifier counts, not the one form the runner's own modules happen to use.
+test("the runner's own modules are found through every relative import form", () => {
+  const room = mkdtempSync(join(tmpdir(), "derivation-"));
+  try {
+    writeFileSync(join(room, "runner.mjs"), 'import "./bare.mjs";\nexport { one } from "./named.mjs";\n'
+      + 'const late = () => import("./dynamic.mjs");\nexport const two = late;\n');
+    for (const one of ["bare.mjs", "named.mjs", "dynamic.mjs"]) writeFileSync(join(room, one), "export const one = 1;\n");
+    assert.deepEqual(derivationFiles(join(room, "runner.mjs"), room),
+      ["bare.mjs", "dynamic.mjs", "named.mjs", "runner.mjs"]);
+  } finally {
+    rmSync(room, { recursive: true, force: true });
+  }
+});
+
 test("`.` claims the top-level files and no path below them", () => {
   assert.equal(under("package.json", "."), true);
   assert.equal(under("plugin/src/cli.mjs", "."), false);
@@ -71,6 +86,12 @@ test("a new top-level directory belongs to no step", () => {
   const steps = STEPS.map((step) => ({ ...step }));
   assert.equal(planFor(steps, ["newdir/one.mjs"]).full, true);
   assert.equal(planFor(steps, ["docs/one.md"]).full, false);
+  /* `eslint .` walks every root its config does not ignore, so a source file the table would
+     otherwise place under a documents-only step still has to reach the lint step. */
+  for (const path of ["root.mjs", "docs/one.mjs"]) {
+    const reached = planFor(steps, [path]).steps.filter((step) => step.run).map((step) => step.label);
+    assert.ok(reached.includes("lint"), `${path} reaches ${reached.join(", ")} and not lint`);
+  }
   for (const name of EVERYTHING) {
     assert.ok(steps.some((step) => step.reads.includes(name)), `${name} is in EVERYTHING and no step reads it`);
   }

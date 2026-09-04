@@ -43,9 +43,10 @@ const USAGE = [
   "  --note S     the subject of the version commit, when the release has to make one",
   "  --done [ref] the mark moves to ref, HEAD by default, and only ever from here",
   "",
-  "ship stops at the first failure and writes nothing past it. A change under plugin/hooks/ or",
-  "plugin/skills/ reaches a session at its next start, so the last step says whether a restart is",
-  "owed before anything trusts the release.",
+  "ship stops at the first failure and writes nothing past it, and a resume past the gate spends",
+  "the gate first, so nothing that pushes runs against a tree no gate has passed. A change under",
+  "plugin/hooks/ or plugin/skills/ reaches a session at its next start, so the last step says",
+  "whether a restart is owed before anything trusts the release.",
   "",
   `That last step also counts what landed under ${REVIEW_PATHS.join(", ")} since ${REVIEWED}, and`,
   `says one reading of the whole of it is owed once the range holds ${REVIEW_RELEASES} release(s) or`,
@@ -274,6 +275,8 @@ const named = () => ({
   plugin: read(join(HERE, "plugin", ".claude-plugin", "plugin.json"))?.name,
 });
 
+const GATE = "the gate";
+
 const shipSteps = (tree, root, base, note) => {
   const { market, plugin } = named();
   if (!market || !plugin) stop("this checkout names no marketplace or no plugin, so there is nothing to install.");
@@ -288,7 +291,7 @@ const shipSteps = (tree, root, base, note) => {
     /* After the rebase, because the range is what the release actually ships, and before the bump,
        because the gate's record is keyed on the manifests too: run it after and every release pays
        for a whole gate over a change of one version string. */
-    ["the gate", () => loud("npm", ["run", "check"], tree,
+    [GATE, () => loud("npm", ["run", "check"], tree,
       "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run.")],
     [`a version above ${REMOTE}/${base}`, () => versionAbove(tree, base, note)],
     [`push to ${REMOTE}/${base}`, () =>
@@ -332,7 +335,13 @@ const ship = (argv) => {
   if (!Number.isInteger(from) || from < 1 || from > steps.length) {
     stop(`--from takes a step between 1 and ${steps.length}, not \`${argv[at + 1] ?? ""}\`.`);
   }
-  for (let at = from - 1; at < steps.length; at += 1) {
+  /* A resume past the gate would push a tree no gate has passed, and the run that most needs one
+     is the run that edited something to get past a failed step. The gate's own record makes an
+     unchanged tree cost nothing, so it is spent again rather than taken on trust. */
+  const gateAt = steps.findIndex(([name]) => name === GATE);
+  const order = [...steps.keys()].filter((at) => at >= from - 1);
+  if (from - 1 > gateAt) order.unshift(gateAt);
+  for (const at of order) {
     const [name, run] = steps[at];
     console.log(`\nstep ${at + 1}/${steps.length}  ${name}`);
     try {
