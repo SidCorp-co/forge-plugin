@@ -1,5 +1,5 @@
 /* The pick: the lease a run takes before it writes anything, the reclaim of one a dead run left
-   behind, and the park a status that keeps crashing earns. docs/FORGE-CLI.md. */
+   behind, and the park a status that keeps crashing earns. docs/cli/claim.md. */
 import { flags, pullRepeated } from "../resolve/flags.mjs";
 import { sessionOf } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";

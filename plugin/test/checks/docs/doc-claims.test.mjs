@@ -6,10 +6,10 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { claimProblems, docClaims } from "../../src/checks/doc-shape.mjs";
-import { VERB_NAMES, usageOf } from "../../src/resolve/visibility.mjs";
+import { claimProblems, docClaims } from "../../../src/checks/doc-shape.mjs";
+import { VERB_NAMES, usageOf } from "../../../src/resolve/visibility.mjs";
 
-const ROOT = new URL("../../..", import.meta.url).pathname;
+const ROOT = new URL("../../../..", import.meta.url).pathname;
 const HOW = join(ROOT, "plugin", "hooks", "how");
 
 const sources = () => {

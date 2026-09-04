@@ -2,8 +2,8 @@
    its pipeline runner, and no session under this plugin is that runner: five of the twelve state a
    rule the contract has replaced and two more are the runner's in half, so a passthrough hands every
    agent two contracts on its first read. The disposition is code and not configuration because it is this plugin's reading of the
-   tracker, and a project cannot rightly turn a contradiction back on. docs/FORGE-CLI.md carries
-   what the stale rules cost; `forge guide contract` prints what holds instead. */
+   tracker, and a project cannot rightly turn a contradiction back on. docs/cli/the-guides.md
+   carries what the stale rules cost; `forge guide contract` prints what holds instead. */
 
 /* Having a row is what withholds the guide, whichever disposition the row carries: neither a page
    the contract replaced nor a page half of which is the runner's is one an agent can follow whole,

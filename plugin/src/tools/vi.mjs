@@ -1,5 +1,5 @@
 /* The tracker is Vietnamese and `vi-natural` writes all of it; a source given here is English.
-   `review` cannot be the gate — it has no fixed point. docs/FORGE-CLI.md. */
+   `review` cannot be the gate — it has no fixed point. docs/cli/vietnamese.md. */
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

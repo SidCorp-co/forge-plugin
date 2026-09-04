@@ -69,9 +69,10 @@ threshold calibrated on real documents rather than guessed.
 - **AC-12-2-3** · Rev: 1 · Proof: plugin/test/checks/docs-have-one-home.test.mjs
   WHILE the check runs it SHALL assert that its own selector matched documents, because a selector
   matching nothing looks exactly like a clean repository.
-- **AC-12-2-4** · Rev: 1 · Proof: none yet — ISS-27
+- **AC-12-2-4** · Rev: 2 · Proof: plugin/test/checks/docs/docs-have-one-home.test.mjs
   WHERE a document lives below the documents directory rather than in it the same check SHALL reach
-  it.
+  it, and WHERE that document is a clause of the requirements tree the check SHALL leave it to the
+  gate that measures that tree against its own threshold.
 
 ### UC-12-3 — A skill stays method
 
@@ -120,6 +121,31 @@ small one.
   report the changed file as its own reader.
 - **AC-12-5-2** · Rev: 1 · Proof: plugin/test/checks/blast-radius.test.mjs
   WHEN an identifier is deleted THEN it SHALL still count, because a reader elsewhere may expect it.
+
+### UC-12-6 — A document every run reads is an index, and a topic is one pass
+
+Rev: 1 · Actors: agent · Enforces: BR-09, BR-13
+
+One document reached sixty-seven thousand characters in twenty-two sections while every delegated
+run was pointed at it whole, so a reader after one verb's decision paid for the rest. It is an index
+now, a topic to a file, and both halves of that shape rot in silence: a row whose file was renamed
+sends a reader nowhere, and a file no row names is a topic nobody is told exists. A cap is what keeps
+a topic one pass, and the number belongs to the check, measured against the one document this
+repository keeps whole.
+
+- **AC-12-6-1** · Rev: 1 · Proof: plugin/test/checks/doc-index.test.mjs
+  WHEN an index is checked THEN the check SHALL fail on a paragraph past the first and on a row
+  whose link names no file that exists.
+- **AC-12-6-2** · Rev: 1 · Proof: plugin/test/checks/doc-index.test.mjs
+  IF a topic file is named by no row of the index THEN the check SHALL fail, since a topic nobody is
+  told about is a document nobody reads.
+- **AC-12-6-3** · Rev: 1 · Proof: plugin/test/checks/doc-index.test.mjs
+  IF a document is longer than the cap the check names THEN the check SHALL fail and SHALL name the
+  file, its size and the split it owes; WHERE the document is a clause of this tree or the journal a
+  run appends to, the cap SHALL not apply.
+- **AC-12-6-4** · Rev: 1 · Proof: plugin/test/checks/doc-index.test.mjs
+  IF a source comment names a document that is not there THEN the check SHALL fail, and WHERE the
+  path sits inside a code span it SHALL be read as an example rather than as a citation.
 
 ## Business rules enforced
 

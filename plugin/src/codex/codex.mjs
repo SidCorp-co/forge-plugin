@@ -1,5 +1,5 @@
 /* `forge codex` — a second opinion from GPT-5 Codex over the gateway's own API, on the files this
-   turn changed. docs/FORGE-CLI.md.
+   turn changed. docs/cli/codex-the-consult.md.
 
    Four pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and
    its eval set (codex-log.mjs), the turn's bookkeeping (codex-state.mjs), and this — the verb and

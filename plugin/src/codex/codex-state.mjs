@@ -1,5 +1,5 @@
 /* The turn's bookkeeping: which files each checkout touched and has not consulted on, in one file
-   for every repository on the machine, written under a lock. docs/FORGE-CLI.md. */
+   for every repository on the machine, written under a lock. docs/cli/codex-the-log.md. */
 import { closeSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";

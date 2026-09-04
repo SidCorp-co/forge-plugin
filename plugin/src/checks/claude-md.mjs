@@ -1,5 +1,5 @@
 /* The CLAUDE.md half of `forge doctor`: a guide this plugin stands behind is the authority and a
-   project file restating one has forked it. Which, and why a pair is unclassified: docs/FORGE-CLI.md. */
+   project file restating one has forked it. Which, and why: docs/cli/the-guides.md, docs/cli/doctor.md. */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
@@ -15,7 +15,7 @@ import {
 import { load } from "./duplication.mjs";
 
 /* Not the shared 0.34/5: that was calibrated on comments inside one file, where two copies share
-   twice the vocabulary two documents do. Measured over 28 CLAUDE.md files — docs/FORGE-CLI.md. */
+   twice the vocabulary two documents do. Measured over 28 CLAUDE.md files — docs/cli/doctor.md. */
 export const GUIDE_OVERLAP_THRESHOLD = 0.25;
 export const GUIDE_OVERLAP_FLOOR = 3;
 

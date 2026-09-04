@@ -1,5 +1,5 @@
 /* One transport: the POST, plus the two things a caller should never type — the credentials and
-   the project id. docs/FORGE-CLI.md. */
+   the project id. docs/cli/one-transport.md. */
 import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";

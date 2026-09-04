@@ -1,5 +1,6 @@
 /* What this credential may see. Two mechanisms, deliberately not merged: the server REFUSES a
-   tool, a human WITHHELD a verb. They differ in authority and consequence. docs/FORGE-CLI.md. */
+   tool, a human WITHHELD a verb. They differ in authority and consequence.
+   docs/cli/withholding-a-verb.md. */
 import { userConfig } from "./config.mjs";
 import { fail, projectScope } from "./settings.mjs";
 
@@ -19,7 +20,7 @@ export const VERBS = [
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context", "forge_uploads"],
   ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues"],
   ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm"],
-  /* No flag of this verb is named here, deliberately — docs/FORGE-CLI.md, *Withholding a verb*. */
+  /* No flag of this verb is named here, deliberately — docs/cli/withholding-a-verb.md. */
   ["guide", "[contract [part]|slug]",
     "this plugin's contract, one part per call, and the tracker's guides this flow stands behind",
     "forge_guide"],

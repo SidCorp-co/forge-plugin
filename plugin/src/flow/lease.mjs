@@ -1,6 +1,6 @@
 /* The issue's session field, read as a lease: who holds it, until when, the one line naming the
    step they are on, and the claims before this one. The tracker has no conditional write (ISS-7),
-   so a write here is a read-back compare and the claim says so out loud. docs/FORGE-CLI.md. */
+   so a write here is a read-back compare and the claim says so out loud. docs/cli/claim.md. */
 import { sessionOf } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { mustBeShown } from "../tracker/comments.mjs";

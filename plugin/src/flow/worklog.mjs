@@ -1,6 +1,6 @@
 /* The run's state beside the lease: which branch and head, what it touched, which codex round it
    was in, and the dead ends. The record says what earned each status; this says what the last run
-   knew and would otherwise go down with its shell (ISS-44). docs/FORGE-CLI.md. */
+   knew and would otherwise go down with its shell (ISS-44). docs/cli/resume.md. */
 import { spawnSync } from "node:child_process";
 
 import { fail } from "../resolve/settings.mjs";

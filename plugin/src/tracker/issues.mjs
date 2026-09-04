@@ -1,4 +1,4 @@
-/* Paging, the browse projection and the reference-to-id lookup: docs/FORGE-CLI.md. */
+/* Paging, the browse projection and the reference-to-id lookup: docs/cli/the-projections.md. */
 import { fail } from "../resolve/settings.mjs";
 import { scoped } from "./rpc.mjs";
 

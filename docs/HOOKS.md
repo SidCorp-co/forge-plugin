@@ -121,7 +121,7 @@ mirrors.
 A gate that refuses too much is the failure mode here, and for months nothing recorded a refusal: three
 false positives in one session were all found by watching a command fail. Refusing is now what writes
 the line, so no gate can opt in or forget — including the two written before the log existed. Which
-shapes are masked first, and why: `docs/FORGE-CLI.md`.
+shapes are masked first, and why: `docs/cli/the-refusal-log.md`.
 
 ## A claim in a project's own CLAUDE.md is checked where it is written
 

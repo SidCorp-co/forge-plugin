@@ -1,5 +1,5 @@
 /* What the gates actually did. Three false refusals this session were found by watching a command
-   fail, not by reading anything — a refusal left no trace at all. docs/FORGE-CLI.md. */
+   fail, not by reading anything — a refusal left no trace at all. docs/cli/the-refusal-log.md. */
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -116,9 +116,9 @@ const writeIn = (one) => {
   return TOOL.test(tool) && one.hook === WRITE_GATE ? `${tool} ${target}`.trim().slice(0, 80) : null;
 };
 
-/* Per session, and named for what it is: the log holds refusals alone (docs/FORGE-CLI.md), so the
-   denominator is the writes that were refused and never the writes that were made — one is the
-   design working, three is a run looping, and a true rate wants a counter in the transport. */
+/* Per session, and named for what it is: the log holds refusals alone (docs/cli/the-refusal-log.md),
+   so the denominator is the writes that were refused and never the writes that were made — one is
+   the design working, three is a run looping, and a true rate wants a counter in the transport. */
 export const roundsBy = (entries) => {
   const held = new Map();
   const seen = new Set();

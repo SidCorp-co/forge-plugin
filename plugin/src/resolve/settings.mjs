@@ -1,6 +1,6 @@
 /* Where every setting comes from — never from an argument. Two scopes: the url and token are the
    ACCOUNT's, the slug and prose language the PROJECT's, so the slug is demanded lazily. Each
-   resolves to `{ value, from }`, because provenance is what doctor reports. docs/FORGE-CLI.md. */
+   resolves to `{ value, from }`, because provenance is what doctor reports. docs/cli/settings.md. */
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 

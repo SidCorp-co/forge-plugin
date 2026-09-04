@@ -1,5 +1,5 @@
 /* The account's credentials, this CLI's cache and the run's own identity, kept outside every
-   repository at 0600 from the moment the file exists. docs/FORGE-CLI.md. */
+   repository at 0600 from the moment the file exists. docs/cli/settings.md. */
 import { randomUUID } from "node:crypto";
 import {
   closeSync,

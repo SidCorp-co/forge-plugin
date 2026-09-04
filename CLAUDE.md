@@ -10,7 +10,7 @@ shape, the constraint, the route out — and never restates or explains code. A 
 implementation is a second copy that goes stale without failing anything.
 Nothing here names a path or a script that does not resolve; `forge doctor` checks that. Install,
 configuration, layout and which level a rule belongs to: [`README.md`](README.md). The CLI's
-surface: [`docs/FORGE-CLI.md`](docs/FORGE-CLI.md). What the hooks share:
+surface, one row per topic and the topic in its own file: [`docs/FORGE-CLI.md`](docs/FORGE-CLI.md). What the hooks share:
 [`docs/HOOKS.md`](docs/HOOKS.md). What this plugin owes, one clause per identifier so an issue can
 cite it: [`docs/requirements/README.md`](docs/requirements/README.md), which also carries that
 tree's own rules. A refusal carries the one command that clears it, because an agent

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* The Forge issue tracker over its own HTTP endpoint: `forge -h`. A verb whose backing tool this
-   credential may not call is not listed and does not run — docs/FORGE-CLI.md. */
+   credential may not call is not listed and does not run — docs/cli/withholding-a-verb.md. */
 import { commands } from "./commands.mjs";
 import { suggest } from "./suggest.mjs";
 import { blockedBy, helpLine, helpOf, offeredVerbs } from "./resolve/visibility.mjs";

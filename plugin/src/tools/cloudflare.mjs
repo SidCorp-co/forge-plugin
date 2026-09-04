@@ -1,6 +1,6 @@
 /* Cloudflare zones, DNS and cache, called straight against api.cloudflare.com — the account
    credentials are this machine's, not the tracker's, and nothing here touches the Forge endpoint.
-   docs/FORGE-CLI.md.
+   docs/cli/cloudflare.md.
 
    Zones aggregate across every configured account, and a caller names a zone by id and never an
    account: which account holds that zone is asked rather than typed. */

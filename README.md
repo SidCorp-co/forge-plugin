@@ -9,7 +9,9 @@ A Claude Code plugin holding two CLIs and their skills:
   documentation and for the reasoning its client encodes.
 
 What the two of them owe, clause by clause under an identifier an issue can cite, is
-`docs/requirements/README.md` — a BRD over an SRS. That document also holds the rules of the
+`docs/requirements/README.md` — a BRD over an SRS. The failures and measurements behind `forge`'s own
+shape are an index of one row per topic at `docs/FORGE-CLI.md`, each row naming the file that holds
+that topic. That document also holds the rules of the
 tree and the steps another project follows to adopt it.
 
 ## Install

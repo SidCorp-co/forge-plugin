@@ -1,7 +1,7 @@
 /* The call itself: what GPT-5 Codex is asked, what it may do for itself, and the streamed answer.
    HTTPS POSTs to the gateway named in ~/.claude/claude-proxy.env, which answers with real `tool_use`
    blocks — so the changed files travel with the prompt and anything else the reviewer needs it reads
-   through codex-tools.mjs. docs/FORGE-CLI.md. */
+   through codex-tools.mjs. docs/cli/codex-the-consult.md. */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
@@ -391,7 +391,7 @@ const parsedInput = (json) => {
 };
 
 /* The tool list stays in the request on the call that may not use one, and `tool_choice` says so:
-   the provider caches by prefix, and system-and-tools is that prefix. docs/FORGE-CLI.md. */
+   the provider caches by prefix, and system-and-tools is that prefix. docs/cli/codex-the-request.md. */
 export const askApi = async (values, model, messages, { onDelta = () => {}, signal, tools, serve = true, effort, system } = {}) => {
   const answer = await fetch(`${values.ANTHROPIC_BASE_URL}/v1/messages`, {
     method: "POST",

@@ -1,7 +1,7 @@
 /* What the log says about the harness rather than about the code it reviewed: how often a review
    ran out of calls, how often a recheck went looking instead of confirming, and what the rounds
    cost. A window before a change and a window after it is how a change to the harness is judged.
-   docs/FORGE-CLI.md. */
+   docs/cli/codex-the-log.md. */
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 

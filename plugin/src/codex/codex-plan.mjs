@@ -1,5 +1,5 @@
 /* What the harness settles before a call and reads off the reply after it, with no gateway in
-   reach: a rule you cannot run offline is a rule nobody checks. docs/FORGE-CLI.md carries why. */
+   reach: a rule you cannot run offline is a rule nobody checks. docs/cli/codex-the-consult.md. */
 import { userConfig } from "../resolve/config.mjs";
 
 export const EFFORTS = ["minimal", "low", "medium", "high"];
@@ -29,8 +29,8 @@ export const effortFor = ({ base, recheck = false, lines = 0, small, large }) =>
   return lines < small ? stepped(base, -1) : base;
 };
 
-/* First person, because "a guard cannot read a stale value" is a finding and not a short review.
-   Never a CANNOT TELL either: that ruling is what the grammar asks for. docs/FORGE-CLI.md. */
+/* First person, because "a guard cannot read a stale value" is a finding and not a short review. Never
+   a CANNOT TELL either: that ruling is what the grammar asks for. docs/cli/codex-the-consult.md. */
 export const INCOMPLETE =
   /\b(?:I|we)\s+(?:could not|couldn't|cannot|can't|was unable to|were unable to|am unable to|did not get to)\s+(?:\w+\s+){0,6}?(?:check|verify|verified|confirm|read|inspect|examine|run|open|trace)\b|\b(?:no|without)\s+(?:further|more|additional|remaining)\s+tool|(?:tool|repository)\s+(?:calls?|access|budget)\s+(?:\w+\s+){0,3}?(?:exhausted|ended|spent|gone|capped|withdrawn)|ran out of tool|could not be (?:checked|verified|confirmed|read) (?:here|within|because)/i;
 

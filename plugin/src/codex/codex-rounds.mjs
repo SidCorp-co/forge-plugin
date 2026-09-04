@@ -1,6 +1,6 @@
 /* The call loop and what it costs: how many model calls a payload earns, what effort the round is
    worth, and the one retry an unfinished review gets before anybody reads it. Split from the verb
-   because the verb is bookkeeping and this is the part that spends money. docs/FORGE-CLI.md. */
+   because the verb is bookkeeping and this is the part that spends money. docs/cli/codex-the-consult.md. */
 import { askApi } from "./codex-api.mjs";
 import { toolsFor, runTool } from "./codex-tools.mjs";
 import { BUDGET_MS } from "./codex-log.mjs";
@@ -84,8 +84,8 @@ const totalled = (first, again) => {
   };
 };
 
-/** Retried here rather than patched by the next consult, which is why the first attempt is
- *  buffered: "before it is shown" and a stream to stdout cannot both hold. docs/FORGE-CLI.md. */
+/** Retried here rather than patched by the next consult, which is why the first attempt is buffered:
+ *  "before it is shown" and a stream to stdout cannot both hold. docs/cli/codex-the-consult.md. */
 export const reviewed = async (values, model, opening, scope, onDelta, ask = askApi, held = {}) => {
   const { budget, ceiling } = held;
   held = { ...held, signal: held.signal ?? AbortSignal.timeout(BUDGET_MS) };

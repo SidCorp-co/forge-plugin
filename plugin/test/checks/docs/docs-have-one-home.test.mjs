@@ -5,12 +5,23 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { compare, sentences } from "../../src/checks/duplication.mjs";
-import { NARRATES } from "../../src/checks/doc-shape.mjs";
+import { compare, sentences } from "../../../src/checks/duplication.mjs";
+import { NARRATES } from "../../../src/checks/doc-shape.mjs";
 
-const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
+const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
 const DOCS = join(ROOT, "docs");
-const docs = readdirSync(DOCS).filter((one) => one.endsWith(".md"));
+/* Walked, not listed: the topics moved under docs/cli/ and a flat read would have taken sixty-seven
+   thousand characters out of this gate with nothing failing (ISS-87). The root's requirements tree is
+   out, and only the root's — it states its own threshold from its own measurement and answers to its
+   own gate, while a skip at every depth is a bypass nobody declared. */
+const walk = (dir, prefix = "") =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((one) => {
+    if (!prefix && one.name === "requirements") return [];
+    if (one.isDirectory()) return walk(join(dir, one.name), `${prefix}${one.name}/`);
+    return one.name.endsWith(".md") ? [`${prefix}${one.name}`] : [];
+  });
+
+const docs = walk(DOCS);
 
 
 

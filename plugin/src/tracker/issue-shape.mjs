@@ -1,7 +1,7 @@
 /* What a filing has to carry before the flow can carry it, and the size read off that shape rather
    than off a length. One module, because the verb that files an issue and the gate that refuses one
    through the tracker's own tool have to refuse the same body: the shape is read here, and the two
-   callers only supply the route. docs/FORGE-CLI.md § new; plugin/hooks/how/issue-shape.md. */
+   callers only supply the route. docs/cli/new.md; plugin/hooks/how/issue-shape.md. */
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
 import { MAX_LIMIT, listIssues, rowsOf, truncated } from "./issues.mjs";

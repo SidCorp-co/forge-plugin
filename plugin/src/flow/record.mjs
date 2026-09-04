@@ -1,5 +1,5 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
-   back by kind: docs/FORGE-CLI.md § record. The verb owns the shape; the tracker owns the fields. */
+   back by kind: docs/cli/record.md. The verb owns the shape; the tracker owns the fields. */
 import { fail, translateTo } from "../resolve/settings.mjs";
 import {
   FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, blockOf, criterionNumber, markedCommit, readRecord, tagFor, unwrap,

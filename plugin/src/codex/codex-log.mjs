@@ -1,6 +1,6 @@
 /* The log is codex's memory and its eval set at once. It has no session of its own — one HTTPS
    request knows nothing of the last — so continuity is these entries replayed, and scoring the
-   advice later is the same file read a different way. docs/FORGE-CLI.md. */
+   advice later is the same file read a different way. docs/cli/codex-the-log.md. */
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
