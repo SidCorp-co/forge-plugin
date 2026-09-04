@@ -573,3 +573,74 @@ file changed, so the session owed a restart before the next agent.
 - Folding this run, the parent's own write of this section was refused by the new gate: the heredoc
   quoted a commit command as prose, and the gate read the command string whole. On ISS-82.
 
+## Eighteenth dry run — ISS-79
+
+One agent moved what a brief carried into the repository, the CLI and the record (3.35.13 to
+3.35.15): `tools/run.mjs start` cuts the worktree and names the wrapper a probe must invoke, `ship`
+runs the nine release steps and stops at the first failure with the step that resumes it, two record
+kinds `routed` and `gap` carry a finding sent elsewhere and a place the method fell short, the report
+closes with the run's own worklog, and the worklog names the plugin copy the record was typed under.
+Fourteen verdicts, 29 records, the script proving itself on the issue's own three releases; the brief
+template is now a launch line and a table saying where each removed paragraph went. Ran in parallel
+with ISS-77 from start to finish.
+
+- Four of the brief's six CLI gotchas no longer reproduced and were still being obeyed three releases
+  later. A brief is not a second copy of the method; it is a stale one.
+- The page is cut by response size, not by count: 29 long comments came back truncated, the verdict
+  verb refused with a count it never measured, the report read the most recent 29 and said the first
+  200, and `advance` refused `--owed` with everything else. The record report is missing the run's
+  Confirmation and Decision records, which are past the page: the fold-from-the-record design has
+  the ceiling ISS-17 owns, and hit it on the first run to rely on it.
+- A plan refusal read a bolded label as a missing line, and said missing when it meant unparsed. The
+  rule above; on ISS-45.
+- A fabricated sha of thirty-nine hex digits passed the commit validator and sat in a review record
+  until the agent read it back; corrected with a second record. The check goes to ISS-73's reader.
+- Three lines of the brief cannot move: which other agents are running and which paths they hold,
+  the recheck escape until ISS-51 closes, and the one rule that is about neither the repository nor
+  the tool. Two things the launch line still cannot carry: whether a restart is owed, which lives in
+  prose, and the older half of its own record, which lives past the page.
+- The agent's shell died mid-routing and four writes went unmade; the cause was the machine's `/tmp`
+  over quota, which killed the parent's shell too an hour later. The agent's own new test leaks
+  temporary directories. ISS-42.
+- Five gaps typed as `gap` records: the spine never says where a branch lives or how a change
+  reaches the copy the next session loads; the learning test has no moment for a gap met mid-run;
+  Phase 5 has no shape for evidence that a refusal fired correctly; nothing tells a run which paths a
+  concurrent run holds; which kinds owe evidence lived in a check and is now a field.
+
+## Nineteenth dry run — ISS-77
+
+One agent made the codex harness read its own log (3.35.16): a budget the payload earns, with a
+call more per clipped part and one fewer for a bodies pass; a review whose reply says it could not
+check is retried up to a ceiling before it is shown; a recheck sent the earlier findings, the diff
+since the head they were made against and the reviewer's own prior reply, asked to answer the list
+and stop, with a New finding allowed only beside a clause naming why the earlier round could not
+have seen it; effort by round and size; a versioned system prompt logged with its digest;
+`forge codex stats` over a window and `forge codex replay` for the rows git can rebuild byte for
+byte. Fifteen verdicts, eight defects in its own change found by codex and folded, and a table of
+before and after that names its own counter-result. Ran in parallel with ISS-79 throughout.
+
+- Rechecks raising a New finding went from a hundred and one of two hundred to none of three;
+  replies that could not check from forty-three in a hundred to one of six. Six rows settle no rate;
+  they settle that each mechanism fires.
+- The counter-result: the recheck clause went into the system prompt, so a pass and a recheck send
+  two system texts and the provider's prefix cache diverges at the front of the request. Two of
+  three rechecks read nothing from cache. Filed as ISS-83 rather than patched under a released
+  version; the remedy is the clause in the turn below a prefix both kinds share.
+- `cache_creation_input_tokens` is zero in every one of five hundred and three prior rows: the
+  explicit cache control has never been honoured by this gateway, and what reads is automatic prefix
+  caching, whose front is the tool list.
+- Three defects were visible only to a whole-change pass after two file-scoped rechecks had cleared
+  the same bytes, and one of them broke the statistic the issue exists for. The contract's rule that
+  the earning review runs on the whole set is the rule; the run shows what it costs to skip.
+- The log keeps each sent file's digest and never its bytes, so the issue's "last thirty consults'
+  inputs" is unreachable: two of thirty rebuild. Replay refuses a row it cannot rebuild and says why,
+  rather than replaying approximately.
+- The plan was refused for want of `Screen change` and `Schema coupling` lines, and the contract part
+  the plan reference sends a reader to did not name them. The literals are now in the `approved`
+  part; the reference was pointing at a promise.
+- A review over three consults has three findings called F1 and the record has nowhere to say which
+  consult; four dispositions went to a comment. ISS-34 owes the grammar, and ISS-73 got the note.
+- The agent's shell died with the parent's when `/tmp` ran out of quota, and the run's one red check
+  was that outage, not a gate. Two record artefacts name stale numbers taken before a rebase and a
+  bump, disclosed in the report; the verdicts and the mark name the released commit.
+

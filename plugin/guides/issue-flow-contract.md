@@ -128,6 +128,13 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 
 ### `approved` — reads the plan, the criteria and the blocking relations
 
+The plan carries three declarations, each written `<name>: yes` or `<name>: no` in any case and
+anywhere in its text: `Screen change`, `Schema coupling` and `User-facing outcome`. The first two
+decide what the ship steps owe, and a plan without them does not earn `in_progress`; the third, with
+the first, decides whether a person reviews the rendered change before it ships. The reader takes
+the name, the colon and the next word, so a label closed in emphasis before its colon, as `**Screen
+change:** no`, is a declaration it does not find.
+
 | Scenario | Writes | Goes to |
 |---|---|---|
 | every gating blocker at least `developed` | the branch cut; the baseline naming what already fails, so a later red has something to be judged against; the batch relation when several ride together | `in_progress` |
@@ -418,7 +425,9 @@ the side statuses with a typed reason, so a judgement call is recorded rather th
 drop is refused once the merged mark is set. A shortfall names only what the shape has: no item for
 a field the kind does not take, no number the record did not carry, and one named item rather than a
 list when the stored copy cannot be read, since a list of everything is a shortfall the record does
-not have.
+not have. A line the reader found and could not parse is reported as found and unparsed, quoting
+it, never as missing, since the two read identically and send the writer to add what is already there
+(the eighteenth run lost a cycle to a bolded label).
 
 ### The review — what a reviewer judged and when it is done
 
@@ -563,8 +572,8 @@ agent and the agents it delegates to share, and the write that owes a reading pe
 with no comments costs nothing, and every comment on the page the tracker returns that nobody here
 has seen is the refusal itself, delivered once and re-sent against. The page is the reach of it,
 which is the same seam a cursor closes. Past the page, an issue whose thread outgrew what the tracker
-lists, every verb that reads the record refuses by name, the transition by hand through `forge call` is
-the supported route and evidence goes up through `forge attach`, and each refusal says so rather than
+lists, every verb that reads the record refuses by what cut the page, a count or a response size, never by
+a count it did not measure; the transition by hand through `forge call` is the supported route and evidence goes up through `forge attach`, and each refusal says so rather than
 leaving the route to be derived from three refusals (ISS-17 closes the seam). A write naming its issue by uuid is checked exactly as one naming the
 key, since a form is not a route either. Nothing about a route is read out of a transcript,
 since the transcript of a delegated run is not the one a hook is handed. A comment this session did not create,
