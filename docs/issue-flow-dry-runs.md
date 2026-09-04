@@ -1432,3 +1432,26 @@ from the record.
   cost, and the largest.
 - Filed onward: a flag in a verb's own help absent from the row the top-level help prints (ISS-178);
   the dependency verb cannot record an edge to an issue nobody holds (ISS-190).
+
+## Fifty-fourth dry run — ISS-154 and ISS-145
+
+One agent took two fix-size defects in the checks as one run (3.35.63). ISS-154: a new check reads
+the paths cited in the requirements tree and the scripts, and refuses one that does not resolve as
+written; six stale citations across five files were corrected with it. ISS-145: the retired-names
+registry gained a directory kind, with the deleted feedback folder as its first entry, and the liveness
+rule scoped so a retired name a live verb shares is no finding. Thirty criteria pass, seventeen
+mutations watched red. The branch rebased mid-ship as master moved and the rebased head was re-reviewed.
+No restart owed. Closed by its run. Folded from the record.
+
+- The issue's report was real but its stated mechanism was a guess: the existing check had never
+  read those two sentences, so "matches on the basename" described nothing it did. Recorded as the
+  confirmation and that check left untouched; the fix was a new check scoped to two populations, which
+  is what kept the issue to fix size. The six citations outside that population
+  are ISS-191.
+- A criterion asked for a file to stay byte-identical, and another run's landing made that literally
+  false while the branch was open; the criterion was narrowed to what the verdict proved — that neither
+  of this change's commits touches the file — with a correction record after the fact.
+- The tree's one pre-existing red is a test that never sets the config directory and passes only on
+  the developer's live credential (ISS-177); the baseline named it so no later red would be blamed here.
+- Two known defects were worked around rather than re-filed, each named with its issue: the dependency
+  verb under a personal token (ISS-149) and the note cap (ISS-170).
