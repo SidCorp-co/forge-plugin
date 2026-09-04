@@ -358,37 +358,18 @@ test("a figure is compared only with a whole-gate figure, and what is comparable
     /3s more than the one before it, which took under a second, so there is no ratio/u);
 });
 
-/* Only the newest two decide anything, so the file is a window and not a history to grow — but it
-   compacts late, since compaction is the one write that reads the file first. */
-test("the record compacts once it is well past its window, and appends until then", () => {
+/* Any trimming is a write that read the file first, and this one is shared, so the figure a release
+   is about to read is what a stale snapshot renamed over it would drop. It grows instead. */
+test("the record is only ever appended, however far past a reader's needs it has grown", () => {
   const runs = (count) => Array.from({ length: count }, (one, nth) => `2026-01-01T00:00:0${nth % 10}.000Z ${nth}s 12/12`);
-  const short = planted(runs(30));
-  recordRun(short, { seconds: 7, ran: 12, total: 12 });
-  assert.equal(runSeries(short).length, 31, "an append below the cap rewrote the file");
-
-  const long = planted(runs(65));
-  recordRun(long, { seconds: 7, ran: 12, total: 12 });
-  const held = runSeries(long);
-  assert.equal(held.length, 20, `the record holds ${held.length} run(s)`);
-  assert.equal(held.at(-1).seconds, 7);
-  assert.equal(held.at(-2).seconds, 64, "the oldest went, not the newest");
-});
-
-/* Scoped runs are most of what a checkout spends, so a window dropping by age alone loses the
-   figures a comparison reads within a day of the release that started keeping them — and loses the
-   predecessor to the very run that needed one. */
-test("the newest two whole-gate figures survive a window filled with scoped runs", () => {
-  const scoped = Array.from({ length: 25 }, (one, nth) => `2026-02-0${(nth % 9) + 1}T00:00:00.000Z 9s 3/12`);
-  const dir = planted([FULL, ...scoped]);
-  recordRun(dir, { seconds: 9, ran: 3, total: 12 });
-  assert.deepEqual(runSeries(dir)[0], { at: "2026-01-01T00:00:00.000Z", seconds: 80, ran: 12, total: 12 });
-  assert.match(runSays(dir), /the whole gate last took 80s over 12 of 12 step\(s\)/u, runSays(dir));
-
-  // The full run that follows them must not be the run that evicts its own predecessor.
-  recordRun(dir, { seconds: 96, ran: 12, total: 12 });
-  const held = runSeries(dir).filter((one) => one.ran === one.total);
-  assert.equal(held.length, 2, `${held.length} whole-gate figure(s) survived, and a change needs two`);
-  assert.match(runSays(dir), /96s over 12 of 12 step\(s\).*1\.20x the 80s before it/u, runSays(dir));
+  for (const count of [30, 65]) {
+    const dir = planted(runs(count));
+    recordRun(dir, { seconds: 7, ran: 12, total: 12 });
+    const held = runSeries(dir);
+    assert.equal(held.length, count + 1, `${count} run(s) plus one left ${held.length}: the file was rewritten`);
+    assert.equal(held.at(-1).seconds, 7, "the fresh figure is the last line");
+    assert.equal(held[0].seconds, 0, "the oldest line went, and only a rewrite can drop one");
+  }
 });
 
 /* Worktrees of one checkout share this file and each finishes a gate on its own clock. What proves
