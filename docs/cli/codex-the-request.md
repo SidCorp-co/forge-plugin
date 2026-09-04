@@ -22,6 +22,26 @@ checkout plus the checkout of every file the caller named, because the account c
 profile both hold live tokens; a refused read is answered in words, since a reviewer that cannot tell
 "outside" from "you forgot" asks again.
 
+**Three of the reviewer's four tools take the checkout when no path came.** `list_dir`, `git_diff`
+and `grep` default to the root: 34 refusals in the log were that argument left out, and a reviewer
+that meant the repository has nowhere else to mean. `read_file` keeps its path, having no such
+default. And a path that is not there is answered with the entries of the nearest directory above it
+that is, rather than the root's top — a leaf six levels down has siblings, and the root says nothing
+about them.
+
+**And what `git_diff` means by the checkout is the change under review, not `HEAD`.** Where the
+consult is anchored — a base was named, or a recheck took the head its findings were made against —
+the whole checkout at `HEAD` is a *different* diff from the one the reviewer was handed, and
+answering that one is how a review came back judging the branch for removing code the branch never
+touched. So a call with neither a path nor a ref replays the consult's own anchor over the files the
+consult named, and says which commit that was; a path or a ref the reviewer typed is its own
+question and is still answered as asked. Anchored to nothing, it is the whole checkout at `HEAD` as
+before, and a scoped diff git will not run says so rather than widening to the scope the anchor
+exists to hold. The untracked files of the set are named beside the diff rather than reconstructed
+into it: `git diff` never lists a file git has not been told about, which a turn's new file always
+is, so an unqualified "no change" was a false answer — and the body is already in front of the
+reviewer, where a rebuilt addition would be a second copy of it.
+
 **A malformed tool call is answered, not thrown.** Arguments that never parsed become an empty input
 and come back as a refusal: the model's mistake to correct, not a reason to end a consult already paid
 for.

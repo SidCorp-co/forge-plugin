@@ -24,8 +24,9 @@ needs that topic and by nobody else.
 | [the primitives](cli/the-primitives.md) | What two verbs' own copies of the paging primitives cost, why one list serves a process, and the measurements behind the markdown set the checkers share. |
 | [`deps`](cli/deps.md) | What the marker sentence has to be for an edge to count, and why the graph is one ASCII line per blocker. |
 | [cloudflare](cli/cloudflare.md) | Why this is a second API rather than a route through the first, and how the account holding a zone is found. |
-| [codex — the consult](cli/codex-the-consult.md) | Why no local agent is spawned, what travels instead of the bodies, what a round buys, and what a recheck is anchored to. |
-| [codex — the request](cli/codex-the-request.md) | Which cache the request is written for, what a consult replays, and what a path may reach. |
+| [codex — the consult](cli/codex-the-consult.md) | Why no local agent is spawned, what travels instead of the bodies, which single pass earns a review, and where a base is read from. |
+| [codex — the round](cli/codex-the-round.md) | Why calls are the only lever on wall time, what moves the effort a round is asked at, what a review that could not check is owed, and what a recheck is anchored to. |
+| [codex — the request](cli/codex-the-request.md) | Which cache the request is written for, what a consult replays, what a path may reach, and what the reviewer's own tools mean by no argument. |
 | [codex — the log](cli/codex-the-log.md) | What the log makes a session out of, what the stats window answers, and what the commit gate demands before a commit. |
 | [`beside`](cli/beside.md) | What the create path asks the tracker before it files, the floor it drops a neighbour under, why a fix-size filing folds onto one only when two independent answers agree, and the cases it still cannot reach. |
 | [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue and not a file, where the destination project is held, and why a matching title routes on an exact match rather than an overlap score. |

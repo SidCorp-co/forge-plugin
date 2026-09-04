@@ -23,6 +23,8 @@ const {
   historyFor,
   logEntries,
   pairedLog,
+  recheckOwed,
+  recheckPlan,
   recheckRisks,
   scoreOf,
   startedState,
@@ -111,6 +113,87 @@ test("a recheck turns the last consult's findings on these files into the verifi
   assert.match(risks[0], /still stands.*released by path.*What I then did: took the lock/u);
   assert.deepEqual(recheckRisks(entries, "/a", ["c.mjs"]), [], "none sharing these files: nothing to re-verify");
   assert.deepEqual(recheckRisks(entries, "/z", ["a.mjs"]), []);
+});
+
+/* One sentence answered two unlike situations and named no route out of either, so the way past it —
+   a fresh whole-set consult — travelled in every delegated brief by hand instead (ISS-51). */
+test("a recheck with nothing to verify names the pass a review is earned by", () => {
+  const clean = { kind: "consult", id: "c9", ok: true, root: "/a", at: "9", files: ["a.mjs", "b.mjs"], send: "diffs", reply: "CODEX: 0 findings" };
+  const rels = ["a.mjs", "b.mjs"];
+
+  const none = recheckOwed(null, rels);
+  assert.match(none, /no consult in the log has answered on/u, "nothing has reviewed these files");
+  assert.match(none, /--send bodies a\.mjs b\.mjs/u, "and the route is the consult it never had");
+
+  const diffed = recheckOwed(recheckPlan([clean], "/a", rels), rels);
+  assert.match(diffed, /consult c9/u, "which consult found nothing, by its id");
+  assert.match(diffed, /nothing to recheck/u);
+  assert.match(diffed, /--send bodies a\.mjs b\.mjs/u, "the whole-set read is what earns the review");
+
+  /* It reports what the log holds and routes; what is owed is the contract's judgement and the
+     run's to make, since only the run knows whether the tree has moved since that pass. */
+  const bodied = { ...clean, send: "bodies", sent: rels.map((rel) => ({ rel, chars: 9, clipped: false })) };
+  const whole = recheckOwed(recheckPlan([bodied], "/a", rels), rels);
+  assert.match(whole, /read this set whole and found nothing/u, "the pass a review is earned by, reported");
+  assert.match(whole, /only where the tree has moved since/u, "and the route made conditional, not prescribed");
+  assert.equal(/owed/u.test(whole), false, "the CLI does not rule on what a review owes");
+
+  /* recheckPlan takes the last consult sharing ANY of the files, so a whole-set pass over half the
+     set is not a whole-set pass over this one, and saying so would close a review on a file nobody read. */
+  const half = recheckOwed(recheckPlan([{ ...bodied, files: ["a.mjs"] }], "/a", rels), rels);
+  assert.equal(/read this set whole/u.test(half), false, "it read a.mjs whole, not this set");
+  assert.match(half, /b\.mjs was not among them/u, "and it names the file that went unread");
+  assert.match(half, /--send bodies a\.mjs b\.mjs/u, "so the whole-set read is still owed");
+
+  /* The earning pass is over the WHOLE set, so a command listing six of thirty is a route to a pass
+     that does not earn it. Only the sentence around the command counts paths. */
+  const command = recheckOwed(null, ["1", "2", "3", "4", "5", "6", "7", "8"]);
+  assert.match(command, /--send bodies 1 2 3 4 5 6 7 8`/u, "every path the pass has to cover");
+
+  /* A clipped body is a file nobody read, and a file the row never recorded sending is one nobody
+     can say was read: what `files` names is what the consult was ABOUT, `sent` what it carried. */
+  const cut = recheckOwed(recheckPlan([{
+    ...clean, send: "bodies", sent: [{ rel: "a.mjs", chars: 9, clipped: true }, { rel: "b.mjs", chars: 9, clipped: false }],
+  }], "/a", rels), rels);
+  assert.equal(/read this set whole/u.test(cut), false, "one of the two was sent clipped");
+  assert.match(cut, /a\.mjs, so that much of the set is unread/u, "and it names which");
+  assert.match(cut, /--send bodies a\.mjs b\.mjs/u);
+
+  /* `bundle` records a part for a file it could not read, so the row carries a `sent` entry with no
+     `chars`: an entry is not a body, and a deletion has none to be read whole. */
+  const deleted = recheckOwed(recheckPlan([{
+    ...bodied, sent: [{ rel: "a.mjs", chars: 12 }, { rel: "b.mjs", clipped: false }],
+  }], "/a", rels), rels);
+  assert.equal(/read this set whole/u.test(deleted), false, "b.mjs carries no body, only a record of one");
+  assert.match(deleted, /b\.mjs, so that much of the set is unread/u);
+
+  const silent = recheckOwed(recheckPlan([{ ...clean, send: "bodies", sent: [{ rel: "a.mjs", chars: 9, clipped: false }] }], "/a", rels), rels);
+  assert.equal(/read this set whole/u.test(silent), false, "b.mjs is in files, and the row never says it was sent");
+  assert.match(silent, /b\.mjs, so that much of the set is unread/u);
+
+  const held = recheckOwed(recheckPlan([{
+    ...clean, send: "bodies", sent: [{ rel: "a.mjs", chars: 9, clipped: false }, { rel: "b.mjs", chars: 9, clipped: false }],
+  }], "/a", rels), rels);
+  assert.match(held, /read this set whole/u, "every one of them carried, whole");
+
+  /* A path is the repository's to name, and one with a space in it splits the copied command in two. */
+  const spaced = recheckOwed(null, ["a.mjs", "docs/two words.md", "--diff"]);
+  assert.match(spaced, /--send bodies a\.mjs 'docs\/two words\.md' \.\/--diff`/u,
+    "quoted where a shell would split it, and pathed where this CLI's own parser would eat it");
+
+  assert.match(command, /answered on 1 2 3 4 5 6 and 2 more\./u, "and a sentence that stays readable");
+});
+
+/* A recheck with findings to verify is untouched by any of that. */
+test("a recheck with findings still has a plan to verify", () => {
+  const entries = [{
+    kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs"], head: "abc1234",
+    reply: "CODEX: 1 findings\n- **New — major:** `a.mjs:1` — the lock is released by path.",
+  }];
+  const plan = recheckPlan(entries, "/a", ["a.mjs"]);
+  assert.deepEqual(plan.ids, ["F1"]);
+  assert.equal(plan.judged.head, "abc1234", "the head its findings were made against");
+  assert.equal(recheckOwed(plan, ["a.mjs"]), null, "there is something to recheck, so nothing is owed");
 });
 
 test("the log scores itself per model", () => {

@@ -60,7 +60,7 @@ export const TOOLS = [
   },
   {
     name: "git_diff",
-    description: "What changed in a path, against a ref. Empty output means nothing changed there. The whole checkout by default.",
+    description: "What changed in a path, against a ref. Empty output means nothing changed there. With neither, the diff this review is anchored to — the same change you were shown — or the whole checkout against HEAD where it is anchored to nothing.",
     input_schema: {
       type: "object",
       properties: {
@@ -73,7 +73,7 @@ export const TOOLS = [
 
 /** The roots a model-initiated read may reach, and the single files allowed outside them. A reply
  *  that could read any path could read `~/.config/forge/config.json`, which holds a live token. */
-export const scopeFor = (root, extras = [], check = null) => {
+export const scopeFor = (root, extras = [], check = null, consult = null) => {
   const roots = new Set([canonical(root)]);
   const files = new Set();
   for (const one of extras) {
@@ -82,7 +82,15 @@ export const scopeFor = (root, extras = [], check = null) => {
     if (owner) roots.add(owner);
     else files.add(real);
   }
-  return { roots: [...roots], files: [...files], check: check ? { ...check, root: canonical(root), used: false } : null };
+  /* Its own field rather than beside `files`, which means the single paths reachable outside the
+     roots. Only the paths this checkout answers for: a sibling project's are diffed by nobody here. */
+  const rels = (consult?.files ?? []).filter((one) => !isAbsolute(one));
+  return {
+    roots: [...roots],
+    files: [...files],
+    check: check ? { ...check, root: canonical(root), used: false } : null,
+    diff: consult?.anchor && rels.length ? { anchor: consult.anchor, rels } : null,
+  };
 };
 
 const CHECK_MS = 300_000;
@@ -244,6 +252,31 @@ const diffOf = (held, base) => {
   return clipped((run.stdout ?? "").trim() || "no change against that ref");
 };
 
+/* Asked for the diff with nothing to narrow it, a reviewer means the change under review. Where the
+   consult named a base, or a recheck anchored to a logged head, the whole checkout against HEAD is a
+   different question, and answering it had a review judge the branch for code it never touched
+   (ISS-51). A scoped diff that will not run says so rather than widening to what it exists to hold. */
+const ownDiff = (scope, held) => {
+  const own = scope.diff;
+  if (!own) return diffOf(held, null);
+  const run = spawnSync(
+    "git",
+    ["diff", "--no-color", "--no-ext-diff", "--end-of-options", own.anchor, "--", ...own.rels],
+    { cwd: scope.roots[0], encoding: "utf8", timeout: TOOL_MS },
+  );
+  if (run.status !== 0) return `git diff failed: ${(run.stderr ?? "").trim().slice(0, 200)}`;
+  const loose = spawnSync("git", ["ls-files", "--others", "--exclude-standard", "--", ...own.rels],
+    { cwd: scope.roots[0], encoding: "utf8", timeout: TOOL_MS });
+  const New = (loose.stdout ?? "").split("\n").filter(Boolean);
+  const also = New.length
+    ? `\n\n${New.join(", ")} ${New.length === 1 ? "is" : "are"} untracked, so git shows no diff for `
+      + `${New.length === 1 ? "it" : "them"} — the whole text is the change, and it travelled with the prompt.`
+    : "";
+  const text = (run.stdout ?? "").trim();
+  if (!text) return `no change against ${own.anchor} in the file(s) this consult named${also}`;
+  return clipped(`This review's own diff, from ${own.anchor.slice(0, 7)} over ${own.rels.length} file(s):\n${text}${also}`);
+};
+
 /** One tool call, run here. Every failure comes back as text the reviewer can act on: a refusal it
  *  cannot read is indistinguishable from a file that does not exist. */
 export const runTool = (scope, name, given = {}) => {
@@ -261,7 +294,7 @@ export const runTool = (scope, name, given = {}) => {
     if (name === "read_file") return { text: readOne(held, input) };
     if (name === "list_dir") return { text: listOne(held) };
     if (name === "grep") return { text: grepIn(scope, held, String(input.pattern ?? "")) };
-    if (name === "git_diff") return { text: diffOf(held, input.base) };
+    if (name === "git_diff") return { text: input.path || input.base ? diffOf(held, input.base) : ownDiff(scope, held) };
   } catch (error) {
     return { text: `${name} failed: ${error.message}`, error: true };
   }

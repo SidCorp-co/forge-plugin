@@ -188,3 +188,53 @@ test("a run the buffer ends takes its process group with it too", () => {
   while (alive(child) && !alive(child).startsWith("Z") && Date.now() - t0 < 2000) execFileSync("sleep", ["0.05"]);
   assert.ok(!alive(child) || alive(child).startsWith("Z"), `the runner (${child}) went with the shell`);
 });
+
+/* A reviewer shown a diff from a merge-base and handed the whole checkout at HEAD when it asked for
+   "the diff" is reading one side of the change while being told it is the other (ISS-51). */
+test("git_diff with neither path nor base answers the diff this consult was given", () => {
+  const root = repo();
+  const git = (...argv) => execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv]);
+  writeFileSync(join(root, "b.txt"), "kept\n");
+  git("add", ".");
+  git("commit", "-qm", "one");
+  const first = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  writeFileSync(join(root, "a.txt"), "moved\n");
+  git("add", "a.txt");
+  git("commit", "-qm", "two");
+  writeFileSync(join(root, "b.txt"), "also moved\n");
+
+  const anchored = scopeFor(root, [], null, { anchor: first, files: ["a.txt"] });
+  const own = runTool(anchored, "git_diff", {});
+  assert.equal(own.error, undefined);
+  assert.match(own.text, new RegExp(`from ${first.slice(0, 7)}`, "u"), "and it names the commit it diffed from");
+  assert.match(own.text, /a\.txt/u, "the file the consult named, since the anchor");
+  assert.equal(/b\.txt/u.test(own.text), false, "not a file the consult was never about");
+
+  const narrowed = runTool(anchored, "git_diff", { path: "b.txt" });
+  assert.match(narrowed.text, /b\.txt/u, "a path it named is still its own question");
+  assert.equal(/from /u.test(narrowed.text), false);
+  assert.match(runTool(anchored, "git_diff", { base: "HEAD" }).text, /b\.txt/u, "and so is a base it named");
+
+  const loose = runTool(scopeFor(root), "git_diff", {});
+  assert.match(loose.text, /b\.txt/u, "anchored to nothing, the whole checkout against HEAD as before");
+  assert.equal(/from /u.test(loose.text), false);
+
+  const quiet = scopeFor(root, [], null, { anchor: "HEAD", files: ["a.txt"] });
+  assert.match(runTool(quiet, "git_diff", {}).text, /no change against HEAD in the file\(s\) this consult named/u);
+
+  /* `git diff` never lists a file git has not been told about, and this CLI deliberately discovers
+     one and sends its whole text as the change: "no change" there is the wrong answer. */
+  writeFileSync(join(root, "new.txt"), "every line of it is the change\n");
+  const withNew = scopeFor(root, [], null, { anchor: first, files: ["a.txt", "new.txt"] });
+  const named = runTool(withNew, "git_diff", {});
+  assert.match(named.text, /new\.txt/u, "the untracked file is named rather than passed over");
+  assert.match(named.text, /untracked, so git shows no diff for (?:it|them)/u, "and why it carries none");
+  assert.match(named.text, /a\.txt/u, "beside the diff of the tracked one");
+
+  /* A scoped diff that will not run is answered as that, never by widening to the whole checkout —
+     which is the scope the anchor exists to hold. */
+  const bad = scopeFor(root, [], null, { anchor: "HEAD", files: ["../outside.txt"] });
+  const failed = runTool(bad, "git_diff", {});
+  assert.match(failed.text, /^git diff failed: /u, "the scoped command's own answer");
+  assert.equal(/b\.txt/u.test(failed.text), false, "and not the tree it was asked not to hand over");
+});

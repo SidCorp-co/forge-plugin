@@ -49,6 +49,7 @@ import {
   logConsult,
   logEntries,
   printLog,
+  recheckOwed,
   recheckPlan,
   sentShaOf,
   verdict,
@@ -108,13 +109,17 @@ export const USAGE = [
   "                 and the change's size unless you say otherwise.",
   "  --rounds n     model calls this consult may make, used as given. Wall time is calls times 45s.",
   "  --send m       diffs (default) sends each file's change and its size, and the reviewer reads",
-  "                 what it needs; bodies sends every file whole, for a consult with nothing to read.",
+  "                 what it needs; bodies sends every file whole. One bodies pass over the whole",
+  "                 touched set, at the commit, is what earns an approving review; diffs are the",
+  "                 rounds between edits, and a file outside any checkout has nothing else.",
   "  --verify risk  a named risk to rule on rather than an open review; repeatable. A reviewer",
   "                 verifying is reliable where a reviewer discovering invents.",
   "  --only s,s     report only these severities: blocker, major, minor.",
   "  --recheck      verify the last consult's findings on these files instead of roaming for new",
   "                 ones: each becomes a --verify risk. The round after a fix, not the first. What",
-  "                 it REFUTES is recorded as that consult's verdict; CONFIRMED stays open.",
+  "                 it REFUTES is recorded as that consult's verdict; CONFIRMED stays open. It",
+  "                 follows a finding and nothing else, so where the last pass found none it",
+  "                 refuses and names `--send bodies`, which is the pass a review is earned by.",
   "  --angles a,a   which angles review this consult: tech, ba, user, ux.",
   "",
   "  FORGE_CODEX_DISABLE=1     the one variable: a kill switch has to work when config is broken",
@@ -279,7 +284,8 @@ const consult = async (given) => {
   const plan = recheck ? recheckPlan(entries, root, rels) : null;
   const offset = risks.length;
   if (recheck) {
-    if (!plan?.risks.length) fail("codex: --recheck needs an answered consult with findings on these files, and none is logged.");
+    const nothing = recheckOwed(plan, rels);
+    if (nothing) fail(`codex: ${nothing}`);
     risks.push(...plan.risks);
   }
   /* The diff since the head the findings were made against: re-sending the whole file makes the
@@ -328,7 +334,8 @@ const consult = async (given) => {
   const parts = still ? bundle(root, rels) : bundled;
   /* The point diffed from, not the ref: a row anchored to a name replays against wherever that name
      has since gone, which is a diff nobody was ever shown (`codex replay`, codex-stats.mjs). */
-  const anchoredTo = still ? null : parted ?? anchor;
+  const reached = parted ?? anchor;
+  const anchoredTo = still ? null : reached;
   const { clipped, lines, budget, ceiling, effort } = plannedFor({ parts, bodies, recheck, asked: cap, effort: askedEffort });
   if (clipped.length) console.error(`codex: sent clipped, too long to fit whole: ${clipped.join(", ")}.`);
   const history = historyFor(entries, root, undefined, rels);
@@ -370,7 +377,12 @@ const consult = async (given) => {
   try {
     const opening = openingFor(intent, parts, history, { risks, only, bodies });
     const held = await reviewed(
-      values, model, opening, scopeFor(root, rels.filter(isAbsolute), projectCheck()), streamed, askApi,
+      values, model, opening,
+      /* `reached` and not `anchoredTo`: a recheck whose tree has not moved sent no diff and so
+         anchors no log row, but the reviewer asking for "the diff" still means the change since
+         that head, and the tree at HEAD would hand it every file this consult is not about. */
+      scopeFor(root, rels.filter(isAbsolute), projectCheck(), { anchor: reached, files: rels }),
+      streamed, askApi,
       { effort, budget, ceiling, system },
     );
     /* Buffered while a retry was still possible, so the review lands here in one piece. */

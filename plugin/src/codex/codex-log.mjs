@@ -243,6 +243,46 @@ export const recheckPlan = (entries, root, rels) => {
 
 export const recheckRisks = (entries, root, rels) => recheckPlan(entries, root, rels)?.risks ?? [];
 
+/* Six and a count in the sentence keeps a refusal readable; the command carries every path, since a pass over six of thirty earns nothing while looking as though it did — quoted where a shell would split it, pathed where this CLI's own parser would eat it as a flag. */
+const SHOWN = 6;
+const PLAIN = /^[\w./@+][\w./@+-]*$/u;
+const shell = (one) => (PLAIN.test(one) ? one : `'${one.replace(/'/gu, String.raw`'\''`)}'`);
+const quoted = (one) => (one.startsWith("-") ? `./${one}` : shell(one));
+const listed = (rels) => {
+  const shown = rels.slice(0, SHOWN).map(quoted).join(" ");
+  return rels.length > SHOWN ? `${shown} and ${rels.length - SHOWN} more` : shown;
+};
+
+/** Why a recheck has nothing to verify and which pass does earn the review, or null where it has.
+ *  Three unlike situations shared one sentence naming no route, so it travelled by hand (ISS-51). */
+export const recheckOwed = (plan, rels) => {
+  if (plan?.risks.length) return null;
+  const read = `Do this: \`echo "<what you were doing>" | forge codex consult --send bodies ${rels.map(quoted).join(" ")}\``;
+  if (!plan) {
+    return `--recheck answers an earlier consult's findings, and no consult in the log has answered on ${listed(rels)}.\n`
+      + `${read} — the read of the whole set is the pass a review is earned by, and a recheck follows one of its findings.`;
+  }
+  const of = plan.judged.id ?? plan.judged.at;
+  /* The last consult sharing ANY of these files. `files` is what it was about, `sent` what it carried,
+     and a `sent` entry is not a body — `bundle` records one for a file it could not read. Half a set,
+     a clipped body, a missing entry and an empty one each close a review on something nobody read. */
+  const unread = rels.filter((rel) => !(plan.judged.files ?? []).includes(rel));
+  const carried = new Map((plan.judged.sent ?? []).map((one) => [one.rel, one]));
+  const whole = (one) => one && !one.clipped && Number(one.chars) > 0;
+  const part = rels.filter((rel) => !unread.includes(rel) && !whole(carried.get(rel)));
+  if (plan.judged.send === "bodies" && !unread.length && !part.length) {
+    return `consult ${of} read this set whole and found nothing${plan.judged.head ? `, taken at ${plan.judged.head}` : ""}: `
+      + "that is the whole-set read a review is earned by, and a recheck has nothing to verify against it. It read a "
+      + "working tree, so the head is where the pass was taken and not what it read.\n"
+      + `${read} — only where the tree has moved since, which this cannot see and you can.`;
+  }
+  const short = unread.length
+    ? ` It read ${listed(plan.judged.files ?? [])}, so ${listed(unread)} ${unread.length === 1 ? "was" : "were"} not among them.`
+    : "";
+  const cut = part.length ? ` It carried no whole body for ${listed(part)}, so that much of the set is unread.` : "";
+  return `consult ${of} is the last answered one on these files and it found nothing, so there is nothing to recheck.${short}${cut}\n`
+    + `${read} — the read of the whole set is what earns the review; a recheck follows a finding and nothing else.`;
+};
 /* A recheck's rulings are the verdict on what it re-verified: REFUTED is a finding the tree no longer
    shows. 37 consults with findings closed with nothing recorded, and 10 of them had a recheck that
    said exactly what became of each. The n-th ruling answers the n-th risk, whatever else the reply
