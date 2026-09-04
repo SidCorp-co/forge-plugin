@@ -20,7 +20,9 @@ const LINKED = ["node_modules", join("packages", "code-quality", "node_modules")
    that spans them is owed by this count rather than by anyone's judgement per issue. */
 const REVIEWED = "refs/forge/reviewed";
 const REVIEW_PATHS = ["plugin/src", "plugin/hooks", "plugin/bin"];
-const REVIEW_RELEASES = 3;
+/* Volume alone, because the release count fired first on both readings it ever triggered — three
+   releases at thirty-six changed lines the first time — so the trigger was the calendar of
+   releases and not the code there is to read (ISS-112). Releases are still printed. */
 const REVIEW_LINES = 500;
 const NO_MARK = `no ${REVIEWED} in this repository, so what is owed a reading cannot be counted. `
   + `The first review reads from the release that introduced this rule: ${SELF} review --done <that release>.`;
@@ -49,11 +51,14 @@ const USAGE = [
   "whether a restart is owed before anything trusts the release.",
   "",
   `That last step also counts what landed under ${REVIEW_PATHS.join(", ")} since ${REVIEWED}, and`,
-  `says one reading of the whole of it is owed once the range holds ${REVIEW_RELEASES} release(s) or`,
-  `${REVIEW_LINES} changed line(s). That reading is a delegated run in a worktree of its own, under`,
-  "the same contract and the same gates; it ends with --done from that tree, after its own ship, so",
-  "the mark names the pushed head it read to. A mark left unmoved keeps the count growing, which is",
-  "how a skipped reading stays visible at the next ship.",
+  `says one reading of the whole of it is owed once the range holds ${REVIEW_LINES} changed line(s).`,
+  "The release count is printed beside it and decides nothing, so three one-line fixes owe no reading",
+  "and one large landing owes one on its own. Past the threshold the step files the reading's issue",
+  "itself, through this repository's own CLI, and prints the line that launches the run — and while",
+  "that issue is open it names it and files nothing. That reading is a delegated run in a worktree of",
+  "its own, under the same contract and the same gates; it ends with --done from that tree, after its",
+  "own ship, so the mark names the pushed head it read to. A mark left unmoved keeps the count",
+  "growing, which is how a skipped reading stays visible at the next ship.",
 ].join("\n");
 
 /* Run for the person watching: a step's own output is the evidence that it did what it says. */
@@ -215,10 +220,101 @@ const landed = (tree, from) => {
 const reviewSays = (tree, from) => {
   const { releases, files, lines } = landed(tree, from);
   return {
-    owed: releases >= REVIEW_RELEASES || lines >= REVIEW_LINES,
+    owed: lines >= REVIEW_LINES,
     range: `${from.slice(0, 7)}..HEAD`,
     count: `${releases} release(s), ${files} file(s), ${lines} changed line(s)`,
+    volume: `${files} file(s) and ${lines} changed line(s)`,
   };
+};
+
+const KEY = /ISS-\d+/gu;
+
+/** The issues whose work the range carries, ascending, read off the subjects rather than from any
+ *  list a person keeps: a release commit names no issue, and the commits it released do. */
+const spanned = (tree, from) => {
+  const subjects = gitOut(["log", "--first-parent", "--format=%s", `${from}..HEAD`], tree) ?? "";
+  return [...new Set(subjects.match(KEY) ?? [])].sort((one, two) => Number(one.slice(4)) - Number(two.slice(4)));
+};
+
+/** What a reading of one batch is owed, which lives here and in no prompt: the run reads it off the
+ *  issue, and a person types none of it. */
+const reviewBody = (tree, from, to, volume) => {
+  const keys = spanned(tree, from);
+  const paths = REVIEW_PATHS.join(" ");
+  return [
+    "## Outcome",
+    "",
+    `The whole of ${from.slice(0, 7)}..${to.slice(0, 7)} is read once, as one batch, by a run that`,
+    `wrote none of it: ${volume} under ${REVIEW_PATHS.join(", ")}. What that reading finds is landed`,
+    `or filed, and ${REVIEWED} then names the head it read to, so the next batch counts from there.`,
+    "",
+    "## Rules",
+    "",
+    `- The range is a commit pair and the reading is its diff under those three paths, from the run's`,
+    `  own tree: \`git diff ${from}..${to} -- ${paths}\`.`,
+    "- What it looks for is what no single issue's review can see: a helper two runs each wrote, a",
+    "  simplification two changes apart, a parameter nothing passes any more, a shape one run left",
+    "  half moved.",
+    "- Behaviour stays as it is. A finding lands as one commit that only simplifies, reviewed like any",
+    "  other commit; anything that would alter what the code does is filed as its own issue naming",
+    "  this one, never fixed here.",
+    `- Issues whose releases this range spans: ${keys.join(", ") || "none, so the range is unreleased work"}.`,
+    `- The run ends from its own tree with \`${SELF} review --done\`, after its own ship, so the mark`,
+    "  names the pushed head the reading reached.",
+    "",
+    "## Out of scope",
+    "",
+    "Each issue's own diff, which its own run already reviewed, and any change of behaviour, which is",
+    "a filing rather than a fix.",
+    "",
+    "## Why",
+    "",
+    "Every delegated run reviews its own diff and stops there, so what two runs each wrote is inside",
+    "no run's range and is found by nobody (ISS-95). The ship step counts the volume since the mark",
+    `and files this reading itself once ${REVIEW_LINES} changed line(s) have landed, so nobody has to`,
+    "notice.",
+    "",
+  ].join("\n");
+};
+
+const CLI = join(HERE, "plugin", "bin", "forge");
+const CLI_MS = 60_000;
+const launch = (key) => `Work ${key}. Use the Skill tool: skill forge:issue-flow, args ${key}.`;
+
+/* The tracker through this repository's own CLI, and never through `loud`: a filing the network
+   refuses is not a failed release, so what cannot be reached is returned as a reason to print. */
+const forgeSays = (tree, args, input) => {
+  const run = spawnSync(CLI, args, { cwd: tree, encoding: "utf8", input, timeout: CLI_MS });
+  if (run.error) return { why: `${CLI} could not be run: ${run.error.message}` };
+  if (run.status !== 0) return { why: (run.stderr || run.stdout || `exited ${run.status}`).trim() };
+  return { out: run.stdout };
+};
+
+/** The review issue already open for this mark, or nothing. The row projection carries no
+ *  description, so the filing puts the mark in the title too and one read decides it; the tracker's
+ *  search is ranked rather than exact, so what it returns is filtered here on the mark itself. */
+const openFor = (tree, from) => {
+  const at = from.slice(0, 7);
+  const found = forgeSays(tree, ["issues", "--status", "open", "--search", at, "--limit", "100"]);
+  if (found.why) return found;
+  const rows = found.out.split("\n").map((line) => /^(ISS-\d+)\s+\S+\s+(.*)$/u.exec(line.trim()));
+  return { key: rows.find((row) => row?.[2].includes(`${at}..`))?.[1] ?? null };
+};
+
+/* Never twice outranks filing promptly, so a list that does not answer files nothing either: the
+   count keeps growing and the next ship reads the backlog again. */
+const fileReview = (tree, from, volume) => {
+  const held = openFor(tree, from);
+  if (held.why || held.key) return held;
+  const to = gitOut(["rev-parse", "HEAD"], tree);
+  if (!to) return { why: `${tree} has no HEAD to name as the range's end.` };
+  const title = `The batch ${from.slice(0, 7)}..${to.slice(0, 7)} is read once as a whole by a run `
+    + `that wrote none of it, and the mark moves`;
+  const filed = forgeSays(tree, ["new", "-", "--title", title, "--kind", "feature"],
+    reviewBody(tree, from, to, volume));
+  if (filed.why) return filed;
+  const key = /"issueId":\s*"(ISS-\d+)"/u.exec(filed.out)?.[1];
+  return key ? { key, filed: true } : { why: `the filing answered with no issue key:\n${filed.out.trim()}` };
 };
 
 /* The mark is never planted here. One planted where none was found would read exactly like a
@@ -226,16 +322,23 @@ const reviewSays = (tree, from) => {
 const reviewOwed = (tree) => {
   const from = reviewedAt(tree);
   if (!from) return console.error(`  ${NO_MARK}`);
-  const { owed, range, count } = reviewSays(tree, from);
+  const { owed, range, count, volume } = reviewSays(tree, from);
   if (!owed) {
     return console.log(`  ${count} under ${REVIEW_PATHS.join(", ")} since ${from.slice(0, 7)}, short `
-      + `of the ${REVIEW_RELEASES} release(s) or ${REVIEW_LINES} line(s) that call for a reading`);
+      + `of the ${REVIEW_LINES} line(s) that call for a reading`);
   }
   console.log(`  a review of ${range} is owed: ${count} under ${REVIEW_PATHS.join(", ")}, at or past `
-    + `${REVIEW_RELEASES} release(s) or ${REVIEW_LINES} line(s). It is a delegated run of its own:`);
-  console.log(`    file its issue:  forge new - --title "review ${range}" --size feature`);
-  console.log(`    give it a tree:  ${SELF} start <that ISS-nn>`);
-  console.log(`    it ends by moving the mark, finding or none: ${SELF} review --done`);
+    + `${REVIEW_LINES} line(s). It is a delegated run of its own:`);
+  const asked = fileReview(tree, from, volume);
+  if (asked.why) {
+    console.error(`  the tracker did not answer, so nothing is filed and the next ship asks again: ${asked.why}`);
+    console.log(`    file its issue:  forge new - --title "review ${range}" --kind feature`);
+    console.log(`    give it a tree:  ${SELF} start <that ISS-nn>`);
+    console.log(`    it ends by moving the mark, finding or none: ${SELF} review --done`);
+    return;
+  }
+  console.log(asked.filed ? `    filed ${asked.key}` : `    ${asked.key} is open for this mark already, so nothing was filed`);
+  console.log(`  ${launch(asked.key)}`);
 };
 
 /* The mark's only writer, so nothing else has to agree with it about where a reading reached. */
@@ -249,8 +352,8 @@ const review = (argv) => {
     console.log(`${range} is the next review's, and holds ${count} under ${REVIEW_PATHS.join(", ")}.`);
     console.log(`  git diff ${from}..HEAD -- ${REVIEW_PATHS.join(" ")}`);
     return console.log(owed
-      ? `A review is owed: ${REVIEW_RELEASES} release(s) or ${REVIEW_LINES} line(s) call for one, and this range is past that.`
-      : `Short of the ${REVIEW_RELEASES} release(s) or ${REVIEW_LINES} line(s) that call for a reading.`);
+      ? `A review is owed: ${REVIEW_LINES} changed line(s) call for one, and this range is past that.`
+      : `Short of the ${REVIEW_LINES} changed line(s) that call for a reading.`);
   }
   const asked = argv[at + 1] ?? "HEAD";
   const to = gitOut(["rev-parse", "--verify", `${asked}^{commit}`], tree);

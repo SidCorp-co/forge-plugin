@@ -74,15 +74,55 @@ const lastStep = (work) => {
 
 const ref = (work) => git(work, "rev-parse", "--verify", "--quiet", "refs/forge/reviewed").stdout.trim();
 
+/* The tracker the release step files through, standing in for the CLI at the path the step invokes.
+   Every call is logged with the body it was piped, `new` leaves the row a later `issues` finds, and
+   a `forge-refuses` file is the network that is not there — all three above the checkout, because
+   an artefact inside it is an uncommitted file and the first ship step refuses a dirty tree.
+   CommonJS: the scratch manifest names no module type and a wrapper carries no extension. */
+const STUB = `#!/usr/bin/env node
+const { appendFileSync, existsSync, readFileSync } = require("node:fs");
+const { join } = require("node:path");
+const room = join(__dirname, "..", "..", "..");
+const argv = process.argv.slice(2);
+const body = argv.includes("-") ? readFileSync(0, "utf8") : "";
+appendFileSync(join(room, "forge-calls.json"), JSON.stringify({ argv, body }) + "\\n");
+if (existsSync(join(room, "forge-refuses"))) {
+  process.stderr.write("the tracker did not answer: getaddrinfo ENOTFOUND\\n");
+  process.exit(1);
+}
+const rows = join(room, "forge-open.txt");
+if (argv[0] === "issues") {
+  process.stdout.write(existsSync(rows) ? readFileSync(rows, "utf8") : "");
+  process.stdout.write("\\n0 issue(s)\\n");
+  process.exit(0);
+}
+const title = argv[argv.indexOf("--title") + 1];
+appendFileSync(rows, \`\${"ISS-777".padEnd(8)} \${"open".padEnd(12)} \${title}\\n\`);
+process.stdout.write(JSON.stringify({ documentId: "d", issueId: "ISS-777", title }, null, 2));
+`;
+
+/* Committed before the mark is planted, so the stub itself is behind the range the count reads. */
+const stubbed = (work) => {
+  mkdirSync(join(work, "plugin", "bin"), { recursive: true });
+  writeFileSync(join(work, "plugin", "bin", "forge"), STUB, { mode: 0o755 });
+  git(work, "add", join("plugin", "bin", "forge"));
+  git(work, "commit", "-m", "the tracker this checkout files through");
+};
+
+const called = (at) => readFileSync(join(at, "forge-calls.json"), "utf8")
+  .split("\n").filter(Boolean).map((line) => JSON.parse(line));
+
 /* The threshold and the mark are typed here rather than imported: nothing imports an entry point,
    and a second party that has to agree with the constants is what pins them to the help at all. */
 test("-h names all three steps, the resume flag and the threshold it counts against", () => {
   const run = runIn(ROOT, ["-h"]);
   assert.equal(run.status, 0, run.stderr);
   for (const said of ["start <ISS-nn>", "ship [--from N]", "review [--done [ref]]", "--from N",
-    "worktree", "restart", "refs/forge/reviewed", "3 release(s)", "500 changed line(s)", "npm run check"]) {
+    "worktree", "restart", "refs/forge/reviewed", "500 changed line(s)", "npm run check",
+    "The release count is printed beside it and decides nothing"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
+  assert.ok(!run.stdout.includes("3 release(s)"), `a release count is no part of the trigger:\n${run.stdout}`);
 });
 
 test("start adds the worktree, links what the checkout installed, and names the wrapper to probe with", () => {
@@ -201,29 +241,25 @@ test("with no mark, the last step says it cannot count and plants nothing", () =
   assert.match(asked.stderr, /no refs\/forge\/reviewed/u, asked.stderr);
 });
 
-test("the third release since the mark is owed a reading, and the two before it are not", () => {
+/* The release count fired first on both readings it ever triggered, so the calendar of releases was
+   the trigger and the code there is to read was not. It is printed and it decides nothing. */
+test("releases alone owe no reading, however many, and the count still names them", () => {
   const { work } = pushed("releases");
   const planted = runIn(work, ["review", "--done"], BARE);
   assert.match(planted.stdout, /refs\/forge\/reviewed planted at [0-9a-f]{7}/u, planted.stdout);
   assert.equal(ref(work), git(work, "rev-parse", "HEAD").stdout.trim());
 
-  for (const nth of [1, 2]) {
+  for (const nth of [1, 2, 3]) {
     landIn(work, join("plugin", "hooks", `gate-${nth}.mjs`), 4, `the ${nth} change`);
     const under = lastStep(work);
     assert.match(under.stdout, new RegExp(`${nth} release\\(s\\), ${nth} file\\(s\\)`, "u"), under.stdout);
-    assert.doesNotMatch(under.stdout, /a review of/u, `${nth} release(s) is short of the threshold`);
+    assert.doesNotMatch(under.stdout, /a review of/u, `${nth} release(s) of 4 lines is no reading's worth`);
+    assert.match(under.stdout, /short of the 500 line\(s\) that call for a reading/u, under.stdout);
   }
-
-  landIn(work, join("plugin", "bin", "one"), 4, "the third change");
-  const owed = lastStep(work);
-  assert.match(owed.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 3 release\(s\)/u, owed.stdout);
-  assert.match(owed.stdout, /forge new - --title "review [0-9a-f]{7}\.\.HEAD"/u, owed.stdout);
-  assert.match(owed.stdout, /start <that ISS-nn>/u, owed.stdout);
 });
 
-/* Both halves of the threshold have to fire on their own, or a repository that ships rarely and
-   changes a lot is never read. Read through the verb rather than through a ship, so the release
-   count stays at zero and the line half is the only thing that can be what fired. */
+/* Read through the verb rather than through a ship, so the release count stays at zero and the
+   volume is the only thing that can be what fired. */
 test("the five hundredth changed line is owed a reading, and only in the counted paths", () => {
   const { work } = pushed("lines");
   runIn(work, ["review", "--done"], BARE);
@@ -231,7 +267,7 @@ test("the five hundredth changed line is owed a reading, and only in the counted
   landIn(work, join("docs", "long.md"), 600, "prose, which the one-home check reads");
   const outside = runIn(work, ["review"], BARE);
   assert.match(outside.stdout, /holds 0 release\(s\), 0 file\(s\), 0 changed line\(s\)/u, outside.stdout);
-  assert.match(outside.stdout, /^Short of the 3 release\(s\) or 500 line\(s\)/mu, "docs/ is not a path this count reads");
+  assert.match(outside.stdout, /^Short of the 500 changed line\(s\)/mu, "docs/ is not a path this count reads");
 
   landIn(work, join("plugin", "src", "wide.mjs"), 499, "a module a run grew");
   const under = runIn(work, ["review"], BARE);
@@ -244,6 +280,73 @@ test("the five hundredth changed line is owed a reading, and only in the counted
   assert.match(owed.stdout, /^A review is owed:/mu, owed.stdout);
   assert.match(lastStep(work).stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\)/u,
     "the release step says it too, on a release count of its own bump alone");
+});
+
+/* Both readings this count ever asked for were then typed by hand — the range, the size, the rules
+   — which is a person copying out what the step had already measured (ISS-112). */
+const owedAt = (name) => {
+  const { at, work } = pushed(name);
+  stubbed(work);
+  runIn(work, ["review", "--done"], BARE);
+  const from = ref(work);
+  landIn(work, join("plugin", "src", "wide.mjs"), 501, "a module a run grew (ISS-77)");
+  return { at, work, from };
+};
+
+test("past the threshold the step files the reading's issue itself, and prints the line that launches it", () => {
+  const { at, work, from } = owedAt("filed");
+
+  const owed = lastStep(work);
+  const to = git(work, "rev-parse", "HEAD").stdout.trim();
+  const filing = called(at).find((one) => one.argv[0] === "new");
+  assert.ok(filing, `nothing was filed:\n${owed.stdout}${owed.stderr}`);
+  assert.deepEqual(filing.argv.slice(0, 2), ["new", "-"], "the body goes in on stdin");
+  assert.ok(filing.argv.includes("--kind") && filing.argv[filing.argv.indexOf("--kind") + 1] === "feature",
+    `the filing names no kind the verb takes: ${filing.argv.join(" ")}`);
+  assert.ok(filing.argv[filing.argv.indexOf("--title") + 1].includes(`${from.slice(0, 7)}..${to.slice(0, 7)}`),
+    `the title names no commit pair: ${filing.argv.join(" ")}`);
+
+  for (const said of ["## Outcome", "## Rules", "## Out of scope", "1 file(s) and 501 changed line(s)",
+    `git diff ${from}..${to} -- plugin/src plugin/hooks plugin/bin`, "ISS-77", "review --done"]) {
+    assert.ok(filing.body.includes(said), `the body carries no ${said}:\n${filing.body}`);
+  }
+  assert.ok(owed.stdout.includes("filed ISS-777"), owed.stdout);
+  assert.ok(owed.stdout.includes("Work ISS-777. Use the Skill tool: skill forge:issue-flow, args ISS-777."),
+    `the launch line is not printed as the parent reads it:\n${owed.stdout}`);
+});
+
+test("a second ship at the same mark names the issue already open and files nothing", () => {
+  const { at, work } = owedAt("twice");
+  lastStep(work);
+
+  landIn(work, join("plugin", "src", "wider.mjs"), 40, "more of the same");
+  const again = lastStep(work);
+  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 1,
+    `the mark's reading was filed twice:\n${again.stdout}`);
+  assert.match(again.stdout, /ISS-777 is open for this mark already, so nothing was filed/u, again.stdout);
+  assert.ok(again.stdout.includes("Work ISS-777."), `the run still has one thing to do:\n${again.stdout}`);
+});
+
+/* A review is never lost for want of a network: nothing is filed, the count and the route print as
+   they did before anything filed itself, and the next ship asks again. */
+test("a tracker that does not answer files nothing, prints the route, and leaves the next ship to file it", () => {
+  const { at, work } = owedAt("offline");
+  writeFileSync(join(at, "forge-refuses"), "");
+
+  const blind = lastStep(work);
+  assert.equal(blind.status, 0, blind.stderr);
+  assert.match(blind.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\), 1 file\(s\), 501 changed line\(s\)/u, blind.stdout);
+  assert.match(blind.stderr, /the tracker did not answer, so nothing is filed and the next ship asks again/u, blind.stderr);
+  assert.match(blind.stdout, /forge new - --title "review [0-9a-f]{7}\.\.HEAD" --kind feature/u,
+    `the route it prints has to run as printed, and --size takes only \`fix\` (ISS-118):\n${blind.stdout}`);
+  assert.match(blind.stdout, /start <that ISS-nn>/u, blind.stdout);
+  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 0, "a refused list may not file");
+
+  rmSync(join(at, "forge-refuses"));
+  const then = lastStep(work);
+  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 1,
+    `the reading was lost rather than retried:\n${then.stdout}${then.stderr}`);
+  assert.ok(then.stdout.includes("Work ISS-777."), then.stdout);
 });
 
 test("a reading that finds nothing moves the mark in one line, and the count starts again there", () => {
