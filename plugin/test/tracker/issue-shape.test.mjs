@@ -8,7 +8,7 @@ import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 
 const home = tempHome("issue-shape");
 process.env.XDG_CONFIG_HOME = home.path;
-const { FIX_OWES, SIZE_LINE, UNRANKED, duplicateOf, filedAs, isFix, partsIn, priorityFor, refusalFrom,
+const { SIZE_LINE, UNRANKED, duplicateOf, filedAs, isFix, partsIn, priorityFor, refusalFrom,
   shapeOf, tokensNamed, twoChangesIn, withMark } = await import("../../src/tracker/issue-shape.mjs");
 const { filingsOf } = await import("../../src/tracker/issue-read.mjs");
 
@@ -143,11 +143,7 @@ test("the mark clears the fix route on every route, because the CLI writes it in
   assert.equal(isFix("size:fix"), true, "while the spacing and the full stop are the author's");
 });
 
-test("what a fix owes and what it does not is said, and nothing is relaxed by saying it", () => {
-  assert.match(FIX_OWES, /owed {8}the plan/u);
-  assert.match(FIX_OWES, /not owed {4}a decision record/u);
-  assert.match(FIX_OWES, /Every entry check below still asks for the full set/u);
-});
+
 
 /* The measure is the one this repository's own documents are held to, so a title restating an open
    issue is refused by the same index a restated paragraph is. ISS-56 against ISS-51, at 0.60. */
@@ -279,6 +275,10 @@ test("the verb refuses a fix with the three routes and the open issues naming wh
   assert.match(run.stderr, /ISS-45/u, "the candidate is searched on the token the body names");
   assert.doesNotMatch(run.stderr, /ISS-70/u, "and a closed issue is no candidate");
   assert.match(run.stderr, /Name a route:/u, "and what it says is the whole of what to do");
+  /* The light path left this module; what this nudge justified itself by is what changed (ISS-141). */
+  assert.doesNotMatch(run.stderr, /whatever the size/u,
+    "which the mark made false: it is what drops the decision, the plan and the note");
+  assert.match(run.stderr, /the mark is what drops the decision, the plan and the note/u);
 });
 
 test("--size fix files the same body, with the mark the CLI writes into the description", async () => {

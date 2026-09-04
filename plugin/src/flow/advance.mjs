@@ -6,13 +6,12 @@ import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, cutLine } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
-import { FIX_OWES, isFix } from "../tracker/issue-shape.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../tracker/contract.mjs";
 import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE, planFlags, unwrap } from "./machine.mjs";
 import { releasePolicy } from "../tracker/project-config.mjs";
 import { Refused, issueOf, post, refuse, render } from "./record.mjs";
-import { PARK_STATUS, SIDE, atLeast, payloadOwed, personLooks, transitionCall, viewFrom } from "./earned.mjs";
+import { PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, personLooks, transitionCall, viewFrom } from "./earned.mjs";
 import { lookAhead, targetOf } from "./route.mjs";
 import { FIELD, leaseOf, nextLine, renew } from "./lease.mjs";
 
@@ -32,16 +31,22 @@ export const USAGE = [
   "  --park <kind> --why W [--evidence E]...  a park record, then the side status the kind implies",
   "  --drop --why W          park as dropped; refused once the merged mark is set",
   "",
-  "Earned by, from the contract's flow table:",
+  "Earned by, from the contract's flow table, with what a body marked `Size: fix.` owes instead:",
   "  confirmed     a confirmation: where you looked, what it is, and the finding",
   "  clarified     a decision record, or an explicit none found",
+  "                  a fix: nothing at all",
   "  approved      the plan field with its screen and schema lines, and numbered criteria",
+  "                  a fix: the numbered criteria alone, its absent declarations reading `no`",
   "  in_progress   every blocker at least developed, and a baseline",
   "  developed     an approving review of the commit the merged mark names, and the mark",
   "  tested        a pass or a reasoned skip on every criterion, at the merged commit",
   "  released      a verification, and a release note or a withholding",
+  "                  a fix: the verification, the note withheld by rule",
   "  closed        released",
   "  dropped       a confirmation whose finding is a disposition, or --drop --why",
+  "",
+  "A fix declaring a screen change or a user-facing outcome, one re-sized by a correction, and one",
+  "whose comment page came back short are all on the full path; --owed on a marked issue says which.",
   "",
   "`closed` is the one entry criterion that is a status, so a close reads no comment at all. Every",
   "other move is judged on the page the tracker returns, and where it shortened one the shortfall",
@@ -138,7 +143,8 @@ export const checkTarget = (to, next, view, ref) => {
 /* Printed under the shortfall and under "the record earns it" alike, because the point of it is
    that a run reads it before the status it belongs to is the one being asked for. */
 const sayAhead = (view, ref, next) => {
-  if (isFix(view.issue.description)) console.log(`\n${FIX_OWES}`);
+  const size = fixReport(view, ref);
+  if (size) console.log(`\n${size}`);
   const said = lookAhead(view, ref);
   if (said) console.log(`\n${said}`);
   console.log(`\n${stageLine(next, partsOf(readContract()))}`);

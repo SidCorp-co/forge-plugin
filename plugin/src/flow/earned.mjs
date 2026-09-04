@@ -2,8 +2,10 @@
    record read whole into one object. The verb that spends this is advance.mjs; nothing here
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
-import { FINDINGS, SHAPES, TRIAGES, markedCommit, planFlags, reviewedHead, unwrap } from "./machine.mjs";
+import { FINDINGS, SHAPES, TRIAGES, lightens, looksTo, markedCommit, planFlags, reviewedHead, sizeReport, unwrap }
+  from "./machine.mjs";
 import { attachmentNames, evidenceHeld, isCommit } from "../tracker/evidence.mjs";
+import { SIZE_LINE, isFix } from "../tracker/issue-shape.mjs";
 import { Refused, assemble, criteriaLines, parse } from "./record.mjs";
 import { CONTRACT } from "../tracker/contract.mjs";
 import { waitsForPerson } from "../tracker/project-config.mjs";
@@ -126,14 +128,25 @@ export const nextOf = (status, view) => {
 
 export const need = (what, command) => ({ what, command });
 
-/* Which of the two declarations asks for a person, named so the refusal and the line warning of it
-   three statuses earlier read alike. The park is the same either way: a look at the evidence, which
-   the project's own policy may say it does not want. */
-export const personLooks = ({ screen, look }, policy = null) => {
-  if (policy && !waitsForPerson(policy)) return null;
-  if (look === "yes") return "a user-facing outcome";
-  return screen === "yes" ? "a screen change" : null;
-};
+/* The park is a look at the evidence either way, which the project's own policy may say it does
+   not want: the declaration is the plan's and whether a person is waited for is the project's. */
+export const personLooks = (flags, policy = null) =>
+  (policy && !waitsForPerson(policy) ? null : looksTo(flags));
+
+/* Every correction, not the latest: the kind does not repeat, so a plan one erases a re-size (ISS-161). */
+const sizeOf = (view) => ({
+  fix: Boolean(view.fix),
+  plan: unwrap(view.issue.plan),
+  moved: view.comments
+    .map((one) => parse(one.body ?? ""))
+    .filter((one) => one?.kind === "correction" && !shapeGaps("correction", one, view.names).length)
+    .map((one) => one.fields.moved),
+  mark: SIZE_LINE,
+  whole: view.whole !== false,
+});
+
+export const lightPath = (view, status) => lightens(status, sizeOf(view));
+export const fixReport = (view, ref) => sizeReport(sizeOf(view), ref);
 
 const markCall = (documentId) =>
   `forge call forge_issues '{"action":"mark_merged","data":{"issueId":"${documentId}",`
@@ -271,18 +284,20 @@ export const CHECKS = {
       `forge record confirmation ${ref} --where <where> --is "<what it is>" --finding holds`,
     ),
   clarified: (view, ref) =>
-    payloadOwed(
+    (lightPath(view, "clarified") ? [] : payloadOwed(
       view,
       "decision",
       "no decision record: each reading decided with its assumption and undo, or an explicit none",
       `forge record decision ${ref} --decision "reading | assumption | undo"`,
-    ),
+    )),
   approved: (view, ref) => {
     const out = [];
     const plan = unwrap(view.issue.plan);
     const flags = planFlags(plan);
-    if (!plan) out.push(need("the plan field is empty", `forge plan ${ref} <plan.md>`));
-    else if (!flags.screen || !flags.schema) {
+    /* Absent, the declarations read `no` in every reader downstream, so a fix defaults nothing here. */
+    const asks = !lightPath(view, "approved");
+    if (asks && !plan) out.push(need("the plan field is empty", `forge plan ${ref} <plan.md>`));
+    else if (asks && (!flags.screen || !flags.schema)) {
       out.push(need(
         "the plan declares neither `Screen change: yes|no` nor `Schema coupling: yes|no`, and the "
           + "two decide what the ship steps owe",
@@ -331,7 +346,7 @@ export const CHECKS = {
       "no verification: where the change now runs, at which commit, and the evidence",
       `forge record verification ${ref} --where "<where it runs>" --commit <sha> --evidence <attachment|url|sha>`,
     );
-    if (!view.issue.releaseNotes?.section) {
+    if (!view.issue.releaseNotes?.section && !lightPath(view, "released")) {
       out.push(need("no release note and no withholding either", `forge record note ${ref} --section Added --user "<what the reporter sees>"`));
     }
     const declared = personLooks(planFlags(unwrap(view.issue.plan)), view.release);
@@ -350,7 +365,8 @@ export const CHECKS = {
 export const viewFrom = (documentId, issue, comments, cut = null, release = null) => {
   const criteria = criteriaOf(issue);
   const names = attachmentNames(issue, comments);
-  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, ...assemble(comments, criteria) };
+  const fix = isFix(issue.description);
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, fix, ...assemble(comments, criteria) };
 };
 export const parkRecord = (view, wanted = () => true) => {
   const found = view.comments

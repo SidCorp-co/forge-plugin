@@ -16,10 +16,9 @@ const CANDIDATES = 4;
 const TOKENS = 3;
 const SEARCHED = MAX_LIMIT;
 
-/* The line that marks a change for the light path: the tracker auto-creates no label, so a mark it
-   owns cannot be had. What is written is exact and what is read is a family, because a person
-   typing it on the tracker's own screens should not lose the mark to a full stop. The end of the
-   line is checked all the same, so `Size: fix later` is not it. */
+/* The line that marks a change for the light path, the tracker auto-creating no label a mark could
+   own. Written exact and read as a family, so typing it on the tracker's own screens does not lose
+   it to a full stop; the end of the line is checked all the same, so `Size: fix later` is not it. */
 export const SIZE_LINE = "Size: fix.";
 const MARK = /^[ \t]*size:[ \t]*fix\.?[ \t]*$/imu;
 export const isFix = (description) => MARK.test(String(description ?? ""));
@@ -500,19 +499,10 @@ export const refusalFrom = async (filing, { gaps, fix, tokens }, { routed = fals
   const routes = owesRoute ? fixRoutes(tokens, await searched(tokens[0]).catch(() => [])) : null;
   const head = owesRoute && !out.length
     ? `Hold — this body names ${tokens[0]}, carries no rule or invariant and no out-of-scope, and reads as a `
-      + "fix: the flow costs a confirmation, a decision, a plan, criteria, a baseline, a review, a verdict per "
-      + "criterion, a verification, a release note and eight transitions whatever the size. Name a route:"
+      + "fix: filed as a feature the flow costs a confirmation, a decision, a plan, criteria, a baseline, a "
+      + "review, a verdict per criterion, a verification, a release note and eight transitions, and the mark "
+      + "is what drops the decision, the plan and the note. Name a route:"
     : SHAPE_HEAD;
   return [head, out.length ? rendered(out) : null, routes].filter(Boolean).join("\n\n");
 };
 
-/** The contract's light path, reported by `advance --owed` and enforced by no check yet. */
-export const FIX_OWES = [
-  "This issue is marked `Size: fix.`, so the contract's light path applies to it:",
-  "  owed        the plan, with its three lines all `no`, which is also its confirmation",
-  "  owed        criteria: the one check that fails without the change",
-  "  owed        a baseline, the codex whole-file read as its review, and a verdict on that check",
-  "  owed        a verification: that check green from the released copy",
-  "  not owed    a decision record, and no release note unless a person sees the change",
-  "Every entry check below still asks for the full set; the mark reports and refuses nothing.",
-].join("\n");

@@ -106,6 +106,10 @@ export const planFlags = (plan) =>
   Object.fromEntries(Object.entries(DECLARED).map(([key, name]) =>
     [key, lineFor(name).exec(plan ?? "")?.[1]?.toLowerCase() ?? null]));
 
+/** Which declaration asks for a person, beside the table it reads so no two readers name a different one. */
+export const looksTo = ({ screen, look }) =>
+  (look === "yes" ? "a user-facing outcome" : (screen === "yes" ? "a screen change" : null));
+
 /* As far as `lineFor` reaches: one accepted mid-line and left bare is renamed, and declares nothing. */
 const MACHINE = {
   plan: new RegExp(`(${Object.values(DECLARED).join("|")}):[ \\t]*(yes|no)\\b`, "gimu"),
@@ -121,6 +125,73 @@ export const protectMachine = (field, text) => {
     .split(new RegExp(SPAN.source, "gu"))
     .map((part, at) => (at % 2 ? part : part.replace(pattern, (_whole, name, value) => `\`${name}: ${value}\``)))
     .join("");
+};
+
+/* The mark is a reporter's own description line, which this flow does not rewrite, so the way back
+   is a record — one direction: removing demands would unearn statuses already held. */
+const RESIZE = /\bsize:\s*fix\s*(?:->|\u2192|to)\s*(?:feature|full)\b/iu;
+export const resizeForm = (ref) =>
+  `forge record correction ${ref} --moved "Size: fix -> feature" --why "<what the work turned out to be>"`;
+const resized = (moved) => (moved ?? []).some((one) => RESIZE.test(String(one ?? "")));
+
+/* What the size decides, in the one table the checks and the report both read. */
+export const LIGHTER = [
+  {
+    status: "clarified",
+    drops: "a decision record",
+    because: "the reading that mattered is the defect, and the confirmation held it",
+  },
+  {
+    status: "approved",
+    drops: "the plan field, and the declarations it would carry, which absent read `no`",
+    because: "a fix's criteria are the one check that fails without it, which is the whole of its plan",
+  },
+  {
+    status: "released",
+    drops: "a release note",
+    because: "no person sees the change, so the withholding is the rule and not a record to type",
+  },
+];
+
+/* A cut page never lightens: losing a re-size to it would shrink a shortfall others only grow. */
+export const onLightPath = ({ fix, plan, moved, whole }) =>
+  Boolean(fix) && Boolean(whole) && !resized(moved) && !looksTo(planFlags(plan));
+
+/** The row is what lightens a status, so taking one out restores the demand and not just the report. */
+export const lightens = (status, size) =>
+  LIGHTER.some((one) => one.status === status) && onLightPath(size);
+
+const WIDTH = 9;
+const lighterLines = () => LIGHTER.map((one) =>
+  `  ${`at ${one.status}`.padEnd(WIDTH + 5)}not owed: ${one.drops}\n  ${" ".repeat(WIDTH + 5)}  because ${one.because}`);
+
+/* Both ways off the light path in the form each wants: a route a run must infer is the refusal it
+   cannot act on. */
+export const sizeReport = ({ fix, plan, moved, mark, whole }, ref) => {
+  if (!fix) return null;
+  if (resized(moved)) {
+    return [`This issue was marked \`${mark}\` and a correction re-sized it, so the light path`,
+      "no longer applies and every entry check below asks for the full set."].join("\n");
+  }
+  if (!whole) {
+    return [`This issue is marked \`${mark}\`, and the page above was shortened: a cut cannot show`,
+      "a correction that re-sized it, so the light path is not applied and the full set is asked."].join("\n");
+  }
+  const declared = looksTo(planFlags(plan));
+  if (declared) {
+    return [`This issue is marked \`${mark}\`, and its plan declares ${declared}, which is what`,
+      "takes a fix off the light path: every entry check below asks for the full set."].join("\n");
+  }
+  return [
+    `This issue is marked \`${mark}\`, so the entry checks run the contract's light path:`,
+    ...lighterLines(),
+    "Every other demand below stands as a feature's does — the confirmation with its where, the",
+    "criteria, the baseline, the merged mark, the review of the head that landed, a verdict on every",
+    "criterion, the verification, and the migration classification where a plan declares schema",
+    "coupling, which the size never drops. Two ways off the light path, both belonging before the plan —",
+    `  a plan declaring a screen change or a user-facing outcome:  forge plan ${ref} <plan.md>`,
+    `  the work turned out larger:  ${resizeForm(ref)}`,
+  ].join("\n");
 };
 
 /* What a payload of each kind holds, in the one table the write, the read-back and the usage

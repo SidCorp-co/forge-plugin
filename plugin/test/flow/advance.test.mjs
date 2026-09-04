@@ -13,7 +13,7 @@ const {
   CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, holdsBack,
   nextOf, personLooks, sameCommit, shapeGaps, viewFrom,
 } = await import("../../src/flow/earned.mjs");
-const { markedCommit, planFlags } = await import("../../src/flow/machine.mjs");
+const { LIGHTER, markedCommit, planFlags } = await import("../../src/flow/machine.mjs");
 const { lookAhead, targetOf } = await import("../../src/flow/route.mjs");
 const { USAGE, checkTarget, nextHeld } = await import("../../src/flow/advance.mjs");
 
@@ -502,9 +502,9 @@ test("a flag with no form to belong to is refused, never dropped", () => {
   assert.ok(ask("advance").stdout.includes("Usage: forge advance"), "no argument is a question");
 });
 
-/* The light path is reported and not enforced, so what proves it is the line the verb prints on an
-   issue whose description carries the mark — spawned against a tracker, because `--owed` reads the
-   record before it says anything. */
+/* The report the checks above are read out as: spawned against a tracker, because `--owed` reads
+   the record before it says anything, and a run learns the path from the same verb and the same
+   record it learns the shortfall from. */
 const OPEN = {
   documentId: "light-uuid",
   issueId: "ISS-90",
@@ -557,14 +557,16 @@ test("the project's config is asked once the plan declares a person, and never b
     "and the same record earns released where the project releases production itself");
 });
 
-test("--owed on a marked fix says which payloads a fix owes and which it does not", async () => {
+test("--owed on a marked fix reports the light path the checks run, and both ways off it", async () => {
   const run = await owed("ISS-90");
   assert.equal(run.status, 0, "asked what is owed, the shortfall is the answer and not a refusal");
-  assert.match(run.stdout, /marked `Size: fix\.`/u);
-  assert.match(run.stdout, /owed {8}criteria: the one check that fails without the change/u);
-  assert.match(run.stdout, /not owed {4}a decision record/u);
-  assert.match(run.stdout, /still asks for the full set/u, "the mark reports; no check is relaxed by it");
-  assert.match(run.stdout, /no confirmation/u, "so the confirmation a fix's plan replaces is owed all the same");
+  assert.match(run.stdout, /marked `Size: fix\.`, so the entry checks run the contract's light path/u);
+  const reported = (row) => [`at ${row.status}`, row.drops, row.because].every((one) => run.stdout.includes(one));
+  for (const row of LIGHTER) assert.ok(reported(row), `${row.status} is lightened and the report omits ${row.drops}`);
+  assert.doesNotMatch(run.stdout, /still asks for the full set/u, "which is what the checks no longer do");
+  assert.match(run.stdout, /forge plan ISS-90 <plan\.md>/u, "one way off it, in the form it wants");
+  assert.match(run.stdout, /--moved "Size: fix -> feature"/u, "and the other, so neither is inferred");
+  assert.match(run.stdout, /no confirmation/u, "while the confirmation with its where is owed all the same");
   assert.equal(state.calls.some((one) => one.args.action === "transition"), false, "and --owed moves nothing");
 });
 
