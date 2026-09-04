@@ -4,7 +4,7 @@
 import { deny, done, how, shellText, starts } from "../_hook.mjs";
 import { refusalFor, sessionKey } from "../../src/tracker/comments.mjs";
 import { filingsOf, joined, writeTargets } from "../../src/tracker/issue-read.mjs";
-import { refusalForFiling } from "../../src/tracker/issue-shape.mjs";
+import { refusalFrom, shapeOf } from "../../src/tracker/issue-shape.mjs";
 import { documentIdOf } from "../../src/tracker/issues.mjs";
 import { accountCredentials } from "../../src/resolve/settings.mjs";
 
@@ -27,7 +27,7 @@ export const run = async (ev) => {
   if (!url.value || !token.value) done();
   // The shape first: a filing refused is a filing that never happened, and it owes no reading.
   for (const filing of filings) {
-    const refused = await refusalForFiling(filing);
+    const refused = await refusalFrom(filing, shapeOf(filing));
     if (refused) deny(refused + how(SHAPE));
   }
   const { refusal } = await refusalFor(await resolved(refs), sessionKey(ev));

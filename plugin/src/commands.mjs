@@ -18,8 +18,8 @@ import {
   inFlowWords,
   insteadOf,
   kindRefusal,
-  noticeForFiling,
-  refusalForFiling,
+  refusalFrom,
+  shapeOf,
   trackerFields,
   withMark,
 } from "./tracker/issue-shape.mjs";
@@ -44,6 +44,16 @@ import { notAnothers, renew } from "./flow/lease.mjs";
 
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
+
+/* Both routes that file an issue, refusing and saying through one place: what each says was pinned
+   to what the other says by hand, which is a pair of copies agreeing until one is corrected. The
+   read is taken here and passed on, so one body is scanned once however much is asked of it. */
+const readFiling = async (filing, options) => {
+  const shape = shapeOf(filing);
+  const refusal = await refusalFrom(filing, shape, options);
+  if (refusal) fail(refusal);
+  if (shape.said) console.error(shape.said);
+};
 
 /* Absence means empty; the schema already says the field exists. */
 const filled = (record) => {
@@ -179,12 +189,7 @@ export const commands = {
     if (targets.length) await mustBeShown(targets);
     /* And the shape a filing owes, here rather than only in the hook: the payload may arrive from a
        file or from stdin, which the hook reading the command line cannot see. */
-    for (const filing of filingsOf({ name: `mcp__forge__${name}`, input: args })) {
-      const refused = await refusalForFiling(filing);
-      if (refused) fail(refused);
-      const said = noticeForFiling(filing);
-      if (said) console.error(said);
-    }
+    for (const filing of filingsOf({ name: `mcp__forge__${name}`, input: args })) await readFiling(filing);
     const wrote = Boolean(resolved.data);
     const answer = wrote ? await write(name, resolved) : await scoped(name, resolved);
     credited(name, resolved, answer);
@@ -252,10 +257,7 @@ export const commands = {
     }
     const description = size ? withMark(body) : body;
     const read = { title: given.title, body: description, kind: kind ?? null };
-    const refusal = await refusalForFiling(read, { routed: relating });
-    if (refusal) fail(refusal);
-    const notice = noticeForFiling(read);
-    if (notice) console.error(notice);
+    await readFiling(read, { routed: relating });
     const data = { description, status: "open", ...given, ...trackerFields({ kind }) };
     if (relating) data.relations = [{ kind: "relates", blocksId: await documentIdOf(rides) }];
     show(inFlowWords(await write("forge_issues", { action: "create", data })));

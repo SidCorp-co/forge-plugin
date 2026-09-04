@@ -6,8 +6,9 @@ import test from "node:test";
 
 import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 
-process.env.XDG_CONFIG_HOME = tempHome("issue-shape").path;
-const { FIX_OWES, SIZE_LINE, duplicateOf, isFix, partsIn, shapeOf, tokensNamed, twoChangesIn, withMark } =
+const home = tempHome("issue-shape");
+process.env.XDG_CONFIG_HOME = home.path;
+const { FIX_OWES, SIZE_LINE, duplicateOf, isFix, partsIn, refusalFrom, shapeOf, tokensNamed, twoChangesIn, withMark } =
   await import("../../src/tracker/issue-shape.mjs");
 const { filingsOf } = await import("../../src/tracker/issue-read.mjs");
 
@@ -193,15 +194,33 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-const { writeFileSync } = await import("node:fs");
+const { mkdirSync, writeFileSync } = await import("node:fs");
 const { join } = await import("node:path");
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const room = tempHome("filing").path;
+/* The verb spawns with the tracker's own home; the one case below calls the reader in this process,
+   whose credential path was fixed at import, so the same endpoint is written where that path looks.
+   A temporary home either way: a run on the developer's credential is the one thing a test may not do. */
+mkdirSync(join(home.path, "forge"), { recursive: true });
+writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t" }));
 const filed = (body, ...argv) => {
   const path = join(room, "body.md");
   writeFileSync(path, body);
   return ranAsync(FORGE, ["new", path, ...argv], tracker.env);
 };
+
+/* What a whole pass over one body costs, counted through a getter, because a body scanned for its
+   shape a second time changes no output. The refusal is handed the read instead of taking one, so
+   the line it leaves beside the gaps is reachable off that read and asks the tracker nothing. */
+test("one pass over a filing reads its body twice, and the line it says costs no third read", async () => {
+  let reads = 0;
+  const filing = { title: TITLE, kind: null, get body() { reads += 1; return WHOLE; } };
+  const shape = shapeOf(filing);
+  assert.match(shape.said, /^Read as a feature/u, "the line is a field of a read that calls no tracker");
+  assert.equal(reads, 1, "and that read is one pass over the body");
+  assert.equal(await refusalFrom(filing, shape), null, "the body meeting every line earns no refusal");
+  assert.equal(reads, 2, "the shape read and the duplicate measure; a second shape read makes it three");
+});
 
 test("the verb refuses a fix with the three routes and the open issues naming what it names", async () => {
   const run = await filed("`forge dep` should take the `data.relations` route.", "--title", "forge dep writes an edge a token can write");

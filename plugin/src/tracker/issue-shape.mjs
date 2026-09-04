@@ -376,10 +376,6 @@ export const shapeOf = ({ title, body, kind = null }) => {
   return { gaps, fix: false, tokens, said: noticeFor({ kind: shape.kind, named: namesKind(kind), left }) };
 };
 
-/** The line `forge new` says on a filing it did not refuse, or nothing. Off `shapeOf`, which reads
- *  the body alone: the refusal below asks the tracker what else is open, and this owes no such read. */
-export const noticeForFiling = (filing) => shapeOf(filing).said;
-
 /** The newest page of issues still open to work, by title: the projection carries no description and
  *  the list offers no cursor, so the page alone is a floor. What reaches past it is the search
  *  below, and what neither reaches is said aloud. ISS-17 owes the cursor. */
@@ -428,10 +424,13 @@ const fixRoutes = (tokens, candidates) => [
 const rendered = (gaps) =>
   gaps.map((one) => `- read: ${one.read}\n  wants: ${one.wants}\n  clear: ${one.clear}`).join("\n");
 
-/** The refusal, or null, and the guide with it. `routed` is a route the command named and the body
- *  cannot show: a fix riding another issue's branch owes no mark, its flow being that issue's. */
-export const refusalForFiling = async (filing, { routed = false } = {}) => {
-  const { gaps, fix, tokens } = shapeOf(filing);
+/** The refusal, or null, and the guide with it. The read is handed in rather than taken: what a
+ *  caller wants off one body may be this or the line `shapeOf` returns beside the gaps, and a body
+ *  scanned twice for one filing is the reading done twice. Which way round matters — this asks the
+ *  tracker what else is open, the line owes no such read, so the line is never fetched through here.
+ *  `routed` is a route the command named and the body cannot show: a fix riding another issue's
+ *  branch owes no mark, its flow being that issue's. */
+export const refusalFrom = async (filing, { gaps, fix, tokens }, { routed = false } = {}) => {
   const owesRoute = fix && !routed;
   const { live, short } = await liveTitles();
   const wider = [...live, ...await alsoNamed(tokens, live)];
