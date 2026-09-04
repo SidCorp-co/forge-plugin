@@ -38,8 +38,8 @@ const USAGE = [
   "  ship [--from N] [--note S]",
   "                          clean tree, fetch, rebase, `npm run check`, a version above the remote",
   "                          head, push, the checkout pulled, the marketplace and the plugin",
-  "                          updated, then the installed copy named and every plugin/hooks/ file",
-  "                          the release moved",
+  "                          updated, then the installed copy named, the sha the change landed as,",
+  "                          and every plugin/hooks/ file the release moved",
   "  review [--done [ref]]   the range the next review reads, or --done to move the mark to it",
   "",
   "  --from N     resume at step N, which a failed step prints for you",
@@ -52,6 +52,10 @@ const USAGE = [
   "whether a restart is owed before anything trusts the release. It says beside that what the gate",
   "run a step earlier took and how that compares with the run before it, so a release that made the",
   "gate slower is visible where a release that wrote a lot of unread code already is.",
+  "",
+  "It names beside those the sha the change landed as, which is not the pushed head the push printed:",
+  "the rebase rewrote the commit the run reviewed and the version commit sits above it, so a mark that",
+  "is about the change rather than about the release reads its sha from there and not off a log by eye.",
   "",
   `That last step also counts what landed under ${REVIEW_PATHS.join(", ")} since ${REVIEWED}, and`,
   `says one reading of the whole of it is owed once the range holds ${REVIEW_LINES} changed line(s).`,
@@ -119,6 +123,12 @@ const versionAt = (root, ref) => {
     return null;
   }
 };
+
+/** A release is a commit whose manifest version differs from its first parent's, so a ship whose
+ *  rebase dropped the bump is read by the version it pushed rather than by a subject line nothing
+ *  enforces. Both readers of a range take it from here: what a batch released, and what a change
+ *  landed as, which is every commit of the range but this one. */
+const isRelease = (tree, sha) => versionAt(tree, sha) !== versionAt(tree, `${sha}^`);
 
 const worktreePath = (root, key) => join(dirname(root), `wt-${key}`);
 
@@ -194,8 +204,10 @@ const markFile = (tree) => join(gitOut(["rev-parse", "--absolute-git-dir"], tree
 
 /* Silent about what it cannot compare rather than reassuring: a session told no hook moved keeps
    running the hook that did. */
+const shipFrom = (tree) => (existsSync(markFile(tree)) ? readFileSync(markFile(tree), "utf8").trim() : null);
+
 const restartOwed = (tree, base) => {
-  const was = existsSync(markFile(tree)) ? readFileSync(markFile(tree), "utf8").trim() : null;
+  const was = shipFrom(tree);
   if (!was) {
     return console.error(`  no ${MARK} in this tree's git directory, so what this release moved is `
       + `unknown and no session may be told it is safe. Read it against the head ${REMOTE}/${base} `
@@ -208,12 +220,40 @@ const restartOwed = (tree, base) => {
   for (const one of held) console.log(`    ${one}`);
 };
 
+/** The sha the change landed as. Step 6 prints the push's own line, whose ends are the head the
+ *  remote had and the head the release left; the rebase two steps earlier rewrote the commit the run
+ *  reviewed, and the version commit sits above it. So the sha a merged mark takes was in no step's
+ *  output, and the run that needed one read it off a log by eye — a run that read the commit it had
+ *  reviewed instead would have marked a commit on no branch (ISS-169). Taken from the ref the push
+ *  updated, so the value is the remote's answer and not the local guess the rebase invalidated once.
+ */
+const landedAs = (tree, base) => {
+  const was = shipFrom(tree);
+  const head = gitOut(["rev-parse", `${REMOTE}/${base}`], tree);
+  if (!was || !head) {
+    return console.error(`  the sha this change landed as cannot be named: `
+      + `${was ? `${REMOTE}/${base} resolves to nothing in this tree` : `no ${MARK} in this tree's git directory`}. `
+      + `Read it off the ref the push updated, against the head it had before: `
+      + `git -C ${tree} log --oneline --first-parent <that sha>..${REMOTE}/${base}`);
+  }
+  const all = (gitOut(["log", "--first-parent", "--reverse", "--format=%H", `${was}..${head}`], tree) ?? "")
+    .split("\n").filter(Boolean);
+  const own = all.filter((sha) => !isRelease(tree, sha));
+  if (!own.length) {
+    return console.log(`  ${head.slice(0, 7)} is the pushed head, and this release landed `
+      + `${all.length ? "nothing but the version commit" : `nothing since ${was.slice(0, 7)}`}`);
+  }
+  const tip = own.at(-1);
+  console.log(own.length === 1
+    ? `  the change landed as ${tip.slice(0, 7)}, and the push moved ${REMOTE}/${base} to ${head.slice(0, 7)}`
+    : `  the change landed as ${own.length} commits, ${was.slice(0, 7)}..${tip.slice(0, 7)}; a mark takes `
+      + `one sha, so take the last, ${tip.slice(0, 7)}. The push moved ${REMOTE}/${base} to ${head.slice(0, 7)}`);
+};
+
 const reviewedAt = (tree) => gitOut(["rev-parse", "--verify", "--quiet", REVIEWED], tree);
 
-/** What has landed in a range. A release is a commit whose manifest version differs from its first
- *  parent's, so a ship whose rebase dropped the bump is counted by the version it pushed rather
- *  than by a subject line nothing enforces. The walk is `--first-parent` for the same reason the
- *  comparison is: off it, a merge that carried a bump in from a side branch is dropped as TREESAME
+/** What has landed in a range. The walk is `--first-parent` for the same reason `isRelease` reads a
+ *  first parent at all: off it, a merge that carried a bump in from a side branch is dropped as TREESAME
  *  while the side branch's own bumps are each counted, and neither is a release of this branch.
  *  A binary file is `-\t-` in numstat and has no lines to add. */
 const landed = (tree, from) => {
@@ -222,7 +262,7 @@ const landed = (tree, from) => {
   const rows = (gitOut(["diff", "--numstat", `${from}..HEAD`, "--", ...REVIEW_PATHS], tree) ?? "")
     .split("\n").filter(Boolean);
   return {
-    releases: bumps.filter((sha) => versionAt(tree, sha) !== versionAt(tree, `${sha}^`)).length,
+    releases: bumps.filter((sha) => isRelease(tree, sha)).length,
     files: rows.length,
     lines: rows.reduce((sum, row) => sum + row.split("\t").slice(0, 2)
       .reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0), 0),
@@ -508,6 +548,7 @@ const shipSteps = (tree, root, base, note) => {
       console.log(copy
         ? `  ${copy.name} ${copy.running} running, ${copy.installed} installed${copy.stale ? " — this version is in no install record" : ""}`
         : "  no install record answers for this plugin");
+      landedAs(tree, base);
       restartOwed(tree, base);
       gateGrew(tree);
       reviewOwed(tree);

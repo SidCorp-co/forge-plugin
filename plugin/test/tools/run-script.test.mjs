@@ -183,6 +183,7 @@ test("-h names all three steps, the resume flag and the threshold it counts agai
   for (const said of ["start <ISS-nn>", "ship [--from N]", "review [--done [ref]]", "--from N",
     "worktree", "restart", "refs/forge/reviewed", "500 changed line(s)", "npm run check",
     "The release count is printed beside it and decides nothing",
+    "the sha the change landed as", "not the pushed head the push printed",
     "--done <the range's end>"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
@@ -286,6 +287,53 @@ test("a resumed ship commits a bump left on disk, and never says nothing moved w
   const blind = runIn(work, ["ship", "--from", "10"], BARE);
   assert.match(blind.stderr, /no forge-ship-from in this tree's git directory/u, blind.stderr);
   assert.doesNotMatch(blind.stdout, /moved since/u, "a run that cannot compare may not tell a session it is safe");
+  assert.match(blind.stderr, /the sha this change landed as cannot be named/u,
+    `the second reader of that head has to say what it cannot name too:\n${blind.stderr}`);
+  assert.match(blind.stderr, /log --oneline --first-parent/u,
+    `a run told the sha is unknown and given no read for it is a run that guesses:\n${blind.stderr}`);
+  assert.doesNotMatch(blind.stdout, /the change landed as/u, "a sha nothing could be read from may not be named");
+});
+
+/* The rebase rewrites the commit the run reviewed and the bump lands above it, so the pushed head
+   step 6 prints is the release's. A run that marked either would name a commit its contract's next
+   step then checks every verdict against — one on no branch, or one that is not the change (ISS-169). */
+test("the last step names the sha the change landed as, and it is neither the reviewed head nor the pushed one", () => {
+  const { work } = pushed("landed");
+  landIn(work, join("plugin", "src", "one.mjs"), 4, "the change this release ships (ISS-169)");
+  const change = git(work, "rev-parse", "HEAD").stdout.trim();
+
+  const run = lastStep(work);
+  const head = git(work, "rev-parse", "origin/master").stdout.trim();
+  assert.notEqual(head, change, "this fixture makes no version commit, so it proves nothing about telling them apart");
+  assert.match(run.stdout, new RegExp(`the change landed as ${change.slice(0, 7)}, `
+    + `and the push moved origin/master to ${head.slice(0, 7)}`, "u"),
+    `the sha the change landed as is not named beside the head that was pushed:\n${run.stdout}`);
+
+  /* A second release over an unchanged tree carries the bump and nothing else, and naming its sha
+     would hand the mark the release rather than the change. */
+  const again = lastStep(work);
+  assert.match(again.stdout, /is the pushed head, and this release landed nothing but the version commit/u,
+    `a release of nothing but its own bump named a sha as the change's:\n${again.stdout}`);
+});
+
+/* A mark takes one sha, so a change of several has to say which end, and the range it prints is
+   pasted into git log by whoever reads it — which the exclusive form is what it means for. */
+test("a change of more than one commit prints the range and the end a mark takes", () => {
+  const { work } = pushed("landed-range");
+  const was = git(work, "rev-parse", "HEAD").stdout.trim();
+  landIn(work, join("plugin", "src", "one.mjs"), 4, "the first commit of the change (ISS-169)");
+  const first = git(work, "rev-parse", "HEAD").stdout.trim();
+  landIn(work, join("plugin", "src", "two.mjs"), 4, "the second commit of the change (ISS-169)");
+  const tip = git(work, "rev-parse", "HEAD").stdout.trim();
+
+  const run = lastStep(work);
+  assert.match(run.stdout, new RegExp(`the change landed as 2 commits, ${was.slice(0, 7)}\\.\\.${tip.slice(0, 7)}; `
+    + `a mark takes one sha, so take the last, ${tip.slice(0, 7)}`, "u"),
+    `the range and the end a mark takes are not both named:\n${run.stdout}`);
+  assert.deepEqual(
+    git(work, "log", "--first-parent", "--format=%H", `${was}..${tip}`).stdout.trim().split("\n"),
+    [tip, first],
+    "the printed range has to show exactly the change's commits when it is pasted into git log");
 });
 
 /* Every delegated run reviews its own diff and stops, so what two runs each wrote is in no run's
