@@ -151,6 +151,27 @@ repository keeps whole.
   IF a source comment names a document that is not there THEN the check SHALL fail, and WHERE the
   path sits inside a code span it SHALL be read as an example rather than as a citation.
 
+### UC-12-7 — A path this repository's own files name is one that resolves
+
+Rev: 1 · Actors: agent · Enforces: BR-09, BR-13
+
+A comment or a clause naming a path makes a claim about this checkout, and two such claims outlived
+the moves that broke them for releases while every gate stayed green. The population that claim is
+sought in is a decision of its own: a part of the tree left unread, or a class of file inside a part
+that is read, is a place a citation can rot in, and a run over it reports exactly what a clean tree
+reports.
+
+- **AC-12-7-1** · Rev: 1 · Proof: plugin/test/checks/cited-paths.test.mjs "the two citations this check was written for are each refused in their own form"
+  IF a path a file names resolves neither beside that file, nor from the root of the repository, nor
+  as the tail of one the tree carries THEN the check SHALL fail, and SHALL say which files carry that
+  name or that none does, so a move reads differently from a typo.
+- **AC-12-7-2** · Rev: 1 · Proof: plugin/test/checks/cited-paths.test.mjs "every file in the tree is read, or left out for a reason named here"
+  WHEN the check chooses what to read THEN it SHALL take every file of each part it declares in,
+  whatever the class of that file, and SHALL leave a part unread only where a reason stands beside it.
+- **AC-12-7-3** · Rev: 1 · Proof: plugin/test/checks/cited-paths.test.mjs "every figure under the documents directory is in the population"
+  WHERE a declared part holds a class of file the check would otherwise walk past, the case SHALL
+  name that class and SHALL hold every member of it to being in the population walked.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*

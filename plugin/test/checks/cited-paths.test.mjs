@@ -19,43 +19,65 @@ const list = (...args) =>
 
 /* The population is a decision and not the part of the tree that happened to be clean (ISS-191): the
    files this repository describes itself in, because only there is a named path a claim this check can
-   judge. What is out carries its reason, and the case below holds the two to covering the whole tree. */
+   judge. What is out carries its reason, and the case below holds the two to covering the whole tree.
+   Every file of a part that is in, whatever its class: a class left unread is a third way out that
+   carries no reason, which `docs` declared whole with its figures unwalked was (ISS-263). */
 const TREE = list();
-const READ = /\.(?:mjs|md)$/u;
-const DESCRIBES_THIS_TREE = ["CLAUDE.md", "README.md", "docs", "eslint.config.mjs", "packages",
+const DESCRIBES_THIS_TREE = [".claude-plugin", ".forge.json", ".gitignore", "CLAUDE.md", "LICENSE",
+  "README.md", "docs", "eslint.config.mjs", "package.json", "packages", "plugin/.claude-plugin",
   "plugin/guides", "plugin/scripts", "plugin/src", "plugin/vi-natural", "tools"];
 const ANOTHER_TREE = {
   "VI-NATURAL.md": "the vi-natural CLI's own manual, whose locale paths are its caller's",
+  "package-lock.json": "npm's transcription of the packages it fetched, down to each one's own bin",
   "packages/code-quality/CHANGELOG.md": "history: an entry's paths were its consumer's when written",
   "packages/code-quality/README.md": "its examples are literal config values a consumer types, so no"
     + " root can be put in front of them — ISS-201",
   "packages/code-quality/claude-plugin": "the copy sync:skills:check pins to plugin/skills",
+  "packages/code-quality/package-lock.json": "the same transcription for that package's dependencies",
+  "packages/code-quality/test": "a source tree each case writes under a temporary root and deletes",
+  "plugin/bin": "shims whose target is a shell variable expanded at run time, so the path they name"
+    + " belongs to whichever copy was invoked — ISS-197's shape in sh",
   "plugin/hooks": "module specifiers node resolves and the working tree does not — ISS-197",
   "plugin/skills": "method loaded into another checkout, held by check:skill-paths to naming no path",
   "plugin/test": "a fixture path is invented on purpose, and every case below is one",
 };
 const out = (rel) =>
   Object.keys(ANOTHER_TREE).some((claim) => rel === claim || rel.startsWith(`${claim}/`));
-const POPULATION = list(...DESCRIBES_THIS_TREE).filter((one) => READ.test(one) && !out(one));
+const POPULATION = list(...DESCRIBES_THIS_TREE).filter((one) => !out(one));
 const files = POPULATION.map((rel) => ({ rel, text: readFileSync(join(ROOT, rel), "utf8") }));
 
 const said = (rel, text) => problems([{ rel, text }], TREE);
 
 test("nothing this repository says of itself cites a path that names no file", () => {
   assert.ok(TREE.length > 300, `${TREE.length} path(s) tracked; the tree is read too narrowly`);
-  assert.ok(files.length > 150,
+  assert.ok(files.length > 200,
     `${files.length} file(s) in the population; the selector matches too little`);
   const found = problems(files, TREE);
   assert.deepEqual(found, [], `a citation names no file:\n${found.join("\n")}`);
 });
 
 /* A part of the tree in neither list is one nothing decided about, and it reads as a clean run. */
-test("every source and document in the tree is read, or left out for a reason named here", () => {
+test("every file in the tree is read, or left out for a reason named here", () => {
   const claimed = [...DESCRIBES_THIS_TREE, ...Object.keys(ANOTHER_TREE)];
-  const unplaced = TREE.filter((one) => READ.test(one))
-    .filter((one) => !claimed.some((claim) => one === claim || one.startsWith(`${claim}/`)));
+  const unplaced =
+    TREE.filter((one) => !claimed.some((claim) => one === claim || one.startsWith(`${claim}/`)));
   assert.deepEqual(unplaced, [], `neither read nor accounted for:\n${unplaced.join("\n")}`);
   assert.ok(Object.values(ANOTHER_TREE).every((why) => why.length > 30), "each exclusion says why");
+});
+
+/* The class the filter hid, counted so a figure added and never walked cannot read as covered. */
+test("every figure under the documents directory is in the population", () => {
+  const figures = TREE.filter((one) => one.startsWith("docs/") && one.endsWith(".html"));
+  assert.ok(figures.length >= 3, `${figures.length} figure(s) tracked; the tree is read too narrowly`);
+  assert.deepEqual(figures.filter((one) => !POPULATION.includes(one)), [],
+    "a file class the population declares in and the selector leaves out reads as a clean tree");
+});
+
+test("a path a figure names in an element is read as a citation", () => {
+  const found = said("docs/diagrams/one.html",
+    "<p>Every word above is rendered from <code>docs/gone-figure.md</code>.</p>\n");
+  assert.equal(found.length, 1, found.join("\n"));
+  assert.match(found[0], /^docs\/diagrams\/one\.html:1 cites docs\/gone-figure\.md/u);
 });
 
 /* Each in the form it was in: a header comment, and a criterion's `Proof:` field. */
