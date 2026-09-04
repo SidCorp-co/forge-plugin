@@ -7,7 +7,7 @@ import { createServer } from "node:http";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { joined, targetsOfTool, writeTargets } from "../../src/tracker/issue-read.mjs";
+import { isReference, joined, targetsOfTool, writeTargets } from "../../src/tracker/issue-read.mjs";
 import { shellText, starts } from "../../hooks/_hook.mjs";
 import { callHookAsync, tempHome } from "../fixtures.mjs";
 
@@ -292,4 +292,40 @@ test("with no endpoint saved a filing is not judged either", async () => {
   const run = await filing({ title: "fix", description: "It is broken." }, { url: "" });
   assert.equal(run.out, null);
   assert.equal(run.status, 0);
+});
+
+/* ISS-36's remaining half. Every identifier family of the requirements tree is letters-dash-digits,
+   so the wider shape read each of them as an issue key: one case per family, because a prefix list
+   widened later is exactly how they get swallowed again quietly. */
+const FAMILIES = {
+  FR: "FR-05", UC: "UC-05", AC: "AC-05", NFR: "NFR-02", BR: "BR-03",
+  EI: "EI-01", G: "G-1", M: "M-2", C: "C-3", A: "A-4", R: "R-5",
+};
+
+test("no identifier of the requirements tree is an issue reference", () => {
+  for (const [family, id] of Object.entries(FAMILIES)) {
+    assert.equal(isReference(id), false, `${family}: \`${id}\` is a citation, not a key`);
+  }
+});
+
+test("the tracker's own key still is one, in either case", () => {
+  assert.equal(isReference("ISS-45"), true);
+  assert.equal(isReference("iss-45"), true, "the lookup upper-cases, so this has always resolved");
+  assert.equal(isReference(UUID), true, "and a uuid is the other form every verb takes");
+});
+
+/* The route the defect actually reaches the gate by, now that targets are parsed off argument
+   positions rather than searched for in the text: a citation typed where the issue goes. */
+test("a citation in the issue's own argument names no write target", () => {
+  assert.deepEqual(targets("forge comment FR-05 @note.md"), [],
+    "the gate asked for the comments of a specification clause");
+  assert.deepEqual(targets("forge comment ISS-29 @note.md"), ["ISS-29"], "and a key is untouched");
+});
+
+/* The reported case, kept as a case: it stopped reproducing when the reading became positional, and
+   nothing pinned that it stays gone. */
+test("a plan whose body cites five clauses writes only to the issue it names", () => {
+  const command = "forge plan ISS-32 <(cat <<'MD'\n## Plan\nServes FR-05 and UC-05, criterion AC-05,"
+    + " under BR-03 and NFR-02.\nMD\n)";
+  assert.deepEqual(targets(command), ["ISS-32"]);
 });

@@ -343,7 +343,7 @@ test("a route named with nothing is refused, and never read as no route at all",
   for (const argv of [["--into", ""], ["--with", ""]]) {
     const run = await filed(WHOLE, "--title", TITLE, ...argv);
     assert.equal(run.status, 1, argv.join(" "));
-    assert.match(run.stderr, /neither an issue uuid nor a reference/u);
+    assert.match(run.stderr, /neither an issue uuid nor an issue key/u);
   }
 });
 
@@ -518,4 +518,67 @@ test("`forge new -h` lists every kind with the sections it requires", async () =
   assert.match(run.stdout, /required {3}What happened, Outcome, Rules, Out of scope/u);
   assert.match(run.stdout, /nice {7}Where/u);
   assert.match(run.stdout, /Usage: forge new/u, "and what to type is still the first line of it");
+});
+
+/* The duplicate check's own line, which fired only at a page of exactly MAX_LIMIT and so never
+   fired at all: the byte cap returns FEWER rows than the ask. Called in process — the line is a
+   console.error beside a refusal that may be null, so spawning a verb would judge the wrong thing. */
+const said = async (page) => {
+  const kept = console.error;
+  const lines = [];
+  console.error = (...parts) => lines.push(parts.join(" "));
+  try {
+    await refusalFrom({ title: TITLE, body: WHOLE }, shapeOf({ title: TITLE, body: WHOLE }), { page });
+  } finally {
+    console.error = kept;
+  }
+  return lines.join("\n");
+};
+
+const CUT_PAGE = {
+  returned: 97,
+  by: "response-size",
+  notice: "More rows match than were returned: the response-size cap cut this to the 97 most recent"
+    + " of them. A higher limit will NOT help — add status/priority/category/label filters instead.",
+};
+
+test("the duplicate check says its page was cut when the tracker says so, not when a length matches", async () => {
+  const out = await said({ live: [], short: CUT_PAGE });
+  assert.match(out, /was cut to the 97 row\(s\) read, by response-size/u,
+    "97 rows against an ask of 500 is the shape the length test read as whole");
+});
+
+test("that line names no limit it asked for", async () => {
+  const out = await said({ live: [], short: CUT_PAGE });
+  assert.doesNotMatch(out, /\b500\b/u, "and the old line named 500 twice");
+});
+
+test("that line still says what the cut costs the check", async () => {
+  const out = await said({ live: [], short: CUT_PAGE });
+  assert.match(out, /no cursor to page by/u);
+  assert.match(out, /sharing no such name is not measured/u);
+});
+
+test("a page the tracker reported whole leaves the check silent", async () => {
+  assert.equal(await said({ live: [], short: null }), "");
+});
+
+/* The third place the loose shape lived (ISS-36). Two keys were demanded on a parts line precisely
+   because one could be a citation — a workaround the narrowed shape retires, so the threshold below
+   is left alone and only the miscounting goes. */
+test("a parts line counts the tracker's keys and not the clauses cited beside them", () => {
+  assert.equal(partsIn("Parts: ISS-48 and FR-05 are the halves of it."), null,
+    "one part and one citation is not a split, and this filing was refused for it");
+  assert.equal(partsIn("Parts: FR-05 and UC-05 are the halves."), null,
+    "and a line with no issue key on it named no parts at all");
+});
+
+test("a real split is still one, and a lowercase key still counts", () => {
+  assert.deepEqual(partsIn("Parts: ISS-48 and ISS-58 are the halves of it.")?.keys, ["ISS-48", "ISS-58"]);
+  assert.deepEqual(partsIn("Parts: iss-48 and ISS-58 are the halves.")?.keys, ["iss-48", "ISS-58"]);
+});
+
+test("the two-key threshold is untouched, so one part named alone is still no split", () => {
+  assert.equal(partsIn("Parts: ISS-48 is the half of it."), null,
+    "relaxing this would newly refuse a filing, which no issue asked for");
 });

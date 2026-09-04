@@ -2,7 +2,7 @@
    read. Two issues that disagree are the finding this verb exists for: docs/cli/deps.md. */
 import { depsConvention, fail } from "../resolve/settings.mjs";
 import { scoped } from "../tracker/rpc.mjs";
-import { MAX_LIMIT, listIssues, rowsOf, truncated } from "../tracker/issues.mjs";
+import { MAX_LIMIT, cutBy, cutSaid, listIssues, rowsOf } from "../tracker/issues.mjs";
 
 /* The marker sentence, and only it; the trailing period separates a claim from prose about one.
    The phrases come from the tracker's own `.forge.json`. */
@@ -145,8 +145,10 @@ export const deps = async (rest) => {
     listIssues({ search: MARKER_SEARCH }, MAX_LIMIT),
   ]);
   const universe = rowsOf(all);
-  if (truncated(universe, MAX_LIMIT)) {
-    console.error(`warning: the tracker holds at least ${MAX_LIMIT} issues; this graph may be partial.`);
+  const held = cutBy(all, universe, MAX_LIMIT);
+  if (held) {
+    console.error(`warning: ${cutSaid(held, "the page every node here is ranked against")} So this graph`
+      + " is partial by that much: an edge whose end fell outside those rows cannot appear.");
   }
   const candidates = rowsOf(matched);
   if (!candidates.length) {

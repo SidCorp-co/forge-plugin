@@ -5,7 +5,7 @@ import test from "node:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, pageOf, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const OPEN = "33333333-3333-4333-8333-333333333333";
@@ -186,4 +186,49 @@ test("its help says what to type and where the note goes", async () => {
   assert.match(run.stdout, /^Usage: forge feedback <file\.md\|@file\|-> --title T$/mu);
   assert.match(run.stdout, /The destination is forge-plugin, fixed here/u);
   assert.match(run.stdout, /No lease is taken/u);
+});
+
+/* ISS-203's fourth reader, and the one that was silent by omission rather than by a false test: the
+   page a note is checked against for a near-duplicate carried no truncation flag at all, so the
+   warning beside it could never fire on this route however much of the backlog was missing. */
+const OPEN_ROWS = Array.from({ length: 4 }, (_, at) => ({
+  issueId: `ISS-${at + 60}`,
+  documentId: `u-${at + 60}`,
+  status: "open",
+  title: `an issue nobody here is filing about, number ${at + 1}`,
+  createdAt: `2026-0${at + 1}-01T00:00:00.000Z`,
+  touched: 4 - at,
+}));
+
+test("a note checked against a cut page is told the check was partial", async () => {
+  const run = await send(["feedback", note(), "--title", TITLE], {
+    issues: OPEN_ROWS,
+    answer: { forge_issues: pageOf(OPEN_ROWS, 2) },
+  });
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /the page this note was checked against was cut to the 2 row\(s\) read, by response-size/u);
+});
+
+test("that warning says what the cut costs the note, which is being filed twice", async () => {
+  const run = await send(["feedback", note(), "--title", TITLE], {
+    issues: OPEN_ROWS,
+    answer: { forge_issues: pageOf(OPEN_ROWS, 2) },
+  });
+  assert.match(run.stderr, /filed as a second issue rather than folded onto it/u);
+});
+
+test("that warning names no limit, and carries the tracker's own instruction", async () => {
+  const run = await send(["feedback", note(), "--title", TITLE], {
+    issues: OPEN_ROWS,
+    answer: { forge_issues: pageOf(OPEN_ROWS, 2) },
+  });
+  const said = run.stderr.split("\n").find((line) => line.includes("checked against was cut")) ?? "";
+  assert.doesNotMatch(said, /\b500\b/u);
+  assert.match(said, /A higher limit will NOT help/u);
+});
+
+test("a whole page leaves the note's filing silent about truncation", async () => {
+  const run = await send(["feedback", note(), "--title", TITLE], { issues: OPEN_ROWS });
+  assert.equal(run.status, 0, run.stderr);
+  assert.doesNotMatch(run.stderr, /was cut to/u);
 });

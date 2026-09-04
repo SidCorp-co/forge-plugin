@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { terse } from "../../src/commands.mjs";
 import { uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
-import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { boundByLimit, fakeTracker, pageOf, ranAsync, tempRoom } from "../fixtures.mjs";
 
 /* The shape forge_uploads returns, as observed on ISS-22's one attachment. */
 const ATTACHMENT = {
@@ -146,4 +146,72 @@ test("a note taken as a comment on a title already open ranks nothing at all", a
   const said = state.calls.find((one) => one.name === "forge_comments" && one.args.action === "create");
   assert.equal("priority" in said.args.data, false, "a comment is no filing and owes no rank");
   assert.doesNotMatch(run.stdout, /priority/u);
+});
+
+/* The cut that matters is by response BYTES, so the page comes back SHORTER than the ask and a test
+   of `rows.length === limit` is false exactly where the reader most needs a warning: this page is
+   two rows of four, against a limit of 500. Without the envelope reading, every case below prints
+   nothing at all. */
+const cutByBytes = () => {
+  state.issues = ROWS;
+  state.answer = { forge_issues: pageOf(ROWS.map((one, at) => ({ ...one, touched: ROWS.length - at })), 2) };
+};
+
+test("a page the byte cap cut is not reported as the whole backlog", async () => {
+  cutByBytes();
+  const run = await ran(["issues"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /was cut to the 2 row\(s\) read/u,
+    "two rows of four came back, and the ask was 500 — the length test called that a whole page");
+});
+
+test("the line states the count returned and never the limit it asked for", async () => {
+  cutByBytes();
+  const run = await ran(["issues"]);
+  const said = run.stdout.split("\n").find((line) => line.includes("was cut to")) ?? "";
+  assert.match(said, /2 row\(s\)/u);
+  assert.doesNotMatch(said, /\b(?:200|500)\b/u, "a limit in this sentence is the one thing that cannot help");
+});
+
+test("the line names the cap that bit", async () => {
+  cutByBytes();
+  const run = await ran(["issues"]);
+  assert.match(run.stdout, /by response-size/u);
+});
+
+test("the tracker's own notice reaches the reader, which is where the route lives", async () => {
+  cutByBytes();
+  const run = await ran(["issues"]);
+  assert.match(run.stdout, /A higher limit will NOT help/u,
+    "the only sentence that knows which cap bit, and it is the tracker's");
+});
+
+/* The one thing the length test got right, and the case a bare MAX_LIMIT fallback would have lost:
+   here the caller's OWN limit bound the page, so raising it is what helps and the notice says so. */
+test("a page the reader's own limit bound still warns, and is told the opposite thing", async () => {
+  state.issues = ROWS;
+  state.answer = { forge_issues: boundByLimit(ROWS) };
+  const run = await ran(["issues", "--limit", "2"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /was cut to the 2 row\(s\) read, by limit/u);
+  assert.match(run.stdout, /Raise limit/u, "here a higher limit is exactly what helps");
+});
+
+test("a page the tracker reports whole prints no cut line at all", async () => {
+  state.issues = ROWS;
+  state.answer = undefined;
+  const run = await ran(["issues"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.doesNotMatch(run.stdout, /was cut to/u);
+});
+
+/* A server that answers with no envelope at all: silence is not a cut, and four rows under a limit
+   of 500 is a whole backlog. */
+test("a short page from a server that reports nothing is read as whole", async () => {
+  state.issues = ROWS;
+  state.answer = { forge_issues: () => ({ issues: ROWS }) };
+  const run = await ran(["issues"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.doesNotMatch(run.stdout, /was cut to/u);
+  state.answer = undefined;
 });

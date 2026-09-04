@@ -4,11 +4,12 @@ import { projectId, REFERENCE_KEYS, enumAt, scoped, toolNamed, tools, write } fr
 import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
+  cutBy,
+  cutSaid,
   documentIdOf,
   listIssues,
   queued,
   rowsOf,
-  truncated,
 } from "./tracker/issues.mjs";
 import { commentPage, creditAfter, credited, cutLine, mustBeShown, postComment } from "./tracker/comments.mjs";
 import { attachmentNames, uploadRead, uploadTo, urlBearing } from "./tracker/evidence.mjs";
@@ -132,9 +133,10 @@ const printIssues = (payload, limit, order) => {
       + `${(issue.status ?? "").padEnd(12)} ${issue.title}`);
   }
   console.log(`\n${issues.length} issue(s)`);
-  if (truncated(issues, limit)) {
-    console.log(`Full page of ${limit}; there are more, and the order above ranks this page alone —`
-      + ` the tracker chose it by what was touched last. Raise --limit (max ${MAX_LIMIT}).`);
+  const held = cutBy(payload, issues, limit);
+  if (held) {
+    console.log(`${cutSaid(held, "This page")} The order above ranks the page alone — the tracker`
+      + " chose which rows survived, by what was touched last.");
   }
 };
 

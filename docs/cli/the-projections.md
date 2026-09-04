@@ -21,7 +21,28 @@ page returned against a schema that declares none is left exactly as it arrived 
 against a list kept here.
 
 A page cut short is ranked as far as it goes and no further: the tracker chose those rows by
-recency before this saw them, so the line under a full page says the order covers the page alone.
+recency before this saw them, so the line under a cut page says the order covers the page alone.
+
+## Whether a page was whole is the answer's to say, not the page's
+
+Two caps can cut a list and the envelope is what tells them apart: `truncatedBy: "limit"` where the
+caller's own ask bound it, `truncatedBy: "response-size"` where the byte cap did. Only the second is
+unfixable by asking for more, and the tracker says which in a `notice` written for a reader. So
+truncation is read from `hasMore`, `truncated` and `truncatedBy`, and a length equal to the limit is
+kept only as the fallback for a server that reports nothing at all.
+
+Testing the length instead inverts the answer exactly where it matters: the byte cap returns fewer
+rows than were asked for, so a page of 97 out of 191 compares unequal to the 500 requested and reads
+as complete. Every reader therefore takes that reading from one function — the browse notice, the
+duplicate check, the dependency graph, the near-duplicate check on a filing — because a page one of
+them calls whole and another calls cut is two answers to a question with one answer. A reader that
+paraphrases the notice instead of passing it through invents advice; the tracker's sentence is the
+one that knows which cap bit.
+
+A warning states the count it measured and the cap that bit, and never the limit it asked for — the
+same rule the refusal below answers to, and for the same reason. Where a check's correctness depends
+on having read the whole backlog, an incomplete reading is said out loud rather than folded into a
+pass: a duplicate check that saw half the issues and reports nothing has reported a clean result.
 
 ## A key is not resolved by a page
 
@@ -55,3 +76,18 @@ quieter.
 A refusal therefore names what was read as measured, and never the limit it asked for. A limit in
 that sentence sends the reader to raise the one thing that cannot help, and calls an issue the
 tracker holds absent — which is a lookup's ceiling reported as a fact about the backlog.
+
+## A key, and the things shaped like one
+
+A reference is this tracker's own key — `ISS` and digits — or a uuid, and nothing else, because the
+identifiers of a requirements tree are letters-dash-digits too and a citation is not a reference.
+Accepting the wider shape cost twice over: the read-first gate asked for the comments of `FR-05` as
+though a clause could have any, and the lookup above spent the whole backlog — seven windows, 210
+rows — before calling a specification clause an issue the tracker does not hold, which sent its
+reader to `forge issues` for something that was never going to be there.
+
+So the shape is refused before the first call, and the refusal names `forge spec`, which answers
+that identifier off disk. The prefix is an allowlist of one rather than configuration: it is the only
+key shape this CLI names anywhere, and one hard-coded prefix is at least a prefix a test can pin,
+where a pattern accepting every prefix pins nothing. A second tracker with a second key shape is what
+makes it a setting, and until then the setting would be a copy of a constant.

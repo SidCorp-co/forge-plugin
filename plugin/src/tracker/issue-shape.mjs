@@ -8,7 +8,7 @@
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { MAX_LIMIT, listIssues, rowsOf, truncated } from "./issues.mjs";
+import { MAX_LIMIT, cutBy, cutSaid, keysIn, listIssues, rowsOf } from "./issues.mjs";
 import { enumAt } from "./rpc.mjs";
 
 const SETTLED = ["closed", "dropped"];
@@ -301,13 +301,13 @@ export const twoChangesIn = (body) => {
 };
 
 const PARTS_LINE = /\b(?:parts?|children|sub-?issues?|split into|consists of|made up of)\b/iu;
-const KEY = /\b[A-Za-z]+-\d+\b/gu;
 
-/** Naming others as its parts is the split rule, not a filing: two keys on the line, because one is
- *  a citation and every identifier of the requirements tree wears an issue key's shape. */
+/** Naming others as its parts is the split rule, not a filing, and it takes two keys: one may be a
+ *  citation of the issue this body sits beside. A clause of the requirements tree is not one of
+ *  them, the shape being the tracker's, so a parts line citing one names a part fewer. */
 export const partsIn = (body) => {
   for (const line of String(body).split("\n")) {
-    const keys = [...new Set((line.match(KEY) ?? []))];
+    const keys = [...new Set(keysIn(line))];
     if (PARTS_LINE.test(line) && keys.length >= 2) return { line: line.trim(), keys };
   }
   return null;
@@ -439,8 +439,9 @@ export const shapeOf = ({ title, body, kind = null }, { everySection = false } =
  *  the list offers no cursor, so the page alone is a floor. What reaches past it is the search
  *  below, and what neither reaches is said aloud. ISS-17 owes the cursor. */
 export const liveTitles = async () => {
-  const rows = rowsOf(await listIssues({}, MAX_LIMIT));
-  return { live: openTitles(rows), short: truncated(rows, MAX_LIMIT) };
+  const payload = await listIssues({}, MAX_LIMIT);
+  const rows = rowsOf(payload);
+  return { live: openTitles(rows), short: cutBy(payload, rows, MAX_LIMIT) };
 };
 
 /** At the threshold this repository's own documents are held to, so one measure covers both. */
@@ -501,9 +502,9 @@ export const refusalFrom = async (filing, { gaps, fix, tokens }, { routed = fals
   const { live, short } = page ?? await liveTitles();
   const wider = [...live, ...await alsoNamed(tokens, live)];
   if (short) {
-    console.error(`the duplicate check read the newest ${MAX_LIMIT} issues and the tracker holds more, `
-      + `with no cursor to page by: past that page it saw only what a search for ${tokens.join(", ") || "nothing"} `
-      + "returned, so one sharing no such name is not measured");
+    console.error(`${cutSaid(short, "the page the duplicate check read")} There is no cursor to page by, so `
+      + `past the cut it saw only what a search for ${tokens.join(", ") || "nothing"} returned, and one `
+      + "sharing no such name is not measured");
   }
   const same = duplicateOf(filing, wider);
   const out = [...gaps];

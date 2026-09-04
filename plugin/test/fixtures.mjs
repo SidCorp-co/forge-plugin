@@ -148,7 +148,37 @@ export const pageOf = (rows, fits) => (args) => {
     returned: page.length,
     limit: args.limit,
     hasMore: short,
-    ...(short ? { truncated: true, truncatedBy: "response-size" } : {}),
+    ...(short
+      ? {
+        truncated: true,
+        truncatedBy: "response-size",
+        notice: `More rows match than were returned: the response-size cap cut this to the ${page.length}`
+          + " most recent of them. A higher limit will NOT help — add status/priority/category/label"
+          + " filters instead.",
+      }
+      : {}),
+  };
+};
+
+/** The other cap, which the byte one hides: the caller's own `limit` bound the page, so raising it
+ *  is what helps and the tracker says so. `truncatedBy` is the only thing telling the two apart. */
+export const boundByLimit = (rows) => (args) => {
+  const page = rows.slice(0, args.limit);
+  const short = page.length < rows.length;
+  return {
+    issues: page,
+    returned: page.length,
+    limit: args.limit,
+    hasMore: short,
+    ...(short
+      ? {
+        truncated: true,
+        truncatedBy: "limit",
+        notice: `More rows match than were returned: your limit of ${args.limit} bound this to the`
+          + ` ${page.length} most recent. Raise limit or add status/priority/category/label filters to`
+          + " see the rest.",
+      }
+      : {}),
   };
 };
 

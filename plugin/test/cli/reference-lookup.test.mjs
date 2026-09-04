@@ -100,3 +100,75 @@ test("that refusal routes to a set narrow enough to come back whole, and names n
   assert.match(run.stderr, /forge call forge_issues/u, "the one route a reader holding only a key can run");
   assert.doesNotMatch(run.stderr, /500/u);
 });
+
+/* ISS-36. The wider shape sent a citation through the whole walk — measured live at 7 windows and
+   210 rows, identical to a key the tracker does not hold — and then called a clause an absent issue,
+   routing its reader to `forge issues`, where a specification clause was never going to be. */
+const asked = () => state.calls.filter((one) => one.name === "forge_issues").length;
+
+test("a requirements citation is refused before the tracker is asked anything at all", async () => {
+  cutTo(BACKLOG, 2);
+  state.calls = [];
+  const run = await ran(["issue", "FR-05"]);
+  assert.equal(run.status, 1);
+  assert.equal(asked(), 0, "the walk it used to pay for reads the whole backlog");
+});
+
+test("that refusal routes to the verb that does read a clause", async () => {
+  cutTo(BACKLOG, 2);
+  const run = await ran(["issue", "FR-05"]);
+  assert.match(run.stderr, /forge spec FR-05/u);
+  assert.match(run.stderr, /requirements citation/u);
+});
+
+test("that refusal claims no absence, a clause not being an issue the tracker lacks", async () => {
+  cutTo(BACKLOG, 2);
+  const run = await ran(["issue", "FR-05"]);
+  assert.doesNotMatch(run.stderr, /not on this project's tracker|whole backlog/u);
+  assert.doesNotMatch(run.stderr, /`forge issues`/u, "the keys it holds is no answer to a citation");
+});
+
+/* Every family, through the verb rather than the predicate: the refusal is what a reader meets. */
+test("one case per identifier family the tree has, each refused with the same route", async () => {
+  cutTo(BACKLOG, 2);
+  for (const id of ["UC-05", "AC-05", "NFR-02", "BR-03", "EI-01", "G-1", "M-2", "C-3", "A-4", "R-5"]) {
+    const run = await ran(["issue", id]);
+    assert.equal(run.status, 1, id);
+    assert.match(run.stderr, new RegExp(`forge spec ${id}`, "u"), id);
+  }
+});
+
+/* A nested identifier was never matched by the old shape either, so it reached the same refusal by
+   a different door; it must still name the clause route rather than only the key shape. */
+test("a nested clause identifier is routed too", async () => {
+  cutTo(BACKLOG, 2);
+  const run = await ran(["issue", "FR-05-2"]);
+  assert.match(run.stderr, /forge spec FR-05-2/u);
+});
+
+/* Not every wrong argument is a citation: one that looks like nothing gets the key shape and no
+   advice about clauses, because a route that does not fit is a refusal a reader cannot act on. */
+test("an argument shaped like neither is told what a key is, and sent nowhere else", async () => {
+  cutTo(BACKLOG, 2);
+  const run = await ran(["issue", "not-a-key-at-all"]);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /this tracker keys issues ISS and digits/u);
+  assert.doesNotMatch(run.stderr, /forge spec/u);
+});
+
+test("the lowercase form of a key still resolves, and to the same issue", async () => {
+  cutTo(BACKLOG, 2);
+  const upper = await ran(["issue", "ISS-1"]);
+  const lower = await ran(["issue", "iss-1"]);
+  assert.equal(lower.status, 0, lower.stderr);
+  assert.equal(lower.stdout, upper.stdout, "the lookup upper-cases, and nothing covered this before");
+});
+
+/* The walk itself is untouched: a real key below the cut page still costs the windows it needs. */
+test("a key the first page cannot carry still resolves through the walk", async () => {
+  cutTo(BACKLOG, 2);
+  state.calls = [];
+  const run = await ran(["issue", "ISS-1"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.ok(asked() > 1, `${asked()} request(s) — the oldest key is under the waterline`);
+});

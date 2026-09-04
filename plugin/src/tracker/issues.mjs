@@ -7,7 +7,11 @@ export const DEFAULT_LIMIT = 200;
 export const MAX_LIMIT = 500;
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
-export const HUMAN_REF = /^[A-Za-z]+-\d+$/u;
+
+const KEY = String.raw`ISS-\d+`;
+const CITED = /^[A-Za-z]+(?:-\d+)+$/u;
+export const HUMAN_REF = new RegExp(`^${KEY}$`, "iu");
+export const keysIn = (text) => String(text ?? "").match(new RegExp(`\\b${KEY}\\b`, "giu")) ?? [];
 
 export const rowsOf = (payload, key = "issues") =>
   payload?.[key] ?? payload?.data ?? (Array.isArray(payload) ? payload : []);
@@ -19,8 +23,6 @@ export const listIssues = async (filters = {}, limit = DEFAULT_LIMIT, extra = {}
     ...(Object.keys(filters).length ? { filters } : {}),
     ...extra,
   });
-
-export const truncated = (rows, limit) => rows.length === limit;
 
 const aged = (row) => Date.parse(row?.createdAt ?? "") || Infinity;
 
@@ -39,9 +41,22 @@ export const queued = (rows, order = []) => {
     .map((held) => held.row);
 };
 
-/* The cut is by response bytes, so only the envelope reports it; an answer carrying none is whole. */
-export const cut = (payload, rows) =>
-  payload?.hasMore === true || payload?.truncated === true || rows.length >= MAX_LIMIT;
+/* Whether a page was whole, and what one reader of it is owed where it was not: the two caps, and
+   why `limit` is taken rather than defaulted, are in docs/cli/the-projections.md. */
+export const cut = (payload, rows, limit) =>
+  payload?.hasMore === true || payload?.truncated === true || rows.length >= limit;
+
+export const cutBy = (payload, rows, limit) => (cut(payload, rows, limit)
+  ? {
+    returned: rows.length,
+    by: payload?.truncatedBy ? String(payload.truncatedBy) : "a cap the tracker did not name",
+    notice: payload?.notice ? String(payload.notice) : null,
+  }
+  : null);
+
+export const cutSaid = (held, what) =>
+  `${what} was cut to the ${held.returned} row(s) read, by ${held.by}.`
+  + (held.notice ? ` ${held.notice}` : "");
 
 /* The floor of the interval a first window is bisected from, no row predating the clock's own. */
 const EPOCH = 0;
@@ -60,7 +75,7 @@ const window = async (index, before, after) => {
     const key = String(row?.issueId ?? "").toUpperCase();
     if (key) index.set(key, row.documentId);
   }
-  return { rows, whole: !cut(payload, rows) };
+  return { rows, whole: !cut(payload, rows, MAX_LIMIT) };
 };
 
 const stamps = (rows) =>
@@ -129,11 +144,18 @@ const missing = (reference, held) => {
       + ` the uuid every verb here also takes.`;
 };
 
+/* Refused before the first call: rejecting a citation cost the whole backlog, and routed nowhere. */
+const notAKey = (reference) =>
+  `\`${reference}\` is neither an issue uuid nor an issue key: this tracker keys issues ISS and`
+  + ` digits, as in ISS-45.`
+  + (CITED.test(reference)
+    ? `\n\`${reference}\` reads as a requirements citation instead, which is not a key and is not`
+      + ` looked for on the tracker at all: \`forge spec ${reference}\` reads that clause off disk.`
+    : "");
+
 export const documentIdOf = async (reference) => {
   if (UUID.test(reference)) return reference;
-  if (!HUMAN_REF.test(reference)) {
-    fail(`\`${reference}\` is neither an issue uuid nor a reference like ISS-45.`);
-  }
+  if (!HUMAN_REF.test(reference)) fail(notAKey(reference));
   const wanted = reference.toUpperCase();
   const held = await referenceIndex();
   if (!held.index.has(wanted)) await reach(held, wanted);
