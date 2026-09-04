@@ -644,3 +644,32 @@ before and after that names its own counter-result. Ran in parallel with ISS-79 
   was that outage, not a gate. Two record artefacts name stale numbers taken before a rebase and a
   bump, disclosed in the report; the verdicts and the mark name the released commit.
 
+## Twentieth dry run — ISS-71
+
+One agent made the link on PATH a dispatcher (3.35.18): reached through the symlink, `forge` and
+`vi-natural` run the checkout when the working directory is inside one that ships a plugin of their
+name and the newest installed copy everywhere else; a wrapper invoked by its own path runs its own
+copy; a throw escaping the checkout copy's load names the copy that ran and where the installed one
+is; `forge doctor` says which copy a call from here would run and why. Eleven verdicts, the first
+run launched from the one-line template with no brief, and the first folded from `forge record
+report` alone. The run ended in a park, not a release: the plan declared a user-facing outcome, the
+change is machine-wide, and the contract sends such a change to a person before `released`.
+
+- The fold from the record works and has the ceiling the eighteenth run named: the report opened
+  with "more than 200 comments match", on an issue with far fewer, cut by response size. The agent
+  wrote the same finding to the feedback folder; ISS-17 already carries it.
+- The first release through `tools/run.mjs ship` left two things behind: a commit subject naming a
+  version the script did not take, because the note was written before the number was computed, and
+  the worktree and branch, because the script has no removal step and the launch line no longer
+  says to remove them. ISS-88.
+- A reviewer's finding widened the touched set: the vi-natural entry's main-module guard compared a
+  URL by string concatenation, so a path with a space or a hash ran nothing and exited zero. Older
+  than this change, fixed here with a criterion the reviewer sharpened.
+- A review over three consult rounds cannot be typed on the record, since every consult numbers
+  from one and an acceptance carries no reason; the agent typed round one and posted the rest.
+  ISS-34, again, now a `gap` record rather than a paragraph in a report.
+- `advance --park screen-review` could not carry the tracker's `waitingKind`, and the park cost the
+  rounds ISS-68 already describes.
+- The agent posted a correction onto ISS-80 through the finding-only route: the attach refusal did
+  not abort the whole batch, the first file had already landed, so a retry re-attaches a name.
+
