@@ -193,6 +193,12 @@ project. Verify the change where it now runs, then post the release note, then m
 status — `references/release-note.md` says why that order, and `forge guide contract released`
 says what the move itself is owed.
 
+**Then close it, in this phase.** `released` is a status a change passes through on its way to
+`closed`, and a run that stops on it has handed a person the one keystroke this workflow exists to
+take over. So the close is the last step of shipping rather than a phase of its own, it comes before
+Phase 8 clears anything away, and it is earned by the status alone. Where the contract hands the
+issue to somebody instead — a park, a reopen — it stays where it is and the report names which.
+
 **A failure anywhere along the path is condition 3**: roll back by the route Phase 0
 established, and report with the evidence rather than retrying past it.
 

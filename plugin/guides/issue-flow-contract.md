@@ -49,7 +49,7 @@ issue. They write to the project, never to a transition.
 | `in_progress` | code is being written against this plan | `approved`; every blocker that gates dispatch at least `developed`, read from the edge's own answer and not from the list it arrived in, so a mention gates nothing; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the review and the merge |
 | `developed` | the change was reviewed and is on the default branch | an approving review of the head that landed: the reviewer, the findings with a verdict on each by id, the outcome *approved*; a person's approval where the project asks for one; then the merged mark with its commit | 5 Prove |
 | `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all against the merged commit; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
-| `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; a review comment from a person where the plan declares a screen change or a user-facing outcome and the project's config asks for one | closing, by a person or the run's end |
+| `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; a review comment from a person where the plan declares a screen change or a user-facing outcome and the project's config asks for one | 7 Ship, the close |
 | `closed` | nothing more happens unless reopened; code landed | `released` | none |
 | `reopen` | a person disagreed with a close or a drop, and their finding is here | a person's word; nothing earns it and the verb never enters it | the finding typed on their behalf and the triage of it, then the fall the triage decides: `developed`, `in_progress`, or `on_hold` blocked |
 
@@ -189,9 +189,14 @@ deploys, which is what the verification cites; where the production branch is a 
 promotion to it is a step outside this ladder — automatic or a person's, as the project's config
 says, and the verification carries the line that says which.
 
+The close is the shipping run's own last step, not a decision it waits on: the entry criterion for
+`closed` is this status and no payload, so no comment decides it and a thread too long to return
+whole cannot refuse it. A person still closes an issue whose run never came back.
+
 | Scenario | Writes | Goes to |
 |---|---|---|
-| the run ends, or a person decides | nothing | `closed` |
+| the run has verified it and its note is up | nothing | `closed`, made by that run |
+| the run is not the one that shipped it | nothing | `closed`, made by a person |
 | a later regression | a new issue | unchanged |
 
 ### `closed`, `dropped` — terminal, until a person disagrees

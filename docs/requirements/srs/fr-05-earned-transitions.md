@@ -175,14 +175,22 @@ for.
 
 ### UC-05-8 — A record too large to read whole
 
-Rev: 1 · Actors: agent · Enforces: BR-02
+Rev: 2 · Actors: agent · Enforces: BR-02
 
-The check reads the whole record, so a record that cannot be read whole cannot be judged. Today
-such an issue is refused outright, and ISS-17 and ISS-18 own what replaces that.
+The check reads the whole record, so a record that cannot be read whole cannot be judged. Today such
+an issue is refused outright, and ISS-17 and ISS-18 own what replaces that. One status is judged on
+no record at all — its entry criterion is another status — and a refusal that reached it would stop
+a run one transition short of where the flow ends, so that move is exempt and the exemption is as
+narrow as the criterion: a park or a drop from the same status is judged on the record like any
+other move. The exemption is the judgement's and not the whole command's, because the write that
+follows carries an obligation of its own to deliver a thread nobody has been shown (`FR-10`).
 
-- **AC-05-8-1** · Rev: 1 · Proof: none yet — ISS-17
+- **AC-05-8-1** · Rev: 2 · Proof: none yet — ISS-17
   IF the issue's comments exceed one page THEN the CLI SHALL refuse rather than judge a status on a
-  partial record.
+  partial record, for every status whose entry criteria that record holds.
+- **AC-05-8-2** · Rev: 1 · Proof: plugin/test/flow/close.test.mjs
+  WHERE the entry criterion of the next status is the issue's present status and no payload, the CLI
+  SHALL judge that transition on the status alone and SHALL fetch no comment page to judge it.
 
 ## Business rules enforced
 

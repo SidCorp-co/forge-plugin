@@ -49,3 +49,17 @@ and whether it gates dispatch, and the entry check filtered that list on the blo
 The check reads the edge's own answer now, falling back to the kind where the tracker sent none, and
 keeps the blocker's status as a second test beside it: the tracker gates on a merged mark and this
 contract's floor is `developed`, so the two answer different questions.
+
+A fourth measurement, and the plainest of them: the tracker cuts a comment list by response size and
+not by count. A list of ISS-99 with a limit of two hundred came back with thirty-six rows and
+`hasMore` set, so by the time a thorough run has shipped, its own issue answers that way — and the
+check that declines to judge a status on part of a record was therefore declining on every status,
+including the one earned by another status and by nothing written. Five issues in a single day were
+left one transition short of the end of the flow, and a person made that transition for each of
+them. So the target is worked out from the status before any page is fetched, which spares that
+round and the release-policy round with it. The page the lease write still reads on its way through
+is a delivery of what nobody has been shown and not a judgement of anything, so it refuses nothing
+and asks only to be sent again. A park or a drop from the same status
+still reads it: the kind, the evidence and the question a held issue owes are all on the record, and
+an exemption wider than the criterion would have bought them the same refusal for nothing. What a
+partial page costs the statuses whose criteria really do live there is ISS-17's to answer.
