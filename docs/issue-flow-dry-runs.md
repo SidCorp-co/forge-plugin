@@ -993,3 +993,24 @@ from the record. The thirty-first run's close, the first through the new verb, i
 - A fake tracker that throws answers nothing, so a test case hangs rather than failing; ISS-122.
 - The page measurement again — thirty-six rows at the limit, cut by response size — and one more
   shape: a park from `released` has no route past the refusal. ISS-17, which now holds six sightings.
+
+## Thirty-fourth dry run — ISS-116
+
+One agent made a filing's shape read once (3.35.36): one read per filing, one helper both filing routes
+call, the refuse-then-say pair existing once and the notice reachable off a synchronous, network-free
+read. Eight verdicts; the load-bearing case counts body reads through a getter and pins two, and reading
+three fails it, which was run and captured; every pre-existing case ran unedited and the before-and-after
+list of case names differs by the one added. The gate ran whole twice, on the review tree and on the
+released head after the rebase, as the verification reference now asks. A gate file moved, so the
+restart owed stood. Folded from the record.
+
+- The machine ran out of temp inodes mid-run — none free of a million, with six gigabytes of bytes
+  free — and every tool call that wrote a file began failing. Measured cause: the test fixtures leak a
+  directory per case, about five hundred and fifty per gate run from one helper that registers no
+  cleanup, and the code-quality package's own suite two and a half thousand inodes more. The agent
+  filed it, then dropped it because the feedback folder's README forbade the route; the parent reopened
+  it on the user's rule of the same day that a plugin defect is tracked on the tracker (ISS-123), and
+  swept sixty thousand leaked directories older than half an hour. ISS-125, dispatched at once: a gate
+  that fills the disk it runs on stops every lane.
+- The ship step's count fired again at three releases and a hundred and thirty lines; ISS-112 makes
+  it volume alone.
