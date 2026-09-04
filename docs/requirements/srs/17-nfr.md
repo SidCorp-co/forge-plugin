@@ -107,7 +107,7 @@ Rev: 1 · Enforces: BR-07
 Silence is an opt-out and not a misconfiguration. A repository with no linter, no gate and no
 settings of its own gets no findings from this product about what good code is.
 
-- **AC-17-9-1** · Rev: 1 · Proof: none yet — ISS-247
+- **AC-17-9-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a project that configured no linter hears nothing, and the same file speaks once it configures one"
   IF the project configures nothing THEN the product SHALL say nothing about its code.
 
 ### NFR-10 — The half no check reaches is verified by reading it

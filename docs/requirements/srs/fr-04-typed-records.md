@@ -41,7 +41,7 @@ a correction beside any of them.
   kind and the contract version on the record's last line.
 - **AC-04-1-2** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a park records the status it left, and free text is no record"
   IF free text is written where a record is expected THEN the reader SHALL treat it as no record.
-- **AC-04-1-3** · Rev: 1 · Proof: none yet — ISS-14
+- **AC-04-1-3** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a repeated value carrying the separator, a newline and a fence marker reads back byte for byte"
   WHEN a field holds several values THEN the record SHALL read back with exactly the values it was
   written with, whatever those values contain.
 

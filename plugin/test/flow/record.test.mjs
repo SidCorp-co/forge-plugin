@@ -29,7 +29,7 @@ test("a record renders for a person and its payload is a fenced block keyed by f
   const body = render("confirmation", { where: ["a.mjs", "b.mjs"], is: "the hook keys by path", finding: "holds" });
   assert.match(body, /^## Confirmation$/mu);
   assert.match(body, /^```forge-record$/mu);
-  assert.match(body, /^where: a\.mjs\nwhere: b\.mjs$/mu, "a repeated field is one line per value");
+  assert.match(body, /^where: a\.mjs\nwhere: b\.mjs$/mu, "a repeated field starts each value on its own keyed line");
   assert.match(body, /^finding: holds$/mu);
   assert.equal(body.trim().split("\n").at(-1), `\`forge-record: confirmation · contract ${CONTRACT}\``);
   assert.deepEqual(parse(body), {
@@ -38,6 +38,23 @@ test("a record renders for a person and its payload is a fenced block keyed by f
     rewritten: false,
     fields: { where: ["a.mjs", "b.mjs"], is: "the hook keys by path", finding: "holds" },
   });
+});
+
+/* AC-04-1-3 obliges the round trip whatever a value contains, and a repeated field of two plain
+   paths proves none of it: the separator a bullet-form record is split on, a line that reads as
+   another key, and a bare fence are what can silently join or split the values. Two fence lengths,
+   because a fence pinned at any one length passes a case that only ever writes a shorter run. */
+test("a repeated value carrying the separator, a newline and a fence marker reads back byte for byte", () => {
+  const values = [
+    "a.mjs; b.mjs", "line one\nline two", "before\n```\nafter", "before\n````\nafter",
+    "before\nwhere: not a key\nafter", "  indented start",
+  ];
+  const body = render("confirmation", { where: values, is: "what the values contain", finding: "holds" });
+  const fence = /^(`{3,})forge-record$/mu.exec(body)[1];
+  const longest = Math.max(...values.flatMap((one) => [...one.matchAll(/`+/gu)].map((run) => run[0].length)));
+  assert.ok(fence.length > longest, `the fence is ${fence.length} ticks and a value holds ${longest}`);
+  assert.match(body, /^where: line one\n {2}line two$/mu, "a newline inside a value is a continuation line");
+  assert.deepEqual(parse(body).fields.where, values, "every value back as written, and none joined or split");
 });
 
 test("the tracker's data fence around a field or a body is not part of it", () => {

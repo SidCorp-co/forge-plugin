@@ -120,7 +120,7 @@ landed is closed, never dropped.
 - **AC-05-5-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "the flow table names one next status, and a disposition sends the issue to dropped"
   WHEN the latest confirmation's finding is a disposition THEN the CLI SHALL make the next status
   dropped and SHALL take the finding as the reason.
-- **AC-05-5-2** · Rev: 1 · Proof: none yet — ISS-246
+- **AC-05-5-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "a drop is refused once the merged mark is set, and it is the mark that refuses"
   IF the merged mark is set THEN the CLI SHALL refuse to drop the issue.
 
 ### UC-05-6 — A later change unearns

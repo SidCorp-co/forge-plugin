@@ -476,10 +476,20 @@ const LOOKING = {
   releaseNotes: { section: "Fixed", userFacing: "it works" },
 };
 const QUIET = { ...LOOKING, documentId: "quiet-uuid", issueId: "ISS-94", plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no." };
+/* At `approved` and marked merged: the only status from which the merged-mark refusal is the one
+   that can fire, since a status past `developed` is refused a drop before the mark is read. */
+const LANDED = {
+  ...OPEN,
+  documentId: "landed-uuid",
+  issueId: "ISS-95",
+  status: "approved",
+  description: "no mark here",
+  mergedAt: "2026-09-03T09:00:00.000Z",
+};
 const state = {
   calls: [],
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
-  issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" }, EARNS, LOOKING, QUIET],
+  issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" }, EARNS, LOOKING, QUIET, LANDED],
   comments: {
     "earning-uuid": [recorded("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" })],
     "looking-uuid": [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] })],
@@ -539,4 +549,30 @@ test("--owed on an issue with no mark says nothing about a light path", async ()
   const run = await owed("ISS-91");
   assert.doesNotMatch(run.stdout, /light path/u);
   assert.match(run.stdout, /no confirmation/u);
+});
+
+/* `park()` refuses a drop twice and both refusals say "dropped means no code landed": one on a
+   status past `developed`, one on the merged mark. A fixture carrying both proves only the first
+   and stays green with the mark's check gone, so this one sits where only the mark can refuse. */
+test("a drop is refused once the merged mark is set, and it is the mark that refuses", async () => {
+  const drop = (reference) =>
+    ranAsync(FORGE, ["advance", reference, "--drop", "--why", "it should not have been built"], tracker.env);
+  const swap = (extra) => {
+    state.issues = state.issues.map((one) => (one.documentId === LANDED.documentId ? { ...LANDED, ...extra } : one));
+  };
+  const moves = () => state.calls.filter((one) => one.args.action === "transition").length;
+  const before = moves();
+  const refused = await drop("ISS-95");
+  assert.equal(refused.status, 1, `${refused.stdout}${refused.stderr}`);
+  assert.match(refused.stderr, /was marked merged at 2026-09-03T09:00:00\.000Z/u, "the mark's refusal, not the status one");
+  assert.match(refused.stderr, /"action":"unmark"/u, "and it carries the call that clears the mark");
+  assert.equal(moves(), before, "a refused drop moves nothing");
+  swap({ mergedAt: null });
+  const unmarked = await drop("ISS-95");
+  assert.doesNotMatch(unmarked.stderr, /dropped means no code landed/u, "with no mark, nothing says the change landed");
+  swap({ status: "tested" });
+  const late = await drop("ISS-95");
+  assert.match(late.stderr, /is tested, and dropped means no code landed/u, "past developed the status refuses first");
+  assert.doesNotMatch(late.stderr, /was marked merged at/u, "so a case keyed on the mark cannot pass on the status");
+  swap({});
 });
