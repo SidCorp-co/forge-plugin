@@ -1554,3 +1554,28 @@ the record.
   carrying its own; the remedy of including the package's readme was measured and refused, since its
   citations are literal values a consumer types. Seven filings onward, one loose end handed to the
   parent: the check has no clause in its requirement while every sibling has one.
+
+## Fifty-ninth dry run — ISS-188
+
+One agent closed the seven shell shapes ISS-86 left (3.35.69). The span and move reading left a
+harness file that stood at exactly its line ceiling for a module of its own under the plugin's source,
+one module because the move is read span by span, re-exported so no gate's imports moved. Then a comment
+is outside every span at the one place every gate reads; a frame per subshell opened and closed, a
+closing bracket popping only the frame its opener made; the compound keywords and the brace group
+admitted, a whole shell word read; and a destination the text does not carry answers a sentinel the
+guard treats as a tree with work at stake, saying so. All seven reproduced first; each mechanism
+reverted alone turned only its own case red. Restart owed, wider than the ship step printed: the reading
+now lives in a third file the two it named import. Closed by its run. Folded from the record.
+
+- The green suite could not see two defects; the second opinion did, both narrowing in the dangerous
+  direction — a command substitution's closing bracket popping a subshell the command was still inside,
+  and a loop keyword after a failed move read as proof it succeeded. Worth copying into every dispatch:
+  revert each mechanism alone, and get a second opinion that reads the reading rather than the tests.
+- No document changed, because both the hooks document and the how-page sit within a few characters of
+  their caps; the one clause that fit did so only by rewording a ranking into a disjunction that dropped
+  a fact, and was reverted. A cap met is a cap, not an invitation to say less than is true.
+- Three defects filed: a fresh worktree makes every file a read names count as written, so the turn
+  gate asks for a consult the turn does not owe — met in the first minute, on every worktree run
+  (ISS-200); the move reading answers the same nothing for never-moved and unnameable (ISS-211); one
+  token inside data in a heredoc flips every literal in the body into a shell command, which refused
+  the write of this issue's own cases (ISS-212).
