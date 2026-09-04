@@ -1361,3 +1361,24 @@ Closed by its run. Folded from the record.
   checked before building on them, and said so.
 - The half that lives in the held ship script — a green run recording its seconds and the ship printing
   the figure — was routed as ISS-166. The record note's unstated length cap cost one round (ISS-170).
+
+## Fifty-first dry run — ISS-104, ISS-140, ISS-143 and ISS-146
+
+One agent took four defects in the ship script as one batch (3.35.56, 3.35.57, 3.35.59): the mark's
+first plant proves the target is this history's; the ship's review-issue lookup reads the key the
+tracker named rather than one a path in its reason carries, and says a refusal apart from an absence;
+step seven asks the shared checkout for a fast-forward, so a dirty tree there no longer stops a release
+it does not move; and a named head is what `review --done` marks, the bare form refused over an owed
+range. Twenty cases. Four issues filed onward. No restart owed. Closed by its run. Folded from the record.
+
+- The projection grew a priority column mid-batch, when ISS-144 landed in the rebase base, and the
+  ship's positional parse silently read the rank as the status while nineteen cases stayed green on a
+  two-column stub. Found by probing the released copy against the live tracker, not by reading. The
+  shipped shape is now two calls — the row says which issue, the issue reader says what status — and a
+  correction record says so against the plan; the gap that one status costs a whole body or a moving
+  column is ISS-174.
+- One criterion's verdict records a decision rather than reproducing a defect and is not red without
+  the change; the run said so instead of calling it proven.
+- The batch took the longest of the day, at over two hours: four issues sharing one branch means four
+  sets of records, and the rebase brought two landings mid-run. The rule for sharing a run is for fixes
+  the size of one change; four is where the saving turns into serial waiting.
