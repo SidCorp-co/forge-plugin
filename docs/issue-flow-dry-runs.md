@@ -1744,3 +1744,27 @@ record.
   ISS-149, both noted), and a repeated record field keeping only its last value in silence — it dropped
   four routed findings from this issue's own record (ISS-234). A field that repeats and keeps one is a
   write that lies about what it kept.
+
+## Sixty-seventh dry run — ISS-200
+
+One agent gave the freshness reading a floor (3.35.78): a path a call names counted as written when
+its modification time was within two minutes, a ceiling with no floor, so in a worktree cut a second
+earlier every read raised the turn gate's debt — and, a second symptom the issue had not recorded, a
+read of a skill file was blocked outright. The floor is the moment the call was asked for, read as the
+timestamp of the last assistant record in the event's transcript; measured in the run's own transcript
+that the record lands before the tool runs, that each agent has its own file, and that a subagent's
+carries no prompt record at all, which ruled out the turn's start. Where no transcript can say, the old
+reading stands. Both mechanisms reverted alone fail the key case. A harness file and its how-page
+moved, so a restart is owed. Closed by its run. Folded from the record.
+
+- A cleaner-looking alternative — reading whether the tree is git-clean — was rejected with a case: an
+  edit and a commit in one call leave the tree clean and the write would be lost. The alternative
+  chosen is the one whose failure is a case that fails, not the one that reads simplest.
+- The second opinion found the floor is the request and not the call, since blocks of one message share
+  the record's timestamp; inherent, so the claim was corrected in the how-page and the use case rather
+  than the code. Two real narrowings it raised were named as outside the use case's reach and filed as
+  ISS-235, and the recheck's automatic verdict was overridden to not-taken-with-reasons rather than left
+  reading as three accepted findings nobody fixed.
+- The reproduction came first and against the pre-fix code in a real worktree, which is what found the
+  second symptom. A defect reproduced in the reporter's terms is the smaller half of what a reproduction
+  finds.
