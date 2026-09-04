@@ -89,7 +89,7 @@ document that argues where it should instruct fails a test rather than a reader'
 - **AC-07-3-2** · Rev: 1 · Proof: plugin/test/hooks/hook-how.test.mjs
   WHEN a gate's document is written THEN it SHALL name no absolute path and SHALL explain no code,
   since only the plugin's own directory travels into an installed copy.
-- **AC-07-3-3** · Rev: 1 · Proof: plugin/test/checks/doc-claims.test.mjs
+- **AC-07-3-3** · Rev: 1 · Proof: plugin/test/checks/docs/doc-claims.test.mjs
   IF a document tells a reader to run a command THEN that command SHALL be one the CLI has.
 
 ### UC-07-4 — Every gate can be switched off, one at a time

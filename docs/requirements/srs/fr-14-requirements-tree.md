@@ -44,7 +44,7 @@ the checker or the skill that already states a rule rather than restating it.
 - **AC-14-1-1** · Rev: 1 · Proof: docs/requirements/README.md
   WHEN a rule of the tree is written THEN it SHALL be stated with the form a checker holds and with
   who checks it, so no rule of the tree is advice.
-- **AC-14-1-2** · Rev: 1 · Proof: plugin/test/checks/doc-claims.test.mjs
+- **AC-14-1-2** · Rev: 1 · Proof: plugin/test/checks/docs/doc-claims.test.mjs
   WHEN this tree names a command THEN that command SHALL be one the CLI has, or one declared on the
   document's own proposal line.
 

@@ -57,7 +57,7 @@ the checker and does not restate what it says.
 | R-16 | Machinery never sits inside the sentence a person reads. | No identifier, revision, hash or path inside a `SHALL` sentence or a business rule statement, except the system the criterion names. | a person |
 | R-17 | Every list is renderable as a table. | Each list of clauses is a table, or a sequence of clauses with identical field keys. | the page lint |
 | R-18 | A clause never restates the argument for a rule; it states the duty and cites the argument's home. | No sentence of the tree overlaps a sentence of the rules file, a skill, a gate document or another document under `docs/` at 0.55 or above by the measure in `plugin/src/checks/duplication.mjs`, over sentences of five words or more — counting prose, list items **and the text of table cells**, which that module strips and the gate therefore has to put back. | the spec gate |
-| R-19 | The tree names nothing that does not resolve. | Every path in a code span or a link exists, read from the repository root or from the document's own directory; every verb named is one the CLI has, or one declared on the document's proposal line. | `plugin/test/checks/doc-claims.test.mjs`, then the spec gate |
+| R-19 | The tree names nothing that does not resolve. | Every path in a code span or a link exists, read from the repository root or from the document's own directory; every verb named is one the CLI has, or one declared on the document's proposal line. | `plugin/test/checks/docs/doc-claims.test.mjs`, then the spec gate |
 
 **Why a revision by hand and a hash by machine (R-10).** Doorstop stores a parent's fingerprint in
 the child link and marks the link suspect when the parent changes; OpenFastTrace puts a revision in

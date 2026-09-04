@@ -39,16 +39,16 @@ own usage line cannot name them and holding it there would fail on every true do
 specifying something not yet built declares that on its first line and may then name only the verbs
 it declares.
 
-- **AC-12-1-1** · Rev: 1 · Proof: plugin/test/checks/doc-claims.test.mjs
+- **AC-12-1-1** · Rev: 1 · Proof: plugin/test/checks/docs/doc-claims.test.mjs
   WHEN a document names a command in a code span THEN the check SHALL hold the verb against the
   CLI's own verb table, and SHALL hold a flag against the verb's own usage line only where that
   verb carries its flags itself rather than under a sub-verb.
-- **AC-12-1-2** · Rev: 1 · Proof: plugin/test/checks/doc-claims.test.mjs
+- **AC-12-1-2** · Rev: 1 · Proof: plugin/test/checks/docs/doc-claims.test.mjs
   IF a document opens by declaring itself a proposal for named verbs THEN those verbs SHALL be
   allowed and no others the CLI lacks.
-- **AC-12-1-3** · Rev: 1 · Proof: plugin/test/checks/doc-claims.test.mjs
+- **AC-12-1-3** · Rev: 1 · Proof: plugin/test/checks/docs/doc-claims.test.mjs
   IF a document names a switch the code reads nowhere THEN the check SHALL fail.
-- **AC-12-1-4** · Rev: 1 · Proof: plugin/test/checks/doc-claims.test.mjs
+- **AC-12-1-4** · Rev: 1 · Proof: plugin/test/checks/docs/doc-claims.test.mjs
   WHILE the check runs it SHALL count the claims it found and SHALL fail when the count says its
   own pattern matched nothing.
 
@@ -60,13 +60,13 @@ A document saying what a help text, a skill or the repository's rules file alrea
 nobody updates. The measure is a sentence overlap against every place a fact may already live, at a
 threshold calibrated on real documents rather than guessed.
 
-- **AC-12-2-1** · Rev: 1 · Proof: plugin/test/checks/docs-have-one-home.test.mjs
+- **AC-12-2-1** · Rev: 1 · Proof: plugin/test/checks/docs/docs-have-one-home.test.mjs
   IF a document's sentence overlaps a skill, a gate document or the rules file past the threshold
   THEN the check SHALL fail and SHALL print both sentences and where the other one lives.
-- **AC-12-2-2** · Rev: 1 · Proof: plugin/test/checks/docs-have-one-home.test.mjs
+- **AC-12-2-2** · Rev: 1 · Proof: plugin/test/checks/docs/docs-have-one-home.test.mjs
   IF a document explains code THEN the check SHALL fail, since mechanics belong to the help text and
   to the source.
-- **AC-12-2-3** · Rev: 1 · Proof: plugin/test/checks/docs-have-one-home.test.mjs
+- **AC-12-2-3** · Rev: 1 · Proof: plugin/test/checks/docs/docs-have-one-home.test.mjs
   WHILE the check runs it SHALL assert that its own selector matched documents, because a selector
   matching nothing looks exactly like a clean repository.
 - **AC-12-2-4** · Rev: 2 · Proof: plugin/test/checks/docs/docs-have-one-home.test.mjs
@@ -137,17 +137,17 @@ sends a reader nowhere, and a file no row names is a topic nobody is told exists
 a topic one pass, and the number belongs to the check, measured against the one document this
 repository keeps whole.
 
-- **AC-12-6-1** · Rev: 1 · Proof: plugin/test/checks/doc-index.test.mjs
+- **AC-12-6-1** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs
   WHEN an index is checked THEN the check SHALL fail on a paragraph past the first and on a row
   whose link names no file that exists.
-- **AC-12-6-2** · Rev: 1 · Proof: plugin/test/checks/doc-index.test.mjs
+- **AC-12-6-2** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs
   IF a topic file is named by no row of the index THEN the check SHALL fail, since a topic nobody is
   told about is a document nobody reads.
-- **AC-12-6-3** · Rev: 1 · Proof: plugin/test/checks/doc-index.test.mjs
+- **AC-12-6-3** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs
   IF a document is longer than the cap the check names THEN the check SHALL fail and SHALL name the
   file, its size and the split it owes; WHERE the document is a clause of this tree or the journal a
   run appends to, the cap SHALL not apply.
-- **AC-12-6-4** · Rev: 1 · Proof: plugin/test/checks/doc-index.test.mjs
+- **AC-12-6-4** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs
   IF a source comment names a document that is not there THEN the check SHALL fail, and WHERE the
   path sits inside a code span it SHALL be read as an example rather than as a citation.
 

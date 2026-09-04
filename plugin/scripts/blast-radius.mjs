@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // List the files a change can reach that the change did not touch — the readers a diff-driven
-// grep misses, because they mention nothing the diff renamed. Logic in ../src/blast-radius.mjs.
+// grep misses, because they mention nothing the diff renamed. Logic in ../src/checks/blast-radius.mjs.
 
 import { spawnSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
