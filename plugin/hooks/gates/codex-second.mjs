@@ -4,7 +4,6 @@
 
 import { spawnSync } from "node:child_process";
 import { statSync } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
 import { ageOf, demandIn, pendingState, repoRoot, stagedIn } from "../../src/codex/codex.mjs";
@@ -16,8 +15,10 @@ import {
   committing,
   deny,
   gitTreeOf,
+  movedTo,
   shellText,
   spans,
+  spelled as bare,
   turnRecords,
   unspentAdvice,
   how,
@@ -82,23 +83,6 @@ const changedAt = (root) => {
   return { newest: newestOf(root, [...named, ...held]), named, held };
 };
 
-/* The last `cd` before the commit is the tree it closes in — how a shell whose cwd resets between
-   calls commits into a worktree. A subshell's move dies with it, and two relative moves compose. */
-const MOVES = /^\(?\s*cd\s+(?:-[\w-]+\s+)*("[^"]*"|'[^']*'|(?:\\.|[^\s;&|])+)/u;
-const bare = (one) => one.replace(/['"]/gu, "").replace(/\\(.)/gu, "$1").replace(/^~(?=\/|$)/u, homedir());
-const movedTo = (text, before) => {
-  const outer = [];
-  let moved = null;
-  for (const { start, end } of spans(text, { pipes: true })) {
-    if (start > before) break;
-    const one = text.slice(start, end).trim();
-    if (one.startsWith("(")) outer.push(moved);
-    const said = MOVES.exec(one)?.[1];
-    if (said) moved = moved && !isAbsolute(bare(said)) ? resolve(moved, bare(said)) : bare(said);
-    if (one.endsWith(")") && outer.length) moved = outer.pop();
-  }
-  return moved;
-};
 
 /* What the commit closes over, from that command alone: a pipeline's flags are not the commit's, and
    neither is a redirect's target or a value a flag ate — `-am x` is all and a message, `-ma` a message

@@ -18,5 +18,5 @@ A refusal you believe is wrong: put it to the user. Rewording until the pattern 
 the guard is noise.
 
 Not judged: every shape not listed, `git add -A` under a pathspec, and the git rules on a clean tree —
-the tree the command names with `-C`, else the shell's. `git commit`, `git push` and `rm -rf` are not
-here.
+named with `-C`, against a `cd` before it, else the shell's. `git commit`, `git push` and `rm -rf`
+are not here.

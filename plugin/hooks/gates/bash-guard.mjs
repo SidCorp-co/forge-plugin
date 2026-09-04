@@ -4,7 +4,7 @@
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
-import { GIT_GLOBALS, RUNS, SPAWNS, bodiless, deny, gitTreeOf, remaining, starts, unwrapped, how, done } from "../_hook.mjs";
+import { GIT_GLOBALS, RUNS, SPAWNS, bodiless, deny, gitTreeOf, remaining, standsIn, startsAt, unwrapped, how, done } from "../_hook.mjs";
 
 /* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec
    bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. */
@@ -114,32 +114,59 @@ const bare = (one) => {
   return one.startsWith('"') ? inner.replace(/\\\n/gu, "").replace(/\\(["\\$`])/gu, "$1") : inner;
 };
 
-const instructions = (given, handed) => {
-  const held = (body) => {
+/* A handed program keeps its interpreter's position, so it inherits that point's moves: hence the pad. */
+const instructions = (given) => {
+  const handed = [];
+  const held = (body, at) => {
     if (!SPAWNS.test(body)) return body.replace(QUOTED, " ");
-    handed.push(...[...body.matchAll(QUOTED)].map((one) => bare(one[0])));
+    handed.push(...[...body.matchAll(QUOTED)].map((one) => ({ text: bare(one[0]), at })));
     return " ";
   };
-  return bodiless(given, held).replace(RUNS, (all, body) => held(bare(body)) && " ");
+  const outer = bodiless(given, held).replace(
+    RUNS,
+    (all, body, at) => held(bare(body), at) && " ".repeat(all.length),
+  );
+  return { outer, handed };
 };
 
-/* The tree the command names, not the shell's: `git -C other stash` is judged by `other`. */
+/* The tree it names, placed against each cwd `standsIn` allows. Memoised: one deadline for all rules. */
 const GLOBALS = new RegExp(String.raw`^(?:\S*\/)?git\s+` + GIT_GLOBALS, "u");
-const treeOf = (one, cwd) => resolve(cwd ?? process.cwd(), gitTreeOf(GLOBALS.exec(one)?.[0]) ?? ".");
+const treesOf = (one, cwd) => {
+  const named = gitTreeOf(GLOBALS.exec(one.said)?.[0]) ?? ".";
+  one.trees ??= [...new Set(standsIn(one.source, one.at)
+    .map((moved) => resolve(resolve(cwd || process.cwd(), moved ?? "."), named)))];
+  return one.trees;
+};
+
+/* A refusal a developer cannot act on gets worked around, and doubt is not in the rule's own instead. */
+const UNSURE =
+  " This call could run in more than one tree — a `cd` before `;` or `||` may have failed, so the"
+  + " shell may still be standing where it started — and one of them has uncommitted work. Join them"
+  + " with `&&`, which runs the command only where the `cd` succeeded, and the tree is certain.";
 
 export const run = (ev) => {
   if (ev.tool_name !== "Bash") done();
   /* Where each command starts, because a rule quoted in an argument is data: `echo "git stash"` prints.
      A `-c` body is promoted first — the shell it names runs what is inside as commands of its own. */
-  const handed = [];
-  const text = instructions((ev.tool_input ?? {}).command ?? "", handed);
-  const run = [text, ...handed].flatMap((one) => starts(unwrapped(one)));
+  const { outer, handed } = instructions((ev.tool_input ?? {}).command ?? "");
+  const text = unwrapped(outer);
+  const run = [
+    ...startsAt(text).map(({ said, at }) => ({ said, source: text, at })),
+    ...handed.flatMap((one) => startsAt(unwrapped(one.text)).map(({ said }) => ({ said, source: outer, at: one.at }))),
+  ];
   if (!run.length) done();
 
+  const answered = new Map();
+  const dirty = (tree) => {
+    if (!answered.has(tree)) answered.set(tree, treeIsDirty(tree));
+    return answered.get(tree);
+  };
   for (const { pattern, cause, instead, needsDirtyTree } of RULES) {
-    const hit = run.find((one) => pattern.test(one));
-    if (!hit) continue;
-    if (needsDirtyTree && !treeIsDirty(treeOf(hit, ev.cwd))) continue;
-    deny(`Refused. ${cause}\n\nInstead: ${instead}${how()}`);
+    const hits = run.filter((one) => pattern.test(one.said));
+    if (!hits.length) continue;
+    const hit = needsDirtyTree && hits.find((one) => treesOf(one, ev.cwd).some(dirty));
+    if (needsDirtyTree && !hit) continue;
+    const unsure = hit && treesOf(hit, ev.cwd).length > 1 ? UNSURE : "";
+    deny(`Refused. ${cause}\n\nInstead: ${instead}${unsure}${how()}`);
   }
 };

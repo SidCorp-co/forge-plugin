@@ -223,7 +223,9 @@ const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
 export const QUOTED = /'[^']*'|"(?:[^"\\]|\\[\s\S])*"/gu;
 
-/** A heredoc body is data; `onProgram` reads one an interpreter executes. how/learning-gate.md. */
+/** A heredoc body is data; `onProgram` reads one an interpreter executes, and is told where in the
+ *  text being returned the interpreter sits — what a caller needs to know which `cd` it inherited.
+ *  how/learning-gate.md. */
 export const bodiless = (text, onProgram = (body) => body) => {
   let out = "";
   let rest = text;
@@ -235,7 +237,7 @@ export const bodiless = (text, onProgram = (body) => body) => {
     out += `${line} ${rest.slice(after, nl + 1)}`;
     rest = rest.slice(nl + 1);
     const end = new RegExp(`^[ \\t]*${m[2]}[ \\t]*$`, "mu").exec(rest);
-    if (EXECUTES_STDIN.test(line)) out += onProgram(end ? rest.slice(0, end.index) : rest);
+    if (EXECUTES_STDIN.test(line)) out += onProgram(end ? rest.slice(0, end.index) : rest, out.length);
     rest = end ? rest.slice(end.index + end[0].length) : "";
   }
   return out + rest;
@@ -336,12 +338,21 @@ const past = (text) => {
   return out;
 };
 
-/** Each point a program runs one, from there on, its own quotes off: a quoted span holds no start. */
-export const starts = (text) =>
-  invocations(text).flatMap((one) => {
+/** Each point a program runs one, from there on, its own quotes off: a quoted span holds no start.
+ *  `at` is where it begins, since a rule matched on a bare word cannot walk back to a preceding `cd`. */
+export const startsAt = (text) =>
+  spans(text, { pipes: true }).flatMap(({ start, end }) => {
+    const raw = text.slice(start, end);
+    const one = raw.trim();
+    const lead = start + (raw.length - raw.trimStart().length);
     const bare = one.replace(QUOTED, (q) => " ".repeat(q.length));
-    return [...bare.matchAll(new RegExp(STARTS, "gu"))].flatMap((m) => past(one.slice(m.index + m[0].length)));
+    return [...bare.matchAll(new RegExp(STARTS, "gu"))].flatMap((m) => {
+      const at = m.index + m[0].length;
+      return past(one.slice(at)).map((said) => ({ said, at: lead + at }));
+    });
   });
+
+export const starts = (text) => startsAt(text).map((one) => one.said);
 
 /** The one text every write test reads: values resolved, a data heredoc dropped, a `-c` body run. */
 /* Unwrapped before expanded: the shell that takes a `-c` body is what an `env` prefix reaches. */
@@ -368,6 +379,41 @@ export function writing(ev) {
     || [...command.matchAll(REDIRECT)].some((one) => !/^\/dev\//u.test(one[1].replace(/['"]/gu, "")))
   );
 }
+
+/** Every directory a command at this point could run in, `null` being the caller's own cwd and the
+ *  first being every move applied — docs/HOOKS.md states the reading and why doubt is kept rather
+ *  than resolved. Only `&&` proves a `cd` both ran in this shell and succeeded. */
+const MOVES = /^\(?\s*cd\s+(?:-[\w-]+\s+)*("[^"]*"|'[^']*'|(?:\\.|[^\s;&|])+)/u;
+/** What a separator says about the move: `&` and `|` lose it, `;` and `||` leave it in doubt, and a
+ *  `|` or `|&` in front ran the span in its own shell — runs are read whole, so a stage split over a
+ *  newline is one stage; a `||` in front also keeps the caller's cwd, whose `&&` list may have failed. */
+const UNMOVED = /^(?:&(?!&)|\|(?!\|))/u;
+const EITHER = /^(?:;|\n|\|\|)/u;
+const STAGE = /(?:^|[^|])\|&?\s*$/u;
+export const spelled = (one) =>
+  one.replace(/['"]/gu, "").replace(/\\(.)/gu, "$1").replace(/^~(?=\/|$)/u, homedir());
+const onto = (base, to) => (base && !isAbsolute(to) ? resolve(base, to) : to);
+
+export const standsIn = (text, before) => {
+  const outer = [];
+  let could = [null];
+  let after = "";
+  for (const { start, end } of spans(text, { pipes: true })) {
+    if (end > before) break;
+    const held = could;
+    const one = text.slice(start, end).trim();
+    if (one.startsWith("(")) outer.push(could);
+    const said = STAGE.test(after) ? null : MOVES.exec(one)?.[1];
+    if (said) could = [...could.map((f) => onto(f, spelled(said))), ...(after[0] === "|" ? held : [])];
+    if (one) after = text.slice(end).match(/^[;&|\s]+/u)?.[0] ?? "";
+    if (one.endsWith(")") && outer.length) could = outer.pop();
+    else if (UNMOVED.test(after)) could = held;
+    else if (EITHER.test(after) && said) could = [...could, ...held];
+  }
+  return [...new Set(/\|\|/u.test(text.slice(0, before)) ? [...could, null] : could)];
+};
+
+export const movedTo = (text, before) => standsIn(text, before)[0] ?? null;
 
 /* git's globals before the verb: a value may be quoted and hold a space; a bare flag eats no token. */
 const GIT_VALUE = String.raw`(?:"[^"]*"|'[^']*'|\S+)`;

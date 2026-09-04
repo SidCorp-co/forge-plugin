@@ -11,6 +11,13 @@ shell passed all of them unseen — under a permission mode that encourages Bash
 than an edge case. What counts as a write is one document — `forge hooks --how writes` — because six
 gates decide by it, and a second account here would diverge the first time one of them was corrected.
 
+## Which tree a command runs in
+
+An agent's shell resets its cwd between calls, so the tree at stake is where the last `cd` left it and
+not the event's cwd. Two gates need that — whose work a `git stash` takes, which tree a commit closes
+over — so it is the harness's. Reading it wrong is silent in the dangerous direction: a clean checkout
+stands the git rules down, and the refusal never happens.
+
 ## Writing a refusal, and the document behind it
 
 Both are literals in their hook, never loaded from a file: the wording belongs beside the decision
