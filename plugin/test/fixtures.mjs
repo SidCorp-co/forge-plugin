@@ -103,6 +103,13 @@ export const dirtyRepo = () => {
   return room;
 };
 
+/** A repository with nothing to lose, which is where every git rule in bash-guard stands down. */
+export const cleanRepo = () => {
+  const room = tempRoom("clean-repo-");
+  spawnSync("git", ["init", "-q", room], { encoding: "utf8" });
+  return room;
+};
+
 const DECLARED = ["forge_issues", "forge_comments", "forge_projects.list", "forge_uploads",
   "forge_projects.get", "forge_config", "forge_memory.search"];
 /* `scoped` reads the schema to know whether to send the project id, so a tool declared with no

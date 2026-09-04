@@ -2,9 +2,9 @@
 // a green run. Narrow on purpose: a guard refusing too much gets disabled — how/bash-guard.md.
 
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 
-import { GIT_GLOBALS, RUNS, SPAWNS, bodiless, deny, gitTreeOf, remaining, standsIn, startsAt, unwrapped, how, done } from "../_hook.mjs";
+import { GIT_GLOBALS, NOWHERE, RUNS, SPAWNS, bodiless, deny, gitTreeOf, remaining, standsIn, startsAt, unwrapped, how, done } from "../_hook.mjs";
 
 /* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec
    bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. */
@@ -129,12 +129,16 @@ const instructions = (given) => {
   return { outer, handed };
 };
 
-/* The tree it names, placed against each cwd `standsIn` allows. Memoised: one deadline for all rules. */
+/* The tree it names, placed against each cwd `standsIn` allows. Memoised: one deadline for all rules.
+   A cwd nobody can name leaves the tree unnamed too, unless the command spells an absolute one. */
 const GLOBALS = new RegExp(String.raw`^(?:\S*\/)?git\s+` + GIT_GLOBALS, "u");
+const placed = (moved, cwd, named) =>
+  (moved === NOWHERE
+    ? (isAbsolute(named) ? named : NOWHERE)
+    : resolve(resolve(cwd || process.cwd(), moved ?? "."), named));
 const treesOf = (one, cwd) => {
   const named = gitTreeOf(GLOBALS.exec(one.said)?.[0]) ?? ".";
-  one.trees ??= [...new Set(standsIn(one.source, one.at)
-    .map((moved) => resolve(resolve(cwd || process.cwd(), moved ?? "."), named)))];
+  one.trees ??= [...new Set(standsIn(one.source, one.at).map((moved) => placed(moved, cwd, named)))];
   return one.trees;
 };
 
@@ -143,6 +147,12 @@ const UNSURE =
   " This call could run in more than one tree — a `cd` before `;` or `||` may have failed, so the"
   + " shell may still be standing where it started — and one of them has uncommitted work. Join them"
   + " with `&&`, which runs the command only where the `cd` succeeded, and the tree is certain.";
+/* And a tree the text does not name is one at stake, the way `treeIsDirty` reads a tree git cannot
+   answer about — so the refusal has to say the reading failed, not leave a clean checkout looking guilty. */
+const UNNAMED =
+  " Which tree this runs in cannot be read from the command — `cd -`, a bare `cd` and a path built"
+  + " from a variable name no directory this reading can check — so it is treated as having"
+  + " uncommitted work. Spell the directory out: `cd <path> && \u2026`.";
 
 export const run = (ev) => {
   if (ev.tool_name !== "Bash") done();
@@ -158,6 +168,7 @@ export const run = (ev) => {
 
   const answered = new Map();
   const dirty = (tree) => {
+    if (tree === NOWHERE) return true;
     if (!answered.has(tree)) answered.set(tree, treeIsDirty(tree));
     return answered.get(tree);
   };
@@ -166,7 +177,8 @@ export const run = (ev) => {
     if (!hits.length) continue;
     const hit = needsDirtyTree && hits.find((one) => treesOf(one, ev.cwd).some(dirty));
     if (needsDirtyTree && !hit) continue;
-    const unsure = hit && treesOf(hit, ev.cwd).length > 1 ? UNSURE : "";
+    const trees = hit ? treesOf(hit, ev.cwd) : [];
+    const unsure = trees.includes(NOWHERE) ? UNNAMED : (trees.length > 1 ? UNSURE : "");
     deny(`Refused. ${cause}\n\nInstead: ${instead}${unsure}${how()}`);
   }
 };

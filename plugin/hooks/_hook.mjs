@@ -7,9 +7,11 @@ import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 
 import { logHook, scrubbed } from "../src/hooks/hook-log.mjs";
+import { spans } from "../src/hooks/shell-spans.mjs";
 import { hookOff } from "../src/hooks/hook-switch.mjs";
 
 export { askedAlready, askedByAnyone } from "../src/hooks/stamps.mjs";
+export { NOWHERE, movedTo, spans, spelled, standsIn } from "../src/hooks/shell-spans.mjs";
 
 const TOKEN = /[A-Za-z0-9_./@-]+\.[A-Za-z0-9]+/g;
 /** How long after a call a file's mtime still answers for it. */
@@ -277,45 +279,6 @@ export const unwrapped = (text) => {
   return out;
 };
 
-/** Where each command begins and ends. A quoted body is never cut, nor a pipeline split: both hand the
- *  next command its arguments. An unclosed quote joins; a backslash escapes, single quotes excepted. */
-export const spans = (text, { pipes = false } = {}) => {
-  const out = [];
-  let start = 0;
-  let quote = "";
-  for (let at = 0; at < text.length; at += 1) {
-    const one = text[at];
-    if (one === "\\" && quote !== "'") {
-      at += 1;
-      continue;
-    }
-    if (quote) {
-      if (one === quote) quote = "";
-      continue;
-    }
-    if (one === '"' || one === "'") {
-      quote = one;
-      continue;
-    }
-    const pair = text.slice(at, at + 2);
-    /* `|&` is a pipeline, `>&` a descriptor — but a pipeline is where a program owning a flag stops. */
-    if (pair === "|&") {
-      if (pipes) out.push({ start, end: at });
-      at += 1;
-      if (pipes) start = at + 1;
-      continue;
-    }
-    if (one === "&" && text[at - 1] === ">") continue;
-    if (one === ";" || one === "\n" || one === "&" || pair === "||" || (pipes && one === "|")) {
-      out.push({ start, end: at });
-      if (pair === "&&" || pair === "||") at += 1;
-      start = at + 1;
-    }
-  }
-  out.push({ start, end: text.length });
-  return out;
-};
-
 export const commands = (text) =>
   spans(text).map(({ start, end }) => text.slice(start, end).trim()).filter(Boolean);
 
@@ -379,41 +342,6 @@ export function writing(ev) {
     || [...command.matchAll(REDIRECT)].some((one) => !/^\/dev\//u.test(one[1].replace(/['"]/gu, "")))
   );
 }
-
-/** Every directory a command at this point could run in, `null` being the caller's own cwd and the
- *  first being every move applied — docs/HOOKS.md states the reading and why doubt is kept rather
- *  than resolved. Only `&&` proves a `cd` both ran in this shell and succeeded. */
-const MOVES = /^\(?\s*cd\s+(?:-[\w-]+\s+)*("[^"]*"|'[^']*'|(?:\\.|[^\s;&|])+)/u;
-/** What a separator says about the move: `&` and `|` lose it, `;` and `||` leave it in doubt, and a
- *  `|` or `|&` in front ran the span in its own shell — runs are read whole, so a stage split over a
- *  newline is one stage; a `||` in front also keeps the caller's cwd, whose `&&` list may have failed. */
-const UNMOVED = /^(?:&(?!&)|\|(?!\|))/u;
-const EITHER = /^(?:;|\n|\|\|)/u;
-const STAGE = /(?:^|[^|])\|&?\s*$/u;
-export const spelled = (one) =>
-  one.replace(/['"]/gu, "").replace(/\\(.)/gu, "$1").replace(/^~(?=\/|$)/u, homedir());
-const onto = (base, to) => (base && !isAbsolute(to) ? resolve(base, to) : to);
-
-export const standsIn = (text, before) => {
-  const outer = [];
-  let could = [null];
-  let after = "";
-  for (const { start, end } of spans(text, { pipes: true })) {
-    if (end > before) break;
-    const held = could;
-    const one = text.slice(start, end).trim();
-    if (one.startsWith("(")) outer.push(could);
-    const said = STAGE.test(after) ? null : MOVES.exec(one)?.[1];
-    if (said) could = [...could.map((f) => onto(f, spelled(said))), ...(after[0] === "|" ? held : [])];
-    if (one) after = text.slice(end).match(/^[;&|\s]+/u)?.[0] ?? "";
-    if (one.endsWith(")") && outer.length) could = outer.pop();
-    else if (UNMOVED.test(after)) could = held;
-    else if (EITHER.test(after) && said) could = [...could, ...held];
-  }
-  return [...new Set(/\|\|/u.test(text.slice(0, before)) ? [...could, null] : could)];
-};
-
-export const movedTo = (text, before) => standsIn(text, before)[0] ?? null;
 
 /* git's globals before the verb: a value may be quoted and hold a space; a bare flag eats no token. */
 const GIT_VALUE = String.raw`(?:"[^"]*"|'[^']*'|\S+)`;

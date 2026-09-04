@@ -7,8 +7,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { movedTo, standsIn } from "../../hooks/_hook.mjs";
-import { callHook, dirtyRepo, homeEnv, tempRoom } from "../fixtures.mjs";
+import { NOWHERE, movedTo, standsIn } from "../../hooks/_hook.mjs";
+import { callHook, cleanRepo, dirtyRepo, homeEnv, tempRoom } from "../fixtures.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "bash-guard.mjs");
 const HOME = homeEnv("bash-guard");
@@ -31,6 +31,12 @@ const from = (cwd, command) =>
 const STAGE_ALL = `git ${"add"} -A`;
 const BY_NAME = `pk${"ill"} -f node`;
 const SPAWNING = `sub${"process"}.run`;
+
+/* A table of shape and the trees it may run in: the set is what the guard reads, so it is asserted
+   whole rather than through a refusal that only says one of them had work at stake. */
+const reads = (table) => {
+  for (const [text, want, why] of table) assert.deepEqual(standsIn(text, text.indexOf("git st")), want, why);
+};
 
 test("the command itself is refused, and the refusal names the rule and a way out", () => {
   const { allowed, reason } = decide(`${STAGE_ALL} && git commit -m done`);
@@ -164,8 +170,7 @@ test("git's globals before the verb are read as git reads them", () => {
   const dirty = tempRoom("dirty tree-");
   spawnSync("git", ["init", "-q", dirty]);
   writeFileSync(join(dirty, "a.txt"), "x\n");
-  const clean = tempRoom("clean-");
-  spawnSync("git", ["init", "-q", clean]);
+  const clean = cleanRepo();
   assert.match(from(clean, `git -C "${dirty}" reset --hard`), /reset --hard discards/u, "a quoted tree with a space is the tree");
   assert.match(from(clean, `git --no-pager -C "${dirty}" stash`), /git stash silently/u, "a bare flag before -C does not eat it");
   assert.match(from(clean, `git -c core.pager=cat -C '${dirty}' stash`), /git stash silently/u);
@@ -174,8 +179,7 @@ test("git's globals before the verb are read as git reads them", () => {
 
 test("a tree named by --git-dir and --work-tree is the tree judged", () => {
   const dirty = dirtyRepo();
-  const clean = tempRoom("clean-");
-  spawnSync("git", ["init", "-q", clean]);
+  const clean = cleanRepo();
   assert.match(from(clean, `git --git-dir ${dirty}/.git --work-tree ${dirty} reset --hard`), /reset --hard discards/u);
   assert.equal(from(dirty, `git --git-dir=${clean}/.git reset --hard`).trim(), "", "a clean tree named by its .git");
 });
@@ -202,8 +206,7 @@ test("a repeated -C is judged in the tree the hops compose to", () => {
 test("--work-tree names the work tree whatever --git-dir says after it", () => {
   const dirty = dirtyRepo();
   const meta = tempRoom("meta-");
-  const clean = tempRoom("clean-");
-  spawnSync("git", ["init", "-q", clean]);
+  const clean = cleanRepo();
   assert.match(from(clean, `git --work-tree ${dirty} --git-dir ${meta}/repo.git reset --hard`), /reset --hard discards/u);
 });
 
@@ -213,8 +216,7 @@ test("--work-tree names the work tree whatever --git-dir says after it", () => {
    error, so a `--git-dir` naming no repository at all was refused before the fix as well. */
 test("-C outranks what --git-dir implies, so the tree at stake is the tree judged", () => {
   const dirty = dirtyRepo();
-  const clean = tempRoom("clean-");
-  spawnSync("git", ["init", "-q", clean]);
+  const clean = cleanRepo();
   const third = tempRoom("third-");
   spawnSync("git", ["init", "-q", third]);
   assert.match(from(third, `git -C ${dirty} --git-dir ${clean}/.git reset --hard`), /reset --hard discards/u);
@@ -232,8 +234,7 @@ test("-C outranks what --git-dir implies, so the tree at stake is the tree judge
 test("a git rule is judged in the tree a preceding cd moved to", () => {
   const verb = "stash";
   const dirty = dirtyRepo();
-  const clean = tempRoom("clean-");
-  spawnSync("git", ["init", "-q", clean]);
+  const clean = cleanRepo();
   assert.match(
     from(clean, `cd ${dirty} && git ${verb}`),
     /git stash silently reverts/u,
@@ -284,8 +285,7 @@ test("a relative -C after a cd resolves against the move, as it does for a commi
 test("a command inside a body handed to a shell is judged in the tree the outer cd moved to", () => {
   const verb = "stash";
   const dirty = dirtyRepo();
-  const clean = tempRoom("clean-");
-  spawnSync("git", ["init", "-q", clean]);
+  const clean = cleanRepo();
   assert.match(
     from(clean, `cd ${dirty} && python3 -c 'import os; os.system("git ${verb}")'`),
     /git stash silently reverts/u,
@@ -316,8 +316,7 @@ test("movedTo is the harness's, and reads only the moves before the point asked 
 test("a move the command did not inherit is not a move", () => {
   const verb = "stash";
   const dirty = dirtyRepo();
-  const clean = tempRoom("clean-");
-  spawnSync("git", ["init", "-q", clean]);
+  const clean = cleanRepo();
   for (const [sep, why] of [
     ["&", "a backgrounded cd leaves the parent where it was"],
     ["|", "and a pipeline stage is its own shell"],
@@ -379,8 +378,7 @@ test("a move the command did not inherit is not a move", () => {
 test("where the move is not certain, every tree the call could stand in is judged", () => {
   const verb = "stash";
   const dirty = dirtyRepo();
-  const clean = tempRoom("clean-");
-  spawnSync("git", ["init", "-q", clean]);
+  const clean = cleanRepo();
   const doubted = from(dirty, `cd ${clean} ; git ${verb}`);
   assert.match(doubted, /stash silently reverts/u, "the shell may never have left the dirty tree");
   assert.match(doubted, /could run in more than one tree/u, "and the refusal says that is why");
@@ -420,4 +418,174 @@ test("standsIn answers with every tree, and movedTo with the one every move lead
     "the second cd is relative, so it composes onto the first move and onto having never moved");
   assert.equal(movedTo(doubted, doubted.indexOf("git status")), "/one/two", "and the first is every move");
   assert.deepEqual(standsIn("git status", 0), [null], "nothing moved is the caller's own cwd");
+});
+
+/* Seven shapes the reading answered with fewer trees than bash could run the command in (ISS-188),
+   each one a refusal that silently did not happen: the guard checked a clean tree and stood down while
+   the dirty one was where the command landed. The first lives in `spans`, so every gate reading spans
+   split a comment's `|` as a pipeline stage too. */
+test("a pipe inside a comment is no pipeline, so the move behind it is still this shell's", () => {
+  const dirty = dirtyRepo();
+  assert.match(
+    from(cleanRepo(), `echo x # |\ncd ${dirty} && git ${"stash"}`),
+    /stash silently reverts/u,
+    "the comment's pipe read as a stage, which suppressed the move, and the clean starting tree answered",
+  );
+  reads([
+    ["echo x # |\ncd /one && git status", ["/one"], "the pipe inside it is text, not a stage"],
+    ["cd /one # && \n git status", ["/one", null],
+      "and the separator the move is judged by is the newline that ends the comment, not the `&&` in it"],
+  ]);
+});
+
+test("a span closing two subshells hands back two cwds", () => {
+  const verb = "stash";
+  const dirty = dirtyRepo();
+  const clean = cleanRepo();
+  reads([
+    ["(cd /one && (cd /two && true)); git status", [null],
+      "one frame popped for two closes answered /one, which is a tree the command never stood in"],
+  ]);
+  assert.equal(
+    from(clean, `(cd ${dirty} && (cd ${dirty} && true)) ; git ${verb}`).trim(),
+    "",
+    "so the command past them runs where the shell started, both subshells having closed",
+  );
+  assert.match(
+    from(clean, `(cd ${dirty} && (cd ${dirty} && git ${verb}))`),
+    /stash silently reverts/u,
+    "while a command still inside both of them inherits both moves",
+  );
+});
+
+/* `MOVES` allowed only an optional `(` in front of `cd`, so a compound's move was not seen at all. */
+test("a cd a compound command runs is this shell's move", () => {
+  const verb = "stash";
+  const dirty = dirtyRepo();
+  const clean = cleanRepo();
+  for (const [command, why] of [
+    [`if cd ${dirty}; then git ${verb}; fi`, "an if runs its condition in this shell"],
+    [`while cd ${dirty}; do git ${verb}; done`, "and so does a while"],
+    [`{ cd ${dirty}; git ${verb}; }`, "and a brace group is not a subshell"],
+    [`if true; then cd ${dirty}; git ${verb}; fi`, "and a move inside a branch is the shell's as well"],
+  ]) {
+    assert.match(from(clean, command), /stash silently reverts/u, why);
+  }
+  assert.doesNotMatch(
+    from(clean, `if cd ${dirty}; then git ${verb}; fi`),
+    /could run in more than one tree/u,
+    "reaching `then` proves the cd exited zero, and the doubt suffix's one action — join with `&&` — "
+    + "cannot be written inside an if",
+  );
+  assert.match(
+    from(clean, `{ cd ${dirty}; git ${verb}; }`),
+    /could run in more than one tree/u,
+    "while a brace group runs the next command whichever way the cd went, and there `&&` is the way out",
+  );
+  assert.match(
+    from(dirty, `! cd ${clean} && git ${verb}`),
+    /stash silently reverts/u,
+    "and a `!` is not one of them: it inverts, so reaching the command proves the cd failed and the "
+    + "shell never left the tree with work in it",
+  );
+});
+
+/* The destination was one quoted fragment or one unspaced run, so the tree the command ran in was
+   absent from the candidates rather than merely uncertain. */
+test("a destination spelled in fragments is one shell word", () => {
+  const verb = "stash";
+  const parent = tempRoom("parent-");
+  const clean = cleanRepo();
+  for (const name of ["dirty", "dirty tree"]) {
+    spawnSync("git", ["init", "-q", join(parent, name)]);
+    writeFileSync(join(parent, name, "a.txt"), "x\n");
+  }
+  assert.match(
+    from(clean, `cd "${parent}"/dirty && git ${verb}`),
+    /stash silently reverts/u,
+    "a quoted fragment and a bare run are one word, and the reading stopped at the closing quote",
+  );
+  assert.match(
+    from(clean, `cd ${parent}/"dirty tree" && git ${verb}`),
+    /stash silently reverts/u,
+    "and a quoted space is inside the word rather than the end of it",
+  );
+});
+
+/* `cd -` is `$OLDPWD` and a bare `cd` is `$HOME`: neither destination is in the text, so no regex
+   reaches it. Guessing gave `<cwd>/-`, a directory that exists nowhere, refused for the wrong reason
+   and with nothing said about why; a bare `cd` was not read as a move at all, so $HOME's own
+   repository went unjudged. */
+test("a tree the command does not name is one with work at stake, and the refusal says so", () => {
+  const verb = "stash";
+  const clean = cleanRepo();
+  for (const [command, why] of [
+    [`cd - && git ${verb}`, "`cd -` is $OLDPWD, which the command's text does not carry"],
+    [`cd && git ${verb}`, "and a bare cd is $HOME, which it does not carry either"],
+    [`cd $D/x && git ${verb}`, "and a path built from a value is a name nothing here can check"],
+  ]) {
+    const said = from(clean, command);
+    assert.match(said, /stash silently reverts/u, why);
+    assert.match(said, /cannot be read from the command/u, "and the refusal says the reading failed");
+    assert.match(said, /Spell the directory out/u, "and names what to write instead of it");
+  }
+  reads([
+    ["cd - && git status", [NOWHERE], "the set carries the sentinel"],
+    ["cd - && cd sub && git status", [NOWHERE],
+      "and a relative move composed onto a tree nobody named names nothing either"],
+    ["cd - && cd /one && git status", ["/one"], "while an absolute one needs no base, so doubt ends"],
+    ["cd $(pwd) && git status", [NOWHERE],
+      "a substitution is a destination the text does not carry, however the shell would expand it"],
+  ]);
+  const back = "cd - && git status";
+  assert.equal(movedTo(back, back.indexOf("git st")), null,
+    "while movedTo answers the caller's own cwd, since the commit gate resolves its answer as a path");
+});
+
+test("a git rule still stands down where the tree the reading names is clean", () => {
+  const verb = "stash";
+  const clean = cleanRepo();
+  /* Under a plain directory, so the outer name is no repository the inner one could make dirty. */
+  const parent = tempRoom("parent-");
+  const inner = join(parent, "inner");
+  spawnSync("git", ["init", "-q", inner]);
+  for (const [command, why] of [
+    [`if cd ${clean}; then git ${verb}; fi`, "the compound's move is read, and what it reaches is clean"],
+    [`cd "${parent}"/inner && git ${verb}`, "and so is a fragmented destination's"],
+    [`(cd ${parent} && (cd ${inner} && git ${verb}))`, "and so are two frames the command is inside"],
+  ]) {
+    assert.equal(from(DIRTY, command).trim(), "", why);
+  }
+});
+
+/* Both found by the second opinion on this change, both narrowing in the dangerous direction. A
+   substitution's `)` was counted as a close though its `(` opened no frame, so it popped a real
+   subshell the command was still inside; and `do` was read as proof the `cd` succeeded after `until`,
+   whose body is the one place that runs where it failed. */
+test("a substitution closes no frame, and an until inverts what its do proves", () => {
+  const verb = "stash";
+  const dirty = dirtyRepo();
+  const clean = cleanRepo();
+  reads([
+    ["(cd /dirty && echo $(pwd) && git status)", ["/dirty"],
+      "the `)` of `$(pwd)` popped the subshell the command is still inside"],
+    ["(echo $(pwd) && cd /clean); git status", [null],
+      "while the frame the span really closes is still given back, so a move inside it dies with it"],
+  ]);
+  assert.match(
+    from(clean, `(cd ${dirty} && echo $(pwd) && git ${verb})`),
+    /stash silently reverts/u,
+    "and the guard is judged in the subshell's tree rather than the clean one it started in",
+  );
+  assert.match(
+    from(dirty, `until cd ${clean}; do git ${verb}; done`),
+    /stash silently reverts/u,
+    "an until runs its body where the cd failed, so the tree the shell started in is live — and it is "
+    + "the one with work at stake, which `then` and `do` proving success would have ruled out",
+  );
+  assert.match(
+    from(clean, `while cd ${dirty}; do git ${verb}; done`),
+    /stash silently reverts/u,
+    "while a while proves the opposite, its body running only where the cd succeeded",
+  );
 });
