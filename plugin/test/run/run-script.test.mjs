@@ -157,7 +157,7 @@ test("a resumed ship commits a bump left on disk, and never says nothing moved w
   assert.match(blind.stderr, /no forge-ship-from in this tree's git directory/u, blind.stderr);
   assert.doesNotMatch(blind.stdout, /moved since/u, "a run that cannot compare may not tell a session it is safe");
   assert.match(blind.stderr, /the sha this change landed as cannot be named/u,
-    `the second reader of that head has to say what it cannot name too:\n${blind.stderr}`);
+    `both readings of that head have to say what they cannot name:\n${blind.stderr}`);
   assert.match(blind.stderr, /log --oneline --first-parent/u,
     `a run told the sha is unknown and given no read for it is a run that guesses:\n${blind.stderr}`);
   assert.doesNotMatch(blind.stdout, /the change landed as/u, "a sha nothing could be read from may not be named");
@@ -173,15 +173,48 @@ test("the last step names the sha the change landed as, and it is neither the re
   const run = lastStep(work);
   const head = git(work, "rev-parse", "origin/master").stdout.trim();
   assert.notEqual(head, change, "this fixture makes no version commit, so it proves nothing about telling them apart");
-  assert.match(run.stdout, new RegExp(`the change landed as ${change.slice(0, 7)}, `
-    + `and the push moved origin/master to ${head.slice(0, 7)}`, "u"),
+  assert.match(run.stdout, new RegExp(`the change landed as ${change.slice(0, 7)}; `
+    + `the head this tree pushed to master is ${head.slice(0, 7)}`, "u"),
     `the sha the change landed as is not named beside the head that was pushed:\n${run.stdout}`);
 
   /* A second release over an unchanged tree carries the bump and nothing else, and naming its sha
      would hand the mark the release rather than the change. */
   const again = lastStep(work);
-  assert.match(again.stdout, /is the pushed head, and this release landed nothing but the version commit/u,
+  assert.match(again.stdout, /this release landed nothing but the version commit/u,
     `a release of nothing but its own bump named a sha as the change's:\n${again.stdout}`);
+});
+
+/* The bump is a commit of the ship's own only where the ship made one: a tree already above the
+   remote pushes what it has, and a version raised inside the change's commit is still the change. */
+test("a commit that raises the version and changes something is named as the change", () => {
+  const { work } = pushed("landed-with-bump");
+  writeFileSync(join(work, "package.json"),
+    JSON.stringify({ name: "scratch", version: "1.0.4", scripts: { check: GATE } }, null, 2));
+  writeFileSync(join(work, "one.mjs"), "the change\n");
+  git(work, "add", "package.json", "one.mjs");
+  git(work, "commit", "-m", "a change that raises the version itself (ISS-169)");
+  const change = git(work, "rev-parse", "HEAD").stdout.trim();
+
+  const run = lastStep(work);
+  assert.match(run.stdout, new RegExp(`the change landed as ${change.slice(0, 7)};`, "u"),
+    `a commit that changed something was dropped for having raised the version:\n${run.stdout}`);
+});
+
+/* A release commit of an earlier attempt among the change's puts more in the range than the count. */
+test("a release commit among the change's leaves the range saying more than the count", () => {
+  const { work } = pushed("landed-interleaved");
+  writeFileSync(join(work, "package.json"),
+    JSON.stringify({ name: "scratch", version: "1.0.1", scripts: { check: GATE } }, null, 2));
+  git(work, "add", "package.json");
+  git(work, "commit", "-m", "chore(release): 1.0.1, the bump an earlier attempt left");
+  landIn(work, join("plugin", "src", "one.mjs"), 4, "the first commit of the change (ISS-169)");
+  landIn(work, join("plugin", "src", "two.mjs"), 4, "the second commit of the change (ISS-169)");
+  const tip = git(work, "rev-parse", "HEAD").stdout.trim();
+
+  const run = lastStep(work);
+  assert.match(run.stdout, new RegExp(`the change landed as 2 commits, the last of them `
+    + `${tip.slice(0, 7)}, which a mark takes; a release commit sits among them`, "u"),
+    `a range holding a commit the count leaves out is claimed as the change's:\n${run.stdout}`);
 });
 
 /* A mark takes one sha, so a change of several says which end; the range is the exclusive form,

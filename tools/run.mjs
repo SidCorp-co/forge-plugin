@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-/* One home for the procedure a change goes through outside its own diff. Sixteen delegated runs
-   read it out of a prompt instead, each obeying a copy with nothing to fail when it aged past the
-   tree: four of that prompt's lines were workarounds for defects closed three releases before the
-   run that still obeyed them (ISS-79). */
+/* One home for the procedure a change goes through outside its own diff. A prompt carrying it is a
+   copy with nothing to fail when it ages past the tree, and four of the lines sixteen runs obeyed
+   were workarounds for defects closed three releases earlier (ISS-79). */
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
@@ -128,6 +127,14 @@ const versionAt = (root, ref) => {
  *  dropped the bump is still read by the version pushed. Both readers of a range take it here. */
 const isRelease = (tree, sha) => versionAt(tree, sha) !== versionAt(tree, `${sha}^`);
 
+const RELEASE_FILES = ["package.json", "package-lock.json", join("plugin", ".claude-plugin", "plugin.json")];
+
+/* The bump `versionAbove` commits touches these files and no others, so a change that raised the
+   version in its own commit is still the change. */
+const onlyRelease = (tree, sha) => isRelease(tree, sha)
+  && (gitOut(["diff", "--name-only", `${sha}^`, sha], tree) ?? "").split("\n")
+    .filter(Boolean).every((one) => RELEASE_FILES.includes(one));
+
 const worktreePath = (root, key) => join(dirname(root), `wt-${key}`);
 
 const start = ([given, slug]) => {
@@ -186,31 +193,37 @@ const versionAbove = (tree, base, note) => {
   }
   const mine = read(join(tree, "package.json"))?.version;
   if (versionAt(tree, "HEAD") === mine) return console.log(`  ${mine} is committed and above ${upstream}`);
-  const touched = ["package.json", "package-lock.json", join("plugin", ".claude-plugin", "plugin.json")]
-    .filter((one) => existsSync(join(tree, one)));
+  const touched = RELEASE_FILES.filter((one) => existsSync(join(tree, one)));
   loud("git", ["add", ...touched], tree, "Stage them by name and commit the bump yourself.");
   loud("git", ["commit", "-m", note ?? `chore(release): ${mine}, so the installed copy is this head`], tree,
     "Commit the bump, then resume.");
 };
 
-/* The sha the remote head had before the push, kept in the tree's own git directory rather than in
-   this process: the whole point of --from is that the process is a new one, and after the push
-   `origin/<base>` is the head, so a run that read it then would compare a range of nothing. */
+/* In the tree's git directory and not in this process: --from is a new process, and after the push
+   the remote head is no range's start. */
 const MARK = "forge-ship-from";
 
 const markFile = (tree) => join(gitOut(["rev-parse", "--absolute-git-dir"], tree) ?? tree, MARK);
 
-/* Silent about what it cannot compare rather than reassuring: a session told no hook moved keeps
-   running the hook that did. */
 const shipFrom = (tree) => (existsSync(markFile(tree)) ? readFileSync(markFile(tree), "utf8").trim() : null);
 
-const restartOwed = (tree, base) => {
+/** Both readings a release owes a session, off the head the remote had before the push: the sha a
+ *  merged mark names, which is neither end of the line the push prints, and the files a restart is
+ *  owed for. This tree's head is what the push sent; the remote-tracking ref every worktree shares
+ *  would name the tip of whichever run pushed last (ISS-169). Silent about what it cannot compare. */
+const releaseSays = (tree, base) => {
   const was = shipFrom(tree);
   if (!was) {
-    return console.error(`  no ${MARK} in this tree's git directory, so what this release moved is `
-      + `unknown and no session may be told it is safe. Read it against the head ${REMOTE}/${base} `
-      + `had before the push: git diff --name-only <that sha>..HEAD`);
+    return console.error(`  no ${MARK} in this tree's git directory, so the sha this change landed `
+      + `as cannot be named and what this release moved is unknown; no session may be told it is `
+      + `safe. Read both against the head ${REMOTE}/${base} had before the push: `
+      + `git log --oneline --first-parent <that sha>..HEAD, git diff --name-only <that sha>..HEAD`);
   }
+  const all = (gitOut(["log", "--first-parent", "--reverse", "--format=%H", `${was}..HEAD`], tree) ?? "")
+    .split("\n").filter(Boolean);
+  const own = all.filter((sha) => !onlyRelease(tree, sha));
+  console.log(landedLine(was, all, own, `the head this tree pushed to ${base} is `
+    + `${(gitOut(["rev-parse", "HEAD"], tree) ?? "").slice(0, 7)}`));
   const moved = (gitOut(["diff", "--name-only", `${was}..HEAD`], tree) ?? "").split("\n").filter(Boolean);
   const held = moved.filter((one) => one.startsWith("plugin/hooks/") || one.startsWith("plugin/skills/"));
   if (!held.length) return console.log(`  nothing under plugin/hooks/ or plugin/skills/ moved since ${was.slice(0, 7)}`);
@@ -218,30 +231,16 @@ const restartOwed = (tree, base) => {
   for (const one of held) console.log(`    ${one}`);
 };
 
-/** The sha the change landed as, which is neither end of the line the push prints: the rebase
- *  rewrote the commit the run reviewed, and the version commit sits above it. Read from the ref the
- *  push updated, so a mark takes the remote's answer and not a local sha it invalidated (ISS-169). */
-const landedAs = (tree, base) => {
-  const was = shipFrom(tree);
-  const head = gitOut(["rev-parse", `${REMOTE}/${base}`], tree);
-  if (!was || !head) {
-    return console.error(`  the sha this change landed as cannot be named: `
-      + `${was ? `${REMOTE}/${base} resolves to nothing in this tree` : `no ${MARK} in this tree's git directory`}. `
-      + `Read it off the ref the push updated, against the head it had before: `
-      + `git -C ${tree} log --oneline --first-parent <that sha>..${REMOTE}/${base}`);
-  }
-  const all = (gitOut(["log", "--first-parent", "--reverse", "--format=%H", `${was}..${head}`], tree) ?? "")
-    .split("\n").filter(Boolean);
-  const own = all.filter((sha) => !isRelease(tree, sha));
-  if (!own.length) {
-    return console.log(`  ${head.slice(0, 7)} is the pushed head, and this release landed `
-      + `${all.length ? "nothing but the version commit" : `nothing since ${was.slice(0, 7)}`}`);
-  }
-  const tip = own.at(-1);
-  console.log(own.length === 1
-    ? `  the change landed as ${tip.slice(0, 7)}, and the push moved ${REMOTE}/${base} to ${head.slice(0, 7)}`
-    : `  the change landed as ${own.length} commits, ${was.slice(0, 7)}..${tip.slice(0, 7)}; a mark takes `
-      + `one sha, so take the last, ${tip.slice(0, 7)}. The push moved ${REMOTE}/${base} to ${head.slice(0, 7)}`);
+/** Which sha a mark takes, and where the range naming it carries commits the count does not. */
+const landedLine = (was, all, own, pushed) => {
+  const tip = (own.at(-1) ?? "").slice(0, 7);
+  if (!own.length) return `  this release landed ${all.length ? "nothing but the version commit" : "no commit of its own"}; ${pushed}`;
+  if (own.length === 1) return `  the change landed as ${tip}; ${pushed}`;
+  const range = `${was.slice(0, 7)}..${tip}`;
+  return all.indexOf(own.at(-1)) === own.length - 1
+    ? `  the change landed as ${own.length} commits, ${range}; a mark takes one sha, so take the last, ${tip}. ${pushed}`
+    : `  the change landed as ${own.length} commits, the last of them ${tip}, which a mark takes; a `
+      + `release commit sits among them, so ${range} holds more than the change. ${pushed}`;
 };
 
 const reviewedAt = (tree) => gitOut(["rev-parse", "--verify", "--quiet", REVIEWED], tree);
@@ -333,15 +332,16 @@ const launch = (key) => `Work ${key}. Use the Skill tool: skill forge:issue-flow
    refuses is not a failed release, so what cannot be reached is returned as a reason to print. */
 const forgeSays = (tree, args, input) => {
   const run = spawnSync(CLI, args, { cwd: tree, encoding: "utf8", input, timeout: CLI_MS });
-  if (run.error) return { why: `${CLI} could not be run: ${run.error.message}` };
+  if (run.error) return { why: run.error.message, unrun: true };
   if (run.status !== 0) return { why: (run.stderr || run.stdout || `exited ${run.status}`).trim() };
   return { out: run.stdout };
 };
 
-/* The head `forge new` opens a refusal of its own shape check with. A non-zero exit is an answer and
-   not a silence, and the two answers a filing earns have two routes out: a generated body the check
-   reads as wrong is this repository's, a tracker that did not answer is the next ship's (ISS-163). */
+/* The head `forge new` opens a refusal of its own shape check with: a generated body it reads as
+   wrong is this repository's to fix, a tracker that did not answer the next ship's to ask (ISS-163). */
 const CHECK_SAYS = "this files an issue the flow cannot carry";
+
+const whose = (said, call) => (said.unrun ? `${CLI} could not be run` : `the tracker did not answer ${call}`);
 
 const NOT_A_READING = "dropped";
 const READ = "closed";
@@ -353,7 +353,7 @@ const READ = "closed";
 const issueFor = (tree, from) => {
   const at = from.slice(0, 7);
   const found = forgeSays(tree, ["issues", "--search", at, "--limit", "100"]);
-  if (found.why) return { why: found.why, whose: "the tracker did not answer the lookup" };
+  if (found.why) return { why: found.why, whose: whose(found, "the lookup") };
   /* The row says which issue, the issue what status: those columns grew a rank mid-batch. */
   const key = found.out.split("\n").map((line) => /^(ISS-\d+)\s+(.*)$/u.exec(line.trim()))
     .find((row) => row?.[2].includes(`${at}..`))?.[1] ?? null;
@@ -380,8 +380,8 @@ const fileReview = (tree, from, volume) => {
      this check's duplicate line writes `against <a key>`, so one carrying it is its by construction. */
   if (filed.why) {
     const collided = /against (ISS-\d+)/u.exec(filed.why)?.[1] ?? null;
-    const mine = filed.why.includes(CHECK_SAYS);
-    return { why: filed.why, collided, mine, whose: "the tracker did not answer the filing" };
+    const mine = !filed.unrun && filed.why.includes(CHECK_SAYS);
+    return { why: filed.why, collided, mine, whose: whose(filed, "the filing") };
   }
   const key = /"issueId":\s*"(ISS-\d+)"/u.exec(filed.out)?.[1];
   return key
@@ -558,8 +558,7 @@ const shipSteps = (tree, root, base, note) => {
       console.log(copy
         ? `  ${copy.name} ${copy.running} running, ${copy.installed} installed${copy.stale ? " — this version is in no install record" : ""}`
         : "  no install record answers for this plugin");
-      landedAs(tree, base);
-      restartOwed(tree, base);
+      releaseSays(tree, base);
       gateGrew(tree);
       reviewOwed(tree);
     }],

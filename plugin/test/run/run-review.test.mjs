@@ -4,7 +4,7 @@
    responsibility; the release steps themselves are `run-script.test.mjs`. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { BARE, called, git, lastStep, landIn, owedAt, pushed, ref, runIn } from "./run-fixtures.mjs";
@@ -195,6 +195,20 @@ test("a filing refused by name is reported as refused, by the check whose it was
   assert.match(run.stderr, /as ISS-135:/u, run.stderr);
   assert.doesNotMatch(run.stdout, /ISS-999/u,
     `the collision is the key the tracker named, and a path in its reason carries one too:\n${run.stdout}`);
+});
+
+/* A CLI that will not start answered nothing, so calling it the tracker's silence names a party
+   that was never reached. Its route out is neither the tracker's nor the filing check's. */
+test("a CLI that cannot be run is this checkout's failure and not a tracker that did not answer", () => {
+  const { work } = owedAt("unrunnable");
+  lastStep(work);
+  chmodSync(join(work, "plugin", "bin", "forge"), 0o000);
+
+  const run = runIn(work, ["ship", "--from", "10"], BARE);
+  assert.match(run.stderr, /could not be run, so nothing is filed and the next ship asks again/u,
+    `a CLI that would not start, reported as a tracker that did not answer:\n${run.stderr}`);
+  assert.doesNotMatch(run.stderr, /the tracker did not answer/u,
+    "no call reached the tracker, so its silence is not what this was");
 });
 
 /* Nobody typed this body, so a check that reads it as wrong is this script's own defect: the route
