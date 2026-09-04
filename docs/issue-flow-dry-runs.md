@@ -880,3 +880,30 @@ a criterion added by correction. A hook file moved, so the session owed a restar
 - The ship step's first count fired on its third release: three releases, thirty-six lines. The rule
   as first set counts releases or lines, so three one-line fixes owe a reading as much as one large
   batch does; whether that is the threshold wanted is the user's to say.
+
+## Twenty-ninth dry run — ISS-98
+
+One agent gave an issue a kind (3.35.29 to 3.35.32): bug, enhancement and feature, the set derived by
+measuring the backlog's own body shapes — ninety headed bodies read in one pass; each kind names the
+sections a description must carry and the ones nice to have; a required section missing is refused with
+the section and the kind named, before any tracker call; a nice-to-have one missing is said in a line and
+filed anyway; a filing naming no kind is read as a feature and told so; a kind outside the set is refused
+with the set; the flow's size word maps onto the tracker's column in one writer; no tracker column name
+is printed and the tracker is unchanged. Eighteen verdicts against the installed copy, codex approved
+after four diff rounds and a whole-file round. Three fix releases followed the first: a kind read by
+presence rather than truth so an empty one is refused, and the same said on both filing routes. No
+restart owed. Folded from the record.
+
+- The measurement was reachable from the tracker in one pass and the one structural refusal the run
+  met — the ten-file directory limit — printed its own remedy: the first run since the twelfth to
+  record no gap in the method.
+- The gate's own document for a refused filing still states one kind's shape as universal; ISS-106.
+  A body of two size-mark lines and nothing else files with no text, because the mark is stripped
+  once; ISS-107. A figure in the verb's topic counted headings by occurrence beside figures that count
+  issues; ISS-110. A probe filed a live issue by accident and was dropped with the reason; ISS-109.
+- The parent's own rule paragraph for ISS-108, pushed without the gate, restated the rules file at
+  0.30 and turned master red for the second time in one day from the same hand; the agent proved it
+  was not its change, ran the eight later gates by hand and posted the finding on ISS-108. The
+  ISS-94 lesson holds for a topic file as much as for this journal.
+- The past-the-page misread was met a fourth time, in a second verb: the verdict's evidence
+  attachment. ISS-17, with the verb named; one reader for both.

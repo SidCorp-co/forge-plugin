@@ -39,7 +39,7 @@ answered and not a redirect: nothing in the CLI knows the old name. What is forb
 that does — a row saying *use X instead*, a refusal written to name the replacement, a deprecation
 note in a skill. The user's rule,
 2026-09-04, and the reason is the same one that withholds a gated verb: a redirect is a turn spent
-reading a thing that cannot be used and a second turn retyping it, and a skill sentence that names the
-old verb is one more copy that goes stale without failing anything. The one exception is a release
+reading a thing that cannot be used and a second turn retyping it, and a skill sentence naming the
+old verb outlives the verb, with nothing to fail when it does. The one exception is a release
 note on the issue that made the change, which is history and lives on the tracker. A checker holds the
 retired names and refuses any occurrence under `plugin/` and `docs/` (ISS-108).
