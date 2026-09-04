@@ -32,8 +32,9 @@ a row outliving its issue sends the next reader to a key with no answer behind i
 
 *Why are they not listed here?*
 
-Because they are already listed once. `docs/issue-flow-contract.md` closes with the questions the
-workflow has not answered, and that document is the specification of the statuses this tree's
-requirements implement. Summarising even one of them here would put it in two places to be kept in
+Because they are already listed once. The issue-flow contract closes with the questions the workflow
+has not answered — `forge guide contract open-questions` prints that part, and
+[`../../issue-flow-contract.md`](../../issue-flow-contract.md) points at the text — and that document
+is the specification of the statuses this tree's requirements implement. Summarising even one of them here would put it in two places to be kept in
 step, which is the duty of BR-09; the list is one link away and it is the authority for its own
 contents.

@@ -126,7 +126,9 @@ const text = (held) => String(held)
   .replace(/<details><summary>more<\/summary>([\s\S]*?)<\/details>/gu, " $1")
   .replace(/<\/?(?:p|em|strong|code)>/gu, "")
   .replace(/&(lt|gt|amp|quot|#39);/gu, (_, one) => ENTITIES[one])
-  .replace(/[*`]/gu, "")
+  .replace(/\*\*([^*]+)\*\*/gu, "$1")
+  .replace(/\*([^*]+)\*/gu, "$1")
+  .replace(/`([^`]*)`/gu, "$1")
   .replace(/\s+/gu, " ")
   .trim();
 
@@ -144,8 +146,7 @@ const TABLES = [...FIGURE_TEXT.matchAll(/<table class="([a-z]*)">([\s\S]*?)<\/ta
     .map((row) => [...row[1].matchAll(/<t[dh]>([\s\S]*?)<\/t[dh]>/gu)].map((cell) => text(cell[1]))),
 }));
 
-/* Cell by cell rather than table by table: a whole table reported as unequal says a row moved and
-   not which word changed, and the word is what a reader has to go and fix. */
+/* Cell by cell: the word that changed is what a reader has to go and fix. */
 const holdsEqual = (what, mine, theirs) => {
   assert.equal(theirs.length, mine.length,
     `${what}: the contract has ${mine.length} row(s) and the figure ${theirs.length} — `
@@ -163,8 +164,7 @@ test("the figure's copy of the flow table is the contract's, every cell of it", 
   holdsEqual("the flow table", rowsOf(partFor(PARTS, "the-flow")), TABLES.find((one) => one.cls === "flow").rows);
 });
 
-/* Paired by the heading above each table rather than by position, so the headings are held equal
-   too and a table that moved is named for what it is instead of failing as the one beside it. */
+/* Paired by the heading above each table, so the headings are held too and a moved one is named. */
 test("every scenario table the figure copies is its contract part's, heading and all", () => {
   const section = FIGURE_TEXT.slice(FIGURE_TEXT.indexOf("<h2>The contract:"));
   const found = [...section.matchAll(/<h4>([\s\S]*?)<\/h4>\s*<table class="">([\s\S]*?)<\/table>/gu)];
@@ -183,22 +183,25 @@ test("every scenario table the figure copies is its contract part's, heading and
    the two rules the figure never grew were as invisible as the lead it let go stale. The parts are
    named because the same form carries prose that is no rule — the engines the contract compares
    itself against — and reading those as rows would demand rows the figure never owed. */
-const RULE_PARTS = [
-  ["when-the-run-breaks", /^\s*- \*\*(.+?)\.\*\* ([\s\S]*)$/u],
-  ["earning-and-unearning", null], ["the-review", null], ["evidence", null], ["release-and-routes", null],
-];
-const rulesOf = () => RULE_PARTS.flatMap(([key, bullet]) => {
+const BULLET = /^\s*- \*\*(.+?)\.\*\* ([\s\S]*)$/u;
+const PARAGRAPH = /^\*\*(.+?)\.\*\*\s+([\s\S]*)$/u;
+const rulesOf = (keys, form) => keys.flatMap((key) => {
   const held = partFor(PARTS, key).text;
-  const blocks = bullet ? held.split(/\n(?=\s*- \*\*)/u) : held.split(/\n\s*\n/u);
-  return blocks
-    .map((block) => (bullet ?? /^\*\*(.+?)\.\*\*\s+([\s\S]*)$/u).exec(block.trim()))
+  return (form === BULLET ? held.split(/\n(?=\s*- \*\*)/u) : held.split(/\n\s*\n/u))
+    .map((block) => form.exec(block.trim()))
     .filter(Boolean)
     .map((found) => [text(found[1]), text(found[2])]);
 });
 
+/* One table each rather than the two flattened together: a rule moved from the end of the first to
+   the start of the second keeps the flat sequence and lands under the wrong heading. */
 test("every rule the contract states has the figure's row, and every row states the contract's rule", () => {
-  const rows = TABLES.filter((one) => one.cls === "rules").flatMap((one) => one.rows.slice(1));
-  holdsEqual("the rules section", rulesOf(), rows);
+  const held = TABLES.filter((one) => one.cls === "rules");
+  assert.equal(held.length, 2, `${FIGURE} states its rules in ${held.length} table(s), not two`);
+  holdsEqual("the rules of when the run breaks", rulesOf(["when-the-run-breaks"], BULLET), held[0].rows.slice(1));
+  holdsEqual("the rules of the mechanics",
+    rulesOf(["earning-and-unearning", "the-review", "evidence", "release-and-routes"], PARAGRAPH),
+    held[1].rows.slice(1));
 });
 
 const SKILL = join(PLUGIN, "skills", "issue-flow", "SKILL.md");
