@@ -1195,3 +1195,27 @@ reference moved, so the restart owed stood. Closed by its run. Folded from the r
   `open` between two ships made the same mark answer twice; the second filed a duplicate that only the
   tracker's own gate stopped, then reported the refusal as the tracker not answering and printed the
   refused filing as the route out. ISS-140, filed against the script another run held.
+
+## Forty-third dry run — ISS-135, the third review run
+
+One agent read the twelve releases from the second mark as one change (3.35.49) — the first reading the
+ship step filed itself — and landed one commit that only simplifies: five places where a landing in the
+range moved a shape and left part of the old one standing, among them a copy open-coding the two fields a
+helper had been added to answer, a catch ending on a dead return, a guard computed and discarded on the
+one path that read it, and a field no caller passes. Twelve verdicts. Codex found one real defect in the
+review's own work — a dropped keyed dedupe that could route a note to a different document where two reads
+disagree — fixed before the commit and refuted on recheck. No restart owed. Closed by its run. Folded
+from the record.
+
+- The mark was moved to the head the reading reached, not the head the run pushed: by ship time master
+  had moved by a hundred and ninety-two lines from two parallel runs inside no reading's range, and a
+  bare `--done` would have put them permanently behind the mark, silently — the hole the rule exists to
+  close. The script's help said the other thing; ISS-146, and the next reading counts from where this one
+  stopped.
+- The release script's pull refuses a checkout holding another run's uncommitted file even for a no-op
+  and names no route but the one this repository forbids; the agent fast-forwarded by hand and resumed
+  from the next step. ISS-143. With ISS-104 and ISS-140 that makes four fix-size defects on one script,
+  dispatched as one batch run under the user's same-place rule.
+- Two findings were set down in the confirmation rather than filed: an empty retired-names registry
+  proven by its own test passing an entry, and the closed-status skip of the comment page stated in the
+  verb's usage as the intent.
