@@ -42,4 +42,5 @@ note in a skill. The user's rule,
 reading a thing that cannot be used and a second turn retyping it, and a skill sentence naming the
 old verb outlives the verb, with nothing to fail when it does. The one exception is a release
 note on the issue that made the change, which is history and lives on the tracker. A checker holds the
-retired names and refuses any occurrence under `plugin/` and `docs/` (ISS-108).
+retired names and refuses any occurrence under `plugin/` and `docs/` that is not in one of the trees
+it exempts as history (ISS-108).

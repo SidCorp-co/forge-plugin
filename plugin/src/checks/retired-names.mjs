@@ -1,0 +1,58 @@
+/* The retired names, held once so a sentence naming a verb that no longer runs fails something. An
+   entry names no replacement: pointing at what took over is the redirect docs/cli/withholding-a-verb.md forbids. */
+export const RETIRED = [];
+
+const KINDS = ["verb", "flag", "tool"];
+const FIELDS = ["name", "kind", "release"];
+
+/* Where this CLI's own surface puts a name, never a bare word: advance, record, claim, resume and
+   attach each read as ordinary English across the documents and the skills, measured before this. */
+const shapesOf = ({ name, kind }) =>
+  ({
+    verb: [
+      new RegExp(`\\bforge\\s+${name}\\b`, "gu"),
+      new RegExp(`(["'\`])${name}(?:\\s[^"'\`]*)?\\1`, "gu"),
+    ],
+    flag: [new RegExp(`--${name}\\b`, "gu")],
+    tool: [new RegExp(`\\b${name}\\b`, "gu")],
+  })[kind] ?? [];
+
+const WHY = "docs/cli/withholding-a-verb.md";
+const lineAt = (text, index) => text.slice(0, index).split("\n").length;
+const stem = (rel) => rel.split("/").pop().replace(/\.[^.]+$/u, "");
+
+const SELF = `plugin/${import.meta.url.split("/plugin/").pop()}`;
+const HISTORY = /^docs\/issue-flow-dry-runs\.md$|^docs\/requirements\//u;
+
+export const exempt = (rel) => rel === SELF || HISTORY.test(rel);
+
+const mentions = ({ rel, text }, entry) =>
+  [...new Set(shapesOf(entry).flatMap((shape) =>
+    [...text.matchAll(shape)].map(({ index }) => lineAt(text, index))))]
+    .sort((one, other) => one - other)
+    .map((line) => `${rel}:${line} names the ${entry.kind} ${entry.name}, retired in ${entry.release}`
+      + ` — delete the mention rather than aiming it at a live name (${WHY})`);
+
+const named = ({ rel }, entry) =>
+  stem(rel) === entry.name && entry.kind !== "flag"
+    ? [`${rel} is named for the ${entry.kind} ${entry.name}, retired in ${entry.release} — the file`
+      + ` leaves with the name it is about (${WHY})`]
+    : [];
+
+export const problems = (files, retired = RETIRED) =>
+  files
+    .filter(({ rel }) => !exempt(rel))
+    .flatMap((file) => retired.flatMap((entry) => [...named(file, entry), ...mentions(file, entry)]));
+
+/* An entry missing its release would fire a finding nobody can act on. */
+export const registryProblems = (retired = RETIRED) =>
+  retired.flatMap((entry, at) => {
+    const who = entry?.name ?? `entry ${at + 1}`;
+    if (!/^[\w-]+$/u.test(entry?.name ?? "")) return [`${who} is not a name a pattern can match`];
+    if (!KINDS.includes(entry.kind)) return [`${who} is a ${entry.kind}, not one of ${KINDS.join(", ")}`];
+    if (!String(entry.release ?? "").trim()) return [`${who} names no release that retired it`];
+    return Object.keys(entry)
+      .filter((key) => !FIELDS.includes(key))
+      .map((key) => `${who} carries ${key}; a retired name is held with the release that retired it`
+        + ` and nothing that points at a live one (${WHY})`);
+  });
