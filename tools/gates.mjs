@@ -12,7 +12,7 @@ import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
 import { ledgerFor, LEDGER_UNSEEN, recordPass } from "./gates/ledger.mjs";
 import { editsDerivation, mergeBaseDiff, planFor } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
-import { recordDir, recordRun, runSays } from "./gates/timing.mjs";
+import { recordDir, recordRun, seriesFile } from "./gates/timing.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SELF), "..");
@@ -34,9 +34,10 @@ record lives under the common git directory, so a worktree's pass counts for the
 of the same tree, and carries the seconds that step took when it passed.
 
 Beside it, one line per green run: the whole run's seconds and how many of the table's steps it
-actually spent. A scoped run's figure is not a whole-gate one and is never compared with one, so the
-count is part of the record; the release prints the newest figure and its change. Only a run that
-spent every step measures this gate, which is what --full is for.
+actually spent. Only a run that spent every step measures this gate, which is what --full is for, so
+the count is part of the record, and a change is read between two of those runs of the same size and
+no others, however many scoped runs sit between them. A scoped figure is printed and named and never
+subtracted. This says what it recorded; the release is the one place that prints the change.
 
 ${LEDGER_UNSEEN}
 
@@ -178,12 +179,13 @@ console.log(`\nAll ${planned.length} gate step(s) passed in ${elapsed}s${spared}
 /* Past the verdict, and only on the green one: a figure a red run left would be the seconds spent
    reaching a failure. The directory is resolved here rather than taken off the ledger, which --full
    never builds — and a --full run is the one producing a figure this gate can be compared by.
-   Said and not refused: every step has already passed, and a tree that cannot be timed is still a
-   tree this gate answered for. */
+   What it wrote and not what the record now says: the comparison has one reader, the release, and a
+   second place to look for it is a second thing to remember to read. Said and not refused, too — every
+   step has already passed, and a tree that cannot be timed is still a tree this gate answered for. */
 try {
   const dir = recordDir(ROOT);
-  recordRun(dir, { seconds: elapsed, ran: planned.length, total: steps.length });
-  console.log(`recorded: ${runSays(dir)}`);
+  const figure = recordRun(dir, { seconds: elapsed, ran: planned.length, total: steps.length });
+  console.log(`recorded: ${figure} — ${seriesFile(dir)}`);
 } catch (error) {
   console.error(`This gate passed and could not record how long it took: ${error.message}`);
 }

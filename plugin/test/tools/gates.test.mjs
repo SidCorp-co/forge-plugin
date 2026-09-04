@@ -284,7 +284,14 @@ test("a green run records its whole-run seconds and how many steps it spent; a r
     assert.equal(scoped.status, 0, scoped.stdout + scoped.stderr);
     assert.equal(runs(work).length, 1, `one green run left ${runs(work).length} figure(s)`);
     assert.match(runs(work)[0], new RegExp(`^\\S+ \\d+s 3/${STEPS.length}$`, "u"), runs(work)[0]);
-    assert.match(scoped.stdout, new RegExp(`recorded: \\d+s over 3 of ${STEPS.length} step\\(s\\)`, "u"), scoped.stdout);
+    /* What it wrote and nothing the record now says: the comparison has one reader, the release,
+       and the gate printing it too is the second surface the issue exists to remove. Anchored at
+       both ends, so a clause about an earlier run is a failure rather than a longer pass. */
+    const receipts = scoped.stdout.split("\n").filter((one) => one.startsWith("recorded:"));
+    assert.equal(receipts.length, 1, `the gate printed ${receipts.length} timing line(s):\n${scoped.stdout}`);
+    assert.match(receipts[0],
+      new RegExp(`^recorded: \\d+s over 3 of ${STEPS.length} step\\(s\\) on \\d{4}-\\d\\d-\\d\\d — \\S+/runs$`, "u"),
+      receipts[0]);
 
     const whole = run(work, ["--full"]);
     assert.equal(whole.status, 0, whole.stdout + whole.stderr);
@@ -335,19 +342,36 @@ test("a figure is compared only with a whole-gate figure, and what is comparable
   const first = runSays(planted(["2026-01-04T00:00:00.000Z 9s 3/12"]));
   assert.match(first, /no run recorded spent the whole table; npm run check -- --full plants a figure/u, first);
 
+  /* A table that gained a step is another gate, and subtracting across the two reports the addition
+     as drift — which is the reading a review would then act on. */
+  const grown = runSays(planted([FULL, "2026-01-07T00:00:00.000Z 100s 13/13"]));
+  assert.match(grown, /100s over 13 of 13 step\(s\) on 2026-01-07, and the one before it was 80s over 12 of 12 step\(s\)/u, grown);
+  assert.match(grown, /a table of another size, so nothing is subtracted/u, grown);
+  assert.doesNotMatch(grown, /x the 80s/u, `a 12-step gate was subtracted from a 13-step one:\n${grown}`);
+
+  const sameSize = runSays(planted([FULL, "2026-01-08T00:00:00.000Z 40s 13/13", "2026-01-09T00:00:00.000Z 50s 13/13"]));
+  assert.match(sameSize, /50s over 13 of 13 step\(s\) on 2026-01-09, 1\.25x the 40s before it/u,
+    `two figures over the same table were not subtracted:\n${sameSize}`);
+
   // A gate under a second is the scratch case, and a ratio over it is a division by zero.
   assert.match(runSays(planted(["2026-01-05T00:00:00.000Z 0s 12/12", "2026-01-06T00:00:00.000Z 3s 12/12"])),
     /3s more than the one before it, which took under a second, so there is no ratio/u);
 });
 
-// Only the newest two decide anything, so the file is a window and not a history to grow.
-test("the record keeps the runs the question needs and drops the rest", () => {
-  const dir = planted(Array.from({ length: 30 }, (one, nth) => `2026-01-01T00:00:0${nth % 10}.000Z ${nth}s 12/12`));
-  recordRun(dir, { seconds: 7, ran: 12, total: 12 });
-  const held = runSeries(dir);
+/* Only the newest two decide anything, so the file is a window and not a history to grow — but it
+   compacts late, since compaction is the one write that reads the file first. */
+test("the record compacts once it is well past its window, and appends until then", () => {
+  const runs = (count) => Array.from({ length: count }, (one, nth) => `2026-01-01T00:00:0${nth % 10}.000Z ${nth}s 12/12`);
+  const short = planted(runs(30));
+  recordRun(short, { seconds: 7, ran: 12, total: 12 });
+  assert.equal(runSeries(short).length, 31, "an append below the cap rewrote the file");
+
+  const long = planted(runs(65));
+  recordRun(long, { seconds: 7, ran: 12, total: 12 });
+  const held = runSeries(long);
   assert.equal(held.length, 20, `the record holds ${held.length} run(s)`);
   assert.equal(held.at(-1).seconds, 7);
-  assert.equal(held.at(-2).seconds, 29, "the oldest went, not the newest");
+  assert.equal(held.at(-2).seconds, 64, "the oldest went, not the newest");
 });
 
 /* Scoped runs are most of what a checkout spends, so a window dropping by age alone loses the
@@ -365,4 +389,22 @@ test("the newest two whole-gate figures survive a window filled with scoped runs
   const held = runSeries(dir).filter((one) => one.ran === one.total);
   assert.equal(held.length, 2, `${held.length} whole-gate figure(s) survived, and a change needs two`);
   assert.match(runSays(dir), /96s over 12 of 12 step\(s\).*1\.20x the 80s before it/u, runSays(dir));
+});
+
+/* Worktrees of one checkout share this file and each finishes a gate on its own clock. What proves
+   the write does not carry what it read is the case above; this pins the outcome that follows from
+   it, over real processes rather than over one that calls the module twice. */
+test("eight runs recording at once each leave their figure", () => {
+  const dir = planted([]);
+  const write = `import { recordRun } from "${join(ROOT, "tools", "gates", "timing.mjs")}";
+    recordRun(process.argv[2], { seconds: Number(process.argv[3]), ran: 3, total: 12 });`;
+  const at = join(dir, "write.mjs");
+  writeFileSync(at, write);
+  // Backgrounded and waited for: eight spawnSync calls would run one after another.
+  const together = spawnSync("sh",
+    ["-c", `for n in 1 2 3 4 5 6 7 8; do "${process.execPath}" "${at}" "${dir}" $n & done; wait`],
+    { encoding: "utf8" });
+  assert.equal(together.status, 0, together.stderr);
+  const seconds = runSeries(dir).map((run) => run.seconds).sort((a, b) => a - b);
+  assert.deepEqual(seconds, [1, 2, 3, 4, 5, 6, 7, 8], `8 runs recorded ${seconds.length} figure(s)`);
 });
