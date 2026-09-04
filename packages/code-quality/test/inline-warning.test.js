@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { findInlineWarningGaps } from "../src/inline-warning.js";
+import { tempRoom } from "./fixtures/room.js";
 
 const WIRED = `export function Wired({ error, id }) {
   return (<div><input id={id} aria-invalid={!!error} aria-describedby={id} />
@@ -23,7 +23,7 @@ const ACTION = `export function Action({ onGo }) {
 }`;
 
 function project(files) {
-  const root = mkdtempSync(path.join(tmpdir(), "inline warning "));
+  const root = tempRoom("inline warning ");
   for (const [relative, content] of Object.entries(files)) {
     const target = path.join(root, relative);
     mkdirSync(path.dirname(target), { recursive: true });

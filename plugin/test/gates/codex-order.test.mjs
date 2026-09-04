@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { callHook } from "../fixtures.mjs";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { callHook, tempRoom } from "../fixtures.mjs";
+import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { unspentAdvice } from "../../hooks/_hook.mjs";
@@ -19,7 +18,7 @@ const advised = (at = new Date().toISOString()) => ({
 });
 const said = (text) => ({ type: "assistant", message: { content: [{ type: "text", text }] } });
 
-const room = mkdtempSync(join(tmpdir(), "codex-order-"));
+const room = tempRoom("codex-order-");
 /* An empty consult log, so what the gate reads is the fixture and not this machine's history. */
 const env = { ...process.env, XDG_CONFIG_HOME: room };
 test.after(() => rmSync(room, { recursive: true, force: true }));

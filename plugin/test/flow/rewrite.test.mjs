@@ -4,11 +4,9 @@
    put through the rewrite, and read back here. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { tempRoom } from "../fixtures.mjs";
 
-process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "rewrite-"));
+process.env.XDG_CONFIG_HOME = tempRoom("rewrite-");
 const { protectInline, restoreInline, segment } = await import("../../vi-natural/format/doc.mjs");
 const { assemble, landedAs, parse, render, sayStored } = await import("../../src/flow/record.mjs");
 const { SHAPES } = await import("../../src/flow/machine.mjs");

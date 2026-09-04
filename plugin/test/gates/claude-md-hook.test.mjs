@@ -1,20 +1,19 @@
 /* The event on stdin and the decision on stdout, as Claude Code calls it. The fixture is a
    repository that was inherited already wrong, because that is the case a gate has to survive. */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { callHook, homeEnv } from "../fixtures.mjs";
+import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "claude-md.mjs");
 const HOME = homeEnv("claude-md");
 
-const room = mkdtempSync(join(tmpdir(), "claude-md-hook-"));
+const room = tempRoom("claude-md-hook-");
 const git = (...args) => execFileSync("git", args, { cwd: room, encoding: "utf8" });
 git("init", "-q");
 git("config", "user.email", "t@local");

@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tempRoom } from "../fixtures.mjs";
 
 /* A config of its own, and imported after it: on the developer's machine this suite otherwise
    loads four live tokens and what it proves becomes a property of that file. The import has to
    follow, because the config path is resolved once when `resolve/config.mjs` loads. */
-const HOME = mkdtempSync(join(tmpdir(), "cloudflare-home-"));
+const HOME = tempRoom("cloudflare-home-");
 const CONFIG = join(HOME, "forge", "config.json");
 mkdirSync(join(HOME, "forge"));
 writeFileSync(CONFIG, JSON.stringify({

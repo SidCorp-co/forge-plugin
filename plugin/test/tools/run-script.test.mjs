@@ -4,9 +4,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { tmpdir } from "node:os";
+import { tempRoom } from "../fixtures.mjs";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 const SCRIPT = join("tools", "run.mjs");
@@ -24,7 +24,7 @@ const runIn = (cwd, argv, env = process.env) =>
 const GATE = "node -e \"console.log('scratch gate ran')\"";
 
 const scratch = (name, gate = GATE) => {
-  const at = mkdtempSync(join(tmpdir(), `${name}-`));
+  const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
   for (const one of [SCRIPT, join("tools", "checkout.mjs"), join("plugin", "src", "tools", "plugin-copy.mjs")]) {
     mkdirSync(join(work, dirname(one)), { recursive: true });

@@ -1,14 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { TOOLS, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { changedAgainst, roleFor } from "../../src/codex/codex-api.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
 const repo = () => {
-  const dir = mkdtempSync(join(tmpdir(), "codex-check-"));
+  const dir = tempRoom("codex-check-");
   execFileSync("git", ["init", "-q", dir]);
   writeFileSync(join(dir, "a.txt"), "x\n");
   return dir;

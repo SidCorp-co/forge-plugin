@@ -2,13 +2,13 @@
    want one thing from it: this turn, which is at the end. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { promptIndex, turnAt, turnRecords, unspentAdvice } from "../../hooks/_hook.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
-const room = mkdtempSync(join(tmpdir(), "turn-records-"));
+const room = tempRoom("turn-records-");
 
 const filler = (bytes) => {
   const one = `${JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text: "x".repeat(400) }] } })}\n`;

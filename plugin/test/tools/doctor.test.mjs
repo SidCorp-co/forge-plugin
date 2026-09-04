@@ -1,25 +1,24 @@
 /* A setting doctor does not read is a green report in front of a command that cannot run. */
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { fakeTracker } from "../fixtures.mjs";
+import { fakeTracker, tempRoom } from "../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
 
 /* Built rather than filtered: naming the variables to drop is a list that goes stale the day one is
    added, and the developer's own would otherwise answer for half of every fixture. */
 const report = (viConfig, extra = {}, project = {}) => {
-  const home = mkdtempSync(join(tmpdir(), "doctor-home-"));
+  const home = tempRoom("doctor-home-");
   if (viConfig) {
     mkdirSync(join(home, "vi-natural"));
     writeFileSync(join(home, "vi-natural", "config.json"), JSON.stringify(viConfig));
   }
-  const cwd = mkdtempSync(join(tmpdir(), "doctor-cwd-"));
+  const cwd = tempRoom("doctor-cwd-");
   for (const [name, body] of Object.entries(project)) writeFileSync(join(cwd, name), body);
   const run = spawnSync(process.execPath, [CLI, "doctor"], {
     encoding: "utf8",
@@ -93,7 +92,7 @@ test("the gateway is reported with no translate scope set", () => {
 test("the copy a call through the link would run is reported, with why that one", () => {
   const outside = report(null);
   assert.match(outside, /\[ {2}ok {2}\] copy on PATH\s+this \S+ at \S+ — no checkout at or above the working directory/u);
-  const home = mkdtempSync(join(tmpdir(), "doctor-home-"));
+  const home = tempRoom("doctor-home-");
   const tree = join(dirname(CLI), "..", "..");
   const inside = spawnSync(process.execPath, [CLI, "doctor"], {
     encoding: "utf8",
@@ -113,7 +112,7 @@ const releaseReport = async (config, previewDeploy = null) => {
       "forge_projects.get": () => ({ project: { previewDeploy } }),
     },
   });
-  const cwd = mkdtempSync(join(tmpdir(), "doctor-release-"));
+  const cwd = tempRoom("doctor-release-");
   writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "release-fixture" }));
   /* Awaited, not waited on: this test is the tracker the report asks, and spawnSync holds the loop
      that would answer it. */

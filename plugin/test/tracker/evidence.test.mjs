@@ -2,13 +2,13 @@
    twenty times over one verdict loop (the twelfth dry run). Each rule here fails without its check. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { attachPlan, localFile, uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
-const DIR = mkdtempSync(join(tmpdir(), "evidence-"));
+const DIR = tempRoom("evidence-");
 const FILE = join(DIR, "iss65-evidence.md");
 writeFileSync(FILE, "# evidence\n");
 mkdirSync(join(DIR, "a-directory"));

@@ -3,17 +3,17 @@
    skills nor the topics fails here rather than the day a verb is retired. */
 import assert from "node:assert/strict";
 import test, { after } from "node:test";
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { RETIRED, exempt, problems, registryProblems } from "../../src/checks/retired-names.mjs";
 import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
 /* The dispatcher's own registry is read, not described, and it reaches the live config directory on
    the way in: a run on the developer's credential is the one thing a check may not do. */
-const ROOM = mkdtempSync(join(tmpdir(), "retired-names-"));
+const ROOM = tempRoom("retired-names-");
 process.env.XDG_CONFIG_HOME = ROOM;
 const { commands } = await import("../../src/commands.mjs");
 after(() => rmSync(ROOM, { recursive: true, force: true }));

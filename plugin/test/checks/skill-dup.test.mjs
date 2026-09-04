@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
 import { commentSentences, load, sentences } from "../../src/checks/duplication.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
 const A = "The sequence assigns a master-data code whenever the field is left blank.";
 const B = "Uniqueness of that code is a database constraint and not application discipline.";
@@ -41,7 +41,7 @@ test("a bare marker waives nothing, because the reason is mandatory", () => {
 });
 
 test("code carries comments and markdown carries prose", () => {
-  const root = mkdtempSync(join(tmpdir(), "skill-dup-"));
+  const root = tempRoom("skill-dup-");
   mkdirSync(join(root, "vendor"));
   writeFileSync(join(root, "a.mjs"), `const s = 1;\n// ${A}\n`);
   writeFileSync(join(root, "b.md"), `# Heading\n\n${B}\n`);

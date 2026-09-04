@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { cpSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { tempRoom } from "../fixtures/room.js";
 
 const packageRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 const hookScript = path.join(packageRoot, "claude-plugin", "scripts", "lint-edited-file.mjs");
 const localEslint = path.join(packageRoot, "node_modules", "eslint");
 
 function makeConsumer({ eslint = true, plugin = true, config = true } = {}) {
-  const root = mkdtempSync(path.join(tmpdir(), "code quality consumer "));
+  const root = tempRoom("code quality consumer ");
   const modules = path.join(root, "node_modules");
   mkdirSync(modules);
   writeFileSync(path.join(root, "package.json"), '{"type":"module","private":true}\n');
@@ -115,7 +115,7 @@ test("ignores unsupported, missing, deleted, and absent paths", () => {
 });
 
 test("lints a monorepo package with that package's own ESLint", () => {
-  const root = mkdtempSync(path.join(tmpdir(), "code quality monorepo "));
+  const root = tempRoom("code quality monorepo ");
   writeFileSync(path.join(root, "package.json"), '{"private":true,"workspaces":["packages/*"]}\n');
 
   const workspace = path.join(root, "packages", "api");
@@ -256,7 +256,7 @@ test("reports parser errors", () => {
 test("runs from a simulated versioned Claude plugin cache", () => {
   const root = makeConsumer();
   write(root, "src/cache-safe.js", "export const cacheSafe = true;\n");
-  const cacheRoot = mkdtempSync(path.join(tmpdir(), "claude plugin cache "));
+  const cacheRoot = tempRoom("claude plugin cache ");
   const cachedPlugin = path.join(cacheRoot, "code-quality", "0.4.0");
   mkdirSync(path.join(cachedPlugin, "scripts"), { recursive: true });
   cpSync(hookScript, path.join(cachedPlugin, "scripts", "lint-edited-file.mjs"));

@@ -3,15 +3,15 @@
 import assert from "node:assert/strict";
 import test, { after } from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tempRoom } from "../fixtures.mjs";
 
 /* A fixture directory left behind is a directory left behind on every run: the quota on `/tmp` is
    what a run reaching it loses, and it takes the whole shell with it. */
 const scratch = [];
 const temporary = (prefix) => {
-  const dir = mkdtempSync(join(tmpdir(), prefix));
+  const dir = tempRoom(prefix);
   scratch.push(dir);
   return dir;
 };

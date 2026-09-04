@@ -2,12 +2,10 @@
    round is asked to verify are decided here — on entries handed in, never on this machine's file. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { tempRoom } from "../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves, so the two tests that read the real log path read a sandbox. */
-const sandbox = mkdtempSync(join(tmpdir(), "forge-codex-log-"));
+const sandbox = tempRoom("forge-codex-log-");
 process.env.XDG_CONFIG_HOME = sandbox;
 
 const {

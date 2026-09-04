@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { DEFAULT_IGNORED_DIRECTORIES, walkDirectories } from "../src/walk.js";
+import { tempRoom } from "./fixtures/room.js";
 
 function tree() {
-  const root = mkdtempSync(path.join(tmpdir(), "cq-walk-"));
+  const root = tempRoom("cq-walk-");
   for (const dir of ["a", "a/b", "node_modules", "worktrees", ".hidden", "pkg"]) {
     mkdirSync(path.join(root, dir), { recursive: true });
   }

@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { tempRoom } from "../fixtures/room.js";
 
 const packageRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 const gate = path.join(packageRoot, "bin", "code-quality-gate.mjs");
@@ -24,7 +24,7 @@ function consumer(root) {
 const run = (cwd, args = ["."]) => spawnSync(process.execPath, [gate, ...args], { cwd, encoding: "utf8" });
 
 test("config above the working directory is found, as ESLint itself would", () => {
-  const root = consumer(mkdtempSync(path.join(tmpdir(), "gate up ")));
+  const root = consumer(tempRoom("gate up "));
   const nested = path.join(root, "src", "deep");
   mkdirSync(nested, { recursive: true });
   writeFileSync(path.join(nested, "narrate.js"), NARRATES);
@@ -36,7 +36,7 @@ test("config above the working directory is found, as ESLint itself would", () =
 });
 
 test("packages below a bare root are each linted with their own config", () => {
-  const root = mkdtempSync(path.join(tmpdir(), "gate down "));
+  const root = tempRoom("gate down ");
   for (const name of ["api", "web"]) {
     const pkg = path.join(root, name);
     mkdirSync(path.join(pkg, "src"), { recursive: true });
@@ -52,7 +52,7 @@ test("packages below a bare root are each linted with their own config", () => {
 });
 
 test("a project with no config anywhere says so in one line", () => {
-  const root = mkdtempSync(path.join(tmpdir(), "gate none "));
+  const root = tempRoom("gate none ");
   mkdirSync(path.join(root, "src"), { recursive: true });
   writeFileSync(path.join(root, "src", "a.js"), "export const a = 1;\n");
 
@@ -62,7 +62,7 @@ test("a project with no config anywhere says so in one line", () => {
 });
 
 test("every run prints a swept-file count, clean or not", () => {
-  const root = consumer(mkdtempSync(path.join(tmpdir(), "gate banner ")));
+  const root = consumer(tempRoom("gate banner "));
   mkdirSync(path.join(root, "src"), { recursive: true });
   writeFileSync(path.join(root, "src", "clean.js"), "export const a = 1;\n");
 

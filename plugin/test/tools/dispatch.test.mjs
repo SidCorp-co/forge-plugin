@@ -4,11 +4,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { cpSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { copyToRun } from "../../src/tools/plugin-copy.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
 const BIN = new URL("../../bin/", import.meta.url).pathname;
 const PLUGIN = new URL("../..", import.meta.url).pathname;
@@ -35,7 +35,7 @@ const record = (home, plugins) =>
 /* The fake world: a checkout whose marketplace ships this plugin's name, one installed copy the
    record resolves to, one it names at a path that no longer exists, and one older. */
 const world = (cli) => {
-  const room = mkdtempSync(join(tmpdir(), "dispatch-"));
+  const room = tempRoom("dispatch-");
   const checkout = copy(join(room, "checkout", "plugin"), "checkout", cli);
   wrote(
     join(room, "checkout", ".claude-plugin", "marketplace.json"),
@@ -99,7 +99,7 @@ test("vi-natural follows the same rule", () => {
    in its name loads, runs no command and exits 0. The chooser can select such a copy wherever the
    wrapper itself sits, which is why the real CLI is what answers here. */
 test("a chosen copy at an escaped path is still the main module, so vi-natural answers --help", () => {
-  const room = mkdtempSync(join(tmpdir(), "dispatch-escaped-"));
+  const room = tempRoom("dispatch-escaped-");
   try {
     const checkout = join(room, "a checkout");
     cpSync(join(PLUGIN, "vi-natural"), join(checkout, "plugin", "vi-natural"), { recursive: true });

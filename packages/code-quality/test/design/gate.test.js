@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { tempRoom } from "../fixtures/room.js";
 
 const packageRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 const gate = path.join(packageRoot, "bin", "code-quality-gate.mjs");
@@ -16,7 +16,7 @@ const CSS = `@theme {
 `;
 
 function consumer(settings, files = {}, configPath = "code-quality.json") {
-  const root = mkdtempSync(path.join(tmpdir(), "gate tokens "));
+  const root = tempRoom("gate tokens ");
   const modules = path.join(root, "node_modules");
   mkdirSync(path.join(root, "app"), { recursive: true });
   mkdirSync(path.dirname(path.join(root, configPath)), { recursive: true });

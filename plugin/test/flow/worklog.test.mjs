@@ -6,10 +6,10 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempHome } from "../fixtures.mjs";
+import { tempHome, tempRoom } from "../fixtures.mjs";
 
 const HOME = tempHome("worklog");
 process.env.XDG_CONFIG_HOME = HOME.path;
@@ -25,7 +25,7 @@ const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 /* A checkout with a remote head behind its own: `captured` writes nothing without one, and a patch
    that captured nothing would let an absent copy field pass for a present one. */
 const pushedRepo = () => {
-  const at = mkdtempSync(join(tmpdir(), "pushed-"));
+  const at = tempRoom("pushed-");
   const run = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
   run(at, "init", "--bare", "origin.git");
   run(at, "clone", join(at, "origin.git"), "work");

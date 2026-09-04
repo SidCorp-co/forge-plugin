@@ -4,12 +4,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 import { STEPS, WHOLE_TREE_TESTS } from "../../../tools/gates/steps.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
 const RUNNER = join("tools", "gates.mjs");
@@ -44,7 +44,7 @@ const scripts = (failing) =>
    and whether the tree is the shared one. Committed on master, then worked on a branch, so the
    merge-base is a real base and a change to it is a real diff. */
 const scratch = (name, failing) => {
-  const at = mkdtempSync(join(tmpdir(), `${name}-`));
+  const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
   for (const one of COPIED) write(work, one, readFileSync(join(ROOT, one), "utf8"));
   for (const one of [...PLACED, ...NAMED, "plugin/test/tools/one.test.mjs"]) {

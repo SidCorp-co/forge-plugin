@@ -2,7 +2,7 @@
    not answer alike, and the git rules need a tree with work to lose. */
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -41,25 +41,60 @@ export const callHookAsync = (hook, event, env = process.env) =>
     child.stdin.end(JSON.stringify(event));
   });
 
-/* The suite has left thousands of these behind (ISS-42) and filled the mount a shell needed. The
-   removal is registered here, where no caller can forget it, and handed back so a case proves it. */
+/* Thousands of these have filled the mount a shell needed (ISS-42, ISS-125), on a tmpfs that runs
+   out of inodes while gigabytes are free. So a suite's rooms are made here, inside one root this
+   process removes on its way out. `prefix` names the room and is kept whole, so only the parent
+   directory moves. Ctrl-C and a kill run no handler at all, which is why the pid is in the root's
+   name: a root whose process is gone is swept by the next process to ask for a room, and a root
+   this fixture never named is nobody's to delete. */
+const OWNED = /^forge-plugin-test-(\d+)-/u;
+let root;
+
+const gone = (pid) => {
+  try {
+    process.kill(pid, 0);
+    return false;
+  } catch (refused) {
+    return refused.code === "ESRCH";
+  }
+};
+
+const sweep = () => {
+  for (const name of readdirSync(tmpdir())) {
+    const owner = OWNED.exec(name);
+    if (!owner || Number(owner[1]) === process.pid || !gone(Number(owner[1]))) continue;
+    try {
+      rmSync(join(tmpdir(), name), { recursive: true, force: true });
+    } catch {
+      /* Another process sweeping the same root, or one that is not this user's to remove. */
+    }
+  }
+};
+
+export const tempRoom = (prefix) => {
+  if (!root) {
+    root = mkdtempSync(join(tmpdir(), `forge-plugin-test-${process.pid}-`));
+    process.on("exit", () => rmSync(root, { recursive: true, force: true }));
+    sweep();
+  }
+  return mkdtempSync(join(root, prefix));
+};
+
 export const tempHome = (name) => {
-  const path = mkdtempSync(join(tmpdir(), `${name}-home-`));
-  const remove = () => rmSync(path, { recursive: true, force: true });
-  process.on("exit", remove);
-  return { path, remove };
+  const path = tempRoom(`${name}-home-`);
+  return { path, remove: () => rmSync(path, { recursive: true, force: true }) };
 };
 
 export const homeEnv = (name) => ({
   ...process.env,
-  XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), `${name}-home-`)),
+  XDG_CONFIG_HOME: tempRoom(`${name}-home-`),
 });
 
 const git = (room, ...args) =>
   spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
 
 export const dirtyRepo = () => {
-  const room = mkdtempSync(join(tmpdir(), "dirty-repo-"));
+  const room = tempRoom("dirty-repo-");
   spawnSync("git", ["init", "-q", room], { encoding: "utf8" });
   writeFileSync(join(room, "tracked.txt"), "committed\n");
   git(room, "add", "tracked.txt");

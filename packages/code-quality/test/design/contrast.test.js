@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { findContrastFailures } from "../../src/design/contrast.js";
 import { contrastRatio, readColorTokens } from "../../src/design/tokens.js";
+import { tempRoom } from "../fixtures/room.js";
 
 // The comment and the `:where()` are the trap: both name `.dark` above the block
 // that declares it, and both are what a substring search finds first.
@@ -24,7 +24,7 @@ const CSS = `/* The app toggles .dark on <html> rather than following the OS. */
 `;
 
 function project(files = {}) {
-  const root = mkdtempSync(path.join(tmpdir(), "contrast "));
+  const root = tempRoom("contrast ");
   for (const [relative, content] of Object.entries({ "app/globals.css": CSS, ...files })) {
     const target = path.join(root, relative);
     mkdirSync(path.dirname(target), { recursive: true });

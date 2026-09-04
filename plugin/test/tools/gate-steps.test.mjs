@@ -3,13 +3,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { EVERYTHING, gateSteps, STEPS, TEST_FILE, WHOLE_TREE_TESTS } from "../../../tools/gates/steps.mjs";
 import { derivationFiles, planFor, under } from "../../../tools/gates/scope.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
 
@@ -92,7 +92,7 @@ test("every script this repository gates with has a step, or is named as spent o
 
 // Every relative specifier counts, not the one form the runner's own modules happen to use.
 test("the runner's own modules are found through every relative import form", () => {
-  const room = mkdtempSync(join(tmpdir(), "derivation-"));
+  const room = tempRoom("derivation-");
   try {
     writeFileSync(join(room, "runner.mjs"), 'import "./bare.mjs";\nexport { one } from "./named.mjs";\n'
       + 'const late = () => import("./dynamic.mjs");\nexport const two = late;\n');

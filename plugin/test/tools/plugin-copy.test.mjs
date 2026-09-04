@@ -3,15 +3,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/link-cli.mjs", import.meta.url).pathname;
 const ROOT = new URL("../..", import.meta.url).pathname;
 
 const started = (installed) => {
-  const home = mkdtempSync(join(tmpdir(), "plugin-copy-"));
+  const home = tempRoom("plugin-copy-");
   if (installed) {
     mkdirSync(join(home, ".claude", "plugins"), { recursive: true });
     writeFileSync(
@@ -74,7 +74,7 @@ test("an install record this cannot read is silence, not a warning", () => {
 
 test("the feedback folder is the checkout's, found beside this copy or through the marketplace record", async () => {
   const { feedbackDir } = await import("../../src/tools/plugin-copy.mjs");
-  const room = mkdtempSync(join(tmpdir(), "feedback-dir-"));
+  const room = tempRoom("feedback-dir-");
   try {
     const checkout = join(room, "checkout");
     mkdirSync(join(checkout, "feedback"), { recursive: true });

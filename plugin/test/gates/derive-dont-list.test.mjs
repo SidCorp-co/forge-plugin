@@ -3,15 +3,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callHook, homeEnv } from "../fixtures.mjs";
+import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/derive-dont-list.mjs", import.meta.url).pathname;
 const HOME = homeEnv("derive-dont-list");
-const room = mkdtempSync(join(tmpdir(), "derive-dont-list-"));
+const room = tempRoom("derive-dont-list-");
 
 // The literal is the fixture: four names, because three is the floor the hook nudges at.
 const LIST = 'const KINDS = ["OPEN", "CLOSED", "MERGED", "DRAFT"];\n';

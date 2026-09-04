@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { findArbitrarySizesInFiles } from "../../src/design/no-arbitrary-sizes.js";
 import { findRampGaps } from "../../src/design/type-ramp.js";
+import { tempRoom } from "../fixtures/room.js";
 
 function project(files) {
-  const root = mkdtempSync(path.join(tmpdir(), "type ramp "));
+  const root = tempRoom("type ramp ");
   for (const [relative, content] of Object.entries(files)) {
     const target = path.join(root, relative);
     mkdirSync(path.dirname(target), { recursive: true });

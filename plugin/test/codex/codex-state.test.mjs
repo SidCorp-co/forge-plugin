@@ -4,12 +4,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { demandIn, demandOf, stagedIn } from "../../src/codex/codex-state.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
 const ENV = { GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
@@ -26,7 +26,7 @@ const git = (root, ...args) => {
 
 /* Three tracked documents, one staged, one modified and unstaged, one untouched. */
 const tree = () => {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), "codex-demand-")));
+  const root = realpathSync(tempRoom("codex-demand-"));
   rooms.push(root);
   mkdirSync(join(root, "docs"), { recursive: true });
   for (const one of ["docs/A.md", "docs/B.md", "docs/C.md"]) writeFileSync(join(root, one), `${one}\n`);
@@ -55,7 +55,7 @@ test("a staged rename is carried by its new name alone", () => {
 });
 
 test("a root git cannot answer for is not an empty index", () => {
-  const room = mkdtempSync(join(tmpdir(), "codex-demand-bare-"));
+  const room = tempRoom("codex-demand-bare-");
   rooms.push(room);
   assert.equal(stagedIn(room), null, "no repository there");
   assert.deepEqual(demandOf(room, ["docs/A.md"], {}), ["docs/A.md"], "so the record stands whole");
@@ -87,7 +87,7 @@ const forge = (root, home, ...argv) =>
   });
 
 const state = (root, files) => {
-  const home = mkdtempSync(join(tmpdir(), "codex-demand-home-"));
+  const home = tempRoom("codex-demand-home-");
   rooms.push(home);
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "codex.json"), JSON.stringify({ turns: { [root]: { files, at: Date.now() - 120_000 } } }));

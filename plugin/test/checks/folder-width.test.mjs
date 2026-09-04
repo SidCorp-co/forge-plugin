@@ -3,10 +3,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tempRoom } from "../fixtures.mjs";
 
 import { STEPS } from "../../../tools/gates/steps.mjs";
 
@@ -16,7 +16,7 @@ const LIMIT = 10;
 
 /* Its own tree, because the finding is about a directory and this repository's directories pass. */
 const overWide = () => {
-  const room = mkdtempSync(join(tmpdir(), "folder-width-"));
+  const room = tempRoom("folder-width-");
   mkdirSync(join(room, "wide"));
   for (let index = 0; index <= LIMIT; index += 1) {
     writeFileSync(join(room, "wide", `m${index}.mjs`), `export const n${index} = ${index};\n`);

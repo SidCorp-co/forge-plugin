@@ -1,10 +1,10 @@
 import { RuleTester } from "eslint";
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import rule, { findRawColorsInFiles } from "../../src/design/no-raw-colors.js";
+import { tempRoom } from "../fixtures/room.js";
 
 const tester = new RuleTester({
   languageOptions: {
@@ -15,7 +15,7 @@ const tester = new RuleTester({
 });
 
 function project(files) {
-  const root = mkdtempSync(path.join(tmpdir(), "raw colors "));
+  const root = tempRoom("raw colors ");
   for (const [relative, content] of Object.entries(files)) {
     const target = path.join(root, relative);
     mkdirSync(path.dirname(target), { recursive: true });

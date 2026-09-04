@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { findRedundantOverrides } from "../../src/design/theme-overrides.js";
+import { tempRoom } from "../fixtures/room.js";
 
 // `--color-brand` is the defect this exists for: the dark block names it, so the
 // block reads as though the colour was considered, and it is the light value.
@@ -21,7 +21,7 @@ const CSS = `@theme {
 `;
 
 function tokenFile(css = CSS, name = "globals.css") {
-  const root = mkdtempSync(path.join(tmpdir(), "theme overrides "));
+  const root = tempRoom("theme overrides ");
   mkdirSync(root, { recursive: true });
   const file = path.join(root, name);
   writeFileSync(file, css);

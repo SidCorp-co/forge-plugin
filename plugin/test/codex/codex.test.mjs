@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tempRoom } from "../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves, so nothing here can touch the caller's own state file. */
-const sandbox = mkdtempSync(join(tmpdir(), "forge-codex-"));
+const sandbox = tempRoom("forge-codex-");
 process.env.XDG_CONFIG_HOME = sandbox;
 delete process.env.FORGE_CODEX_DISABLE;
 
@@ -102,8 +102,8 @@ test("a path escapes the repo by neither dots nor a symlink", () => {
 test("the pattern comes from the checkout, else the account, else the default", () => {
   const forge = new URL("../../bin/forge", import.meta.url).pathname;
   const shown = ({ repo, user }) => {
-    const room = mkdtempSync(join(tmpdir(), "codex-pattern-"));
-    const home = mkdtempSync(join(tmpdir(), "codex-pattern-home-"));
+    const room = tempRoom("codex-pattern-");
+    const home = tempRoom("codex-pattern-home-");
     if (repo) writeFileSync(join(room, ".forge.json"), JSON.stringify(repo));
     if (user) {
       mkdirSync(join(home, "forge"), { recursive: true });
@@ -603,7 +603,7 @@ test.after(() => rmSync(sandbox, { recursive: true, force: true }));
 test("asking an action what to type prints the usage", () => {
   const forge = new URL("../../bin/forge", import.meta.url).pathname;
   for (const argv of [["codex", "consult", "-h"], ["codex", "verdict", "--help"], ["codex", "-h"]]) {
-    const run = spawnSync(forge, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), "codex-help-")) } });
+    const run = spawnSync(forge, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: tempRoom("codex-help-") } });
     assert.equal(run.status, 0, `${argv.join(" ")}: ${run.stderr}`);
     /* The usage line alone is what a generic handler would print while deleting the actions. */
     assert.match(`${run.stdout}${run.stderr}`, /Usage: forge codex <consult\|verdict\|pending\|show\|log\|stats\|replay>/u);

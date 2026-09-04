@@ -1,14 +1,13 @@
 /* The gate is a decision, so it is exercised the way Claude Code calls it: the event on stdin and
    the permission decision on stdout. The Bash fixtures are shapes observed slipping through. */
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { callHook, homeEnv } from "../fixtures.mjs";
+import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "learning-gate.mjs");
 /* A refusal writes to the config dir now, so a suite that skips this one logs onto the developer. */
@@ -300,7 +299,7 @@ test("a redirect aimed at a guarded file is refused, appended or truncated", () 
 });
 
 /* A memory write is judged on content, so these need a real directory to compare against. */
-const room = join(mkdtempSync(join(tmpdir(), "memory-gate-")), "memory");
+const room = join(tempRoom("memory-gate-"), "memory");
 mkdirSync(room);
 const KNOWN = `---
 name: background-work-survives-tool-timeout
@@ -356,7 +355,7 @@ test("editing an existing memory is told to replace, not append", () => {
 
 /* A refusal on every edit reprinted the same 300 tokens; the document it restated is one file. */
 const skillWrite = (session, name) => {
-  const room = mkdtempSync(join(tmpdir(), "skill-gate-"));
+  const room = tempRoom("skill-gate-");
   const file = join(room, "skills", "demo", name);
   mkdirSync(dirname(file), { recursive: true });
   const run = callHook(
@@ -378,7 +377,7 @@ test("the refusal names the categories and does not reprint the test", () => {
 /* A duplicate is refused before the once-per-file stamp, so this route has its own fixture: the
    skill already says the sentence being written into a second file. */
 const skillDuplicate = () => {
-  const room = join(mkdtempSync(join(tmpdir(), "skill-dup-gate-")), "skills", "demo");
+  const room = join(tempRoom("skill-dup-gate-"), "skills", "demo");
   const line = "A refusal names the shape it refused and the one action that clears it.";
   mkdirSync(join(room, "references"), { recursive: true });
   writeFileSync(join(room, "SKILL.md"), `# demo\n\n${line}\n`);

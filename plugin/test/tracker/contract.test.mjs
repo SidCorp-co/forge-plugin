@@ -3,12 +3,11 @@
    turning one command into a near miss for whoever reaches for it next. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { execFileSync, spawnSync } from "node:child_process";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { tempHome } from "../fixtures.mjs";
+import { tempHome, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("contract").path;
 const {
@@ -146,7 +145,7 @@ test("the verb's answer is one part, the contents, or one refusal that names the
 /* A copy of the code with no guides/ beside it is what every installed copy was before ISS-78, and
    the only way to watch the report say so is to make one. */
 const copyOfCode = (contract) => {
-  const room = mkdtempSync(join(tmpdir(), "contract-copy-"));
+  const room = tempRoom("contract-copy-");
   for (const held of ["src", "hooks"]) {
     cpSync(join(PLUGIN, held), join(room, held), { recursive: true });
   }
@@ -154,7 +153,7 @@ const copyOfCode = (contract) => {
     mkdirSync(join(room, "guides"));
     writeFileSync(join(room, "guides", "issue-flow-contract.md"), contract);
   }
-  const home = mkdtempSync(join(tmpdir(), "contract-home-"));
+  const home = tempRoom("contract-home-");
   const run = spawnSync(process.execPath, [join(room, "src", "cli.mjs"), "doctor"], {
     encoding: "utf8",
     env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },

@@ -3,16 +3,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, readlinkSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, readlinkSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tempRoom } from "../fixtures.mjs";
 
 const PLUGIN = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const HOOK = join(PLUGIN, "hooks", "link-cli.mjs");
 
 const room = () => {
-  const home = mkdtempSync(join(tmpdir(), "link-home-"));
+  const home = tempRoom("link-home-");
   mkdirSync(join(home, ".local", "bin"), { recursive: true });
   return home;
 };

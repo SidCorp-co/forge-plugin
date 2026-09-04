@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { RuleTester } from "eslint";
 import test from "node:test";
 import noRawElements, { DEFAULT_PRIMITIVES, primitiveExports } from "../../src/design/no-raw-elements.js";
+import { tempRoom } from "../fixtures/room.js";
 
 const tester = new RuleTester({
   languageOptions: {
@@ -211,7 +211,7 @@ test("a message names where the primitive is imported from", () => {
 });
 
 test("only what the design system exports is a finding", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "primitives-"));
+  const dir = tempRoom("primitives-");
   writeFileSync(
     path.join(dir, "index.ts"),
     [
@@ -227,7 +227,7 @@ test("only what the design system exports is a finding", () => {
 
   // A star barrel names nothing itself, and treating that as "exports nothing" would pass
   // every raw element in the project in silence.
-  const starred = mkdtempSync(path.join(tmpdir(), "primitives-star-"));
+  const starred = tempRoom("primitives-star-");
   mkdirSync(path.join(starred, "controls"));
   writeFileSync(path.join(starred, "index.ts"), 'export * from "./controls/button";\n');
   writeFileSync(
@@ -252,7 +252,7 @@ test("only what the design system exports is a finding", () => {
 // sid-growth wrote 202 lines around this: the barrel stopped exporting a primitive its config
 // still named, and the rule answered by judging no <select> anywhere and saying nothing.
 test("a configured primitive the barrel does not export is reported, not skipped", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "primitives-gap-"));
+  const dir = tempRoom("primitives-gap-");
   writeFileSync(path.join(dir, "index.ts"), "export function Button() {}\n");
   const primitives = { select: { primitive: "Select", owns: "the field metrics" } };
 

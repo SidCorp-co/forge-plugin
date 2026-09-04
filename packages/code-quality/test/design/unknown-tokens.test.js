@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { findUnknownTokens } from "../../src/design/unknown-tokens.js";
+import { tempRoom } from "../fixtures/room.js";
 
 // `--color-warn` is the defect this exists for: two screens shipped
 // `border-warn bg-warn-soft`, Tailwind emitted neither rule, and the banner had
@@ -28,7 +28,7 @@ const themes = [
 ];
 
 function project(files, css = CSS) {
-  const root = mkdtempSync(path.join(tmpdir(), "unknown tokens "));
+  const root = tempRoom("unknown tokens ");
   mkdirSync(path.join(root, "app"), { recursive: true });
   writeFileSync(path.join(root, "app", "globals.css"), css);
   for (const [name, content] of Object.entries(files)) {
@@ -132,7 +132,7 @@ test("an exempt file is not scanned, and a token file is required", () => {
 // import brings. Reading the file alone reported the whole default theme missing,
 // so every `font-bold` and `animate-spin` in the repo was a finding.
 test("an imported stylesheet's tokens are declared", () => {
-  const root = mkdtempSync(path.join(tmpdir(), "imported-"));
+  const root = tempRoom("imported-");
   const pkg = path.join(root, "node_modules", "css-framework");
   mkdirSync(pkg, { recursive: true });
   writeFileSync(

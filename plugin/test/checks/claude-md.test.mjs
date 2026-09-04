@@ -100,14 +100,13 @@ test("a marker inside a fence is an example, not a declaration", () => {
   assert.deepEqual(reviewClaudeMd(text, GUIDES).overrides, []);
 });
 
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { checkClaims, checkerOwned, claims } from "../../src/checks/claude-md.mjs";
 
 function fixture() {
-  const root = mkdtempSync(path.join(tmpdir(), "cm-claims-"));
+  const root = tempRoom("cm-claims-");
   mkdirSync(path.join(root, "scripts"), { recursive: true });
   writeFileSync(path.join(root, "package.json"), JSON.stringify({ scripts: { lint: "eslint ." } }));
   writeFileSync(path.join(root, "scripts", "helpful.mjs"), "if (a === '--help') {}\n");
@@ -224,11 +223,12 @@ test("an @import is checked against the tree, and one in backticks is not an imp
 });
 
 import { checkerRestated } from "../../src/checks/claude-md.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
 const OWNED = "A process started outside the stack script reads production-shaped data and can write it.";
 
 function repo() {
-  const root = mkdtempSync(path.join(tmpdir(), "cm-restated-"));
+  const root = tempRoom("cm-restated-");
   mkdirSync(path.join(root, "hooks"), { recursive: true });
   return root;
 }

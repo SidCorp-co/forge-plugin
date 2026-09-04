@@ -1,17 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { callHook } from "../fixtures.mjs";
+import { callHook, tempRoom } from "../fixtures.mjs";
 import { committing } from "../../hooks/_hook.mjs";
 import { commitAim } from "../../hooks/gates/codex-second.mjs";
 import { stagedIn } from "../../src/codex/codex-state.mjs";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const HOOK = new URL("../../hooks/entries/codex-second.mjs", import.meta.url).pathname;
-const room = mkdtempSync(join(tmpdir(), "codex-second-"));
+const room = tempRoom("codex-second-");
 const REPO = join(room, "repo");
 mkdirSync(join(REPO, ".git"), { recursive: true });
 mkdirSync(join(room, "forge"), { recursive: true });
@@ -237,7 +236,7 @@ test("a commit is a commit where a command starts, git's globals in between", ()
 /* A deletion has no mtime of its own, so dropping tracked work and committing it went unasked. What
    held the file changed when it went — and a directory removed whole takes its own mtime with it. */
 const dropped = (what, { consultAt } = {}) => {
-  const repo = mkdtempSync(join(tmpdir(), "codex-second-deleted-"));
+  const repo = tempRoom("codex-second-deleted-");
   mkdirSync(join(repo, "nested"), { recursive: true });
   writeFileSync(join(repo, "gone.mjs"), "// a line\n");
   writeFileSync(join(repo, "nested", "gone.mjs"), "// a line\n");
@@ -249,7 +248,7 @@ const dropped = (what, { consultAt } = {}) => {
     assert.equal(run.status, 0, run.stderr);
   }
   rmSync(join(repo, what), { recursive: true, force: true });
-  const home = mkdtempSync(join(tmpdir(), "codex-second-deleted-home-"));
+  const home = tempRoom("codex-second-deleted-home-");
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(
     join(home, "forge", "codex-log.jsonl"),
@@ -300,7 +299,7 @@ test("a commit that redirects its output is still a commit in the tree", () => {
 /* Judged by the cwd, `git -C other commit` asked this tree's question about another one's draft:
    refusing for work the commit does not carry, and passing the work it does. */
 const away = (dirty) => {
-  const repo = mkdtempSync(join(tmpdir(), "codex-second-away-"));
+  const repo = tempRoom("codex-second-away-");
   spawnSync("git", ["init", "-q", repo]);
   if (dirty) {
     writeFileSync(join(repo, "work.mjs"), "// a line\n");
@@ -322,7 +321,7 @@ test("the refusal names the files it wants read", () => {
 /* `-z` gives a rename two fields, and reading the second as a record put a truncated old name in
    the command to send. Staged is `R ` in the first column, unstaged `?R` in the second. */
 test("a renamed file is named once, by where it went", () => {
-  const repo = mkdtempSync(join(tmpdir(), "codex-second-moved-"));
+  const repo = tempRoom("codex-second-moved-");
   const git = (...args) => {
     const run = spawnSync("git", ["-C", repo, ...args], { encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" } });
     assert.equal(run.status, 0, run.stderr);
@@ -332,7 +331,7 @@ test("a renamed file is named once, by where it went", () => {
   git("add", "-A");
   git("commit", "-qm", "first");
   git("mv", "was.mjs", "now.mjs");
-  const home = mkdtempSync(join(tmpdir(), "codex-second-moved-home-"));
+  const home = tempRoom("codex-second-moved-home-");
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "codex-log.jsonl"), "");
   const path = join(home, "moved.jsonl");
@@ -350,11 +349,11 @@ test("a renamed file is named once, by where it went", () => {
 /* `?? dir/` is one entry, and the consult dies on a directory exactly as it did on `-h` — the
    suggested command failed, which is the guessing the file list exists to stop. */
 test("an untracked directory is named by its files", () => {
-  const repo = mkdtempSync(join(tmpdir(), "codex-second-fresh-"));
+  const repo = tempRoom("codex-second-fresh-");
   spawnSync("git", ["init", "-q", repo]);
   mkdirSync(join(repo, "fresh"), { recursive: true });
   writeFileSync(join(repo, "fresh", "one.mjs"), "// a line\n");
-  const home = mkdtempSync(join(tmpdir(), "codex-second-fresh-home-"));
+  const home = tempRoom("codex-second-fresh-home-");
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "codex-log.jsonl"), "");
   const path = join(home, "fresh.jsonl");
@@ -444,7 +443,7 @@ test("a commit is judged by the tree it names, not the shell's", () => {
 
 /* `repoRoot` of a bare git directory is `null`, and a null root ends the run before any judgement. */
 test("a --git-dir naming no tree does not carry the commit out of this gate", () => {
-  const meta = mkdtempSync(join(tmpdir(), "codex-second-meta-"));
+  const meta = tempRoom("codex-second-meta-");
   const elsewhere = realpathSync(away(true));
   const out = because(gate([userTurn(), advised()], {
     command: `git -C ${elsewhere} --git-dir ${join(meta, "repo.git")} commit -m x`,
@@ -554,7 +553,7 @@ test("every refusal names the switch a session can reach, and what an inline pre
    feedback files was held for documents another agent had recorded elsewhere. A record belongs to a
    tree, and which tree is the commit's to answer. */
 test("a document recorded in one tree does not hold a commit in another", () => {
-  const main = realpathSync(mkdtempSync(join(tmpdir(), "codex-second-main-")));
+  const main = realpathSync(tempRoom("codex-second-main-"));
   const run = (...args) => {
     const out = spawnSync("git", args, { encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" } });
     assert.equal(out.status, 0, out.stderr);
@@ -570,7 +569,7 @@ test("a document recorded in one tree does not hold a commit in another", () => 
   run("-C", main, "add", "docs/A.md");
   writeFileSync(join(worktree, "docs", "A.md"), "three\n");
   run("-C", worktree, "add", "docs/A.md");
-  const home = mkdtempSync(join(tmpdir(), "codex-second-main-home-"));
+  const home = tempRoom("codex-second-main-home-");
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "codex-log.jsonl"), "");
   const path = join(home, "worktree.jsonl");

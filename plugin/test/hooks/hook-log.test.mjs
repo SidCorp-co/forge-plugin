@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { dirtyRepo } from "../fixtures.mjs";
+import { dirtyRepo, tempRoom } from "../fixtures.mjs";
 import { spawnSync } from "node:child_process";
-import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { appendFileSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const room = mkdtempSync(join(tmpdir(), "hook-log-"));
+const room = tempRoom("hook-log-");
 process.env.XDG_CONFIG_HOME = room;
 const { HOOK_LOG_PATH, hookEntries, roundsBy, scrubbed } = await import("../../src/hooks/hook-log.mjs");
 const CLI = new URL("../../src/cli.mjs", import.meta.url).pathname;

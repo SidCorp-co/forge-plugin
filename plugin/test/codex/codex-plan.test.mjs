@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tempRoom } from "../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves: the live config directory holds a working token. */
-const sandbox = mkdtempSync(join(tmpdir(), "forge-codex-plan-"));
+const sandbox = tempRoom("forge-codex-plan-");
 process.env.XDG_CONFIG_HOME = sandbox;
 
 const {

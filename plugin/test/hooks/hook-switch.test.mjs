@@ -1,15 +1,14 @@
 /* A gate nobody can switch off gets escaped by forking the plugin, and a switch that fails open is
    the only kind worth having: the cost of a broken config must be a gate firing. */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { basename, dirname, join } from "node:path";
 import test from "node:test";
 
-import { callHook, dirtyRepo } from "../fixtures.mjs";
+import { callHook, dirtyRepo, tempRoom } from "../fixtures.mjs";
 
 import { hookEvents, hookNames } from "../../src/hooks/hook-switch.mjs";
 
@@ -20,7 +19,7 @@ const CLI = join(HERE, "..", "..", "src", "cli.mjs");
 const STAGES_EVERYTHING = `git add -${"A"}`;
 
 const room = (config) => {
-  const home = mkdtempSync(join(tmpdir(), "hook-switch-"));
+  const home = tempRoom("hook-switch-");
   if (config !== undefined) {
     mkdirSync(join(home, "forge"));
     writeFileSync(join(home, "forge", "config.json"), config);

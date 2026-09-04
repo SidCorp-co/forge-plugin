@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { findCrowdedDirectories } from "../src/folder-size.js";
+import { tempRoom } from "./fixtures/room.js";
 
 function makeTree() {
-  return mkdtempSync(path.join(tmpdir(), "folder size "));
+  return tempRoom("folder size ");
 }
 
 function fill(root, relative, count, extension = ".ts") {

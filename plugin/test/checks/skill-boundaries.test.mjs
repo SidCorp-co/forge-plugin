@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tempRoom } from "../fixtures.mjs";
 
 const SCRIPT = new URL("../../scripts/skill-boundaries.mjs", import.meta.url).pathname;
 
 const roomWith = (skills) => {
-  const root = mkdtempSync(join(tmpdir(), "skill-boundaries-"));
+  const root = tempRoom("skill-boundaries-");
   for (const [name, description] of Object.entries(skills)) {
     mkdirSync(join(root, name));
     writeFileSync(join(root, name, "SKILL.md"), `---\nname: ${name}\ndescription: ${description}\n---\n\nbody\n`);
@@ -81,7 +81,7 @@ test("a description with no trigger, and one too short to carry one, are both re
 });
 
 test("a skill naming one that is not installed is a dead instruction", (t) => {
-  const root = mkdtempSync(join(tmpdir(), "skill-boundaries-"));
+  const root = tempRoom("skill-boundaries-");
   mkdirSync(join(root, "solo"));
   writeFileSync(
     join(root, "solo", "SKILL.md"),

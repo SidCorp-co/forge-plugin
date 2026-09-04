@@ -3,18 +3,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
 import { VERB_NAMES, helpOf, usageOf } from "../../src/resolve/visibility.mjs";
 import { wantsHelp } from "../../src/resolve/flags.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) =>
   spawnSync(FORGE, argv, {
     encoding: "utf8",
-    env: { ...process.env, XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), "cli-help-")) },
+    env: { ...process.env, XDG_CONFIG_HOME: tempRoom("cli-help-") },
   });
 
 test("every verb says what to type", () => {

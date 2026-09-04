@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { tempRoom } from "../fixtures/room.js";
 
 const packageRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 const setup = path.join(packageRoot, "bin", "code-quality-setup.mjs");
 
 /** Dependencies pre-declared, so no run in here reaches the network. */
 function project(files = {}) {
-  const root = mkdtempSync(path.join(tmpdir(), "code quality setup "));
+  const root = tempRoom("code quality setup ");
   const modules = path.join(root, "node_modules");
   mkdirSync(modules);
   symlinkSync(path.join(packageRoot, "node_modules", "eslint"), path.join(modules, "eslint"), "dir");

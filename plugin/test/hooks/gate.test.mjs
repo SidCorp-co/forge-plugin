@@ -3,14 +3,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { dirtyRepo } from "../fixtures.mjs";
+import { dirtyRepo, tempRoom } from "../fixtures.mjs";
 
 const GATE = new URL("../../hooks/gate.mjs", import.meta.url).pathname;
-const HOME = mkdtempSync(join(tmpdir(), "gate-home-"));
+const HOME = tempRoom("gate-home-");
 /* The in-process cases log too, and never to the developer's own config. */
 process.env.XDG_CONFIG_HOME = HOME;
 const run = (names, event, env = {}) =>
@@ -51,7 +50,7 @@ test("a gate switched off on the line is skipped, and one that is not still answ
 });
 
 test("after a call, every gate's block and context travel together", () => {
-  const room = mkdtempSync(join(tmpdir(), "gate-post-"));
+  const room = tempRoom("gate-post-");
   spawnSync("git", ["init", "-q", room]);
   const checker = join(room, "scripts", "check-things.mjs");
   mkdirIfNeeded(join(room, "scripts"));
@@ -84,7 +83,7 @@ test("the deadline runs from the process start, and the last gate reads what is 
 });
 
 test("a gate that crashes is skipped and logged, and the line goes on", () => {
-  const room = mkdtempSync(join(tmpdir(), "gate-boom-"));
+  const room = tempRoom("gate-boom-");
   spawnSync("git", ["init", "-q", room]);
   mkdirIfNeeded(join(room, "docs"));
   writeFileSync(join(room, "docs", "PLAN.md"), "# plan\n");

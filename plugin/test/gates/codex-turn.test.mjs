@@ -5,15 +5,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { callHook, homeEnv } from "../fixtures.mjs";
+import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/codex-turn.mjs", import.meta.url).pathname;
 const HOME = homeEnv("codex-turn");
-const room = mkdtempSync(join(tmpdir(), "codex-turn-"));
+const room = tempRoom("codex-turn-");
 const STATE = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json");
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 

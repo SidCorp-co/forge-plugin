@@ -2,12 +2,12 @@
    two of them at once — so what a memo holds has to be the request and not its answer. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tempRoom } from "../fixtures.mjs";
 
 /* Imported after the endpoint is written, because `resolve/config.mjs` resolves its path on load. */
-const HOME = mkdtempSync(join(tmpdir(), "issues-home-"));
+const HOME = tempRoom("issues-home-");
 mkdirSync(join(HOME, "forge"));
 writeFileSync(
   join(HOME, "forge", "config.json"),

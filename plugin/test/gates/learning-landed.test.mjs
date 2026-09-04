@@ -5,15 +5,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callHook, homeEnv } from "../fixtures.mjs";
+import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/learning-landed.mjs", import.meta.url).pathname;
 const HOME = homeEnv("learning-landed");
-const room = join(mkdtempSync(join(tmpdir(), "landed-")), "memory");
+const room = join(tempRoom("landed-"), "memory");
 mkdirSync(room);
 
 const landed = (session, name, { dir = room, old, existing } = {}) => {
@@ -64,7 +63,7 @@ test("a name that merely ends in the index's is a memory like any other", () => 
 /* The disk answers with what a name points at, so a guarded file that is a link to somewhere else
    arrived here as somewhere else and was skipped. Writing through the link writes the memory. */
 test("a guarded name that links out of the tree is still a guarded write", () => {
-  const outside = join(mkdtempSync(join(tmpdir(), "landed-outside-")), "kept.md");
+  const outside = join(tempRoom("landed-outside-"), "kept.md");
   writeFileSync(outside, "a line\n");
   symlinkSync(outside, join(room, "points-away.md"));
   const said = landed(randomUUID(), "points-away.md", { existing: true });
@@ -74,7 +73,7 @@ test("a guarded name that links out of the tree is still a guarded write", () =>
 /* The other direction, and the only case where no name the call used is guarded: the file is not there
    yet, so the disk cannot follow it, and only its directory settling inside the tree says what it is. */
 test("a new file named through a directory link into the tree is a guarded write", () => {
-  const project = mkdtempSync(join(tmpdir(), "landed-linked-dir-"));
+  const project = tempRoom("landed-linked-dir-");
   mkdirSync(join(project, "real", "memory"), { recursive: true });
   symlinkSync(join(project, "real", "memory"), join(project, "notes"));
   const run = callHook(
@@ -95,7 +94,7 @@ test("a new file named through a directory link into the tree is a guarded write
    session's memory directory is the transcript's neighbour, so it is read rather than guessed at. */
 test("a memory file no call named at all is found by reading the directory", () => {
   const session = randomUUID();
-  const project = mkdtempSync(join(tmpdir(), "landed-session-"));
+  const project = tempRoom("landed-session-");
   mkdirSync(join(project, "memory"));
   writeFileSync(join(project, "memory", "by-a-script.md"), "a line\n");
   const run = callHook(
@@ -115,7 +114,7 @@ test("a memory file no call named at all is found by reading the directory", () 
 
 test("a file the directory has held for a day is not this call's", () => {
   const session = randomUUID();
-  const project = mkdtempSync(join(tmpdir(), "landed-stale-"));
+  const project = tempRoom("landed-stale-");
   mkdirSync(join(project, "memory"));
   const old = join(project, "memory", "from-yesterday.md");
   writeFileSync(old, "a line\n");
@@ -137,7 +136,7 @@ test("a file the directory has held for a day is not this call's", () => {
 /* Blocking on the first left the rest unmentioned: a script writing four was answered for one. */
 test("every file that landed is named in one refusal", () => {
   const session = randomUUID();
-  const project = mkdtempSync(join(tmpdir(), "landed-batch-"));
+  const project = tempRoom("landed-batch-");
   mkdirSync(join(project, "memory"));
   for (const name of ["one.md", "two.md", "three.md"]) {
     writeFileSync(join(project, "memory", name), "a line\n");
@@ -162,12 +161,12 @@ test("every file that landed is named in one refusal", () => {
    compared as outside its own repository — and every file in it skipped the tree filter. */
 test("a checkout reached through a link is still inside its own repository", () => {
   const session = randomUUID();
-  const held = mkdtempSync(join(tmpdir(), "landed-real-"));
+  const held = tempRoom("landed-real-");
   const repo = join(held, "checkout");
   mkdirSync(join(repo, "skills", "deploy"), { recursive: true });
   writeFileSync(join(repo, "skills", "deploy", "SKILL.md"), "the method\n");
   committed(repo, "-A");
-  const link = join(mkdtempSync(join(tmpdir(), "landed-link-parent-")), "seen-as");
+  const link = join(tempRoom("landed-link-parent-"), "seen-as");
   symlinkSync(repo, link);
   const run = callHook(
     HOOK,
@@ -181,9 +180,9 @@ test("a checkout reached through a link is still inside its own repository", () 
    past — the last spelling of the route where nothing names the file. */
 test("a guarded name that links out of the tree is swept as itself", () => {
   const session = randomUUID();
-  const project = mkdtempSync(join(tmpdir(), "landed-swept-link-"));
+  const project = tempRoom("landed-swept-link-");
   mkdirSync(join(project, "memory"));
-  const outside = join(mkdtempSync(join(tmpdir(), "landed-swept-target-")), "kept.md");
+  const outside = join(tempRoom("landed-swept-target-"), "kept.md");
   writeFileSync(outside, "a line\n");
   symlinkSync(outside, join(project, "memory", "points-out.md"));
   const run = callHook(
@@ -205,9 +204,9 @@ test("a guarded name that links out of the tree is swept as itself", () => {
 test("a swept link the gate already asked about is not asked again", () => {
   const session = randomUUID();
   const gate = new URL("../../hooks/entries/learning-gate.mjs", import.meta.url).pathname;
-  const project = mkdtempSync(join(tmpdir(), "landed-swept-asked-"));
+  const project = tempRoom("landed-swept-asked-");
   mkdirSync(join(project, "memory"));
-  const outside = join(mkdtempSync(join(tmpdir(), "landed-swept-real-")), "kept.md");
+  const outside = join(tempRoom("landed-swept-real-"), "kept.md");
   writeFileSync(outside, "a line\n");
   const link = join(project, "memory", "asked-then-swept.md");
   symlinkSync(outside, link);
@@ -231,7 +230,7 @@ test("a swept link the gate already asked about is not asked again", () => {
 /* A guarded directory is the project's, not one session's: two sessions swept the same memory
    directory and both stopped on a file one of them had already been asked about. */
 test("a file one session was asked about is not asked again in another", () => {
-  const project = mkdtempSync(join(tmpdir(), "landed-two-"));
+  const project = tempRoom("landed-two-");
   mkdirSync(join(project, "memory"));
   const asking = (session) =>
     callHook(
@@ -254,7 +253,7 @@ test("a file one session was asked about is not asked again in another", () => {
    find it: the whole point is the file nobody committed yet. */
 test("a skill directory the tree has never tracked is swept too", () => {
   const session = randomUUID();
-  const repo = mkdtempSync(join(tmpdir(), "landed-untracked-"));
+  const repo = tempRoom("landed-untracked-");
   mkdirSync(join(repo, "skills", "brand-new"), { recursive: true });
   writeFileSync(join(repo, "README.md"), "a tree\n");
   committed(repo, "README.md");
@@ -271,7 +270,7 @@ test("a skill directory the tree has never tracked is swept too", () => {
    agent to justify those is a refusal about somebody else's commit. The tree is asked instead. */
 test("a tracked skill file the tree agrees with was not written here", () => {
   const session = randomUUID();
-  const repo = mkdtempSync(join(tmpdir(), "landed-repo-"));
+  const repo = tempRoom("landed-repo-");
   const skill = join(repo, "skills", "deploy");
   mkdirSync(skill, { recursive: true });
   writeFileSync(join(skill, "SKILL.md"), "the method\n");
@@ -292,7 +291,7 @@ test("a file nobody just wrote is somebody else's business", () => {
 });
 
 test("a document outside the two guarded kinds is not this gate's", () => {
-  const docs = mkdtempSync(join(tmpdir(), "landed-docs-"));
+  const docs = tempRoom("landed-docs-");
   assert.equal(landed(randomUUID(), "HOOKS.md", { dir: docs }), null);
 });
 
@@ -301,7 +300,7 @@ test("a document outside the two guarded kinds is not this gate's", () => {
 test("a write the gate asked about before it landed is not asked about after", () => {
   const session = randomUUID();
   const gate = new URL("../../hooks/entries/learning-gate.mjs", import.meta.url).pathname;
-  const via = join(mkdtempSync(join(tmpdir(), "landed-link-")), "memory");
+  const via = join(tempRoom("landed-link-"), "memory");
   symlinkSync(room, via);
   const asking = callHook(
     gate,
@@ -316,7 +315,7 @@ test("a write the gate asked about before it landed is not asked about after", (
 test("a link to the file itself is the same file to both halves", () => {
   const session = randomUUID();
   const gate = new URL("../../hooks/entries/learning-gate.mjs", import.meta.url).pathname;
-  const elsewhere = join(mkdtempSync(join(tmpdir(), "landed-file-")), "memory");
+  const elsewhere = join(tempRoom("landed-file-"), "memory");
   mkdirSync(elsewhere);
   writeFileSync(join(room, "by-a-link.md"), "a line\n");
   symlinkSync(join(room, "by-a-link.md"), join(elsewhere, "by-a-link.md"));
@@ -336,10 +335,10 @@ test("a link to the file itself is the same file to both halves", () => {
 /* Git answers about the file, never about the name: a tracked link is unchanged whatever its target
    does, so a guarded file written through one was swept up and then dropped as somebody else's. */
 test("a tracked link is judged by what it points at, not by its own name", () => {
-  const repo = mkdtempSync(join(tmpdir(), "landed-linked-"));
+  const repo = tempRoom("landed-linked-");
   const skill = join(repo, "skills", "deploy");
   mkdirSync(skill, { recursive: true });
-  const target = join(mkdtempSync(join(tmpdir(), "landed-target-")), "kept.md");
+  const target = join(tempRoom("landed-target-"), "kept.md");
   writeFileSync(target, "the method\n");
   symlinkSync(target, join(skill, "SKILL.md"));
   committed(repo, "-A");

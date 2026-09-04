@@ -3,13 +3,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
-import { fakeTracker, ranAsync } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
 
-process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "record-"));
+process.env.XDG_CONFIG_HOME = tempRoom("record-");
 const {
   KINDS, USAGE, assemble, checked, conjunctionsFor, criteriaLines, fromRecord, joinedCriteria, noteFrom, parse, render,
 } = await import("../../src/flow/record.mjs");
