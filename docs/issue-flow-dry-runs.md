@@ -839,3 +839,23 @@ by a rule, and ISS-95 is the rule. Folded from the record.
   the page by response size and said so in a field the CLI does not read. ISS-17, with the field named.
 - The review's release note is a withholding with its reason: neutrality was the point, and the
   findings carry their own notes when they ship.
+
+## Twenty-seventh dry run — ISS-95
+
+One agent made the ship step say when a batch owes a reading (3.35.28): the last step counts what
+landed under the source, hook and bin paths since a git ref the review run alone moves, and speaks up
+at three releases or five hundred changed lines, naming the span; a `review` verb prints the range the
+next reading covers, and its `--done` is the mark's only writer, forward-only and compare-and-swap so
+two review worktrees cannot clobber each other. The first mark was planted at the head the twenty-sixth
+run's verification names, checked on history, leaving the count live at two releases so the third
+fires. No restart owed, read by the step rather than assumed. The advisor caught one gap after the
+ship — the bootstrap plant skips the ancestry test — and it is ISS-104. Folded from the record.
+
+- The rule the user asked for on 2026-09-04 is now the repository's: a skipped reading is not
+  forgotten, the count keeps growing and the next release asks again. The brief that carried it for
+  one day is gone.
+- The mark lives only in this clone: nothing pushes `refs/forge/reviewed`, so a fresh clone starts
+  with no mark and the first ship there plants one at its own head, forgetting what this clone has
+  read. Routed to ISS-104 with the gap it already holds.
+- The same past-the-page refusal, worded for the wrong cap, was hit for the third time today and
+  written up a third time; ISS-17 has all three, and the note was archived unread past its title.
