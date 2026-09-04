@@ -2024,3 +2024,26 @@ the record.
   say why (ISS-269), and the mutation evidence that proves each case goes red lives only in attachments,
   with nothing in the tree to re-run it (ISS-270). The ship auto-filed the third batch reading, ISS-267,
   the moment the mark was free.
+
+## Seventy-ninth dry run — ISS-264 and ISS-266
+
+One agent took two fixes as one run (3.35.91). ISS-264: the browse count line drops its raise-the-limit
+clause at the ceiling, where the limit is the one thing that cannot move, and a case built off the
+imported constant pins it. ISS-266: no rewrite verb — the run re-counted the live log and reproduced the
+earlier numbers exactly, then added two facts the issue lacked: only the two named patterns fire, so no
+on-sight credential shape matches at all, and of the four fields only two are ever printed back, so the
+exposure was half the count; a rewrite would remove nothing and destroy text in an unbacked evaluation
+set. The mask sits at the print, since masking the whole log costs sixteen times its parse and the hook
+path parses it every consult. Verified on the installed copy against a sandboxed config directory: two
+lines on disk hold a synthetic credential, none printed do, and the file is byte-identical after two
+reads. No restart owed. Both closed by the run. Folded from the record.
+
+- The review's one finding — that replay still sends old entries to the provider unmasked — was rejected
+  as the issue's own stated scope and routed as ISS-268; it had caught a real ambiguity in the prose,
+  which now says back to the caller and names the other side. A rejected finding that improves a sentence
+  is still a finding taken.
+- Two source files sat exactly at their comment-density ceiling, so neither could take a new comment;
+  the reasoning went to the two topic documents and the rules stayed in the checkers — the division this
+  repository asks for, so the run recorded nothing new for it.
+- Eight open issues already cover the dependency verb's refusal under a personal token; the run checked
+  the list first and filed no ninth. A defect filed eight times is a fact about the filer, not the defect.
