@@ -1087,3 +1087,28 @@ sweep and the identifier match. Closed by its run. Folded from the record.
   checks — beside ISS-17's tracker half; its edge to ISS-17 was refused for want of a lease.
 - The ESLint rule that would ban the raw call at the source and a fixture kept for inspection behind a
   flag stay on ISS-42 and ISS-124 as finder's notes; the agent's own check case covers the suite.
+
+## Thirty-eighth dry run — ISS-126
+
+One agent put every stamp the hook harness writes into one per-user room under the temp root
+(3.35.42), made on first write and swept before every write on a one-day bound from a read of that
+directory, never a scan of the root. The stamp block moved out of the harness — which stood at four
+hundred and eighty-six of five hundred code lines, so the addition broke two limits — into a module of
+its own, re-exported so no gate's import moved, and the extraction was posted as a plan correction
+before it was written. Seven cases with planted mtimes, one proving a write that cannot land still
+reaps; a use case with three criteria in the requirements tree; both codex majors folded — reap before
+the write, name the room per user. A hook file moved, so the restart already owed stood. Closed by its
+run. Folded from the record.
+
+- The change bounds what it writes and deliberately sweeps nothing it did not name, so the seven
+  thousand seven hundred stamps already loose in the temp root — a count the first grep undercounted
+  by half, matching one kind's name inside another's — went by the parent's hand, one command the
+  hand-back gave, at the cost of one re-ask per live session.
+- The seventh stamp kind is the vendored delegate's, which may not import the harness and is
+  byte-compared against its source, so it still writes loose; the criteria were scoped on the record
+  to what the harness writes rather than claiming otherwise. ISS-127.
+- `forge issue <key>` refuses a key the browse projection lists: the unfiltered browse returns
+  ninety-eight of a hundred and thirty at any limit, and a key reachable under a status filter is
+  absent from the unfiltered page. ISS-132, with the guessed cause corrected by a measured comment.
+- A relates edge was refused for want of a device (ISS-8, ISS-45), so the link between the two issues
+  this run filed lives in their prose.
