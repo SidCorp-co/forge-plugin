@@ -125,6 +125,26 @@ const declaration = (name) => ({
   },
 });
 
+/** The tracker's `list` as it actually answers, for a case about paging: rows in the order they were
+ *  last touched, cut to what FITS rather than to the limit, `createdBefore` exclusive and
+ *  `createdAfter` inclusive. A `touched` out of step with `createdAt` drops a row off page one. */
+export const pageOf = (rows, fits) => (args) => {
+  const before = args.filters?.createdBefore ? Date.parse(args.filters.createdBefore) : Infinity;
+  const after = args.filters?.createdAfter ? Date.parse(args.filters.createdAfter) : -Infinity;
+  const matched = rows
+    .filter((one) => Date.parse(one.createdAt) < before && Date.parse(one.createdAt) >= after)
+    .sort((one, other) => other.touched - one.touched);
+  const page = matched.slice(0, fits);
+  const short = page.length < matched.length;
+  return {
+    issues: page,
+    returned: page.length,
+    limit: args.limit,
+    hasMore: short,
+    ...(short ? { truncated: true, truncatedBy: "response-size" } : {}),
+  };
+};
+
 /** A tracker a verb can be spawned against, answering out of `state` at request time so a case that
  *  changes the state changes the answer. `state.calls` collects every call for a case to assert on;
  *  a handler in `state.answer` keyed by tool takes precedence over the defaults below. */

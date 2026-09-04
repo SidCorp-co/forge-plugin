@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { pageOf, tempRoom } from "../fixtures.mjs";
 
 /* Imported after the endpoint is written, because `resolve/config.mjs` resolves its path on load. */
 const HOME = tempRoom("issues-home-");
@@ -20,6 +20,9 @@ const ROWS = [
   { issueId: "ISS-2", documentId: "bbbb" },
 ];
 
+/* What the tracker answers, which a paging case replaces. The default is the whole set in one whole
+   page, so a case about anything else asks for nothing it has to describe. */
+let scene = () => ({ issues: ROWS });
 const asked = [];
 globalThis.fetch = async (url, init) => {
   const sent = JSON.parse(init.body);
@@ -27,7 +30,7 @@ globalThis.fetch = async (url, init) => {
   const result =
     sent.method === "tools/list"
       ? { tools: [{ name: "forge_issues", inputSchema: { properties: {} } }] }
-      : { structuredContent: { issues: ROWS } };
+      : { structuredContent: scene(sent.params?.arguments ?? {}) };
   return {
     ok: true,
     status: 200,
@@ -91,4 +94,81 @@ test("a schema declaring no set leaves the page exactly as it arrived", () => {
   const rows = [at("low", "2026-01-01"), at("critical", "2026-01-01")];
   assert.deepEqual(keys(rows, []), ["low", "critical"]);
   assert.deepEqual(queued(rows, []), rows, "and the rows themselves are the ones handed in");
+});
+
+/* The crack is in the difference between what a list is asked for and what it answers, so the case
+   needs the tracker's own paging: `fixtures.pageOf`. A `touched` out of step with `createdAt` is
+   what a created-order frontier walks straight past. */
+const day = (one) => `2026-01-0${one}T00:00:00.000Z`;
+const CUT = [
+  { issueId: "ISS-1", documentId: "one", createdAt: day(1), touched: 1 },
+  { issueId: "ISS-2", documentId: "two", createdAt: day(2), touched: 2 },
+  { issueId: "ISS-3", documentId: "three", createdAt: day(3), touched: 3 },
+  { issueId: "ISS-4", documentId: "four", createdAt: day(4), touched: 6 },
+  { issueId: "ISS-5", documentId: "five", createdAt: day(5), touched: 4 },
+  { issueId: "ISS-6", documentId: "six", createdAt: day(6), touched: 5 },
+];
+
+/* The index is one per process by design, so a case that walks it starts from an empty one. */
+let cases = 0;
+const walking = async (rows = CUT, fits = 2) => {
+  scene = pageOf(rows, fits);
+  asked.length = 0;
+  cases += 1;
+  return (await import(`../../src/tracker/issues.mjs?case=${cases}`)).documentIdOf;
+};
+const lists = () => asked.filter((name) => name === "forge_issues").length;
+
+test("a key the first page could not carry resolves anyway", async () => {
+  const resolve = await walking();
+  assert.equal(await resolve("ISS-1"), "one", "the oldest issue, four pages under the waterline");
+});
+
+test("a key created after one on the page, and absent from it, resolves too", async () => {
+  const resolve = await walking();
+  assert.equal(await resolve("ISS-5"), "five",
+    "ISS-5 is younger than ISS-4, which the page carries, so the gap is not a range");
+});
+
+test("a key on the first page costs one request, cut page or not", async () => {
+  const resolve = await walking();
+  assert.equal(await resolve("ISS-4"), "four");
+  assert.equal(lists(), 1, "nothing is walked for a key already in hand");
+});
+
+test("the walk stops at the key instead of reading the backlog first", async () => {
+  const near = await walking();
+  await near("ISS-5");
+  const stopped = lists();
+  const far = await walking();
+  await far("ISS-1");
+  assert.ok(stopped < lists(), `${stopped} request(s) for ISS-5 should be under ${lists()} for ISS-1`);
+});
+
+test("two references under the waterline share one walk", async () => {
+  const resolve = await walking();
+  assert.deepEqual(await Promise.all([resolve("ISS-1"), resolve("ISS-2")]), ["one", "two"]);
+  const together = lists();
+  const alone = await walking();
+  await alone("ISS-1");
+  assert.equal(together, lists(), "the second reference waited for the first walk rather than running one");
+});
+
+test("a page the tracker answers with no envelope at all is read as whole", async () => {
+  scene = () => ({ issues: ROWS });
+  asked.length = 0;
+  cases += 1;
+  const { documentIdOf: resolve } = await import(`../../src/tracker/issues.mjs?case=${cases}`);
+  assert.equal(await resolve("ISS-1"), "aaaa");
+  assert.equal(lists(), 1, "a short page from a server that says nothing is not a reason to walk");
+});
+
+/* Touched in reverse, so the two rows the page carries are the two created EARLIEST. The newest
+   stamp on a cut page is then nowhere near the newest creation under the frontier, and a walk that
+   treats it as the last subdivision available gives up with the key still reachable. */
+const TOUCHED_BACKWARDS = CUT.map((one, place) => ({ ...one, touched: CUT.length - place }));
+
+test("a cut page whose newest stamp is nowhere near the newest creation still resolves", async () => {
+  const resolve = await walking(TOUCHED_BACKWARDS);
+  assert.equal(await resolve("ISS-6"), "six", "narrowing to a stamp the page returned would stop short");
 });
