@@ -38,7 +38,7 @@ tokenizing worse than the character it stands for.
 Nothing here keeps its own copy of names the server already publishes — a local list goes stale
 against the thing it describes, silently, and reports the server's newest feature as a typo.
 
-## The guides are the tracker's, and five of them are not this flow's
+## The guides are the tracker's, and seven of them are not this flow's
 
 Read guide by guide on 2026-09-03, five of the twelve the tracker serves state a rule this plugin's
 contract has replaced, and `pipeline-and-issue-lifecycle` disagrees with itself inside one page: use
@@ -54,6 +54,27 @@ So the verb reads them through a disposition of its own, one row per guide in
 what holds instead, and where to go — a verb this CLI has, or a file the installed copy carries. It is
 code and not a project setting because it is this plugin's reading of the tracker, and a
 contradiction is not a thing a project can rightly turn back on.
+
+**Having a row is what withholds the guide**, and the two other pages are the reason the rule is
+stated that way rather than by disposition. `memory-and-knowledge` and
+`issue-dependencies-and-decompose` are the tracker's in one half and the runner's in the other, and
+for two releases the verb served them whole under a first line withdrawing the half that does not
+apply — which asks an agent to read a page and then hold part of it aside. Neither is a page it can
+follow whole, so neither is listed. The disposition decides one thing now and it is not visibility:
+`superseded` is what the overlap measure below scores, which is a different question — whether a
+project's own file restates a guide's authority, not whether this verb serves the page. What a
+maintainer's read prints is decided by the rules the row enumerates, and a row may enumerate none.
+
+Nothing the CLI volunteers names a withheld guide — not the listing, not a count of what it left
+out, not a near miss, not `-h`. Asking for one by slug echoes the slug the caller typed and answers
+in the words a slug the tracker never served gets, from the same line of code, so the answer carries
+no evidence that the guide is anywhere. ISS-66 hid the five and left four traces; the rule that took
+them out is the user's, 2026-09-04, and *Withholding a verb* below states it once for the whole CLI.
+
+A maintainer reviewing the table still has to read what it hides, and that read belongs under
+`forge doctor`, which is the surface for everything this copy or this credential cannot use. It is
+not there yet: `forge guide <slug> --tracker` is the escape in the meantime, documented here and
+nowhere the CLI prints, and ISS-71 holds `src/tools/doctor.mjs` — the need is filed against it.
 
 What is decidable by code is the slug and nothing more. `forge doctor` reports a row the tracker has
 stopped serving, and notes a guide it has started serving that no row has been read against; whether
@@ -770,6 +791,21 @@ time. A gated tool's schema is not printed at all: it is an invitation to a call
 
 The usage line has one home. It lived twice and the two had drifted four ways, so `forge -h` and the
 error a caller hit disagreed about which payload forms exist.
+
+**And what this copy or this credential cannot use is shown under `forge doctor` and nowhere else.**
+Not in `-h`, not in a list, not in a near miss, not in a closing line saying how many things were
+left out. An agent that does not know a thing exists is better off than one that knows and cannot
+use it: the first spends no turn on it, the second reads it, weighs it against what it may use, and
+asks. So a gated verb is absent rather than annotated, a withheld one is unlisted, a guide the
+table holds a row for is not named or counted, and a flag only a maintainer can act on is in no help
+text. `forge doctor` is where all of it is legible, because a person debugging the copy is the one
+reader who needs it.
+
+A refusal answers what the caller named and volunteers nothing past it. Typing a gated verb still
+says which tool it needs and that this credential may not call it, because the caller has already
+spent the turn and a silent refusal costs a second one; what the refusal must not do is *describe*
+the thing — `forge guide --tracker` echoes the flag and refuses the shape, and says nowhere what
+the flag would have printed.
 
 ## One transport
 

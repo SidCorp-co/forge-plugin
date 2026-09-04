@@ -111,7 +111,7 @@ export const contractProblems = ({ text, path, reads = CONTRACT }) => {
 /** All of what the verb answers — lines, or one refusal — so a case can ask it without a process. */
 export const contractAnswer = ({ part = null, tracker = false, extra = [], root = HERE } = {}) => {
   if (tracker) {
-    return { refusal: `--tracker is a guide's own text and the contract is this plugin's, not the`
+    return { refusal: `--tracker does not apply to ${SLUG}, which is this plugin's own, not the`
       + ` tracker's. \`forge guide ${SLUG}\` prints it.` };
   }
   if (extra.length) {

@@ -35,8 +35,8 @@ const PREAMBLE = [
   "  Ordering needs a `blocks` edge. Prose gates nothing — `forge deps` reads prose, not edges.",
   "  Attach a file rather than pasting it; nested config is replace-not-merge, so read before you",
   "    patch `pipelineConfig` or `projectFacts`.",
-  "  The tracker's guides belong to the runner it ships, and this contract replaces five of them:",
-  "    `forge guide` lists what stands, and a superseded slug answers with what replaced it.",
+  "  `forge guide` lists the tracker's guides this flow stands behind, and `forge guide contract` is",
+  "    this plugin's own, one part per call, which is what holds where it and a guide disagree.",
 ].join("\n");
 
 const MORE = "\nWhat to type for one verb: `forge <verb> -h`, with the schema behind the tracker"

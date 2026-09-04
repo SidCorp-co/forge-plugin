@@ -88,6 +88,20 @@ test("both help forms name the checkout's feedback folder by absolute path", () 
   }
 });
 
+/* An agent that does not know a thing exists spends no turn on it; one that knows and cannot act
+   reads it and weighs it anyway. So `forge doctor` carries all of that and no help text does. */
+test("no help text names a guide this plugin withholds, or a flag only a maintainer can act on", async () => {
+  const { heldSlugs } = await import("../../src/tracker/guides.mjs");
+  for (const argv of [["-h"], ["-h", "--full"], ["guide", "-h"]]) {
+    const run = ask(...argv);
+    const text = `${run.stdout}${run.stderr}`;
+    assert.equal(text.includes("--tracker"), false, `forge ${argv.join(" ")} names the flag: ${text}`);
+    for (const slug of heldSlugs()) {
+      assert.equal(text.includes(slug), false, `forge ${argv.join(" ")} names ${slug}`);
+    }
+  }
+});
+
 /* It paraphrased the tracker's `agent-setup`, five of whose rules the contract has replaced. */
 test("the preamble carries this CLI's rules and not the runner's", () => {
   const full = ask("-h", "--full").stdout;

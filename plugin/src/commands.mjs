@@ -16,14 +16,7 @@ import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { flags, partition } from "./resolve/flags.mjs";
-import {
-  caveatLine,
-  dispositionOf,
-  replacementLine,
-  trackerHeader,
-  visibleGuides,
-  withheldLine,
-} from "./tracker/guides.mjs";
+import { dispositionOf, trackerHeader, visibleGuides } from "./tracker/guides.mjs";
 import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./tracker/contract.mjs";
 import { doctor } from "./tools/doctor.mjs";
 import { deps } from "./tracker/deps.mjs";
@@ -285,7 +278,10 @@ export const commands = {
     show(await write("forge_project_pm", { action: "set_dependency", fromIssueId, toIssueId, kind }));
   },
   /* Read through this plugin's disposition of them, which tracker/guides.mjs holds and explains. A
-     superseded slug costs no call: the table answers it, and only --tracker fetches the body. The
+     held slug is answered as a slug the tracker never served, through that refusal's own call site
+     so the two answers cannot drift apart, and its body is never fetched: hiding a page an agent
+     cannot follow comes before naming it, and a line saying one exists and is stale is what makes
+     an agent go read it. --tracker is the maintainer's way past that, and the only one. The
      contract is this plugin's own and on disk, so it is answered before the transport is touched —
      an installed copy with no tracker reachable still reads the rule. */
   guide: async (argv) => {
@@ -302,28 +298,29 @@ export const commands = {
       return console.log(answer.lines.join("\n"));
     }
     if (extra.length) fail(`guide: one slug, not \`${positionals.join(" ")}\`. ${usageOf("guide")}`);
-    if (!slug && asked.tracker) fail(`guide: --tracker is one guide's own text; name it. ${usageOf("guide")}`);
-    if (!slug) {
-      console.log(CONTRACT_ROW);
+    /* Echoing back a flag the caller typed, and saying nothing about what it does: what a copy or a
+       credential cannot use is shown under `forge doctor` and nowhere else. */
+    if (!slug && asked.tracker) fail(`guide: --tracker names no guide. ${usageOf("guide")}`);
+    const listed = async () => {
       const rows = rowsOf(await scoped("forge_guide", { action: "list" }), "guides");
       const shown = new Set(visibleGuides(rows.map((one) => one.slug)));
-      for (const guide of rows) {
-        if (shown.has(guide.slug)) console.log(`${guide.slug}\n  ${guide.summary}`);
-      }
-      if (rows.length > shown.size) console.log(withheldLine(rows.length - shown.size));
+      return rows.filter((one) => shown.has(one.slug));
+    };
+    if (!slug) {
+      console.log(CONTRACT_ROW);
+      for (const guide of await listed()) console.log(`${guide.slug}\n  ${guide.summary}`);
       return;
     }
     const row = dispositionOf(slug);
-    if (row?.disposition === "superseded" && !asked.tracker) {
-      console.log(replacementLine(row));
-      return;
-    }
+    /* The one place a slug the verb does not serve is refused, so a held one and an unserved one
+       answer in the same words. A held slug reaches it without the get: the body is not wanted. */
+    const noSuchGuide = async () =>
+      fail(didYouMean("guide", slug, (await listed()).map((one) => one.slug),
+        "`forge guide` lists the guides this plugin stands behind."));
+    if (row && !asked.tracker) await noSuchGuide();
     const answer = await scoped("forge_guide", { action: "get", slug }, true);
-    if (answer?.refused) {
-      const rows = rowsOf(await scoped("forge_guide", { action: "list" }), "guides");
-      fail(didYouMean("guide", slug, visibleGuides(rows.map((one) => one.slug))));
-    }
-    const header = asked.tracker ? trackerHeader(row) : (row ? [caveatLine(row)] : []);
+    if (answer?.refused) await noSuchGuide();
+    const header = asked.tracker ? trackerHeader(row) : [];
     if (header.length) console.log(`${header.join("\n")}\n`);
     /* Markdown, not Markdown escaped inside JSON: every `\n` tokenizes worse than the character. */
     show(answer?.guide?.body ?? answer);

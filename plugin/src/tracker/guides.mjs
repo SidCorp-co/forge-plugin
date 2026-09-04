@@ -1,13 +1,20 @@
 /* This plugin's disposition of the tracker's own guides. The tracker serves the lifecycle rules of
    its pipeline runner, and no session under this plugin is that runner: five of the twelve state a
-   rule the contract has replaced, so a passthrough hands every agent two contracts on its first
-   read. The disposition is code and not configuration because it is this plugin's reading of the
+   rule the contract has replaced and two more are the runner's in half, so a passthrough hands every
+   agent two contracts on its first read. The disposition is code and not configuration because it is this plugin's reading of the
    tracker, and a project cannot rightly turn a contradiction back on. docs/FORGE-CLI.md carries
    what the stale rules cost; `forge guide contract` prints what holds instead. */
 
-/* `superseded` is withheld from the list and answers with its replacement; `partly` prints the
-   tracker's body under a first line naming the half that does not apply. A slug in no row is the
-   tracker's and passes through untouched. */
+/* Having a row is what withholds the guide, whichever disposition the row carries: neither a page
+   the contract replaced nor a page half of which is the runner's is one an agent can follow whole,
+   and naming a stale guide is how an agent comes to weigh two sources. A slug in no row is the
+   tracker's and passes through untouched.
+
+   So the disposition no longer decides visibility, and what it still decides is one thing:
+   `supersededSlugs`, which `forge doctor` alone calls, keeps meaning `superseded` exactly, because
+   the overlap measure asks whether a project's own file restates a guide's authority — a different
+   question from whether this verb serves the page. What `--tracker` prints is decided by the rules
+   the row enumerates, not by its disposition. */
 export const GUIDE_TABLE = [
   {
     slug: "pipeline-and-issue-lifecycle",
@@ -155,13 +162,17 @@ const rowFor = (table, slug) => table.find((row) => row.slug === slug) ?? null;
 
 export const dispositionOf = (slug, table = GUIDE_TABLE) => rowFor(table, slug);
 
+/** `superseded` exactly, which is not what the verb withholds — see the note above the table. */
 export const supersededSlugs = (table = GUIDE_TABLE) =>
   new Set(table.filter((row) => row.disposition === "superseded").map((row) => row.slug));
 
+/** Every slug this plugin holds a disposition about, and so the set the verb refuses to serve. */
+export const heldSlugs = (table = GUIDE_TABLE) => new Set(table.map((row) => row.slug));
+
 /** The slugs the verb stands behind, in the order the tracker gave them. */
 export const visibleGuides = (slugs, table = GUIDE_TABLE) => {
-  const hidden = supersededSlugs(table);
-  return slugs.filter((slug) => !hidden.has(slug));
+  const held = heldSlugs(table);
+  return slugs.filter((slug) => !held.has(slug));
 };
 
 const routes = (row) => {
@@ -173,19 +184,6 @@ const routes = (row) => {
   return parts.length ? parts.join(", and ") : null;
 };
 
-export const replacementLine = (row) => {
-  const where = routes(row);
-  return `${row.slug}: superseded — ${row.why}.`
-    + `${where ? ` Instead ${where}.` : " Nothing here replaces it: it is not this plugin's."}`
-    + ` \`forge guide ${row.slug} --tracker\` prints the tracker's text and the rules it replaces.`;
-};
-
-const rule = ({ says, instead }) => `it says ${says}; instead ${instead}`;
-
-export const caveatLine = (row) =>
-  `${row.slug}: kept as the tracker's, except — ${row.replaced.map(rule).join(". Also ")}.`
-  + ` For that half ${routes(row)}.`;
-
 /** The first line `--tracker` prints, and the rules under it, so a reader comparing the two can. */
 export const trackerHeader = (row) => {
   if (!row) return ["This is the tracker's own guide, and this plugin holds no disposition about it."];
@@ -196,10 +194,6 @@ export const trackerHeader = (row) => {
     : `This is the tracker's own guide, and the contract replaces no rule of it: ${row.why}.`;
   return [opening, ...row.replaced.map(({ says, instead }) => `  - it says ${says}\n    instead ${instead}`)];
 };
-
-export const withheldLine = (count) =>
-  `\n${count} guide(s) the contract supersedes are not listed. \`forge guide <slug>\` says what`
-  + " replaced each; add --tracker for the tracker's own text.";
 
 /* Pure over its inputs, so a case can hand it a table that fails each assertion: a closed-over
    table is a checker nobody can watch fire. An absent resolver leaves every reference unresolved
@@ -216,7 +210,7 @@ export function reviewGuideTable({
 }) {
   const serving = new Set(served);
   const known = new Set(recorded);
-  const hidden = supersededSlugs(table);
+  const held = heldSlugs(table);
   const unresolved = [];
   for (const row of table) {
     for (const ref of row.by) {
@@ -228,7 +222,7 @@ export function reviewGuideTable({
   return {
     retired: table.filter((row) => !serving.has(row.slug)).map((row) => row.slug),
     unreviewed: served.filter((slug) => !known.has(slug)),
-    leaked: listed.filter((slug) => hidden.has(slug)),
+    leaked: listed.filter((slug) => held.has(slug)),
     unresolved,
   };
 }

@@ -1,6 +1,6 @@
 /* The table is a rule with a checker, so every assertion is watched failing on a table that breaks
-   it: a row the tracker no longer serves, a replacement naming nothing, a list that leaked a
-   superseded slug. The verb's half runs against a fake tracker, where the call it does not make is
+   it: a row the tracker no longer serves, a replacement naming nothing, a list that leaked a slug
+   the verb holds. The verb's half runs against a fake tracker, where the call it does not make is
    as much of the behaviour as the line it prints. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -13,14 +13,12 @@ process.env.XDG_CONFIG_HOME = tempHome("guides").path;
 const {
   GUIDE_TABLE,
   REVIEWED,
-  caveatLine,
   dispositionOf,
-  replacementLine,
+  heldSlugs,
   reviewGuideTable,
   supersededSlugs,
   trackerHeader,
   visibleGuides,
-  withheldLine,
 } = await import("../../src/tracker/guides.mjs");
 const { VERB_NAMES } = await import("../../src/resolve/visibility.mjs");
 
@@ -43,6 +41,7 @@ test("every disposition is one the verb acts on", () => {
     assert.ok(Array.isArray(row.by), `${row.slug} names no replacement list`);
   }
   assert.equal(supersededSlugs().size, 5, "five of the twelve, which is what the issue read");
+  assert.equal(heldSlugs().size, GUIDE_TABLE.length, "and every row is one the verb withholds");
 });
 
 test("a row the tracker no longer serves is a finding", () => {
@@ -72,24 +71,13 @@ test("nothing resolves by default", () => {
   assert.equal(reviewGuideTable({ served: REVIEWED }).unresolved.length > 0, true);
 });
 
-test("a list still carrying a superseded slug is a finding", () => {
+/* Every row, not the superseded ones: a page half of which is the runner's is not one an agent can
+   follow whole either, and ISS-85 hides it on the same reasoning. */
+test("a list still carrying a slug the table holds is a finding", () => {
   assert.deepEqual(review().leaked, [], "the projection is what the verb prints");
-  assert.deepEqual(review({ listed: REVIEWED }).leaked.length, 5, "and the raw list is what it must not");
-  assert.equal(visibleGuides(REVIEWED).length, REVIEWED.length - 5);
-});
-
-test("the replacement is one line, and none of it is the guide's own text", () => {
-  const line = replacementLine(dispositionOf("pipeline-and-issue-lifecycle"));
-  assert.equal(line.includes("\n"), false, line);
-  assert.match(line, /superseded/u);
-  assert.match(line, /forge guide contract/u, "and it says where to read instead");
-  assert.match(line, /--tracker/u, "and how to read the tracker's own");
-  assert.doesNotMatch(line, /RECONCILE|blockquote|runner slot/u, "no sentence of the body");
-});
-
-test("a guide kept with one half withdrawn says which half in its first line", () => {
-  assert.match(caveatLine(dispositionOf("memory-and-knowledge")), /no memory verb/u);
-  assert.match(caveatLine(dispositionOf("issue-dependencies-and-decompose")), /decompose/u);
+  assert.deepEqual(review({ listed: REVIEWED }).leaked.length, 7, "and the raw list is what it must not");
+  assert.equal(visibleGuides(REVIEWED).length, REVIEWED.length - 7);
+  assert.equal(visibleGuides(REVIEWED).includes("memory-and-knowledge"), false, "the partly rows too");
 });
 
 test("--tracker's header says whose text follows and every rule the contract replaces", () => {
@@ -100,10 +88,6 @@ test("--tracker's header says whose text follows and every rule the contract rep
   assert.match(trackerHeader(null)[0], /no disposition/u, "and a guide with no row says so");
 });
 
-test("the count withheld and the way to each is on the listing", () => {
-  assert.match(withheldLine(5), /5 guide\(s\)/u);
-  assert.match(withheldLine(5), /--tracker/u);
-});
 
 const GUIDES = REVIEWED.map((slug) => ({ slug, summary: `what ${slug} is about` }));
 const BODY = "## Heading\n\nThe tracker's own sentence, served whole.";
@@ -127,25 +111,35 @@ const asked = async (...argv) => {
   return { ...run, guideCalls: (state.calls ?? []).filter((one) => one.name === "forge_guide") };
 };
 
-test("the listing carries the seven the plugin stands behind, under the contract that outranks them", async () => {
+test("the listing carries the five the plugin stands behind, under the contract that outranks them", async () => {
   const run = await asked();
   assert.equal(run.status, 0, run.stderr);
   assert.equal(run.stdout.startsWith("contract\n"), true, `the contract is listed first:\n${run.stdout}`);
   assert.match(run.stdout.split("\n")[1], /this plugin's own, not the tracker's/u);
-  for (const slug of supersededSlugs()) {
-    assert.equal(run.stdout.includes(`${slug}\n`), false, `${slug} is still listed`);
+  for (const slug of heldSlugs()) {
+    assert.equal(run.stdout.includes(slug), false, `${slug} is still named`);
   }
   assert.match(run.stdout, /attachments-and-uploads/u);
-  assert.match(run.stdout, /5 guide\(s\) the contract supersedes are not listed/u);
+  /* The count line was the third trace ISS-85 took out: a guide that is not there costs nothing,
+     and one an agent is told exists and is stale costs it a read and a weighing of two sources. */
+  const last = GUIDES.find((one) => one.slug === visibleGuides(REVIEWED).at(-1));
+  assert.equal(run.stdout.trim().endsWith(last.summary), true, `nothing follows the last:\n${run.stdout}`);
+  assert.doesNotMatch(run.stdout, /not listed|withheld|supersede/u);
 });
 
-test("a superseded slug answers from the table, without asking the tracker for it", async () => {
-  const run = await asked("what-is-an-issue");
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /what-is-an-issue: superseded/u);
-  assert.equal(run.stdout.includes(BODY), false, "and none of the body");
-  assert.deepEqual(run.guideCalls, [], "no call was made at all");
-});
+/* Exactly as an unknown slug, which is the rule: an answer that says the slug exists elsewhere is
+   what makes an agent go and read it. Both dispositions, since both hide the same way now. */
+for (const slug of ["what-is-an-issue", "memory-and-knowledge"]) {
+  test(`a held slug is refused as the tracker's unknown, without asking for it: ${slug}`, async () => {
+    const run = await asked(slug);
+    const unknown = await asked("no-such-guide-here");
+    assert.equal(run.status, 1, run.stdout);
+    assert.equal(run.stderr, unknown.stderr.replace("no-such-guide-here", slug), run.stderr);
+    assert.equal(run.stdout, "", "and nothing on stdout");
+    assert.doesNotMatch(run.stderr, /supersede|kept as the tracker's|--tracker/u, "no trace of the row");
+    assert.deepEqual(run.guideCalls.filter((one) => one.args.action === "get"), [], "no get for a body it hides");
+  });
+}
 
 test("--tracker prints the body, under the header that says what it replaces", async () => {
   const run = await asked("what-is-an-issue", "--tracker");
@@ -161,10 +155,16 @@ test("a guide with no row prints what the tracker returned and nothing else", as
   assert.equal(run.stdout.trim(), BODY, run.stdout);
 });
 
+/* A suggestion is output too, so a typo of a held slug must not name it — the `partly` rows are the
+   case that passed before ISS-85 hid them. */
 test("a near miss is offered from the guides that stand", async () => {
-  const run = await asked("pipeline-and-issue-lifecycl");
-  assert.equal(run.status, 1);
-  assert.equal(run.stderr.includes("pipeline-and-issue-lifecycle"), false, run.stderr);
+  for (const typo of ["pipeline-and-issue-lifecycl", "memory-and-knowledg", "issue-dependencies-and-decompos"]) {
+    const run = await asked(typo);
+    assert.equal(run.status, 1);
+    for (const slug of heldSlugs()) {
+      assert.equal(run.stderr.includes(slug), false, `${typo} was answered with ${slug}: ${run.stderr}`);
+    }
+  }
 });
 
 test("a flag the verb does not take is refused rather than kept", async () => {
@@ -187,7 +187,8 @@ test("the contract is answered off disk, by part, and costs no call at all", asy
   assert.deepEqual(part.guideCalls, [], "and none for a part");
   const refused = await asked("contract", "--tracker");
   assert.equal(refused.status, 1);
-  assert.match(refused.stderr, /the contract is this plugin's/u);
+  assert.match(refused.stderr, /--tracker does not apply to contract/u);
+  assert.doesNotMatch(refused.stderr, /a guide's own text/u, "a refusal says nothing the flag does");
   assert.deepEqual(refused.guideCalls, []);
 });
 
@@ -200,6 +201,6 @@ test("a second positional and a bare --tracker are refused, never dropped", asyn
   assert.match(two.stderr, /contract takes one part/u, "and the contract's own second positional too");
   const bare = await asked("--tracker");
   assert.equal(bare.status, 1);
-  assert.match(bare.stderr, /name it/u);
+  assert.match(bare.stderr, /--tracker names no guide/u);
   assert.deepEqual(bare.guideCalls, [], "and it does not fall back to the listing");
 });

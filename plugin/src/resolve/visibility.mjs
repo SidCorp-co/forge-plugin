@@ -19,8 +19,9 @@ export const VERBS = [
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context", "forge_uploads"],
   ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues"],
   ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm"],
-  ["guide", "[contract [part]|slug] [--tracker]",
-    "this plugin's contract, one part per call, and the tracker's guides less the rules it replaces",
+  /* No flag of this verb is named here, deliberately — docs/FORGE-CLI.md, *Withholding a verb*. */
+  ["guide", "[contract [part]|slug]",
+    "this plugin's contract, one part per call, and the tracker's guides this flow stands behind",
     "forge_guide"],
   ["project", "", "the resolved project id", "forge_projects.list"],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials"],

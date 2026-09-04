@@ -135,7 +135,9 @@ test("the stage line names the part for the status and the command that prints i
 test("the verb's answer is one part, the contents, or one refusal that names the way out", () => {
   assert.deepEqual(contractAnswer({ part: "released" }).lines, [partFor(PARTS, "released").text]);
   assert.equal(contractAnswer({}).lines[0].startsWith("The issue-flow contract"), true);
-  assert.match(contractAnswer({ tracker: true }).refusal, /the contract is this plugin's/u);
+  const flag = contractAnswer({ tracker: true }).refusal;
+  assert.match(flag, /--tracker does not apply to contract/u);
+  assert.doesNotMatch(flag, /a guide's own text/u, "and a refusal says nothing about what the flag does");
   assert.match(contractAnswer({ part: "open", extra: ["more"] }).refusal, /takes one part/u);
   assert.match(contractAnswer({ part: "mechanics" }).refusal, /Did you mean: the-mechanics\?/u);
   assert.match(contractAnswer({ part: "nothing-like-it" }).refusal, /lists every part/u);
