@@ -687,10 +687,10 @@ restart before the next agent. Folded from the record.
 
 - `git stash` is one stack for every worktree of a repository. Two agents each stashed and popped
   and traded their work; the recovered patch went to the holder issue, then turned out to be
-  superseded because the work had reached master on its own. The method said a new rule ships with a
-  case that fails without it and said nothing about how to take the source away for one run. The
-  contract now says: a second tree at the base, or the file checked out from the base and restored
-  after, never a stash.
+  superseded because the work had reached master on its own. `CLAUDE.md` asks for the red case and
+  left how to produce it to the agent, and two agents reached for the same stack. The contract now
+  says: a second tree at the base, or the file checked out from the base and restored after, never a
+  stash.
 - bash-guard judges a destructive git command against the event's directory and does not read a
   `cd` earlier in the call, so a worktree's command is judged by the wrong tree. ISS-86.
 - The commit refusal offers a consult command naming six files, and a consult clears only what it was
@@ -724,3 +724,32 @@ the record.
 - Three feedback notes, each already carried by an open issue (ISS-17, ISS-68, ISS-88): the notes
   confirm and add nothing, which is what a folder read daily should mostly find.
 
+## Twenty-third dry run — ISS-90
+
+One agent made the park before `released` the project's answer (3.35.22): the flow reads the tracker's
+project config — the staging branch, the production branch and whether production deploys go without
+being asked — where it reads the plan's declarations, and only where the plan declares one; a release
+onto staging, or on a project that deploys its own production branch, does not park; the verification
+carries one derived line saying which, in a field no flag can supply; where the policy cannot be read
+the park stands; doctor prints the three beside their sources and reports a production deploy set
+beside a branch held as null. This project's config now says automatic production deploy, set on the
+tracker as part of the change, and the run's own release is the proof: a plan declaring a user-facing
+outcome earned `released` with no person's comment. Thirteen verdicts against the installed copy,
+codex approved at the first round with one finding rejected on the code, no restart owed. Folded from
+the record.
+
+- The user's two amendments arrived before the plan and were taken as the plan: nothing new in
+  `.forge.json`, the tracker's own columns read instead, and `baseBranch` called the staging branch
+  everywhere but in the one reader that fetches it.
+- A criterion written before the review named a fallback the code cannot have — a refused call exits
+  rather than returning — and the codex round was what found it. The method had a step for correcting
+  criteria against the issue and none for re-reading them against what the review taught; corrected
+  in the open with a correction record and judged as corrected. The contract now says the verdicts
+  wait for that re-read.
+- `npm run check` was red on master from the parent's own fold of the twenty-first run, restating the
+  rules file at 0.30; the agent ran the ten later gates by hand, all green, and filed ISS-94. Fixed
+  in this fold, and the rule ISS-94 states stands: whoever writes a dry-run section runs the gate
+  before releasing it.
+- `record note` announces two tracker calls and spends both before the tracker's own 500-character
+  limit refuses, with no limit in the verb's help; routed to ISS-73, which owns reading a payload's
+  shape where it is typed.

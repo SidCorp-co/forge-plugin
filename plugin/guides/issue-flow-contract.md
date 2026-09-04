@@ -161,6 +161,12 @@ change:** no`, is a declaration it does not find.
 | a criterion fails | its failing verdict | unchanged; the fix moves the merged commit, so the issue falls to `in_progress` until the new head is reviewed, and judging starts over |
 | proves unshippable | the finding | `on_hold`, kind unshippable |
 
+A criterion is judged as the review left it. What the review taught about the code — a fallback it
+cannot take, a call that exits rather than answers — is read against every criterion before the first
+verdict, and a criterion the review proved impossible is corrected in the open, by a correction naming
+the file that settles it, and judged as corrected; a verdict on the old wording passes a claim the code
+cannot make.
+
 ### `tested` — reads the verdicts, the plan's flags and the release note field
 
 | Scenario | Writes | Goes to |
