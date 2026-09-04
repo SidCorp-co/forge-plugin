@@ -1134,3 +1134,25 @@ Folded from the record.
   ISS-128, which ISS-73 had as a finding since the morning.
 - The parent's fold no longer reads a folder. Thirty-eight runs of notes went through one; from here a
   feedback issue is triaged on the tracker like any other and the journal cites it by key.
+
+## Fortieth dry run — ISS-112
+
+One agent made the ship step decide a reading by volume alone and file it (3.35.45): five hundred
+changed lines under the source, hook and bin paths since the mark, the release count printed and
+deciding nothing; the reading's issue generated — the commit pair, the size, the issues the range spans,
+the reading rules, the ending that moves the mark — and filed through the repository's own CLI as a
+feature kind, with the launch line printed; while an issue for the current mark is open the step names
+it and files nothing; a tracker that does not answer files nothing and prints the route the next ship
+retries. Proved live: the released copy filed ISS-135 for the real range — eighteen files, five hundred
+and six lines, twelve issues spanned — and a second ship at the same mark filed nothing. ISS-118's one
+line went with it. Fourteen cases in the script's file; a case runs the generated body through the
+CLI's own shape reader and was watched failing on a renamed section. No restart owed. Closed by its run.
+Folded from the record. The user's ask of the morning — "instead of an issue for the review run, can it
+measure and decide by volume" — is the repository's, and nothing about a reading is typed.
+
+- A filing carries no uniqueness on the tracker, so two ships crossing one mark could file twice;
+  codex's finding, rejected here as the tracker's and filed as ISS-133.
+- `forge attach` puts a second document under a name already on the issue, the very collision the
+  evidence route refuses; it bit this run's own evidence. ISS-137.
+- The ship step's first automatic filing spanned twelve releases because the mark had waited for this
+  change; the review it filed runs as the fortieth run closes.
