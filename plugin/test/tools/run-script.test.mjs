@@ -168,7 +168,8 @@ test("-h names all three steps, the resume flag and the threshold it counts agai
   assert.equal(run.status, 0, run.stderr);
   for (const said of ["start <ISS-nn>", "ship [--from N]", "review [--done [ref]]", "--from N",
     "worktree", "restart", "refs/forge/reviewed", "500 changed line(s)", "npm run check",
-    "The release count is printed beside it and decides nothing"]) {
+    "The release count is printed beside it and decides nothing",
+    "--done <the range's end>"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
   assert.ok(!run.stdout.includes("3 release(s)"), `a release count is no part of the trigger:\n${run.stdout}`);
@@ -356,7 +357,7 @@ test("past the threshold the step files the reading's issue itself, and prints t
     `the title names no commit pair: ${filing.argv.join(" ")}`);
 
   for (const said of ["## Outcome", "## Rules", "## Out of scope", "1 file(s) and 501 changed line(s)",
-    `git diff ${from}..${to} -- plugin/src plugin/hooks plugin/bin`, "ISS-77", "review --done"]) {
+    `git diff ${from}..${to} -- plugin/src plugin/hooks plugin/bin`, "ISS-77", `review --done ${to}`]) {
     assert.ok(filing.body.includes(said), `the body carries no ${said}:\n${filing.body}`);
   }
   assert.ok(owed.stdout.includes("filed ISS-777"), owed.stdout);
@@ -479,7 +480,7 @@ test("a reading that finds nothing moves the mark in one line, and the count sta
   assert.match(asked.stdout, /git diff [0-9a-f]{40}\.\.HEAD -- plugin\/src plugin\/hooks plugin\/bin/u, asked.stdout);
   assert.equal(ref(work), before, "reading the range moves nothing");
 
-  const done = runIn(work, ["review", "--done"], BARE);
+  const done = runIn(work, ["review", "--done", git(work, "rev-parse", "HEAD").stdout.trim()], BARE);
   assert.match(done.stdout, /refs\/forge\/reviewed [0-9a-f]{7} -> [0-9a-f]{7}/u, done.stdout);
   assert.equal(ref(work), git(work, "rev-parse", "HEAD").stdout.trim());
   assert.doesNotMatch(lastStep(work).stdout, /a review of/u, "the range restarts at the mark it just moved");
@@ -511,6 +512,35 @@ test("the first plant proves the target is this history's, apart from a mark beh
   const planted = runIn(work, ["review", "--done", "HEAD"], BARE);
   assert.equal(planted.status, 0, planted.stderr);
   assert.match(planted.stdout, /planted at [0-9a-f]{7}/u, planted.stdout);
+});
+
+/* The range is fixed when its issue is filed and other runs land on the branch while it is being
+   read, so HEAD at the end of a review run is ahead of the head that reading reached. A mark planted
+   there marks unread commits as read, and unlike a mark left unmoved nothing grows to say so
+   (ISS-146). The discriminator is local: an owed range is one a reading was filed for. */
+test("a bare --done is refused over a range a reading is owed for, and the named ref moves the mark", () => {
+  const { work } = pushed("named");
+  const planted = runIn(work, ["review", "--done"], BARE);
+  assert.equal(planted.status, 0, `a plant answers to no range, so it is not refused:\n${planted.stderr}`);
+  const from = ref(work);
+  landIn(work, join("plugin", "src", "wide.mjs"), 501, "a module a run grew, and the reading read to here");
+  const reached = git(work, "rev-parse", "HEAD").stdout.trim();
+  landIn(work, join("plugin", "src", "later.mjs"), 20, "what another run landed while it was being read");
+
+  const bare = runIn(work, ["review", "--done"], BARE);
+  assert.equal(bare.status, 1, bare.stdout);
+  assert.match(bare.stderr, /is owed a reading, so the mark takes the head that reading reached/u, bare.stderr);
+  assert.ok(bare.stderr.includes(git(work, "rev-parse", "HEAD").stdout.trim()),
+    `a reading that did reach HEAD has to be left a way to say so:\n${bare.stderr}`);
+  assert.equal(ref(work), from, "the refused write moved nothing");
+
+  const told = runIn(work, ["review", "--done", reached], BARE);
+  assert.equal(told.status, 0, told.stderr);
+  assert.equal(ref(work), reached, "the mark names the head the reading reached, not the head it pushed");
+
+  const small = runIn(work, ["review", "--done"], BARE);
+  assert.equal(small.status, 0, `a range under the threshold is owed no reading, so it is not refused:\n${small.stderr}`);
+  assert.equal(ref(work), git(work, "rev-parse", "HEAD").stdout.trim());
 });
 
 /* A mark moved back hands the next reading a range it has already been told was read — a codex

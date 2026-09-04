@@ -43,7 +43,7 @@ const USAGE = [
   "",
   "  --from N     resume at step N, which a failed step prints for you",
   "  --note S     the subject of the version commit, when the release has to make one",
-  "  --done [ref] the mark moves to ref, HEAD by default, and only ever from here",
+  "  --done [ref] the mark moves to ref, and only ever from here; HEAD only where no reading is owed",
   "",
   "ship stops at the first failure and writes nothing past it, and a resume past the gate spends",
   "the gate first, so nothing that pushes runs against a tree no gate has passed. A change under",
@@ -55,10 +55,13 @@ const USAGE = [
   "The release count is printed beside it and decides nothing, so three one-line fixes owe no reading",
   "and one large landing owes one on its own. Past the threshold the step files the reading's issue",
   "itself, through this repository's own CLI, and prints the line that launches the run — and while",
-  "that issue is open it names it and files nothing. That reading is a delegated run in a worktree of",
-  "its own, under the same contract and the same gates; it ends with --done from that tree, after its",
-  "own ship, so the mark names the pushed head it read to. A mark left unmoved keeps the count",
-  "growing, which is how a skipped reading stays visible at the next ship.",
+  "that issue is there it names it and files nothing, whatever status it has reached. That reading is",
+  "a delegated run in a worktree of its own, under the same contract and the same gates; it ends from",
+  "that tree, after its own ship, with --done <the range's end>, which the issue it was given carries",
+  "and which is the head its reading reached. The ref is named rather than defaulted because other",
+  "runs land on this branch while a reading is being read, so a bare --done over an owed range is",
+  "refused. A mark left unmoved keeps the count growing, which is how a skipped reading stays visible",
+  "at the next ship; a mark planted too far forward grows nothing, which is why it is refused here.",
 ].join("\n");
 
 /* Run for the person watching: a step's own output is the evidence that it did what it says. */
@@ -259,8 +262,9 @@ const reviewBody = (tree, from, to, volume) => {
     "  other commit; anything that would alter what the code does is filed as its own issue naming",
     "  this one, never fixed here.",
     `- Issues whose releases this range spans: ${keys.join(", ") || "none, so the range is unreleased work"}.`,
-    `- The run ends from its own tree with \`${SELF} review --done\`, after its own ship, so the mark`,
-    "  names the pushed head the reading reached.",
+    `- The run ends from its own tree with \`${SELF} review --done ${to}\`, after its own ship. The ref`,
+    "  is named and not defaulted: it is this range's end, which is the head the reading reached, and",
+    "  other runs land on this branch while the reading is read (ISS-146).",
     "",
     "## Out of scope",
     "",
@@ -350,7 +354,7 @@ const reviewOwed = (tree) => {
       + `asks again: ${asked.why}`);
     console.log(`    file its issue:  forge new - --title "review ${range}" --kind feature`);
     console.log(`    give it a tree:  ${SELF} start <that ISS-nn>`);
-    console.log(`    it ends by moving the mark, finding or none: ${SELF} review --done`);
+    console.log(`    it ends by moving the mark, finding or none: ${SELF} review --done <the range's end>`);
     return;
   }
   if (asked.status === READ) {
@@ -377,6 +381,14 @@ const review = (argv) => {
     return console.log(owed
       ? `A review is owed: ${REVIEW_LINES} changed line(s) call for one, and this range is past that.`
       : `Short of the ${REVIEW_LINES} changed line(s) that call for a reading.`);
+  }
+  /* Refused rather than reported: unlike a mark left unmoved, whose count keeps growing, a mark
+     planted too far forward reads exactly like a reading that finished and grows nothing (ISS-146). */
+  if (argv[at + 1] === undefined && from && reviewSays(tree, from).owed) {
+    stop(`${from.slice(0, 7)}..HEAD is owed a reading, so the mark takes the head that reading reached `
+      + `and not this tree's HEAD, which other runs have moved since the range was fixed: `
+      + `${SELF} review --done <that head>, the end of the range the issue you were given names. Where `
+      + `the reading did reach HEAD, say so: ${SELF} review --done ${gitOut(["rev-parse", "HEAD"], tree)}`);
   }
   const asked = argv[at + 1] ?? "HEAD";
   const to = gitOut(["rev-parse", "--verify", `${asked}^{commit}`], tree);
