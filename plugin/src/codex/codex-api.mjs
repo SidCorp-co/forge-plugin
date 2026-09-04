@@ -195,14 +195,32 @@ export const bundle = (root, rels) => {
 
 const DIFF_CHARS = 20_000;
 
+const partingOf = (cwd, ref) => {
+  const ran = (argv) => spawnSync("git", argv, { cwd, encoding: "utf8" });
+  if (ran(["merge-base", "--is-ancestor", "--end-of-options", ref, "HEAD"]).status === 0) return null;
+  const found = ran(["merge-base", "--end-of-options", ref, "HEAD"]);
+  return found.status === 0 ? (found.stdout ?? "").trim() || null : null;
+};
+
+const PARTED = new Map();
+
+/** Where the branch left a ref; null where it is behind HEAD or unreadable, the ref then travelling
+ *  as given. One answer per checkout and ref: the paths, the diffs and the record are one base. */
+export const divergedFrom = (cwd, ref) => {
+  const key = `${cwd}\0${ref}`;
+  if (!PARTED.has(key)) PARTED.set(key, partingOf(cwd, ref));
+  return PARTED.get(key);
+};
+
 /* What changed, so a finding can be anchored to it. Untracked files answer with nothing and are
    labelled new: the whole text is the change. */
-const changedIn = (root, rel, base) => {
-  /* An outside file is diffed in its own checkout, which is the only one that knows the ref. */
+const changedIn = (root, rel, base, fromParting) => {
+  /* An outside file is diffed, and its ref resolved, in its own checkout: the only one that knows. */
   const own = isAbsolute(rel) ? gitRootOf(rel) : root;
   if (!own) return { untracked: true };
   const asked = isAbsolute(rel) ? relative(own, rel) : rel;
-  const diff = spawnSync("git", ["diff", "--no-color", base, "--", asked], { cwd: own, encoding: "utf8" });
+  const from = (fromParting && divergedFrom(own, base)) || base;
+  const diff = spawnSync("git", ["diff", "--no-color", from, "--", asked], { cwd: own, encoding: "utf8" });
   if (diff.status !== 0) return { error: (diff.stderr ?? "").trim().slice(0, 200) || "git diff failed" };
   const text = (diff.stdout ?? "").trim();
   if (text) return { text: text.slice(0, DIFF_CHARS), clipped: text.length > DIFF_CHARS };
@@ -212,19 +230,20 @@ const changedIn = (root, rel, base) => {
 
 /** For a consult asked to review a diff and given no file: every path git names, a deletion and an
  *  untracked one included, or null where the base is no ref, which is not the same as no change. */
-export const changedAgainst = (root, base) => {
+export const changedAgainst = (root, base, fromParting = false) => {
   const asked = (argv) => {
     const run = spawnSync("git", argv, { cwd: root, encoding: "utf8" });
     return run.status === 0 ? (run.stdout ?? "").split("\0").filter(Boolean) : null;
   };
   /* `-z` ahead of `--end-of-options`, past which every word is a path: a newline is a legal one. */
-  const changed = asked(["diff", "--name-only", "-z", "--end-of-options", base]);
+  const from = (fromParting && divergedFrom(root, base)) || base;
+  const changed = asked(["diff", "--name-only", "-z", "--end-of-options", from]);
   if (!changed) return null;
   return [...new Set([...changed, ...(asked(["ls-files", "--others", "--exclude-standard", "-z"]) ?? [])])].sort();
 };
 
-export const withDiffs = (root, parts, base) =>
-  parts.map((part) => ({ ...part, diff: changedIn(root, part.rel, base) }));
+export const withDiffs = (root, parts, base, fromParting = false) =>
+  parts.map((part) => ({ ...part, diff: changedIn(root, part.rel, base, fromParting) }));
 
 const diffBlock = (diff) => {
   if (!diff) return "";

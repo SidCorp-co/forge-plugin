@@ -28,6 +28,7 @@ import {
   bundle,
   changedAgainst,
   digest,
+  divergedFrom,
   inside,
   locate,
   modelBehind,
@@ -100,7 +101,9 @@ export const USAGE = [
   "",
   "  --diff         send each file's diff and refuse findings that are only about code this turn",
   "                 did not touch. Raises precision more than anything else.",
-  "  --base ref     what to diff against; implies --diff. HEAD unless you say otherwise.",
+  "  --base ref     what to diff against; implies --diff. HEAD unless you say otherwise. A ref is",
+  "                 read from where the branch left it, so a base that moved under the run shows",
+  "                 none of its own commits; the working tree is still the other side.",
   "  --effort e     minimal | low | medium | high, for this consult only. Derived from the round",
   "                 and the change's size unless you say otherwise.",
   "  --rounds n     model calls this consult may make, used as given. Wall time is calls times 45s.",
@@ -264,7 +267,7 @@ const consult = async (given) => {
   /* Asked for a diff and given nothing to diff, the tree answers: the round it replaces was reading
      `git diff --name-only` and typing the list back (ISS-65). */
   if (!rels.length && base) {
-    const changed = changedAgainst(root, base);
+    const changed = changedAgainst(root, base, base === namedBase);
     if (!changed) fail(`codex: --base ${base} is no ref this checkout can read, so what changed against it is unknown. Name the base, or name the files.`);
     rels.push(...changed);
     if (rels.length) console.error(`codex: nothing named and nothing pending, so the ${rels.length} file(s) changed against ${base}: ${rels.join(", ")}.`);
@@ -285,6 +288,12 @@ const consult = async (given) => {
     ? plan.judged.head
     : base;
   if (anchor !== base) console.error(`codex: a recheck of ${plan.judged.id ?? plan.judged.at}, so the diff since ${anchor} travels with it.`);
+  /* A base the caller named is read from where the branch left it, so a ref that moved under the run
+     presents nothing of its own side; a recheck's anchor is a head this run chose and is taken as
+     given. `parted` is null where the ref is still behind HEAD, which is the same diff either way. */
+  const fromParting = anchor !== null && anchor === namedBase;
+  const parted = fromParting ? divergedFrom(root, anchor) : null;
+  if (parted) console.error(`codex: ${anchor} has moved under this branch, so the diff is from ${parted.slice(0, 7)}, where they parted.`);
 
   const model = modelBehind(values);
   if (!model) fail(`codex: ${path} maps the ${MODEL} slot to no model.`);
@@ -302,18 +311,24 @@ const consult = async (given) => {
   const intent = (said ?? "").trim();
   const id = randomBytes(3).toString("hex");
 
-  const bundled = anchor ? withDiffs(root, bundle(root, rels), anchor) : bundle(root, rels);
+  const bundled = anchor ? withDiffs(root, bundle(root, rels), anchor, fromParting) : bundle(root, rels);
   /* A review of nothing is still billed: after a commit every file reads UNCHANGED against HEAD. A
      recheck is the one case that carries on: its base was chosen for it, so an unmoved tree means
      nothing to diff and not nothing to ask, and the findings are still owed a ruling. */
   const still = anchor && unchangedAll(bundled);
   if (still && anchor === namedBase) {
     const where = commitAt(root).dirty ? "the files named" : "the tree is clean, so the change is committed";
-    fail(`codex: nothing differs from ${namedBase} in ${rels.join(", ")} — ${where}. Pass --base ${namedBase}~1 to review the last commit.`);
+    /* `${namedBase}~1` is no escape from a base that moved: one commit back is on the other side, so
+       it parts from the branch at the same point. The head is the ref that answers there. */
+    const back = parted ? "HEAD~1" : `${namedBase}~1`;
+    fail(`codex: nothing differs from ${namedBase}${parted ? ` since they parted at ${parted.slice(0, 7)}` : ""}`
+      + ` in ${rels.join(", ")} — ${where}. Pass --base ${back} to review the last commit.`);
   }
   if (still) console.error(`codex: nothing differs from ${anchor}, so this recheck carries no diff — the findings are asked for on the tree as it stands.`);
   const parts = still ? bundle(root, rels) : bundled;
-  const anchoredTo = still ? null : anchor;
+  /* The point diffed from, not the ref: a row anchored to a name replays against wherever that name
+     has since gone, which is a diff nobody was ever shown (`codex replay`, codex-stats.mjs). */
+  const anchoredTo = still ? null : parted ?? anchor;
   const { clipped, lines, budget, ceiling, effort } = plannedFor({ parts, bodies, recheck, asked: cap, effort: askedEffort });
   if (clipped.length) console.error(`codex: sent clipped, too long to fit whole: ${clipped.join(", ")}.`);
   const history = historyFor(entries, root, undefined, rels);

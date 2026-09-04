@@ -72,6 +72,18 @@ diff step used to pass over a path that is not on disk, which named the file and
 it, and `git diff` never lists a file git has not been told about, which a turn's new file always
 is.
 
+**A base is read from where the branch left it.** `--base master` diffed against the ref as it
+stood, so a base that moved under the run — master taking another run's release mid-branch —
+presented the other side's commits as this branch's: ISS-117's review raised two findings on code
+the branch never touched, which the record now reads as two judgement calls. A named ref is read
+from the point it and HEAD parted. The working tree stays the other side, which is where this
+departs from the `<base>...HEAD` the report asked for: three dots make HEAD the other side, and a
+tracked file edited and not committed then travels in no diff at all — a reviewer told nothing
+changed in the file whose newest edit it never saw is worse than the bug. A recheck's anchor is
+exempt, being a head this end chose: after a rebase it is off the history, and the parting point
+would widen the diff past the findings the round exists to close. The log records the point diffed
+from rather than the name, so `replay` rebuilds what was sent.
+
 **Three of the reviewer's four tools take the checkout when no path came.** `list_dir`, `git_diff`
 and `grep` default to the root: 34 refusals in the log were that argument left out, and a reviewer
 that meant the repository has nowhere else to mean. `read_file` keeps its path, having no such

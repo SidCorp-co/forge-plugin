@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { TOOLS, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
-import { changedAgainst, roleFor } from "../../src/codex/codex-api.mjs";
+import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const repo = () => {
@@ -65,6 +65,75 @@ test("what changed against a ref is what the tree says, a deletion included", ()
     + "which `git diff` never lists and a turn's new file always is");
   assert.equal(changedAgainst(root, "no-such-ref"), null,
     "and a ref git cannot read is null, never the empty set a clean tree answers with");
+});
+
+/* A base moves under a run — the default branch takes another run's release mid-branch — and
+   against the ref as it stands the other side's commits read as this branch's: ISS-117's review
+   raised two findings on code the branch never touched, and its run rejected them by name. */
+const parted = () => {
+  const root = repo();
+  const git = (...argv) => execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv]);
+  writeFileSync(join(root, "kept.txt"), "kept\n");
+  git("add", ".");
+  git("commit", "-qm", "one");
+  const base = String(git("branch", "--show-current")).trim();
+  git("checkout", "-qb", "work");
+  writeFileSync(join(root, "mine.txt"), "mine\n");
+  git("add", "mine.txt");
+  git("commit", "-qm", "the branch's own");
+  git("checkout", "-q", base);
+  writeFileSync(join(root, "kept.txt"), "the other side dropped the line\n");
+  git("commit", "-qam", "the other side, after the branch was cut");
+  git("checkout", "-q", "work");
+  return { root, git, base };
+};
+
+test("a base that moved under the branch is read from where they parted (ISS-129)", () => {
+  const { root, base } = parted();
+  assert.deepEqual(changedAgainst(root, base, true), ["mine.txt"],
+    "the branch's own file alone; what the other side did to kept.txt is not this branch's change");
+  assert.deepEqual(changedAgainst(root, base, false), ["kept.txt", "mine.txt"],
+    "and against the ref as it stands it is, which is the finding raised on code nobody touched");
+  const [held] = withDiffs(root, bundle(root, ["kept.txt"]), base, true);
+  assert.equal(held.diff.unchanged, true, "so the file the other side moved travels as context");
+  const [asStands] = withDiffs(root, bundle(root, ["kept.txt"]), base, false);
+  assert.match(asStands.diff.text, /\+kept/u, "where before it travelled as a hunk to review");
+});
+
+/* The report asked for literal `<base>...HEAD`, which makes HEAD the other side and drops the
+   working tree: a reviewer told nothing changed in the file whose newest edit it was never shown
+   is a worse failure than the one being fixed. The merge-base is one side; the tree is still the other. */
+test("the working tree is still the other side of a base read from the parting point", () => {
+  const { root, base } = parted();
+  writeFileSync(join(root, "a.txt"), "edited this minute, committed by nobody\n");
+  assert.deepEqual(changedAgainst(root, base, true), ["a.txt", "mine.txt"],
+    "the uncommitted edit among them, which `git diff base...HEAD` would not have listed");
+});
+
+test("a ref that has gone nowhere HEAD has not resolves to nothing", () => {
+  const { root, base } = parted();
+  assert.equal(divergedFrom(root, "HEAD"), null,
+    "the default base needs no resolving, and the ref is the more legible thing to record");
+  assert.equal(divergedFrom(root, "HEAD~1"), null, "as does any ref still behind HEAD");
+  assert.equal(divergedFrom(root, base).length, 40, "a base that moved answers with the commit they parted at");
+  assert.equal(divergedFrom(root, "no-such-ref"), null,
+    "and a ref this checkout cannot read answers with nothing, so the diff against it reports the failure");
+  assert.equal(changedAgainst(root, "no-such-ref", true), null,
+    "which is null from the caller, never the empty set a clean tree answers with");
+});
+
+/* The consult resolves the base for the path list, for each file's diff and for the row's anchor,
+   and waits on an open stdin in between: three resolutions of a ref that moved would send diffs from
+   one base and record another, which is a replay of what was never sent. */
+test("a checkout's base is resolved once, whatever the ref does after", () => {
+  const { root, git, base } = parted();
+  const first = divergedFrom(root, base);
+  git("checkout", "-q", base);
+  git("merge", "-q", "-m", "the other side takes the branch", "work");
+  git("checkout", "-q", "work");
+  assert.notEqual(String(git("merge-base", base, "HEAD")).trim(), first,
+    "the ref has moved somewhere that would part from this branch elsewhere");
+  assert.equal(divergedFrom(root, base), first, "and the base this consult diffs from is the one it started with");
 });
 
 test("run_check is offered only where the checkout named a command", () => {
