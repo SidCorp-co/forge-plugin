@@ -2003,3 +2003,24 @@ record.
 - A third reading is already owed and unfiled: the range since this mark stands past the threshold
   after sixteen releases, and the ship declined to file it while this issue held the mark. Readings queue
   behind readings at the rate the tree moves; the threshold is met faster than a reading is read.
+
+## Seventy-eighth dry run — ISS-249, ISS-246 and ISS-247
+
+One agent gave four acceptance clauses a real case each (3.35.90): the clause citing the dropped
+issue now names a case that writes a repeated value carrying the separator, a newline, bare fence lines
+and a line reading as another key, and reads it back byte for byte; the drop-refusal clause names a case
+that tells the mark's refusal from the status's, since the route holds two refusals with one sentence
+and a fixture with both set would have proved the wrong one; the two linter clauses share one case whose
+three arms show silence, then speech on a config alone, then a real linter naming the rule. Every
+mutation ran on a throwaway copy of the tree. No restart owed. All three closed by the run. Folded from
+the record.
+
+- The run edited one test file the brief had not named and said so, with the reason — the file the
+  sibling clauses already cite, held by no run — recorded as a decision with its undo. A brief's place
+  list is a starting reading; a run that leaves it names the step.
+- Three issues, one branch, under two hours: three fixes in one tree is the size that pays, where four
+  earlier in the week did not.
+- Two filings onward: an accepted review finding cannot say what it changed while a rejected one must
+  say why (ISS-269), and the mutation evidence that proves each case goes red lives only in attachments,
+  with nothing in the tree to re-run it (ISS-270). The ship auto-filed the third batch reading, ISS-267,
+  the moment the mark was free.
