@@ -1768,3 +1768,27 @@ moved, so a restart is owed. Closed by its run. Folded from the record.
 - The reproduction came first and against the pre-fix code in a real worktree, which is what found the
   second symptom. A defect reproduced in the reporter's terms is the smaller half of what a reproduction
   finds.
+
+## Sixty-eighth dry run — ISS-218
+
+One agent told a run one order (3.35.76, 3.35.77): the landing is the ship's first step, judging comes
+before it while the issue is still in progress, and the two statuses that a landing earns move at the
+ship on the record the judging wrote. The order landed across the skill, its verification reference, the
+contract's flow table and developed part, the flow's phase hint and the diagram; a second release
+carried the two surfaces the whole-set pass caught — the figure's arrow sequence and one contract
+sentence. The defect class is mechanized: a case reads the phase-owed cell off the code's table, the
+contract's table and the figure's the same way, and was red on the untouched tree, where the figure had
+already drifted. Two skill files moved, so a restart is owed. Closed by its run. Folded from the record.
+
+- Thirty-eight verdict records where nineteen carry the meaning: the whole-set pass was taken after the
+  judging, since the rebase owed it; it raised a major finding whose fix moved two of the change's own
+  paths, so every verdict was owed again at the landed head. The criterion saying no verdict is re-posted
+  after the ship was literally false and was corrected in the open — the re-post was the review round's
+  cost, not the landing's, and the landing moved nothing. The pass that earns a review has a shape and no
+  place, so a run judges before the read that could refuse it: filed as ISS-236 with this run as its
+  measurement.
+- One clause still states the verdict rule ISS-156 replaced, and the run that corrected its neighbours
+  could not carry it because its own criteria pinned every clause's revision and hash (ISS-233). A
+  criterion that pins a hash pins the drift beside it.
+- The ship printed the owed batch reading's launch line twice in one run — once per release. A line a
+  step prints is owed once per range, not once per ship.
