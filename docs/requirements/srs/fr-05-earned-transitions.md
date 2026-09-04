@@ -132,14 +132,14 @@ than remembered: when the merged commit moves, everything above `in_progress` is
 the criteria change, everything above `developed` is. Nothing is deleted — the earlier records stay
 as superseded history and the check simply stops being met.
 
-- **AC-05-6-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs
+- **AC-05-6-1** · Rev: 1 · Proof: plugin/test/flow/merged-mark.test.mjs
   IF the latest approving review judged neither the commit the merged mark names nor the reviewed
   head that mark records THEN the CLI SHALL refuse `developed` and name the commit judged beside the
   commit marked.
-- **AC-05-6-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs
+- **AC-05-6-2** · Rev: 1 · Proof: plugin/test/flow/merged-mark.test.mjs
   IF a verdict judged a commit other than the merged commit THEN the CLI SHALL refuse `tested` and
   name the criterion, the commit judged and the merged commit.
-- **AC-05-6-3** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs
+- **AC-05-6-3** · Rev: 1 · Proof: plugin/test/flow/merged-mark.test.mjs
   WHEN a criterion has no verdict THEN the CLI SHALL refuse `tested` and name that criterion.
 - **AC-05-6-4** · Rev: 1 · Proof: none yet — ISS-7
   WHEN a new head is merged THEN the merged mark SHALL name that head, and the CLI SHALL judge
