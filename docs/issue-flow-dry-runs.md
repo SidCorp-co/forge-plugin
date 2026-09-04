@@ -1527,3 +1527,30 @@ keys at opposite ends of a reversed backlog. No restart owed. Closed by its run.
 - One verdict was flagged by the run as proving less than its criterion reads: the full-projection case
   proves the key resolves under the flag, not what the flag adds. Said on the verdict rather than
   cited later as more than it is.
+
+## Fifty-eighth dry run — ISS-191 and ISS-177
+
+One agent took a check's population and a test's missing config directory as one run (3.35.68).
+ISS-191: the cited-paths check now reads the parts this repository describes itself in — a population
+stated as two data structures with every excluded part carrying its reason as a value, and a case
+holding the two lists to cover every tracked source and document so a directory added later is red
+rather than silent; seven citations corrected, one of a file that never existed, four illustrative
+foreign paths rewritten from a placeholder root. ISS-177: not the one-line fix its title said — an
+empty config directory alone made the case worse, because the filing verb reads the tracker's rank
+declaration before the body, so the case moved to the feedback verb and took its room from the suite's
+own fixture. No production file changed for it. No restart owed. Both closed by the run. Folded from
+the record.
+
+- The reported premise was wrong and the record said so before the plan: three of the six citations
+  the issue listed were misreadings and three resolve under a rule the issue put out of scope. The
+  outcome still held, so the run went on; a false premise ends a run only when the outcome falls with it.
+- The whole tree was measured before the population was chosen — hundreds of findings, most of them
+  test fixtures — and the measurement is what made the two lists defensible. Choosing a population
+  without measuring the whole is the same guess the issue itself made.
+- The new case sat in a gate step whose declared reads excluded three of the files it read — the
+  never-red-only-absent failure — and was moved to the step that reads the whole tree; that step's
+  measured comment was re-measured rather than left stale.
+- A blanket exclusion the review called broader than its reason was narrowed to three entries each
+  carrying its own; the remedy of including the package's readme was measured and refused, since its
+  citations are literal values a consumer types. Seven filings onward, one loose end handed to the
+  parent: the check has no clause in its requirement while every sibling has one.
