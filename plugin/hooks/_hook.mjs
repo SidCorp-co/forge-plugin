@@ -6,7 +6,7 @@ import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync } f
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 
-import { logHook, scrubbed } from "../src/hooks/hook-log.mjs";
+import { jsonLines as parsed, logHook, scrubbed } from "../src/hooks/hook-log.mjs";
 import { spans } from "../src/hooks/shell-spans.mjs";
 import { hookOff } from "../src/hooks/hook-switch.mjs";
 
@@ -233,9 +233,8 @@ const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
 export const QUOTED = /'[^']*'|"(?:[^"\\]|\\[\s\S])*"/gu;
 
-/** A heredoc body is data; `onProgram` reads one an interpreter executes, and is told where in the text
- *  being returned the interpreter sits — for the `cd` it inherited — and which interpreter it is.
- *  how/learning-gate.md. */
+/** A heredoc body is data; `onProgram` reads one an interpreter executes, and is told where in the text being returned the interpreter sits — for the `cd` it inherited — and which
+ *  interpreter it is. how/learning-gate.md. */
 export const bodiless = (text, onProgram = (body) => body) => {
   let out = "";
   let rest = text;
@@ -400,15 +399,14 @@ const ASSIGN = new RegExp(
     + String.raw`([A-Za-z_]\w*)=(${VALUE})`,
   "gu",
 );
-const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
+export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 
 const NAMED = /\$(?:\{([A-Za-z_]\w*)[^}]*\}|([A-Za-z_]\w*))/gu;
 const HOPS = 3;
 
-/** `H=/tmp/d` then `> $H/x` names the directory in no token, so a value is substituted first — what a
- *  shell would set only, since a phantom from quoted data answers for a name that is unset. A hop is
- *  followed, a modifier dropped, a `$(…)` carried whole as text. An assignment reaches the commands
- *  *after* its own: `env M=/d cp a $M/x` expands `$M` before `env` sets it. Measured. */
+/** `H=/tmp/d` then `> $H/x` names the directory in no token, so a value is substituted first — what a shell would set only, since a phantom from quoted data answers for a name that
+ *  is unset. A hop is followed, a modifier dropped, a `$(…)` carried whole as text. An assignment reaches the commands *after* its own: `env M=/d cp a $M/x` expands `$M` before
+ *  `env` sets it. Measured. */
 export const expanded = (command) => {
   const ends = spans(command);
   const endOf = (at) => ends.find((one) => at >= one.start && at <= one.end)?.end ?? at;
@@ -442,16 +440,6 @@ export function writesInside(ev, root) {
   return aimed.length === 0 || aimed.some((path) => under(root, ev.cwd, path));
 }
 
-/** When the advisor last spoke, in epoch ms; 0 if it never has. */
-export const adviceAt = (records) =>
-  records.reduce(
-    (latest, record) =>
-      blocksOf(record).some((one) => one.type === "advisor_tool_result")
-        ? Math.max(latest, Date.parse(record.timestamp) || 0)
-        : latest,
-    0,
-  );
-
 /** Where this turn begins: only a user record carrying `promptSource` is a prompt somebody typed. */
 export const promptIndex = (records) => {
   let from = -1;
@@ -484,18 +472,6 @@ export function unspentAdvice(records, spentAt = 0) {
       && (spentAt === 0 || Date.parse(record.timestamp) > spentAt),
   );
 }
-
-const parsed = (text) =>
-  text
-    .split("\n")
-    .map((line) => {
-      try {
-        return JSON.parse(line);
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean);
 
 const TAIL = 1 << 20;
 const TAIL_CAP = 64 << 20;

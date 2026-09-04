@@ -23,7 +23,6 @@ const SHAPES = [
 ];
 
 const lineAt = (text, index) => text.slice(0, index).split("\n").length;
-const base = (path) => posix.basename(path.replace(/\/$/u, ""));
 
 export const citedIn = (text) => {
   const held = String(text ?? "");
@@ -52,8 +51,9 @@ export const problems = (files, paths) => {
   const tails = new Set();
   const byName = new Map();
   for (const one of paths) {
-    if (!byName.has(base(one))) byName.set(base(one), []);
-    byName.get(base(one)).push(one);
+    const name = posix.basename(one);
+    if (!byName.has(name)) byName.set(name, []);
+    byName.get(name).push(one);
     const segments = one.split("/");
     for (let from = 1; from < segments.length; from += 1) tails.add(segments.slice(from).join("/"));
   }
@@ -61,7 +61,7 @@ export const problems = (files, paths) => {
     citedIn(text)
       .filter(({ path }) => !names(rel, path, tree, tails))
       .map(({ path, line }) => {
-        const elsewhere = (byName.get(base(path)) ?? []).filter((one) => one !== rel);
+        const elsewhere = (byName.get(posix.basename(path)) ?? []).filter((one) => one !== rel);
         const said = elsewhere.length
           ? `${elsewhere.join(" and ")} carr${elsewhere.length === 1 ? "ies" : "y"} that name: cite`
             + " the one meant, and cite it whole"

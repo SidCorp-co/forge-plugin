@@ -16,8 +16,7 @@ const TAIL = 20;
 
 /* A named credential flag, a header, and the shapes that are a secret on sight. An hour ago a
    Coolify token reached this session's transcript through a redaction that missed one level. */
-/* A value goes whole, quotes and spaces included: masking to the next space leaves most of a
-   passphrase in a log that is printed back into a session. */
+/* A value goes whole, quotes and spaces included: masking to the next space leaves most of a passphrase in a log that is printed back into a session. */
 const VALUE = String.raw`("[^"]*"|'[^']*'|\S+)`;
 
 const SECRETS = [
@@ -57,18 +56,22 @@ export const logHook = (record) => {
   }
 };
 
+/** A JSONL text as the objects it holds; a log written by appends is torn at the line it stopped on, so a line that will not parse is dropped. */
+export const jsonLines = (text) =>
+  String(text ?? "")
+    .split("\n")
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+
 export const hookEntries = () => {
   try {
-    return readFileSync(HOOK_LOG_PATH, "utf8")
-      .split("\n")
-      .map((line) => {
-        try {
-          return JSON.parse(line);
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
+    return jsonLines(readFileSync(HOOK_LOG_PATH, "utf8"));
   } catch {
     return [];
   }

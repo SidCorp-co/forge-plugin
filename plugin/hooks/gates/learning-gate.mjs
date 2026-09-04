@@ -4,13 +4,12 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { QUOTED, REDIRECT, RUNS, WRITES, askedAlready, askedByAnyone, commands, deny, how, settled, shellText, done } from "../_hook.mjs";
+import { QUOTED, REDIRECT, RUNS, WRITES, askedAlready, askedByAnyone, commands, deny, how, settled, shellText, unquote, done } from "../_hook.mjs";
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../../src/checks/learning.mjs";
 // A write shape counts only as its own token, so an assignment and a `cd` resolve here.
 const CHDIR = /(?:^|[;&|\n])\s*(?:cd|pushd)\s+("[^"]*"|'[^']*'|[^\s;&|]+)/gu;
 const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
-const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 /* Twelve refusals in three days were a sentence inside a string — a write word and a skill path in one
    line of prose. A path and a mode hold no space, so a span with one is prose; a `-c` body is code. */
 const spoken = (text) =>
