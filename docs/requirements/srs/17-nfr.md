@@ -86,7 +86,7 @@ Rev: 1 · Enforces: BR-02, BR-03
 Which writes are idempotent, and how each resolves a repeat, is the contract's "The record is the
 checkpoint" — so a retry after a dropped connection is safe and a report does not double-count.
 
-- **AC-17-7-1** · Rev: 1 · Proof: none yet — ISS-237
+- **AC-17-7-1** · Rev: 1 · Proof: none yet — ISS-252
   WHEN the same payload is written twice THEN the record SHALL hold it once.
 
 ### NFR-08 — A credential never reaches a file that travels
@@ -107,7 +107,7 @@ Rev: 1 · Enforces: BR-07
 Silence is an opt-out and not a misconfiguration. A repository with no linter, no gate and no
 settings of its own gets no findings from this product about what good code is.
 
-- **AC-17-9-1** · Rev: 1 · Proof: none yet — ISS-237
+- **AC-17-9-1** · Rev: 1 · Proof: none yet — ISS-247
   IF the project configures nothing THEN the product SHALL say nothing about its code.
 
 ### NFR-10 — The half no check reaches is verified by reading it

@@ -88,7 +88,7 @@ A tracker answering with an error is the network's fault rather than the work's.
 under a policy, and nothing about it reaches the issue: a run that has to stop says so once, in a
 comment, and moves no status.
 
-- **AC-02-5-1** · Rev: 1 · Proof: none yet — ISS-237
+- **AC-02-5-1** · Rev: 1 · Proof: none yet — ISS-253
   IF a response status is in the retry table THEN the CLI SHALL retry to the limit, and one that is
   not SHALL cost exactly one request.
 

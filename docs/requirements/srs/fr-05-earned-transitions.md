@@ -120,30 +120,35 @@ landed is closed, never dropped.
 - **AC-05-5-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "the flow table names one next status, and a disposition sends the issue to dropped"
   WHEN the latest confirmation's finding is a disposition THEN the CLI SHALL make the next status
   dropped and SHALL take the finding as the reason.
-- **AC-05-5-2** · Rev: 1 · Proof: none yet — ISS-237
+- **AC-05-5-2** · Rev: 1 · Proof: none yet — ISS-246
   IF the merged mark is set THEN the CLI SHALL refuse to drop the issue.
 
 ### UC-05-6 — A later change unearns
 
-Rev: 1 · Actors: agent · Enforces: BR-04
+Rev: 2 · Actors: agent · Enforces: BR-04
 
 Each of those records names what it judged, which is what makes the fall-back computable rather
-than remembered: when the merged commit moves, everything above `in_progress` is unearned, and when
-the criteria change, everything above `developed` is. Nothing is deleted — the earlier records stay
-as superseded history and the check simply stops being met.
+than remembered: when the merged commit moves, everything above `in_progress` is unearned except
+what the mark itself accounts for, and when the criteria change, everything above `developed` is.
+The mark accounts for a review at the head it records, and for a verdict at that head where it says
+the landing took no path the change touched. Nothing is deleted — the earlier records stay as
+superseded history and the check simply stops being met.
 
 - **AC-05-6-1** · Rev: 1 · Proof: plugin/test/flow/merged-mark.test.mjs "developed needs the mark, its commit, and an approving review of that commit"
   IF the latest approving review judged neither the commit the merged mark names nor the reviewed
   head that mark records THEN the CLI SHALL refuse `developed` and name the commit judged beside the
   commit marked.
-- **AC-05-6-2** · Rev: 1 · Proof: plugin/test/flow/merged-mark.test.mjs "tested needs one verdict per criterion, passing, at the merged commit"
-  IF a verdict judged a commit other than the merged commit THEN the CLI SHALL refuse `tested` and
-  name the criterion, the commit judged and the merged commit.
+- **AC-05-6-2** · Rev: 2 · Proof: plugin/test/flow/merged-mark.test.mjs "a verdict at the judged head stands where the landing moved none of the change's paths"
+  IF a verdict judged neither the merged commit nor the judged head the merged mark records THEN the
+  CLI SHALL refuse `tested` and name the criterion, the commit judged and the merged commit.
 - **AC-05-6-3** · Rev: 1 · Proof: plugin/test/flow/merged-mark.test.mjs "tested needs one verdict per criterion, passing, at the merged commit"
   WHEN a criterion has no verdict THEN the CLI SHALL refuse `tested` and name that criterion.
 - **AC-05-6-4** · Rev: 1 · Proof: none yet — ISS-7
   WHEN a new head is merged THEN the merged mark SHALL name that head, and the CLI SHALL judge
   `developed` against the mark alone.
+- **AC-05-6-5** · Rev: 1 · Proof: plugin/test/flow/merged-mark.test.mjs "a verdict at the judged head stands where the landing moved none of the change's paths"
+  WHERE the merged mark records a judged head, a verdict at that head SHALL earn `tested` only where
+  the mark says the landing moved no path the change touched.
 
 ### UC-05-7 — What the plan declared decides what the ship steps owe
 

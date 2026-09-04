@@ -37,7 +37,7 @@ account setting in name only.
 - **AC-01-1-1** · Rev: 1 · Proof: plugin/test/cli/env-flags.test.mjs "no value is read from the environment"
   WHERE a setting could be taken from the environment the CLI SHALL take none, and the test SHALL
   fail when a new environment read is added.
-- **AC-01-1-2** · Rev: 1 · Proof: none yet — ISS-237
+- **AC-01-1-2** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the saved credential is owner-only, and lands outside the repository it was saved from"
   WHEN the credential is written THEN the CLI SHALL store it at owner-only permissions outside the
   repository.
 

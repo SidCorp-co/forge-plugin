@@ -1,12 +1,12 @@
 /* A setting doctor does not read is a green report in front of a command that cannot run. */
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { fakeTracker, tempRoom } from "../fixtures.mjs";
+import { cleanRepo, fakeTracker, tempRoom } from "../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
 
@@ -231,4 +231,34 @@ test("a declared tool that refuses this credential is a note", async () => {
   });
   assert.match(out, /\[ note \] guides\s+forge_guide is declared but refuses/u);
   assert.equal(status, 0, "a refusal the tracker owns fails nothing here");
+});
+
+/* The mode nothing else reads: `install` prints 0600 and the file is what has to carry it, since a
+   credential group-readable in a shared home leaks without failing anything. No tracker: the write
+   happens before the first call, and the report with no endpoint saved makes none. Run from inside
+   a repository, because "outside the repository" is the other half of the claim and a fixture
+   standing nowhere proves it by accident (AC-01-1-2). */
+test("the saved credential is owner-only, and lands outside the repository it was saved from", () => {
+  const TOKEN = "pat-saved-by-this-case";
+  const home = tempRoom("doctor-credential-");
+  mkdirSync(join(home, "forge"));
+  const held = join(home, "forge", "config.json");
+  writeFileSync(held, "{}\n");
+  chmodSync(held, 0o666);
+  const repo = cleanRepo();
+  const run = spawnSync(process.execPath, [CLI, "doctor", "--token", TOKEN], {
+    encoding: "utf8", cwd: repo, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+  });
+  const said = `${run.stdout}${run.stderr}`;
+  assert.match(run.stdout, new RegExp(`Saved token to ${held} \\(mode 0600\\)`, "u"), said);
+  assert.equal(statSync(held).mode & 0o777, 0o600, `the write kept the mode it found: ${said}`);
+  assert.equal(JSON.parse(readFileSync(held, "utf8")).token, TOKEN);
+  const holds = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((one) => {
+    const full = join(dir, one.name);
+    if (one.isDirectory()) return holds(full);
+    return readFileSync(full, "utf8").includes(TOKEN) ? [full] : [];
+  });
+  /* The whole checkout and not its root alone: a writer resolving the config dir from the working
+     directory would land the token under `.git/`, where a listing of the top level sees nothing. */
+  assert.deepEqual(holds(repo), [], "and nothing of the account is written anywhere in the checkout");
 });

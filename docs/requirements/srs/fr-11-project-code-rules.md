@@ -46,7 +46,7 @@ here rather than an implementation detail.
   cap the event's deadline imposes.
 - **AC-11-1-5** · Rev: 1 · Proof: none yet — ISS-38
   IF a call wrote more files than that cap THEN the gate SHALL name the files it did not lint.
-- **AC-11-1-2** · Rev: 1 · Proof: none yet — ISS-237
+- **AC-11-1-2** · Rev: 1 · Proof: none yet — ISS-247
   IF the project configures no linter THEN the gate SHALL say nothing.
 - **AC-11-1-3** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
   WHEN a file has already been reported at its current content THEN naming it again SHALL not be

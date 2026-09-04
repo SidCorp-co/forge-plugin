@@ -74,7 +74,7 @@ A streaming model call per segment, with its own key in its own configuration fi
 accounting and segmentation are this product's; the prose is the model's and is judged by a person
 (NFR-10).
 
-- **AC-19-5-1** · Rev: 1 · Proof: none yet — ISS-237
+- **AC-19-5-1** · Rev: 1 · Proof: plugin/test/tools/vi-gateway.test.mjs "a key reaches the results only where its translation carries the source's placeholders and no others"
   WHEN a batch is sent THEN the result SHALL be accepted only if every placeholder is accounted
   for.
 
