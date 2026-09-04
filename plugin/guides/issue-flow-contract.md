@@ -472,9 +472,11 @@ findings; it does not rewrite the author's rulings on them, and a rejection with
 replaced by an acceptance the recheck inferred (ISS-34 owes the fix; twice in the seventeenth run).
 
 **The reviewer read what it was shown.** A consult limited to a diff judges the diff; its truth
-pass on the rest answers *not verified* and says so. The recheck that earns an approving review runs
-on the whole set of files the change touched, never on a diff; a clean pass over a diff owes a whole-file pass, which
-today the recheck verb refuses to run because no finding was logged (ISS-51 owes the route). The review
+pass on the rest answers *not verified* and says so. So the pass that earns an approving review is
+one read of the whole set of files the change touched (`--send bodies`), taken once, at the commit;
+diff passes are for the rounds between edits and none is owed. A recheck follows a finding and
+nothing else: over one hundred consults on 2026-09-04, fifteen rechecks confirmed fixes and not one
+raised anything new, so a recheck after a clean whole-set pass is a round that buys nothing. The review
 record names that set
 beside the head so the transition can see the scope without the repository (ISS-34 owes the field
 with the consult ids); the merging run, which is the one that knows, writes the touched files into
@@ -482,9 +484,9 @@ the mark's note beside the commit and the base, and a review whose recorded set 
 mark's is not approving. Both sets are on the record; nothing inspects the repository. The sixth dry run caught three *not verified* answers only because the
 output said the words. A recheck confirms and does not discover: it answers, finding by finding,
 whether the fix stands, and a finding it raises for the first time stands only with a clause naming
-what made it invisible the round before. The review ends when every finding raised has its verdict,
-fixed or rejected with the reason on the review record, and the last whole-file round raised nothing
-new that this change caused. Scope is causal, not positional: a finding on a line the change did not
+what made it invisible the round before. The review ends when the whole-set pass has been taken and
+every finding it raised has its verdict — fixed and confirmed by the recheck, or rejected with the
+reason on the review record; no further whole-set round is owed for that. Scope is causal, not positional: a finding on a line the change did not
 touch is in scope when it names the changed line that breaks it, a caller or a test the new interface
 no longer fits, and is outside the change otherwise, rejected as such or filed on its own issue. A
 round whose only new findings are outside the change is the last round, since a reviewer that re-reads

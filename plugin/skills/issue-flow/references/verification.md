@@ -2,7 +2,7 @@
 
 ## Before you edit
 
-Take a **baseline**: run the smallest relevant gate and record what already fails. Without
+Take a **baseline**: run the project's gate once, whole, and record what already fails. Without
 it a pre-existing red is indistinguishable from your regression, and you will either hide a
 defect or repair something that was never yours. If a baseline cannot be obtained, say so
 rather than proceeding as though it were green.
@@ -10,6 +10,13 @@ rather than proceeding as though it were green.
 **A gate that stops at its first failure has measured only what ran.** One red at the front
 leaves every step behind it unknown, and a baseline naming that one red is a baseline for
 nothing after it: run the remaining steps by hand and record what each answered.
+
+**That is one of the two whole runs a change owes, and the change's own tests run in between.**
+The baseline is the first; the second is on the tree the review commit will carry; every check between those is the test
+file of the change, or the one gate step a refusal named. Seven runs measured on 2026-09-04 ran the
+whole gate 111 times — a minute and a half each, 84 minutes of waiting for answers a targeted test
+gives in seconds — and the release step runs it once more on the same tree. A whole run after a
+one-line edit proves nothing the targeted test did not, and costs the turn.
 
 ## The order
 
