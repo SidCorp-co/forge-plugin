@@ -9,12 +9,13 @@
 An open question is a tracker issue, never a marker inside a clause (R-07). Every row here names
 the issue that will settle it, because a question with no owner and no place to be answered is not
 an open item — it is a deferral, and this tree has no room for one. A row leaves when its issue
-closes: the decision it made is then in `git` and in that issue's record, so there is no ledger
-here to keep in step.
+reaches a terminal status: the decision it made, or the finding that there was none to make, is then
+in `git` and in that issue's record, so there is no ledger here to keep in step. A dropped issue
+takes its row with it exactly as a closed one does — the question stopped being open either way, and
+a row outliving its issue sends the next reader to a key with no answer behind it.
 
 | Question | Issue |
 |---|---|
-| Whether a repeated value in a record can be separated by something a value cannot contain, so a record reads back as it was written. | ISS-14 |
 | Whether a review's outcome and the author's disposition of each finding are two values rather than one. | ISS-16 |
 | Whether a finding's identifier names the round that issued it, so a review over several rounds has no two findings alike. | ISS-34 |
 | Whether an assembled report keeps every instance of a kind that repeats, rather than the latest. | ISS-11 |

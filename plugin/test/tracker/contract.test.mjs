@@ -115,6 +115,92 @@ test("the phase a status owes is one string, and every surface that states it sa
   }
 });
 
+/* ISS-218 held one column of one table and the rest drifted in silence. What holds them now is
+   every table the figure copies, cell for cell against the contract part it copies; `text`
+   normalizes the three ways the renderings differ and nothing else — a code span, emphasis, and a
+   rules row's tail behind `<details>` where the paragraph continues. The parks table is excluded
+   and cannot be held: its five columns decompose the contract's bullet list, and its `From` column
+   reads "any status" for `waiting`, which the contract does not say (ISS-241, ISS-148). */
+const ENTITIES = { lt: "<", gt: ">", amp: "&", quot: '"', "#39": "'" };
+const text = (held) => String(held)
+  .replace(/<details><summary>more<\/summary>([\s\S]*?)<\/details>/gu, " $1")
+  .replace(/<\/?(?:p|em|strong|code)>/gu, "")
+  .replace(/&(lt|gt|amp|quot|#39);/gu, (_, one) => ENTITIES[one])
+  .replace(/[*`]/gu, "")
+  .replace(/\s+/gu, " ")
+  .trim();
+
+const rowsOf = (part) => {
+  const lines = part.text.split("\n").filter((line) => line.startsWith("|"));
+  return lines
+    .filter((line) => !/^\|[-\s|:]+\|$/u.test(line))
+    .map((line) => line.split("|").slice(1, -1).map(text));
+};
+
+const FIGURE_TEXT = readFileSync(FIGURE, "utf8");
+const TABLES = [...FIGURE_TEXT.matchAll(/<table class="([a-z]*)">([\s\S]*?)<\/table>/gu)].map((one) => ({
+  cls: one[1],
+  rows: [...one[2].matchAll(/<tr>([\s\S]*?)<\/tr>/gu)]
+    .map((row) => [...row[1].matchAll(/<t[dh]>([\s\S]*?)<\/t[dh]>/gu)].map((cell) => text(cell[1]))),
+}));
+
+/* Cell by cell rather than table by table: a whole table reported as unequal says a row moved and
+   not which word changed, and the word is what a reader has to go and fix. */
+const holdsEqual = (what, mine, theirs) => {
+  assert.equal(theirs.length, mine.length,
+    `${what}: the contract has ${mine.length} row(s) and the figure ${theirs.length} — `
+    + `${FIGURE} is a copy and a row it lacks is a rule the picture does not state`);
+  mine.forEach((row, at) => {
+    assert.equal(theirs[at].length, row.length, `${what} row ${at}: ${row.length} cell(s) here, ${theirs[at].length} there`);
+    row.forEach((cell, col) => {
+      assert.equal(theirs[at][col], cell,
+        `${what} row ${at} column ${col} has drifted.\n  contract: ${cell}\n  figure:   ${theirs[at][col]}`);
+    });
+  });
+};
+
+test("the figure's copy of the flow table is the contract's, every cell of it", () => {
+  holdsEqual("the flow table", rowsOf(partFor(PARTS, "the-flow")), TABLES.find((one) => one.cls === "flow").rows);
+});
+
+/* Paired by the heading above each table rather than by position, so the headings are held equal
+   too and a table that moved is named for what it is instead of failing as the one beside it. */
+test("every scenario table the figure copies is its contract part's, heading and all", () => {
+  const section = FIGURE_TEXT.slice(FIGURE_TEXT.indexOf("<h2>The contract:"));
+  const found = [...section.matchAll(/<h4>([\s\S]*?)<\/h4>\s*<table class="">([\s\S]*?)<\/table>/gu)];
+  const scenarios = [...STAGED.slice(0, 9), "breaks-mid-run", "findings-mid-development"];
+  const parts = [...new Set(scenarios.map((key) => partFor(PARTS, key)))];
+  assert.equal(found.length, parts.length,
+    `the contract has ${parts.length} scenario table(s) and ${FIGURE} ${found.length}`);
+  parts.forEach((part, at) => {
+    assert.equal(text(found[at][1]), text(part.title),
+      `the figure's ${at + 1}th scenario table is headed for another part of the contract`);
+    holdsEqual(`\`forge guide contract ${part.keys[0]}\``, rowsOf(part), TABLES.filter((one) => one.cls === "").at(at).rows);
+  });
+});
+
+/* A rule is `**Lead.** body` in the contract and two cells in the figure, held in both directions:
+   the two rules the figure never grew were as invisible as the lead it let go stale. The parts are
+   named because the same form carries prose that is no rule — the engines the contract compares
+   itself against — and reading those as rows would demand rows the figure never owed. */
+const RULE_PARTS = [
+  ["when-the-run-breaks", /^\s*- \*\*(.+?)\.\*\* ([\s\S]*)$/u],
+  ["earning-and-unearning", null], ["the-review", null], ["evidence", null], ["release-and-routes", null],
+];
+const rulesOf = () => RULE_PARTS.flatMap(([key, bullet]) => {
+  const held = partFor(PARTS, key).text;
+  const blocks = bullet ? held.split(/\n(?=\s*- \*\*)/u) : held.split(/\n\s*\n/u);
+  return blocks
+    .map((block) => (bullet ?? /^\*\*(.+?)\.\*\*\s+([\s\S]*)$/u).exec(block.trim()))
+    .filter(Boolean)
+    .map((found) => [text(found[1]), text(found[2])]);
+});
+
+test("every rule the contract states has the figure's row, and every row states the contract's rule", () => {
+  const rows = TABLES.filter((one) => one.cls === "rules").flatMap((one) => one.rows.slice(1));
+  holdsEqual("the rules section", rulesOf(), rows);
+});
+
 const SKILL = join(PLUGIN, "skills", "issue-flow", "SKILL.md");
 const VERIFICATION = join(PLUGIN, "skills", "issue-flow", "references", "verification.md");
 const CONTRACT_REL = contractPath();
@@ -153,6 +239,26 @@ test("the read that earns the review has one place, and no landing owes a rechec
   for (const rel of [CONTRACT_REL, FIGURE, SKILL, VERIFICATION]) {
     assert.doesNotMatch(readFileSync(rel, "utf8"), /owes its own recheck/u,
       `${rel} sends a landing back for a recheck`);
+  }
+});
+
+/* An owed-marker's issue key must not outlive the issue: ISS-14 was dropped once its rule was met
+   at the write, and three surfaces went on citing it as owed, which is the redirect a retirement
+   refuses (ISS-226). The population is the surfaces that state a rule, not the tree — the dry-runs
+   doc cites ISS-14 as a run's history and the projections doc as a key a lookup refuses. */
+const RETIRED = ["ISS-14"];
+test("no surface that states a rule cites an issue retired from it", () => {
+  const stating = [CONTRACT_REL, FIGURE, join(ROOT, "docs", "requirements", "brd", "08-open-items.md")];
+  for (const rel of stating) {
+    const held = readFileSync(rel, "utf8");
+    for (const key of RETIRED) {
+      const found = held.split("\n")
+        .map((line, at) => [at + 1, line])
+        .filter(([, line]) => new RegExp(`\\b${key}\\b`, "u").test(line));
+      assert.deepEqual(found, [],
+        `${rel} cites ${key}, which is retired from the rule it was owed by: the marker goes with `
+        + `the issue, and a run reading this is sent to an issue it will find terminal`);
+    }
   }
 });
 

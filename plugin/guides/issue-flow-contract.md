@@ -580,8 +580,11 @@ assembled from the record rather than written from memory: the latest of each ki
 be current, and every instance of a kind that repeats, so a report shows four corrections when
 four were written (owed by ISS-11; today only verdicts, findings and triages are kept per instance). A separator between
 repeated values must be one a value cannot contain, or the record does not read back as it was
-written (owed by ISS-14; a record in the fenced form written from 3.35.4 puts one value per line,
-and the pair that separates them can still occur inside a bullet-form value the reader accepts). A
+written (met at the write: the fenced form puts one value
+per line and sizes its fence past the longest run of backticks inside it, so nothing joins the
+values and nothing splits them back out; the reader still splits a repeating field of the older
+bullet form on `; `, which is a tolerance for records already on the tracker and retires when none
+remain). A
 payload is machine data: it travels in a form the project's prose rewrite leaves alone, and its field
 names are the flags the verb took, never the labels a screen renders, because a reader keyed on labels
 was conformant in English and blind in Vietnamese (the fourteenth dry run). A kind kept
