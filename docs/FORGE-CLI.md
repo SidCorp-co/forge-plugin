@@ -643,8 +643,18 @@ to review, 243 of them that session's uncommitted files; past five hundred statu
 measuring and answers *changed now*, so no number of consults could ever spend it. What a commit closes
 over is its index, plus whatever `-a` and a pathspec add, and that crossed with this root's unread
 record is the whole of what is asked for — computed once, so the verb that prints the list and the gate
-that compares it cannot drift apart. The 726 became one. A write closes nothing, and the working tree
-still answers for one.
+that compares it cannot drift apart. The 726 became one.
+
+**A count standing in for a timestamp is never spent.** ISS-70 bounded the commit and left the other
+half of that same cap arming itself forever: five consults, four verdicts and every finding ruled on,
+and 727 dirty paths still said *changed now*, listing another agent's uncommitted files as work to go
+and read. Above the cap the demand is now bounded by this root's unread record, so what a refusal
+names is what consulting it clears, and where nothing is recorded nothing is owed. Two prices, both
+taken deliberately. The record is the root's and carries no session dimension, so a co-tenant's
+recordable file can still be demanded of you — satisfiably, which is the whole of the change. And what
+it holds is what `codex.pathRe` matches, so above the cap a write outside that pattern is not asked
+about at all; the commit carrying it still is, from its own index, which is where the pattern does not
+reach.
 
 **A kill switch nobody in the session can throw is not one.** `FORGE_CODEX_DISABLE=1` stays, for a
 configuration too broken to read a switch out of, but it answers from the environment a hook process

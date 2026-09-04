@@ -5,7 +5,7 @@
 import { createHash } from "node:crypto";
 import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { basename, dirname, join, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 
 import { logHook, scrubbed } from "../src/hooks/hook-log.mjs";
 import { hookOff } from "../src/hooks/hook-switch.mjs";
@@ -407,19 +407,22 @@ export const COMMITS = new RegExp(`${STARTS}git\\s+${GIT_GLOBALS}commit(?![\\w-]
 export const committing = (ev) =>
   ev.tool_name === "Bash" && COMMITS.test(shellText((ev.tool_input ?? {}).command));
 
-/** The work tree a git command names: `--work-tree` says so outright, `-C` moves there, and
- *  `--git-dir` only implies it — so they rank, and are not the last one said. */
+/** The work tree a git command names: `--work-tree` outranks `-C` outranks what `--git-dir` implies.
+ *  A repeated `-C` is a chain git composes, the other two are read from where it left, and a relative answer stays relative for the caller to place against its own event's cwd. */
 const AIMS = /(?:^|\s)(-C|--work-tree|--git-dir)(?:\s+|=)("[^"]*"|'[^']*'|\S+)/gu;
 export const gitTreeOf = (text) => {
   const said = {};
+  let at = null;
   for (const [, option, value] of String(text ?? "").matchAll(AIMS)) {
-    said[option] = value.replace(/['"]/gu, "").replace(/\/+$/u, "");
+    const one = value.replace(/['"]/gu, "").replace(/\/+$/u, "");
+    if (option !== "-C") said[option] = one;
+    else at = at && !isAbsolute(one) ? join(at, one) : one;
   }
-  if (said["--work-tree"]) return said["--work-tree"];
-  if (said["-C"]) return said["-C"];
+  const from = (one) => (at && !isAbsolute(one) ? join(at, one) : one);
+  if (said["--work-tree"]) return from(said["--work-tree"]);
   const dir = said["--git-dir"];
-  if (!dir) return null;
-  return basename(dir) === ".git" ? dirname(dir) : dir;
+  if (!dir) return at;
+  return from(basename(dir) === ".git" ? dirname(dir) : dir);
 };
 
 /** Lexical: the file may not exist yet, and a relative target resolves against the cwd. */

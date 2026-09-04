@@ -51,7 +51,8 @@ const newestOf = (root, rels) => {
 
 const clock = () => Math.max(500, Math.min(5000, remaining() - 1000));
 
-/* `-z` neither quotes nor escapes; a rename's old name is the next field. */
+/* `-z` neither quotes nor escapes; a rename's old name is the next field. Past the cap a count stands
+   in for a timestamp and is never spent, so there the question is what this checkout recorded. */
 const changedAt = (root) => {
   const out =
     spawnSync("git", ["-C", root, "status", "--porcelain", "-z", "-uall"], {
@@ -69,6 +70,14 @@ const changedAt = (root) => {
     /* A directory survives `-uall` only as a repository of its own: work this tree cannot hand over
        as a file, and going quiet about it is the silence the gate exists to break. */
     (path.endsWith("/") ? held : named).push(path);
+  }
+  if (named.length + held.length > WALK) {
+    const record = pendingState(root).files;
+    const kept = (list) =>
+      list.filter((one) => (one.endsWith("/") ? record.some((rel) => rel.startsWith(one)) : record.includes(one)));
+    const mine = kept(named);
+    const inside = kept(held);
+    return { newest: newestOf(root, [...mine, ...inside]), named: mine, held: inside };
   }
   return { newest: newestOf(root, [...named, ...held]), named, held };
 };
@@ -104,11 +113,20 @@ const OPAQUE = ["--pathspec-from-file", "--patch", "--interactive"];
    cannot read, and what `--patch` picks is picked after the hook has answered: each asks for the
    record whole rather than for what one shape enumerates. */
 const TWICE = new RegExp(COMMITS.source, "gu");
+/* A relative `-C` is that tree from where the shell stands, which a move before this commit — and
+   not one after it — has changed. */
+const treeAt = (text, one) => {
+  const named = gitTreeOf(one[0]);
+  const moved = movedTo(text, one.index);
+  return named && !isAbsolute(named) && moved ? resolve(moved, named) : named ?? moved;
+};
+
 export const commitAim = (ev) => {
   const text = shellText((ev.tool_input ?? {}).command);
-  const found = text.match(COMMITS);
-  if (!found) return { tree: null, all: false, paths: [] };
-  let unknown = (text.match(TWICE) ?? []).length > 1;
+  const made = [...text.matchAll(TWICE)];
+  const found = made[0];
+  if (!found) return { tree: null, all: false, paths: [], others: [] };
+  let unknown = made.length > 1;
   const from = found.index + found[0].length;
   const { end } = spans(text, { pipes: true }).find((one) => one.start <= from && from <= one.end)
     ?? { end: text.length };
@@ -136,14 +154,12 @@ export const commitAim = (ev) => {
       }
     } else paths.push(one);
   }
-  /* A relative `-C` is that tree from where the shell stands, which a move before it has changed. */
-  const named = gitTreeOf(found[0]);
-  const moved = movedTo(text, found.index);
   return {
-    tree: named && !isAbsolute(named) && moved ? resolve(moved, named) : named ?? moved,
+    tree: treeAt(text, found),
     all,
     paths,
     unknown,
+    others: [...new Set(made.slice(1).map((one) => treeAt(text, one)))],
   };
 };
 
@@ -155,6 +171,19 @@ const typed = (one) =>
 const ESCAPE = "For the session: `forge hooks --off codex-second` — an inline `FORGE_CODEX_DISABLE=1` "
   + "prefix never reaches a hook.";
 
+/* One call, two commits, one answer: the tree judged is the first commit's, and the second's is
+   inspected by nothing. Saying which was judged is what the reader needs to split the call. */
+const unjudged = (ev, root, others) => {
+  const left = [];
+  for (const one of others) {
+    const path = resolve(ev.cwd ?? process.cwd(), one ?? ".");
+    const there = repoRoot(path) ?? path;
+    if (there !== root && !left.includes(there)) left.push(there);
+  }
+  if (!left.length) return "";
+  return ` Judged ${typed(root)}; this call also commits in ${left.map(typed).join(", ")}, which went unchecked.`;
+};
+
 export const run = (ev) => {
   const closing = committing(ev);
 
@@ -165,6 +194,7 @@ export const run = (ev) => {
   const root = repoRoot(resolve(ev.cwd ?? process.cwd(), aim?.tree ?? "."));
   if (!root) done();
 
+  const also = closing ? unjudged(ev, root, aim.others) : "";
   const records = process.env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL === "1" ? null : turnRecords(ev.transcript_path ?? "");
   const advised = Boolean(records && advisedThisTurn(records) && (closing || writesInside(ev, root)));
   const spentAt = lastConsultAt(root);
@@ -183,7 +213,7 @@ export const run = (ev) => {
     if (demand.length) {
       deny(
         `Codex has not read what this commit stages in ${root} (${demand.slice(0, 6).map(typed).join(" ")}`
-          + `${demand.length > 6 ? ` and ${demand.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}).\n\n`
+          + `${demand.length > 6 ? ` and ${demand.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}).${also}\n\n`
           + `Do this: \`${root === (ev.cwd ?? process.cwd()) ? "" : `cd ${typed(root)} && `}`
           + 'echo "<what you were doing>" | forge codex consult --diff --only blocker,major '
           + `${demand.slice(0, 6).map(typed).join(" ")}\`, then re-send. `
@@ -195,7 +225,7 @@ export const run = (ev) => {
     const open = unverdicted(logEntries(), root);
     if (open) {
       deny(
-        `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what became of ${open.open.join(", ")}.\n\n`
+        `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what became of ${open.open.join(", ")}.${also}\n\n`
           + `Do this: \`forge codex verdict --of ${open.id} --accepted <ids> --rejected <id>=<why>\`, then re-send. `
           + `A --recheck records the verdict for what it refutes. ${ESCAPE}`
           + how(),
@@ -229,7 +259,7 @@ export const run = (ev) => {
       closing
         ? `what this commit stages in ${root}, and this commit is where the turn stops being a draft`
         : "what is in the tree"
-    }.\n\n`
+    }.${also}\n\n`
       + `Do this: ${action}${nested} `
       + `One consult of this tree clears its writes. ${ESCAPE}`
       + how(),

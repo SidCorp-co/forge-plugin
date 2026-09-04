@@ -179,6 +179,26 @@ test("a tree named by --git-dir and --work-tree is the tree judged", () => {
   assert.equal(from(dirty, `git --git-dir=${clean}/.git reset --hard`).trim(), "", "a clean tree named by its .git");
 });
 
+/* Every hop but the last was dropped, so `git -C parent -C child reset --hard` was judged by `child`
+   from the shell's own cwd — another tree of that name, and a clean one stands the rule down on a
+   command that is about to discard work somewhere else. Git composes the hops (ISS-82). */
+test("a repeated -C is judged in the tree the hops compose to", () => {
+  const parent = mkdtempSync(join(tmpdir(), "parent-"));
+  const dirty = join(parent, "child");
+  spawnSync("git", ["init", "-q", dirty]);
+  writeFileSync(join(dirty, "a.txt"), "x\n");
+  /* A clean `child` beside the shell, so reading the last hop alone finds a tree with nothing to lose. */
+  const beside = mkdtempSync(join(tmpdir(), "beside-"));
+  spawnSync("git", ["init", "-q", join(beside, "child")]);
+  const from = (cwd, command) => callHook(HOOK, { tool_name: "Bash", tool_input: { command }, cwd, session_id: "c" }, homeEnv("bash-guard")).stdout;
+  assert.match(from(beside, `git -C ${parent} -C child reset --hard`), /reset --hard discards/u);
+  assert.equal(
+    from(dirty, `git -C ${parent} -C ${join(beside, "child")} reset --hard`).trim(),
+    "",
+    "an absolute hop replaces what preceded it",
+  );
+});
+
 test("--work-tree names the work tree whatever --git-dir says after it", () => {
   const dirty = dirtyRepo();
   const meta = mkdtempSync(join(tmpdir(), "meta-"));

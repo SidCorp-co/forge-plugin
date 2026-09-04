@@ -392,6 +392,31 @@ test("an untracked directory is named by its files", () => {
   );
 });
 
+/* Raised by codex against ISS-70's change: one value kept per option dropped every `-C` hop but the
+   last. Each expectation below was probed against git rather than read off its manual. */
+test("a repeated -C composes, and the other two options are read from where it left", () => {
+  assert.equal(commitAim(ev("git -C /a -C b commit -m x")).tree, "/a/b");
+  assert.equal(commitAim(ev("git -C /a -C /b commit -m x")).tree, "/b", "an absolute hop replaces what preceded it");
+  assert.equal(commitAim(ev("cd /p && git -C a -C b commit -m x")).tree, "/p/a/b", "a relative chain is still the shell's to place");
+  assert.equal(commitAim(ev("git -C /a --work-tree=w commit -m x")).tree, "/a/w");
+  assert.equal(commitAim(ev("git -C /a --git-dir=.git commit -m x")).tree, "/a");
+  assert.equal(commitAim(ev("git --work-tree /w --git-dir /m/repo.git commit -m x")).tree, "/w", "and the ranking survives");
+});
+
+/* Also raised against ISS-70: only the first commit is judged, and the refusal did not admit it. */
+test("a call that commits in two trees says which one it judged", () => {
+  const other = realpathSync(away(true));
+  const record = ["docs/PLAN.md"];
+  mkdirSync(join(REPO, "docs"), { recursive: true });
+  writeFileSync(join(REPO, "docs", "PLAN.md"), "# PLAN\n");
+  const out = because(gate([userTurn()], { command: `git commit -m a && git -C ${other} commit -m b`, pending: record }));
+  assert.match(out, new RegExp(`stages in ${realpathSync(REPO)}`, "u"), "the tree it judged");
+  assert.match(out, new RegExp(`also commits in ${other}, which went unchecked`, "u"), "and the one it did not");
+  const one = because(gate([userTurn()], { command: "git commit -m a && git commit -m b", pending: record }));
+  rmSync(join(REPO, "docs"), { recursive: true, force: true });
+  assert.doesNotMatch(one, /went unchecked/u, "two commits in one tree leave nothing unjudged");
+});
+
 test("a commit is judged by the tree it names, not the shell's", () => {
   const records = [userTurn(), advised()];
   assert.equal(gate(records, { command: `git -C ${away(false)} commit -m x` }), null, "clean elsewhere");
@@ -437,18 +462,30 @@ test("either disable switch stands it down", () => {
   assert.equal(gate([userTurn(), advised()], { env: { CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1" } }), null);
 });
 
-/* A stat per path outran the hook on an unignored tree; past the cap the tree is read as changed. */
-test("past five hundred paths the tree is read as changed without a stat", () => {
+/* The mailpilot report: 727 dirty paths, so five consults and every finding ruled on did not clear
+   the next write, and the paths listed were another session's. A stat each is still what the cap
+   exists to avoid, so the walk stays one spawn and only the record is measured. */
+test("past the walk's cap the tree is asked about what it recorded, and nothing else", () => {
   mkdirSync(join(REPO, "many"), { recursive: true });
   for (let at = 0; at < 520; at += 1) writeFileSync(join(REPO, "many", `f${at}.txt`), "x\n");
   try {
     for (let at = 0; at < 520; at += 1) utimesSync(join(REPO, "many", `f${at}.txt`), new Date(now - 900_000), new Date(now - 900_000));
-    utimesSync(join(REPO, "work.mjs"), new Date(now - 900_000), new Date(now - 900_000));
     const started = Date.now();
     /* A write, because a commit is judged by what it stages and the walk is the tree's branch. */
-    const held = gate([userTurn(), advised(60_000)], { consultAt: at(120_000), staleBy: 900_000 });
-    assert.ok(held, "every path is older than the consult, and the count alone says ask");
+    assert.equal(
+      gate([userTurn(), advised(60_000)], { consultAt: at(120_000), staleBy: 900_000 }),
+      null,
+      "nothing recorded here, so there is nothing this session could consult",
+    );
     assert.ok(Date.now() - started < 5000, "and it answered well inside the hook's clock");
+    const held = because(gate([userTurn(), advised(60_000)], { consultAt: at(120_000), pending: ["work.mjs"] }));
+    assert.match(held, /--only blocker,major work\.mjs`/u, "a recorded file newer than the consult is asked for");
+    assert.doesNotMatch(held, /many\//u, "and the 519 beside it are not offered as work to read");
+    assert.equal(
+      gate([userTurn(), advised(60_000)], { consultAt: at(120_000), staleBy: 900_000, pending: ["work.mjs"] }),
+      null,
+      "one consult of what it named lets the next write through",
+    );
   } finally {
     rmSync(join(REPO, "many"), { recursive: true, force: true });
   }
