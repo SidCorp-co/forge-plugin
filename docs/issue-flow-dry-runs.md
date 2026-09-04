@@ -1722,3 +1722,25 @@ the next batch reading itself, ISS-232. No restart owed. Closed by its run. Fold
 - Every plugin defect met was already on the tracker, under six keys for one verb; nothing new was
   filed and the sibling link went in prose on both bodies. The dependency verb's refusals are the most
   repeated cost of the week and its issues the most numerous.
+
+## Sixty-sixth dry run — ISS-153
+
+One agent put one did-you-mean helper under every refusal that turns a name away (3.35.75): the helper
+says what was given, the nearest names, and the whole set where it is small, so twenty call sites gained
+it unedited — including those in files the run could not touch; a verb's flags are read off the row the
+top-level help already prints, and eleven verbs ask before the shared parser reads a value and before
+any endpoint resolves. Flags the withholding rule keeps off a row are declared beside the verb and
+suggested to nobody, probed on the installed copy. No restart owed. Closed by its run. Folded from the
+record.
+
+- The issue reported a message defect; the run found the flag was dropped and the whole body came back
+  at exit zero, reading as the one field asked for. A refusal that does not fire is the defect, and the
+  message it would have carried is the smaller half. Confirm the shape before believing the report's
+  reading of it.
+- The half in held files — the verbs that parse their own flags and a checker to hold them — went as
+  ISS-227 with an advisory lease saying it is not being worked, so a reader sees a claim and a reason
+  rather than an orphan.
+- Two defects filed as met: the dependency verb on a personal token once more (ISS-229, a duplicate of
+  ISS-149, both noted), and a repeated record field keeping only its last value in silence — it dropped
+  four routed findings from this issue's own record (ISS-234). A field that repeats and keeps one is a
+  write that lies about what it kept.
