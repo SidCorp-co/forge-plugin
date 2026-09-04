@@ -1978,3 +1978,28 @@ about credentials. No restart owed. Closed by its run. Folded from the record.
 - Entries written before the release are still unmasked and nothing rewrites them; filed as ISS-266
   with the counts and the trade-off of a rewrite verb, since the live log's zero makes it a fix rather
   than an incident.
+
+## Seventy-seventh dry run — ISS-232
+
+One agent read the second batch (3.35.89), sixteen releases as a whole, and left the store its first
+eight entries. The mark moved to the range's named end. Eight filings came out of the read — a fence
+pattern declared twice, a fold decided twice, a frame reader written twice, a help predicate open-coded
+at seven sites, a gate's third reading of a directory change, a parser that refuses ordinary prose and a
+bug report about itself, and two complete, proven simplifications backed out whole because a hold
+landed on their second file mid-run, their neutrality evidence on the issues so they are re-landings and
+not re-implementations. Two hook files moved, so a restart is owed. Closed by its run. Folded from the
+record.
+
+- The one-home rule was promised in the plan and not checked by any criterion: one module entry
+  restated a clause of the repository's own rules file, and the project brief the run wrote restated five
+  sections near-verbatim, at an injection level that would have put a stale copy into every future run.
+  Caught after the verdicts, corrected on the issue: the entry became a pointer, and the brief was
+  superseded by ISS-147's, which wrote the same slug in the right shape. The store was then checked by
+  semantic search against the rules file's themes rather than by grep. A plan's promise that no criterion
+  reads is a promise nobody kept.
+- Two module tables had gone stale in the sixteen releases since the read began — an export one landing
+  added, two names another retired — and were re-read against the head they now carry. The store is
+  written as the last step before hand-back, since a run's own ship lands after the reading ends.
+- A third reading is already owed and unfiled: the range since this mark stands past the threshold
+  after sixteen releases, and the ship declined to file it while this issue held the mark. Readings queue
+  behind readings at the rate the tree moves; the threshold is met faster than a reading is read.
