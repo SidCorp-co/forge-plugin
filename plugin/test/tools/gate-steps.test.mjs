@@ -74,15 +74,15 @@ test("each script step names a script package.json defines", () => {
    the table is not a red step, it is a check that stopped running, and the tree stays green. */
 test("every script this repository gates with has a step, or is named as spent otherwise", () => {
   const { scripts } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
-  const labels = STEPS.map((step) => step.label);
+  const spendsItsScript = STEPS.filter((step) => !step.tests).map((step) => step.label);
   const otherwise = {
     check: "this runner",
-    test: "the whole suite at once, which test:tree and test split between them",
+    test: "the whole suite in one command, which the two test steps spend by file instead",
     version: "npm's own hook on a version bump",
     "sync:skills": "the writer sync:skills:check gates; running it would edit the tree",
   };
   for (const name of Object.keys(scripts)) {
-    assert.ok(labels.includes(name) || otherwise[name],
+    assert.ok(spendsItsScript.includes(name) || otherwise[name],
       `npm script ${name} is in no gate step and tools/gates/steps.mjs does not say why`);
   }
   for (const name of Object.keys(otherwise)) {
