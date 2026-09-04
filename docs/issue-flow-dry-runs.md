@@ -1255,3 +1255,26 @@ the restart owed stood. Closed by its run. Folded from the record.
   the directory it left. Both pass today because the claims check matches on the basename alone.
 - The evidence-upload MIME refusal was met again and went to ISS-80 as a comment — after the rename
   workaround rather than before it, which the rule asks the other way round; the run said so itself.
+
+## Forty-sixth dry run — ISS-137 and ISS-136
+
+One agent took the two same-place attach filings as one run. ISS-137 (3.35.53): the attach verb now
+reads the issue's own attachment names and its comment page before the first upload, and a base name
+already up — or given twice in one command — is refused with nothing sent, naming the document that is
+there and the two ways past it. A comment page the tracker cut is said on stderr and the upload goes
+ahead, because this verb only uploads and the comment list takes no cursor, so a refusal there would
+be one nothing a caller could type would clear. Six cases, four failing with the guard reverted. Proved
+live against an issue that carries one name twice. ISS-136 dropped: the line it quotes was removed two
+releases before the one the report names — the reporting session was reading an older cache copy than
+its own help claimed, and so was this run, whose skill text still pointed a plugin defect at the deleted
+feedback folder. Two consults, no findings. Closed by its run; no restart owed. Folded from the record.
+
+- Every criterion was judged twice: once at the branch head, once more at the landed head after the
+  ship's rebase and version commit made the first hash disappear. The contract wants verdicts at the
+  merged commit, and in this repository the ship is the merge — so the phases judge before the commit
+  they must cite exists. Filed as ISS-156.
+- Two findings outside the hold were routed as issues instead of taken: the retired-names registry has
+  no kind for a retired directory (ISS-145), and the record route keeps its own copy of the sentence the
+  attach verb now shares (ISS-155).
+- A mid-run collision: the ship's rebase brought ISS-131's landing, which made the comment page size
+  private; the run posted a correction before rewriting to the shared cut line, as the contract asks.
