@@ -17,7 +17,9 @@ runs the gateway, so any OpenAI-compatible endpoint works and the model must nam
 endpoint serves. `vi-natural models` needs no model configured, so it is the way to find one.
 
 `vi-natural doctor` prints each of the three and where it resolved from, then makes one live round
-trip. `forge doctor` reports the same three, because the tracker translates before it posts.
+trip. `forge doctor` reports the same three, and calls one absent a finding only where the project
+declares `translate` — that is what puts a write behind them, and a project translating nothing
+never waits.
 
 ## Effort is set per verb, and the default is low on purpose
 
