@@ -1955,3 +1955,26 @@ restart is owed. Closed by its run. Folded from the record.
   run.
 - Two clauses in held trees were routed: a use case owing an exhaustion clause (ISS-254), and a lease
   view asked for a page notice the browse verb no longer gives, posted on the issue that owns that view.
+
+## Seventy-sixth dry run — ISS-248
+
+One agent masked the consult log at the write (3.35.88), in twenty minutes. The issue's mechanism was
+partly wrong and refuted on the record: the log never held file bodies — the sent set is a path, a hash
+and a count, and replay rebuilds from the repository — and the route a secret takes is body to model to
+reply to log, plus the intent, an error's message, the risks and a verdict's rejection reasons. The
+masking became its own export with one pattern set in the tree, run per value and never over the
+serialised line, because the value pattern reaches to the next space and would eat a closing quote. Two
+cases watched failing without the fix; the installed copy probed with a fixture token at three depths
+under a temporary config directory. The live log was counted without printing: none of its two thousand
+lines match a credential shape, and the entries the deliberately broad masker would change are prose
+about credentials. No restart owed. Closed by its run. Folded from the record.
+
+- The issue said reuse the existing scrub; it could not be taken literally, since that reading clips at
+  a length and a reply is the evaluation set. Reuse of a name is not reuse of a behaviour; the run took
+  the pattern set and left the clip where it was, one definition in the tree.
+- The smallest possible diff still touched a file the batch review holds — one added export and two
+  lines calling it — recorded as a decision and reported so the holder could be told. A hold is a
+  reading rule between runs, not a wall; what crosses it is said.
+- Entries written before the release are still unmasked and nothing rewrites them; filed as ISS-266
+  with the counts and the trade-off of a rewrite verb, since the live log's zero makes it a fix rather
+  than an incident.
