@@ -296,6 +296,16 @@ test("a raw call filing from a file is linted, and the hook is not the only plac
   assert.equal((await ranAsync(FORGE, ["call", "forge_issues", `@${whole}`], tracker.env)).status, 0);
 });
 
+/* The route that arrives from a file or stdin is a filing too, so what the verb says about the kind
+   it read is owed there as well. */
+test("a raw call filing is told what kind it was read as, the same as the verb", async () => {
+  const path = join(room, "kindless.json");
+  writeFileSync(path, JSON.stringify({ action: "create", data: { title: TITLE, description: WHOLE } }));
+  const run = await ranAsync(FORGE, ["call", "forge_issues", `@${path}`], tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /Read as a feature, the kind a filing naming none is read as/u);
+});
+
 /* Reading to EOF on a stdin nobody fed waited two minutes and then filed. */
 test("`-` with nothing on stdin is refused, and never read as an empty body", async () => {
   state.calls = [];

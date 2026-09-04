@@ -182,6 +182,8 @@ export const commands = {
     for (const filing of filingsOf({ name: `mcp__forge__${name}`, input: args })) {
       const refused = await refusalForFiling(filing);
       if (refused) fail(refused);
+      const said = noticeForFiling(filing);
+      if (said) console.error(said);
     }
     const wrote = Boolean(resolved.data);
     const answer = wrote ? await write(name, resolved) : await scoped(name, resolved);
