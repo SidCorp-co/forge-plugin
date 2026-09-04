@@ -43,7 +43,7 @@ const USAGE = [
   "",
   "  --from N     resume at step N, which a failed step prints for you",
   "  --note S     the subject of the version commit, when the release has to make one",
-  "  --done [ref] the mark moves to ref, and only ever from here; HEAD only where no reading is owed",
+  "  --done [ref] the mark moves to ref, and only ever from here; the first plant may default to HEAD",
   "",
   "ship stops at the first failure and writes nothing past it, and a resume past the gate spends",
   "the gate first, so nothing that pushes runs against a tree no gate has passed. A change under",
@@ -59,8 +59,8 @@ const USAGE = [
   "a delegated run in a worktree of its own, under the same contract and the same gates; it ends from",
   "that tree, after its own ship, with --done <the range's end>, which the issue it was given carries",
   "and which is the head its reading reached. The ref is named rather than defaulted because other",
-  "runs land on this branch while a reading is being read, so a bare --done over an owed range is",
-  "refused. A mark left unmoved keeps the count growing, which is how a skipped reading stays visible",
+  "runs land on this branch while a reading is being read, so a bare --done moves no existing mark at",
+  "all. A mark left unmoved keeps the count growing, which is how a skipped reading stays visible",
   "at the next ship; a mark planted too far forward grows nothing, which is why it is refused here.",
 ].join("\n");
 
@@ -385,11 +385,11 @@ const review = (argv) => {
       ? `A review is owed: ${REVIEW_LINES} changed line(s) call for one, and this range is past that.`
       : `Short of the ${REVIEW_LINES} changed line(s) that call for a reading.`);
   }
-  /* Refused rather than reported: unlike a mark left unmoved, whose count keeps growing, a mark
-     planted too far forward reads exactly like a reading that finished and grows nothing (ISS-146). */
-  if (argv[at + 1] === undefined && from && reviewSays(tree, from).owed) {
-    stop(`${from.slice(0, 7)}..HEAD is owed a reading, so the mark takes the head that reading reached `
-      + `and not this tree's HEAD, which other runs have moved since the range was fixed: `
+  /* Refused, not reported: a mark too far forward reads like a reading that finished and grows
+     nothing; the volume since it is a net diff, shrinking as later commits delete (ISS-146). */
+  if (argv[at + 1] === undefined && from) {
+    stop(`a move of the mark names the head the reading reached, and only the first plant defaults: `
+      + `other runs land on this branch while a reading is read, so this tree's HEAD is not that head. `
       + `${SELF} review --done <that head>, the end of the range the issue you were given names. Where `
       + `the reading did reach HEAD, say so: ${SELF} review --done ${gitOut(["rev-parse", "HEAD"], tree)}`);
   }

@@ -522,7 +522,7 @@ test("the first plant proves the target is this history's, apart from a mark beh
    read, so HEAD at the end of a review run is ahead of the head that reading reached. A mark planted
    there marks unread commits as read, and unlike a mark left unmoved nothing grows to say so
    (ISS-146). The discriminator is local: an owed range is one a reading was filed for. */
-test("a bare --done is refused over a range a reading is owed for, and the named ref moves the mark", () => {
+test("a bare --done moves no mark already there, and the named ref moves it to the head that was read", () => {
   const { work } = pushed("named");
   const planted = runIn(work, ["review", "--done"], BARE);
   assert.equal(planted.status, 0, `a plant answers to no range, so it is not refused:\n${planted.stderr}`);
@@ -533,7 +533,7 @@ test("a bare --done is refused over a range a reading is owed for, and the named
 
   const bare = runIn(work, ["review", "--done"], BARE);
   assert.equal(bare.status, 1, bare.stdout);
-  assert.match(bare.stderr, /is owed a reading, so the mark takes the head that reading reached/u, bare.stderr);
+  assert.match(bare.stderr, /a move of the mark names the head the reading reached/u, bare.stderr);
   assert.ok(bare.stderr.includes(git(work, "rev-parse", "HEAD").stdout.trim()),
     `a reading that did reach HEAD has to be left a way to say so:\n${bare.stderr}`);
   assert.equal(ref(work), from, "the refused write moved nothing");
@@ -542,9 +542,11 @@ test("a bare --done is refused over a range a reading is owed for, and the named
   assert.equal(told.status, 0, told.stderr);
   assert.equal(ref(work), reached, "the mark names the head the reading reached, not the head it pushed");
 
-  const small = runIn(work, ["review", "--done"], BARE);
-  assert.equal(small.status, 0, `a range under the threshold is owed no reading, so it is not refused:\n${small.stderr}`);
-  assert.equal(ref(work), git(work, "rev-parse", "HEAD").stdout.trim());
+  /* The count is a net diff, so later deletions bring a filed range back under the threshold. */
+  landIn(work, join("plugin", "src", "small.mjs"), 20, "a little more, well under the threshold");
+  const under = runIn(work, ["review", "--done"], BARE);
+  assert.equal(under.status, 1, `every move names its ref, the volume deciding nothing:\n${under.stdout}`);
+  assert.equal(ref(work), reached, "the refused write moved nothing");
 });
 
 /* A mark moved back hands the next reading a range it has already been told was read — a codex
