@@ -124,14 +124,25 @@ export const GUIDE_TABLE = [
     by: ["forge call", "forge resume"],
   },
   {
-    slug: "issue-dependencies-and-decompose",
+    slug: "issue-dependencies",
     disposition: "partly",
-    why: "the blocks edge and the merged_at signal are the tracker's and stand; the decompose half is the runner's",
+    why: "the relation kinds and the merged_at signal are the tracker's and stand; the runner's half"
+      + " is what it says about filing — a note at `draft` rather than `open`, and an edge set in a"
+      + " second call as a race",
     replaced: [
       {
-        says: "decompose children, their parent's approval and the kickoff the system owns",
-        instead: "a split here is a filing: siblings at `open`, each naming the others in the same"
-          + " write, and their own edges decide the order",
+        says: "a note is created at `draft` and never at `open`, because `open` auto-triages and"
+          + " spawns a pipeline run, burning a runner slot",
+        instead: "`draft` is the reporter's status before `open` and `advance` never enters it;"
+          + " nothing here dispatches, so `open` costs no slot, and what would have been that note"
+          + " is a finding on an issue already open through `forge new --into`",
+      },
+      {
+        says: "filing the issue and setting its blocks edge in a second call is a red flag, because"
+          + " it can dispatch in the gap between the two",
+        instead: "nothing here dispatches, so the gap holds nothing back and `forge new` followed by"
+          + " `forge dep <blocker> <blocked> blocks` is the route; `--with` on the filing writes a"
+          + " `relates` edge and never a `blocks` one",
       },
     ],
     by: ["forge new", "forge dep"],
@@ -142,14 +153,14 @@ export const GUIDE_TABLE = [
    a record for comparing, never a list this CLI answers a guide from: `forge doctor` reads the live
    list and reports where the two have diverged, and the test refuses a table row this record lacks,
    so a guide the tracker retires takes its row out in the same change that notices. */
-export const REVIEWED_AT = "2026-09-03";
+export const REVIEWED_AT = "2026-09-04";
 export const REVIEWED = [
   "agent-setup",
   "attachments-and-uploads",
   "conformance-and-verify",
   "deploy-safety",
   "integration-epodsystem",
-  "issue-dependencies-and-decompose",
+  "issue-dependencies",
   "memory-and-knowledge",
   "pipeline-and-issue-lifecycle",
   "project-settings-and-test-credentials",

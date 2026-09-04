@@ -1,7 +1,7 @@
 # The guides are the tracker's, and seven of them are not this flow's
 
-Read guide by guide on 2026-09-03, five of the twelve the tracker serves state a rule this plugin's
-contract has replaced, and `pipeline-and-issue-lifecycle` disagrees with itself inside one page: use
+Read guide by guide, the reading recorded on 2026-09-04, five of the twelve the tracker serves
+state a rule this plugin's contract has replaced, and `pipeline-and-issue-lifecycle` disagrees with itself inside one page: use
 `dropped` for anything discarded, and three paragraphs later, the recommended discard for non-work is
 `closed` plus `unmark`. None of it is the tracker's fault — those pages describe the pipeline runner
 it ships. The cost is what a passthrough did to agents in another project the same week: one wrote a
@@ -16,10 +16,9 @@ code and not a project setting because it is this plugin's reading of the tracke
 contradiction is not a thing a project can rightly turn back on.
 
 **Having a row is what withholds the guide**, and the two other pages are the reason the rule is
-stated that way rather than by disposition. `memory-and-knowledge` and
-`issue-dependencies-and-decompose` are the tracker's in one half and the runner's in the other, and
-for two releases the verb served them whole under a first line withdrawing the half that does not
-apply — which asks an agent to read a page and then hold part of it aside. Neither is a page it can
+stated that way rather than by disposition. `memory-and-knowledge` and `issue-dependencies` are
+the tracker's in one half and the runner's in the other, and for two releases the verb served them
+whole under a first line withdrawing the half that does not apply — which asks an agent to read a page and then hold part of it aside. Neither is a page it can
 follow whole, so neither is listed. The disposition decides one thing now and it is not visibility:
 `superseded` is what the overlap measure in [doctor](doctor.md) scores, which is a different question — whether a
 project's own file restates a guide's authority, not whether this verb serves the page. What a
@@ -39,11 +38,19 @@ nowhere the CLI prints, and ISS-71 holds `src/tools/doctor.mjs` — the need is 
 What is decidable by code is the slug and nothing more. `forge doctor` reports a row the tracker has
 stopped serving, and notes a guide it has started serving that no row has been read against; whether
 that new guide contradicts the contract is meaning, and the one mechanical signal available — the
-overlap measure in [doctor](doctor.md) — is blind to negation, so a restatement and a contradiction score alike. The
-list of twelve beside the table is not a copy of names the server publishes in the sense the rule
+overlap measure in [doctor](doctor.md) — is blind to negation, so a restatement and a contradiction score alike.
+A retirement and an arrival in the same run are frequently one rename, and the row does not follow
+the slug across: the tracker rewrites the body with the name, so the disposition is earned again by
+reading the new page or not at all. `issue-dependencies` is the case that set the rule — its
+decompose half had moved to what the contract says, and its new closing paragraph had moved away,
+so a row carried over would have replaced a rule the page no longer states and served one it now
+does.
+
+The list of twelve beside the table is not a copy of names the server publishes in the sense the rule
 in [what the projections leave out](the-projections.md) forbids: nothing answers a guide from it, its whole purpose is to differ from the live list
 when the tracker moves, and a row this record lacks fails the suite, so the change that notices a
-retirement is the change that drops the row.
+retirement is the change that answers it — by dropping the row, or by earning it again on the page
+the rename left.
 
 The contract those rows send a reader to is answered by the same verb, and it had to move to be
 answerable at all: installing copies `plugin/` and nothing beside it, so for six releases every one

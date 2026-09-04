@@ -21,6 +21,7 @@ const {
   visibleGuides,
 } = await import("../../src/tracker/guides.mjs");
 const { VERB_NAMES } = await import("../../src/resolve/visibility.mjs");
+const { suggest } = await import("../../src/suggest.mjs");
 
 const PLUGIN = new URL("../../", import.meta.url).pathname;
 /* Inside the plugin and not inside the checkout: an installed copy is `plugin/` and nothing else, so
@@ -156,9 +157,12 @@ test("a guide with no row prints what the tracker returned and nothing else", as
 });
 
 /* A suggestion is output too, so a typo of a held slug must not name it — the `partly` rows are the
-   case that passed before ISS-85 hid them. */
+   case that passed before ISS-85 hid them. The guard is what keeps each string a near miss the
+   suppression was actually asked about: a typo that has stopped ranking against anything held would
+   run the loop over an answer the verb never had to withhold, and pass. */
 test("a near miss is offered from the guides that stand", async () => {
-  for (const typo of ["pipeline-and-issue-lifecycl", "memory-and-knowledg", "issue-dependencies-and-decompos"]) {
+  for (const typo of ["pipeline-and-issue-lifecycl", "memory-and-knowledg", "issue-dependencie"]) {
+    assert.ok(suggest(typo, REVIEWED).some((slug) => heldSlugs().has(slug)), `${typo} misses nothing held`);
     const run = await asked(typo);
     assert.equal(run.status, 1);
     for (const slug of heldSlugs()) {
