@@ -17,6 +17,7 @@ import { callable, isGated, refuseIfGated, usageOf } from "./resolve/visibility.
 import { didYouMean } from "./suggest.mjs";
 import { flags, partition } from "./resolve/flags.mjs";
 import { dispositionOf, trackerHeader, visibleGuides } from "./tracker/guides.mjs";
+import { projectLines, releasePolicy, stagingDeploy } from "./tracker/project-config.mjs";
 import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./tracker/contract.mjs";
 import { doctor } from "./tools/doctor.mjs";
 import { deps } from "./tracker/deps.mjs";
@@ -325,5 +326,14 @@ export const commands = {
     /* Markdown, not Markdown escaped inside JSON: every `\n` tokenizes worse than the character. */
     show(answer?.guide?.body ?? answer);
   },
-  project: async () => console.log(await projectId()),
+  project: async (argv) => {
+    const asked = flags(argv, "project", ["--credentials"]);
+    const lines = projectLines({
+      id: await projectId(),
+      policy: await releasePolicy(),
+      deploy: await stagingDeploy(),
+      credentials: Boolean(asked.credentials),
+    });
+    for (const said of lines) console.log(said);
+  },
 };

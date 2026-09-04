@@ -2,7 +2,7 @@
    not answer alike, and the git rules need a tree with work to lose. */
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -68,7 +68,20 @@ export const dirtyRepo = () => {
   return room;
 };
 
-const DECLARED = ["forge_issues", "forge_comments", "forge_projects.list", "forge_uploads"];
+const DECLARED = ["forge_issues", "forge_comments", "forge_projects.list", "forge_uploads",
+  "forge_projects.get", "forge_config"];
+/* `scoped` reads the schema to know whether to send the project id, so a tool declared with no
+   properties is one a verb calls unscoped — which is a real call the tracker would refuse. Both of
+   these declare one, so the id lookup runs, and the listing that answers it is served below from
+   this repository's own slug rather than left for every suite to stub. */
+const TAKES_PROJECT = ["forge_projects.get", "forge_config"];
+const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
+const ownSlug = () =>
+  JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", ".forge.json"), "utf8")).slug;
+const declaration = (name) => ({
+  name,
+  inputSchema: { properties: TAKES_PROJECT.includes(name) ? { projectId: { type: "string" } } : {} },
+});
 
 /** A tracker a verb can be spawned against, answering out of `state` at request time so a case that
  *  changes the state changes the answer. `state.calls` collects every call for a case to assert on;
@@ -106,7 +119,7 @@ export const fakeTracker = async (state) => {
     const name = call.params?.name;
     const args = call.params?.arguments ?? {};
     (state.calls ??= []).push({ name, args });
-    let result = { tools: DECLARED.map((one) => ({ name: one, inputSchema: { properties: {} } })) };
+    let result = { tools: DECLARED.map(declaration) };
     const own = (state.answer ?? {})[name];
     /* A handler answering `{ refused }` is the tool's own refusal, which the transport reads from
        `isError` and no structured content: the shape a verb's way out is reached by. */
@@ -118,6 +131,9 @@ export const fakeTracker = async (state) => {
     }
     else if (name === "forge_issues") result = { structuredContent: issues(args) };
     else if (name === "forge_comments") result = { structuredContent: comments(args) };
+    else if (name === "forge_projects.list") {
+      result = { structuredContent: { projects: [{ ...OWN, slug: ownSlug() }] } };
+    }
     else if (name) result = { structuredContent: {} };
     response.writeHead(200, { "Content-Type": "application/json" });
     response.end(JSON.stringify({ jsonrpc: "2.0", id: call.id ?? 1, result }));

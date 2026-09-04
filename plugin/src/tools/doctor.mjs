@@ -347,12 +347,16 @@ const checkAgainstGuides = async (scoped) => {
   return broken + reportClaudeMd(review, found.path);
 };
 
-/* The project's own release policy, printed under the names its owner uses: the tracker's
-   `baseBranch` is the staging branch, and nothing but this reader calls it by the column's name.
-   Where the two branches differ, `released` is staging and promotion is a step of its own. */
+/* The project's own release policy and the deploy the flow walks a change against, printed under
+   the names its owner uses rather than the tracker's columns — `forge project` is the verb that
+   answers this and doctor is the second view of it. Where the two branches differ, `released` is
+   staging and promotion is a step of its own; where a branch is named and no deploy is, the
+   verification `released` owes cites the branch alone, which is a note and not a failure. */
 const checkRelease = async () => {
-  const { releaseConflict, releasePolicy, waitsForPerson } = await import("../tracker/project-config.mjs");
+  const { deployed, releaseConflict, releasePolicy, stagingDeploy, waitsForPerson } =
+    await import("../tracker/project-config.mjs");
   const policy = await releasePolicy();
+  const deploy = await stagingDeploy();
   if (!policy) {
     line(NOTE, "release policy", "the project config did not answer — the park before released stands");
     return 0;
@@ -366,6 +370,14 @@ const checkRelease = async () => {
   branch("production branch", policy.production);
   line(OK, "production deploy", `${policy.autoProd ? "automatic" : "a person's"} — a user-facing change`
     + `${waitsForPerson(policy) ? " waits for" : " ships without"} a person's look  ← ${policy.from}`);
+  if (deployed(deploy)) {
+    line(OK, "staging deploy", `${deploy.urls.length} host(s) on record`
+      + `${deploy.withheld.length ? ", test credentials too — `forge project --credentials`" : ""}`
+      + `  ← ${deploy.from}`);
+  } else if (policy.staging) {
+    line(NOTE, "staging deploy", "none on record while the staging branch is named, so the"
+      + " verification `released` owes cites the branch and no running host — `forge project`");
+  }
   const said = releaseConflict(policy);
   if (said) line(BAD, "release policy", said);
   return said ? 1 : 0;

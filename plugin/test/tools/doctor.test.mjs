@@ -105,11 +105,12 @@ test("the copy a call through the link would run is reported, with why that one"
 
 /* The project's release policy is the tracker's to answer, and the report names it in the words its
    owner uses: the staging branch, never the field's own name (ISS-90). */
-const releaseReport = async (config) => {
+const releaseReport = async (config, previewDeploy = null) => {
   const tracker = await fakeTracker({
     answer: {
       "forge_projects.list": () => ({ projects: [{ slug: "release-fixture", id: "1e1c1a1e-0000-4000-8000-000000000001" }] }),
       forge_config: () => ({ config }),
+      "forge_projects.get": () => ({ project: { previewDeploy } }),
     },
   });
   const cwd = mkdtempSync(join(tmpdir(), "doctor-release-"));
@@ -148,4 +149,25 @@ test("an automatic production deploy with no branch to land on is a finding", as
   assert.match(out, /a person's look is owed until the branch is set/u);
   assert.match(out, /production deploy\s+automatic — a user-facing change waits for a person's look/u,
     "the strict reading is what the report says too");
+});
+
+/* The deploy the flow walks a change against is the other half of the same answer: a branch with no
+   host behind it means the verification `released` owes cites the branch alone (ISS-92). */
+test("a staging branch with no deploy behind it is a note, not a failure", async () => {
+  const out = await releaseReport({
+    baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false },
+  });
+  assert.match(out, /\[ note \] staging deploy\s+none on record while the staging branch is named/u);
+  assert.match(out, /cites the branch and no running host — `forge project`/u, "and names the verb that answers");
+});
+
+test("a deploy on record is reported by count, and its credential is not printed", async () => {
+  const out = await releaseReport(
+    { baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+    { stagingUrl: "https://beta.example.test", testCredentials: [{ password: "correct-horse-battery" }] },
+  );
+  assert.match(out, /\[ {2}ok {2}\] staging deploy\s+1 host\(s\) on record, test credentials too/u);
+  assert.match(out, /forge project --credentials/u, "the report says where the value is read, never the value");
+  assert.doesNotMatch(out, /correct-horse-battery/u);
+  assert.doesNotMatch(out, /previewDeploy/u, "and the tracker's own field name is not what a reader is shown");
 });

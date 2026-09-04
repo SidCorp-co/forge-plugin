@@ -20,11 +20,13 @@ the value for truthiness and re-ran on a valid `null`. Unmemoised, one `forge is
 two dropped a valueless flag silently, which reads as an unfiltered answer.
 
 **A project's release policy is the tracker's and not a checkout's.** The staging branch, the
-production branch and the automatic production deploy are project columns already, and doctor prints
-them under the names their owner uses — the tracker's `baseBranch` is the staging branch everywhere
-but in the one reader that fetches it. An automatic production deploy onto a branch the tracker
+production branch and the automatic production deploy are project columns already, and `forge
+project` prints them under the names their owner uses — the tracker's `baseBranch` is the staging
+branch everywhere but in the one reader that fetches it, and doctor's release lines are a second
+view of the same answer. An automatic production deploy onto a branch the tracker
 holds as null is the incoherence its own schema warns of, and it is reported: until the branch is
-set, the person's look stands.
+set, the person's look stands. What the same verb does with the deploy behind that branch is
+[the project](the-project.md).
 
 **`translate` off by default was measured, 2026-08-27:** sid-growth is Vietnamese and forge-dev is
 English, so posting one convention into both is a wrong-language issue no verb can delete afterwards.

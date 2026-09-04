@@ -4,7 +4,7 @@ import { readFileSync, statSync } from "node:fs";
 import { basename, resolve } from "node:path";
 
 import { fail, settings } from "../resolve/settings.mjs";
-import { write } from "./rpc.mjs";
+import { refuseCredential, write } from "./rpc.mjs";
 
 export const urlBearing = (item) => Boolean(item) && typeof item === "object" && typeof item.url === "string";
 
@@ -17,14 +17,15 @@ export const uploaded = (answer) => {
   }
 };
 
-/* Bytes go to the presigned URL, never base64 through context. The URL is the credential, and the
-   callback fires on the line before the PUT: from there on the file may be up, whatever follows. */
+/* Bytes go to the presigned URL, never base64 through context, and the callback fires the line
+   before the PUT: from there the file may be up, so the guard judges before the slot is minted. */
 export const uploadTo = async (target, targetId, path, sending = () => {}) => {
   const name = basename(path);
+  const body = readFileSync(path);
+  await refuseCredential(body.toString("utf8"), name);
   const minted = await write("forge_uploads", { action: "request", data: { target, targetId, name } });
   const url = new URL(minted.uploadUrl ?? `${new URL(settings().url).origin}${minted.uploadPath}`);
   if (!["http:", "https:"].includes(url.protocol)) fail(`The upload URL for ${name} is ${url.protocol}, not http.`);
-  const body = readFileSync(path);
   sending(name);
   const put = await fetch(url, { method: "PUT", body });
   const answer = await put.text();

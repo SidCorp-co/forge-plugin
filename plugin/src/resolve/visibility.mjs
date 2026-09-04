@@ -24,7 +24,9 @@ export const VERBS = [
   ["guide", "[contract [part]|slug]",
     "this plugin's contract, one part per call, and the tracker's guides this flow stands behind",
     "forge_guide"],
-  ["project", "", "the resolved project id", "forge_projects.list"],
+  ["project", "[--credentials]",
+    "the id, the branches a change lands on, and the staging deploy to walk it against",
+    "forge_projects.list"],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials"],
   ["codex", "<consult|verdict|pending|show|log|stats|replay>", "a second model reviews what this turn changed"],
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
@@ -47,10 +49,19 @@ export const usageOf = (verb) => {
 
 /** What `-h` on a verb answers: what to type, what it is for, and which schema holds the fields the
  *  tracker itself takes — the detail, fetched only when it is asked for. */
+/* A usage line holding only flags takes no field of the tracker's, whatever tool answers behind it,
+   and the pointer would read as an invitation to pass one. Read off the line rather than declared,
+   so a verb that grows a value gets the pointer without anyone remembering to add it. */
+const takesAValue = (args = "") =>
+  args
+    .replaceAll(/[[\]]/gu, " ")
+    .split(/\s+/u)
+    .some((one) => one && !one.startsWith("-"));
+
 export const helpOf = (verb) => {
   const row = rowFor(verb);
-  /* A verb that takes nothing has no arguments to write out: the pointer read as an invitation. */
-  const detail = row?.[1] && row?.[3] && `The fields the tracker takes: \`forge schema ${row[3]}\`.`;
+  const detail = takesAValue(row?.[1]) && row?.[3]
+    && `The fields the tracker takes: \`forge schema ${row[3]}\`.`;
   return [usageOf(verb), row?.[2], detail]
     .filter(Boolean)
     .join("\n");

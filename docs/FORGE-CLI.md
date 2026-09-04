@@ -30,6 +30,7 @@ needs that topic and by nobody else.
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, what is withheld by default, and how the CLAUDE.md claims were calibrated. |
 | [which gates run](cli/which-gates-run.md) | Why the switch is derived from the hooks directory, and why exactly one place answers whether a gate is off. |
+| [the project](cli/the-project.md) | Why a host is told from a secret by the shape of the value, where the trim stops, and the edge the credential guard states rather than claims. |
 | [settings](cli/settings.md) | Why provenance is the shape of every answer, which six environment variables remain, and where a credential is allowed to sit. |
 | [withholding a verb](cli/withholding-a-verb.md) | The difference between a tool the server gates and a verb a human hid, and why `forge doctor` is the only surface allowed to say so. |
 | [one transport](cli/one-transport.md) | What a stated rate limit is honoured up to, what an error carries, why the tool surface is cached, and why a write announces itself here. |

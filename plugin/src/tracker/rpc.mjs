@@ -262,11 +262,24 @@ export const scoped = async (name, args, soft = false) => {
   return callTool(name, wants ? { projectId: await projectId(), ...args } : args, soft);
 };
 
+/* One seat rather than a list of the payload kinds that may carry a secret, which is a list that
+   goes stale the next time a verb learns to write. Dynamic because the reader it asks reaches the
+   tracker through this module; soft and memoised, so a payload is never refused by a read this CLI
+   could not make — that refusal would have no route out. `uploadTo` holds the other seat: an
+   attachment's bytes never pass here. */
+export const refuseCredential = async (value, what) => {
+  if (!value) return;
+  const held = await import("./project-config.mjs");
+  const found = held.credentialLeak(value, await held.stagingDeploy());
+  if (found) fail(held.leakRefusal(found, what));
+};
+
 /* Every write announces its target: the cwd picks the project and there is no delete action. The
    payload it sent is handed back to a caller that asks, because on a project with a prose language
    that copy and the one the caller wrote are different documents, and only the first can be read
    back and compared. */
 export const write = async (name, args, onSent) => {
+  await refuseCredential(args.data, `The payload ${name} was about to send`);
   const project = projectScope();
   const language = translateScope();
   console.error(

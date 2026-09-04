@@ -63,8 +63,11 @@ rules file names the contract; the mechanics file holds the layout and the stack
 
 **3. The tracker.** Its memory (accumulated findings, point-in-time — verify against live
 code), its knowledge store (ask it before a broad file search), and its project settings.
-Ask the tracker whether it holds settings, preview URLs or credentials before searching the
-repository for them.
+**`forge project` is that last one in one call** — the branch a change lands on, whether
+production deploys unasked, the staging hosts a change can be walked against and whether test
+credentials exist, `--credentials` for their values. Ask it before searching the repository,
+and ask it *here*: a credential discovered at Phase 7 arrives after the criteria it was needed
+for have already gone unjudged.
 
 **4. The code, which is the tiebreaker for mechanics.** A container entrypoint and a stack
 script each settle a question that prose about them gets wrong — what runs at boot, and what
