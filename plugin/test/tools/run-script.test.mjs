@@ -141,6 +141,7 @@ if (argv[0] === "issues") {
 }
 if (existsSync(join(room, "forge-collides"))) {
   process.stderr.write("Hold — this files an issue the flow cannot carry.\\n\\n"
+    + "- read: " + process.argv[1] + " read the body\\n"
     + "- read: the title of this filing, against ISS-135, overlapping at 1.00\\n"
     + "  clear: forge new <body> --title T --into ISS-135\\n");
   process.exit(1);
@@ -432,7 +433,7 @@ test("the mark's issue is found at whatever status it has reached, and the looku
    already had one, and the step then reported that refusal as a silence and printed the filing the
    gate had just refused as the route out of it (ISS-140). */
 test("a filing refused by name is reported as refused, and not routed back to the filing it forbade", () => {
-  const { at, work } = owedAt("collides");
+  const { at, work } = owedAt("wt-ISS-999");
   writeFileSync(join(at, "forge-collides"), "");
 
   const run = lastStep(work);
@@ -443,6 +444,9 @@ test("a filing refused by name is reported as refused, and not routed back to th
     `the route under a refusal has to be one the refusal leaves open:\n${run.stdout}`);
   assert.match(run.stdout, /forge issue ISS-135/u, run.stdout);
   assert.ok(run.stdout.includes("Work ISS-135."), run.stdout);
+  assert.match(run.stderr, /names ISS-135:/u, run.stderr);
+  assert.doesNotMatch(run.stdout, /ISS-999/u,
+    `the collision is the key the tracker named, and a path in its reason carries one too:\n${run.stdout}`);
 });
 
 /* A review is never lost for want of a network: nothing is filed, the count and the route print as

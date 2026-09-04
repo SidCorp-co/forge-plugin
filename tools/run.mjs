@@ -321,9 +321,12 @@ const fileReview = (tree, from, volume) => {
     + `that wrote none of it, and the mark moves`;
   const filed = forgeSays(tree, ["new", "-", "--title", title, "--kind", "feature"],
     reviewBody(tree, from, to, volume));
-  /* Whether the answer names what it collided with is the axis the route turns on: a collision makes
-     an identical retry pointless, a silence makes it right, and the exit code carries neither. */
-  if (filed.why) return { why: filed.why, call: "the filing", collided: /ISS-\d+/u.exec(filed.why)?.[0] ?? null };
+  /* The refusal's own phrase and not any key it carries: a reason quotes paths, and this tool names
+     a worktree for the issue it works. A collision makes a retry pointless, a silence makes it right. */
+  if (filed.why) {
+    const collided = /against (ISS-\d+)/u.exec(filed.why)?.[1] ?? null;
+    return { why: filed.why, call: "the filing", collided };
+  }
   const key = /"issueId":\s*"(ISS-\d+)"/u.exec(filed.out)?.[1];
   return key
     ? { key, filed: true }
