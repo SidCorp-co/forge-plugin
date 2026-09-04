@@ -1937,3 +1937,21 @@ owed. Both closed by the run. Folded from the record.
 - Two defects filed as feedback: the note cap stated nowhere before the write, met again; and a terminal
   transition leaving the lease live, so two closed issues hold a finished run's lease and past the
   duration that reads as a run that broke. A finished run has no way to say it finished.
+
+## Seventy-fifth dry run — ISS-221
+
+One agent made every reader of the whole issue set walk the list to exhaustion (3.35.87): the
+unfiltered list had returned fewer than half the project's rows under a notice claiming the most recent,
+and the route the notice implied stopped early; the walk now lives in one place, and a sweep of every
+list call across the source and the hooks found no reader outside it. One skill file changed, so a
+restart is owed. Closed by its run. Folded from the record.
+
+- The issue's own rule was found broken one line over, after the fix: a count line tells a reader to
+  raise the limit up to the ceiling even when the limit already stands at it, which is unactionable.
+  Filed as ISS-264 rather than folded in, since the run's criteria had been judged. A rule landed is the
+  first thing the run reads its own neighbours against.
+- A record value whose first word begins with two dashes is read as a flag; met and worked around on
+  this run, filed as ISS-255 — the same place as ISS-240's flag-in-a-body-slot, and the two will share a
+  run.
+- Two clauses in held trees were routed: a use case owing an exhaustion clause (ISS-254), and a lease
+  view asked for a page notice the browse verb no longer gives, posted on the issue that owns that view.
