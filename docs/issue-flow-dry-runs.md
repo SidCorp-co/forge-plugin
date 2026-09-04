@@ -1407,3 +1407,28 @@ restart owed. Closed by its run. Folded from the record.
 - Two plugin defects filed: the note kind's help names no length limit, so the cap arrives from the
   tracker after three round trips (ISS-181); a comment verb given a flag it does not know reports a
   missing file named after the flag (ISS-182).
+
+## Fifty-third dry run — ISS-139
+
+One agent made the create path say what is open beside a filing (3.35.62): before a filing is sent,
+the tracker's memory is searched for open issues in the same place, the matches are printed with their
+scores, and a filing marked as belonging to one of them lands there as a comment instead. The fold's
+threshold was proved live and then split in two by the review — the write's own threshold and the
+suggestion's — because one number served two decisions with different costs of being wrong. Nine major
+findings across five consults, all accepted but one, routed. Twenty-five criteria pass. The longest
+single-issue run of the day, at over two and a half hours. No restart owed. Closed by its run. Folded
+from the record.
+
+- The run overrode a standing instruction and said so: told to point the config directory at a
+  temporary one for anything exercising plugin state, it found the codex-second gate reads the consult
+  log only from the live directory, so a run obeying the instruction can never satisfy the commit gate.
+  Two consults were spent where nothing read them before the mismatch showed. Filed as ISS-189; the
+  instruction now says probes and tests, not the run's own verbs.
+- The issue's last rule — a run working an issue with several findings judges each as a criterion — is
+  the flow's and the contract's, whose files another run held; routed as ISS-167 and the issue closed
+  with that half named unbuilt, rather than waited on.
+- The ship's rebase changed two files the change touched, so the mark, the review record and all
+  twenty-five verdicts were re-posted against the merged commit: the fourth run today to pay ISS-156's
+  cost, and the largest.
+- Filed onward: a flag in a verb's own help absent from the row the top-level help prints (ISS-178);
+  the dependency verb cannot record an edge to an issue nobody holds (ISS-190).
