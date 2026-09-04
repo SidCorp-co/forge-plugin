@@ -8,6 +8,11 @@ import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writ
 import { dirname, join } from "node:path";
 import { tempRoom } from "../fixtures.mjs";
 
+/* Before the shape reader is loaded: it reaches the tracker's own settings, and a module that read
+   the developer's config directory would run on their credential. */
+process.env.XDG_CONFIG_HOME = tempRoom("run-script-home-");
+const { shapeOf } = await import("../../src/tracker/issue-shape.mjs");
+
 const ROOT = new URL("../../..", import.meta.url).pathname;
 const SCRIPT = join("tools", "run.mjs");
 /* npm and node without whatever else the developer has on PATH: the ship path's last two steps are
@@ -313,6 +318,23 @@ test("past the threshold the step files the reading's issue itself, and prints t
   assert.ok(owed.stdout.includes("filed ISS-777"), owed.stdout);
   assert.ok(owed.stdout.includes("Work ISS-777. Use the Skill tool: skill forge:issue-flow, args ISS-777."),
     `the launch line is not printed as the parent reads it:\n${owed.stdout}`);
+});
+
+/* The stub takes any filing, so what it proves is the argv and the body — not that the CLI would
+   have them. The generated pair goes through the reader the verb itself files against, which is
+   local: what a duplicate of it is already open is the tracker's and is not asked here. */
+test("the generated title and body are a filing this CLI's own shape reader accepts", () => {
+  const { at, work } = owedAt("shaped");
+  lastStep(work);
+
+  const filing = called(at).find((one) => one.argv[0] === "new");
+  const shape = shapeOf({
+    title: filing.argv[filing.argv.indexOf("--title") + 1],
+    body: filing.body,
+    kind: filing.argv[filing.argv.indexOf("--kind") + 1],
+  });
+  assert.deepEqual(shape.gaps, [], `the filing the step generates would be refused:\n${JSON.stringify(shape.gaps, null, 1)}`);
+  assert.equal(shape.said, null, `the filing draws a notice the step cannot answer: ${shape.said}`);
 });
 
 test("a second ship at the same mark names the issue already open and files nothing", () => {
