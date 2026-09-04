@@ -957,3 +957,39 @@ record.
 - The run ended at `released` under the skill pinned before ISS-105 landed; the report from the new
   copy already said *owed: the close*, and the parent closed it through `forge advance`, which now
   reads the status alone for that step.
+
+## Thirty-second dry run — ISS-83, dropped on measurement
+
+One agent verified the issue before planning it and found the premise false, so nothing was built:
+the gateway serves no cross-request cache read at all — thirty-three of thirty-three single-call
+consults in six hundred answered rows read zero cache tokens, including three on the recorded identical
+prompt digest — so every cache read in the log is inside one consult, and unifying the system prompt
+would have bought the tool list's worth of tokens and no more, while trading away the property the
+issue's own rule protected: zero new findings on twenty-one rechecks since ISS-77, against half of two
+hundred before. The apparent cost was ISS-77 succeeding: rechecks became one-call, and a one-call round
+reads no cache by construction. A confirmation with finding *premise-false*, two routed records, a park
+of kind dropped, and open to confirmed to dropped; the measurement attached. No commit, no consult, no
+ship. Folded from the record.
+
+- The one record whose whole weight is its evidence is the one that cannot cite it: `record
+  confirmation` takes no `--evidence`, and the file went on a comment instead. ISS-73.
+- In a worktree the CLI names the worktree's own feedback folder, a gitignored directory the cleanup
+  deletes — which is how the thirtieth run's note was lost; this run wrote to the checkout by hand.
+  Filed as a bug: the folder resolves through the common git directory.
+- `forge dep` needs a lease on the other issue, so the links to the two issues this run filed ride in
+  the routed records rather than as graph edges.
+
+## Thirty-third dry run — ISS-105
+
+One agent made a run close what it released (3.35.34): the skill's release phase ends with the close;
+`forge advance` from `released` to `closed` reads the status and nothing else, so the page the tracker
+cuts cannot refuse it — a park or a drop from `released` still reads the page, since it judges evidence
+the comments carry; the record report says *owed: the close* on a released issue, gated on the status
+alone because gating it on a whole verification would go silent on the record that most needs telling;
+the tail of the flow is one exported constant both the verb and the report read, pinned against the flow
+table's order. The skill changed, so a restart was owed and the user chose to keep dispatching. Folded
+from the record. The thirty-first run's close, the first through the new verb, is the proof.
+
+- A fake tracker that throws answers nothing, so a test case hangs rather than failing; ISS-122.
+- The page measurement again — thirty-six rows at the limit, cut by response size — and one more
+  shape: a park from `released` has no route past the refusal. ISS-17, which now holds six sightings.
