@@ -10,6 +10,7 @@ import { once } from "../resolve/config.mjs";
 import { keepOnFailure, projectRoot, slugIfAny } from "../resolve/settings.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { citedIn } from "../checks/cited-paths.mjs";
+import { CODE_SPAN_PATTERN } from "../markdown.mjs";
 import { BRIEF_SLUG, metaFrom, softEntryAt, upsertEntry, wroteLines }
   from "../tools/knowledge.mjs";
 import { scoped } from "./rpc.mjs";
@@ -183,6 +184,7 @@ const BRIEF_INJECTION = "always";
 const SOURCE_MARK = "←";
 const DIGESTS = "digests";
 const DIGEST_WIDTH = 16;
+const SPANNED = new RegExp(CODE_SPAN_PATTERN, "gu");
 
 /** Only the tail after a line's mark is a source: the body maps the tree too, and hashing every
  *  path it cites would call the brief stale on any release that touched a module. */
@@ -192,6 +194,21 @@ export const briefSources = (body) => {
     const at = line.lastIndexOf(SOURCE_MARK);
     if (at < 0) continue;
     for (const { path } of citedIn(line.slice(at + SOURCE_MARK.length))) found.add(path);
+  }
+  return [...found].sort();
+};
+
+/** Every code span in a source position the path reader took nothing from. Not a judgement — a
+ *  command's output is a source and is not a file — but a `Makefile` the writer meant is named in
+ *  the same call rather than found untracked a release later. */
+export const unhashable = (body) => {
+  const found = new Set();
+  for (const line of String(body ?? "").split("\n")) {
+    const at = line.lastIndexOf(SOURCE_MARK);
+    if (at < 0) continue;
+    for (const [span] of line.slice(at).matchAll(SPANNED)) {
+      if (!citedIn(span).length) found.add(span);
+    }
   }
   return [...found].sort();
 };
@@ -271,6 +288,7 @@ export const refreshBrief = async (path, { pairs, ...meta }) => {
     confidence: meta.confidence,
     meta: { ...metaFrom(pairs), [DIGESTS]: digests },
   });
+  const unread = unhashable(body);
   const named = Object.keys(digests);
   const missing = named.filter((path) => digests[path] === null);
   const hashed = named.filter((path) => digests[path] !== null);
@@ -282,6 +300,10 @@ export const refreshBrief = async (path, { pairs, ...meta }) => {
         + "later can say one moved",
     ...(missing.length
       ? [`  named and not here: ${missing.join(", ")} — kept, and read back as gone until they appear`]
+      : []),
+    ...(unread.length
+      ? [`  not hashed: ${unread.join(", ")} — named as a source and not read as a path, so nothing `
+        + "later can say one moved"]
       : []),
   ];
 };

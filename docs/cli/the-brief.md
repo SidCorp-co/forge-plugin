@@ -53,12 +53,16 @@ line with no source contributes no digest, which is the brief's own rule arrivin
 line nobody can check is a line nobody should trust.
 
 That reader's grammar is the contract, and it is narrower than "anything that looks like a file":
-it wants an extension it knows, and a bare filename only inside a code span or a link. A tail naming
-`Makefile`, or `CLAUDE.md` with no span around it, is not a source and is not hashed. Writing a
-second parser for the tail was refused — "what is a cited path" would then have two definitions and
-they would drift — and the same-call answer covers it instead: `--refresh` prints the sources it
-hashed, so a file the writer meant and the reader did not see is missing from a list they are
-looking at.
+it wants an extension it knows, and a bare filename only inside a code span. A tail naming
+`Makefile` is not a source and is not hashed. Writing a second parser for the tail was refused —
+"what is a cited path" would then have two definitions in one repository and they would drift.
+
+**So the omission is said rather than absorbed.** A review pressed twice on this, and printing only
+what *was* hashed was not enough: a writer reading a list of eight has no way to know they meant
+nine. `--refresh` therefore also names every code span sitting in a source position that the reader
+took nothing from — *not hashed: `forge doctor`, `Makefile`*. It is a listing and not a refusal,
+because a command's output is a legitimate source and is not a file; what it removes is the silence.
+Every span in a source position now leaves the call either with a digest or on that line.
 
 **A source the checkout does not hold is kept, not dropped.** Dropping it was the first shape and it
 reached no reader at all: a brief naming one file that is not here would have reported as a brief

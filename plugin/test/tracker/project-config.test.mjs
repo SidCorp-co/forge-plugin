@@ -15,6 +15,7 @@ import {
   projectLines,
   releaseFrom,
   staleIn,
+  unhashable,
 } from "../../src/tracker/project-config.mjs";
 
 const HELD = {
@@ -271,4 +272,19 @@ test("a store that would not answer is not printed as an absence", () => {
   assert.doesNotMatch(said, /none stored/u,
     "a run that took a refusal for an absence would write over a brief it never saw");
   assert.deepEqual(briefLines(null), [], "and a checkout with no project says nothing at all");
+});
+
+/* The hole a review confirmed and this closes: the path reader's grammar wants an extension it
+   knows and a bare filename inside a span, so a source it does not take was silently untracked. */
+test("a source the path reader took nothing from is named rather than dropped in silence", () => {
+  const body = [
+    LINE("`CLAUDE.md`, and `node tools/gates.mjs -h` for the rest"),
+    LINE("`Makefile`"),
+    LINE("`forge doctor`"),
+    "Layout: `plugin/src/cli.mjs` is the entry.  ← `README.md`",
+  ].join("\n");
+  assert.deepEqual(unhashable(body), ["`Makefile`", "`forge doctor`"],
+    "a span the reader took a path from is hashed, and one it took nothing from is said");
+  assert.deepEqual(unhashable("Build: none.  ← `README.md`"), [],
+    "and a brief whose every source resolved says nothing");
 });
