@@ -2069,3 +2069,24 @@ from the record.
 - One clause deliberately not landed and handed on: the module's header still summarises what it held
   before two helpers moved in. It sits in the issue's out-of-scope and the issue is closed, so it goes to
   the third reading rather than landing unrecorded.
+
+## Eighty-first dry run — ISS-147
+
+One agent put the project brief in the store and made the first phase read it (3.35.92, 3.35.94):
+the brief a run once rebuilt from the same six sources every time — three to four minutes and a score of
+calls per run over fifty-two runs — is one entry the project verb serves, with digests of what it was
+read from so a stale brief says which part aged; the skill's first phase reads it and the discovery
+reference says what to do when it is absent or stale. ISS-238, the other half in the same files, was
+shipped inside and dropped with its disposition on its own record. Three skill files moved, so a restart
+is owed. Closed by its run. Folded from the record.
+
+- The second ship reported nothing moved under the hooks or skills, measured from the first release's
+  own commit; the run said plainly that a second ship's clean line does not cancel the first's restart.
+  A restart owed is owed until a session restarts, whatever the last ship printed.
+- A finding filed with a fix-size line was auto-folded onto an open issue by place rather than by the
+  nearer reading, and had to be refiled with the new-issue flag; the mis-fold is itself named in the
+  refiled body (ISS-272). The fold prefers a place match over a meaning match, which is a threshold
+  question for the create path.
+- One token in the verb table was edited in a held file because the flag helper derives a verb's known
+  flags from that row, so a new flag could not parse without it — said on the record as mechanically
+  unavoidable rather than taken quietly. The half that needs the held visibility reading went as ISS-271.
