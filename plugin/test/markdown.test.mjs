@@ -11,7 +11,9 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  CODE_SPAN_NONEMPTY_PATTERN,
   CODE_SPAN_PATTERN,
+  LINK_TARGET_OPEN_PATTERN,
   LINK_TARGET_PATTERN,
   LINK_TEXT_PATTERN,
   MARKUP_PATTERN,
@@ -24,6 +26,7 @@ import { FENCE_PATTERN } from "../src/flow/machine.mjs";
 import { typed } from "../src/hooks/shell-spans.mjs";
 import { DATA_FIELD, sseData } from "../src/sse.mjs";
 import { checkStructure } from "../src/checks/claude-md.mjs";
+import { protectInline, verify } from "../vi-natural/format/doc.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MARKDOWN = "plugin/src/markdown.mjs";
@@ -72,9 +75,14 @@ const WHOLE_TEXT = ["plugin/src/checks/claude-md.mjs", "plugin/src/codex/codex-p
    where a run widening this scan reads it; docs/cli/the-primitives.md carries why. */
 const ANY_POSITION = ["plugin/src/codex/codex.mjs"];
 
+/* A live copy, not a reader with its own difference: the two lists above are permanent, this one is a debt ISS-421 clears with the row. An exclusion outliving its issue is the copy going unwatched again. */
+const HELD_ELSEWHERE = ["plugin/src/rank/eligible.mjs"];
+
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
-  ["a link target", MARKDOWN, [LINK_TARGET_PATTERN]],
+  ["a non-empty inline code span", MARKDOWN, [CODE_SPAN_NONEMPTY_PATTERN], HELD_ELSEWHERE],
+  /* A prefix of the closed form, so one row watches both spellings; the closed needle could not see the one copy in the tree that had lost its paren. */
+  ["a link target", MARKDOWN, [LINK_TARGET_OPEN_PATTERN]],
   ["a link text", MARKDOWN, [LINK_TEXT_PATTERN]],
   ["a table row", MARKDOWN, [String.raw`\|.*\|`, String.raw`\|(.*)\|`]],
   ["a table separator", MARKDOWN, [String.raw`[\s:|-]+\|`, String.raw`[\s|:-]+\|`]],
@@ -116,6 +124,9 @@ test("no module of the plugin declares a primitive another module is the home of
 test("the guard fires on a module that re-declares one", () => {
   const copies = [
     { rel: "a.mjs", text: `const SPANNED = /${CODE_SPAN_PATTERN}/gu;` },
+    { rel: "a2.mjs", text: `const SPAN = /${CODE_SPAN_NONEMPTY_PATTERN}/gu;` },
+    { rel: "a3.mjs", text: `const TARGET = /${LINK_TARGET_OPEN_PATTERN}/g;` },
+    { rel: "a4.mjs", text: `const TARGET = /${LINK_TARGET_PATTERN}/gu;` },
     { rel: "b.mjs", text: String.raw`const ROW = /^\s*\|(.*)\|\s*$/u;` },
     { rel: "c.mjs", text: String.raw`const SEP = /^\|[\s|:-]+\|$/u;` },
     { rel: "d.mjs", text: "const MARKUP = /[*`_>[\\]()]/g;" },
@@ -131,6 +142,9 @@ test("the guard fires on a module that re-declares one", () => {
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
+    `a2.mjs declares a non-empty inline code span of its own; ${MARKDOWN} holds it`,
+    `a3.mjs declares a link target of its own; ${MARKDOWN} holds it`,
+    `a4.mjs declares a link target of its own; ${MARKDOWN} holds it`,
     `b.mjs declares a table row of its own; ${MARKDOWN} holds it`,
     `c.mjs declares a table separator of its own; ${MARKDOWN} holds it`,
     `d.mjs declares a markup class of its own; ${MARKDOWN} holds it`,
@@ -211,11 +225,29 @@ test("the shared row compiled gm leaves the line count the space-and-tab form le
     "any-whitespace margins would have eaten a line break, which is why the class is closed");
 });
 
-/* An empty span is markup to remove and not a claim to read, so the capturing `+` form claude-md
-   keeps for repo claims is deliberately not this pattern. */
-test("the span pattern removes an empty span, which the capturing form does not match", () => {
+/* An empty span is markup to remove and not a claim to read. Both forms are read off the home here, so neither can drift out from under this. */
+test("the span pattern removes an empty span, which the non-empty form does not match", () => {
   assert.equal(withoutSpans("a `` b"), "a   b");
-  assert.equal(/`([^`\n]+)`/u.test("a `` b"), false);
+  assert.equal(new RegExp(CODE_SPAN_NONEMPTY_PATTERN, "u").test("a `` b"), false);
+});
+
+/* The other half of that character: on a double-backtick span the strip form takes the two empty pairs and hands the model the content bare, which is the failure protectInline exists to prevent. */
+test("the masker takes the inner span of a double-backtick run, where the strip form takes the delimiters", () => {
+  const slots = [];
+  assert.equal(protectInline("say ``word`` twice", slots), "say `⟦VI0⟧` twice");
+  assert.deepEqual(slots, ["`word`"]);
+  assert.equal("say ``word`` twice".replace(new RegExp(CODE_SPAN_PATTERN, "gu"), "X"), "say XwordX twice",
+    "the strip form leaves the content the model would reword");
+});
+
+/* The input that tells the two link targets apart: a title is valid Markdown the closed form reads nothing from, so a rewritten url under it would go unreported (ISS-138). */
+test("a rewritten target inside a titled link is reported, where the closed form sees no target at all", () => {
+  const [source, translated] = ['[label](url "title")', '[nhãn](other "tiêu đề")'];
+  assert.equal(verify(source, translated), "link target changed");
+  const closed = (text) => [...text.matchAll(new RegExp(LINK_TARGET_PATTERN, "gu"))].map((one) => one[1]);
+  assert.deepEqual(closed(source), [], "the closed form is why this had to stay the opener's");
+  assert.deepEqual(closed(translated), []);
+  assert.equal(verify(source, '[nhãn](url "tiêu đề")'), null, "and translating the title alone still passes");
 });
 
 /* Where a span and a quoted run overlap, whichever delimiter opens first wins — so one alternation

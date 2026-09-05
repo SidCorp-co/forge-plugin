@@ -1,9 +1,11 @@
 // Markdown segmentation: translate the prose, leave the machinery alone.
 
+import { CODE_SPAN_NONEMPTY_PATTERN, LINK_TARGET_OPEN_PATTERN } from "../../src/markdown.mjs";
+
 const FENCE = /^\s{0,3}(`{3,}|~{3,})/;
 const SPLIT = /(\n[ \t]*\n)/;
-const INLINE_CODE = /`[^`\n]+`/g;
-const LINK_TARGET = /\]\(([^)\s]+)/g;
+const INLINE_CODE = new RegExp(CODE_SPAN_NONEMPTY_PATTERN, "g");
+const LINK_TARGET = new RegExp(LINK_TARGET_OPEN_PATTERN, "g");
 const SENTINEL = /⟦VI\d+⟧/g;
 const NOTHING_TO_SAY = /^[\s\W\d]*$/;
 const COMMENT_ONLY = /^\s*<!--[\s\S]*-->\s*$/;
@@ -134,7 +136,7 @@ export function restoreInline(block, slots) {
 const found = (text, pattern) => (text.match(pattern) ?? []).sort();
 const hashes = (text) => text.trimStart().length - text.trimStart().replace(/^#+/, "").length;
 
-/** What a Markdown block must keep: its sentinels and its link targets. */
+/** What a Markdown block must keep: its sentinels, and every target a `](` opens — a titled link is one the closed form reads nothing from. */
 export function verify(source, translated) {
   if (String(found(source, SENTINEL)) !== String(found(translated, SENTINEL))) {
     return "code span or placeholder token lost";

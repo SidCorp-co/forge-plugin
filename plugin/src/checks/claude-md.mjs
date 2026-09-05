@@ -14,6 +14,7 @@ import {
 } from "../../hooks/vendor/text-overlap.js";
 import { load } from "./duplication.mjs";
 import {
+  CODE_SPAN_NONEMPTY_PATTERN,
   CODE_SPAN_PATTERN,
   LINK_TARGET_PATTERN,
   TABLE_ROW_PATTERN,
@@ -179,7 +180,7 @@ export function readClaudeMd(root) {
 /* Claims about the repo, which are the ones that rot silently: a path that was renamed, a script
    that lost its entry, a `-h` nobody wired. Each of the three found a live defect in sid-erp on
    the day it was written. Backticks and link targets only — prose naming a file is not a claim. */
-const CODE_SPAN = /`([^`\n]+)`/g;
+const CODE_SPAN = new RegExp(CODE_SPAN_NONEMPTY_PATTERN, "g");
 const LINK_TARGET = new RegExp(LINK_TARGET_PATTERN, "gu");
 const NPM_SCRIPT = /\bnpm (?:run ([\w:-]+)|(test)\b)/g;
 /* Two shapes of "ask it with -h": a script this repo holds, and a command on PATH. */
@@ -190,7 +191,7 @@ const SHA = /`([0-9a-f]{7,40})`/g;
 
 /* An absence is a claim, and the strongest kind — "there is no `backend/.env` and there must not be
    one" is falsified by the file EXISTING. Read the other way round it reports backwards. */
-const FORBIDDEN = /there (?:is|are) no `([^`\n]+)`/gi;
+const FORBIDDEN = new RegExp(`there (?:is|are) no ${CODE_SPAN_NONEMPTY_PATTERN}`, "gi");
 
 /* Identifiers the documents are organised by. Three projects state the rule themselves: a cited
    identifier must exist. */

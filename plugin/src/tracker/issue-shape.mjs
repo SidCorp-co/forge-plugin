@@ -9,6 +9,7 @@ import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vend
 import { sentences } from "../checks/duplication.mjs";
 import { FENCE_PATTERN } from "../flow/machine.mjs";
 import { FIX, MARK_LINE, TIERS, bandFor, belowTop, markFor, markedIn, rungFrom } from "../ladder.mjs";
+import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
 import { enumAt } from "./rpc.mjs";
@@ -247,7 +248,7 @@ const sectionUnder = (body, wanted) => {
 const hasLine = (text) =>
   String(text ?? "").split("\n").some((line) => line.replace(/^[-*\d.\s]+/u, "").trim().split(/\s+/u).length >= SUBSTANTIAL);
 
-const CODE_SPAN = /`([^`\n]+)`/gu;
+const CODE_SPAN = new RegExp(CODE_SPAN_NONEMPTY_PATTERN, "gu");
 const VERB_SPAN = /^forge[ \t]+[a-z][\w-]*/u;
 const IDENTIFIER = /[_./]|^--/u;
 
