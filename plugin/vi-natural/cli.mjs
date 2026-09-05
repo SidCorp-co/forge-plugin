@@ -3,6 +3,10 @@
 
 import { pathToFileURL } from "node:url";
 
+/* The spelling of a help flag is the plugin's, not this CLI's, and the name each site spends says
+   which reading it wants. Borrowed from a module that imports nothing — README, Layout. */
+import { isHelpWord, wantsHelp } from "../src/resolve/help-word.mjs";
+
 import { CliError, err } from "./util.mjs";
 import { Client } from "./gateway/client.mjs";
 import { Config, DEFAULT_EFFORT, EFFORTS, EFFORT_BY_VERB } from "./gateway/config.mjs";
@@ -69,7 +73,7 @@ Exit codes: 0 clean · 1 error, or review found something · 2 written, some str
 function parse(argv) {
   if (argv.includes("--version")) return { command: "version" };
   const command = argv[0];
-  if (!command || command === "-h" || command === "--help") return { command: "help" };
+  if (!command || wantsHelp(argv)) return { command: "help" };
   const spec = VERBS[command];
   if (!spec) throw new CliError(`unknown command: ${command}\n\n${USAGE}`);
 
@@ -79,7 +83,7 @@ function parse(argv) {
 
   for (let index = 1; index < argv.length; index += 1) {
     const token = argv[index];
-    if (token === "-h" || token === "--help") return { command: "help" };
+    if (isHelpWord(token)) return { command: "help" };
     if (!(token in flags)) {
       if (token.startsWith("-") && token !== "-") throw new CliError(`unknown option: ${token}\n\n${USAGE}`);
       positional.push(token);

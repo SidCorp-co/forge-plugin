@@ -61,8 +61,7 @@ there had been read as a boundary, which is inferring one from a measurement. It
 constant. That reader is a *different* reader — it trims a line before testing the field and parses
 each line off an incremental buffer — so `sseData` cannot serve it and was not asked to, and sharing
 the value rather than the behaviour is what keeps the import from being a coupling. The guard's scan
-is owed the widening to that tree and has not had it: the file is another run's, so the row is
-posted there with its measurement.
+reaches that tree now.
 
 The guard's needle is the typed width and not the field name. `startsWith("data:")` would also fire
 on a module testing a `data:` URI, and the refusal would send it to a frame reader it has no use
@@ -109,11 +108,11 @@ verb — seven reverts, no difference anywhere, and the guard naming the reverte
 *any* position, because the CLI hands a verb its tail and `forge codex consult -h` puts the flag
 second; the gate that orders a consult reads one out of a shell command line somebody else typed.
 Both spell the same two words as the seven did, so no needle over text distinguishes either from a
-copy — and both ask a different question, so neither is one. Making the words a shared constant the
-two could import would have unified the spelling at the cost of the distinction: the first-word
-reading is the one with a home, and where a flag may stand is the caller's question, not the
-predicate's. So the two are named beside the scan, with the reason, on the second of the two routes
-the frame reader above was left alone by.
+copy — and both ask a different question, so neither is one. Both readings have a name now, in
+`resolve/help-word.mjs`, which imports nothing so the second CLI can spend them: `wantsHelp` reads
+first-or-not-at-all, `isHelpWord` the word wherever a caller looked. The distinction moved into the
+name a site spends. The two gates keep their exclusion — one is a hook, and moving a hook owes the
+session a restart — so ISS-299 carries it.
 
 The needles are the comparison, `=== "-h"`, and the word pair a copy declaring a list would write
 instead. Anything looser — the word `--help` alone — refuses the doctor spawning another program

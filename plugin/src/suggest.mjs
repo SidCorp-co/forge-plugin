@@ -27,13 +27,26 @@ const rank = (given, candidate) => {
   return gap <= Math.max(2, Math.floor(left.length / 3)) ? 1 + gap : Infinity;
 };
 
-export const suggest = (given, candidates, limit = 5) =>
-  candidates
+/* What a run types from memory for a verb, read before distance and answering alone. Never a
+   retired name — docs/cli/withholding-a-verb.md; the case beside this file holds every row. */
+export const ALIASES = {
+  get: "issue",
+  show: "issue",
+  read: "issue",
+  comments: "comment",
+  list: "issues",
+};
+
+export const suggest = (given, candidates, limit = 5) => {
+  const meant = ALIASES[bare(given)];
+  if (meant && candidates.includes(meant)) return [meant];
+  return candidates
     .map((candidate) => ({ candidate, points: rank(given, candidate) }))
     .filter((scored) => Number.isFinite(scored.points))
     .sort((one, other) => one.points - other.points)
     .slice(0, limit)
     .map((scored) => scored.candidate);
+};
 
 /* A set this short beats a route to it; past it a set is a list rather than a sentence. */
 const SET_SHOWN = 8;

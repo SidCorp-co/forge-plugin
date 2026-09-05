@@ -7,7 +7,9 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { didYouMean, flagsNamed, unknownFlag } from "../../src/suggest.mjs";
+import { ALIASES, didYouMean, flagsNamed, suggest, unknownFlag } from "../../src/suggest.mjs";
+import { RETIRED } from "../../src/checks/retired-names.mjs";
+import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
 import { FLAG_WORD, flags, partition, pullRepeated } from "../../src/resolve/flags.mjs";
 import { bodyFrom, notABody } from "../../src/resolve/payload.mjs";
 import { homeEnv, ranAsync, tempRoom } from "../fixtures.mjs";
@@ -115,6 +117,60 @@ test("the form the parser refuses is left to the parser", () => {
   assert.equal(unknownFlag("issue", ["ISS-1", "--fields", "plan"], { usage }), null);
 });
 
+/* The table is read before distance, so a synonym answers with one verb and not with two near
+   spellings of the wrong one. What the rows have to hold is held here rather than in prose: a key
+   naming a retired verb would answer a name the CLI is supposed not to know, which is the redirect
+   docs/cli/withholding-a-verb.md forbids, and a key that is itself a verb is a row nothing reads. */
+const aliasProblems = (aliases, retired, live) =>
+  Object.entries(aliases).flatMap(([given, meant]) => [
+    ...(retired.some((entry) => entry.kind === "verb" && entry.name === given)
+      ? [`the table answers ${given}, retired in ${retired.find((entry) => entry.name === given).release}`
+        + " — delete the row rather than aiming it at a live name (docs/cli/withholding-a-verb.md)"]
+      : []),
+    ...(live.includes(meant) ? [] : [`the table sends ${given} to ${meant}, which no verb answers to`]),
+    ...(live.includes(given) ? [`${given} is a verb of its own, so its row is never reached`] : []),
+  ]);
+
+test("a synonym answers with the one verb it means, before any distance is measured", () => {
+  for (const [given, meant] of Object.entries(ALIASES)) {
+    assert.deepEqual(suggest(given, VERB_NAMES), [meant], `forge ${given}`);
+  }
+  assert.deepEqual(suggest("list", ["issue", "lists", "plan"]), ["lists"],
+    "and where the verb it means is not on offer, distance answers in its place");
+});
+
+/* The row fires on the name and the candidate list decides whether it answers. That is not a
+   confinement to verbs and is not meant to be: `forge attach get` means `forge attach issue`, and
+   `issue` is the answer wherever this CLI's own name for the thing is what a caller may type. */
+test("an alias answers wherever the name it means is among the candidates", () => {
+  assert.equal(didYouMean("attach target", "get", ["issue", "comment"]),
+    "No attach target named get. Did you mean: issue? The set is issue, comment.");
+  assert.equal(didYouMean("issue flag", "--get", ["--fields", "--full"]),
+    "No issue flag named --get. The set is --fields, --full.");
+  assert.deepEqual(suggest("list", ["consult", "verdict", "pending", "show", "log"]), [],
+    "and a codex action named list reaches no name of this CLI's");
+});
+
+test("every alias names a live verb, and no alias is a name the CLI answers to", () => {
+  assert.deepEqual(aliasProblems(ALIASES, RETIRED, VERB_NAMES), []);
+  assert.ok(Object.keys(ALIASES).length > 0, "and the table holds something, so the rule judged a row");
+});
+
+/* The registry holds no retired verb yet, so the rule above passes on an empty set and would pass
+   on a broken table too. One is planted here, the way retired-names.test.mjs plants `advance`. */
+test("the rule fires on a table that answers a retired name", () => {
+  const [alias] = Object.keys(ALIASES);
+  const asIf = [{ name: alias, kind: "verb", release: "3.36.0" }];
+  const found = aliasProblems(ALIASES, asIf, VERB_NAMES);
+  assert.equal(found.length, 1, found.join("\n"));
+  assert.match(found[0], /retired in 3\.36\.0/u);
+  assert.match(found[0], /withholding-a-verb\.md/u, "and the finding says where the rule reads");
+  assert.deepEqual(aliasProblems({ issues: "issues" }, RETIRED, VERB_NAMES),
+    ["issues is a verb of its own, so its row is never reached"]);
+  assert.deepEqual(aliasProblems({ fetch: "gone" }, RETIRED, VERB_NAMES),
+    ["the table sends fetch to gone, which no verb answers to"]);
+});
+
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const env = homeEnv("did-you-mean");
 const ran = (...argv) => ranAsync(FORGE, argv, env);
@@ -203,4 +259,13 @@ test("a verb nobody has is named back before the list of the ones there are", as
   const run = await ran("nosuchverb");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /^No verb named nosuchverb\./u);
+});
+
+test("a synonym typed at the CLI answers with the one verb, on the real dispatcher", async () => {
+  for (const [given, meant] of Object.entries(ALIASES)) {
+    const run = await ran(given);
+    assert.equal(run.status, 1);
+    assert.match(run.stderr, new RegExp(`^No verb named ${given}\\. Did you mean: ${meant}\\?$`, "mu"),
+      `forge ${given}: ${run.stderr.split("\n")[0]}`);
+  }
 });

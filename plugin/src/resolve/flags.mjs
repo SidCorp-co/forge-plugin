@@ -29,8 +29,8 @@ export const flags = (argv, verb, boolean = []) => {
   return found;
 };
 
-/* First or not at all: further along it is an argument, and help there is a write that never ran. */
-export const wantsHelp = ([first]) => first === "-h" || first === "--help";
+/* First or not at all — further along it is an argument, and help there is a write that never ran. Their home imports nothing, which is what lets the second CLI spend them: README, Layout. */
+export { isHelpWord, wantsHelp } from "./help-word.mjs";
 
 /* `flags` keeps only the last value of a repeated flag, which reads as a filtered answer rather
    than a dropped one. A caller that means "all of these" pulls them out first. */

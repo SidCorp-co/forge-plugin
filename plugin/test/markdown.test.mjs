@@ -30,7 +30,7 @@ const MARKDOWN = "plugin/src/markdown.mjs";
 const SHELL = "plugin/src/hooks/shell-spans.mjs";
 const SSE = "plugin/src/sse.mjs";
 const MACHINE = "plugin/src/flow/machine.mjs";
-const FLAGS = "plugin/src/resolve/flags.mjs";
+const HELP_WORD = "plugin/src/resolve/help-word.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -76,7 +76,7 @@ const NEEDLES = [
   ["a shell word", SHELL, [String.raw`[\w./@+][\w./@+-]*`, SHELL_ESCAPE]],
   ["an SSE frame reader", SSE, SSE_NEEDLES],
   ["the untrusted-data fence", MACHINE, [FENCE_WORD]],
-  ["the help predicate", FLAGS, HELP_FORMS, ANY_POSITION],
+  ["the help predicate", HELP_WORD, HELP_FORMS, ANY_POSITION],
 ];
 
 const redeclared = (sources) =>
@@ -93,14 +93,14 @@ const listed = (...paths) =>
 
 const read = (rel) => ({ rel, text: readFileSync(join(ROOT, rel), "utf8") });
 /* Every module, since a copy lands wherever a run writes: this read `checks` and `spec` and both quoter copies sat outside them. `vendor/` is another package's, and its `.js` is not this filter's.
-   `plugin/vi-natural/` is out by judgement and not by physics: an import upward would resolve, and nothing enforces the boundary. It is the repository's other CLI, with its own document and its own config, and its reader is a different reader — it trims a line before testing the field and parses each line alone, so the shared form cannot serve it. Its typed width is real and routed to its own issue, not answered here. */
-const modules = () => listed("plugin/src", "plugin/hooks").filter((one) => one.endsWith(".mjs")).map(read);
+   `plugin/vi-natural/` is in because a copy there has a route to a shared home: an import may run from that tree into `plugin/src/`, which is README's Layout section and not this file's to argue. */
+const modules = () => listed("plugin/src", "plugin/hooks", "plugin/vi-natural").filter((one) => one.endsWith(".mjs")).map(read);
 const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.endsWith(".md")).map(read);
 
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [SHELL, SSE, MACHINE, FLAGS]) {
+  for (const home of [SHELL, SSE, MACHINE, HELP_WORD]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -130,8 +130,8 @@ test("the guard fires on a module that re-declares one", () => {
     `h.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
     `i.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
     `j.mjs declares the untrusted-data fence of its own; ${MACHINE} holds it`,
-    `m.mjs declares the help predicate of its own; ${FLAGS} holds it`,
-    `n.mjs declares the help predicate of its own; ${FLAGS} holds it`,
+    `m.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
+    `n.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
   ]);
 });
 
@@ -142,7 +142,7 @@ test("the two any-position readers are excluded by name, and both are still in t
   const found = modules().map(({ rel }) => rel);
   for (const rel of ANY_POSITION) assert.ok(found.includes(rel), `${rel} is no longer a module the scan reads`);
   assert.deepEqual(redeclared([{ rel: "o.mjs", text: own }]),
-    [`o.mjs declares the help predicate of its own; ${FLAGS} holds it`],
+    [`o.mjs declares the help predicate of its own; ${HELP_WORD} holds it`],
     "and the same text anywhere else is still a copy");
 });
 
