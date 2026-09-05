@@ -68,3 +68,17 @@ The guard's needle is the typed width and not the field name. `startsWith("data:
 on a module testing a `data:` URI, and the refusal would send it to a frame reader it has no use
 for — a refusal a developer cannot act on. What that leaves uncaught is a copy that spells the field
 and derives the width from it, which carries no count and is not the drift the pair was filed for.
+
+## The tracker's fence, and why it lands in `flow/`
+
+The wrapper the tracker returns a field inside is one wrapper, and it was declared twice — once
+where a plan's declarations are read, once where a filing's shape is measured. Neither module sits
+under the two directories the guard was scanning at the time, so nothing looked (ISS-256).
+
+Its home is the flow module rather than the tracker module whose wrapper it is, which reads backwards
+until the import graph is drawn. The flow module imports nothing, deliberately, so that either side
+can reach it; the tracker module reaches it already, through the transport and the prose rewrite, and
+is itself loaded by a gate on every tool call. The edge that keeps the graph acyclic runs from the
+tracker to the flow, and the one the issue proposed would have closed a cycle. Where a primitive
+lives is decided by which module can be imported without dragging a graph behind it, not by whose
+subject matter it names.

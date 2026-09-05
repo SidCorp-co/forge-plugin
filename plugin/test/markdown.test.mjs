@@ -20,6 +20,7 @@ import {
   withoutMarkup,
   withoutSpans,
 } from "../src/markdown.mjs";
+import { FENCE_PATTERN } from "../src/flow/machine.mjs";
 import { typed } from "../src/hooks/shell-spans.mjs";
 import { DATA_FIELD, sseData } from "../src/sse.mjs";
 import { checkStructure } from "../src/checks/claude-md.mjs";
@@ -28,6 +29,7 @@ const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MARKDOWN = "plugin/src/markdown.mjs";
 const SHELL = "plugin/src/hooks/shell-spans.mjs";
 const SSE = "plugin/src/sse.mjs";
+const MACHINE = "plugin/src/flow/machine.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -52,6 +54,8 @@ const SHELL_ESCAPE = ".replace(/'/gu, String.raw`'\\''`)";
    refusal would send it to a frame reader. What that leaves uncaught spells the field and derives
    from it, so it carries no count and is not the drift this pair was filed for. */
 const SSE_NEEDLES = ["line.slice(5)", ".slice(5).trim()"];
+/* The fence without its anchors: a copy compiled with other flags is the same pattern, and a module that only names the wrapper is not one. */
+const FENCE_WORD = String.raw`⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧`;
 
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
@@ -62,6 +66,7 @@ const NEEDLES = [
   ["a markup class", MARKDOWN, [MARKUP_PATTERN]],
   ["a shell word", SHELL, [String.raw`[\w./@+][\w./@+-]*`, SHELL_ESCAPE]],
   ["an SSE frame reader", SSE, SSE_NEEDLES],
+  ["the untrusted-data fence", MACHINE, [FENCE_WORD]],
 ];
 
 const redeclared = (sources) =>
@@ -84,7 +89,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [SHELL, SSE]) {
+  for (const home of [SHELL, SSE, MACHINE]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -100,6 +105,7 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "f.mjs", text: "const q = (one) => `'${one.replace(/'/gu, String.raw`'\\''`)}'`;" },
     { rel: "h.mjs", text: "for (const line of lines) held += line.slice(5);" },
     { rel: "i.mjs", text: "const payload = (one) => one.slice(5).trim();" },
+    { rel: "j.mjs", text: String.raw`const FENCE = /⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧/u;` },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
@@ -110,6 +116,7 @@ test("the guard fires on a module that re-declares one", () => {
     `f.mjs declares a shell word of its own; ${SHELL} holds it`,
     `h.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
     `i.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
+    `j.mjs declares the untrusted-data fence of its own; ${MACHINE} holds it`,
   ]);
 });
 
@@ -117,6 +124,26 @@ test("escaping an apostrophe for a shell is not re-declaring the quoter", () => 
   const own = String.raw`const wrap = (one) => "'" + one.split("'").join("'\''") + "'";`;
   assert.ok(own.includes(String.raw`'\''`), "the idiom is there, so only the whole call tells a copy apart");
   assert.deepEqual(redeclared([{ rel: "g.mjs", text: own }]), []);
+});
+
+/* Tied back to the home's own source, so the needle cannot drift from the pattern it watches. */
+test("the fence needle is the source machine.mjs holds, and catches a copy anchored any way", () => {
+  assert.ok(FENCE_PATTERN.includes(FENCE_WORD), "the needle no longer occurs in the pattern it watches");
+  const copies = [
+    String.raw`const F = /^⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧\s*$/gmu;`,
+    String.raw`const F = new RegExp("⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧", "u");`,
+  ];
+  for (const text of copies) {
+    assert.deepEqual(redeclared([{ rel: "k.mjs", text }]),
+      [`k.mjs declares the untrusted-data fence of its own; ${MACHINE} holds it`]);
+  }
+});
+
+/* A needle on the word alone would refuse every comment that mentions the fence; the pattern is the class between the brackets. */
+test("naming the untrusted-data wrapper in prose is not re-declaring the fence", () => {
+  const own = "/* ⟦UNTRUSTED_DATA⟧ is off by the time this reads: unwrap took it. */";
+  assert.ok(own.includes("UNTRUSTED_DATA"), "the word is there, so only the class tells a copy apart");
+  assert.deepEqual(redeclared([{ rel: "l.mjs", text: own }]), []);
 });
 
 /* The margin admits a carriage return because the CLAUDE.md checker runs on checkouts this tree

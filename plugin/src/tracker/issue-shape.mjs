@@ -7,6 +7,7 @@
    plugin/hooks/how/issue-shape.md. */
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
+import { FENCE_PATTERN } from "../flow/machine.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
 import { enumAt } from "./rpc.mjs";
@@ -223,7 +224,7 @@ export const noticeFor = ({ kind, named, left }) => {
   return `${head}${rest}`;
 };
 
-const FENCE = /^⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧\s*$/gmu;
+const FENCE = new RegExp(FENCE_PATTERN, "gmu");
 
 export const openTitles = (rows) =>
   rows.filter((one) => !SETTLED.includes(one.status)).map((one) => ({
