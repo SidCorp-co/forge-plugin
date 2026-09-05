@@ -2635,3 +2635,28 @@ run. Folded from the record.
 - Both defects met were already open and got the instance added (ISS-234: a one-value flag given
   twice keeps the last and reports success; ISS-276: a clean consult's qualifications have nowhere on
   a review record to go). Two qualified passes went on the thread as a comment so they are not lost.
+
+## Hundred-and-sixth dry run — ISS-301
+
+One agent made the release script's help safe (3.35.118). One table now says what each verb takes and
+one reading walks the command line before dispatch, so no verb decides whether a help flag is help,
+and an argument no verb takes stops the script by name before the first step. Verified in the shared
+checkout itself: the shape that had reached the gate now exits with the verb's usage and no step
+reached. The review's own route was verified unchanged in the real checkout. Twelve criteria pass;
+three new cases fail against the old script. No restart owed. Closed by its run. Folded from the
+record.
+
+- The first commit read a flag's value as whatever followed it, so help typed after a value-taking
+  flag still ran a release; the consult found it and help is now reserved from every value position,
+  pinned by a case. A parser that answers help and takes values has this hole until it says so
+  (carried onto ISS-227).
+- The brief's figure for the script's line count was wrong by a tenth, but the file sits six-tenths
+  of a line under the comment-density limit, so the plan's move of the usage text broke the gate and
+  no other chunk helped. The table moved out and the usage stayed, recorded as a correction. A ceiling
+  a file is near is worth measuring before the plan, and the near one was not the one the brief named.
+- A comment on an unheld issue posted and silently took a lease once, then refused minutes later
+  naming the claim verb; filed as ISS-315. With ISS-63 open and two runs reading ISS-300 differently,
+  the finder's route is the one thing three runs today could not agree on; the only lease-free path
+  found was a feedback filing with the exact open title, which folds as a comment.
+- Filed ISS-313: the consult verb reads a bare dash as a filename where every other body-taking verb
+  reads it as stdin.
