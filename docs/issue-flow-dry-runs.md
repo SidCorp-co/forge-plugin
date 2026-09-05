@@ -2556,3 +2556,29 @@ the skills tree, so a restart is owed. Closed by its run. Folded from the record
   a module is worth one comment now.
 - The push raced twice during the gate and the ship's advice re-ran the review each time, so one
   unchanged diff cost three consults (ISS-225, recorded as a gap).
+
+## Hundred-and-second dry run — ISS-285, ISS-297 and ISS-298
+
+One agent closed three flow issues in one release (3.35.116). A record write now ends with the one
+line the owed reading prints, from a single reading shared by the trailer, advance and resume, so a run
+reads the ladder off the write it just made and calls advance only to move. Stale verdicts after a
+reopen fold into one owed item and one batched write, through builders shared with the unjudged fold
+so the two cannot drift. The batched-verdict suite pins its session and takes its lease in a setup
+hook, so a broken assertion fails in two seconds with a name instead of hanging the gate. Verified
+against the installed copy: three verbs print the byte-identical line. No restart owed. All three
+closed by the run. Folded from the record.
+
+- The hanging fix was found narrower than it read when the run probed the landed file: a throw at
+  construction, before the setup hook, still hangs, because teardown hooks never run when a module
+  body aborts. The criterion was scoped to the setup hook, so the verdict stands, and the boundary is
+  written on the record instead of inferred (ISS-122 carries the request-handler half and a note that
+  it does not cover this one).
+- Two declared deviations, each with a correction record: the trailer goes to stderr, because stdout
+  is the record document whose last line the reader anchors on; and a refused reading prints the
+  refusal's first line with its colon turned into a full stop.
+- The sentence the skill owes for the trailer was posted on the run holding the skill files, which
+  closed without it; filed as its own fix (ISS-311). A note owed to a held file is re-read against
+  the holder's state at ship, not at plan.
+- A recheck based on the parent of the landed head diffs only the version files, because the version
+  commit sits above the change; the pre-ship sha is the base. The record page was measured at
+  seventy-eight characters under its one-pass cap and its split filed (ISS-304).
