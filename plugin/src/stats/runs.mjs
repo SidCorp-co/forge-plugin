@@ -14,7 +14,7 @@ import {
   transcriptsUnder,
 } from "./transcripts.mjs";
 import { fail } from "../resolve/settings.mjs";
-import { flags } from "../resolve/flags.mjs";
+import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
 
 const ROWS = 10;
@@ -395,11 +395,16 @@ const SUBJECTS = { runs: printRuns };
 
 export const stats = (argv) => {
   const [subject, ...rest] = argv;
-  const asked = argv.some((one) => one === "-h" || one === "--help");
-  if (asked || !subject || !Object.hasOwn(SUBJECTS, subject)) {
-    if (subject && !asked) console.error(`stats: no subject named ${subject}. There is: runs.\n`);
-    console[asked ? "log" : "error"](USAGE);
-    process.exit(asked ? 0 : 1);
+  /* Both places help can stand on a verb that takes a subject, through the one predicate that
+     decides what help is: after the verb, and after the subject. */
+  if (wantsHelp(argv) || wantsHelp(rest)) {
+    console.log(USAGE);
+    process.exit(0);
+  }
+  if (!subject || !Object.hasOwn(SUBJECTS, subject)) {
+    if (subject) console.error(`stats: no subject named ${subject}. There is: runs.\n`);
+    console.error(USAGE);
+    process.exit(1);
   }
   SUBJECTS[subject](rest);
 };
