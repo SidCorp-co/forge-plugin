@@ -2,14 +2,12 @@
 // a green run. Narrow on purpose: a guard refusing too much gets disabled — how/bash-guard.md.
 // It also refuses a wait that polls, which loses nothing and costs a turn per wake-up — how/polling.md.
 
-import { spawnSync } from "node:child_process";
 import { isAbsolute, resolve } from "node:path";
 
+import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
 import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, deny, gitTreeOf, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
 
-/* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec
-   bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. */
-/* `git -C other stash` and `git -c k=v add -A` are the verb with a global before it. */
+/* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. `git -C other stash` and `git -c k=v add -A` are the verb with a global before it. */
 const GIT = String.raw`^(?:\S*\/)?git\s+` + GIT_GLOBALS;
 const stagesEverything = (one) => {
   const rest = new RegExp(`${GIT}add\\b(.*)$`, "u").exec(one)?.[1];
@@ -40,8 +38,7 @@ const movesTheStack = (one) => {
 
 const RULES = [
   {
-    // `--fix-type` writes too; `--fix-dry-run` writes nothing and is how you see the diff first.
-    // A runner keeps its command as arguments and is not in the shared grammar; a path names it too.
+    // `--fix-type` writes too; `--fix-dry-run` writes nothing and is how you see the diff first. A runner keeps its command as arguments and is not in the shared grammar; a path names it too.
     pattern: new RegExp(
       String.raw`^(?:\S*\/)?(?:(?:npx|pnpm\s+exec|yarn\s+run|bunx)\s+)?(?:\S*\/)?` +
         String.raw`(?:eslint|(?:npm|pnpm|yarn)\s+(?:run\s+)?lint\S*)\b[^|;&]*--fix(?:-type)?(?![\w-])`,
@@ -64,7 +61,7 @@ const RULES = [
   },
   {
     pattern: { test: stagesEverything },
-    needsDirtyTree: true,
+    atStake: "dirty",
     cause:
       "git add -A stages everything in the tree, including work in progress that is not yours " +
       "and probes you meant to throw away.",
@@ -72,7 +69,7 @@ const RULES = [
   },
   {
     pattern: { test: movesTheStack },
-    needsSharedStack: true,
+    atStake: "shared",
     cause:
       "The stash stack belongs to the repository, not to this worktree, and this repository has " +
       "more than one worktree. A stash pushed in one tree is what a pop in another takes, so this " +
@@ -84,7 +81,7 @@ const RULES = [
   {
     // `list` and `show` read the stash and revert nothing, and refusing one cost a whole line.
     pattern: new RegExp(`${GIT}["']?stash\\b(?!\\s+["']?(?:list|show)\\b)`, "u"),
-    needsDirtyTree: true,
+    atStake: "dirty",
     cause:
       "git stash silently reverts the working tree, so everything read afterwards reports about " +
       "code that is no longer there.",
@@ -93,14 +90,14 @@ const RULES = [
   },
   {
     pattern: new RegExp(`${GIT}checkout\\s+["']?(?:--\\s+\\S|-{2}\\s|\\S+\\.\\w)`, "u"),
-    needsDirtyTree: true,
+    atStake: "dirty",
     cause:
       "git checkout of a tracked path discards uncommitted work with no history to restore it from.",
     instead: "Copy the file aside first, or make the change you actually want.",
   },
   {
     pattern: new RegExp(`${GIT}reset\\s+["']?--hard\\b`, "u"),
-    needsDirtyTree: true,
+    atStake: "dirty",
     cause: "git reset --hard discards every uncommitted change in the tree at once.",
     instead: "Reset the specific paths, or commit first so the state is recoverable.",
   },
@@ -117,39 +114,19 @@ const RULES = [
   },
 ];
 
-/** A git rule only bites when there is uncommitted work to lose. True on any doubt: if git
- *  cannot answer, the safe reading is that something is at stake. */
+/** A git rule only bites when there is uncommitted work to lose. True on any doubt: if git cannot answer, the safe reading is that something is at stake. */
 function treeIsDirty(cwd) {
-  let out;
-  try {
-    out = spawnSync("git", ["status", "--porcelain"], {
-      cwd: cwd || undefined,
-      encoding: "utf8",
-      timeout: Math.max(500, Math.min(5000, remaining() - 1000)),
-    });
-  } catch {
-    return true;
-  }
-  if (out.error) return true;
-  if (out.status !== 0) return false; // not a repository: the rule has nothing to protect
-  return out.stdout.trim() !== "";
+  const said = gitProbe(["status", "--porcelain"], { cwd: cwd || undefined, ms: probeMs(remaining()) });
+  if (said.failed) return true;
+  if (said.status !== 0) return false; // not a repository: the rule has nothing to protect
+  return said.out.trim() !== "";
 }
 
-/** How many worktrees share this repository's stash stack, a stale entry included since the verb
- *  reports one. One on any doubt: a refusal invented from a failed probe reads as noise. */
+/** How many worktrees share this repository's stash stack, a stale entry included since the verb reports one. One on any doubt: a refusal invented from a failed probe reads as noise. */
 function worktreeCount(cwd) {
-  let out;
-  try {
-    out = spawnSync("git", ["worktree", "list", "--porcelain"], {
-      cwd: cwd || undefined,
-      encoding: "utf8",
-      timeout: Math.max(500, Math.min(5000, remaining() - 1000)),
-    });
-  } catch {
-    return 1;
-  }
-  if (out.error || out.status !== 0) return 1;
-  return Math.max(1, out.stdout.split("\n").filter((line) => line.startsWith("worktree ")).length);
+  const said = gitProbe(["worktree", "list", "--porcelain"], { cwd: cwd || undefined, ms: probeMs(remaining()) });
+  if (said.failed || said.status !== 0) return 1;
+  return Math.max(1, said.out.split("\n").filter((line) => line.startsWith("worktree ")).length);
 }
 
 /* A literal inside a program an interpreter runs is data — a triple quote and an escape first, since
@@ -235,15 +212,18 @@ export const run = (ev) => {
     if (!waited.has(one.source)) waited.set(one.source, waitsIn(one.source));
     return waited.get(one.source).some(([from, to]) => one.at >= from && one.at < to);
   };
-  for (const { pattern, cause, instead, needsDirtyTree, needsSharedStack, needsWait, topic } of RULES) {
+  /* At most one reading gates a rule, and the doubt suffixes below are written about the dirty one. */
+  const AT_STAKE = { dirty, shared };
+  for (const { pattern, cause, instead, atStake, needsWait, topic } of RULES) {
     const hits = run.filter((one) => pattern.test(one.said) && (!needsWait || inWait(one)));
     if (!hits.length) continue;
-    /* At most one reading gates a rule, and the doubt suffixes below are written about the dirty one. */
-    const atStake = needsDirtyTree ? dirty : (needsSharedStack ? shared : null);
-    const hit = atStake && hits.find((one) => treesOf(one, ev.cwd).some(atStake));
-    if (atStake && !hit) continue;
-    const trees = needsDirtyTree && hit ? treesOf(hit, ev.cwd) : [];
-    const unsure = trees.includes(NOWHERE) ? UNNAMED : (trees.length > 1 ? UNSURE : "");
+    const asks = AT_STAKE[atStake] ?? null;
+    /* The trees the `find` read, kept: the refusal is about the very hit that answered. */
+    let trees = [];
+    const hit = asks && hits.find((one) => (trees = treesOf(one, ev.cwd)).some(asks));
+    if (asks && !hit) continue;
+    const doubt = atStake === "dirty" && hit ? trees : [];
+    const unsure = doubt.includes(NOWHERE) ? UNNAMED : (doubt.length > 1 ? UNSURE : "");
     deny(`Refused. ${cause}\n\nInstead: ${instead}${unsure}${topic ? how(topic) : how()}`);
   }
 };

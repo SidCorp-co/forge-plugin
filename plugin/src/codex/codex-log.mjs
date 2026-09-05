@@ -366,7 +366,9 @@ export const undecidedIn = (ids, held) => {
   return ids.filter((id) => !held.kept?.includes(id) && !(id in (held.dropped ?? {})));
 };
 
-/* For the commit gate. A later consult that found nothing does not answer for an earlier one's findings. */
+export const verdictForm = (id) => `forge codex verdict --of ${id} --accepted <ids> --rejected <id>=<why>`;
+
+/* For the commit gate, with the one command that clears it: two gates print that line in sentences of their own and the flags are the same flags in both. A later consult that found nothing does not answer for an earlier one's findings. */
 export const unverdicted = (entries, root) => {
   const scored = verdictsBy(entries);
   const last = answered(entries).filter((one) => one.root === root && numbered(one.reply).length).at(-1);

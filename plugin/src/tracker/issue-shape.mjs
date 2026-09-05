@@ -531,7 +531,6 @@ export const filingRefusal = async (filing, { gaps, fix, tokens }, { routed = fa
     text: [head, out.length ? rendered(out) : null, routes].filter(Boolean).join("\n\n"),
     duplicate: same?.key ?? null,
     shaped: gaps.length > 0,
-    route: owesRoute,
   };
 };
 

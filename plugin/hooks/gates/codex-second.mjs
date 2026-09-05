@@ -3,7 +3,8 @@
 import { isAbsolute, resolve } from "node:path";
 
 import { ageOf, demandIn, pendingState, repoRoot, stagedIn } from "../../src/codex/codex.mjs";
-import { logEntries, unverdicted } from "../../src/codex/codex-log.mjs";
+import { logEntries, unverdicted, verdictForm } from "../../src/codex/codex-log.mjs";
+import { probeMs } from "../../src/hooks/git-probe.mjs";
 import {
   REDIRECT,
   COMMITS,
@@ -17,8 +18,6 @@ import {
   spelled as bare,
   typed,
   how, done, remaining } from "../_hook.mjs";
-
-const clock = () => Math.max(500, Math.min(5000, remaining() - 1000));
 
 /* What the commit closes over, from that command alone: a pipeline's flags are not the commit's, and
    neither is a redirect's target or a value a flag ate — `-am x` is all and a message, `-ma` a message
@@ -128,7 +127,7 @@ export const run = (ev) => {
 
   const also = unjudged(ev, root, aim.others);
   /* Asked for what it stages; a commit this cannot enumerate names nothing, so the record stands whole. */
-  const staged = stagedIn(root, aim, clock());
+  const staged = stagedIn(root, aim, probeMs(remaining()));
 
   /* Recorded this turn or a turn ago, staged here, and never read: 7 of 30 commits landed with
      the list unread, and a shared checkout's 726 dirty paths were demanded of a three-file commit. */
@@ -150,7 +149,7 @@ export const run = (ev) => {
   if (open) {
     deny(
       `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what became of ${open.open.join(", ")}.${also}\n\n`
-        + `Do this: \`forge codex verdict --of ${open.id} --accepted <ids> --rejected <id>=<why>\`, then re-send. `
+        + `Do this: \`${verdictForm(open.id)}\`, then re-send. `
         + `A --recheck records the verdict for what it refutes. ${ESCAPE}`
         + how(),
     );

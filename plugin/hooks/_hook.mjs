@@ -9,13 +9,16 @@ import { pathToFileURL } from "node:url";
 import { jsonLines as parsed, logHook } from "../src/hooks/hook-log-file.mjs";
 import { scrubbed } from "../src/hooks/hook-log.mjs";
 import { NOWHERE, spans, standsIn } from "../src/hooks/shell-spans.mjs";
-import { gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
+import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 
+export { DEADLINES };
 export { askedAlready, askedByAnyone } from "../src/hooks/stamps.mjs";
 export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
 export { NOWHERE, spans, standsIn };
 
-const TOKEN = /[A-Za-z0-9_./@-]+\.[A-Za-z0-9]+/g;
+/* A name with an extension, as a command spells one. `~` is a home a shell would expand and belongs only where a caller judges the spelling, so the two readings differ by that one character. */
+const nameLike = (extra) => new RegExp(`[A-Za-z0-9_./@${extra}-]+\\.[A-Za-z0-9]+`, "g");
+const TOKEN = nameLike("");
 /** How long after a call a file's mtime still answers for it. */
 export const FRESH_MS = 120_000;
 
@@ -96,9 +99,9 @@ export const dispatch = async (given, ev = readEvent()) => {
 /* The deadline is the event's, under what hooks.json registers, and runs from the process rather
    than from this import: the entry hops before it, and a fallback would get a fresh budget. */
 const startedAt = performance.timeOrigin;
-export const DEADLINES = { pre: 8_000, post: 85_000, stop: 25_000 };
 let deadline = DEADLINES.post;
 export const remaining = () => deadline - (Date.now() - startedAt);
+
 
 /** One gate on its own, as the suite and a hand-run call it. */
 export const alone = (name) => dispatch([name]);
@@ -391,7 +394,7 @@ export const expanded = (command) => {
 };
 
 /** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the class below dropped — answers for what it spells and nothing more. `pattern` narrows which names a caller wants. `forge hooks --how writes`. */
-const WRITTEN = /[A-Za-z0-9_./@~-]+\.[A-Za-z0-9]+/g;
+const WRITTEN = nameLike("~");
 /* Twelve refusals in three days were a sentence inside a string — a write word and a path in one line of prose. A path and a mode hold no space, so a span with one is prose; a `-c` body is code. */
 const spoken = (said) =>
   said
@@ -424,12 +427,18 @@ export const writtenPaths = (text, cwd, pattern = WRITTEN) => {
   });
 };
 
+/* Kept per array: one stop event asks three times over a tail that reaches hundreds of thousands of records, and `turnRecords` hands every caller the same array. */
+const begunAt = new WeakMap();
+
 /** Where this turn begins: only a user record carrying `promptSource` is a prompt somebody typed. */
 export const promptIndex = (records) => {
+  const held = begunAt.get(records);
+  if (held !== undefined) return held;
   let from = -1;
-  for (let at = 0; at < records.length; at += 1) {
+  for (let at = 0; at < (records?.length ?? 0); at += 1) {
     if (records[at]?.type === "user" && typeof records[at].promptSource === "string") from = at;
   }
+  if (records) begunAt.set(records, from);
   return from;
 };
 

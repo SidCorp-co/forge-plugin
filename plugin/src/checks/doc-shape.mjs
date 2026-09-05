@@ -4,8 +4,9 @@ export const NARRATES =
 /* A flag since renamed reads exactly like one that works. The CLI's tables are the authority. */
 const FORGE_CALL = /`forge ([a-z]+)((?:\s+(?:--?[\w-]+|<[^`>]*>|[\w.@/-]+))*)`/gu;
 const ENV_VAR = /\bFORGE_[A-Z][A-Z_]*\b/gu;
-const FLAG_VALUE = /(--[\w-]+)(?:[ \t]+([^\s-][^\s]*))?/gu;
-const FLAG_OFFERS = /(--[\w-]+)(?:[ \t]([^\s-][^\s]*))?/gu;
+const flagThen = (gap) => new RegExp(String.raw`(--[\w-]+)(?:${gap}([^\s-][^\s]*))?`, "gu");
+const FLAG_VALUE = flagThen(String.raw`[ \t]+`);
+const FLAG_OFFERS = flagThen(String.raw`[ \t]`);
 const PROPOSAL = /^(?:#[^\n]*\n\s*)?\*\*Status: proposal for ((?:`forge [a-z]+`(?:,\s*)?)+)\.\*\*/u;
 
 /* The same claim in the source, printed or in a comment: either sends the next reader to a command,

@@ -1,10 +1,10 @@
 // Stop once before a write to a file an open session cannot pick up: the ship names these at the end
 // of a run, hours after the decision that put the text there. how/restart-owed.md says why.
 
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 
-import { askedAlready, deny, done, how, logged, settled, shellText, turnRecords, writtenPaths } from "../_hook.mjs";
-import { copyToRun, freezesSession } from "../../src/tools/plugin-copy.mjs";
+import { askedAlready, deny, done, how, logged, named, settled, shellText, turnRecords, writtenPaths } from "../_hook.mjs";
+import { FROZEN, copyToRun, freezesSession } from "../../src/tools/plugin-copy.mjs";
 
 /** The repository-relative name `freezesSession` reads — the set is its and nothing here narrows or widens it — or null where the write is not in a checkout of this plugin at all. A marketplace `source` is one directory below the checkout root, which is what `copyToRun` answers with and what this reads the root back off. */
 const held = new Map();
@@ -20,8 +20,15 @@ const inCheckout = (path) => {
   return rel && !rel.startsWith("..") ? rel : null;
 };
 
+/* A necessary condition, asked first because it costs nothing: a repository-relative name in the set
+   is a tail of the absolute path, so a path holding none of them cannot be one, and the walk for a
+   marketplace above it — which every write in every project pays — is not made at all. */
+const couldBe = (path) => FROZEN.some((one) => path.includes(one));
+
 const frozen = (path, here) => {
-  const rel = inCheckout(resolve(here, path));
+  const full = resolve(here, path);
+  if (!couldBe(full)) return null;
+  const rel = inCheckout(full);
   return rel && freezesSession(rel) ? rel : null;
 };
 
@@ -65,8 +72,8 @@ export const run = (ev) => {
   const aimed =
     tool === "Bash"
       ? writtenPaths(shellText(ti.command), here)
-        .flatMap((one) => (one.trees.length ? one.trees.map((tree) => join(tree, one.token)) : one.paths))
-      : [ti.file_path ?? ti.notebook_path ?? ""].filter(Boolean);
+        .flatMap((one) => (one.trees.length ? one.paths.slice(1) : one.paths))
+      : named(ev);
 
   for (const path of aimed) {
     const rel = frozen(path, here);

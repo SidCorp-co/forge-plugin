@@ -6,7 +6,7 @@ import { filingRefusal, liveTitles, rankOf, shapeOf, shapeRefusal, trackerFields
   from "./issue-shape.mjs";
 import { write } from "./rpc.mjs";
 
-export const withSections = (body, sections) => {
+const withSections = (body, sections) => {
   const written = String(body ?? "").replace(/\s*$/u, "");
   const filled = sections.map((one) => String(one).replace(/\s*$/u, "")).filter(Boolean);
   return filled.length ? `${written}\n\n${filled.join("\n\n")}\n` : written;
@@ -14,7 +14,7 @@ export const withSections = (body, sections) => {
 
 /** Why a filing did not become an issue, as a value a caller branches on rather than text it
  *  matches: `collided` is the key it duplicates, `mine` a body no backlog would take. */
-export const refusalOf = (refused) => {
+const refusalOf = (refused) => {
   if (!refused) return null;
   const { text, duplicate = null, shaped = true } = typeof refused === "string" ? { text: refused } : refused;
   return { text, collided: duplicate, mine: !duplicate && shaped };
@@ -31,12 +31,12 @@ export const bodyOf = ({ title, body, kind = null, sections = [], size = undefin
   const written = withSections(body, sections);
   const description = size ? withMark(written) : written;
   const shape = shapeOf({ title, body: description, kind }, { everySection });
-  return { description, refusal: refusalOf(shapeRefusal(shape)) };
+  return { description, shape, refusal: refusalOf(shapeRefusal(shape)) };
 };
 
 export const readFiling = async (filing,
-  { routed = false, everySection = false, duplicates = true, page = null } = {}) => {
-  const shape = shapeOf(filing, { everySection });
+  { routed = false, everySection = false, duplicates = true, page = null, shape: known = null } = {}) => {
+  const shape = known ?? shapeOf(filing, { everySection });
   const read = page ?? await liveTitles();
   const refused = duplicates
     ? await filingRefusal(filing, shape, { routed, page: read })
@@ -67,9 +67,9 @@ export const fileIssue = async ({
 }) => {
   const ranked = asked ?? await rankOf(priority);
   if (ranked.refusal) return { refusal: refusalOf(ranked.refusal), description: null, shape: null };
-  const { description } = bodyOf({ title, body, kind, sections, size, everySection });
+  const { description, shape: known } = bodyOf({ title, body, kind, sections, size, everySection });
   const { refusal, shape, beside } =
-    await readFiling({ title, body: description, kind }, { routed, everySection, duplicates, page });
+    await readFiling({ title, body: description, kind }, { routed, everySection, duplicates, page, shape: known });
   if (refusal) return { refusal, description, shape };
   const { joined, answer: comment, said } =
     await foldFiling(beside, { title, body: description, routed, fresh, soft });

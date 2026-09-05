@@ -8,7 +8,7 @@ const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 export const WITHIN = "agents";
 
-export const rolesDir = (root = HERE) => join(root, WITHIN);
+const rolesDir = (root = HERE) => join(root, WITHIN);
 
 export const rolesIn = (root = HERE) => {
   const dir = rolesDir(root);

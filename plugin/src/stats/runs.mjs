@@ -11,7 +11,7 @@ import {
   markerOf,
   readTranscript,
   slugFor,
-  tierOf,
+  tierRun,
   transcriptBase,
   transcriptsUnder,
 } from "./transcripts.mjs";
@@ -165,7 +165,7 @@ export const runFrom = (path, session, text) => {
     session,
     startedAt,
     endedAt,
-    tier: tierOf(calls, TIERS),
+    tier: tierRun(calls),
     brief: read.brief,
     calls: calls.length,
     seconds: (endedAt - startedAt) / 1000,

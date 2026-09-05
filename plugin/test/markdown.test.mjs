@@ -31,6 +31,7 @@ const SHELL = "plugin/src/hooks/shell-spans.mjs";
 const SSE = "plugin/src/sse.mjs";
 const MACHINE = "plugin/src/flow/machine.mjs";
 const HELP_WORD = "plugin/src/resolve/help-word.mjs";
+const LINE_AT = "plugin/src/line-at.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -61,6 +62,11 @@ const FENCE_WORD = String.raw`⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧`;
 /* The comparison a copy writes, and the pair a copy declaring the words as a list would write. */
 const HELP_FORMS = ['=== "-h"', '"-h", "--help"'];
 
+const LINE_AT_FORMS = [String.raw`.split("\n").length`, String.raw`.split('\n').length`];
+
+/* Two modules count the lines of a whole text rather than of a prefix, which is a different question with the same tail and no home to be sent to. Named here rather than narrowed out of the needle: one cut until it matches only the copies already found catches no later one. */
+const WHOLE_TEXT = ["plugin/src/checks/claude-md.mjs", "plugin/src/codex/codex-plan.mjs"];
+
 /* One module reads a help flag anywhere in a line rather than as its first word and spells those same
    two words to do it; no needle over text tells it from a copy, and it is not one. Named here,
    where a run widening this scan reads it; docs/cli/the-primitives.md carries why. */
@@ -77,6 +83,7 @@ const NEEDLES = [
   ["an SSE frame reader", SSE, SSE_NEEDLES],
   ["the untrusted-data fence", MACHINE, [FENCE_WORD]],
   ["the help predicate", HELP_WORD, HELP_FORMS, ANY_POSITION],
+  ["a line number from an index", LINE_AT, LINE_AT_FORMS, WHOLE_TEXT],
 ];
 
 const redeclared = (sources) =>
@@ -100,7 +107,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [SHELL, SSE, MACHINE, HELP_WORD]) {
+  for (const home of [SHELL, SSE, MACHINE, HELP_WORD, LINE_AT]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -119,6 +126,8 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "j.mjs", text: String.raw`const FENCE = /⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧/u;` },
     { rel: "m.mjs", text: 'const asked = word === "-h" || word === "--help";' },
     { rel: "n.mjs", text: 'const HELP = ["-h", "--help"];' },
+    { rel: "o.mjs", text: 'const at = (text, i) => text.slice(0, i).split("\\n").length;' },
+    { rel: "p.mjs", text: "const at = (text, i) => text.slice(0, i).split('\\n').length;" },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
@@ -132,6 +141,8 @@ test("the guard fires on a module that re-declares one", () => {
     `j.mjs declares the untrusted-data fence of its own; ${MACHINE} holds it`,
     `m.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
     `n.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
+    `o.mjs declares a line number from an index of its own; ${LINE_AT} holds it`,
+    `p.mjs declares a line number from an index of its own; ${LINE_AT} holds it`,
   ]);
 });
 

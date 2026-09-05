@@ -1,5 +1,6 @@
 /* The path is R-19's to resolve, in plugin/src/checks/cited-paths.mjs, so what is asked here is the
    case; docs/requirements/README.md carries why a Proof names one (R-11, ISS-217). */
+import { lineAt } from "../line-at.mjs";
 import { clausesOf } from "./parse.mjs";
 import { suggest } from "../suggest.mjs";
 
@@ -30,7 +31,7 @@ export const proofOf = (value) => {
   return { path: found[1], name: found[2] ?? null, held };
 };
 
-const lineOf = (text, id) => text.slice(0, text.indexOf(`**${id}**`)).split("\n").length;
+const lineOf = (text, id) => lineAt(text, text.indexOf(`**${id}**`));
 
 const criteriaOf = ({ file, text }) =>
   clausesOf(text)

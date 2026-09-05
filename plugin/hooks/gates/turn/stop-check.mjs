@@ -1,20 +1,21 @@
 // Refuses the end of a turn that left work red, one line per item and the command that clears it.
 // Once per item per turn, so a run that cannot clear one says so and ends. how/stop-check.md.
 
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { repoRoot } from "../../../src/codex/codex.mjs";
-import { logEntries, unverdicted } from "../../../src/codex/codex-log.mjs";
-import { CODE, FILE_MS, SKIP, lintOne } from "../../../src/hooks/lint-delegate.mjs";
+import { logEntries, unverdicted, verdictForm } from "../../../src/codex/codex-log.mjs";
+import { FIELD, KEY } from "../../../src/flow/lease.mjs";
+import { gitProbe } from "../../../src/hooks/git-probe.mjs";
+import { linting } from "../../../src/hooks/lint-delegate.mjs";
 import { sessionKey } from "../../../src/tracker/comments.mjs";
 import { keysIn } from "../../../src/tracker/issues.mjs";
 import { askedAlready, block, done, how, remaining, sinceTurn, turnAt, turnRecords, turnWrites, typed }
   from "../../_hook.mjs";
 
-const MAX_FILES = 5;
 const MAX_ISSUES = 2;
 const SPARE_MS = 3_000;
 const CALL_MS = 8_000;
@@ -47,8 +48,8 @@ const forge = (tree, argv) => {
 
 /* Untrimmed: a status line begins with two columns and a space, and trimming eats the first one's. */
 const git = (tree, argv) => {
-  const run = spawnSync("git", ["-C", tree, ...argv], { encoding: "utf8", timeout: GIT_MS });
-  return run.status === 0 ? String(run.stdout ?? "") : null;
+  const said = gitProbe(["-C", tree, ...argv], { ms: GIT_MS });
+  return said.status === 0 ? said.out : null;
 };
 
 /* Where a command or this turn's own prompt named one: a key quoted in a diff or in a tool's answer
@@ -67,7 +68,7 @@ const keysNamed = (records) => {
 
 /** A lease this session took and has written nothing against since. Every payload write renews the
  *  lease and only a claim appends to its history, so a `renewedAt` still standing on the newest
- *  claim is a run that took the issue and said nothing. */
+ *  claim is a run that took the issue and said nothing. Read raw and not through `leaseOf`, which fills a default in for every field it does not find and so answers where this would rather throw; the two field names are the ones `lease.mjs` exports. Expiry is deliberately not asked, a lapsed lease this session still holds being the same silence. */
 export const silentSince = (lease, holder) => {
   if (!lease || !holder || lease.holder !== holder) return false;
   const claimed = (lease.history ?? []).map((one) => String(one?.at ?? "")).sort().pop() ?? "";
@@ -84,7 +85,7 @@ export const heldAndSilent = (ev, tree, records) => {
   const rows = (listed?.issues ?? []).filter((row) => keys.includes(String(row?.issueId).toUpperCase()));
   const out = [];
   for (const row of rows.slice(0, MAX_ISSUES)) {
-    const lease = forge(tree, ["issue", row.issueId, "--fields", "sessionContext"])?.sessionContext?.lease;
+    const lease = forge(tree, ["issue", row.issueId, "--fields", FIELD])?.[FIELD]?.[KEY];
     if (silentSince(lease, holder)) out.push(row.issueId);
   }
   return out;
@@ -93,8 +94,8 @@ export const heldAndSilent = (ev, tree, records) => {
 /* A worktree this run made, and not the checkout it was made from: git answers the two directories
    relatively in the one and absolutely in the other, so both are placed before they are compared. */
 const isWorktree = (tree) => {
-  const own = git(tree, ["rev-parse", "--git-dir"])?.trim();
-  const shared = git(tree, ["rev-parse", "--git-common-dir"])?.trim();
+  const [own, shared] = (git(tree, ["rev-parse", "--git-dir", "--git-common-dir"]) ?? "")
+    .split("\n").map((one) => one.trim());
   return Boolean(own && shared) && resolve(tree, own) !== resolve(tree, shared);
 };
 
@@ -113,9 +114,8 @@ const leftDirty = (tree, since) => {
 
 const linted = (ev, records) => {
   const found = [];
-  for (const file of turnWrites(records).filter((one) => CODE.test(one) && !SKIP.test(one)).slice(0, MAX_FILES)) {
-    if (left() < 1000) break;
-    const said = lintOne(ev, file, Math.min(FILE_MS, left()), repoRoot(file) ?? dirname(file));
+  const at = (file) => repoRoot(file) ?? dirname(file);
+  for (const { file, said } of linting(ev, turnWrites(records), left, { at })) {
     if (said) found.push(`${typed(file)} — ${said.split("\n")[0]}`);
   }
   return found;
@@ -139,7 +139,7 @@ export const run = (ev, held = heldAndSilent) => {
   if (open) {
     say(`consult ${open.id}`,
       `Consult ${open.id} made ${open.open.join(", ")} and nothing says what became of them.\n`
-      + `  Clear it: \`forge codex verdict --of ${open.id} --accepted <ids> --rejected <id>=<why>\`.`);
+      + `  Clear it: \`${verdictForm(open.id)}\`.`);
   }
 
   if (left() > 1000 && !asked(ev, at, "lease", false)) {

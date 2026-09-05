@@ -21,9 +21,8 @@ const markSaid = (description) => {
     : `This issue carries no size mark, so it is a \`${FEATURE}\``;
 };
 
-const climbSaid = ({ description, plan, moved }) => {
+const climbSaid = ({ description, plan }, tier) => {
   const claimed = tierIn(description);
-  const tier = tierOf({ description, plan, moved, whole: true });
   if (tier === claimed) return null;
   const declared = looksTo(planFlags(plan));
   const byPlan = declared && heightOf(claimed) < TIERS.length - 1;
@@ -45,7 +44,7 @@ export const sizeReport = (size, ref) => {
       "correction that re-sized it, so the tier is not applied and the full set is asked."].join("\n");
   }
   const tier = tierOf(size);
-  const climbed = climbSaid(size);
+  const climbed = climbSaid(size, tier);
   const opened = `${markSaid(description)}${climbed ? `, and ${climbed}` : ""}. The entry checks run that tier:`;
   const dropped = lighterLines(tier);
   return [

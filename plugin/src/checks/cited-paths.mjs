@@ -4,6 +4,7 @@
    real path — a file named from further up, which this tree writes in a dozen places. */
 import { posix } from "node:path";
 
+import { lineAt } from "../line-at.mjs";
 import { LINK_TARGET_PATTERN } from "../markdown.mjs";
 
 const SOURCE = "(?:mjs|cjs|js|[jt]sx?|json|md|sql|ya?ml|sh|py|toml)";
@@ -21,8 +22,6 @@ const SHAPES = [
   new RegExp("`(" + SEGMENT + "\\." + SOURCE + ")`", "gu"),
   new RegExp(LINK_TARGET_PATTERN, "gu"),
 ];
-
-const lineAt = (text, index) => text.slice(0, index).split("\n").length;
 
 export const citedIn = (text) => {
   const held = String(text ?? "");

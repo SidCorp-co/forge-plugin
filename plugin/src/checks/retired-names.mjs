@@ -1,5 +1,7 @@
 /* The retired names, held once so a sentence naming a verb that no longer runs fails something. An
    entry names no replacement: pointing at what took over is the redirect docs/cli/withholding-a-verb.md forbids. */
+import { lineAt } from "../line-at.mjs";
+
 export const RETIRED = [
   { name: "feedback", kind: "directory", release: "3.35.45" },
   { name: "codex-order", kind: "tool", release: "3.35.134" },
@@ -22,7 +24,6 @@ const shapesOf = ({ name, kind }) =>
   })[kind] ?? [];
 
 const WHY = "docs/cli/withholding-a-verb.md";
-const lineAt = (text, index) => text.slice(0, index).split("\n").length;
 const stem = (rel) => rel.split("/").pop().replace(/\.[^.]+$/u, "");
 
 const SELF = `plugin/${import.meta.url.split("/plugin/").pop()}`;

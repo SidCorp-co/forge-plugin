@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { VERB_NAMES } from "../resolve/visibility.mjs";
+import { TIERS } from "../ladder.mjs";
 import { stampedIn } from "../flow/machine.mjs";
 
 export const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`);
@@ -24,14 +25,14 @@ const CONFIRMED = "confirmation";
 
 export const UNTIERED = "untiered";
 
-/* Off the record the write posted, never off the output a class covers whole: the-ladder.md. */
-export const tierOf = (calls, tiers) => {
+/* Which rung a whole run was worked at, off the records its writes posted and never off the output a class covers whole: the-ladder.md. Named apart from `ladder.mjs`'s `tierOf`, which answers for one issue's fields where this reads a transcript, and `UNTIERED` is no rung of the ladder rather than its cheapest. */
+export const tierRun = (calls) => {
   const said = calls
     .filter((call) => call.class === CONFIRMS)
     .map((call) => String(stampedIn(call.body ?? "", CONFIRMED, "tier") ?? "").trim().toLowerCase())
-    .filter((one) => tiers.includes(one));
+    .filter((one) => TIERS.includes(one));
   /* The largest, which is the batch rule: a run of three issues is as heavy as its heaviest. */
-  return said.length ? said.reduce((held, one) => (tiers.indexOf(one) > tiers.indexOf(held) ? one : held)) : UNTIERED;
+  return said.length ? said.reduce((held, one) => (TIERS.indexOf(one) > TIERS.indexOf(held) ? one : held)) : UNTIERED;
 };
 
 const namesIn = (directory) => {

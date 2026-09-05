@@ -1,6 +1,8 @@
 /* The tracker's own column names, which this CLI reads and never shows: a name an agent has to
    translate costs a round — docs/cli/the-project.md. Stated as patterns, and read by property access, so
    neither the rule nor its reader is a quoted span and neither needs an exemption. */
+import { lineAt } from "../line-at.mjs";
+
 export const COLUMNS = [/baseBranch/u, /previewDeploy/u, /complexity/u];
 
 /** Every quoted span, comments dropped: a pattern over the file cannot tell a read from a print. */
@@ -39,5 +41,5 @@ export const quoted = (text) => {
 export const printedColumns = (text, where) =>
   quoted(text).flatMap(({ from, held }) =>
     COLUMNS.filter((column) => column.test(held)).map(
-      (column) => `${where}:${text.slice(0, from).split("\n").length} prints ${column.source}`,
+      (column) => `${where}:${lineAt(text, from)} prints ${column.source}`,
     ));

@@ -138,13 +138,13 @@ export const need = (what, command) => ({ what, command });
 export const personLooks = (flags, policy = null) =>
   (policy && !waitsForPerson(policy) ? null : looksTo(flags));
 
-/* Every correction, not the latest: the kind does not repeat, so a plan one erases a re-size (ISS-161). */
-const correctionsIn = (view) => view.comments
+/* Every correction, not the latest: the kind does not repeat, so a plan one erases a re-size (ISS-161). Kept on the view once read: it parses every comment on the issue, and four readers ask for it. */
+const correctionsIn = (view) => (view.moved ??= view.comments
   .map((one) => parse(one.body ?? ""))
   .filter((one) => one?.kind === "correction" && !shapeGaps("correction", one, view.names).length)
-  .map((one) => one.fields.moved);
+  .map((one) => one.fields.moved));
 
-const sizeOf = (view) => ({
+const sizeOf = (view) => (view.size ??= {
   description: unwrap(view.issue.description),
   plan: unwrap(view.issue.plan),
   moved: correctionsIn(view),

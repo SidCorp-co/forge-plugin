@@ -14,6 +14,7 @@ export const CODE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
 export const SKIP = /\/(node_modules|dist|\.next|coverage|\.git)\//;
 /* A ceiling, under what the event's clock has left: a hook killed takes every gate's answer with it. */
 export const FILE_MS = 60_000;
+export const MAX_FILES = 5;
 
 export function delegateFor(file) {
   let dir = dirname(file);
@@ -50,3 +51,13 @@ export const lintOne = (ev, file, ms, at = null) => {
     return error.status === 2 && text ? headed(text) : "";
   }
 };
+
+/** Which of a call's files are worth asking about, in turn, with what the linter said about each: the selection and the budget walk two gates spend, each keeping its own stamping and its own message. `left` is the caller's clock, one gate's spare not being the other's; `skip` is its own stamp, asked after the budget so a file counted out is counted out for one reason; `at` names which directory is the project; `MAX_FILES` is where a call has written more than a gate can read inside one event, and the rest go unlinted rather than the event unanswered. */
+export function* linting(ev, files, left, { skip = () => false, at = () => null } = {}) {
+  for (const file of files.filter((one) => CODE.test(one) && !SKIP.test(one)).slice(0, MAX_FILES)) {
+    const ms = left();
+    if (ms < 1000) break;
+    if (skip(file)) continue;
+    yield { file, said: lintOne(ev, file, Math.min(FILE_MS, ms), at(file)) };
+  }
+}

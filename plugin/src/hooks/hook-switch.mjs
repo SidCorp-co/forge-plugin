@@ -11,6 +11,10 @@ export const HOOKS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..
 export const ENTRIES_DIR = join(HOOKS_DIR, "entries");
 export const GATES_DIR = join(HOOKS_DIR, "gates");
 
+/* What one hook event may spend, under what hooks.json registers, and so which words a registration line uses for a clock rather than for a gate: `gate.mjs pre bash-guard c d` names one clock and three gates, and `namesOn` below drops the first. One declaration, because a fourth event named in the budgets only would be a kind this switch reads as a gate name. `_hook.mjs` re-exports it, so no importer moved. */
+export const DEADLINES = { pre: 8_000, post: 85_000, stop: 25_000 };
+const EVENT_KINDS = Object.keys(DEADLINES);
+
 const RUNS_ALONE = (name) => name.endsWith(".mjs") && !name.startsWith("_") && name !== "gate.mjs";
 
 /* Flat: the gates, how pages and vendored copies beside them are no hook a switch can name. */
@@ -42,18 +46,25 @@ export const hookNames = () =>
   [...scriptsIn(HOOKS_DIR), ...filesUnder(ENTRIES_DIR).map((path) => basename(path))]
     .map((name) => name.replace(/\.mjs$/u, "")).sort();
 
+/* Walked once: `dispatch` asks per gate of an event and `doctor` again per hook, and that was 20 directory reads a tool call. First wins, as the `find` this replaces did — a second file of one name is a precedence rule and there is not supposed to be one. */
+const gatesByName = once(() => {
+  const found = new Map();
+  for (const path of filesUnder(GATES_DIR)) {
+    if (!found.has(basename(path))) found.set(basename(path), path);
+  }
+  return found;
+});
+
 /** The file a gate name runs, wherever the layout put it, null where none does; one name is one file,
  *  since a second is a precedence rule. A name already a path is one: that plants a gate that crashes. */
 export const gateFile = (name) =>
   (name.includes("/")
     ? join(GATES_DIR, `${name}.mjs`)
-    : filesUnder(GATES_DIR).find((path) => basename(path) === `${name}.mjs`) ?? null);
+    : gatesByName().get(`${name}.mjs`) ?? null);
 
-/* The gates a line runs: `gate.mjs a b c` names three, less the first word, which is the clock. */
-const KIND = ["pre", "post", "stop"];
 const namesOn = (command) => {
   const gate = /hooks\/gate\.mjs((?:\s+[\w-]+)*)/u.exec(command);
-  if (gate) return gate[1].trim().split(/\s+/u).filter((one) => one && !KIND.includes(one));
+  if (gate) return gate[1].trim().split(/\s+/u).filter((one) => one && !EVENT_KINDS.includes(one));
   const own = /hooks\/([\w-]+)\.mjs/u.exec(command);
   return own ? [own[1]] : [];
 };

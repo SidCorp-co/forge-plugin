@@ -8,7 +8,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { render } from "../../src/flow/record.mjs";
-import { UNTIERED, classOf, markerOf, shellOf, slugFor, tierOf } from "../../src/stats/transcripts.mjs";
+import { UNTIERED, classOf, markerOf, shellOf, slugFor, tierRun } from "../../src/stats/transcripts.mjs";
 import { unionSeconds } from "../../src/stats/runs.mjs";
 import { TIERS } from "../../src/ladder.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -72,18 +72,18 @@ const wrote = (tier, extra = {}) =>
 
 test("a run's tier is read off the confirmation it wrote, and off no other call that echoes one", () => {
   const [trivial, , feature] = TIERS;
-  assert.equal(tierOf([said("forge record confirmation", wrote(trivial))], TIERS), trivial);
-  assert.equal(tierOf([], TIERS), UNTIERED, "a run that confirmed nothing is filed under no tier");
+  assert.equal(tierRun([said("forge record confirmation", wrote(trivial))]), trivial);
+  assert.equal(tierRun([]), UNTIERED, "a run that confirmed nothing is filed under no tier");
   for (const klass of ["forge issue", "forge resume", "read", "forge record verdict"]) {
-    assert.equal(tierOf([said(klass, wrote(trivial))], TIERS), UNTIERED,
+    assert.equal(tierRun([said(klass, wrote(trivial))]), UNTIERED,
       `\`${klass}\` printing the record is a run reading a thread, not a run that claimed a tier`);
   }
-  assert.equal(tierOf([said("forge record confirmation", wrote("enormous"))], TIERS), UNTIERED,
+  assert.equal(tierRun([said("forge record confirmation", wrote("enormous"))]), UNTIERED,
     "a word this ladder has not got names no rung, and is not folded into the nearest one");
-  assert.equal(tierOf([said("forge record confirmation", `${wrote(trivial)}\n\ntier: ${feature}`)], TIERS), trivial,
+  assert.equal(tierRun([said("forge record confirmation", `${wrote(trivial)}\n\ntier: ${feature}`)]), trivial,
     "and a line the same call printed after the record is prose: the class covers the shell, not the write");
   assert.equal(
-    tierOf([said("forge record confirmation", wrote(trivial)), said("forge record confirmation", wrote(feature))], TIERS),
+    tierRun([said("forge record confirmation", wrote(trivial)), said("forge record confirmation", wrote(feature))]),
     feature,
     "a batch is as heavy as its heaviest member, never the cheapest of them",
   );
@@ -96,11 +96,11 @@ test("prose inside a field cannot claim a rung the run did not stamp", () => {
   const [trivial, , feature] = TIERS;
   const written = wrote(trivial, { detail: `the plan said one thing\ntier: ${feature}` });
   assert.match(written, /\n {2}tier: feature/u, "the writer really does indent a continuation line");
-  assert.equal(tierOf([said("forge record confirmation", written)], TIERS), trivial,
+  assert.equal(tierRun([said("forge record confirmation", written)]), trivial,
     "so the stamped key decides, and a sentence a person typed under another field does not");
-  assert.equal(tierOf([said("forge record confirmation", `${wrote(trivial)}\n\n${wrote(feature)}`)], TIERS), trivial,
+  assert.equal(tierRun([said("forge record confirmation", `${wrote(trivial)}\n\n${wrote(feature)}`)]), trivial,
     "and the record the write printed is the first one: a thread read after it belongs to another issue");
-  assert.equal(tierOf([said("forge record confirmation", wrote(feature))], TIERS), feature,
+  assert.equal(tierRun([said("forge record confirmation", wrote(feature))]), feature,
     "while the key the writer really wrote is read, or nothing would be");
 });
 
