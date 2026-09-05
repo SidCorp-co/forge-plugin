@@ -7,10 +7,10 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { agentOf } from "../flow/lease.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { MAX_LIMIT, listIssues, rowsOf, shortOf } from "../tracker/issues.mjs";
-import { mustBeShown, postComment } from "../tracker/comments.mjs";
-import { filedAs, inFlowWords, isFix, liveTitles, openTitles, rankOf, shapeOf, shapeRefusal,
+import { postComment } from "../tracker/comments.mjs";
+import { filedAs, inFlowWords, liveTitles, openTitles, rankOf, shapeOf, shapeRefusal,
   trackerFields } from "../tracker/issue-shape.mjs";
-import { foldOnto, foldedInto, neighboursOf, suggestionLines } from "../tracker/neighbours.mjs";
+import { foldFiling, foldedInto, neighboursOf, suggestionLines } from "../tracker/neighbours.mjs";
 import { write } from "../tracker/rpc.mjs";
 
 /** This plugin's project, read from no checkout: the caller's `.forge.json` says where a note came
@@ -124,16 +124,12 @@ export const feedback = async (argv) => {
   }
   /* Asked second: a note whose title is already open belongs there whatever the memory says. */
   const beside = await neighboursOf(shape, live);
-  const nearest = foldOnto(beside.suggestions);
-  const foldable = isFix(body);
-  const would = foldable && !fresh ? nearest : null;
-  if (would) {
-    await mustBeShown([{ ref: would.issueId, documentId: would.documentId }]);
-    const answer = await postComment(would.documentId, `## ${title}\n\n${body}`, null, true);
-    if (answer?.refused) lost(`a comment on ${would.issueId}`, answer.refused);
+  const { joined, answer: comment, said } = await foldFiling(beside, { title, body, fresh, soft: true });
+  if (joined) {
+    if (comment?.refused) lost(`a comment on ${joined.issueId}`, comment.refused);
     keepOnFailure(null);
-    console.log(`No open issue on ${PROJECT} carries this title, and ${foldedInto(would)}`);
-    for (const line of suggestionLines(beside, { nearest, foldable })) console.log(line);
+    console.log(`No open issue on ${PROJECT} carries this title, and ${foldedInto(joined)}`);
+    for (const line of suggestionLines(beside, said)) console.log(line);
     return undefined;
   }
   const ranked = await rankOf();
@@ -145,6 +141,6 @@ export const feedback = async (argv) => {
   console.log(`No open issue on ${PROJECT} carries this title, so the note is a new ${KIND} there.`);
   console.log(filedAs(answer, ranked.said));
   console.log(JSON.stringify(inFlowWords(answer), null, 2));
-  for (const line of suggestionLines(beside, { nearest, foldable, fresh: Boolean(fresh) })) console.log(line);
+  for (const line of suggestionLines(beside, said)) console.log(line);
   return undefined;
 };

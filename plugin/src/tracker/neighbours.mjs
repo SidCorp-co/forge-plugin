@@ -1,6 +1,8 @@
 /* What is already open beside a filing, asked of the tracker's own memory search from inside the
    create path. Every decision below — the two queries, the floor, why the fold answers to both of
    them and what that costs, and the cases it cannot reach — is docs/cli/beside.md's. */
+import { mustBeShown, postComment } from "./comments.mjs";
+import { isFix } from "./issue-shape.mjs";
 import { tried } from "./rpc.mjs";
 
 const TOOL = "forge_memory.search";
@@ -136,3 +138,14 @@ export const foldedInto = (joined) =>
   + ` ${joined.score.toFixed(2)}; this filing is marked \`Size: fix.\`, so it lands there as a finding`
   + " under its own title rather than as a second issue. No issue was filed and no lease was taken;"
   + " `--new` files it separately, and the block below is everything it was measured against.";
+
+/** The fold, decided and done here so a rule whose act nothing takes back is not enforced twice. */
+export const foldFiling = async (beside, { title, body, routed = false, fresh = false, soft = false }) => {
+  const nearest = foldOnto(beside.suggestions);
+  const foldable = isFix(body) && !routed;
+  const said = { nearest, foldable, fresh: Boolean(fresh) };
+  if (!foldable || fresh || !nearest) return { joined: null, answer: null, said };
+  await mustBeShown([{ ref: nearest.issueId, documentId: nearest.documentId }]);
+  const answer = await postComment(nearest.documentId, `## ${title}\n\n${body}`, null, soft);
+  return { joined: nearest, answer, said };
+};

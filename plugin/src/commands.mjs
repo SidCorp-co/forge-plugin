@@ -22,7 +22,6 @@ import {
   filedAs,
   inFlowWords,
   insteadOf,
-  isFix,
   kindRefusal,
   liveTitles,
   rankOf,
@@ -31,7 +30,7 @@ import {
   trackerFields,
   withMark,
 } from "./tracker/issue-shape.mjs";
-import { BESIDE_HELP, foldOnto, foldedInto, neighboursOf, suggestionLines }
+import { BESIDE_HELP, foldFiling, foldedInto, neighboursOf, suggestionLines }
   from "./tracker/neighbours.mjs";
 import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
@@ -179,8 +178,9 @@ const ATTACH_TARGETS = ["issue", "comment"];
 
 const NEW_USAGE = `${helpOf("new")}\n\n${BESIDE_HELP}\n\n${PRIORITY_HELP}\n\n${KINDS_HELP}`;
 
-/* Its own, rather than the row's: the row now takes a value, and the derived pointer that earns
-   would send a reader to the schema of the tool behind the branches, which the brief is not. */
+/* Its own, rather than the row's, for the reason `new` keeps one: the dozen lines below are what a
+   row cannot hold. A row's blurb is one line, and a reader who has to be told what a `stale:` line
+   means before they can act on one is a reader the row has already lost. */
 const PROJECT_USAGE = [
   usageOf("project"),
   "the id, the branches a change lands on, the staging deploy to walk it against, and the",
@@ -342,16 +342,13 @@ export const commands = {
     const read = { title: given.title, body: description, kind: kind ?? null };
     const { shape, live } = await readFiling(read, { routed: relating });
     const beside = await neighboursOf(shape, live);
-    const nearest = foldOnto(beside.suggestions);
-    const foldable = isFix(description) && !relating;
-    const would = foldable && !fresh ? nearest : null;
-    if (would) {
-      /* The gate the named route takes, and owed more here: docs/cli/beside.md. */
-      await mustBeShown([{ ref: would.issueId, documentId: would.documentId }]);
-      show(await postComment(would.documentId, `## ${given.title}\n\n${description}`));
+    const { joined, answer: comment, said } =
+      await foldFiling(beside, { title: given.title, body: description, routed: relating, fresh });
+    if (joined) {
+      show(comment);
       keepOnFailure(null);
-      console.log(foldedInto(would));
-      return sayBeside(beside, { nearest, foldable });
+      console.log(foldedInto(joined));
+      return sayBeside(beside, said);
     }
     const data = { description, status: "open", priority: ranked.value, ...given, ...trackerFields({ kind }) };
     if (relating) data.relations = [{ kind: "relates", blocksId: await documentIdOf(rides) }];
@@ -359,7 +356,7 @@ export const commands = {
     keepOnFailure(null);
     show(inFlowWords(answer));
     console.log(filedAs(answer, ranked.said));
-    return sayBeside(beside, { nearest, foldable, fresh: Boolean(fresh) });
+    return sayBeside(beside, said);
   },
   comment: async (argv) => {
     onlyFlags("comment", argv);

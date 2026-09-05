@@ -281,6 +281,20 @@ test("a same-place hit the semantic query never ranked is printed and not folded
   assert.match(run.stdout, /^ {2}ISS-45\s+—\s+same place {2}the attach verb/mu);
 });
 
+/* A filing riding another issue's branch owes no fold: it is already answered somewhere, and the
+   comment would land on a third issue that is neither. The one condition the two routes never
+   shared, so nothing but this case keeps it from being dropped as a copy. */
+test("a marked filing routed onto another issue's branch is filed and never folded", async () => {
+  before();
+  state.memory = both(OPEN.issueId, 0.83);
+  const run = await filed("--size", "fix", "--with", ELSEWHERE.issueId);
+  assert.equal(run.status, 0, run.stderr);
+  assert.ok(created(), "it was filed rather than folded");
+  assert.equal(commented(), undefined, "and nothing was posted onto the neighbour it reads like");
+  assert.deepEqual(created().args.data.relations, [{ kind: "relates", blocksId: ELSEWHERE.documentId }]);
+  assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu, "the block still prints");
+});
+
 test("a filing that is not marked is never folded, however near the neighbour reads", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.99);
@@ -428,4 +442,26 @@ test("a body piped in is printed back by a refusal that comes after the read", a
   assert.match(run.stderr, /Your body, so that nothing here loses it:/u);
   assert.match(run.stderr, /the piped body reaches the refusal and comes back out of it/u);
   assert.equal(created(), undefined);
+});
+
+/* One decision, so one reply: the two routes fold through the same call, and a correction of what
+   either says is a correction of both. Anything either route prints ahead of the fold sentence is
+   its own — a comment payload here, a title verdict there — and everything from it on is shared. */
+test("the two filing routes fold with the same words, so neither can be corrected alone", async () => {
+  const tailFrom = (out) => {
+    const at = out.indexOf(`${OPEN.issueId} is open, names the same place`);
+    assert.notEqual(at, -1, `no fold reply in:\n${out}`);
+    return out.slice(at);
+  };
+  before();
+  state.memory = both(OPEN.issueId, 0.83);
+  const verb = await filed("--size", "fix");
+  assert.equal(verb.status, 0, verb.stderr);
+  assert.equal(commented().args.data.issue, OPEN.documentId);
+  before();
+  state.memory = both(OPEN.issueId, 0.83);
+  const note = await noted();
+  assert.equal(note.status, 0, note.stderr);
+  assert.equal(commented().args.data.issue, OPEN.documentId);
+  assert.equal(tailFrom(note.stdout), tailFrom(verb.stdout));
 });
