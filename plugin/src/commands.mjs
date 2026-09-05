@@ -37,8 +37,8 @@ import { callable, helpOf, isGated, refuseIfGated, usageOf } from "./resolve/vis
 import { didYouMean, unknownFlag } from "./suggest.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "./resolve/flags.mjs";
 import { dispositionOf, trackerHeader, visibleGuides } from "./tracker/guides.mjs";
-import { briefLines, projectLines, readBrief, refreshBrief, releasePolicy, stagingDeploy }
-  from "./tracker/project-config.mjs";
+import { briefLines, confirmSource, projectLines, readBrief, refreshBrief, releasePolicy,
+  replaceBriefLine, stagingDeploy } from "./tracker/project-config.mjs";
 import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./tracker/contract.mjs";
 import { doctor } from "./tools/doctor.mjs";
 import { deps } from "./tools/deps.mjs";
@@ -188,15 +188,62 @@ const PROJECT_USAGE = [
   "project's brief — the one entry Phase 0 reads instead of learning the repository by hand.",
   "",
   "The brief prints with a `stale:` line naming which of the files it was read from have moved",
-  "since, so a run refreshes the lines those files carried and spends one call on the rest.",
-  "--refresh takes the corrected brief itself: nothing here writes its prose, because no program",
-  "reads a repository's dangers out of its README. The digests are stamped from that same body in",
-  "the same call, which is what stops a re-stamp of a brief nobody corrected.",
+  "since. Nothing here writes the brief's prose, because no program reads a repository's dangers",
+  "out of its README — so a stale line is judged by a run and closed by whichever of these it is:",
+  "",
+  "  --confirm <source>   the lines naming that source were read against the file as it now is",
+  "                       and their prose still holds, so the digest alone is re-stamped and the",
+  "                       body goes back byte for byte. The lines it covered are printed.",
+  "  --line <n> <text>    one line's prose, replaced. A digest is a path's and not a line's, so a",
+  "                       source another line also reads is left stale and that line is named.",
+  "  --refresh <body>     the whole brief, for one being rewritten on purpose. Its digests are",
+  "                       stamped from that same body in the same call.",
   "",
   "The entry is `forge knowledge`'s in every other respect — one slug, `project-brief`, kind",
   "`overview`, injection `always` — and --title, --confidence and --meta mean there what they mean",
   "here. Injection is not a flag: a brief a session has to ask for is the call this entry removes.",
 ].join("\n");
+
+/* Three ways to write one entry, and a call takes one: silently preferring a route would leave the
+   caller reading a success about the write they did not ask for. The body's fields are refused
+   beside a narrow write rather than ignored, since the narrow writes carry them forward untouched. */
+const WRITES = ["refresh", "confirm", "line"];
+const WITH_BODY = ["title", "confidence"];
+
+const briefRoute = async (asked, pairs, positionals) => {
+  const asks = WRITES.filter((one) => asked[one] !== undefined);
+  if (asks.length > 1) {
+    fail(`project: ${asks.map((one) => `--${one}`).join(" and ")} each write the brief a different `
+      + "way and one call takes one — --refresh the whole body, --confirm one source's digest, "
+      + "--line one line's prose.");
+  }
+  const carried = [...WITH_BODY.filter((one) => asked[one] !== undefined), ...(pairs.length ? ["meta"] : [])];
+  if (carried.length && asks.length && asks[0] !== "refresh") {
+    fail(`project: ${carried.map((one) => `--${one}`).join(" and ")} are written with a body, so `
+      + `they belong to --refresh. --${asks[0]} carries the stored entry's forward untouched.`);
+  }
+  if (positionals.length && asked.line === undefined) {
+    fail(`project: \`${positionals[0]}\` names no flag, and this verb takes no argument of its own. `
+      + "The prose of a line is --line's: forge project --line <n> <text>");
+  }
+  if (asked.line !== undefined && positionals.length !== 1) {
+    fail("project: --line takes the line's number and the one line of prose replacing it, so quote "
+      + `that prose as a single argument: forge project --line <n> <text>${positionals.length
+        ? ` — ${positionals.length} arrived after it` : ""}`);
+  }
+  if (asked.confirm !== undefined) return confirmSource(asked.confirm);
+  if (asked.line !== undefined) return replaceBriefLine(asked.line, positionals[0]);
+  if (asked.refresh !== undefined) return refreshBrief(asked.refresh, { ...asked, pairs });
+  return [
+    ...projectLines({
+      id: await projectId(),
+      policy: await releasePolicy(),
+      deploy: await stagingDeploy(),
+      credentials: Boolean(asked.credentials),
+    }),
+    ...briefLines(await readBrief()),
+  ];
+};
 
 export const commands = {
   doctor,
@@ -474,19 +521,11 @@ export const commands = {
     if (wantsHelp(argv)) return console.log(PROJECT_USAGE);
     onlyFlags("project", argv);
     const { values: pairs, rest } = pullRepeated(argv, "--meta", "project");
-    const asked = flags(rest, "project", ["--credentials"]);
-    const said = asked.refresh
-      ? await refreshBrief(asked.refresh, { ...asked, pairs })
-      : [
-        ...projectLines({
-          id: await projectId(),
-          policy: await releasePolicy(),
-          deploy: await stagingDeploy(),
-          credentials: Boolean(asked.credentials),
-        }),
-        ...briefLines(await readBrief()),
-      ];
-    for (const line of said) console.log(line);
+    /* `--line <n> <text>` is two words, and partition is what already reads a value beside a
+       positional: a fourth parse shape in resolve/flags.mjs for one verb is the drift it warns of. */
+    const { positionals, flagArgv } = partition(rest, ["--credentials"]);
+    const asked = flags(flagArgv, "project", ["--credentials"]);
+    for (const line of await briefRoute(asked, pairs, positionals)) console.log(line);
   },
 };
 

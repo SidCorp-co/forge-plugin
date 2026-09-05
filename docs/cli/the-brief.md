@@ -16,18 +16,15 @@ reads "what is dangerous and fails silently" out of a README**, and the ones a p
 extract are the ones a run least needs. So the halves are split: the run owns the prose, the CLI
 owns the arithmetic that says whether the files it was read from have moved.
 
-That split has a second consequence worth stating, because it is the one that makes the digest
-worth anything: `--refresh` takes the body and stamps the digests **in the same call**, so no
-sequence of commands freshens a hash without a body passing through the caller's hands. A flag that
-only re-stamped would have written the exact silent staleness the `stale:` line exists to prevent,
-in a form the next run trusts.
-
-**The edge, since a review pressed on it and the claim was too wide.** This does not prove the body
-was *corrected*: a caller can save what `forge project` just printed and hand the same bytes back,
-and the digests go fresh over prose nothing changed. Nothing here can tell those bytes from
-corrected ones, and a mechanism that could would have to diff prose against files it cannot read
-the meaning of. What the coupling buys is that the freshening is never a side effect of some other
-command — it is one act, with a body in it, done by whoever decided the brief was right.
+**What stamping the digests beside the body does and does not buy.** `--refresh` takes the body and
+stamps the digests in the same call, and the first reading of that coupling claimed too much: it
+does not prove the body was *corrected*. A caller can save what `forge project` just printed and
+hand the same bytes back, and the digests go fresh over prose nothing changed. Nothing here can tell
+those bytes from corrected ones, and a mechanism that could would have to diff prose against files
+it cannot read the meaning of. What the coupling buys is narrower and still worth having: a
+freshening is never a *side effect* of some other command. It is one deliberate act, naming what it
+covers, by whoever decided the brief was right — which is the property the next section keeps while
+dropping the whole body from the call.
 
 The generic writer is closed against the same hole rather than left to the caller's care: `forge
 knowledge write project-brief` is refused, naming this verb, because that route replaces the body
@@ -36,6 +33,49 @@ and carries forward the digests of the body it replaced.
 **A brief this CLI cannot judge is a brief it does not label.** Kind, injection and slug are fixed
 here because the entry has one job; `--confidence` is the caller's, because whether every line was
 read off a statement or some off a convention is a reading, not a shape.
+
+## Fixing one stale line without rewriting the other fifty
+
+*Why is there a flag that only re-stamps, when the whole-body form exists?*
+
+Because rewriting fifty lines to fix the one whose source moved is a whole-file write to a store
+with no revision — the shape a run declines to make while another session may be reading the brief,
+and on 2026-09-05 two of them did. The brief then stays stale, and the first thing the next Phase 0
+reads is a line telling it to do the work by hand. A route nobody takes is not a route.
+
+What the section above says has to hold is that a freshening is deliberate and names what it covers.
+Both narrow writes are:
+
+- `--confirm <source>` is the caller saying the lines naming that source were read against the file
+  as it now is and their prose still holds. The body goes back byte for byte, one digest is
+  re-stamped, and the lines it just vouched for are printed. It is the common case: the file moved
+  and the fact did not.
+- `--line <n> <text>` replaces one line's prose, for where the fact did move.
+
+**A digest is keyed by path and not by line, and that is what decides the second flag.** Two lines
+of a brief often read the same file. Stamping that path because one of them was rewritten would
+clear the other line's staleness over prose nobody looked at — the exact silence the `stale:` line
+exists to break. So `--line` stamps a source only where the rewritten line is that source's *only*
+reader, and where it is not, it names the lines that keep it stale and the `--confirm` that closes
+it once those have been judged too. The two flags compose; neither alone can lie about the other's
+lines.
+
+The alternative — stamp always, list the other lines as a courtesy — was refused for the reason the
+`not hashed:` listing exists at all: a listing beside a write nobody can undo is not the same as not
+making it.
+
+**A narrow write carries nothing a body carries.** `--title`, `--confidence` and `--meta` are
+refused beside `--confirm` and `--line` rather than ignored, and the stored entry's own are carried
+forward. Three routes to one entry, and a call takes one, because a call that quietly preferred a
+route would report success about a write nobody asked for.
+
+**The window a review found, and why it is made loud rather than closed.** Every route here reads
+the entry, decides, and writes the whole entry back: the store takes no conditional write.
+`--refresh` at least has a caller who just looked at what they replace. A narrow write does not — it
+would restore prose another session put there while this one was deciding and report that it changed
+nothing, which is worse than the staleness it set out to fix. So it reads once more immediately
+before writing and refuses if the body or the digests moved. Nothing here can make the write atomic;
+this turns a silent overwrite into a refusal naming the read to redo.
 
 ## Which files a digest covers, and why not the ones you would list first
 
@@ -86,4 +126,5 @@ A store that refuses a read is not a store with no brief. Printing the first as 
 the next run down the write path with a brief it never saw, which is the same clobber
 `forge knowledge write` guards against and the reason both readers share one seat. The verb prints
 the tracker's own not-found as *none stored*, with the command that writes one, and anything else
-as a refusal quoted whole.
+as a refusal quoted whole. A narrow write reads through the same seat and stops on both: there is
+no line to confirm in a brief that is not there, and none in one this call could not read.

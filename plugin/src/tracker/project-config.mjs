@@ -7,11 +7,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { once } from "../resolve/config.mjs";
-import { keepOnFailure, projectRoot, slugIfAny } from "../resolve/settings.mjs";
+import { fail, keepOnFailure, projectRoot, slugIfAny } from "../resolve/settings.mjs";
+import { didYouMean } from "../suggest.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { citedIn } from "../checks/cited-paths.mjs";
 import { CODE_SPAN_PATTERN } from "../markdown.mjs";
-import { BRIEF_SLUG, metaFrom, softEntryAt, upsertEntry, wroteLines }
+import { BRIEF_SLUG, metaFrom, same, softEntryAt, upsertEntry, wroteLines }
   from "../tools/knowledge.mjs";
 import { scoped } from "./rpc.mjs";
 
@@ -186,17 +187,25 @@ const DIGESTS = "digests";
 const DIGEST_WIDTH = 16;
 const SPANNED = new RegExp(CODE_SPAN_PATTERN, "gu");
 
-/** Only the tail after a line's mark is a source: the body maps the tree too, and hashing every
- *  path it cites would call the brief stale on any release that touched a module. */
-export const briefSources = (body) => {
-  const found = new Set();
-  for (const line of String(body ?? "").split("\n")) {
+/** Which lines read each source, 1-based. Only the tail after a line's mark is a source: the body
+ *  maps the tree too, and hashing every path it cites would call the brief stale on any release
+ *  that touched a module. One walk answers all three questions asked of it — what to hash, what a
+ *  confirm has just vouched for, and which lines keep a shared source stale after a line is
+ *  rewritten — because a digest is keyed by path and a caller acts on lines. */
+export const namersOf = (body) => {
+  const found = new Map();
+  for (const [index, line] of String(body ?? "").split("\n").entries()) {
     const at = line.lastIndexOf(SOURCE_MARK);
     if (at < 0) continue;
-    for (const { path } of citedIn(line.slice(at + SOURCE_MARK.length))) found.add(path);
+    for (const { path } of citedIn(line.slice(at + SOURCE_MARK.length))) {
+      const held = found.get(path) ?? [];
+      if (held.at(-1) !== index + 1) found.set(path, [...held, index + 1]);
+    }
   }
-  return [...found].sort();
+  return found;
 };
+
+export const briefSources = (body) => [...namersOf(body).keys()].sort();
 
 /** Every code span in a source position the path reader took nothing from. Not a judgement — a
  *  command's output is a source and is not a file — but a `Makefile` the writer meant is named in
@@ -262,8 +271,9 @@ export const briefLines = (read) => {
     + `written ${(read.entry.updatedAt ?? "").slice(0, 10)}`];
   if (!Object.keys(digests).length) out.push(NO_SOURCES);
   if (moved.length) {
-    out.push(`  stale: ${moved.join(", ")} — moved since the brief was read. Re-read the lines `
-      + "whose source is named here, and refresh those: forge project --refresh <brief.md>");
+    out.push(`  stale: ${moved.join(", ")} — moved since the brief was read. Judge the lines naming `
+      + "each against the file it names: where the prose still holds, forge project --confirm "
+      + "<source>; where it does not, forge project --line <n> <text>");
   }
   if (gone.length) {
     out.push(`  gone: ${gone.join(", ")} — named as a source and not in this checkout`);
@@ -298,6 +308,141 @@ export const refreshBrief = async (path, { pairs, ...meta }) => {
       ? `  digests: ${hashed.join(", ")}`
       : "  digests: none — no line of this brief names a source this checkout holds, so nothing "
         + "later can say one moved",
+    ...(missing.length
+      ? [`  named and not here: ${missing.join(", ")} — kept, and read back as gone until they appear`]
+      : []),
+    ...(unread.length
+      ? [`  not hashed: ${unread.join(", ")} — named as a source and not read as a path, so nothing `
+        + "later can say one moved"]
+      : []),
+  ];
+};
+
+/* The two narrow writes. Re-handing fifty lines to fix the one whose source moved is the shape that
+   made two runs leave a stale brief alone rather than race a Phase 0 reading it. the-brief.md. */
+const NO_BRIEF = "there is no brief stored, so no line of one can be confirmed or replaced.\n"
+  + "  write one: forge project --refresh <brief.md> --title <one line> --meta written-by=ISS-nn";
+
+/* Held against the same rule the whole-file write answers to: a store that would not answer is not
+   a store with no brief, and a write on that reading would replace what this call never saw. */
+const storedBrief = async () => {
+  const read = await readBrief();
+  if (read?.refused) {
+    fail(`the store would not answer for ${BRIEF_SLUG}, and a write here would replace a brief this `
+      + `call never read: ${read.refused}`);
+  }
+  if (!read?.entry) fail(NO_BRIEF);
+  return read.entry;
+};
+
+const heldPart = (entry) => ({ body: entry?.body, digests: entry?.metadata?.[DIGESTS] });
+
+/** No conditional write exists here, so a narrow write's window is made loud rather than closed: it
+ *  re-reads and refuses, because restoring prose another session wrote while reporting that nothing
+ *  changed is worse than the staleness. Title and confidence are named and left undefined since the
+ *  upsert carries only a field the caller NAMED, and leaving them out sends the brief back untitled. */
+const wroteBrief = async (was, body, digests) => {
+  const now = await storedBrief();
+  if (!same(heldPart(now), heldPart(was))) {
+    fail("the brief moved between this call's read and its write, so the body this call is holding "
+      + "would put back prose another session has already replaced. Nothing was written — read it "
+      + "again and judge the line as it now stands: forge project");
+  }
+  return upsertEntry({
+    slug: BRIEF_SLUG,
+    body,
+    kind: BRIEF_KIND,
+    injection: BRIEF_INJECTION,
+    title: undefined,
+    confidence: undefined,
+    meta: { [DIGESTS]: digests },
+  });
+};
+
+const atLines = (numbers) =>
+  `${numbers.length > 1 ? "lines" : "line"} ${numbers.join(", ")}`;
+
+/** The caller has read the lines naming this source against the file as it now is, and their prose
+ *  still holds — so the digest alone is re-stamped and the body goes back byte for byte. What it
+ *  covered is printed, because a digest is a path's and the caller vouched for lines. */
+export const confirmSource = async (source) => {
+  const entry = await storedBrief();
+  const body = entry.body ?? "";
+  const digests = entry.metadata?.[DIGESTS] ?? {};
+  if (!Object.hasOwn(digests, source)) {
+    fail(didYouMean("source of this brief", source, Object.keys(digests).sort(),
+      "`forge project` prints the brief and the source each line was read from."));
+  }
+  const now = hashOf(source);
+  if (now === null) {
+    return [`gone: ${source} is named as a source and is not in this checkout, so there are no `
+      + "bytes to confirm the brief against. Nothing was written."];
+  }
+  if (now === digests[source]) {
+    return [`${source} holds the bytes the brief was read from, so nothing moved and nothing was `
+      + "written."];
+  }
+  const covered = namersOf(body).get(source) ?? [];
+  return [
+    ...wroteLines(await wroteBrief(entry, body, { ...digests, [source]: now })),
+    `  confirmed: ${source} ${digests[source] ?? "unhashed"} → ${now}`,
+    `  read again and still holding: ${covered.length ? atLines(covered) : "no line names it now"}`
+      + " — this call changed no prose, and every other digest is as it was stored",
+  ];
+};
+
+/** One line's prose, replaced. A digest is keyed by path and not by line, so a source another line
+ *  also reads is left stale here and named: stamping it would clear that other line over prose
+ *  nobody looked at, which is the silent staleness the `stale:` line exists to prevent. Once those
+ *  lines have been judged too, `--confirm` is what closes the source. */
+export const replaceBriefLine = async (given, text) => {
+  const entry = await storedBrief();
+  const lines = (entry.body ?? "").split("\n");
+  if (!/^[1-9]\d*$/u.test(given) || Number(given) > lines.length) {
+    fail(`--line takes a line of the stored brief, 1 to ${lines.length}, and \`${given}\` is not `
+      + "one. `forge project` prints the body those numbers count, the lines above it aside.");
+  }
+  const at = Number(given);
+  if (text.includes("\n")) {
+    fail("--line replaces one line and this text holds a newline. A brief whose prose has to move "
+      + "across lines is a brief being rewritten: forge project --refresh <brief.md>");
+  }
+  if (lines[at - 1] === text) return [`line ${at} already reads that, so nothing was written.`];
+  const body = [...lines.slice(0, at - 1), text, ...lines.slice(at)].join("\n");
+  const before = entry.metadata?.[DIGESTS] ?? {};
+  const namers = namersOf(body);
+  const digests = {};
+  const stamped = [];
+  const shared = [];
+  for (const path of [...namers.keys()].sort()) {
+    const also = namers.get(path).filter((one) => one !== at);
+    if (also.length) {
+      digests[path] = Object.hasOwn(before, path) ? before[path] : hashOf(path);
+      if (namers.get(path).includes(at)) shared.push({ path, also });
+    } else {
+      digests[path] = hashOf(path);
+      stamped.push(path);
+    }
+  }
+  const dropped = Object.keys(before).filter((path) => !namers.has(path));
+  const unread = unhashable(text);
+  const missing = stamped.filter((path) => digests[path] === null);
+  const hashed = stamped.filter((path) => digests[path] !== null);
+  return [
+    ...wroteLines(await wroteBrief(entry, body, digests)),
+    `  line ${at} was: ${lines[at - 1]}`,
+    `  line ${at} now: ${text}`,
+    ...(hashed.length
+      ? [`  stamped: ${hashed.join(", ")} — no other line of the brief reads `
+        + `${hashed.length > 1 ? "them" : "it"}`]
+      : []),
+    ...shared.map(({ path, also }) =>
+      `  left stale: ${path} is also read by ${atLines(also)}, so its digest is not stamped here — `
+      + `stamping it would clear ${also.length > 1 ? "those lines" : "that line"} over prose nobody `
+      + `looked at. Once ${also.length > 1 ? "they hold" : "it holds"} too: forge project --confirm ${path}`),
+    ...(dropped.length
+      ? [`  dropped: ${dropped.join(", ")} — no line of the brief names ${dropped.length > 1 ? "them" : "it"} now`]
+      : []),
     ...(missing.length
       ? [`  named and not here: ${missing.join(", ")} — kept, and read back as gone until they appear`]
       : []),

@@ -155,7 +155,7 @@ const stable = (value) => {
   return value;
 };
 
-const same = (one, two) => JSON.stringify(stable(one)) === JSON.stringify(stable(two));
+export const same = (one, two) => JSON.stringify(stable(one)) === JSON.stringify(stable(two));
 
 /* The tracker's upsert replaces the whole row, so a field the caller did not name is carried from
    what is stored rather than left to a default that would silently relabel the entry. What was

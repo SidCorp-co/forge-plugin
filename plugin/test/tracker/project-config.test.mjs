@@ -242,10 +242,14 @@ test("a brief whose every source still matches prints with no stale line", () =>
   assert.match(said, /# The map/u);
 });
 
-test("a moved source is named, with the command that refreshes the lines citing it", () => {
+/* The route it prints is the narrow one: a stale line sends a run to a whole-file write it will
+   decline to make beside a live session, and a route nobody takes leaves the brief stale. */
+test("a moved source is named, with the two writes that close one line rather than the file", () => {
   const said = briefLines(entry({ metadata: { digests: { "CLAUDE.md": "0000000000000000" } } })).join("\n");
   assert.match(said, /^ {2}stale: CLAUDE\.md — moved since the brief was read\./mu);
-  assert.match(said, /forge project --refresh <brief\.md>/u);
+  assert.match(said, /forge project --confirm <source>/u);
+  assert.match(said, /forge project --line <n> <text>/u);
+  assert.doesNotMatch(said, /--refresh/u);
 });
 
 test("a brief naming only sources this checkout lacks reports them, not silence", () => {

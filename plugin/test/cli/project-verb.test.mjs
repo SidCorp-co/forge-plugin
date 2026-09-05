@@ -255,3 +255,157 @@ test("the brief's slug is refused by the generic writer, which names the verb th
   assert.match(run.stderr, /forge project --refresh/u);
   assert.equal(store.get("project-brief").body, before, "and nothing was written");
 });
+
+/* The two narrow writes. A stale line is one line whose source moved, and the whole-file form is
+   how a brief with one stale line stayed stale: two runs declined to race a Phase 0 reading it. */
+const SHARED = [
+  "# The map",
+  "",
+  "Test and lint, and the gate: `npm run check`.  ← `CLAUDE.md`",
+  "Layout: the CLI in seven trees under plugin/src.  ← `README.md`",
+  "Language: English for what a developer reads.  ← `CLAUDE.md`",
+  "",
+].join("\n");
+
+const ZERO = "0000000000000000";
+
+/* Returned as it was written, not as it was read: the entry is what the narrow write is judged
+   against, so a stale digest a test set has to be the one the assertion compares to. */
+const stale = (...paths) => {
+  const held = store.get("project-brief");
+  const digests = { ...held.metadata.digests };
+  for (const path of paths) digests[path] = ZERO;
+  const next = { ...held, metadata: { ...held.metadata, digests } };
+  store.set("project-brief", next);
+  return next;
+};
+
+const writeShared = async (name) => {
+  store.clear();
+  const room = tempHome(name);
+  const run = await ask("project", "--refresh", briefAt(room, SHARED), "--title", "The map");
+  assert.equal(run.status, 0, run.stderr);
+};
+
+test("a confirm re-stamps the named source and leaves the body byte-identical", async () => {
+  await writeShared("brief-confirm");
+  const before = stale("CLAUDE.md");
+  const run = await ask("project", "--confirm", "CLAUDE.md");
+  assert.equal(run.status, 0, run.stderr);
+  const after = store.get("project-brief");
+  assert.equal(after.body, before.body, "a confirm changes no prose");
+  assert.notEqual(after.metadata.digests["CLAUDE.md"], ZERO);
+  assert.equal(after.metadata.digests["README.md"], before.metadata.digests["README.md"],
+    "and no digest but the named one");
+  assert.match(run.stdout, /^ {2}confirmed: CLAUDE\.md 0{16} → [0-9a-f]{16}$/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}read again and still holding: lines 3, 5/mu,
+    "a digest is a path's and the caller vouched for lines, so the call says which");
+});
+
+test("a confirm of a source that has not moved writes nothing", async () => {
+  const before = store.get("project-brief");
+  const run = await ask("project", "--confirm", "README.md");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /README\.md holds the bytes the brief was read from, so nothing moved/u);
+  assert.deepEqual(store.get("project-brief").metadata.digests, before.metadata.digests);
+});
+
+test("a confirm of a source the brief does not name is refused with the ones it does", async () => {
+  const run = await ask("project", "--confirm", "docs/FORGE-CLI.md");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /No source of this brief named docs\/FORGE-CLI\.md/u);
+  assert.match(run.stderr, /CLAUDE\.md/u);
+});
+
+test("a confirm of a source this checkout no longer holds reports it gone and writes nothing", async () => {
+  store.clear();
+  const room = tempHome("brief-confirm-gone");
+  await ask("project", "--refresh", briefAt(room, "# The map\n\nBuild: none.  ← `docs/was-here.md`\n"),
+    "--title", "The map");
+  const before = store.get("project-brief");
+  const run = await ask("project", "--confirm", "docs/was-here.md");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^gone: docs\/was-here\.md is named as a source and is not in this checkout/mu);
+  assert.equal(store.get("project-brief").updatedAt, before.updatedAt, "and nothing was written");
+});
+
+test("a line replaces its own prose and leaves every other line byte-identical", async () => {
+  await writeShared("brief-line");
+  const before = store.get("project-brief");
+  const run = await ask("project", "--line", "4",
+    "Layout: eight trees under plugin/src.  ← `docs/FORGE-CLI.md`");
+  assert.equal(run.status, 0, run.stderr);
+  const after = store.get("project-brief").body.split("\n");
+  const was = before.body.split("\n");
+  assert.equal(after[3], "Layout: eight trees under plugin/src.  ← `docs/FORGE-CLI.md`");
+  assert.deepEqual([...after.slice(0, 3), ...after.slice(4)], [...was.slice(0, 3), ...was.slice(4)]);
+  assert.match(run.stdout, /^ {2}stamped: docs\/FORGE-CLI\.md — no other line of the brief reads it$/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}dropped: README\.md — no line of the brief names it now$/mu, run.stdout);
+});
+
+/* The constraint the whole shape turns on: stamping a shared path here would clear the other line
+   reading it over prose nobody looked at, which is the staleness the `stale:` line exists to say. */
+test("a line sharing its source with another leaves that source stale and names the line", async () => {
+  await writeShared("brief-line-shared");
+  stale("CLAUDE.md");
+  const run = await ask("project", "--line", "3", "The gate: `npm run check`.  ← `CLAUDE.md`");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(store.get("project-brief").metadata.digests["CLAUDE.md"], ZERO,
+    "the shared digest is not stamped by one line's rewrite");
+  assert.match(run.stdout, /^ {2}left stale: CLAUDE\.md is also read by line 5/mu, run.stdout);
+  assert.match(run.stdout, /forge project --confirm CLAUDE\.md/u,
+    "and the route that closes it once that line holds too");
+});
+
+test("two writes in one call are refused rather than one of them silently preferred", async () => {
+  const room = tempHome("brief-two-writes");
+  const run = await ask("project", "--refresh", briefAt(room, SHARED), "--confirm", "CLAUDE.md");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--refresh and --confirm each write the brief a different way/u);
+});
+
+test("prose with no --line is refused rather than read as a verb of its own", async () => {
+  const run = await ask("project", "A line of a brief.");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /names no flag/u);
+  assert.match(run.stderr, /forge project --line <n> <text>/u);
+});
+
+test("a line number outside the stored body names the range it has", async () => {
+  await writeShared("brief-line-range");
+  const run = await ask("project", "--line", "99", "Nowhere.");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--line takes a line of the stored brief, 1 to 6/u);
+});
+
+test("the narrow writes need a brief to be narrow about, and the absence names the write", async () => {
+  store.clear();
+  const run = await ask("project", "--confirm", "CLAUDE.md");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /no brief stored/u);
+  assert.match(run.stderr, /forge project --refresh <brief\.md>/u);
+});
+
+/* The store takes no conditional write, so the window between a narrow write's read and its write
+   cannot be closed — only made loud. Without the re-read this restores the other session's line. */
+test("a brief that moved under a narrow write refuses rather than putting back what it read", async () => {
+  await writeShared("brief-raced");
+  stale("CLAUDE.md");
+  let reads = 0;
+  state.answer.forge_knowledge = (args) => {
+    const answer = knowledge(args);
+    if (args.action !== "get" || args.slug !== "project-brief") return answer;
+    reads += 1;
+    if (reads === 1) {
+      const held = store.get("project-brief");
+      store.set("project-brief", { ...held, body: `${held.body}Deploy: a second session wrote this.\n` });
+    }
+    return answer;
+  };
+  const run = await ask("project", "--confirm", "CLAUDE.md");
+  state.answer.forge_knowledge = knowledge;
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /the brief moved between this call's read and its write/u);
+  assert.match(store.get("project-brief").body, /a second session wrote this/u,
+    "and what that session wrote is still in the store");
+});
