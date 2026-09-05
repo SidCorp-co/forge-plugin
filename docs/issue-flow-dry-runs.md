@@ -2856,3 +2856,41 @@ files, and the ship named exactly those. Closed by its run. Folded from its own 
 - The ship does not write the merged mark; the run does, and the one route `--owed` offers is a raw
   call whose note grammar ISS-341 owns. ISS-335 keeps raw actions that no verb wraps, and this is the
   one every run types.
+
+## Hundred-and-thirteenth dry run — ISS-354
+
+The parent ran this one too, and the user reshaped it mid-flight: not "figures leave the skills" but
+"text goes where it costs the fewest rounds for the reading that most often needs it", with a round
+weighed above the tokens it saves. Four placements, stated once in README (3.35.129): needed by every
+invocation, inline in `SKILL.md` under a byte ceiling; needed by every run of a long method, the
+served body; needed by a minority of invocations, a reference cited from the exact point; answered
+by a tool's `-h`, nowhere in the skill, which names the verb. So forge and vi-natural came back inline
+as one-line rules and a route table, their guide.md deleted and their references still served, and
+the registry learned to list a skill with references and no body. The issue-flow body absorbed
+triage, clarify, plan and release-note so each phase states its rule, kept project-discovery,
+verification and learning, retired forge-driver, and sent two-levels and prior-art to `docs/`. The
+gate-review text lost its rationale and gained the rule the user asked for outright: cheap steps
+first. Two checkers hold the shape: `check:skill-figures` reds a skill line carrying a figure of three
+digits outside a code span, and the stub test became a 2,000-byte body ceiling per `SKILL.md`. Twelve
+criteria, one whole-set consult with two findings, both accepted and refuted on recheck. Three probes
+read off the text reach their command in two calls, one for reading a plan, against three before.
+No restart owed for skill text; the two rewritten `SKILL.md` files are read at the next session
+start. Closed by its run. Folded from its own record. Landed as 230ad05, released as 3.35.129.
+
+- A stub that only says "run `forge guide <skill>`" makes every question pay a round before it learns
+  anything. ISS-353 split by size; the split that pays is by how often a reading needs the text.
+- The figure checker fired on the tree as it stood before the trim was green: nine lines, six of them
+  the forge guide's. It also fired on two limits and a status code in the setup-code-quality skill,
+  which moved into code spans; a limit a reader copies is a code span, a measurement is not.
+- Codex's two findings were both about the checker's own edges: a unit glued to the digits (`1000ms`)
+  escaped the trailing boundary, and the ceiling counted UTF-16 code units while saying bytes.
+- The retired-names test pins that the issue-flow body names `forge advance`; the rewrite had dropped
+  it, and the pin was right: the move is a route the body owes.
+- Project-discovery told the run to search "the tracker's memory", a verb this CLI has never had. It
+  now names the one route, `forge knowledge search` with the issue's title, then `get` on a hit.
+- At the user's word, Phase 0 kicks the baseline off as background work while the reading
+  continues, so no run sits watching a gate it could have read later.
+- An issue body has no verb to amend it, so the widened outcome went in through a raw `update` call.
+  ISS-338's one filing interface is where that belongs.
+- ISS-358 filed from the user's note: the gate runner orders its steps by the seconds the ledger
+  already records, cheapest first.
