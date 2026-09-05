@@ -3,8 +3,8 @@
 
 const HELP = `Find repository paths named in a skill's own text.
 
-  skill-paths.mjs                 check every skill under plugin/skills
-  skill-paths.mjs <skill-dir>     check one
+  skill-paths.mjs                 check every skill and every role this plugin ships
+  skill-paths.mjs <dir>           check one
 
 A skill is method, not project facts: issue-flow says so in its own second paragraph. A path it
 names is a claim about somebody's checkout, and the claim goes stale in silence — issue-flow cited
@@ -34,10 +34,12 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { claims } from "../src/checks/claude-md.mjs";
+import { skillDirsIn, skillRootsIn } from "../src/tools/roles.mjs";
 
 const plugin = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-/* A skill is two directories now: the stub Claude Code loads, and the body `forge guide` serves. */
-const skillRoots = [join(plugin, "skills"), join(plugin, "guides", "skills")];
+/* A role definition is under the same rule as a skill and for the same reason: it is read from
+   wherever it is installed, and what only the dispatcher knows arrives in the message instead. */
+const skillRoots = skillRootsIn(plugin);
 
 const unknown = args.filter((arg) => arg.startsWith("-"));
 if (unknown.length) {
@@ -58,11 +60,7 @@ const markdown = (dir, out = []) => {
 // path carrying a directory AND a source or config extension is a claim about a checkout.
 const NAMES_A_FILE = /\/.*\.(?:mjs|cjs|[jt]sx?|json|md|sql|ya?ml|sh|py|toml)$/u;
 
-const skillDirs = args.length
-  ? args.map((arg) => resolve(arg))
-  : skillRoots.flatMap((root) => readdirSync(root, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => join(root, entry.name)));
+const skillDirs = args.length ? args.map((arg) => resolve(arg)) : skillDirsIn(skillRoots);
 
 /* Containment of the real file, not existence at the written path: `..` normalises away and a
    symlink resolves elsewhere, so either can name a file that exists while the copy of the skill a

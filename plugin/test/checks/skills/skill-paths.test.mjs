@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tempRoom } from "../../fixtures.mjs";
+import { WITHIN as ROLES, rolesIn, skillDirsIn, skillRootsIn } from "../../../src/tools/roles.mjs";
 
 const SCRIPT = new URL("../../../scripts/skill-paths.mjs", import.meta.url).pathname;
+const PLUGIN = new URL("../../../", import.meta.url).pathname;
 
 const skillSaying = (body) => {
   const room = tempRoom("skill-paths-");
@@ -69,4 +71,41 @@ test("a path inside the skill passes, and a bare filename is not a path", () => 
   const run = check("Read `references/verification.md`, then the project's `CLAUDE.md` and `eslint.config.mjs`.");
   assert.equal(run.status, 0, run.stdout);
   assert.match(run.stdout, /clean/u);
+});
+
+/* Passing the root as an argument would not catch this: that branch skips the enumeration (ISS-316). */
+test("a flat root is walked whole, and a subdirectory in it takes no role out of the walk", () => {
+  const room = tempRoom("skill-roots-");
+  const roles = join(room, "agents");
+  const skills = join(room, "skills");
+  mkdirSync(join(roles, "references"), { recursive: true });
+  mkdirSync(join(skills, "alpha"), { recursive: true });
+  writeFileSync(join(roles, "runner.md"), "a role\n");
+  writeFileSync(join(roles, "triage.md"), "another\n");
+  writeFileSync(join(roles, "references", "notes.md"), "a supporting file\n");
+  writeFileSync(join(skills, "alpha", "SKILL.md"), "a skill\n");
+  const walked = skillDirsIn([{ dir: roles, flat: true }, { dir: skills, flat: false }]);
+  assert.deepEqual(walked, [roles, join(skills, "alpha")],
+    "inferring flatness from what the root holds let one subdirectory drop every role");
+});
+
+/* A check walking two roots of three is a clean tree and an unguarded one, alike from outside. */
+test("the roles directory is one of the roots a skill check walks, and it is flat", () => {
+  assert.deepEqual(skillRootsIn("/p"), [
+    { dir: "/p/skills", flat: false },
+    { dir: "/p/guides/skills", flat: false },
+    { dir: join("/p", ROLES), flat: true },
+  ], "a root out of this list is a tree no skill check reads");
+});
+
+/* Only the bare run says the roles were reached. */
+test("the default walk reaches every role and skill, and none of them names a path", () => {
+  const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf8" });
+  assert.equal(run.status, 0, run.stdout);
+  const counted = Number(/clean — (\d+) skill/u.exec(run.stdout)?.[1]);
+  const owed = readdirSync(join(PLUGIN, "skills")).length
+    + readdirSync(join(PLUGIN, "guides", "skills")).length + 1;
+  assert.equal(counted, owed,
+    `${counted} directory(ies) walked where ${owed} are shipped: a root is out of the walk, and the `
+      + `${rolesIn().length} role(s) it holds are unguarded`);
 });

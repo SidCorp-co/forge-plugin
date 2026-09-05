@@ -40,6 +40,7 @@ const ANOTHER_TREE = {
   "plugin/hooks": "module specifiers node resolves and the working tree does not — ISS-197",
   "plugin/skills": "method loaded into another checkout, held by check:skill-paths to naming no path",
   "plugin/guides/skills": "the same method, served by forge guide and held by the same check",
+  "plugin/agents": "role definitions read from wherever they are installed, held by the same check",
   "plugin/test": "a fixture path is invented on purpose, and every case below is one",
 };
 const out = (rel) =>

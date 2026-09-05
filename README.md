@@ -137,6 +137,7 @@ plugin/
   skills/<name>/SKILL.md  what every invocation of a skill reads: rules and a route table, or a stub
   guides/skills/<name>/   what a minority of invocations reads, served by `forge guide <name>`
   skills/audit-code-quality  skills/setup-code-quality  whole, shared with packages/code-quality
+  agents/<role>.md        one role a dispatch names instead of typing a model beside a general agent
 ```
 
 An import may run from `vi-natural/` into `src/` and never the other way. The two directories are
@@ -163,6 +164,11 @@ by a minority of invocations: a reference, cited from the exact point. Answered 
 nowhere in the skill, which names the verb instead. A skill sentence is a rule, a route or a trigger;
 the reason behind one lives in `docs/`, and a measurement on the issue that took it, which
 `check:skill-figures` holds.
+
+A role's own text answers to the same rule for a sharper reason: a definition is written once and
+read on every wave, so anything true of one dispatch — a tree, an issue, a set of held files —
+belongs in the message and never in the file. What the roles are for and why the definitions stay
+this thin: [`docs/dispatch-and-roles.md`](docs/dispatch-and-roles.md).
 
 ## Two levels
 

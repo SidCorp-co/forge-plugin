@@ -20,6 +20,7 @@ import {
 import { cloudflareAccounts } from "./cloudflare.mjs";
 import { modelBehind, profile } from "../codex/codex-api.mjs";
 import { copyToRun, pluginCopy } from "./plugin-copy.mjs";
+import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { LOG_PATH, consults, logEntries } from "../codex/codex-log.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
@@ -339,6 +340,22 @@ const checkAgainstGuides = async (scoped) => {
   reportClaudeMd(review, found.path);
 };
 
+/* The two copy lines' question, for the half a dispatcher acts on: which names resolve. A note for
+   the reason the copy line above it is one — a checkout ahead of its install is ordinary here. */
+const checkRoles = (dispatched) => {
+  const here = rolesIn();
+  const loaded = rolesIn(dispatched.dir);
+  if (!here.length && !loaded.length) return line(NOTE, "roles", "this plugin ships none to dispatch through");
+  line(OK, "roles", `${loaded.length ? loaded.join(", ") : "none"}  ← ${dispatched.dir}`);
+  const said = rolesDiffer(here, loaded);
+  if (!said) return;
+  const parts = [
+    said.missing.length && `${said.missing.join(", ")} is here and not there, so a dispatch naming it refuses`,
+    said.extra.length && `${said.extra.join(", ")} is there and not here`,
+  ].filter(Boolean);
+  line(NOTE, "roles", `${parts.join("; ")} — \`claude plugin update\` then restart`);
+};
+
 /* The project's own release policy and the deploy the flow walks a change against, printed under
    the names its owner uses rather than the tracker's columns — `forge project` is the verb that
    answers this and doctor is the second view of it. Where the two branches differ, `released` is
@@ -477,6 +494,7 @@ export const doctor = async (rest) => {
   const gating = copyToRun({ entry: join("hooks", "_hook.mjs") });
   line(OK, "copy the gates run", `${gating.kind} ${gating.version ?? "?"} at ${gating.dir}`
     + ` — ${gating.why}`);
+  checkRoles(dispatched);
   checkContract();
   /* Reads and writes differ: `new` translates before it posts, and a read never asks. */
   checkVi(language.value === "vi");

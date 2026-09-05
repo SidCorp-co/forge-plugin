@@ -25,7 +25,7 @@ const recordsOf = (name, record) => {
     .filter((one) => typeof one?.version === "string");
 };
 
-/* Newest is the later install, never the higher version; a path the disk lost is no copy at all. */
+/* Newest is the later install, never the higher version. */
 const newestOf = (records) =>
   [...records].sort((a, b) => String(a.lastUpdated ?? "").localeCompare(String(b.lastUpdated ?? ""))).at(-1) ?? null;
 
@@ -90,14 +90,15 @@ export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"),
     why: "no checkout at or above the working directory and no install record that resolves, so the copy on PATH" };
 };
 
-/* What an open session cannot pick up: the registration, the entries it names, and their static
-   graph — which terminates here, on node builtins. Everything else is per call. docs/HOOKS.md. */
+/* What an open session cannot pick up: the registration, the entries it names, their static graph
+   — terminating here on node builtins — and the roles, on their own reason. docs/HOOKS.md. */
 export const FROZEN = [
   "plugin/hooks/hooks.json",
   "plugin/hooks/gate.mjs",
   "plugin/hooks/link-cli.mjs",
   "plugin/src/tools/plugin-copy.mjs",
   "plugin/skills/",
+  "plugin/agents/",
 ];
 
 export const freezesSession = (path) =>
