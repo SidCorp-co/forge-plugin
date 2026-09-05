@@ -3233,3 +3233,36 @@ handback.
 - Both advances to `developed` and `tested` warned that the comment page was cut at the response cap
   with more behind it, so those two edges earned what the visible page earned. A record grown past
   one page is judged on the page, and the warning is the only sign.
+
+## Hundred-and-twenty-seventh dry run — ISS-370
+
+The batch reading the ship of ISS-360 owed, over twelve releases since the mark at 8cadbf5, run as
+the first dispatch through the runner role after the restart on 3.35.141. The dispatcher read the
+range first through the simplify skill's four angles and posted the deduplicated list on the issue as
+a finding, so the run verified twenty-seven claims against the code rather than following them.
+Two split in the reading, one into a refused half and a filed half and one landed in the plan then
+reverted into a filing, so the twenty-seven items ended as twenty-nine dispositions: twenty landed as one commit over twenty-six files (3.35.142, landed as 9c84fb6), among them one home
+for the line-number helper five modules each declared and one git runner for the three the gates
+had grown; four became filings because each unified two readings that already disagreed (ISS-387,
+388, 389, 390); three were refused on the code with the reason recorded; two were skipped on cost,
+one of them because the improvement sat in a frozen file and would have charged every open session a
+restart. The mark moved to 27206a7, named not defaulted. No restart owed. Closed by its run. Folded
+from its handback; the five filings and the comment on ISS-294 were confirmed on the tracker.
+
+- A finding posted on the issue before dispatch did what a brief cannot: the run treated each item as
+  a hypothesis, refused three on evidence and filed four as behaviour changes. Twenty of the
+  twenty-nine dispositions landed, which is the reviewer's yield to compare the next reading against.
+- The green gate missed two defects the whole-file consult found: an exported function whose contract
+  had changed under a caller in the test suite, and a widened test needle that would have let a gate
+  pass with a local copy of the helper. The second was fixed by making the source spell what the
+  checker requires, with the checker untouched. Both surfaced only when whole files were sent, after
+  the commit-time diff review had approved.
+- One item in the plan was reverted at the gate when two tests pinned the behaviour it removed, and
+  it left as a filing rather than a test edit. The run's own confirmation record kept the pre-reversal
+  tally, and the issue was closed before it could be corrected, so the commit message carries the
+  true count.
+- The doc-index cap left no room for the new primitive's contract in the primitives page; the argument
+  went into a knowledge entry and the instance onto ISS-294, which owns the split.
+- Cost: three runs in the wave's window at a median of 92 minutes and 277 calls; this one ran 88
+  minutes as the only run measured at the feature rung today. The dispatcher's opening spend was four
+  review agents and one filing.
