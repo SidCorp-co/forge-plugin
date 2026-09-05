@@ -2582,3 +2582,31 @@ closed by the run. Folded from the record.
 - A recheck based on the parent of the landed head diffs only the version files, because the version
   commit sits above the change; the pre-ship sha is the base. The record page was measured at
   seventy-eight characters under its one-pass cap and its split filed (ISS-304).
+
+## Hundred-and-third dry run — ISS-267
+
+One agent read the third batch as a whole: forty releases and 2448 changed lines under the source,
+hook and bin trees since the last mark, fixed at the head master stood at when the run began, which
+matched the ship's own count exactly and is what proved the range was the one being re-counted. The
+mark now names that head. Four issues filed, three open issues corroborated with what the reading
+found, one line landed naming a tree the layout map had missed (3.35.117), and every module knowledge
+entry brought current. The next reading is not owed: 168 lines against the threshold. No restart owed.
+Closed by its run. Folded from the record.
+
+- A third shell-word quoter was written four commits after the primitive was given one home, and the
+  one-home guard stayed green over it because its row is two exact-text needles the copy spells
+  differently (ISS-303, with the guard-miss detail on it). A checker whose needle is the copy's exact
+  text is only proven against the copies it already knows.
+- Dead exports were re-verified one by one after the first scan proved to have a false-negative mode:
+  tests import dynamically, and a static import search does not see them. Posted onto ISS-114 with the
+  dead parameter no checker class covers.
+- Two claims in the parent's brief were wrong and are corrected here. The gate-review skill is about
+  gate wall-clock profiling and says nothing about reading a diff; the issue body's own rules were the
+  authority. And ISS-300 records two invocations sixteen seconds apart, so its defect is that the
+  into-route runs no near-duplicate check, not that one call posts twice; `forge comment` is the route
+  that refuses a finder without a lease (ISS-63), so filing into an issue is the finder's only one.
+- A plan declaring a screen change with bold closing before the colon is refused as declaring
+  neither, and the refusal names no markup (ISS-312); the trap was already written in the flow
+  module's knowledge entry, which is where a run reads after it has been refused, not before.
+- A knowledge write has no revision, so each upsert was captured with a read first as the only
+  restore copy; one upstream 502 said it may have been processed, and the timestamp showed it had not.
