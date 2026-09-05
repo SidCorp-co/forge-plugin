@@ -3005,3 +3005,30 @@ from its handback.
   assumed.
 - The triage role names no complexity and no ladder tier because neither exists yet (ISS-317,
   ISS-318). A role that pretends to a field the tracker lacks is a brief claim waiting to be wrong.
+
+## Hundred-and-eighteenth dry run — ISS-360
+
+Filed by the parent the same hour it ran, and reshaped twice by the user while its agent worked. The
+parent had found the codex-order gate keyed on the session id, which six agents share, so only the
+first consult of a day was held; then found the parent's own advisor silent since 1 September; the
+user's first answer moved the carry to the plan write, and the final one was no gate after the advisor
+at all. The agent took both turns through correction records. codex-order is gone whole — gate, entry,
+registration, test and every helper only it used — and codex-second reads no transcript, keeping its
+two commit-time refusals; codex-turn is untouched, proved by an empty diff over its three files
+(3.35.134, landed as 5c23956). The how page survives as a retirement note so `--how` answers with why,
+and the name is in the retired-names registry with the release that matches. Seventeen criteria,
+codex approved twice with no findings, at the judged head and again at the rebased landing head.
+Restart owed for `hooks.json` alone. Closed by its run. Folded from its handback.
+
+- An issue redirected mid-run is a correction record, not a restart of the run: the agent re-read the
+  body on each message, posted what moved and why, and kept the records it had.
+- What retired is the gate, not the practice: the forge skill's codex reference and its docs page still
+  say to carry the advisor's points into the intent by hand, and neither claims enforcement. Recorded
+  as a decision rather than deleted.
+- Half of ISS-299 landed as a side effect and was filed there rather than claimed here.
+- Two ships failed before the third: one gate step went red for host load while three other runs
+  spent their gates on the machine (filed onto ISS-213 as a second instance), and one push raced the
+  remote, which cost a dropped version commit, a rebase and a second whole-set read. The release
+  field raced two versions in the same hour.
+- A memory note of the parent's still described the retired gate; the agent reported it rather than
+  editing a file that was not its own, and the parent retired the note in the fold.
