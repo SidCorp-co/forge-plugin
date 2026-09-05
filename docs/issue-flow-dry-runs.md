@@ -3613,3 +3613,29 @@ Folded from its handback.
   joins two nouns as readily as two claims.
 - This landing pushed the unread range past the threshold, and the batch reading already open for the
   mark (ISS-428) is where it goes; the run did not take it.
+
+## Hundred-and-forty-first dry run — ISS-142, ISS-157, ISS-155
+
+A batch of three fix-size issues sharing the route and record modules, cut off by the model's session
+limit mid-gate and resumed in its own agent once the limit lifted, with master having moved twice under
+it. The collision sentence now exists once, exported from the evidence module; a park completes in one
+call, the reason forwarded as the transition's and the waiting kind derived from the park's; and a
+resume reads the park that set the status by pairing it with the tracker's own announcement of the
+entry, refusing a spent park with the by-hand call (3.35.156, landed as 9ea71ad; the three commits in
+the order 155, 157, 142, the last not removable without the second). The design changed on a finding
+probed live and documented nowhere: any comment on a `needs_info` issue moves it to `open`, silently,
+so the transition-first order the run had already shipped through two review rounds made the park
+record the comment that undid the park. Four approved criteria were impossible as written and were
+corrected in the open with their reason. No restart owed. Closed by its run. Folded from its handback;
+the four filings and the two routed findings were read back through the raw comments call.
+
+- A verb's effect is checked by reading the status back after it returns, not by reading the owed
+  report; the tracker's own reset was invisible to every reading but that one.
+- A batch resumed after a cut owes a rebase onto everything that landed while it slept, and the
+  reviewer's read again where the resolution is content nobody saw; the run did both and the whole
+  set landed clean.
+- The verdict verb attaches a `--verdict` typed before its `--criterion` to the previous block,
+  silently; it recorded a fail against the wrong criterion twice before the run noticed (ISS-435), the
+  second flag-order defect on that verb in one wave beside ISS-404's.
+- A gate timing the ship prints compares a full run to a scoped one, and the run said so rather than
+  let the pair read as a regression.
