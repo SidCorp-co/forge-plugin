@@ -4,7 +4,7 @@
 import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { commentPage, cutLine } from "../tracker/comments.mjs";
+import { commentPage, creditAfter, cutLine } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
@@ -81,20 +81,52 @@ const viewOf = async (reference, given) => {
 };
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs
-   unless the record earns it, and a second lease write would cost three more calls. */
-export const transitionTo = async (view, status, ref, note = "", next = null) => {
+   unless the record earns it, and a second lease write would cost three more calls. `said` is what
+   a park adds to the payload; a plain advance sends the status alone and nothing else. */
+export const transitionTo = async (view, status, ref, note = "", next = null, said = null) => {
   await renew(view.documentId, ref, next);
-  const answer = await write("forge_issues", { action: "transition", documentId: view.documentId, data: { status } });
+  const answer = await write("forge_issues",
+    { action: "transition", documentId: view.documentId, data: { status, ...(said ?? {}) } });
   const held = answer?.status ?? answer?.issue?.status;
   if (held && held !== status) refuse(`The transition answered with status ${held}, not ${status}. Nothing to rely on.`);
   console.log(`${ref}  ${view.issue.status} -> ${status}${note}`);
 };
 
-/* The two writes of one park, in the order a reader of the record needs them: the typed reason
-   first, then the status it sends the issue to. The crashed park a reclaim writes lands here too. */
+/* Every park kind landing in `waiting` asks a person to decide, so the kind the tracker demands is
+   derived; one that waited on a thing would need a row of its own. */
+const WAITING = "waiting";
+const waitsFor = (kind) => (PARK_STATUS[kind] === WAITING ? { waitingKind: "needs_decision" } : {});
+
+/* The two writes of one park: the tracker refuses a move into a side status carrying no reason, so
+   the typed `why` travels with it (ISS-157). The status goes first, and a refused move then leaves
+   no record behind to disagree with it — except for `needs_info`, where any comment is read as the
+   answer and puts the issue back to `open` (ISS-429), so the record goes first and a refused move
+   there does leave it behind. The crashed park lands here too. */
+const RECORD_FIRST = "needs_info";
+
 export const parkAs = async (view, ref, kind, why, evidence = [], left = null) => {
-  await post(view.documentId, render("park", { kind, why, evidence }, left ?? view.issue.status), ref);
-  await transitionTo(view, PARK_STATUS[kind], ref);
+  const status = PARK_STATUS[kind];
+  const body = render("park", { kind, why, evidence }, left ?? view.issue.status);
+  const move = async () => {
+    await transitionTo(view, status, ref, "", null, { reason: why, ...waitsFor(kind) });
+    await creditAfter("the park's transition", [{ ref, documentId: view.documentId }]);
+  };
+  if (status === RECORD_FIRST) {
+    await post(view.documentId, body, ref);
+    await move();
+    return;
+  }
+  await move();
+  try {
+    await post(view.documentId, body, ref);
+  }
+  catch (error) {
+    /* A record written now would stamp the side status as the one it left. */
+    refuse(`${ref} moved to ${status} and its park record did not go up: ${error.message}\n`
+      + `Nothing on the page now says where it left, and \`forge record park\` would stamp `
+      + `${status} as that status. Put this body up as it stands:\n  `
+      + `forge call forge_comments '${JSON.stringify({ action: "create", data: { issue: view.documentId, body } })}'`);
+  }
 };
 
 const park = async (view, ref, kind, why, evidence) => {
