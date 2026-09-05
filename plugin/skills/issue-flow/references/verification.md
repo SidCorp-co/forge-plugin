@@ -68,6 +68,11 @@ what a landing brings is other people's commits, and this change's own diff is u
 Which of the two the flow makes you pay, and what the merged mark has to say for the verdicts to
 stand: `forge guide contract developed`.
 
+Run the evidence once, at that head, and attach it once. A suite re-run per criterion proves nothing
+the first run did not, and it was five and a half re-runs a run before this. Then judge every
+criterion in one write rather than one apiece — `forge record verdict -h` carries the form — and run
+again only for a criterion whose evidence is its own.
+
 ## What each kind of change owes as evidence
 
 | Changed | Proof |
