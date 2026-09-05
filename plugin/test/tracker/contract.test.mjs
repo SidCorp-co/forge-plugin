@@ -245,6 +245,31 @@ test("the read that earns the review has one place, and no landing owes a rechec
   }
 });
 
+/* The cadence has one home, and a retirement leaving a copy behind is what ISS-108 refuses. Both
+   directions are asserted: absence alone passes on a file somebody emptied, reading exactly like a
+   clean repository. The history doc is no rule surface — it records what runs did, not what to do. */
+const RETIRED_CADENCE = /as often as the work changes it/u;
+const HISTORY = "docs/issue-flow-dry-runs.md";
+test("the gate's cadence is stated in the verification reference and restated nowhere", () => {
+  const held = flat(readFileSync(VERIFICATION, "utf8"));
+  for (const [beat, phrase] of [
+    ["how often the gate is spent", "The gate is spent once per unit of work"],
+    ["that a unit is not an edit", "never each edit inside one"],
+    ["what runs between units", "the changed file's own suite"],
+    ["that the ship's gate is the release's", "the release's gate is that run"],
+  ]) {
+    assert.ok(held.includes(phrase), `the verification reference no longer states ${beat}, so a run `
+      + `reading it is back to guessing how often to spend the gate (ISS-290)`);
+  }
+  const tracked = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
+    .trim().split("\n").filter(Boolean);
+  const holding = tracked.filter((rel) =>
+    rel !== HISTORY && RETIRED_CADENCE.test(readFileSync(join(ROOT, rel), "utf8")));
+  assert.deepEqual(holding, [], "a surface still tells a run to spend the gate as often as the work "
+    + "changes it, which the cadence above replaced: a sentence retired is retired from every surface "
+    + "at once, so delete it there rather than leaving two answers to one question (ISS-108, ISS-290)");
+});
+
 /* An owed-marker's issue key must not outlive the issue: ISS-14 was dropped once its rule was met
    at the write, and three surfaces went on citing it as owed, which is the redirect a retirement
    refuses (ISS-226). The population is the surfaces that state a rule, not the tree — the dry-runs

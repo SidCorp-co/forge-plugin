@@ -12,13 +12,16 @@ rather than proceeding as though it were green.
 leaves every step behind it unknown, and a baseline naming that one red is a baseline for
 nothing after it: run the remaining steps by hand and record what each answered.
 
-**Run the project's gate as often as the work changes it, and let the gate decide what that costs.**
-A gate that reads the diff and remembers its passes answers a one-line edit in seconds and an
-unchanged tree in none; one that runs everything every time is the gate's defect (ISS-119 reviews
-it), not a reason to run it less. Between whole runs, the test file of the change is still the
-fastest answer to one question. Seven runs measured on 2026-09-04 ran an unscoped gate 111 times,
-84 minutes of waiting; the scoped gate that replaced it on the same day answers a docs edit with
-three of twelve steps.
+**The gate is spent once per unit of work.** The baseline above is the whole run and the only one
+the work owes; after it, one scoped run when a unit of work is finished — a change that stands on
+its own, never each edit inside one — and in between the changed file's own suite, which answers one
+question faster than any gate reaches it. The ship spends the gate itself, so the release's gate is
+that run and there is nothing left to spend after the push. A gate that reads the diff and remembers
+its passes makes the last of five runs cost what one costs, which is all the four before it bought:
+1191 gate runs over 97 flow runs, five a run inside the build phase and 1.3 after a ship that had
+already run it, are the figures ISS-290 was filed on. A gate too slow to spend once a unit is the
+gate's defect and the gate-review skill is the route to it, never a reason to spend it less often.
+
 ## The order
 
 1. **The repo's own gates.** Whatever the project defines. Passing them is the floor.
@@ -89,6 +92,9 @@ range the user's stack owns.
   override belongs inside the invocation the script actually executes.
 - **Start background processes from the directory their dependencies resolve against.** A
   module-not-found from a background process is usually the working directory.
+- **Wait for long work, never poll it.** Give the call its own timeout in the foreground, up to
+  the shell tool's ten-minute cap, or start it in the background and take the harness's completion
+  notice as the wake-up; a `sleep` inside a `while` or `until` is refused.
 - **After stopping anything, confirm the user's own stack still answers.** The guard can
   refuse a command that cannot be aimed; it cannot tell you that you aimed correctly.
 
