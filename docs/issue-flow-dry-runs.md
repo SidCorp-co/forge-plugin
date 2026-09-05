@@ -3392,3 +3392,30 @@ ISS-395 was not and the dispatcher posted it.
   carry one consult id, not one per finding; that grammar is ISS-34's.
 - A file reverted to its committed bytes left a pending consult row nothing could clear, for six
   consults and three quarters of an hour; the sharper case went to ISS-392.
+
+## Hundred-and-thirty-third dry run — ISS-159
+
+The review mark's move path now proves the target is on this history and not only that it descends
+from the mark, both invariants computed once at the one call site, with three distinguishable refusals
+for a target off the history, behind the mark, or both, each carrying the update-ref command that would
+force it (3.35.148, landed as 10d210e). The checker was watched firing: with the ancestry check
+disabled the new case went red and the plant-path case stayed green, both shapes built with
+commit-tree rather than a branch. The dispatcher's triage line was wrong in a nameable way: it said
+the quoted guard was gone from the review script, having searched the directory and not the file the
+line lived in; the run found it verbatim and said so. No restart owed. Closed by its run. Folded from
+its handback.
+
+- A triage line that says "the code moved" after searching the wrong place sends the run to look for
+  something that is where it always was. The run treated it as the hypothesis it is and named the
+  error as the dispatcher's, which is the right disposition; the fold records it so the next triage
+  searches the file the body names before its neighbours.
+- Verification ran the landed script from the checkout, not the installed copy, and said so as a
+  Rule 4 override: a repository script outside the shipped plugin directory has no cache copy to
+  verify against.
+- The first push was rejected mid-gate because master had moved; the change was replayed and the
+  diff between the judged head and the landed head over the touched paths was empty, so the mark's
+  note carried "landing moved nothing" and every verdict stood. Two heads on one issue, by the
+  mechanism the contract provides.
+- No wrapped verb delivers a comment body: the issue verb's fields do not name them and the resume
+  verb says in its own help that it is no delivery of them, so the run read them through the raw
+  call. Recorded as a gap on the issue and not filed, since a closed issue made it a design.
