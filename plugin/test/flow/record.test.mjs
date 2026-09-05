@@ -23,6 +23,41 @@ test("every kind is on the usage line, and -h prints it without touching the tra
   assert.ok(run.stdout.includes("Usage: forge record"), run.stdout);
 });
 
+/* `record` answers its own help, so the dispatcher's route never sees the tail and `-h` after a kind
+   was read as the issue reference: every kind refused for a flag, and four of them for a bad key,
+   which is the one flag a refusal naming the missing flag could not answer for (ISS-208). */
+test("naming a kind narrows -h to that kind's arguments rather than refusing for a flag", () => {
+  for (const kind of KINDS) {
+    const run = ask("record", kind, "-h");
+    assert.equal(run.status, 0, `${kind}: ${run.stderr}`);
+    assert.match(run.stdout, new RegExp(`^Usage: forge record ${kind}\\b`, "mu"), kind);
+    assert.match(run.stdout, new RegExp(`^ {2}${kind}\\b`, "mu"), `${kind} is offered its own row`);
+    assert.equal(run.stderr, "", `${kind} refuses nothing`);
+  }
+});
+
+test("the kind that opens a block carries what its one row cannot, and no other kind does", () => {
+  const block = /^--criterion repeats/mu;
+  assert.match(ask("record", "verdict", "-h").stdout, block);
+  assert.doesNotMatch(ask("record", "confirmation", "-h").stdout, block);
+});
+
+test("a kind -h answers for the kind alone, and a name that is no kind still refuses", () => {
+  const one = ask("record", "park", "-h").stdout;
+  assert.match(one, /^ {2}park\b.*--kind K/mu, "the kind asked about is answered");
+  assert.doesNotMatch(one, /^ {2}verdict\b/mu, "one kind's help is not the whole table");
+  const bad = ask("record", "nosuchkind", "-h");
+  assert.equal(bad.status, 1, bad.stdout);
+  assert.match(bad.stderr, /record knows no kind `nosuchkind`/u);
+});
+
+/* The kinds and their rows are unchanged: a help word is the whole of what this reads. */
+test("a missing flag that is not a help word is refused as it was", () => {
+  const run = ask("record", "confirmation", "ISS-45");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /record confirmation needs --where\./u);
+});
+
 /* The keys are the flags and they sit in a fenced block, because a project with a prose language
    rewrites every body on the way out and a rewrite renames prose. A label is no key. */
 test("a record renders for a person and its payload is a fenced block keyed by flag", () => {

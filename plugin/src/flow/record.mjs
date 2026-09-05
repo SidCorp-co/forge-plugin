@@ -37,6 +37,17 @@ const CRITERIA_BODY = "record criteria takes the file holding the numbered lines
 
 export const KINDS = [...Object.keys(SHAPES), "note", "criteria", "report"];
 
+const CRITERION_BLOCKS = [
+  "--criterion repeats: each one opens a block, and one write carries a verdict on every criterion",
+  "it names. What stands before the first --criterion is every block's, so one commit and one",
+  "evidence set cover them all. A block's own value of a flag taking one replaces the shared one; a",
+  "repeatable flag adds to it, so a criterion whose evidence is its own cites that too:",
+  "  record verdict ISS-45 --commit <sha> --evidence run.txt --verdict pass \\",
+  "    --criterion 1 --criterion 2 --criterion 3 --verdict fail --why \"<what failed>\"",
+  "A file two criteria cite goes up once, under the one name both of them carry. Each block reads",
+  "back as the record a single write makes, so nothing downstream can tell one write from three.",
+];
+
 export const USAGE = [
   usageOf("record"),
   "A contract payload, written in the one shape the CLI owns and read back by kind. A missing field",
@@ -59,14 +70,7 @@ export const USAGE = [
   "  criteria     <file.md|@file|->   numbered lines, one criterion each",
   "  report       the latest record of each kind, the latest verdict per criterion, and what is owed",
   "",
-  "--criterion repeats: each one opens a block, and one write carries a verdict on every criterion",
-  "it names. What stands before the first --criterion is every block's, so one commit and one",
-  "evidence set cover them all. A block's own value of a flag taking one replaces the shared one; a",
-  "repeatable flag adds to it, so a criterion whose evidence is its own cites that too:",
-  "  record verdict ISS-45 --commit <sha> --evidence run.txt --verdict pass \\",
-  "    --criterion 1 --criterion 2 --criterion 3 --verdict fail --why \"<what failed>\"",
-  "A file two criteria cite goes up once, under the one name both of them carry. Each block reads",
-  "back as the record a single write makes, so nothing downstream can tell one write from three.",
+  ...CRITERION_BLOCKS,
   "",
   "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
   "  --pushed        the branch, head, base and files touched, read from git at this moment",
@@ -84,6 +88,18 @@ export const USAGE = [
   "merged mark's note, the evidence from what the latest record of this kind cited. Each is printed.",
 ].join("\n");
 
+
+const rowFor = (kind) => USAGE.split("\n").find((line) => new RegExp(`^ {2}${kind}\\b`, "u").test(line));
+
+export const kindHelp = (kind) => [
+  usageOf("record").replace("<kind>", kind),
+  "",
+  rowFor(kind) ?? `  ${kind}`,
+  ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
+  "",
+  "The flags every writing kind also takes, what counts as evidence, and the other "
+    + `${KINDS.length - 1} kinds: \`forge record -h\`.`,
+].join("\n");
 
 const wordIn = (word, text) => new RegExp(`(?:^|[^\\p{L}])${word}(?![\\p{L}])`, "iu").test(text);
 
@@ -580,6 +596,9 @@ const pullRun = (argv) => {
 const run = async ([kind, reference, ...argv]) => {
   if (!kind || wantsHelp([kind])) return console.log(USAGE);
   if (!KINDS.includes(kind)) refuse(`record knows no kind \`${kind}\`. Kinds: ${KINDS.join(", ")}.`);
+  /* `record` answers its own help, so cli.mjs hands the whole tail over and `-h` in the reference
+     position was spent as an issue key — the one flag its own refusal could not answer for. */
+  if (wantsHelp([reference])) return console.log(kindHelp(kind));
   if (!reference) refuse(USAGE.split("\n")[0]);
   const { next, patch, asked, rest } = pullRun(argv);
   const run = { next, patch };
