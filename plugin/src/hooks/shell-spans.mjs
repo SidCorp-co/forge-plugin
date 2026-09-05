@@ -79,14 +79,14 @@ export const spans = (text, { pipes = false } = {}) => {
   return out;
 };
 
-/* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, and a `-n` moves the stack and not the shell, so it is no move at all. */
+/* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
 const AHEAD = String.raw`(?:[({]\s*|\b(?:if|elif|while|until|then|else|do)\s+)*`;
 const WORD = String.raw`(?:'[^']*'|"[^"]*"|\\.|[^\s;&|()<>])+`;
 const MOVES = new RegExp(
-  `^${AHEAD}(?:popd(?=\\s|$)|(?:cd|pushd)(?=\\s|$))((?:\\s+-[\\w-]+)*)(?:\\s+(${WORD}))?`,
+  `^${AHEAD}(?:popd(?=\\s|$)|(?:cd|pushd)(?=\\s|$))((?:\\s+-(?!-(?![\\w-]))[\\w-]+)*)(?:\\s+--)?(?:\\s+(${WORD}))?`,
   "u",
 );
-const STAYS = /(?:^|\s)-[\w-]*n/u;
+const STAYS = /(?:^|\s)-[a-zA-Z]*n[a-zA-Z]*(?![\w-])/u;
 /** A destination the text does not carry — `cd -`, a bare `cd` or `pushd`, a `popd` whose stack this
  *  declines to model, one holding a `$`. `movedTo` hands it back rather than the cwd, and `resolve` throws. */
 export const NOWHERE = Symbol("a tree the command does not name");

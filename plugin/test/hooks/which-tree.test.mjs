@@ -319,6 +319,7 @@ test("a pushd is a move, and the stack a popd returns to is a tree nobody named"
     ["pushd +1 && git status", [NOWHERE], "nor one rotating the stack"],
     ["pushd -n /one && git status", [null], "while a -n moves the stack and leaves the shell where it was"],
     ["popd -n && git status", [null], "so the tree it started in is known, and reading it as unknown lost one"],
+    ["cd -- -n && git status", ["-n"], "while past a `--` a word beginning with one is the destination"],
   ]);
   assert.match(
     from(cleanRepo(), `pushd ${dirty} && popd && git ${verb}`),
