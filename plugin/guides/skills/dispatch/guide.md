@@ -86,6 +86,11 @@ Every report is folded, whatever it says: what landed, what was filed, what a re
 and what a run declined and why. A claim a report makes about work filed elsewhere is checked by
 reading that thread, not taken.
 
+**A run that parked is resumed, never replaced.** When the block it named clears, the same agent is
+messaged to continue from the phase its park named; its reading, confirmation and narrowings are
+already in its context, and a fresh dispatch pays Phase 0 and Phase 1 again to re-derive them. A new
+agent goes out on a parked issue only when the parked one no longer answers, and the fold says so.
+
 The wave's own cost is measured against what it saved — the dispatcher's minutes and calls against
 the readings the executors did not repeat and the dispositions taken before a run was ever spent. A
 net cost asserted rather than counted is the thing this skill was built to stop doing.
