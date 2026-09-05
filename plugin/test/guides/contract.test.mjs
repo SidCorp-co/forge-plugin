@@ -513,9 +513,7 @@ test("a correction re-sizes a fix back onto the full path, and reads one directi
     "while the word and the arrow are both the author's");
 });
 
-/* Three prose obligations became entry checks at ISS-359, and ISS-108's rule binds the retirement to
-   that landing: a sentence a check enforces, left standing in a guide, is a second answer that goes
-   stale without failing anything. The narrow half is held too, below. */
+/* CLAUDE.md, Rules only: the checker is the one statement, so the guide may not keep the sentence. */
 const RETIRED_BY_CHECK = [
   [/the project's gate run once, whole and\s+distrusting any remembered pass/u,
     "the baseline's wholeness, which `in_progress` now refuses on the record's own scope"],

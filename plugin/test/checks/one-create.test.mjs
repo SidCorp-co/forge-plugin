@@ -35,7 +35,7 @@ test("one place in the tree files an issue, and it is the interface", () => {
   assert.deepEqual(creationProblems(found()), []);
 });
 
-/* A selector matching nothing looks exactly like a tree that obeys the rule. */
+/* CLAUDE.md, Verifying: the selector has to be watched matching. */
 test("the interface itself is found, so the check is measuring something", () => {
   const mine = found().filter((one) => one.where === INTERFACE);
   assert.equal(mine.length, 1, `${INTERFACE} makes ${mine.length} create(s) on ${TOOL}, and it owns one`);
