@@ -3665,3 +3665,29 @@ read back.
   open reading issue rather than edit a filed body.
 - The filing stays a feature because the review kind is another issue's; the run left the kind alone
   and named whose it is.
+
+## Hundred-and-forty-third dry run — ISS-396
+
+The gate runner leaves its record unread where it cannot place every changed path in some step: a path
+no step claims, no merge base, or a listing git refused, each of which had read as "nothing differs"
+because a failed listing answered an empty list (3.35.158, landed as c82a1c4). The issue's premise was
+wrong and the run said so on the record: the config file the body blamed is claimed twice over, by the
+root pattern and by the test step's own reads, so the dispatcher's commit could not have escaped by the
+mechanism described; no gate ran at that head at all, since it was a bare chore commit with no release
+beside it. The defect in the title was real and reachable only through a new top-level directory, and
+the existing case could not see it because a scratch checkout's record is empty. Five new cases, four of
+them and the help assertion red against the unmodified runner. No restart owed, since repository
+tooling is not copied into the plugin cache. Closed by its run. Folded from its handback; the filing
+was read back.
+
+- A body that names a mechanism is a hypothesis about the code, and this one was wrong in the
+  particular while right in the general: the run separated the two, corrected the first on the record
+  and built for the second. The dispatcher's own account of its commit, carried in the brief, was the
+  wrong particular.
+- A helper that answers null on failure feeds a caller that reads null as empty, and a refused command
+  becomes a clean result; the reviewer's findings turned one route into three because of it.
+- Two of the run's own background gate runs raced on one worktree; it stopped both by pid and re-ran
+  once, so the green it cites is a single observed exit.
+- A prose flag on the record verb stores an at-file token verbatim, so a record can point at one
+  machine's temp directory (ISS-434); the run named which of its own two confirmation comments is the
+  broken one.
