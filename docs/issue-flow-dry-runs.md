@@ -3183,3 +3183,26 @@ restart owed. Closed by its run. Folded from its handback.
   which consult a finding id belongs to, and cannot say that a whole-set read clipped eight of its
   files. A bare `--recheck` answered "nothing to consult on" and should read the set off the consult
   it names (ISS-378).
+
+## Hundred-and-twenty-fifth dry run — ISS-373
+
+Filed by the parent at the user's word and dispatched into the restart batch the same hour. A
+`stop-check` gate on Stop and SubagentStop, run by the same entry the other events use, refuses the
+end of a turn once per item while the turn left something red; the four items and the command that
+clears each are the how page's (3.35.140, landed as d86cf80). The lint delegate moved out of the code-quality gate into a shared
+module both gates read, and gained the project directory, since a run writing outside its start
+directory had been linting nothing. Twelve criteria; restart owed for `hooks.json`. Closed by its run.
+Folded from its handback.
+
+- A concurrent landing took the gates, entries and gate-test folders each to the width limit while
+  this branch was cut, and three new files took each to eleven. Only the run's own files were movable,
+  so they sit in a `turn/` folder under each, the boundary the registration already draws between a
+  gate that judges a call and one that judges the turn that ends; a gate name now reaches its file by
+  a walk, and a new checker asserts the bare name reaches exactly one file.
+- The first verification ran the hopping entry, which proves the copy the CLI would run and not the
+  installed bytes; the second ran the installed copy's solo entry and watched it block on a dirty
+  worktree. The tracker refused the corrected record because the issue had already closed, so an
+  inaccurate `--where` stands beside accurate evidence on the thread, named here so nobody reads it as
+  proof.
+- The one gate that went red on the way was the width check firing correctly. A run that meets no
+  defect files nothing, and says so.
