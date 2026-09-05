@@ -74,12 +74,6 @@ export const countedIn = (reply) => {
 
 export const consults = (entries) => entries.filter((one) => one.kind === "consult");
 
-/* Only a consult that came back with a review spends advice; a failure licenses the retry. */
-export const lastConsultAt = (root, entries = logEntries()) =>
-  answered(entries)
-    .filter((one) => one.root === root)
-    .reduce((latest, one) => Math.max(latest, Date.parse(one.at) || 0), 0);
-
 /* A failed consult carries no advice: "3 accepted" against a gateway timeout is not a verdict. */
 export const answered = (entries) => consults(entries).filter((one) => one.ok && one.reply);
 

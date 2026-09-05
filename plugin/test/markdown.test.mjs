@@ -61,10 +61,10 @@ const FENCE_WORD = String.raw`⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧`;
 /* The comparison a copy writes, and the pair a copy declaring the words as a list would write. */
 const HELP_FORMS = ['=== "-h"', '"-h", "--help"'];
 
-/* Two modules read a help flag anywhere in a line rather than as its first word and spell the same
-   two words to do it; no needle over text tells either from a copy, and neither is one. Named here,
+/* One module reads a help flag anywhere in a line rather than as its first word and spells those same
+   two words to do it; no needle over text tells it from a copy, and it is not one. Named here,
    where a run widening this scan reads it; docs/cli/the-primitives.md carries why. */
-const ANY_POSITION = ["plugin/src/codex/codex.mjs", "plugin/hooks/gates/codex-order.mjs"];
+const ANY_POSITION = ["plugin/src/codex/codex.mjs"];
 
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],

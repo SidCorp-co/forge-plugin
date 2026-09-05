@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { dirtyRepo, tempRoom } from "../fixtures.mjs";
 
 const GATE = new URL("../../hooks/gate.mjs", import.meta.url).pathname;
+const REGISTERED = new URL("../../hooks/hooks.json", import.meta.url).pathname;
 const HOME = tempRoom("gate-home-");
 /* The in-process cases log too, and never to the developer's own config. */
 process.env.XDG_CONFIG_HOME = HOME;
@@ -23,7 +24,7 @@ const out = (held) => (held.stdout.trim() ? JSON.parse(held.stdout) : null);
 test("before a call, the first gate to refuse is the answer and the rest are not asked", () => {
   const cwd = dirtyRepo();
   const ev = { tool_name: "Bash", tool_input: { command: "git stash" }, cwd, session_id: "g1" };
-  const held = out(run(["bash-guard", "codex-second", "learning-gate", "codex-order", "issue-read-first"], ev));
+  const held = out(run(["bash-guard", "codex-second", "learning-gate", "issue-read-first"], ev));
   assert.equal(held.hookSpecificOutput.permissionDecision, "deny");
   assert.match(held.hookSpecificOutput.permissionDecisionReason, /git stash silently reverts/u);
   assert.match(held.hookSpecificOutput.permissionDecisionReason, /forge hooks --how bash-guard/u, "the refusal names its own gate");
@@ -41,7 +42,7 @@ test("a gate switched off on the line is skipped, and one that is not still answ
   writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({ hooksOff: ["bash-guard"] }));
   try {
     const ev = { tool_name: "Bash", tool_input: { command: "git stash" }, cwd, session_id: "g2" };
-    assert.equal(out(run(["bash-guard", "codex-order"], ev)), null, "the switched-off gate does not refuse");
+    assert.equal(out(run(["bash-guard", "codex-turn"], ev)), null, "the switched-off gate does not refuse");
     writeFileSync(join(HOME, "forge", "config.json"), "{}");
     assert.equal(out(run(["bash-guard"], ev))?.hookSpecificOutput?.permissionDecision, "deny");
   } finally {
@@ -120,4 +121,34 @@ test("out of time before a call refuses it, and after one is a line in the log",
   const log = readFileSync(join(HOME, "forge", "hook-log.jsonl"), "utf8").trim().split("\n").map((one) => JSON.parse(one));
   assert.ok(log.some((one) => one.decision === "deny" && /ran out of time before bash-guard could decide/u.test(one.reason)), "a call nobody could judge is refused, not waved through");
   assert.ok(log.some((one) => one.decision === "error" && /codex-turn skipped: the post clock ran out/u.test(one.reason)));
+});
+
+/* The advisor is server-side: nothing fires when it speaks, so a transcript is all a gate could read
+   and the carry could only be judged by a word. The line is read off hooks.json rather than listed,
+   so a gate added to it is asked this too instead of bringing that reading back unnoticed. */
+test("a transcript holding an advisor result stops neither the consult after it nor the write", () => {
+  const line = /gate\.mjs pre ([\w\s-]+)"/u.exec(readFileSync(REGISTERED, "utf8"));
+  const registered = line[1].trim().split(/\s+/u);
+  assert.ok(registered.length >= 4, `the registered line names ${registered.length} gate(s)`);
+  const cwd = dirtyRepo();
+  const path = join(HOME, "advised.jsonl");
+  const records = [
+    { type: "user", promptSource: "typed", timestamp: new Date(Date.now() - 60_000).toISOString() },
+    {
+      type: "assistant",
+      timestamp: new Date().toISOString(),
+      message: { content: [{ type: "advisor_tool_result", content: { type: "advisor_redacted_result" } }] },
+    },
+  ];
+  writeFileSync(path, `${records.map((one) => JSON.stringify(one)).join("\n")}\n`);
+  const ev = {
+    tool_name: "Bash",
+    tool_input: { command: "echo 'my own intent' | forge codex consult a.mjs" },
+    transcript_path: path,
+    cwd,
+    session_id: `advised-${Date.now()}`,
+  };
+  assert.equal(out(run(registered, ev)), null, "the consult goes, whatever the advisor said and the intent left out");
+  const wrote = { ...ev, tool_input: { command: `printf x > ${join(cwd, "work.mjs")}` } };
+  assert.equal(out(run(registered, wrote)), null, "and so does the write after it, with the tree unconsulted");
 });

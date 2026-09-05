@@ -1,11 +1,11 @@
-/* A transcript reaches hundreds of megabytes — 214 MB here, 3.2s to read and parse — and two gates
-   want one thing from it: this turn, which is at the end. */
+/* A transcript reaches hundreds of megabytes — 214 MB here, 3.2s to read and parse — and what is
+   wanted from it is one thing: this turn, which is at the end. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { promptIndex, turnAt, turnRecords, unspentAdvice } from "../../hooks/_hook.mjs";
+import { callAt, turnAt, turnRecords } from "../../hooks/_hook.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const room = tempRoom("turn-records-");
@@ -16,8 +16,8 @@ const filler = (bytes) => {
 };
 
 const prompt = (at) => `${JSON.stringify({ type: "user", promptSource: "typed", timestamp: at })}\n`;
-const advised = (at) =>
-  `${JSON.stringify({ type: "assistant", timestamp: at, message: { content: [{ type: "advisor_tool_result", content: {} }] } })}\n`;
+const asked = (at) =>
+  `${JSON.stringify({ type: "assistant", timestamp: at, message: { content: [{ type: "tool_use", name: "Bash" }] } })}\n`;
 
 const wrote = (name, text) => {
   const path = join(room, name);
@@ -36,11 +36,11 @@ test("the turn is found at the end of the file", () => {
 test("a window too small for one turn is grown, not given up on", () => {
   const path = wrote(
     "long-turn.jsonl",
-    filler(500_000) + prompt("2026-09-01T11:00:00.000Z") + filler(3_500_000) + advised("2026-09-01T11:40:00.000Z"),
+    filler(500_000) + prompt("2026-09-01T11:00:00.000Z") + filler(3_500_000) + asked("2026-09-01T11:40:00.000Z"),
   );
   const records = turnRecords(path);
   assert.equal(turnAt(records), "2026-09-01T11:00:00.000Z", "the prompt sat 3.5 MB back");
-  assert.ok(unspentAdvice(records.slice(promptIndex(records) + 1)), "and the advice after it is still seen");
+  assert.equal(callAt(records), Date.parse("2026-09-01T11:40:00.000Z"), "and the 3.5 MB after it came back too");
 });
 
 /* Past the cap the reader answered "no turn", and that empty answer is a key of its own: told twice

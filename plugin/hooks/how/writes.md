@@ -14,9 +14,8 @@ To mention one without writing: keep it out of command position — a `--name` v
 data heredoc. A `-c` body is run by the shell that takes it, so a verb inside
 `sh -c '…'` is in command position, nested or not.
 
-Only a redirect names its target; one under `/dev/` writes nothing, nor does a verb aimed there
-(`curl -o /dev/null`). A bare verb counts as inside the tree. A variable takes an assignment from an
-earlier command, not its own prefix; a name holding another is followed, `$(…)` is text, and
-what only looks like one sets nothing.
+Only a redirect names its target, so a verb with a target of its own names none. A variable takes an
+assignment from an earlier command, not its own prefix; a name holding another is followed, `$(…)`
+is text, and what only looks like one sets nothing.
 
 Not judged: what the write contains, or whether it should happen.

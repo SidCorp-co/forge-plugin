@@ -1,16 +1,11 @@
-// The advisor has spoken and there is work in the tree: the second opinion happens before the next
-// write, not at some end the turn may never reach. And a commit waits for what a consult owes on
-// what that commit stages: documents unread, findings nobody ruled on. how/codex-second.md.
+// A commit waits for what a consult owes on what it stages: unread documents, unruled findings. how/codex-second.md.
 
-import { spawnSync } from "node:child_process";
-import { statSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 
 import { ageOf, demandIn, pendingState, repoRoot, stagedIn } from "../../src/codex/codex.mjs";
-import { lastConsultAt, logEntries, unverdicted } from "../../src/codex/codex-log.mjs";
+import { logEntries, unverdicted } from "../../src/codex/codex-log.mjs";
 import {
   REDIRECT,
-  advisedThisTurn,
   COMMITS,
   committing,
   deny,
@@ -21,70 +16,9 @@ import {
   spans,
   spelled as bare,
   typed,
-  turnRecords,
-  unspentAdvice,
-  how,
-  writesInside,
-  writing, done, remaining } from "../_hook.mjs";
-
-/* A deleted file has no mtime, and a directory removed whole takes its own: climb to what is there. */
-const climbed = (path, root) => {
-  let at = path;
-  while (at.length >= root.length) {
-    try {
-      return statSync(at).mtimeMs;
-    } catch {
-      /* gone with the deletion; the root itself always answers */
-    }
-    const up = dirname(at);
-    if (up === at) break;
-    at = up;
-  }
-  return 0;
-};
-
-/* Past WALK paths the set reads as changed now: a stat each outran the hook, and a killed hook is open. */
-const WALK = 500;
-const newestOf = (root, rels) => {
-  if (rels.length > WALK) return Date.now();
-  let newest = 0;
-  for (const rel of rels) newest = Math.max(newest, climbed(join(root, rel), root));
-  return newest;
-};
+  how, done, remaining } from "../_hook.mjs";
 
 const clock = () => Math.max(500, Math.min(5000, remaining() - 1000));
-
-/* `-z` neither quotes nor escapes; a rename's old name is the next field. Past the cap a count stands
-   in for a timestamp and is never spent, so there the question is what this checkout recorded. */
-const changedAt = (root) => {
-  const out =
-    spawnSync("git", ["-C", root, "status", "--porcelain", "-z", "-uall"], {
-      encoding: "utf8",
-      timeout: clock(),
-    })
-      .stdout ?? "";
-  const rows = out.split("\0");
-  const named = [];
-  const held = [];
-  for (let at = 0; at < rows.length; at += 1) {
-    const path = rows[at].slice(3);
-    if (!path) continue;
-    if (/[RC]/u.test(rows[at].slice(0, 2))) at += 1;
-    /* A directory survives `-uall` only as a repository of its own: work this tree cannot hand over
-       as a file, and going quiet about it is the silence the gate exists to break. */
-    (path.endsWith("/") ? held : named).push(path);
-  }
-  if (named.length + held.length > WALK) {
-    const record = pendingState(root).files;
-    const kept = (list) =>
-      list.filter((one) => (one.endsWith("/") ? record.some((rel) => rel.startsWith(one)) : record.includes(one)));
-    const mine = kept(named);
-    const inside = kept(held);
-    return { newest: newestOf(root, [...mine, ...inside]), named: mine, held: inside };
-  }
-  return { newest: newestOf(root, [...named, ...held]), named, held };
-};
-
 
 /* What the commit closes over, from that command alone: a pipeline's flags are not the commit's, and
    neither is a redirect's target or a value a flag ate — `-am x` is all and a message, `-ma` a message
@@ -95,9 +29,8 @@ const NEEDS_VALUE =
 const EATS_NEXT = "mFCct";
 const EATS_REST = "uS";
 const OPAQUE = ["--pathspec-from-file", "--patch", "--interactive"];
-/* Two commits in one call are two shapes with one answer, a pathspec list held in a file is one this
-   cannot read, and what `--patch` picks is picked after the hook has answered: each asks for the
-   record whole rather than for what one shape enumerates. */
+/* Two commits in one call are two shapes with one answer, a pathspec list in a file is one this cannot
+   read, and `--patch` picks after the hook answers: each asks for the record whole. */
 const TWICE = new RegExp(COMMITS.source, "gu");
 /* A relative `-C` is that tree from where the shell stands, which a move before this commit — and
    not one after it — has changed. Where the shell stands nowhere the text names, only an absolute
@@ -176,14 +109,12 @@ const unjudged = (ev, root, others) => {
 };
 
 export const run = (ev) => {
-  const closing = committing(ev);
-
-  if ((!writing(ev) && !closing) || process.env.FORGE_CODEX_DISABLE === "1") done();
+  if (!committing(ev) || process.env.FORGE_CODEX_DISABLE === "1") done();
 
   /* The tree the commit names, not the shell's; and a commit is in it by construction, redirect or not. */
-  const aim = closing ? commitAim(ev) : null;
+  const aim = commitAim(ev);
   /* No tree to pick and no way to ask about one: the event's cwd is a different repository's answer. */
-  if (aim?.tree === NOWHERE) {
+  if (aim.tree === NOWHERE) {
     deny(
       "Which tree this commit closes over cannot be read from the command — a `cd -`, a bare `cd` or a "
         + "destination built from a value names no directory this reading can check, so what the commit "
@@ -192,77 +123,37 @@ export const run = (ev) => {
         + how(),
     );
   }
-  const root = repoRoot(resolve(ev.cwd ?? process.cwd(), aim?.tree ?? "."));
+  const root = repoRoot(resolve(ev.cwd ?? process.cwd(), aim.tree ?? "."));
   if (!root) done();
 
-  const also = closing ? unjudged(ev, root, aim.others) : "";
-  const records = process.env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL === "1" ? null : turnRecords(ev.transcript_path ?? "");
-  const advised = Boolean(records && advisedThisTurn(records) && (closing || writesInside(ev, root)));
-  const spentAt = lastConsultAt(root);
-  /* Asked for what it stages; a write and an unenumerable commit name nothing, so the tree answers. */
-  const staged = closing ? stagedIn(root, aim, clock()) : null;
-  const { newest: changed, named, held } = closing && staged
-    ? { newest: advised && staged.length ? newestOf(root, staged) : 0, named: staged, held: [] }
-    : (advised ? changedAt(root) : { newest: 0, named: [], held: [] });
-  const owed = advised && (closing || unspentAdvice(records, spentAt)) && changed > 0 && changed > spentAt;
+  const also = unjudged(ev, root, aim.others);
+  /* Asked for what it stages; a commit this cannot enumerate names nothing, so the record stands whole. */
+  const staged = stagedIn(root, aim, clock());
 
-  if (!owed && closing) {
-    /* Recorded this turn or a turn ago, staged here, and never read: 7 of 30 commits landed with
-       the list unread, and a shared checkout's 726 dirty paths were demanded of a three-file commit. */
-    const waiting = pendingState(root);
-    const demand = demandIn(waiting.files, staged);
-    if (demand.length) {
-      deny(
-        `Codex has not read what this commit stages in ${root} (${demand.slice(0, 6).map(typed).join(" ")}`
-          + `${demand.length > 6 ? ` and ${demand.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}).${also}\n\n`
-          + `Do this: \`${root === (ev.cwd ?? process.cwd()) ? "" : `cd ${typed(root)} && `}`
-          + 'echo "<what you were doing>" | forge codex consult --diff --only blocker,major '
-          + `${demand.slice(0, 6).map(typed).join(" ")}\`, then re-send. `
-          + `\`forge codex pending --drop\` discards them unread. ${ESCAPE}`
-          + how(),
-      );
-    }
-    /* 37 consults made findings nobody ruled on, and the next consult then read "still open" as a guess. */
-    const open = unverdicted(logEntries(), root);
-    if (open) {
-      deny(
-        `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what became of ${open.open.join(", ")}.${also}\n\n`
-          + `Do this: \`forge codex verdict --of ${open.id} --accepted <ids> --rejected <id>=<why>\`, then re-send. `
-          + `A --recheck records the verdict for what it refutes. ${ESCAPE}`
-          + how(),
-      );
-    }
+  /* Recorded this turn or a turn ago, staged here, and never read: 7 of 30 commits landed with
+     the list unread, and a shared checkout's 726 dirty paths were demanded of a three-file commit. */
+  const waiting = pendingState(root);
+  const demand = demandIn(waiting.files, staged);
+  if (demand.length) {
+    deny(
+      `Codex has not read what this commit stages in ${root} (${demand.slice(0, 6).map(typed).join(" ")}`
+        + `${demand.length > 6 ? ` and ${demand.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}).${also}\n\n`
+        + `Do this: \`${root === (ev.cwd ?? process.cwd()) ? "" : `cd ${typed(root)} && `}`
+        + 'echo "<what you were doing>" | forge codex consult --diff --only blocker,major '
+        + `${demand.slice(0, 6).map(typed).join(" ")}\`, then re-send. `
+        + `\`forge codex pending --drop\` discards them unread. ${ESCAPE}`
+        + how(),
+    );
   }
-  if (!owed) done();
-
-  /* The command it can send as it stands: six is a readable line, and the paths are the judged tree's,
-     so a commit aimed elsewhere is consulted there rather than in the tree the shell happens to be. */
-  const shown = named.slice(0, 6);
-  const rest = named.length - shown.length;
-  const files = `${shown.map(typed).join(" ")}${rest ? ` # and ${rest} more` : ""}`;
-  const there = root === (ev.cwd ?? process.cwd()) ? "" : `cd ${typed(root)} && `;
-  const each = held.length > 1 ? "each" : "it";
-  const own = held.length > 1 ? "repositories of their own" : "a repository of its own";
-  const holds = held.length > 1 ? "hold changes of their own" : "holds changes of its own";
-  const action = named.length
-    ? `\`${there}echo "<what you were doing, and what the advisor said>" | forge codex consult `
-      + `--diff --base HEAD --only blocker,major ${files}\`, weigh what comes back, then re-send.`
-    : `the work is inside ${held.map(typed).join(" ")}, ${own} — consult from inside ${each} on a file `
-      + "there, then re-send. An empty one holds nothing to read.";
-  /* A diff of this tree says nothing about a repository held inside it, so the command cannot be all. */
-  const nested =
-    named.length && held.length
-      ? ` ${held.map(typed).join(" ")} ${holds}, outside that diff: consult in ${each} as well.`
-      : "";
-
-  deny(
-    `The advisor has spoken; codex has not read ${
-      closing
-        ? `what this commit stages in ${root}, and this commit is where the turn stops being a draft`
-        : "what is in the tree"
-    }.${also}\n\n`
-      + `Do this: ${action}${nested} `
-      + `One consult of this tree clears its writes. ${ESCAPE}`
-      + how(),
-  );
+  /* 37 consults made findings nobody ruled on, and the next consult then read "still open" as a guess. */
+  const open = unverdicted(logEntries(), root);
+  if (open) {
+    deny(
+      `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what became of ${open.open.join(", ")}.${also}\n\n`
+        + `Do this: \`forge codex verdict --of ${open.id} --accepted <ids> --rejected <id>=<why>\`, then re-send. `
+        + `A --recheck records the verdict for what it refutes. ${ESCAPE}`
+        + how(),
+    );
+  }
+  done();
 };

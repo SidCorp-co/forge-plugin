@@ -7,8 +7,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/* One home for what a document may not do; the rule itself is CLAUDE.md's. */
 import { NARRATES } from "../../src/checks/doc-shape.mjs";
+import { RETIRED } from "../../src/checks/retired-names.mjs";
 
 const PLUGIN = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const HOOKS = join(PLUGIN, "hooks");
@@ -33,14 +33,32 @@ test("every gate that points at its reasoning has some", () => {
 
 /* A hook renamed leaves a document nothing reads, and `--how` would offer it. A shared topic is
    allowed one, cited from whatever prints the pointer: the harness, or a gate refusing two
-   unrelated things, which the ceiling below leaves no room to argue on one page. */
-test("every document names a hook, or a topic the code that prints it cites", () => {
+   unrelated things, which the ceiling below leaves no room to argue on one page. A retired gate
+   keeps its page as the note, since `--how` on the name it printed has to answer with the
+   retirement and not with a did-you-mean. */
+test("every document names a hook, a topic the code that prints it cites, or a retired name", () => {
   const citing = [join(HOOKS, "_hook.mjs"), ...gates.map((one) => join(GATES, one))]
     .map((path) => readFileSync(path, "utf8"))
     .join("\n");
+  const retired = RETIRED.map((one) => one.name);
   for (const name of documented) {
-    const named = scripts.includes(`${name}.mjs`) || citing.includes(`how/${name}.md`);
-    assert.ok(named, `how/${name}.md names no hook, and no harness or gate cites it`);
+    const named = scripts.includes(`${name}.mjs`) || citing.includes(`how/${name}.md`) || retired.includes(name);
+    assert.ok(named, `how/${name}.md names no hook, no harness or gate cites it, and nothing retired it`);
+  }
+  assert.ok(
+    documented.some((name) => retired.includes(name) && !scripts.includes(`${name}.mjs`)),
+    "and a retirement note is what that last clause is for, so one is here to have been judged",
+  );
+});
+
+/* The note is a page with no gate behind it; every other rule of the shape still holds over it. */
+test("a retirement note says it is retired, and points at no gate to clear", () => {
+  for (const name of documented.filter((one) => RETIRED.some((two) => two.name === one))) {
+    const text = readFileSync(join(HOW, `${name}.md`), "utf8");
+    const release = RETIRED.find((one) => one.name === name).release;
+    assert.match(text.split("\n")[0], /retired/u, `how/${name}.md does not open by saying so`);
+    assert.ok(!scripts.includes(`${name}.mjs`), `how/${name}.md is retired and ${name}.mjs still runs`);
+    assert.ok(release, `how/${name}.md is a retirement note and the registry names no release`);
   }
 });
 

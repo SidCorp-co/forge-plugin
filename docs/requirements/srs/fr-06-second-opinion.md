@@ -1,6 +1,6 @@
 # SRS §8 — FR-06 — The second opinion
 
-Rev: 1 · Actors: agent, reviewer · Enforces: BR-01, BR-09, BR-16 · Source: plugin/guides/skills/forge/references/codex.md
+Rev: 1 · Actors: agent, reviewer · Enforces: BR-01, BR-16 · Source: plugin/guides/skills/forge/references/codex.md
 
 ← [Index](./README.md) · [§7 FR-05 Earned transitions](./fr-05-earned-transitions.md) · Next: [§9 FR-07 The gate harness](./fr-07-gate-harness.md)
 
@@ -67,40 +67,42 @@ is not offered again however recently it was touched.
 
 ### UC-06-3 — A commit waits for the reading and for the verdict
 
-Rev: 1 · Actors: agent · Enforces: BR-01
+Rev: 2 · Actors: agent · Enforces: BR-01
 
-Before a commit, three things are asked for: that the tree's newer work has been read, that
-documents recorded and never consulted on are read, and that the last consult which made findings
-heard a disposition of each. A finding nobody ruled on is an open finding.
+Before a commit, two things are asked for: that documents recorded and never consulted on are read,
+and that the last consult which made findings heard a disposition of each. A finding nobody ruled on
+is an open finding. Nothing between commits is asked anything: a gate deciding per write reviewed
+fragments, and the trigger it decided on could not be read at all.
 
-- **AC-06-3-1** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "the refusal names the files it wants read"
-  WHEN a commit is about to be made and work in the tree has never been consulted on THEN the gate
-  SHALL refuse the commit and SHALL name the files it wants read.
+- **AC-06-3-1** · Rev: 2 · Proof: plugin/test/gates/codex-second.test.mjs "a commit waits for the documents it stages, and not for one left dirty beside them"
+  WHEN a commit stages a document recorded as unread THEN the gate SHALL refuse the commit and SHALL
+  name the files it wants read.
 - **AC-06-3-2** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "a commit waits for a verdict on the last consult that made findings"
   IF the last consult made findings and heard no disposition THEN the gate SHALL refuse the commit
   and SHALL name the command that records one.
 - **AC-06-3-3** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "a commit is judged by the tree it names, not the shell's"
   WHEN a commit names another tree THEN the gate SHALL judge it by that tree rather than by the
   shell's.
-- **AC-06-3-4** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "deleting tracked work is work in the tree, a whole directory included"
+- **AC-06-3-4** · Rev: 1 · Status: retired (ISS-360)
   WHEN work is deleted rather than written THEN the gate SHALL treat the deletion as work in the
   tree, a whole directory included.
 
 ### UC-06-4 — What the built-in advisor said travels into the consult
 
-Rev: 1 · Actors: agent · Enforces: BR-09
+Rev: 1 · Actors: agent · Status: retired (ISS-360)
 
-The two reviewers see disjoint things, and only one of them can be re-read afterwards — so the
-only moment the first one's reply can reach the second is the turn it was given in. What is lost by
-skipping the carry-in is in `plugin/hooks/how/codex-order.md`.
+Retired because the first reviewer is server-side: nothing fires when it speaks, its reply is
+encrypted the moment the turn moves on, and the only readings left to a gate were a guess at whether
+it spoke and a search for one word in a command. What it said now reaches the second reviewer, and
+the record, by the author's hand or not at all.
 
-- **AC-06-4-1** · Rev: 1 · Proof: plugin/test/gates/codex-order.test.mjs "advice given but not carried in is blocked once, then let through"
+- **AC-06-4-1** · Rev: 1 · Status: retired (ISS-360)
   IF the advisor has spoken this turn and its advice is unspent THEN the gate SHALL ask once for that
   advice to be carried into the consult's intent, and SHALL then let the write through.
-- **AC-06-4-2** · Rev: 1 · Proof: plugin/test/gates/codex-order.test.mjs "a consult with no advisor before it is asked nothing"
+- **AC-06-4-2** · Rev: 1 · Status: retired (ISS-360)
   IF no advisor spoke before a consult THEN the gate SHALL ask nothing, since the order of the two
   is the author's.
-- **AC-06-4-3** · Rev: 1 · Proof: plugin/test/gates/codex-order.test.mjs "the gate reads command position, not prose"
+- **AC-06-4-3** · Rev: 1 · Status: retired (ISS-360)
   WHEN the phrase appears only inside data — a document body, a quoted argument, a program's own
   string — THEN the gate SHALL not read it as a consult.
 
@@ -126,6 +128,5 @@ outcome; leaving it unruled makes "resolved or still open" a guess.
 | Rule | How this requirement carries it |
 |---|---|
 | BR-01 | every refusal names the consult or the disposition that clears it |
-| BR-09 | the two reviewers are told about each other rather than each rediscovering the ground |
 | BR-16 | what comes back from a model is read and ruled on, because nothing about it is diffable |
 | BR-03 | a disposition is recorded rather than remembered, and a rejection carries its reason |

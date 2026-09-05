@@ -113,6 +113,21 @@ test("a file named for a retired thing goes only where the name is not also a li
     "a retired tool sharing a live verb's name still loses the file named for it");
 });
 
+/* A retired gate's name is a bare word nothing live answers to, so every surface that could still
+   route a reader to it is a finding — and the one page `forge hooks --how` answers it with is not. */
+test("a retired gate is refused wherever it is readable, and its retirement note is not", () => {
+  const gate = RETIRED.find(({ name }) => name === "codex-order");
+  assert.ok(gate, "the registry holds the gate that retired with no replacement");
+  const said = (rel, text) => problems([{ rel, text }], [gate], LIVE);
+  assert.equal(said("plugin/guides/skills/forge/guide.md", "run it after codex-order clears\n").length, 1,
+    "a skill still naming it is a finding");
+  assert.equal(said("docs/HOOKS.md", "the codex-order page argues its own case\n").length, 1);
+  assert.equal(said("plugin/hooks/gate.mjs", "pre bash-guard codex-order\n").length, 1,
+    "and so is a line that would register it again");
+  assert.ok(exempt("plugin/hooks/how/codex-order.md"), "the note the retirement is read from is not");
+  assert.deepEqual(said("plugin/hooks/how/codex-order.md", "# codex-order — retired\n"), []);
+});
+
 test("history and the one place the name is held are exempt", () => {
   const found = problems(files, [AS_IF]);
   assert.deepEqual(found.filter((one) => /^docs\/(?:issue-flow-dry-runs\.md|requirements\/)/u.test(one)), []);

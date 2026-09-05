@@ -64,7 +64,7 @@ The shape, four rules of it enforced by the suite:
 - How to clear it, and how to work through it: what to re-send, what counts as an answer, how often it
   asks, and what to do with a refusal you believe is wrong.
 - `Not judged: …` on its own line, so nobody over-complies with a gate that was never asking.
-- Under 1,300 characters all in; the ten average 928.
+- Under 1,300 characters all in; they average 1,128.
 - No absolute path, nothing under `docs/`, and nothing that restates or explains code — only `plugin/`
   travels into an installed copy, and mechanics belong to `-h` and to the source.
 

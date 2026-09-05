@@ -2,6 +2,7 @@
    entry names no replacement: pointing at what took over is the redirect docs/cli/withholding-a-verb.md forbids. */
 export const RETIRED = [
   { name: "feedback", kind: "directory", release: "3.35.45" },
+  { name: "codex-order", kind: "tool", release: "3.35.134" },
 ];
 
 const KINDS = ["verb", "flag", "tool", "directory"];
@@ -26,8 +27,13 @@ const stem = (rel) => rel.split("/").pop().replace(/\.[^.]+$/u, "");
 
 const SELF = `plugin/${import.meta.url.split("/plugin/").pop()}`;
 const HISTORY = /^docs\/issue-flow-dry-runs\.md$|^docs\/requirements\//u;
-/* Each records a name rather than routing to it: the argument, and the case that watches one. */
-const RECORDS = new Set(["docs/cli/feedback.md", "plugin/test/checks/retired-names.test.mjs"]);
+/* Each records a name rather than routing to it: the argument, the case that watches one, and the
+   note `forge hooks --how` answers a retired gate's name with. */
+const RECORDS = new Set([
+  "docs/cli/feedback.md",
+  "plugin/hooks/how/codex-order.md",
+  "plugin/test/checks/retired-names.test.mjs",
+]);
 
 export const exempt = (rel) => rel === SELF || HISTORY.test(rel) || RECORDS.has(rel);
 

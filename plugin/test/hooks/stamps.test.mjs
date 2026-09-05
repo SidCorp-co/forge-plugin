@@ -50,7 +50,7 @@ test("one write sweeps every kind past the bound and leaves the ones inside it",
 });
 
 test("an ask that sets nothing writes nothing and sweeps nothing", () => {
-  const stale = plant("codex-order-4444444444444444", STAMP_MS + 60_000);
+  const stale = plant("codex-turn-4444444444444444", STAMP_MS + 60_000);
   const before = readdirSync(stampRoom()).sort();
   assert.equal(askedAlready(EV, "/w/three.md", "learning-gate", { set: false }), false, "and answers the same");
   assert.deepEqual(readdirSync(stampRoom()).sort(), before, "nothing written");

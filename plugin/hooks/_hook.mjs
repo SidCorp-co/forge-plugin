@@ -3,8 +3,7 @@
 // Why write detection asks the disk: docs/HOOKS.md. Which copy this one is: how/copies.md.
 
 import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync } from "node:fs";
-import { homedir } from "node:os";
-import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 import { jsonLines as parsed, logHook, scrubbed } from "../src/hooks/hook-log.mjs";
 import { spans } from "../src/hooks/shell-spans.mjs";
@@ -204,12 +203,6 @@ export const settled = (path) => {
   }
 };
 
-/** No hook fires for the advisor, but every call leaves an `advisor_tool_result` in the transcript. */
-const blocksOf = (record) => {
-  const content = (record?.message ?? {}).content;
-  return Array.isArray(content) ? content.filter((one) => one && typeof one === "object") : [];
-};
-
 /** A program that can hand a string to a shell, and an interpreter's inline program: literals there are
  *  code — by the name that body's own language has, `spawnSync` running nothing from python. An unnamed runner keeps all. */
 const anyOf = (names) => new RegExp(String.raw`\b(?:${names.join("|")})`, "u");
@@ -223,7 +216,7 @@ export const RUNS = /\b(python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*(?:-
 /** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. how/learning-gate.md. */
 const NAMED_SHELLS = String.raw`sh|bash|zsh`;
 export const SHELL = new RegExp(`^(?:${NAMED_SHELLS})$`, "u");
-export const EXECUTES_STDIN = new RegExp(
+const EXECUTES_STDIN = new RegExp(
   String.raw`(?:^|[\s;&|(])(python3?|node|deno|bun|perl|ruby|php|${NAMED_SHELLS})(?:\s+-\S+)*\s*-?\s*$`,
   "u",
 );
@@ -263,7 +256,7 @@ export const bodiless = (text, onProgram = (body) => body) => {
 export const STARTS = String.raw`(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
   + String.raw`|\b(?:sudo|command|nohup|time|env|do|then|else|if|elif|while|until)\s+|^)`;
 
-/** Verbs count where a command starts, a library call anywhere, and only with a target it names. */
+/** Verbs count where a command starts, a library call anywhere, and only with a target it names. how/writes.md. */
 export const WRITES = new RegExp(
   STARTS
     + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
@@ -294,10 +287,6 @@ export const unwrapped = (text) => {
 
 export const commands = (text) =>
   spans(text).map(({ start, end }) => text.slice(start, end).trim()).filter(Boolean);
-
-/** Which program an argument belongs to: a pipeline carries its arguments along, a flag not — `| grep -h`. */
-export const invocations = (text) =>
-  spans(text, { pipes: true }).map(({ start, end }) => text.slice(start, end).trim()).filter(Boolean);
 
 /* A runner's options precede the verb; whether one took an argument is unknowable, so both readings go. */
 const WORD = /(?:'[^']*'|"(?:[^"\\]|\\.)*"|\S)+/gu;
@@ -335,27 +324,6 @@ export const starts = (text) => startsAt(text).map((one) => one.said);
 export const shellText = (command, onProgram) =>
   expanded(unwrapped(bodiless(String(command ?? ""), onProgram)));
 
-/* A verb aimed at `/dev/` stores nothing, as a redirect there does not: the aim goes, the verb stays. */
-const DEVICE = String.raw`(?:["']?)/dev/[^\s;&|)]+`;
-const DEVLESS = new RegExp(
-  String.raw`\s(?:-o|-O|--output|--output-document)(?:=|\s+)${DEVICE}`
-    + String.raw`|\btee\b(?:\s+-\S+)*(?:\s+${DEVICE})+(?=\s*(?:[;&|)]|$))`,
-  "gu",
-);
-export const devless = (command) => command.replace(DEVLESS, " ");
-
-/** Whether a call writes: a target for the file tools, a verb or a redirect for the shell, and one
- *  under `/dev/` writes nothing. how/writes.md. */
-export function writing(ev) {
-  const ti = ev.tool_input ?? {};
-  if (ev.tool_name !== "Bash") return Boolean(ti.file_path ?? ti.notebook_path);
-  const command = devless(shellText(ti.command));
-  return (
-    WRITES.test(command)
-    || [...command.matchAll(REDIRECT)].some((one) => !/^\/dev\//u.test(one[1].replace(/['"]/gu, "")))
-  );
-}
-
 /* git's globals before the verb: a value may be quoted and hold a space; a bare flag eats no token. */
 const GIT_VALUE = String.raw`(?:"[^"]*"|'[^']*'|\S+)`;
 export const GIT_GLOBALS = String.raw`(?:(?:-[cC]|--(?:git-dir|work-tree|namespace|exec-path|config-env|super-prefix))\s+`
@@ -384,18 +352,6 @@ export const gitTreeOf = (text) => {
   const dir = said["--git-dir"];
   if (!dir) return null;
   return basename(dir) === ".git" ? dirname(dir) : dir;
-};
-
-/** Lexical: the file may not exist yet, and a relative target resolves against the cwd. */
-const under = (root, cwd, path) => {
-  let base;
-  try {
-    base = realpathSync(root);
-  } catch {
-    return true;
-  }
-  const full = resolve(cwd || root, path.replace(/^~(?=\/|$)/u, homedir()));
-  return full === base || full.startsWith(base + sep);
 };
 
 const VALUE = String.raw`"[^"]*"|'[^']*'|\$\([^)]*\)|` + "`[^`]*`" + String.raw`|[^\s;&|]*`;
@@ -428,23 +384,6 @@ export const expanded = (command) => {
   return command.replace(NAMED, (whole, braced, bare, at) => resolve(braced ?? bare, at) ?? whole);
 };
 
-/** Whether the write is work in `root`. A write verb names no readable target so it answers true —
- *  a wall that stands down on doubt is not a wall. A redirect does: how/writes.md. */
-export function writesInside(ev, root) {
-  if (!root) return true;
-  const ti = ev.tool_input ?? {};
-  if (ev.tool_name !== "Bash") {
-    const path = ti.file_path ?? ti.notebook_path;
-    return !path || under(root, ev.cwd, path);
-  }
-  const command = devless(shellText(ti.command));
-  if (WRITES.test(command)) return true;
-  const aimed = [...command.matchAll(REDIRECT)]
-    .map((one) => one[1].replace(/['"]/gu, ""))
-    .filter((path) => !/^\/dev\//u.test(path));
-  return aimed.length === 0 || aimed.some((path) => under(root, ev.cwd, path));
-}
-
 /** Where this turn begins: only a user record carrying `promptSource` is a prompt somebody typed. */
 export const promptIndex = (records) => {
   let from = -1;
@@ -463,20 +402,6 @@ export const callAt = (records) => {
   }
   return 0;
 };
-
-/** Whether the advisor has spoken since the last prompt. how/codex-second.md. */
-export function advisedThisTurn(records) {
-  return unspentAdvice(records.slice(promptIndex(records) + 1));
-}
-
-/** Advice is spent by the consult that follows it, not by the user speaking. how/codex-order.md. */
-export function unspentAdvice(records, spentAt = 0) {
-  return records.some(
-    (record) =>
-      blocksOf(record).some((one) => one.type === "advisor_tool_result")
-      && (spentAt === 0 || Date.parse(record.timestamp) > spentAt),
-  );
-}
 
 const TAIL = 1 << 20;
 const TAIL_CAP = 64 << 20;
