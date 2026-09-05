@@ -12,14 +12,23 @@ import { protectMachine } from "../flow/machine.mjs";
 export const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "vi-natural");
 /* Every prose field an agent can write, not only the three the wrapped verbs started with. */
 const PROSE_FIELDS = ["title", "description", "body", "plan", "acceptanceCriteria"];
+const REGISTER = ["--register", "san-pham", "--no-glossary"];
 
-const viNatural = (argv, stdin) => {
-  const run = spawnSync(BUNDLED, [...argv, "--register", "san-pham", "--no-glossary"], {
-    encoding: "utf8",
-    input: stdin,
-  });
+const quoted = (word) => (/^[\w.,:/=@-]+$/u.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`);
+
+/* Every refusal here ends with the command that writes the text: a run needs the verb producing the
+   Vietnamese, not the login line `vi-natural` prints. `shown` carries the caller's own file names,
+   the pair handed to `doc` being gone by the time the line is read. docs/cli/vietnamese.md. */
+export const commandLine = (shown) => [BUNDLED, ...shown, ...REGISTER].map(quoted).join(" ");
+
+const refuseWith = (shown, said) =>
+  fail(`${said}\n\nThis is the command that writes it. Run it, then post what it leaves:\n  ${commandLine(shown)}`);
+
+const viNatural = (argv, shown = argv) => {
+  const run = spawnSync(BUNDLED, [...argv, ...REGISTER], { encoding: "utf8" });
   if (run.error || run.status !== 0) {
-    fail(
+    refuseWith(
+      shown,
       "vi-natural could not write the Vietnamese, so nothing was posted:\n" +
         (run.error?.message ?? (run.stderr || run.stdout || "").trim().slice(0, 600)),
     );
@@ -34,10 +43,11 @@ const translatedBody = (text) => {
     const source = join(directory, "body.md");
     const target = join(directory, "body.vi.md");
     writeFileSync(source, text);
-    const run = viNatural(["doc", "-o", target, source]);
+    const shown = ["doc", "-o", "<vietnamese>.md", "<english>.md"];
+    const run = viNatural(["doc", "-o", target, source], shown);
     const left = /(\d+) left in English/u.exec(run.stdout ?? "");
     if (left && left[1] !== "0") {
-      fail(`vi-natural left ${left[1]} block(s) in English and refused them. Nothing was posted.`);
+      refuseWith(shown, `vi-natural left ${left[1]} block(s) in English and refused them. Nothing was posted.`);
     }
     return readFileSync(target, "utf8");
   } finally {
@@ -46,8 +56,9 @@ const translatedBody = (text) => {
 };
 
 const translatedTitle = (text) => {
-  const written = viNatural(["translate", "--kind", "doc", text]).stdout.trim();
-  if (!written) fail("vi-natural returned an empty title. Nothing was posted.");
+  const argv = ["translate", "--kind", "doc", text];
+  const written = viNatural(argv).stdout.trim();
+  if (!written) refuseWith(argv, "vi-natural returned an empty title. Nothing was posted.");
   return written;
 };
 
