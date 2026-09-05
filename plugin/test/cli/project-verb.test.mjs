@@ -54,7 +54,7 @@ test("the verb answers where a change lands and what it can be walked against", 
   assert.match(run.stdout, /^project id: [0-9a-f-]{36} {2}← the slug in \.forge\.json$/mu);
   assert.match(run.stdout, /^staging branch: staging {2}← the tracker's project config$/mu);
   assert.match(run.stdout, /^production branch: master {2}← the tracker's project config$/mu);
-  assert.match(run.stdout, /^production deploys on its own: no {2}← the tracker's project config$/mu);
+  assert.match(run.stdout, /^production ships without a person's look: no {2}← the tracker's project config$/mu);
   assert.match(run.stdout, /^staging deploy {2}← the tracker's project detail$/mu);
   assert.match(run.stdout, /^ {2}staging url: https:\/\/beta\.example\.test$/mu);
   assert.match(run.stdout, /^ {2}testing urls: https:\/\/shop\.example\.test$/mu);

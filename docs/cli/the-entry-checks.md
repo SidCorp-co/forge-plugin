@@ -1,10 +1,11 @@
-# The three checks a plugin can make in a project it has never seen
+# The four checks a plugin can make in a project it has never seen
 
 Three obligations were prose in the issue-flow guide until 2026-09-05, and a sentence is what a run
 reads past. ISS-318 folded them in as sentences to replace; two of the three could not be built where
 it put them, because they reached for this repository's own furniture — a gate ledger, a `plugin/hooks/`
 how page — and a hook or a check written here fires in whatever project has the plugin installed.
-ISS-359 rebuilt all three as refusals that read the record and nothing else.
+ISS-359 rebuilt all three as refusals that read the record and nothing else. The fourth arrived the
+day after, from a project that had shipped five landings nobody deployed.
 
 That is the shape, and it is the same division `advance` is already held to: what git or a gate knows
 is written onto a payload at the step that knew it, and the check reads what the run said of itself.
@@ -54,6 +55,38 @@ every record predating the clause is.
 `node tools/run.mjs` prints the clause at the ship, over the commits of the range that are the
 change rather than the version bump. By commit and not by filename: a manifest is where a dependency
 lives too, and a change that added one would otherwise vanish from a clause a check reads back.
+
+## A verification names the deployment, where the project deploys on its own
+
+A project can set `pipelineConfig.autoProdDeploy`, and that setting decides who is *asked* — with it,
+`released` waits for no person's look. It does not decide what *ships*, and nothing in this plugin
+deploys anything: the machine that advances an issue need not be the one that shipped it, so what git
+and a host know is written onto the record at the step that knew it, here as everywhere else.
+
+On one project measured on 2026-09-05 the two came apart. The host had no push-to-deploy configured
+at all, five landings sat undeployed under `released` statuses, and three separate runs read the
+setting as the host's and went to verify a build that predated their own landing. A run that does
+that reports a correct fix as broken, or records a passing verification against code nobody shipped.
+
+So where the setting is on, `released` reads the verification against the record rather than taking
+it: its commit is the one the merged mark names, and its evidence is not every-item a bare sha, since
+a sha names no deployment. The refusal says the sha is read from the deployment's own build log and
+never assumed from the branch head, which is the step that was being skipped. A project that has not
+set it, and a project whose config did not answer, are judged exactly as before — the silence this
+plugin owes a project that has decided nothing.
+
+The equality alone would have been a refusal with no way past it. A host that coalesces landings
+builds a head the change never was, and that build is running the change: on such a project the
+exact commit may never be built, and a run could only sit at `tested` having shipped, redeploy an
+older revision, or type a sha it had not read. So the verification carries the two facts apart — the
+commit the deployment reports, and the landed commit that build contains — and the second is what
+the equality is held to where they differ. The field is optional, a shape's records outliving the
+day it grew, and the refusal names it in the command it prints.
+
+Neither clause can tell a deployed build from a described one; that is the line every field of a
+record is read on. What they buy is that the run has to have looked, and that the two shas on the
+record are the same code.
+
 
 ## Why `--scope` is asked for and excused at once
 

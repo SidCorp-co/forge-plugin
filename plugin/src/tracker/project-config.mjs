@@ -144,6 +144,9 @@ export const credentialLeak = (data, deploy) => {
   return null;
 };
 
+const NOTHING_DEPLOYS = "and nothing here says the host deploys on push: `released` asks the "
+  + "verification to name the deployment that built the commit this change landed at";
+
 /** The project's answer in this CLI's words, one line each with where it was read. */
 export const projectLines = ({ id, policy, deploy, credentials }) => {
   const out = [`project id: ${id}  ← the slug in .forge.json`];
@@ -151,7 +154,8 @@ export const projectLines = ({ id, policy, deploy, credentials }) => {
     const said = (held) => `${held ?? "unset on the project"}  ← ${policy.from}`;
     out.push(`staging branch: ${said(policy.staging)}`);
     out.push(`production branch: ${said(policy.production)}`);
-    out.push(`production deploys on its own: ${policy.autoProd ? "yes" : "no"}  ← ${policy.from}`);
+    out.push(`production ships without a person's look: ${policy.autoProd ? "yes" : "no"}  ← ${policy.from}`);
+    if (policy.autoProd) out.push(`  ${NOTHING_DEPLOYS}`);
   } else out.push("release policy: the project config did not answer");
   if (!deployed(deploy)) return [...out, "staging deploy: none configured"];
   out.push(`staging deploy  ← ${deploy.from}`);

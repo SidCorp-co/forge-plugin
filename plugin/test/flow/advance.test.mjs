@@ -492,6 +492,10 @@ const LOOKING = {
   releaseNotes: { section: "Fixed", userFacing: "it works" },
 };
 const QUIET = { ...LOOKING, documentId: "quiet-uuid", issueId: "ISS-94", plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no." };
+/* Landed at one sha and verified at another: the shape of a run that opened the app, saw the build
+   before its own and recorded a pass against it (ISS-393). */
+const HEADS = "reviewed head 08ca795; judged head 08ca795; landing moved nothing; landing wrote nothing";
+const STALE = { ...QUIET, documentId: "stale-uuid", issueId: "ISS-96", mergedAt: "2026-09-03T09:00:00.000Z" };
 /* At `approved` and marked merged: the only status from which the merged-mark refusal is the one
    that can fire, since a status past `developed` is refused a drop before the mark is read. */
 const LANDED = {
@@ -506,11 +510,13 @@ const state = {
   calls: [],
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
   issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" },
-    EARNS, LOOKING, QUIET, LANDED],
+    EARNS, LOOKING, QUIET, LANDED, STALE],
   comments: {
     "earning-uuid": [recorded("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" })],
-    "looking-uuid": [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] })],
-    "quiet-uuid": [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] })],
+    "looking-uuid": [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["https://ci.example.test/9"] })],
+    "quiet-uuid": [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["https://ci.example.test/9"] })],
+    "stale-uuid": [comment(`mark_merged target=base — merged to master at 08ca795; ${HEADS}`),
+      recorded("verification", { where: "https://app.example.test", commit: "eee109e", evidence: ["https://ci.example.test/8"] })],
   },
   answer: { forge_config: () => ({ config: state.config }) },
 };
@@ -521,17 +527,30 @@ const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tr
 test("the project's config is asked once the plan declares a person, and never before", async () => {
   const asked = () => state.calls.filter((one) => one.name === "forge_config").length;
   const quiet = asked();
+  const early = await owed("ISS-92");
+  assert.match(early.stdout, /confirmed is next and the record earns it/u, "a plan declaring neither owes no person");
+  assert.equal(asked(), quiet, "and a status with no release ahead of it pays no round to hear what the project would have said");
   const nobody = await owed("ISS-94");
-  assert.match(nobody.stdout, /the record earns it/u, "a plan declaring neither owes no person");
-  assert.equal(asked(), quiet, "and pays no round to hear what the project would have said");
+  assert.match(nobody.stdout, /released is next and the record earns it/u,
+    "a plan declaring neither parks for nobody, as it did before the answer was read");
+  assert.ok(asked() > quiet, "and the answer is read anyway, released being the status it would enter");
   const parked = await owed("ISS-93");
   assert.match(parked.stdout, /no person has answered since it was parked for review/u,
     "one branch and no automatic production deploy is the park as it always was");
-  assert.ok(asked() > quiet, "asked, because this plan's answer depends on it");
   state.config = { ...state.config, pipelineConfig: { autoProdDeploy: true } };
   const ships = await owed("ISS-93");
   assert.match(ships.stdout, /released is next and the record earns it/u,
     "and the same record earns released where the project releases production itself");
+});
+
+/* The verb, not the check: what a run typing the advance actually gets back (ISS-393). The config
+   is left deploying its own production by the test above, which is the population this is about. */
+test("a project that deploys on its own is refused released where the verification is not of what landed", async () => {
+  const run = await ranAsync(FORGE, ["advance", "ISS-96"], tracker.env);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stdout, /eee109e is running and the merged mark says this change landed at 08ca795/u);
+  assert.match(run.stdout, /build log and never from the branch head/u);
+  assert.match(run.stdout, /forge record verification ISS-96 .*--contains 08ca795/u);
 });
 
 test("--owed ends by naming the contract's part for the status it would enter, on both answers", async () => {

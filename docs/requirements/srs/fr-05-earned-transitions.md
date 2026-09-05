@@ -197,15 +197,24 @@ for.
 - **AC-05-7-3** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "approved needs the plan with both its declarations, and numbered criteria"
   IF the plan declares neither THEN the CLI SHALL refuse `approved` and quote the two lines it
   reads.
-- **AC-05-7-4** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "the project's release policy decides whether a user-facing outcome parks"
+- **AC-05-7-4** · Rev: 2 · Proof: plugin/test/flow/advance.test.mjs "the project's release policy decides whether a user-facing outcome parks"
   WHERE the project's configuration releases without a person, the CLI SHALL earn `released` from
-  the verification and the release note as for any other change.
+  the verification and the release note with no person's answer owed.
 - **AC-05-7-5** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "the verification says who released it, in the project's own words and never the author's"
   WHEN a release verification is written, the CLI SHALL carry the project's own answer about who
   releases on that record, from a value no author supplies.
 - **AC-05-7-6** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a screen change owes an attachment on every verdict that is not skipped"
   IF the plan declares a screen change and a verdict that is not `skipped` cites no attachment the
   issue carries THEN the CLI SHALL refuse `tested` and name that criterion.
+- **AC-05-7-7** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a project that deploys on its own earns released by proving the deploy, not by asserting it"
+  IF the project's configuration says production deploys on its own and the release verification
+  names a commit other than the one the merged mark names, and does not name that commit as one the
+  deployed head contains, THEN the CLI SHALL refuse `released` and name both commits, because a
+  setting deciding who is asked decides nothing about what shipped.
+- **AC-05-7-8** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a project that deploys on its own earns released by proving the deploy, not by asserting it"
+  IF the project's configuration says production deploys on its own and every evidence item on the
+  release verification is a commit sha THEN the CLI SHALL refuse `released`, a sha naming no
+  deployment.
 
 ### UC-05-8 — A record too large to read whole
 

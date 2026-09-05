@@ -371,6 +371,7 @@ export const SHAPES = {
     fields: [
       FIELD("where", "Where it runs"),
       FIELD("commit", "Commit", { commit: true }),
+      FIELD("contains", "Landed commit in it", { optional: true, commit: true }),
       FIELD("evidence", "Evidence", { many: true, least: 1, evidence: true }),
       FIELD("review", "Review", { optional: true, derived: true }),
       FIELD("promotion", "Promotion", { optional: true, derived: true }),

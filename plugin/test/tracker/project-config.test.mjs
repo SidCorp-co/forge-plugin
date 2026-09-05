@@ -111,7 +111,22 @@ test("the report names the branches, the deploy decision and the id, each with i
   assert.match(out, /^project id: an-id {2}← the slug in \.forge\.json$/mu);
   assert.match(out, /^staging branch: staging {2}← the tracker's project config$/mu);
   assert.match(out, /^production branch: master {2}← the tracker's project config$/mu);
-  assert.match(out, /^production deploys on its own: no {2}← the tracker's project config$/mu);
+  assert.match(out, /^production ships without a person's look: no {2}← the tracker's project config$/mu);
+  assert.doesNotMatch(out, /deploys on push/u, "a project that waits for a person is told nothing more");
+});
+
+/* The wording is the finding, not decoration: read as the host deploying on push, this line sent
+   three runs to verify a build that predated their own landing (ISS-393). */
+test("the flag is reported as what it decides, and where it is set the line says what it does not", () => {
+  const out = projectLines({
+    id: "an-id",
+    policy: { ...POLICY, autoProd: true },
+    deploy: deployFrom(HELD),
+  }).join("\n");
+  assert.match(out, /^production ships without a person's look: yes {2}← the tracker's project config$/mu);
+  assert.match(out, /^ {2}and nothing here says the host deploys on push: /mu);
+  assert.match(out, /`released` asks the verification to name the deployment that built the commit/u);
+  assert.doesNotMatch(out, /deploys on its own/u, "the sentence the reading came from is gone");
 });
 
 test("the report withholds a credential and names the one command that prints it", () => {

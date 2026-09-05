@@ -369,6 +369,36 @@ const shownOwed = (view, ref) => {
   )];
 };
 
+/* Nothing here can run a deploy — the machine that advances need not be the one that shipped — so
+   where the config says production deploys on its own and nobody is waited for, the verification is
+   asked to prove one happened, out of two values the record already holds. docs/cli/the-entry-checks.md. */
+const deployOwed = (view, ref) => {
+  if (!view.release?.autoProd) return [];
+  const held = view.latest.verification.record.fields;
+  const merged = markedCommit(view.comments);
+  const asks = (commit, tail = "") => `forge record verification ${ref} --where "<where it runs>" `
+    + `--commit ${commit} --evidence <the deployment's build log>${tail}`;
+  const ask = asks(merged ?? "<the sha the deployment built>");
+  const out = [];
+  if (merged && !sameCommit(held.commit, merged) && !sameCommit(held.contains, merged)) {
+    out.push(need(
+      `the verification says ${held.commit} is running and the merged mark says this change landed `
+        + `at ${merged}, and nothing says the two are the same code. The sha is read from the `
+        + `deployment's own build log and never from the branch head: verify the build that reports `
+        + `${merged}, or where the host built a later head, say that ${merged} is in it`,
+      asks("<the sha that build reports>", ` --contains ${merged}`),
+    ));
+  }
+  if ((held.evidence ?? []).every((one) => isCommit(one))) {
+    out.push(need(
+      `every evidence item on the verification is a bare commit sha, and a sha names no deployment, `
+        + `so nothing on the record says one ran for ${merged ?? "this change"}`,
+      ask,
+    ));
+  }
+  return out;
+};
+
 /* A whole path or nothing, prefixes included; a trailing dot ends a sentence unless a name follows. */
 const namesPath = (named, path) =>
   new RegExp(`(?<![\\w./-])${path.replace(/[$()*+.?[\\\]^{|}]/gu, "\\$&")}(?![\\w/-])(?!\\.\\w)`, "u").test(named);
@@ -461,12 +491,14 @@ export const CHECKS = {
     return out;
   },
   released: (view, ref) => {
-    const out = payloadOwed(
+    const verification = payloadOwed(
       view,
       "verification",
       "no verification: where the change now runs, at which commit, and the evidence",
       `forge record verification ${ref} --where "<where it runs>" --commit <sha> --evidence <attachment|url|sha>`,
     );
+    /* One or the other: a payload with gaps has no fields to compare against anything. */
+    const out = verification.length ? verification : deployOwed(view, ref);
     if (!view.issue.releaseNotes?.section && !lightPath(view, "released")) {
       out.push(need("no release note and no withholding either", `forge record note ${ref} --section Added --user "<what the reporter sees>"`));
     }

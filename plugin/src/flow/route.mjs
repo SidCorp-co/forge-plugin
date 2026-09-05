@@ -249,10 +249,15 @@ export const owedLine = (view, ref, held) => {
     : `${at}; ${held.next} is next and the record earns it. \`forge advance ${ref}\` moves it.`;
 };
 
-/* A call made only where its answer is read: a plan declaring neither line owes no person. */
-export const policyFor = async (plan) => (personLooks(planFlags(unwrap(plan))) ? releasePolicy() : null);
+/* A call made only where its answer is read: a plan declaring neither line owes no person, and the
+   deploy `released` asks after is asked after only where `released` is the status being entered. */
+const RELEASED = "released";
+export const policyFor = async (plan, status = null) =>
+  (personLooks(planFlags(unwrap(plan))) || ORDER[ORDER.indexOf(status) + 1] === RELEASED
+    ? releasePolicy()
+    : null);
 
 export const owedSaid = async (documentId, issue, comments, ref, cut = null) => {
-  const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan));
+  const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan, issue.status));
   return owedLine(view, ref, owedIn(view, ref));
 };

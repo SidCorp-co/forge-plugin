@@ -49,7 +49,7 @@ issue. They write to the project, never to a transition.
 | `in_progress` | code is being written against this plan | `approved`; every blocker that gates dispatch at least `developed`, read from the edge's own answer and not from the list it arrived in, so a mention gates nothing; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the review; 5 Prove; then 7's landing |
 | `developed` | the change was reviewed and is on the default branch | an approving review of the head that landed: the reviewer, the findings with a verdict on each by id, the outcome *approved*; a person's approval where the project asks for one; then the merged mark with its commit | 5 Prove |
 | `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all at the commit the `developed` stage says a verdict may cite; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
-| `released` | you can see it now | a verification write citing where the change now runs; release notes, or an explicit withholding with its reason; a review comment from a person where the plan declares a screen change or a user-facing outcome and the project's config asks for one | 7 Ship, the close |
+| `released` | you can see it now | a verification write citing where the change now runs, and naming a deployment and the commit that landed — or the head that contains it — where the project's config says production deploys on its own; release notes, or an explicit withholding with its reason; a review comment from a person where the plan declares a screen change or a user-facing outcome and the project's config asks for one | 7 Ship, the close |
 | `closed` | nothing more happens unless reopened; code landed | `released` | none |
 | `reopen` | a person disagreed with a close or a drop, and their finding is here | a person's word; nothing earns it and the verb never enters it | the finding typed on their behalf and the triage of it, then the fall the triage decides: `developed`, `in_progress`, or `on_hold` blocked |
 
@@ -284,12 +284,24 @@ the tracker's project config names the staging branch, the production branch and
 deploys go without being asked, and a project whose release lands on staging, or which deploys
 production itself, does not park here.
 
-### `released` — reads nothing more
+### `released` — reads the verification against what landed
 
 `released` means the change is on the project's staging branch and running wherever that branch
 deploys, which is what the verification cites; where the production branch is a different one,
 promotion to it is a step outside this ladder — automatic or a person's, as the project's config
 says, and the verification carries the line that says which.
+
+Where that config says production deploys on its own, nobody is waited for and nothing in this path
+deploys anything, so the verification is the only thing that says a deploy happened: it names the
+commit the merged mark names, and cites something that is not a bare sha, a sha naming no
+deployment. Both are refusals rather than advice, because a run that trusts the setting verifies the
+build before its own and records a pass against code nobody shipped.
+
+A host that coalesces landings builds a head this change never was, and that build is running it.
+So the verification carries two facts rather than one typed as the other: the commit the deployment
+reports, and the landed commit it contains, which is what the equality is held to where the two
+differ. A project whose config does not say production deploys on its own, or does not answer, is
+judged as it always was.
 
 The close is the shipping run's own last step, not a decision it waits on: the entry criterion for
 `closed` is this status and no payload, so no comment decides it and a thread too long to return

@@ -105,7 +105,7 @@ const run = async (argv) => {
   for (const one of Object.keys(given)) if (one !== "json") fail(`resume takes no --${one}. Flags: --json`);
   const { documentId, body } = await issueOf(ref);
   const page = await commentPage(documentId);
-  const view = viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, await policyFor(body.plan));
+  const view = viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, await policyFor(body.plan, body.status));
   const brief = briefOf(view, ref);
   return given.json ? console.log(JSON.stringify(brief, null, 2)) : print(brief, view, ref);
 };

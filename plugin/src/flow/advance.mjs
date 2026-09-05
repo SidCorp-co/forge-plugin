@@ -77,7 +77,7 @@ const viewOf = async (reference, given) => {
   const { documentId, body } = await issueOf(reference);
   if (!readsTheRecord(body, given)) return viewFrom(documentId, body, [], null, null);
   const page = await commentPage(documentId);
-  return viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, await policyFor(body.plan));
+  return viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, await policyFor(body.plan, body.status));
 };
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs
