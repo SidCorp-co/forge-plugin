@@ -11,6 +11,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { defaultEffort } from "./codex-plan.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { userConfig } from "../resolve/config.mjs";
+import { sseData } from "../sse.mjs";
 
 const PROFILE_PATH = process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
 export const MODEL = userConfig().codex?.model || "fable";
@@ -326,11 +327,7 @@ export const openingFor = (...given) => {
 };
 
 const frameEvent = (frame) => {
-  const data = frame
-    .split("\n")
-    .filter((line) => line.startsWith("data:"))
-    .map((line) => line.slice(5).trim())
-    .join("");
+  const data = sseData(frame);
   if (!data || data === "[DONE]") return null;
   try {
     return JSON.parse(data);

@@ -5,6 +5,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { configDir, once, readJson } from "../resolve/config.mjs";
+import { DATA_FIELD, sseData } from "../sse.mjs";
 import { suggest } from "../suggest.mjs";
 import { fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
@@ -38,14 +39,6 @@ export const retryOf = (status, params) => {
 
 const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000));
 const backoff = (attempt) => Math.min(FALLBACK_RETRY_SECONDS * 2 ** (attempt - 1), MAX_RETRY_SECONDS);
-
-/* The endpoint may answer either as JSON or as a single SSE frame. */
-const sseData = (text) =>
-  text
-    .split("\n")
-    .filter((line) => line.startsWith("data:"))
-    .map((line) => line.slice(5).trim())
-    .join("");
 
 /* Honour the server's stated wait, with a ceiling: 3600 would be an hour of sleep, four times. */
 const retryAfter = (text, headers) => {
@@ -180,7 +173,8 @@ export const rpc = async (method, params, soft = false) => {
     return stop(`Forge answered ${response.status}: ${text.slice(0, 400)}`
       + `${TRANSIENT.includes(response.status) ? owed : ""}`);
   }
-  const frame = text.startsWith("event:") || text.startsWith("data:") ? sseData(text) : text;
+  /* The endpoint may answer either as JSON or as a single SSE frame. */
+  const frame = text.startsWith("event:") || text.startsWith(DATA_FIELD) ? sseData(text) : text;
   let parsed;
   try {
     parsed = JSON.parse(frame);

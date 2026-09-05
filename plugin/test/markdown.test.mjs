@@ -21,11 +21,13 @@ import {
   withoutSpans,
 } from "../src/markdown.mjs";
 import { typed } from "../src/hooks/shell-spans.mjs";
+import { DATA_FIELD, sseData } from "../src/sse.mjs";
 import { checkStructure } from "../src/checks/claude-md.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MARKDOWN = "plugin/src/markdown.mjs";
 const SHELL = "plugin/src/hooks/shell-spans.mjs";
+const SSE = "plugin/src/sse.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -46,6 +48,11 @@ const OLD = {
    written short it refuses a module with its own reason to write them, and names no route out. */
 const SHELL_ESCAPE = ".replace(/'/gu, String.raw`'\\''`)";
 
+/* The typed width alone: `startsWith("data:")` also fires on a module testing a `data:` URI, and the
+   refusal would send it to a frame reader. What that leaves uncaught spells the field and derives
+   from it, so it carries no count and is not the drift this pair was filed for. */
+const SSE_NEEDLES = ["line.slice(5)", ".slice(5).trim()"];
+
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
   ["a link target", MARKDOWN, [LINK_TARGET_PATTERN]],
@@ -54,6 +61,7 @@ const NEEDLES = [
   ["a table separator", MARKDOWN, [String.raw`[\s:|-]+\|`, String.raw`[\s|:-]+\|`]],
   ["a markup class", MARKDOWN, [MARKUP_PATTERN]],
   ["a shell word", SHELL, [String.raw`[\w./@+][\w./@+-]*`, SHELL_ESCAPE]],
+  ["an SSE frame reader", SSE, SSE_NEEDLES],
 ];
 
 const redeclared = (sources) =>
@@ -68,14 +76,17 @@ const listed = (...paths) =>
     .filter(Boolean);
 
 const read = (rel) => ({ rel, text: readFileSync(join(ROOT, rel), "utf8") });
-/* Every module, since a copy lands wherever a run writes: this read `checks` and `spec` and both quoter copies sat outside them. `vendor/` is another package's, and its `.js` is not this filter's. */
+/* Every module, since a copy lands wherever a run writes: this read `checks` and `spec` and both quoter copies sat outside them. `vendor/` is another package's, and its `.js` is not this filter's.
+   `plugin/vi-natural/` is out by judgement and not by physics: an import upward would resolve, and nothing enforces the boundary. It is the repository's other CLI, with its own document and its own config, and its reader is a different reader — it trims a line before testing the field and parses each line alone, so the shared form cannot serve it. Its typed width is real and routed to its own issue, not answered here. */
 const modules = () => listed("plugin/src", "plugin/hooks").filter((one) => one.endsWith(".mjs")).map(read);
 const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.endsWith(".md")).map(read);
 
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  assert.ok(found.some(({ rel }) => rel === SHELL), `${SHELL} is out of the scan the guard runs`);
+  for (const home of [SHELL, SSE]) {
+    assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
+  }
   assert.deepEqual(redeclared(found), []);
 });
 
@@ -87,6 +98,8 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "d.mjs", text: "const MARKUP = /[*`_>[\\]()]/g;" },
     { rel: "e.mjs", text: String.raw`const bare = /^[\w./@+][\w./@+-]*$/u;` },
     { rel: "f.mjs", text: "const q = (one) => `'${one.replace(/'/gu, String.raw`'\\''`)}'`;" },
+    { rel: "h.mjs", text: "for (const line of lines) held += line.slice(5);" },
+    { rel: "i.mjs", text: "const payload = (one) => one.slice(5).trim();" },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
@@ -95,6 +108,8 @@ test("the guard fires on a module that re-declares one", () => {
     `d.mjs declares a markup class of its own; ${MARKDOWN} holds it`,
     `e.mjs declares a shell word of its own; ${SHELL} holds it`,
     `f.mjs declares a shell word of its own; ${SHELL} holds it`,
+    `h.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
+    `i.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
   ]);
 });
 
@@ -206,6 +221,66 @@ test("the shared shell word agrees with both forms it replaced, over every path 
     }
   }
   assert.deepEqual(moved, []);
+});
+
+/* Each transport's frame reader at 1d40447, kept here so the shared one can be judged against them. */
+const SSE_WAS = {
+  rpc: (text) =>
+    text
+      .split("\n")
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trim())
+      .join(""),
+  codex: (frame) =>
+    frame
+      .split("\n")
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trim())
+      .join(""),
+};
+
+/* Nothing this repository tracks is a frame, so they are built: every arrangement up to three of the
+   lines below, under both separators — exhaustive over the arrangement and not over the alphabet. */
+const SSE_LINES = ['data: {"type":"x"}', 'data:{"type":"x"}', "data: [DONE]", "data:  padded  ",
+  "event: message_start", "event:content_block_delta", "id: 42", "retry: 3000", ": keep-alive", "",
+  "data:", "data: ", "data : spaced", "datax: another field"];
+
+const frames = function* () {
+  for (const separator of ["\n", "\r\n"]) {
+    yield "";
+    for (const first of SSE_LINES) {
+      yield first;
+      for (const second of SSE_LINES) {
+        yield [first, second].join(separator);
+        for (const third of SSE_LINES) yield [first, second, third].join(separator);
+      }
+    }
+  }
+};
+
+test("the shared frame reader agrees with both forms it replaced, over every frame either transport can be handed", () => {
+  const moved = [];
+  let read = 0;
+  for (const frame of frames()) {
+    read += 1;
+    for (const [where, was] of Object.entries(SSE_WAS)) {
+      if (sseData(frame) !== was(frame)) moved.push(`${where}: ${JSON.stringify(frame)} -> ${JSON.stringify(sseData(frame))}`);
+    }
+  }
+  assert.equal(read, 2 * (1 + 14 + 14 ** 2 + 14 ** 3), `${read} frame(s) read; the generator moved`);
+  assert.deepEqual(moved, []);
+});
+
+test("the field width comes from the field name, so a longer field name would move the cut with it", () => {
+  assert.equal(DATA_FIELD.length, 5, "the 5 both call sites typed, now derived rather than counted");
+  assert.equal(sseData('data: {"a":1}'), '{"a":1}');
+  assert.equal(sseData("data:"), "", "a bare field is the empty payload, not a line to skip");
+  assert.equal(sseData("data : spaced"), "", "the field is `data:` exactly; a space before the colon is another line");
+  assert.equal(sseData('event: ping\ndata: {"a":1}\n'), '{"a":1}', "a line of another field is not this reader's");
+  /* A divergence pinned, not compliance: the wire format strips one leading space and joins with a
+     line feed, so matching it would change two callers rather than fix one function. */
+  assert.equal(sseData("data: a\ndata: b"), "ab", "concatenated, where the standard would answer a\nb");
+  assert.equal(sseData("data:  padded  "), "padded", "trimmed whole, where the standard would keep all but one leading space");
 });
 
 test("a shell word is quoted where a shell would split it and bare where it would not", () => {
