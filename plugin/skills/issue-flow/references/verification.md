@@ -92,8 +92,8 @@ range the user's stack owns.
   override belongs inside the invocation the script actually executes.
 - **Start background processes from the directory their dependencies resolve against.** A
   module-not-found from a background process is usually the working directory.
-- **Wait for long work, never poll it.** A `sleep` inside a wait is refused, and that refusal names
-  the two routes that ask nothing; `forge hooks --how polling` carries what it costs.
+- **Wait for long work, never poll it.** The routes that ask nothing, and what asking again costs:
+  `forge hooks --how polling`.
 - **After stopping anything, confirm the user's own stack still answers.** The guard can
   refuse a command that cannot be aimed; it cannot tell you that you aimed correctly.
 
