@@ -2689,3 +2689,28 @@ record.
   bytes under its cap; the next paragraph there forces the split its own message describes.
 - The ship filed the fourth batch reading (ISS-319): six releases and 627 changed lines since the
   mark moved this morning, past the threshold within the day.
+
+## Hundred-and-eighth dry run — ISS-319
+
+One agent read the fourth batch (3.35.124): 44728d4..299f437 under the three source paths, fourteen
+files and 627 lines, all under `plugin/src`. The head it read to was fixed from origin at the run's
+start and proved equal to the body's range by file and line count before the reading began. One
+landing: four `export` keywords dropped from symbols nothing outside their module reads. Two issues
+filed (a verb's closing block copied from the one beside it, ISS-327; two readers a previous fold did
+not reach, ISS-328), one plugin defect (the push-race refusal names a rebase that conflicts on the
+version commit the ship itself made, ISS-333), and five comments onto the issues that already carried
+what it found, one of them correcting the run's own first framing of where a fix belongs. Seven
+criteria, two consults at zero findings. The mark moved to the head read. No restart owed by this
+range, measured on the two hook paths and not inferred. Closed by its run. Folded from the record.
+
+- Master moved four times under the reading, and two of those landings touched `plugin/skills/`
+  (ISS-321). The run reported the restart as that run's to say and not its own, which is the right
+  division: a restart is owed by the landing that moved the file, and the fold says it once.
+- The reading found four open issues describing the same release-note cap (ISS-46, ISS-170, ISS-181,
+  ISS-243) and filed nothing new. Collapsing a cluster is a filer's write, and a run holding one lease
+  has no verb for it: the ranker (ISS-322) sees four issues where there is one problem.
+- A filing this run made against its own first framing was posted as a correction onto the issue
+  rather than by editing the body: the record keeps both the wrong home and the right one.
+- The ship's push was rejected once because another run's release landed during a 316-second gate
+  run; the mark was then planted by its named ref. A ship that rebases past a release must not
+  default the mark to whatever head it finds.
