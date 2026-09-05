@@ -2921,3 +2921,30 @@ its handback.
   directory sees this change.
 - A scratch file under `/tmp` with the run's own prefix was not its own — hours older, from another
   project — and was left alone. A prefix is not ownership.
+
+## Hundred-and-fifteenth dry run — ISS-179
+
+Dispatched by the parent as one of the restart-owing issues gathered after the user's restart on
+3.35.129, and it turned out to owe none: gate code is chosen per call, and the ship's frozen-set
+filter named nothing moved. The bash-guard gate refuses a `git stash` that moves the stack — `pop`,
+`apply`, `save`, `store`, and the quoted or prefixed spellings — wherever the repository has more than
+one worktree, gated on the worktree count rather than on a dirty tree, because a tree about to take
+somebody else's stash is clean by definition, which is exactly how a change was destroyed (3.35.131,
+landed as d15820f). `git stash create` stays allowed: it prints an id and stores nothing. Eleven
+criteria; the regression case watched red first; one whole-set consult at high effort with no
+findings. Closed by its run. Folded from its handback.
+
+- The rule sits ahead of the older stash rule because a refusal throws and the first match is the
+  message an agent reads. Order in a gate is part of the message.
+- A probe helper that cannot answer reads as *one worktree*, the opposite polarity to the dirty-tree
+  probe: the dirty reading already refuses what a failed probe would, so this one must not add a
+  refusal on doubt.
+- Six worktrees were live when this landed, so every running agent lost stack-moving stash at that
+  moment without having read the issue. A gate fix is live for everyone the instant it lands; the
+  brief that told them never to stash was already the same rule.
+- `--evidence` refusing a `.log` by sniffed MIME was met again and is open five times over (ISS-80,
+  134, 158, 194, 323); the run filed nothing and named them. A candidate defect in `forge feedback`
+  dissolved on a second look: the run had truncated the verb's own shape refusal.
+- Two spellings the probe proves refused are not locked by an assertion, by the run's choice: the
+  read that would have covered them was whole, and a round for coverage already evidenced was not
+  worth its cost. The gap is named rather than hidden.
