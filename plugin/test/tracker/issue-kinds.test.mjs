@@ -9,8 +9,6 @@ import {
   KINDS,
   KINDS_HELP,
   KIND_NAMES,
-  SIZES,
-  SIZE_WORDS,
   inFlowWords,
   insteadOf,
   kindRefusal,
@@ -165,21 +163,25 @@ test("the writer sends the kind the filing named, and nothing where it named non
   assert.deepEqual(trackerFields({ kind: "bug" }), { category: "bug" });
   assert.deepEqual(trackerFields({}), {}, "a default written into the field would read later as a choice");
   assert.deepEqual(trackerFields({ kind: null }), {});
+  /* Criteria 15, 16 and 17: the rung the body claims reaches the tracker as its own value. */
+  assert.deepEqual(trackerFields({ kind: null, rung: "trivial" }), { complexity: "xs" });
+  assert.deepEqual(trackerFields({ kind: null, rung: "fix" }), { complexity: "s" });
+  assert.deepEqual(trackerFields({ kind: "bug", rung: "feature" }), { category: "bug", complexity: "m" });
 });
 
-/* Criteria 13 and 14: the flow's word is `fix` and the tracker's value is its own, and the two meet
-   here once. The mark itself is a line in the description, so this is read and never written. */
+/* Criteria 1 to 5: every one of the tracker's five values reads back as the rung it claims, and the
+   table it reads through is the ladder's, which is where the flow reads the same values. */
 test("the flow's size word and the tracker's value for it are one statement", () => {
-  assert.deepEqual(SIZE_WORDS, ["fix"]);
-  assert.deepEqual(Object.values(SIZES), SIZE_WORDS, "the allowed set is the statement's own values");
-  assert.deepEqual(inFlowWords({ complexity: "xs" }), { size: "fix" });
-  assert.deepEqual(inFlowWords({ complexity: "l" }), { size: "l" },
-    "a value the flow has no word for is handed back as the tracker gave it");
+  assert.deepEqual(inFlowWords({ complexity: "xs" }), { size: "trivial" });
+  assert.deepEqual(inFlowWords({ complexity: "s" }), { size: "fix" });
+  for (const held of ["m", "l", "xl"]) assert.deepEqual(inFlowWords({ complexity: held }), { size: "feature" });
+  assert.deepEqual(inFlowWords({ complexity: "xxl" }), { size: "xxl" },
+    "a value the ladder has no rung for is handed back as the tracker gave it");
 });
 
 test("the payload a call hands back is in the CLI's words, and the rest of it is untouched", () => {
   assert.deepEqual(inFlowWords({ issueId: "ISS-98", category: "bug", complexity: "xs", status: "open" }),
-    { issueId: "ISS-98", kind: "bug", size: "fix", status: "open" });
+    { issueId: "ISS-98", kind: "bug", size: "trivial", status: "open" });
   assert.deepEqual(inFlowWords(null), null);
   assert.deepEqual(inFlowWords([{ category: "bug" }]), [{ category: "bug" }], "a list is not an issue");
 });

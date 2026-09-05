@@ -2,7 +2,7 @@
    create path. Every decision below — the two queries, the floor, why the fold answers to both of
    them and what that costs, and the cases it cannot reach — is docs/cli/beside.md's. */
 import { mustBeShown, postComment } from "./comments.mjs";
-import { isFix } from "./issue-shape.mjs";
+import { lightMark } from "../ladder.mjs";
 import { tried } from "./rpc.mjs";
 
 const TOOL = "forge_memory.search";
@@ -135,14 +135,14 @@ export const suggestionLines = ({ suggestions, notes, place },
 /** The fold's reply: no filing happened, so a reader after its key is told where the body went. */
 export const foldedInto = (joined) =>
   `${joined.issueId} is open, names the same place and is the nearest of the neighbours that do, at`
-  + ` ${joined.score.toFixed(2)}; this filing is marked \`Size: fix.\`, so it lands there as a finding`
+  + ` ${joined.score.toFixed(2)}; this filing is marked at a rung below \`feature\`, so it lands there as a finding`
   + " under its own title rather than as a second issue. No issue was filed and no lease was taken;"
   + " `--new` files it separately, and the block below is everything it was measured against.";
 
 /** The fold, decided and done here so a rule whose act nothing takes back is not enforced twice. */
 export const foldFiling = async (beside, { title, body, routed = false, fresh = false, soft = false }) => {
   const nearest = foldOnto(beside.suggestions);
-  const foldable = isFix(body) && !routed;
+  const foldable = Boolean(lightMark(body)) && !routed;
   const said = { nearest, foldable, fresh: Boolean(fresh) };
   if (!foldable || fresh || !nearest) return { joined: null, answer: null, said };
   await mustBeShown([{ ref: nearest.issueId, documentId: nearest.documentId }]);

@@ -106,13 +106,20 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 
 **The size decides the ladder, and the ladder has three rungs.** Every tier runs the same statuses
 in the same order; what differs is what three of those statuses ask for, and how many rounds the
-work between them is expected to take. The tier is a line in the body — `Size: trivial.`,
-`Size: fix.` or `Size: feature.` — and a body carrying no such line is a **feature**, every rung
-being claimable and the top one being what an unclaimed issue falls to. A body claiming two rungs
-is at the higher, and a mark inside a fenced or indented example is not a mark, so a body quoting
-this paragraph claims nothing. It is the line and not the tracker's `complexity` field: the tracker
-creates no label it was not given and this projection cannot read that enum back, so the day the
-tracker owns a size, the line goes.
+work between them is expected to take.
+
+**Two sources say the size, and the higher of them decides.** The first is the issue's own
+`complexity` field on the tracker, whose five values claim a rung each: `xs` a trivial, `s` a fix,
+and `m`, `l` and `xl` a feature, the top two of those also worth a question about splitting. The
+second is a line in the body — `Size: trivial.`, `Size: fix.` or `Size: feature.` — which is what
+carries an issue nobody set the field on, and every open issue filed before this rule was one. A
+body claiming two rungs is at the higher, and a mark inside a fenced or indented example is not a
+mark, so a body quoting this paragraph claims nothing. Where both sources speak and disagree, the
+higher rung wins: the rung is spent at three statuses, so one lowered after the plan would make a
+later status demand less than an earlier one already established. An issue with neither is a
+**feature**, the top rung being what an unclaimed issue falls to. `forge new --size <rung>` writes
+both at once, so the two agree on anything filed through this CLI; the line retires from every
+surface the day no open issue carries one.
 
 | Tier | What it claims | Payloads it stops owing | Rounds it may spend fewer of |
 |---|---|---|---|

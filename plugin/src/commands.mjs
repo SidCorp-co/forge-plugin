@@ -18,7 +18,6 @@ import {
   KIND_NAMES,
   PRIORITY_AT,
   PRIORITY_HELP,
-  SIZE_WORDS,
   filedAs,
   inFlowWords,
   insteadOf,
@@ -26,6 +25,7 @@ import {
 } from "./tracker/issue-shape.mjs";
 import { BESIDE_HELP, foldedInto, suggestionLines } from "./tracker/neighbours.mjs";
 import { filedOrFail, rankFor, readFiling } from "./tracker/filing.mjs";
+import { TIERS } from "./ladder.mjs";
 import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean, unknownFlag } from "./suggest.mjs";
@@ -334,9 +334,9 @@ export const commands = {
     onlyFlags("new", rest, INSTEAD_FLAGS);
     const { into, with: rides, size, kind, priority, new: fresh, ...given } = flags(rest, "new", ["--new"]);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
-    if (size !== undefined && !SIZE_WORDS.includes(size)) {
-      fail(`${didYouMean("size", size, SIZE_WORDS)} It is the one size the contract gives a light`
-        + " path, and a whole issue needs none.");
+    if (size !== undefined && !TIERS.includes(size)) {
+      fail(`${didYouMean("size", size, TIERS)} They are the contract's three rungs, smallest first,`
+        + " and the two below the top are the ones it gives a light path.");
     }
     if (kind !== undefined && !KIND_NAMES.includes(kind)) fail(kindRefusal(kind));
     const instead = insteadOf(given);

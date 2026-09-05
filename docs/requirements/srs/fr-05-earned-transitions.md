@@ -55,6 +55,9 @@ agent learns what a status wants.
 - **AC-05-1-6** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "a reopen judges again, so a verdict from before its triage earns nothing"
   WHERE a reopen's triage leaves two or more verdicts stale, the CLI SHALL report that set as a
   single owed item whose command re-judges every member of it in one write.
+- **AC-05-1-7** · Rev: 1 · Proof: plugin/test/ladder.test.mjs "each of the tracker's five sizes claims a rung, and the report says it was the field"
+  WHERE the tracker holds a size for the issue, the CLI SHALL rehearse the rung that size claims and
+  SHALL name which of that size and the body's own mark decided it.
 
 ### UC-05-2 — Advance to the next status
 

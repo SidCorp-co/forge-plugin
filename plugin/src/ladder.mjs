@@ -6,10 +6,12 @@
 import { looksTo, planFlags } from "./flow/machine.mjs";
 
 export const TIERS = ["trivial", "fix", "feature"];
-const [TRIVIAL, FIX] = TIERS;
+export const [TRIVIAL, FIX] = TIERS;
 export const FEATURE = TIERS.at(-1);
 
 const markLine = (tier) => new RegExp(String.raw`^size:[ \t]*${tier}\.?[ \t]*$`, "imu");
+
+export const MARK_LINE = new RegExp(String.raw`^[ \t]*size:[ \t]*(?:${TIERS.join("|")})\.?[ \t]*$`, "gimu");
 
 /* A mark inside an example is not a mark, and not a doubt either: docs/cli/the-ladder.md. */
 const EXAMPLE = new RegExp([
@@ -26,7 +28,51 @@ export const markedIn = (description) => {
 
 export const tierIn = (description) => markedIn(description) ?? FEATURE;
 
+export const lightMark = (description) => {
+  const claimed = markedIn(description);
+  return claimed && claimed !== FEATURE ? claimed : null;
+};
+
+export const markFor = (tier) => `Size: ${tier}.`;
+
 export const heightOf = (tier) => Math.max(0, TIERS.indexOf(tier));
+
+/* The tracker's five sizes, smallest first, against the rung each claims: the second source of a
+   size. Keys and never a shown string — that field's own name costs a reader a round. */
+const BANDS = { xs: TRIVIAL, s: FIX, m: FEATURE, l: FEATURE, xl: FEATURE };
+const BAND_NAMES = Object.keys(BANDS);
+const SPLIT_FROM = 3;
+
+export const rungFrom = (band) => BANDS[String(band ?? "")] ?? null;
+
+export const bandFor = (tier) => BAND_NAMES.find((one) => BANDS[one] === tier) ?? null;
+
+export const splits = (band) => BAND_NAMES.indexOf(String(band ?? "")) >= SPLIT_FROM;
+
+export const lightBand = (band) => {
+  const rung = rungFrom(band);
+  return Boolean(rung) && rung !== FEATURE;
+};
+
+export const FIELD_SAID = "the tracker's size";
+export const LINE_SAID = "the size mark in the body";
+
+/** The rung two sources claim, and which claimed it: both read upward and the higher wins, so
+ *  neither can lower a rung the other claimed. docs/cli/the-ladder.md. */
+export const sizeFrom = ({ band = null, description = null } = {}) => {
+  const claimed = [
+    { rung: rungFrom(band), from: FIELD_SAID },
+    { rung: markedIn(description), from: LINE_SAID },
+  ].filter((one) => one.rung);
+  if (!claimed.length) return { rung: FEATURE, claimed, decided: [], outranked: [] };
+  const top = Math.max(...claimed.map((one) => heightOf(one.rung)));
+  return {
+    rung: TIERS[top],
+    claimed,
+    decided: claimed.filter((one) => heightOf(one.rung) === top),
+    outranked: claimed.filter((one) => heightOf(one.rung) < top),
+  };
+};
 
 /* Judged on the pair: where it points alone would let `feature -> fix` raise a trivial. */
 const RESIZE = new RegExp(String.raw`\bsize:\s*(${TIERS.join("|")})\s*(?:->|\u2192|to)\s*(${TIERS.join("|")}|full)\b`, "giu");
@@ -94,9 +140,10 @@ export const overCeiling = (tier, { files, lines }) => {
 /* One rung, not a jump to the top: a person will look at this is one reason among several. */
 export const escalatedBy = (plan) => (looksTo(planFlags(plan)) ? 1 : 0);
 
-export const tierOf = ({ description, plan, moved, whole }) => {
+export const tierOf = ({ description, plan, moved, whole, band = null }) => {
   if (whole === false) return FEATURE;
-  const climbed = Math.min(heightOf(tierIn(description)) + escalatedBy(plan), TIERS.length - 1);
+  const claimed = sizeFrom({ band, description }).rung;
+  const climbed = Math.min(heightOf(claimed) + escalatedBy(plan), TIERS.length - 1);
   return TIERS[Math.max(climbed, ...resizedTo(moved).map(heightOf))];
 };
 

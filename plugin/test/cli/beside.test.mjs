@@ -11,8 +11,9 @@ import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 
 const home = tempHome("neighbours");
 process.env.XDG_CONFIG_HOME = home.path;
-const { BESIDE_HELP, FLOOR, foldOnto, foldedInto, suggestionLines } =
+const { BESIDE_HELP, FLOOR, foldFiling, foldOnto, foldedInto, suggestionLines } =
   await import("../../src/tracker/neighbours.mjs");
+const { TIERS, markFor } = await import("../../src/ladder.mjs");
 const { placeIn, seedFor } = await import("../../src/tracker/issue-shape.mjs");
 
 const suggestion = (issueId, score, samePlace) =>
@@ -80,13 +81,31 @@ test("--new tells a fold it declined from one it was never going to make, and fr
   assert.doesNotMatch(suggestionLines(block, { nearest, foldable: true }).join("\n"), /--new/u);
 });
 
+/* Criterion 22: the fold is the light path's and not one rung's, so a body marked at the rung below
+   `fix` joins a neighbour rather than filing a second issue. Asked with no neighbour, so the answer
+   is the decision and nothing is posted. */
+test("a body marked at any rung below the top is foldable, and one at the top is not", async () => {
+  const decided = async (body) =>
+    (await foldFiling({ suggestions: [] }, { title: "the edge a token can write", body })).said.foldable;
+  for (const rung of TIERS) {
+    assert.equal(await decided(`a body.\n\n${markFor(rung)}\n`), rung !== TIERS.at(-1), rung);
+  }
+  assert.equal(await decided("a body with no mark at all"), false);
+  assert.equal(
+    (await foldFiling({ suggestions: [] }, { title: "t", body: `a body.\n\n${markFor("fix")}\n`, routed: true }))
+      .said.foldable,
+    false,
+    "while a filing riding another issue's branch has that issue's flow and folds onto nothing",
+  );
+});
+
 test("the fold's reply names the issue and why it won, and claims no nearness it does not have", () => {
   const said = foldedInto(suggestion("ISS-2", 0.83, true));
   assert.match(said, /^ISS-2 is open, names the same place and is the nearest of the neighbours that do, at 0\.83/u);
   /* A neighbour reading closer under another place is not the nearest of all, and a reply saying
      so would be false on exactly the filings the fold is least sure about. */
   assert.doesNotMatch(said, /nearest to this filing/u);
-  assert.match(said, /lands there as a finding under its own title/u);
+  assert.match(said, /marked at a rung below `feature`, so it lands there as a finding under its own title/u);
   assert.match(said, /No issue was filed and no lease was taken/u);
   assert.match(said, /the block below is everything it was measured against/u);
 });

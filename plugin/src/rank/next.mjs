@@ -5,7 +5,8 @@ import { bandsOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart, rootFo
 import { chainOf, holdingKeys, ordered, scoreOf, takeableKeys } from "./score.mjs";
 import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
-import { isFix, placeIn, seedFor } from "../tracker/issue-shape.mjs";
+import { placeIn, seedFor } from "../tracker/issue-shape.mjs";
+import { markedIn } from "../ladder.mjs";
 import { batchesOf } from "./batch.mjs";
 import { candidateLines, droppedLine, HEAD } from "./print.mjs";
 import { carriersOf, graphOf } from "../tools/deps.mjs";
@@ -234,7 +235,8 @@ export const next = async (argv) => {
     const score = scoreOf(one.row, {
       weights,
       chain: chainOf(one.issueId, blocks, alive),
-      fix: bodies.has(one.issueId) ? isFix(text) : null,
+      read: bodies.has(one.issueId),
+      marked: markedIn(text),
     });
     const blockers = (blockedBy.get(one.issueId) ?? []).map((key) =>
       ({ otherDisplayId: key, otherStatus: statusOf.get(key) ?? "unknown", kind: "blocks" }));

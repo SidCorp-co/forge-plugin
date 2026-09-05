@@ -4,6 +4,7 @@ import { fail } from "../resolve/settings.mjs";
 import { foldFiling, neighboursOf } from "./neighbours.mjs";
 import { filingRefusal, liveTitles, rankOf, shapeOf, shapeRefusal, trackerFields, withMark }
   from "./issue-shape.mjs";
+import { markedIn } from "../ladder.mjs";
 import { write } from "./rpc.mjs";
 
 const withSections = (body, sections) => {
@@ -29,9 +30,9 @@ export const rankFor = async (priority) => {
 
 export const bodyOf = ({ title, body, kind = null, sections = [], size = undefined, everySection = false }) => {
   const written = withSections(body, sections);
-  const description = size ? withMark(written) : written;
+  const description = size ? withMark(written, size) : written;
   const shape = shapeOf({ title, body: description, kind }, { everySection });
-  return { description, shape, refusal: refusalOf(shapeRefusal(shape)) };
+  return { description, shape, rung: markedIn(description), refusal: refusalOf(shapeRefusal(shape)) };
 };
 
 export const readFiling = async (filing,
@@ -67,7 +68,7 @@ export const fileIssue = async ({
 }) => {
   const ranked = asked ?? await rankOf(priority);
   if (ranked.refusal) return { refusal: refusalOf(ranked.refusal), description: null, shape: null };
-  const { description, shape: known } = bodyOf({ title, body, kind, sections, size, everySection });
+  const { description, shape: known, rung } = bodyOf({ title, body, kind, sections, size, everySection });
   const { refusal, shape, beside } =
     await readFiling({ title, body: description, kind }, { routed, everySection, duplicates, page, shape: known });
   if (refusal) return { refusal, description, shape };
@@ -81,7 +82,7 @@ export const fileIssue = async ({
     status: "open",
     ...fields,
     priority: ranked.value,
-    ...trackerFields({ kind }),
+    ...trackerFields({ kind, rung }),
     ...(relations ? { relations } : {}),
   };
   const answer = await write("forge_issues", { action: "create", data }, undefined, soft);

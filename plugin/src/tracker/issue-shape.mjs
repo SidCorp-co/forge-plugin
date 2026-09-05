@@ -8,6 +8,7 @@
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
 import { FENCE_PATTERN } from "../flow/machine.mjs";
+import { FIX, MARK_LINE, TIERS, bandFor, lightMark, markFor, markedIn, rungFrom } from "../ladder.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
 import { enumAt } from "./rpc.mjs";
@@ -17,13 +18,10 @@ const CANDIDATES = 4;
 const TOKENS = 3;
 const SEARCHED = MAX_LIMIT;
 
-/* The line that marks a change for the light path, the tracker auto-creating no label a mark could
-   own. Written exact and read as a family, so typing it on the tracker's own screens does not lose
-   it to a full stop; the end of the line is checked all the same, so `Size: fix later` is not it. */
-export const SIZE_LINE = "Size: fix.";
-const MARK = /^[ \t]*size:[ \t]*fix\.?[ \t]*$/imu;
-export const isFix = (description) => MARK.test(String(description ?? ""));
-export const withMark = (body) => (isFix(body) ? body : `${String(body).replace(/\s*$/u, "")}\n\n${SIZE_LINE}\n`);
+/* The ladder reads the mark, stripping examples first and knowing every rung, so a body answers the
+   same rung here and on the flow path (ISS-389). A flag supplies one only where the body made none. */
+export const withMark = (body, rung = FIX) =>
+  (markedIn(body) ? String(body) : `${String(body).replace(/\s*$/u, "")}\n\n${markFor(rung)}\n`);
 
 const SUBSTANTIAL = 4;
 
@@ -125,15 +123,10 @@ export const kindRefusal = (given) =>
   `${didYouMean("kind", given, KIND_NAMES)}\nIt names no shape to read the body against, and`
   + ` ${KIND_ROUTE}. A filing naming no kind is read as a ${DEFAULT_KIND}.`;
 
-/** The flow's word for a size beside the tracker's value for it, in the one place they meet. The
- *  mark is a line in the description, so this is read on the way back and written by nothing. */
-export const SIZES = { xs: "fix" };
-export const SIZE_WORDS = Object.values(SIZES);
-
-/* Each name held as a key, never a string a developer is shown: one to translate back costs a round. */
+/* Each name a key, never a string a developer is shown: one to translate back costs a round. */
 const FLOW = {
   category: { word: "kind" },
-  complexity: { word: "size", said: (held) => SIZES[held] ?? held },
+  complexity: { word: "size", said: (held) => rungFrom(held) ?? held },
 };
 
 /** A flag naming the tracker's field instead of the CLI's word: taken, it would reach the tracker
@@ -148,8 +141,12 @@ export const insteadOf = (given) => {
 
 export const INSTEAD_FLAGS = Object.keys(FLOW).map((one) => `--${one}`);
 
-/** The one writer, and nothing where no kind was named: a default reads later as one somebody chose. */
-export const trackerFields = ({ kind }) => (kind ? { category: kind } : {});
+/** The one writer, and nothing where nothing was named: a default reads later as one somebody chose.
+ *  The rung is the body's own mark, so both sources of a size agree from the create. */
+export const trackerFields = ({ kind, rung = null }) => ({
+  ...(kind ? { category: kind } : {}),
+  ...(rung ? { complexity: bandFor(rung) } : {}),
+});
 
 /* What a filing is ranked, in one place. The kind's field above is left empty and this one cannot
    be — left out, the tracker fills the middle of its own set; docs/cli/new.md holds the rest. */
@@ -276,7 +273,7 @@ export const placeIn = (body) => {
 };
 
 export const seedFor = ({ title, body, kind = null }) => {
-  const text = String(body ?? "").replace(FENCE, "").replace(MARK, "");
+  const text = String(body ?? "").replace(FENCE, "").replace(MARK_LINE, "");
   const under = shapeFor(kind)?.needs.map((one) => sectionUnder(text, one.heading))
     .find((one) => one?.trim());
   return `${String(title ?? "").trim()}\n\n${(under ?? text).trim().slice(0, SEED)}`.trim();
@@ -392,7 +389,7 @@ const sectionGaps = (text, shape, among) =>
  *  `everySection` is for a filing with no such route and no light path — docs/cli/feedback.md. */
 export const shapeOf = ({ title, body, kind = null }, { everySection = false } = {}) => {
   const text = String(body ?? "");
-  const written = text.replace(FENCE, "").replace(MARK, "").trim();
+  const written = text.replace(FENCE, "").replace(MARK_LINE, "").trim();
   const asks = { place: placeIn(text), seed: seedFor({ title, body: text, kind }) };
   if (!written) {
     return { ...asks, gaps: [need(`${text.length} character(s) of body and no text in them`, "the issue itself: "
@@ -423,7 +420,7 @@ export const shapeOf = ({ title, body, kind = null }, { everySection = false } =
     return { ...asks, gaps, fix: false, tokens, said: null };
   }
   if (!everySection) {
-    if (isFix(text)) return { ...asks, gaps, fix: false, tokens, said: null };
+    if (lightMark(text)) return { ...asks, gaps, fix: false, tokens, said: null };
     if (tokens.length && !held(text, SCOPE).ok && !sectionUnder(text, RULES.heading)) {
       return { ...asks, gaps, fix: true, tokens, said: null };
     }
@@ -477,11 +474,13 @@ const alsoNamed = async (tokens, live) => {
 const fixRoutes = (tokens, candidates) => [
   `  --into ISS-nn   post this body as a comment on that issue and file nothing`,
   `  --with ISS-nn   file it and relate it, so one branch, one review and one release carry both`,
-  `  --size fix      mark it, and the flow carries it on the light path — where an open issue both`,
-  `                  reads like it and names the same place, the mark lands it there as a finding`,
+  `  --size ${TIERS.join("|")}`,
+  `                  mark it at a rung: the two below the top carry it on the light path, and where`,
+  `                  an open issue both reads like it and names the same place,`,
+  `                  the mark lands it there as a finding`,
   candidates.length
     ? `Naming ${tokens[0]}, still open: ${candidates.map((one) => `${one.issueId} ${one.title}`).join("; ")}`
-    : `No open issue names ${tokens[0]}, so --size fix is the route unless you know one.`,
+    : `No open issue names ${tokens[0]}, so --size ${FIX} is the route unless you know one.`,
 ].join("\n");
 
 const rendered = (gaps) =>

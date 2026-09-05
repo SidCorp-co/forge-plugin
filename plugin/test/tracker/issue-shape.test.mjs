@@ -8,8 +8,11 @@ import { fakeTracker, pageOf, ranAsync, tempHome } from "../fixtures.mjs";
 
 const home = tempHome("issue-shape");
 process.env.XDG_CONFIG_HOME = home.path;
-const { SIZE_LINE, UNRANKED, duplicateOf, filedAs, isFix, partsIn, priorityFor, refusalFrom,
+const { UNRANKED, duplicateOf, filedAs, partsIn, priorityFor, refusalFrom,
   shapeOf, tokensNamed, twoChangesIn, withMark } = await import("../../src/tracker/issue-shape.mjs");
+const { FIX, TIERS, lightMark, markFor } = await import("../../src/ladder.mjs");
+const SIZE_LINE = markFor(FIX);
+const SHORT = "`forge dep` should take the `data.relations` route.";
 const { filingsOf } = await import("../../src/tracker/issue-read.mjs");
 
 const WHOLE = [
@@ -127,20 +130,26 @@ test("a body naming nothing is missing its outcome rather than reading as a fix"
   assert.match(gaps.map((one) => one.wants).join(" "), /a heading naming the outcome/u);
 });
 
+/* The exemption is the light path's and not one rung's, and the reading is the ladder's. */
 test("the mark clears the fix route on every route, because the CLI writes it into the body", () => {
   const body = "`forge dep` should take the `data.relations` route.";
-  assert.equal(isFix(body), false);
+  assert.equal(lightMark(body), null);
   const marked = withMark(body);
   assert.ok(marked.includes(SIZE_LINE));
-  assert.equal(isFix(marked), true);
+  assert.equal(lightMark(marked), FIX);
   assert.equal(shapeOf({ title: TITLE, body: marked }).fix, false, "a marked fix is refused nothing");
   assert.equal(withMark(marked), marked, "and marking twice writes one line");
-  assert.equal(isFix(`⟦UNTRUSTED_DATA source="issue.description"⟧\n${SIZE_LINE}\n⟦END_UNTRUSTED_DATA⟧`), true,
+  for (const rung of TIERS) {
+    assert.equal(shapeOf({ title: TITLE, body: withMark(body, rung) }).fix, rung === TIERS.at(-1),
+      "the two rungs below the top are exempt from the sections, and the top one is not");
+  }
+  assert.equal(lightMark(`⟦UNTRUSTED_DATA source="issue.description"⟧\n${SIZE_LINE}\n⟦END_UNTRUSTED_DATA⟧`), FIX,
     "the description comes back fenced, and the mark is read a line at a time");
   for (const near of ["Size: fix later", "Size: fix-me", "Size: fix!", "the Size: fix. it wants"]) {
-    assert.equal(isFix(near), false, `${near} is not the mark, and a body it appears in owes its route`);
+    assert.equal(lightMark(near), null, `${near} is not the mark, and a body it appears in owes its route`);
   }
-  assert.equal(isFix("size:fix"), true, "while the spacing and the full stop are the author's");
+  assert.equal(lightMark("size:fix"), FIX, "while the spacing and the full stop are the author's");
+  assert.equal(lightMark(`\`\`\`\n${SIZE_LINE}\n\`\`\``), null, "and a mark inside an example is not one");
 });
 
 
@@ -274,7 +283,7 @@ test("the verb refuses a fix with the three routes and the open issues naming wh
   /* The mark stopped meaning "files it": where an open issue both reads like the filing and names
      its place, the mark lands it there instead, and the route that promised a filing would be a
      refusal telling a filer the wrong thing (ISS-139). */
-  assert.match(run.stderr, /--size fix\s+mark it, and the flow carries it on the light path/u);
+  assert.match(run.stderr, /--size trivial\|fix\|feature\s+mark it at a rung/u);
   assert.doesNotMatch(run.stderr, /--size fix\s+file it marked/u);
   assert.match(run.stderr, /the mark lands it there as a finding/u);
   assert.match(run.stderr, /ISS-45/u, "the candidate is searched on the token the body names");
@@ -286,20 +295,11 @@ test("the verb refuses a fix with the three routes and the open issues naming wh
   assert.match(run.stderr, /the mark is what drops the decision, the plan and the note/u);
 });
 
-test("--size fix files the same body, with the mark the CLI writes into the description", async () => {
-  state.calls = [];
-  const run = await filed("`forge dep` should take the `data.relations` route.", "--title", "forge dep writes an edge a token can write", "--size", "fix");
-  assert.equal(run.status, 0, run.stderr);
-  const create = state.calls.find((one) => one.args.action === "create");
-  assert.match(create.args.data.description, new RegExp(SIZE_LINE, "u"));
-  assert.equal(create.args.data.status, "open");
-});
-
 test("a size the contract has no path for is refused rather than kept", async () => {
   const run = await filed(WHOLE, "--title", TITLE, "--size", "small");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No size named small\. The set is fix\./u);
-  assert.match(run.stderr, /the one size the contract gives a light path/u);
+  assert.match(run.stderr, /No size named small\. The set is trivial, fix, feature\./u);
+  assert.match(run.stderr, /the contract's three rungs, smallest first/u);
 });
 
 test("--into posts the body where it belongs and files nothing, lint or no lint", async () => {
@@ -486,14 +486,23 @@ test("a nice-to-have section left out is said on the way past, and the issue is 
   assert.ok(state.calls.some((one) => one.args.action === "create"), "said, not refused");
 });
 
-test("--size fix marks the description and sends the tracker nothing for a size", async () => {
-  state.calls = [];
-  const run = await filed("`forge dep` should take the `data.relations` route.",
-    "--title", "forge dep writes an edge a token can write", "--size", "fix");
-  assert.equal(run.status, 0, run.stderr);
-  const create = state.calls.find((one) => one.args.action === "create");
-  assert.match(create.args.data.description, new RegExp(SIZE_LINE, "u"));
-  assert.equal("complexity" in create.args.data, false, "one source for the light path, and it is the line");
+/* The mark reaches the tracker's field, flag-written or typed, so both sources agree from the create. */
+test("--size marks the description and writes the tracker's field from that mark", async () => {
+  /* The top rung buys no exemption, so its body still owes every section the shape asks for. */
+  const created = async (body, ...argv) => {
+    state.calls = [];
+    const run = await filed(body, "--title", `forge dep writes an edge a token can write ${argv}`, ...argv);
+    assert.equal(run.status, 0, run.stderr);
+    return state.calls.find((one) => one.args.action === "create");
+  };
+  for (const [rung, held, body] of [["trivial", "xs", SHORT], ["fix", "s", SHORT], ["feature", "m", WHOLE]]) {
+    const create = await created(body, "--size", rung);
+    assert.match(create.args.data.description, new RegExp(markFor(rung), "u"));
+    assert.equal(create.args.data.complexity, held, rung);
+    assert.equal(create.args.data.status, "open", "and the same body is filed either way");
+  }
+  const typed = await created(`${SHORT}\n\n${markFor("trivial")}`);
+  assert.equal(typed.args.data.complexity, "xs", "the line the filer typed writes the field too");
 });
 
 test("a filing that named no rank is filed at the bottom, and the reply says which line ranked it", async () => {

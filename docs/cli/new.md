@@ -27,7 +27,8 @@ than its shape, and three flags take such a filing instead of the tracker. `--in
 body as a comment there and files nothing, which is the route for a finding that belongs on an issue already open; it renews no lease,
 because a finding on an issue nobody holds is nobody's claim. `--with ISS-45` files it and writes a
 relates edge in the same create, so one branch, one review and one release carry both; it writes no
-mark, because the flow such a filing is carried by is the related issue's. `--size fix` marks it,
+mark, because the flow such a filing is carried by is the related issue's. `--size` takes one of the
+contract's three rungs and marks it at that one,
 and a marked filing no longer always becomes an issue: where one already open both reads like it and
 names the same place, the mark lands it there as a finding instead, and `--new` is how a filer
 declines that. What is asked of the tracker to know, and why the fold needs two answers rather than
@@ -40,10 +41,11 @@ and then filed a titled issue with no body at all, which is the one filing the s
 stop. Every verb taking a payload reads it through the same module now, so the two copies that
 differed there are one.
 
-The mark is the line `Size: fix.` in the description. The tracker auto-creates no label and offers
-no tool to read one back, so a mark it owns could not be relied on; a line the CLI writes survives
-every route, a person reading the issue sees it, and `forge advance --owed` reads it back off the
-record like everything else. Its undo is an update that rewrites the description without the line.
+The mark is a line in the description — `Size: trivial.`, `Size: fix.` or `Size: feature.` — and the
+filing writes the tracker's own size field from it in the same create. Two sources, not two truths:
+`forge advance --owed` reads whichever of them claims the higher rung and says which one did, so the
+line carries every issue filed before the field was readable and the field carries one nobody marked.
+The undo is an update that rewrites the description without the line and clears the field.
 
 ## A rank is written for every filing, and the empty field the kind keeps is not the model
 
@@ -95,6 +97,6 @@ tracker's own name for that field and for the size beside it sit in the one writ
 either of them instead is refused with the word that reads the body. The tracker's name for the size
 is refused tree-wide in any string a developer is shown; its name for the kind is an ordinary English
 word a gate prints for an unrelated meaning, so that one is held by a case over the kinds' own text
-rather than by a pattern over the tree. `--size fix` writes the mark and nothing else in the payload: the flow's word for a size and the tracker's value for it meet in one statement, read
-on the way back rather than written on the way in, because the line in the description is the only
-thing deciding the light path and a second copy would survive the undo above.
+rather than by a pattern over the tree. `--size` writes the mark and the field the mark maps onto: the flow's word for a size and the
+tracker's value for it meet in one statement, in the ladder, and both directions of it are read
+there — so a filing leaves the two agreeing rather than leaving one of them to be set later by hand.

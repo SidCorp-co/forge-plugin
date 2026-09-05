@@ -2,7 +2,8 @@
    which rung and this answers how to say it, and a report is where prose accumulates. Printed at
    every rung, a route nobody is shown being one they infer. */
 import {
-  FEATURE, LIGHTER, SPARES, TIERS, heightOf, markedIn, resizeForm, tierIn, tierOf,
+  FEATURE, FIELD_SAID, LIGHTER, LINE_SAID, SPARES, TIERS, heightOf, resizeForm, sizeFrom, splits,
+  tierOf,
 } from "./ladder.mjs";
 import { looksTo, planFlags } from "./flow/machine.mjs";
 
@@ -14,15 +15,32 @@ const lighterLines = (tier) => LIGHTER.filter((one) => one.tiers.includes(tier))
 const spareLines = (tier) => SPARES[tier].map((one, at) =>
   `  ${(at ? "" : "and fewer rounds").padEnd(WIDTH)}${one}`);
 
-const markSaid = (description) => {
-  const claimed = markedIn(description);
-  return claimed
-    ? `This issue is marked \`Size: ${claimed}.\`, so it is a \`${claimed}\``
-    : `This issue carries no size mark, so it is a \`${FEATURE}\``;
+/* One sentence per source, so which of the two decided is read rather than inferred. */
+const SOURCE_SAID = {
+  [FIELD_SAID]: (rung) => `its size on the tracker is a \`${rung}\``,
+  [LINE_SAID]: (rung) => `its body is marked \`Size: ${rung}.\``,
 };
 
-const climbSaid = ({ description, plan }, tier) => {
-  const claimed = tierIn(description);
+const said = (one) => SOURCE_SAID[one.from](one.rung);
+
+const markSaid = (size) => {
+  const { rung, decided, outranked } = sizeFrom(size);
+  if (!decided.length) return `This issue claims no size on either source, so it is a \`${FEATURE}\``;
+  const under = outranked.map((one) => `${said(one)}, which does not lower a rung the other claimed`);
+  return [`This issue is a \`${rung}\`: ${decided.map(said).join(", and ")}`, ...under].join("; ");
+};
+
+/* Advice and no demand: what a rung owes is the contract's, and asking is what the two largest
+   values are worth. */
+const splitAsk = (band) => (splits(band) ? [
+  "Its size on the tracker is one of the two largest, so before the plan there is one question to",
+  "answer: is this one change, or several? Several is one issue each, every body naming the others,",
+  "and this one confirmed as the first of them. Nothing above is owed differently either way.",
+] : []);
+
+const climbSaid = (size, tier) => {
+  const { plan } = size;
+  const claimed = sizeFrom(size).rung;
   if (tier === claimed) return null;
   const declared = looksTo(planFlags(plan));
   const byPlan = declared && heightOf(claimed) < TIERS.length - 1;
@@ -38,19 +56,20 @@ const routesOff = (tier, ref) => (tier === FEATURE ? [] : [
 ]);
 
 export const sizeReport = (size, ref) => {
-  const { description, whole } = size;
+  const { whole } = size;
   if (whole === false) {
-    return [`${markSaid(description)}, and the page above was shortened: a cut cannot show a`,
+    return [`${markSaid(size)}, and the page above was shortened: a cut cannot show a`,
       "correction that re-sized it, so the tier is not applied and the full set is asked."].join("\n");
   }
   const tier = tierOf(size);
   const climbed = climbSaid(size, tier);
-  const opened = `${markSaid(description)}${climbed ? `, and ${climbed}` : ""}. The entry checks run that tier:`;
+  const opened = `${markSaid(size)}${climbed ? `, and ${climbed}` : ""}. The entry checks run that tier:`;
   const dropped = lighterLines(tier);
   return [
     opened,
     ...(dropped.length ? dropped : [`  ${"nothing dropped".padEnd(WIDTH)}a feature owes the whole set, which is what the tiers below it are measured against`]),
     ...spareLines(tier),
+    ...splitAsk(size.band),
     "Every other demand below stands as a feature's does — the confirmation with its where, the",
     "criteria, the baseline, the merged mark, the review of the head that landed, a verdict on every",
     "criterion, the verification, and the migration classification where a plan declares schema",

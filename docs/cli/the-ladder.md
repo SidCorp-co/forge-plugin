@@ -5,6 +5,28 @@
 the one rule that runs through every function there and would otherwise be six comments saying it
 six ways.
 
+## The two sources, and which of them decides
+
+A rung is claimed twice over. The tracker holds a size per issue, five values wide, and each claims
+one rung: the smallest a `trivial`, the next a `fix`, the top three a `feature`, since a feature is
+everything else. The body holds a `Size:` line, which is what carries every issue filed before that
+field could be read back, and what a person types on a screen with no CLI to hand. `forge new`
+writes both at once from whichever the filer gave, so anything filed through this CLI leaves them
+agreeing; a hand edit to either is the only way they come apart.
+
+Where they do, **the higher rung wins, and the report says which source lost.** Not a precedence
+rule — the same arithmetic that already reads a correction, applied to one more input, so an unset
+size falls back to the mark and a set one lifts an unmarked issue off the top rung. The argument for
+the direction is the one below, spent on a different input: three statuses ask less of the rungs
+under `feature`, and they are asked at different points of the run. A rung lowered after the plan
+would make a later status demand less than an earlier one already established — a status claiming
+what nobody checked, which is the cost this whole file exists to avoid. An upward correction still
+outranks both, and a cut comment page is still a `feature` whatever either source says.
+
+The two largest of the five values also earn a question rather than a payload: one change, or
+several? What a rung owes is the contract's, and a report that grew a demand of its own would be a
+second ladder.
+
 ## The rule
 
 **Where the reading is doubtful, the answer is the rung that owes more.** Every input this module
@@ -22,6 +44,7 @@ Where it applies, and what each case would have done read the other way:
 | a correction naming a pair | only where the pair climbs | let `feature -> fix` raise a trivial to a fix, reading where it points and never where it came from |
 | several climbs on one page | the highest | take the newest, so a plan correction written after a re-size erases it (ISS-161) |
 | a word the ladder has not got | the height of the lowest rung, never negative | index off the end of the table and answer with nothing |
+| a size value the table has not got | no claim from that source, so the mark decides alone | invent a rung for a value nobody mapped, and read it as the one that owes least |
 | a run's transcript naming several rungs | the largest among them | file a batch under its cheapest member, so every rung looks better the more work is batched onto it |
 | a plan declaring one name twice | `yes`, wherever in the plan it stands | read the first, so `no` above `yes` waives a payload the plan explicitly declared, and the same two lines reordered do not |
 | a ceiling read from a projection that lost a correction | printed all the same | the loss only ever lowers the rung, so it tightens a print that refuses nothing: it nags where nothing was owed and never falls silent where something was |

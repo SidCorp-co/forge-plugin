@@ -149,6 +149,7 @@ const sizeOf = (view) => (view.size ??= {
   plan: unwrap(view.issue.plan),
   moved: correctionsIn(view),
   whole: view.whole !== false,
+  band: view.issue.complexity ?? null,
 });
 
 export const lightPath = (view, status) => lightens(status, sizeOf(view));

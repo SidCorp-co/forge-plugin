@@ -549,7 +549,7 @@ test("--owed ends by naming the contract's part for the status it would enter, o
 
 test("--owed on an issue with no mark reports it as the top rung, dropping nothing", async () => {
   const run = await owed("ISS-91");
-  assert.match(run.stdout, /carries no size mark, so it is a `feature`/u);
+  assert.match(run.stdout, /claims no size on either source, so it is a `feature`/u);
   assert.match(run.stdout, /a feature owes the whole set/u, "and says so, rather than saying nothing");
   assert.doesNotMatch(run.stdout, /Two routes up/u, "the top rung has none, so none is offered");
   assert.match(run.stdout, /no confirmation/u);

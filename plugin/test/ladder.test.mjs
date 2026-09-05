@@ -5,12 +5,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { fakeTracker, ranAsync, tempHome } from "./fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("ladder").path;
 const {
-  CEILINGS, LIGHTER, SPARES, TIERS, climbsIn, escalatedBy, heightOf, lightens, markedIn, overCeiling,
-  resizeForm, tierIn, tierOf,
+  CEILINGS, LIGHTER, SPARES, TIERS, bandFor, climbsIn, escalatedBy, heightOf, lightBand, lightens,
+  markedIn, overCeiling, resizeForm, rungFrom, sizeFrom, splits, tierIn, tierOf,
 } = await import("../src/ladder.mjs");
 const { planFlags } = await import("../src/flow/machine.mjs");
 const { render } = await import("../src/flow/record.mjs");
@@ -27,12 +30,27 @@ const issue = (tier, extra = {}) => ({
   ...extra,
 });
 
+/* The tracker's five sizes on bodies claiming none, so the report is the field's doing alone. */
+const BANDS = ["xs", "s", "m", "l", "xl"];
+const UNMARKED = "`forge dep` should take the `data.relations` route.";
+const sized = (band, at, extra = {}) => ({
+  documentId: `${band}-uuid`,
+  issueId: `ISS-${at}`,
+  status: "open",
+  title: `the change the tracker sized at ${band}`,
+  description: UNMARKED,
+  complexity: band,
+  ...extra,
+});
+
 const state = {
   calls: [],
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
   issues: [
     issue("trivial"), issue("fix"), { ...issue("feature"), description: "no mark here" },
     { ...issue("feature"), documentId: "claimed-uuid", issueId: "ISS-73" },
+    ...BANDS.map((band, at) => sized(band, 80 + at)),
+    sized("xs", 90, { documentId: "disagree-uuid", description: body("feature") }),
   ],
   comments: {},
   answer: {
@@ -236,7 +254,7 @@ test("a confirmation a write posts carries the rung, and one handed in without i
 test("--owed reports the rung the checks run, what it drops and every route up from it", async () => {
   const run = await owed("ISS-71");
   assert.equal(run.status, 0, "asked what is owed, the shortfall is the answer and not a refusal");
-  assert.match(run.stdout, /marked `Size: fix\.`, so it is a `fix`\. The entry checks run that tier/u);
+  assert.match(run.stdout, /is a `fix`: its body is marked `Size: fix\.`\. The entry checks run that tier/u);
   const reported = (row) => [`at ${row.status}`, row.drops, row.because].every((one) => run.stdout.includes(one));
   for (const row of LIGHTER) assert.ok(reported(row), `${row.status} is lightened and the report omits ${row.drops}`);
   assert.match(run.stdout, /forge plan ISS-71 <plan\.md>/u, "one route up, in the form it wants");
@@ -250,7 +268,7 @@ test("--owed reports the rung the checks run, what it drops and every route up f
    drops and nothing else has been told the two rungs are the same thing. */
 test("the shortest rung drops what the one above drops, and is told what else it may spend fewer of", async () => {
   const [trivial, fix, feature] = [await owed("ISS-70"), await owed("ISS-71"), await owed("ISS-72")];
-  assert.match(trivial.stdout, /marked `Size: trivial\.`, so it is a `trivial`/u);
+  assert.match(trivial.stdout, /is a `trivial`: its body is marked `Size: trivial\.`/u);
   for (const row of LIGHTER) {
     assert.ok(trivial.stdout.includes(row.drops), `the shortest rung is reported to owe ${row.drops}`);
   }
@@ -260,7 +278,7 @@ test("the shortest rung drops what the one above drops, and is told what else it
   assert.ok(SPARES.trivial.some((one) => !above.includes(one)),
     "and one of them is not the rung above's, or the two differ in nothing a reader can act on");
   assert.match(trivial.stdout, /--moved "Size: trivial -> fix"/u, "the route up names the next rung, not the top");
-  assert.match(feature.stdout, /carries no size mark, so it is a `feature`/u);
+  assert.match(feature.stdout, /claims no size on either source, so it is a `feature`/u);
   assert.match(feature.stdout, /a feature owes the whole set/u, "the top rung says so rather than saying nothing");
   assert.doesNotMatch(feature.stdout, /Two routes up/u, "and has none to offer");
 });
@@ -271,10 +289,83 @@ test("the shortest rung drops what the one above drops, and is told what else it
    marked that way, which is how it was found. */
 test("a body claiming the top rung in full is not told it carries no mark", async () => {
   const claimed = await owed("ISS-73");
-  assert.match(claimed.stdout, /marked `Size: feature\.`, so it is a `feature`/u,
+  assert.match(claimed.stdout, /is a `feature`: its body is marked `Size: feature\.`/u,
     "the mark the body carries is read back to whoever wrote it");
-  assert.doesNotMatch(claimed.stdout, /carries no size mark/u,
+  assert.doesNotMatch(claimed.stdout, /claims no size on either source/u,
     "and is not reported as an absence, which would send a reporter to add a line already there");
   assert.match(claimed.stdout, /a feature owes the whole set/u, "while it owes exactly what an unmarked body owes");
   assert.doesNotMatch(claimed.stdout, /Two routes up/u, "and has nowhere to climb either");
+});
+
+
+/* Every size claims a rung, the report says which source decided, and neither is named on screen the
+   way the tracker names it — a name a reader has to translate back costs a round. */
+test("each of the tracker's five sizes claims a rung, and the report says it was the field", async () => {
+  const wanted = ["trivial", "fix", "feature", "feature", "feature"];
+  for (const [at, band] of BANDS.entries()) {
+    assert.equal(rungFrom(band), wanted[at], band);
+    const run = await owed(`ISS-${80 + at}`);
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, new RegExp(`is a \`${wanted[at]}\`: its size on the tracker is a \`${wanted[at]}\``, "u"),
+      `${band} is reported at ${wanted[at]}, and the source that decided it is named`);
+    assert.doesNotMatch(run.stdout, /complexity/iu, "and never by the name only the tracker uses");
+    assert.doesNotMatch(run.stdout, /claims no size on either source/u, "a set field is not an absence");
+  }
+  assert.equal(rungFrom("xxl"), null, "a value the ladder has no rung for claims none");
+  assert.deepEqual(TIERS.map((one) => bandFor(one)), ["xs", "s", "m"],
+    "and the other direction is the smallest value that claims the rung");
+  assert.deepEqual(BANDS.map((one) => lightBand(one)), [true, true, false, false, false]);
+});
+
+/* The two largest are worth a question and no payload: a report that grew a demand is a second ladder. */
+test("the two largest sizes ask whether the issue is one change, and the three below do not", async () => {
+  assert.deepEqual(BANDS.map((one) => splits(one)), [false, false, false, true, true]);
+  for (const [at, band] of BANDS.entries()) {
+    const run = await owed(`ISS-${80 + at}`);
+    assert.equal(/is this one change, or several\?/u.test(run.stdout), splits(band), band);
+    assert.match(run.stdout, /a feature owes the whole set|not owed:/u, "while what it owes is unchanged");
+  }
+});
+
+/* A rung lowered after the plan would make a later status demand less than an earlier one established. */
+test("where the two sources disagree the higher rung decides, and the outranked one is said", async () => {
+  assert.equal(sizeFrom({ band: "xs", description: body("feature") }).rung, "feature");
+  assert.equal(sizeFrom({ band: "xl", description: body("trivial") }).rung, "feature");
+  assert.equal(sizeFrom({ band: "xs" }).rung, "trivial", "an unmarked body is lifted off the top rung");
+  assert.equal(sizeFrom({ description: body("fix") }).rung, "fix", "and an unset field falls back to the mark");
+  assert.equal(sizeFrom({}).rung, "feature", "with neither source, the rung that owes everything");
+  const run = await owed("ISS-90");
+  assert.match(run.stdout, /is a `feature`: its body is marked `Size: feature\.`/u);
+  assert.match(run.stdout, /its size on the tracker is a `trivial`, which does not lower a rung the other claimed/u,
+    "the source that lost is said, so a reader is not left to guess why the field did not decide");
+});
+
+/* The contract's existing rule, now read over a size as well as over a mark. */
+test("a correction re-sizing upward outranks a tracker size naming a lower rung", () => {
+  const moved = ["Size: trivial -> feature"];
+  assert.equal(tierOf({ description: UNMARKED, plan: "", moved, band: "xs" }), "feature");
+  assert.equal(tierOf({ description: UNMARKED, plan: "", moved: ["Size: feature -> fix"], band: "xs" }), "trivial",
+    "while a correction pointing downward moves nothing, as it moves nothing off a mark");
+  assert.equal(tierOf({ description: UNMARKED, plan: "", moved: [], band: "xs", whole: false }), "feature",
+    "and a cut page is a feature whatever the field says: it cannot show the correction it hid");
+});
+
+
+/* Two of the five are words nothing else spells, so a second copy of the table is a file this finds.
+   `rank/weights.mjs` scores a value rather than mapping it, and a project may override that table. */
+test("the table from a tracker size to a rung lives in one file, and the one carve-out is named", () => {
+  const ROOT = new URL("../src", import.meta.url).pathname;
+  const found = [];
+  const walk = (dir, at) => {
+    for (const one of readdirSync(dir, { withFileTypes: true })) {
+      if (one.isDirectory()) walk(join(dir, one.name), `${at}/${one.name}`);
+      else if (one.name.endsWith(".mjs")) {
+        const text = readFileSync(join(dir, one.name), "utf8");
+        if (/\bxs\b/u.test(text) && /\bxl\b/u.test(text)) found.push(`${at}/${one.name}`);
+      }
+    }
+  };
+  walk(ROOT, "plugin/src");
+  assert.deepEqual(found.sort(), ["plugin/src/ladder.mjs", "plugin/src/rank/weights.mjs"],
+    `a size a reader has to map to a rung is spelt outside the ladder:\n${found.join("\n")}`);
 });

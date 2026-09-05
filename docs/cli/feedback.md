@@ -30,7 +30,7 @@ caller can predict: a note appended to an unrelated issue is the note lost again
 failure the verb exists to end. For the same reason the shape read is the body-only one — the
 tracker-reading refusal `forge new` uses would refuse a near-duplicate note and drop the body on
 the floor. That read asks for every section, which is not the default: `forge new` short-circuits
-two ways — a body marked `Size: fix.` is read against no section, and one naming a code token with
+two ways — a body marked at a rung below `feature` is read against no section, and one naming a code token with
 neither rules nor an out-of-scope is offered the three routes a small change takes instead of being
 refused. Both are routes a note does not have. A note is one shape, always the bug's, so the
 shortcuts are switched off for it and every section is read; without that a note missing two of its

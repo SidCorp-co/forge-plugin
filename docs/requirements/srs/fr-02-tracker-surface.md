@@ -119,7 +119,7 @@ issue scored, what left it out, and what one landing would free.
   the run holding it where a claim is what did.
 - **AC-02-7-3** · Rev: 1 · Proof: plugin/test/rank/score.test.mjs "every weight in the table moves the order on its own"
   WHERE two issues differ in one weighted field alone, the CLI SHALL order them by that field.
-- **AC-02-7-4** · Rev: 1 · Proof: plugin/test/rank/score.test.mjs "the band's own weight moves it, from the Size line as from the field"
+- **AC-02-7-4** · Rev: 1 · Proof: plugin/test/rank/score.test.mjs "the band's own weight moves it, from the size mark as from the field"
   IF the tracker reports no size for an issue THEN the CLI SHALL take the size the body declares
   instead, and SHALL report which of the two it read.
 - **AC-02-7-5** · Rev: 1 · Proof: plugin/test/rank/next.test.mjs "a blocker prints the wave it frees, a two-deep chain as a chain"
