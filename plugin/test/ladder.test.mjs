@@ -13,6 +13,7 @@ const {
   resizeForm, tierIn, tierOf,
 } = await import("../src/ladder.mjs");
 const { planFlags } = await import("../src/flow/machine.mjs");
+const { render } = await import("../src/flow/record.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 
@@ -216,7 +217,14 @@ test("a confirmation a write posts carries the rung, and one handed in without i
   const asked = await ranAsync(FORGE, ["record", "confirmation", "ISS-70", "--tier", trivial], tracker.env);
   assert.notEqual(asked.status, 0, "and is not a flag, or a run could claim a rung its issue never carried");
   assert.match(`${asked.stdout}${asked.stderr}`, /--tier/u, "refused by the name it was given");
+  const handed = render("confirmation", { where: ["src/ladder.mjs"], is: "a rung", finding: "holds" });
+  assert.doesNotMatch(handed, /^tier:/mu, "the shape does not put the field there, so a person's record lacks it");
+  state.comments["claimed-uuid"] = [{ createdAt: "2026-09-05T10:00:00.000Z", body: handed }];
+  const read = await owed("ISS-73");
+  assert.doesNotMatch(read.stdout, /no confirmation/u,
+    "and it earns the status all the same: every entry check reads the description, never this copy");
 });
+
 
 test("--owed reports the rung the checks run, what it drops and every route up from it", async () => {
   const run = await owed("ISS-71");
