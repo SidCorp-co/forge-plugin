@@ -606,7 +606,7 @@ test("asking an action what to type prints the usage", () => {
     const run = spawnSync(forge, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: tempRoom("codex-help-") } });
     assert.equal(run.status, 0, `${argv.join(" ")}: ${run.stderr}`);
     /* The usage line alone is what a generic handler would print while deleting the actions. */
-    assert.match(`${run.stdout}${run.stderr}`, /Usage: forge codex <consult\|verdict\|pending\|show\|log\|stats\|replay>/u);
+    assert.match(`${run.stdout}${run.stderr}`, /Usage: forge codex <consult\|verdict\|pending\|show\|log\|stats\|eval\|replay>/u);
     assert.match(`${run.stdout}${run.stderr}`, /--verify risk/u, "with the actions still documented");
   }
 });

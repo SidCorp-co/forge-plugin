@@ -2,7 +2,7 @@
    round is asked to verify are decided here — on entries handed in, never on this machine's file. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 import { tempRoom } from "../fixtures.mjs";
 
@@ -25,6 +25,9 @@ const {
   historyFor,
   logConsult,
   logEntries,
+  loggedWithMark,
+  markOf,
+  markedAt,
   logLine,
   LOG_PATH,
   pairedLog,
@@ -235,6 +238,8 @@ test("the log scores itself per model", () => {
   assert.equal(row.accepted, 1);
   assert.equal(row.rejected, 1);
   assert.equal(row.median, 60);
+  const untimed = scoreOf([...entries, { kind: "consult", id: "4", ok: true, root: "/a", at: "4", model: "m", reply: "CODEX: 0 findings" }]);
+  assert.equal(untimed[0].median, 60, "a consult that recorded no duration is left out of the median, not counted as nought");
   assert.equal(row.cached, 50);
   assert.equal(row.input, 150, "every input token, cached ones included");
 });
@@ -507,4 +512,68 @@ test("an entry already masked at the write passes through unchanged", () => {
   const said = logLine(clean, true);
   assert.ok(said.includes(clean.reply), "a record written since 3.35.88 prints its stored prose verbatim");
   assert.match(said, new RegExp(`\\s${clean.reply.length}ch\\s`, "u"), "and reports its own length");
+});
+
+/* The counter's whole evidence: the live log is 78 consults short of its next mark, so a crossing is
+   proven on a planted one. The fixture is answered consults and asserted to be, because a bare
+   `{kind:"consult"}` counts zero and would let both halves of this pass without a mark existing. */
+const PLANTED = (n) => ({
+  kind: "consult",
+  ok: true,
+  id: `p${n}`,
+  at: new Date(Date.UTC(2026, 8, 5) + n * 60_000).toISOString(),
+  root: "/planted",
+  reply: "CODEX: 0 findings",
+});
+
+test("the consult that takes the log onto a hundred-mark names the eval; the one before it says nothing", () => {
+  const kept = readFileSync(LOG_PATH, "utf8");
+  const plant = (many) => writeFileSync(LOG_PATH, `${Array.from({ length: many }, (one, n) => JSON.stringify(PLANTED(n))).join("\n")}\n`);
+  try {
+    plant(199);
+    assert.equal(answered(logEntries()).length, 199, "planted as answered consults, which is what the counter counts");
+    const said = loggedWithMark(PLANTED(199));
+    assert.equal(answered(logEntries()).length, 200, "and the consult's own write is what crossed it");
+    assert.match(said, /200 answered consults in the log/u);
+    assert.match(said, /`forge codex eval`/u);
+
+    plant(198);
+    assert.equal(loggedWithMark(PLANTED(198)), null, "199 is short of the mark");
+
+    plant(199);
+    assert.equal(loggedWithMark({ ...PLANTED(199), ok: false, reply: undefined, error: "gateway" }), null,
+      "a failed consult is not in the population the eval compares, so it crosses nothing");
+  } finally {
+    writeFileSync(LOG_PATH, kept);
+  }
+});
+
+/* Counted around the write, two consults finishing together both read 199 before and 201 after, and
+   both announced 200 (codex F1, this change). The mark belongs to the record that landed on it. */
+test("two consults finishing together, only the one that landed on the mark says so", () => {
+  const kept = readFileSync(LOG_PATH, "utf8");
+  try {
+    writeFileSync(LOG_PATH, `${Array.from({ length: 199 }, (one, n) => JSON.stringify(PLANTED(n))).join("\n")}\n`);
+    assert.match(loggedWithMark(PLANTED(199)), /200 answered consults/u, "the 200th");
+    assert.equal(loggedWithMark(PLANTED(200)), null, "and the one right behind it announces nothing");
+  } finally {
+    writeFileSync(LOG_PATH, kept);
+  }
+});
+
+test("a mark is an ordinal in the log, so nothing has to remember the last crossing", () => {
+  assert.equal(markedAt(100), 100);
+  assert.equal(markedAt(101), null, "the same mark is never announced twice");
+  assert.equal(markedAt(1), null);
+  assert.equal(markedAt(0), null, "a record the log would not take is no crossing at all");
+});
+
+/* Three random bytes is what an id is, so two consults can share one; found by the id alone, the
+   199th would read the 200th's place as its own and announce a mark it never landed on (codex F3). */
+test("a co-tenant sharing this record's id does not lend it their ordinal", () => {
+  const mine = { ...PLANTED(198), id: "abc" };
+  const theirs = { ...PLANTED(199), id: "abc", root: "/another-checkout" };
+  const log = [...Array.from({ length: 198 }, (one, n) => PLANTED(n)), mine, theirs];
+  assert.equal(markOf(log, mine), null, "mine is the 199th, whatever id the 200th shares with it");
+  assert.match(markOf(log, theirs), /200 answered consults/u, "and theirs is the one that landed on it");
 });

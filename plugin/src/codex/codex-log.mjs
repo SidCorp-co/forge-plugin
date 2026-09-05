@@ -83,6 +83,20 @@ export const lastConsultAt = (root, entries = logEntries()) =>
 /* A failed consult carries no advice: "3 accepted" against a gateway timeout is not a verdict. */
 export const answered = (entries) => consults(entries).filter((one) => one.ok && one.reply);
 
+/* Every hundredth answered consult, the log says so and names the verb that reads it — by this
+   record's own place in the log, and identified by more than its id. docs/cli/codex-the-log.md. */
+export const MARK = 100;
+
+export const markedAt = (ordinal) => (ordinal > 0 && ordinal % MARK === 0 ? ordinal : null);
+
+export const markOf = (entries, record) => {
+  const of = (one) => `${one.id ?? ""}|${one.at}|${one.root ?? ""}`;
+  const mark = markedAt(answered(entries).findLastIndex((one) => of(one) === of(record)) + 1);
+  return mark ? `codex: ${mark} answered consults in the log — \`forge codex eval\`.` : null;
+};
+
+export const loggedWithMark = (record) => (logConsult(record) ? markOf(logEntries(), record) : null);
+
 /* The hash the latest answered consult for this checkout sent for one file; null when none did. */
 export const sentShaOf = (entries, root, rel) => {
   for (const one of answered(entries).reverse()) {
@@ -415,11 +429,13 @@ const median = (values) => {
   return sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
 };
 
+export const modelKey = (one) => `${one.model ?? one.slot ?? "?"}${one.effort ? ` @${one.effort}` : ""}`;
+
 export const scoreOf = (entries) => {
   const scored = verdictsBy(entries);
   const rows = new Map();
   for (const one of answered(entries)) {
-    const key = `${one.model ?? one.slot ?? "?"}${one.effort ? ` @${one.effort}` : ""}`;
+    const key = modelKey(one);
     const row = rows.get(key) ?? { model: key, consults: 0, findings: 0, zero: 0, accepted: 0, rejected: 0, seconds: [], cached: 0, input: 0 };
     const counted = countedIn(one.reply);
     row.consults += 1;
@@ -432,7 +448,7 @@ export const scoreOf = (entries) => {
       row.accepted += held.accepted ?? 0;
       row.rejected += held.rejected ?? 0;
     }
-    row.seconds.push(Math.round((one.ms ?? 0) / 1000));
+    if (one.ms !== undefined) row.seconds.push(Math.round(one.ms / 1000));
     const usage = one.usage ?? {};
     row.cached += usage.cache_read_input_tokens ?? 0;
     row.input += (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);

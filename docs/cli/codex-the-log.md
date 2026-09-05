@@ -9,7 +9,9 @@ on every call. A recheck's REFUTED rulings record themselves as the verdict on t
 (CONFIRMED stays open), a verdict lands by default on the last consult that made findings and heard
 nothing, and `--of` names another. The commit gate waits on both, and its how document carries the
 counts. Usage is summed over a consult's calls; logged from the
-last call alone, `log --score` counted a third of the input. A `started` entry is written before the call, because a consult
+last call alone, `log --score` counted a third of the input. A consult that recorded no duration is left
+out of the median rather than counted as nought: three untimed rows beside one that took a minute
+answered nought seconds. A `started` entry is written before the call, because a consult
 that dies mid-flight reaches no handler and a review that vanished is what an eval most wants to see.
 Each entry carries the commit, a per-file sha256 and whether the file was clipped: advice that cannot
 be tied to bytes cannot be checked.
@@ -45,6 +47,24 @@ check, how many were retried at the ceiling, how many rechecks raised something 
 kind, and which prompt versions ran. A row written before a field existed is counted from its own
 reply, using the same predicate the field is written with, so the window before a change and the window
 after it are read the same way rather than one of them looking clean for want of a column.
+
+**A number nobody looks at is not a measurement.** The reviewer slot moved to another model after one
+eval done by hand, and the runs since judge the harness by the feel of the next few consults: reading
+`stats` is a thing someone has to remember. So the log says when to look at itself — the consult whose
+own record takes the count of answered consults onto a hundred ends by naming `forge codex eval` and
+nothing else, the reasoning being this paragraph's job and not a transcript line's. The count is the
+whole device's, because the file is one, and the crossing belongs to whichever project's consult
+reaches it. What decides is that record's own place in the log once it is in, not a count taken around
+the write: two consults finishing together read the same total before and after, and both would claim
+the mark. The record is found by more than its id, three random bytes — two sharing one would trade
+ordinals between an append and the read after it, and the wrong one would announce. Nothing else
+remembers a crossing: a file that did is a second copy of a number the log already holds, wrong the
+first time an entry is lost. Answered consults are counted rather than lines, because that is the
+population the eval compares and because a failed consult exits before it could print anything, so a
+mark landing on one would pass in silence and never come round. The verb puts the last hundred against
+the hundred before, per model and prompt version, through these same readers, and names what separates
+the windows — a slot, the model behind it, a prompt version, an effort — so the numbers are read
+against whatever upgrade lies between. It writes nothing; the log stays the only record.
 
 **A prompt is versioned because "it seems better" is not a comparison.** Every consult records the
 system prompt's version and the digest of the text actually sent, so an edit nobody bumped for still

@@ -40,7 +40,7 @@ import {
   roleFor,
   sameFamily,
 } from "./codex-api.mjs";
-import { printReplay, printStats } from "./codex-stats.mjs";
+import { printEval, printReplay, printStats } from "./codex-stats.mjs";
 import {
   LOG_PATH,
   consults,
@@ -48,6 +48,7 @@ import {
   historyFor,
   logConsult,
   logEntries,
+  loggedWithMark,
   printLog,
   recheckOwed,
   recheckPlan,
@@ -61,7 +62,7 @@ import {
 const DEFAULT_PATH_RE = "^docs/.*\\.md$";
 
 export const USAGE = [
-  "Usage: forge codex <consult|verdict|pending|show|log|stats|replay> [args]",
+  "Usage: forge codex <consult|verdict|pending|show|log|stats|eval|replay> [args]",
   "GPT-5 Codex reviews the files you name, streamed over the gateway's own API. The files travel",
   "with the prompt; beyond them it reads for itself — read_file, list_dir, grep and git_diff, over",
   "this checkout and any other you name a file in, and nothing else on the machine. The log is what",
@@ -80,6 +81,9 @@ export const USAGE = [
   "  stats [--last n] [--days n] [--root p] [--here]   what the harness did over a window: calls",
   "                            against their budget, replies that could not check, rechecks that",
   "                            raised something New, tokens by kind, and the prompt versions that ran",
+  "  eval                      the last 100 answered consults on this device against the 100 before",
+  "                            them, per model and prompt version, with what separates the windows",
+  "                            named. The consult that crosses a hundred-mark says to run it.",
   "  replay --prompt <file> [--last n] [--root p]      which of a window a candidate prompt could be",
   "                            scored against, rebuilt from git and kept only where the bytes still match",
   "",
@@ -401,7 +405,7 @@ const consult = async (given) => {
     /* Buffered while a retry was still possible, so the review lands here in one piece. */
     if (!held.streamed) process.stdout.write(held.text);
     process.stdout.write("\n");
-    logConsult({
+    const crossing = loggedWithMark({
       ...record,
       kind: "consult",
       ms: Date.now() - started,
@@ -435,6 +439,7 @@ const consult = async (given) => {
     if (held.refused.length) console.error(`codex: refused ${held.refused.length} tool call(s): ${held.refused.join("; ")}.`);
     if (left.length) console.error(`codex: ${left.length} file(s) still pending, recorded ${ageOf(since)}: ${left.join(", ")}.`);
     if (held.stop === "max_tokens") console.error("codex: the reply hit `codex.maxTokens`.");
+    if (crossing) console.error(crossing);
   } catch (error) {
     logConsult({ ...record, kind: "consult", budget, ms: Date.now() - started, ok: false, error: error.message });
     const partial = shown ? `\n\ncodex: the ${shown} characters above are an incomplete reply and were `
@@ -540,6 +545,7 @@ const SUBS = {
   show,
   log: printLog,
   stats: printStats,
+  eval: printEval,
   replay: printReplay,
 };
 

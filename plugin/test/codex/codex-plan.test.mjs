@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { mock } from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { tempRoom } from "../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves: the live config directory holds a working token. */
@@ -17,7 +17,17 @@ const {
   newFindingsIn,
   plannedFor,
 } = await import("../../src/codex/codex-plan.mjs");
-const { rebuiltFrom, replayOf, statsOf, windowOf } = await import("../../src/codex/codex-stats.mjs");
+const {
+  changedBetween,
+  evalLines,
+  evalWindows,
+  printEval,
+  rebuiltFrom,
+  replayOf,
+  statsOf,
+  windowOf,
+} = await import("../../src/codex/codex-stats.mjs");
+const { LOG_PATH } = await import("../../src/codex/codex-log.mjs");
 const { digest, promptMark, roleFor } = await import("../../src/codex/codex-api.mjs");
 
 const LIMITS = { base: 3, ceiling: 5, small: 40, large: 400 };
@@ -236,4 +246,120 @@ test("a base git cannot resolve is a lost row, not an empty diff", () => {
     sent: [{ rel: "a.mjs", sha: digest("const one = 1;\n"), chars: 15 }],
   }));
   assert.match(held.why, /anchored to is gone/u);
+});
+
+/* Two windows of a hundred, each one row per model-and-prompt, off the readers `stats` and
+   `log --score` already spend. The verdicts are handed in whole: one is written after the consult
+   it scores and lands outside the window as often as inside, and a window scored on its own rows
+   reports every model 0 kept — which reads as a log nobody ruled on rather than as a defect. */
+const WINDOWED = (n) => ROW({
+  id: `w${n}`,
+  at: new Date(Date.UTC(2026, 8, 1) + n * 60_000).toISOString(),
+  slot: "codex",
+  model: n < 150 ? "old-model" : "new-model",
+  effort: "medium",
+  ms: 20_000,
+  usage: { input_tokens: 1000, cache_read_input_tokens: 500, cache_creation_input_tokens: 0, output_tokens: 200 },
+  prompt: { v: 2, sha: n < 150 ? "aaa" : "bbb" },
+  reply: "- **F1 — major:** `a.mjs:1` — a thing\nCODEX: 1 findings",
+});
+const SCORED = (n) => ({ kind: "verdict", of: `w${n}`, accepted: 1, rejected: 0, kept: ["F1"], dropped: {} });
+
+test("the eval is the last hundred against the hundred before, scored on the whole log's verdicts", () => {
+  const rows = Array.from({ length: 250 }, (one, n) => WINDOWED(n));
+  const verdicts = rows.map((one, n) => SCORED(n));
+  const { now, before } = evalWindows([...rows, ...verdicts]);
+  assert.equal(now.length, 100);
+  assert.equal(before.length, 100);
+  assert.equal(now[0].id, "w150", "the recent window ends at the log's last answered consult");
+  assert.equal(before.at(-1).id, "w149", "and the earlier one abuts it");
+  const said = evalLines(now, before, verdicts).join("\n");
+  assert.match(said, /new-model @medium {2}prompt v2 bbb/u, "one block per model and prompt version");
+  assert.match(said, /100 consult\(s\) {2,}100 finding\(s\)/u);
+  assert.match(said, /100% kept of 100 ruled/u, "the verdicts reach the scoring");
+  assert.match(said, /20s median {2}0 could not check/u, "no coverage note where every row is timed");
+  assert.match(said, /tokens\/consult {2}1000 in, 500 from cache, 0 written, 200 out/u);
+});
+
+/* Membership alone called a window that went 99 low-effort to one "unchanged", which is the mix the
+   numbers are meant to be read against saying nothing (codex F1, this change). */
+test("what separates the windows is counted per value, not merely listed", () => {
+  const rows = Array.from({ length: 250 }, (one, n) => WINDOWED(n));
+  const { now, before } = evalWindows(rows);
+  const held = Object.fromEntries(changedBetween(now, before).map((one) => [one.name, one]));
+  assert.deepEqual(held.model.values, [{ value: "new-model", now: 100, before: 0 }, { value: "old-model", now: 0, before: 100 }]);
+  assert.deepEqual(held.slot.values, [{ value: "codex", now: 100, before: 100 }], "the slot is the name, and it did not move");
+  const said = evalLines(now, before, []).join("\n");
+  assert.match(said, /model {3}new-model — → 100, old-model 100 → —/u);
+  assert.match(said, /slot {4}codex 100 → 100/u);
+  assert.match(said, /none ruled on/u, "no verdict in the log is said, not shown as a share");
+
+  const mixed = evalLines(
+    Array.from({ length: 4 }, (one, n) => WINDOWED(n + 200, )).map((row) => ({ ...row, effort: "high" })),
+    Array.from({ length: 4 }, (one, n) => WINDOWED(n + 100)),
+    [],
+  ).join("\n");
+  assert.match(mixed, /effort {2}high — → 4, medium 4 → —/u, "the same dimension in different amounts still reads as a move");
+});
+
+/* A row that predates a field is not an observed zero: averaged in, the older window reads as the
+   cheap one, which is the single comparison this verb exists to get right (codex F2, this change). */
+test("a measurement nobody recorded is said rather than averaged as nothing", () => {
+  const bare = Array.from({ length: 4 }, (one, n) => {
+    const row = { ...WINDOWED(n) };
+    delete row.usage;
+    delete row.ms;
+    return row;
+  });
+  const said = evalLines(bare, [], []).join("\n");
+  assert.match(said, /no consult here recorded what it spent/u);
+  assert.match(said, /none timed/u);
+  const half = evalLines([...bare.slice(0, 3), WINDOWED(9)], [], []).join("\n");
+  assert.match(half, /tokens\/consult over the 1 that recorded usage {2}1000 in/u, "divided by the rows that recorded, not by all four");
+  assert.match(half, /20s median of the 1 timed/u, "the one timed consult's own median, not one dragged to nought by the three beside it");
+});
+
+/* A log this verb is run on early has no earlier window at all, and saying nothing would read as
+   two windows that happened to match. */
+test("a short window says its real size, and a log too young says it has no window before", () => {
+  const young = Array.from({ length: 40 }, (one, n) => WINDOWED(n));
+  const { now, before } = evalWindows(young);
+  assert.equal(now.length, 40);
+  assert.equal(before.length, 0);
+  const said = evalLines(now, before, []).join("\n");
+  assert.match(said, /the last 40 answered consult\(s\)/u);
+  assert.match(said, /100 is a full window and the log holds no more/u);
+  assert.match(said, /no window before them/u);
+  assert.doesNotMatch(said, /what separates/u);
+
+  const half = evalWindows(Array.from({ length: 150 }, (one, n) => WINDOWED(n)));
+  assert.equal(half.before.length, 50);
+  assert.match(evalLines(half.now, half.before, []).join("\n"), /the 50 before them.*does not reach a full 100 further back/u);
+});
+
+/* The log is the only record, and an eval that appended one would be measuring itself. */
+test("the eval writes nothing and refuses a window nobody can act on", () => {
+  mkdirSync(dirname(LOG_PATH), { recursive: true });
+  writeFileSync(LOG_PATH, `${Array.from({ length: 8 }, (one, n) => JSON.stringify(WINDOWED(n))).join("\n")}\n`);
+  const before = readFileSync(LOG_PATH);
+  const said = mock.method(console, "log", () => {});
+  try {
+    printEval([]);
+    assert.match(String(said.mock.calls[0].arguments[0]), /the last 8 answered consult\(s\)/u);
+  } finally {
+    said.mock.restore();
+  }
+  assert.deepEqual(readFileSync(LOG_PATH), before, "byte for byte what it was");
+
+  const stopped = mock.method(process, "exit", () => {
+    throw new Error("exited");
+  });
+  const cried = mock.method(console, "error", () => {});
+  try {
+    assert.throws(() => printEval(["--last", "50"]), /exited/);
+    assert.match(String(cried.mock.calls[0].arguments[0]), /eval takes no arguments/u);
+  } finally {
+    stopped.mock.restore();
+    cried.mock.restore();
+  }
 });

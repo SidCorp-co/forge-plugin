@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
 import { digest } from "./codex-api.mjs";
-import { LOG_PATH, answered, logEntries, numbered } from "./codex-log.mjs";
+import { LOG_PATH, MARK, answered, logEntries, modelKey, numbered, scoreOf } from "./codex-log.mjs";
 import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
@@ -42,6 +42,10 @@ export const windowOf = (entries, { last = DEFAULT_WINDOW, days, root } = {}) =>
 
 const share = (many, of) => (of ? `${Math.round((many / of) * 100)}%` : "—");
 
+/** The prompt a row ran at: the version and the digest of the text actually sent, so an edit nobody
+ *  bumped for still separates two windows. */
+export const promptKey = (row) => (row.prompt ? `v${row.prompt.v} ${row.prompt.sha}` : "unversioned");
+
 export const statsOf = (rows) => {
   const spent = Object.fromEntries(KINDS.map((kind) => [kind, 0]));
   const versions = new Map();
@@ -63,7 +67,7 @@ export const statsOf = (rows) => {
       if (many) held.raisedNew += 1;
     }
     for (const kind of KINDS) spent[kind] += row.usage?.[kind] ?? 0;
-    const key = row.prompt ? `v${row.prompt.v} ${row.prompt.sha}` : "unversioned";
+    const key = promptKey(row);
     versions.set(key, (versions.get(key) ?? 0) + 1);
   }
   const read = spent.cache_read_input_tokens;
@@ -111,6 +115,137 @@ export const printStats = (rest) => {
   console.log("\nWhether a reply could not check, and whether a recheck raised something New, are read "
     + "from the reply itself where the row predates the field, so both windows are counted the same way. "
     + "A budget cannot be recovered that way and is left unknown, which is what the calls line is for.");
+};
+
+/* What the cadence line points at: the last hundred answered consults against the hundred before
+   them, so a harness upgrade is read off the log rather than off the feel of the next few consults.
+   Every number is a column one of the two readers above already computes — a second copy would
+   answer differently from `stats` the day either moved. It writes nothing.
+   docs/cli/codex-the-log.md. */
+export const evalWindows = (entries, size = MARK) => {
+  const both = windowOf(entries, { last: size * 2 });
+  const now = both.slice(-size);
+  return { now, before: both.slice(0, both.length - now.length) };
+};
+
+/* Both dimensions in one key: it is what the issue asks the numbers per, and it is the only key
+   under which `scoreOf` answers with exactly one row rather than re-splitting by effort inside. */
+const keyOf = (row) => `${modelKey(row)}  prompt ${promptKey(row)}`;
+
+const byKey = (rows) => {
+  const held = new Map();
+  for (const row of rows) held.set(keyOf(row), [...(held.get(keyOf(row)) ?? []), row]);
+  return held;
+};
+
+/* The whole log's verdicts, not the window's: a verdict is written after the consult it scores and
+   lands outside the window as often as in it. Scored on the window alone every model reads 0 kept,
+   which looks like a log nobody ruled on rather than like a defect. */
+export const groupNumbers = (rows, verdicts) => ({ score: scoreOf([...verdicts, ...rows])[0], held: statsOf(rows) });
+
+const WHEN = 7;
+
+/* An absent measurement is said, never averaged as a zero: a group whose rows predate `usage` would
+   otherwise read as the cheap window, which is the one mistake the comparison exists to avoid. */
+export const groupLines = (rows, verdicts, when) => {
+  if (!rows.length) return [`  ${when.padEnd(WHEN)} not in this window`];
+  const { score, held } = groupNumbers(rows, verdicts);
+  const ruled = score.accepted + score.rejected;
+  const timed = rows.filter((row) => row.ms !== undefined).length;
+  const metered = rows.filter((row) => row.usage && Object.keys(row.usage).length).length;
+  const per = (many) => Math.round(many / metered);
+  const short = (many) => many < rows.length;
+  return [
+    `  ${when.padEnd(WHEN)} ${String(rows.length).padStart(3)} consult(s)  ${String(score.findings).padStart(4)} finding(s) `
+      + `(${score.zero} found none)  ${ruled ? `${share(score.accepted, ruled)} kept of ${ruled} ruled` : "none ruled on"}  `
+      + `${held.raisedNew} of ${held.rechecks} recheck(s) raised New  `
+      + `${timed ? `${score.median}s median${short(timed) ? ` of the ${timed} timed` : ""}` : "none timed"}  `
+      + `${held.incomplete} could not check`,
+    metered
+      ? `  ${" ".repeat(WHEN)} tokens/consult${short(metered) ? ` over the ${metered} that recorded usage` : ""}  `
+        + `${per(held.spent.input_tokens)} in, `
+        + `${per(held.spent.cache_read_input_tokens)} from cache, ${per(held.spent.cache_creation_input_tokens)} written, `
+        + `${per(held.spent.output_tokens)} out`
+      : `  ${" ".repeat(WHEN)} no consult here recorded what it spent`,
+  ];
+};
+
+/* Four dimensions and not one: the slot stayed `codex` while the model behind it changed, and a
+   comparison keyed on either alone names the wrong change or none. */
+const DIMENSIONS = [
+  ["slot", (row) => row.slot ?? "unrecorded"],
+  ["model", (row) => row.model ?? "unrecorded"],
+  ["prompt", promptKey],
+  ["effort", (row) => row.effort ?? "unrecorded"],
+];
+
+/* Counted, not merely present: a window that went 99 low-effort to one has the same values in it, and
+   "unchanged" is the one word that must not describe the mix these numbers are read against. Named
+   and never called a cause either — `effort` is derived from a change's size, so a window that moved
+   may have met bigger diffs rather than a new default. */
+export const changedBetween = (now, before) => {
+  const tally = (rows, of) => rows.reduce((held, row) => held.set(of(row), (held.get(of(row)) ?? 0) + 1), new Map());
+  return DIMENSIONS.map(([name, of]) => {
+    const here = tally(now, of);
+    const there = tally(before, of);
+    return {
+      name,
+      values: [...new Set([...there.keys(), ...here.keys()])]
+        .map((value) => ({ value, now: here.get(value) ?? 0, before: there.get(value) ?? 0 }))
+        .sort((a, b) => b.now - a.now || b.before - a.before),
+    };
+  });
+};
+
+const changedLine = ({ name, values }) =>
+  `  ${name.padEnd(WHEN)} ${values.map((one) => `${one.value} ${one.before || "—"} → ${one.now || "—"}`).join(", ")}`;
+
+const evalHead = (now, before) => {
+  const span = (rows) => `${rows[0].at} to ${rows.at(-1).at}`;
+  return [
+    `the last ${now.length} answered consult(s)  ${span(now)}`
+      + (now.length < MARK ? `  — ${MARK} is a full window and the log holds no more` : ""),
+    before.length
+      ? `the ${before.length} before them  ${span(before)}`
+        + (before.length < MARK ? `  — the log does not reach a full ${MARK} further back` : "")
+      : `no window before them: the log holds ${now.length} answered consult(s) in all, so there is `
+        + "nothing yet to compare this one against.",
+  ];
+};
+
+export const evalLines = (now, before, verdicts) => {
+  const groups = [...new Set([...byKey(now).keys(), ...byKey(before).keys()])].sort();
+  const nowBy = byKey(now);
+  const beforeBy = byKey(before);
+  return [
+    ...evalHead(now, before),
+    "",
+    ...groups.flatMap((key) => [
+      key,
+      ...groupLines(nowBy.get(key) ?? [], verdicts, "now"),
+      ...groupLines(beforeBy.get(key) ?? [], verdicts, "before"),
+    ]),
+    ...(before.length
+      ? ["", "what separates the two windows, in consults before → now", ...changedBetween(now, before).map(changedLine)]
+      : []),
+    "",
+    "Whether a reply could not check, and whether a recheck raised something New, are read from the "
+      + "reply itself where the row predates the field, so the older window — which is the one likely "
+      + "to predate a column — is counted the way the newer one is.",
+  ];
+};
+
+export const printEval = (rest) => {
+  if (rest.length) {
+    fail(`codex: eval takes no arguments — it reads the last ${MARK} answered consults on this device `
+      + `and the ${MARK} before them, over every project the log holds. \`forge codex stats\` is the one `
+      + "that takes a window.");
+  }
+  const entries = logEntries();
+  const { now, before } = evalWindows(entries);
+  if (!now.length) return console.log(`No answered consult logged yet, so there is nothing to compare. ${LOG_PATH}`);
+  const verdicts = entries.filter((one) => one.kind === "verdict");
+  for (const line of evalLines(now, before, verdicts)) console.log(line);
 };
 
 const gitIn = (root, argv) => spawnSync("git", argv, { cwd: root, encoding: "utf8", maxBuffer: 1e8 });
