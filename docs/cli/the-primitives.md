@@ -54,15 +54,15 @@ matching the standard here would change two callers rather than fix one function
 needs the specified answer is asking for a different function, and the test pins the divergence so
 a later run reaching for compliance sees it is a behaviour change. The module says so at its head.
 
-A third copy sits in `vi-natural`'s gateway client, and this change leaves it alone. Not because an
-import could not reach the home — it could, and nothing enforces a boundary there. It is left
-because that is the repository's other CLI, with its own document and its own configuration, and
-because its reader is a *different* reader: it trims a line before testing the field and parses each
-line on its own, so the shared form cannot serve it and only the constant could travel. Its typed
-width is a real instance of this rule and is filed as its own issue rather than answered here. The
-rule asks a run either to widen the guard to the new home's tree or to write down why it should not
-reach there; this is the writing down, and it also sits beside the scan itself, where the next run
-widening it will read it.
+A third copy sat in `vi-natural`'s gateway client, and clearing it needed a rule nobody had written:
+whether that CLI may import from `plugin/src/`. Nothing forbade it — the absence of an upward import
+there had been read as a boundary, which is inferring one from a measurement. It may, downward only;
+`README.md`'s Layout section carries the direction and what would reverse it. What crossed is the
+constant. That reader is a *different* reader — it trims a line before testing the field and parses
+each line off an incremental buffer — so `sseData` cannot serve it and was not asked to, and sharing
+the value rather than the behaviour is what keeps the import from being a coupling. The guard's scan
+is owed the widening to that tree and has not had it: the file is another run's, so the row is
+posted there with its measurement.
 
 The guard's needle is the typed width and not the field name. `startsWith("data:")` would also fire
 on a module testing a `data:` URI, and the refusal would send it to a frame reader it has no use

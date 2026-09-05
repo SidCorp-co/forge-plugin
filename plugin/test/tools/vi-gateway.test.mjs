@@ -1,7 +1,10 @@
 /* The retry table is what decides a second attempt. A status outside it has to cost one request:
    an invalid key does not become valid by being asked again, and every retry sleeps. */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+
+import { DATA_FIELD } from "../../src/sse.mjs";
 
 import { Client } from "../../vi-natural/gateway/client.mjs";
 import { translateItems } from "../../vi-natural/gateway/engine.mjs";
@@ -63,4 +66,64 @@ test("a key reaches the results only where its translation carries the source's 
   assert.match(problems.find((one) => one.key === "a").reason, /missing \{count\}/u, "and each says what it lost");
   assert.match(problems.find((one) => one.key === "b").reason, /invented \{extra\}/u);
   assert.equal(asked.length, 3, "the batch, then one second chance per rejected key");
+});
+
+/* The frame reader, against the line shapes a gateway actually puts on the wire. It borrows
+   DATA_FIELD from plugin/src/sse.mjs and nothing else, and the two lines below are why: an indented
+   payload is one here and is not one to `sseData`, which tests the raw line. Driven through a real
+   stream in three chunkings, because the buffer is what decides where a line ends. */
+const streaming = (t, body, bytes) => {
+  const held = globalThis.fetch;
+  const pieces = bytes ? body.match(new RegExp(`[\\s\\S]{1,${bytes}}`, "gu")) : [body];
+  globalThis.fetch = async () => ({
+    ok: true,
+    body: {
+      getReader: () => {
+        const queue = [...pieces];
+        return {
+          read: async () => (queue.length > 0
+            ? { done: false, value: new TextEncoder().encode(queue.shift()) }
+            : { done: true }),
+          cancel: async () => {},
+        };
+      },
+    },
+  });
+  t.after(() => {
+    globalThis.fetch = held;
+  });
+};
+
+const chunk = (delta) => `data: ${JSON.stringify({ choices: [{ delta }] })}\n`;
+const FRAMES = ": keep-alive\n\n"
+  + chunk({ content: "Xin " })
+  + `  ${chunk({ content: "chào " })}`
+  + `data:${JSON.stringify({ choices: [{ delta: { content: "thế " } }] })}\n`
+  + `data : ${JSON.stringify({ choices: [{ delta: { content: "unread" } }] })}\n`
+  + chunk({ reasoning_content: "thinking out loud" })
+  + "data: not json\n"
+  + chunk({ content: "giới" })
+  + `data: ${JSON.stringify({ usage: { prompt_tokens: 11, completion_tokens: 7 } })}\n`
+  + "data: [DONE]\n"
+  + chunk({ content: " after done" });
+
+for (const bytes of [0, 7, 512]) {
+  test(`every data: line of a stream read ${bytes === 0 ? "whole" : `in ${bytes}-byte pieces`} answers the same text`, async (t) => {
+    streaming(t, FRAMES, bytes);
+    const client = new Client(CONFIG);
+
+    assert.equal(await client.chat("system", "user"), "Xin chào thế giới");
+    assert.equal(client.promptTokens, 11, "the usage frame was read");
+  });
+}
+
+test("the field name is the shared one and the width is not counted here", async (t) => {
+  streaming(t, `data: ${JSON.stringify({ choices: [{ delta: { content: "ok" } }] })}\ndata: [DONE]\n`, 0);
+  assert.equal(await new Client(CONFIG).chat("system", "user"), "ok");
+  assert.equal(DATA_FIELD, "data:", "the constant this client slices by, declared in plugin/src/sse.mjs");
+  assert.equal(
+    readFileSync(new URL("../../vi-natural/gateway/client.mjs", import.meta.url), "utf8").includes("slice(5)"),
+    false,
+    "the width is derived from DATA_FIELD, not typed",
+  );
 });

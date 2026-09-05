@@ -1,4 +1,4 @@
-/* Every `data:` value of an SSE body, each trimmed and the set concatenated. That is what both transports have always done and it is deliberately *not* the wire format's own dispatch, which strips one leading space and joins with a line feed — a consumer needing the standard's answer is asking for a different function, not this one with a fix. Why the width is derived and where the home stops: docs/cli/the-primitives.md. */
+/* Every `data:` value of an SSE body, each trimmed and the set concatenated. That is what both transports have always done and it is deliberately *not* the wire format's own dispatch, which strips one leading space and joins with a line feed — a consumer needing the standard's answer is asking for a different function, not this one with a fix. Why the width is derived, and why the gateway client borrows the field name without the reader: docs/cli/the-primitives.md. */
 export const DATA_FIELD = "data:";
 export const sseData = (text) =>
   text

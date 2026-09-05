@@ -137,6 +137,21 @@ plugin/
   skills/audit-code-quality  skills/setup-code-quality  skills/gate-review
 ```
 
+An import may run from `vi-natural/` into `src/` and never the other way. The two directories are
+one shipped unit — the PATH link already runs that CLI through `src/dispatch.mjs`, so `src/` is
+loaded on the ordinary route into it — and `src/` is this plugin's library, which is what a second
+consumer is meant to take from. What `vendor/` answers to is a different constraint: it reaches
+*out* of the plugin directory to `packages/`, and a copy is the price of travelling alone. A path
+inside `plugin/` pays nothing. The reverse direction is what the subprocess is for —
+`src/tools/vi.mjs` spawns `bin/vi-natural` rather than importing it, because that CLI's entry point
+is an entry point. So a primitive both trees need lands in `src/`, in a module that imports
+nothing, and `vi-natural` spends it.
+
+What would reverse this: `vi-natural` shipping on its own, outside this plugin directory. Then the
+constants it borrowed come back as its own named declarations, one per tree, and the guard that
+watches for a second copy re-narrows to `src/` and `hooks/`. Nothing else here has to move, which
+is the point of keeping the borrowing to values that carry no graph behind them.
+
 ## Two levels
 
 This plugin is the **global** level. It owns *when and where* a rule fires — which tool routes are

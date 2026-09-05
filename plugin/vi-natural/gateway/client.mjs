@@ -4,6 +4,8 @@
 // connection whose origin has said nothing for ~100 seconds. `timeout` is therefore the longest
 // silence tolerated BETWEEN chunks, not a budget for the whole call — see VI-NATURAL.md.
 
+/* The framing is the wire format's and not this gateway's, so the field name and the width it implies are taken from the plugin's one home for them; only the constant crosses, since the reader below trims a line before testing it and reads one line at a time off an incremental buffer. Which way an import may run between this tree and `src/`: README's Layout section. */
+import { DATA_FIELD } from "../../src/sse.mjs";
 import { CliError, err } from "../util.mjs";
 
 // 520/522/524 are Cloudflare's own: the origin misbehaved or went quiet. They are worth retrying
@@ -127,8 +129,8 @@ export class Client {
       buffered = lines.pop() ?? "";
       for (const raw of lines) {
         const line = raw.trim();
-        if (!line.startsWith("data:")) continue;
-        const body = line.slice(5).trim();
+        if (!line.startsWith(DATA_FIELD)) continue;
+        const body = line.slice(DATA_FIELD.length).trim();
         if (body === "[DONE]") {
           done = true;
           break;

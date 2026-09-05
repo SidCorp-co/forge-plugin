@@ -102,7 +102,11 @@ test("a chosen copy at an escaped path is still the main module, so vi-natural a
   const room = tempRoom("dispatch-escaped-");
   try {
     const checkout = join(room, "a checkout");
-    cpSync(join(PLUGIN, "vi-natural"), join(checkout, "plugin", "vi-natural"), { recursive: true });
+    /* Both trees, because a plugin copy is the whole plugin directory and `vi-natural` spends
+       what `src` declares: copying the one alone leaves an import with nowhere to resolve. */
+    for (const tree of ["vi-natural", "src"]) {
+      cpSync(join(PLUGIN, tree), join(checkout, "plugin", tree), { recursive: true });
+    }
     wrote(join(checkout, "plugin", ".claude-plugin", "plugin.json"), JSON.stringify({ name: NAME, version: "1.2.3" }));
     wrote(
       join(checkout, ".claude-plugin", "marketplace.json"),
