@@ -3293,3 +3293,27 @@ tracker.
   three runs re-diagnose one defect.
 - The verb's own help is where the mechanics landed, and the doc page got no line, on the rule that
   a tool's `-h` is the one home for what it takes.
+
+## Hundred-and-twenty-ninth dry run — ISS-361
+
+Third of the wave of four. The test fixtures now point the temp directory at the per-process root
+they already make and remove, so the hook stamp room, resolved under the temp directory at every call,
+lands inside that root for the test process and every child it spawns; the gate runner gives each step
+a temp root of its own and fails a step that leaves stamps in it (3.35.144, landed as cfdf250).
+Measured: forty-nine stamps into the real room per suite run before, none after, so a room of
+thirty-one thousand files now drains on its own life instead of growing. The machine's real temp root
+is captured before the redirect, or the dead-process sweep would search inside the process's own root
+and never find a stale one. The reap in the stamp module was left alone, as the issue's rules say and
+as ISS-390 owns. No restart owed. Closed by its run. Folded from its handback.
+
+- The run met the same rank red ISS-208 had already filed as ISS-395 and filed it again as ISS-398
+  thirteen minutes later, then claimed, confirmed, parked and dropped its own duplicate. Nothing in the
+  flow points a run at the open filings before it files, and the filing verb's near-duplicate read did
+  not surface an issue thirteen minutes old. The run recorded the gap on the issue; the dispatcher's
+  message about the red reached it after the duplicate was filed.
+- A run that redirects the temp directory has to capture the real one first: the sweep for stale
+  stamps searches wherever the directory resolves, and after the redirect that is the run's own root.
+- A gap record lost two phrases to shell backtick substitution, and the run posted a second one saying
+  so. A record body written through the shell is read by the shell first.
+- Of the two cross-references the handback names, the note on ISS-390 was read back on its thread and
+  the one on ISS-395 was not, so the dispatcher posted that one on the run's behalf.
