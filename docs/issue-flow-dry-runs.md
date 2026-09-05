@@ -3054,3 +3054,81 @@ at Phase 2 without re-deriving them. Folded from its handback.
 - The edge to ISS-318 is kind `relates`, and only `blocks` holds an issue back, so nothing in the
   tracker would have stopped this dispatch. That is ISS-334 and ISS-69, already open; the run filed
   nothing.
+
+## Hundred-and-twentieth dry run — ISS-338
+
+Dispatched by the parent in the wave after the user's restart on 3.35.129. One filing interface now
+owns everything a filing decides: the body assembled from what the route wrote plus the sections it
+fills, the shape read, the duplicate, the neighbours, the fold, the rank, the field mapping and the
+create. `forge new`, `forge feedback` and the ship's batch-reading filer became the arguments they pass
+and the lines they print, and no reply text changed (3.35.136, landed as a39fec8). A one-create check
+holds the rule and was proven by watching it fire on a real second caller. Sixteen criteria, verified
+against a clean checkout of the landed head. No restart owed. Closed by its run. Folded from its
+handback.
+
+- The issue named the wrong file for the ship's filer, and its own comment was wrong that this closes
+  ISS-250: the fold was already one shared routine and already fired on the feedback route, which a
+  test proved. The run posted a wrong confirmation first and corrected it in the open once the test
+  contradicted it; ISS-250 stays open with a corrected diagnosis, routed rather than absorbed.
+- Codex caught a defect the run introduced: a function made async and not awaited, which would have
+  let a filing failure escape the ship's own error handler. Two more findings were real: a rank
+  validated after stdin was consumed, and a field-precedence hole. All three fixed before the read
+  was re-earned.
+- The ship pushed at step 6 and stopped at step 7 because the shared checkout held another session's
+  unpushed commit, so two releases sat on the remote uninstalled (filed as a second instance onto
+  ISS-374). The run did not rebase the shared checkout to clear it, since that would rewrite another
+  session's commit, and wrote that reasoning into the filing. The other session was the parent,
+  committing a one-paragraph skill rule directly in the shared checkout while a gate it could not
+  finish in the tool's ten minutes ran beside four agents' gates. The parent's rule for itself: no
+  commit sits in the shared checkout unpushed while a wave is landing.
+- The kind table was left where it is: it is already the one declaration the help, the refusal and
+  the hook render from, and lifting it would have edited a gate file another run held.
+
+## Hundred-and-twenty-first dry run — ISS-363
+
+Filed by the ISS-351 batch reading an hour earlier and dispatched by the parent the same afternoon.
+`forge next`'s restart signal read a table of its own, the pre-ISS-320 reading of the restart set,
+landed three minutes before that reading was retired; it now asks the one frozen-set predicate the
+plugin already exports, and the table is gone (3.35.135, landed as afd2f1b). The signal line says
+what it means: the body names a file no open session can pick up. Nine criteria on the fix-size light
+path, one whole-set consult with one finding, accepted and routed, and a second read at the judged
+head with none. No restart: the landed set is a docs page, two rank modules and their tests. Closed by
+its run. Folded from its handback.
+
+- The widening the body did not predict: the old table missed the frozen-set module itself and the new
+  roles root, both of which freeze a session, so they now earn the mark; and an issue naming only a
+  gate file lost it. Proven on the live backlog rather than on a fixture, with the keys that flipped
+  named on the record.
+- A fourth spender of the frozen-set predicate exists now, and a body naming the bare `plugin/skills`
+  without its slash matches nothing. The fix is in the frozen-set module, which is itself frozen, so
+  making it here would have turned a no-restart change into one owing a restart; routed onto ISS-332
+  instead, with codex's identical finding accepted and routed the same way.
+- The reason for the change could not live beside the code: the comment-density check refused it, so
+  the decision went to the docs page and the code kept one line. The division CLAUDE.md states,
+  enforced by a checker rather than remembered.
+- This ship too stopped at the install step on the parent's unpushed commit in the shared checkout
+  (ISS-374), the second of two in one hour; the worktree was left so the ship can resume from that
+  step once the commit lands.
+
+## Hundred-and-twenty-second dry run — ISS-118
+
+Dispatched by the parent once ISS-179 had freed the gate file both named. The route checker now reads a
+printed command's value against the values its flag accepts, not only the flag's name, and its walk
+covers `tools/` beside the plugin trees; to keep the value rule syntactic rather than a denylist, seven
+bare placeholders across four usage surfaces were bracketed, so a bare lowercase word one space past
+a flag is a value typed verbatim and an angle-bracketed word is a placeholder (3.35.137, landed as
+9c2467c). Ten criteria at the judged head; two rules each proven by watching them fire; codex read all
+eight files at the final head and found nothing. No restart owed, and this ship installed the copy the
+two before it could not. Closed by its run. Folded from its handback.
+
+- Zero codex findings over a hundred files did not catch the draft's bug: a whitespace class that let
+  detail-line padding leak prose in as values. Enumerating which flags the checker inferred a set for
+  did, and that enumeration is the falsifiable line in the evidence. A reviewer reads what it is shown;
+  a census shows what the code did.
+- A proof that a walk covers a tree must name a file in that tree by hand, not off the list the walk
+  reads: the first attempt was self-referential and passed with the tree removed.
+- The merged mark's note grammar bit again (ISS-341): everything after "landing moved" is read as the
+  moved set, so a clause appended after "nothing" unearned every verdict. The run re-ran the evidence
+  and re-posted at the landed head rather than editing the mark; one round.
+- `forge new --into` refused for a missing title names an issue nobody asked to file (ISS-375), met
+  while following the method's own routing instruction.
