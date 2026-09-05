@@ -2452,3 +2452,32 @@ the record.
   twenty-three minutes against four here. The guard that landed the same day (ISS-286) reaches the
   first; the second is what a batched verdict write (ISS-289) was added for, once that project's
   installed copy carries it.
+
+## Ninety-eighth dry run — ISS-290
+
+One agent wrote the gate's cadence into the verification reference and retired the as-often-as-it-
+changes sentence from every surface (3.35.110), then landed a second release carrying the paragraph a
+batched verdict write owed the same file (3.35.112). The reference now says when the gate runs and
+when it does not, in one paragraph, where the retired sentence had invited a run after every edit. The
+contract states no cadence, so the light path inherits the reference; a contract test holds the rule in
+both directions and was watched firing each way. Twelve
+criteria judged in one write. The skills tree moved twice, so a restart is owed. Closed by its run.
+Folded from the record.
+
+- The sentence another run handed over verbatim did not land as written: what landed is the
+  obligation and a route to the guard's own topic, because the two waiting routes are already the
+  refusal's own line and CLAUDE.md's first rule is that a checked rule is stated once, in the checker.
+  The reviewer held that open through two narrowings and the run accepted it over the parent's
+  instruction, with the reasoning on both threads. A handed-over wording is a request, and the
+  one-copy rule outranks it.
+- The handed paragraph was trimmed of its flag mechanics because the document gate measured it at
+  0.26 against the record page's 0.25 limit. A paragraph written by the run that owns the mechanics
+  is already a second copy of them.
+- Two pushes were rejected by a moving master, each costing a gate and a rebase; the stale version
+  commit recurred and the rebase that does not conflict is the silent case (routed to ISS-225). One
+  review record carried a zero-padded sha and one attachment a misannotated grep, both corrected on
+  the thread. A criterion worded as "cites no issue at a terminal status" turned false at release,
+  since the paragraph cites its source for provenance; recorded, not re-shipped.
+- Two gate defects were met and routed to their open issues rather than filed again: a heredoc-fed
+  interpreter writes a guarded path the same gate refuses to a direct edit (ISS-37), and a pure read
+  of a guarded path was refused before the call and reported as a change after it (ISS-81).
