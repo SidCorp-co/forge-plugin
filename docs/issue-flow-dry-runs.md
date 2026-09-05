@@ -3158,3 +3158,28 @@ Closed by its run. Folded from its handback.
   and the sources-are-text check catches it once the file is tracked. Checked before filed.
 - The ship named a reading owed over nine releases; ISS-370 is already open for the mark, so nothing
   was filed and the launch line was printed, not spent.
+
+## Hundred-and-twenty-fourth dry run — ISS-318
+
+Dispatched by the parent in the wave after the user's restart on 3.35.129, the longest run of the day
+at nearly four hours. The contract's ladder now has three rungs, `trivial`, `fix` and `feature`, read
+off a mark family; each lightening row names the rungs it lightens; a rung escalates by declaration or
+by an upward correction only; `forge stats runs` groups per rung with an untiered row; and the ship
+prints the rung's ceiling and the correction past it (3.35.139, landed as 3390705). Twenty criteria in
+one write at the replayed head; one whole-set read with three findings, all accepted and refuted on
+recheck, and a fourth from an earlier read rejected with its reason written into the docs page. No
+restart owed. Closed by its run. Folded from its handback.
+
+- The three entry checks folded into this issue's body during the day were ceded to ISS-359, which had
+  parked on this run; a run that finds another run's issue holding its own scope hands the scope over
+  on the record rather than absorbing it, and the parked run resumes in its own agent.
+- `--size` still takes one value because the tracker's shape module was ISS-338's while this ran, so
+  the two new rungs are written by hand until that landing is read; filed onto ISS-338 with the blast
+  radius of the size predicate across three modules.
+- A rejected finding stayed rejected: the ship's projection of a correction into a ceiling is lossy,
+  but the loss only ever lowers the rung, which tightens a print that refuses nothing. The reasoning is
+  on the docs page where the next reviewer will raise it again.
+- Two gaps in the record grammar were recorded rather than worked around: a review record cannot name
+  which consult a finding id belongs to, and cannot say that a whole-set read clipped eight of its
+  files. A bare `--recheck` answered "nothing to consult on" and should read the set off the consult
+  it names (ISS-378).
