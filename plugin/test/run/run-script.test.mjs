@@ -7,7 +7,8 @@ import test from "node:test";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { BARE, committed, GATE, git, lastStep, landIn, pushed, ref, ROOT, runIn, scratch, sized, stubbed } from "./run-fixtures.mjs";
+import { BARE, committed, corrected, GATE, git, lastStep, landIn, planned, pushed, ref, ROOT, runIn,
+  scratch, sized, stubbed } from "./run-fixtures.mjs";
 
 /* Step 7 is reached only from a tree that is not the checkout, so every fixture shipping from the
    scratch root early-returns past it (ISS-143). `pull.rebase` is set in the scratch repository
@@ -418,4 +419,32 @@ test("a ship from a branch naming no issue measures the landing against nothing"
   const said = `${run.stdout}\n${run.stderr}`;
   assert.doesNotMatch(said, /ceiling/u, said);
   assert.doesNotMatch(said, /Size: trivial ->/u, said);
+});
+
+/* The rung the work is on, never the one its body still claims: an issue corrected to the top rung
+   measured against its original ceiling would be held to a threshold it left rounds ago and offered
+   a correction that could not clear it, on this ship or any later one (consult F3). */
+test("the ceiling is the rung the issue reached, counting its plan and its corrections", () => {
+  const { at, work } = pushed("tier-climbed");
+  stubbed(work);
+  sized(at, "trivial");
+  corrected(at, "Size: trivial -> feature");
+  for (const one of ["a", "b", "c", "d", "e", "f", "g"]) {
+    landIn(work, join("plugin", "src", `${one}.mjs`), 40, `${one} landed`);
+  }
+  const run = shipOnBranch(work, "iss-318");
+  const said = `${run.stdout}\n${run.stderr}`;
+  assert.doesNotMatch(said, /is a `trivial`/u, `a correction took it off that rung:\n${said}`);
+  assert.doesNotMatch(said, /ceiling/u, "and the rung it reached is the top one, which has none to be past");
+});
+
+test("a plan declaring a person climbs the rung the ceiling is read at", () => {
+  const { at, work } = pushed("tier-declared");
+  stubbed(work);
+  sized(at, "trivial");
+  planned(at, "Screen change: no\nSchema coupling: no\nUser-facing outcome: yes");
+  landIn(work, join("plugin", "src", "one.mjs"), 3, "a small change on a declared issue");
+  const said = shipOnBranch(work, "iss-318").stdout;
+  assert.match(said, /ISS-318 is a `fix`/u, `the declaration moved it one rung:\n${said}`);
+  assert.match(said, /ceiling of 15 and 500/u, "so the ceiling is the rung above trivial's");
 });

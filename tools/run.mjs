@@ -15,7 +15,7 @@ import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
 import { fileIssue } from "../plugin/src/tracker/filing.mjs";
 import { refusing } from "../plugin/src/resolve/settings.mjs";
-import { CEILINGS, overCeiling, resizeForm, tierIn } from "../plugin/src/ladder.mjs";
+import { CEILINGS, overCeiling, resizeForm, tierOf } from "../plugin/src/ladder.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
@@ -365,24 +365,35 @@ const gateGrew = (tree) => {
   }
 };
 
-/* The backstop, never the decision: the judging is done by the time a ship runs, so a refusal here
-   protects nothing. The tier comes off the issue the branch names — `start` cuts `iss-nn` and the
-   issue's body is the source the entry checks read — so this is no second place to set one. Silent
-   where no issue is named: a landing measured against a ceiling nobody set has no claim behind it. */
+/* The backstop, never the decision: by the time a ship runs a refusal protects nothing. The rung
+   comes off the issue the branch names, `start` having cut `iss-nn`, so this sets none of its own.
+   Silent where no issue is named: a ceiling nobody set has no claim behind it. */
 const BRANCH_KEY = /^iss-(\d+)/u;
 
+/* The rung the work is on, not the one its body claims: measuring against the mark alone would hold
+   a landing to a ceiling the issue left rounds ago. */
 const tierAsked = (tree) => {
   const key = BRANCH_KEY.exec(gitOut(["rev-parse", "--abbrev-ref", "HEAD"], tree) ?? "")?.[1];
   if (!key) return null;
-  const said = forgeSays(tree, ["issue", `ISS-${key}`, "--fields", "description"]);
+  const ref = `ISS-${key}`;
+  const said = forgeSays(tree, ["issue", ref, "--fields", "description,plan"]);
   if (said.why) return null;
-  /* Parsed, never matched over the raw answer: the body comes back as JSON, where every newline is
-     two characters and the anchored mark this reads matches nothing at all. */
+  /* Parsed, never matched over the raw answer: JSON escapes every newline, and the mark is anchored. */
+  let body;
   try {
-    return { key: `ISS-${key}`, tier: tierIn(JSON.parse(said.out).description) };
+    body = JSON.parse(said.out);
   } catch {
     return null;
   }
+  /* The page as one string: every climb on it is a climb, whichever record carried it. */
+  const page = forgeSays(tree, ["record", "report", ref]);
+  const tier = tierOf({
+    description: body.description,
+    plan: body.plan,
+    moved: page.why ? [] : [page.out],
+    whole: true,
+  });
+  return { key: ref, tier };
 };
 
 const tierCeiling = (tree, was) => {

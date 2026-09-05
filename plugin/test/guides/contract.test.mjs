@@ -456,10 +456,9 @@ test("every tier the ladder has is a row of the contract's own table, with what 
     "the shortest ladder saves no more rounds than the one above it, so nothing distinguishes them");
 });
 
-/* The shortest rung's whole claim is that the work is small, which is not a claim about what the
-   gate found: this project's gate is scoped and remembers, so its failure mode is a step that is
-   ABSENT rather than red, and a rung that skipped the one whole run would hand every later scoped
-   run a green nothing established. Nor is a migration smaller for being small. */
+/* A rung's claim is that the work is small, never a claim about what the gate found: this gate is
+   scoped and remembers, so its failure mode is a step ABSENT rather than red, and a rung skipping
+   the one whole run would hand later scoped runs a green nothing established. */
 test("no rung buys a judgement: the baseline and the migration classification cost every rung alike", () => {
   for (const tier of TIERS) {
     const held = sized(marked(tier), { plan: "Schema coupling: yes" });

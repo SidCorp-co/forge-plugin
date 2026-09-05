@@ -9,7 +9,8 @@ import { fakeTracker, ranAsync, tempHome } from "./fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("ladder").path;
 const {
-  CEILINGS, LIGHTER, SPARES, TIERS, escalatedBy, heightOf, overCeiling, resizeForm, tierIn, tierOf,
+  CEILINGS, LIGHTER, SPARES, TIERS, climbsIn, escalatedBy, heightOf, overCeiling, resizeForm, tierIn,
+  tierOf,
 } = await import("../src/ladder.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
@@ -45,6 +46,25 @@ test("a description names its rung, and one that names none is the top", () => {
   for (const near of ["Size: fix later", "the size: trivial matters", "Size: trivialities"]) {
     assert.equal(tierIn(near), "feature", `\`${near}\` is not the mark, and a body it appears in claims nothing`);
   }
+});
+
+/* Every case below is one a reader could resolve either way, and each was resolved downward until a
+   consult on this change said so (F1, F2, F4). The rule they share is docs/cli/the-ladder.md's: the
+   rung that owes more costs a run a payload it did not need, and the other costs the record a
+   status nobody established. */
+test("a doubtful reading answers with the rung that owes more, never the one that owes less", () => {
+  const [lowest, middle] = TIERS;
+  for (const order of [`Size: ${lowest}.\nSize: ${middle}.`, `Size: ${middle}.\nSize: ${lowest}.`]) {
+    assert.equal(tierIn(order), middle,
+      "a body claiming two rungs is unsettled, and whichever the reader met first must not decide it");
+  }
+  assert.deepEqual(climbsIn(`Size: ${TIERS.at(-1)} -> ${lowest}`), [],
+    "a pair pointing down is no climb: read by its destination alone it would raise a trivial to a fix");
+  assert.deepEqual(climbsIn(`Size: ${lowest} -> ${middle}\nSize: ${middle} -> ${TIERS.at(-1)}`),
+    [middle, TIERS.at(-1)],
+    "and every climb a page states, so the newest correction cannot erase the re-size before it");
+  assert.equal(tierOf({ description: `Size: ${lowest}.`, plan: "", moved: [`Size: ${TIERS.at(-1)} -> ${middle}`], whole: true }),
+    lowest, "so a downward correction moves nothing at all");
 });
 
 /* Read off the ladder rather than a list of its own: a rung added with no row here would be a tier

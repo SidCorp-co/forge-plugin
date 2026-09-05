@@ -150,7 +150,14 @@ if (argv[0] === "issue") {
   const status = row ? row.trim().split(/\\s+/)[STATUS_AT] : "open";
   const marked = join(room, "forge-size");
   const description = existsSync(marked) ? readFileSync(marked, "utf8") : "no mark here";
-  process.stdout.write(JSON.stringify({ issueId: argv[1], status, description }, null, 2));
+  const planned = join(room, "forge-plan");
+  const plan = existsSync(planned) ? readFileSync(planned, "utf8") : "";
+  process.stdout.write(JSON.stringify({ issueId: argv[1], status, description, plan }, null, 2));
+  process.exit(0);
+}
+if (argv[0] === "record" && argv[1] === "report") {
+  const page = join(room, "forge-record-page");
+  process.stdout.write(existsSync(page) ? readFileSync(page, "utf8") : "Every criterion has a verdict.");
   process.exit(0);
 }
 if (existsSync(join(room, "forge-collides"))) {
@@ -181,8 +188,12 @@ export const stubbed = (work) => {
   git(work, "commit", "-m", "the tracker this checkout files through");
 };
 
-/** The tier the stubbed tracker answers with, for a ship whose branch names an issue. */
+/** The rung the stubbed tracker answers with, for a ship whose branch names an issue: the mark in
+ *  the body, and the two things that climb from it — a plan's declaration and a correction. */
 export const sized = (at, tier) => writeFileSync(join(at, "forge-size"), `a body.\n\nSize: ${tier}.\n`);
+export const planned = (at, text) => writeFileSync(join(at, "forge-plan"), text);
+export const corrected = (at, moved) =>
+  writeFileSync(join(at, "forge-record-page"), `Correction  (2026-09-05T10:00, contract 1)\n  What moved: ${moved}\n`);
 
 export const called = (at) => readFileSync(join(at, "forge-calls.json"), "utf8")
   .split("\n").filter(Boolean).map((line) => JSON.parse(line));

@@ -72,6 +72,12 @@ test("a run's tier is read off the confirmation it wrote, and off no other call 
   }
   assert.equal(tierOf([said("forge record confirmation", "tier: enormous")], TIERS), UNTIERED,
     "a word this ladder has not got names no rung, and is not folded into the nearest one");
+  assert.equal(tierOf([said("forge record confirmation", "is: the tier: trivial reading is wrong\ntier: feature")], TIERS),
+    "feature",
+    "the key stands at the start of its own line, so another field quoting the word overrides nothing");
+  assert.equal(tierOf([said("forge record confirmation", "tier: trivial\n---\ntier: feature")], TIERS),
+    "feature",
+    "and one shell call writing two confirmations is read as both, not as whichever printed first");
   assert.equal(
     tierOf([said("forge record confirmation", "tier: trivial"), said("forge record confirmation", "tier: feature")], TIERS),
     "feature",

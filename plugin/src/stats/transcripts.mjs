@@ -14,20 +14,19 @@ const OUTPUT = /^a\S*\.output$/u;
 
 
 /* The brief, never the whole file: over the raw text a transcript that had only GREPPED for the
-   words was admitted as a run and its search argument read as its claim. The tier below is off the
-   confirmation the run posted — this module reads no tracker — and keyed on the CALL's class rather
-   than the words anywhere in the text, a `forge issue` echoing that thread carrying the same line. */
+   words was admitted as a run and its search argument read as its claim. The rung below is keyed on
+   the CALL's class and read line-anchored, for the reasons docs/cli/stats.md carries. */
 export const FLOW_BRIEF = /issue-flow/u;
 
 const CONFIRMS = "forge record confirmation";
-const TIER_LINE = /\btier:\s*([a-z]+)/iu;
+const TIER_LINE = /^[ \t]*tier:[ \t]*([a-z]+)[ \t]*$/gimu;
 
 export const UNTIERED = "untiered";
 
 export const tierOf = (calls, tiers) => {
   const said = calls
     .filter((call) => call.class === CONFIRMS)
-    .map((call) => TIER_LINE.exec(call.body)?.[1]?.toLowerCase())
+    .flatMap((call) => [...String(call.body ?? "").matchAll(TIER_LINE)].map((found) => found[1].toLowerCase()))
     .filter((one) => tiers.includes(one));
   /* The largest, which is the batch rule: a run of three issues is as heavy as its heaviest. */
   return said.length ? said.reduce((held, one) => (tiers.indexOf(one) > tiers.indexOf(held) ? one : held)) : UNTIERED;

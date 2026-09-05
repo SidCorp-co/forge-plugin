@@ -6,7 +6,8 @@ import {
   FINDINGS, SHAPES, TRIAGES, judgedHead, landingMoved, looksTo, markedCommit, planFlags,
   reviewedHead, unwrap,
 } from "./machine.mjs";
-import { lightens, sizeReport } from "../ladder.mjs";
+import { lightens } from "../ladder.mjs";
+import { sizeReport } from "../ladder-report.mjs";
 import { attachmentNames, evidenceHeld, isCommit } from "../tracker/evidence.mjs";
 
 import { Refused, assemble, criteriaLines, parse } from "./record.mjs";
