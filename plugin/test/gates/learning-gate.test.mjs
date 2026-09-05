@@ -330,14 +330,69 @@ test("the same shape aimed anywhere else stays free", () => {
   assert.equal(decide(`cat > docs/X.md <<'MD'\nsee ${MEMORY}/a.md for the fact\nMD`).allowed, true);
 });
 
-/* Twelve refusals in three days: a python body editing one file, its replacement string a sentence. */
+/* Twelve refusals in three days: a python body editing one file, its replacement string a sentence.
+   That fixture passes on the whitespace in it, so the payload one beside it is what carries "read
+   the write, not the mention" (ISS-242) and the two belong in one test. */
 test("a sentence inside a string is prose, and the line that writes the file is a write", () => {
   const prose = `s = s.replace('''the route is write_text; see ${SKILL} for the rule''', "x")`;
   assert.equal(decide(`python3 - <<'PY'\nfrom pathlib import Path\np = Path("plugin/src/tools/vi.mjs")\ns = p.read_text()\n${prose}\np.write_text(s)\nPY`).allowed, true);
+  const listed = `p.write_text('["${SKILL}"]')`;
+  const payload = `python3 - <<'PY'\nimport pathlib\np = pathlib.Path("plugin/test/tracker/contract.test.mjs")\n${listed}\nPY`;
+  assert.equal(decide(payload).allowed, true, "a path written as a list element is the payload, not the target");
+  assert.equal(decide(`cp a.txt b.txt && ${payload}`).allowed, true, "and the compound is not lost with it");
   assert.equal(decide(`python3 - <<'PY'\nfrom pathlib import Path\nPath("${SKILL}").write_text("x")\nPY`).allowed, false, "the path is the argument");
   assert.equal(decide(`python3 -c 'p = "${MEMORY}/trap.md"; open(p, "w")'`).allowed, false, "a -c body with spaces is code");
   const escaped = `python3 -c "open(\\"${MEMORY}/trap.md\\", \\"w\\").write(\\"x\\")"`;
   assert.equal(decide(escaped).allowed, false, "a body quoting with escapes is one body");
+});
+
+/* The other direction of the same rule: the gate read a path token and never the path the body
+   would have built, so an assembled skill file went through unasked (ISS-242). */
+test("a path an interpreter assembles from its own binding is a write", () => {
+  const bound = 'root = "plugin/skills/issue-flow"';
+  const py = (line) => `python3 - <<'PY'\nimport os.path, pathlib, sys\n${bound}\n${line}\nPY`;
+  assert.equal(decide(py('pathlib.Path(root + "/SKILL.md").write_text("x")')).allowed, false, "concatenated");
+  assert.equal(decide(py('pathlib.Path(f"{root}/SKILL.md").write_text("x")')).allowed, false, "an f-string");
+  assert.equal(decide(py('(pathlib.Path(root) / "SKILL.md").write_text("x")')).allowed, false, "pathlib's join");
+  assert.equal(decide(py('pathlib.Path(os.path.join(root, "SKILL.md")).write_text("x")')).allowed, false, "os.path.join");
+  assert.equal(decide(`cat > ${SKILL} <<'EOF'\nx\nEOF`).allowed, false, "and the path spelled out whole still is");
+});
+
+/* Each join keeps its own API's rule, or the fold invents a guarded path for a write landing elsewhere. */
+test("an assembled path is read the way the runner would have read it", () => {
+  const bound = 'root = "plugin/skills/issue-flow"';
+  const py = (line) => `python3 - <<'PY'\nimport os.path, pathlib, sys\n${bound}\n${line}\nPY`;
+  assert.equal(decide(py('pathlib.Path(os.path.join(root, "/tmp/o.md")).write_text("x")')).allowed, true, "python's join drops what is before an absolute member");
+  assert.equal(decide(py('(pathlib.Path(root) / "/tmp/o.md").write_text("x")')).allowed, true, "so does pathlib's operator");
+  const js = 'const root = "plugin/skills/issue-flow";';
+  assert.equal(decide(`node - <<'JS'\n${js}\nwriteFileSync(path.join(root, "/SKILL.md"), "x")\nJS`).allowed, false, "node's path.join does not");
+  assert.equal(decide(py('pathlib.Path("{root}/SKILL.md").write_text("x")')).allowed, true, "a python string without the f prefix is a literal");
+  assert.equal(decide(`node - <<'JS'\n${js}\nwriteFileSync("\${root}/SKILL.md", "x")\nJS`).allowed, true, "and a JS quoted string is not a template");
+  assert.equal(decide(`python3 - <<'PY'\nimport pathlib\npathlib.Path(root + "/SKILL.md").write_text("x")\n${bound}\nPY`).allowed, true, "a binding after the write decides nothing");
+  assert.equal(decide(py('root = sys.argv[1]\npathlib.Path(root + "/SKILL.md").write_text("x")')).allowed, true, "and one rebound to a value this cannot read unsets it");
+  assert.equal(decide(`python3 - <<'PY'\nimport pathlib, sys\nroot = sys.argv[1]\npathlib.Path(f"{root}/skills/issue-flow/SKILL.md").write_text("x")\nPY`).allowed, false, "what an unresolved interpolation still spells is read");
+});
+
+/* Four ways the first cut of that reading answered for a path the program would not have built,
+   each found by the review of the landing head (ISS-242). */
+test("an assembled path is read only where the body really binds one", () => {
+  const py = (lines) => `python3 - <<'PY'\nimport os, os.path, pathlib, sys\n${lines}\nPY`;
+  const write = 'pathlib.Path(root + "/SKILL.md").write_text("x")';
+  assert.equal(decide(py(`root = "plugin/skills/issue-flow" if False else "/tmp"\n${write}`)).allowed, true,
+    "a literal that opens a larger expression binds nothing");
+  assert.equal(decide(py(`root = os.environ["ROOT"]\n${write}`)).allowed, true, "nor does a subscript");
+  assert.equal(decide(py(`root = "plugin/skills/issue-flow"  # the skill\n${write}`)).allowed, false,
+    "a trailing comment still leaves one literal");
+  assert.equal(
+    decide(py(`root = "plugin/skills/issue-flow"\nlabel = f"{root}{root}{root}{root}"\n${write}\nroot = "/tmp"`)).allowed,
+    false,
+    "a substitution that lengthens the body does not move the write past a later binding");
+  assert.equal(decide(py('(pathlib.Path("plugin/skills/issue-flow") / "SKILL.md").write_text("x")')).allowed, false,
+    "an assembly needs no binding at all");
+  assert.equal(
+    decide(py('pathlib.Path("docs" + "/HOOKS.md").write_text("x")\npathlib.Path("plugin" + "/skills" + "/issue-flow" + "/SKILL.md").write_text("x")')).allowed,
+    false,
+    "and a second assembly in the same body is folded too");
 });
 
 test("a heredoc keeps the rest of its own operator line", () => {

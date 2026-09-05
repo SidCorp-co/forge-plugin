@@ -8,13 +8,15 @@ import { pathToFileURL } from "node:url";
 
 import { jsonLines as parsed, logHook } from "../src/hooks/hook-log-file.mjs";
 import { scrubbed } from "../src/hooks/hook-log.mjs";
-import { NOWHERE, spans, standsIn } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
+import { glued } from "../src/hooks/assembled.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 
 export { DEADLINES };
 export { askedAlready, askedByAnyone } from "../src/hooks/stamps.mjs";
 export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
-export { NOWHERE, spans, standsIn };
+export { NOWHERE, spans, standsIn, unquote };
+export { glued };
 
 /** A name with an extension, as a command spells one. `~` is a home a shell would expand and belongs only where a caller judges the spelling, so the readings differ by that one character; `tail` is which extensions a caller wants, one gate judging `.md` alone. Exported so the class is spelt here and nowhere else. */
 export const nameLike = (extra, tail = "[A-Za-z0-9]+") => new RegExp(`[A-Za-z0-9_./@${extra}-]+\\.${tail}`, "g");
@@ -334,6 +336,9 @@ export const starts = (text) => startsAt(text).map((one) => one.said);
 export const shellText = (command, onProgram) =>
   expanded(unwrapped(bodiless(String(command ?? ""), onProgram)));
 
+/** The same text for a caller asking what a command *writes*, which is the only question a program body's own bindings answer: folding a body's strings into one path would otherwise reach the callers asking what command this *is* — `committing` reads `"note;git " + "commit"` as a commit once the two are one string. `forge hooks --how writes`. */
+export const shellWrites = (command) => shellText(command, (body, at, runner) => glued(body, runner));
+
 /* git's globals before the verb: a value may be quoted and hold a space; a bare flag eats no token. */
 const GIT_VALUE = String.raw`(?:"[^"]*"|'[^']*'|\S+)`;
 export const GIT_GLOBALS = String.raw`(?:(?:-[cC]|--(?:git-dir|work-tree|namespace|exec-path|config-env|super-prefix))\s+`
@@ -370,7 +375,6 @@ const ASSIGN = new RegExp(
     + String.raw`([A-Za-z_]\w*)=(${VALUE})`,
   "gu",
 );
-export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 
 const NAMED = /\$(?:\{([A-Za-z_]\w*)[^}]*\}|([A-Za-z_]\w*))/gu;
 const HOPS = 3;
@@ -396,11 +400,12 @@ export const expanded = (command) => {
 
 /** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the class below dropped — answers for what it spells and nothing more. `pattern` narrows which names a caller wants. `forge hooks --how writes`. */
 const WRITTEN = nameLike("~");
-/* Twelve refusals in three days were a sentence inside a string — a write word and a path in one line of prose. A path and a mode hold no space, so a span with one is prose; a `-c` body is code. */
+/* A quoted span is the write's target only where it could be one filename, so a sentence and a payload a command carries are both data — twelve refusals in three days were a write word and a path in one line of prose, and a guarded path spelled as a bare element of a JSON list a command was writing elsewhere is the same defect without the spaces. A `-c` body is code. Narrowing, not a parse: a quote or a bracket is legal in a name no tree this guards uses, and a payload that is exactly one path still reads as a target. */
+const NOT_A_NAME = /["'\s[\]]/u;
 const spoken = (said) =>
   said
     .replace(RUNS, (all, runner, body) => ` ${body.slice(1, -1)} `)
-    .replace(QUOTED, (span) => (/\s/u.test(span) ? " " : span));
+    .replace(QUOTED, (span) => (NOT_A_NAME.test(span.slice(1, -1)) ? " " : span));
 
 const namesIn = (said, pattern) =>
   [...said.matchAll(pattern)].map((one) => ({

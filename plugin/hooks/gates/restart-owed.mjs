@@ -3,7 +3,7 @@
 
 import { dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, deny, done, how, logged, named, settled, shellText, turnRecords, writtenPaths } from "../_hook.mjs";
+import { askedAlready, deny, done, how, logged, named, settled, shellWrites, turnRecords, writtenPaths } from "../_hook.mjs";
 import { FROZEN, copyToRun, freezesSession } from "../../src/tools/plugin-copy.mjs";
 
 /** The repository-relative name `freezesSession` reads — the set is its and nothing here narrows or widens it — or null where the write is not in a checkout of this plugin at all. A marketplace `source` is one directory below the checkout root, which is what `copyToRun` answers with and what this reads the root back off. */
@@ -71,7 +71,7 @@ export const run = (ev) => {
   const here = ev.cwd || process.cwd();
   const aimed =
     tool === "Bash"
-      ? writtenPaths(shellText(ti.command), here)
+      ? writtenPaths(shellWrites(ti.command), here)
         .flatMap((one) => (one.trees.length ? one.trees.map((tree) => join(tree, one.token)) : [one.token]))
       : named(ev);
 

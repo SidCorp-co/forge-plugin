@@ -7,6 +7,13 @@ import { commitAim } from "../../hooks/gates/codex-second.mjs";
 
 /* Command position, and git's globals take arguments: `--git-dir /r/.git commit` is one. */
 const ev = (command) => ({ tool_name: "Bash", tool_input: { command } });
+
+/* Folding a body's strings into one path would make a commit out of data nothing ran (ISS-242). */
+test("a string a program body assembles is not a command this ran", () => {
+  const body = 'prefix = "note;git "\nmessage = prefix + "commit"';
+  assert.equal(committing(ev(`python3 - <<'PY'\n${body}\nPY`)), false);
+  assert.equal(commitAim(ev(`python3 - <<'PY'\n${body}\nPY`)).tree, null);
+});
 test("a commit behind a quoted global with a space is a commit in that tree", () => {
   assert.equal(committing(ev(`git -C "/tmp/a b" commit -m x`)), true);
   assert.equal(committing(ev(`git --no-pager -C '/tmp/a b' commit -m x`)), true);

@@ -17,7 +17,7 @@ sentence the skill already says is refused.
 A file landing anyway is answered for late: `forge hooks --how learning-landed`.
 
 How to write through it: `Write` or `Edit`. The shell route is closed — `sed -i` carries no content to
-read. A guarded path counts beside a write shape in the same command; a sentence
-inside a string is prose and does not. A pipeline is one command.
+read. A guarded path counts beside a write shape, spelled out or assembled; a string that could not
+be one filename is payload. A pipeline is one command.
 
 Not judged: whether the fact is true or useful. Only that the write was decided on.

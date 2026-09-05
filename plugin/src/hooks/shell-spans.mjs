@@ -155,3 +155,5 @@ export const waitsIn = (text) => {
   }
   return out;
 };
+
+export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");

@@ -7,7 +7,7 @@ import test from "node:test";
 import { realpathSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { FRESH_MS, callAt, touched } from "../../hooks/_hook.mjs";
+import { FRESH_MS, callAt, glued, touched } from "../../hooks/_hook.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const room = tempRoom("writes-");
@@ -93,4 +93,78 @@ test("the call began where the last assistant record stands, and a record with n
   assert.equal(callAt([{ type: "assistant" }]), 0, "a record with no timestamp");
   assert.equal(callAt([{ type: "user", timestamp: at }]), 0, "no assistant record at all");
   assert.equal(callAt(null), 0, "a transcript that could not be read");
+});
+
+/* What an interpreter would have built before it wrote, read straight rather than through a gate: a
+   binding reaches the text after it only, a join keeps its own API's rule, and a form that does not
+   interpolate is a literal (ISS-242). */
+const py = (body) => glued(body, "python3");
+const js = (body) => glued(body, "node");
+
+test("a body's own binding is substituted where the runner would have substituted it", () => {
+  assert.match(py('root = "a/b"\np = root + "/SKILL.md"'), /"a\/b\/SKILL\.md"/u, "concatenation");
+  assert.match(py('root = "a/b"\np = f"{root}/SKILL.md"'), /"a\/b\/SKILL\.md"/u, "an f-string");
+  assert.match(py('root = "a/b"\np = "{root}/SKILL.md"'), /p = "\{root\}\/SKILL\.md"/u, "but not an ordinary string");
+  assert.match(js('const root = "a/b";\nconst p = `${root}/SKILL.md`;'), /"a\/b\/SKILL\.md"/u, "a template literal");
+  assert.match(js('const root = "a/b";\nconst p = "${root}/SKILL.md";'), /p = "\$\{root\}\/SKILL\.md"/u, "but not a quoted string");
+});
+
+test("a join keeps the rule of the API that was called", () => {
+  assert.match(py('root = "a/b"\np = os.path.join(root, "SKILL.md")'), /"a\/b\/SKILL\.md"/u);
+  assert.match(py('root = "a/b"\np = os.path.join(root, "/tmp/o.md")'), /"\/tmp\/o\.md"/u, "python drops what is before an absolute member");
+  assert.match(js('const root = "a/b";\nconst p = path.join(root, "/SKILL.md");'), /"a\/b\/SKILL\.md"/u, "node's does not");
+  assert.match(py('p = pathlib.Path("a/b") / "SKILL.md"'), /"a\/b\/SKILL\.md"/u, "and an assembly needs no binding");
+  assert.match(py('p = path.join(__dirname, "SKILL.md")'), /__dirname/u, "a member this cannot read leaves the call alone");
+});
+
+test("a binding answers for the text after it, and only while it holds a literal", () => {
+  assert.match(py('p = root + "/SKILL.md"\nroot = "a/b"'), /p = root \+ "\/SKILL\.md"/u, "a binding after the use");
+  assert.match(py('root = "a/b"\nroot = sys.argv[1]\np = root + "/SKILL.md"'), /p = root \+ "\/SKILL\.md"/u, "rebound to a value this cannot read");
+  assert.match(py('root = "a/b" if x else "/tmp"\np = root + "/SKILL.md"'), /p = root \+ "\/SKILL\.md"/u, "a literal that opens a larger expression");
+  const long = py('root = "a/b"\nlabel = f"{root}{root}{root}{root}"\np = root + "/SKILL.md"\nroot = "/tmp"');
+  assert.match(long, /"a\/b\/SKILL\.md"/u, "a substitution that lengthens the body moves no later binding into reach");
+});
+
+test("more than one assembly in a body, and more than two members in one", () => {
+  const both = py('a = "one" + "/x.md"\nb = "two" + "/y.md"');
+  assert.match(both, /"one\/x\.md"/u);
+  assert.match(both, /"two\/y\.md"/u, "the second assembly folds too");
+  assert.match(py('p = "plugin" + "/skills" + "/issue-flow" + "/SKILL.md"'), /"plugin\/skills\/issue-flow\/SKILL\.md"/u);
+});
+
+test("a body that binds nothing and assembles nothing comes back as it went in", () => {
+  const plain = 'print("hello")\nopen("docs/HOOKS.md", "w").write("x")';
+  assert.equal(py(plain), plain);
+});
+
+/* Three ways the staged reading answered for a path the program would not have built, each found by
+   the recheck of the landing head (ISS-242). */
+test("a binding is read in code, and a composed assembly composes", () => {
+  const composed = 'root = "a/b"\nleaf = "SKILL.md"\np = pathlib.Path(f"{root}/" + leaf)';
+  assert.match(py(composed), /"a\/b\/SKILL\.md"/u, "an interpolation and a concatenation in one expression");
+  assert.match(py('root = "a/b"\n# root = "/tmp"\np = root + "/SKILL.md"'), /"a\/b\/SKILL\.md"/u,
+    "a rebinding inside a comment rebinds nothing");
+  assert.match(py('root = "a/b"\ntext = "root = \'/tmp\'"\np = root + "/SKILL.md"'), /"a\/b\/SKILL\.md"/u,
+    "nor one inside a string the body is writing");
+  assert.match(js('const root = "a/b" /* where it goes */;\nconst p = root + "/SKILL.md";'), /"a\/b\/SKILL\.md"/u,
+    "and a block comment still ends the right-hand side");
+});
+
+/* A constructor could not fold while its argument was still concatenated, and a resolved template
+   literal reached no later stage, so both stages now run to a fixed point over one representation
+   (ISS-242). */
+test("an assembly whose parts arrive out of order still folds", () => {
+  assert.match(py('root = "a/b"\np = (pathlib.Path(root + "/SKILL.md") / "/tmp/o.md")'), /"\/tmp\/o\.md"/u,
+    "the constructor folds once its argument is one literal, and then the join resets");
+  assert.match(js('const root = "a/b";\nconst leaf = "SKILL.md";\nconst p = `${root}/` + leaf;'), /"a\/b\/SKILL\.md"/u,
+    "a resolved template literal is one literal the concatenation can reach");
+});
+
+/* A keyword argument is not an assignment and an escaped interpolation is not one either, so neither
+   answers for a path the interpreter would not have built (ISS-242). */
+test("what only looks like a binding or an interpolation binds and interpolates nothing", () => {
+  const kw = 'root = "plugin/skills/issue-flow"\ndict(root="/tmp")\np = root + "/SKILL.md"';
+  assert.match(py(kw), /"plugin\/skills\/issue-flow\/SKILL\.md"/u, "a keyword argument rebinds nothing");
+  const escaped = 'const root = "plugin/skills/issue-flow";\nwriteFileSync(`/tmp/\\${root}/SKILL.md`, "x");';
+  assert.match(js(escaped), /`\/tmp\/\\\$\{root\}\/SKILL\.md`/u, "an escaped interpolation is left as it stands");
 });

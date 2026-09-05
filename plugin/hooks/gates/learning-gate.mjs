@@ -4,7 +4,7 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, askedByAnyone, deny, how, nameLike, settled, shellText, writtenPaths, done } from "../_hook.mjs";
+import { askedAlready, askedByAnyone, deny, how, nameLike, settled, shellText, shellWrites, writtenPaths, done } from "../_hook.mjs";
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../../src/checks/learning.mjs";
 /* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. The class is `_hook.mjs`'s, so a name it would read is a name this reads. */
@@ -114,7 +114,7 @@ export const run = (ev) => {
   if (tool === "Bash") {
     const text = shellText(ti.command);
     if (CALLED.test(text)) decide(payloadIn(text));
-    const written = writtenPaths(text, ev.cwd || process.cwd(), MD_TOKEN);
+    const written = writtenPaths(shellWrites(ti.command), ev.cwd || process.cwd(), MD_TOKEN);
     if (written.length === 0) done();
     for (const { token, trees, paths } of written) {
       if (basename(token) === "MEMORY.md") continue;
