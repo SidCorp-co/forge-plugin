@@ -226,8 +226,11 @@ test("a wait that polls is refused, and a pause on its own is not", () => {
   assert.equal(decide(`until nc -z localhost 5432\ndo\n  ${nap} 5\ndone`).allowed, false, "`do` on its own line");
   assert.equal(decide(`npm test | while read -r l; do ${nap} 1; done`).allowed, false, "past a pipeline");
   assert.equal(decide(`until a; do until b; do ${nap} 1; done; done`).allowed, false, "and nested");
+  assert.equal(decide(`! while true; do ${nap} 1; done`).allowed, false, "past a prefix that inverts");
+  assert.equal(decide(`time until a; do ${nap} 1; done`).allowed, false, "and past one that measures");
   assert.ok(decide(`${nap} 2`).allowed, "a pause on its own waits once and asks nothing");
   assert.ok(decide(`${nap} 2 && npm test`).allowed, "one before the work is still one pause");
+  assert.ok(decide(`${nap} 2 && until a; do echo x; done`).allowed, "and one before a wait is outside it");
   assert.ok(decide(`until a; do echo x; done && ${nap} 3`).allowed, "and one after a wait is outside it");
   assert.ok(decide(`while read -r l; do echo "$l"; done < /tmp/f`).allowed, "a wait with no pause polls nothing");
   assert.ok(decide(`echo "until x; do ${nap} 1; done"`).allowed, "and the shape inside an argument is prose");

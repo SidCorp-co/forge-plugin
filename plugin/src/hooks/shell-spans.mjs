@@ -139,8 +139,8 @@ export const movedTo = (text, before) => {
   return typeof first === "string" || first === NOWHERE ? first : null;
 };
 
-/* A wait opens where a command does — one inside an argument opens nothing — and `done` closes it. */
-const WAITS = /^(?:[({]\s*|\b(?:if|elif|then|else|do)\s+)*(?:while|until)(?=\s|$)/u;
+/* A wait opens where a command does, past a `!` that inverts one or a `time` that measures it. */
+const WAITS = /^(?:[({]\s*|!\s*|\btime\s+(?:-\S+\s+)*|\b(?:if|elif|then|else|do)\s+)*(?:while|until)(?=\s|$)/u;
 const ENDS = /^done(?=[\s;&|)<>]|$)/u;
 
 /** Where each `while`/`until` … `done` runs, as `[from, to)` over the same text — one range per
