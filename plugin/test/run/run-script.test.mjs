@@ -92,6 +92,23 @@ test("start -h and review -h each print that verb's own arguments and run nothin
   assert.equal(ref(work), "", "a request for help planted the mark");
 });
 
+/* A flag that takes a value took whatever followed it, so `ship --note -h` was a release whose
+   version commit is subjected `-h`. Help is reserved from every value position for that. */
+test("a request for help after a flag that takes a value is still help", () => {
+  const { at, work } = pushed("help-as-value");
+  const was = git(work, "rev-parse", "HEAD").stdout.trim();
+  const noted = runIn(work, ["ship", "--note", "-h"], BARE);
+  assert.equal(noted.status, 0, noted.stderr);
+  assert.ok(noted.stdout.includes("--note S"), `-h in a value's place is not read as help:\n${noted.stdout}`);
+  assert.ok(!/step 1\//u.test(noted.stdout + noted.stderr), `a request for help reached a step:\n${noted.stdout}${noted.stderr}`);
+  assert.equal(git(join(at, "origin.git"), "rev-parse", "HEAD").stdout.trim(), was,
+    "a note of `-h` pushed a release");
+
+  const stepped = runIn(work, ["ship", "--from", "--help"], BARE);
+  assert.equal(stepped.status, 0, stepped.stderr);
+  assert.ok(stepped.stdout.includes("--from N"), `--help in a value's place is not read as help:\n${stepped.stdout}`);
+});
+
 /* A near-miss of `--from`, because that is the shape the drop cost most: read by `indexOf`, an
    argument no verb took was neither help nor an error, so the release ran on the default the flag
    was typed to replace. The refusal names it, since one that does not leaves the typo to find. */

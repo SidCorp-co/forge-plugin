@@ -43,7 +43,6 @@ export const verbUsage = (verb, self) => {
 
 const refuse = (verb, self, said) => stop(`${said}\n\n${verbUsage(verb, self)}`);
 
-// A flag wanting a value takes what follows it, `-h` included; a spare one stops at the next flag.
 const valueAt = (want, next) =>
   (!want.spare ? next : (next === undefined || next.startsWith("-") ? null : next));
 
@@ -62,6 +61,8 @@ export const wanted = (verb, argv, self) => {
     }
     const want = spec.flags.find((each) => each.name === one);
     if (!want) refuse(verb, self, `${verb} takes no \`${one}\`, and no step runs from a line this script did not read whole.`);
+    // Help is never a value: `ship --note -h` reads the flags, and a note of it ships the release.
+    if (HELP.has(argv[at + 1])) return null;
     const value = valueAt(want, argv[at + 1]);
     if (value === undefined) refuse(verb, self, `\`${one}\` takes the ${want.value} that follows it, and nothing follows it.`);
     if (value !== null) at += 1;
