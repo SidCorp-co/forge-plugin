@@ -20,15 +20,16 @@ export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "ut
 export const runIn = (cwd, argv, env = process.env) =>
   spawnSync(process.execPath, [SCRIPT, ...argv], { cwd, encoding: "utf8", env });
 
-/* Every file the script is, itself and the four it loads. `check` stands in for the repository's
+/* Every file the script is, itself and the five it loads. `check` stands in for the repository's
    gate, which ship spends by name — the real one needs a tree this scratch checkout is not. */
 export const GATE = "node -e \"console.log('scratch gate ran')\"";
 
 export const scratch = (name, gate = GATE) => {
   const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
-  for (const one of [SCRIPT, join("tools", "run", "review.mjs"), join("tools", "checkout.mjs"),
-    join("tools", "gates", "timing.mjs"), join("plugin", "src", "tools", "plugin-copy.mjs")]) {
+  for (const one of [SCRIPT, join("tools", "run", "args.mjs"), join("tools", "run", "review.mjs"),
+    join("tools", "checkout.mjs"), join("tools", "gates", "timing.mjs"),
+    join("plugin", "src", "tools", "plugin-copy.mjs")]) {
     mkdirSync(join(work, dirname(one)), { recursive: true });
     cpSync(join(ROOT, one), join(work, one));
   }

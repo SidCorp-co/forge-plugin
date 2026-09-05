@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { pluginCopy } from "../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, REMOTE, Stop, stop } from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
+import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -22,23 +23,23 @@ const LINKED = ["node_modules", join("packages", "code-quality", "node_modules")
 const NO_MARK = `no ${REVIEWED} in this repository, so what is owed a reading cannot be counted. `
   + `The first review reads from the release that introduced this rule: ${SELF} review --done <that release>.`;
 
+const sig = (verb) => VERBS.get(verb).signature;
+
 const USAGE = [
   `Usage: ${SELF} <start|ship|review> [args]`,
   "The repository's own steps around one change: the worktree a run works in, and the release that",
   "puts its commit in the plugin copy the next session loads. Everything else is the change itself.",
   "",
-  "  start <ISS-nn> [slug]   add the worktree beside this checkout, link both node_modules, and",
+  `  ${sig("start")}   add the worktree beside this checkout, link both node_modules, and`,
   "                          print the wrapper a probe of the change must invoke",
-  "  ship [--from N] [--note S]",
+  `  ${sig("ship")}`,
   "                          clean tree, fetch, rebase, `npm run check`, a version above the remote",
   "                          head, push, the checkout pulled, the marketplace and the plugin",
   "                          updated, then the installed copy named, the sha the change landed as,",
   "                          and every plugin/hooks/ file the release moved",
-  "  review [--done [ref]]   the range the next review reads, or --done to move the mark to it",
+  `  ${sig("review")}   the range the next review reads, or --done to move the mark to it`,
   "",
-  "  --from N     resume at step N, which a failed step prints for you",
-  "  --note S     the subject of the version commit, when the release has to make one",
-  "  --done [ref] the mark moves to ref, and only ever from here; the first plant may default to HEAD",
+  ...flagLines([...VERBS.values()].flatMap((one) => one.flags)),
   "",
   "ship stops at the first failure and writes nothing past it, and a resume past the gate spends",
   "the gate first, so nothing that pushes runs against a tree no gate has passed. A change under",
@@ -132,7 +133,7 @@ const onlyRelease = (tree, sha) => isRelease(tree, sha)
 
 const worktreePath = (root, key) => join(dirname(root), `wt-${key}`);
 
-const start = ([given, slug]) => {
+const start = ({ words: [given, slug] }) => {
   const key = String(given ?? "").toUpperCase();
   if (!/^ISS-\d+$/u.test(key)) stop(`start takes the issue key it works, \`ISS-nn\`, not \`${given ?? ""}\`.`);
   const root = checkoutRoot(HERE);
@@ -401,11 +402,11 @@ const reviewOwed = (tree) => {
 };
 
 /* The mark's only writer, so nothing else has to agree with it about where a reading reached. */
-const review = (argv) => {
+const review = ({ flags }) => {
   const tree = process.cwd();
-  const at = argv.indexOf("--done");
+  const done = flags.get("--done");
   const from = reviewedAt(tree);
-  if (at < 0) {
+  if (!flags.has("--done")) {
     if (!from) stop(NO_MARK);
     const { owed, range, count } = reviewSays(tree, from);
     console.log(`${range} is the next review's, and holds ${count} under ${REVIEW_PATHS.join(", ")}.`);
@@ -416,13 +417,13 @@ const review = (argv) => {
   }
   /* Refused, not reported: a mark too far forward reads like a reading that finished and grows
      nothing; the volume since it is a net diff, shrinking as later commits delete (ISS-146). */
-  if (argv[at + 1] === undefined && from) {
+  if (done === null && from) {
     stop(`a move of the mark names the head the reading reached, and only the first plant defaults: `
       + `other runs land on this branch while a reading is read, so this tree's HEAD is not that head. `
       + `${SELF} review --done <that head>, the end of the range the issue you were given names. Where `
       + `the reading did reach HEAD, say so: ${SELF} review --done ${gitOut(["rev-parse", "HEAD"], tree)}`);
   }
-  const asked = argv[at + 1] ?? "HEAD";
+  const asked = done ?? "HEAD";
   const to = gitOut(["rev-parse", "--verify", `${asked}^{commit}`], tree);
   if (!to) stop(`\`${asked}\` is no commit in this tree, and the mark records where a reading reached.`);
   if (!from && git(["merge-base", "--is-ancestor", to, "HEAD"], tree).status !== 0) {
@@ -509,17 +510,16 @@ const shipSteps = (tree, root, base, note) => {
   ];
 };
 
-const ship = (argv) => {
-  const at = argv.indexOf("--from");
-  const from = at < 0 ? 1 : Number.parseInt(argv[at + 1], 10);
-  const noteAt = argv.indexOf("--note");
-  const note = noteAt < 0 ? null : argv[noteAt + 1];
+const ship = ({ flags }) => {
+  const asked = flags.get("--from");
+  const from = asked === undefined ? 1 : Number.parseInt(asked, 10);
+  const note = flags.get("--note") ?? null;
   const tree = process.cwd();
   const root = checkoutRoot(tree);
   const base = defaultBranch(tree);
   const steps = shipSteps(tree, root, base, note);
   if (!Number.isInteger(from) || from < 1 || from > steps.length) {
-    stop(`--from takes a step between 1 and ${steps.length}, not \`${argv[at + 1] ?? ""}\`.`);
+    stop(`--from takes a step between 1 and ${steps.length}, not \`${asked}\`.`);
   }
   /* A resume past the gate would push a tree no gate has passed, and the run that most needs one
      is the run that edited something to get past a failed step. The gate's own record makes an
@@ -543,13 +543,16 @@ const ship = (argv) => {
   console.log(`\nReleased. Verify the change against the installed copy by its own path, not \`forge\` on PATH.`);
 };
 
+const VERB_RUNS = new Map([["start", start], ["ship", ship], ["review", review]]);
+
 const main = (argv) => {
   const [verb, ...rest] = argv;
   if (!verb || verb === "-h" || verb === "--help") return console.log(USAGE);
-  if (verb === "start") return start(rest);
-  if (verb === "ship") return ship(rest);
-  if (verb === "review") return review(rest);
-  stop(`no step \`${verb}\`. It is start, ship or review; \`${SELF} -h\` says what each does.`);
+  if (!VERB_RUNS.has(verb)) {
+    stop(`no step \`${verb}\`. It is start, ship or review; \`${SELF} -h\` says what each does.`);
+  }
+  const read = wanted(verb, rest, SELF);
+  return read ? VERB_RUNS.get(verb)(read) : console.log(verbUsage(verb, SELF));
 };
 
 try {

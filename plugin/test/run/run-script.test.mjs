@@ -7,7 +7,7 @@ import test from "node:test";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { BARE, committed, GATE, git, lastStep, landIn, pushed, ROOT, runIn, scratch } from "./run-fixtures.mjs";
+import { BARE, committed, GATE, git, lastStep, landIn, pushed, ref, ROOT, runIn, scratch } from "./run-fixtures.mjs";
 
 /* Step 7 is reached only from a tree that is not the checkout, so every fixture shipping from the
    scratch root early-returns past it (ISS-143). `pull.rebase` is set in the scratch repository
@@ -58,6 +58,62 @@ test("-h names all three steps, the resume flag and the threshold it counts agai
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
   assert.ok(!run.stdout.includes("3 release(s)"), `a release count is no part of the trigger:\n${run.stdout}`);
+});
+
+/* The one shape this case exists for: `ship -h`, typed to read the verb's arguments, ran the
+   release as far as the gate against a shared checkout (ISS-301). The tree it runs on here is a
+   pushed scratch checkout, so a `-h` that reached step 1 would be visible in the output rather
+   than harmless — and the ref every step past the push moves would move. */
+test("ship -h prints ship's own arguments and reaches no step", () => {
+  const { at, work } = pushed("ship-help");
+  const was = git(work, "rev-parse", "HEAD").stdout.trim();
+  const run = runIn(work, ["ship", "-h"], BARE);
+  assert.equal(run.status, 0, run.stderr);
+  for (const said of ["ship [--from N] [--note S]", "--from N", "--note S"]) {
+    assert.ok(run.stdout.includes(said), `${said} is not in ship's own help:\n${run.stdout}`);
+  }
+  assert.ok(!/step 1\//u.test(run.stdout + run.stderr), `a request for help reached a step:\n${run.stdout}${run.stderr}`);
+  assert.equal(git(work, "rev-parse", "HEAD").stdout.trim(), was, "a request for help committed a version");
+  assert.equal(git(join(at, "origin.git"), "rev-parse", "HEAD").stdout.trim(), was,
+    "a request for help pushed to the remote");
+});
+
+test("start -h and review -h each print that verb's own arguments and run nothing", () => {
+  const { work } = pushed("verb-help");
+  const start = runIn(work, ["start", "-h"], BARE);
+  assert.equal(start.status, 0, start.stderr);
+  assert.ok(start.stdout.includes("start <ISS-nn> [slug]"), `start's own signature is not printed:\n${start.stdout}`);
+  assert.equal(git(work, "worktree", "list").stdout.trim().split("\n").length, 1,
+    `a request for help cut a worktree:\n${start.stdout}`);
+
+  const review = runIn(work, ["review", "-h"], BARE);
+  assert.equal(review.status, 0, review.stderr);
+  assert.ok(review.stdout.includes("--done [ref]"), `review's own flag is not printed:\n${review.stdout}`);
+  assert.equal(ref(work), "", "a request for help planted the mark");
+});
+
+/* A near-miss of `--from`, because that is the shape the drop cost most: read by `indexOf`, an
+   argument no verb took was neither help nor an error, so the release ran on the default the flag
+   was typed to replace. The refusal names it, since one that does not leaves the typo to find. */
+test("an argument no verb takes is refused by name before the first step", () => {
+  const { work } = pushed("unknown-argument");
+  const typo = runIn(work, ["ship", "--form", "3"], BARE);
+  assert.equal(typo.status, 1, typo.stdout);
+  assert.ok(typo.stderr.includes("--form"), `the refusal does not name the argument:\n${typo.stderr}`);
+  assert.ok(!/step 1\//u.test(typo.stdout + typo.stderr), `a line the script did not read whole ran a step:\n${typo.stdout}`);
+
+  const word = runIn(work, ["ship", "3"], BARE);
+  assert.equal(word.status, 1, word.stdout);
+  assert.ok(word.stderr.includes("`3`"), `a bare word ship takes none of is not named:\n${word.stderr}`);
+
+  const empty = runIn(work, ["ship", "--from"], BARE);
+  assert.equal(empty.status, 1, empty.stdout);
+  assert.ok(empty.stderr.includes("--from"), `a flag left without its value is not named:\n${empty.stderr}`);
+  assert.ok(!empty.stderr.includes("NaN"), `the value that was never given is read as a number:\n${empty.stderr}`);
+
+  const elsewhere = runIn(work, ["review", "--dnoe"], BARE);
+  assert.equal(elsewhere.status, 1, elsewhere.stdout);
+  assert.ok(elsewhere.stderr.includes("--dnoe"), `review drops what it does not take:\n${elsewhere.stderr}`);
 });
 
 test("start adds the worktree, links what the checkout installed, and names the wrapper to probe with", () => {
