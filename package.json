@@ -2,7 +2,7 @@
   "name": "forge-plugin",
   "private": true,
   "type": "module",
-  "version": "3.35.137",
+  "version": "3.35.138",
   "devDependencies": {
     "eslint": "^10.9.1",
     "eslint-plugin-code-quality": "file:./packages/code-quality"
