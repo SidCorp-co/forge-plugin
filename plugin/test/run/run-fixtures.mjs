@@ -191,12 +191,10 @@ export const stubbed = (work) => {
   git(work, "commit", "-m", "the tracker this checkout files through");
 };
 
-/** The rung the stubbed tracker answers with, for a ship whose branch names an issue: the mark in
- *  the body, and the two things that climb from it — a plan's declaration and a correction. */
+/** What the stubbed tracker answers a ship whose branch names an issue: the mark in the body, the
+ *  two things that climb from it, and `null`, which parses and has no field to read. */
 export const sized = (at, tier) => writeFileSync(join(at, "forge-size"), `a body.\n\nSize: ${tier}.\n`);
 export const planned = (at, text) => writeFileSync(join(at, "forge-plan"), text);
-
-/** A well-formed answer with nothing in it: `null` parses, and reading a field off it throws. */
 export const emptyAnswer = (at) => writeFileSync(join(at, "forge-null"), "");
 export const corrected = (at, moved) =>
   writeFileSync(join(at, "forge-record-page"), `Correction  (2026-09-05T10:00, contract 1)\n  What moved: ${moved}\n`);

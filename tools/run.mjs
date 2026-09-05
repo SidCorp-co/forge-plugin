@@ -388,8 +388,7 @@ const tierAsked = (tree) => {
      print refusing nothing (docs/cli/the-ladder.md). */
   const page = forgeSays(tree, ["record", "report", ref]);
   const moved = page.why ? [] : [page.out];
-  const size = { description: body.description, plan: body.plan, moved, whole: true };
-  return { key: ref, tier: tierOf(size) };
+  return { key: ref, tier: tierOf({ description: body.description, plan: body.plan, moved, whole: true }) };
 };
 
 /* Contained whole: the release has happened, so a throw would cost the run the lines saying what did. */
@@ -398,11 +397,8 @@ const tierCeiling = (tree, was) => {
     const asked = tierAsked(tree);
     if (!asked || !CEILINGS[asked.tier]) return undefined;
     const rows = (gitOut(["diff", "--numstat", `${was}..HEAD`], tree) ?? "").split("\n").filter(Boolean);
-    const landed = {
-      files: rows.length,
-      lines: rows.reduce((sum, row) => sum + row.split("\t").slice(0, 2)
-        .reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0), 0),
-    };
+    const moved = (row) => row.split("\t").slice(0, 2).reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0);
+    const landed = { files: rows.length, lines: rows.reduce((sum, row) => sum + moved(row), 0) };
     const ceiling = CEILINGS[asked.tier];
     const said = `  ${asked.key} is a \`${asked.tier}\` and landed ${landed.files} file(s) and `
       + `${landed.lines} changed line(s), against that tier's ceiling of ${ceiling.files} and ${ceiling.lines}`;
@@ -419,7 +415,6 @@ const tierCeiling = (tree, was) => {
 /* The mark is never planted here. One planted where none was found would read exactly like a
    reading that has just finished, and the skipped reading it hid would surface at no later ship. */
 const reviewOwed = async (tree) => {
-   reading that has just finished, and the skipped reading it hid would surface at no later ship. */const reviewOwed = (tree) => {
   const from = reviewedAt(tree);
   if (!from) return console.error(`  ${NO_MARK}`);
   const { owed, range, count, volume } = reviewSays(tree, from);
