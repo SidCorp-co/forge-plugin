@@ -197,7 +197,7 @@ test("a flag where the criteria file goes is refused as a flag, and the four it 
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No record criteria flag named --read\./u);
   assert.match(run.stderr, /The set is --open, --next, --pushed, --review\./u);
-  assert.match(run.stderr, /takes the file holding the numbered lines, or - for stdin/u);
+  assert.match(run.stderr, /takes the file holding the numbered lines, which a consult reads/u);
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u);
 });
 

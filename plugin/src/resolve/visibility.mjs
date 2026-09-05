@@ -10,7 +10,7 @@ export const VERBS = [
   ["new", "<file.md|@file|-> --title T [--kind K] [--status S] [--priority P] [--size fix] [--into ISS-45] [--with ISS-45] [--new]",
     "file one, read against the shape its kind needs; --into comments there instead", "forge_issues"],
   ["comment", "<uuid|ISS-45> <file.md|@file|->", "post a comment", "forge_comments"],
-  ["plan", "<uuid|ISS-45> <file.md|@file|->", "write the issue's plan field, and read it back", "forge_issues"],
+  ["plan", "<uuid|ISS-45> <file.md>", "write the issue's plan field, from a file a consult has read", "forge_issues"],
   ["claim", "<uuid|ISS-45> [--minutes n] [--next <line>] [--pushed] [--review] [--open <line>]",
     "take the issue's lease, or reclaim one a dead run left", "forge_issues"],
   ["resume", "<uuid|ISS-45> [...]", "one issue's whole context, re-minted from the record and the worklog", "forge_issues"],

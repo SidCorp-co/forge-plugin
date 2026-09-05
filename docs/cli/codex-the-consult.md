@@ -29,6 +29,25 @@ findings, and after a clean pass there are none, so it refuses and names the who
 that quietly ran the costlier thing would bill for a question nobody asked, which is why `--rounds
 two` is refused rather than rounded.
 
+**The plan and the criteria are the second thing owed a whole body, and the first that no commit gate
+could ever have asked for.** They are written into fields of an issue from a file that matches no path
+pattern and is never staged, so neither the turn's record nor what a commit closes over names them —
+and a wrong plan is the expensive error, because everything after it is built against it and the
+review that would catch it comes after the code. So `forge plan` and `forge record criteria` do the
+asking themselves: each refuses a file no answered consult has read whole as it now stands, and prints
+the consult that clears it. Whole means the same here as it does to a recheck — one `--send bodies`
+pass — because what the log records per file is what was *read off disk* and not what travelled, so a
+diff round logs a size and a hash for a body the reviewer was told to fetch for itself and may never
+have asked for. What decides freshness is that per-file hash against the file's bytes now, not a
+clock: a file consulted, edited and then restored to what was read has been read, and two writes
+inside one millisecond are still two. Four states are named apart rather than sharing a sentence —
+never consulted, sent as a diff, no whole body carried, read and since changed — because a caller who
+did consult and was refused anyway learns nothing from being sent back to the command that just
+failed them. Both verbs ask before they touch the tracker at all, so a
+refusal is never one the caller has to undo. A body piped in is refused with the file route named,
+since a consult is asked for a path and there is none. And it stands down outside a checkout for nobody: these verbs write by issue
+reference from any directory, so one `cd` would otherwise be the whole way past the rule.
+
 **A refusal reports the log and stops there.** It names the consult that found nothing, whether that
 consult read the whole set or only part of it, and which files it clipped or never held — and then
 the command, over every path and quoted, since a pass that covers six of thirty earns nothing while

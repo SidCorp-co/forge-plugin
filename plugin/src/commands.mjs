@@ -40,6 +40,7 @@ import { cloudflare } from "./tools/cloudflare.mjs";
 import { knowledge } from "./tools/knowledge.mjs";
 import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
+import { bodyChecked } from "./codex/codex-read.mjs";
 import { stats } from "./stats/runs.mjs";
 import { hooks } from "./hooks/hook-log.mjs";
 import { record } from "./flow/record.mjs";
@@ -411,9 +412,10 @@ export const commands = {
     onlyFlags("plan", argv);
     const [reference, path] = argv;
     if (!reference || !path) fail(usageOf("plan"));
-    const documentId = await documentIdOf(reference);
-    const plan = await bodyFrom(path);
+    /* Read before the reference is resolved: a round trip between two reads is a second file. */
+    const plan = await bodyChecked(path, fail);
     if (!plan.trim()) fail("An empty plan would clear the field; pass the plan itself.");
+    const documentId = await documentIdOf(reference);
     await renew(documentId, reference);
     await write("forge_issues", { action: "update", documentId, data: { plan } });
     const back = await scoped("forge_issues", { action: "get", documentId, fields: ["plan"] });

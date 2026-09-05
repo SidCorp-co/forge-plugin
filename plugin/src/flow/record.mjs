@@ -5,7 +5,7 @@ import {
   CLOSES_FROM, FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, blockOf, criterionNumber, markedCommit,
   readRecords, tagFor, unwrap,
 } from "./machine.mjs";
-import { bodyFrom } from "../resolve/payload.mjs";
+import { bodyChecked } from "../codex/codex-read.mjs";
 import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
 import { commentPage, cutLine, postComment } from "../tracker/comments.mjs";
 import { attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo }
@@ -33,7 +33,7 @@ const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 const RUN_FLAGS = ["--open", "--next", "--pushed", "--review"];
 const [OPEN, NEXT, ...TOGGLES] = RUN_FLAGS;
 
-const CRITERIA_BODY = "record criteria takes the file holding the numbered lines, or - for stdin.";
+const CRITERIA_BODY = "record criteria takes the file holding the numbered lines, which a consult reads before the issue takes them.";
 
 export const KINDS = [...Object.keys(SHAPES), "note", "criteria", "report"];
 
@@ -67,7 +67,7 @@ export const USAGE = [
   "  finding      --expected E --seen S --evidence E... --quoted Q [--criterion N | --uc UC-nn-m]",
   "  triage       --outcome O --would-have-caught W [--detail D]  O: " + TRIAGES.join("|"),
   "  note         --section S --user T [--technical T] | --skip --why W   S: " + SECTIONS.join("|"),
-  "  criteria     <file.md|@file|->   numbered lines, one criterion each",
+  "  criteria     <file.md>          numbered lines, from a file a consult has read",
   "  report       the latest record of each kind, the latest verdict per criterion, and what is owed",
   "",
   ...CRITERION_BLOCKS,
@@ -521,7 +521,7 @@ const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
   if (!path) refuse(CRITERIA_BODY);
   if (path.startsWith("--")) refuse(`${didYouMean("record criteria flag", path, RUN_FLAGS)} ${CRITERIA_BODY}`);
   if (extra.length) refuse(`record criteria takes one file and nothing after it, not \`${extra.join(" ")}\`.`);
-  const criteria = criteriaLines(await bodyFrom(path));
+  const criteria = criteriaLines(await bodyChecked(path, refuse));
   const joined = joinedCriteria(criteria, conjunctionsFor());
   const { documentId, body } = await issueOf(reference);
   const acceptanceCriteria = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");

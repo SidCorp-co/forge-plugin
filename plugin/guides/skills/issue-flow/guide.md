@@ -114,6 +114,13 @@ Criteria are numbered, one outcome per line a reader could check without opening
 conjunctions: a criterion joined by "and" is two. They are written before the code and never relaxed
 to match what got built; a wrong one is corrected in the open, with `forge record correction`.
 
+**Both are read before the issue takes them.** Every later phase is built against this text, so a
+second reader here is worth more than the same reader after the code: `forge plan` and `forge record
+criteria` refuse a file no consult has read, and one consult naming both clears both writes — `echo
+"<the issue, and what the plan claims to have verified in code>" | forge codex consult --send bodies
+<plan file> <criteria file>`. The intent names the load-bearing assumption so the reviewer checks
+that rather than the prose, and the findings are owed a verdict as any consult's are.
+
 When the plan turns out wrong, replace the field so the issue carries one plan, the current one, and
 say in the correction what moved and why.
 
