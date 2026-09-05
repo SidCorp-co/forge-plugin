@@ -2660,3 +2660,32 @@ record.
   found was a feedback filing with the exact open title, which folds as a comment.
 - Filed ISS-313: the consult verb reads a bare dash as a filename where every other body-taking verb
   reads it as stdin.
+
+## Hundred-and-seventh dry run — ISS-310
+
+One agent gave the consult log a cadence (3.35.121). Every hundredth answered consult on the device
+ends its output with one line naming `forge codex eval`, and that verb compares the last hundred
+records with the hundred before them, per model, effort and prompt version: consults, findings, the
+share kept, rechecks that raised something new, median time, tokens by kind and replies that could
+not check, with the slot, model and effort proportions that moved between the windows. Run against
+the live log it showed the day's reviewer switch as a proportion, seventeen of the last hundred on
+the new slot. The log was byte-identical before and after. Seventeen criteria, five consult rounds,
+five findings accepted and each pinned by a case. No restart owed. Closed by its run. Folded from the
+record.
+
+- The issue's own rule for the crossing (the count before and after the consult's write) could not
+  give the once-per-crossing outcome the same issue asked for: two consults finishing together read
+  the same counts and both announce. The mark became the record's own ordinal among answered consults
+  in the written log, matched on id, timestamp and root. A rule that names a mechanism is checked
+  against the outcome it serves before it is built.
+- A verb added to the CLI owed one line in a file another run was reading, because the help test
+  fails without it; flagged to that run rather than hidden. A test that names every verb is what
+  makes a new verb visible to every holder.
+- The score verb's median changed as a side effect, since rows with no recorded time had been
+  counted as zero; the issue never mentioned that verb, and its numbers are now different and right.
+  A shared reader fixed for one caller changes what every caller prints, and the report says so.
+- A recheck's ruling was dropped when the reviewer opened the bold span with the finding id
+  (ISS-314), so the automatic verdict never landed and was typed by hand. The log page now sits thirty
+  bytes under its cap; the next paragraph there forces the split its own message describes.
+- The ship filed the fourth batch reading (ISS-319): six releases and 627 changed lines since the
+  mark moved this morning, past the threshold within the day.
