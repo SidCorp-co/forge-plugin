@@ -2819,3 +2819,40 @@ by name. Closed by its run. Folded from the record.
   moved paths) past the same near-duplicate search this verb now uses. The fold dropped one onto
   the other; the search's floor is what ISS-336's class of false holds and this class of misses
   share.
+
+## Hundred-and-twelfth dry run — ISS-353
+
+The parent ran this one itself, at the user's word, rather than delegating it. Four skills that only
+this plugin ships (issue-flow, forge, gate-review, vi-natural) became stubs (3.35.128): the
+frontmatter Claude Code offers a skill by and one paragraph naming `forge guide <skill>`. Their bodies
+and references moved whole under `plugin/guides/skills/`, served as rows of the local registry the
+contract already used, so `forge guide <skill>` prints the body with its references listed and
+`forge guide <skill> <reference>` one reference; every citation inside a served text names the verb,
+and a walker refuses one nobody answers. The guide verb dispatches every local slug through the
+registry, and its row declares no tracker need, so the local half answers on any credential. The
+checks followed the text to both roots, the resume brief names a phase's method as the served route,
+and the three guide modules moved into their own folder because the tracker folders were at the
+width limit. Nine criteria, one whole-set consult with four findings, all accepted and refuted on
+recheck. On-invoke cost per skill fell from 990 to 4,800 tokens to about 110, always-on unchanged.
+The two skills the code-quality plugin also ships stay whole. Restart owed once, for the four stub
+files, and the ship named exactly those. Closed by its run. Folded from its own record.
+
+- The hunk ISS-321 said it had filed on ISS-322 was not there: three comments discussed its order
+  and the registry it imports, none carried the code. A handback that says "the exact code is filed
+  there" is a claim the fold checks by reading the thread, and the wiring was written from the seam.
+- A skill shared with a plugin that ships no CLI cannot be a stub: `tools/sync-skills.mjs` copies two
+  of the six into the code-quality plugin's own tree. The conversion's rule was "each skill", and the
+  confirmation is where the exception was found, before the plan.
+- The learning gate held the run three times on the text of a command rather than the target of a
+  write: a heredoc editing a test that contained a skill path, and a compound command that also
+  touched a moved reference, each lost the whole command (ISS-242, met again). The route out is the
+  gate's own: the Edit tool for skill text, and one write per command.
+- The post-write sweep found its own gap: a guide.md edit through Edit was not asked about before,
+  because the pre-gate's regex named SKILL.md and references only. Codex named the same gap as F1,
+  and the case that proves the fix was watched red with the pattern removed.
+- The codex-second gate held the fold's own commit on a finding the reply never made (ISS-352), and
+  the recheck's rulings opened their bold spans with the finding id, so its verdicts were typed by
+  hand (ISS-314). Two parsers, one day, both on the harness's own output.
+- The ship does not write the merged mark; the run does, and the one route `--owed` offers is a raw
+  call whose note grammar ISS-341 owns. ISS-335 keeps raw actions that no verb wraps, and this is the
+  one every run types.
