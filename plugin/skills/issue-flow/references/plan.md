@@ -12,9 +12,8 @@
 - Any documented convention this change reverses — the same change rewrites the document,
   and the plan says so.
 
-It goes in the issue's own plan field, and is read back after writing. Not a comment: a
-comment is a message in a thread rather than the issue's answer to what the plan is, and a
-reader looking for the plan finds whichever comment they reach first.
+The field, never a comment: a comment is a message in a thread rather than the issue's answer to
+what the plan is, and a reader looking for the plan finds whichever comment they reach first.
 
 The plan also carries the declarations the flow reads before `in_progress` is earned — whether
 a screen changes, whether a schema is coupled, what the user sees — and their exact lines are the

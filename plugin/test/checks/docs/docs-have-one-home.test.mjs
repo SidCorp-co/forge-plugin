@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { compare, sentences } from "../../../src/checks/duplication.mjs";
 import { NARRATES } from "../../../src/checks/doc-shape.mjs";
+import { VERBS } from "../../../src/resolve/visibility.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
 const DOCS = join(ROOT, "docs");
@@ -62,5 +63,56 @@ test("no document explains code", () => {
   for (const name of docs) {
     const found = readFileSync(join(DOCS, name), "utf8").match(NARRATES);
     assert.equal(found, null, found && `docs/${name} explains code: "${found[0]}"`);
+  }
+});
+
+/* The other direction: a skill restating a refusal a run will meet, or a line of the help it is
+   told to run first, is the copy that goes stale while the refusal is what gets read. Both sides
+   are derived, so a hook or a verb added later is covered without anyone remembering this. */
+const refused = () => {
+  const how = join(ROOT, "plugin", "hooks", "how");
+  const pages = readdirSync(how).filter((one) => one.endsWith(".md")).flatMap((one) =>
+    sentences(readFileSync(join(how, one), "utf8")).map((said) => [`plugin/hooks/how/${one}`, said]));
+  /* The verb's prose line, not its argument grammar: shared words in a grammar score nothing. */
+  const help = VERBS.map(([verb, , said]) => [`forge ${verb} -h`, said]);
+  return [...pages, ...help];
+};
+
+const skillDocs = () => {
+  const skills = join(ROOT, "plugin", "skills");
+  const out = [];
+  for (const name of readdirSync(skills)) {
+    const spine = join(skills, name, "SKILL.md");
+    if (existsSync(spine)) out.push([`plugin/skills/${name}/SKILL.md`, spine]);
+    const refs = join(skills, name, "references");
+    if (!existsSync(refs)) continue;
+    for (const one of readdirSync(refs)) {
+      if (one.endsWith(".md")) out.push([`plugin/skills/${name}/references/${one}`, join(refs, one)]);
+    }
+  }
+  return out;
+};
+
+test("no skill restates a refusal or a usage line it could point at", () => {
+  const elsewhere = refused();
+  assert.ok(elsewhere.length >= 100, `${elsewhere.length} refusal sentence(s); the selector is broken`);
+  const files = skillDocs();
+  assert.ok(files.length >= 6, `${files.length} skill document(s); the selector is broken`);
+  /* The corpus and the comparison are live, so the green below is a clean tree and not an empty read. */
+  const longest = elsewhere.reduce((one, next) => (next[1].length > one[1].length ? next : one));
+  const [planted] = compare([["planted", longest[1]]], elsewhere, 0.25, 5);
+  assert.ok(planted, "a sentence copied from a refusal is not reported, so this check reads nothing");
+  for (const [rel, file] of files) {
+    /* Past the frontmatter: a description names verbs on purpose — `check:skill-boundaries`'s. */
+    const mine = sentences(readFileSync(file, "utf8").replace(/^---\n[\s\S]*?\n---\n/u, ""))
+      .map((one) => [rel, one]);
+    const [worst] = compare(mine, elsewhere, 0.25, 5);
+    assert.equal(
+      worst,
+      undefined,
+      worst && `${rel} restates ${worst[2][0]} (${worst[0].toFixed(2)}), so the rule has two homes:\n`
+        + `  the skill:  ${worst[1][1].slice(0, 120)}\n  the refusal: ${worst[2][1].slice(0, 120)}\n`
+        + `  Cut it to the command that prints it.`,
+    );
   }
 });
