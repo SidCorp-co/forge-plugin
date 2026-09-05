@@ -13,7 +13,7 @@ import { fakeTracker, ranAsync, tempHome } from "./fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("ladder").path;
 const {
   CEILINGS, LIGHTER, SPARES, TIERS, bandFor, belowTop, climbsIn, escalatedBy, heightOf, lightens,
-  markedIn, overCeiling, resizeForm, rungFrom, sizeFrom, splits, tierIn, tierOf,
+  markedIn, overCeiling, resizeForm, rungBetween, rungFrom, sizeFrom, splits, tierOf,
 } = await import("../src/ladder.mjs");
 const { planFlags } = await import("../src/flow/machine.mjs");
 const { render } = await import("../src/flow/record.mjs");
@@ -21,6 +21,9 @@ const { render } = await import("../src/flow/record.mjs");
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 
 const body = (tier) => `\`forge dep\` should take the \`data.relations\` route.\n\nSize: ${tier}.\n`;
+
+/* `tierIn` retired with its last caller (ISS-394): the reading it named is `sizeFrom` given a body and no size field, and every case it held is asked of that here. */
+const rungOf = (description) => sizeFrom({ description }).rung;
 const issue = (tier, extra = {}) => ({
   documentId: `${tier}-uuid`,
   issueId: `ISS-${TIERS.indexOf(tier) + 70}`,
@@ -71,13 +74,13 @@ const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tr
 
 test("a description names its rung, and one that names none is the top", () => {
   for (const tier of TIERS.filter((one) => one !== "feature")) {
-    assert.equal(tierIn(body(tier)), tier, `\`Size: ${tier}.\` is the mark for ${tier}`);
-    assert.equal(tierIn(`SIZE:${tier}`), tier, "the spacing and the full stop are the author's");
+    assert.equal(rungOf(body(tier)), tier, `\`Size: ${tier}.\` is the mark for ${tier}`);
+    assert.equal(rungOf(`SIZE:${tier}`), tier, "the spacing and the full stop are the author's");
   }
-  assert.equal(tierIn("a body with no mark at all"), "feature",
+  assert.equal(rungOf("a body with no mark at all"), "feature",
     "every issue filed before this ladder existed reads as the tier that owes everything");
   for (const near of ["Size: fix later", "the size: trivial matters", "Size: trivialities"]) {
-    assert.equal(tierIn(near), "feature", `\`${near}\` is not the mark, and a body it appears in claims nothing`);
+    assert.equal(rungOf(near), "feature", `\`${near}\` is not the mark, and a body it appears in claims nothing`);
   }
 });
 
@@ -88,14 +91,14 @@ test("a description names its rung, and one that names none is the top", () => {
 test("a doubtful reading answers with the rung that owes more, never the one that owes less", () => {
   const [lowest, middle] = TIERS;
   for (const order of [`Size: ${lowest}.\nSize: ${middle}.`, `Size: ${middle}.\nSize: ${lowest}.`]) {
-    assert.equal(tierIn(order), middle,
+    assert.equal(rungOf(order), middle,
       "a body claiming two rungs is unsettled, and whichever the reader met first must not decide it");
   }
   /* The top rung is the default, so writing it changes nothing alone and everything beside a lower
      mark. This repository's own issues write it in full, which is how the hole was found. */
   const top = TIERS.at(-1);
-  assert.equal(tierIn(`Size: ${top}.`), top, "the top rung is a mark like any other, not an absence");
-  assert.equal(tierIn(`Size: ${top}.\nSize: ${lowest}.`), top,
+  assert.equal(rungOf(`Size: ${top}.`), top, "the top rung is a mark like any other, not an absence");
+  assert.equal(rungOf(`Size: ${top}.\nSize: ${lowest}.`), top,
     "so a body claiming it beside a lower one has claimed it, and does not read as the lower");
   assert.deepEqual(climbsIn(`Size: ${TIERS.at(-1)} -> ${lowest}`), [],
     "a pair pointing down is no climb: read by its destination alone it would raise a trivial to a fix");
@@ -160,13 +163,13 @@ test("a mark inside an example claims nothing, and does not move a mark the body
     `no mark here\n\n\`\`\`text\nExample:\n\`\`\`not-a-closing-wall\nSize: ${lowest}.\n\`\`\`\n`,
     `no mark here\n\n~~~\nExample:\n\`\`\`\nSize: ${lowest}.\n~~~\n`,
   ]) {
-    assert.equal(tierIn(shown), top, "an example is the only apparent mark, and the body claims nothing");
+    assert.equal(rungOf(shown), top, "an example is the only apparent mark, and the body claims nothing");
   }
-  assert.equal(tierIn(`no mark\n\n\`\`\`\na\n\`\`\`\n\nSize: ${lowest}.\n\n\`\`\`\nb\n\`\`\`\n`), lowest,
+  assert.equal(rungOf(`no mark\n\n\`\`\`\na\n\`\`\`\n\nSize: ${lowest}.\n\n\`\`\`\nb\n\`\`\`\n`), lowest,
     "while a mark standing between two examples is prose, so stripping cannot run past a closing wall");
-  assert.equal(tierIn(`Size: ${lowest}.\n\n\`\`\`\nSize: ${top}.\n\`\`\`\n`), lowest,
+  assert.equal(rungOf(`Size: ${lowest}.\n\n\`\`\`\nSize: ${top}.\n\`\`\`\n`), lowest,
     "and an example beside a real mark leaves the real one standing, rather than being read beside it");
-  assert.equal(tierIn(`\`\`\`\nSize: ${top}.\n\`\`\`\`\n\nSize: ${lowest}.\n`), lowest,
+  assert.equal(rungOf(`\`\`\`\nSize: ${top}.\n\`\`\`\`\n\nSize: ${lowest}.\n`), lowest,
     "a longer wall closes too, so a body writing one does not lose the mark standing after it");
   assert.equal(markedIn("a body with no mark at all"), null,
     "no mark is told from the top rung, so a report cannot say a body carrying one carries none");
@@ -225,9 +228,10 @@ test("the ceiling names which of the two a landing is past, and the route up nam
   assert.equal(heightOf("a word this ladder has not got"), 0, "an unknown rung is the shortest, never negative");
 });
 
-/* The stamp `forge stats runs` reads. Filled at the write from the description the write already
-   has, so it proves the rung rather than proving somebody typed a word; refused as a flag, and a
-   record that arrived without it is refused nothing, every entry check reading the body itself. */
+/* The stamp `forge stats runs` reads. Filled at the write off the `get` the write already made, both
+   sources of the rung going to the ladder's one reading, so it proves the rung rather than proving
+   somebody typed a word; refused as a flag, and a record that arrived without it is refused nothing,
+   every entry check reading the issue itself. */
 test("a confirmation a write posts carries the rung, and one handed in without it is not refused", async () => {
   const [trivial] = TIERS;
   await ranAsync(FORGE, ["claim", "ISS-70"], tracker.env);
@@ -237,7 +241,20 @@ test("a confirmation a write posts carries the rung, and one handed in without i
   assert.equal(wrote.status, 0, wrote.stderr);
   const posted = state.calls.filter((one) => one.args.action === "create").at(-1)?.args.data?.body ?? "";
   assert.match(posted, new RegExp(`^tier: ${trivial}$`, "mu"),
-    "the rung is stamped at the write, off the body, rather than asked of whoever is writing");
+    "the rung is stamped at the write, off the issue, rather than asked of whoever is writing");
+  /* ISS-81 carries the field alone: sized `s` on the tracker with nothing in its body. Stamped off
+     the description it read `feature` and `--owed` held the run to a fix, which is ISS-394. */
+  await ranAsync(FORGE, ["claim", "ISS-81"], tracker.env);
+  const field = await ranAsync(FORGE,
+    ["record", "confirmation", "ISS-81", "--where", "src/rank/score.mjs", "--is", "a rung", "--finding", "holds"],
+    tracker.env);
+  assert.equal(field.status, 0, field.stderr);
+  const stamped = state.calls.filter((one) => one.args.action === "create").at(-1)?.args.data?.body ?? "";
+  assert.match(stamped, new RegExp(`^tier: ${TIERS[1]}$`, "mu"),
+    "an issue whose rung comes from the field alone is stamped that rung, the body claiming none");
+  const held = await owed("ISS-81");
+  assert.match(held.stdout, new RegExp(String.raw`This issue is a \x60${TIERS[1]}\x60`, "u"),
+    "which is the rung --owed names as claimed, so the stamp and the checks cannot disagree");
   const asked = await ranAsync(FORGE, ["record", "confirmation", "ISS-70", "--tier", trivial], tracker.env);
   assert.notEqual(asked.status, 0, "and is not a flag, or a run could claim a rung its issue never carried");
   assert.match(`${asked.stdout}${asked.stderr}`, /--tier/u, "refused by the name it was given");
@@ -342,6 +359,13 @@ test("where the two sources disagree the higher rung decides, and the outranked 
   assert.equal(sizeFrom({ band: "xs" }).rung, "trivial", "an unmarked body is lifted off the top rung");
   assert.equal(sizeFrom({ description: body("fix") }).rung, "fix", "and an unset field falls back to the mark");
   assert.equal(sizeFrom({}).rung, "feature", "with neither source, the rung that owes everything");
+  /* Both claims survive an equal reading: `--owed` names both sources, and the rank path reads the same array to decide that a tie leaves the tracker's own band standing (ISS-394). */
+  const tied = rungBetween({ field: "fix", line: "fix" });
+  assert.deepEqual(tied.decided.map((one) => one.rung), ["fix", "fix"],
+    "an equal claim is decided by both sources, so neither can be dropped from the report");
+  assert.deepEqual(tied.outranked, [], "and nothing lost a reading it did not lose");
+  assert.deepEqual(rungBetween({}), { rung: "feature", decided: [], outranked: [] },
+    "while two rungs claimed by nobody is the rung that owes everything, claimed by neither source");
   const run = await owed("ISS-90");
   assert.match(run.stdout, /is a `feature`: its body is marked `Size: feature\.`/u);
   assert.match(run.stdout, /its size on the tracker is a `trivial`, which does not lower a rung the other claimed/u,

@@ -12,7 +12,7 @@ import { attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, s
   from "../tracker/evidence.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
 import { releaseLine, releasePolicy } from "../tracker/project-config.mjs";
-import { tierIn } from "../ladder.mjs";
+import { sizeFrom } from "../ladder.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";
 import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
@@ -334,15 +334,17 @@ export const fromRecord = (kind, got, { comments, names, cut = null }, say = con
 };
 
 /* Read off what the write already knows, a line an author could type proving only that they typed
-   it: the release policy from the config, the tier from the issue's own body. The tier is a copy
-   for a reader outside the flow, every entry check reading the description, so a hand-written
-   record lacking it is refused nothing. */
+   it: the release policy from the config, the tier off the `get` this write has already made. Both
+   of the rung's sources go to the ladder's one reading, so the stamp is the rung the entry checks
+   hold the run to rather than a second answer to the same question. It stays a copy for a reader
+   outside the flow, so a hand-written record lacking it is refused nothing. */
 const DERIVED = {
   verification: async () => {
     const held = releaseLine(await releasePolicy());
     return held ? { [held[0]]: held[1] } : null;
   },
-  confirmation: async (body) => ({ tier: tierIn(unwrap(body?.description)) }),
+  confirmation: async (body) =>
+    ({ tier: sizeFrom({ band: body?.complexity ?? null, description: unwrap(body?.description) }).rung }),
 };
 
 const derive = async (kind, blocks, body) => {

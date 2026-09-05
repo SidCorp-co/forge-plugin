@@ -53,12 +53,36 @@ test("the band's own weight moves it, from the size mark as from the field", () 
   const byRung = rank([row("ISS-2"), row("ISS-1")], { marks: { "ISS-1": "trivial", "ISS-2": "fix" } });
   assert.deepEqual(byRung, ["ISS-1", "ISS-2"], "and the shortest rung outranks the one above it");
   assert.equal(bandOf(row("ISS-1", { complexity: "l" }), { marked: "fix" }).from, "the tracker's size",
-    "the field decides where the tracker gives one, and the word for it is this CLI's");
+    "the field decides where its own rung outranks the body's, and the word for it is this CLI's");
   assert.deepEqual([bandOf(row("ISS-1"), { marked: "trivial" }).band, bandOf(row("ISS-1"), { marked: "fix" }).band,
     bandOf(row("ISS-1"), { marked: "feature" }).band], ["xs", "s", "m"]);
   assert.equal(bandOf(row("ISS-1"), { marked: "fix" }).from, "the size mark in the body");
   assert.equal(bandOf(row("ISS-1"), { read: true }).from, "neither source");
   assert.equal(bandOf(row("ISS-1")).from, "the body unread");
+});
+
+/* Both sources answered the same question two ways until ISS-394: `forge next` let the field win
+   outright, so an issue sized `xs` on the tracker and marked `Size: fix.` in its body scored as the
+   cheapest band on the ladder while `forge advance --owed` held the run to a fix. */
+test("the band takes the ladder's rule, so a body claiming the higher rung decides the band", () => {
+  const outranked = bandOf(row("ISS-1", { complexity: "xs" }), { marked: "fix" });
+  assert.deepEqual([outranked.band, outranked.from], ["s", "the size mark in the body"],
+    "a body outranking the field is banded from the body, at the canonical band for the rung it won");
+  const tied = bandOf(row("ISS-1", { complexity: "xl" }), { marked: "feature" });
+  assert.deepEqual([tied.band, tied.from], ["xl", "the tracker's size"],
+    "an equal claim leaves the field's own band standing, so xl still scores apart from m");
+  assert.deepEqual([bandOf(row("ISS-1", { complexity: "l" }), { marked: "trivial" }).band,
+    bandOf(row("ISS-1", { complexity: "s" }), { marked: "trivial" }).band], ["l", "s"],
+    "and a field the body cannot outrank keeps every one of the five values");
+  assert.deepEqual([bandOf(row("ISS-1", { complexity: "m" })).band, bandOf(row("ISS-1", { complexity: "m" })).from],
+    ["m", "the tracker's size"],
+    "the caller that reads no body at all — rank/cost.mjs's bandsOf — still bands off the field alone");
+  /* The point of the alignment, read off the order rather than off the band: the same pair, one
+     scored on the field's `xs` and one on the rung its body claims. */
+  const promoted = rank([row("ISS-2", { complexity: "s" }), row("ISS-1", { complexity: "xs" })],
+    { marks: { "ISS-1": "fix" } });
+  assert.deepEqual(promoted, ["ISS-2", "ISS-1"],
+    "an xs field under a fix-marked body no longer outranks a genuine s, the two now scoring alike on band and ISS-2 filed first");
 });
 
 test("two issues equal on every weight break on the filing date, oldest first", () => {

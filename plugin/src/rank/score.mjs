@@ -1,12 +1,16 @@
 /* The score and its parts. Nothing here calls anything; why each weight: docs/cli/next.md. */
 import { TAKEABLE } from "./weights.mjs";
 import { holdsBack } from "../flow/earned.mjs";
-import { FIELD_SAID, LINE_SAID, bandFor } from "../ladder.mjs";
+import { FIELD_SAID, LINE_SAID, bandFor, rungBetween, rungFrom } from "../ladder.mjs";
 
 const DAY = 86_400_000;
 
+/** Which source decided, under the ladder's one rule and not a precedence of this verb's: the field's own band stands where its rung was not outranked, so `l` and `xl` still score apart on a three-wide rung, and where the body won the band is the canonical one for the rung it won. */
 export const bandOf = (row, { read = false, marked = null } = {}) => {
-  if (row?.complexity) return { band: String(row.complexity), from: FIELD_SAID };
+  const band = row?.complexity ? String(row.complexity) : null;
+  const { decided } = rungBetween({ field: rungFrom(band), line: marked });
+  const stands = !decided.length || decided.some((one) => one.from === FIELD_SAID);
+  if (band && stands) return { band, from: FIELD_SAID };
   if (marked) return { band: bandFor(marked), from: LINE_SAID };
   return { band: "unset", from: read ? "neither source" : "the body unread" };
 };

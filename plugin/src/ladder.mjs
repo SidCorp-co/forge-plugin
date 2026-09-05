@@ -31,8 +31,6 @@ export const markedIn = (description) => {
   return found.length ? TIERS[Math.max(...found.map(heightOf))] : null;
 };
 
-export const tierIn = (description) => markedIn(description) ?? FEATURE;
-
 export const markFor = (tier) => `Size: ${tier}.`;
 
 export const heightOf = (tier) => Math.max(0, TIERS.indexOf(tier));
@@ -59,11 +57,11 @@ const BELOW_TOP = TIERS.filter((one) => belowTop(one));
 export const FIELD_SAID = "the tracker's size";
 export const LINE_SAID = "the size mark in the body";
 
-/** The rung two sources claim, and which claimed it: both read upward and the higher wins, so neither can lower a rung the other claimed. docs/cli/the-ladder.md. */
-export const sizeFrom = ({ band = null, description = null } = {}) => {
+/** The rung two sources claim and which claimed it: both read upward and the higher wins, so neither can lower a rung the other claimed, and an equal claim leaves both on `decided` (docs/cli/the-ladder.md). Two rungs rather than the two sources, `rank/score.mjs` reading each body's mark once on its walk and spending that reading here. */
+export const rungBetween = ({ field = null, line = null } = {}) => {
   const claimed = [
-    { rung: rungFrom(band), from: FIELD_SAID },
-    { rung: markedIn(description), from: LINE_SAID },
+    { rung: field, from: FIELD_SAID },
+    { rung: line, from: LINE_SAID },
   ].filter((one) => one.rung);
   if (!claimed.length) return { rung: FEATURE, decided: [], outranked: [] };
   const top = Math.max(...claimed.map((one) => heightOf(one.rung)));
@@ -73,6 +71,9 @@ export const sizeFrom = ({ band = null, description = null } = {}) => {
     outranked: claimed.filter((one) => heightOf(one.rung) < top),
   };
 };
+
+export const sizeFrom = ({ band = null, description = null } = {}) =>
+  rungBetween({ field: rungFrom(band), line: markedIn(description) });
 
 /* Judged on the pair: where it points alone would let `feature -> fix` raise a trivial. */
 const RESIZE = new RegExp(String.raw`\bsize:\s*(${TIERS.join("|")})\s*(?:->|\u2192|to)\s*(${TIERS.join("|")}|full)\b`, "giu");

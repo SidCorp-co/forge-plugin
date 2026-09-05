@@ -79,15 +79,16 @@ batch promoted costs a round — the rare case paying for itself instead of ever
 
 ## The band has two sources, and the row says which decided
 
-`forge_issues` returns the size field on `list` and not on `get`, and its `fields` enum takes only
-`description`, `plan`, `acceptanceCriteria`, `sessionContext` and `releaseNotes`. Measured the same
-day: 3 of 330 issues carry a value, all three closed. So the band is read off the listing, and where
-the listing gives none the body's `Size:` line stands in through the reader `plugin/src/tracker/issue-shape.mjs`
-already has. The row names its source, because a band that fell back and a band the tracker gave
-score the same and mean different things.
+The listing carries the size field on every row, and the body's `Size:` line is the other source. The
+row names which decided, because a band the body claimed and a band the tracker gave score the same
+and mean different things.
 
-That fallback is this verb's weight and not the ladder's reading of a size, which ISS-317 owns. When
-that lands, the band imports it and the second source goes.
+**Which decides is the ladder's, not this verb's.** `plugin/src/ladder.mjs` resolves both upward —
+the higher rung wins, neither source lowering a rung the other claimed — so a body marked
+`Size: feature.` under a field saying `xs` bands as a feature here, as `forge advance --owed` holds
+the run to one (ISS-394). The width survives: a rung is three values and a band five, so an unbeaten
+field keeps its own band and `l` and `xl` score apart; a body that outranked it takes the band to the
+canonical one for the rung it won.
 
 ## Where the module reading stops, and why it is not the repository
 
