@@ -23,7 +23,7 @@ import { copyToRun, FROZEN, pluginCopy } from "./plugin-copy.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { LOG_PATH, consults, logEntries } from "../codex/codex-log.mjs";
 import { flags } from "../resolve/flags.mjs";
-import { HOOKS_DIR, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
+import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { contractPath, contractProblems, readContract, statesContract } from "../guides/contract.mjs";
@@ -59,9 +59,9 @@ const masked = (token, full) => {
 const envHeld = () => {
   const found = {};
   for (const name of hookNames()) {
-    /* A gate's text is under gates/; an entry with no gate, link-cli, is its own text. */
+    /* A gate's text is wherever gates/ keeps it; an entry with no gate, link-cli, is its own text. */
     let source = "";
-    for (const path of [join(HOOKS_DIR, "gates", `${name}.mjs`), join(HOOKS_DIR, `${name}.mjs`)]) {
+    for (const path of [gateFile(name), join(HOOKS_DIR, `${name}.mjs`)]) {
       try {
         source = readFileSync(path, "utf8");
         break;

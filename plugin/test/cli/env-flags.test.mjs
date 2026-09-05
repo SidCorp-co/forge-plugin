@@ -21,6 +21,7 @@ const ALLOWED = new Set([
   "CLAUDE_CODE_SESSION_ID",
   "FORGE_CODEX_DISABLE",
   "FORGE_SESSION_ID",
+  "FORGE_STOP_DISABLE",
 ]);
 
 const SKIP = new Set(["vendor", "node_modules", "test"]);
@@ -36,30 +37,41 @@ const sources = (dir) => {
   return out;
 };
 
-/* Every read, not every `process.env.NAME`: destructuring and `process["env"]` reach the same
-   place while matching no name at all. */
+/* Every read: destructuring and `process["env"]` reach the same place and match no name at all. */
 const READ = /process\s*(?:\.\s*env|\[\s*["']env["']\s*\])/gu;
 
-const offences = (path) => {
-  const text = readFileSync(path, "utf8");
+export const offences = (rel, text) => {
   const found = [];
   for (const one of text.matchAll(READ)) {
     const after = text.slice(one.index + one[0].length);
     const named = /^\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)/u.exec(after);
     if (named && ALLOWED.has(named[1])) continue;
     /* doctor asks by computed name on purpose: it reports which kill switch holds a gate down. */
-    if (relative(ROOT, path) === "src/tools/doctor.mjs" && /^\[/u.test(after)) continue;
-    found.push(`${relative(ROOT, path)}: ${named ? named[1] : one[0].trim()}`);
+    if (rel === "src/tools/doctor.mjs" && /^\[/u.test(after)) continue;
+    /* `{ ...process.env }` forwards the whole environment to a child and names no value. Spread into
+       anything else, or of a property, is a read; a copy kept and read later is one this cannot see. */
+    if (/\{\s*\.\.\.\s*$/u.test(text.slice(0, one.index)) && !/^\s*[.[]/u.test(after)) continue;
+    found.push(`${rel}: ${named ? named[1] : one[0].trim()}`);
   }
   return found;
 };
 
 test("no value is read from the environment", () => {
-  const found = sources(ROOT).flatMap(offences);
+  const found = sources(ROOT).flatMap((path) =>
+    offences(relative(ROOT, path), readFileSync(path, "utf8")));
   assert.deepEqual(
     found,
     [],
     "a credential, a url, a model id or a threshold belongs in a config file, where one source "
       + `answers for it: ${[...ALLOWED].join(", ")} are the only names read here, by name`,
   );
+});
+
+test("forwarding the whole environment is allowed, and every near miss to it is not", () => {
+  const said = (text) => offences("src/x.mjs", text);
+  assert.deepEqual(said("spawn(cmd, { env: { ...process.env, CLAUDE_PID: one } });"), []);
+  assert.deepEqual(said("const held = [...process.env.SECRET];"), ["src/x.mjs: SECRET"]);
+  assert.deepEqual(said("const held = { ...process.env.SECRET };"), ["src/x.mjs: SECRET"]);
+  assert.deepEqual(said("const held = process.env.SECRET;"), ["src/x.mjs: SECRET"]);
+  assert.deepEqual(said("const { SECRET } = process.env;"), ["src/x.mjs: process.env"]);
 });

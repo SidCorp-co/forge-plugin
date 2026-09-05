@@ -4,11 +4,12 @@
 
 import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { jsonLines as parsed, logHook } from "../src/hooks/hook-log-file.mjs";
 import { scrubbed } from "../src/hooks/hook-log.mjs";
 import { NOWHERE, spans, standsIn } from "../src/hooks/shell-spans.mjs";
-import { hookOff } from "../src/hooks/hook-switch.mjs";
+import { gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 
 export { askedAlready, askedByAnyone } from "../src/hooks/stamps.mjs";
 export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
@@ -67,7 +68,9 @@ export const dispatch = async (given, ev = readEvent()) => {
       continue;
     }
     try {
-      const gate = await import(`./gates/${name}.mjs`);
+      const file = gateFile(name);
+      if (!file) throw new Error(`no gates/${name}.mjs in this copy`);
+      const gate = await import(pathToFileURL(file).href);
       await gate.run(ev);
     } catch (error) {
       if (!(error instanceof Decision)) {
@@ -93,7 +96,7 @@ export const dispatch = async (given, ev = readEvent()) => {
 /* The deadline is the event's, under what hooks.json registers, and runs from the process rather
    than from this import: the entry hops before it, and a fallback would get a fresh budget. */
 const startedAt = performance.timeOrigin;
-export const DEADLINES = { pre: 8_000, post: 85_000 };
+export const DEADLINES = { pre: 8_000, post: 85_000, stop: 25_000 };
 let deadline = DEADLINES.post;
 export const remaining = () => deadline - (Date.now() - startedAt);
 
@@ -431,6 +434,26 @@ export const promptIndex = (records) => {
 };
 
 export const turnAt = (records) => records[promptIndex(records)]?.timestamp ?? "";
+
+/** From this turn's prompt on: `turnRecords` hands back the whole tail it read. */
+export const sinceTurn = (records) => (records ?? []).slice(Math.max(0, promptIndex(records ?? [])));
+
+/** The files a turn wrote through the file tools: a stop carries no tool input, so what `touched`
+ *  answers for a call is answered here for a turn. A shell write has no call to be dated against. */
+const WRITES_A_FILE = ["Write", "Edit", "MultiEdit", "NotebookEdit"];
+
+export const turnWrites = (records) => {
+  const out = new Set();
+  for (const record of sinceTurn(records)) {
+    if (record?.type !== "assistant" || !Array.isArray(record.message?.content)) continue;
+    for (const block of record.message.content) {
+      if (block?.type !== "tool_use" || !WRITES_A_FILE.includes(block.name)) continue;
+      const path = block.input?.file_path ?? block.input?.notebook_path;
+      if (path) out.add(settled(String(path)));
+    }
+  }
+  return [...out];
+};
 
 /** When this call began, in epoch ms, and 0 where the transcript cannot say: the last assistant record asks for this tool and lands before the tool runs, so a stamp older than it is the checkout's and not the call's. `forge hooks --how writes`. */
 export const callAt = (records) => {

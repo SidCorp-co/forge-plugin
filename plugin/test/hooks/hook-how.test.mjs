@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { NARRATES } from "../../src/checks/doc-shape.mjs";
@@ -16,15 +16,19 @@ const HOW = join(HOOKS, "how");
 const CLI = join(PLUGIN, "src", "cli.mjs");
 
 const GATES = join(HOOKS, "gates");
-const scripts = [...readdirSync(HOOKS), ...readdirSync(join(HOOKS, "entries"))]
+const under = (dir) => readdirSync(dir, { withFileTypes: true })
+  .flatMap((one) => (one.isDirectory() ? under(join(dir, one.name)) : [join(dir, one.name)]));
+
+const scripts = [...readdirSync(HOOKS).map((one) => join(HOOKS, one)), ...under(join(HOOKS, "entries"))]
+  .map((one) => basename(one))
   .filter((one) => one.endsWith(".mjs") && !one.startsWith("_") && one !== "gate.mjs");
-const gates = readdirSync(GATES).filter((one) => one.endsWith(".mjs"));
+const gates = under(GATES).filter((one) => one.endsWith(".mjs"));
 const documented = readdirSync(HOW).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3));
 
 test("every gate that points at its reasoning has some", () => {
   const pointing = gates
-    .filter((one) => /\bhow\(\)/u.test(readFileSync(join(GATES, one), "utf8")))
-    .map((one) => one.replace(/\.mjs$/u, ""));
+    .filter((one) => /\bhow\(\)/u.test(readFileSync(one, "utf8")))
+    .map((one) => basename(one, ".mjs"));
   assert.ok(pointing.length >= 5, `${pointing.length} hooks print the pointer`);
   for (const name of pointing) {
     assert.ok(documented.includes(name), `${name} prints \`forge hooks --how ${name}\` and has no how/${name}.md`);
@@ -37,7 +41,7 @@ test("every gate that points at its reasoning has some", () => {
    keeps its page as the note, since `--how` on the name it printed has to answer with the
    retirement and not with a did-you-mean. */
 test("every document names a hook, a topic the code that prints it cites, or a retired name", () => {
-  const citing = [join(HOOKS, "_hook.mjs"), ...gates.map((one) => join(GATES, one))]
+  const citing = [join(HOOKS, "_hook.mjs"), ...gates]
     .map((path) => readFileSync(path, "utf8"))
     .join("\n");
   const retired = RETIRED.map((one) => one.name);

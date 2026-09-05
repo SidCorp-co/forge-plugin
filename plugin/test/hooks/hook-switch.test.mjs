@@ -10,7 +10,7 @@ import test from "node:test";
 
 import { callHook, dirtyRepo, tempRoom } from "../fixtures.mjs";
 
-import { hookEvents, hookNames } from "../../src/hooks/hook-switch.mjs";
+import { GATES_DIR, gateFile, hookEvents, hookNames } from "../../src/hooks/hook-switch.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const HOOK = join(HERE, "..", "..", "hooks", "entries", "bash-guard.mjs");
@@ -154,17 +154,21 @@ test("the gate line names every gate it runs, and a lone script names itself", (
   assert.equal(registered.pre, undefined, "nor is the kind word on its line");
 });
 
-test("each hook is registered on exactly one event", () => {
+/* The pair is one question at two scopes: one name standing both down is one decision, one undo. */
+const PAIRED = [["Stop", "SubagentStop"].sort().join()];
+
+test("each hook is registered on exactly one event, or on the stop pair", () => {
   const registered = hookEvents();
   const wrong = hookNames()
     .map((name) => [name, registered[name] ?? []])
-    .filter(([, events]) => events.length !== 1);
+    .filter(([, events]) => events.length !== 1 && !PAIRED.includes([...events].sort().join()));
   assert.deepEqual(
     wrong,
     [],
-    "a script on two events is stood down on both by a name that mentions neither, and one on no "
-      + "event never fires: register it in hooks.json once, or give the key a `name:Event` form",
+    "a script on two unrelated events is stood down on both by a name that mentions neither, and "
+      + "one on no event never fires: register it in hooks.json once",
   );
+  assert.deepEqual(registered["stop-check"], ["Stop", "SubagentStop"], "and the pair is here to have been judged");
 });
 
 test("doctor names the event it stood down and the one undo for it", () => {
@@ -172,3 +176,19 @@ test("doctor names the event it stood down and the one undo for it", () => {
   assert.match(out, /hooks off\s+codex-turn \(PostToolUse\) — `forge hooks --on codex-turn`/);
 });
 
+
+/* gates/ splits by what a gate judges, and the switch, the how page and the stamp key on the bare
+   name: it has to reach the file wherever the split put it, and reach exactly one. */
+const gatesUnder = (dir) => readdirSync(dir, { withFileTypes: true })
+  .flatMap((one) => (one.isDirectory() ? gatesUnder(join(dir, one.name)) : [join(dir, one.name)]))
+  .filter((one) => one.endsWith(".mjs"));
+
+test("a gate in a folder of its own is reached by its bare name, and one name is one file", () => {
+  const found = gateFile("stop-check");
+  assert.ok(found && readFileSync(found, "utf8").includes("FORGE_STOP_DISABLE"),
+    `stop-check lives under a folder and the runner cannot reach it: ${found}`);
+  assert.ok(hookNames().includes("stop-check"), "and `forge hooks` cannot name it to switch it off");
+  const names = gatesUnder(GATES_DIR).map((one) => basename(one));
+  const twice = names.filter((one, at) => names.indexOf(one) !== at);
+  assert.deepEqual(twice, [], "two gates answer to one name: the runner takes whichever the walk reaches first");
+});

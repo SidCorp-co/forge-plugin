@@ -1,5 +1,5 @@
 {
-  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Before a call: refuses the shell commands whose damage cannot be undone, stops once before a memory or skill write, including through the shell where the content cannot be read, and once before a write to a file no open session can pick up until it restarts, and after a call when one of those files changed by a route no check reads. After a call: hands every code file that changed \u2014 whichever route wrote it \u2014 to the linter the project itself configured, its own copy where it has one and the vendored one where it does not, and asks once when a checker is about to hard-code the cases it already knows. This plugin owns when and where a rule fires; the project owns what the rule says. It also refuses a CLAUDE.md write that leaves a claim about this repository the repository does not bear out, and records the documents a turn changed and asks once for a second model to read them. Before a commit it holds one whose staged documents are on the unread list, or whose last review made findings nobody ruled on. Before a write to an issue it lists that issue's comments itself: an empty list passes silently, and comments the session has not been shown are delivered in the refusal, since the read that looks complete returns none of them. Before a filing it reads the title and the body against the shape the flow needs, on this CLI's own verb and on the tracker's create alike, and refuses one too small to carry the flow with the routes that fit it instead.",
+  "description": "Puts the forge and vi-natural CLIs on PATH at session start. Before a call: refuses the shell commands whose damage cannot be undone, stops once before a memory or skill write, including through the shell where the content cannot be read, and once before a write to a file no open session can pick up until it restarts, and after a call when one of those files changed by a route no check reads. After a call: hands every code file that changed \u2014 whichever route wrote it \u2014 to the linter the project itself configured, its own copy where it has one and the vendored one where it does not, and asks once when a checker is about to hard-code the cases it already knows. This plugin owns when and where a rule fires; the project owns what the rule says. It also refuses a CLAUDE.md write that leaves a claim about this repository the repository does not bear out, and records the documents a turn changed and asks once for a second model to read them. Before a commit it holds one whose staged documents are on the unread list, or whose last review made findings nobody ruled on. Before a write to an issue it lists that issue's comments itself: an empty list passes silently, and comments the session has not been shown are delivered in the refusal, since the read that looks complete returns none of them. Before a filing it reads the title and the body against the shape the flow needs, on this CLI's own verb and on the tracker's create alike, and refuses one too small to carry the flow with the routes that fit it instead. At the end of a turn, and at the end of a subagent's, it refuses the stop while something the turn touched is red \u2014 a file its own linter rejects, a consult nobody ruled on, an issue left in_progress under this session's lease, tracked changes the turn left in a worktree it stood in \u2014 naming each once with the command that clears it.",
   "hooks": {
     "SessionStart": [
       {
@@ -32,6 +32,28 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/gate.mjs post learning-landed claude-md derive-dont-list codex-turn code-quality",
             "timeout": 90
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/gate.mjs stop stop-check",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/gate.mjs stop stop-check",
+            "timeout": 30
           }
         ]
       }
