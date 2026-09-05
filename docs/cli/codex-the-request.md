@@ -4,6 +4,13 @@
 each carry a `cache_control` marker, and over 487 answered consults `cache_creation_input_tokens` was
 0 on every single one: nothing this end asks for is honoured, because the slot resolves to a model on
 another provider whose caching is automatic and keyed on the longest matching prefix of the request.
+No read has been seen to cross from one consult to another: over 1,118 answered rows, the 94 that
+made exactly one model call — the only rows where a read an earlier consult warmed would be
+unambiguous, one call being one request — read 0 cache tokens each, on inputs from 2,234 to 79,847,
+and the 13 groups among them that resent an identical recorded prompt version and digest in one
+checkout, the closest pair less than a minute apart, read nothing either. That is an observation
+rather than a rule the gateway states, but a change whose whole benefit is a prefix two consults
+would share has never bought anything measurable here.
 Reads do happen, and the one thing that visibly moved them was the tool list. A consult whose last call
 was served `tools: []` read 11% of its input from cache; one that never reached that call read 22% —
 the tool-less call is the only difference between those two groups, and system-and-tools is exactly the
