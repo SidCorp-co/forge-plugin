@@ -99,7 +99,7 @@ Rev: 1 · Actors: agent, developer · Enforces: BR-01, BR-14
 A verb the CLI does not wrap is still callable with its own payload, and one command prints a
 tool's arguments. A surface that hid what it had not wrapped would make the wrapper a ceiling.
 
-- **AC-02-6-1** · Rev: 1 · Proof: plugin/test/cli/cli-help.test.mjs "what a verb takes is named, where there is anything to take"
+- **AC-02-6-1** · Rev: 1 · Proof: plugin/test/cli/cli-help.test.mjs "every verb says what to type"
   WHEN a verb is asked what it takes THEN it SHALL answer on its own, and asking SHALL never be
   read as a failure or as the verb's argument.
 

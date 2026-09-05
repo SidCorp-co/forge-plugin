@@ -51,20 +51,29 @@ export const usageOf = (verb) => {
   return `Usage: forge ${verb}${row?.[1] ? ` ${row[1]}` : ""}`;
 };
 
-/* A usage line holding only flags takes no field of the tracker's, whatever tool answers behind it,
-   and the pointer would read as an invitation to pass one. Read off the line rather than declared,
-   so a verb that grows a value gets the pointer without anyone remembering to add it. */
-const takesAValue = (args = "") =>
-  args
+/* The pointer invites a reader to name a field, so a row earns it only where every value it
+   declares is one the tracker names: a flag line has nothing to pass, and a value the caller fills
+   from this machine — a file, an `@file`, `-` for stdin — sends a reader to a schema answering a
+   question they did not ask. That vocabulary is the whole of it; cli-help.test.mjs judges each row. */
+const readFromHere = (value) =>
+  value
+    .replaceAll(/[<>]|\.{3}$/gu, "")
+    .split("|")
+    .some((one) => /^(?:-|@\S*|file|\S*\.\w+)$/u.test(one));
+
+export const takesATrackerField = (args = "") => {
+  const values = args
     .replaceAll(/[[\]]/gu, " ")
     .split(/\s+/u)
-    .some((one) => one && !one.startsWith("-"));
+    .filter((one) => one && !one.startsWith("-"));
+  return values.length > 0 && !values.some(readFromHere);
+};
 
 /** What `-h` on a verb answers: what to type, what it is for, and which schema holds the fields the
  *  tracker itself takes — the detail, fetched only when it is asked for. */
 export const helpOf = (verb) => {
   const row = rowFor(verb);
-  const detail = takesAValue(row?.[1]) && row?.[3]
+  const detail = takesATrackerField(row?.[1]) && row?.[3]
     && `The fields the tracker takes: \`forge schema ${row[3]}\`.`;
   return [usageOf(verb), row?.[2], detail]
     .filter(Boolean)

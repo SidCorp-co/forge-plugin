@@ -224,12 +224,13 @@ test("a brief carrying this project's credential is refused before anything is s
   assert.equal(store.get("project-brief").body, before, "and the stored brief is untouched");
 });
 
+/* Longer than its row: what a stale line means and what --refresh takes have nowhere else to go.
+   The pointer that row once earned is the helper's, and cli-help.test.mjs judges it there. */
 test("the verb's own help names the refresh and what it takes", async () => {
   const run = await ask("project", "-h");
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /--refresh <file\.md\|@file\|->/u);
-  assert.doesNotMatch(run.stdout, /forge schema forge_projects\.list/u,
-    "the derived pointer would send a reader to the schema of the tool behind the branches");
+  assert.match(run.stdout, /stale:/u);
 });
 
 test("a named source this checkout lacks is kept and read back as gone, not dropped", async () => {

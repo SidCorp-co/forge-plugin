@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { VERB_NAMES, helpOf, usageOf } from "../../src/resolve/visibility.mjs";
+import { VERB_NAMES, helpOf, takesATrackerField, usageOf } from "../../src/resolve/visibility.mjs";
 import { wantsHelp } from "../../src/resolve/flags.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -70,12 +70,64 @@ test("an argument is not a question", () => {
   assert.ok(!wantsHelp(["forge_issues", '{"note":"-h"}']), "and a json field may hold it");
 });
 
-/* `project` takes a local file, so the pointer its row earns names the wrong tool: its own help. */
-test("what a verb takes is named, where there is anything to take", () => {
-  assert.match(helpOf("issues"), /The fields the tracker takes: `forge schema forge_issues`/u);
-  const said = ask("project", "-h");
-  assert.equal(said.status, 0, said.stderr);
-  assert.ok(!said.stdout.includes("forge schema"), said.stdout);
+/* The whole table rather than two examples: `<file>...` keeps its brackets and its ellipsis, and
+   `[contract [part]|slug]` leaves an empty alternative behind, and neither shows in a sample. */
+const POINTS_AT = {
+  issues: "forge_issues",
+  issue: "forge_issues",
+  new: null,
+  comment: null,
+  plan: null,
+  claim: "forge_issues",
+  resume: "forge_issues",
+  record: "forge_issues",
+  advance: "forge_issues",
+  spec: null,
+  attach: null,
+  deps: "forge_issues",
+  dep: "forge_project_pm",
+  guide: "forge_guide",
+  project: null,
+  knowledge: "forge_knowledge",
+  cloudflare: null,
+  codex: null,
+  hooks: null,
+  feedback: null,
+  doctor: null,
+  tools: null,
+  schema: null,
+  call: null,
+};
+
+const pointerIn = (verb) =>
+  helpOf(verb).split("\n").find((line) => line.startsWith("The fields the tracker takes"));
+
+test("the schema pointer goes to the rows whose every value the tracker names", () => {
+  assert.deepEqual(Object.keys(POINTS_AT), VERB_NAMES, "verb twenty-five is judged here or nowhere");
+  for (const [verb, tool] of Object.entries(POINTS_AT)) {
+    assert.equal(
+      pointerIn(verb),
+      tool ? `The fields the tracker takes: \`forge schema ${tool}\`.` : undefined,
+      `forge ${verb} -h: ${helpOf(verb)}`,
+    );
+  }
+});
+
+/* A usage line no verb has: what the derivation reads is the line, so a list of the verbs that
+   take a file could not answer any of these, and the vocabulary is pinned where it is spelled. */
+test("which values are the tracker's is read off the args line alone", () => {
+  for (const [args, earns] of [
+    ["[--status s] [--search q]", true],
+    ["<uuid|ISS-45>", true],
+    ["[contract [part]|slug]", true],
+    ["[--credentials] [--full]", false],
+    ["", false],
+    ["<file.md|@file|->", false],
+    ["<file>...", false],
+    ["<uuid|ISS-45> <report.md|@file|-> --title T", false],
+  ]) {
+    assert.equal(takesATrackerField(args), earns, `\`${args}\``);
+  }
 });
 
 /* An agent in another project learns where a defect in this plugin goes from `-h` or from nowhere. */
