@@ -2176,3 +2176,29 @@ Closed by its run. Folded from the record.
   explains a mechanism is the second copy this repository's rules warn of, and it went stale on cue.
 - A proof citation followed a renamed case without a revision moving, as the requirements rules allow;
   the run named it as a side effect rather than leaving it to the proof reader to catch.
+
+## Eighty-sixth dry run — ISS-260 and ISS-239
+
+One agent took two bugs in the gates' shell reading as one run (3.35.99). ISS-239: a shell heredoc's
+body is read as commands whatever escape name it carries — one line in the guard, with the shell
+alternation given one home in the harness — while the consult-order gate's own scan of heredoc bodies
+was deliberately left, since it looks for something else. ISS-260: the learning gate's third reading of a
+directory change is gone and it spends the shared reading. Two review findings accepted on the way — the
+directory-stack verbs' no-change flag moves the stack and not the shell, and option parsing ran past the
+end-of-options marker — both fixed and pinned. Hook files moved, so a restart is owed, and it reaches
+further than the ship's list said: the shared reading in the plugin's source moved too, so three gates
+read a changed move reading though one has no file of its own on the list. Both closed by the run. Folded
+from the record.
+
+- Found while closing out and filed rather than folded: the learning gate joins a write token the shell
+  would still expand — a home-relative or variable path — against the call's own directory, so three
+  ordinary forms refuse from inside a skills tree. The class predates the run, verified on two earlier
+  releases, but this landing made it reachable without a directory change, which is the ordinary case.
+  ISS-279, medium: an over-refusal on writes landing nowhere near the guarded tree is how a gate gets
+  routed around. The issue stays closed, since none of its criteria are falsified.
+- The first filing of that finding folded into a same-place neighbour of the opposite direction and was
+  refiled with the new-issue flag, with the fold named as designed behaviour and a cross-reference left.
+  The fold's escape printed is what makes a wrong fold a one-line cost.
+- The full gate last ran one commit before the shipped head; the final refinement was covered by the
+  ship's scoped run and four suites, and the verdict says so plainly, with the cost of closing the gap
+  stated. A verdict that names its own gap is worth more than one that hides it under a green.
