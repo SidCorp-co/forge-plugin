@@ -3,8 +3,8 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  FINDINGS, SHAPES, TRIAGES, judgedHead, landingMoved, looksTo, markedCommit, planFlags,
-  reviewedHead, unwrap,
+  FINDINGS, SHAPES, TRIAGES, judgedHead, landingMoved, landingWrote, looksTo, markedCommit,
+  planFlags, reviewedHead, unwrap,
 } from "./machine.mjs";
 import { lightens } from "../ladder.mjs";
 import { sizeReport } from "../ladder-report.mjs";
@@ -84,7 +84,7 @@ export const shapeGaps = (kind, record, names = []) => {
     .filter((field) => {
       const held = got[field.flag];
       if (field.many) return held.length < (field.least ?? 1);
-      if (held === undefined) return !field.optional;
+      if (held === undefined) return !field.optional && !field.newer;
       return Boolean(field.oneOf) && !field.oneOf.includes(held);
     })
     .map((field) => `--${field.flag}`);
@@ -139,13 +139,15 @@ export const personLooks = (flags, policy = null) =>
   (policy && !waitsForPerson(policy) ? null : looksTo(flags));
 
 /* Every correction, not the latest: the kind does not repeat, so a plan one erases a re-size (ISS-161). */
+const correctionsIn = (view) => view.comments
+  .map((one) => parse(one.body ?? ""))
+  .filter((one) => one?.kind === "correction" && !shapeGaps("correction", one, view.names).length)
+  .map((one) => one.fields.moved);
+
 const sizeOf = (view) => ({
   description: unwrap(view.issue.description),
   plan: unwrap(view.issue.plan),
-  moved: view.comments
-    .map((one) => parse(one.body ?? ""))
-    .filter((one) => one?.kind === "correction" && !shapeGaps("correction", one, view.names).length)
-    .map((one) => one.fields.moved),
+  moved: correctionsIn(view),
   whole: view.whole !== false,
 });
 
@@ -155,7 +157,8 @@ export const fixReport = (view, ref) => sizeReport(sizeOf(view), ref);
 const markCall = (documentId) =>
   `forge call forge_issues '{"action":"mark_merged","data":{"issueId":"${documentId}",`
   + `"target":"base","note":"merged to <branch> at <sha>; reviewed head <sha>; judged head <sha>; `
-  + `landing moved <the paths of this change the landing moved, or the word nothing>"}}'`;
+  + `landing moved <the paths of this change the landing moved, or the word nothing>; `
+  + `landing wrote <the paths this change itself landed, or the word nothing>"}}'`;
 export const transitionCall = (documentId, status) =>
   `forge call forge_issues '{"action":"transition","documentId":"${documentId}","data":{"status":"${status}"}}'`;
 
@@ -329,6 +332,67 @@ const judgedSince = (view, ref) => {
   );
 };
 
+/* On what the run said of itself, never on a ledger this plugin cannot see: a scoped run reports no
+   red for what it skipped, and a baseline naming no scope predates the field and is excused. */
+const wholeOwed = (view, ref) => {
+  const held = view.latest.baseline?.record.fields;
+  if (held?.scope !== "part") return [];
+  return [need(
+    `the baseline says \`${held.gate}\` measured part of the tree, so what it did not run has no `
+      + `answer and a green after it stands on nothing`,
+    `forge record baseline ${ref} --gate "${held.gate}" --result "<what already fails>" `
+      + `--commit <sha> --scope whole`,
+  )];
+};
+
+/* A URL and a sha are citations; an attachment is the thing itself, and a screen is the one change
+   whose proof is that somebody looked. `skipped` is exempt: there was nothing to look at. */
+const shownOwed = (view, ref) => {
+  if (planFlags(unwrap(view.issue.plan)).screen !== "yes") return [];
+  /* Current criteria only, as `judgedSince` reads: asked for again on a dropped number, the write refuses. */
+  const current = new Set(view.criteria.map((one) => one.number));
+  const numbers = [...view.verdicts]
+    .filter(([number]) => current.has(number))
+    .filter(([, one]) => one.record.fields.verdict !== "skipped")
+    .filter(([, one]) => !(one.record.fields.evidence ?? []).some((cited) => view.names.includes(cited)))
+    .map(([number]) => number)
+    .sort((one, two) => one - two);
+  if (!numbers.length) return [];
+  const at = numbers.length > 1 ? `criteria ${numbers.join(", ")}` : `criterion ${numbers[0]}`;
+  return [need(
+    `the plan declares a screen change, and the verdict on ${at} cites no attachment this issue `
+      + `carries, so nothing on the record is a thing a person looked at`,
+    `forge attach issue ${ref} <the rendered state>, then forge record verdict ${ref} `
+      + `--commit ${markedCommit(view.comments) ?? "<sha>"} --evidence <that attachment>`
+      + numbers.map((number) => ` --criterion ${number} --verdict pass`).join(""),
+  )];
+};
+
+/* A whole path or nothing, prefixes included; a trailing dot ends a sentence unless a name follows. */
+const namesPath = (named, path) =>
+  new RegExp(`(?<![\\w./-])${path.replace(/[$()*+.?[\\\]^{|}]/gu, "\\$&")}(?![\\w/-])(?!\\.\\w)`, "u").test(named);
+
+/* The plan's own text and not a path list, a plan being prose; `wrote` is not `moved`. A tier below
+   `feature` writes no plan, and refusing against a list the ladder excused would take that rung back. */
+const unplannedIn = (view) => {
+  const wrote = landingWrote(view.comments);
+  if (!wrote) return [];
+  const named = [unwrap(view.issue.plan), ...correctionsIn(view)].join("\n");
+  if (!named.trim()) return [];
+  return wrote.filter((path) => !namesPath(named, path));
+};
+
+const scopeOwed = (view, ref) => {
+  const outside = unplannedIn(view);
+  if (!outside.length) return [];
+  return [need(
+    `the landing wrote ${outside.join(", ")}, which the plan does not name and no correction names `
+      + `either, so the change grew and the record does not say where`,
+    `forge record correction ${ref} --moved "the change also wrote ${outside.join(", ")}" `
+      + `--why "<why each was needed>"`,
+  )];
+};
+
 /* One entry check per status, each answering with what the record lacks and the write that supplies
    it. Nothing here reads the repository: what git knows was written on at the step that knew it. */
 export const CHECKS = {
@@ -370,9 +434,9 @@ export const CHECKS = {
       view,
       "baseline",
       "no baseline: the gate, what it already reports and the commit it ran at",
-      `forge record baseline ${ref} --gate "<command>" --result "<what already fails>" --commit <sha>`,
+      `forge record baseline ${ref} --gate "<command>" --result "<what already fails>" --commit <sha> --scope whole`,
     );
-    return [...blockersOwed(view), ...baseline];
+    return [...blockersOwed(view), ...baseline, ...wholeOwed(view, ref)];
   },
   developed: (view, ref) => {
     const out = [];
@@ -380,13 +444,13 @@ export const CHECKS = {
     else if (!markedCommit(view.comments)) {
       out.push(need("the merged mark names no commit; its note carries it as `at <sha>`", markCall(view.documentId)));
     }
-    return [...out, ...reviewOwed(view, ref)];
+    return [...out, ...scopeOwed(view, ref), ...reviewOwed(view, ref)];
   },
   tested: (view, ref) => {
     if (!view.criteria.length) {
       return [need("the criteria field holds no numbered line, so there is nothing to judge", `forge record criteria ${ref} <criteria.md>`)];
     }
-    const out = [...verdictsOwed(view, ref), ...judgedSince(view, ref)];
+    const out = [...verdictsOwed(view, ref), ...judgedSince(view, ref), ...shownOwed(view, ref)];
     if (planFlags(unwrap(view.issue.plan)).schema === "yes" && !view.names.length) {
       out.push(need(
         "the plan declares schema coupling, and no attachment carries the migration risk classification",

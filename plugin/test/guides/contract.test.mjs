@@ -512,3 +512,46 @@ test("a correction re-sizes a fix back onto the full path, and reads one directi
   assert.equal(missing("clarified", sized(marked("fix")), reSized("Size: fix to feature")).length, 1,
     "while the word and the arrow are both the author's");
 });
+
+/* Three prose obligations became entry checks at ISS-359, and ISS-108's rule binds the retirement to
+   that landing: a sentence a check enforces, left standing in a guide, is a second answer that goes
+   stale without failing anything. The narrow half is held too, below. */
+const RETIRED_BY_CHECK = [
+  [/the project's gate run once, whole and\s+distrusting any remembered pass/u,
+    "the baseline's wholeness, which `in_progress` now refuses on the record's own scope"],
+  [/An image left on your disk proved nothing to anyone/u,
+    "that a screen's proof is an attachment, which `tested` now refuses a verdict for lacking"],
+  [/Do not silently expand scope/u,
+    "that a file the plan does not name is a correction, which `developed` now refuses the mark for"],
+];
+
+test("a sentence an entry check now enforces is stated by the check and by no guide", () => {
+  const tracked = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
+    .trim().split("\n").filter(Boolean);
+  for (const [pattern, what] of RETIRED_BY_CHECK) {
+    const holding = tracked.filter((rel) =>
+      rel !== HISTORY && pattern.test(readFileSync(join(ROOT, rel), "utf8")));
+    assert.deepEqual(holding, [], `a surface still states ${what}: a rule with a checker is stated `
+      + `once, in the checker, and the guide points at it (ISS-108, ISS-359)`);
+  }
+});
+
+test("the checks point back from the guides, and the evidence table keeps the kinds no check can detect", () => {
+  const held = flat(readFileSync(VERIFICATION, "utf8"));
+  for (const [beat, phrase] of [
+    ["that the baseline's scope is the check's demand", "`in_progress` refuses one saying it was not"],
+    ["what the check cannot judge", "a gate that stops at its first failure has measured only what"],
+    ["that a screen's verdict owes an attachment", "refuses a verdict under a declared screen change"],
+  ]) {
+    assert.ok(held.toLowerCase().includes(phrase.toLowerCase()),
+      `the verification reference no longer names ${beat}, so a run meets the refusal with no page behind it`);
+  }
+  /* The half ISS-318's fold would have deleted: no declaration says a change is an API or a batch
+     job, so no check can speak for those rows and the prose is still the only thing that does. */
+  for (const kind of ["An API", "A CLI", "A library", "A batch or data job", "Generated output", "Infrastructure"]) {
+    assert.ok(held.includes(`| ${kind} |`), `the evidence table no longer names ${kind}, which no check replaced`);
+  }
+  const guide = flat(readFileSync(join(PLUGIN, "guides", "skills", "issue-flow", "guide.md"), "utf8"));
+  assert.ok(guide.includes("`developed` refuses a path in it that neither the plan nor a correction"),
+    "Phase 4 no longer names the check that refuses a file the plan does not name");
+});

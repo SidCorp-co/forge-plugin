@@ -21,6 +21,7 @@ needs that topic and by nobody else.
 | [`resume`](cli/resume.md) | What the worklog holds beside the lease, why no capture of it is automatic, and what the brief prints. |
 | [`spec`](cli/spec.md) | Why a clause is answered by its identifier, and the three readings of the notation that were narrowed rather than guessed. |
 | [two writes that lie about themselves](cli/two-writes-that-lie.md) | Why a field is reported written only after the server shows it, and why the read-back compares the copy the boundary sent. |
+| [the entry checks](cli/the-entry-checks.md) | The three obligations that stopped being prose in a guide: what a baseline says about its own gate run, what a screen's verdict has to cite, and what the mark's note says a landing wrote. |
 | [the ladder](cli/the-ladder.md) | The one rule running through every reading of an issue's rung: where the reading is doubtful the answer is the rung that owes more, the six places that bites, and the two things the rule is not. |
 | [the primitives](cli/the-primitives.md) | What two verbs' own copies of the paging primitives cost, why one list serves a process, the measurements behind the markdown set the checkers share, and where the SSE frame reader's home stops. |
 | [`next`](cli/next.md) | The call budget a 503 set, why the size band has two sources and which decides, where the module reading stops rather than inferring a repository's layout, and what the cost column is silent about. |

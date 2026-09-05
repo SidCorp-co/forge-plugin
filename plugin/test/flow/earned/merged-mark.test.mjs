@@ -5,12 +5,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { tempHome } from "../fixtures.mjs";
+import { tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("merged-mark").path;
-const { render } = await import("../../src/flow/record.mjs");
-const { CHECKS, sameCommit, viewFrom } = await import("../../src/flow/earned.mjs");
-const { judgedHead, landingMoved, markedCommit } = await import("../../src/flow/machine.mjs");
+const { render } = await import("../../../src/flow/record.mjs");
+const { CHECKS, sameCommit, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { judgedHead, landingMoved, landingWrote, markedCommit } = await import("../../../src/flow/machine.mjs");
 
 /* What the tracker really answers with: every field and body inside its data fence. */
 const fenced = (text) =>
@@ -153,4 +153,17 @@ test("the mark's note answers for the judged head and what the landing moved", (
      verdict off a note whose author typed a separator and no path. */
   assert.equal(landingMoved(note("landing moved ,")), null);
   assert.equal(landingMoved(note("landing moved , ,")), null);
+});
+/* Two clauses, two questions: what other commits moved under this change, and what this change
+   itself wrote. A note carrying both is read as both, and neither answer comes off the other. */
+test("the note says what this change wrote beside what the landing moved under it", () => {
+  const note = (text) => [mark(`merged to master at 9a4d36d; ${text}`)];
+  assert.deepEqual(landingWrote(note("landing wrote a.md, b/c.mjs")), ["a.md", "b/c.mjs"]);
+  assert.deepEqual(landingWrote(note("landing wrote nothing")), []);
+  assert.equal(landingWrote(note("landing moved a.md")), null, "the other clause answers nothing here");
+  assert.equal(landingWrote([]), null);
+  const both = note("landing moved a.md; landing wrote b.mjs, c.mjs");
+  assert.deepEqual(landingMoved(both), ["a.md"]);
+  assert.deepEqual(landingWrote(both), ["b.mjs", "c.mjs"]);
+  assert.equal(landingWrote(note("landing wrote ,")), null, "a clause that parses to no path says nothing");
 });

@@ -2,14 +2,16 @@
 
 ## Before you edit
 
-Read the **baseline** Phase 0 started in the background: the project's gate run once, whole and
-distrusting any remembered pass (`--full` here), with what already fails recorded. Without it a
-pre-existing red is indistinguishable from your regression. If a baseline cannot be obtained, say so
-rather than proceeding as though it were green.
+Read the **baseline** Phase 0 started in the background, then record it with what already fails and
+whether the run measured the whole tree. Whether it was whole is the baseline record's own field, and
+`in_progress` refuses one saying it was not, so that demand is the entry check's rather than this
+page's.
 
-**A gate that stops at its first failure has measured only what ran.** One red at the front
-leaves every step behind it unknown, and a baseline naming that one red is a baseline for
-nothing after it: run the remaining steps by hand and record what each answered.
+What the check cannot judge is yours. **A gate that stops at its first failure has measured only what
+ran**: one red at the front leaves every step behind it unknown, so run the remaining steps by hand
+and record what each answered before calling the run whole. A baseline that cannot be obtained at all
+is said rather than assumed green — without one a pre-existing red is indistinguishable from your
+regression.
 
 **The gate is spent once per unit of work.** The baseline above is the only whole run the work owes;
 after it, one scoped run when a unit of work is finished — a change that stands on its own, never
@@ -55,7 +57,7 @@ and the suite runs again only for a criterion whose evidence is its own.
 
 | Changed | Proof |
 |---|---|
-| A screen | the rendered state, driven — including empty, loading and error |
+| A screen | the rendered state, driven — including empty, loading and error, and attached: `tested` refuses a verdict under a declared screen change whose evidence holds no attachment |
 | An API | request and response, plus the side effect it claims |
 | A CLI | the invocation and its output, including a non-zero exit |
 | A library | a consumer exercising it, not a unit test of its internals |
@@ -103,6 +105,7 @@ Screenshot the state a user reaches — create the data the screen needs, and re
 afterwards. If seeding advanced a counter or a sequence, restore it; if the store was
 disposable, destroy it wholesale instead, which is safer than editing a counter back.
 
-**An image left on your disk proved nothing to anyone.** It belongs on the issue with the QA
-report that cites it, uploaded rather than pasted through context — `forge -h` names the
-verb. This is the one evidence type whose whole purpose is that somebody else looks at it.
+It belongs on the issue with the QA report that cites it, uploaded rather than pasted through
+context — `forge -h` names the verb. A verdict citing no attachment under a declared screen change
+is refused at `tested`, so the rule is the entry check's; what no check can judge is whether the
+image shows the state a reader needs, which is what the paragraphs above are for.

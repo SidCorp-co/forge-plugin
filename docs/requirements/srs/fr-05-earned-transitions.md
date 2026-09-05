@@ -45,7 +45,7 @@ agent learns what a status wants.
 - **AC-05-1-3** · Rev: 1 · Proof: none yet — ISS-12
   WHEN the move being rehearsed is a park or a drop THEN the CLI SHALL rehearse it like any other
   move rather than refusing to rehearse it.
-- **AC-05-1-4** · Rev: 1 · Proof: plugin/test/flow/batched-verdict.test.mjs "several criteria with no verdict are one owed item carrying one write"
+- **AC-05-1-4** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "several criteria with no verdict are one owed item carrying one write"
   WHERE more than one criterion has no verdict, the CLI SHALL name them in one item and the command
   beside it SHALL be the single write that supplies all of them.
 - **AC-05-1-5** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a record write ends with the line advance --owed would print, and never fails on it"
@@ -78,9 +78,15 @@ deciding a status.
 - **AC-05-2-4** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "a comment carrying the tag and little else is no payload"
   WHEN a comment carries a record's tag but not the fields its shape declares THEN the CLI SHALL
   treat it as no payload.
-- **AC-05-2-5** · Rev: 1 · Proof: plugin/test/flow/batched-verdict.test.mjs "advance earns tested from a batched write exactly as from one write per criterion"
+- **AC-05-2-5** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "advance earns tested from a batched write exactly as from one write per criterion"
   WHEN the verdicts on several criteria are written in one record THEN the CLI SHALL judge the status
   exactly as it judges one record per criterion.
+- **AC-05-2-6** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a baseline that measured part of the tree earns nothing, and one that names no scope is not refused for it"
+  IF the latest baseline records that its gate run measured part of the tree THEN the CLI SHALL
+  refuse `in_progress` and SHALL name the gate command that baseline itself recorded.
+- **AC-05-2-7** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a baseline that measured part of the tree earns nothing, and one that names no scope is not refused for it"
+  WHERE a record was written before a field was added to its shape, the CLI SHALL read it back as a
+  whole payload rather than refusing it for lacking that field.
 
 ### UC-05-3 — Refuse a jump
 
@@ -147,21 +153,25 @@ The mark accounts for a review at the head it records, and for a verdict at that
 the landing took no path the change touched. Nothing is deleted — the earlier records stay as
 superseded history and the check simply stops being met.
 
-- **AC-05-6-1** · Rev: 1 · Proof: plugin/test/flow/merged-mark.test.mjs "developed needs the mark, its commit, and an approving review of that commit"
+- **AC-05-6-1** · Rev: 1 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "developed needs the mark, its commit, and an approving review of that commit"
   IF the latest approving review judged neither the commit the merged mark names nor the reviewed
   head that mark records THEN the CLI SHALL refuse `developed` and name the commit judged beside the
   commit marked.
-- **AC-05-6-2** · Rev: 2 · Proof: plugin/test/flow/merged-mark.test.mjs "a verdict at the judged head stands where the landing moved none of the change's paths"
+- **AC-05-6-2** · Rev: 2 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "a verdict at the judged head stands where the landing moved none of the change's paths"
   IF a verdict judged neither the merged commit nor the judged head the merged mark records THEN the
   CLI SHALL refuse `tested` and name the criterion, the commit judged and the merged commit.
-- **AC-05-6-3** · Rev: 1 · Proof: plugin/test/flow/merged-mark.test.mjs "tested needs one verdict per criterion, passing, at the merged commit"
+- **AC-05-6-3** · Rev: 1 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "tested needs one verdict per criterion, passing, at the merged commit"
   WHEN a criterion has no verdict THEN the CLI SHALL refuse `tested` and name that criterion.
 - **AC-05-6-4** · Rev: 1 · Proof: none yet — ISS-7
   WHEN a new head is merged THEN the merged mark SHALL name that head, and the CLI SHALL judge
   `developed` against the mark alone.
-- **AC-05-6-5** · Rev: 1 · Proof: plugin/test/flow/merged-mark.test.mjs "a verdict at the judged head stands where the landing moved none of the change's paths"
+- **AC-05-6-5** · Rev: 1 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "a verdict at the judged head stands where the landing moved none of the change's paths"
   WHERE the merged mark records a judged head, a verdict at that head SHALL earn `tested` only where
   the mark says the landing moved no path the change touched.
+- **AC-05-6-6** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a file the landing wrote and the plan does not name owes a correction"
+  IF the merged mark records that the landing wrote a path which neither the plan's text nor a
+  correction names THEN the CLI SHALL refuse `developed`, name that path, and print the correction
+  that clears it.
 
 ### UC-05-7 — What the plan declared decides what the ship steps owe
 
@@ -190,6 +200,9 @@ for.
 - **AC-05-7-5** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "the verification says who released it, in the project's own words and never the author's"
   WHEN a release verification is written, the CLI SHALL carry the project's own answer about who
   releases on that record, from a value no author supplies.
+- **AC-05-7-6** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a screen change owes an attachment on every verdict that is not skipped"
+  IF the plan declares a screen change and a verdict that is not `skipped` cites no attachment the
+  issue carries THEN the CLI SHALL refuse `tested` and name that criterion.
 
 ### UC-05-8 — A record too large to read whole
 

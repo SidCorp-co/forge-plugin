@@ -7,15 +7,15 @@ import { createServer } from "node:http";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("batched-verdict").path;
-const { blocksIn, parse, parseAll, render } = await import("../../src/flow/record.mjs");
-const { SHAPES } = await import("../../src/flow/machine.mjs");
-const { CHECKS, viewFrom } = await import("../../src/flow/earned.mjs");
-const { CONTRACT } = await import("../../src/guides/contract.mjs");
+const { blocksIn, parse, parseAll, render } = await import("../../../src/flow/record.mjs");
+const { SHAPES } = await import("../../../src/flow/machine.mjs");
+const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { CONTRACT } = await import("../../../src/guides/contract.mjs");
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const COMMIT = "43b811e";
 const CRITERIA = "1. The first outcome.\n2. The second outcome.\n3. The third outcome.";
 

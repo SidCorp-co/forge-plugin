@@ -12,6 +12,7 @@ import { freezesSession, FROZEN, pluginCopy } from "../plugin/src/tools/plugin-c
 import { checkoutRoot, defaultBranch, git, gitOut, REMOTE, Stop, stop } from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
+import { isRelease, onlyRelease, RELEASE_FILES, versionAt } from "./run/landing.mjs";
 import { REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
 import { fileIssue } from "../plugin/src/tracker/filing.mjs";
 import { refusing } from "../plugin/src/resolve/settings.mjs";
@@ -114,28 +115,6 @@ const nextVersion = (local, upstream) => {
   return [major, minor, patch + 1].join(".");
 };
 
-const versionAt = (root, ref) => {
-  const shown = gitOut(["show", `${ref}:package.json`], root);
-  if (!shown) return null;
-  try {
-    return JSON.parse(shown).version ?? null;
-  } catch {
-    return null;
-  }
-};
-
-/** A release is a commit whose manifest version differs from its first parent's, so a rebase that
- *  dropped the bump is still read by the version pushed. Both readers of a range take it here. */
-const isRelease = (tree, sha) => versionAt(tree, sha) !== versionAt(tree, `${sha}^`);
-
-const RELEASE_FILES = ["package.json", "package-lock.json", join("plugin", ".claude-plugin", "plugin.json")];
-
-/* The bump `versionAbove` commits touches these files and no others, so a change that raised the
-   version in its own commit is still the change. */
-const onlyRelease = (tree, sha) => isRelease(tree, sha)
-  && (gitOut(["diff", "--name-only", `${sha}^`, sha], tree) ?? "").split("\n")
-    .filter(Boolean).every((one) => RELEASE_FILES.includes(one));
-
 const worktreePath = (root, key) => join(dirname(root), `wt-${key}`);
 
 const start = ({ words: [given, slug] }) => {
@@ -226,12 +205,26 @@ const releaseSays = (tree, base) => {
   console.log(landedLine(was, all, own, `the head this tree pushed to ${base} is `
     + `${(gitOut(["rev-parse", "HEAD"], tree) ?? "").slice(0, 7)}`));
   const moved = (gitOut(["diff", "--name-only", `${was}..HEAD`], tree) ?? "").split("\n").filter(Boolean);
+  wroteLine(tree, own);
   const held = moved.filter(freezesSession);
   if (!held.length) return console.log(`  nothing a session is frozen on moved since ${was.slice(0, 7)}`
     + ` — the set is ${FROZEN.join(", ")}`);
   const why = reasonsGiven();
   console.log(`  a restart is owed before any open session trusts these ${held.length} file(s):`);
   for (const one of held) console.log(`    ${one} — ${why.get(one) ?? "no reason recorded at the write"}`);
+};
+
+/** The clause the merged mark's note carries about this change's own files, printed at the step that
+ *  knows them: `developed` reads it back against the plan. By commit and not by filename — a
+ *  dependency this change added lives in the manifest a release bump also writes. */
+const wroteLine = (tree, own) => {
+  const wrote = new Set();
+  for (const sha of own) {
+    for (const one of (gitOut(["diff", "--name-only", `${sha}^`, sha], tree) ?? "").split("\n").filter(Boolean)) wrote.add(one);
+  }
+  const said = [...wrote].sort();
+  console.log(`  the mark's note says what this change wrote, which \`developed\` reads against the plan:`);
+  console.log(`    landing wrote ${said.length ? said.join(", ") : "nothing"}`);
 };
 
 /** Why each frozen file had to move, as the gate that held the write recorded it. Read here because

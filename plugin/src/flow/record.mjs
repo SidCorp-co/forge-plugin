@@ -47,7 +47,7 @@ export const USAGE = [
   "  question     --reading \"reading -> outcome\" (two or more) [--to who]",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W                                a plan or criteria change after approval",
-  "  baseline     --gate G --result R --commit C",
+  "  baseline     --gate G --result R --commit C --scope whole|part",
   "  verdict      --criterion N --verdict pass|fail|skipped --commit C --evidence E... [--why W]",
   "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding \"F1 accepted\"]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",

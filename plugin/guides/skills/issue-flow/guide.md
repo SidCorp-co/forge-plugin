@@ -123,7 +123,9 @@ One branch cut from the project's actual default branch, named for the issues on
 than one session works the same checkout, each takes its own worktree. What `in_progress` reads:
 `forge guide contract in_progress`.
 
-**Do not silently expand scope.** A newly required file is a correction posted before you write it.
+**A file the plan does not name is a correction**, posted before you write it: the mark's note says
+what the landing wrote, and `developed` refuses a path in it that neither the plan nor a correction
+names.
 
 **Do not disturb the user's environment.** Establish which one process you may stop before stopping
 anything; `forge hooks --how bash-guard` carries the rest.

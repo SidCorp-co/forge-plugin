@@ -198,7 +198,8 @@ out has to be inferred is a refusal nobody can act on.
 
 | Scenario | Writes | Goes to |
 |---|---|---|
-| every gating blocker at least `developed` | the branch cut; the baseline naming what already fails, so a later red has something to be judged against; the batch relation when several ride together | `in_progress` |
+| every gating blocker at least `developed` | the branch cut; the baseline naming what already fails and whether the gate run measured the whole tree, so a later red has something to be judged against; the batch relation when several ride together | `in_progress` |
+| the baseline's gate ran over part of the tree | the whole run, and a baseline recording it | unchanged; a scoped run reports no red for the steps it skipped, so every green after it stands on a measurement nobody made, and the refusal names that baseline's own gate command rather than any ledger — this contract's checks read the record and no project's tooling |
 | a blocker not yet `developed` | nothing; the refusal names the blocker | unchanged |
 | the plan or criteria change now | a correction comment saying what moved and why, at the write | unchanged |
 
@@ -211,6 +212,7 @@ out has to be inferred is a refusal nobody can act on.
 | the project asks a person to review | the head and the diff to look at | `waiting`, kind code review; their comment resumes |
 | reviewed, and on the default branch | the merged mark with its commit and the base it landed on; where a squash changed the hash, the note names the reviewed head. The replay is the earning read's own first step, so no landing owes a round of its own: one that moves a path this change touched leaves a head nobody has read, and that head owes a fresh whole-set read and its verdicts again — never a recheck, which answers findings, and a clean pass leaves none | `developed` |
 | scope grows | a plan correction before the edit | unchanged |
+| the landing wrote a file the plan does not name | a correction naming it | unchanged; the mark's note says what this change itself wrote, beside what the landing moved under it, and a path in that clause appearing in neither the plan nor a correction refuses `developed` — which is where *do not silently expand scope* is enforced rather than asked |
 | a destructive migration | the classification, attached | `waiting`, kind destructive migration; a reviewer's comment resumes |
 | it cannot be built soundly | the finding; the branch left named | `on_hold`, kind unshippable |
 
@@ -219,6 +221,7 @@ out has to be inferred is a refusal nobody can act on.
 | Scenario | Writes | Goes to |
 |---|---|---|
 | every criterion judged | one verdict per criterion with evidence, all at the merged commit or at the judged head the mark names; skipped checks named with reasons; the migration classification when the schema flag is set | `tested` |
+| the plan declares a screen change | each verdict that is not *skipped* citing an attachment this issue carries | `tested`; a URL and a sha are citations and an attachment is the thing itself, and a screen is the one change whose proof is that somebody looked. A *skipped* verdict is exempt for the reason it owes no evidence at all: there was nothing to look at |
 | a criterion fails | its failing verdict | unchanged; the fix moves the merged commit, so the issue falls to `in_progress` until the new head is reviewed, and judging starts over |
 | proves unshippable | the finding | `on_hold`, kind unshippable |
 

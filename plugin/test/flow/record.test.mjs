@@ -501,3 +501,22 @@ test("a record write ends with the line advance --owed would print, and never fa
   const report = await ranAsync(FORGE, ["record", "report", "ISS-3"], tracker.env);
   assert.doesNotMatch(report.stderr, /is next and the record/u, "and a report writes nothing, so it owes nothing");
 });
+
+/* A field added to a shape that already has records on issues: the write asks for it as for any
+   other, and the read-back does not refuse a payload written before it existed (ISS-359). */
+test("a newer field is asked for at the write and excused at the read-back", () => {
+  const wrote = (...extra) => ask("record", "baseline", "ISS-43", "--gate", "npm run check",
+    "--result", "354 pass", "--commit", "43b811e", ...extra);
+  const bare = wrote();
+  assert.equal(bare.status, 1, bare.stdout);
+  assert.match(bare.stderr, /^record baseline needs --scope \(scope\)\.$/mu, bare.stderr);
+  assert.equal(bare.stdout, "", "and it is refused before anything is fetched");
+  const odd = wrote("--scope", "half");
+  assert.match(odd.stderr, /^--scope takes one of whole, part, not `half`\.$/mu, odd.stderr);
+  const scope = SHAPES.baseline.fields.find((one) => one.flag === "scope");
+  assert.ok(scope.newer, "the bit the gap list reads and the write's own field loop does not");
+  assert.ok(!scope.optional, "and it is not optional, or no run would ever type it");
+  /* The read-back is the half the bit is for: a baseline written before the field existed is a
+     whole payload, and only a wrong word is a gap. */
+  assert.equal(parse(render("baseline", { gate: "g", result: "r", commit: "43b811e" })).fields.scope, undefined);
+});

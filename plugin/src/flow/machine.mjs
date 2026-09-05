@@ -116,6 +116,7 @@ const AT_SHA = /\bat ([0-9a-f]{7,40})\b/iu;
 const HEAD_SHA = /\breviewed head ([0-9a-f]{7,40})\b/iu;
 const JUDGED_SHA = /\bjudged head ([0-9a-f]{7,40})\b/iu;
 const MOVED = /\blanding moved ([^;\n]+)/iu;
+const WROTE = /\blanding wrote ([^;\n]+)/iu;
 /* Enumerated, because matching it stands every verdict: `nothingness` and `nothing generated` are
    paths, and a clause that parses to no path at all says nothing rather than none. */
 const NONE = /^nothing(?: of this change| this change touched)?\.?$/iu;
@@ -129,13 +130,15 @@ export const markedCommit = (comments) => AT_SHA.exec(lastMark(comments) ?? "")?
 export const reviewedHead = (comments) => HEAD_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
 export const judgedHead = (comments) => JUDGED_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
 
-export const landingMoved = (comments) => {
-  const said = MOVED.exec(lastMark(comments) ?? "")?.[1]?.trim();
+const pathsIn = (said) => {
   if (!said) return null;
   if (NONE.test(said)) return [];
   const paths = said.split(",").map((one) => one.trim()).filter(Boolean);
   return paths.length ? paths : null;
 };
+
+export const landingMoved = (comments) => pathsIn(MOVED.exec(lastMark(comments) ?? "")?.[1]?.trim());
+export const landingWrote = (comments) => pathsIn(WROTE.exec(lastMark(comments) ?? "")?.[1]?.trim());
 
 /* Machine data in prose; every occurrence, not the first, decides (docs/cli/the-ladder.md). */
 const DECLARED = { screen: "screen change", schema: "schema coupling", look: "user-facing outcome" };
@@ -182,6 +185,7 @@ export const PARKS = [
    list, because the read-back judges a park a hand wrote by the same rule the write applies. */
 export const SHOWS_EVIDENCE = ["screen-review", "code-review", "destructive-migration"];
 export const VERDICTS = ["pass", "fail", "skipped"];
+export const SCOPES = ["whole", "part"];
 /* What the agent may rule a person's finding to be: the criterion asked the wrong thing, the
    criterion was not met, or nothing in the specification ever promised what the person expected. */
 export const TRIAGES = ["wrong-test", "not-met", "not-in-spec"];
@@ -189,7 +193,8 @@ export const OUTCOMES = ["approved", "changes-requested"];
 const FINDING = /^F\d+ (?:accepted|rejected: .+)$/u;
 export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
 
-/* `many` flags repeat; `oneOf` names the values; `least` is the smallest count that is a payload. */
+/* `many` flags repeat; `oneOf` names the values; `least` is the smallest count that is a payload;
+   `newer` is asked for at the write and excused at the read-back, a shape's records outliving it. */
 const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 
 /* The shape `decision` established: a kind whose honest answer may be *none* asks for every field or
@@ -262,7 +267,12 @@ export const SHAPES = {
   },
   baseline: {
     heading: "Baseline",
-    fields: [FIELD("gate", "Gate"), FIELD("result", "Result"), FIELD("commit", "Commit", { commit: true })],
+    fields: [
+      FIELD("gate", "Gate"),
+      FIELD("result", "Result"),
+      FIELD("commit", "Commit", { commit: true }),
+      FIELD("scope", "Scope", { oneOf: SCOPES, newer: true }),
+    ],
   },
   /* `per` opens a block: one write, a verdict per criterion. A stamp renders last, so a shape with `per` takes none. */
   verdict: {

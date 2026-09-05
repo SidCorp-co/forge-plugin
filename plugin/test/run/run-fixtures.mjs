@@ -21,12 +21,12 @@ export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "ut
 export const runIn = (cwd, argv, env = process.env) =>
   spawnSync(process.execPath, [SCRIPT, ...argv], { cwd, encoding: "utf8", env });
 
-/* Every file the script is, itself and the five it loads. `check` stands in for the repository's
+/* Every file the script is, itself and the six it loads. `check` stands in for the repository's
    gate, which ship spends by name — the real one needs a tree this scratch checkout is not. */
 export const GATE = "node -e \"console.log('scratch gate ran')\"";
 
-const COPIED = [SCRIPT, join("tools", "run", "args.mjs"), join("tools", "run", "review.mjs"),
-  join("tools", "checkout.mjs"), join("tools", "gates", "timing.mjs")];
+const COPIED = [SCRIPT, join("tools", "run", "args.mjs"), join("tools", "run", "landing.mjs"),
+  join("tools", "run", "review.mjs"), join("tools", "checkout.mjs"), join("tools", "gates", "timing.mjs")];
 
 export const scratch = (name, gate = GATE) => {
   const at = tempRoom(`${name}-`);

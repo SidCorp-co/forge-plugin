@@ -580,3 +580,4 @@ test("a drop is refused once the merged mark is set, and it is the mark that ref
   assert.doesNotMatch(late.stderr, /was marked merged at/u, "so a case keyed on the mark cannot pass on the status");
   swap({});
 });
+

@@ -471,3 +471,44 @@ test("a plan declaring a person climbs the rung the ceiling is read at", () => {
   assert.match(said, /ISS-318 is a `fix`/u, `the declaration moved it one rung:\n${said}`);
   assert.match(said, /ceiling of 15 and 500/u, "so the ceiling is the rung above trivial's");
 });
+
+/* The clause `developed` reads back against the plan, printed here because this is the step that
+   knows what landed. The bump is not the change, so the files a release commit touches come out. */
+test("the last step prints what this change wrote, and leaves the release commit's own files out of it", () => {
+  const { work } = pushed("landing-wrote");
+  stubbed(work);
+  landIn(work, join("plugin", "src", "flow", "earned.mjs"), 1, "the entry check");
+  landIn(work, join("docs", "cli", "record.md"), 1, "and its page");
+  const out = lastStep(work).stdout;
+  const said = /^ {4}landing wrote (.+)$/mu.exec(out);
+  assert.ok(said, `no clause for the mark's note:\n${out}`);
+  const wrote = said[1].split(", ");
+  for (const one of ["docs/cli/record.md", "plugin/src/flow/earned.mjs"]) {
+    assert.ok(wrote.includes(one), `${one} landed and the clause does not name it:\n${out}`);
+  }
+  for (const one of ["package.json", "package-lock.json", "plugin.json"]) {
+    assert.ok(!said[1].includes(one), `the release commit's own ${one} is in the clause:\n${out}`);
+  }
+});
+
+/* Identity is the wrong test: a manifest is where a dependency lives too, and a change that added
+   one would vanish from the clause a check reads back. Which commit wrote it is the question. */
+test("a manifest the change itself edited stays in the clause, the bump alone being what comes out", () => {
+  const { work } = pushed("landing-wrote-manifest");
+  stubbed(work);
+  const held = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
+  writeFileSync(join(work, "package.json"), JSON.stringify({ ...held, dependencies: { left: "1.0.0" } }, null, 2));
+  git(work, "add", "package.json");
+  git(work, "commit", "-m", "the dependency this change needs");
+  const out = lastStep(work).stdout;
+  const said = /^ {4}landing wrote (.+)$/mu.exec(out);
+  assert.ok(said, `no clause for the mark's note:\n${out}`);
+  assert.ok(said[1].split(", ").includes("package.json"),
+    `the change edited package.json and the clause drops it:\n${out}`);
+});
+
+test("a release that landed nothing of its own says so in the clause", () => {
+  const { work } = pushed("landing-wrote-nothing");
+  const out = lastStep(work).stdout;
+  assert.match(out, /^ {4}landing wrote nothing$/mu, `a release of the bump alone named paths:\n${out}`);
+});
