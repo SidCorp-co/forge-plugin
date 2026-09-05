@@ -2748,3 +2748,35 @@ Folded from the record.
 - The three releases put seven skill files under the hand's feet, and the sessions open during them
   are reading retired text. ISS-320, which landed beside this run, is the change that stops a gate
   landing from owing one; skills still owe theirs until the stubs land.
+
+## Hundred-and-tenth dry run — ISS-320
+
+One agent made a registered hook entry run the copy the CLI would (3.35.126). `hooks/gate.mjs` and
+`hooks/link-cli.mjs` are thin: each asks the same chooser the CLI asks per call, imports that copy's
+harness, and falls back to its own copy with the failure named on stderr, so a gate that lands is live
+in every open session without a restart and nothing is ever silently unguarded. The restart-owing set
+became one declaration beside the chooser: the registration, the two thin entries, the chooser itself
+and `plugin/skills/`, and a case walks the entries' imports transitively
+and fails if the reachable set is not exactly that declaration. The hop costs 13 ms at the median on a
+five-gate line with a ten-second budget, and the deadline counts from process start so a fallback buys
+no time back. Two of the issue's premises were found false and retired where they were written: how
+pages were never frozen, since `forge hooks --how` already dispatches per call, and the session-start
+link script was never stale. Ten criteria, one accepted consult finding, one correction naming three
+files the plan had not, two defects filed (a shell launcher pinned to the copy a session start saw,
+ISS-340; a merged mark's note read as moved paths, ISS-341). Restart owed, once, by this landing itself, and it is the last a gate fix owes.
+Closed by its run. Folded from the record.
+
+- The issue asked for a paragraph in each of thirteen how pages saying the rule; the run refused its
+  own issue's rule and put the sentence once, in a new `how/copies.md`, because thirteen copies is the
+  second copy CLAUDE.md forbids and the how-page cap would not have held them anyway.
+- The try covers the import only, never the run: a consumed stdin cannot be replayed, so a retry after
+  the event was read would judge an empty event. Where a fallback sits decides what it can still see.
+- The entries under `plugin/hooks/entries/` were deliberately left importing this checkout's harness,
+  because the suite spends them to test this checkout's gate text; an entry that hopped would test the
+  installed copy instead. A uniform rule applied to the test route would have blinded the tests.
+- The declaration is the shared reader ISS-332 asked for, and the release script already filters its
+  restart line on it, so ISS-332's gate imports it and declares nothing of its own. The ship that
+  landed this change still ran the old filter and printed the set wrong in both directions; the next
+  release prints the narrowed one.
+- A premise read off the code and found false narrows the work: the run measured what was frozen
+  before building, and half the issue's set was never frozen. Confirmation is where that is cheap.
