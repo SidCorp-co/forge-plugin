@@ -99,7 +99,7 @@ export const graphOf = (issues, universe) => {
     const add = (phrase, asBlocker) => {
       const other = resolve(phrase, universe);
       if (!other) {
-        unresolved.push({ from: issue.issueId, phrase });
+        unresolved.push({ from: issue.issueId, phrase, asBlocker });
         return;
       }
       const pair = asBlocker ? [other.issueId, issue.issueId] : [issue.issueId, other.issueId];

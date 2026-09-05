@@ -34,15 +34,32 @@ test("a lease past its minutes is not a filter", () => {
   assert.equal(eligibilityOf(row(), { lease: stale }).eligible, true);
 });
 
-test("a blocker outside a terminal status drops the issue, and the sentence names it", () => {
-  const held = eligibilityOf(row(), { blockers: [{ issueId: "ISS-9", status: "open" }] });
+/* The edge is the tracker's own shape, and whether it gates is the flow's own answer: a rank that
+   invented a second floor would name a wall `forge advance` does not. */
+const edge = (status, held = {}) =>
+  ({ otherDisplayId: "ISS-9", otherStatus: status, kind: "blocks", ...held });
+
+test("a blocker the flow would still refuse on drops the issue, and the sentence names it", () => {
+  const held = eligibilityOf(row(), { blockers: [edge("open")] });
   assert.equal(held.eligible, false);
   assert.equal(held.reason, "blocked by ISS-9 (open)");
-  for (const status of ["closed", "dropped"]) {
-    assert.equal(eligibilityOf(row(), { blockers: [{ issueId: "ISS-9", status }] }).eligible, true, status);
+  for (const status of ["developed", "tested", "released", "closed"]) {
+    assert.equal(eligibilityOf(row(), { blockers: [edge(status)] }).eligible, true,
+      `${status} is at or past the floor the transition asks for`);
   }
-  assert.equal(eligibilityOf(row(), { blockers: [{ issueId: "ISS-9", status: "released" }] }).eligible, false,
-    "released is on the way to closed and releases nothing yet");
+  for (const status of ["open", "approved", "in_progress", "waiting"]) {
+    assert.equal(eligibilityOf(row(), { blockers: [edge(status)] }).eligible, false, status);
+  }
+  assert.equal(eligibilityOf(row(), { blockers: [edge("open", { gatesDispatch: false })] }).eligible, true,
+    "a mention is not an ordering edge, and the tracker says which on the edge itself");
+});
+
+/* A body naming a blocker that matches no title is evidence, not silence: treating it as absence
+   ranks the issue as ready on a dependency nobody could identify. */
+test("a blocker phrase matching no title leaves the issue out, and the line quotes it", () => {
+  const held = eligibilityOf(row(), { unresolved: [{ phrase: "the second thing" }] });
+  assert.equal(held.eligible, false);
+  assert.equal(held.reason, 'names "the second thing" as a blocker, matching no title');
 });
 
 test("a file another run's plan names is a soft exclusion, and the line says which file and whose", () => {

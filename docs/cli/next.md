@@ -48,12 +48,24 @@ an issue further down the chain waits for the wave in front of it and is printed
 than promised. The first draft claimed eligibility for everything the chain reached, which is false
 in both of those cases.
 
-What ends a blocker is one set and not two: an issue being worked, waiting on a person, or released
-and not yet closed is nobody's to dispatch and is still every waiting issue's blocker. Reading the
-dispatch set as the blocker set instead loses the whole chain through anything in flight — the size
-of the mistake being that the issues most likely to be mid-chain are exactly the ones being worked.
-Both the score that orders the reading and the score that prints read the same set, because a
-candidate the first one undercounts is one the bound then keeps from ever being read.
+What ends a blocker is not this verb's to decide. `forge advance` already refuses a move past a
+blocker below `developed`, and the flow exports that answer, so a blocker here is exactly one the
+transition would refuse on — a rank that invented a stricter floor would name a wall no verb
+enforces, and one that invented a looser floor would send a run at an issue it cannot advance. That
+also settles what a chain walks through: an issue being worked or waiting on a person still holds up
+what waits on it, and reading the *dispatch* set as the blocker set instead loses the whole chain
+through anything in flight — the issues most likely to be mid-chain being exactly the ones being
+worked. Both the score that orders the reading and the score that prints read that same set, because
+a candidate the first undercounts is one the bound then keeps from ever being read.
+
+The tracker answers the ordering on the edge itself: `relations.blockedBy` carries mentions beside
+orderings, and the flow reads `gatesDispatch` with `kind` behind it. Reading a key off the wrong
+field of that edge loses every relation silently — the dependency vanishes, the candidate stays
+eligible, and the count of relations seen stays zero, so nothing even discloses it.
+
+A dependency phrase that matched no title is evidence that failed to resolve, not an absence. It
+leaves its own issue out with the phrase quoted, and the tail line counts them; `forge deps` is
+where all of them, in both directions, are printed.
 
 The measured cost of the whole verb against this backlog is about twenty-eight seconds: four for the
 two walks it issues together, three for the past-run corpus on disk, and the rest for the bodies and

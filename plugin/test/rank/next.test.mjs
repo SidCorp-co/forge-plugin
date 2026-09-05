@@ -109,8 +109,8 @@ test("an issue with a second blocker is named with it rather than promised", asy
 
 /* An issue being worked, waiting on a person, or released and not yet closed still holds up what
    waits on it: the chain's stop and the eligibility filter read one set or they disagree. */
-test("the chain counts through an issue that is in flight and stops at one that landed", async () => {
-  for (const [status, points] of [["in_progress", 6], ["released", 6], ["closed", 0], ["dropped", 0]]) {
+test("the chain counts through an issue that is in flight and stops at one the flow lets through", async () => {
+  for (const [status, points] of [["in_progress", 6], ["waiting", 6], ["developed", 0], ["closed", 0]]) {
     load([
       issue("ISS-1", { priority: "low", title: "the first thing" }),
       issue("ISS-2", { status, title: "the second thing", description: claims("first thing") }),
@@ -219,8 +219,8 @@ test("an order the read budget cut says so on stderr and in the json alike", asy
   const run = await ran(["next", "--json"], standing({ readCap: 4, windowCap: 2 }));
   assert.equal(run.status, 0, run.stderr);
   const held = JSON.parse(run.stdout);
-  assert.deepEqual(held.read,
-    { judged: 4, takeable: 8, settled: false, bounded: false, relationsSeen: 0, readCap: 4 });
+  assert.deepEqual(held.read, { unresolvedEdges: 0, judged: 4, takeable: 8, settled: false,
+    bounded: false, relationsSeen: 0, readCap: 4 });
   assert.match(run.stderr, /this order is not bounded — 4 of 8 takeable issue\(s\) were read whole/u);
   assert.match(run.stderr, /stopped at readCap/u);
   assert.match(run.stderr, /rank\.readCap/u, "and the way to raise it");
@@ -296,6 +296,43 @@ test("what a landing frees is told apart from what it reaches", () => {
   assert.deepEqual(held.frees, ["ISS-2"]);
   assert.deepEqual(held.waiting, [{ issueId: "ISS-5", on: ["ISS-7"] }]);
   assert.deepEqual(held.behind, [["ISS-2", "ISS-3"]]);
+});
+
+/* The tracker answers the ordering on the edge itself, and `relations.blockedBy` carries mentions
+   beside orderings: reading the wrong field loses every relation edge silently. */
+test("a blocked-by the tracker returned is read in its own shape, and a mention is not one", async () => {
+  const edge = (status, held = {}) =>
+    ({ otherDisplayId: "ISS-9", otherStatus: status, kind: "blocks", ...held });
+  load([
+    issue("ISS-1", { priority: "critical", relations: { blockedBy: [edge("open")], blocks: [] } }),
+    issue("ISS-9", { priority: "low" }),
+  ]);
+  const held = JSON.parse((await ran(["next", "--json"])).stdout);
+  assert.equal(held.read.relationsSeen, 1, "the edge was read, so the order is not certified on a bound");
+  assert.deepEqual(held.dropped.map((one) => one.reason), ["blocked by ISS-9 (open)"]);
+  load([
+    issue("ISS-1", { priority: "critical",
+      relations: { blockedBy: [edge("open", { gatesDispatch: false })], blocks: [] } }),
+    issue("ISS-9", { priority: "low" }),
+  ]);
+  const other = JSON.parse((await ran(["next", "--json"])).stdout);
+  assert.equal(other.read.relationsSeen, 0, "a mention orders nothing and is not counted as an edge");
+  assert.equal(other.candidates[0].issueId, "ISS-1");
+});
+
+/* A phrase deps.mjs could not pin is dependency evidence that failed to resolve, not an absence. */
+test("a blocker phrase matching no title leaves the issue out and is counted", async () => {
+  load([
+    issue("ISS-1", { priority: "critical", title: "the first thing", description: claims("nowhere at all") }),
+    issue("ISS-2", { title: "the second thing" }),
+  ]);
+  const run = await ran(["next", "--json"]);
+  assert.equal(run.status, 0, run.stderr);
+  const held = JSON.parse(run.stdout);
+  assert.equal(held.read.unresolvedEdges, 1);
+  assert.deepEqual(held.dropped.map((one) => one.reason),
+    ['names "nowhere at all" as a blocker, matching no title']);
+  assert.match((await ran(["next"])).stdout, /1 dependency phrase\(s\) in a body matched no title/u);
 });
 
 test("a flag this verb does not take is refused, and an argument is not a flag", async () => {

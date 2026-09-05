@@ -1,7 +1,8 @@
 /* Which open issues a run may take, and the sentence for every one it may not. A filter dropping a
    row in silence is a backlog that shrank for no stated reason: docs/cli/next.md. */
 import { describe, leaseOf, stateOf } from "../flow/lease.mjs";
-import { TAKEABLE, TERMINAL } from "./weights.mjs";
+import { TAKEABLE } from "./weights.mjs";
+import { holdsBack } from "../flow/earned.mjs";
 import { sessionOf } from "../resolve/config.mjs";
 
 /* A path in a code span, in the segment shape a repository names a file or a tree by. */
@@ -30,7 +31,8 @@ export const heldPaths = (plans) =>
 
 /** One row's verdict and the reason with it. `body` is null where the window did not read it, and
  *  the filter that needs one then says nothing rather than guessing. */
-export const eligibilityOf = (row, { blockers = [], lease = null, body = null, held = [] } = {}) => {
+export const eligibilityOf = (row,
+  { blockers = [], unresolved = [], lease = null, body = null, held = [] } = {}) => {
   const status = String(row?.status ?? "");
   if (!TAKEABLE.includes(status)) {
     return { eligible: false, soft: false, reason: `status ${status || "(none)"} is not one a run takes` };
@@ -39,12 +41,19 @@ export const eligibilityOf = (row, { blockers = [], lease = null, body = null, h
   if (stateOf(taken, sessionOf()) === "live") {
     return { eligible: false, soft: false, reason: `lease held by ${describe(taken)}` };
   }
-  const stuck = blockers.filter((one) => !TERMINAL.includes(one.status));
+  const stuck = blockers.filter(holdsBack);
   if (stuck.length) {
     return {
       eligible: false,
       soft: false,
-      reason: stuck.map((one) => `blocked by ${one.issueId} (${one.status})`).join(", "),
+      reason: stuck.map((one) => `blocked by ${one.otherDisplayId} (${one.otherStatus})`).join(", "),
+    };
+  }
+  if (unresolved.length) {
+    return {
+      eligible: false,
+      soft: false,
+      reason: unresolved.map((one) => `names "${one.phrase}" as a blocker, matching no title`).join(", "),
     };
   }
   const mine = body === null ? [] : pathsNamed(body);

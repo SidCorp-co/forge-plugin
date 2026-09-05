@@ -2,7 +2,7 @@
    call budget, and why the score is computed on the browse projection: docs/cli/next.md. */
 import { bandSpread, weightLines, weightsFrom } from "./weights.mjs";
 import { bandsOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart, rootFor } from "./cost.mjs";
-import { chainOf, ordered, scoreOf, takeableKeys, unlandedKeys } from "./score.mjs";
+import { chainOf, holdingKeys, ordered, scoreOf, takeableKeys } from "./score.mjs";
 import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { isFix, placeIn, seedFor } from "../tracker/issue-shape.mjs";
@@ -11,6 +11,7 @@ import { candidateLines, droppedLine, HEAD } from "./print.mjs";
 import { carriersOf, graphOf } from "../tools/deps.mjs";
 import { eligibilityOf, heldPaths, pathsNamed } from "./eligible.mjs";
 import { fail } from "../resolve/settings.mjs";
+import { holdsBack } from "../flow/earned.mjs";
 import { neighboursOf } from "../tracker/neighbours.mjs";
 import { scoped } from "../tracker/rpc.mjs";
 import { unknownFlag } from "../suggest.mjs";
@@ -45,23 +46,33 @@ const countFrom = (raw) => {
   return value;
 };
 
-/* Every prose edge, resolved to keys, in both directions: one reading of blocked-by, deps.mjs's. */
+/* Every prose edge, resolved to keys, in both directions: one reading of blocked-by, deps.mjs's. A
+   phrase that resolved to no title travels with them — a blocker named and not found is evidence,
+   and dropping it silently reads exactly like a body that claimed nothing. */
 const edgesFrom = (carried, universe) => {
   const blocks = new Map();
   const blockedBy = new Map();
+  const named = new Map();
   const add = (map, from, to) => map.set(from, [...(map.get(from) ?? []), to]);
-  for (const claim of graphOf(carried.issues, universe).claims) {
+  const read = graphOf(carried.issues, universe);
+  for (const claim of read.claims) {
     add(blocks, claim.from, claim.to);
     add(blockedBy, claim.to, claim.from);
   }
-  return { blocks, blockedBy };
+  for (const miss of read.unresolved.filter((one) => one.asBlocker)) {
+    add(named, miss.from, { phrase: miss.phrase });
+  }
+  return { blocks, blockedBy, named, unresolved: read.unresolved };
 };
 
+/* The edge as the tracker returns it — `otherDisplayId` and the ordering flag beside it, the shape
+   flow/earned.mjs reads — and only the ones that order: `relations.blockedBy` carries mentions too,
+   and counting a mention as a blocker would leave an issue nobody can dispatch. */
 const withRelations = (blocks, blockedBy, body) => {
   let found = 0;
-  for (const other of body?.relations?.blockedBy ?? []) {
-    const [key] = keysIn(other?.issueId ?? other);
-    if (!key) continue;
+  for (const edge of body?.relations?.blockedBy ?? []) {
+    const [key] = keysIn(edge?.otherDisplayId ?? edge?.issueId ?? edge);
+    if (!key || !holdsBack(edge)) continue;
     found += 1;
     blockedBy.set(body.issueId, [...(blockedBy.get(body.issueId) ?? []), key]);
     blocks.set(key, [...(blocks.get(key) ?? []), body.issueId]);
@@ -199,9 +210,9 @@ export const next = async (argv) => {
       + " reading never saw, and eligible here means only that no blocker was found.");
   }
   const rows = read.rows;
-  const { blocks, blockedBy } = edgesFrom(carried, rows);
+  const { blocks, blockedBy, named, unresolved } = edgesFrom(carried, rows);
 
-  const alive = unlandedKeys(rows);
+  const alive = holdingKeys(rows);
   const open = takeableKeys(rows);
   const statusOf = new Map(rows.map((one) => [one.issueId, String(one.status ?? "")]));
   const takeable = rows.filter((one) => open.has(one.issueId));
@@ -225,10 +236,11 @@ export const next = async (argv) => {
       chain: chainOf(one.issueId, blocks, alive),
       fix: bodies.has(one.issueId) ? isFix(text) : null,
     });
-    const blockers = (blockedBy.get(one.issueId) ?? [])
-      .map((key) => ({ issueId: key, status: statusOf.get(key) ?? "unknown" }));
+    const blockers = (blockedBy.get(one.issueId) ?? []).map((key) =>
+      ({ otherDisplayId: key, otherStatus: statusOf.get(key) ?? "unknown", kind: "blocks" }));
     const verdict = eligibilityOf(one.row, {
       blockers,
+      unresolved: named.get(one.issueId) ?? [],
       lease: body?.sessionContext,
       body: bodies.has(one.issueId) ? text : null,
       held,
@@ -285,6 +297,7 @@ export const next = async (argv) => {
   const unread = preScored.slice(cursor);
   const holds = bounded(eligible, unread, count, weights, edges);
   const readSaid = {
+    unresolvedEdges: unresolved.length,
     judged: cursor,
     takeable: preScored.length,
     settled: !unread.length,
@@ -310,6 +323,10 @@ export const next = async (argv) => {
   if (dropped.length) {
     console.log(`\nleft out — ${dropped.length} of the ${judged.length} candidate(s) judged:`);
     for (const one of dropped) console.log(droppedLine(one));
+  }
+  if (unresolved.length) {
+    console.log(`\n${unresolved.length} dependency phrase(s) in a body matched no title. A phrase`
+      + " naming this issue's own blocker leaves it out and says so above; `forge deps` prints them all.");
   }
   if (unread.length && holds) {
     console.log(`\nRead whole: the top ${cursor} of ${preScored.length} takeable. The rest scored on the`

@@ -1,5 +1,6 @@
 /* The score and its parts. Nothing here calls anything; why each weight: docs/cli/next.md. */
-import { TAKEABLE, TERMINAL } from "./weights.mjs";
+import { TAKEABLE } from "./weights.mjs";
+import { holdsBack } from "../flow/earned.mjs";
 
 const DAY = 86_400_000;
 
@@ -58,7 +59,8 @@ export const ordered = (scored) =>
 export const takeableKeys = (rows) =>
   new Set(rows.filter((one) => TAKEABLE.includes(String(one?.status ?? ""))).map((one) => one.issueId));
 
-/** What still holds work up, which is not what a run may take: one reading of what ends a blocker,
- *  so the chain and the eligibility filter cannot disagree about a released or in-flight issue. */
-export const unlandedKeys = (rows) =>
-  new Set(rows.filter((one) => !TERMINAL.includes(String(one?.status ?? ""))).map((one) => one.issueId));
+/** What still holds work up, which is not what a run may take: whether an edge gates is the flow's
+ *  own reading, so a blocker here is exactly one `forge advance` would refuse to move past. */
+export const holdingKeys = (rows) =>
+  new Set(rows.filter((one) => holdsBack({ kind: "blocks", otherStatus: String(one?.status ?? "") }))
+    .map((one) => one.issueId));

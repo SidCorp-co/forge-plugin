@@ -3,9 +3,7 @@
    derived rather than chosen, is docs/cli/next.md's. */
 import { rankConvention } from "../resolve/settings.mjs";
 
-/* `released` ends no blocker: the close is what releases the issues blocked on it. */
 export const TAKEABLE = ["open", "confirmed", "clarified", "approved", "reopen"];
-export const TERMINAL = ["closed", "dropped"];
 
 export const DEFAULTS = {
   priority: { critical: 40, high: 30, medium: 20, low: 10, none: 0 },
