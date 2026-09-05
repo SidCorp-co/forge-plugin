@@ -3532,3 +3532,31 @@ its run. Folded from its handback; the three filings and five routed findings we
   the stop budget.
 - The dispatcher's map of held files named the wrong file for one run; the run said so, and touched
   neither.
+
+## Hundred-and-thirty-eighth dry run — ISS-138
+
+The capturing form of a code span was declared three times, byte for byte apart from a flag; the
+markdown module now declares one character class and both spans off it, the stripping and the
+capturing, and the three copies compile the shared source under the flags each already had (3.35.153,
+landed as 97ab599). The question the issue asked about the Vietnamese tool's boundary was answered from
+the record rather than re-decided: an earlier issue decided it may reach the shared module, the layout
+section carries the direction, and what was missing was needles, not scope. A fourth live copy sat in
+a file the batch reading held, so it was excluded by path under a named list and filed as its own two-
+line fix (ISS-421). No restart owed. Closed by its run. Folded from its handback; both filings and the
+comment on ISS-399 were read back.
+
+- A missing closing paren in one copy was not a lapse: a titled link is valid and the closed form
+  reads no target from it, and inline markup is masked before translation, so the open form is
+  the one that judges the input the verifier sees. Kept, named, and pinned by a test that
+  goes red if the closed form is swapped in.
+- The guard was watched firing five ways: planted copies redden the scan, reverting either pattern
+  reddens its pin, and reverting the needle to the closed string silences the opener-only copy, which
+  is the shape the old row could not see.
+- The landing conflicted with the batch reading's rename on the import line this change sat beside;
+  the run took master's import verbatim and, because a resolution is content no reviewer read, re-read
+  the whole set and re-took every verdict at the landed head.
+- The primitives page had fewer than a hundred characters of room, so the new material went to a
+  page of its own with an index row, and the old page is byte-identical to master's. A cap met is a
+  split, not an exemption.
+- A criteria file's shape is learned one refusal at a time, and each correction re-trips the consult
+  read; five rounds on a fix's criteria, four about formatting (ISS-419).
