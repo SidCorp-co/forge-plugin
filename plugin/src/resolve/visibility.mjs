@@ -41,6 +41,8 @@ export const VERBS = [
   ["feedback", "<file.md|@file|-> --title T",
     "a defect in this plugin, filed as a bug on the plugin's own project from any checkout", null],
   ["doctor", "[--token t] [--url u] [--hide v|--show v] [--full]", "what resolves, and from where"],
+  ["stats", "runs [--since 3d] [--project dir] [--json]",
+    "where an issue-flow run's time and rounds go, read off the transcripts the harness keeps", null],
   ["tools", "[--all]", "the reachable surface"],
   ["schema", "<tool>", "one tool's arguments"],
   ["call", "<tool> <'json'|@file|->", "anything not wrapped above"],

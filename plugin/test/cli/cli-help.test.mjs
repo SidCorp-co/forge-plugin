@@ -94,6 +94,7 @@ const POINTS_AT = {
   hooks: null,
   feedback: null,
   doctor: null,
+  stats: null,
   tools: null,
   schema: null,
   call: null,

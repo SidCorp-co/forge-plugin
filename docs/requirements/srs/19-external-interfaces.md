@@ -102,3 +102,22 @@ read back at judging time.
 - **AC-19-7-1** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "a commit is judged by the tree it names, not the shell's"
   WHEN a commit is judged THEN the tree judged SHALL be the one the command names rather than the
   shell's.
+
+### EI-08 — The session host's record of a run
+
+Rev: 1 · Enforces: BR-08
+
+The same host keeps a line-delimited record of what each subagent it ran did, in a scratch directory
+of its own naming. The shape is the host's and may move under this product; the directory is worked
+out from the project's own path rather than held anywhere, so there is nothing to keep in step with
+it. Reading is all this product does there.
+
+- **AC-19-8-1** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "nothing a caller writes is opened"
+  WHEN a profile is asked for THEN the CLI SHALL work the directory out from the project directory
+  given, and SHALL refuse a location arriving any other way.
+- **AC-19-8-2** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "a window is read off the run's own clock, not the file's"
+  WHEN a run is judged against a window THEN the CLI SHALL take the run's own last moment rather
+  than the moment the file was last touched.
+- **AC-19-8-3** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "every row of a fixture run is what the transcript adds up to"
+  WHERE a call in that record was never answered the CLI SHALL report it as unanswered and SHALL
+  add nothing to any waiting time on its account.

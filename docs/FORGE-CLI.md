@@ -32,6 +32,7 @@ needs that topic and by nobody else.
 | [`beside`](cli/beside.md) | What the create path asks the tracker before it files, the floor it drops a neighbour under, why a fix-size filing folds onto one only when two independent answers agree, and the cases it still cannot reach. |
 | [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue and not a file, where the destination project is held, and why a matching title routes on an exact match rather than an overlap score. |
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
+| [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, what a call that never returned counts as, and the three rows a hand profile got wrong. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, what is withheld by default, and how the CLAUDE.md claims were calibrated. |
 | [which gates run](cli/which-gates-run.md) | Why the switch is derived from the hooks directory, and why exactly one place answers whether a gate is off. |
 | [the project](cli/the-project.md) | Why a host is told from a secret by the shape of the value, where the trim stops, and the edge the credential guard states rather than claims. |

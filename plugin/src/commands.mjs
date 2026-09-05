@@ -46,6 +46,7 @@ import { cloudflare } from "./tools/cloudflare.mjs";
 import { knowledge } from "./tools/knowledge.mjs";
 import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
+import { stats } from "./stats/runs.mjs";
 import { hooks } from "./hooks/hook-log.mjs";
 import { record } from "./flow/record.mjs";
 import { advance } from "./flow/advance.mjs";
@@ -210,6 +211,7 @@ export const commands = {
   feedback,
   codex,
   hooks,
+  stats,
   tools: async (rest) => {
     onlyFlags("tools", rest);
     const { all } = flags(rest, "tools", ["--all"]);
