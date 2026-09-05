@@ -1,6 +1,6 @@
 # SRS §8 — FR-06 — The second opinion
 
-Rev: 1 · Actors: agent, reviewer · Enforces: BR-01, BR-09, BR-16 · Source: plugin/skills/forge/references/codex.md
+Rev: 1 · Actors: agent, reviewer · Enforces: BR-01, BR-09, BR-16 · Source: plugin/guides/skills/forge/references/codex.md
 
 ← [Index](./README.md) · [§7 FR-05 Earned transitions](./fr-05-earned-transitions.md) · Next: [§9 FR-07 The gate harness](./fr-07-gate-harness.md)
 
@@ -10,7 +10,7 @@ Rev: 1 · Actors: agent, reviewer · Enforces: BR-01, BR-09, BR-16 · Source: pl
 
 What a turn wrote is read by a model from another provider before it lands. Why that is worth its
 tokens at all, and how a finding should be received, is
-`plugin/skills/forge/references/codex.md`; what this requirement adds is that the reading has to
+`plugin/guides/skills/forge/references/codex.md`; what this requirement adds is that the reading has to
 happen and has to be answered, because a reminder is context and an agent can ignore one — and one
 did, for an hour of gate changes.
 

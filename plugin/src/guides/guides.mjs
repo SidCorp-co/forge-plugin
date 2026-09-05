@@ -6,10 +6,14 @@
    carries what the stale rules cost; `forge guide contract` prints what holds instead. */
 
 import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./contract.mjs";
+import { skillGuideAnswer, skillGuideSlugs, skillListingRow } from "./skill-guides.mjs";
 
 /* The guides this copy answers off its own disk, listed rather than reached by the verb comparing a
    slug against one constant of its own; a slug absent from it is the tracker's, answered `null`. */
-const LOCAL = [{ slug: CONTRACT_SLUG, row: CONTRACT_ROW, answer: contractAnswer }];
+const LOCAL = [
+  { slug: CONTRACT_SLUG, row: CONTRACT_ROW, answer: contractAnswer },
+  ...skillGuideSlugs().map((slug) => ({ slug, row: skillListingRow(slug), answer: skillGuideAnswer(slug) })),
+];
 export const LOCAL_SLUGS = LOCAL.map((one) => one.slug);
 export const LOCAL_ROWS = LOCAL.map((one) => one.row);
 export const localGuide = (slug) => LOCAL.find((one) => one.slug === slug)?.answer ?? null;

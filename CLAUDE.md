@@ -34,7 +34,7 @@ A hook fires in whatever project has the plugin installed, on a tree with its ow
 default branch and its own idea of good code. So it may refuse a *shape* and never a style, it reads
 configuration rather than assuming it, and it stays silent where a project has not decided. The
 division and the case where both levels could speak:
-`plugin/skills/issue-flow/references/two-levels.md`.
+`plugin/guides/skills/issue-flow/references/two-levels.md`.
 
 A refusal a developer cannot act on is a defect: say which shape was refused and what to do instead,
 in the message itself.

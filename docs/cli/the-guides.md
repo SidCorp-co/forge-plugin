@@ -10,7 +10,7 @@ same agent paid four calls taking non-work down the `closed`-plus-`unmark` route
 guides on its first call of a run, and two contracts at that moment cost a round every time.
 
 So the verb reads them through a disposition of its own, one row per guide in
-`plugin/src/tracker/guides.mjs`: a slug, why, the rules replaced in the guide's own words beside
+`plugin/src/guides/guides.mjs`: a slug, why, the rules replaced in the guide's own words beside
 what holds instead, and where to go — a verb this CLI has, or a file the installed copy carries. It is
 code and not a project setting because it is this plugin's reading of the tracker, and a
 contradiction is not a thing a project can rightly turn back on.
@@ -69,3 +69,15 @@ project's own file the copy — so it no longer scores a superseded guide. It wo
 developer to delete their line and defer to the rule the CLI stopped serving. An `overrides:` marker
 still resolves against all twelve: a waiver names a guide, and which of them this plugin stands
 behind is not the waiver's business.
+
+## The skills' own text is served the same way
+
+Since 3.35.128 a skill under `plugin/skills/` that only this plugin ships is a stub: the frontmatter
+Claude Code offers the skill by, and one paragraph naming `forge guide <skill>`. Its body and
+references live under `plugin/guides/skills/<skill>/` and are rows of the same local registry the
+contract is. The reason is the one the contract gave (ISS-78, ISS-321): a skill file is read by a
+session at its start and never again, so a landed correction reached nobody until every open session
+restarted, and the four runs of 2026-09-05 called `forge guide contract` over two hundred times while
+opening a reference file at most five. Text a run fetches at the phase is current in every session and
+owes no restart. The two skills the code-quality plugin also ships stay whole, because that plugin
+carries no CLI to serve them.

@@ -266,6 +266,22 @@ test("a skill directory the tree has never tracked is swept too", () => {
   assert.match(JSON.parse(run.stdout).reason, /SKILL\.md/u, "nothing named it and nothing tracked it");
 });
 
+/* The body `forge guide` serves lives under guides/skills/ with no SKILL.md beside it (ISS-353). */
+test("a served skill body under guides/skills is swept like the stub", () => {
+  const session = randomUUID();
+  const repo = tempRoom("landed-served-");
+  mkdirSync(join(repo, "guides", "skills", "deploy", "references"), { recursive: true });
+  writeFileSync(join(repo, "README.md"), "a tree\n");
+  committed(repo, "README.md");
+  writeFileSync(join(repo, "guides", "skills", "deploy", "guide.md"), "the method\n");
+  const run = callHook(
+    HOOK,
+    { session_id: session, tool_name: "Bash", tool_input: { command: "node make-skill.mjs" }, cwd: repo },
+    HOME,
+  );
+  assert.match(JSON.parse(run.stdout).reason, /guide\.md/u, "the served body changed and nothing asked");
+});
+
 /* A fresh mtime is not authorship: `git pull` restamps every skill file it carries, and asking the
    agent to justify those is a refusal about somebody else's commit. The tree is asked instead. */
 test("a tracked skill file the tree agrees with was not written here", () => {

@@ -7,7 +7,7 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, cutLine } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
-import { partsOf, readContract, stageLine } from "../tracker/contract.mjs";
+import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
 import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE } from "./machine.mjs";
 import { Refused, issueOf, post, refuse, render } from "./record.mjs";
 import { PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, transitionCall, viewFrom } from "./earned.mjs";

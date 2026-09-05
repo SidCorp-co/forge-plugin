@@ -10,7 +10,7 @@ import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/f
 import { commentPage, cutLine, postComment } from "../tracker/comments.mjs";
 import { attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo }
   from "../tracker/evidence.mjs";
-import { CONTRACT } from "../tracker/contract.mjs";
+import { CONTRACT } from "../guides/contract.mjs";
 import { releaseLine, releasePolicy } from "../tracker/project-config.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";

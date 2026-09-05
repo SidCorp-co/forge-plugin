@@ -55,7 +55,7 @@ Three rules make it safe:
   be narrowed by the rules it is editing
 
 A narrowed step is the one move whose proof cannot be a green run, so it has its own procedure in
-[`proving-it.md`](proving-it.md) and nothing here repeats it.
+`forge guide gate-review proving-it` and nothing here repeats it.
 
 ## Build a fixture once, and be sure it goes
 

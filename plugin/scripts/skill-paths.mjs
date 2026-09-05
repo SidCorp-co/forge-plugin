@@ -36,7 +36,8 @@ import { fileURLToPath } from "node:url";
 import { claims } from "../src/checks/claude-md.mjs";
 
 const plugin = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const skillsRoot = join(plugin, "skills");
+/* A skill is two directories now: the stub Claude Code loads, and the body `forge guide` serves. */
+const skillRoots = [join(plugin, "skills"), join(plugin, "guides", "skills")];
 
 const unknown = args.filter((arg) => arg.startsWith("-"));
 if (unknown.length) {
@@ -59,9 +60,9 @@ const NAMES_A_FILE = /\/.*\.(?:mjs|cjs|[jt]sx?|json|md|sql|ya?ml|sh|py|toml)$/u;
 
 const skillDirs = args.length
   ? args.map((arg) => resolve(arg))
-  : readdirSync(skillsRoot, { withFileTypes: true })
+  : skillRoots.flatMap((root) => readdirSync(root, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
-      .map((entry) => join(skillsRoot, entry.name));
+      .map((entry) => join(root, entry.name)));
 
 /* Containment of the real file, not existence at the written path: `..` normalises away and a
    symlink resolves elsewhere, so either can name a file that exists while the copy of the skill a

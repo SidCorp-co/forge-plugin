@@ -1,8 +1,6 @@
 /* One command that re-mints an issue's context. ISS-26's shell died mid-review and its successor
    read the run's state out of a file written outside the repository, because nothing typed could
    hold it. This writes nothing, takes no lease, and reads only the record (ISS-44). */
-import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -31,14 +29,6 @@ export const USAGE = [
   "A fact a successor needed and did not find here belongs on the record or in the worklog, never in",
   "this verb: `forge claim <ref> --pushed --review --open \"<line>\"` and `--next` are where it goes.",
 ].join("\n");
-
-/* Resolved from this module rather than named: `skills/` sits beside `src/` in the installed plugin
-   and under `plugin/` in the checkout, so one relative URL is right in both and a literal is not. */
-const methodPath = (reference) => {
-  if (!reference) return null;
-  const path = fileURLToPath(new URL(`../../${reference}`, import.meta.url));
-  return existsSync(path) ? path : reference;
-};
 
 const PLAN_LINES = 12;
 
@@ -101,8 +91,7 @@ const print = (brief, view, ref) => {
   block("Worklog", worklogLines(brief.worklog, brief.next));
   block("Parks and blockers", parks(brief));
   owed(brief, view, ref);
-  const method = methodPath(brief.reference);
-  if (method) console.log(`\nThe method for this phase: ${method}`);
+  if (brief.reference) console.log(`\nThe method for this phase: ${brief.reference}`);
   console.log(`\nRead: ${brief.comments.length} comment(s) on this issue`
     + `${brief.comments.length ? `, latest ${brief.comments.at(-1).at}` : ""}.`);
   if (view.cut) console.log(`${view.cut} This brief was minted from those rows and from no others.`);

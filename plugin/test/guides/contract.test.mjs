@@ -23,7 +23,7 @@ const {
   readContract,
   stageLine,
   statesContract,
-} = await import("../../src/tracker/contract.mjs");
+} = await import("../../src/guides/contract.mjs");
 const { CHECKS, ORDER, PHASE, viewFrom } = await import("../../src/flow/earned.mjs");
 const { LIGHTER } = await import("../../src/flow/machine.mjs");
 const { render } = await import("../../src/flow/record.mjs");
@@ -204,8 +204,9 @@ test("every rule the contract states has the figure's row, and every row states 
     held[1].rows.slice(1));
 });
 
-const SKILL = join(PLUGIN, "skills", "issue-flow", "SKILL.md");
-const VERIFICATION = join(PLUGIN, "skills", "issue-flow", "references", "verification.md");
+/* The body `forge guide issue-flow` serves, not the stub Claude Code loads (ISS-353). */
+const SKILL = join(PLUGIN, "guides", "skills", "issue-flow", "guide.md");
+const VERIFICATION = join(PLUGIN, "guides", "skills", "issue-flow", "references", "verification.md");
 const CONTRACT_REL = contractPath();
 /* Split rather than matched to a lookahead: a lazy body against a multiline `$` ends at the first
    line break, and every phase then reads as empty. */

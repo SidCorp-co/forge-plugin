@@ -18,4 +18,4 @@ outcome each produces** — a table of before/after rows, a literal example reco
 screens side by side. The person answering should be choosing between visible results.
 
 Then park it, in whatever status the tracker uses for "waiting on the reporter" — for the Forge
-driver that is `needs_info`, and only that: `references/forge-driver.md`.
+driver that is `needs_info`, and only that: `forge guide issue-flow forge-driver`.

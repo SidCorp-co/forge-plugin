@@ -38,7 +38,7 @@ A citation of a rule carries its revision: `BR-09~1`.
 | **BR-12** | 1 | the source, not the gate | `CLAUDE.md`, "Verifying" |
 | **BR-13** | 1 | a checker watched to fire | `CLAUDE.md`, "Verifying" |
 | **BR-14** | 1 | an input used or refused | `docs/issue-flow-contract.md`, "Second dry run" |
-| **BR-15** | 1 | a stop only for the irreversible | `plugin/skills/issue-flow/SKILL.md`, "Autonomy, and the three things that stop it" |
+| **BR-15** | 1 | a stop only for the irreversible | `plugin/guides/skills/issue-flow/guide.md`, "Autonomy, and the three things that stop it" |
 | **BR-16** | 1 | the half no gate reaches | `CLAUDE.md`, "The half no gate reaches" |
 | **BR-17** | 1 | never the developer's own credential | `CLAUDE.md`, "The live config directory is one environment variable away" |
 

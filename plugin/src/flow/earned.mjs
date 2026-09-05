@@ -9,7 +9,7 @@ import {
 import { attachmentNames, evidenceHeld, isCommit } from "../tracker/evidence.mjs";
 import { SIZE_LINE, isFix } from "../tracker/issue-shape.mjs";
 import { Refused, assemble, criteriaLines, parse } from "./record.mjs";
-import { CONTRACT } from "../tracker/contract.mjs";
+import { CONTRACT } from "../guides/contract.mjs";
 import { waitsForPerson } from "../tracker/project-config.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
@@ -21,22 +21,22 @@ export const ORDER = [
    relative to the plugin root — one level above this module in the checkout and in the installed
    copy alike. ISS-18 owns typing it; a pointer beats a number nobody can look up. */
 export const PHASE = {
-  open: ["1 Triage", "triage.md"],
-  confirmed: ["2 Clarify", "clarify.md"],
-  clarified: ["3 Plan", "plan.md"],
-  approved: ["4 Implement, to the branch", "verification.md"],
-  in_progress: ["4 Implement, to the review; 5 Prove; then 7's landing", "verification.md"],
-  developed: ["5 Prove", "verification.md"],
-  tested: ["6, 7 Ship", "release-note.md"],
-  released: ["7 Ship, the close", "release-note.md"],
-  closed: ["none", "learning.md"],
-  dropped: ["none", "learning.md"],
-  reopen: ["1 Triage, of the person's finding", "triage.md"],
+  open: ["1 Triage", "triage"],
+  confirmed: ["2 Clarify", "clarify"],
+  clarified: ["3 Plan", "plan"],
+  approved: ["4 Implement, to the branch", "verification"],
+  in_progress: ["4 Implement, to the review; 5 Prove; then 7's landing", "verification"],
+  developed: ["5 Prove", "verification"],
+  tested: ["6, 7 Ship", "release-note"],
+  released: ["7 Ship, the close", "release-note"],
+  closed: ["none", "learning"],
+  dropped: ["none", "learning"],
+  reopen: ["1 Triage, of the person's finding", "triage"],
 };
 
 export const methodOf = (status) => {
   const held = PHASE[status];
-  return held ? { phase: held[0], reference: `skills/issue-flow/references/${held[1]}` } : null;
+  return held ? { phase: held[0], reference: `forge guide issue-flow ${held[1]}` } : null;
 };
 
 /* Which reader each park kind speaks to, and so which side status it lands in. Every kind in PARKS

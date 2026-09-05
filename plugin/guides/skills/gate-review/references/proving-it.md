@@ -68,7 +68,7 @@ machine is a saving reported for a machine nobody uses.
 
 ## The two numbers
 
-Before and after, taken under the conditions [`measuring.md`](measuring.md) pins down, with the
+Before and after, taken under the conditions `forge guide gate-review measuring` pins down, with the
 share of the run the changed step held on each side. The share matters as much as the seconds: an
 identical absolute saving means very different things in a three-minute run and an hour-long one,
 and the share is what tells the next review where to look.

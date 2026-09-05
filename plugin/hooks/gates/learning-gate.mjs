@@ -34,7 +34,7 @@ const SHAPE =
 function skillRoot(path) {
   let dir = dirname(resolve(path));
   for (let i = 0; i < 4; i += 1) {
-    if (existsSync(join(dir, "SKILL.md"))) return dir;
+    if (existsSync(join(dir, "SKILL.md")) || existsSync(join(dir, "guide.md"))) return dir;
     dir = dirname(dir);
   }
   return null;
@@ -183,7 +183,7 @@ export const run = (ev) => {
   }
 
   // --- a skill's own text: a skill learning ---
-  if (path.includes("/skills/") && /\/(SKILL\.md|references\/[^/]+\.md)$/.test(path)) {
+  if (path.includes("/skills/") && /\/(SKILL\.md|guide\.md|references\/[^/]+\.md)$/.test(path)) {
     const root = skillRoot(path);
     const proposed = `${ti.content ?? ""}\n${ti.new_string ?? ""}`;
     if (root) {

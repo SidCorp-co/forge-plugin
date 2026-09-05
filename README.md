@@ -134,8 +134,9 @@ plugin/
     format/               order-preserving JSON, locale trees, Markdown segmentation
     gateway/              config, the streaming client, the batch engine with its gate
     commands/             one file per verb
-  skills/forge  skills/vi-natural  skills/issue-flow
-  skills/audit-code-quality  skills/setup-code-quality  skills/gate-review
+  skills/<name>/SKILL.md  the stub Claude Code offers a skill by; four of the six carry only that
+  guides/skills/<name>/   the body and references `forge guide <name>` serves for those four
+  skills/audit-code-quality  skills/setup-code-quality  whole, shared with packages/code-quality
 ```
 
 An import may run from `vi-natural/` into `src/` and never the other way. The two directories are
@@ -160,7 +161,7 @@ watched, which directories are in scope. It owns no rule about what good code is
 
 A **project** owns that. Its eslint config, its thresholds, its gates. Which level a rule belongs
 to, and what happens where both could speak, is stated once in
-`plugin/skills/issue-flow/references/two-levels.md`.
+`plugin/guides/skills/issue-flow/references/two-levels.md`.
 
 `code-quality.mjs` is the arrangement in one file. It finds every file a call wrote — including
 through the shell, which is the route `Edit|Write|MultiEdit` matchers miss — and hands each one to

@@ -44,7 +44,7 @@ lesson being that "always loaded" is a budget to spend sparingly.
 standard rather than one vendor's private file.
 
 *Taken:* method in the skill, knowledge in the repository, and a discovery contract naming
-where to look — `references/project-discovery.md`.
+where to look — `forge guide issue-flow project-discovery`.
 *Rejected:* a bespoke per-project file only this skill understands, which would recreate the
 fragmentation the standard exists to end.
 
@@ -58,11 +58,11 @@ in the code, history lives in git", forbid hard-coded ids, slugs, tokens, hosts 
 refuse to recite the commands their gate script owns, and push a recurring trap down into
 the checker that prevents it. That is where the doctrine is drawn from and how far the
 evidence goes: it is a design choice that has worked in two repositories, stated as a
-choice, and `references/project-discovery.md` says explicitly that a project which decided
+choice, and `forge guide issue-flow project-discovery` says explicitly that a project which decided
 otherwise wins.
 
 **Rule 5 — learn selectively — has no external source.** It came from this workflow's own
 first rounds, where the failure was the opposite of forgetting: enough was written down
 that nothing was read, and one reference transcribed an API's payload shapes that the
-tool's own `-h` already documented and had since fixed. `references/learning.md` is the
+tool's own `-h` already documented and had since fixed. `forge guide issue-flow learning` is the
 correction, and pruning is half of it.

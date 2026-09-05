@@ -87,7 +87,7 @@ const POINTS_AT = {
   deps: "forge_issues",
   next: null,
   dep: "forge_project_pm",
-  guide: "forge_guide",
+  guide: null,
   project: null,
   knowledge: "forge_knowledge",
   cloudflare: null,
@@ -146,7 +146,7 @@ test("both help forms name the verb a plugin defect is filed with, and no folder
 /* An agent that does not know a thing exists spends no turn on it; one that knows and cannot act
    reads it and weighs it anyway. So `forge doctor` carries all of that and no help text does. */
 test("no help text names a guide this plugin withholds, or a flag only a maintainer can act on", async () => {
-  const { heldSlugs } = await import("../../src/tracker/guides.mjs");
+  const { heldSlugs } = await import("../../src/guides/guides.mjs");
   for (const argv of [["-h"], ["-h", "--full"], ["guide", "-h"]]) {
     const run = ask(...argv);
     const text = `${run.stdout}${run.stderr}`;

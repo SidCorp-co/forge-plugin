@@ -64,7 +64,7 @@ only accumulates stops being read, and a skill that is not read enforces nothing
 A phase skipped three times is evidence about the phase, not about the sessions that skipped
 it. Record the pattern first and change the phase once it has recurred — a workflow
 rewritten from a single bad round is fitted to that round. Then read
-`references/prior-art.md`, which says what the current shape already considered and turned
+`forge guide issue-flow prior-art`, which says what the current shape already considered and turned
 down.
 
 ## Where a rule goes, and why a hook is the last place

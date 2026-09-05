@@ -19,7 +19,7 @@ const VERB_LIST = [
 ].join("\n");
 
 /* The write-time rules this CLI itself refuses without, carried rather than fetched: ten lines
-   nobody asked for. They were the tracker's runner's until ISS-66 — src/tracker/guides.mjs. */
+   nobody asked for. They were the tracker's runner's until ISS-66 — src/guides/guides.mjs. */
 const PREAMBLE = [
   "",
   "Before you write:",

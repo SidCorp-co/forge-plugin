@@ -85,4 +85,4 @@ regardless of tests passing, a danger whose failure mode is silent, a reason a r
 cannot recover from the code beside it. What does not: a restatement of something a checker
 already refuses.
 
-Feeding a learning back is Rule 5 — `references/learning.md`.
+Feeding a learning back is Rule 5 — `forge guide issue-flow learning`.

@@ -36,10 +36,9 @@ import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean, unknownFlag } from "./suggest.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "./resolve/flags.mjs";
-import { dispositionOf, trackerHeader, visibleGuides } from "./tracker/guides.mjs";
+import { LOCAL_ROWS, LOCAL_SLUGS, dispositionOf, localGuide, trackerHeader, visibleGuides } from "./guides/guides.mjs";
 import { briefLines, confirmSource, projectLines, readBrief, refreshBrief, releasePolicy,
   replaceBriefLine, stagingDeploy } from "./tracker/project-config.mjs";
-import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./tracker/contract.mjs";
 import { doctor } from "./tools/doctor.mjs";
 import { deps } from "./tools/deps.mjs";
 import { next } from "./rank/next.mjs";
@@ -473,7 +472,7 @@ export const commands = {
     await renew(toIssueId, to);
     show(await write("forge_project_pm", { action: "set_dependency", fromIssueId, toIssueId, kind }));
   },
-  /* Read through this plugin's disposition of them, which tracker/guides.mjs holds and explains. A
+  /* Read through this plugin's disposition of them, which guides/guides.mjs holds and explains. A
      held slug is answered as a slug the tracker never served, through that refusal's own call site
      so the two answers cannot drift apart, and its body is never fetched: hiding a page an agent
      cannot follow comes before naming it, and a line saying one exists and is stale is what makes
@@ -485,9 +484,12 @@ export const commands = {
     onlyFlags("guide", flagArgv, ["--tracker"]);
     const asked = flags(flagArgv, "guide", ["--tracker"]);
     const [slug, ...extra] = positionals;
-    if (slug === CONTRACT_SLUG) {
+    /* This copy's own guides — the contract and each skill's method — answer off disk through one
+       registry, so the verb compares no slug against a constant of its own. */
+    const local = localGuide(slug);
+    if (local) {
       const [part, ...rest] = extra;
-      const answer = contractAnswer({ part, extra: rest, tracker: asked.tracker });
+      const answer = local({ part, extra: rest, tracker: asked.tracker });
       if (answer.refusal) fail(`guide: ${answer.refusal}`);
       return console.log(answer.lines.join("\n"));
     }
@@ -501,15 +503,17 @@ export const commands = {
       return rows.filter((one) => shown.has(one.slug));
     };
     if (!slug) {
-      console.log(CONTRACT_ROW);
+      for (const row of LOCAL_ROWS) console.log(row);
+      if (isGated("forge_guide")) return console.log("The tracker's guides are withheld from this credential: `forge doctor`.");
       for (const guide of await listed()) console.log(`${guide.slug}\n  ${guide.summary}`);
       return;
     }
+    refuseIfGated("forge_guide");
     const row = dispositionOf(slug);
     /* The one place a slug the verb does not serve is refused, so a held one and an unserved one
        answer in the same words. A held slug reaches it without the get: the body is not wanted. */
     const noSuchGuide = async () =>
-      fail(didYouMean("guide", slug, [CONTRACT_SLUG, ...(await listed()).map((one) => one.slug)],
+      fail(didYouMean("guide", slug, [...LOCAL_SLUGS, ...(await listed()).map((one) => one.slug)],
         "`forge guide` lists the guides this plugin stands behind."));
     if (row && !asked.tracker) await noSuchGuide();
     const answer = await scoped("forge_guide", { action: "get", slug }, true);

@@ -14,7 +14,7 @@ export const WHOLE_TREE_TESTS = [
   "plugin/test/checks/cited-paths.test.mjs",
   "plugin/test/checks/docs",
   "plugin/test/checks/sources-are-text.test.mjs",
-  "plugin/test/tracker/contract.test.mjs",
+  "plugin/test/guides/contract.test.mjs",
 ];
 
 export const TEST_FILE = /^plugin\/test\/.*\.test\.mjs$/u;

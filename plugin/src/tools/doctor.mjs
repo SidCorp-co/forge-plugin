@@ -24,8 +24,8 @@ import { LOG_PATH, consults, logEntries } from "../codex/codex-log.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
-import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../tracker/guides.mjs";
-import { contractPath, contractProblems, readContract, statesContract } from "../tracker/contract.mjs";
+import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
+import { contractPath, contractProblems, readContract, statesContract } from "../guides/contract.mjs";
 
 const VI_CONFIG = join(configDir("vi-natural"), "config.json");
 
@@ -304,7 +304,7 @@ const checkClaudeMdLocally = () => {
 const reportGuideTable = (served) => {
   const { retired, unreviewed } = reviewGuideTable({ served });
   for (const slug of retired) {
-    line(BAD, "guide table", `${slug} has a row in src/tracker/guides.mjs and the tracker no longer`
+    line(BAD, "guide table", `${slug} has a row in src/guides/guides.mjs and the tracker no longer`
       + " serves it — drop the row, in the change that notices");
   }
   for (const slug of unreviewed) {

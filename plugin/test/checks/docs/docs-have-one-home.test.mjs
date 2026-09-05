@@ -29,15 +29,7 @@ const docs = walk(DOCS);
 /* Everywhere a fact may already live: the skills, the gate documents, the rules file. */
 const homed = () => {
   const files = [join(ROOT, "CLAUDE.md")];
-  const skills = join(ROOT, "plugin", "skills");
-  for (const name of readdirSync(skills)) {
-    const spine = join(skills, name, "SKILL.md");
-    if (existsSync(spine)) files.push(spine);
-    const refs = join(skills, name, "references");
-    if (existsSync(refs)) {
-      for (const one of readdirSync(refs)) if (one.endsWith(".md")) files.push(join(refs, one));
-    }
-  }
+  for (const [, path] of skillDocs()) files.push(path);
   const how = join(ROOT, "plugin", "hooks", "how");
   for (const one of readdirSync(how)) if (one.endsWith(".md")) files.push(join(how, one));
   return files.flatMap((file) => sentences(readFileSync(file, "utf8")).map((one) => [file, one]));
@@ -78,16 +70,21 @@ const refused = () => {
   return [...pages, ...help];
 };
 
+const SKILL_ROOTS = ["plugin/skills", "plugin/guides/skills"];
 const skillDocs = () => {
-  const skills = join(ROOT, "plugin", "skills");
   const out = [];
-  for (const name of readdirSync(skills)) {
-    const spine = join(skills, name, "SKILL.md");
-    if (existsSync(spine)) out.push([`plugin/skills/${name}/SKILL.md`, spine]);
-    const refs = join(skills, name, "references");
-    if (!existsSync(refs)) continue;
-    for (const one of readdirSync(refs)) {
-      if (one.endsWith(".md")) out.push([`plugin/skills/${name}/references/${one}`, join(refs, one)]);
+  for (const rel of SKILL_ROOTS) {
+    const skills = join(ROOT, rel);
+    for (const name of readdirSync(skills)) {
+      for (const body of ["SKILL.md", "guide.md"]) {
+        const spine = join(skills, name, body);
+        if (existsSync(spine)) out.push([`${rel}/${name}/${body}`, spine]);
+      }
+      const refs = join(skills, name, "references");
+      if (!existsSync(refs)) continue;
+      for (const one of readdirSync(refs)) {
+        if (one.endsWith(".md")) out.push([`${rel}/${name}/references/${one}`, join(refs, one)]);
+      }
     }
   }
   return out;

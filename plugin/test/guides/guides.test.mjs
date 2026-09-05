@@ -22,7 +22,7 @@ const {
   supersededSlugs,
   trackerHeader,
   visibleGuides,
-} = await import("../../src/tracker/guides.mjs");
+} = await import("../../src/guides/guides.mjs");
 const { VERB_NAMES } = await import("../../src/resolve/visibility.mjs");
 const { suggest } = await import("../../src/suggest.mjs");
 
@@ -41,14 +41,16 @@ const review = (extra = {}) =>
 /* The registry the verb asks instead of comparing a slug against one constant of its own. Both
    directions: a local slug answers with something callable, and a slug the tracker serves answers
    `null` — a registry claiming a tracker guide would serve a stale copy of a page off disk. */
-test("a local guide is answered from this copy, and nothing else is", () => {
+test("a local guide is answered from this copy, and nothing else is", async () => {
   const answer = localGuide("contract");
   assert.equal(typeof answer, "function", "the contract is answered from disk");
   assert.deepEqual(answer({ part: "confirmed" }).lines.length, 1, "and its part comes back as one body");
   for (const slug of [...REVIEWED, "", "contracts", undefined]) {
     assert.equal(localGuide(slug), null, `${slug} is the tracker's, and this copy holds no page of it`);
   }
-  assert.deepEqual(LOCAL_SLUGS, ["contract"], "one local guide today, and the skills join it");
+  const { skillGuideSlugs } = await import("../../src/guides/skill-guides.mjs");
+  assert.deepEqual(LOCAL_SLUGS, ["contract", ...skillGuideSlugs()], "the contract, then every skill this copy serves");
+  assert.ok(skillGuideSlugs().includes("issue-flow"), "the issue-flow method is served from this copy");
   assert.equal(LOCAL_ROWS.length, LOCAL_SLUGS.length, "a local guide the listing would not print is hidden");
 });
 

@@ -11,7 +11,7 @@ const {
   KINDS, USAGE, assemble, checked, conjunctionsFor, criteriaLines, fromRecord, joinedCriteria, noteFrom, parse, render,
 } = await import("../../src/flow/record.mjs");
 const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES, unwrap } = await import("../../src/flow/machine.mjs");
-const { CONTRACT } = await import("../../src/tracker/contract.mjs");
+const { CONTRACT } = await import("../../src/guides/contract.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });

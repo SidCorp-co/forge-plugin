@@ -13,7 +13,7 @@ process.env.XDG_CONFIG_HOME = tempHome("batched-verdict").path;
 const { blocksIn, parse, parseAll, render } = await import("../../src/flow/record.mjs");
 const { SHAPES } = await import("../../src/flow/machine.mjs");
 const { CHECKS, viewFrom } = await import("../../src/flow/earned.mjs");
-const { CONTRACT } = await import("../../src/tracker/contract.mjs");
+const { CONTRACT } = await import("../../src/guides/contract.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const COMMIT = "43b811e";

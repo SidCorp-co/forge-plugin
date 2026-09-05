@@ -27,9 +27,9 @@ export const VERBS = [
         + "paired device alone and this credential may not call: no edge is written from here, and "
         + "no other verb needs a device. `forge doctor` measured that." }],
   /* No flag of this verb is named here, deliberately — docs/cli/withholding-a-verb.md. */
-  ["guide", "[contract [part]|slug]",
-    "this plugin's contract, one part per call, and the tracker's guides this flow stands behind",
-    "forge_guide"],
+  ["guide", "[contract [part]|<skill> [reference]|slug]",
+    "this plugin's contract and each skill's method, one part per call, and the tracker's guides this flow stands behind",
+    null],
   ["project", "[--credentials] [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text>] [--title T] [--confidence C] [--meta k=v]...",
     "the id, the branches a change lands on, the staging deploy, and the project's own brief",
     "forge_projects.list"],
