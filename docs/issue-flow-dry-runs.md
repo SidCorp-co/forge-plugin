@@ -2202,3 +2202,28 @@ from the record.
 - The full gate last ran one commit before the shipped head; the final refinement was covered by the
   ship's scoped run and four suites, and the verdict says so plainly, with the cost of closing the gap
   stated. A verdict that names its own gap is worth more than one that hides it under a green.
+
+## Eighty-seventh dry run — ISS-258
+
+One agent gave the event-stream frame reader one home (3.35.100): a module that imports nothing, so
+neither transport depends on the other; the tracker's transport and the provider's spend it, and the
+is-it-framed test takes the shared name rather than typing the prefix a third time. The provider's own
+sentinel and parse stayed where they were, since hoisting them would have changed the tracker's behaviour
+behind a diff that read as a pure move. Neutrality proven by running nearly six thousand built frames
+across the shared form and both replaced forms captured verbatim, then both consumers end to end against
+a local event-stream server and a local gateway serving captured frames — identical bytes from base and
+branch — and the installed copy the same way. The live tracker answers plain JSON, so that branch was stood
+up rather than waited for. No restart owed. Closed by its run. Folded from the record.
+
+- Two criteria were corrected in the open before judging because they asked for outcomes the change
+  makes impossible: a revert probe wanting a green whole gate, when restoring either half restores a copy
+  the new guard refuses; and a probe wanting a live model reply to match byte for byte. A criterion is
+  judged as the review left it, and one the review proved impossible is corrected, not judged failed.
+- The reader is not the standard's dispatch — it does not strip a leading space or join with a line
+  feed — and both callers have always read it the private way; the divergence is stated at the module, in
+  the docs and in two pinned assertions rather than quietly fixed. A behaviour two callers rely on is a
+  contract, standard or not.
+- A third copy sits in the Vietnamese tool's gateway client, outside the assigned files, and the fix
+  depends on a decision nobody has written — whether that tool may import from the plugin's source. The
+  run had asserted the boundary existed; the review caught it, and the doc now says it does not (ISS-277).
+  The dependency verb on a personal token was filed once more with its workaround written out (ISS-278).
