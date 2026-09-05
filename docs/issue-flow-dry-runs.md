@@ -2948,3 +2948,32 @@ findings. Closed by its run. Folded from its handback.
 - Two spellings the probe proves refused are not locked by an assertion, by the run's choice: the
   read that would have covered them was whole, and a round for coverage already evidenced was not
   worth its cost. The gap is named rather than hidden.
+
+## Hundred-and-sixteenth dry run — ISS-351
+
+The batch reading the ship had named owed for eight releases, dispatched by the parent alongside the
+wave. The range 299f437..8cadbf5 was read whole and one simplifying commit came out of it: twelve
+declarations no line outside their own module names lost their `export`, found by a census that counts
+every import, re-export and destructured dynamic import over every tracked module, which went from
+79 rows to 67 (3.35.132, landed as 88ac62e). Eleven of the twelve were born inside the range; the
+twelfth was made public by one run for a caller that spent another helper in the same commit — the
+shape a single-issue review cannot see and a batch reading exists for. No behaviour changed, by the
+issue's own rule; three findings went to the tracker instead. The review mark moved to 8cadbf5 and
+the count reset from 1,338 changed lines to 144, so no reading is owed. Knowledge entries for the two
+trees the range created were written, two others corrected, and the brief's layout line corrected
+with them. Closed by its run. Folded from its handback.
+
+- Two runs three minutes apart could not see each other: `forge next` landed a restart signal that
+  reads its own table of the restart set, and the next release retired that reading. The signal
+  now tells an issue naming a gate file that it owes a restart when it does not (ISS-363). The
+  batch read is where a seam between two correct commits shows.
+- Three `median` helpers disagree on the same input, one per report that prints a median (ISS-364).
+  A primitive written three times is three answers.
+- A third byte-identical copy of the capturing code span sits in the ranking; the one-home guard
+  watches the stripping form, so nothing fired. Filed onto ISS-138. A fourth reader of the restart
+  set landed after ISS-332 was filed; filed there.
+- Codex approved with no findings but said it could not substantiate the census from its own
+  searches and had run only the test step. The run did not let either stand on its word: it checked
+  the three routes codex named, spent the full gate, and A/B'd `forge next --why` between the
+  unedited checkout and its tree byte for byte. A reviewer's qualification is a claim to verify,
+  not a caveat to quote.
