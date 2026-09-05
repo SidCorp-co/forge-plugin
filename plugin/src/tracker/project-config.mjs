@@ -192,7 +192,7 @@ const SPANNED = new RegExp(CODE_SPAN_PATTERN, "gu");
  *  that touched a module. One walk answers all three questions asked of it — what to hash, what a
  *  confirm has just vouched for, and which lines keep a shared source stale after a line is
  *  rewritten — because a digest is keyed by path and a caller acts on lines. */
-export const namersOf = (body) => {
+const namersOf = (body) => {
   const found = new Map();
   for (const [index, line] of String(body ?? "").split("\n").entries()) {
     const at = line.lastIndexOf(SOURCE_MARK);

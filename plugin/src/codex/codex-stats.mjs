@@ -44,7 +44,7 @@ const share = (many, of) => (of ? `${Math.round((many / of) * 100)}%` : "—");
 
 /** The prompt a row ran at: the version and the digest of the text actually sent, so an edit nobody
  *  bumped for still separates two windows. */
-export const promptKey = (row) => (row.prompt ? `v${row.prompt.v} ${row.prompt.sha}` : "unversioned");
+const promptKey = (row) => (row.prompt ? `v${row.prompt.v} ${row.prompt.sha}` : "unversioned");
 
 export const statsOf = (rows) => {
   const spent = Object.fromEntries(KINDS.map((kind) => [kind, 0]));
@@ -141,13 +141,13 @@ const byKey = (rows) => {
 /* The whole log's verdicts, not the window's: a verdict is written after the consult it scores and
    lands outside the window as often as in it. Scored on the window alone every model reads 0 kept,
    which looks like a log nobody ruled on rather than like a defect. */
-export const groupNumbers = (rows, verdicts) => ({ score: scoreOf([...verdicts, ...rows])[0], held: statsOf(rows) });
+const groupNumbers = (rows, verdicts) => ({ score: scoreOf([...verdicts, ...rows])[0], held: statsOf(rows) });
 
 const WHEN = 7;
 
 /* An absent measurement is said, never averaged as a zero: a group whose rows predate `usage` would
    otherwise read as the cheap window, which is the one mistake the comparison exists to avoid. */
-export const groupLines = (rows, verdicts, when) => {
+const groupLines = (rows, verdicts, when) => {
   if (!rows.length) return [`  ${when.padEnd(WHEN)} not in this window`];
   const { score, held } = groupNumbers(rows, verdicts);
   const ruled = score.accepted + score.rejected;
