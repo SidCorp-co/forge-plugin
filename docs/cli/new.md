@@ -77,7 +77,7 @@ tracker's field for a kind was empty on every one, so nothing could be read off 
 bodies answered instead. Of the 90 carrying headings, 20 open with a past-tense section and never a
 present-tense one, 51 open with a present-tense one and never a past-tense one, and 19 open with
 neither; the overlap between those two families is zero. Under them: an outcome in 89, an
-out-of-scope in 89, a rule-family heading in 94, a *Why* in 15 — and *Expected*, *Where*, *Steps*
+out-of-scope in 89, a rule-family heading in 90, a *Why* in 15 — and *Expected*, *Where*, *Steps*
 and *Reproduce* in none at all. So a defect's *expected* is the outcome heading 89 bodies already
 write it under, and *Where* is asked for and not required: a section no filing has ever carried
 would be a refusal nobody could learn the habit from.
