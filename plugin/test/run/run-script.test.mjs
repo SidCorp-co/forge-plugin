@@ -128,9 +128,11 @@ test("an argument no verb takes is refused by name before the first step", () =>
   assert.ok(empty.stderr.includes("--from"), `a flag left without its value is not named:\n${empty.stderr}`);
   assert.ok(!empty.stderr.includes("NaN"), `the value that was never given is read as a number:\n${empty.stderr}`);
 
-  const elsewhere = runIn(work, ["review", "--dnoe"], BARE);
-  assert.equal(elsewhere.status, 1, elsewhere.stdout);
-  assert.ok(elsewhere.stderr.includes("--dnoe"), `review drops what it does not take:\n${elsewhere.stderr}`);
+  for (const [verb, given] of [["review", "--dnoe"], ["start", "--slug"]]) {
+    const elsewhere = runIn(work, [verb, given, "ISS-1"], BARE);
+    assert.equal(elsewhere.status, 1, elsewhere.stdout);
+    assert.ok(elsewhere.stderr.includes(given), `${verb} drops what it does not take:\n${elsewhere.stderr}`);
+  }
 });
 
 test("start adds the worktree, links what the checkout installed, and names the wrapper to probe with", () => {
