@@ -6,5 +6,8 @@
       "tech"
     ],
     "check": "npm test"
+  },
+  "rank": {
+    "readCap": 400
   }
 }
