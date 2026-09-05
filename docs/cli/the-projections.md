@@ -20,6 +20,16 @@ one. The ranking itself is the tracker's, in the order its own schema declares i
 set returned against a schema that declares none is left exactly as it arrived rather than sorted
 against a list kept here.
 
+## Which names one body may be asked for
+
+Five fields cost enough that the tracker projects them on the wire, declaring which. An ask of only
+those stays narrow; name anything else and the body comes back whole and is selected
+here, spending bytes on the wire rather than a second read or a reader's tokens. What may be named
+is the paragraph above applied to a body, read off the answer and never listed here. While the
+declared five were the whole of it, an issue's own uuid was out of reach of the verb that prints it
+(ISS-45, ISS-48, ISS-151). The names are the ones the verb prints, not the ones it stores, a reader
+having read the name off the output.
+
 ## A list is read to exhaustion, not reported as a page
 
 One unfiltered `list` at `limit: 500` came back holding 97 of the 249 issues this project then held,

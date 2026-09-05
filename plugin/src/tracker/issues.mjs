@@ -1,5 +1,6 @@
 /* Paging, the browse projection and the reference-to-id lookup: docs/cli/the-projections.md. */
 import { fail, slugIfAny } from "../resolve/settings.mjs";
+import { didYouMean } from "../suggest.mjs";
 import { scoped } from "./rpc.mjs";
 
 /* What the browse verb PRINTS, out of the whole set the walk below reads. The wire ask is always
@@ -154,6 +155,24 @@ export const everyIssue = async (filters = {}) => {
   const held = await walkFor(filters);
   await walked(held, () => false);
   return readOf(held);
+};
+
+export const FIELDS_AT = ["fields", "items", "enum"];
+
+/** The names a body projects to are its own keys and the ones the tracker declares, read off each
+ *  answer and never listed here; a declared name the answer left out is empty. */
+export const projectedTo = (body, names, declared = []) => {
+  const held = body ?? {};
+  const out = { documentId: held.documentId, issueId: held.issueId };
+  const taken = [...new Set([...Object.keys(held), ...declared])];
+  for (const name of names) {
+    if (!taken.includes(name)) {
+      fail(didYouMean("field", name, taken,
+        `\`forge issue ${out.issueId ?? out.documentId} --full\` prints the body these are the keys of.`));
+    }
+    out[name] = Object.hasOwn(held, name) ? held[name] : null;
+  }
+  return out;
 };
 
 export const readSaid = (read) => `${read.rows.length} issue(s) over ${read.pages} page(s)`;

@@ -3,9 +3,11 @@ import { bodyFrom, notABody } from "./resolve/payload.mjs";
 import { projectId, REFERENCE_KEYS, enumAt, scoped, toolNamed, tools, write } from "./tracker/rpc.mjs";
 import {
   DEFAULT_LIMIT,
+  FIELDS_AT,
   MAX_LIMIT,
   documentIdOf,
   everyIssue,
+  projectedTo,
   queued,
   rowsOf,
   shortOf,
@@ -91,12 +93,6 @@ const trimPatterns = (node) => {
     out[key] = trimPatterns(value);
   }
   return out;
-};
-
-const checkNames = async (given, tool, path, kind, extra = []) => {
-  const allowed = [...(await enumAt(tool, path)), ...extra];
-  if (!allowed.length) return;
-  for (const name of given) if (!allowed.includes(name)) fail(didYouMean(kind, name, allowed));
 };
 
 const limitFrom = (raw) => {
@@ -317,12 +313,13 @@ export const commands = {
     onlyFlags("issue", rest);
     const { fields, full } = flags(rest, "issue", ["--full"]);
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
-    if (names) await checkNames(names, "forge_issues", ["fields", "items", "enum"], "field");
+    const declared = names ? await enumAt("forge_issues", FIELDS_AT) : [];
+    const narrow = Boolean(names) && names.every((one) => declared.includes(one));
     const documentId = await documentIdOf(reference);
-    const body = filled(
-      await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: names } : {}) }),
-    );
-    show(inFlowWords(full ? body : terse(body)));
+    const answer = inFlowWords(await scoped("forge_issues",
+      { action: "get", documentId, ...(narrow ? { fields: names } : {}) }));
+    const body = filled(names && !narrow ? projectedTo(answer, names, declared) : answer);
+    show(full ? body : terse(body));
   },
   /* `open` marks the active set; `draft` never dispatches. A filing is read before it is made,
      because the flow costs the same for one line as for a feature: how/issue-shape.md. */

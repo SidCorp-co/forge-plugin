@@ -25,10 +25,11 @@ wider one was measured and found to be mostly bytes that said nothing.
 
 ### UC-02-1 — Browse and read
 
-Rev: 1 · Actors: agent, developer · Enforces: BR-14
+Rev: 2 · Actors: agent, developer · Enforces: BR-14
 
-A browse projection for many issues and a full read for the one about to be worked. A field of the
-full read may be asked for by name. Absence is meaningful: a field with nothing in it is left out
+A browse projection for many issues and a full read for the one about to be worked. Any field of
+the full read may be asked for by the name the read prints it under, whether or not the tracker
+will project that field itself. Absence is meaningful: a field with nothing in it is left out
 rather than returned as an empty value that says only that the field exists.
 
 - **AC-02-1-1** · Rev: 1 · Proof: plugin/test/tracker/issues.test.mjs "two references resolved at once share one list"
@@ -40,6 +41,19 @@ rather than returned as an empty value that says only that the field exists.
 - **AC-02-1-3** · Rev: 1 · Proof: plugin/test/cli/commands.test.mjs "nothing else in the record is touched"
   WHEN a read returns an attachment THEN the CLI SHALL collapse it to the reference that fetches it
   and SHALL leave everything else in the record untouched.
+- **AC-02-1-4** · Rev: 1 · Proof: plugin/test/tracker/issue-fields.test.mjs "a name only the body carries answers where it used to be refused"
+  WHEN a field is asked for by the name the full read prints it under THEN the CLI SHALL answer with
+  that field, and SHALL print no field the ask did not name beyond the identifiers the tracker
+  returns unasked.
+- **AC-02-1-5** · Rev: 1 · Proof: plugin/test/tracker/issue-fields.test.mjs "a name the tracker declares is still projected on the wire"
+  WHERE every name a read asks for is one the tracker declares it will project, the CLI SHALL ask
+  the tracker for those names rather than for the whole body.
+- **AC-02-1-6** · Rev: 1 · Proof: plugin/test/tracker/issue-fields.test.mjs "a name nothing carries is refused with the command that prints the names"
+  IF a name is asked for that neither the tracker declares nor the body carries THEN the CLI SHALL
+  refuse it and SHALL name the command that prints the names it does take.
+- **AC-02-1-7** · Rev: 1 · Proof: plugin/test/tracker/issue-fields.test.mjs "the mixed ask costs one get, and asks it for the whole body"
+  WHEN a read names fields THEN the CLI SHALL read the issue exactly once, whichever of the two
+  routes the names it was given take.
 
 ### UC-02-2 — A read is never mistaken for complete
 
