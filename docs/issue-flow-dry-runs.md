@@ -3587,3 +3587,29 @@ crossed the threshold. No restart owed. Closed by its run. Folded from its handb
 - Two other runs of the wave were cut off mid-phase by the model's session limit with their trees
   intact and their leases held; they are resumed in their own agents when the limit lifts, not
   replaced.
+
+## Hundred-and-fortieth dry run — ISS-394
+
+Two readings on one thread, both verified before planning: the confirmation's tier stamp read the
+body alone, filed by the run that made the tracker's field claim a rung, and the ranking verb let the
+field win outright while the flow read both sources upward, routed by the batch reading. One
+arithmetic now answers both: the ladder module holds the single reading of the rung, the ranking asks
+it, and the confirmation stamps the rung off the read the write already makes (3.35.155, landed as
+1933f69). Measured rather than asserted: twenty-four band-and-rung rows scored through archives of
+both heads on a fixed clock, twenty-one identical and exactly the three that should move moving, the
+owed report byte-identical across five claim shapes. A doc line that said the read did not carry the
+field was disproved by the call and rewritten in the same change. No restart owed. Closed by its run.
+Folded from its handback.
+
+- A behaviour change the criteria did not enumerate was written into the handback and the knowledge
+  row rather than left for a reader to meet: a body outranking its field now bands as a feature, so
+  the batching rule refuses a row it previously joined. That is the alignment working, and the run
+  said so where the criteria had not.
+- Two knowledge rows named a reader the change retired and called the disagreement a live defect; the
+  run captured both bodies first, edited them surgically and carried the metadata forward, since the
+  store has no undo.
+- The criteria verb's conjunction warning fired on nine of twenty-two lines, and the run read the code
+  that states the trade before deciding not to file it: a warning and never a refusal, because "and"
+  joins two nouns as readily as two claims.
+- This landing pushed the unread range past the threshold, and the batch reading already open for the
+  mark (ISS-428) is where it goes; the run did not take it.
