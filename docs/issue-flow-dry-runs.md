@@ -2337,3 +2337,27 @@ No restart owed. Closed by its run. Folded from the record.
   file's new shape. A thread is read once more before the ship, since the claim's answer ages.
 - A knowledge entry says the guard file is held by this run; it is closed. Left to the run whose subject
   the widening is, and named so a reader of the store knows the line is stale.
+
+## Ninety-third dry run — ISS-277
+
+One agent wrote down the direction an import may run between the two trees and landed the third
+copy's row (3.35.107): no checker, rule or document had forbidden the Vietnamese tool importing from
+the plugin's source — the absence of an upward import had been read as a boundary, which is inferring a
+rule from a measurement. Three facts settle it: the shared module imports nothing, the plugin's source
+reaches the tool only by spawning it, and the tool's entry already runs the plugin's dispatcher, so the
+trees ship as one unit. Recorded with its reversal trigger in the layout section and at the primitive;
+the knowledge entry that asserted the opposite rewritten in the same act. Only the field-name constant
+crossed, since that client reads one line at a time off a buffer. Neutrality proven against a local
+event-stream server with five chunkings and failure servers, byte-identical before and after and against
+the installed copy. No restart owed. Closed by its run. Folded from the record.
+
+- Two gate catches worth keeping: a test fixture copied the tool's tree alone into a fake checkout,
+  which only modelled a real plugin copy while the tree was self-sufficient — the decision being enforced
+  rather than asserted, fixed with a plan correction; and the review caught the run overclaiming that the
+  guard's scan already reached the tree, corrected in the doc and the entry before the commit.
+- The guard row handed back by ISS-259 mid-run was refiled against the file's current shape (ISS-295)
+  with its measurement, since the file was free by then. A row written against a file another run holds
+  is written against the shape that run will leave.
+- A document sits thirty characters under its one-pass cap, so the paragraph had to be written to the
+  length of the one it replaced; the next run to add anything there trips the gate after the writing
+  (ISS-294). A cap met tells the next writer nothing until it fires.
