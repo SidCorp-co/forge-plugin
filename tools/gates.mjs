@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
 import { ledgerFor, LEDGER_UNSEEN, recordPass } from "./gates/ledger.mjs";
-import { editsDerivation, mergeBaseDiff, planFor } from "./gates/scope.mjs";
+import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
 import { recordDir, recordRun, seriesFile } from "./gates/timing.mjs";
@@ -28,6 +28,12 @@ Runs only the steps the diff can reach, and prints what it skipped and why. The 
 the merge-base with the default branch, so committing does not empty it. A changed path no step
 claims widens the run to everything rather than guessing, and so does a change to the runner or
 its own modules.
+
+Widening is half of it. A run that cannot place every changed path in a step leaves the record
+unread as well, because no step's digest is keyed on a path no step reads, so the widening would
+be handed straight back. Three ways it cannot: a path no step claims, no merge base to diff
+against, and a listing git refused. Each of those says which it was, spends every step and
+records no pass. A diff that succeeded and came back empty is none of them, and keeps the record.
 
 Past that, a step whose inputs are byte for byte what they were when it last passed is skipped and
 says which digest matched. Only passes are recorded, so a red step is red again next time. The
@@ -132,15 +138,30 @@ const orRefuse = (what, build) => {
 const steps = orRefuse("has no runnable step table",
   () => gateSteps(files.filter((one) => TEST_FILE.test(one))));
 
+/* Each widening this run may not then trust the record through, with its own why and its own way
+   out. Not `full` itself: an empty diff widens too, and that is the re-run the record exists for. */
+const unreadable = (why, act) => ({ unread: why, act });
+
 const scoped = () => {
   const diff = mergeBaseDiff(ROOT);
-  if (diff.error) return { full: true, reason: diff.error };
+  /* Not knowing what changed is not knowing that nothing did. The record answers for the paths a
+     step reads, and this run never learned which of them moved. */
+  if (diff.error) {
+    return { full: true, reason: diff.error, ...unreadable(diff.error, `Gate with --full, or give this tree a base it shares with the default branch.`) };
+  }
   if (diff.changed.length === 0) return { full: true, reason: `nothing differs from ${diff.branch}` };
+  /* Before the return below and not inside planFor, which that return never reaches: a diff holding
+     both a runner-module edit and an unclaimed path would carry no marker, and its second run would
+     be handed back every step the first one widened to. */
+  const stranger = unclaimedIn(steps, diff.changed);
+  const past = stranger
+    ? unreadable(`no step claims ${stranger}, so no digest here covers it`, `Claim the path in tools/gates/steps.mjs.`)
+    : {};
   const own = editsDerivation(diff.changed, SELF, ROOT);
-  if (own) return { full: true, reason: `${own} decides what a run may skip` };
+  if (own) return { full: true, reason: `${own} decides what a run may skip`, ...past };
   console.log(`\n=== scope: ${diff.changed.length} path(s) since ${diff.base.slice(0, 7)} on ${diff.branch} ===`);
   const plan = planFor(steps, diff.changed);
-  if (plan.full) return plan;
+  if (plan.full) return { ...plan, ...past };
   for (const step of plan.steps) {
     console.log(`${step.run ? "run " : "skip"} ${step.label.padEnd(22)} ${step.reason ?? "nothing it reads changed"}`);
   }
@@ -154,15 +175,20 @@ if (!full) {
   const plan = scoped();
   if (plan.full) console.log(`\n=== scope: the full gate — ${plan.reason} ===`);
   else planned = plan.steps.filter((step) => step.run);
-  ledger = orRefuse("cannot read its own record", () => ledgerFor(planned, { root: ROOT, files, runner: SELF }));
-  const green = ledger.entries.filter((step) => step.green);
-  console.log(`\n=== ledger: ${green.length} of ${ledger.entries.length} step(s) green already ===`);
-  for (const step of green) {
-    console.log(`skip ${step.label.padEnd(22)} digest ${step.digest}`
-      + (step.took === null ? ", passing before this record kept seconds" : `, ${step.took}s when it passed`));
+  if (plan.unread) {
+    console.log(`\n=== ledger: not read — ${plan.unread} ===`);
+    console.log(`Every step runs and this run records no pass. ${plan.act}`);
+  } else {
+    ledger = orRefuse("cannot read its own record", () => ledgerFor(planned, { root: ROOT, files, runner: SELF }));
+    const green = ledger.entries.filter((step) => step.green);
+    console.log(`\n=== ledger: ${green.length} of ${ledger.entries.length} step(s) green already ===`);
+    for (const step of green) {
+      console.log(`skip ${step.label.padEnd(22)} digest ${step.digest}`
+        + (step.took === null ? ", passing before this record kept seconds" : `, ${step.took}s when it passed`));
+    }
+    console.log(`${ledger.dir}\n${LEDGER_UNSEEN}`);
+    planned = ledger.entries.filter((step) => !step.green);
   }
-  console.log(`${ledger.dir}\n${LEDGER_UNSEEN}`);
-  planned = ledger.entries.filter((step) => !step.green);
 }
 
 const started = Date.now();

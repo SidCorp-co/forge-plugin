@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -87,10 +87,41 @@ const ledgerFile = (work, label) => join(work, ".git", "gate-ledger", label.repl
 const runsFile = (work) => join(work, ".git", "gate-ledger", "runs");
 const runs = (work) => readFileSync(runsFile(work), "utf8").trim().split("\n");
 
+/* One landing under a path of every step, so a run over it fills the record whole: the questions
+   below are about a tree the record already answers for, which a scoped landing never leaves. */
+const REACHES_ALL = ["plugin/skills/one.md", "packages/code-quality/claude-quality.mjs", "plugin/scripts/one.mjs"];
+
+const touchedEverywhere = (work, text) => {
+  for (const one of REACHES_ALL) write(work, one, `${one}\n${text}\n`);
+  git(work, "add", "-A");
+  git(work, "commit", "-m", `touched every step: ${text}`);
+};
+
+const entryDir = (work) => join(work, ".git", "gate-ledger");
+const entryNames = (work) => readdirSync(entryDir(work)).filter((one) => one !== "runs").sort();
+const entries = (work) =>
+  Object.fromEntries(entryNames(work).map((one) => [one, readFileSync(join(entryDir(work), one), "utf8")]));
+
+/* Seconds no step of this scratch ever takes, over the digest each entry already holds. Without it
+   a run that spent every step and then recorded over them leaves the same bytes, since every step
+   here is `node -e ""` and passes in the same 0s (ISS-396). */
+const PLANTED = 4242;
+
+const plantSeconds = (work) => {
+  for (const name of entryNames(work)) {
+    const at = join(entryDir(work), name);
+    const [digest, , label] = readFileSync(at, "utf8").trim().split(" ");
+    writeFileSync(at, `${digest} ${PLANTED}s ${label}\n`);
+  }
+};
+
+const everyStepRan = (said) => new RegExp(`All ${STEPS.length} gate step\\(s\\) passed`, "u").test(said.stdout);
+
 test("-h names the two flags and what the record cannot see", () => {
   const said = run(ROOT.replace(/\/$/u, ""), ["-h"]).stdout;
   for (const one of ["--full", "--anyway", "node_modules", "merge-base", "tree judged",
-    "seconds that step took", "one line per green run", "a temporary directory of this run's own"]) {
+    "seconds that step took", "one line per green run", "a temporary directory of this run's own",
+    "a path no step claims", "leaves the record", "records no pass"]) {
     assert.ok(said.includes(one), `${one} is not in the usage:\n${said}`);
   }
 });
@@ -117,6 +148,126 @@ test("a path no step claims widens the run, and says which path", () => {
     const said = run(work).stdout;
     assert.match(said, /the full gate — newdir\/one\.mjs belongs to no gate step/u, said);
     assert.match(said, /=== check:dup ===/u, said);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The widening is only half a guard while the record is read after it: no step keys a digest on a
+   path no step claims, so every step the widening added comes straight back green and the run
+   spends nothing. The case above cannot see it — a scratch checkout's record is empty (ISS-396). */
+test("a path no step claims leaves the record unread, and that run records no pass", () => {
+  const { at, work } = scratch("stranger-record");
+  try {
+    touchedEverywhere(work, "one");
+    assert.equal(run(work).status, 0);
+    assert.equal(entryNames(work).length, STEPS.length, "the record does not answer for every step yet");
+    plantSeconds(work);
+    const held = entries(work);
+
+    landed(work, "newdir/one.mjs", "export const one = 1;\n");
+    const said = run(work);
+    assert.equal(said.status, 0, said.stdout + said.stderr);
+    assert.match(said.stdout, /=== ledger: not read — no step claims newdir\/one\.mjs/u, said.stdout);
+    assert.match(said.stdout, /Claim the path in tools\/gates\/steps\.mjs/u, said.stdout);
+    assert.ok(!said.stdout.includes("green already"), `the record was read:\n${said.stdout}`);
+    assert.ok(everyStepRan(said), said.stdout);
+    assert.deepEqual(entries(work), held, "a run the record could not vouch for wrote to it");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The derivation return comes first, so a diff holding both would carry no marker if the search
+   for one sat inside planFor: the first run spends everything for the derivation's sake and the
+   second is handed it all back, with the unclaimed path covered by neither. */
+test("a diff holding a runner module and a path no step claims leaves the record unread on every run", () => {
+  const { at, work } = scratch("mixed");
+  try {
+    touchedEverywhere(work, "one");
+    assert.equal(run(work).status, 0);
+    landed(work, join("tools", "gates", "scope.mjs"),
+      `${readFileSync(join(ROOT, "tools", "gates", "scope.mjs"), "utf8")}\n`);
+    landed(work, "newdir/one.mjs", "export const one = 1;\n");
+
+    const first = run(work);
+    assert.ok(everyStepRan(first), first.stdout);
+    const again = run(work);
+    assert.match(again.stdout, /the full gate — tools\/gates\/scope\.mjs decides what a run may skip/u, again.stdout);
+    assert.match(again.stdout, /=== ledger: not read — no step claims newdir\/one\.mjs/u, again.stdout);
+    assert.ok(everyStepRan(again), again.stdout);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+// No answer about what changed is not the answer that nothing did, and the record can vouch for
+// neither: it covers what the steps read, and this run never learned which of those paths moved.
+test("a run that can compute no merge base leaves the record unread", () => {
+  const { at, work } = scratch("orphan");
+  try {
+    touchedEverywhere(work, "one");
+    assert.equal(run(work).status, 0);
+    plantSeconds(work);
+    const held = entries(work);
+
+    git(work, "checkout", "--orphan", "alone");
+    git(work, "commit", "-m", "no history shared with master");
+    const said = run(work);
+    assert.equal(said.status, 0, said.stdout + said.stderr);
+    assert.match(said.stdout, /the full gate — no merge base between HEAD and master/u, said.stdout);
+    assert.match(said.stdout, /=== ledger: not read — no merge base between HEAD and master/u, said.stdout);
+    assert.ok(everyStepRan(said), said.stdout);
+    assert.deepEqual(entries(work), held, "a run the record could not vouch for wrote to it");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* `gitOut` answers null for a command that failed and `lines(null)` is `[]`, so a listing git
+   would not give reads as a tree where nothing moved — and that is the one widening allowed to
+   keep the record. A git on PATH refusing one subcommand is the only way to watch this fire. */
+test("a listing git refuses is not read as a tree where nothing moved", () => {
+  const { at, work } = scratch("refused");
+  try {
+    touchedEverywhere(work, "one");
+    assert.equal(run(work).status, 0);
+    plantSeconds(work);
+    const held = entries(work);
+
+    const bin = join(at, "bin");
+    mkdirSync(bin, { recursive: true });
+    const real = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+    writeFileSync(join(bin, "git"), `#!/bin/sh\nif [ "$1" = "diff" ]; then exit 1; fi\nexec ${real} "$@"\n`);
+    chmodSync(join(bin, "git"), 0o755);
+    const said = spawnSync(process.execPath, [join(work, RUNNER)],
+      { cwd: work, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
+
+    assert.equal(said.status, 0, said.stdout + said.stderr);
+    assert.match(said.stdout, /=== ledger: not read — git diff --name-only \S+ was refused/u, said.stdout);
+    assert.ok(everyStepRan(said), said.stdout);
+    assert.deepEqual(entries(work), held, "a run the record could not vouch for wrote to it");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The widening the record keeps, and the reason the three above are told apart from it rather than
+   from `full`: this is the re-run every landed commit makes, and opening the record here spends
+   the whole gate on all of them. */
+test("a run widened because nothing differs from the branch still reads the record", () => {
+  const { at, work } = scratch("settled");
+  try {
+    landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
+    assert.equal(run(work).status, 0);
+    git(work, "checkout", "master");
+    git(work, "merge", "work");
+
+    const said = run(work);
+    assert.equal(said.status, 0, said.stdout + said.stderr);
+    assert.match(said.stdout, /the full gate — nothing differs from master/u, said.stdout);
+    assert.match(said.stdout, /=== ledger: [1-9]\d* of \d+ step\(s\) green already ===/u, said.stdout);
+    assert.match(said.stdout, /skip lint {19}digest [0-9a-f]{12}/u, said.stdout);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }

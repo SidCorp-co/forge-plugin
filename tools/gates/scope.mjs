@@ -34,17 +34,22 @@ export const mergeBaseDiff = (root) => {
   const branch = defaultBranch(root);
   const base = gitOut(["merge-base", "HEAD", branch], root);
   if (!base) return { error: `no merge base between HEAD and ${branch}` };
-  const changed = new Set([
-    ...lines(gitOut(["diff", "--name-only", base], root)),
-    ...lines(gitOut(["ls-files", "--others", "--exclude-standard"], root)),
-  ]);
+  const listings = [["diff", "--name-only", base], ["ls-files", "--others", "--exclude-standard"]]
+    .map((args) => ({ args, said: gitOut(args, root) }));
+  const refused = listings.find((one) => one.said === null);
+  if (refused) return { error: `git ${refused.args.join(" ")} was refused, so what changed is unknown` };
+  const changed = new Set(listings.flatMap((one) => lines(one.said)));
   return { base, branch, changed: [...changed].sort() };
 };
 
 // Fail toward the whole gate: a path no step claims is a tree the table does not model yet.
-export const planFor = (steps, changed) => {
+export const unclaimedIn = (steps, changed) => {
   const claimed = steps.flatMap((step) => step.reads);
-  const stranger = changed.find((file) => !claimed.some((claim) => under(file, claim)));
+  return changed.find((file) => !claimed.some((claim) => under(file, claim)));
+};
+
+export const planFor = (steps, changed) => {
+  const stranger = unclaimedIn(steps, changed);
   if (stranger) return { full: true, reason: `${stranger} belongs to no gate step` };
   return {
     full: false,
