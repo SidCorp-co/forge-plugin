@@ -2133,3 +2133,26 @@ by the run. Folded from the record.
   corrected where it stands, held file or not, and said.
 - Two findings posted to issues the run did not hold, one of them noting its rules one to three are now
   met by this landing and naming what remains; a reader of that issue starts from the remainder.
+
+## Eighty-fourth dry run — ISS-265
+
+One agent re-landed the second simplification the batch review had backed out (3.35.97): one file,
+where the filing verb's duplicate check now takes the live titles from the shared reader instead of
+walking the list itself, an import gone and a comment that had become a restatement of the reader's own
+gone with it; the second file was read and not edited, since it already held the shape. Neutrality
+proven by running both forms side by side against the live tracker over four title shapes and nine pages,
+once per process so the agreement was not the walk's memo, then against the installed copy; each
+mechanism reverted alone restores the pre-change bytes exactly. Nineteen criteria pass. The changed verb
+was exercised end to end by filing a real issue through the shipped bytes. No restart owed. Closed by its
+run. Folded from the record.
+
+- Two corrections to the brief's framing, on the confirmation record: the run the brief said had landed
+  in both files had only held one of them, and the other landing named had changed the reader above the
+  walk, not the walk; both files were byte-identical to the tree the first review had proved against, so
+  this was a re-landing and not a re-derivation. A brief's history of a file is checked against the log
+  before it shapes the plan.
+- One filing onward: the review record has nowhere to put what a reviewer verified when a consult
+  returns no findings, so the report went into the reviewer field (ISS-276). A clean review that says
+  what it read is worth more than one that says nothing, and the record should have the field.
+- The lease on a closed issue stays live until it expires, with no release verb — the third run to note
+  it, already filed.
