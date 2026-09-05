@@ -169,9 +169,8 @@ const FINDING_CHARS = 400;
 
 const ID = /^\s*F(\d+)\b\s*[—-]?\s*/u;
 
-/* Each finding with its id, `F<n>` as the reply numbered it or by place in the whole reply where it did
-   not — numbered before any file filter, so a recheck on one file keeps the ids a verdict was given
-   against. A verdict names one, and a name the reply never gave is a verdict on nothing. */
+/* Each finding with its id, `F<n>` as the reply numbered it or by its place in the whole reply where
+   it did not — before any file filter, so a recheck on one file keeps the ids a verdict was given against. */
 export const numbered = (reply, files = null) => {
   const seen = new Set();
   return [...String(reply ?? "").matchAll(FINDING)]
@@ -255,6 +254,14 @@ export const recheckPlan = (entries, root, rels) => {
 };
 
 export const recheckRisks = (entries, root, rels) => recheckPlan(entries, root, rels)?.risks ?? [];
+
+/** The range a recheck sends where no file was named: the judged consult's own, narrowed out of what an aged base now offers and never widened past it; null where nothing drops. docs/cli/codex-the-consult.md. */
+export const recheckRange = (plan, rels) => {
+  const judged = plan?.judged?.files;
+  if (!judged?.length) return null;
+  const kept = rels.filter((rel) => judged.includes(rel));
+  return kept.length && kept.length < rels.length ? kept : null;
+};
 
 /* Six and a count in the sentence keeps a refusal readable; the command carries every path, since a pass over six of thirty earns nothing while looking as though it did — quoted where a shell would split it, pathed where this CLI's own parser would eat it as a flag. */
 const SHOWN = 6;

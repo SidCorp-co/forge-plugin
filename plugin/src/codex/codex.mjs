@@ -51,6 +51,7 @@ import {
   printLog,
   recheckOwed,
   recheckPlan,
+  recheckRange,
   sentShaOf,
   verdict,
   verdictFromRulings,
@@ -120,6 +121,8 @@ export const USAGE = [
   "                 it REFUTES is recorded as that consult's verdict; CONFIRMED stays open. It",
   "                 follows a finding and nothing else, so where the last pass found none it",
   "                 refuses and names `--send bodies`, which is the pass a review is earned by.",
+  "                 Name no file and it reads the range that consult recorded, never a wider one;",
+  "                 a path you type is your range and is sent as typed.",
   "  --angles a,a   which angles review this consult: tech, ba, user, ux.",
   "",
   "  FORGE_CODEX_DISABLE=1     the one variable: a kill switch has to work when config is broken",
@@ -268,13 +271,15 @@ const consult = async (given) => {
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
   const { named, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, bodies, recheck, angles } = consultArgs(given);
-  const rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
+  let rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
+  let offered = (many) => `${many} this turn touched`;
   /* Asked for a diff and given nothing to diff, the tree answers: the round it replaces was reading
      `git diff --name-only` and typing the list back (ISS-65). */
   if (!rels.length && base) {
     const changed = changedAgainst(root, base, base === namedBase);
     if (!changed) fail(`codex: --base ${base} is no ref this checkout can read, so what changed against it is unknown. Name the base, or name the files.`);
     rels.push(...changed);
+    offered = (many) => `${many} that differ from ${base} now`;
     if (rels.length) console.error(`codex: nothing named and nothing pending, so the ${rels.length} file(s) changed against ${base}: ${rels.join(", ")}.`);
   }
   if (!rels.length) {
@@ -284,9 +289,17 @@ const consult = async (given) => {
   const plan = recheck ? recheckPlan(entries, root, rels) : null;
   const offset = risks.length;
   if (recheck) {
+    /* Asked before the narrowing and against the set the caller stood on: a route out has to name
+       files they can act on, and a path they typed is their range and is never narrowed (ISS-272). */
     const nothing = recheckOwed(plan, rels);
     if (nothing) fail(`codex: ${nothing}`);
     risks.push(...plan.risks);
+    const range = named.length ? null : recheckRange(plan, rels);
+    if (range) {
+      console.error(`codex: a recheck of ${plan.judged.id ?? plan.judged.at}, so its ${range.length} recorded`
+        + ` file(s) travel, not the ${offered(rels.length)}.`);
+      rels = range;
+    }
   }
   /* The diff since the head the findings were made against: re-sending the whole file makes the
      reviewer find the change before it can rule on the fix. Only where that head is a readable ref. */

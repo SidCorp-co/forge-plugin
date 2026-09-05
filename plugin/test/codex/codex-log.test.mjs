@@ -30,6 +30,7 @@ const {
   pairedLog,
   recheckOwed,
   recheckPlan,
+  recheckRange,
   recheckRisks,
   scoreOf,
   startedState,
@@ -199,6 +200,25 @@ test("a recheck with findings still has a plan to verify", () => {
   assert.deepEqual(plan.ids, ["F1"]);
   assert.equal(plan.judged.head, "abc1234", "the head its findings were made against");
   assert.equal(recheckOwed(plan, ["a.mjs"]), null, "there is something to recheck, so nothing is owed");
+});
+
+/* A base ref that aged widened a 15-file recheck to 38 and clipped 18 of them, the rechecked files
+   among them (ISS-272). The range the judged consult recorded is the one that travels. */
+test("a recheck's range is the range the consult it verifies was given", () => {
+  const plan = recheckPlan([{
+    kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs", "b.mjs"],
+    reply: "CODEX: 1 findings\n- **New — major:** `a.mjs:1` — the lock is released by path.",
+  }], "/a", ["a.mjs"]);
+
+  assert.deepEqual(
+    recheckRange(plan, ["another/run.mjs", "a.mjs", "z.mjs", "b.mjs"]),
+    ["a.mjs", "b.mjs"],
+    "what another run landed between the base and now is dropped; the judged consult's own range travels",
+  );
+  assert.equal(recheckRange(plan, ["a.mjs", "b.mjs"]), null, "already that range: nothing to say and nothing to drop");
+  assert.equal(recheckRange(plan, ["a.mjs"]), null, "narrowed, never widened — a file the tree no longer offers is not put back");
+  assert.equal(recheckRange(null, ["a.mjs"]), null, "no plan, no range of its own");
+  assert.equal(recheckRange({ judged: { files: [] } }, ["a.mjs"]), null, "a consult that recorded no range narrows nothing");
 });
 
 test("the log scores itself per model", () => {

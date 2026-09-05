@@ -65,3 +65,16 @@ changed in the file whose newest edit it never saw is worse than the bug. A rech
 exempt, being a head this end chose: after a rebase it is off the history, and the parting point
 would widen the diff past the findings the round exists to close. The log records the point diffed
 from rather than the name, so `replay` rebuilds what was sent.
+
+**A recheck's range is the range it is rechecking.** A ref is a fixed point that ages: between a
+consult and its recheck the base holds still and the head does not, and a rebase and a ship guarantee
+it, so the same `--base` names a wider set each time. A 15-file review was rechecked over 38 — the
+other 23 another run's landings — and one character budget spread over the wider set sent 18 clipped,
+every source file the recheck was about among them. So where no file is named the range comes from
+the consult being answered, which recorded one, and the line saying so carries both counts: what a
+widened range hides is never the file list, which prints, but the cause. It only ever drops, and a
+path typed on the command line is not narrowed at all — a caller who named it asked for it. The
+refusal is asked before the narrowing and against the set the caller stood on, since a route out has
+to name files they can act on. The effort level is not a symptom of any of this: a recheck steps one
+below the base whatever the diff's size, so what moved with the range was the call budget, which
+rises with every clipped file.
