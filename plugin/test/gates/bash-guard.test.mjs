@@ -197,3 +197,16 @@ test("an escape another language has is data in a body that cannot call it", () 
     "a runner whose escapes nobody enumerated keeps every name: one refusal on doubt",
   );
 });
+
+/* The same names read a shell's body, where they belong to no language it speaks: one line saying
+   `execSync` swapped the body for its literals and bought the verb under it a pass (ISS-239). */
+test("a body a shell runs is commands, whatever names it happens to carry", () => {
+  const verb = "stash";
+  const NODE_ESCAPE = `exec${"Sync"}`;
+  const body = (line) => `bash <<'SH'\n${line}git ${verb}\nSH`;
+  assert.equal(decide(body("")).allowed, false, "the plain body");
+  assert.equal(decide(body(`note=${NODE_ESCAPE}\n`)).allowed, false, "and one token more, which hands node nothing");
+  assert.equal(decide(`sh <<'SH'\ngrep -rn ${SPAWNING} .\ngit checkout -- a.txt\nSH`).allowed, false);
+  assert.equal(decide(`zsh <<'SH'\necho ${NODE_ESCAPE}\n${STAGE_ALL}\nSH`).allowed, false);
+  assert.ok(decide(`bash <<'SH'\necho "git ${verb}"\nSH`).allowed, "while a literal there is still an argument");
+});

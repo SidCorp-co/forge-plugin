@@ -219,9 +219,13 @@ const ESCAPES = { python: PYTHON, python3: PYTHON, node: NODE, deno: NODE, bun: 
 export const spawnsIn = (runner) => ESCAPES[runner] ?? SPAWNS;
 export const RUNS = /\b(python3?|node|deno|bun|perl|ruby|php)\s+(?:-\S+\s+)*(?:-c|-e|--eval)\s+('[^']*'|"(?:[^"\\]|\\[\s\S])*")/gu;
 
-/** Where a heredoc body is a program rather than data. how/learning-gate.md. */
-export const EXECUTES_STDIN =
-  /(?:^|[\s;&|(])(python3?|node|deno|bun|perl|ruby|php|sh|bash|zsh)(?:\s+-\S+)*\s*-?\s*$/u;
+/** Where a heredoc body is a program rather than data, and which of those runners take it as commands already — a shell's body names no escape, being the caller's own language. how/learning-gate.md. */
+const NAMED_SHELLS = String.raw`sh|bash|zsh`;
+export const SHELL = new RegExp(`^(?:${NAMED_SHELLS})$`, "u");
+export const EXECUTES_STDIN = new RegExp(
+  String.raw`(?:^|[\s;&|(])(python3?|node|deno|bun|perl|ruby|php|${NAMED_SHELLS})(?:\s+-\S+)*\s*-?\s*$`,
+  "u",
+);
 
 /** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. */
 export const REDIRECT = new RegExp(
