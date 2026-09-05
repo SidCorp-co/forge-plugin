@@ -2411,3 +2411,23 @@ record.
   different tool than the one the guard reads. The topic page names no harness tool on purpose, since
   the plugin runs in projects it cannot see; the adjacency is noted here so the next reader does not
   file it as a contradiction.
+
+## Ninety-sixth dry run — ISS-289
+
+One agent made a verdict write carry several criteria (3.35.109). Everything before the first
+criterion block is shared by all of them, so one commit and one evidence set are uploaded once;
+advance reads a batched write exactly as it reads one write per criterion, and the owed reading folds
+several unjudged criteria into one item carrying one command. Proven on the run's own issue: twelve
+verdicts in one call, twelve records read back, and the ladder walked off that one comment. Only the
+flow module, a new suite, the record page and two clauses moved. No restart owed. Closed by its run.
+Folded from the record.
+
+- The other half of the same fold was seen and filed rather than folded in (ISS-297): after a merged
+  mark moves, every stale verdict still comes back as its own item and command, which is the reopen
+  case where the cost is largest. A change that halves a shape says which half it left.
+- The new suite hangs rather than fails when a module-body assertion throws, because it reads the
+  session key from whatever the run has; that cost thirty-six silent minutes and two orphan processes
+  before it was understood (ISS-298). A test that can hang is a gate that can stall.
+- The paragraph the verification reference owes was posted on the batch that held the file at plan
+  time, and that batch had closed by ship time. A held-file note is addressed to the run holding the
+  file when the note is written, so the fold re-routed it to the run holding it now (ISS-290).
