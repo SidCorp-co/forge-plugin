@@ -19,7 +19,11 @@ export const VERBS = [
   ["spec", "<id>[~<rev>]", "one clause of the requirements tree, read by its identifier"],
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context", "forge_uploads"],
   ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues"],
-  ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm"],
+  ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm",
+    { action: "set_dependency",
+      refusal: "forge dep needs forge_project_pm set_dependency, which the tracker gives to a "
+        + "paired device alone and this credential may not call: no edge is written from here, and "
+        + "no other verb needs a device. `forge doctor` measured that." }],
   /* No flag of this verb is named here, deliberately — docs/cli/withholding-a-verb.md. */
   ["guide", "[contract [part]|slug]",
     "this plugin's contract, one part per call, and the tracker's guides this flow stands behind",
@@ -97,14 +101,22 @@ export const isGated = (tool) => Boolean(recorded().gates[tool]);
 export const gatedTools = () => new Set(Object.keys(recorded().gates).filter(isGated));
 export const withheldVerbs = () => new Set(userConfig().withheld ?? []);
 
+/* A row naming one action is gated on it, so what is asked about tools goes on seeing the tool a
+   verb cannot spend, and `row[3]` stays the schema pointer either way — docs/cli/deps.md. */
+export const gateKey = (row) => (row?.[4] ? `${row[3]}.${row[4].action}` : row?.[3]);
+
 export const offeredVerbs = () => {
   const withheld = withheldVerbs();
-  return VERBS.filter(([verb, , , needs]) => !withheld.has(verb) && !(needs && isGated(needs)));
+  return VERBS.filter((row) => {
+    const key = gateKey(row);
+    return !withheld.has(row[0]) && !(key && isGated(key));
+  });
 };
 
 export const blockedBy = (verb) => {
-  const needs = rowFor(verb)?.[3];
-  return needs && isGated(needs) ? needs : null;
+  const row = rowFor(verb);
+  const key = gateKey(row);
+  return key && isGated(key) ? { key, said: row[4]?.refusal ?? null } : null;
 };
 
 /* A gated tool's schema is an invitation to a call that cannot succeed. */

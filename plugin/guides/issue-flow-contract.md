@@ -391,10 +391,12 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
   shows both, because a record that can be quietly removed and reposted is a record that can be made
   to say anything. The fifth dry run deleted and reposted four of its own records and the report
   shows no sign of it; until the verb refuses the deletion, the rule is the author's to keep.
-  A relation write renews the lease on the issue the run holds, the one `forge dep` takes second:
-  for a *blocks* edge that is the blocked issue, for a *relates* edge the one in hand; the issue
-  named first is only checked not to be another run's, so filing a blocker for the issue in hand
-  keeps working.
+  A relation write renews the lease on the issue the run holds, the one the verb for it takes
+  second: for a *blocks* edge that is the blocked issue, for a *relates* edge the one in hand; the
+  issue named first is only checked not to be another run's, so filing a blocker for the issue in
+  hand keeps working. That write is not every credential's — `forge doctor` says whether this one
+  carries it, the verb is withheld where it does not, and the refusal that demands a *blocks* edge
+  carries the one call that makes it.
 - **A park is a checkpoint with a person at it.** Nothing runs while it waits. A reply resumes the
   three parks that wait on a person; a blocked issue is resumed by the next run that picks it and
   finds its blocker `developed`, and that run takes the lease as it would for any issue. The parks

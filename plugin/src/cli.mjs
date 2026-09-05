@@ -54,8 +54,9 @@ const needs = command ? blockedBy(command) : null;
 
 if (needs) {
   console.error(
-    `forge ${command} needs ${needs}, which this credential may not call.\n` +
-      "`forge doctor` measured that; re-run it after a credential change.",
+    needs.said
+      ?? `forge ${command} needs ${needs.key}, which this credential may not call.\n`
+        + "`forge doctor` measured that; re-run it after a credential change.",
   );
   process.exit(1);
 }

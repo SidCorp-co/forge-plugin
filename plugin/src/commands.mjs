@@ -171,11 +171,11 @@ const onlyFlags = (verb, argv, hidden = []) => {
 const suggestTool = async (name) =>
   didYouMean("tool", name, callable(await tools()).map((tool) => tool.name), "Ask `forge tools`.");
 
-/* The one verb whose help is longer than its row: what a body is read against depends on the kind
-   it names, and the table of that is the kinds' own. */
 /* Two names, and the one place they are stated: `attach` reads its target from them. */
 const ATTACH_TARGETS = ["issue", "comment"];
 
+/* Longer than the row it comes from, because what a body is read against depends on the kind it
+   names, and the table of that is the kinds' own. */
 const NEW_USAGE = `${helpOf("new")}\n\n${BESIDE_HELP}\n\n${PRIORITY_HELP}\n\n${KINDS_HELP}`;
 
 /* Its own, rather than the row's, for the reason `new` keeps one: the dozen lines below are what a

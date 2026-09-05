@@ -284,7 +284,8 @@ export const fakeTracker = async (state) => {
     const name = call.params?.name;
     const args = call.params?.arguments ?? {};
     (state.calls ??= []).push({ name, args, slug: request.headers["x-forge-project-slug"] });
-    let result = { tools: DECLARED.map(declaration) };
+    /* Extended, never replaced: one suite's tool is not every suite's declared surface. */
+    let result = { tools: [...DECLARED, ...(state.declared ?? [])].map(declaration) };
     const own = (state.answer ?? {})[name];
     /* A handler answering `{ refused }` is the tool's own refusal, which the transport reads from
        `isError` and no structured content: the shape a verb's way out is reached by. */

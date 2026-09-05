@@ -140,12 +140,12 @@ export const GUIDE_TABLE = [
       {
         says: "filing the issue and setting its blocks edge in a second call is a red flag, because"
           + " it can dispatch in the gap between the two",
-        instead: "nothing here dispatches, so the gap holds nothing back and `forge new` followed by"
-          + " `forge dep <blocker> <blocked> blocks` is the route; `--with` on the filing writes a"
-          + " `relates` edge and never a `blocks` one",
+        instead: "nothing here dispatches, so the gap holds nothing back; `--with` on the filing"
+          + " writes a `relates` edge and never a `blocks` one, and a `blocks` edge is set by a write"
+          + " not every credential carries, which `forge doctor` reports",
       },
     ],
-    by: ["forge new", "forge dep"],
+    by: ["forge new"],
   },
 ];
 

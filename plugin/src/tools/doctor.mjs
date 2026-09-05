@@ -119,10 +119,14 @@ const checkCodex = () => {
   line(OK, "codex", `${model}  ${consults(logEntries()).length} consult(s) logged at ${LOG_PATH}`);
 };
 
+/* No ids, so it stops at the credential check and writes nothing; docs/cli/deps.md says the rest. */
+const DEVICE_ONLY = { key: "forge_project_pm.set_dependency", only: /PM_REQUIRES_DEVICE/u };
+
 /* Declared is not callable — all 67 are declared to a PAT and six then refuse. Probed, read-only. */
 const CAPABILITIES = [
   ["guides", "forge_guide", { action: "list" }, "the tracker's own lifecycle rules"],
-  ["dependency graph", "forge_project_pm", { action: "graph" }, "blocks/relates edges"],
+  ["dependency graph", "forge_project_pm", { action: "graph" }, "reading blocks/relates edges"],
+  ["dependency edge", "forge_project_pm", { action: "set_dependency" }, "writing one", DEVICE_ONLY],
   ["knowledge", "forge_knowledge", { action: "list" }, "codebase context"],
   ["memory", "forge_memory.search", { query: "forge", topK: 1 }, "recall across sessions"],
 ];
@@ -140,10 +144,11 @@ const remember = (slug, findings) => {
 const probe = async (scoped, slug) => {
   const findings = {};
   let gated = 0;
-  for (const [label, tool, args, why] of CAPABILITIES) {
+  for (const [label, tool, args, why, gate] of CAPABILITIES) {
     const answer = await scoped(tool, args, true);
-    const refusal = answer?.refused ? answer.refused.split("\n")[0] : null;
-    findings[tool] = refusal;
+    const said = answer?.refused ? answer.refused.split("\n")[0] : null;
+    const refusal = said && (!gate?.only || gate.only.test(said)) ? said : null;
+    findings[gate?.key ?? tool] = refusal;
     if (refusal) {
       gated += 1;
       line(NOTE, label, `${tool} is declared but refuses: ${refusal} — ${why}`);
