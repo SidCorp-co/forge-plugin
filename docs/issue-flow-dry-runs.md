@@ -3560,3 +3560,30 @@ comment on ISS-399 were read back.
   split, not an exemption.
 - A criteria file's shape is learned one refusal at a time, and each correction re-trips the consult
   read; five rounds on a fix's criteria, four about formatting (ISS-419).
+
+## Hundred-and-thirty-ninth dry run — ISS-28
+
+An old issue with three halves, dispatched narrowed after a triage role's reading. The run split the
+other way from the triage's advice, and said why: every part of the half the triage wanted kept was
+either in files another run held or unbuildable from this plugin this wave, so keeping it would have
+landed nothing. What landed is the plan half: `forge plan` resolves every citation in a plan's text
+against the requirements tree and refuses what does not resolve, silent in a project that keeps no
+tree (3.35.154, landed as ae7a363). The criterion half went out as ISS-422 and the derived-status half
+as ISS-424, and ISS-29 is now blocked on those two; the three proof fields in the tree name their
+siblings and gained no proof. The ship filed the next batch reading itself (ISS-428) once the range
+crossed the threshold. No restart owed. Closed by its run. Folded from its handback.
+
+- The brief's map of held files was wrong twice: it named a run whose own plan excluded the files,
+  and two holders it named had already closed. The run read the hold set off the diff of each live
+  worktree against master and shipped where the brief would have parked it. That reading belongs to
+  whoever writes the next dispatch, not to the run.
+- The method has no branch for a split decided by file ownership rather than by what the issue is;
+  the run recorded the gap and made the split anyway, on its own record.
+- A use case's digest is byte-identical before and after a criterion is added beneath it, because the
+  body closes at the first criterion; a filed rule that said otherwise was corrected after the fact by
+  checking, not by re-reading the prose.
+- A release note refused three times for length was refused at the rewrite's length, not the
+  author's; filed as ISS-430.
+- Two other runs of the wave were cut off mid-phase by the model's session limit with their trees
+  intact and their leases held; they are resumed in their own agents when the limit lifts, not
+  replaced.
