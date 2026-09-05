@@ -94,13 +94,13 @@ A plan and a criterion may carry a citation, checked for shape at the write and 
 once the reader exists. A requirement's status is then derived from the verdicts on the issues that
 cite it, and no field stores it.
 
-- **AC-14-4-1** · Rev: 1 · Proof: none yet — ISS-28
+- **AC-14-4-1** · Rev: 1 · Proof: none yet — ISS-422
   WHEN a criterion opens with a citation THEN the CLI SHALL check its shape at the write and SHALL
   check the reference against the tree where the reader is present.
-- **AC-14-4-2** · Rev: 1 · Proof: none yet — ISS-28
+- **AC-14-4-2** · Rev: 1 · Proof: none yet — ISS-422
   WHERE a project has a tree an issue SHALL cite at least one clause or declare itself a defect
   against one before it can be approved.
-- **AC-14-4-3** · Rev: 1 · Proof: none yet — ISS-28
+- **AC-14-4-3** · Rev: 1 · Proof: none yet — ISS-424
   WHEN a requirement's status is reported THEN it SHALL be derived from the verdicts at the merged
   commits of the issues citing it, and no field SHALL store it.
 - **AC-14-4-4** · Rev: 1 · Proof: none yet — ISS-36

@@ -27,3 +27,25 @@ and the two failures are not the same one.
 The prose that follows the last criterion of a requirement file belongs to no clause. Under the
 tree's own boundary rule it would attach to that criterion, which would move the criterion's digest
 whenever an unrelated closing section changed, so it is left where a page renderer can pick it up.
+
+## A citation read at a write
+
+`forge plan` resolves what a plan cites before it sends anything. The reader is the same one the
+verb above is, so a plan and a `spec` call disagree about no clause; what differs is the audience,
+and so the sentence — a reader who asked for one clause is told it is stale and stops, an author
+still holding the file is told which revision to write instead.
+
+Two boundaries decide what that check may refuse. **A citation is `<id>~<rev>`, and an identifier
+written without one is not one:** it makes no claim a checker could fail, R-10 is what wants the
+revision, and the gate that would compare the recorded hash has not shipped (ISS-27), so a bare
+identifier that names a real clause is said and the plan is written. **A project that keeps no tree
+reads nothing:** this runs in repositories it cannot see, and `documents()` refuses outright where
+there is no `docs/requirements/`, which is the right answer to somebody who asked for a clause and
+the wrong one to somebody who asked to write a plan. The predicate that separates the two is
+`hasTree`.
+
+The rules of the tree are identifiers to that check and citations to nothing. `R-10~1` has to reach
+the writer — it is a reference worth refusing, since a rule of the tree's own index is not a clause
+of the specification — and it must never reach `citationsIn`, whose answer every clause hashes. So
+`identifiersIn` spans both sets and `citationsIn` is that list filtered back to a clause prefix,
+which is the boundary the one regex it replaced drew by being built from the clause prefixes alone.

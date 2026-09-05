@@ -48,12 +48,26 @@ import { hooks } from "./hooks/hook-log.mjs";
 import { record } from "./flow/record.mjs";
 import { advance } from "./flow/advance.mjs";
 import { spec } from "./spec/verbs.mjs";
+import { citationProblems, citationRefusal, revisionSaid, unrevisionedIn } from "./spec/citation.mjs";
+import { hasTree, specTree } from "./spec/tree.mjs";
 import { claim } from "./flow/claim.mjs";
 import { resume } from "./flow/resume.mjs";
 import { notAnothers, renew } from "./flow/lease.mjs";
 
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
+
+/* Resolved before anything is sent, and only where the project keeps a tree: a plan is one field
+   replaced rather than accumulated, so a refusal costs the author nothing but the clause they meant,
+   while a wrong citation stored is one the spec gate reports about a plan nobody is holding. */
+const citationsChecked = (text) => {
+  if (!hasTree()) return;
+  const index = specTree();
+  const refusal = citationRefusal(citationProblems(index, text));
+  if (refusal) fail(refusal);
+  const said = revisionSaid(unrevisionedIn(index, text));
+  if (said) console.error(said);
+};
 
 const sayBeside = (beside, options) => {
   for (const line of suggestionLines(beside, options)) console.log(line);
@@ -412,6 +426,7 @@ export const commands = {
     /* Read before the reference is resolved: a round trip between two reads is a second file. */
     const plan = await bodyChecked(path, fail);
     if (!plan.trim()) fail("An empty plan would clear the field; pass the plan itself.");
+    citationsChecked(plan);
     const documentId = await documentIdOf(reference);
     await renew(documentId, reference);
     await write("forge_issues", { action: "update", documentId, data: { plan } });

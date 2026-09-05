@@ -25,6 +25,10 @@ export const KIND = {
    that hold those rules are the only identified rows the tree leaves unemphasised. */
 export const FOREIGN = { R: "a rule of this tree, stated in the tree's own index" };
 
+/** One identifier of each prefix, spelled the way a refusal offers them back. Two verbs and the
+ *  citation reader print it, and a second spelling is a second answer to "what may I write here". */
+export const FORMS = "FR-04 · UC-04-3 · AC-04-3-1 · NFR-02 · EI-01 · BR-09 · G-01 · M-01 · C-05 · A-02";
+
 const PREFIXES = Object.keys(KIND);
 const HEADED = ["FR", "UC", "NFR", "EI"];
 const idPattern = (prefixes) => `\\b(${prefixes.join("|")})-(\\d+(?:-\\d+)*)\\b`;
@@ -32,7 +36,7 @@ const idPattern = (prefixes) => `\\b(${prefixes.join("|")})-(\\d+(?:-\\d+)*)\\b`
 const IDENT = new RegExp(`^${idPattern([...PREFIXES, ...Object.keys(FOREIGN)])}$`, "u");
 const HEADING_ID = new RegExp(idPattern(HEADED), "u");
 const BOLD_ID = new RegExp(`^\\*\\*${idPattern(PREFIXES)}\\*\\*\\s*(.*)$`, "u");
-const CITED = new RegExp(`${idPattern(PREFIXES)}~(\\d+)(?![\\w-])`, "gu");
+const ANY_ID = new RegExp(`${idPattern([...PREFIXES, ...Object.keys(FOREIGN)])}(?:~(\\d+))?(?![\\w-])`, "gu");
 
 const HEADING = /^(#{1,6})\s+(.+)$/u;
 const AC_ITEM = /^\s*[-*]\s+\*\*(AC-\d+(?:-\d+)*)\*\*\s*(?:·\s*)?(.*)$/u;
@@ -81,8 +85,23 @@ export const fieldsOf = (line) => {
   return Object.keys(out).length ? out : null;
 };
 
+/** Every identifier a text names, the tree's own rules among them, with the revision where one was
+ *  written. A writer resolving a citation needs the rules too — `R-10~1` is a reference to refuse
+ *  and not a clause to look up — which is the whole of what separates this from `citationsIn`. */
+export const identifiersIn = (text) =>
+  [...String(text ?? "").matchAll(ANY_ID)].map((one) => ({
+    id: `${one[1]}-${one[2]}`,
+    prefix: one[1],
+    rev: one[3] === undefined ? null : Number(one[3]),
+  }));
+
+/** The citations a clause makes: the revision is what makes one, and a rule of the tree's own index
+ *  is no clause of the specification, so neither an identifier without a revision nor an `R-` is
+ *  one. This answer is hashed into every clause, so its boundary is the one `CITED` drew. */
 export const citationsIn = (text) =>
-  [...String(text ?? "").matchAll(CITED)].map((one) => ({ id: `${one[1]}-${one[2]}`, rev: Number(one[3]) }));
+  identifiersIn(text)
+    .filter((one) => one.rev !== null && KIND[one.prefix])
+    .map((one) => ({ id: one.id, rev: one.rev }));
 
 const idsIn = (value) =>
   String(value ?? "")

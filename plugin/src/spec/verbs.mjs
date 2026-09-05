@@ -6,11 +6,10 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { Refused, refuse } from "../flow/record.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { LINK_TEXT_PATTERN } from "../markdown.mjs";
-import { KIND, parseRef } from "./parse.mjs";
+import { FORMS, KIND, parseRef } from "./parse.mjs";
 import { ambiguousUnder, clauseOf, lookup, nearest, withDescendants } from "./index.mjs";
 import { specTree } from "./tree.mjs";
 
-const FORMS = "FR-04 · UC-04-3 · AC-04-3-1 · NFR-02 · EI-01 · BR-09 · G-01 · M-01 · C-05 · A-02";
 const LINK = new RegExp(LINK_TEXT_PATTERN, "gu");
 
 /* A link's target is the tree's own storage, and this verb addresses clauses by identifier: the

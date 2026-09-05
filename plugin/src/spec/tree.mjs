@@ -18,16 +18,28 @@ const walk = (dir, out = []) => {
   return out;
 };
 
-export const documents = () => {
+const treeDir = () => {
   const root = projectRoot();
-  if (!root || !existsSync(join(root, TREE))) {
+  const dir = root ? join(root, TREE) : null;
+  return dir && existsSync(dir) ? dir : null;
+};
+
+/** Whether this project keeps a tree at all. A writer checking a citation has to stay silent where
+ *  it does not, and `documents()` refuses, which is the answer a reader who asked for a clause is
+ *  owed and the wrong one for a verb that was asked for something else. */
+export const hasTree = () => treeDir() !== null;
+
+export const documents = () => {
+  const dir = treeDir();
+  if (!dir) {
     refuse(
-      `This project has no requirements tree: nothing at ${TREE}/ under ${root ?? "any directory above this one"}.\n`
+      `This project has no requirements tree: nothing at ${TREE}/ under ${projectRoot() ?? "any directory above this one"}.\n`
         + "A tree is a business document and a specification under that directory, one clause per\n"
         + "identifier, under the rules the tree's own index states. Scaffolding one from templates is ISS-30.",
     );
   }
-  return walk(join(root, TREE)).map((path) => ({
+  const root = projectRoot();
+  return walk(dir).map((path) => ({
     file: relative(root, path),
     text: readFileSync(path, "utf8"),
   }));
