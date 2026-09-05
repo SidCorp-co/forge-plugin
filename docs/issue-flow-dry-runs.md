@@ -2504,3 +2504,28 @@ comment and the park's reason carries it. No restart owed. Folded from the recor
   flag typed for the next criterion block landed in the previous one, misfiling three of six (added
   to ISS-234). The second is the same shape ISS-296 recorded a day earlier from the per-criterion
   route, which says the neighbour smudge is the flag reader's, not the route's.
+
+## Hundredth dry run — ISS-287 and ISS-295
+
+One agent gave the did-you-mean helper an alias table read before edit distance, so a synonym answers
+with the one verb it means, and widened the one-copy guard to the Vietnamese tool's tree (3.35.113). A
+test rule holds the table to live verbs and refuses a row keyed on a retired name. The comment that
+kept the tree out by judgement is retired, and the primitives page and the knowledge entry stop
+saying the tree is unwatched. Both guards watched fire before being trusted. No restart owed. Both
+closed by the run. Folded from the record.
+
+- The widening's own measurement was stale: a help-predicate needle added by a later landing sat in
+  the tool's entry in both positions, so the guard could not go green on its own. A measurement taken
+  by the filing run is dated by the head it was taken at, and the taking run re-measures before it
+  plans.
+- The first fix dragged the settings chain into the second tool and was refused on review; the
+  layout rule already written for the case (a primitive both trees need lands in the source tree, in a
+  module that imports nothing) settled it, and the predicates split out with the old module
+  re-exporting so no caller moved, including one a running agent held. A rule written down a day
+  earlier is what made the second attempt a lookup rather than a debate.
+- The two any-position help readers still spend the named predicate, and the row's exclusion list
+  can go with them (ISS-299); it carries a hook file, which is why the run left it. A pointer comment
+  and a correction (one of its rules described a rewrite this release already did) were left on it.
+- Closing an issue does not release its lease: both showed this session as holder for three hours
+  after the close, until collapsed to a minute with a closing next line. A closed issue with a live
+  holder reads as claimed to the next run.
