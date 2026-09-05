@@ -47,7 +47,10 @@ const state = { issues: [], comments: {}, calls: [], answer: {}, memory: {} };
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-const ran = (argv, cwd = ROOT) => ranAsync(FORGE, argv, tracker.env, cwd);
+/* Every case stands in a directory it owns, so what the rank reads is what the case set and never
+   what this checkout's own `rank` block happens to hold (ISS-395). */
+const PLAIN = standing(null);
+const ran = (argv, cwd = PLAIN) => ranAsync(FORGE, argv, tracker.env, cwd);
 
 const load = (issues, memory = {}) => {
   state.issues = issues;
