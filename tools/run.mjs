@@ -7,6 +7,7 @@ import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { hookEntries } from "../plugin/src/hooks/hook-log-file.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, REMOTE, Stop, stop } from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
@@ -227,8 +228,19 @@ const releaseSays = (tree, base) => {
   const held = moved.filter(freezesSession);
   if (!held.length) return console.log(`  nothing a session is frozen on moved since ${was.slice(0, 7)}`
     + ` — the set is ${FROZEN.join(", ")}`);
+  const why = reasonsGiven();
   console.log(`  a restart is owed before any open session trusts these ${held.length} file(s):`);
-  for (const one of held) console.log(`    ${one}`);
+  for (const one of held) console.log(`    ${one} — ${why.get(one) ?? "no reason recorded at the write"}`);
+};
+
+/** Why each frozen file had to move, as the gate that held the write recorded it. Read here because
+ *  this is where the cost lands; the latest answer wins, a file with none says so. */
+const reasonsGiven = () => {
+  const said = new Map();
+  for (const one of hookEntries()) {
+    if (one.hook === "restart-owed" && one.decision === "note" && one.target) said.set(one.target, one.reason);
+  }
+  return said;
 };
 
 /** Which sha a mark takes, and where the range naming it carries commits the count does not. */

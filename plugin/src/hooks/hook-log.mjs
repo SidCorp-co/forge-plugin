@@ -1,22 +1,21 @@
 /* What the gates actually did. Three false refusals this session were found by watching a command
    fail, not by reading anything — a refusal left no trace at all. docs/cli/the-refusal-log.md. */
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { configDir } from "../resolve/config.mjs";
+import { HOOK_LOG_PATH, hookEntries, jsonLines, logHook } from "./hook-log-file.mjs";
 import { readAction } from "../tracker/issue-read.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, setHook } from "./hook-switch.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 
-export const HOOK_LOG_PATH = join(configDir("forge"), "hook-log.jsonl");
+export { HOOK_LOG_PATH, hookEntries, jsonLines, logHook };
+
 const KEPT = 220;
 const TAIL = 20;
 
-/* A named credential flag, a header, and the shapes that are a secret on sight. An hour ago a
-   Coolify token reached this session's transcript through a redaction that missed one level. */
-/* A value goes whole, quotes and spaces included: masking to the next space leaves most of a passphrase in a log that is printed back into a session. */
+/* A named credential flag, a header, and the shapes that are a secret on sight. A value goes whole, quotes and spaces included: masking to the next space leaves most of a passphrase in a log printed back into a session. */
 const VALUE = String.raw`("[^"]*"|'[^']*'|\S+)`;
 
 const SECRETS = [
@@ -26,8 +25,7 @@ const SECRETS = [
   [/\b\d+\|[A-Za-z0-9]{30,}\b/gu, "***"],
   [/\beyJ[\w-]{10,}\.[\w-]+\.[\w-]+/gu, "***"],
   [/\b(?:sk|ghp|gho|github_pat)[-_][A-Za-z0-9_]{16,}\b/gu, "***"],
-  /* Named rather than shaped: a value no pattern would recognise is still a secret when the name
-     beside it says so. Over-masking a log is the safe direction. */
+  /* Named rather than shaped: a value no pattern knows is still a secret when the name beside it says so, and over-masking is the safe direction. */
   [new RegExp(String.raw`\b(\w*(?:token|password|passwd|secret|api[-_]?key|key)\w*\s*=\s*)${VALUE}`, "giu"), "$1***"],
   [/([a-z][\w+.-]*:\/\/[^\s:@/]+:)[^\s@/]+@/giu, "$1***@"],
   [/("(?:password|token|secret|api[-_]?key)"\s*:\s*")[^"]*/giu, "$1***"],
@@ -43,38 +41,6 @@ export const masked = (text) => {
 export const scrubbed = (text) => {
   const out = masked(text);
   return out.length > KEPT ? `${out.slice(0, KEPT)}\u2026` : out;
-};
-
-export const logHook = (record) => {
-  try {
-    mkdirSync(configDir("forge"), { recursive: true });
-    if (!existsSync(HOOK_LOG_PATH)) closeSync(openSync(HOOK_LOG_PATH, "a", 0o600));
-    appendFileSync(HOOK_LOG_PATH, `${JSON.stringify(record)}\n`);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-/** A JSONL text as the objects it holds; a log written by appends is torn at the line it stopped on, so a line that will not parse is dropped. */
-export const jsonLines = (text) =>
-  String(text ?? "")
-    .split("\n")
-    .map((line) => {
-      try {
-        return JSON.parse(line);
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean);
-
-export const hookEntries = () => {
-  try {
-    return jsonLines(readFileSync(HOOK_LOG_PATH, "utf8"));
-  } catch {
-    return [];
-  }
 };
 
 const line = (one) =>
@@ -125,9 +91,7 @@ const writeIn = (one) => {
   return TOOL.test(tool) && one.hook === WRITE_GATE ? `${tool} ${target}`.trim().slice(0, 80) : null;
 };
 
-/* Per session, and named for what it is: the log holds refusals alone (docs/cli/the-refusal-log.md),
-   so the denominator is the writes that were refused and never the writes that were made — one is
-   the design working, three is a run looping, and a true rate wants a counter in the transport. */
+/* Per session, and named for what it is: the denominator is the writes that were refused and never the writes that were made (docs/cli/the-refusal-log.md) — one is the design working, three is a run looping, and a true rate wants a counter in the transport. */
 export const roundsBy = (entries) => {
   const held = new Map();
   const seen = new Set();

@@ -4,7 +4,7 @@
    counts towards are that script's other responsibility, and `run-review.test.mjs` holds them. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { BARE, committed, GATE, git, lastStep, landIn, pushed, ref, ROOT, runIn, scratch, stubbed } from "./run-fixtures.mjs";
@@ -328,7 +328,7 @@ test("the restart line names the files a session is frozen on, and no other file
   git(work, "commit", "-am", "the chooser the entries import");
 
   const out = lastStep(work).stdout;
-  const listed = [...out.matchAll(/^ {4}(\S+)$/gmu)].map(([, one]) => one);
+  const listed = [...out.matchAll(/^ {4}(\S+) — /gmu)].map(([, one]) => one);
   assert.deepEqual(listed.sort(), [
     "plugin/hooks/gate.mjs",
     "plugin/hooks/hooks.json",
@@ -336,6 +336,29 @@ test("the restart line names the files a session is frozen on, and no other file
     "plugin/src/tools/plugin-copy.mjs",
   ], `the restart line is not the frozen set:\n${out}`);
   assert.match(out, /a restart is owed before any open session trusts these 4 file\(s\)/u, out);
+});
+
+/* The gate that held each write recorded why, and this step is where that reads: a file whose reason
+   nobody gave says so, or the answer to "why is a restart owed" is a list of paths again. */
+test("the restart line carries the reason the gate recorded, and names the files nobody answered for", () => {
+  const { at, work } = pushed("restart-reasons");
+  stubbed(work);
+  landIn(work, join("plugin", "hooks", "hooks.json"), 1, "a gate registered");
+  landIn(work, join("plugin", "skills", "issue-flow", "SKILL.md"), 1, "a stub moved");
+  const home = join(at, "config");
+  mkdirSync(join(home, "forge"), { recursive: true });
+  writeFileSync(join(home, "forge", "hook-log.jsonl"), `${JSON.stringify({
+    at: new Date().toISOString(),
+    hook: "restart-owed",
+    decision: "note",
+    target: "plugin/hooks/hooks.json",
+    reason: "the registration is read once at session start",
+  })}\n`);
+
+  runIn(work, ["ship"], { ...BARE, XDG_CONFIG_HOME: home });
+  const out = runIn(work, ["ship", "--from", "10"], { ...BARE, XDG_CONFIG_HOME: home }).stdout;
+  assert.match(out, /plugin\/hooks\/hooks\.json — the registration is read once at session start/u, out);
+  assert.match(out, /plugin\/skills\/issue-flow\/SKILL\.md — no reason recorded at the write/u, out);
 });
 
 test("a release moving only gate code sends nobody to restart, and says what the set is", () => {

@@ -4,22 +4,11 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { NOWHERE, QUOTED, REDIRECT, RUNS, WRITES, askedAlready, askedByAnyone, deny, how, settled, shellText, spans, standsIn, unquote, done } from "../_hook.mjs";
+import { askedAlready, askedByAnyone, deny, how, settled, shellText, writtenPaths, done } from "../_hook.mjs";
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../../src/checks/learning.mjs";
+/* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. */
 const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
-/* Every `.md` a text names, and whether the shell would still expand the word it came from: a leading `~` is no relative path, and a `$` the class above drops leaves a name that reads exactly like one. Neither names a directory here, so neither is placed against a tree — `named()` draws that line for a `cd` destination — while the token still answers for what it spells. */
-const tokens = (said) =>
-  [...said.matchAll(MD_TOKEN)].map((one) => ({
-    token: one[0],
-    placed: one[0][0] !== "~" && said[one.index - 1] !== "$",
-  }));
-/* Twelve refusals in three days were a sentence inside a string — a write word and a skill path in one
-   line of prose. A path and a mode hold no space, so a span with one is prose; a `-c` body is code. */
-const spoken = (text) =>
-  text
-    .replace(RUNS, (all, runner, body) => ` ${body.slice(1, -1)} `)
-    .replace(QUOTED, (span) => (/\s/u.test(span) ? " " : span));
 
 /* Doubt is an action, and the one branch with a tree to name is where this gate can be one. */
 const UNSURE =
@@ -121,31 +110,15 @@ export const run = (ev) => {
 
   if (TRACKER.test(tool)) decide(ti);
 
-  // Through the shell the content cannot be read — `sed -i` carries none — and the question has to be
-  // answered BEFORE the write, so the route is closed for these two kinds of file, not approximated.
+  // Through the shell the content cannot be read — `sed -i` carries none — and the question has to be answered BEFORE the write, so the route is closed for these two kinds of file, not approximated.
   if (tool === "Bash") {
     const text = shellText(ti.command);
     if (CALLED.test(text)) decide(payloadIn(text));
-    /* Every tree the shell could stand in where the write runs; one it cannot name places nothing there, and the token alone decides. */
-    const here = ev.cwd || process.cwd();
-    const held = new Map();
-    const standing = (at) => {
-      if (!held.has(at)) {
-        held.set(at, standsIn(text, at).filter((one) => one !== NOWHERE).map((one) => resolve(here, one ?? ".")));
-      }
-      return held.get(at);
-    };
-    const named = spans(text).flatMap(({ start, end }) => {
-      const said = spoken(text.slice(start, end).trim());
-      return WRITES.test(said) ? tokens(said).map((one) => ({ ...one, at: start })) : [];
-    });
-    const aimed = [...text.matchAll(REDIRECT)]
-      .flatMap((one) => tokens(unquote(one[1])).map((each) => ({ ...each, at: one.index })));
-    if (named.length === 0 && aimed.length === 0) done();
-    for (const { token, placed, at } of [...aimed, ...named]) {
+    const written = writtenPaths(text, ev.cwd || process.cwd(), MD_TOKEN);
+    if (written.length === 0) done();
+    for (const { token, trees, paths } of written) {
       if (basename(token) === "MEMORY.md") continue;
-      const trees = placed && !token.startsWith("/") ? standing(at) : [];
-      const resolved = [token, ...trees.map((tree) => join(tree, token))].find((path) => GUARDED.test(path));
+      const resolved = paths.find((path) => GUARDED.test(path));
       if (resolved) {
         // Being sent to another tool teaches nothing about whether the fact belongs in a file at all.
         const memory = resolved.includes("/memory/");

@@ -3,13 +3,20 @@
 Three false refusals shipped in one session — a DNS query containing `cp`, a commit message quoting
 `mv`, an intent whose heredoc quoted `writeFileSync` — and every one was found by watching a command
 fail. Refusing is now what writes the line, so a gate cannot opt in or forget, including the two written
-before the log existed. Only refusals are logged: they are the signal a false positive leaves, and
-allows would double the write sites for a question nothing is asking.
+before the log existed. An allow writes nothing: a refusal is the signal a false positive leaves, and
+logging the rest would double the write sites for a question nothing is asking.
+
+**A note is the one thing here that is not a refusal.** A gate that held a write and then let it
+through has an answer nobody else will ever read, and the place that answer is worth money is the
+release step, which is where the cost it explains lands: `restart-owed` writes the line against the
+file it held, `forge hooks --notes` prints those, and the ship prints each beside the file a restart
+is owed for. Notes are outside the round count below, which is about refusals; a gate that crashed
+is a third kind, and outside it too.
 
 **A class of refusal is a loop, and the log can say so.** `forge hooks --rounds` counts, per
 session, the refusals that stood in front of a tracker write and how many distinct writes they stood
 in front of. The number is refusals per *refused* write, and it is named that in the output, because
-only refusals are written down here: the writes that passed are in no denominator, so 1.0 is the
+only refusals are counted here: the writes that passed are in no denominator, so 1.0 is the
 rule working and 2.0 is a run re-sending. Across this session's own 307 refusals it read 1.16, with
 three on one `forge plan`; the worst row in the whole log is 6.5, from a session calling the
 tracker's tool directly, which is where the write is named by the tool rather than by the command.

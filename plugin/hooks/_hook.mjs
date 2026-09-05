@@ -5,12 +5,14 @@
 import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
-import { jsonLines as parsed, logHook, scrubbed } from "../src/hooks/hook-log.mjs";
-import { spans } from "../src/hooks/shell-spans.mjs";
+import { jsonLines as parsed, logHook } from "../src/hooks/hook-log-file.mjs";
+import { scrubbed } from "../src/hooks/hook-log.mjs";
+import { NOWHERE, spans, standsIn } from "../src/hooks/shell-spans.mjs";
 import { hookOff } from "../src/hooks/hook-switch.mjs";
 
 export { askedAlready, askedByAnyone } from "../src/hooks/stamps.mjs";
-export { NOWHERE, movedTo, spans, spelled, standsIn, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
+export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
+export { NOWHERE, spans, standsIn };
 
 const TOKEN = /[A-Za-z0-9_./@-]+\.[A-Za-z0-9]+/g;
 /** How long after a call a file's mtime still answers for it. */
@@ -98,8 +100,9 @@ export const remaining = () => deadline - (Date.now() - startedAt);
 /** One gate on its own, as the suite and a hand-run call it. */
 export const alone = (name) => dispatch([name]);
 
-/* Refusals are the only entries — a false positive from outside. */
-export const logged = (decision, reason) => {
+/* Refusals are the only entries — a false positive from outside. `target` is what a caller reading
+   the log back matches on, so a gate whose subject is one path inside a longer command names it. */
+export const logged = (decision, reason, target = null) => {
   const ti = event.tool_input ?? {};
   logHook({
     at: new Date().toISOString(),
@@ -107,7 +110,7 @@ export const logged = (decision, reason) => {
     decision,
     tool: event.tool_name ?? "",
     session: event.session_id ?? "",
-    target: scrubbed(ti.file_path ?? ti.notebook_path ?? ti.command ?? ""),
+    target: scrubbed(target ?? ti.file_path ?? ti.notebook_path ?? ti.command ?? ""),
     reason: scrubbed(String(reason).split("\n")[0]),
   });
 };
@@ -382,6 +385,40 @@ export const expanded = (command) => {
     for (const one of set) one.value = substitute(one.value, one.after);
   }
   return command.replace(NAMED, (whole, braced, bare, at) => resolve(braced ?? bare, at) ?? whole);
+};
+
+/** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the class below dropped — answers for what it spells and nothing more. `pattern` narrows which names a caller wants. `forge hooks --how writes`. */
+const WRITTEN = /[A-Za-z0-9_./@~-]+\.[A-Za-z0-9]+/g;
+/* Twelve refusals in three days were a sentence inside a string — a write word and a path in one line of prose. A path and a mode hold no space, so a span with one is prose; a `-c` body is code. */
+const spoken = (said) =>
+  said
+    .replace(RUNS, (all, runner, body) => ` ${body.slice(1, -1)} `)
+    .replace(QUOTED, (span) => (/\s/u.test(span) ? " " : span));
+
+const namesIn = (said, pattern) =>
+  [...said.matchAll(pattern)].map((one) => ({
+    token: one[0],
+    placed: one[0][0] !== "~" && said[one.index - 1] !== "$",
+  }));
+
+export const writtenPaths = (text, cwd, pattern = WRITTEN) => {
+  const held = new Map();
+  const standing = (at) => {
+    if (!held.has(at)) {
+      held.set(at, standsIn(text, at).filter((one) => one !== NOWHERE).map((one) => resolve(cwd, one ?? ".")));
+    }
+    return held.get(at);
+  };
+  const named = spans(text).flatMap(({ start, end }) => {
+    const said = spoken(text.slice(start, end).trim());
+    return WRITES.test(said) ? namesIn(said, pattern).map((one) => ({ ...one, at: start })) : [];
+  });
+  const aimed = [...text.matchAll(REDIRECT)]
+    .flatMap((one) => namesIn(unquote(one[1]), pattern).map((each) => ({ ...each, at: one.index })));
+  return [...aimed, ...named].map(({ token, placed, at }) => {
+    const trees = placed && !token.startsWith("/") ? standing(at) : [];
+    return { token, trees, paths: [token, ...trees.map((tree) => join(tree, token))] };
+  });
 };
 
 /** Where this turn begins: only a user record carrying `promptSource` is a prompt somebody typed. */

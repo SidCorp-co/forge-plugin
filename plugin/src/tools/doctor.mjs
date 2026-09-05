@@ -19,7 +19,7 @@ import {
 } from "../checks/claude-md.mjs";
 import { cloudflareAccounts } from "./cloudflare.mjs";
 import { modelBehind, profile } from "../codex/codex-api.mjs";
-import { copyToRun, pluginCopy } from "./plugin-copy.mjs";
+import { copyToRun, FROZEN, pluginCopy } from "./plugin-copy.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { LOG_PATH, consults, logEntries } from "../codex/codex-log.mjs";
 import { flags } from "../resolve/flags.mjs";
@@ -494,6 +494,9 @@ export const doctor = async (rest) => {
   const gating = copyToRun({ entry: join("hooks", "_hook.mjs") });
   line(OK, "copy the gates run", `${gating.kind} ${gating.version ?? "?"} at ${gating.dir}`
     + ` — ${gating.why}`);
+  /* The two lines above say which copy answers a call; this one says what no call reaches. One reading, spent by the release step and by the gate that holds a write to any of them. */
+  line(OK, "restart set", `${FROZEN.join(", ")} — a session keeps these as of its start, whatever `
+    + "copy the lines above name");
   checkRoles(dispatched);
   checkContract();
   /* Reads and writes differ: `new` translates before it posts, and a read never asks. */

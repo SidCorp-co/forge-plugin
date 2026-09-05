@@ -8,7 +8,7 @@ skill.
 
 The file hooks watched `Write`, `Edit` and `MultiEdit` and nothing else, so every edit made through the
 shell passed all of them unseen — under a permission mode that encourages Bash, the main road rather
-than an edge case. What counts as a write is one document — `forge hooks --how writes` — because six
+than an edge case. What counts as a write is one document — `forge hooks --how writes` — because seven
 gates decide by it, and a second account here would diverge the first time one of them was corrected.
 
 ## Which tree a command runs in
