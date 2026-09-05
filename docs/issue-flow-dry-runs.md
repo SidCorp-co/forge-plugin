@@ -3453,3 +3453,30 @@ filing and the comment it names were read back through the raw comments call.
   owes; the run re-took the whole read at the new head rather than call it a recheck, at one round.
 - Two acceptance clauses in the requirements tree cite the same test case, so dropping either
   assertion leaves both green; noted on the record for whoever reads the spec.
+
+## Hundred-and-thirty-fifth dry run — ISS-121
+
+One paragraph in the codex request doc: the caching model was stated as keyed on the longest matching
+prefix, and every measurement under it was intra-consult, so a reader inferred that a consult could
+read a prefix an earlier one had warmed; ISS-83 was filed and planned on exactly that. The run
+re-measured off the consult log itself, counts only, over a window frozen by line count because three
+sibling runs were growing the log under it: of the answered rows that made one request, every one read
+zero cache tokens, and sliced back to ISS-83's window the figure reproduced (3.35.150, landed as
+3ba004c). The reviewer forced the claim down from "reads are only ever intra-consult" to "no read has
+been seen to cross", since usage is summed per consult and a read on a consult's own first call would
+be invisible in the row. No restart owed. Closed by its run. Folded from its handback; the notes on
+ISS-402 and ISS-120 were read back through the raw comments call.
+
+- A measurement over a shared log is frozen by physical extent and a hash before it is read, or the
+  numbers move while the sentence is being written.
+- The reviewer's correction was to what the sentence claims, not how it reads: a summed usage row
+  cannot distinguish a read that never happened from one the sum hid. The stronger claim was the
+  one a careful reader could refute.
+- A retried consult's row carries the retry's call count and the sum of both attempts' usage, so a
+  histogram keyed on calls mis-buckets a sixth of the answered rows; found by the earning review and
+  routed to ISS-120, whose third rule it is.
+- The run spent a feedback filing on a defect whose duplicate was on screen at a high score, then
+  claimed, confirmed and dropped its own filing; the second sighting of the fix-tier refusal went to
+  ISS-402 instead, where the count is now two.
+- The whole gate took half again as long as it did a day earlier, unrelated to the change; the
+  handback said so for whoever watches the ledger.
