@@ -23,6 +23,21 @@ Where it applies, and what each case would have done read the other way:
 | several climbs on one page | the highest | take the newest, so a plan correction written after a re-size erases it (ISS-161) |
 | a word the ladder has not got | the height of the lowest rung, never negative | index off the end of the table and answer with nothing |
 | a run's transcript naming several rungs | the largest among them | file a batch under its cheapest member, so every rung looks better the more work is batched onto it |
+| a plan declaring one name twice | `yes`, wherever in the plan it stands | read the first, so `no` above `yes` waives a payload the plan explicitly declared, and the same two lines reordered do not |
+| a ceiling read from a projection that lost a correction | printed all the same | the loss only ever lowers the rung, so it tightens a print that refuses nothing: it nags where nothing was owed and never falls silent where something was |
+
+## Two readings the rule does not govern
+
+**A mark inside an example is not a doubtful mark — it is not a mark.** A fenced or indented block
+is stripped before the mark is looked for, because the contract's own guide prints the syntax and a
+body quoting it would otherwise claim whatever rung it quoted. Answering with the higher of the
+stripped and unstripped readings would be worse than either: an example naming `feature` would then
+raise a rung the body genuinely claimed, and no trivial issue could ever quote the mark.
+
+**A key indented inside a record is prose, not a field.** `blockOf` indents every continuation line
+of a multi-line value by two spaces, so `forge stats runs` reads a stamped rung only at column zero.
+Admitting an indented one would let a sentence somebody typed under `detail` re-file the run that
+wrote it — and that is not an ambiguous reading resolved the wrong way, it is reading the wrong text.
 
 ## What the rule is not
 

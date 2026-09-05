@@ -9,12 +9,22 @@ export const TIERS = ["trivial", "fix", "feature"];
 const [TRIVIAL, FIX] = TIERS;
 export const FEATURE = TIERS.at(-1);
 
-const markLine = (tier) => new RegExp(String.raw`^[ \t]*size:[ \t]*${tier}\.?[ \t]*$`, "imu");
+const markLine = (tier) => new RegExp(String.raw`^size:[ \t]*${tier}\.?[ \t]*$`, "imu");
 
-export const tierIn = (description) => {
-  const found = TIERS.filter((tier) => markLine(tier).test(String(description ?? "")));
-  return found.length ? found.at(-1) : FEATURE;
+/* A mark inside an example is not a mark, and not a doubt either: docs/cli/the-ladder.md. */
+const EXAMPLE = new RegExp([
+  String.raw`^[ \t]*(?<wall>\x60{3,}|~{3,})[^\n]*\n[\s\S]*?(?:^[ \t]*\k<wall>[^\n]*$|$)`,
+  String.raw`^(?: {4}|\t)[^\n]*$`,
+].join("|"), "gmu");
+const prose = (text) => String(text ?? "").replaceAll(EXAMPLE, "");
+
+/* Null, not the top rung: a body carrying `Size: feature.` is not one carrying no mark. */
+export const markedIn = (description) => {
+  const found = TIERS.filter((tier) => markLine(tier).test(prose(description)));
+  return found.length ? found.at(-1) : null;
 };
+
+export const tierIn = (description) => markedIn(description) ?? FEATURE;
 
 export const heightOf = (tier) => Math.max(0, TIERS.indexOf(tier));
 

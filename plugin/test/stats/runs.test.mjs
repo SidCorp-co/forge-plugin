@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { blockOf } from "../../src/flow/machine.mjs";
 import { UNTIERED, classOf, markerOf, shellOf, slugFor, tierOf } from "../../src/stats/transcripts.mjs";
 import { unionSeconds } from "../../src/stats/runs.mjs";
 import { TIERS } from "../../src/ladder.mjs";
@@ -84,6 +85,27 @@ test("a run's tier is read off the confirmation it wrote, and off no other call 
     "a batch is as heavy as its heaviest member, never the cheapest of them",
   );
 });
+
+/* Written by `blockOf`, which is the only writer of these records, rather than by hand: it indents
+   every continuation line of a multi-line field by two spaces, so a reading that admitted an
+   indented key would let a confirmation's own detail re-file the run that wrote it. Asserting over
+   a synthetic body would re-derive the blind spot the writer creates (F3). */
+test("prose inside a field cannot claim a rung the run did not stamp", () => {
+  const [trivial, , feature] = TIERS;
+  const written = blockOf([
+    ["where", "src/a.mjs"],
+    ["is", "a reading that resolves downward"],
+    ["finding", "holds"],
+    ["detail", `the plan said one thing\ntier: ${feature}`],
+    ["tier", trivial],
+  ]);
+  assert.match(written, /\n {2}tier: feature/u, "the writer really does indent a continuation line");
+  assert.equal(tierOf([said("forge record confirmation", written)], TIERS), trivial,
+    "so the stamped key decides, and a sentence a person typed under another field does not");
+  assert.equal(tierOf([said("forge record confirmation", blockOf([["tier", feature]]))], TIERS), feature,
+    "while the key the writer really wrote is read, or nothing would be");
+});
+
 
 /* The rows have to add up to the corpus: a run filed under no tier and dropped would leave a table
    that silently reports fewer runs than the profile above it. */

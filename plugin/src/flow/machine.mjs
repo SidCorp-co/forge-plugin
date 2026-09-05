@@ -129,13 +129,15 @@ export const landingMoved = (comments) => {
   return paths.length ? paths : null;
 };
 
-/* Machine data inside prose, read by this wording. */
+/* Machine data in prose; every occurrence, not the first, decides (docs/cli/the-ladder.md). */
 const DECLARED = { screen: "screen change", schema: "schema coupling", look: "user-facing outcome" };
-const lineFor = (name) => new RegExp(`${name}:\\s*(yes|no)\\b`, "iu");
+const lineFor = (name) => new RegExp(`${name}:\\s*(yes|no)\\b`, "giu");
 
 export const planFlags = (plan) =>
-  Object.fromEntries(Object.entries(DECLARED).map(([key, name]) =>
-    [key, lineFor(name).exec(plan ?? "")?.[1]?.toLowerCase() ?? null]));
+  Object.fromEntries(Object.entries(DECLARED).map(([key, name]) => {
+    const said = [...String(plan ?? "").matchAll(lineFor(name))].map((found) => found[1].toLowerCase());
+    return [key, said.includes("yes") ? "yes" : (said[0] ?? null)];
+  }));
 
 /** Which declaration asks for a person, beside the table it reads: FR-05 names two. */
 export const looksTo = ({ screen, look }) =>

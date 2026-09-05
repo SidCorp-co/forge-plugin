@@ -7,8 +7,8 @@ import test from "node:test";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { BARE, committed, corrected, GATE, git, lastStep, landIn, planned, pushed, ref, ROOT, runIn,
-  scratch, sized, stubbed } from "./run-fixtures.mjs";
+import { BARE, committed, corrected, emptyAnswer, GATE, git, lastStep, landIn, planned, pushed, ref,
+  ROOT, runIn, scratch, sized, stubbed } from "./run-fixtures.mjs";
 
 /* Step 7 is reached only from a tree that is not the checkout, so every fixture shipping from the
    scratch root early-returns past it (ISS-143). `pull.rebase` is set in the scratch repository
@@ -419,6 +419,24 @@ test("a ship from a branch naming no issue measures the landing against nothing"
   const said = `${run.stdout}\n${run.stderr}`;
   assert.doesNotMatch(said, /ceiling/u, said);
   assert.doesNotMatch(said, /Size: trivial ->/u, said);
+});
+
+/* The ceiling is advisory and runs after the release: by the time it prints, the branch is pushed
+   and the commit is on the base, so a throw here would cost the run the lines that tell it what
+   happened for nothing it could act on. `null` is the case that reaches it — a tracker that answered
+   cleanly with nothing, which parses and has no field to read (consult F5). */
+test("an answer with nothing in it costs the ship the ceiling and not the run", () => {
+  const { at, work } = pushed("tier-empty");
+  stubbed(work);
+  sized(at, "trivial");
+  emptyAnswer(at);
+  landIn(work, join("plugin", "src", "one.mjs"), 400, "far past the shortest rung's ceiling");
+  const run = shipOnBranch(work, "iss-318");
+  const said = `${run.stdout}\n${run.stderr}`;
+  assert.doesNotMatch(said, /ceiling/u, said);
+  assert.doesNotMatch(said, /TypeError|Cannot read/u, "and the ship does not carry the throw out with it");
+  assert.match(said, /the copy the next session loads/u,
+    "while every step after the ceiling still runs and says what it found");
 });
 
 /* The rung the work is on, never the one its body still claims: an issue corrected to the top rung

@@ -19,7 +19,8 @@ const OUTPUT = /^a\S*\.output$/u;
 export const FLOW_BRIEF = /issue-flow/u;
 
 const CONFIRMS = "forge record confirmation";
-const TIER_LINE = /^[ \t]*tier:[ \t]*([a-z]+)[ \t]*$/gimu;
+/* Column zero: `blockOf` indents a continuation line, so an indented key is prose (the-ladder.md). */
+const TIER_LINE = /^tier:[ \t]*([a-z]+)[ \t]*$/gmu;
 
 export const UNTIERED = "untiered";
 

@@ -9,9 +9,10 @@ import { fakeTracker, ranAsync, tempHome } from "./fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("ladder").path;
 const {
-  CEILINGS, LIGHTER, SPARES, TIERS, climbsIn, escalatedBy, heightOf, overCeiling, resizeForm, tierIn,
-  tierOf,
+  CEILINGS, LIGHTER, SPARES, TIERS, climbsIn, escalatedBy, heightOf, lightens, markedIn, overCeiling,
+  resizeForm, tierIn, tierOf,
 } = await import("../src/ladder.mjs");
+const { planFlags } = await import("../src/flow/machine.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 
@@ -28,7 +29,10 @@ const issue = (tier, extra = {}) => ({
 const state = {
   calls: [],
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
-  issues: [issue("trivial"), issue("fix"), { ...issue("feature"), description: "no mark here" }],
+  issues: [
+    issue("trivial"), issue("fix"), { ...issue("feature"), description: "no mark here" },
+    { ...issue("feature"), documentId: "claimed-uuid", issueId: "ISS-73" },
+  ],
   comments: {},
   answer: { forge_config: () => ({ config: state.config }) },
 };
@@ -91,13 +95,60 @@ test("every rung the ladder has has its rows, its rounds, and a ceiling unless i
   assert.ok(CEILINGS[lowest].lines < CEILINGS[rest[0]].lines, "and a lower rung admits a smaller landing");
 });
 
+/* Through `lightens`, which is what every entry check calls: asserting only that the top rung is
+   absent from `row.tiers` passes with exemptions removed altogether, the list being data either
+   way. The two spawned tests below carry the same claim end to end, through the checks themselves. */
 test("what a rung stops owing is the row's, and a rung absent from a row owes that payload", () => {
+  const top = TIERS.at(-1);
   for (const row of LIGHTER) {
-    for (const tier of row.tiers) {
-      assert.equal(tierOf({ description: body(tier), plan: "", moved: [], whole: true }), tier);
+    for (const tier of TIERS) {
+      const said = lightens(row.status, { description: body(tier), plan: "", moved: [], whole: true });
+      assert.equal(said, row.tiers.includes(tier),
+        `at ${row.status} a \`${tier}\` ${row.tiers.includes(tier) ? "stops owing" : "owes"} ${row.drops}`);
     }
-    assert.ok(!row.tiers.includes("feature"), `${row.status} drops ${row.drops} for the top rung`);
+    assert.equal(lightens(row.status, { description: body(top), plan: "", moved: [], whole: true }), false,
+      `${row.status} drops ${row.drops} for the top rung`);
   }
+  for (const tier of TIERS) {
+    assert.equal(lightens("in_progress", { description: body(tier), plan: "", moved: [], whole: true }), false,
+      `${tier} is exempted from the baseline, which no rung buys`);
+  }
+});
+
+/* The contract's own guide prints the mark inside a fence, so a reading that took one would leave
+   every body quoting it claiming that rung. Why not the higher of two readings: the-ladder.md. */
+test("a mark inside an example claims nothing, and does not move a mark the body really carries", () => {
+  const [lowest] = TIERS;
+  const top = TIERS.at(-1);
+  for (const shown of [
+    `no mark here\n\n\`\`\`text\nSize: ${lowest}.\n\`\`\`\n`,
+    `no mark here\n\n~~~\nSize: ${lowest}.\n~~~\n`,
+    `no mark here\n\n\`\`\`\nSize: ${lowest}.\n`,
+    `no mark here\n\n    Size: ${lowest}.\n`,
+  ]) {
+    assert.equal(tierIn(shown), top, "an example is the only apparent mark, and the body claims nothing");
+  }
+  assert.equal(tierIn(`Size: ${lowest}.\n\n\`\`\`\nSize: ${top}.\n\`\`\`\n`), lowest,
+    "and an example beside a real mark leaves the real one standing, rather than being read beside it");
+  assert.equal(markedIn("a body with no mark at all"), null,
+    "no mark is told from the top rung, so a report cannot say a body carrying one carries none");
+  assert.equal(markedIn(`Size: ${top}.`), top, "and the top rung claimed in full reads as claimed");
+});
+
+/* Read every declaration, not the first: a plan naming one twice is doubtful, and the order two
+   lines happen to be in is not a thing the contract lets decide a payload (F2). */
+test("a plan declaring a name twice is at the answer that owes more, whichever order it wrote them", () => {
+  const [, middle] = TIERS;
+  const top = TIERS.at(-1);
+  for (const plan of ["Screen change: no\nScreen change: yes", "Screen change: yes\nScreen change: no"]) {
+    assert.equal(escalatedBy(plan), 1, `\`${plan.replaceAll("\n", " / ")}\` declares a screen change`);
+  }
+  assert.equal(planFlags("Schema coupling: no\nSchema coupling: yes").schema, "yes",
+    "and the migration classification is owed by the same reading, which no rung drops");
+  assert.equal(tierOf({ description: body(middle), plan: "User-facing outcome: no\nUser-facing outcome: yes", moved: [], whole: true }),
+    top, "so a plan that names an outcome anywhere in it has named one");
+  assert.equal(escalatedBy("Screen change: no\nUser-facing outcome: no"), 0,
+    "while a plan declaring neither still climbs nothing");
 });
 
 test("a declaration climbs one rung and a correction climbs to what it names, and neither goes down", () => {
@@ -166,4 +217,18 @@ test("the shortest rung drops what the one above drops, and is told what else it
   assert.match(feature.stdout, /carries no size mark, so it is a `feature`/u);
   assert.match(feature.stdout, /a feature owes the whole set/u, "the top rung says so rather than saying nothing");
   assert.doesNotMatch(feature.stdout, /Two routes up/u, "and has none to offer");
+});
+
+/* The top rung is both a mark and the default, and a report reading only the answer cannot tell the
+   two apart — so it told a body carrying `Size: feature.` in full that it carried no mark, which is
+   the tool stating something false about text the reporter wrote. This repository's own issues are
+   marked that way, which is how it was found. */
+test("a body claiming the top rung in full is not told it carries no mark", async () => {
+  const claimed = await owed("ISS-73");
+  assert.match(claimed.stdout, /marked `Size: feature\.`, so it is a `feature`/u,
+    "the mark the body carries is read back to whoever wrote it");
+  assert.doesNotMatch(claimed.stdout, /carries no size mark/u,
+    "and is not reported as an absence, which would send a reporter to add a line already there");
+  assert.match(claimed.stdout, /a feature owes the whole set/u, "while it owes exactly what an unmarked body owes");
+  assert.doesNotMatch(claimed.stdout, /Two routes up/u, "and has nowhere to climb either");
 });

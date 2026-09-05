@@ -2,7 +2,7 @@
    which rung and this answers how to say it, and a report is where prose accumulates. Printed at
    every rung, a route nobody is shown being one they infer. */
 import {
-  FEATURE, LIGHTER, SPARES, TIERS, heightOf, resizeForm, tierIn, tierOf,
+  FEATURE, LIGHTER, SPARES, TIERS, heightOf, markedIn, resizeForm, tierIn, tierOf,
 } from "./ladder.mjs";
 import { looksTo, planFlags } from "./flow/machine.mjs";
 
@@ -15,10 +15,10 @@ const spareLines = (tier) => SPARES[tier].map((one, at) =>
   `  ${(at ? "" : "and fewer rounds").padEnd(WIDTH)}${one}`);
 
 const markSaid = (description) => {
-  const claimed = tierIn(description);
-  return claimed === FEATURE
-    ? "This issue carries no size mark, so it is a `feature`"
-    : `This issue is marked \`Size: ${claimed}.\`, so it is a \`${claimed}\``;
+  const claimed = markedIn(description);
+  return claimed
+    ? `This issue is marked \`Size: ${claimed}.\`, so it is a \`${claimed}\``
+    : `This issue carries no size mark, so it is a \`${FEATURE}\``;
 };
 
 const climbSaid = ({ description, plan, moved }) => {

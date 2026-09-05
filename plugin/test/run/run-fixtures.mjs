@@ -152,7 +152,10 @@ if (argv[0] === "issue") {
   const description = existsSync(marked) ? readFileSync(marked, "utf8") : "no mark here";
   const planned = join(room, "forge-plan");
   const plan = existsSync(planned) ? readFileSync(planned, "utf8") : "";
-  process.stdout.write(JSON.stringify({ issueId: argv[1], status, description, plan }, null, 2));
+  const shape = existsSync(join(room, "forge-null"))
+    ? null
+    : { issueId: argv[1], status, description, plan };
+  process.stdout.write(JSON.stringify(shape, null, 2));
   process.exit(0);
 }
 if (argv[0] === "record" && argv[1] === "report") {
@@ -192,6 +195,9 @@ export const stubbed = (work) => {
  *  the body, and the two things that climb from it — a plan's declaration and a correction. */
 export const sized = (at, tier) => writeFileSync(join(at, "forge-size"), `a body.\n\nSize: ${tier}.\n`);
 export const planned = (at, text) => writeFileSync(join(at, "forge-plan"), text);
+
+/** A well-formed answer with nothing in it: `null` parses, and reading a field off it throws. */
+export const emptyAnswer = (at) => writeFileSync(join(at, "forge-null"), "");
 export const corrected = (at, moved) =>
   writeFileSync(join(at, "forge-record-page"), `Correction  (2026-09-05T10:00, contract 1)\n  What moved: ${moved}\n`);
 

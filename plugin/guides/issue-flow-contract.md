@@ -107,9 +107,12 @@ goes. The scenario is the person's or the agent's to decide; the contract checks
 **The size decides the ladder, and the ladder has three rungs.** Every tier runs the same statuses
 in the same order; what differs is what three of those statuses ask for, and how many rounds the
 work between them is expected to take. The tier is a line in the body — `Size: trivial.`,
-`Size: fix.`, or no line at all, which is a **feature**. It is the line and not the tracker's
-`complexity` field: the tracker creates no label it was not given and this projection cannot read
-that enum back, so the day the tracker owns a size, the line goes.
+`Size: fix.` or `Size: feature.` — and a body carrying no such line is a **feature**, every rung
+being claimable and the top one being what an unclaimed issue falls to. A body claiming two rungs
+is at the higher, and a mark inside a fenced or indented example is not a mark, so a body quoting
+this paragraph claims nothing. It is the line and not the tracker's `complexity` field: the tracker
+creates no label it was not given and this projection cannot read that enum back, so the day the
+tracker owns a size, the line goes.
 
 | Tier | What it claims | Payloads it stops owing | Rounds it may spend fewer of |
 |---|---|---|---|
