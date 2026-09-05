@@ -73,7 +73,7 @@ export const localFile = (given) => {
   }
 };
 
-const TWICE = "A name attached twice resolves to two documents.";
+export const TWICE = "A name attached twice resolves to two documents.";
 
 /** A name to cite as it stands, a file to put up under its base name, or a collision: a name
  *  attached twice resolves to two documents and every verdict citing it is ambiguous (ISS-55). */

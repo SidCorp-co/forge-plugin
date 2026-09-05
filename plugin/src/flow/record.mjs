@@ -8,8 +8,9 @@ import {
 import { bodyChecked } from "../codex/codex-read.mjs";
 import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
 import { commentPage, cutLine, postComment } from "../tracker/comments.mjs";
-import { attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo }
-  from "../tracker/evidence.mjs";
+import {
+  TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo,
+} from "../tracker/evidence.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
 import { releaseLine, releasePolicy } from "../tracker/project-config.mjs";
 import { sizeFrom } from "../ladder.mjs";
@@ -288,9 +289,8 @@ const citedBy = (comments, kind) =>
 /* An upload is refused where the page was cut rather than risked past it: a name it has to be
    unique against may live on a comment the cut held back, and one attached twice is two documents. */
 const CROWDED = (kind, cut) => `record ${kind} would put a file up, and the names already on this `
-  + `issue cannot be read whole. ${cut} A name attached twice resolves to two documents, and every `
-  + `record citing it is then ambiguous. Cite a URL or a commit, or attach the file under a name `
-  + `nothing else could carry and cite that.`;
+  + `issue cannot be read whole. ${cut} ${TWICE} Every record citing it is then ambiguous. Cite a `
+  + `URL or a commit, or attach the file under a name nothing else could carry and cite that.`;
 
 /* A default read off the page is the latest of its kind, the cut keeping the most recent. Found
    nowhere, on a cut page, it may be the comment behind it, so the flag is asked for (ISS-131). */

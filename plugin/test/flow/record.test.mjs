@@ -4,6 +4,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
+import { join } from "node:path";
+import { writeFileSync } from "node:fs";
+
 import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-");
@@ -12,6 +15,7 @@ const {
 } = await import("../../src/flow/record.mjs");
 const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES, unwrap } = await import("../../src/flow/machine.mjs");
 const { CONTRACT } = await import("../../src/guides/contract.mjs");
+const { TWICE } = await import("../../src/tracker/evidence.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
@@ -554,4 +558,23 @@ test("a newer field is asked for at the write and excused at the read-back", () 
   /* The read-back is the half the bit is for: a baseline written before the field existed is a
      whole payload, and only a wrong word is a gap. */
   assert.equal(parse(render("baseline", { gate: "g", result: "r", commit: "43b811e" })).fields.scope, undefined);
+});
+
+/* One sentence, one place: the two routes that put a file on an issue refuse a collision in the
+   same words, and `record`'s route reads them from `evidence.mjs` rather than keeping a second
+   copy that goes stale without failing anything (ISS-155). */
+test("the record route's collision refusal carries the one sentence evidence.mjs holds", async () => {
+  project.answer.forge_comments = (args) =>
+    (args.action === "list"
+      ? { comments: project.comments["shipped-uuid"] ?? [], returned: 1, hasMore: true, truncatedBy: "response-size" }
+      : { documentId: "comment-uuid" });
+  const path = join(tempRoom("crowded-"), "shot.png");
+  writeFileSync(path, "not really a screenshot");
+  const run = await ranAsync(FORGE, ["record", "verdict", "ISS-3", "--criterion", "1",
+    "--verdict", "pass", "--commit", "43b811e", "--evidence", path], tracker.env);
+  delete project.answer.forge_comments;
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /^record verdict would put a file up/mu, run.stderr);
+  assert.ok(run.stderr.includes(TWICE), `the sentence itself, verbatim: ${run.stderr}`);
+  assert.match(run.stderr, /Every record citing it is then ambiguous\./u, "and the record route's own words after it");
 });
