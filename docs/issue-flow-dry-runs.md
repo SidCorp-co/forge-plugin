@@ -2251,3 +2251,25 @@ length reason and names its sibling. No restart owed. Both closed by the run. Fo
 - A sibling comment two declarations away states a fact three landings made false (ISS-280); kept out
   and filed, since the issue named one comment. The run's own note on a documented cap duplicated two open
   issues and was dropped, becoming the evidence for the second reading above.
+
+## Eighty-ninth dry run — ISS-256
+
+One agent gave the untrusted-data fence one source (3.35.102): the pattern's source lives in the flow's
+machine, the issue-shape reader imports it and compiles its own flags, all three call sites byte-unchanged;
+the one-copy guard gained a row needled on the class between the brackets, with two tests tying the needle
+to the home's source and passing a prose mention as not a copy. Neutrality proven over every real issue and
+comment on the tracker — seven readers captured at the base and at the landed head, nearly ten thousand
+answers byte-identical — and each mechanism reverted alone. No restart owed. Closed by its run. Folded
+from the record.
+
+- The issue's suggested direction was wrong and the record says why: the file it implied should own the
+  pattern already reaches the flow's machine through two hops, so that edge would have closed a cycle.
+  A home is chosen by the import graph, not by which file mentions the thing first. A tree-wide search
+  also found two copies where the issue listed three files.
+- Two corrections the run made to its own record after review: a merged mark's moved-paths clause had
+  been written as prose, and reading it back through the very module the issue touched returned two
+  non-path fragments — re-marked with paths only; and both consults ran on rebased-away hashes whose
+  contents were byte-identical to the landed change, which the comment names since the reviewed-head line
+  cannot. A record is read back through the reader that will read it.
+- The upload verb's refusal of a source file's type names no accepted type and no route, met again and
+  routed to the issue that holds it rather than filed a fourth time.
