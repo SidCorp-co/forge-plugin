@@ -12,7 +12,7 @@ import { fakeTracker, ranAsync, tempHome } from "./fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("ladder").path;
 const {
-  CEILINGS, LIGHTER, SPARES, TIERS, bandFor, climbsIn, escalatedBy, heightOf, lightBand, lightens,
+  CEILINGS, LIGHTER, SPARES, TIERS, bandFor, belowTop, climbsIn, escalatedBy, heightOf, lightens,
   markedIn, overCeiling, resizeForm, rungFrom, sizeFrom, splits, tierIn, tierOf,
 } = await import("../src/ladder.mjs");
 const { planFlags } = await import("../src/flow/machine.mjs");
@@ -313,8 +313,16 @@ test("each of the tracker's five sizes claims a rung, and the report says it was
   }
   assert.equal(rungFrom("xxl"), null, "a value the ladder has no rung for claims none");
   assert.deepEqual(TIERS.map((one) => bandFor(one)), ["xs", "s", "m"],
-    "and the other direction is the smallest value that claims the rung");
-  assert.deepEqual(BANDS.map((one) => lightBand(one)), [true, true, false, false, false]);
+    "and the other direction is a declared band per rung, not the first key of the table above");
+  /* The pair has to close: a band written back that reads as a different rung would let one filing
+     claim two sizes, which is the whole of what the two directions are for. */
+  for (const rung of TIERS) {
+    assert.equal(rungFrom(bandFor(rung)), rung, `${rung} is written back as a band that reads as ${rung}`);
+  }
+  assert.deepEqual(BANDS.map((one) => belowTop(rungFrom(one))), [true, true, false, false, false]);
+  assert.deepEqual(TIERS.map((one) => belowTop(one)), [true, true, false],
+    "and the one predicate answers off a rung, whichever source the caller read it from");
+  assert.equal(belowTop(null), false, "no rung is not a rung below the top");
 });
 
 /* The two largest are worth a question and no payload: a report that grew a demand is a second ladder. */

@@ -1,11 +1,11 @@
 // A claim CLAUDE.md makes about the repository is read as fact by every session that opens it, and
 // it rots silently. Checked where it is written. how/claude-md.md.
 
-import { spawnSync } from "node:child_process";
 import { relative } from "node:path";
 
 import { checkClaims, readClaudeMd } from "../../src/checks/claude-md.mjs";
 import { repoRoot } from "../../src/codex/codex.mjs";
+import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
 import { block, remaining, touched, how, done } from "../_hook.mjs";
 
 /* The eight kinds `forge doctor` reports, in its words: how/claude-md.md. */
@@ -27,8 +27,8 @@ const named = (text, root) => {
 
 /* The baseline, so a repository whose CLAUDE.md is already wrong still gets the edit that fixes it. */
 const asCommitted = (root) => {
-  const run = spawnSync("git", ["show", "HEAD:CLAUDE.md"], { cwd: root, encoding: "utf8", timeout: Math.max(500, Math.min(5000, remaining() - 1000)) });
-  return run.status === 0 ? (run.stdout ?? "") : "";
+  const run = gitProbe(["show", "HEAD:CLAUDE.md"], { cwd: root, ms: probeMs(remaining()) });
+  return run?.status === 0 ? run.out : "";
 };
 
 export const run = (ev) => {

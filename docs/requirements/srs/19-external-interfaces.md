@@ -50,7 +50,7 @@ time (C-01). How a gate's answer becomes that protocol is `docs/HOOKS.md`'s.
 
 - **AC-19-3-1** · Rev: 1 · Proof: plugin/test/hooks/gate.test.mjs "after a call, every gate's block and context travel together"
   WHEN a gate decides THEN the runner SHALL express that decision in the host's own protocol.
-- **AC-19-3-2** · Rev: 1 · Proof: plugin/test/hooks/link-cli.test.mjs "an empty bin gets both"
+- **AC-19-3-2** · Rev: 1 · Proof: plugin/test/hooks/gate-entry.test.mjs "an empty bin gets both"
   WHEN a session starts THEN the product SHALL put its binaries on the path from the copy that is
   running.
 

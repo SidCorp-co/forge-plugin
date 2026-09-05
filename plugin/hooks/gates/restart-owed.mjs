@@ -1,7 +1,7 @@
 // Stop once before a write to a file an open session cannot pick up: the ship names these at the end
 // of a run, hours after the decision that put the text there. how/restart-owed.md says why.
 
-import { dirname, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 import { askedAlready, deny, done, how, logged, named, settled, shellText, turnRecords, writtenPaths } from "../_hook.mjs";
 import { FROZEN, copyToRun, freezesSession } from "../../src/tools/plugin-copy.mjs";
@@ -72,7 +72,7 @@ export const run = (ev) => {
   const aimed =
     tool === "Bash"
       ? writtenPaths(shellText(ti.command), here)
-        .flatMap((one) => (one.trees.length ? one.paths.slice(1) : one.paths))
+        .flatMap((one) => (one.trees.length ? one.trees.map((tree) => join(tree, one.token)) : [one.token]))
       : named(ev);
 
   for (const path of aimed) {

@@ -23,8 +23,7 @@ const SOURCE_SAID = {
 
 const said = (one) => SOURCE_SAID[one.from](one.rung);
 
-const markSaid = (size) => {
-  const { rung, decided, outranked } = sizeFrom(size);
+const markSaid = ({ rung, decided, outranked }) => {
   if (!decided.length) return `This issue claims no size on either source, so it is a \`${FEATURE}\``;
   const under = outranked.map((one) => `${said(one)}, which does not lower a rung the other claimed`);
   return [`This issue is a \`${rung}\`: ${decided.map(said).join(", and ")}`, ...under].join("; ");
@@ -38,9 +37,8 @@ const splitAsk = (band) => (splits(band) ? [
   "and this one confirmed as the first of them. Nothing above is owed differently either way.",
 ] : []);
 
-const climbSaid = (size, tier) => {
+const climbSaid = (size, claimed, tier) => {
   const { plan } = size;
-  const claimed = sizeFrom(size).rung;
   if (tier === claimed) return null;
   const declared = looksTo(planFlags(plan));
   const byPlan = declared && heightOf(claimed) < TIERS.length - 1;
@@ -57,13 +55,15 @@ const routesOff = (tier, ref) => (tier === FEATURE ? [] : [
 
 export const sizeReport = (size, ref) => {
   const { whole } = size;
+  /* Read once and passed: both sentences below want the same answer, and it costs a fence strip. */
+  const claimed = sizeFrom(size);
   if (whole === false) {
-    return [`${markSaid(size)}, and the page above was shortened: a cut cannot show a`,
+    return [`${markSaid(claimed)}, and the page above was shortened: a cut cannot show a`,
       "correction that re-sized it, so the tier is not applied and the full set is asked."].join("\n");
   }
   const tier = tierOf(size);
-  const climbed = climbSaid(size, tier);
-  const opened = `${markSaid(size)}${climbed ? `, and ${climbed}` : ""}. The entry checks run that tier:`;
+  const climbed = climbSaid(size, claimed.rung, tier);
+  const opened = `${markSaid(claimed)}${climbed ? `, and ${climbed}` : ""}. The entry checks run that tier:`;
   const dropped = lighterLines(tier);
   return [
     opened,

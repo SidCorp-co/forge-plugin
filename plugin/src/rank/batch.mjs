@@ -1,7 +1,7 @@
 /* Related issues printed together under the highest-ranked of them, relatedness read three ways in
    the order the issue gives. Why the module reading stops where it does: docs/cli/next.md. */
 import { meets } from "./eligible.mjs";
-import { lightBand } from "../ladder.mjs";
+import { belowTop, rungFrom } from "../ladder.mjs";
 
 export const RELATION = "relation";
 export const SEARCH = "search";
@@ -31,7 +31,7 @@ export const batchUnder = (head, rest, context, weights) => {
   for (const other of rest) {
     const related = relatednessOf(head, other, context);
     if (!related) continue;
-    if (!lightBand(other.score.band) || !lightBand(head.score.band)) {
+    if (!belowTop(rungFrom(other.score.band)) || !belowTop(rungFrom(head.score.band))) {
       aside.push({ ...other, ...related });
       continue;
     }

@@ -117,7 +117,7 @@ const RULES = [
 /** A git rule only bites when there is uncommitted work to lose. True on any doubt: if git cannot answer, the safe reading is that something is at stake. */
 function treeIsDirty(cwd) {
   const said = gitProbe(["status", "--porcelain"], { cwd: cwd || undefined, ms: probeMs(remaining()) });
-  if (said.failed) return true;
+  if (!said) return true;
   if (said.status !== 0) return false; // not a repository: the rule has nothing to protect
   return said.out.trim() !== "";
 }
@@ -125,7 +125,7 @@ function treeIsDirty(cwd) {
 /** How many worktrees share this repository's stash stack, a stale entry included since the verb reports one. One on any doubt: a refusal invented from a failed probe reads as noise. */
 function worktreeCount(cwd) {
   const said = gitProbe(["worktree", "list", "--porcelain"], { cwd: cwd || undefined, ms: probeMs(remaining()) });
-  if (said.failed || said.status !== 0) return 1;
+  if (said?.status !== 0) return 1;
   return Math.max(1, said.out.split("\n").filter((line) => line.startsWith("worktree ")).length);
 }
 
@@ -217,12 +217,11 @@ export const run = (ev) => {
   for (const { pattern, cause, instead, atStake, needsWait, topic } of RULES) {
     const hits = run.filter((one) => pattern.test(one.said) && (!needsWait || inWait(one)));
     if (!hits.length) continue;
-    const asks = AT_STAKE[atStake] ?? null;
-    /* The trees the `find` read, kept: the refusal is about the very hit that answered. */
-    let trees = [];
-    const hit = asks && hits.find((one) => (trees = treesOf(one, ev.cwd)).some(asks));
-    if (asks && !hit) continue;
-    const doubt = atStake === "dirty" && hit ? trees : [];
+    const asks = AT_STAKE[atStake];
+    /* The trees of the hit that answered, and not of the last one read: the refusal is about that one. */
+    const found = asks ? hits.map((one) => treesOf(one, ev.cwd)).find((trees) => trees.some(asks)) : null;
+    if (asks && !found) continue;
+    const doubt = atStake === "dirty" ? found : [];
     const unsure = doubt.includes(NOWHERE) ? UNNAMED : (doubt.length > 1 ? UNSURE : "");
     deny(`Refused. ${cause}\n\nInstead: ${instead}${unsure}${topic ? how(topic) : how()}`);
   }

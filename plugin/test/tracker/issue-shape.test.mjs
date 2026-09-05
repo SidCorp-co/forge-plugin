@@ -10,7 +10,7 @@ const home = tempHome("issue-shape");
 process.env.XDG_CONFIG_HOME = home.path;
 const { UNRANKED, duplicateOf, filedAs, partsIn, priorityFor, refusalFrom,
   shapeOf, tokensNamed, twoChangesIn, withMark } = await import("../../src/tracker/issue-shape.mjs");
-const { FIX, TIERS, lightMark, markFor } = await import("../../src/ladder.mjs");
+const { FIX, TIERS, belowTop, markFor, markedIn } = await import("../../src/ladder.mjs");
 const SIZE_LINE = markFor(FIX);
 const SHORT = "`forge dep` should take the `data.relations` route.";
 const { filingsOf } = await import("../../src/tracker/issue-read.mjs");
@@ -133,23 +133,24 @@ test("a body naming nothing is missing its outcome rather than reading as a fix"
 /* The exemption is the light path's and not one rung's, and the reading is the ladder's. */
 test("the mark clears the fix route on every route, because the CLI writes it into the body", () => {
   const body = "`forge dep` should take the `data.relations` route.";
-  assert.equal(lightMark(body), null);
+  assert.equal(markedIn(body), null);
   const marked = withMark(body);
   assert.ok(marked.includes(SIZE_LINE));
-  assert.equal(lightMark(marked), FIX);
+  assert.equal(markedIn(marked), FIX);
+  assert.equal(belowTop(markedIn(marked)), true, "and a fix is a rung below the top");
   assert.equal(shapeOf({ title: TITLE, body: marked }).fix, false, "a marked fix is refused nothing");
   assert.equal(withMark(marked), marked, "and marking twice writes one line");
   for (const rung of TIERS) {
     assert.equal(shapeOf({ title: TITLE, body: withMark(body, rung) }).fix, rung === TIERS.at(-1),
       "the two rungs below the top are exempt from the sections, and the top one is not");
   }
-  assert.equal(lightMark(`⟦UNTRUSTED_DATA source="issue.description"⟧\n${SIZE_LINE}\n⟦END_UNTRUSTED_DATA⟧`), FIX,
+  assert.equal(markedIn(`⟦UNTRUSTED_DATA source="issue.description"⟧\n${SIZE_LINE}\n⟦END_UNTRUSTED_DATA⟧`), FIX,
     "the description comes back fenced, and the mark is read a line at a time");
   for (const near of ["Size: fix later", "Size: fix-me", "Size: fix!", "the Size: fix. it wants"]) {
-    assert.equal(lightMark(near), null, `${near} is not the mark, and a body it appears in owes its route`);
+    assert.equal(markedIn(near), null, `${near} is not the mark, and a body it appears in owes its route`);
   }
-  assert.equal(lightMark("size:fix"), FIX, "while the spacing and the full stop are the author's");
-  assert.equal(lightMark(`\`\`\`\n${SIZE_LINE}\n\`\`\``), null, "and a mark inside an example is not one");
+  assert.equal(markedIn("size:fix"), FIX, "while the spacing and the full stop are the author's");
+  assert.equal(markedIn(`\`\`\`\n${SIZE_LINE}\n\`\`\``), null, "and a mark inside an example is not one");
 });
 
 

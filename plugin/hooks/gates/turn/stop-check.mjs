@@ -30,7 +30,7 @@ const asked = (ev, at, item, set) => askedAlready(ev, `${item}@${at}`, "stop-che
 /* Read in a child process, not in here: the CLI exits the process on a missing credential and
    sleeps between retries, and either one inside this hook takes every gate's answer with it. The
    clock is the event's and it is spent, so each child is measured against what is left rather than
-   against what the first one had: a kill takes every refusal already gathered with it. */
+   against what the first one had: a kill takes every refusal already gathered with it. `GIT_MS` above is flat instead, and clamping it to what is left changes which turns get a dirty-tree refusal, so it is ISS-388's. */
 const forge = (tree, argv) => {
   const ms = Math.min(CALL_MS, left());
   if (ms < 1000) return null;
@@ -48,8 +48,8 @@ const forge = (tree, argv) => {
 
 /* Untrimmed: a status line begins with two columns and a space, and trimming eats the first one's. */
 const git = (tree, argv) => {
-  const said = gitProbe(["-C", tree, ...argv], { ms: GIT_MS });
-  return said.status === 0 ? said.out : null;
+  const said = gitProbe(argv, { cwd: tree, ms: GIT_MS });
+  return said?.status === 0 ? said.out : null;
 };
 
 /* Where a command or this turn's own prompt named one: a key quoted in a diff or in a tool's answer

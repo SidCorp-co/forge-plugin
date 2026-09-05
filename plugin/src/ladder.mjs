@@ -6,10 +6,13 @@
 import { looksTo, planFlags } from "./flow/machine.mjs";
 
 export const TIERS = ["trivial", "fix", "feature"];
-export const [TRIVIAL, FIX] = TIERS;
+const [TRIVIAL, FIX] = TIERS;
+export { FIX };
 export const FEATURE = TIERS.at(-1);
 
-const markLine = (tier) => new RegExp(String.raw`^size:[ \t]*${tier}\.?[ \t]*$`, "imu");
+/* One reader, hoisted: it is on the rank walk, where a regex per rung per call cost three compiles and three strips of one body, and `ASKS` keeps a body naming no size out of the strip at all. `MARK_LINE`, which strips rather than reads, matches a wider line than this does (ISS-407). */
+const MARKED = new RegExp(String.raw`^size:[ \t]*(${TIERS.join("|")})\.?[ \t]*$`, "gimu");
+const ASKS = /size:/iu;
 
 export const MARK_LINE = new RegExp(String.raw`^[ \t]*size:[ \t]*(?:${TIERS.join("|")})\.?[ \t]*$`, "gimu");
 
@@ -22,53 +25,50 @@ const prose = (text) => String(text ?? "").replaceAll(EXAMPLE, "");
 
 /* Null, not the top rung: a body carrying `Size: feature.` is not one carrying no mark. */
 export const markedIn = (description) => {
-  const found = TIERS.filter((tier) => markLine(tier).test(prose(description)));
-  return found.length ? found.at(-1) : null;
+  const text = String(description ?? "");
+  if (!ASKS.test(text)) return null;
+  const found = [...prose(text).matchAll(MARKED)].map((one) => one[1].toLowerCase());
+  return found.length ? TIERS[Math.max(...found.map(heightOf))] : null;
 };
 
 export const tierIn = (description) => markedIn(description) ?? FEATURE;
-
-export const lightMark = (description) => {
-  const claimed = markedIn(description);
-  return claimed && claimed !== FEATURE ? claimed : null;
-};
 
 export const markFor = (tier) => `Size: ${tier}.`;
 
 export const heightOf = (tier) => Math.max(0, TIERS.indexOf(tier));
 
-/* The tracker's five sizes, smallest first, against the rung each claims: the second source of a
-   size. Keys and never a shown string — that field's own name costs a reader a round. */
+/* The tracker's five sizes, smallest first, against the rung each claims: the second source of a size. Keys and never a shown string — that field's own name costs a reader a round. */
 const BANDS = { xs: TRIVIAL, s: FIX, m: FEATURE, l: FEATURE, xl: FEATURE };
 const BAND_NAMES = Object.keys(BANDS);
 const SPLIT_FROM = 3;
 
 export const rungFrom = (band) => BANDS[String(band ?? "")] ?? null;
 
-export const bandFor = (tier) => BAND_NAMES.find((one) => BANDS[one] === tier) ?? null;
+/* Which band a rung is written back as: declared, because three of the five claim `feature` and which of them a filing takes is a decision rather than the order `BANDS` happens to spell. */
+const CANONICAL = { [TRIVIAL]: "xs", [FIX]: "s", [FEATURE]: "m" };
+
+export const bandFor = (tier) => CANONICAL[tier] ?? null;
 
 export const splits = (band) => BAND_NAMES.indexOf(String(band ?? "")) >= SPLIT_FROM;
 
-export const lightBand = (band) => {
-  const rung = rungFrom(band);
-  return Boolean(rung) && rung !== FEATURE;
-};
+/** A rung below the top, which is the whole of what every lighter path asks: one predicate, the caller spelling which source it read — `belowTop(markedIn(body))`, `belowTop(rungFrom(band))` — and `BELOW_TOP` derived so a row's rungs are not a third spelling of it. */
+export const belowTop = (rung) => Boolean(rung) && rung !== FEATURE;
+
+const BELOW_TOP = TIERS.filter((one) => belowTop(one));
 
 export const FIELD_SAID = "the tracker's size";
 export const LINE_SAID = "the size mark in the body";
 
-/** The rung two sources claim, and which claimed it: both read upward and the higher wins, so
- *  neither can lower a rung the other claimed. docs/cli/the-ladder.md. */
+/** The rung two sources claim, and which claimed it: both read upward and the higher wins, so neither can lower a rung the other claimed. docs/cli/the-ladder.md. */
 export const sizeFrom = ({ band = null, description = null } = {}) => {
   const claimed = [
     { rung: rungFrom(band), from: FIELD_SAID },
     { rung: markedIn(description), from: LINE_SAID },
   ].filter((one) => one.rung);
-  if (!claimed.length) return { rung: FEATURE, claimed, decided: [], outranked: [] };
+  if (!claimed.length) return { rung: FEATURE, decided: [], outranked: [] };
   const top = Math.max(...claimed.map((one) => heightOf(one.rung)));
   return {
     rung: TIERS[top],
-    claimed,
     decided: claimed.filter((one) => heightOf(one.rung) === top),
     outranked: claimed.filter((one) => heightOf(one.rung) < top),
   };
@@ -93,19 +93,19 @@ export const resizeForm = (ref, from = FIX) =>
 export const LIGHTER = [
   {
     status: "clarified",
-    tiers: [TRIVIAL, FIX],
+    tiers: BELOW_TOP,
     drops: "a decision record",
     because: "the reading that mattered is the defect, and the confirmation held it",
   },
   {
     status: "approved",
-    tiers: [TRIVIAL, FIX],
+    tiers: BELOW_TOP,
     drops: "the plan field, and the declarations it would carry, which absent read `no`",
     because: "a fix's criteria are the one check that fails without it, which is the whole of its plan",
   },
   {
     status: "released",
-    tiers: [TRIVIAL, FIX],
+    tiers: BELOW_TOP,
     drops: "a release note",
     because: "no person sees the change, so the withholding is the rule and not a record to type",
   },

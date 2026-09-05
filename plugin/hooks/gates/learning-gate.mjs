@@ -4,11 +4,11 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, askedByAnyone, deny, how, settled, shellText, writtenPaths, done } from "../_hook.mjs";
+import { askedAlready, askedByAnyone, deny, how, nameLike, settled, shellText, writtenPaths, done } from "../_hook.mjs";
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../../src/checks/learning.mjs";
-/* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. */
-const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
+/* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. The class is `_hook.mjs`'s, so a name it would read is a name this reads. */
+const MD_TOKEN = nameLike("~", "md");
 
 /* Doubt is an action, and the one branch with a tree to name is where this gate can be one. */
 const UNSURE =

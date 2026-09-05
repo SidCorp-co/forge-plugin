@@ -8,7 +8,7 @@
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
 import { FENCE_PATTERN } from "../flow/machine.mjs";
-import { FIX, MARK_LINE, TIERS, bandFor, lightMark, markFor, markedIn, rungFrom } from "../ladder.mjs";
+import { FIX, MARK_LINE, TIERS, bandFor, belowTop, markFor, markedIn, rungFrom } from "../ladder.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
 import { enumAt } from "./rpc.mjs";
@@ -420,7 +420,7 @@ export const shapeOf = ({ title, body, kind = null }, { everySection = false } =
     return { ...asks, gaps, fix: false, tokens, said: null };
   }
   if (!everySection) {
-    if (lightMark(text)) return { ...asks, gaps, fix: false, tokens, said: null };
+    if (belowTop(markedIn(text))) return { ...asks, gaps, fix: false, tokens, said: null };
     if (tokens.length && !held(text, SCOPE).ok && !sectionUnder(text, RULES.heading)) {
       return { ...asks, gaps, fix: true, tokens, said: null };
     }

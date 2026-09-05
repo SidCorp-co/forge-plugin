@@ -2,7 +2,7 @@
    create path. Every decision below — the two queries, the floor, why the fold answers to both of
    them and what that costs, and the cases it cannot reach — is docs/cli/beside.md's. */
 import { mustBeShown, postComment } from "./comments.mjs";
-import { lightMark } from "../ladder.mjs";
+import { belowTop, markedIn } from "../ladder.mjs";
 import { tried } from "./rpc.mjs";
 
 const TOOL = "forge_memory.search";
@@ -142,7 +142,7 @@ export const foldedInto = (joined) =>
 /** The fold, decided and done here so a rule whose act nothing takes back is not enforced twice. */
 export const foldFiling = async (beside, { title, body, routed = false, fresh = false, soft = false }) => {
   const nearest = foldOnto(beside.suggestions);
-  const foldable = Boolean(lightMark(body)) && !routed;
+  const foldable = belowTop(markedIn(body)) && !routed;
   const said = { nearest, foldable, fresh: Boolean(fresh) };
   if (!foldable || fresh || !nearest) return { joined: null, answer: null, said };
   await mustBeShown([{ ref: nearest.issueId, documentId: nearest.documentId }]);

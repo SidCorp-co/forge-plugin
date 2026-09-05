@@ -1,13 +1,13 @@
 /* The score and its parts. Nothing here calls anything; why each weight: docs/cli/next.md. */
 import { TAKEABLE } from "./weights.mjs";
 import { holdsBack } from "../flow/earned.mjs";
-import { bandFor } from "../ladder.mjs";
+import { FIELD_SAID, LINE_SAID, bandFor } from "../ladder.mjs";
 
 const DAY = 86_400_000;
 
 export const bandOf = (row, { read = false, marked = null } = {}) => {
-  if (row?.complexity) return { band: String(row.complexity), from: "the tracker's size" };
-  if (marked) return { band: bandFor(marked), from: "the size mark in the body" };
+  if (row?.complexity) return { band: String(row.complexity), from: FIELD_SAID };
+  if (marked) return { band: bandFor(marked), from: LINE_SAID };
   return { band: "unset", from: read ? "neither source" : "the body unread" };
 };
 

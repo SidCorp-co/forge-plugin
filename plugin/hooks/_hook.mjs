@@ -16,8 +16,8 @@ export { askedAlready, askedByAnyone } from "../src/hooks/stamps.mjs";
 export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
 export { NOWHERE, spans, standsIn };
 
-/* A name with an extension, as a command spells one. `~` is a home a shell would expand and belongs only where a caller judges the spelling, so the two readings differ by that one character. */
-const nameLike = (extra) => new RegExp(`[A-Za-z0-9_./@${extra}-]+\\.[A-Za-z0-9]+`, "g");
+/** A name with an extension, as a command spells one. `~` is a home a shell would expand and belongs only where a caller judges the spelling, so the readings differ by that one character; `tail` is which extensions a caller wants, one gate judging `.md` alone. Exported so the class is spelt here and nowhere else. */
+export const nameLike = (extra, tail = "[A-Za-z0-9]+") => new RegExp(`[A-Za-z0-9_./@${extra}-]+\\.${tail}`, "g");
 const TOKEN = nameLike("");
 /** How long after a call a file's mtime still answers for it. */
 export const FRESH_MS = 120_000;
@@ -102,7 +102,6 @@ const startedAt = performance.timeOrigin;
 let deadline = DEADLINES.post;
 export const remaining = () => deadline - (Date.now() - startedAt);
 
-
 /** One gate on its own, as the suite and a hand-run call it. */
 export const alone = (name) => dispatch([name]);
 
@@ -121,13 +120,15 @@ export const logged = (decision, reason, target = null) => {
   });
 };
 
+/* One get/compute/set for both maps below. `has` and never a falsy answer: a computed `-1` and an index nobody has computed read the same otherwise. And the caller hands it the very array it will spend, since that is the key. */
+const memo = (held, key, make) => {
+  if (!held.has(key)) held.set(key, make());
+  return held.get(key);
+};
+
 const touchedBy = new WeakMap();
 export function touched(ev, freshMs = FRESH_MS) {
-  const seen = touchedBy.get(ev)?.[freshMs];
-  if (seen) return seen;
-  const found = touching(ev, freshMs);
-  touchedBy.set(ev, { ...(touchedBy.get(ev) ?? {}), [freshMs]: found });
-  return found;
+  return memo(memo(touchedBy, ev, () => new Map()), freshMs, () => touching(ev, freshMs));
 }
 
 function touching(ev, freshMs) {
@@ -427,25 +428,29 @@ export const writtenPaths = (text, cwd, pattern = WRITTEN) => {
   });
 };
 
-/* Kept per array: one stop event asks three times over a tail that reaches hundreds of thousands of records, and `turnRecords` hands every caller the same array. */
+/* Kept per array: one stop event asks three times over a tail that reaches hundreds of thousands of records, and `turnRecords` hands every caller the same array. `NONE` is the key a caller with nothing gets, since the answer for it is the same -1 every time. */
 const begunAt = new WeakMap();
+const NONE = [];
 
 /** Where this turn begins: only a user record carrying `promptSource` is a prompt somebody typed. */
-export const promptIndex = (records) => {
-  const held = begunAt.get(records);
-  if (held !== undefined) return held;
-  let from = -1;
-  for (let at = 0; at < (records?.length ?? 0); at += 1) {
-    if (records[at]?.type === "user" && typeof records[at].promptSource === "string") from = at;
-  }
-  if (records) begunAt.set(records, from);
-  return from;
+export const promptIndex = (given) => {
+  const records = given ?? NONE;
+  return memo(begunAt, records, () => {
+    let from = -1;
+    for (let at = 0; at < records.length; at += 1) {
+      if (records[at]?.type === "user" && typeof records[at].promptSource === "string") from = at;
+    }
+    return from;
+  });
 };
 
 export const turnAt = (records) => records[promptIndex(records)]?.timestamp ?? "";
 
 /** From this turn's prompt on: `turnRecords` hands back the whole tail it read. */
-export const sinceTurn = (records) => (records ?? []).slice(Math.max(0, promptIndex(records ?? [])));
+export const sinceTurn = (records) => {
+  const held = records ?? [];
+  return held.slice(Math.max(0, promptIndex(held)));
+};
 
 /** The files a turn wrote through the file tools: a stop carries no tool input, so what `touched`
  *  answers for a call is answered here for a turn. A shell write has no call to be dated against. */

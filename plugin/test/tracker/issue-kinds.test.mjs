@@ -17,6 +17,7 @@ import {
   shapeOf,
   trackerFields,
 } from "../../src/tracker/issue-shape.mjs";
+import { bodyOf } from "../../src/tracker/filing.mjs";
 
 const TITLE = "the filing is read against the shape its kind names";
 const SECTIONS = {
@@ -167,6 +168,9 @@ test("the writer sends the kind the filing named, and nothing where it named non
   assert.deepEqual(trackerFields({ kind: null, rung: "trivial" }), { complexity: "xs" });
   assert.deepEqual(trackerFields({ kind: null, rung: "fix" }), { complexity: "s" });
   assert.deepEqual(trackerFields({ kind: "bug", rung: "feature" }), { category: "bug", complexity: "m" });
+  /* And the rung handed to it is the completed body's reading, never the flag the caller passed: an example nothing closes runs to the end of the text and swallows the mark `withMark` appended (ISS-399, F1). */
+  assert.equal(bodyOf({ title: TITLE, body: "prose\n\n```text\nunclosed", size: "fix" }).rung, null,
+    "a filing whose appended mark landed inside an example claims no size at all");
 });
 
 /* Criteria 1 to 5: every one of the tracker's five values reads back as the rung it claims, and the

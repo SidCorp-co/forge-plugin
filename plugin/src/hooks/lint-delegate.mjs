@@ -10,11 +10,11 @@ const VENDORED = join(HERE, "..", "..", "hooks", "vendor", "lint-edited-file.mjs
 const PACKAGE = "eslint-plugin-code-quality";
 const INSIDE = "claude-plugin/scripts/lint-edited-file.mjs";
 
-export const CODE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
-export const SKIP = /\/(node_modules|dist|\.next|coverage|\.git)\//;
+const CODE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
+const SKIP = /\/(node_modules|dist|\.next|coverage|\.git)\//;
 /* A ceiling, under what the event's clock has left: a hook killed takes every gate's answer with it. */
-export const FILE_MS = 60_000;
-export const MAX_FILES = 5;
+const FILE_MS = 60_000;
+const MAX_FILES = 5;
 
 export function delegateFor(file) {
   let dir = dirname(file);
@@ -36,7 +36,7 @@ export const headed = (text) => {
 /** What the project's linter says about one file, or "" where it says nothing. `at` names which
  *  directory is the project: the delegate reads the session's before the event's, and neither is the
  *  file's once a run writes outside the directory it started in. Silent unless it exits 2. */
-export const lintOne = (ev, file, ms, at = null) => {
+const lintOne = (ev, file, ms, at = null) => {
   try {
     execFileSync("node", [delegateFor(file)], {
       input: JSON.stringify({ ...ev, ...(at ? { cwd: at } : {}), tool_name: "Write", tool_input: { file_path: file } }),

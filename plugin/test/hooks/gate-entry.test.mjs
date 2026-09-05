@@ -1,10 +1,11 @@
-/* The registered entry is the one file a session cannot pick up, so what it does with the rest is
-   only provable against copies that say which one answered. Never against the installed cache: the
-   whole claim is that the entry may be old, and the live copy cannot be made old to prove it. */
+/* What a session picks up only at its start: the registered entries, and the link they reach the CLI
+   through. Both are frozen, and what an entry does with the rest is only provable against copies that
+   say which one answered. Never against the installed cache: the whole claim is that the entry may be
+   old, and the live copy cannot be made old to prove it. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, readlinkSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -167,5 +168,48 @@ test("the solo entries still run this checkout's own gate text, so the suite is 
     const text = readFileSync(join(PLUGIN, "hooks", "entries", `${name}.mjs`), "utf8");
     assert.match(text, /from "\.\.\/_hook\.mjs"/u, `${name} no longer loads the harness beside it`);
     assert.doesNotMatch(text, /plugin-copy/u, `${name} hops, and the suite would then test the installed copy`);
+  }
+});
+
+/* The link runs at every session start, in whatever `~/.local/bin` the machine already has. What sits
+   there may be somebody else's install of the same name, and deleting it is not recoverable. */
+const LINK = join(PLUGIN, "hooks", "link-cli.mjs");
+
+const binRoom = () => {
+  const home = tempRoom("link-home-");
+  mkdirSync(join(home, ".local", "bin"), { recursive: true });
+  return home;
+};
+
+const linking = (home) =>
+  spawnSync(process.execPath, [LINK, PLUGIN], {
+    encoding: "utf8",
+    env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: join(home, ".config") },
+  });
+
+const THEIRS = "#!/bin/sh\necho somebody else's forge\n";
+
+test("a forge that is not a symlink is named and left where it is", () => {
+  const home = binRoom();
+  const theirs = join(home, ".local", "bin", "forge");
+  writeFileSync(theirs, THEIRS);
+  const run = linking(home);
+  assert.equal(readFileSync(theirs, "utf8"), THEIRS, "the file is still theirs");
+  assert.match(run.stdout, /`forge` on PATH is not this plugin's/u);
+});
+
+test("a link an earlier session left is repointed", () => {
+  const home = binRoom();
+  const link = join(home, ".local", "bin", "vi-natural");
+  symlinkSync(join(home, "moved-away"), link);
+  linking(home);
+  assert.equal(readlinkSync(link), join(PLUGIN, "bin", "vi-natural"));
+});
+
+test("an empty bin gets both", () => {
+  const home = binRoom();
+  linking(home);
+  for (const name of ["forge", "vi-natural"]) {
+    assert.equal(readlinkSync(join(home, ".local", "bin", name)), join(PLUGIN, "bin", name));
   }
 });
