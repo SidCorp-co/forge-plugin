@@ -2,7 +2,7 @@
    call budget, and why the score is computed on the browse projection: docs/cli/next.md. */
 import { bandSpread, weightLines, weightsFrom } from "./weights.mjs";
 import { bandsOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart, rootFor } from "./cost.mjs";
-import { chainOf, openKeys, ordered, scoreOf } from "./score.mjs";
+import { chainOf, ordered, scoreOf, takeableKeys, unlandedKeys } from "./score.mjs";
 import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { isFix, placeIn, seedFor } from "../tracker/issue-shape.mjs";
@@ -58,12 +58,15 @@ const edgesFrom = (carried, universe) => {
 };
 
 const withRelations = (blocks, blockedBy, body) => {
+  let found = 0;
   for (const other of body?.relations?.blockedBy ?? []) {
     const [key] = keysIn(other?.issueId ?? other);
     if (!key) continue;
+    found += 1;
     blockedBy.set(body.issueId, [...(blockedBy.get(body.issueId) ?? []), key]);
     blocks.set(key, [...(blocks.get(key) ?? []), body.issueId]);
   }
+  return found;
 };
 
 const bodiesFor = async (window) =>
@@ -72,14 +75,22 @@ const bodiesFor = async (window) =>
     await scoped("forge_issues", { action: "get", documentId: one.row.documentId }),
   ])));
 
-/** Whether the bodies read so far settle the order. A body decides the size band and the relations
- *  it declares, so a row still unread can climb by the band's own spread; the read stops when the
- *  best it could reach cannot beat the last eligible candidate the caller asked for. */
-export const settled = (eligible, unread, count, weights) => {
-  if (eligible.length < count) return !unread.length;
-  const floor = eligible[count - 1].score.total;
-  const best = unread[0]?.score.total ?? -Infinity;
-  return best + bandSpread(weights) <= floor;
+/** How many eligible candidates the printing can need: a batch absorbs members, so `count` batches
+ *  can consume `count` times the cap before the last head is settled. */
+export const wanted = (count, weights) => count * weights.batchCap;
+
+/** Whether the bodies read so far settle the order. Where a body carries nothing but its size, a row
+ *  still unread can climb by the band's own spread and no further, so the read stops when the best
+ *  it could reach cannot beat the last candidate the printing can need. A body that declared a
+ *  blocking relation breaks that bound — an unread row's relations could raise any score by any
+ *  amount — so a read that met one settles nothing and says so instead of certifying an order. */
+export const settled = (eligible, unread, count, weights, edges = 0) => {
+  if (!unread.length) return true;
+  if (edges) return false;
+  const needed = wanted(count, weights);
+  if (eligible.length < needed) return false;
+  const floor = eligible[needed - 1].score.total;
+  return (unread[0]?.score.total ?? -Infinity) + bandSpread(weights) <= floor;
 };
 
 const heldFrom = async (keys, rows) => {
@@ -92,15 +103,28 @@ const heldFrom = async (keys, rows) => {
   return heldPaths(plans);
 };
 
-/* The chain a landing frees, each path rendered from the head to where it ends. */
-const chainsUnder = (key, blocks, open, seen = new Set()) => {
+const pathsFrom = (key, blocks, alive, seen = new Set()) => {
   const out = [];
   for (const one of blocks.get(key) ?? []) {
-    if (seen.has(one) || !open.has(one)) continue;
-    const deeper = chainsUnder(one, blocks, open, new Set([...seen, one]));
+    if (seen.has(one) || !alive.has(one)) continue;
+    const deeper = pathsFrom(one, blocks, alive, new Set([...seen, one]));
     out.push(...(deeper.length ? deeper.map((path) => [one, ...path]) : [[one]]));
   }
   return out;
+};
+
+/** What a landing frees, told apart from what it merely reaches. Only an issue this one blocks and
+ *  nothing else still holding is eligible when it lands; one with a second blocker names it, and
+ *  what lies deeper waits for the wave in front of it and is shown as the chain it is. */
+export const waveUnder = (key, { blocks, blockedBy, alive }) => {
+  const direct = (blocks.get(key) ?? []).filter((one) => alive.has(one) && one !== key);
+  const others = (one) => (blockedBy.get(one) ?? [])
+    .filter((other) => other !== key && alive.has(other));
+  return {
+    frees: direct.filter((one) => !others(one).length),
+    waiting: direct.filter((one) => others(one).length).map((one) => ({ issueId: one, on: others(one) })),
+    behind: pathsFrom(key, blocks, alive).filter((path) => path.length > 1),
+  };
 };
 
 /* The head an earlier batch promotes cannot be known before that batch is formed, so the search is
@@ -126,9 +150,10 @@ const nearFor = async (head, bodies, live, weights) => {
     .map((one) => [one.issueId, one.score]));
 };
 
-const jsonOf = (batches, dropped, weights, from) => ({
+const jsonOf = (batches, dropped, weights, from, read) => ({
   weights,
   weightsFrom: from,
+  read,
   candidates: batches.map((batch) => ({
     issueId: batch.head.issueId,
     title: batch.head.row.title,
@@ -141,7 +166,7 @@ const jsonOf = (batches, dropped, weights, from) => ({
     cost: batch.head.cost,
     restart: batch.head.restart,
     warm: batch.head.warm,
-    unblocks: batch.chains,
+    unblocks: batch.wave,
     batch: batch.members.map((one) => ({ issueId: one.issueId, how: one.how, why: one.said })),
     related: batch.aside.map((one) => ({ issueId: one.issueId, how: one.how, why: one.said })),
   })),
@@ -173,7 +198,8 @@ export const next = async (argv) => {
   const rows = read.rows;
   const { blocks, blockedBy } = edgesFrom(carried, rows);
 
-  const open = openKeys(rows);
+  const alive = unlandedKeys(rows);
+  const open = takeableKeys(rows);
   const statusOf = new Map(rows.map((one) => [one.issueId, String(one.status ?? "")]));
   const takeable = rows.filter((one) => open.has(one.issueId));
   const preScored = ordered(takeable.map((row) => ({
@@ -193,7 +219,7 @@ export const next = async (argv) => {
     const text = body?.description ?? "";
     const score = scoreOf(one.row, {
       weights,
-      chain: chainOf(one.issueId, blocks, open),
+      chain: chainOf(one.issueId, blocks, alive),
       fix: bodies.has(one.issueId) ? isFix(text) : null,
     });
     const blockers = (blockedBy.get(one.issueId) ?? [])
@@ -221,15 +247,18 @@ export const next = async (argv) => {
      nothing eligible while eligible issues sit below it. */
   let judged = [];
   let cursor = 0;
+  let edges = 0;
   for (;;) {
     judged = ordered(preScored.slice(0, cursor).map(judge));
     const unread = preScored.slice(cursor);
-    if (settled(judged.filter((one) => one.eligible), unread, count, weights)) break;
+    if (settled(judged.filter((one) => one.eligible), unread, count, weights, edges)) break;
     if (cursor >= weights.readCap) break;
     const take = unread.slice(0, Math.min(weights.windowCap, weights.readCap - cursor));
     if (!take.length) break;
     for (const [key, body] of await bodiesFor(take)) bodies.set(key, body);
-    for (const one of take) withRelations(blocks, blockedBy, { ...bodies.get(one.issueId), issueId: one.issueId });
+    for (const one of take) {
+      edges += withRelations(blocks, blockedBy, { ...bodies.get(one.issueId), issueId: one.issueId });
+    }
     cursor += take.length;
   }
   const eligible = judged.filter((one) => one.eligible);
@@ -246,9 +275,26 @@ export const next = async (argv) => {
   const batches = batched.map((batch) => ({
     ...batch,
     aside: batch.aside.filter((one) => !shown.has(one.issueId)).slice(0, weights.batchCap),
-    chains: chainsUnder(batch.head.issueId, blocks, open),
+    wave: waveUnder(batch.head.issueId, { blocks, blockedBy, alive }),
   }));
-  if (asked.json) return console.log(JSON.stringify(jsonOf(batches, dropped, weights, from), null, 2));
+  /* Said before either branch, and carried in the json as a field: an order the budget cut is not
+     one a machine may treat as settled, and a warning only the human form prints hides it. */
+  const settledWhole = settled(eligible, preScored.slice(cursor), count, weights, edges);
+  const readSaid = {
+    judged: cursor,
+    takeable: preScored.length,
+    settled: settledWhole,
+    readCap: weights.readCap,
+  };
+  if (!settledWhole) {
+    console.error(`warning: this order is not settled — ${cursor} of ${preScored.length} takeable`
+      + ` issue(s) were read whole${edges
+        ? `, and ${edges} of them declared a blocking relation, which no bound over the unread ones`
+          + " survives: an issue further down could be holding up work nothing here counted"
+        : ", and the read stopped at readCap before the rest could be ruled out"}. Raise \`rank.readCap\``
+      + " in .forge.json, or narrow the ask.");
+  }
+  if (asked.json) return console.log(JSON.stringify(jsonOf(batches, dropped, weights, from, readSaid), null, 2));
   if (!batches.length) {
     console.log(`Nothing is eligible: ${takeable.length} issue(s) could be taken and every one was dropped.`);
   } else {
@@ -259,10 +305,9 @@ export const next = async (argv) => {
     console.log(`\nleft out — ${dropped.length} of the ${judged.length} candidate(s) judged:`);
     for (const one of dropped) console.log(droppedLine(one));
   }
-  if (cursor < preScored.length) {
+  if (cursor < preScored.length && settledWhole) {
     console.log(`\nRead whole: the top ${cursor} of ${preScored.length} takeable. The rest scored on the`
-      + " listing alone, and none of them could reach this order at the band's own spread"
-      + `${cursor >= weights.readCap ? " — except that the read stopped at readCap, so below that they were not judged" : ""}.`);
+      + " listing alone, and none of them could reach this order at the band's own spread.");
   }
   return console.log(`\n${eligible.length} eligible of ${takeable.length} takeable, ${rows.length} on the`
     + ` backlog. Weights from ${from}; nothing was written.`);

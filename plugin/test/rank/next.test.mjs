@@ -3,10 +3,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync } from "../fixtures.mjs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { DEFAULTS } from "../../src/rank/weights.mjs";
+import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { settled, waveUnder, wanted } from "../../src/rank/next.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
+
+/* The weights are read out of the checkout the caller stands in and from nowhere else, so a case
+   about them stands somewhere else: writing this repository's own file would leave a run that died
+   mid-case with a backlog ranked by a weight nobody set. */
+const OWN = JSON.parse(readFileSync(`${ROOT}.forge.json`, "utf8"));
+const standing = (rank) => {
+  const room = tempRoom("rank-project-");
+  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: OWN.slug, ...(rank ? { rank } : {}) }));
+  return room;
+};
 
 const issue = (issueId, held = {}) => ({
   issueId,
@@ -32,7 +47,7 @@ const state = { issues: [], comments: {}, calls: [], answer: {}, memory: {} };
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-const ran = (argv) => ranAsync(FORGE, argv, tracker.env, ROOT);
+const ran = (argv, cwd = ROOT) => ranAsync(FORGE, argv, tracker.env, cwd);
 
 const load = (issues, memory = {}) => {
   state.issues = issues;
@@ -72,8 +87,40 @@ test("a blocker prints the wave it frees, a two-deep chain as a chain", async ()
   ]);
   const run = await ran(["next"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /unblocks ISS-2 -> ISS-3 \(eligible after this lands\)/u);
+  assert.match(run.stdout, /unblocks ISS-2 \(eligible after this lands\); behind them ISS-2 -> ISS-3/u,
+    "ISS-3 waits on ISS-2, so this landing reaches it and does not free it");
   assert.match(run.stdout, /ISS-2\s+.*blocked by ISS-1 \(open\)/su, "and what waits says what it waits on");
+});
+
+/* The line promised eligibility for everything the chain reached, which a second blocker makes
+   false: landing this one leaves that issue exactly where it was (consult 2026-09-05). */
+test("an issue with a second blocker is named with it rather than promised", async () => {
+  load([
+    issue("ISS-1", { priority: "critical", title: "the first thing" }),
+    issue("ISS-7", { title: "the seventh thing" }),
+    issue("ISS-2", { title: "the second thing",
+      description: `${claims("first thing")} ${claims("seventh thing")}` }),
+  ]);
+  const run = await ran(["next"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /unblocks ISS-2 once ISS-7 lands too/u);
+  assert.doesNotMatch(run.stdout, /ISS-2 \(eligible after this lands\)/u);
+});
+
+/* An issue being worked, waiting on a person, or released and not yet closed still holds up what
+   waits on it: the chain's stop and the eligibility filter read one set or they disagree. */
+test("the chain counts through an issue that is in flight and stops at one that landed", async () => {
+  for (const [status, points] of [["in_progress", 6], ["released", 6], ["closed", 0], ["dropped", 0]]) {
+    load([
+      issue("ISS-1", { priority: "low", title: "the first thing" }),
+      issue("ISS-2", { status, title: "the second thing", description: claims("first thing") }),
+      issue("ISS-3", { title: "the third thing", description: claims("second thing") }),
+    ]);
+    const run = await ran(["next", "--json"]);
+    assert.equal(run.status, 0, run.stderr);
+    const head = JSON.parse(run.stdout).candidates.find((one) => one.issueId === "ISS-1");
+    assert.equal(head.parts.blocks.points, points, `a blocker in ${status}`);
+  }
 });
 
 test("a live lease drops the issue and names the session holding it", async () => {
@@ -163,6 +210,34 @@ test("a candidate a body would promote is read even where it sits below the firs
   assert.match(head, /^ISS-91\b/u, "its Size line is worth five points and nothing else separates them");
 });
 
+/* The budget is the one thing that can leave the order wrong, so it is disclosed in both forms:
+   a warning only the human form prints hides it from whatever dispatches on the json. */
+test("an order the read budget cut says so on stderr and in the json alike", async () => {
+  const many = Array.from({ length: 8 }, (_, at) =>
+    issue(`ISS-${at + 40}`, { priority: "critical", createdAt: "2026-08-01T00:00:00.000Z" }));
+  load(many);
+  const run = await ran(["next", "--json"], standing({ readCap: 4, windowCap: 2 }));
+  assert.equal(run.status, 0, run.stderr);
+  const held = JSON.parse(run.stdout);
+  assert.deepEqual(held.read, { judged: 4, takeable: 8, settled: false, readCap: 4 });
+  assert.match(run.stderr, /this order is not settled — 4 of 8 takeable issue\(s\) were read whole/u);
+  assert.match(run.stderr, /stopped at readCap/u);
+  assert.match(run.stderr, /rank\.readCap/u, "and the way to raise it");
+});
+
+test("a weight this project sets is folded over the table, and one it does not hold is refused", async () => {
+  load([issue("ISS-1", { priority: "low" }), issue("ISS-2", { priority: "none" })]);
+  const run = await ran(["next", "--json"], standing({ priority: { none: 99 } }));
+  const answer = JSON.parse(run.stdout);
+  assert.equal(answer.weightsFrom, ".forge.json");
+  assert.equal(answer.candidates[0].issueId, "ISS-2", "the weight this project set decided the order");
+  const refused = await ran(["next"], standing({ urgency: 3 }));
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /rank\.urgency/u);
+  const plain = await ran(["next", "--json"], standing(null));
+  assert.equal(JSON.parse(plain.stdout).weightsFrom, "the built-in table");
+});
+
 test("a carrier reading the tracker cut says eligible means no blocker was found", async () => {
   load([issue("ISS-1", { priority: "critical", description: claims("second thing") }), issue("ISS-2")]);
   state.answer.forge_issues = (args) => {
@@ -175,6 +250,39 @@ test("a carrier reading the tracker cut says eligible means no blocker was found
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /issues claiming an edge/u);
   assert.match(run.stderr, /eligible here means only that no blocker was found/u);
+});
+
+const scored = (total) => ({ score: { total } });
+
+/* The bound is over the candidates the PRINTING can need, not the batches asked for: a batch takes
+   members out of the eligible list, so `count` batches can consume `count` times the cap. */
+test("the read is bounded against every candidate a batch could consume", () => {
+  assert.equal(wanted(5, DEFAULTS), 15);
+  const eligible = Array.from({ length: 5 }, () => scored(43));
+  assert.equal(settled(eligible, [scored(30)], 5, DEFAULTS), false,
+    "five eligible cannot settle five batches: one batch can absorb three of them");
+  const plenty = Array.from({ length: 15 }, () => scored(43));
+  assert.equal(settled(plenty, [scored(30)], 5, DEFAULTS), true, "43 - 30 is more than the band's spread");
+  assert.equal(settled(plenty, [scored(36)], 5, DEFAULTS), false, "36 + 8 reaches 43, so it is still open");
+  assert.equal(settled(plenty, [], 5, DEFAULTS), true, "nothing unread settles it whatever the scores");
+});
+
+/* A body carrying a blocking relation can raise any score by any amount, and an unread body's
+   relations are unknown, so no bound over the unread rows survives one (consult 2026-09-05). */
+test("a relation found in a body settles nothing, and the answer says so", () => {
+  const plenty = Array.from({ length: 15 }, () => scored(43));
+  assert.equal(settled(plenty, [scored(0)], 5, DEFAULTS, 1), false);
+  assert.equal(settled(plenty, [], 5, DEFAULTS, 1), true, "unless there is nothing left unread");
+});
+
+test("what a landing frees is told apart from what it reaches", () => {
+  const blocks = new Map([["ISS-1", ["ISS-2", "ISS-5"]], ["ISS-2", ["ISS-3"]]]);
+  const blockedBy = new Map([["ISS-2", ["ISS-1"]], ["ISS-5", ["ISS-1", "ISS-7"]], ["ISS-3", ["ISS-2"]]]);
+  const alive = new Set(["ISS-1", "ISS-2", "ISS-3", "ISS-5", "ISS-7"]);
+  const held = waveUnder("ISS-1", { blocks, blockedBy, alive });
+  assert.deepEqual(held.frees, ["ISS-2"]);
+  assert.deepEqual(held.waiting, [{ issueId: "ISS-5", on: ["ISS-7"] }]);
+  assert.deepEqual(held.behind, [["ISS-2", "ISS-3"]]);
 });
 
 test("a flag this verb does not take is refused, and an argument is not a flag", async () => {

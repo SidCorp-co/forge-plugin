@@ -1,5 +1,5 @@
 /* The score and its parts. Nothing here calls anything; why each weight: docs/cli/next.md. */
-import { TAKEABLE } from "./weights.mjs";
+import { TAKEABLE, TERMINAL } from "./weights.mjs";
 
 const DAY = 86_400_000;
 
@@ -11,12 +11,12 @@ export const bandOf = (row, { fix = null } = {}) => {
 
 /** Every issue this one holds up: blocking one that blocks three counts four, a cycle terminates on
  *  the visited set, and the walk stops at one that landed — what waited on it is free already. */
-export const chainOf = (key, blocks, open) => {
+export const chainOf = (key, blocks, alive) => {
   const held = new Set();
   const queue = [...(blocks.get(key) ?? [])];
   while (queue.length) {
     const one = queue.shift();
-    if (held.has(one) || one === key || !open.has(one)) continue;
+    if (held.has(one) || one === key || !alive.has(one)) continue;
     held.add(one);
     queue.push(...(blocks.get(one) ?? []));
   }
@@ -55,5 +55,10 @@ export const ordered = (scored) =>
       || left.arrived - right.arrived)
     .map((held) => held.one);
 
-export const openKeys = (rows) =>
+export const takeableKeys = (rows) =>
   new Set(rows.filter((one) => TAKEABLE.includes(String(one?.status ?? ""))).map((one) => one.issueId));
+
+/** What still holds work up, which is not what a run may take: one reading of what ends a blocker,
+ *  so the chain and the eligibility filter cannot disagree about a released or in-flight issue. */
+export const unlandedKeys = (rows) =>
+  new Set(rows.filter((one) => !TERMINAL.includes(String(one?.status ?? ""))).map((one) => one.issueId));

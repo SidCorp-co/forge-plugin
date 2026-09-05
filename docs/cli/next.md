@@ -21,8 +21,35 @@ A fixed window would have been wrong twice, and both were found in review before
 truncates the row a body would have promoted — twenty-five tied issues and a twenty-sixth declaring
 a fix size, and the winner is never read. And a window every filter drops reports nothing eligible
 while eligible issues sit below it, because eligibility is judged over what was read. Reading in
-passes and re-judging the whole read set answers both. `readCap` is the budget the 503 above set,
-and where it bites the answer says so rather than presenting a short read as a settled order.
+passes and re-judging the whole read set answers both.
+
+The bound is over the candidates the *printing* can need rather than the batches asked for: a batch
+takes members out of the eligible list, so five batches can consume five times the batch cap before
+the last head is settled.
+
+And the bound has a hole that is disclosed rather than closed. A body may declare a blocking
+relation, which raises whatever it names by three points per issue in the chain behind it — an
+amount no size-only bound covers, and an unread body's relations are unknown by definition. So a
+read that met one settles nothing: the order prints, and it says it is not settled and why. On this
+tracker no issue's relations came back filled at all, so the disclosure has never fired here; on one
+that fills them, an order is certified only by reading every candidate.
+
+`readCap` is the budget the 503 above set, and where it bites the answer says so on the error stream
+and in a field of the machine-readable one both — an order a budget cut is not one whatever
+dispatches on it may treat as settled, and a notice only the human form carries hides exactly that.
+
+## What a landing frees, and what it only reaches
+
+`unblocks ISS-a (eligible after this lands)` is a claim, so it is made only about an issue this one
+blocks and that nothing else still holding blocks. An issue with a second blocker is named with it;
+an issue further down the chain waits for the wave in front of it and is printed behind them rather
+than promised. The first draft claimed eligibility for everything the chain reached, which is false
+in both of those cases.
+
+What ends a blocker is one set and not two: an issue being worked, waiting on a person, or released
+and not yet closed is nobody's to dispatch and is still every waiting issue's blocker. Reading the
+dispatch set as the blocker set instead loses the whole chain through anything in flight — the size
+of the mistake being that the issues most likely to be mid-chain are exactly the ones being worked.
 
 The measured cost of the whole verb against this backlog is about twenty-eight seconds: four for the
 two walks it issues together, three for the past-run corpus on disk, and the rest for the bodies and

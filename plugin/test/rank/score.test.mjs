@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { DEFAULTS } from "../../src/rank/weights.mjs";
-import { bandOf, chainOf, ordered, scoreOf } from "../../src/rank/score.mjs";
+import { bandOf, chainOf, ordered, scoreOf, takeableKeys, unlandedKeys } from "../../src/rank/score.mjs";
 
 const NOW = Date.parse("2026-09-05T00:00:00.000Z");
 
@@ -92,6 +92,26 @@ test("the chain stops at an issue that has already landed", () => {
   assert.deepEqual(chainOf("ISS-1", blocks, open), [], "ISS-2 landed, so ISS-3 is not ISS-1's to free");
   assert.deepEqual(chainOf("ISS-1", blocks, new Set(["ISS-1", "ISS-2", "ISS-3"])).sort(), ["ISS-2", "ISS-3"],
     "and with the middle still open it is");
+});
+
+/* What a run may take and what still holds work up are two sets: an issue being worked or released
+   and not yet closed is nobody's to dispatch and is still every waiting issue's blocker. */
+test("the set the chain stops at is what has landed, not what a run may take", () => {
+  const rows = [
+    { issueId: "ISS-1", status: "open" },
+    { issueId: "ISS-2", status: "in_progress" },
+    { issueId: "ISS-3", status: "released" },
+    { issueId: "ISS-4", status: "waiting" },
+    { issueId: "ISS-5", status: "closed" },
+    { issueId: "ISS-6", status: "dropped" },
+  ];
+  assert.deepEqual([...takeableKeys(rows)], ["ISS-1"]);
+  assert.deepEqual([...unlandedKeys(rows)], ["ISS-1", "ISS-2", "ISS-3", "ISS-4"]);
+  const blocks = graph([["ISS-1", "ISS-2"], ["ISS-2", "ISS-3"]]);
+  assert.deepEqual(chainOf("ISS-1", blocks, unlandedKeys(rows)).sort(), ["ISS-2", "ISS-3"],
+    "an in-flight blocker is walked through, not stopped at");
+  assert.deepEqual(chainOf("ISS-1", blocks, takeableKeys(rows)), [],
+    "and reading the dispatch set instead loses the whole chain");
 });
 
 test("a cycle in the graph terminates rather than recursing", () => {

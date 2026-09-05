@@ -53,8 +53,17 @@ export const asideLine = (one) =>
 
 const chainSaid = (path) => path.join(" -> ");
 
-export const unblocksLine = (chains) =>
-  `  unblocks ${chains.map(chainSaid).join(", ")} (eligible after this lands)`;
+/* Rendering only; which of the three list an issue falls in is `waveUnder`'s. */
+export const unblocksLine = ({ frees, waiting, behind }) => [
+  "  unblocks",
+  [
+    frees.length ? `${frees.join(", ")} (eligible after this lands)` : null,
+    ...waiting.map((one) => `${one.issueId} once ${one.on.join(" and ")} land${one.on.length > 1 ? "" : "s"} too`),
+    behind.length ? `behind them ${behind.map(chainSaid).join(", ")}` : null,
+  ].filter(Boolean).join("; "),
+].join(" ");
+
+export const hasWave = ({ frees, waiting, behind }) => Boolean(frees.length || waiting.length || behind.length);
 
 export const droppedLine = (one) =>
   `  ${one.issueId.padEnd(KEY)} ${one.reason}`;
@@ -65,7 +74,7 @@ export const candidateLines = (batch, { why = false } = {}) => [
   ...(why ? [whyLine(batch.head), signalLine(batch.head)] : []),
   ...batch.members.map(memberLine),
   ...batch.aside.map(asideLine),
-  ...(batch.chains.length ? [unblocksLine(batch.chains)] : []),
+  ...(hasWave(batch.wave) ? [unblocksLine(batch.wave)] : []),
 ];
 
 export const HEAD = `${"issue".padEnd(KEY)} ${"pts".padStart(3)} ${"priority".padEnd(8)} `
