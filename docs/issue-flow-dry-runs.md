@@ -3032,3 +3032,25 @@ Restart owed for `hooks.json` alone. Closed by its run. Folded from its handback
   field raced two versions in the same hour.
 - A memory note of the parent's still described the retired gate; the agent reported it rather than
   editing a file that was not its own, and the parent retired the note in the fold.
+
+## Hundred-and-nineteenth dry run — ISS-359
+
+Dispatched at the user's word, "run if no block", beside the ISS-318 run that had filed it. The
+agent read ISS-318's plan and decisions first and found that all three entry checks land in files
+that run holds and its own plan names, and that the prose the checks retire cannot go first either,
+since ISS-108 binds a retirement to the landing that builds the check. It built nothing: no branch, no
+worktree, no commit. It parked the issue `blocked`, naming ISS-318, and `forge next` no longer lists
+it. The confirmation record is the run's deliverable: three narrowings the resuming run starts from
+at Phase 2 without re-deriving them. Folded from its handback.
+
+- A run that parks in eight minutes with a confirmation that names exactly what the next run should
+  not re-derive is cheaper than one that waits, and cheaper than one that works around a held file
+  and hands the other run a revert (ISS-369).
+- The three narrowings: a field name one check wanted already exists with another meaning in the
+  view; one check straddles two held trees, the flow's and the tracker's; and the issue's own Why
+  overstated its gap, since the ship already computes the landed file set and discards it, and the
+  existing note clause names a different set, so the check needs a second clause rather than a
+  reuse. Each is on the record with where it was read.
+- The edge to ISS-318 is kind `relates`, and only `blocks` holds an issue back, so nothing in the
+  tracker would have stopped this dispatch. That is ISS-334 and ISS-69, already open; the run filed
+  nothing.
