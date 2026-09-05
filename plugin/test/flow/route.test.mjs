@@ -186,3 +186,79 @@ test("where a reopen lands is read from the mark", () => {
   assert.equal(drop.next, "clarified", "nothing landed, so it goes back where the drop left it and no further on");
   assert.throws(() => targetOf(reopened(WRONG, { mergedAt: null }), "ISS-3"), /no park record of kind dropped/u);
 });
+
+/* The tracker announces a move into `waiting` or `needs_info` with a comment of its own, and that
+   announcement is what pairs a park record with the transition it caused. Without the pairing the
+   newest park of a matching kind answers, so a park already resumed sends the issue on a second
+   time — to a `left` nobody decided this time round (ISS-142). */
+const ANNOUNCED = "⏸ **Waiting on a human decision** — moved from `in_progress`\n\nsomebody has to look";
+const PARKED = { kind: "screen-review", why: "somebody has to look", evidence: ["run.txt"] };
+const answering = () => comment("looked, and it is right", { authorId: "a-person" });
+const waiting = (comments) =>
+  view({ status: "waiting", plan: fenced(PLAN), acceptanceCriteria: fenced(CRITERIA), attachments: ATTACHED }, comments);
+
+test("the park a resume reads is the one written after the tracker announced the move", () => {
+  const parked = waiting([comment(ANNOUNCED), recorded("park", PARKED, "in_progress"), answering()]);
+  const held = targetOf(parked, "ISS-3");
+  assert.equal(held.next, "in_progress", "the park that set this status says where it goes back to");
+  assert.equal(held.resumed, true);
+  assert.deepEqual(held.missing, [], "and a reply by somebody else clears it");
+});
+
+test("a park an earlier announcement already spent does not transition the issue a second time", () => {
+  const again = waiting([
+    comment(ANNOUNCED), recorded("park", PARKED, "in_progress"), answering(), comment(ANNOUNCED),
+  ]);
+  assert.throws(() => targetOf(again, "ISS-3"), (error) => {
+    assert.match(error.message, /no park record on the page is paired with the entry into it/u);
+    assert.match(error.message, /park of kind `screen-review`.*may already have caused a move/su,
+      "and the refusal names the park it will not read again");
+    assert.match(error.message, /"action":"transition"/u, "with the call a person sets it by hand with");
+    return true;
+  });
+});
+
+/* `on_hold` is entered with no announcement of any kind, so there is nothing to pair a park with
+   and the newest of a matching kind is all the page says — as it was before (ISS-142). */
+test("an on_hold issue is read as it was, the tracker announcing no move into it", () => {
+  const paused = view(
+    { status: "on_hold", plan: fenced(PLAN), acceptanceCriteria: fenced(CRITERIA), attachments: ATTACHED },
+    [recorded("park", { kind: "blocked", why: "waiting on ISS-9", evidence: [] }, "in_progress")],
+  );
+  const held = targetOf(paused, "ISS-3");
+  assert.equal(held.next, "in_progress", "no announcement is needed where the tracker writes none");
+  assert.equal(held.resumed, true);
+});
+
+/* The tracker announces every entry into `waiting`, so a page in it carrying none is a page that
+   cannot say which park moved it — and the newest of a matching kind is a guess (ISS-142). */
+test("a park with no announcement anywhere on the page pairs with nothing and moves nothing", () => {
+  const unpaired = waiting([recorded("park", PARKED, "in_progress"), answering()]);
+  assert.throws(() => targetOf(unpaired, "ISS-3"), (error) => {
+    assert.match(error.message, /no park record on the page is paired with the entry into it/u);
+    assert.match(error.message, /the page carries no announcement at all/u,
+      "and the refusal says the page carries a park it will not read");
+    return true;
+  });
+});
+
+/* A `needs_info` park is filed before the move it causes, so the pairing is the other way round: the
+   park that set the status is one of the comments between the last two announcements. An old park,
+   the reply that answered it, and a later entry into the status pair with nothing (ISS-429). */
+const ASKED = "❓ **Needs info** — moved from `confirmed`";
+test("a needs_info park that an earlier entry already used is not read by a later one", () => {
+  const asking = { kind: "question", why: "which of the two readings", evidence: [] };
+  const page = (comments) => view(
+    { status: "needs_info", plan: fenced(PLAN), acceptanceCriteria: fenced(CRITERIA), attachments: ATTACHED },
+    comments,
+  );
+  const first = [recorded("park", asking, "confirmed"), comment(ASKED)];
+  const held = targetOf(page(first), "ISS-3");
+  assert.equal(held.next, "confirmed", "the park filed under the announcement is the one that set it");
+  const again = page([...first, comment("the answer", { authorId: "the-reporter" }), comment(ASKED)]);
+  assert.throws(() => targetOf(again, "ISS-3"), (error) => {
+    assert.match(error.message, /no park record on the page is paired with the entry into it/u);
+    assert.match(error.message, /does not sit beside it/u, "and the refusal will not spend the old park");
+    return true;
+  });
+});

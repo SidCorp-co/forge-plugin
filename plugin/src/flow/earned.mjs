@@ -520,12 +520,31 @@ export const viewFrom = (documentId, issue, comments, cut = null, release = null
   const names = attachmentNames(issue, comments);
   return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, ...assemble(comments, criteria) };
 };
-export const parkRecord = (view, wanted = () => true) => {
+export const parkRecord = (view, wanted = () => true, since = null, until = null) => {
   const found = view.comments
+    .filter((one) => (!since || (one.createdAt ?? "") > since) && (!until || (one.createdAt ?? "") < until))
     .map((one) => ({ comment: one, record: parse(one.body ?? "") }))
     .filter((one) => one.record?.kind === "park" && wanted(one.record.fields.kind))
     .filter((one) => !shapeGaps("park", one.record, view.names).length);
   return found.length ? found.at(-1) : null;
+};
+
+export const SILENT = "on_hold";
+const ANNOUNCED = /—\s*moved from `[a-z_]+`$/u;
+const announcements = (view) =>
+  view.comments.filter((one) => ANNOUNCED.test(unwrap(one.body).split("\n")[0]?.trim() ?? ""));
+export const announcedAt = (view) => announcements(view).at(-1)?.createdAt ?? null;
+
+/* The park that set a side status, not the newest of a kind: `waiting` files after the announcement
+   and `needs_info` before it (ISS-429); `on_hold` announces nothing and reads as it did (ISS-420). */
+export const parkThatSet = (view, status) => {
+  const wanted = (one) => PARK_STATUS[one] === status;
+  if (status === SILENT) return parkRecord(view, wanted);
+  const said = announcements(view).map((one) => one.createdAt);
+  if (!said.length) return null;
+  return status === "needs_info"
+    ? parkRecord(view, wanted, said.at(-2) ?? null, said.at(-1))
+    : parkRecord(view, wanted, said.at(-1));
 };
 
 /* A screen is the change a deploy does not undo for whoever already read it, so a person answers: a

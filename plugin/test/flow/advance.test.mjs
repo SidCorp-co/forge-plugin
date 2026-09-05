@@ -362,40 +362,41 @@ test("a parked issue resumes where its park record says it left, once somebody a
   /* A park for a reviewer names what to look at, and the read-back holds it to that the way the
      write does: the shape's own rule, so a hand's copy cannot skip it. */
   const asked = (kind, left) => recorded("park", { kind, why: "asked", evidence: ["https://example.test/shot.png"] }, left);
+  /* The tracker announces the move, and the park that set a status is the one written after that
+     announcement, so a fixture for a status it announces writes the two in the order they happen. */
+  const moved = (from, said = "⏸ **Waiting on a human decision**") => comment(`${said} — moved from \`${from}\``);
   const at = (status, comments, issue = {}) => targetOf(view({ status, ...issue }, comments), "ISS-3");
   assert.throws(() => at("waiting", []), /no park record/u);
-  assert.throws(() => at("waiting", [asked("code-review", "nowhere")]), /no step of the flow/u);
+  assert.throws(() => at("waiting", [moved("tested"), asked("code-review", "nowhere")]),
+    /names `nowhere` as the status it left/u);
 
-  const question = asked("question", "confirmed");
-  const unanswered = at("needs_info", [question]);
-  assert.equal(unanswered.next, "confirmed");
-  assert.equal(unanswered.resumed, true);
+  const asking = [asked("question", "confirmed"), moved("confirmed", "❓ **Needs info**")];
+  const unanswered = at("needs_info", asking);
+  assert.deepEqual({ next: unanswered.next, resumed: unanswered.resumed }, { next: "confirmed", resumed: true });
   assert.match(unanswered.missing[0].what, /kind question and nobody has answered it/u);
   /* The write that supplies the item, and not the transition that skips the criterion the item is:
      an answer is what earns the resume, and a raw transition writes the status over an unanswered
      park and leaves the lease's next line as the park set it (ISS-131). */
   assert.match(unanswered.missing[0].command, /^forge comment ISS-3 /u);
   assert.doesNotMatch(unanswered.missing[0].command, /"action":"transition"/u);
-  assert.deepEqual(at("needs_info", [question, comment("the answer", { authorId: "the-reporter" })]).missing, []);
-  assert.equal(at("needs_info", [question, comment("still mine", { authorId: "agent" })]).missing.length, 1,
+  assert.deepEqual(at("needs_info", [...asking, comment("the answer", { authorId: "the-reporter" })]).missing, []);
+  assert.equal(at("needs_info", [...asking, comment("still mine", { authorId: "agent" })]).missing.length, 1,
     "the author of the question cannot answer it");
 
   const paused = at("on_hold", [asked("paused", "in_progress")]);
   assert.equal(paused.next, "in_progress");
   assert.match(paused.missing[0].what, /kind paused, which a person lifts/u);
-  const blocked = (otherStatus) =>
-    at("on_hold", [asked("blocked", "approved")], {
-      relations: { blockedBy: [{ otherDisplayId: "ISS-4", otherStatus, kind: "blocks", gatesDispatch: true }] },
-    });
+  const blocked = (otherStatus) => at("on_hold", [asked("blocked", "approved")],
+    { relations: { blockedBy: [{ otherDisplayId: "ISS-4", otherStatus, kind: "blocks", gatesDispatch: true }] } });
   assert.match(blocked("open").missing[0].what, /^ISS-4 gates this by a blocks edge/u);
   assert.deepEqual(blocked("developed").missing, [], "the next run picks up a blocked issue itself");
   assert.equal(blocked("developed").next, "approved");
 
   /* The park that put the issue where it is, and not the last one written: a side status set from
      outside, with an older park of another kind behind it, would resume by that park's policy. */
-  const stale = at("waiting", [asked("paused", "in_progress"), asked("screen-review", "tested")]);
+  const stale = at("waiting", [asked("paused", "in_progress"), moved("tested"), asked("screen-review", "tested")]);
   assert.equal(stale.next, "tested", "the screen-review park is the one that lands in waiting");
-  assert.throws(() => at("needs_info", [asked("screen-review", "tested")]), /no park record/u,
+  assert.throws(() => at("needs_info", [moved("tested"), asked("screen-review", "tested")]), /no park record/u,
     "and a park of a kind that lands elsewhere resumes nothing");
 });
 

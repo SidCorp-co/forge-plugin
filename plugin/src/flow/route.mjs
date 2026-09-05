@@ -8,6 +8,8 @@ import {
   ORDER,
   PARK_STATUS,
   SIDE,
+  SILENT,
+  announcedAt,
   answered,
   atLeast,
   atThisReopen,
@@ -16,6 +18,7 @@ import {
   need,
   nextOf,
   parkRecord,
+  parkThatSet,
   personLooks,
   shapeGaps,
   transitionCall,
@@ -197,15 +200,27 @@ export const lookAhead = (view, ref) => {
     + `  forge advance ${ref} --park screen-review --why "<why>" --evidence <attachment|url|sha>`;
 };
 
+/* Said only where a park of the right kind is on the page and nothing pairs it with the move. */
+const unpaired = (view, status) => {
+  const stale = status !== SILENT && parkRecord(view, (one) => PARK_STATUS[one] === status);
+  if (!stale) return "";
+  const carries = `The page carries a park of kind \`${stale.record.fields.kind}\`, and `;
+  return announcedAt(view)
+    ? `${carries}the tracker's announcement of this entry into ${status} does not sit beside it, so `
+      + `nothing pairs the two: that park may already have caused a move of its own, and reading it `
+      + `twice would send the issue to a status this entry does not earn. `
+    : `${carries}the page carries no announcement at all, though the tracker announces every entry `
+      + `into ${status}, so nothing says that park is what moved it. `;
+};
+
 export const targetOf = (view, ref) => {
   const status = view.issue.status;
-  /* The park that put the issue where it is, and not merely the last one written: a side status set
-     from outside, with a stale park of another kind behind it, would resume by that park's policy. */
-  const held = SIDE.includes(status) ? parkRecord(view, (one) => PARK_STATUS[one] === status) : null;
+  const held = SIDE.includes(status) ? parkThatSet(view, status) : null;
   if (SIDE.includes(status)) {
     if (!held) {
       /* No write earns the way back: a park now would stamp the side status as the one it left. */
-      refuse(`${ref} is ${status} and no park record on the page says where it came from. `
+      refuse(`${ref} is ${status} and no park record on the page is paired with the entry into it, `
+        + `so nothing says where it came from. ${unpaired(view, status)}`
         + `${view.cut ? `${view.cut} The record that would say may be behind the cut. ` : ""}`
         + `A park written now would name ${status} as the status it left, which is no step of the `
         + `flow, so nothing here earns the way back. Whoever knows where it belongs sets it, and `
