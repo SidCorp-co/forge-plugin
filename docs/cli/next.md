@@ -98,6 +98,19 @@ layout out of a checkout it may not be standing in — and, standing in the wron
 confidently about somebody else's tree. Two issues in trees that import each other are related by
 the relation or by the search, both of which the tracker answers for, or they are not related here.
 
+## The restart signal is the ship's set, not a tree
+
+`restart` beside a candidate answers one question — can an open session pick this file up — and the
+ship answers it already, at the step that names what a landing owes a restart for. So the rank
+spends `freezesSession` rather than naming trees of its own. A second table is a second answer to
+one question, and nothing goes red when the two disagree: `plugin/hooks/` was that second answer,
+marking every gate file, from minutes after the landing that made a gate reach an open session
+without a restart at all.
+
+The consequence to expect from reading the set rather than the tree: a file *outside* `plugin/hooks/`
+can earn the mark, because what freezes a session is the registration and the modules it loads at
+start, not the directory a file sits in.
+
 ## What the cost column is silent about
 
 The minutes come from the transcripts the harness keeps, folded by `forge stats runs`'s own corpus

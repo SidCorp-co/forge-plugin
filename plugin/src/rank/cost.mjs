@@ -5,9 +5,8 @@ import { callsIn, readTranscript, slugFor, transcriptBase } from "../stats/trans
 import { keysIn } from "../tracker/issues.mjs";
 import { meets, pathsNamed } from "./eligible.mjs";
 import { bandOf } from "./score.mjs";
+import { freezesSession } from "../tools/plugin-copy.mjs";
 import { runsUnder } from "../stats/runs.mjs";
-
-const RESTARTS = ["plugin/hooks", "plugin/skills"];
 
 export const rootFor = (directory) => join(transcriptBase(), slugFor(directory.replace(/\/+$/u, "") || "/"));
 
@@ -42,8 +41,7 @@ export const costFor = (band, runs, bands) => {
 export const bandsOf = (rows) =>
   new Map(rows.map((row) => [row.issueId, bandOf(row).band]));
 
-export const owesRestart = (body) =>
-  pathsNamed(body).some((path) => RESTARTS.some((tree) => meets(path, tree)));
+export const owesRestart = (body) => pathsNamed(body).some(freezesSession);
 
 /* Off the backlog rather than off a checkout this verb may not be standing in. */
 export const lastLanded = (rows) =>

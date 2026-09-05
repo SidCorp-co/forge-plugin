@@ -39,7 +39,7 @@ const signalLine = (candidate) => {
     : `median of ${cost.over} run(s) at band ${cost.band ?? "any, none measured at this one"}`;
   const said = [
     `cost ${cost.minutes === null ? "—" : `${cost.minutes}m`} (${over})`,
-    candidate.restart ? "restart: its body names a hook or a skill" : null,
+    candidate.restart ? "restart: its body names a file no open session can pick up" : null,
     candidate.warm ? `warm: it names ${candidate.warm}, which the last landing touched` : null,
   ].filter(Boolean);
   return `  signal ${said.join(" · ")}`;

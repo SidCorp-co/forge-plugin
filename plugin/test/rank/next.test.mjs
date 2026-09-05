@@ -161,8 +161,17 @@ test("a related issue that is not fix-size is named rather than batched", async 
   assert.match(run.stdout, /~ ISS-2\s+related, not batched: it reads like ISS-1 at 0\.90, and a batch is fix-size/u);
 });
 
+/* The mark is a word; the line beside it is where its meaning is stated, and a signal whose
+   sentence names a tree is one a reader takes for a rule about directories. */
+test("the restart line says what a session cannot pick up, not which tree the file sits in", async () => {
+  load([issue("ISS-1", { priority: "critical", description: "It edits `plugin/hooks/gate.mjs`." })]);
+  const run = await ran(["next", "--why"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /restart: its body names a file no open session can pick up/u);
+});
+
 test("--json carries the score, its parts and every signal as its own column", async () => {
-  load([issue("ISS-1", { priority: "critical", description: "It edits `plugin/hooks/gates/shell.mjs`." })]);
+  load([issue("ISS-1", { priority: "critical", description: "It edits `plugin/hooks/gate.mjs`." })]);
   const run = await ran(["next", "--json"]);
   assert.equal(run.status, 0, run.stderr);
   const held = JSON.parse(run.stdout);
@@ -173,7 +182,7 @@ test("--json carries the score, its parts and every signal as its own column", a
   assert.equal(first.parts.priority.points, 40);
   assert.equal(first.parts.band.points, 3);
   assert.equal(first.parts.kind.points, 0);
-  assert.equal(first.restart, true, "its body names a hook");
+  assert.equal(first.restart, true, "its body names a file no open session picks up");
   assert.equal(first.bandFrom, "neither source");
   assert.deepEqual(Object.keys(first.cost).sort(), ["band", "minutes", "over"]);
   assert.equal(held.weightsFrom, "the built-in table");

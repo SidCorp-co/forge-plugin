@@ -6,6 +6,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { bandsOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart } from "../../src/rank/cost.mjs";
+import { FROZEN } from "../../src/tools/plugin-copy.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const stamp = (minutes) => new Date(Date.parse("2026-09-01T00:00:00.000Z") + minutes * 60_000).toISOString();
@@ -60,11 +61,22 @@ test("the band of a past run is read off the browse projection alone", () => {
   assert.equal(bands.get("ISS-12"), "unset", "no body was read, so no Size line could decide");
 });
 
-test("a body naming a hook or a skill owes a restart, and one naming neither does not", () => {
-  assert.equal(owesRestart("It edits `plugin/hooks/gates/shell.mjs`."), true);
+test("the restart signal is the ship's set, so it falls silent on a gate an open session picks up", () => {
+  assert.equal(owesRestart("It edits `plugin/hooks/gates/shell.mjs`."), false,
+    "gate.mjs chooses the copy per call, so a gate under it reaches an open session unrestarted");
+  assert.equal(owesRestart("It edits `plugin/hooks/gate.mjs`."), true, "the chooser itself is frozen");
   assert.equal(owesRestart("It edits `plugin/skills/issue-flow/SKILL.md`."), true);
   assert.equal(owesRestart("It edits `plugin/src/rank/next.mjs`."), false);
   assert.equal(owesRestart("It mentions plugin/hooks without a span."), false);
+});
+
+test("the set is FROZEN's and not a table of this tree's, so it covers what no hook tree holds", () => {
+  for (const path of FROZEN) {
+    assert.equal(owesRestart(`It edits \`${path.replace(/\/$/u, "/one.mjs")}\`.`), true,
+      `${path} is what the ship names at the restart line, so the rank has to mark it too`);
+  }
+  assert.equal(owesRestart("It edits `plugin/src/tools/plugin-copy.mjs`."), true,
+    "the copy chooser sits outside plugin/hooks and a session still cannot pick it up");
 });
 
 test("the last landing is the newest mark the tracker stamped, and the warm tree is read off it", () => {
