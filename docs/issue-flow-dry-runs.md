@@ -2610,3 +2610,28 @@ Closed by its run. Folded from the record.
   module's knowledge entry, which is where a run reads after it has been refused, not before.
 - A knowledge write has no revision, so each upsert was captured with a read first as the only
   restore copy; one upstream 502 said it may have been processed, and the timestamp showed it had not.
+
+## Hundred-and-fourth dry run — ISS-288, second half
+
+One agent resumed a parked issue and landed the half a held file had blocked (3.35.120). The one
+translation layer now names a path rather than a key and walks into the release note's user-facing
+half, leaving the section and the technical half alone; the read-back comparator compares half by
+half against the copy that was sent rather than the object it had closed over, in the same commit,
+because without that every note write on a Vietnamese project would have landed and then been refused.
+Proved by running it: an English note written through the installed copy from a directory whose
+config says Vietnamese came back off the tracker in Vietnamese with the technical half byte-identical,
+and the same note from a tree with no prose language came back English. No restart owed. Closed by its
+run. Folded from the record.
+
+- One part of the five-part design was dropped with a measurement rather than built: the
+  trailing-newline hazard existed only for the comparator the third part replaced, and the tracker
+  stores all three halves byte for byte. A design handed over at a park is a list of hypotheses, and
+  the resuming run measures each before it spends a commit on it.
+- The run edited two files outside its granted hold list because the outcome was unreachable
+  without them, and both were the issue's own from its first half. A hold list written by the parent
+  is a claim about other runs' files, not a fence around the run's own.
+- A park is lifted only by the status move, so the two correction records and a rewritten plan field
+  are the audit trail of what changed between the halves (ISS-13, open, is the explicit lift).
+- Both defects met were already open and got the instance added (ISS-234: a one-value flag given
+  twice keeps the last and reports success; ISS-276: a clean consult's qualifications have nowhere on
+  a review record to go). Two qualified passes went on the thread as a comment so they are not lost.
