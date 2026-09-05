@@ -1,7 +1,7 @@
 /* What both readers of `tools/run.mjs` exercise it on, since neither runs against this checkout.
    Not a `.test.mjs`, so the suite collects no test of its own here. */
-import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { tempRoom } from "../fixtures.mjs";
@@ -11,6 +11,7 @@ import { tempRoom } from "../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempRoom("run-script-home-");
 
 export const ROOT = new URL("../../..", import.meta.url).pathname;
+const OWN_SLUG = JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")).slug;
 export const SCRIPT = join("tools", "run.mjs");
 /* npm and node without whatever else the developer has on PATH: the ship path's last two steps are
    `claude`, and a machine that has it would prove nothing about what a missing step does. */
@@ -24,17 +25,22 @@ export const runIn = (cwd, argv, env = process.env) =>
    gate, which ship spends by name — the real one needs a tree this scratch checkout is not. */
 export const GATE = "node -e \"console.log('scratch gate ran')\"";
 
+const COPIED = [SCRIPT, join("tools", "run", "args.mjs"), join("tools", "run", "review.mjs"),
+  join("tools", "checkout.mjs"), join("tools", "gates", "timing.mjs")];
+
 export const scratch = (name, gate = GATE) => {
   const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
-  for (const one of [SCRIPT, join("tools", "run", "args.mjs"), join("tools", "run", "review.mjs"),
-    join("tools", "checkout.mjs"), join("tools", "gates", "timing.mjs"),
-    join("plugin", "src", "tools", "plugin-copy.mjs")]) {
+  for (const one of COPIED) {
     mkdirSync(join(work, dirname(one)), { recursive: true });
     cpSync(join(ROOT, one), join(work, one));
   }
+  /* The CLI's source too, the filing being a module call, with the one directory it reaches out to. */
+  cpSync(join(ROOT, "plugin", "src"), join(work, "plugin", "src"), { recursive: true });
+  cpSync(join(ROOT, "plugin", "hooks", "vendor"), join(work, "plugin", "hooks", "vendor"), { recursive: true });
+  writeFileSync(join(work, ".forge.json"), JSON.stringify({ slug: OWN_SLUG }));
   writeFileSync(join(work, "package.json"),
-    JSON.stringify({ name: "scratch", version: "1.0.0", scripts: { check: gate } }, null, 2));
+    JSON.stringify({ name: "scratch", version: "1.0.0", type: "module", scripts: { check: gate } }, null, 2));
   mkdirSync(join(work, ".claude-plugin"), { recursive: true });
   writeFileSync(join(work, ".claude-plugin", "marketplace.json"), JSON.stringify({ name: "scratch-local" }));
   mkdirSync(join(work, "plugin", ".claude-plugin"), { recursive: true });
@@ -45,9 +51,41 @@ export const scratch = (name, gate = GATE) => {
 
 export const committed = (work, message) => {
   for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(work, "config", key, value);
-  git(work, "add", "package.json", ".claude-plugin", "plugin", "tools");
+  git(work, "add", "package.json", ".claude-plugin", "plugin", "tools", ".forge.json");
   git(work, "commit", "-m", message);
 };
+
+/* The endpoint the in-process filing reaches, one per module load: the release step's create is a
+   module call now, and a run pointed at nothing would report a filing the network lost rather than
+   the outcome each case is about. `state` is what a case seeds and reads back. */
+const ROOM = tempRoom("run-tracker-");
+const [SEED, CALLS, HOME] = ["tracker-state.json", "tracker-calls.jsonl", "tracker-home"];
+const SEED_AT = join(ROOM, SEED);
+const CALLS_AT = join(ROOM, CALLS);
+
+const BACKLOG = { issues: [], comments: {}, memory: {}, mint: "filed-uuid" };
+
+/** Every case starts with a backlog of its own and nothing recorded against it. */
+export const noBacklog = (seed = {}) => {
+  writeFileSync(SEED_AT, JSON.stringify({ ...BACKLOG, ...seed }));
+  writeFileSync(CALLS_AT, "");
+};
+
+noBacklog();
+const served = spawn(process.execPath,
+  [join(import.meta.dirname, "tracker-process.mjs"), ROOM, SEED, CALLS, HOME],
+  { stdio: ["ignore", "pipe", "inherit"] });
+await new Promise((ready) => served.stdout.once("data", ready));
+served.stdout.destroy();
+served.unref();
+process.on("exit", () => served.kill());
+
+Object.assign(BARE, { XDG_CONFIG_HOME: readFileSync(join(ROOM, HOME), "utf8").trim() });
+
+export const seen = (action, name = "forge_issues") =>
+  (existsSync(CALLS_AT) ? readFileSync(CALLS_AT, "utf8") : "").split("\n").filter(Boolean)
+    .map((line) => JSON.parse(line))
+    .filter((one) => one.name === name && one.args.action === action);
 
 /* Without the push the fetch has nothing to name and the range is undefined. */
 export const pushed = (name) => {
@@ -76,14 +114,15 @@ export const lastStep = (work) => {
 
 export const ref = (work) => git(work, "rev-parse", "--verify", "--quiet", "refs/forge/reviewed").stdout.trim();
 
-/* The tracker the release step files through, at the path the step invokes. Every call is logged with
-   the body it was piped, `new` leaves the row a later `issues` finds, and a `forge-refuses` file is the
-   network that is not there — all above the checkout, an artefact inside it being an uncommitted file
-   the first ship step refuses. CommonJS: the scratch manifest names no module type. */
+/* The tracker the release step's LOOKUPS go through, at the path the step invokes. Every call is
+   logged with the body it was piped, `new` leaves the row a later `issues` finds, and a
+   `forge-refuses` file is the network that is not there — all above the checkout, an artefact inside
+   it being a file the first ship step refuses. The filing is not among them. */
 const STUB = `#!/usr/bin/env node
-const { appendFileSync, existsSync, readFileSync } = require("node:fs");
-const { join } = require("node:path");
-const room = join(__dirname, "..", "..", "..");
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+const room = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const argv = process.argv.slice(2);
 const body = argv.includes("-") ? readFileSync(0, "utf8") : "";
 appendFileSync(join(room, "forge-calls.json"), JSON.stringify({ argv, body }) + "\\n");

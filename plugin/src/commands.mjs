@@ -23,15 +23,9 @@ import {
   inFlowWords,
   insteadOf,
   kindRefusal,
-  liveTitles,
-  rankOf,
-  refusalFrom,
-  shapeOf,
-  trackerFields,
-  withMark,
 } from "./tracker/issue-shape.mjs";
-import { BESIDE_HELP, foldFiling, foldedInto, neighboursOf, suggestionLines }
-  from "./tracker/neighbours.mjs";
+import { BESIDE_HELP, foldedInto, suggestionLines } from "./tracker/neighbours.mjs";
+import { filedOrFail, rankFor, readFiling } from "./tracker/filing.mjs";
 import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
 import { callable, helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean, unknownFlag } from "./suggest.mjs";
@@ -57,19 +51,6 @@ import { notAnothers, renew } from "./flow/lease.mjs";
 
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
-
-/* Both routes that file an issue, refusing and saying through one place: what each says was pinned
-   to what the other says by hand, which is a pair of copies agreeing until one is corrected. One
-   body scanned once, and one open-issues page for the duplicate check and for what is open beside
-   the filing both. */
-const readFiling = async (filing, options) => {
-  const shape = shapeOf(filing);
-  const page = await liveTitles();
-  const refusal = await refusalFrom(filing, shape, { ...options, page });
-  if (refusal) fail(refusal);
-  if (shape.said) console.error(shape.said);
-  return { shape, live: page.live };
-};
 
 const sayBeside = (beside, options) => {
   for (const line of suggestionLines(beside, options)) console.log(line);
@@ -304,7 +285,9 @@ export const commands = {
     let beside = null;
     for (const filing of filingsOf({ name: `mcp__forge__${name}`, input: args })) {
       const read = await readFiling(filing);
-      beside = await neighboursOf(read.shape, read.live);
+      if (read.refusal) fail(read.refusal.text);
+      if (read.shape.said) console.error(read.shape.said);
+      beside = read.beside;
     }
     const wrote = Boolean(resolved.data);
     const answer = wrote ? await write(name, resolved) : await scoped(name, resolved);
@@ -358,9 +341,11 @@ export const commands = {
     if (kind !== undefined && !KIND_NAMES.includes(kind)) fail(kindRefusal(kind));
     const instead = insteadOf(given);
     if (instead) fail(instead);
-    /* Before the body is read, and the default answers to the same set a typed rank does. */
-    const ranked = await rankOf(priority);
-    if (ranked.refusal) fail(ranked.refusal);
+    /* Before the body is read: a stdin payload cannot be sent twice, and a rank the tracker's own
+       set does not carry is knowable without it. The filing takes the answer rather than asking
+       again, so one filing costs one reading of that set. */
+    const rank = await rankFor(priority);
+    if (rank.refusal) fail(rank.refusal.text);
     /* Presence, never truth: the shared parser takes an empty string as a value, and a route read
        by truthiness would drop `--into ""` on the floor and file the issue instead. */
     const commenting = into !== undefined;
@@ -388,25 +373,29 @@ export const commands = {
       await mustBeShown([{ ref: into, documentId: issue }]);
       return show(await postComment(issue, `## ${given.title}\n\n${body}`));
     }
-    const description = size ? withMark(body) : body;
-    const read = { title: given.title, body: description, kind: kind ?? null };
-    const { shape, live } = await readFiling(read, { routed: relating });
-    const beside = await neighboursOf(shape, live);
-    const { joined, answer: comment, said } =
-      await foldFiling(beside, { title: given.title, body: description, routed: relating, fresh });
-    if (joined) {
-      show(comment);
+    const { title, ...carried } = given;
+    const filed = await filedOrFail({
+      title,
+      body,
+      kind: kind ?? null,
+      ranked: rank.ranked,
+      size,
+      fields: carried,
+      routed: relating,
+      fresh,
+      relations: relating ? [{ kind: "relates", blocksId: await documentIdOf(rides) }] : null,
+    });
+    if (filed.shape.said) console.error(filed.shape.said);
+    if (filed.joined) {
+      show(filed.answer);
       keepOnFailure(null);
-      console.log(foldedInto(joined));
-      return sayBeside(beside, said);
+      console.log(foldedInto(filed.joined));
+      return sayBeside(filed.beside, filed.said);
     }
-    const data = { description, status: "open", priority: ranked.value, ...given, ...trackerFields({ kind }) };
-    if (relating) data.relations = [{ kind: "relates", blocksId: await documentIdOf(rides) }];
-    const answer = await write("forge_issues", { action: "create", data });
     keepOnFailure(null);
-    show(inFlowWords(answer));
-    console.log(filedAs(answer, ranked.said));
-    return sayBeside(beside, said);
+    show(inFlowWords(filed.answer));
+    console.log(filedAs(filed.answer, filed.ranked.said));
+    return sayBeside(filed.beside, filed.said);
   },
   comment: async (argv) => {
     onlyFlags("comment", argv);

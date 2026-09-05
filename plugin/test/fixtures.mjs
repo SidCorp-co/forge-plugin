@@ -256,7 +256,7 @@ export const fakeTracker = async (state) => {
   const issues = (args) => {
     if (args.action === "list") return listed(args.filters);
     if (args.action === "get") return (state.issues ?? []).find((one) => one.documentId === args.documentId) ?? {};
-    if (args.action === "create") return { documentId: state.mint ?? "filed-uuid", ...args.data };
+    if (args.action === "create") return { documentId: state.mint ?? "filed-uuid", ...(state.key ? { issueId: state.key } : {}), ...args.data };
     return { documentId: args.documentId, ...(args.data ?? {}) };
   };
   const comments = (args) => {
@@ -316,5 +316,6 @@ export const fakeTracker = async (state) => {
   mkdirSync(join(home.path, "forge"), { recursive: true });
   const url = `http://127.0.0.1:${served.address().port}/mcp`;
   writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url, token: "t" }));
-  return { url, env: { ...process.env, XDG_CONFIG_HOME: home.path }, close: () => served.close() };
+  return { url, env: { ...process.env, XDG_CONFIG_HOME: home.path }, close: () => served.close(),
+    unref: () => served.unref() };
 };

@@ -32,6 +32,7 @@ needs that topic and by nobody else.
 | [codex — the log](cli/codex-the-log.md) | What the log makes a session out of, what the stats window answers, what makes anyone run it, and what the commit gate demands before a commit. |
 | [`beside`](cli/beside.md) | What the create path asks the tracker before it files, the floor it drops a neighbour under, why a fix-size filing folds onto one only when two independent answers agree, and the cases it still cannot reach. |
 | [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue and not a file, where the destination project is held, and why a matching title routes on an exact match rather than an overlap score. |
+| [the filing](cli/filing.md) | Why every route that files an issue calls one interface, why that interface neither prints nor exits, why a route contributes a section rather than joining text on first, and the two decisions each route still makes for itself. |
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, what a call that never returned counts as, and the three rows a hand profile got wrong. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, what is withheld by default, and how the CLAUDE.md claims were calibrated. |

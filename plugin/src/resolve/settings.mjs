@@ -13,7 +13,23 @@ export const keepOnFailure = (text) => {
   kept = text;
 };
 
+/** What `fail` throws inside `refusing`, where there is no process of this CLI's own to end — the
+ *  release script files an issue mid-release, and an exit there leaves one half done. */
+export class Refusal extends Error {}
+
+let embedded = 0;
+
+export const refusing = async (run) => {
+  embedded += 1;
+  try {
+    return await run();
+  } finally {
+    embedded -= 1;
+  }
+};
+
 export const fail = (message) => {
+  if (embedded) throw new Refusal(message);
   console.error(message);
   if (kept) console.error(kept);
   process.exit(1);

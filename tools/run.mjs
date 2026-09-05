@@ -12,6 +12,8 @@ import { checkoutRoot, defaultBranch, git, gitOut, REMOTE, Stop, stop } from "./
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
+import { fileIssue } from "../plugin/src/tracker/filing.mjs";
+import { refusing } from "../plugin/src/resolve/settings.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
@@ -284,10 +286,6 @@ const forgeSays = (tree, args, input) => {
   return { out: run.stdout };
 };
 
-/* The head `forge new` opens a refusal of its own shape check with: a generated body it reads as
-   wrong is this repository's to fix, a tracker that did not answer the next ship's to ask (ISS-163). */
-const CHECK_SAYS = "this files an issue the flow cannot carry";
-
 const whose = (said, call) => (said.unrun ? `${CLI} could not be run` : `the tracker did not answer ${call}`);
 
 const NOT_A_READING = "dropped";
@@ -313,27 +311,34 @@ const issueFor = (tree, from) => {
 };
 
 /* Never twice outranks filing promptly, so a list that does not answer files nothing either: the
-   count keeps growing and the next ship reads the backlog again. */
-const fileReview = (tree, from, volume) => {
+   count keeps growing and the next ship reads the backlog again. The filing itself is in-process:
+   whether the body collided or was this repository's own to fix is what `fileIssue` returns, and a
+   release step reading it off another process's stdout read a paragraph written for a person. */
+const fileReview = async (tree, from, volume) => {
   const held = issueFor(tree, from);
   if (held.why || held.key) return held;
   const to = gitOut(["rev-parse", "HEAD"], tree);
   if (!to) return { why: `${tree} has no HEAD to name as the range's end.`, whose: "this tree could not answer" };
   const title = `The batch ${from.slice(0, 7)}..${to.slice(0, 7)} is read once as a whole by a run `
     + `that wrote none of it, and the mark moves`;
-  const filed = forgeSays(tree, ["new", "-", "--title", title, "--kind", "feature"],
-    reviewBody({ tree, from, to, volume, self: SELF }));
-  /* The refusal's own phrase, not any key: a reason quotes paths, and a worktree carries a key. Only
-     this check's duplicate line writes `against <a key>`, so one carrying it is its by construction. */
-  if (filed.why) {
-    const collided = /against (ISS-\d+)/u.exec(filed.why)?.[1] ?? null;
-    const mine = !filed.unrun && filed.why.includes(CHECK_SAYS);
-    return { why: filed.why, collided, mine, whose: whose(filed, "the filing") };
+  /* Inside `refusing`, so a credential or a transport this CLI would exit over comes back here: a
+     release is mid-flight at this point and nothing about a filing may end it. */
+  const filed = await refusing(() => fileIssue({
+    title,
+    body: reviewBody({ tree, from, to, volume, self: SELF }),
+    kind: "feature",
+    soft: true,
+  })).catch((error) => ({ threw: error }));
+  if (filed.threw) return { why: filed.threw.message, whose: "the filing could not be made" };
+  if (filed.refusal) {
+    return { why: filed.refusal.text, collided: filed.refusal.collided, mine: filed.refusal.mine,
+      whose: "this plugin refused the filing" };
   }
-  const key = /"issueId":\s*"(ISS-\d+)"/u.exec(filed.out)?.[1];
+  if (filed.answer?.refused) return { why: filed.answer.refused, whose: whose({}, "the filing") };
+  const key = filed.joined?.issueId ?? filed.answer?.issueId ?? null;
   return key
     ? { key, filed: true }
-    : { why: filed.out.trim(), whose: "the filing answered with no issue key" };
+    : { why: JSON.stringify(filed.answer ?? null), whose: "the filing answered with no issue key" };
 };
 
 /* Beside the volume count and not on a surface of its own: both are what this run left for the next
@@ -349,7 +354,7 @@ const gateGrew = (tree) => {
 
 /* The mark is never planted here. One planted where none was found would read exactly like a
    reading that has just finished, and the skipped reading it hid would surface at no later ship. */
-const reviewOwed = (tree) => {
+const reviewOwed = async (tree) => {
   const from = reviewedAt(tree);
   if (!from) return console.error(`  ${NO_MARK}`);
   const { owed, range, count, volume } = reviewSays(tree, from);
@@ -359,7 +364,7 @@ const reviewOwed = (tree) => {
   }
   console.log(`  a review of ${range} is owed: ${count} under ${REVIEW_PATHS.join(", ")}, at or past `
     + `${REVIEW_LINES} line(s). It is a delegated run of its own:`);
-  const asked = fileReview(tree, from, volume);
+  const asked = await fileReview(tree, from, volume);
   /* Read, never launched: the check collides on similarity, so the key may not be a reading. */
   if (asked.collided) {
     console.error(`  this plugin's own filing check refused the body, the tracker having answered: it `
@@ -500,19 +505,19 @@ const shipSteps = (tree, root, base, note) => {
       "The cache is keyed by version, so an update at an installed version is a no-op.")],
     [`plugin ${plugin}@${market}`, () => loud("claude", ["plugin", "update", `${plugin}@${market}`], root,
       "Install it by hand if the marketplace has it and this does not.")],
-    ["the copy the next session loads", () => {
+    ["the copy the next session loads", async () => {
       const copy = pluginCopy(join(root, "plugin"));
       console.log(copy
         ? `  ${copy.name} ${copy.running} running, ${copy.installed} installed${copy.stale ? " — this version is in no install record" : ""}`
         : "  no install record answers for this plugin");
       releaseSays(tree, base);
       gateGrew(tree);
-      reviewOwed(tree);
+      await reviewOwed(tree);
     }],
   ];
 };
 
-const ship = ({ flags }) => {
+const ship = async ({ flags }) => {
   const asked = flags.get("--from");
   const from = asked === undefined ? 1 : Number.parseInt(asked, 10);
   const note = flags.get("--note") ?? null;
@@ -533,7 +538,7 @@ const ship = ({ flags }) => {
     const [name, run] = steps[at];
     console.log(`\nstep ${at + 1}/${steps.length}  ${name}`);
     try {
-      run();
+      await run();
     } catch (error) {
       if (!(error instanceof Stop)) throw error;
       console.error(`\nstopped at step ${at + 1} (${name}): ${error.message}`);
@@ -557,8 +562,9 @@ const main = (argv) => {
   return read ? VERB_RUNS.get(verb)(read) : console.log(verbUsage(verb, SELF));
 };
 
+/* Awaited: one step files in-process, so a `Stop` raised past the first await would land on nobody. */
 try {
-  main(process.argv.slice(2));
+  await main(process.argv.slice(2));
 } catch (error) {
   if (!(error instanceof Stop)) throw error;
   console.error(error.message);

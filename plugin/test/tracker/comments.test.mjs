@@ -232,9 +232,8 @@ const CHECKED = /\brenew\(|\bmustBeShown\(|\bnotAnothers\(/u;
 const WINDOW = 12;
 /* Keyed by path and action, so an unchecked write added to an exempted file is not exempt with it. */
 const EXEMPT = {
-  "commands.mjs:forge_issues:create": "`new` creates the issue, and an issue being created has no comments",
+  "tracker/filing.mjs:forge_issues:create": "the one create every filing route calls creates the issue, and an issue being created has no comments to have read — docs/cli/filing.md says why the routes hold no create of their own",
   "tracker/comments.mjs:forge_comments:create": "the create this module owns is the one the check has cleared, and the credit is taken on its answer",
-  "tools/feedback.mjs:forge_issues:create": "a note filed on the plugin's own project creates the issue, and a created issue has no comments — docs/cli/feedback.md says why the comment route reads none either",
 };
 
 /* Not line by line and not by the word alone: a call split over lines, one whose answer is returned

@@ -493,13 +493,13 @@ const SHAPE_HEAD = "Hold — this files an issue the flow cannot carry. Each lin
 export const shapeRefusal = ({ gaps }) =>
   (gaps.length ? [SHAPE_HEAD, rendered(gaps)].join("\n\n") : null);
 
-/** The refusal, or null, and the guide with it. The read is handed in rather than taken: what a
- *  caller wants off one body may be this or the line `shapeOf` returns beside the gaps, and a body
- *  scanned twice for one filing is the reading done twice. Which way round matters — this asks the
- *  tracker what else is open, the line owes no such read, so the line is never fetched through here.
- *  `routed` is a route the command named and the body cannot show: a fix riding another issue's
- *  branch owes no mark, its flow being that issue's. `page` is a projection already fetched. */
-export const refusalFrom = async (filing, { gaps, fix, tokens }, { routed = false, page = null } = {}) => {
+/** Why a filing is refused, as the parts a caller branches on beside the text a person reads: the
+ *  key it duplicates, whether the shape refused the body, and whether a route is owed. Reading any
+ *  of those off the text is matching a paragraph written for somebody else. The read is handed in
+ *  rather than taken: a body scanned twice for one filing is the reading done twice, and this asks
+ *  the tracker what else is open where the `shapeOf` line owes no such read. `routed` is a route the
+ *  command named and the body cannot show, `page` a projection already fetched. */
+export const filingRefusal = async (filing, { gaps, fix, tokens }, { routed = false, page = null } = {}) => {
   const owesRoute = fix && !routed;
   const { live, read } = page ?? await liveTitles();
   /* Searched only where the walk fell short: a whole reading already holds every open issue. */
@@ -527,6 +527,15 @@ export const refusalFrom = async (filing, { gaps, fix, tokens }, { routed = fals
       + "review, a verdict per criterion, a verification, a release note and eight transitions, and the mark "
       + "is what drops the decision, the plan and the note. Name a route:"
     : SHAPE_HEAD;
-  return [head, out.length ? rendered(out) : null, routes].filter(Boolean).join("\n\n");
+  return {
+    text: [head, out.length ? rendered(out) : null, routes].filter(Boolean).join("\n\n"),
+    duplicate: same?.key ?? null,
+    shaped: gaps.length > 0,
+    route: owesRoute,
+  };
 };
+
+/** The same refusal as the one line a verb prints, for the caller that wants no more than that. */
+export const refusalFrom = async (filing, shape, options) =>
+  (await filingRefusal(filing, shape, options))?.text ?? null;
 

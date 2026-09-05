@@ -7,11 +7,15 @@ import test from "node:test";
 import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { BARE, called, git, lastStep, landIn, owedAt, pushed, ref, runIn } from "./run-fixtures.mjs";
+import { BARE, called, git, lastStep, landIn, noBacklog, owedAt, pushed, ref, runIn, seen }
+  from "./run-fixtures.mjs";
 
 /* The shape reader reaches the tracker's own settings, so it is loaded after the fixtures, whose
    static import has already pointed XDG_CONFIG_HOME at a room that is not the developer's. */
 const { shapeOf } = await import("../../src/tracker/issue-shape.mjs");
+
+/* The filing is a module call, so what it sent is a payload on the endpoint, not an argv. */
+const creating = () => seen("create")[0]?.args.data ?? null;
 
 test("with no mark, the last step says it cannot count and plants nothing", () => {
   const { work } = pushed("unmarked");
@@ -70,51 +74,53 @@ test("the five hundredth changed line is owed a reading, and only in the counted
 
 test("past the threshold the step files the reading's issue itself, and prints the line that launches it", () => {
   const { at, work, from } = owedAt("filed");
+  noBacklog({ key: "ISS-777" });
 
   const owed = lastStep(work);
   const to = git(work, "rev-parse", "HEAD").stdout.trim();
-  const filing = called(at).find((one) => one.argv[0] === "new");
+  const filing = creating();
   assert.ok(filing, `nothing was filed:\n${owed.stdout}${owed.stderr}`);
-  assert.deepEqual(filing.argv.slice(0, 2), ["new", "-"], "the body goes in on stdin");
-  assert.ok(filing.argv.includes("--kind") && filing.argv[filing.argv.indexOf("--kind") + 1] === "feature",
-    `the filing names no kind the verb takes: ${filing.argv.join(" ")}`);
-  assert.ok(filing.argv[filing.argv.indexOf("--title") + 1].includes(`${from.slice(0, 7)}..${to.slice(0, 7)}`),
-    `the title names no commit pair: ${filing.argv.join(" ")}`);
+  assert.equal(filing.category, "feature", "the filing names no kind the shape reads a body against");
+  assert.ok(filing.title.includes(`${from.slice(0, 7)}..${to.slice(0, 7)}`),
+    `the title names no commit pair: ${filing.title}`);
+  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 0,
+    "the filing spawned the CLI, which is the parse this step no longer makes");
 
   for (const said of ["## Outcome", "## Rules", "## Out of scope", "1 file(s) and 501 changed line(s)",
     `git diff ${from}..${to} -- plugin/src plugin/hooks plugin/bin`, "ISS-77", `review --done ${to}`,
     "forge knowledge write module-<name>", "forge project --refresh"]) {
-    assert.ok(filing.body.includes(said), `the body carries no ${said}:\n${filing.body}`);
+    assert.ok(filing.description.includes(said), `the body carries no ${said}:\n${filing.description}`);
   }
   assert.ok(owed.stdout.includes("filed ISS-777"), owed.stdout);
   assert.ok(owed.stdout.includes("Work ISS-777. Use the Skill tool: skill forge:issue-flow, args ISS-777."),
     `the launch line is not printed as the parent reads it:\n${owed.stdout}`);
 });
 
-/* The stub takes any filing, so it proves the argv and the body and not that the CLI would have them.
-   The pair goes through the reader the verb files against, which is local; what it collides with is not. */
 test("the generated title and body are a filing this CLI's own shape reader accepts", () => {
-  const { at, work } = owedAt("shaped");
+  const { work } = owedAt("shaped");
+  noBacklog();
   lastStep(work);
 
-  const filing = called(at).find((one) => one.argv[0] === "new");
-  const shape = shapeOf({
-    title: filing.argv[filing.argv.indexOf("--title") + 1],
-    body: filing.body,
-    kind: filing.argv[filing.argv.indexOf("--kind") + 1],
-  });
+  const filing = creating();
+  assert.ok(filing, "nothing was filed, so there is no body to read");
+  const shape = shapeOf({ title: filing.title, body: filing.description, kind: filing.category });
   assert.deepEqual(shape.gaps, [], `the filing the step generates would be refused:\n${JSON.stringify(shape.gaps, null, 1)}`);
   assert.equal(shape.said, null, `the filing draws a notice the step cannot answer: ${shape.said}`);
 });
 
 test("a second ship at the same mark names the issue already there and files nothing", () => {
-  const { at, work } = owedAt("twice");
+  const { at, work, from } = owedAt("twice");
+  noBacklog({ key: "ISS-777" });
   lastStep(work);
+  /* What the filing left, as the lookup reads it back: that lookup is a browse verb through the CLI
+     and the filing is a module call, so no one act writes both. */
+  writeFileSync(join(at, "forge-rows.txt"),
+    `${"ISS-777".padEnd(8)} ${"open".padEnd(8)} ${"open".padEnd(12)} `
+    + `The batch ${from.slice(0, 7)}..deadbee is read once as a whole\n`);
 
   landIn(work, join("plugin", "src", "wider.mjs"), 40, "more of the same");
   const again = lastStep(work);
-  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 1,
-    `the mark's reading was filed twice:\n${again.stdout}`);
+  assert.equal(seen("create").length, 1, `the mark's reading was filed twice:\n${again.stdout}`);
   assert.match(again.stdout, /ISS-777 is open for this mark already, so nothing was filed/u, again.stdout);
   assert.ok(again.stdout.includes("Work ISS-777."), `the run still has one thing to do:\n${again.stdout}`);
 });
@@ -123,6 +129,7 @@ test("a second ship at the same mark names the issue already there and files not
    between them. The window `open` was right for is the one before anybody starts work (ISS-140). */
 test("the mark's issue is found at whatever status it has reached, and the lookup asks for none", () => {
   const { at, work, from } = owedAt("statuses");
+  noBacklog({ key: "ISS-777" });
   /* The row's own shape, rank and all: this projection grew a column between two ships of this
      batch, and a fixture one column short reads the rank as the status and proves nothing. */
   const seed = (key, status) => writeFileSync(join(at, "forge-rows.txt"),
@@ -131,7 +138,7 @@ test("the mark's issue is found at whatever status it has reached, and the looku
 
   seed("ISS-501", "in_progress");
   const held = lastStep(work);
-  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 0,
+  assert.equal(seen("create").length, 0,
     `an issue the tracker already holds for this mark was filed again:\n${held.stdout}${held.stderr}`);
   assert.match(held.stdout, /ISS-501 is in_progress for this mark already, so nothing was filed/u, held.stdout);
   assert.ok(held.stdout.includes("Work ISS-501."), held.stdout);
@@ -145,7 +152,7 @@ test("the mark's issue is found at whatever status it has reached, and the looku
      and the route out is the move, never a second filing of a reading already done. */
   seed("ISS-502", "closed");
   const done = lastStep(work);
-  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 0, done.stdout);
+  assert.equal(seen("create").length, 0, done.stdout);
   assert.match(done.stdout, /ISS-502 is closed for this mark and the mark never moved/u, done.stdout);
   assert.match(done.stdout, /review --done/u, `the route out of a finished reading is the move:\n${done.stdout}`);
   assert.doesNotMatch(done.stdout, /Work ISS-502\./u, "a closed issue is nothing to launch a run on");
@@ -153,7 +160,7 @@ test("the mark's issue is found at whatever status it has reached, and the looku
   /* Counted, a dropped reading would leave the range an issue nobody reads and no route to another. */
   seed("ISS-503", "dropped");
   const again = lastStep(work);
-  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 1,
+  assert.equal(seen("create").length, 1,
     `a dropped reading left the range with no issue and no filing:\n${again.stdout}${again.stderr}`);
   assert.ok(again.stdout.includes("filed ISS-777"), again.stdout);
 });
@@ -162,13 +169,14 @@ test("the mark's issue is found at whatever status it has reached, and the looku
    unread, and the count keeps growing until someone reads it. */
 test("an issue found but unread files nothing, and is not routed to a filing of its replacement", () => {
   const { at, work, from } = owedAt("unread");
+  noBacklog();
   writeFileSync(join(at, "forge-rows.txt"),
     `${"ISS-504".padEnd(8)} ${"medium".padEnd(8)} ${"tested".padEnd(12)} `
     + `The batch ${from.slice(0, 7)}..deadbee is read once as a whole\n`);
   writeFileSync(join(at, "forge-unread"), "");
 
   const run = lastStep(work);
-  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 0,
+  assert.equal(seen("create").length, 0,
     `an issue already found was replaced because its status would not read:\n${run.stdout}${run.stderr}`);
   assert.match(run.stderr, /ISS-504 is this mark's reading, so nothing was filed/u, run.stderr);
   assert.match(run.stdout, /forge issue ISS-504/u, run.stdout);
@@ -176,13 +184,14 @@ test("an issue found but unread files nothing, and is not routed to a filing of 
     `a route that files a replacement for an issue already found:\n${run.stdout}`);
 });
 
-/* The duplicate line is this plugin's own filing check, decided in the CLI this step spawns, and the
-   only thing stopping a second issue for a mark that already has one. A refusal is not a silence
-   (ISS-140), the route under it is never the filing just refused, and the party named is the check's
-   own and not the tracker's, which answered (ISS-163). */
+/* The duplicate line is this plugin's own filing check, and the only thing stopping a second issue
+   for a mark that already has one. A refusal is not a silence (ISS-140), the route under it is never
+   the filing just refused, and the party named is the check's and not the tracker's (ISS-163). */
 test("a filing refused by name is reported as refused, by the check whose it was, and not routed back to the filing it forbade", () => {
-  const { at, work } = owedAt("wt-ISS-999");
-  writeFileSync(join(at, "forge-collides"), "");
+  const { work } = owedAt("wt-ISS-999");
+  noBacklog({ issues: [{ issueId: "ISS-135", documentId: "u-135", status: "open",
+    title: "The batch 0000000..1111111 is read once as a whole by a run that wrote none of it, and "
+      + "the mark moves" }] });
 
   const run = lastStep(work);
   assert.match(run.stderr, /this plugin's own filing check refused the body, the tracker having answered: it reads as ISS-135/u,
@@ -215,8 +224,17 @@ test("a CLI that cannot be run is this checkout's failure and not a tracker that
 /* Nobody typed this body, so a check that reads it as wrong is this script's own defect: the route
    out is a filing against this repository, and no re-run of the same generated body. */
 test("a shape refusal of the body this step generates is named as this plugin's, and routed to this repository", () => {
-  const { at, work } = owedAt("shape");
-  writeFileSync(join(at, "forge-shape-refuses"), "");
+  const { work } = owedAt("shape");
+  noBacklog();
+  /* The body the step generates, made unreadable by the shape, and committed because the first ship
+     step refuses a dirty tree: forcing the refusal from outside would prove nothing of this route. */
+  writeFileSync(join(work, "tools", "run", "review.mjs"),
+    'export const REVIEWED = "refs/forge/reviewed";\n'
+    + 'export const REVIEW_PATHS = ["plugin/src", "plugin/hooks", "plugin/bin"];\n'
+    + "export const REVIEW_LINES = 500;\n"
+    + 'export const reviewBody = () => "a body carrying no heading at all";\n');
+  git(work, "add", join("tools", "run", "review.mjs"));
+  git(work, "commit", "-m", "a body the shape will not carry");
 
   const run = lastStep(work);
   assert.match(run.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\), 1 file\(s\), 501 changed line\(s\)/u,
@@ -236,6 +254,7 @@ test("a shape refusal of the body this step generates is named as this plugin's,
    they did before anything filed itself, and the next ship asks again. */
 test("a tracker that does not answer files nothing, prints the route, and leaves the next ship to file it", () => {
   const { at, work } = owedAt("offline");
+  noBacklog({ key: "ISS-777" });
   writeFileSync(join(at, "forge-refuses"), "");
 
   const blind = lastStep(work);
@@ -246,11 +265,11 @@ test("a tracker that does not answer files nothing, prints the route, and leaves
   assert.match(blind.stdout, /forge new - --title "review [0-9a-f]{7}\.\.HEAD" --kind feature/u,
     `the route it prints has to run as printed, and --size takes only \`fix\` (ISS-118):\n${blind.stdout}`);
   assert.match(blind.stdout, /start <that ISS-nn>/u, blind.stdout);
-  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 0, "a refused list may not file");
+  assert.equal(seen("create").length, 0, "a refused list may not file");
 
   rmSync(join(at, "forge-refuses"));
   const then = lastStep(work);
-  assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 1,
+  assert.equal(seen("create").length, 1,
     `the reading was lost rather than retried:\n${then.stdout}${then.stderr}`);
   assert.ok(then.stdout.includes("Work ISS-777."), then.stdout);
 });

@@ -8,10 +8,9 @@ import { agentOf } from "../flow/lease.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { MAX_LIMIT, listIssues, rowsOf, shortOf } from "../tracker/issues.mjs";
 import { postComment } from "../tracker/comments.mjs";
-import { filedAs, inFlowWords, liveTitles, openTitles, rankOf, shapeOf, shapeRefusal,
-  trackerFields } from "../tracker/issue-shape.mjs";
-import { foldFiling, foldedInto, neighboursOf, suggestionLines } from "../tracker/neighbours.mjs";
-import { write } from "../tracker/rpc.mjs";
+import { filedAs, inFlowWords, liveTitles, openTitles } from "../tracker/issue-shape.mjs";
+import { foldedInto, suggestionLines } from "../tracker/neighbours.mjs";
+import { bodyOf, fileIssue } from "../tracker/filing.mjs";
 
 /** This plugin's project, read from no checkout: the caller's `.forge.json` says where a note came
  *  FROM and never where it goes. */
@@ -64,9 +63,8 @@ const whereSection = () => {
    caller can predict. */
 const plain = (title) => String(title ?? "").toLowerCase().replace(/\s+/gu, " ").trim();
 
-/* The open issues the filing route reads, spent again here: what is open beside the note is asked
-   of that one reading rather than of a second call. A search for the title is asked only where the
-   walk fell short, since a whole reading already holds every issue such a search could name. */
+/* The reading the filing then reuses, so the note costs one. A search for the title is asked only
+   where the walk fell short, a whole one already holding every issue such a search could name. */
 const openUnder = async (title) => {
   const { live, read } = await liveTitles();
   const found = read.whole ? [] : openTitles(rowsOf(await listIssues({ search: title }, MAX_LIMIT)));
@@ -98,24 +96,25 @@ export const feedback = async (argv) => {
   const written = await bodyFrom(path);
   const keep = (text) => keepOnFailure(`Your note, so that nothing here loses it:\n\n${text}`);
   keep(written);
-  const body = `${written.replace(/\s*$/u, "")}\n\n${whereSection()}\n`;
-  keep(body);
-  /* Body-only: the tracker-reading refusal refuses a near-duplicate, and this takes one as a comment. */
-  const shape = shapeOf({ title, body, kind: KIND }, { everySection: true });
-  const refusal = shapeRefusal(shape);
-  if (refusal) fail(refusal);
+  /* Before the project is aimed, so a note the shape will not carry costs no call. */
+  const asked = { title, body: written, kind: KIND, sections: [whereSection()], everySection: true,
+    duplicates: false };
+  const read = bodyOf(asked);
+  if (read.refusal) fail(read.refusal.text);
+  keep(read.description);
   /* Before the first call: everything below reaches the plugin's project, in its language. */
   useProject({ slug: PROJECT, from: "the CLI, for feedback on this plugin" });
-  const { live, read, held } = await openUnder(title);
+  const page = await openUnder(title);
+  const { live, held } = page;
   /* Said whether the note lands as a comment or as a filing: what the near-duplicate check could
      not see is the same either way, and it was silent on both routes until now. */
-  const short = shortOf(read, "the set this note was checked against");
+  const short = shortOf(page.read, "the set this note was checked against");
   if (short) {
     console.error(`warning: ${short}\nA note whose twin fell outside what was reached is filed as a`
       + " second issue rather than folded onto it.");
   }
   if (held) {
-    const answer = await postComment(held.documentId, `## ${title}\n\n${body}`, null, true);
+    const answer = await postComment(held.documentId, `## ${title}\n\n${read.description}`, null, true);
     if (answer?.refused) lost(`a comment on ${held.issueId}`, answer.refused);
     keepOnFailure(null);
     console.log(`${held.issueId} is open on ${PROJECT} under this title, so the note is a comment on it`
@@ -123,24 +122,21 @@ export const feedback = async (argv) => {
     return undefined;
   }
   /* Asked second: a note whose title is already open belongs there whatever the memory says. */
-  const beside = await neighboursOf(shape, live);
-  const { joined, answer: comment, said } = await foldFiling(beside, { title, body, fresh, soft: true });
-  if (joined) {
-    if (comment?.refused) lost(`a comment on ${joined.issueId}`, comment.refused);
+  const filed = await fileIssue({ ...asked, fresh, page: { live, read: page.read }, soft: true });
+  if (filed.refusal) fail(filed.refusal.text);
+  const { beside, said } = filed;
+  if (filed.joined) {
+    if (filed.answer?.refused) lost(`a comment on ${filed.joined.issueId}`, filed.answer.refused);
     keepOnFailure(null);
-    console.log(`No open issue on ${PROJECT} carries this title, and ${foldedInto(joined)}`);
+    console.log(`No open issue on ${PROJECT} carries this title, and ${foldedInto(filed.joined)}`);
     for (const line of suggestionLines(beside, said)) console.log(line);
     return undefined;
   }
-  const ranked = await rankOf();
-  if (ranked.refusal) fail(ranked.refusal);
-  const data = { title, description: body, status: "open", priority: ranked.value, ...trackerFields({ kind: KIND }) };
-  const answer = await write("forge_issues", { action: "create", data }, undefined, true);
-  if (answer?.refused) lost("this filing", answer.refused);
+  if (filed.answer?.refused) lost("this filing", filed.answer.refused);
   keepOnFailure(null);
   console.log(`No open issue on ${PROJECT} carries this title, so the note is a new ${KIND} there.`);
-  console.log(filedAs(answer, ranked.said));
-  console.log(JSON.stringify(inFlowWords(answer), null, 2));
+  console.log(filedAs(filed.answer, filed.ranked.said));
+  console.log(JSON.stringify(inFlowWords(filed.answer), null, 2));
   for (const line of suggestionLines(beside, said)) console.log(line);
   return undefined;
 };
