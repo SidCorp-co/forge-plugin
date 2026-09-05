@@ -13,7 +13,7 @@ const markLine = (tier) => new RegExp(String.raw`^size:[ \t]*${tier}\.?[ \t]*$`,
 
 /* A mark inside an example is not a mark, and not a doubt either: docs/cli/the-ladder.md. */
 const EXAMPLE = new RegExp([
-  String.raw`^[ \t]*(?<wall>\x60{3,}|~{3,})[^\n]*\n[\s\S]*?(?:^[ \t]*\k<wall>[^\n]*$|$)`,
+  String.raw`^[ \t]*(?<wall>\x60{3,}|~{3,})[^\n]*\n[\s\S]*?(?:^[ \t]*\k<wall>[^\n]*$|$(?![\s\S]))`,
   String.raw`^(?: {4}|\t)[^\n]*$`,
 ].join("|"), "gmu");
 const prose = (text) => String(text ?? "").replaceAll(EXAMPLE, "");

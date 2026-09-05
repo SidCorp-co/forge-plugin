@@ -120,14 +120,17 @@ test("what a rung stops owing is the row's, and a rung absent from a row owes th
 test("a mark inside an example claims nothing, and does not move a mark the body really carries", () => {
   const [lowest] = TIERS;
   const top = TIERS.at(-1);
+  /* A line before the mark in each: a pattern stopping at the first line end passed without it. */
   for (const shown of [
-    `no mark here\n\n\`\`\`text\nSize: ${lowest}.\n\`\`\`\n`,
-    `no mark here\n\n~~~\nSize: ${lowest}.\n~~~\n`,
-    `no mark here\n\n\`\`\`\nSize: ${lowest}.\n`,
-    `no mark here\n\n    Size: ${lowest}.\n`,
+    `no mark here\n\n\`\`\`text\nExample:\nSize: ${lowest}.\n\`\`\`\n`,
+    `no mark here\n\n~~~\nExample:\nSize: ${lowest}.\n~~~\n`,
+    `no mark here\n\n\`\`\`\nExample:\nSize: ${lowest}.\n`,
+    `no mark here\n\n    Example:\n    Size: ${lowest}.\n`,
   ]) {
     assert.equal(tierIn(shown), top, "an example is the only apparent mark, and the body claims nothing");
   }
+  assert.equal(tierIn(`no mark\n\n\`\`\`\na\n\`\`\`\n\nSize: ${lowest}.\n\n\`\`\`\nb\n\`\`\`\n`), lowest,
+    "while a mark standing between two examples is prose, so stripping cannot run past a closing wall");
   assert.equal(tierIn(`Size: ${lowest}.\n\n\`\`\`\nSize: ${top}.\n\`\`\`\n`), lowest,
     "and an example beside a real mark leaves the real one standing, rather than being read beside it");
   assert.equal(markedIn("a body with no mark at all"), null,
