@@ -380,6 +380,7 @@ const shipped = {
   status: "tested",
   title: "the change that is about to be released",
   description: "no mark here",
+  releaseNotes: { section: "Fixed", userFacing: "it works" },
 };
 /* And one a run has released: its criteria are judged, its note is up, and what it still owes is
    the close — which the report reads off the status, because that is all the close is earned by. */
@@ -392,12 +393,21 @@ const closing = {
   acceptanceCriteria: "1. The first outcome.",
   releaseNotes: { section: "Fixed", userFacing: "it works" },
 };
+/* And one nothing advances from, where the reading a write ends with refuses rather than answers. */
+const held = {
+  documentId: "held-uuid",
+  issueId: "ISS-5",
+  status: "closed",
+  title: "the change a run finished",
+  description: "no mark here",
+};
 const project = {
   calls: [],
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
-  issues: [shipped, closing],
+  issues: [shipped, closing, held],
   comments: {
     "shipped-uuid": [],
+    "held-uuid": [],
     "closing-uuid": [{
       createdAt: "2026-09-02T10:01:00.000Z",
       body: render("verdict", { criterion: "1 — The first outcome.", verdict: "pass", commit: "43b811e", evidence: ["43b811e"] }),
@@ -465,4 +475,29 @@ test("the report says the close is owed on an issue a run has released", async (
   assert.match(run.stdout, /^ {2}forge advance ISS-4$/mu, "with the one command that makes it");
   const quiet = await ranAsync(FORGE, ["record", "report", "ISS-3"], tracker.env);
   assert.doesNotMatch(quiet.stdout, /the close/u, "and an issue not yet released is owed no close");
+});
+
+/* A run that has just written a record already knows what the write earned, and spent six to twenty
+   seconds of a round being told it by `advance --owed` instead (ISS-285). */
+test("a record write ends with the line advance --owed would print, and never fails on it", async () => {
+  project.config = { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } };
+  const owing = await ranAsync(FORGE, ["record", "gap", "ISS-3", "--none", "the method answered"], tracker.env);
+  assert.equal(owing.status, 0, owing.stderr);
+  assert.match(owing.stderr, /^ISS-3 is tested; released is next and the record does not earn it: 1 item\(s\) owed\.$/mu,
+    owing.stderr);
+  assert.doesNotMatch(owing.stdout, /is next and the record/u, "on stderr, because stdout is the record itself");
+  /* The write counts itself: the page this one read carries no verification, and the comment it
+     posted is what earns the status — a trailer that re-read the page would report it as owed. */
+  const earned = await verify();
+  assert.equal(earned.status, 0, earned.stderr);
+  assert.equal(earned.stderr.trim().split("\n").at(-1),
+    "ISS-3 is tested; released is next and the record earns it. `forge advance ISS-3` moves it.",
+    "byte for byte the line advance --owed printed before this");
+  /* A record that posted must not fail on the line printed under it: the reading refuses here. */
+  await ranAsync(FORGE, ["claim", "ISS-5"], tracker.env);
+  const done = await ranAsync(FORGE, ["record", "gap", "ISS-5", "--none", "the method answered"], tracker.env);
+  assert.equal(done.status, 0, done.stderr);
+  assert.match(done.stderr, /^ISS-5 is closed; nothing advances from it\./mu, done.stderr);
+  const report = await ranAsync(FORGE, ["record", "report", "ISS-3"], tracker.env);
+  assert.doesNotMatch(report.stderr, /is next and the record/u, "and a report writes nothing, so it owes nothing");
 });

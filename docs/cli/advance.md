@@ -81,3 +81,11 @@ held to here. And a broken equivalence answers in one item naming the paths and 
 stood on that head, not one item per criterion: fourteen copies of one path list is what a run reads
 past. The finer rule, refusing only the criteria those paths reached, waits on ISS-207 — a verdict's
 evidence is an attachment, a URL or a sha, and none of the three names a path.
+
+The line that heads that answer is no longer this verb's alone. A record write ends with it, and
+`forge resume` prints it in its brief, so one function answers for all three (ISS-285). Where the
+record does not earn the status the line carries the count, which this verb used to print a second
+time under the items; a run reading the line under its own write has no list beneath it to count, and
+two places saying the same number is one of them going stale. Where the reading refuses — a closed
+issue, a side status whose page holds no park record — the line is the refusal's first sentence, and
+the verb that refused is the one that prints the command under it.

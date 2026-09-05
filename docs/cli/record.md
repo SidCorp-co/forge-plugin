@@ -88,3 +88,10 @@ record to read like an unasked question. Neither earns a status: a payload nothi
 copy about would refuse a run for a rule it could not have read, and the point of the record is that
 nothing has to be told. `report` closes with the run's own worklog — the branch, the head, what it
 touched and the plugin copy the capture was made under — so one read answers which copy typed it.
+
+Over ninety-seven runs here, 264 of 564 `advance` calls followed a record directly, asking what the
+write had just changed. So a write ends by saying it — the line `forge advance --owed` heads its
+answer with, from the one function that verb and `forge resume` also spend. On stderr, because
+stdout is the record and its last line is the tag every reader keys on. Counted with the comment
+just posted, folded into the page the write already read: a second fetch costs the round the line
+saves. And it never fails the command a record already landed for.

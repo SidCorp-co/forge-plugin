@@ -48,6 +48,13 @@ agent learns what a status wants.
 - **AC-05-1-4** · Rev: 1 · Proof: plugin/test/flow/batched-verdict.test.mjs "several criteria with no verdict are one owed item carrying one write"
   WHERE more than one criterion has no verdict, the CLI SHALL name them in one item and the command
   beside it SHALL be the single write that supplies all of them.
+- **AC-05-1-5** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a record write ends with the line advance --owed would print, and never fails on it"
+  WHEN a record is written THEN the CLI SHALL close that write with the same sentence this rehearsal
+  opens with, counting the record just written, and SHALL exit zero where that sentence cannot be
+  worked out at all.
+- **AC-05-1-6** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "a reopen judges again, so a verdict from before its triage earns nothing"
+  WHERE a reopen's triage leaves two or more verdicts stale, the CLI SHALL report that set as a
+  single owed item whose command re-judges every member of it in one write.
 
 ### UC-05-2 — Advance to the next status
 

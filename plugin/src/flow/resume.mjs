@@ -10,7 +10,8 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, cutLine } from "../tracker/comments.mjs";
 import { Refused, issueOf } from "./record.mjs";
 import { viewFrom } from "./earned.mjs";
-import { policyFor, shortfall } from "./advance.mjs";
+import { shortfall } from "./advance.mjs";
+import { owedLine, policyFor } from "./route.mjs";
 import { worklogLines } from "./worklog.mjs";
 import { briefOf } from "./brief.mjs";
 
@@ -76,16 +77,17 @@ const parks = (brief) => [
   ...brief.blockers.map((one) => `${one.kind ?? "unnamed"} ${one.ref}, which is ${one.status} — ${edgeSaid(one)}`),
 ];
 
-/* The one owed list, printed by the same function `advance --owed` prints it with: a second copy
-   would drift, and this is the line a resuming run acts on. */
+/* The one owed list, printed by the same two functions `advance --owed` prints it with: a second
+   copy would drift, and this is the line a resuming run acts on. The refusal is printed whole here
+   rather than by its first line, because a brief is what a run reads when it has lost the thread. */
 const owed = (brief, view, ref) => {
   console.log("");
   if (brief.owed.refused) console.log(brief.owed.refused);
-  else if (brief.owed.missing.length) shortfall(ref, view, brief.owed.next, brief.owed.missing);
-  else if (brief.owed.next) {
-    console.log(`${ref} is ${brief.status}; ${brief.owed.next} is next and the record earns it.`);
-    console.log(`  forge advance ${ref}${brief.owed.resumed ? "   (it resumes where its park left it)" : ""}`);
-  } else console.log(`${ref} is ${brief.status}; nothing advances from it.`);
+  else if (brief.owed.missing.length) shortfall(ref, view, brief.owed);
+  else {
+    console.log(owedLine(view, ref, brief.owed));
+    if (brief.owed.resumed) console.log("  (it resumes where its park left it)");
+  }
   if (brief.ahead) console.log(`\n${brief.ahead}`);
 };
 

@@ -215,6 +215,22 @@ test("a reopen judges again, so a verdict from before its triage earns nothing",
      for a number the field no longer holds: asked for one, the issue could never reach `tested`. */
   const dropped = { ...shipped, acceptanceCriteria: fenced("2. The second outcome.") };
   assert.deepEqual(missing("tested", view(dropped, [marked, early, wrong])), ["criterion 2 has no verdict"]);
+  /* A reopen re-judges every criterion at once, so the twelve ISS-289 itself carried would have come
+     back as twelve items and twelve writes — the cost the batched write removed (ISS-297). */
+  const all = { ...shipped, acceptanceCriteria: fenced(`${CRITERIA}\n3. The third outcome.`) };
+  const each = [1, 2, 3].map((number) =>
+    recorded("verdict", { criterion: `${number} — an outcome`, verdict: "pass", commit: "43b811e", evidence: ["run.txt"] }));
+  const stale = view(all, [marked, ...each, ruling("wrong-test")]);
+  assert.deepEqual(missing("tested", stale), [
+    "the verdicts on criteria 1, 2, 3 were written before this reopen's triage, and a reopen judges again",
+  ], "one item names the set");
+  assert.deepEqual(commands("tested", stale), [
+    "forge record verdict ISS-3 --commit <sha> --evidence <attachment|url|sha>"
+    + " --criterion 1 --verdict pass --criterion 2 --verdict pass --criterion 3 --verdict pass",
+  ], "and one write answers it, its shared flags before the first --criterion");
+  assert.deepEqual(commands("tested", view(shipped, [marked, early, wrong])), [
+    "forge record verdict ISS-3 --criterion 1 --verdict pass --commit <sha> --evidence <attachment|url|sha>",
+  ], "while one stale verdict keeps the item and the command it had");
 });
 
 /* A result nobody with a stake in it looked at is what a reopen is usually made of, and the plan's

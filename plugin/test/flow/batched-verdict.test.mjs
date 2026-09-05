@@ -2,7 +2,7 @@
    each carrying the same commit and the same evidence name (ISS-289). One write carries a block per
    criterion, and every rule below is a way that could stop reading back as the writes it replaces. */
 import assert from "node:assert/strict";
-import test, { after } from "node:test";
+import test, { after, before } from "node:test";
 import { createServer } from "node:http";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -152,7 +152,10 @@ state.answer.forge_uploads = (args) =>
   ({ uploadUrl: `http://127.0.0.1:${sink.address().port}/put/${args?.data?.name ?? "unnamed"}` });
 
 const room = tempRoom("batched-verdict-files-");
-const ask = (...argv) => ranAsync(FORGE, argv, tracker.env);
+/* Pinned rather than read off whatever session the run carries: the comment-delivery hold keys by
+   it, and where it resolves empty the second claim is held too. */
+const env = { ...tracker.env, FORGE_SESSION_ID: "batched-verdict-session" };
+const ask = (...argv) => ranAsync(FORGE, argv, env);
 const posted = () => (state.comments["judging-uuid"] ?? []).length;
 const uploads = () => state.calls.filter((one) => one.name === "forge_uploads").length;
 
@@ -161,12 +164,16 @@ state.comments["judging-uuid"].push({
   createdAt: at(),
   body: fenced(`mark_merged target=base — merged to master at ${COMMIT}`),
 });
-/* The mark is a comment this session has not been shown, so the first write to the issue is held
-   once and the comments come back with it: the route out is the same command again. */
-const held = await ask("claim", "ISS-7");
-assert.match(held.stderr, /^Hold — this writes to ISS-7/u, held.stderr);
-const claimed = await ask("claim", "ISS-7");
-assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
+/* In a hook and never in the module body: a throw here is reported as a failing test and `after()`
+   still closes both servers, where the same throw above aborts the body, leaves the two listening
+   and hangs the file with the no-output signature of any other stall (ISS-298). The mark is a
+   comment this session has not been shown, so the first claim is held and the second is the one
+   that takes the lease; that the hold fired is issue-read-first's to test and not this file's. */
+before(async () => {
+  await ask("claim", "ISS-7");
+  const claimed = await ask("claim", "ISS-7");
+  assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
+});
 
 test("three criteria are judged in one write, and the report prints each one", async () => {
   const before = posted();

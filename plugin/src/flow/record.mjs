@@ -72,6 +72,9 @@ export const USAGE = [
   "  --review        the last codex consult, its findings and what it owes, read from the log now",
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
   "",
+  "Every write ends on stderr with the line `forge advance --owed` would print for the issue at that",
+  "moment: the next status and how much it is owed, or the status the record earns.",
+  "",
   "Evidence is an attachment name on the issue, a URL, a commit of 7 to 40 hex digits, or a path to",
   "a readable file, which goes up under its base name and is cited by it. A name already attached is",
   "refused rather than attached twice.",
@@ -233,6 +236,22 @@ export const sayStored = (which, language = translateTo()) => {
   const said = `prose ${language}: ${REWRITTEN[which]}.`;
   console.error(said);
   return said;
+};
+
+/* The ladder under the write that just landed (ISS-285), on stderr because stdout is the record;
+   imported at the call, since `route.mjs` reads this module; and never a record's own failure. The
+   write counts itself, stamped by the tracker or no earlier than the newest row it would sort under. */
+const stampedLast = (comments, written) => String(written?.createdAt
+  ?? [new Date().toISOString(), ...comments.map((one) => String(one.createdAt ?? ""))].sort().at(-1));
+const sayOwed = async (documentId, issue, ref, held = null) => {
+  try {
+    const { owedSaid } = await import("./route.mjs");
+    const page = held ?? await commentPage(documentId);
+    const cut = held ? held.cut : (page.hasMore ? cutLine(page) : null);
+    console.error(await owedSaid(documentId, issue, page.comments, ref, cut));
+  } catch (error) {
+    console.error(`what this write now owes could not be read: ${error.message}`);
+  }
 };
 
 export const post = async (documentId, body, ref = documentId, next = undefined, patch = null) => {
@@ -407,10 +426,13 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
     await renew(documentId, reference);
     await uploadTo("issue", documentId, one.path, (name) => sent.push(name));
   }
-  const written = await post(documentId, render(kind, blocks, stamp), reference, next, patch);
+  const rendered = render(kind, blocks, stamp);
+  const written = await post(documentId, rendered, reference, next, patch);
   /* Dropped on the way out and never in a `finally`: a thrown failure unwinds through one before the
      exit, and the notice would be gone for every route but `fail()`'s. */
   process.off("exit", stranded);
+  const posted = { documentId: written?.documentId ?? null, createdAt: stampedLast(comments, written), body: rendered };
+  await sayOwed(documentId, body, reference, asks ? { comments: [...comments, posted], cut } : null);
   return written;
 };
 
@@ -460,11 +482,12 @@ export const landedAs = (held, sent) => unwrap(held) === String(sent).trim();
 
 const recordNote = async (reference, argv, { next, patch }) => {
   const releaseNotes = noteFrom(argv);
-  const { documentId } = await issueOf(reference);
+  const { documentId, body } = await issueOf(reference);
   sayStored("note");
   const same = (held) => ["section", "userFacing", "technical"].every((key) => (held?.[key] ?? null) === releaseNotes[key]);
   await updateField(documentId, "releaseNotes", releaseNotes, same, reference, next, patch);
   console.log(JSON.stringify(releaseNotes, null, 2));
+  await sayOwed(documentId, { ...body, releaseNotes }, reference);
 };
 
 const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
@@ -473,7 +496,7 @@ const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
   if (extra.length) refuse(`record criteria takes one file and nothing after it, not \`${extra.join(" ")}\`.`);
   const criteria = criteriaLines(await bodyFrom(path));
   const joined = joinedCriteria(criteria, conjunctionsFor());
-  const { documentId } = await issueOf(reference);
+  const { documentId, body } = await issueOf(reference);
   const acceptanceCriteria = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");
   sayStored("criteria");
   await updateField(documentId, "acceptanceCriteria", acceptanceCriteria, landedAs, reference, next, patch);
@@ -481,6 +504,7 @@ const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
     console.error(`criterion ${number} holds a conjunction: is it two? A verdict judges one outcome.`);
   }
   console.log(acceptanceCriteria);
+  await sayOwed(documentId, { ...body, acceptanceCriteria }, reference);
 };
 
 const recordReport = async (reference) => {

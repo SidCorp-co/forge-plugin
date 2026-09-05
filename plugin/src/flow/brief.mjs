@@ -3,10 +3,9 @@
    disagree. Under earned.mjs's rule about what it may touch, for the same reason (ISS-44). */
 import { sessionHeld } from "../resolve/config.mjs";
 import { FIELD, leaseOf, stateOf } from "./lease.mjs";
-import { Refused } from "./record.mjs";
 import { unwrap } from "./machine.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, methodOf, parkRecord } from "./earned.mjs";
-import { lookAhead, targetOf } from "./route.mjs";
+import { lookAhead, owedIn } from "./route.mjs";
 import { worklogOf } from "./worklog.mjs";
 
 const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped" };
@@ -64,18 +63,6 @@ const leaseIn = (view) => {
   if (!held) return null;
   const { history, ...rest } = held;
   return { ...rest, state: stateOf(held, sessionHeld()), claims: history.length };
-};
-
-/* A side status with no park record makes `targetOf` refuse, and a brief that died on that would be
-   useless exactly where it is needed most: the refusal becomes the owed line instead. */
-const owedIn = (view, ref) => {
-  try {
-    const { next, missing, resumed } = targetOf(view, ref);
-    return { next, missing, resumed };
-  } catch (error) {
-    if (error instanceof Refused) return { next: null, missing: [], refused: error.message };
-    throw error;
-  }
 };
 
 const commentsRead = (view) =>

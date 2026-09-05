@@ -1,7 +1,7 @@
 /* Where an issue goes next, and what that costs: the park it resumes from, the reopen a person's
    word left it at, and the one target the verb may move it to. What each status is earned by, and
    the record it is read out of, is earned.mjs. The flow: `forge guide contract the-flow`. */
-import { refuse } from "./record.mjs";
+import { Refused, refuse } from "./record.mjs";
 import { TRIAGES, criterionNumber, planFlags, unwrap } from "./machine.mjs";
 import {
   CHECKS,
@@ -19,7 +19,9 @@ import {
   personLooks,
   shapeGaps,
   transitionCall,
+  viewFrom,
 } from "./earned.mjs";
+import { releasePolicy } from "../tracker/project-config.mjs";
 
 /* A park is a checkpoint with a person at it: the reply that resumes it is a comment by somebody
    other than whoever parked the issue. A hold nobody was asked to answer resumes by hand. */
@@ -223,4 +225,34 @@ export const targetOf = (view, ref) => {
       + `routes what follows it — a finding, then a triage:\n  ${transitionCall(view.documentId, REOPEN)}`);
   }
   return { next, missing: CHECKS[next](view, ref), resumed: false };
+};
+
+/* A reading that died where `targetOf` refuses would be useless exactly where it is needed most. */
+export const owedIn = (view, ref) => {
+  try {
+    const { next, missing, resumed } = targetOf(view, ref);
+    return { next, missing, resumed };
+  } catch (error) {
+    if (error instanceof Refused) return { next: null, missing: [], refused: error.message };
+    throw error;
+  }
+};
+
+/* Where the issue stands, in one line and one place — `advance` heads its answer with it, `resume`
+   prints it, a record write ends with it (ISS-285); a refusal gives its first line, not the command. */
+export const owedLine = (view, ref, held) => {
+  if (held.refused) return held.refused.split("\n")[0].replace(/:$/u, ".");
+  const at = `${ref} is ${view.issue.status}`;
+  if (!held.next) return `${at}; nothing advances from it.`;
+  return held.missing.length
+    ? `${at}; ${held.next} is next and the record does not earn it: ${held.missing.length} item(s) owed.`
+    : `${at}; ${held.next} is next and the record earns it. \`forge advance ${ref}\` moves it.`;
+};
+
+/* A call made only where its answer is read: a plan declaring neither line owes no person. */
+export const policyFor = async (plan) => (personLooks(planFlags(unwrap(plan))) ? releasePolicy() : null);
+
+export const owedSaid = async (documentId, issue, comments, ref, cut = null) => {
+  const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan));
+  return owedLine(view, ref, owedIn(view, ref));
 };

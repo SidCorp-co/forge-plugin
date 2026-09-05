@@ -8,11 +8,10 @@ import { commentPage, cutLine } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../tracker/contract.mjs";
-import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE, planFlags, unwrap } from "./machine.mjs";
-import { releasePolicy } from "../tracker/project-config.mjs";
+import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE } from "./machine.mjs";
 import { Refused, issueOf, post, refuse, render } from "./record.mjs";
-import { PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, personLooks, transitionCall, viewFrom } from "./earned.mjs";
-import { lookAhead, targetOf } from "./route.mjs";
+import { PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, transitionCall, viewFrom } from "./earned.mjs";
+import { lookAhead, owedLine, policyFor, targetOf } from "./route.mjs";
 import { FIELD, leaseOf, nextLine, renew } from "./lease.mjs";
 
 /* A needs_info park owes the readings only the question shape carries. */
@@ -63,10 +62,6 @@ export const USAGE = [
   `A park kind: ${PARKS.join("|")}.`,
   "A parked issue resumes where its park record says it left, once a reply or its blocker clears it.",
 ].join("\n");
-
-/* The project's release policy is a call, so it is made only where its answer is read: a plan
-   declaring neither line owes no person whatever the project says, and pays no round to hear it. */
-export const policyFor = async (plan) => (personLooks(planFlags(unwrap(plan))) ? releasePolicy() : null);
 
 /* A plain advance from `released`, whose whole entry criterion is that status, so the page is not
    worth the call. A park or a drop from it is another transition: its kind, its evidence and the
@@ -161,9 +156,9 @@ const cutSays = (view) =>
   + "says is owed may be a record written behind the cut: write it again for this status, or read "
   + "the thread whole and take it up there.";
 
-export const shortfall = (ref, view, next, missing) => {
-  console.log(`${ref} is ${view.issue.status}; ${next} is next and the record does not earn it.`);
-  for (const one of missing) console.log(`\n  ${one.what}\n    ${one.command}`);
+export const shortfall = (ref, view, held) => {
+  console.log(owedLine(view, ref, held));
+  for (const one of held.missing) console.log(`\n  ${one.what}\n    ${one.command}`);
 };
 
 const KNOWN = ["owed", "park", "drop", "why", "to", "next"];
@@ -205,15 +200,13 @@ const run = async (argv) => {
   const { next, missing, resumed, park: routed } = targetOf(view, ref);
   checkTarget(given.to, next, view, ref);
   if (missing.length) {
-    shortfall(ref, view, next, missing);
-    const owed = `${missing.length} item(s) owed before ${next}.`;
+    shortfall(ref, view, { next, missing });
     /* Asked what is owed, the answer is the answer; asked to move, the same list is a refusal. */
-    if (!given.owed) return fail(owed);
-    console.log(`\n${owed}`);
+    if (!given.owed) return fail(`${missing.length} item(s) owed before ${next}.`);
     return sayAhead(view, ref, next);
   }
   if (given.owed) {
-    console.log(`${ref} is ${view.issue.status}; ${next} is next and the record earns it. \`forge advance ${ref}\` moves it.`);
+    console.log(owedLine(view, ref, { next, missing }));
     return sayAhead(view, ref, next);
   }
   /* The triage that puts the expectation outside the specification writes its park here, because a

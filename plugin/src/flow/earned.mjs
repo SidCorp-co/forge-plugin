@@ -220,6 +220,19 @@ const reviewOwed = (view, ref) => {
   return [];
 };
 
+/* Both verdict shortfalls fold here, so neither drifts into the other's shape (ISS-297): several
+   criteria are one item and one write, shared flags before the first --criterion `blocksIn` splits on. */
+const askOne = (ref, number, commit) =>
+  `forge record verdict ${ref} --criterion ${number} --verdict pass --commit ${commit} `
+  + `--evidence <attachment|url|sha>`;
+const askAll = (ref, numbers, commit) =>
+  `forge record verdict ${ref} --commit ${commit} --evidence <attachment|url|sha>`
+  + numbers.map((number) => ` --criterion ${number} --verdict pass`).join("");
+const foldVerdicts = (ref, numbers, commit, one, many) =>
+  (numbers.length > 1
+    ? [need(many(numbers.join(", ")), askAll(ref, numbers, commit))]
+    : numbers.map((number) => need(one(number), askOne(ref, number, commit))));
+
 /* One item for the set: fourteen copies of one path list is what a run reads past. */
 const equivalenceOwed = (view, ref, judged, moved, numbers) => {
   const at = `the verdict${numbers.length > 1 ? "s" : ""} on criterion ${numbers.join(", ")}`;
@@ -246,16 +259,14 @@ const verdictsOwed = (view, ref) => {
   const judged = judgedHead(view.comments);
   const moved = judged ? landingMoved(view.comments) : null;
   const stands = Boolean(judged) && moved?.length === 0;
-  const ask = (number) =>
-    `forge record verdict ${ref} --criterion ${number} --verdict pass --commit ${merged ?? "<sha>"} `
-    + `--evidence <attachment|url|sha>`;
-  /* One item and one write for the set: fourteen commands is fourteen writes, and this is where the batched form is read. */
-  const askAll = (numbers) =>
-    `forge record verdict ${ref} --commit ${merged ?? "<sha>"} --evidence <attachment|url|sha>`
-    + numbers.map((number) => ` --criterion ${number} --verdict pass`).join("");
-  const out = view.owed.length > 1
-    ? [need(`criteria ${view.owed.join(", ")} have no verdict`, askAll(view.owed))]
-    : view.owed.map((number) => need(`criterion ${number} has no verdict`, ask(number)));
+  const ask = (number) => askOne(ref, number, merged ?? "<sha>");
+  const out = foldVerdicts(
+    ref,
+    view.owed,
+    merged ?? "<sha>",
+    (number) => `criterion ${number} has no verdict`,
+    (listed) => `criteria ${listed} have no verdict`,
+  );
   const atJudged = [];
   for (const [number, { record }] of [...view.verdicts].sort((a, b) => a[0] - b[0])) {
     const held = record.fields;
@@ -302,13 +313,18 @@ const judgedSince = (view, ref) => {
      that was wrong, and a verdict asked for on a number the field no longer holds is refused at the
      write, which would leave the issue unable to reach `tested` at all. */
   const current = new Set(view.criteria.map((one) => one.number));
-  return [...view.verdicts]
+  const stale = [...view.verdicts]
     .filter(([number, one]) => current.has(number) && one.at <= held.at)
     .sort((a, b) => a[0] - b[0])
-    .map(([number]) => need(
-      `the verdict on criterion ${number} was written before this reopen's triage, and a reopen judges again`,
-      `forge record verdict ${ref} --criterion ${number} --verdict pass --commit <sha> --evidence <attachment|url|sha>`,
-    ));
+    .map(([number]) => number);
+  /* No commit to read: whatever answers the finding has no sha on the record yet. */
+  return foldVerdicts(
+    ref,
+    stale,
+    "<sha>",
+    (number) => `the verdict on criterion ${number} was written before this reopen's triage, and a reopen judges again`,
+    (listed) => `the verdicts on criteria ${listed} were written before this reopen's triage, and a reopen judges again`,
+  );
 };
 
 /* One entry check per status, each answering with what the record lacks and the write that supplies
