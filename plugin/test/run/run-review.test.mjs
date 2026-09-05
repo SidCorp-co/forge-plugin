@@ -88,7 +88,11 @@ test("past the threshold the step files the reading's issue itself, and prints t
 
   for (const said of ["## Outcome", "## Rules", "## Out of scope", "1 file(s) and 501 changed line(s)",
     `git diff ${from}..${to} -- plugin/src plugin/hooks plugin/bin`, "ISS-77", `review --done ${to}`,
-    "forge knowledge write module-<name>", "forge project --refresh"]) {
+    "forge knowledge write module-<name>", "forge project --refresh",
+    /* One needle per obligation: dropping one leaves the batch read by no named instrument (ISS-339). */
+    "`simplify`", "reuse, simplification, efficiency,", "altitude", "forge new --into",
+    "whether or not it raised anything", "finds no such record makes the reading itself",
+    "listing has no `simplify`", "git status --porcelain"]) {
     assert.ok(filing.description.includes(said), `the body carries no ${said}:\n${filing.description}`);
   }
   assert.ok(owed.stdout.includes("filed ISS-777"), owed.stdout);
