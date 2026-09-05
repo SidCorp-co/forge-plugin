@@ -3,11 +3,12 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  FINDINGS, SHAPES, TRIAGES, judgedHead, landingMoved, lightens, looksTo, markedCommit, planFlags,
-  reviewedHead, sizeReport, unwrap,
+  FINDINGS, SHAPES, TRIAGES, judgedHead, landingMoved, looksTo, markedCommit, planFlags,
+  reviewedHead, unwrap,
 } from "./machine.mjs";
+import { lightens, sizeReport } from "../ladder.mjs";
 import { attachmentNames, evidenceHeld, isCommit } from "../tracker/evidence.mjs";
-import { SIZE_LINE, isFix } from "../tracker/issue-shape.mjs";
+
 import { Refused, assemble, criteriaLines, parse } from "./record.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
 import { waitsForPerson } from "../tracker/project-config.mjs";
@@ -138,13 +139,12 @@ export const personLooks = (flags, policy = null) =>
 
 /* Every correction, not the latest: the kind does not repeat, so a plan one erases a re-size (ISS-161). */
 const sizeOf = (view) => ({
-  fix: Boolean(view.fix),
+  description: unwrap(view.issue.description),
   plan: unwrap(view.issue.plan),
   moved: view.comments
     .map((one) => parse(one.body ?? ""))
     .filter((one) => one?.kind === "correction" && !shapeGaps("correction", one, view.names).length)
     .map((one) => one.fields.moved),
-  mark: SIZE_LINE,
   whole: view.whole !== false,
 });
 
@@ -420,8 +420,7 @@ export const CHECKS = {
 export const viewFrom = (documentId, issue, comments, cut = null, release = null) => {
   const criteria = criteriaOf(issue);
   const names = attachmentNames(issue, comments);
-  const fix = isFix(issue.description);
-  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, fix, ...assemble(comments, criteria) };
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, ...assemble(comments, criteria) };
 };
 export const parkRecord = (view, wanted = () => true) => {
   const found = view.comments

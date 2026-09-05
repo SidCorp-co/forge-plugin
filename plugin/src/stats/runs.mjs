@@ -6,13 +6,16 @@ import { join } from "node:path";
 import {
   FLOW_BRIEF,
   PHASES,
+  UNTIERED,
   callsIn,
   markerOf,
   readTranscript,
   slugFor,
+  tierOf,
   transcriptBase,
   transcriptsUnder,
 } from "./transcripts.mjs";
+import { TIERS } from "../ladder.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
@@ -162,6 +165,7 @@ export const runFrom = (path, session, text) => {
     session,
     startedAt,
     endedAt,
+    tier: tierOf(calls, TIERS),
     brief: read.brief,
     calls: calls.length,
     seconds: (endedAt - startedAt) / 1000,
@@ -294,12 +298,42 @@ export const profileOf = (runs) => {
       advanceAfterRecord: per((run) => run.advance.after),
     },
     phases,
+    tiers: perTier(runs),
     byClass: mergedClasses(runs, (run) => run.byClass),
     refusals: mergedCounts(runs, (run) => run.refusals),
     repeats: mergedCounts(runs, (run) => run.repeats),
     longest: runs.flatMap((run) => run.longest).sort((left, right) => right.minutes - left.minutes),
   };
 };
+
+/* One row per tier the ladder has, plus one for the runs that named none: folded into a tier those
+   would flatter it, and dropped they would make the rows fail to add up to the corpus. The tiers'
+   own order, so the table reads as the ladder and a tier no run reached still has its row saying so
+   — a tier absent from a profile is indistinguishable from a tier that costs nothing. */
+export const perTier = (runs) => [...TIERS, UNTIERED].map((tier) => {
+  const held = runs.filter((run) => run.tier === tier);
+  const seconds = held.map((run) => run.seconds);
+  return {
+    tier,
+    runs: held.length,
+    medianMinutes: minutes(median(seconds)),
+    totalMinutes: minutes(seconds.reduce((sum, one) => sum + one, 0)),
+    medianCalls: median(held.map((run) => run.calls)),
+    medianConsults: median(held.map((run) => run.consults)),
+    medianGates: median(held.map((run) => run.gates)),
+  };
+});
+
+const TIER_WIDTH = 10;
+const tierLines = (held) => [
+  "",
+  `${"tier".padEnd(TIER_WIDTH)}${"runs".padStart(5)}${"min med".padStart(9)}${"min sum".padStart(9)}`
+  + `${"calls med".padStart(11)}${"consults".padStart(10)}${"gates".padStart(7)}`,
+  ...held.tiers.map((row) =>
+    `${row.tier.padEnd(TIER_WIDTH)}${String(row.runs).padStart(5)}${row.medianMinutes.toFixed(1).padStart(9)}`
+    + `${row.totalMinutes.toFixed(0).padStart(9)}${row.medianCalls.toFixed(1).padStart(11)}`
+    + `${row.medianConsults.toFixed(1).padStart(10)}${row.medianGates.toFixed(1).padStart(7)}`),
+];
 
 const capped = (rows, all) => (all ? rows : rows.slice(0, ROWS));
 const elided = (rows, all) =>
@@ -328,6 +362,7 @@ export const profileLines = (held, all = false) => [
     + `${held.perRun.recheck} recheck, ${held.perRun.verdict} verdict, ${held.perRun.advance} advance `
     + `(${held.perRun.advanceAfterRecord} of them after a record)`,
   `timeouts        ${held.timeouts}`,
+  ...tierLines(held),
   ...phaseLines(held),
   ...listing(
     `${"tool-seconds by class".padEnd(28)}${"min".padStart(8)}${"share".padStart(7)}${"calls".padStart(7)}`,

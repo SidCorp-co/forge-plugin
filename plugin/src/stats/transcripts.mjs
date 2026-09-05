@@ -14,8 +14,24 @@ const OUTPUT = /^a\S*\.output$/u;
 
 
 /* The brief, never the whole file: over the raw text a transcript that had only GREPPED for the
-   words was admitted as a run and its search argument read as its claim. */
+   words was admitted as a run and its search argument read as its claim. The tier below is off the
+   confirmation the run posted — this module reads no tracker — and keyed on the CALL's class rather
+   than the words anywhere in the text, a `forge issue` echoing that thread carrying the same line. */
 export const FLOW_BRIEF = /issue-flow/u;
+
+const CONFIRMS = "forge record confirmation";
+const TIER_LINE = /\btier:\s*([a-z]+)/iu;
+
+export const UNTIERED = "untiered";
+
+export const tierOf = (calls, tiers) => {
+  const said = calls
+    .filter((call) => call.class === CONFIRMS)
+    .map((call) => TIER_LINE.exec(call.body)?.[1]?.toLowerCase())
+    .filter((one) => tiers.includes(one));
+  /* The largest, which is the batch rule: a run of three issues is as heavy as its heaviest. */
+  return said.length ? said.reduce((held, one) => (tiers.indexOf(one) > tiers.indexOf(held) ? one : held)) : UNTIERED;
+};
 
 const namesIn = (directory) => {
   try {
@@ -36,8 +52,7 @@ export const transcriptsUnder = (root) =>
     });
 
 /* Where a command actually starts. A bare space is not a command position: read as one, an echoed
-   line was a record and a grep argument was a claim, and each advanced a phase the run had not
-   reached. What may stand between is short and named — an assignment, and a few leading words. */
+   line was a record and a grep argument a claim, each advancing a phase the run had not reached. */
 const LEADS = String.raw`(?:^|[\n;|&(){}])[ \t]*`
   + String.raw`(?:(?:[A-Za-z_][\w.]*=\S*|sudo|time|timeout|env|xargs|do|then|else|if|!)[ \t]+(?:\d+[ \t]+)?)*`;
 
@@ -91,8 +106,8 @@ export const classOf = (name, shell) => {
 
 export const PHASES = ["0 discover", "1 plan", "2 build", "3 review", "4 judge", "5 ship", "6 close"];
 
-/* Read off the class the call already has, so the two cannot disagree and there is one table. No run
-   writes a phase into its transcript; the first call of each kind is where a phase opens. */
+/* Off the class the call already has, so the two cannot disagree: no run writes a phase into its
+   transcript, and the first call of each kind is where a phase opens. */
 export const MARKERS = [
   [1, ["forge claim", "forge record confirmation"]],
   [2, ["forge plan", "forge record plan"]],
@@ -113,8 +128,8 @@ const textOf = (content) => {
 };
 
 /** A transcript folded into its calls, the moments it ran between and the brief it opened with. The
- *  bounds are every record's, not the calls' alone: the opening prompt and the closing report are
- *  generation the run spent, and a window it belongs to. */
+ *  bounds are every record's: the opening prompt and the closing report are generation the run
+ *  spent, and a window it belongs to. */
 export const callsIn = (whole) => {
   const uses = new Map();
   const results = new Map();
@@ -160,7 +175,7 @@ export const callsIn = (whole) => {
       class: classOf(use.name, shell),
       answered: Boolean(result),
       /* Zero for a call that never returned, neither skipped nor stretched to the next: the hand
-         profilers took one of the three each, and a run cut off mid-gate is the common case. */
+         profilers took one of the three each, and a run cut mid-gate is the common case. */
       wait: result ? Math.max(0, result.at - use.at) / 1000 : 0,
       endedAt: result ? result.at : use.at,
       body: result?.body ?? "",

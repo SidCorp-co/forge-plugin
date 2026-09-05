@@ -12,6 +12,7 @@ import { attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, s
   from "../tracker/evidence.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
 import { releaseLine, releasePolicy } from "../tracker/project-config.mjs";
+import { tierIn } from "../ladder.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";
 import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
@@ -108,10 +109,9 @@ export const criteriaLines = (text) => {
 export const joinedCriteria = (criteria, words) =>
   criteria.filter((one) => words.some((word) => wordIn(word, one.text))).map((one) => one.number);
 
-/* A heading for a person, the payload in a fenced block the prose rewrite copies byte for byte, and
-   the tag last in a code span for the same reason. The stamp is read off the issue at the write —
-   which status a park left, which reopen a finding belongs to — and is no flag, because a value the
-   author could type is one they could get wrong about the very thing the record is matched by. */
+/* A heading for a person, the payload fenced and the tag in a code span so the prose rewrite copies
+   both byte for byte. The stamp is read off the issue at the write and is no flag: a value the
+   author could type is one they could get wrong about what the record is matched by. */
 export const render = (kind, blocks, status = null) => {
   const shape = SHAPES[kind];
   /* Each block whole, so one of them is byte for byte the record a single write makes. */
@@ -317,15 +317,25 @@ export const fromRecord = (kind, got, { comments, names, cut = null }, say = con
   say(`--evidence ${before.join(", ")}, as the latest ${kind} on this issue cites it.`);
 };
 
-/* From the project's config, because a line an author could type proves only that they typed it. */
-const derive = async (kind, blocks) => {
-  if (kind !== "verification") return;
-  const held = releaseLine(await releasePolicy());
-  if (held) for (const got of blocks) got[held[0]] = held[1];
+/* Read off what the write already knows, a line an author could type proving only that they typed
+   it: the release policy from the config, the tier from the issue's own body. The tier is a copy
+   for a reader outside the flow, every entry check reading the description, so a hand-written
+   record lacking it is refused nothing. */
+const DERIVED = {
+  verification: async () => {
+    const held = releaseLine(await releasePolicy());
+    return held ? { [held[0]]: held[1] } : null;
+  },
+  confirmation: async (body) => ({ tier: tierIn(unwrap(body?.description)) }),
 };
 
-/* The argv split by the rule `groupsIn` splits the payload by, so what one call writes is what the
-   reader hands back as several records. One commit and one evidence set over fourteen criteria. */
+const derive = async (kind, blocks, body) => {
+  const held = await DERIVED[kind]?.(body);
+  if (held) for (const got of blocks) Object.assign(got, held);
+};
+
+/* Split by the rule `groupsIn` splits the payload by, so one call writes what the reader hands back
+   as several records: one commit and one evidence set over fourteen criteria. */
 export const blocksIn = (argv, per) => {
   const flag = `--${per}`;
   const opens = per ? argv.indexOf(flag) : -1;
@@ -339,8 +349,8 @@ export const blocksIn = (argv, per) => {
   return blocks;
 };
 
-/* Refused here and nowhere later, and by the number the reader keys by, so `01` and `1` are one:
-   the map every check keys keeps the last of two blocks naming one, and says so nowhere. */
+/* Refused here and by the number the reader keys by, so `01` and `1` are one: the map every check
+   keys keeps the last of two blocks naming one, and says so nowhere. */
 const blocksOf = (kind, argv) => {
   const shape = SHAPES[kind];
   const blocks = blocksIn(argv, shape.per).map((one) => gather(kind, one, DEFERRED));
@@ -371,9 +381,8 @@ const citeOnce = (kind, blocks, { held, cut }) => {
   return plan;
 };
 
-/* A criterion is named by number and quoted as it stood, because the field can change later and the
-   record has to say what it was about. Read off the shape, so every kind that cites one does it the
-   same way and a citation of a criterion the issue has not got is refused. */
+/* Named by number and quoted as it stood, the field being able to change later. Read off the shape,
+   so every kind citing one does it alike and a citation of a criterion the issue lacks is refused. */
 const quoteCriteria = (kind, blocks, body, reference) => {
   const cites = SHAPES[kind].fields.find((one) => one.criterion);
   if (!cites) return;
@@ -398,7 +407,7 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
   const held = attachmentNames(body, comments);
   const plan = citeOnce(kind, blocks, { held, cut });
   const names = [...held, ...(plan?.upload ?? []).map((one) => one.name)];
-  /* Every block fills from the same record; three copies of one line is reading the write spared. */
+    /* Every block fills from one record; three copies of a line is reading the write spared. */
   const spoken = new Set();
   const say = (line) => {
     if (spoken.has(line)) return;
@@ -411,7 +420,7 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
     const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
     if (bad) refuse(bad);
   }
-  await derive(kind, blocks);
+  await derive(kind, blocks, body);
   quoteCriteria(kind, blocks, body, reference);
   const stamp = shape.stamp ? String(body[shape.stamp.from ?? "status"] ?? "") : null;
   /* Asked here as well as in `post`, because a record that cannot be posted must not leave its

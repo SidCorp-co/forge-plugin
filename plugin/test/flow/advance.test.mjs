@@ -13,7 +13,7 @@ const {
   CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, holdsBack,
   nextOf, personLooks, shapeGaps, viewFrom,
 } = await import("../../src/flow/earned.mjs");
-const { LIGHTER, planFlags } = await import("../../src/flow/machine.mjs");
+const { planFlags } = await import("../../src/flow/machine.mjs");
 const { lookAhead, targetOf } = await import("../../src/flow/route.mjs");
 const { USAGE, checkTarget, nextHeld } = await import("../../src/flow/advance.mjs");
 
@@ -505,7 +505,8 @@ const LANDED = {
 const state = {
   calls: [],
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
-  issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" }, EARNS, LOOKING, QUIET, LANDED],
+  issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" },
+    EARNS, LOOKING, QUIET, LANDED],
   comments: {
     "earning-uuid": [recorded("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" })],
     "looking-uuid": [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] })],
@@ -533,21 +534,6 @@ test("the project's config is asked once the plan declares a person, and never b
     "and the same record earns released where the project releases production itself");
 });
 
-test("--owed on a marked fix reports the light path the checks run, and both ways off it", async () => {
-  const run = await owed("ISS-90");
-  assert.equal(run.status, 0, "asked what is owed, the shortfall is the answer and not a refusal");
-  assert.match(run.stdout, /marked `Size: fix\.`, so the entry checks run the contract's light path/u);
-  const reported = (row) => [`at ${row.status}`, row.drops, row.because].every((one) => run.stdout.includes(one));
-  for (const row of LIGHTER) assert.ok(reported(row), `${row.status} is lightened and the report omits ${row.drops}`);
-  assert.doesNotMatch(run.stdout, /still asks for the full set/u, "which is what the checks no longer do");
-  assert.match(run.stdout, /forge plan ISS-90 <plan\.md>/u, "one way off it, in the form it wants");
-  assert.match(run.stdout, /--moved "Size: fix -> feature"/u, "and the other, so neither is inferred");
-  assert.match(run.stdout, /no confirmation/u, "while the confirmation with its where is owed all the same");
-  assert.equal(state.calls.some((one) => one.args.action === "transition"), false, "and --owed moves nothing");
-});
-
-/* The rule for the status a run is entering arrives at that status, and never the whole contract:
-   fifty thousand characters at the start of a run is the rule for `released` already forgotten. */
 test("--owed ends by naming the contract's part for the status it would enter, on both answers", async () => {
   const short = await owed("ISS-91");
   assert.match(short.stdout, /no confirmation/u, "the shortfall first");
@@ -561,9 +547,11 @@ test("--owed ends by naming the contract's part for the status it would enter, o
   }
 });
 
-test("--owed on an issue with no mark says nothing about a light path", async () => {
+test("--owed on an issue with no mark reports it as the top rung, dropping nothing", async () => {
   const run = await owed("ISS-91");
-  assert.doesNotMatch(run.stdout, /light path/u);
+  assert.match(run.stdout, /carries no size mark, so it is a `feature`/u);
+  assert.match(run.stdout, /a feature owes the whole set/u, "and says so, rather than saying nothing");
+  assert.doesNotMatch(run.stdout, /Two routes up/u, "the top rung has none, so none is offered");
   assert.match(run.stdout, /no confirmation/u);
 });
 

@@ -37,7 +37,7 @@ status, then one line per missing item, each with the write that supplies it, an
 This is the rehearsal every phase begins with, and the reason a refusal is never the first time an
 agent learns what a status wants.
 
-- **AC-05-1-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "--owed on a marked fix reports the light path the checks run, and both ways off it"
+- **AC-05-1-1** · Rev: 1 · Proof: plugin/test/ladder.test.mjs "--owed reports the rung the checks run, what it drops and every route up from it"
   WHEN the agent asks what is owed THEN the CLI SHALL name the next status and every missing item
   without writing to the tracker.
 - **AC-05-1-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "confirmed needs a confirmation, and clarified a decision record"

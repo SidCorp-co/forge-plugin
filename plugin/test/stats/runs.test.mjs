@@ -7,8 +7,9 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { classOf, markerOf, shellOf, slugFor } from "../../src/stats/transcripts.mjs";
+import { UNTIERED, classOf, markerOf, shellOf, slugFor, tierOf } from "../../src/stats/transcripts.mjs";
 import { unionSeconds } from "../../src/stats/runs.mjs";
+import { TIERS } from "../../src/ladder.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -56,6 +57,45 @@ const transcript = () => [
   result(REFUSED[0], REFUSED[1] + REFUSED[2], REFUSED[4], true),
   use(UNANSWERED[0], UNANSWERED[1], "Bash", { command: UNANSWERED[2] }),
 ].join("\n");
+
+/* The tier a run worked at comes off the confirmation it posted, and it is the call's own class
+   that says which call that was. Every line below carries the same words in a body some other verb
+   printed: read from those, a run is filed at the tier of whatever issue it happened to read. */
+const said = (klass, body) => ({ class: klass, body });
+
+test("a run's tier is read off the confirmation it wrote, and off no other call that echoes one", () => {
+  assert.equal(tierOf([said("forge record confirmation", "finding: holds\ntier: trivial")], TIERS), "trivial");
+  assert.equal(tierOf([], TIERS), UNTIERED, "a run that confirmed nothing is filed under no tier");
+  for (const klass of ["forge issue", "forge resume", "read", "forge record verdict"]) {
+    assert.equal(tierOf([said(klass, "tier: trivial")], TIERS), UNTIERED,
+      `\`${klass}\` printing the word is a run reading a thread, not a run that claimed a tier`);
+  }
+  assert.equal(tierOf([said("forge record confirmation", "tier: enormous")], TIERS), UNTIERED,
+    "a word this ladder has not got names no rung, and is not folded into the nearest one");
+  assert.equal(
+    tierOf([said("forge record confirmation", "tier: trivial"), said("forge record confirmation", "tier: feature")], TIERS),
+    "feature",
+    "a batch is as heavy as its heaviest member, never the cheapest of them",
+  );
+});
+
+/* The rows have to add up to the corpus: a run filed under no tier and dropped would leave a table
+   that silently reports fewer runs than the profile above it. */
+test("the table has a row per rung and one for the runs that named none, and they add up", () => {
+  const run = ask(corpus());
+  assert.equal(run.status, 0, run.stderr);
+  const table = run.stdout.split("\ntier ")[1]?.split("\nphase")[0] ?? "";
+  assert.ok(table, `no tier table printed\n--- printed ---\n${run.stdout}`);
+  const rows = new Map(table.split("\n").map((line) => line.trim().split(/\s+/u))
+    .filter(([name, runs]) => name && /^\d+$/u.test(runs ?? ""))
+    .map(([name, runs]) => [name, Number(runs)]));
+  for (const tier of [...TIERS, UNTIERED]) {
+    assert.ok(rows.has(tier), `${tier} has no row, and a rung absent reads as one that costs nothing`);
+  }
+  assert.equal([...rows.values()].reduce((sum, one) => sum + one, 0), 1,
+    "the rows count the corpus once: this fixture is one run, and it claimed no tier");
+  assert.equal(rows.get(UNTIERED), 1, "so it is the untiered row that holds it, not the cheapest rung");
+});
 
 /* A subagent that was not an issue-flow run: it is skipped and said to be, because a corpus that
    shrank because the marker moved reads exactly like a quiet week. */

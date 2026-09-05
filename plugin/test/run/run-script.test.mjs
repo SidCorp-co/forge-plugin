@@ -7,7 +7,7 @@ import test from "node:test";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { BARE, committed, GATE, git, lastStep, landIn, pushed, ref, ROOT, runIn, scratch, stubbed } from "./run-fixtures.mjs";
+import { BARE, committed, GATE, git, lastStep, landIn, pushed, ref, ROOT, runIn, scratch, sized, stubbed } from "./run-fixtures.mjs";
 
 /* Step 7 is reached only from a tree that is not the checkout, so every fixture shipping from the
    scratch root early-returns past it (ISS-143). `pull.rebase` is set in the scratch repository
@@ -370,4 +370,52 @@ test("a release moving only gate code sends nobody to restart, and says what the
   assert.match(out, /nothing a session is frozen on moved since [0-9a-f]{7}/u, out);
   assert.match(out, /plugin\/hooks\/hooks\.json/u, `the set itself is not named:\n${out}`);
   assert.doesNotMatch(out, /a restart is owed/u, `a gate fix was reported as owing one:\n${out}`);
+});
+
+/* The backstop the ladder's ceiling is: it runs after the judging, so it says what landed against
+   what the tier claimed and refuses nothing. The branch is where the issue key comes from, `start`
+   having cut it, so nothing here is a second place a tier could be set. */
+const shipOnBranch = (work, branch) => {
+  git(work, "checkout", "-b", branch);
+  return lastStep(work);
+};
+
+test("the ship measures the landing against the tier its branch's issue claims", () => {
+  const { at, work } = pushed("tier-within");
+  stubbed(work);
+  sized(at, "fix");
+  landIn(work, join("plugin", "src", "one.mjs"), 3, "a change inside the tier");
+  const out = shipOnBranch(work, "iss-318").stdout;
+  assert.match(out, /ISS-318 is a `fix` and landed \d+ file\(s\) and \d+ changed line\(s\)/u, out);
+  assert.match(out, /against that tier's ceiling of 15 and 500/u, out);
+  assert.doesNotMatch(out, /owes a correction naming the re-size/u,
+    "inside its ceiling, so nothing is owed and no correction is printed");
+});
+
+test("a landing past its tier's ceiling names which of the two, and the correction that answers it", () => {
+  const { at, work } = pushed("tier-past");
+  stubbed(work);
+  sized(at, "trivial");
+  for (const one of ["a", "b", "c", "d", "e", "f", "g"]) {
+    landIn(work, join("plugin", "src", `${one}.mjs`), 40, `${one} landed`);
+  }
+  const run = shipOnBranch(work, "iss-318");
+  const said = `${run.stdout}\n${run.stderr}`;
+  assert.match(said, /ISS-318 is a `trivial`/u, said);
+  assert.match(said, /past it on files \(\d+ of 5\) and lines \(\d+ of 150\)/u, said);
+  assert.match(said, /--moved "Size: trivial -> fix"/u, "the correction names the next rung up");
+  assert.match(said, /skipped obligations are earned before the close/u, said);
+});
+
+/* Silent rather than wrong: a landing measured against a ceiling nobody set is a number with no
+   claim behind it, and a branch that names no issue has set none. */
+test("a ship from a branch naming no issue measures the landing against nothing", () => {
+  const { at, work } = pushed("tier-unnamed");
+  stubbed(work);
+  sized(at, "trivial");
+  landIn(work, join("plugin", "src", "one.mjs"), 400, "far past any ceiling");
+  const run = shipOnBranch(work, "some-other-branch");
+  const said = `${run.stdout}\n${run.stderr}`;
+  assert.doesNotMatch(said, /ceiling/u, said);
+  assert.doesNotMatch(said, /Size: trivial ->/u, said);
 });

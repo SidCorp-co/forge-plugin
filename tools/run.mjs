@@ -15,6 +15,7 @@ import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
 import { fileIssue } from "../plugin/src/tracker/filing.mjs";
 import { refusing } from "../plugin/src/resolve/settings.mjs";
+import { CEILINGS, overCeiling, resizeForm, tierIn } from "../plugin/src/ladder.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
@@ -364,6 +365,45 @@ const gateGrew = (tree) => {
   }
 };
 
+/* The backstop, never the decision: the judging is done by the time a ship runs, so a refusal here
+   protects nothing. The tier comes off the issue the branch names — `start` cuts `iss-nn` and the
+   issue's body is the source the entry checks read — so this is no second place to set one. Silent
+   where no issue is named: a landing measured against a ceiling nobody set has no claim behind it. */
+const BRANCH_KEY = /^iss-(\d+)/u;
+
+const tierAsked = (tree) => {
+  const key = BRANCH_KEY.exec(gitOut(["rev-parse", "--abbrev-ref", "HEAD"], tree) ?? "")?.[1];
+  if (!key) return null;
+  const said = forgeSays(tree, ["issue", `ISS-${key}`, "--fields", "description"]);
+  if (said.why) return null;
+  /* Parsed, never matched over the raw answer: the body comes back as JSON, where every newline is
+     two characters and the anchored mark this reads matches nothing at all. */
+  try {
+    return { key: `ISS-${key}`, tier: tierIn(JSON.parse(said.out).description) };
+  } catch {
+    return null;
+  }
+};
+
+const tierCeiling = (tree, was) => {
+  const asked = tierAsked(tree);
+  if (!asked || !CEILINGS[asked.tier]) return;
+  const rows = (gitOut(["diff", "--numstat", `${was}..HEAD`], tree) ?? "").split("\n").filter(Boolean);
+  const landed = {
+    files: rows.length,
+    lines: rows.reduce((sum, row) => sum + row.split("\t").slice(0, 2)
+      .reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0), 0),
+  };
+  const ceiling = CEILINGS[asked.tier];
+  const said = `  ${asked.key} is a \`${asked.tier}\` and landed ${landed.files} file(s) and `
+    + `${landed.lines} changed line(s), against that tier's ceiling of ${ceiling.files} and ${ceiling.lines}`;
+  const over = overCeiling(asked.tier, landed);
+  if (!over) return console.log(said);
+  console.error(`${said} — past it on ${over.join(" and ")}`);
+  console.error("    a landing larger than its tier owes a correction naming the re-size, and the tier's "
+    + `skipped obligations are earned before the close:\n      ${resizeForm(asked.key, asked.tier)}`);
+};
+
 /* The mark is never planted here. One planted where none was found would read exactly like a
    reading that has just finished, and the skipped reading it hid would surface at no later ship. */
 const reviewOwed = async (tree) => {
@@ -523,6 +563,8 @@ const shipSteps = (tree, root, base, note) => {
         ? `  ${copy.name} ${copy.running} running, ${copy.installed} installed${copy.stale ? " — this version is in no install record" : ""}`
         : "  no install record answers for this plugin");
       releaseSays(tree, base);
+      const was = shipFrom(tree);
+      if (was) tierCeiling(tree, was);
       gateGrew(tree);
       await reviewOwed(tree);
     }],

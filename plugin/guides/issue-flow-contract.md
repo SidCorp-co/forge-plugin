@@ -104,27 +104,44 @@ moving. The default is autonomous, which is what the skill already says.
 What each status reads, and for every scenario it can meet, the payload owed and where the issue
 goes. The scenario is the person's or the agent's to decide; the contract checks the payload.
 
-**The size decides the ladder.** A body carrying the line `Size: fix.` runs a light path: the same
-statuses in the same order, and three of them ask for less. Where a stage below carries a **fix**
-row, that row is what a fix owes in place of the row above it; every stage without one costs a fix
-exactly what it costs a feature, and the gate, the codex pass and the review are deliberately among
-them — a fix breaks the tree as well as a feature does. The size is the line and not the tracker's
+**The size decides the ladder, and the ladder has three rungs.** Every tier runs the same statuses
+in the same order; what differs is what three of those statuses ask for, and how many rounds the
+work between them is expected to take. The tier is a line in the body — `Size: trivial.`,
+`Size: fix.`, or no line at all, which is a **feature**. It is the line and not the tracker's
 `complexity` field: the tracker creates no label it was not given and this projection cannot read
 that enum back, so the day the tracker owns a size, the line goes.
 
-Two things take an issue off the light path, and both belong before the plan. A plan declaring a
-screen change or a user-facing outcome does, because the fix that a person will look at is not the
-change nobody sees. And work that turns out larger does, by a correction naming the re-size — the
-mark is a line in the reporter's own description, which this flow does not rewrite, so the retraction
-is a record. Only that direction is read: a correction re-sizing an issue *to* a fix would unearn
-statuses it already holds, and a fix's ladder is not something to claim back after the plan.
+| Tier | What it claims | Payloads it stops owing | Rounds it may spend fewer of |
+|---|---|---|---|
+| `trivial` | one tree, no hook or skill file, no screen, no migration | the decision record, the plan field, the release note | Phase 0 is the brief alone where no source of it is stale; one consult, which *is* the whole-set read at the replayed head; no gate run after the ship, the ship having spent it |
+| `fix` | one behaviour and its replacement, carrying no rule | the same three | no recheck after a consult that raised nothing |
+| `feature` | anything else, and everything filed before this ladder existed | none | none |
 
-What the light path saves is three payloads of ten, and not half of a run: eight transitions, the
-claim and the reads are a floor no entry criterion reaches. A shorter ladder would reach further,
-and this contract does not have one.
+**What a tier drops is a payload; what it saves is mostly rounds.** The two tiers below `feature`
+stop owing the same three payloads, so a reader who only counts payloads cannot tell them apart.
+The difference is in the last column and it is the larger saving: three payloads of ten is not half
+a run, because eight transitions, the claim and the reads are a floor no entry criterion reaches.
+`forge stats runs` groups its profile by tier so each row of that column is a number the next change
+to this ladder is judged against, and a batch counts at the largest tier among its members.
 
-Two things the size never touches, whatever a fix declares. A plan declaring schema coupling owes
-its migration classification, because a destructive migration is not smaller for being a fix. And a
+**What no tier buys is a judgement.** The gate, the codex pass, the review, the baseline and a
+verdict on every criterion cost a `trivial` exactly what they cost a `feature`: the shortest change
+breaks a tree as well as the longest, and the run that spends one whole gate run is the run whose
+later scoped ones mean anything. A tier that bought a judgement would be a tier that made the record
+say something nobody established.
+
+**Escalation is by meaning, before the plan, and one rung at a time.** A plan declaring a screen
+change or a user-facing outcome moves the issue up one rung, because the change a person will look
+at is not the change nobody sees. Work that turns out larger moves it by a correction naming the
+re-size — the mark is a line in the reporter's own description, which this flow does not rewrite, so
+the retraction is a record. Only the upward direction is read: a correction re-sizing an issue *down*
+would unearn statuses it already holds, and a rung is not something to claim back after the plan.
+The ship's own measurement of what landed is the backstop and never the decision: it prints the
+tier's ceiling beside the count and the correction command past it, after the judging, where a
+refusal would have nothing left to protect.
+
+Two things no tier touches, whatever the mark says. A plan declaring schema coupling owes its
+migration classification, because a destructive migration is not smaller for being small. And a
 shortened comment page does not lighten anything: a cut cannot show a correction that re-sized the
 issue, and losing one would *shrink* a shortfall where every other check can only grow one the cut
 hid — so a page that came back short is judged as a feature's.
@@ -145,7 +162,8 @@ hid — so a page that came back short is judged as a feature's.
 |---|---|---|
 | the finding was a disposition | nothing more; the confirmation is the evidence | `dropped` |
 | no ambiguity | a decision record saying *none found* | `clarified` |
-| **fix** — the finding was *holds* | nothing; the reading that mattered is the defect and the confirmation held it. A disposition still drops it, and an ambiguity too expensive to reverse is still a question: the light path drops the record, never the right to ask | `clarified` |
+| **trivial** — the finding was *holds* | nothing, for the reason the row below gives; a one-tree change has less to be ambiguous about, not a lower bar for asking | `clarified` |
+| **fix** — the finding was *holds* | nothing; the reading that mattered is the defect and the confirmation held it. A disposition still drops it, and an ambiguity too expensive to reverse is still a question: the tier drops the record, never the right to ask | `clarified` |
 | ambiguity cheap to reverse | a decision record: reading chosen, assumption, undo sentence | `clarified` |
 | ambiguity expensive to reverse | a question | `needs_info`; the reply resumes at `confirmed` and the decision record quotes it |
 
@@ -154,7 +172,8 @@ hid — so a page that came back short is judged as a feature's.
 | Scenario | Writes | Goes to |
 |---|---|---|
 | the plan is possible | the plan in its field; numbered criteria in theirs; the screen and schema flags, and the user-facing outcome where a person judges the result | `approved` |
-| **fix** — the plan is possible | numbered criteria alone, being the one check that fails without the change; no plan field, and its absent declarations read *no* — writing one that declares a screen change or a user-facing outcome is how a fix leaves the light path | `approved` |
+| **trivial** — the plan is possible | numbered criteria alone, as the row below; writing a plan that declares a screen change or a user-facing outcome moves it one rung to `fix` | `approved` |
+| **fix** — the plan is possible | numbered criteria alone, being the one check that fails without the change; no plan field, and its absent declarations read *no* — writing one that declares a screen change or a user-facing outcome is how a fix moves up a rung | `approved` |
 | a criterion joined by a conjunction | a warning at the write, never a refusal | unchanged until the author splits it or keeps it |
 | planning proves the claim false | a new confirmation with a disposition finding | back to `confirmed`, then `dropped` |
 | the project names an approver | nothing more | `approved` once that person has commented |
@@ -168,10 +187,11 @@ the first, decides whether a person reviews the rendered change before it ships.
 the name, the colon and the next word, so a label closed in emphasis before its colon, as `**Screen
 change:** no`, is a declaration it does not find.
 
-A fix owes no plan field, so it declares nothing and all three read *no*. That is the reading, not an
-oversight: a change nobody sees is what the mark claims, and a fix that is a screen change says so by
-writing the plan, which is the same act that takes it off the light path. `forge advance --owed`
-prints both routes off, because a rule whose way out has to be inferred is a refusal nobody can act on.
+Neither tier below `feature` owes a plan field, so each declares nothing and all three read *no*.
+That is the reading, not an oversight: a change nobody sees is what the mark claims, and one that is
+a screen change says so by writing the plan, which is the same act that moves it up a rung.
+`forge advance --owed` prints the tier, what it drops and both routes up, because a rule whose way
+out has to be inferred is a refusal nobody can act on.
 
 | Scenario | Writes | Goes to |
 |---|---|---|
@@ -239,6 +259,7 @@ never the truth of either, exactly as it does every other field of a record.
 | Scenario | Writes | Goes to |
 |---|---|---|
 | shipped and seen running | a verification citing where it runs; the release note, or *Skip* with a reason; a person's review comment where the plan declares a screen change or a user-facing outcome and the project's config asks for one | `released` |
+| **trivial** — shipped and seen running | the verification alone, as the row below | `released` |
 | **fix** — shipped and seen running | the verification alone; no release note, because a fix declaring no person is a change nobody sees and the withholding is the rule rather than a record to type | `released` |
 | a result a person judges, not yet seen by one | the rendered evidence, attached | `waiting`, kind screen review; the reviewer's comment resumes |
 | the deploy fails and the route rolls it back | the rollback taken and its evidence | `on_hold`, kind rolled back |

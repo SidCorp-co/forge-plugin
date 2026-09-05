@@ -148,7 +148,9 @@ if (argv[0] === "issue") {
   const row = (existsSync(rows) ? readFileSync(rows, "utf8") : "").split("\\n")
     .find((line) => line.startsWith(argv[1]));
   const status = row ? row.trim().split(/\\s+/)[STATUS_AT] : "open";
-  process.stdout.write(JSON.stringify({ issueId: argv[1], status }, null, 2));
+  const marked = join(room, "forge-size");
+  const description = existsSync(marked) ? readFileSync(marked, "utf8") : "no mark here";
+  process.stdout.write(JSON.stringify({ issueId: argv[1], status, description }, null, 2));
   process.exit(0);
 }
 if (existsSync(join(room, "forge-collides"))) {
@@ -178,6 +180,9 @@ export const stubbed = (work) => {
   git(work, "add", join("plugin", "bin", "forge"));
   git(work, "commit", "-m", "the tracker this checkout files through");
 };
+
+/** The tier the stubbed tracker answers with, for a ship whose branch names an issue. */
+export const sized = (at, tier) => writeFileSync(join(at, "forge-size"), `a body.\n\nSize: ${tier}.\n`);
 
 export const called = (at) => readFileSync(join(at, "forge-calls.json"), "utf8")
   .split("\n").filter(Boolean).map((line) => JSON.parse(line));

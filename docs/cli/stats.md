@@ -100,3 +100,27 @@ of those runs beside them. A median over the whole window reports a phase most o
 costing nothing, which is the opposite of what it costs the runs that do reach it — and on this
 corpus that read the judging phase as zero minutes and zero calls while a third of the runs were
 spending five minutes there.
+
+## The tier table
+
+The ladder's rungs are what a change's cost is meant to differ by, so the profile groups by them: a
+row per rung and one more for the runs that claimed none. What a rung *drops* is three payloads and
+visible in the record; what it *saves* is rounds, and rounds are only ever visible here. That is the
+whole reason this table exists — without it the two rungs below `feature` differ in nothing a reader
+can act on, and the next change to the ladder would be argued from memory.
+
+A run's rung is read off **the confirmation it wrote**, which carries it as a `derived` field: the
+write fills it from the issue's own description and refuses it as a flag, a value the author could
+type proving only that they typed it. It is a copy for this table and never a source — every entry
+check reads the description — so a hand-written confirmation lacking the line is refused nothing and
+one claiming a rung the description does not moves no status.
+
+The key is that call's own class, never the words anywhere in the transcript. A `forge issue` or a `forge resume` printing the same thread
+carries the same line, and read from those a run is filed under the rung of whatever issue it
+happened to open. A run that confirmed nothing is `untiered` and keeps its own row: folded into a
+rung it would flatter that rung, and dropped it would leave a table that quietly counts fewer runs
+than the profile above it.
+
+**A batch counts at the largest rung among its members.** A run carrying three issues is as
+expensive as its heaviest, and filing it under the cheapest would make every rung look better the
+more work was batched onto it.
