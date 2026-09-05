@@ -2090,3 +2090,25 @@ is owed. Closed by its run. Folded from the record.
 - One token in the verb table was edited in a held file because the flag helper derives a verb's known
   flags from that row, so a new flag could not parse without it — said on the record as mechanically
   unavoidable rather than taken quietly. The half that needs the held visibility reading went as ISS-271.
+
+## Eighty-second dry run — ISS-263
+
+One agent made the cited-paths check read every file of its declared population (3.35.95): the
+extension filter is gone from both its jobs, the coverage case holds every tracked file to being read or
+excluded with a reason, the figure class is asserted by name and a citation inside a markup element read
+as a citation. No figure edit was needed — its three citations resolve — and no gate-step change, since
+the case already sits in the whole-tree step, proven by planning a markup-only changed set. A clause the
+gate never had was added. Two mutations attached, each reddening its cases. No restart owed. Closed by
+its run. Folded from the record.
+
+- Two of the issue's premises were false and corrected on the record: three markup files are tracked
+  under the docs directory, not one, and the population was unread by fifty-five files, not none;
+  covering it honestly cost four exclusion rows, all measured. A premise stated as a count is checked by
+  counting.
+- The version commit's subject names the release before the one the step took, because the note was
+  typed before the step computed the number — the third run this week to do so. Filed as ISS-273: the
+  note is a value the step fills, not a guess the run makes.
+- The widened population reddens on any stray untracked file with a refusal naming no remedy, and rests
+  on an unstated everything-is-text assumption; nothing fires today, and the price is named (ISS-274).
+  The feedback verb offered to attach a finding to a released issue while calling it open, so the
+  new-issue flag was needed — a status read stale at the moment of the offer.
