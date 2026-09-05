@@ -10,8 +10,9 @@ import { fail, translateTo } from "../resolve/settings.mjs";
 import { protectMachine } from "../flow/machine.mjs";
 
 export const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "vi-natural");
-/* Every prose field an agent can write, not only the three the wrapped verbs started with. */
-const PROSE_FIELDS = ["title", "description", "body", "plan", "acceptanceCriteria"];
+/* Every prose field an agent can write, and a release note is an object whose other two halves are
+   an enum and the payload, so what is named is the half rather than the field. docs/cli/vietnamese.md. */
+const PROSE_FIELDS = ["title", "description", "body", "plan", "acceptanceCriteria", "releaseNotes.userFacing"];
 const REGISTER = ["--register", "san-pham", "--no-glossary"];
 
 const quoted = (word) => (/^[\w.,:/=@-]+$/u.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`);
@@ -62,6 +63,12 @@ const translatedTitle = (text) => {
   return written;
 };
 
+const leafAt = (payload, path) => path.reduce((held, key) => held?.[key], payload);
+
+/* Copied down the path, never written into: the boundary compares what came back against this copy. */
+const withLeaf = (payload, [key, ...rest], value) =>
+  ({ ...payload, [key]: rest.length ? withLeaf(payload[key], rest, value) : value });
+
 export const translated = (payload) => {
   const language = translateTo();
   if (!payload || !language) return payload;
@@ -71,12 +78,15 @@ export const translated = (payload) => {
         "Nothing was posted. Set translate to vi or off in .forge.json.",
     );
   }
-  const done = { ...payload };
+  let done = { ...payload };
   for (const field of PROSE_FIELDS) {
-    if (typeof done[field] !== "string" || !done[field].trim()) continue;
-    const source = protectMachine(field, done[field]);
-    done[field] = field === "title" ? translatedTitle(source) : translatedBody(source);
-    console.error(`--- ${field} as posted ---\n${done[field]}\n`);
+    const path = field.split(".");
+    const held = leafAt(done, path);
+    if (typeof held !== "string" || !held.trim()) continue;
+    const source = protectMachine(path.at(-1), held);
+    const written = path.at(-1) === "title" ? translatedTitle(source) : translatedBody(source);
+    done = withLeaf(done, path, written);
+    console.error(`--- ${field} as posted ---\n${written}\n`);
   }
   return done;
 };

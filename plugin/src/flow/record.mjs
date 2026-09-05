@@ -228,7 +228,7 @@ export const checked = (kind, got) => {
 const REWRITTEN = {
   record: "the payload block is stored as written; the heading above it is rewritten",
   criteria: "the criteria are rewritten, and the numbers a verdict names are what survives",
-  note: "the release note is not rewritten at all, so its user-facing half stays English (ISS-46)",
+  note: "the user-facing half is rewritten and the technical half is stored as written",
 };
 
 export const sayStored = (which, language = translateTo()) => {
@@ -475,17 +475,19 @@ const updateField = async (documentId, field, value, same, ref, next, patch) => 
   if (!same(back?.[field], sent)) refuse(`The update answered success but ${field} did not read back as written. Nothing to rely on.`);
 };
 
-/* The field as it comes back against the copy that went out, which on a project with a prose
-   language is a rewrite of what the caller wrote: comparing the caller's copy refuses a write that
-   landed, and a caller told their write is untrustworthy re-sends it or stops. */
+/* Unfenced and trimmed, the source marker being the tracker's own wrapping of a prose field. */
 export const landedAs = (held, sent) => unwrap(held) === String(sent).trim();
+
+/* A note is an object, so it is read back half by half and normalised nowhere: those three are held
+   as sent, and a comparison loose enough to accept an empty half stops saying the write landed. */
+export const noteLandedAs = (held, sent) =>
+  ["section", "userFacing", "technical"].every((key) => (held?.[key] ?? null) === (sent?.[key] ?? null));
 
 const recordNote = async (reference, argv, { next, patch }) => {
   const releaseNotes = noteFrom(argv);
   const { documentId, body } = await issueOf(reference);
   sayStored("note");
-  const same = (held) => ["section", "userFacing", "technical"].every((key) => (held?.[key] ?? null) === releaseNotes[key]);
-  await updateField(documentId, "releaseNotes", releaseNotes, same, reference, next, patch);
+  await updateField(documentId, "releaseNotes", releaseNotes, noteLandedAs, reference, next, patch);
   console.log(JSON.stringify(releaseNotes, null, 2));
   await sayOwed(documentId, { ...body, releaseNotes }, reference);
 };

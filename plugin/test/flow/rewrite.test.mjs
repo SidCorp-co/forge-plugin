@@ -8,7 +8,7 @@ import { tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("rewrite-");
 const { protectInline, restoreInline, segment } = await import("../../vi-natural/format/doc.mjs");
-const { assemble, landedAs, parse, render, sayStored } = await import("../../src/flow/record.mjs");
+const { assemble, landedAs, noteLandedAs, parse, render, sayStored } = await import("../../src/flow/record.mjs");
 const { SHAPES } = await import("../../src/flow/machine.mjs");
 const { planFlags, protectMachine } = await import("../../src/flow/machine.mjs");
 const { CHECKS, ORDER, viewFrom } = await import("../../src/flow/earned.mjs");
@@ -207,5 +207,19 @@ test("a record verb says what the stored copy will be, wherever a prose language
   assert.equal(sayStored("record", null), null, "a project with none is told nothing");
   assert.match(sayStored("record", "vi"), /^prose vi: the payload block is stored as written/u);
   assert.match(sayStored("criteria", "vi"), /^prose vi: the criteria are rewritten/u);
-  assert.match(sayStored("note", "vi"), /^prose vi: the release note is not rewritten at all/u);
+  assert.match(sayStored("note", "vi"), /^prose vi: the user-facing half is rewritten/u);
+});
+
+/* The note is the one prose field that is an object, and the comparator that reads it back closed
+   over the copy the caller wrote: the moment the layer reached the user-facing half every note
+   write on a prose-vi project would land and then be refused (ISS-288). */
+test("a release note reads back half by half against the copy that went out", () => {
+  const wrote = { section: "Fixed", userFacing: "You see it now.", technical: "One entry in PROSE_FIELDS." };
+  const sent = { ...wrote, userFacing: rewritten(wrote.userFacing) };
+  assert.notEqual(sent.userFacing, wrote.userFacing, "a rewrite that changed nothing proves nothing");
+  assert.ok(noteLandedAs(sent, sent), "what came back is what went out");
+  assert.ok(!noteLandedAs(sent, wrote), "and comparing the source refuses every note that landed");
+  assert.ok(!noteLandedAs({ ...sent, technical: null }, sent), "a half that arrived empty is not a landing");
+  const skipped = { section: "Skip", userFacing: "Nothing a reporter sees changed.", technical: null };
+  assert.ok(noteLandedAs(skipped, skipped), "and an absent technical half compares as the null it was sent as");
 });

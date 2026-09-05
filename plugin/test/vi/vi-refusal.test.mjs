@@ -11,14 +11,17 @@ import { BUNDLED, commandLine } from "../../src/tools/vi.mjs";
 
 const SOURCE = new URL("../../src/tools/vi.mjs", import.meta.url);
 
-/** What a run reads on a machine that has never run `vi-natural login`. */
-const refusalFor = (field, value) => {
+/** The layer run for real on a machine that has never run `vi-natural login`: a field it reaches
+ *  is refused there, and one it leaves alone comes back on stdout. */
+const layerOn = (payload) => {
   const room = tempRoom("vi-refusal-");
   writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "any", translate: "vi" }));
-  const call = `import("${new URL("../../src/tools/vi.mjs", import.meta.url).href}")`
-    + `.then((m) => m.translated(${JSON.stringify({ [field]: value })}))`;
+  const call = `import("${SOURCE.href}")`
+    + `.then((m) => console.log(JSON.stringify(m.translated(${JSON.stringify(payload)}))))`;
   return ranAsync(process.execPath, ["-e", call], { ...process.env, XDG_CONFIG_HOME: room }, room);
 };
+
+const refusalFor = (field, value) => layerOn({ [field]: value });
 
 test("a body the gateway cannot write is refused with the doc command that writes it", async () => {
   const { stderr, status } = await refusalFor("description", "The release note in English.");
@@ -40,4 +43,16 @@ test("the register flags are written once, so the printed command cannot drift f
   const read = await import("node:fs/promises").then((fs) => fs.readFile(SOURCE, "utf8"));
   assert.equal(read.split("san-pham").length - 1, 1, "a second copy of the register is what goes stale");
   assert.match(commandLine(["doc", "x.md"]), /--register san-pham --no-glossary$/u);
+});
+
+/* The user-facing half is the only half of a note the layer walks: an enum and a payload stay put. */
+test("a release note's user-facing half goes through the layer, and its other two halves do not", async () => {
+  const note = { section: "Fixed", userFacing: "You write it in English.", technical: "One path in PROSE_FIELDS." };
+  const { stderr, status } = await layerOn({ releaseNotes: note });
+  assert.equal(status, 1, "the half is reached, so an unwritable gateway refuses the whole note");
+  assert.ok(stderr.includes(`${BUNDLED} doc -o`), `and by the verb a description goes through:\n${stderr}`);
+
+  const written = await layerOn({ releaseNotes: { ...note, userFacing: "" } });
+  assert.equal(written.status, 0, `the enum and the payload half reach no gateway:\n${written.stderr}`);
+  assert.deepEqual(JSON.parse(written.stdout).releaseNotes, { ...note, userFacing: "" }, "and come back as written");
 });
