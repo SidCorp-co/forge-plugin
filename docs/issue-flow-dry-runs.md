@@ -3132,3 +3132,29 @@ two before it could not. Closed by its run. Folded from its handback.
   and re-posted at the landed head rather than editing the mark; one round.
 - `forge new --into` refused for a missing title names an issue nobody asked to file (ISS-375), met
   while following the method's own routing instruction.
+
+## Hundred-and-twenty-third dry run — ISS-332
+
+Dispatched at the user's word, "run if no block", beside the runs holding the files it neighboured.
+A new gate, `restart-owed`, holds a write to any file in the restart set once per file per session
+and asks for one line saying why none of the three live homes fits; the how page names them and says
+what becomes of the answer, and the release step shows it. The set is read from the one predicate the
+ship already reads, with no fifth reader and no edit to the frozen module, which kept clear of ISS-363
+landing beside it (3.35.138, landed as 0bb463d). Verified against the installed copy by its own path;
+the checker proven by two deliberate mutations failing distinct tests. Restart owed for `hooks.json`.
+Closed by its run. Folded from its handback.
+
+- Two corrections on the way: six files the plan had not named plus a shared shell-reading helper the
+  learning gate's private copy gave way to, and the pre-line position, since the issue-read-first gate
+  stands down by exiting the process and must stay last. Order in the registration is part of the
+  contract between gates.
+- Codex's one major finding was real: the Bash route resolved a bare token against the hook process's
+  working directory, so a command that changed directory first would have refused this checkout's
+  registration for another tree's write. The regression case fails against the reading it replaced.
+- This ship printed the restart line without its reason column, because the ship's own script was
+  loaded from the checkout before the pull brought the new step in. A release that changes the ship
+  is shown by the release after it.
+- A NUL byte in a source file scared the run into suspecting the plugin; it was the run's own write,
+  and the sources-are-text check catches it once the file is tracked. Checked before filed.
+- The ship named a reading owed over nine releases; ISS-370 is already open for the mark, so nothing
+  was filed and the launch line was printed, not spent.
