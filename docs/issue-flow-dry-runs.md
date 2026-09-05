@@ -3364,3 +3364,31 @@ handback; ISS-400 and ISS-402 were read back.
   (ISS-402). The run wrote the correction truthfully rather than in the refusal's words.
 - The release crossed the reading threshold and the ship said so; ISS-399 was already open for the
   mark, so the run filed nothing and left the reading to its own run.
+
+## Hundred-and-thirty-second dry run — ISS-365
+
+Taken on the user's stated order from below the top five, since a feature scores nothing on kind.
+`forge plan` and `forge record criteria` now refuse a file no answered consult has read whole as it
+now stands, with the consult command in the refusal, and the rule lives in the verbs rather than a
+hook, so it owes no restart (3.35.147, landed as 90ac2d4). The run overrode three of the issue's own
+rules and recorded each with its undo: the check requires the whole-body send, because under the
+default diff send the reviewer is told the full text is not there and the issue's own clearing command
+would have cleared a gate on a file the reviewer never received; freshness is the per-file hash the
+consult recorded against the bytes, not the modification time, so a restored file counts as read; and
+the kill switch is the only stand-down, since a stand-down on a filesystem error would put the
+unchecked reader on the same path a moment later. Six consults, twelve findings, all accepted and all
+refuted by recheck; the approving read was the whole touched set at the replayed head. No restart
+owed. Closed by its run. Folded from its handback; the note on ISS-392 was read back, the one on
+ISS-395 was not and the dispatcher posted it.
+
+- A rule as the issue wrote it would have passed a file the reviewer never saw. The run read the
+  request path before trusting the issue's clearing command, which is the first rule of the flow
+  applied to the issue's own Outcome section.
+- The record file sat two lines over its ceiling after the sibling landing, so the run took its own
+  footprint to net zero by replacing an import and a call rather than adding, and touched none of the
+  sibling's region. Two runs on one file in one wave can both land if the second shapes its change to
+  the first.
+- Twelve findings across six consults went onto the issue as a table because the review record can
+  carry one consult id, not one per finding; that grammar is ISS-34's.
+- A file reverted to its committed bytes left a pending consult row nothing could clear, for six
+  consults and three quarters of an hour; the sharper case went to ISS-392.
