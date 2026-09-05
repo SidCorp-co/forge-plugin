@@ -82,3 +82,40 @@ is itself loaded by a gate on every tool call. The edge that keeps the graph acy
 tracker to the flow, and the one the issue proposed would have closed a cycle. Where a primitive
 lives is decided by which module can be imported without dragging a graph behind it, not by whose
 subject matter it names.
+
+## The help predicate, and the two readings that are not it
+
+`wantsHelp` had been exported from `plugin/src/resolve/flags.mjs` and imported by four modules while
+seven others wrote the same comparison by hand — the CLI's own entry sharpest of them, importing it
+on one line and writing it out fifty lines above (ISS-259). Nothing would have failed if one had lost
+`--help`, and this is the surface a caller reaches when it does *not* know the verb, so a spelling
+that drifts on one side is a verb answering a question its siblings answer differently.
+
+One of the seven was unreachable, and finding out which cost a wrong answer worth recording. The
+entry answers `-h` itself for any verb that does not set `answersHelp`, and the mark is set beside
+each verb's own export rather than in one table — so reading the table alone says three verbs carry
+it and the tree says ten. Six of the seven sites are live on that count, and the eight commands the
+issue named do judge them. The seventh, `cloudflare`, is unmarked: `helpOf` answers for it, and its
+own `USAGE` — the fuller of the two, listing subcommands the verb row omits — is text nothing
+reaches. That is a defect of its own and is filed as ISS-291, not answered here; what this change
+owed it was conversion, since a verb given the mark later makes its own test live again.
+
+The lesson is the guard's, not the verb's: a predicate whose answer is spelled in ten places is one
+a reader will summarise from whichever place they found. Each site was proven neutral by reverting
+that one file alone and re-running both the eight commands and a direct invocation of every exported
+verb — seven reverts, no difference anywhere, and the guard naming the reverted file each time.
+
+**The guard's exclusions are two paths, not a cleverer needle.** The codex verb reads a help flag in
+*any* position, because the CLI hands a verb its tail and `forge codex consult -h` puts the flag
+second; the gate that orders a consult reads one out of a shell command line somebody else typed.
+Both spell the same two words as the seven did, so no needle over text distinguishes either from a
+copy — and both ask a different question, so neither is one. Making the words a shared constant the
+two could import would have unified the spelling at the cost of the distinction: the first-word
+reading is the one with a home, and where a flag may stand is the caller's question, not the
+predicate's. So the two are named beside the scan, with the reason, on the second of the two routes
+the frame reader above was left alone by.
+
+The needles are the comparison, `=== "-h"`, and the word pair a copy declaring a list would write
+instead. Anything looser — the word `--help` alone — refuses the doctor spawning another program
+with it and the CLAUDE.md checker reading `-h` out of a document, neither of which is asking this
+question at all.

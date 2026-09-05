@@ -1,6 +1,6 @@
 /* The pick: the lease a run takes before it writes anything, the reclaim of one a dead run left
    behind, and the park a status that keeps crashing earns. docs/cli/claim.md. */
-import { flags, pullRepeated } from "../resolve/flags.mjs";
+import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { sessionOf } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
@@ -120,7 +120,7 @@ const parkCrashed = async (documentId, ref, issue, context, line) => {
 };
 
 export const claim = async (argv) => {
-  if (!argv.length || argv[0] === "-h" || argv[0] === "--help") return console.log(USAGE);
+  if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
   const pulled = pullRepeated(rest, "--open", "claim");

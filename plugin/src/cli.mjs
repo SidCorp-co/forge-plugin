@@ -49,7 +49,7 @@ const FEEDBACK = "\nFeedback on this CLI, from any project: `forge feedback <not
   + " refusal, a missing way out, a verb that surprised you: send it there, before the workaround.";
 
 const [command, ...rest] = process.argv.slice(2);
-const asked = command === "-h" || command === "--help";
+const asked = wantsHelp([command]);
 const needs = command ? blockedBy(command) : null;
 
 if (needs) {

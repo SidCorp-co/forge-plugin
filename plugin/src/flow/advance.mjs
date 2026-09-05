@@ -1,7 +1,7 @@
 /* One verb between an agent and a status change: the entry criteria of the next status, checked
    against the issue's record and nothing else. The rule a status is earned by, stage by stage:
    `forge guide contract <status>`. */
-import { flags, pullRepeated } from "../resolve/flags.mjs";
+import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, cutLine } from "../tracker/comments.mjs";
@@ -191,7 +191,7 @@ const readFlags = (rest) => {
 };
 
 const run = async (argv) => {
-  if (!argv.length || argv[0] === "-h" || argv[0] === "--help") return console.log(USAGE);
+  if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) refuse(`advance takes the issue first. ${USAGE.split("\n")[0]}`);
   const given = readFlags(rest);

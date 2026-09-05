@@ -1,6 +1,7 @@
 /* A clause of the requirements tree, asked for by identifier and printed as the phase implementing
    it needs it. What the identifiers mean and what a citation claims: docs/requirements/. */
 import { fail } from "../resolve/settings.mjs";
+import { wantsHelp } from "../resolve/flags.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { Refused, refuse } from "../flow/record.mjs";
 import { didYouMean } from "../suggest.mjs";
@@ -151,7 +152,7 @@ const clauseFor = (index, ref) => {
 };
 
 const run = (argv) => {
-  if (!argv.length || argv[0] === "-h" || argv[0] === "--help") return console.log(USAGE);
+  if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
   const { given, token } = read(argv);
   const ref = parseRef(token);
   if (!ref) {

@@ -4,7 +4,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { flags } from "../resolve/flags.mjs";
+import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, cutLine } from "../tracker/comments.mjs";
@@ -107,7 +107,7 @@ const print = (brief, view, ref) => {
 };
 
 const run = async (argv) => {
-  if (!argv.length || argv[0] === "-h" || argv[0] === "--help") return console.log(USAGE);
+  if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) fail(`resume takes the issue first. ${usageOf("resume")}`);
   const given = flags(rest, "resume", ["--json"]);

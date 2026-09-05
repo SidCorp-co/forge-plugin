@@ -6,7 +6,7 @@
    account: which account holds that zone is asked rather than typed. */
 import { CONFIG_PATH, saveConfig, userConfig } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
-import { flags, pullRepeated } from "../resolve/flags.mjs";
+import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 
 const CF_BASE = "https://api.cloudflare.com/client/v4";
@@ -385,7 +385,7 @@ const purge = async ([wanted, ...rest]) => {
 const SUBS = { zones, zone, dns, purge, search, login: saveAccount, accounts: listAccounts };
 
 export const cloudflare = async ([sub, ...rest]) => {
-  const asked = sub === "-h" || sub === "--help";
+  const asked = wantsHelp([sub]);
   if (asked || !sub || !Object.hasOwn(SUBS, sub)) {
     if (sub && !asked) console.error(didYouMean("cloudflare action", sub, Object.keys(SUBS)));
     console.error(USAGE);

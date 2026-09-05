@@ -6,7 +6,7 @@ import {
   readRecord, tagFor, unwrap,
 } from "./machine.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
-import { FLAG_WORD, noValue, pullRepeated, flags } from "../resolve/flags.mjs";
+import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
 import { commentPage, cutLine, postComment } from "../tracker/comments.mjs";
 import { attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo }
   from "../tracker/evidence.mjs";
@@ -470,7 +470,7 @@ const pullRun = (argv) => {
 };
 
 const run = async ([kind, reference, ...argv]) => {
-  if (!kind || kind === "-h" || kind === "--help") return console.log(USAGE);
+  if (!kind || wantsHelp([kind])) return console.log(USAGE);
   if (!KINDS.includes(kind)) refuse(`record knows no kind \`${kind}\`. Kinds: ${KINDS.join(", ")}.`);
   if (!reference) refuse(USAGE.split("\n")[0]);
   const { next, patch, asked, rest } = pullRun(argv);

@@ -30,6 +30,7 @@ const MARKDOWN = "plugin/src/markdown.mjs";
 const SHELL = "plugin/src/hooks/shell-spans.mjs";
 const SSE = "plugin/src/sse.mjs";
 const MACHINE = "plugin/src/flow/machine.mjs";
+const FLAGS = "plugin/src/resolve/flags.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -57,6 +58,14 @@ const SSE_NEEDLES = ["line.slice(5)", ".slice(5).trim()"];
 /* The fence without its anchors: a copy compiled with other flags is the same pattern, and a module that only names the wrapper is not one. */
 const FENCE_WORD = String.raw`⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧`;
 
+/* The comparison a copy writes, and the pair a copy declaring the words as a list would write. */
+const HELP_FORMS = ['=== "-h"', '"-h", "--help"'];
+
+/* Two modules read a help flag anywhere in a line rather than as its first word and spell the same
+   two words to do it; no needle over text tells either from a copy, and neither is one. Named here,
+   where a run widening this scan reads it; docs/cli/the-primitives.md carries why. */
+const ANY_POSITION = ["plugin/src/codex/codex.mjs", "plugin/hooks/gates/codex-order.mjs"];
+
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
   ["a link target", MARKDOWN, [LINK_TARGET_PATTERN]],
@@ -67,12 +76,14 @@ const NEEDLES = [
   ["a shell word", SHELL, [String.raw`[\w./@+][\w./@+-]*`, SHELL_ESCAPE]],
   ["an SSE frame reader", SSE, SSE_NEEDLES],
   ["the untrusted-data fence", MACHINE, [FENCE_WORD]],
+  ["the help predicate", FLAGS, HELP_FORMS, ANY_POSITION],
 ];
 
 const redeclared = (sources) =>
   sources.flatMap(({ rel, text }) =>
     NEEDLES
-      .filter(([, home, needles]) => rel !== home && needles.some((one) => text.includes(one)))
+      .filter(([, home, needles, except = []]) =>
+        rel !== home && !except.includes(rel) && needles.some((one) => text.includes(one)))
       .map(([what, home]) => `${rel} declares ${what} of its own; ${home} holds it`));
 
 const listed = (...paths) =>
@@ -89,7 +100,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [SHELL, SSE, MACHINE]) {
+  for (const home of [SHELL, SSE, MACHINE, FLAGS]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -106,6 +117,8 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "h.mjs", text: "for (const line of lines) held += line.slice(5);" },
     { rel: "i.mjs", text: "const payload = (one) => one.slice(5).trim();" },
     { rel: "j.mjs", text: String.raw`const FENCE = /⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧/u;` },
+    { rel: "m.mjs", text: 'const asked = word === "-h" || word === "--help";' },
+    { rel: "n.mjs", text: 'const HELP = ["-h", "--help"];' },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
@@ -117,7 +130,31 @@ test("the guard fires on a module that re-declares one", () => {
     `h.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
     `i.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
     `j.mjs declares the untrusted-data fence of its own; ${MACHINE} holds it`,
+    `m.mjs declares the help predicate of its own; ${FLAGS} holds it`,
+    `n.mjs declares the help predicate of its own; ${FLAGS} holds it`,
   ]);
+});
+
+/* A rename would leave the exclusion excusing nothing and still reading as though it did. */
+test("the two any-position readers are excluded by name, and both are still in the scan", () => {
+  const own = 'const asked = [sub, ...rest].some((one) => one === "-h" || one === "--help");';
+  for (const rel of ANY_POSITION) assert.deepEqual(redeclared([{ rel, text: own }]), []);
+  const found = modules().map(({ rel }) => rel);
+  for (const rel of ANY_POSITION) assert.ok(found.includes(rel), `${rel} is no longer a module the scan reads`);
+  assert.deepEqual(redeclared([{ rel: "o.mjs", text: own }]),
+    [`o.mjs declares the help predicate of its own; ${FLAGS} holds it`],
+    "and the same text anywhere else is still a copy");
+});
+
+test("spawning a program with --help, and a pattern reading -h out of prose, are not the predicate", () => {
+  const cases = [
+    { rel: "p.mjs", text: 'const run = spawnSync(BUNDLED, ["--help"], { encoding: "utf8" });' },
+    { rel: "q.mjs", text: String.raw`const TOOL_HELP = /\x60([a-z][\w-]*)\s+(?:-h|--help)\x60/g;` },
+  ];
+  for (const { rel, text } of cases) {
+    assert.ok(text.includes("--help"), `${rel}: the word is there, so only the comparison tells a copy apart`);
+  }
+  assert.deepEqual(redeclared(cases), []);
 });
 
 test("escaping an apostrophe for a shell is not re-declaring the quoter", () => {
