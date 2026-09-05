@@ -4,10 +4,10 @@
    counts towards are that script's other responsibility, and `run-review.test.mjs` holds them. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { BARE, committed, GATE, git, lastStep, landIn, pushed, ref, ROOT, runIn, scratch } from "./run-fixtures.mjs";
+import { BARE, committed, GATE, git, lastStep, landIn, pushed, ref, ROOT, runIn, scratch, stubbed } from "./run-fixtures.mjs";
 
 /* Step 7 is reached only from a tree that is not the checkout, so every fixture shipping from the
    scratch root early-returns past it (ISS-143). `pull.rebase` is set in the scratch repository
@@ -310,4 +310,41 @@ test("a change of more than one commit prints the range and the end a mark takes
     git(work, "log", "--first-parent", "--format=%H", `${was}..${tip}`).stdout.trim().split("\n"),
     [tip, first],
     "the printed range has to show exactly the change's commits when it is pasted into git log");
+});
+
+/* The set narrowed at ISS-320: a gate, its harness, a how page and a solo entry are chosen per call,
+   so reporting the hooks tree whole sends a session to restart for a file it already has. */
+test("the restart line names the files a session is frozen on, and no other file under plugin/hooks", () => {
+  const { work } = pushed("restart-owed");
+  stubbed(work);
+  for (const one of [join("plugin", "hooks", "gate.mjs"), join("plugin", "hooks", "hooks.json"),
+    join("plugin", "skills", "issue-flow", "SKILL.md"), join("plugin", "hooks", "_hook.mjs"),
+    join("plugin", "hooks", "gates", "bash-guard.mjs"), join("plugin", "hooks", "how", "bash-guard.md"),
+    join("plugin", "hooks", "entries", "bash-guard.mjs"), join("plugin", "hooks", "vendor", "rules.mjs")]) {
+    landIn(work, one, 1, `${one} moved`);
+  }
+  /* Appended: this tree's own `run.mjs` imports the chooser, and `landIn` would clobber it. */
+  appendFileSync(join(work, "plugin", "src", "tools", "plugin-copy.mjs"), "\n/* moved by this release */\n");
+  git(work, "commit", "-am", "the chooser the entries import");
+
+  const out = lastStep(work).stdout;
+  const listed = [...out.matchAll(/^ {4}(\S+)$/gmu)].map(([, one]) => one);
+  assert.deepEqual(listed.sort(), [
+    "plugin/hooks/gate.mjs",
+    "plugin/hooks/hooks.json",
+    "plugin/skills/issue-flow/SKILL.md",
+    "plugin/src/tools/plugin-copy.mjs",
+  ], `the restart line is not the frozen set:\n${out}`);
+  assert.match(out, /a restart is owed before any open session trusts these 4 file\(s\)/u, out);
+});
+
+test("a release moving only gate code sends nobody to restart, and says what the set is", () => {
+  const { work } = pushed("restart-not-owed");
+  stubbed(work);
+  landIn(work, join("plugin", "hooks", "gates", "bash-guard.mjs"), 1, "a gate fixed");
+  landIn(work, join("plugin", "hooks", "how", "bash-guard.md"), 1, "its argument rewritten");
+  const out = lastStep(work).stdout;
+  assert.match(out, /nothing a session is frozen on moved since [0-9a-f]{7}/u, out);
+  assert.match(out, /plugin\/hooks\/hooks\.json/u, `the set itself is not named:\n${out}`);
+  assert.doesNotMatch(out, /a restart is owed/u, `a gate fix was reported as owing one:\n${out}`);
 });

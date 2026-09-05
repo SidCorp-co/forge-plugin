@@ -84,12 +84,26 @@ test("doctor reports a switch wired to nothing", () => {
 /* Deriving the names from the directory promises that a hook added later is switchable, and nothing
    made that true: link-cli proves an entry point can skip readEvent and stay active while
    `forge hooks --off` reports it off. So the promise is a case, not a convention. */
+/* A registered entry is thin — the hop and nothing else — so the switch it honours sits in the
+   module it hands to, whose path is named right there in the `moduleToRun` call. Following it is
+   what keeps this a check: reading the entry alone would report every thin entry as switchless. */
+const HANDED = /moduleToRun\(\s*join\(([^)]*)\)/u;
+const handedTo = (text) => {
+  const said = HANDED.exec(text);
+  return said ? join(HERE, "..", "..", ...[...said[1].matchAll(/"([^"]+)"/gu)].map(([, one]) => one)) : null;
+};
+const switchText = (path) => {
+  const text = readFileSync(path, "utf8");
+  const body = handedTo(text);
+  return body ? `${text}\n${readFileSync(body, "utf8")}` : text;
+};
+
 test("every hook honours the switch, not only the ones that read an event", () => {
   const dirs = [join(HERE, "..", "..", "hooks"), join(HERE, "..", "..", "hooks", "entries")];
   const missing = dirs
     .flatMap((dir) => readdirSync(dir).map((name) => join(dir, name)))
     .filter((path) => path.endsWith(".mjs") && !basename(path).startsWith("_") && basename(path) !== "gate.mjs")
-    .filter((path) => !/\balone\("[\w-]+"\)|\bhookOff\(/u.test(readFileSync(path, "utf8")))
+    .filter((path) => !/\balone\("[\w-]+"\)|\bhookOff\(/u.test(switchText(path)))
     .map((path) => basename(path));
   assert.deepEqual(
     missing,

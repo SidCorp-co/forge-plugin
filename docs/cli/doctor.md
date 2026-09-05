@@ -56,7 +56,7 @@ Writes translate before they post, so a missing `vi-natural` key is a miss exact
 declares the language that waits on it. The gateway url and model are read beside the key, because a
 saved key alone is configuration that looks complete and dies at the first call.
 
-**And it names the copy a call from here would run.** `~/.local/bin/forge` is one symlink for the
+**And it names the copy a call from here would run, and the copy the gates come from.** `~/.local/bin/forge` is one symlink for the
 machine, written from whichever plugin root a session started with, so for two days every project on
 this machine ran this checkout: one of them died on a `SyntaxError` from a refactor half-finished
 here, and another silently ran an unreleased build. A call that arrived through that link now picks
@@ -65,3 +65,8 @@ record resolves to — and the report has to answer for a directory rather than 
 because the answer changes with `cd`. A call that names a copy by its own path still runs that copy:
 the probe of a worktree, the suite's own spawns and the bundled `vi-natural` all mean the copy they
 name, and a caller who typed a path was not asking.
+
+The gates ask the same chooser for a different file, so they get their own line rather than sharing
+that one. The answers are usually the same and the case that matters is when they are not: an install
+holding one entry and not the other picks a different copy for each, and nothing else on this report
+would show it.

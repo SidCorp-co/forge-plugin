@@ -7,7 +7,7 @@ import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { pluginCopy } from "../plugin/src/tools/plugin-copy.mjs";
+import { freezesSession, FROZEN, pluginCopy } from "../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, REMOTE, Stop, stop } from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
@@ -36,17 +36,18 @@ const USAGE = [
   "                          clean tree, fetch, rebase, `npm run check`, a version above the remote",
   "                          head, push, the checkout pulled, the marketplace and the plugin",
   "                          updated, then the installed copy named, the sha the change landed as,",
-  "                          and every plugin/hooks/ file the release moved",
+  "                          and every file of it a session cannot pick up without restarting",
   `  ${sig("review")}   the range the next review reads, or --done to move the mark to it`,
   "",
   ...flagLines([...VERBS.values()].flatMap((one) => one.flags)),
   "",
   "ship stops at the first failure and writes nothing past it, and a resume past the gate spends",
-  "the gate first, so nothing that pushes runs against a tree no gate has passed. A change under",
-  "plugin/hooks/ or plugin/skills/ reaches a session at its next start, so the last step says",
-  "whether a restart is owed before anything trusts the release. It says beside that what the gate",
-  "run a step earlier took and how that compares with the run before it, so a release that made the",
-  "gate slower is visible where a release that wrote a lot of unread code already is.",
+  "the gate first, so nothing that pushes runs against a tree no gate has passed. What a session",
+  "registered, and the skills it loaded, reach it at its next start — gate code does not, being chosen",
+  "per call — so the last step says whether a restart is owed and names the set it filtered on. It",
+  "says beside that what the gate run a step earlier took and how that compares with the run before",
+  "it, so a release that made the gate slower is visible where a release that wrote a lot of unread",
+  "code already is.",
   "",
   "It names beside those the sha the change landed as, which is not the pushed head the push printed:",
   "the rebase rewrote the commit the run reviewed and the version commit sits above it, so a mark that",
@@ -221,8 +222,9 @@ const releaseSays = (tree, base) => {
   console.log(landedLine(was, all, own, `the head this tree pushed to ${base} is `
     + `${(gitOut(["rev-parse", "HEAD"], tree) ?? "").slice(0, 7)}`));
   const moved = (gitOut(["diff", "--name-only", `${was}..HEAD`], tree) ?? "").split("\n").filter(Boolean);
-  const held = moved.filter((one) => one.startsWith("plugin/hooks/") || one.startsWith("plugin/skills/"));
-  if (!held.length) return console.log(`  nothing under plugin/hooks/ or plugin/skills/ moved since ${was.slice(0, 7)}`);
+  const held = moved.filter(freezesSession);
+  if (!held.length) return console.log(`  nothing a session is frozen on moved since ${was.slice(0, 7)}`
+    + ` — the set is ${FROZEN.join(", ")}`);
   console.log(`  a restart is owed before any open session trusts these ${held.length} file(s):`);
   for (const one of held) console.log(`    ${one}`);
 };

@@ -1,6 +1,6 @@
 // What every gate here needs: the event, the files a call wrote, the ways to answer, the runner that
 // hands one event to every gate of its kind in one process, and the once-per-file-per-session stamp.
-// Why write detection asks the disk, not the shell: docs/HOOKS.md.
+// Why write detection asks the disk: docs/HOOKS.md. Which copy this one is: how/copies.md.
 
 import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -89,8 +89,9 @@ export const dispatch = async (given, ev = readEvent()) => {
   });
 };
 
-/* The deadline is the event's, under what hooks.json registers: a late gate spends what is left. */
-const startedAt = Date.now();
+/* The deadline is the event's, under what hooks.json registers, and runs from the process rather
+   than from this import: the entry hops before it, and a fallback would get a fresh budget. */
+const startedAt = performance.timeOrigin;
 export const DEADLINES = { pre: 8_000, post: 85_000 };
 let deadline = DEADLINES.post;
 export const remaining = () => deadline - (Date.now() - startedAt);

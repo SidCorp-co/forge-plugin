@@ -1,9 +1,9 @@
-/* A session loads the plugin once and keeps that copy — the hook code and the registration both — so
-   an update lands for the next session, and the hook fixed an hour ago is not the hook that fired. */
+/* A session keeps the registration it read at start; the code behind it is chosen per call, here,
+   so a landed fix reaches an open session. `FROZEN` is what a restart is still owed for. */
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const RECORD = join(homedir(), ".claude", "plugins", "installed_plugins.json");
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -88,4 +88,38 @@ export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"),
   }
   return { ...hereCopy(root), kind: "this", installed: null,
     why: "no checkout at or above the working directory and no install record that resolves, so the copy on PATH" };
+};
+
+/* What an open session cannot pick up: the registration, the entries it names, and their static
+   graph — which terminates here, on node builtins. Everything else is per call. docs/HOOKS.md. */
+export const FROZEN = [
+  "plugin/hooks/hooks.json",
+  "plugin/hooks/gate.mjs",
+  "plugin/hooks/link-cli.mjs",
+  "plugin/src/tools/plugin-copy.mjs",
+  "plugin/skills/",
+];
+
+export const freezesSession = (path) =>
+  FROZEN.some((one) => (one.endsWith("/") ? path.startsWith(one) : path === one));
+
+/** What a registered entry runs: the chosen copy's module, else the entry's own — a failed hop runs
+ *  the gates beside it rather than none. Only the load is tried, since what runs next owns fd 0. */
+export const moduleToRun = async (entry, holds, own) => {
+  const chosen = copyToRun({ entry });
+  const target = pathToFileURL(join(chosen.dir, entry)).href;
+  const mine = pathToFileURL(own).href;
+  const load = async (where) => {
+    const held = await import(where);
+    if (typeof held[holds] !== "function") throw new Error(`it exports no ${holds}() to run`);
+    return held;
+  };
+  try {
+    return await load(target);
+  } catch (error) {
+    if (target === mine) throw error;
+    process.stderr.write(`forge hooks: ${join(chosen.dir, entry)} is the copy to run — ${chosen.why} `
+      + `— and it did not load: ${error?.message ?? error}\n${own} answered this call instead.\n`);
+    return load(mine);
+  }
 };

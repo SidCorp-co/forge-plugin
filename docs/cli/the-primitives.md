@@ -111,8 +111,8 @@ Both spell the same two words as the seven did, so no needle over text distingui
 copy — and both ask a different question, so neither is one. Both readings have a name now, in
 `resolve/help-word.mjs`, which imports nothing so the second CLI can spend them: `wantsHelp` reads
 first-or-not-at-all, `isHelpWord` the word wherever a caller looked. The distinction moved into the
-name a site spends. The two gates keep their exclusion — one is a hook, and moving a hook owes the
-session a restart — so ISS-299 carries it.
+name a site spends. The two gates keep their exclusion — one is a hook, and at the
+time moving any hook owed the session a restart — so ISS-299 carries it.
 
 The needles are the comparison, `=== "-h"`, and the word pair a copy declaring a list would write
 instead. Anything looser — the word `--help` alone — refuses the doctor spawning another program

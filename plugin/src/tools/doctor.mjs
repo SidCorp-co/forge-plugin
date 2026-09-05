@@ -467,13 +467,16 @@ export const doctor = async (rest) => {
   if (copy && !copy.stale) line(OK, "plugin copy", `${copy.running} — running and installed`);
   else if (copy) {
     line(NOTE, "plugin copy", `${copy.running} here, ${copy.installed} installed — a session keeps the `
-      + "copy it started with: `claude plugin update` then restart");
+      + "registration it started with: `claude plugin update` then restart");
   }
   /* Which copy `forge` on PATH is, from here — the answer changes with the directory, and the link
      itself names one copy for the whole machine. */
   const dispatched = copyToRun();
   line(OK, "copy on PATH", `${dispatched.kind} ${dispatched.version ?? "?"} at ${dispatched.dir}`
     + ` — ${dispatched.why}`);
+  const gating = copyToRun({ entry: join("hooks", "_hook.mjs") });
+  line(OK, "copy the gates run", `${gating.kind} ${gating.version ?? "?"} at ${gating.dir}`
+    + ` — ${gating.why}`);
   checkContract();
   /* Reads and writes differ: `new` translates before it posts, and a read never asks. */
   checkVi(language.value === "vi");

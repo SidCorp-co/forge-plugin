@@ -118,6 +118,11 @@ test("the copy a call through the link would run is reported, with why that one"
   assert.match(inside.stdout, /\[ {2}ok {2}\] copy on PATH\s+checkout \S+ at \S+ — the working directory is inside the checkout/u);
 });
 
+/* An install holding one entry and not the other answers differently for each: only this shows it. */
+test("the copy the gates come from is reported beside the copy on PATH", () => {
+  assert.match(report(null), /\[ {2}ok {2}\] copy the gates run\s+this \S+ at \S+ — no checkout at or above the working directory/u);
+});
+
 /* The project's release policy is the tracker's to answer, and the report names it in the words its
    owner uses: the staging branch, never the field's own name (ISS-90). It is also the only fixture
    whose exit code means anything, `report` above exiting 1 on its missing credential alone; and

@@ -85,9 +85,10 @@ with three of them reading the transcript tail apart and five computing the touc
 `hooks.json` registers one line per event, `gate.mjs` with the gates named in order, and the gates run
 in one process against one event, sharing those reads. Before a call the first refusal is the answer,
 as it was when each was a process; after one, every block and every context is kept and sent together,
-where the old arrangement let each print its own. A gate answers by throwing a decision the runner
-turns into the protocol, so the same gate text runs alone under `plugin/hooks/entries/<name>.mjs` for the suite
-and for `forge hooks --off <name>`, which reads the names off the line.
+where the old arrangement let each print its own. The same gate text runs alone under
+`plugin/hooks/entries/<name>.mjs` for the suite and for `forge hooks --off <name>`, which reads the
+names off the line. Which copy that text comes from is chosen per call rather than frozen at
+registration: `forge hooks --how copies`.
 
 One gate asks the tracker before it can answer, and a call it cannot make ends the process with its
 own reason on stderr. That is a stand-down and not a failure: the write it guards travels on the
@@ -118,7 +119,7 @@ decision rather than a second answer for one hook, and `forge doctor` reports th
 **It fails open.** A config that will not parse runs every gate: the cost of a broken switch has to be
 a gate firing, never a gate silently gone. **It costs nothing measured** — a hook is ~47 ms of Node
 startup, and one memoized read of a small file is inside that noise. **And the hook process reads it**,
-not the registration, so a switch takes effect without a restart.
+not the registration.
 
 Scoping a switch to one project is not built: `hooksOff` is the account's, like the withheld verbs it
 mirrors.

@@ -653,11 +653,12 @@ reopen and left it unrehearsed on a live issue for this reason.
 
 ### Release and routes — the installed copy, the schema, and the gates every route shares
 
-**A change to a hook, a skill or a how page reaches a session at its next start.** The session
-that made it keeps the copy it loaded, and so does every session already open, so the release names
-those files and the run's report says a restart is owed before the next run trusts them; a dry run
-names the skill copy it ran under, since the seventeenth ran three releases behind the tree without
-knowing.
+**A change to what a session registered reaches it at its next start, and nothing else does.** A
+gate, its harness and its how page are chosen per call and are live the moment they land; the
+registration a session read, the entries it names by path, what those import, and the skills it
+loaded are the session's own until it restarts. The release names exactly those files and the run's
+report says a restart is owed for them; a dry run names the skill copy it ran under, since the
+seventeenth ran three releases behind the tree without knowing.
 
 **The version mark is part of the release.** The commit that moves the version is the one a rebase
 drops without a conflict when an identical bump already landed upstream, leaving a tree whose manifest

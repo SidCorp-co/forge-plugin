@@ -1,5 +1,6 @@
-/* A session started before an update keeps the whole copy — the gate code and the registration — so a
-   fix looks landed from the tree and is not what fired. Nobody can see that from inside the session. */
+/* A session started before an update keeps the registration it read, and nobody can see that from
+   inside the session. The gate code behind that registration is chosen per call and is not frozen;
+   `plugin/test/gates/gate-entry.test.mjs` holds that half. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";

@@ -140,8 +140,11 @@ it reaches the file.
 Rev: 1 · Actors: developer · Enforces: BR-01
 
 The plugin runs from a copy the installer made, and the installer compares versions only (C-01), so
-an edit that did not bump the manifest never reaches a session. A session running a copy the install
-has moved past is told to restart, and one running the installed copy is told nothing.
+an edit that did not bump the manifest never reaches a session's registration. A session running a
+copy the install has moved past is told to restart, and one running the installed copy is told
+nothing. What it restarts *for* is the registration, the entries that registration names and the
+skills the session loaded; the gate code behind an entry is chosen per call and is already that
+session's.
 
 - **AC-07-6-1** · Rev: 1 · Proof: plugin/test/tools/plugin-copy.test.mjs "a session running a copy the install has moved past is told to restart"
   IF the running copy is older than the installed one THEN the CLI SHALL say so and SHALL name the
@@ -171,6 +174,25 @@ the writer clearing what nobody can still be reading.
 - **AC-07-7-3** · Rev: 1 · Proof: plugin/test/hooks/stamps.test.mjs "one write sweeps every kind past the bound and leaves the ones inside it"
   IF a record is inside that bound THEN it SHALL survive the write, since a session running now may
   still read it.
+
+### UC-07-8 — A gate that landed is the gate that fires
+
+Rev: 1 · Actors: developer, agent · Enforces: BR-01
+
+A registration is read once and names its entries by path, which for a long while froze the code
+behind those paths too: over three days 44 landings told every open session to restart and 3 of them
+moved what a session had registered. So the entries carry the hop and nothing else, and the gate code
+comes from the copy the CLI itself would run.
+
+- **AC-07-8-1** · Rev: 1 · Proof: plugin/test/hooks/gate-entry.test.mjs "the entry a session froze runs the copy installed since, not the one beside it"
+  WHEN a registered entry is called THEN the gate code it runs SHALL come from the copy chosen at
+  that call, not from the copy the entry sits in.
+- **AC-07-8-2** · Rev: 1 · Proof: plugin/test/hooks/gate-entry.test.mjs "a chosen copy that will not load leaves the gates running, and says which copy answered"
+  IF the chosen copy cannot be loaded THEN the entry SHALL run the gates beside it and SHALL name
+  both copies, rather than leave the call unguarded.
+- **AC-07-8-3** · Rev: 1 · Proof: plugin/test/hooks/gate-entry.test.mjs "what the registered entries import is exactly what the frozen set declares"
+  WHEN the files a restart is owed for are reported THEN the set SHALL be the registration, the
+  entries it names and what those import, and nothing else under the hooks tree.
 
 ## Business rules enforced
 
