@@ -2317,3 +2317,23 @@ stubbed. No restart owed. Closed by its run. Folded from the record.
 - The project brief's stale line was left deliberately: a refresh is a whole-file write to a store with
   no undo, and three other agents were live. A shared store's write waits for a quiet moment, and the run
   said so rather than writing.
+
+## Ninety-second dry run — ISS-259
+
+One agent gave the help predicate one home (3.35.105): seven hand-written readers now read the one in
+the flag module, a row in the one-copy guard needled on the literal and on the word pair, the two
+any-position readers excluded by path with the reason beside the scan. Each of the seven proven neutral
+by reverting it alone — thirty-eight captures identical every time, the guard naming the reverted file.
+No restart owed. Closed by its run. Folded from the record.
+
+- A wrong claim reached the tracker and was corrected in the open: the run read the answers-help mark
+  off the command table alone, concluded six of seven sites were dead, and built its judgement method on
+  it; the review refuted it — ten verbs set the mark beside their own export. The code was unaffected; the
+  confirmation, a decision, the doc and a filing were corrected with a comment naming what moved. A claim
+  about the whole tree is read off the whole tree.
+- A comment arrived on the issue mid-flight — a complete, measured widening row from a sibling run —
+  after the claim had reported no comments, and the run did not re-read the thread before shipping. It
+  could not have landed anyway, since the sibling's own file still spells the copy; routed back with the
+  file's new shape. A thread is read once more before the ship, since the claim's answer ages.
+- A knowledge entry says the guard file is held by this run; it is closed. Left to the run whose subject
+  the widening is, and named so a reader of the store knows the line is stale.
