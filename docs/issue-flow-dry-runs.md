@@ -2296,3 +2296,24 @@ restart is owed. Closed by its run. Folded from the record.
   digest of what the consult read, so this repository's own proof method — revert each mechanism alone,
   run, restore — re-charges a full consult on bytes already reviewed. It cost this run one consult, and
   costs every run that proves by reverting.
+
+## Ninety-first dry run — ISS-272
+
+One agent kept a recheck inside its consult's range (3.35.104): a recheck naming no file derives its
+set from the range the consult it answers recorded, and never widens past it, applied only after the
+owed reading has been asked against the set the caller stood on, with one line carrying both counts. A
+unit case and an end-to-end case reproducing the reported shape both go red when the narrowing is
+stubbed. No restart owed. Closed by its run. Folded from the record.
+
+- One claim in the issue was false and changed the fix: the body blamed the lower effort on the line
+  count, but a recheck steps its effort down before it looks at lines; what the widened range bought was
+  the clipping and the call budget — five files clipped and four thousand changed lines against one file,
+  nothing clipped and two lines. The rule aimed at effort was answered as a line naming the narrowing,
+  on the confirmation record.
+- A merged mark whose note read that the landing moved nothing, followed by an explanation, was parsed
+  as a landing that moved paths, and the advance demanded eight verdicts again; rewriting the note earned
+  the move at once. Filed fix-size, it folded onto the issue that owns the note's grammar — the create
+  path's fold doing what it was built for.
+- The project brief's stale line was left deliberately: a refresh is a whole-file write to a store with
+  no undo, and three other agents were live. A shared store's write waits for a quiet moment, and the run
+  said so rather than writing.
