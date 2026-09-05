@@ -2112,3 +2112,24 @@ its run. Folded from the record.
   on an unstated everything-is-text assumption; nothing fires today, and the price is named (ISS-274).
   The feedback verb offered to attach a finding to a released issue while calling it open, so the
   new-issue flag was needed — a status read stale at the moment of the offer.
+
+## Eighty-third dry run — ISS-240 and ISS-255
+
+One agent took the two readings of a value beginning with two dashes as one run (3.35.96). ISS-240: a
+flag standing where a body path goes is refused as a flag before any file is opened, in the one body
+reader so two verbs inherit it without their files being touched, and the filing verb asks its own body
+slot first so the sentence arrives before a credential is resolved. ISS-255: one flag-word shape shared
+by the four value readers and the preflight, so a value the shell bound to its flag reaches the parser
+whatever it opens with, and only a bare flag word is refused, named as the token read. Seventeen criteria
+pass; one verdict's own reason begins with two dashes and is stored intact. No restart owed. Both closed
+by the run. Folded from the record.
+
+- Two review rounds found three real defects in the run's own first shape — the preflight turning away
+  bound values, a declared flag passing the body-slot check, a bare double-dash becoming a nameless field —
+  all landed with cases, and every one of seven new cases watched to fail without its change, the
+  mutation table a comment on both issues.
+- A document outside the run's file list was narrowed because its sentence was the project's own
+  decision contradicting the issue; recorded as a decision with its undo. A rule the change refutes is
+  corrected where it stands, held file or not, and said.
+- Two findings posted to issues the run did not hold, one of them noting its rules one to three are now
+  met by this landing and naming what remains; a reader of that issue starts from the remainder.
