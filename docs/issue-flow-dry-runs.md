@@ -2156,3 +2156,23 @@ run. Folded from the record.
   what it read is worth more than one that says nothing, and the record should have the field.
 - The lease on a closed issue stays live until it expires, with no release verb — the third run to note
   it, already filed.
+
+## Eighty-fifth dry run — ISS-271
+
+One agent made a help pointer earned rather than assumed (3.35.98): the help reader had read any bare
+token in a row's usage line as a tracker field, so a verb whose value is a local file was pointed at a
+schema with no properties; token shape cannot separate the rows, so the discrimination is per value — a
+value the caller fills from this machine is not one the tracker names, and a row earns the pointer only
+where every value it declares is. Derived from the row's own line; nothing lists the verbs that take a
+file. Four more verbs lost the pointer as declared collateral, each passing a body or bytes. Two cases
+watched failing with the old predicate restored, one walking all twenty-four rows. No restart owed.
+Closed by its run. Folded from the record.
+
+- One review finding was rejected on the record: a widened pattern for a spelling no row uses would ship
+  with no case that can fail without it. A finding about a shape that exists nowhere is answered by
+  showing it exists nowhere, not by a guard.
+- A comment in a held file states the old reason a verb answers its own help, and this change makes
+  that reason false; routed as ISS-275 with the right reason written in the filing. A comment that
+  explains a mechanism is the second copy this repository's rules warn of, and it went stale on cue.
+- A proof citation followed a renamed case without a revision moving, as the requirements rules allow;
+  the run named it as a side effect rather than leaving it to the proof reader to catch.
