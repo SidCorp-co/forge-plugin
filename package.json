@@ -19,6 +19,7 @@
     "test": "node --test \"plugin/test/**/*.test.mjs\"",
     "check:skill-paths": "node plugin/scripts/skill-paths.mjs",
     "check:skill-boundaries": "node plugin/scripts/skill-boundaries.mjs",
+    "check:skill-figures": "node plugin/scripts/skill-figures.mjs",
     "check:dup": "node plugin/scripts/skill-dup.mjs plugin --only comments --exclude hooks/vendor --exclude test",
     "sync:skills": "node tools/sync-skills.mjs",
     "sync:skills:check": "node tools/sync-skills.mjs --check"

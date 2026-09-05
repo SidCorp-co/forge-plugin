@@ -94,7 +94,7 @@ retired it, and is never renumbered or reused.
   statuses and their payloads, and it is the `Source` of several requirements here. This tree says
   what the software must do about it.
 - **Any other project's rules.** The division between what this plugin decides and what a project
-  decides has one home, the issue-flow skill's `two-levels` reference, and no clause here repeats
+  decides has one home, `docs/two-levels.md`, and no clause here repeats
   it.
 - **Judgement.** No clause here asks whether an answer from a model is good; nothing diffable
   proves that.

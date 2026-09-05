@@ -64,17 +64,18 @@ test("the brief carries the status, the phase it owes and the reference that hol
   for (const status of [...ORDER, "dropped", "reopen"]) {
     assert.ok(PHASE[status], `${status} owes no phase, so a resuming run is told nothing`);
     const held = methodOf(status);
-    assert.match(held.reference, /^forge guide issue-flow [a-z-]+$/u, `${held.reference} is not the served route`);
+    assert.match(held.reference, /^forge guide issue-flow( [a-z-]+)?$/u, `${held.reference} is not the served route`);
   }
 });
 
-/* The method is served by the verb, so what the table names has to be a reference this copy serves. */
+/* The method is served by the verb, so what the table names has to be a reference this copy serves;
+   a null names the body, which carries the phase itself. */
 test("every reference the table names is one forge guide issue-flow answers", async () => {
   const { referencesOf } = await import("../../../src/guides/skill-guides.mjs");
   const served = referencesOf("issue-flow");
-  const named = new Set(Object.values(PHASE).map(([, file]) => file));
+  const named = new Set(Object.values(PHASE).map(([, file]) => file).filter(Boolean));
   for (const file of named) assert.ok(served.includes(file), `${file} is served by no guide`);
-  assert.ok(named.size >= 4, "one reference for every phase a status can owe");
+  assert.ok(named.size >= 2, "the phases that cite a reference cite one this copy serves");
 });
 
 test("every criterion carries a verdict mark, and one nobody judged says so", () => {

@@ -11,4 +11,31 @@ description: >-
   purge cache, "second opinion", "review this plan", codex.
 ---
 
-This skill's method is served by the CLI, so every session reads the current text: run `forge guide forge` and follow what it prints. It names the references it cites, each read with `forge guide forge <reference>` at the point the method calls for it. What follows this paragraph, if anything, is the arguments the caller passed.
+## Rules
+
+- `forge -h` lists the verbs this credential can use, and `forge <verb> -h` owns the arguments.
+  Nothing about a payload's shape is repeated here.
+- Pass a path when the file exists. Never write a file to have one to pass.
+- Read one field of one body before the whole: `forge issue ISS-45 --fields status,plan`.
+- `ISS-45` works wherever a uuid does, inside a raw `call` payload too.
+- Write English. A tracker that reads Vietnamese says so in its config, and the CLI rewrites what
+  you hand it.
+- Never pass a project id, a slug or a token on the command line.
+- A verb you expected and cannot see is withheld on purpose: `forge doctor` says by what.
+- When this plugin is the problem, file it before working around it: `forge feedback`, from any
+  project, no lease.
+
+## Route
+
+| you want | run |
+|---|---|
+| list, read, search issues | `forge issues -h`, `forge issue -h` |
+| file, comment, attach | `forge new -h`, `forge comment -h`, `forge attach -h` |
+| a plan, a lease, a record, a status move | `forge plan -h`, `forge claim -h`, `forge record -h`, `forge advance -h` |
+| the next issue to work | `forge next -h` |
+| what blocks what | `forge deps -h`; reading the graph: `forge guide forge dependencies` |
+| Cloudflare zones, DNS, purges | `forge cloudflare -h`; the method: `forge guide forge cloudflare` |
+| a second opinion on this turn | `forge codex -h`; asking and reading one: `forge guide forge codex` |
+| a first call in a project, a missing verb | `forge doctor`; then `forge guide forge configuration` |
+| what a gate refused and why | `forge hooks -h` |
+| anything the verbs do not wrap | `forge tools`, `forge schema <tool>`, `forge call -h` |

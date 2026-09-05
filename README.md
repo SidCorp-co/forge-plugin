@@ -134,8 +134,8 @@ plugin/
     format/               order-preserving JSON, locale trees, Markdown segmentation
     gateway/              config, the streaming client, the batch engine with its gate
     commands/             one file per verb
-  skills/<name>/SKILL.md  the stub Claude Code offers a skill by; four of the six carry only that
-  guides/skills/<name>/   the body and references `forge guide <name>` serves for those four
+  skills/<name>/SKILL.md  what every invocation of a skill reads: rules and a route table, or a stub
+  guides/skills/<name>/   what a minority of invocations reads, served by `forge guide <name>`
   skills/audit-code-quality  skills/setup-code-quality  whole, shared with packages/code-quality
 ```
 
@@ -154,14 +154,23 @@ constants it borrowed come back as its own named declarations, one per tree, and
 watches for a second copy re-narrows to `src/` and `hooks/`. Nothing else here has to move, which
 is the point of keeping the borrowing to values that carry no graph behind them.
 
+## Where a skill's text goes
+
+Text goes where it costs the fewest rounds for the reading that most often needs it. Needed by every
+invocation: inline in `SKILL.md`, under the byte ceiling `plugin/test/guides/skill-guides.test.mjs`
+states. Needed by every run of a long method: the body `forge guide <skill>` serves, one call. Needed
+by a minority of invocations: a reference, cited from the exact point. Answered by a tool's own `-h`:
+nowhere in the skill, which names the verb instead. A skill sentence is a rule, a route or a trigger;
+the reason behind one lives in `docs/`, and a measurement on the issue that took it, which
+`check:skill-figures` holds.
+
 ## Two levels
 
 This plugin is the **global** level. It owns *when and where* a rule fires — which tool routes are
 watched, which directories are in scope. It owns no rule about what good code is.
 
 A **project** owns that. Its eslint config, its thresholds, its gates. Which level a rule belongs
-to, and what happens where both could speak, is stated once in
-`plugin/guides/skills/issue-flow/references/two-levels.md`.
+to, and what happens where both could speak, is stated once in [`docs/two-levels.md`](docs/two-levels.md).
 
 `code-quality.mjs` is the arrangement in one file. It finds every file a call wrote — including
 through the shell, which is the route `Edit|Write|MultiEdit` matchers miss — and hands each one to

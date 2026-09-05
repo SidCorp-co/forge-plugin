@@ -17,26 +17,27 @@ export const ORDER = [
   "open", "confirmed", "clarified", "approved", "in_progress", "developed", "tested", "released", "closed",
 ];
 
-/* The flow table's last column: which phase a status owes, and where its method lives, at a path
-   relative to the plugin root — one level above this module in the checkout and in the installed
-   copy alike. ISS-18 owns typing it; a pointer beats a number nobody can look up. */
+/* The flow table's last column: which phase a status owes, and where its method lives — the
+   reference the phase cites, or null where the body itself carries the phase. ISS-18 owns typing
+   it; a pointer beats a number nobody can look up. */
 export const PHASE = {
-  open: ["1 Triage", "triage"],
-  confirmed: ["2 Clarify", "clarify"],
-  clarified: ["3 Plan", "plan"],
+  open: ["1 Triage", null],
+  confirmed: ["2 Clarify", null],
+  clarified: ["3 Plan", null],
   approved: ["4 Implement, to the branch", "verification"],
   in_progress: ["4 Implement, to the review; 5 Prove; then 7's landing", "verification"],
   developed: ["5 Prove", "verification"],
-  tested: ["6, 7 Ship", "release-note"],
-  released: ["7 Ship, the close", "release-note"],
+  tested: ["6, 7 Ship", null],
+  released: ["7 Ship, the close", null],
   closed: ["none", "learning"],
   dropped: ["none", "learning"],
-  reopen: ["1 Triage, of the person's finding", "triage"],
+  reopen: ["1 Triage, of the person's finding", null],
 };
 
 export const methodOf = (status) => {
   const held = PHASE[status];
-  return held ? { phase: held[0], reference: `forge guide issue-flow ${held[1]}` } : null;
+  if (!held) return null;
+  return { phase: held[0], reference: held[1] ? `forge guide issue-flow ${held[1]}` : "forge guide issue-flow" };
 };
 
 /* Which reader each park kind speaks to, and so which side status it lands in. Every kind in PARKS

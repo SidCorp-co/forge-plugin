@@ -72,12 +72,16 @@ behind is not the waiver's business.
 
 ## The skills' own text is served the same way
 
-Since 3.35.128 a skill under `plugin/skills/` that only this plugin ships is a stub: the frontmatter
-Claude Code offers the skill by, and one paragraph naming `forge guide <skill>`. Its body and
-references live under `plugin/guides/skills/<skill>/` and are rows of the same local registry the
-contract is. The reason is the one the contract gave (ISS-78, ISS-321): a skill file is read by a
-session at its start and never again, so a landed correction reached nobody until every open session
-restarted, and the four runs of 2026-09-05 called `forge guide contract` over two hundred times while
-opening a reference file at most five. Text a run fetches at the phase is current in every session and
-owes no restart. The two skills the code-quality plugin also ships stay whole, because that plugin
-carries no CLI to serve them.
+A skill's text is placed by how often a reading needs it, and README states the rule. What every
+invocation needs is inline in `SKILL.md`; what a run of a long method needs once is the body
+`forge guide <skill>` serves; what a minority of invocations needs is a reference behind
+`forge guide <skill> <reference>`; what a tool's own `-h` answers appears in neither. Bodies and
+references live under `plugin/guides/skills/<skill>/` as rows of the same local registry the
+contract is, and a skill with references and no body is listed for its references alone.
+
+The served half exists because a skill file is read by a session at its start and never again
+(ISS-78, ISS-321, ISS-353): a landed correction reached nobody until every open session restarted,
+while text a run fetches at the phase is current in every session and owes no restart. The inline
+half exists because a round costs more than the tokens it saves (ISS-354): a question that pays a
+call before it learns anything has paid the wrong price. The two skills the code-quality plugin also
+ships stay whole, because that plugin carries no CLI to serve them.

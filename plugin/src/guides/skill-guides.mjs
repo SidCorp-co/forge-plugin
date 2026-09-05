@@ -1,7 +1,7 @@
-/* A skill's method, served from the running copy rather than loaded with the session: the stub under
-   plugin/skills/ carries the description Claude Code offers the skill by; the body and its references
-   live here, beside the contract, because installing copies plugin/ alone and `forge guide` serves
-   both. docs/cli/the-guides.md carries the decision. */
+/* What a skill reads on a minority of its invocations is served from the running copy rather than
+   loaded with the session: a long method as a body plus references, a short one as references
+   alone beside an inline SKILL.md. The directory is the contract's for the reason contract.mjs
+   gives; docs/cli/the-guides.md carries the decision. */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,28 +16,37 @@ const REFERENCES = "references";
 
 export const skillGuidesRoot = (root = HERE) => join(root, WITHIN);
 
-/** The skills whose method this copy serves, read off the directory rather than listed. */
-export const skillGuideSlugs = (root = HERE) => {
-  const dir = skillGuidesRoot(root);
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true })
-    .filter((one) => one.isDirectory() && existsSync(join(dir, one.name, BODY)))
-    .map((one) => one.name)
-    .sort();
-};
-
 export const referencesOf = (slug, root = HERE) => {
   const dir = join(skillGuidesRoot(root), slug, REFERENCES);
   if (!existsSync(dir)) return [];
   return readdirSync(dir).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3)).sort();
 };
 
+const hasBody = (slug, root) => existsSync(join(skillGuidesRoot(root), slug, BODY));
+
+/** Read off the directory rather than listed. */
+export const skillGuideSlugs = (root = HERE) => {
+  const dir = skillGuidesRoot(root);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((one) => one.isDirectory() && (hasBody(one.name, root) || referencesOf(one.name, root).length))
+    .map((one) => one.name)
+    .sort();
+};
+
 const sizeOf = (path) => (existsSync(path) ? statSync(path).size : 0);
 
-/** The line `forge guide` prints for a skill: what it is, and the two commands that read it. */
-export const skillListingRow = (slug, root = HERE) => `${slug}\n  the ${slug} skill's method, this copy's own:`
-  + ` \`forge guide ${slug}\` prints it, and \`forge guide ${slug} <reference>\` one of its`
-  + ` ${referencesOf(slug, root).length} reference(s)`;
+const INLINE = (slug) => `The ${slug} skill's method is its SKILL.md, loaded with the skill; this copy serves its references.`;
+
+/** The line `forge guide` prints for a skill: what it is, and the command that reads it. */
+export const skillListingRow = (slug, root = HERE) => {
+  const count = `${referencesOf(slug, root).length} reference(s)`;
+  if (!hasBody(slug, root)) {
+    return `${slug}\n  the ${slug} skill's references, this copy's own: \`forge guide ${slug} <reference>\` prints one of its ${count}`;
+  }
+  return `${slug}\n  the ${slug} skill's method, this copy's own:`
+    + ` \`forge guide ${slug}\` prints it, and \`forge guide ${slug} <reference>\` one of its ${count}`;
+};
 
 const referenceLines = (slug, root) => {
   const dir = join(skillGuidesRoot(root), slug, REFERENCES);
@@ -60,7 +69,7 @@ export const skillGuideAnswer = (slug, root = HERE) => ({ part = null, tracker =
   }
   const dir = join(skillGuidesRoot(root), slug);
   if (!part) {
-    const body = readFileSync(join(dir, BODY), "utf8").replace(/\s+$/u, "");
+    const body = hasBody(slug, root) ? readFileSync(join(dir, BODY), "utf8").replace(/\s+$/u, "") : INLINE(slug);
     return { lines: [body, ...referenceLines(slug, root)] };
   }
   if (referencesOf(slug, root).includes(part)) {
@@ -78,17 +87,25 @@ const answers = (skill, reference, root) => {
   return referencesOf(skill, root).includes(reference);
 };
 
-/** Every `forge guide <slug> <part>` a served text names that this copy cannot answer: a citation
+const stubsOf = (root) => {
+  const dir = join(root, "skills");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).map((one) => join(dir, one, "SKILL.md")).filter((one) => existsSync(one));
+};
+
+/** Every `forge guide <slug> <part>` a skill text names that this copy cannot answer: a citation
  *  is a path with no directory to resolve against, so it is checked here instead. */
 export const unresolvedCitations = (root = HERE) => {
   const out = [];
+  const files = stubsOf(root);
   for (const slug of skillGuideSlugs(root)) {
     const dir = join(skillGuidesRoot(root), slug);
-    const files = [join(dir, BODY), ...referencesOf(slug, root).map((one) => join(dir, REFERENCES, `${one}.md`))];
-    for (const file of files) {
-      for (const [, skill, reference] of readFileSync(file, "utf8").matchAll(CITATION)) {
-        if (!answers(skill, reference, root)) out.push({ file, skill, reference });
-      }
+    if (hasBody(slug, root)) files.push(join(dir, BODY));
+    files.push(...referencesOf(slug, root).map((one) => join(dir, REFERENCES, `${one}.md`)));
+  }
+  for (const file of files) {
+    for (const [, skill, reference] of readFileSync(file, "utf8").matchAll(CITATION)) {
+      if (!answers(skill, reference, root)) out.push({ file, skill, reference });
     }
   }
   return out;

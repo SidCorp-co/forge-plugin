@@ -1,99 +1,74 @@
 # Gate review
 
-A gate is the one cost a project pays on every run, and pays again on every re-run after a fix.
-Halving it hands the difference back to every run that follows, in every session, for as long as
-the project lives. That is the whole reason this exists, and it is also the reason it is dangerous:
-the fastest gate available is the one that checks nothing.
+A gate is paid on every run and again on every re-run after a fix. This review makes it cheaper
+without letting one more tree through.
 
 ## The answer is not yours; the harness is
 
-A gate has two halves. The **answer** is which trees it refuses and why. The **harness** is
-everything that arrives at that answer — the order of the steps, what each one reads, what runs
-beside what, how fixtures are built, what gets spent twice. This review changes the harness only.
-After it, the gate refuses every tree it refused before, for the same reason, and the sole
-difference is the clock.
+The **answer** is which trees the gate refuses and why. The **harness** is everything that arrives
+at it: step order, what each step reads, what runs beside what, how fixtures are built, what is
+spent twice. This review changes the harness only. After it, the gate refuses every tree it refused
+before, for the same reason, and the sole difference is the clock.
 
-Four changes are refused however much they save, because each buys the seconds by buying coverage:
-
-- deleting a case
-- weakening an assertion
-- raising a limit
-- skipping a step
-
-A gate made smaller and reported as faster is worse than the slow one it replaced, because nobody
-knows it happened. Where the measurement says the only saving available is one of those four, that
-finding *is* the outcome — write it, and leave the gate as it stands.
+Four changes are refused however much they save: deleting a case, weakening an assertion, raising a
+limit, skipping a step. Where the measurement says the only saving available is one of those, that
+finding is the outcome: write it, and leave the gate as it stands.
 
 ## 1. Take the gate the project states
 
-Read it off the project rather than assembling one: the scripts its manifest declares, its CI
-workflow, a make target, the command its rules file calls the gate. Whichever of those the project
-calls the gate is the one under review, even where a cheaper subset of it exists.
+Read it off the project: the scripts its manifest declares, its CI workflow, a make target, the
+command its rules file calls the gate. Whichever the project calls the gate is the one under review,
+even where a cheaper subset exists.
 
-**Where a project states no gate, say so and stop.** A pipeline put together from the commands
-that happen to be present is nobody's gate, so making it quicker returns time to no one, and every
-number after that is about an artefact of the review's own making.
-
-Then find out how often it is spent. A step run once before a merge and a step run forty times in
-one session are the same seconds and nothing like the same tax — and the second is where the whole
-saving lives.
+**Where a project states no gate, say so and stop.** A pipeline assembled from the commands that
+happen to be present is nobody's gate.
 
 ## 2. Measure before you read the harness
 
-Where the minutes go is routinely not where the code looks expensive: a step that walks the entire
-tree in one process can be cheaper than one that spawns a process per file. So four measurements
-come first, and each is kept as output, because the verdicts at the end cite the measurement rather
-than paraphrasing a reading of it.
+Four measurements come first, each kept as output the verdicts cite:
 
-| Measurement | What only measuring can tell you |
+| Measurement | What it separates |
 |---|---|
-| the whole run, then every step on its own clock | whether one step holds the majority of the run or the cost is spread evenly — two different problems |
-| inside that step, its slowest units and their durations | whether the cost sits in a handful of units or lies flat across all of them |
-| what a run leaves behind, sized and counted before and after | growth that never comes back: fixtures, caches, temporary trees |
-| the same work spent in two steps | a compile a test step repeats, one linter run under two configurations |
+| the whole run, then every step on its own clock | one step holding the majority, or the cost spread evenly |
+| inside that step, its slowest units and their durations | a handful of expensive units, or per-unit overhead paid n times |
+| what a run leaves behind, sized and counted before and after | growth that never comes back |
+| the same work spent in two steps | a compile a test step repeats, one linter under two configurations |
 
-How to take each of the four against a harness you have never seen, and what makes one timing
-comparable with another: `forge guide gate-review measuring`.
+How to take each against a harness you have never seen, and what makes two timings comparable:
+`forge guide gate-review measuring`.
 
 ## 3. Change the harness, one change at a time
 
-Time each change on its own. A batch of five that saves a minute together says nothing about which
-of the five earned it, and the one that saved nothing stays in the tree as a permanent cost whose
-benefit nobody can find again.
+Time each change alone. A batch of five that saves a minute says nothing about which earned it.
 
-The moves that keep the answer, and the shape each takes when it silently stops keeping it:
-`forge guide gate-review the-moves`.
+**Order comes first: cheap steps before expensive ones.** A tree that is going to fail should fail in
+seconds, so every re-run after a fix pays for the cheap steps and stops. The other moves that keep the
+answer, and the hole each opens when it stops keeping it: `forge guide gate-review the-moves`.
 
 ## 4. Prove the gate still refuses
 
-A green run on the tree in front of you is the weakest evidence available, because that tree passed
-before you touched anything. What has to be shown is *refusal*: the project's own failing cases
-still failing, each changed step still reached by a change that reaches it, nothing quietly absent.
+A green run on a tree that passed before you touched anything proves nothing. Show refusal: the
+project's own failing cases still failing, each narrowed step still reached, nothing quietly absent.
 `forge guide gate-review proving-it`.
 
 ## 5. Report two numbers, and revert whatever earned neither
 
-Before and after, same tree, same stated conditions, both in the release note. A change whose
-saving sits inside the noise is reverted rather than argued for: it is a harness somebody has to
-understand for years, bought with nothing.
+Before and after, same tree, same stated conditions, both in the release note. A saving inside the
+noise is reverted.
 
-## When one of these is due, and the run it happens in
+## When one is due
 
-Not when the gate feels slow. It is owed by the gate's own timing — a budget crossed, or a
-proportion grown — and the review ends by recording the number the next one measures from. The
-trigger, what a project that records nothing does for its first review, and the shape of the run
-itself: `forge guide gate-review when-it-is-owed`.
+By the gate's own timing, never by how slow it feels. The two triggers, the arithmetic behind each,
+and the figure this review has to leave for the next one: `forge guide gate-review when-it-is-owed`.
 
-Taking that run from its issue to a release is the issue-flow skill's job, not this one's. This
-skill is what such a run does between its plan and its evidence.
+Taking the run from its issue to a release is the `issue-flow` skill's job. This skill is what such a
+run does between its plan and its evidence.
 
 ## Reference material
 
-Read on arrival at the step that cites it.
-
-| File | Read at |
+| Read | At |
 |---|---|
-| `forge guide gate-review measuring` | step 2, and whenever a number has to be comparable to another |
+| `forge guide gate-review when-it-is-owed` | before step 1, to learn whether a review is due |
+| `forge guide gate-review measuring` | step 2, and whenever two numbers must compare |
 | `forge guide gate-review the-moves` | step 3 |
 | `forge guide gate-review proving-it` | step 4, and before any verdict |
-| `forge guide gate-review when-it-is-owed` | before step 1, to learn whether a review is due at all |

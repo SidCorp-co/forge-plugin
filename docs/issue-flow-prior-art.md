@@ -49,7 +49,7 @@ where to look — `forge guide issue-flow project-discovery`.
 fragmentation the standard exists to end.
 
 **The entry point is `CLAUDE.md`.** AGENTS.md is the broader standard and nothing here
-depends on which name a repository picks — a one-line `CLAUDE.md` reading `@AGENTS.md` makes
+depends on which name a repository picks — a one-line `CLAUDE.md` whose only content is an import of the AGENTS file makes
 them the same file. The contract follows the pointer either way.
 
 **The rules-not-facts doctrine came from two repositories this author also maintains** —

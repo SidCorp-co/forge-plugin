@@ -2,10 +2,9 @@
 
 ## Before you edit
 
-Take a **baseline**: run the project's gate once, whole and distrusting any remembered pass (`--full`
-here), and record what already fails. Without
-it a pre-existing red is indistinguishable from your regression, and you will either hide a
-defect or repair something that was never yours. If a baseline cannot be obtained, say so
+Read the **baseline** Phase 0 started in the background: the project's gate run once, whole and
+distrusting any remembered pass (`--full` here), with what already fails recorded. Without it a
+pre-existing red is indistinguishable from your regression. If a baseline cannot be obtained, say so
 rather than proceeding as though it were green.
 
 **A gate that stops at its first failure has measured only what ran.** One red at the front
@@ -16,11 +15,8 @@ nothing after it: run the remaining steps by hand and record what each answered.
 after it, one scoped run when a unit of work is finished — a change that stands on its own, never
 each edit inside one — and in between the changed file's own suite, which answers one question
 faster than any gate reaches it. The ship spends the gate itself, so the release's gate is
-that run and there is nothing left to spend after the push. A gate that reads the diff and remembers
-its passes makes the last of five runs cost what one costs, which is all the four before it bought:
-1191 gate runs over 97 flow runs, five a run inside the build phase and 1.3 after a ship that had
-already run it, are the figures ISS-290 was filed on. A gate too slow to spend once a unit is the
-gate's defect and the gate-review skill is the route to it, never a reason to spend it less often.
+that run and there is nothing left to spend after the push. A gate too slow to spend once a unit is
+the gate's defect and the gate-review skill is the route to it, never a reason to spend it less often.
 
 ## The order
 
@@ -51,10 +47,9 @@ reads as a step that passed.
 
 ## One run of the evidence, at the head Phase 4's last two steps left
 
-Run it once, at that head, and attach it once. A suite re-run per criterion proves nothing
-the first run did not, and it was five and a half re-runs a run before this. Then judge every
-criterion in one write rather than one apiece — `forge record verdict -h` carries the form — and run
-again only for a criterion whose evidence is its own.
+Run it once, at that head, and attach it once. A suite re-run per criterion proves nothing the first
+run did not. The verdicts go up together, all criteria in a single record (`forge record verdict -h`),
+and the suite runs again only for a criterion whose evidence is its own.
 
 ## What each kind of change owes as evidence
 

@@ -515,7 +515,7 @@ the second agent to run in a worktree, alongside ISS-70.
   because the reopen table is the same for both.
 - The skill cited the contract nowhere, which is the whole reason a brief had carried it; Phase 1
   now sets the read-at-the-stage discipline, and Phases 2 to 4 get their citations with this fold.
-  `references/plan.md` never named the plan's machine lines the contract requires.
+  the issue-flow plan reference (folded into the body by ISS-354) never named the plan's machine lines the contract requires.
 - A `git pull` that rewrote a file to the same bytes cost its verdict, and `--drop` then called the
   file unconsulted; on ISS-70 as a distinct finding, which content rather than whose file.
 - `forge doctor` called a cache copy running and installed on the version alone while its skill text

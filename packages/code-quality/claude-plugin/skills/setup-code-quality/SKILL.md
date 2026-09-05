@@ -38,8 +38,8 @@ script rewrites the `configure()` call in place rather than skipping it.
 | `comment-density` | more than 15% comment lines | prose is uncapped |
 | `max-consecutive-comment-lines` | a block over 8 comment lines | essays stay inline |
 | `no-pass-through-wrapper` | a layer that forwards and adds nothing | indirection is free |
-| `max-lines` | files over 500 code lines | god files are allowed |
-| `max-lines-per-function` | functions over 150 code lines | so are god functions |
+| `max-lines` | files over `500` code lines | god files are allowed |
+| `max-lines-per-function` | functions over `150` code lines | so are god functions |
 | `no-raw-colors`, `no-arbitrary-sizes` | `#fff` and `text-[13px]` outside the token layer | ask only if step 1 found tokens |
 | `no-raw-elements` | `<select>` and `<h1>` written beside a `Select` and a `PageHeader` | ask only if step 1 found a design system |
 
@@ -58,7 +58,7 @@ npx code-quality-setup --comment-density=warn --max-lines=error … \
   --tokens=app/globals.css --hook=on [--all-rules] [--dry-run]
 ```
 
-A 404 from `npx` means the package is not in the registry, not that it is missing here — run the file
+A `404` from `npx` means the package is not in the registry, not that it is missing here — run the file
 by path instead, which needs no install because nothing here is compiled:
 
 ```sh

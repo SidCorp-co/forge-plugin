@@ -8,7 +8,7 @@ Rev: 1 · Actors: project, agent · Enforces: BR-07, BR-09, BR-10, BR-12 · Sour
 
 *Why does this requirement exist?*
 
-The division this requirement sits on has one home, the issue-flow skill's `two-levels` reference,
+The division this requirement sits on has one home, `docs/two-levels.md`,
 and what falls to the project here is concrete: its linter, its configuration, its thresholds. So
 the code files a call wrote —
 by whichever route, and up to the cap UC-11-1 states — are handed to the linter the project itself
