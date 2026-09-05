@@ -3639,3 +3639,29 @@ the four filings and the two routed findings were read back through the raw comm
   second flag-order defect on that verb in one wave beside ISS-404's.
 - A gate timing the ship prints compares a full run to a scoped one, and the run said so rather than
   let the pair read as a regression.
+
+## Hundred-and-forty-second dry run — ISS-339
+
+The batch-review body the ship files named what a reading looks for and nothing that performs it. It
+now carries two rules: what performs the reading, and that what it finds is read and never applied
+unverified, with eight needles in the test each proven to fire (3.35.157, landed as ed8b0b2). The run
+corrected the issue's premise before planning: the body said the reading run invokes the simplify
+skill, and the record on the first reading showed the dispatcher running the four angles read-only and
+posting the deduplicated list before dispatch, so the body carries the prepared case and the two a
+run meets instead. Half the stated outcome was refused in the open with its undo: the code-quality
+audit is not named, because its first step is a gate step already run over everything at every commit,
+and the reviewer confirmed the skill ranks gate findings rather than reading below them. No restart
+owed. Closed by its run. Folded from its handback; both filings and the routed note on ISS-428 were
+read back.
+
+- The second reading's preparation comment was behind the comments cap, so the run could corroborate
+  it only indirectly; a thread past fifteen comments is unreadable from the CLI and the truncation
+  notice names a screen an agent cannot open (ISS-437). The dispatcher's own verification instruction
+  was what it blocked.
+- The ship prints two shas and its help prefers the change's, while the verdict checker reads only the
+  merged mark's; the cost was a duplicate write of every verdict (ISS-438). Two full verdict sets sit
+  on the thread and the report reads the latest per criterion.
+- A generated body filed before a rule landed is not regenerated; the run routed the instance onto the
+  open reading issue rather than edit a filed body.
+- The filing stays a feature because the review kind is another issue's; the run left the kind alone
+  and named whose it is.
