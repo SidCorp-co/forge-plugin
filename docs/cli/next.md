@@ -12,19 +12,31 @@ available server` after three backoffs. The walk that lists them costs five page
 seconds; the bodies cost the tracker.
 
 So the score is computed on the browse projection alone, which carries the priority, the category,
-the complexity, the reopen count and the filing date — every weight but one. Only a window of the
-top candidates is read whole, and the window's width is not a number somebody chose: the band is the
-one weight a body decides, so a body can move a row by at most the band's own spread, and a window
-that wide orders exactly as a full read would. `bandSpread` computes it off the table, so a project
-that widens the band widens the window with it.
+the size, the reopen count and the filing date — every weight but one. Bodies are read a pass
+at a time, and what stops the reading is not a count but a bound: a body decides the size band and
+nothing else about the score, so an unread row can climb by the band's own spread and no further.
+The reading stops when the best an unread row could reach cannot beat the last candidate asked for.
 
-The measured cost of the whole verb against this backlog is about nineteen seconds: four for the two
-walks it issues together, three for the past-run corpus on disk, and the rest for the bodies and the
-two memory searches each printed head is measured with.
+A fixed window would have been wrong twice, and both were found in review before this landed. It
+truncates the row a body would have promoted — twenty-five tied issues and a twenty-sixth declaring
+a fix size, and the winner is never read. And a window every filter drops reports nothing eligible
+while eligible issues sit below it, because eligibility is judged over what was read. Reading in
+passes and re-judging the whole read set answers both. `readCap` is the budget the 503 above set,
+and where it bites the answer says so rather than presenting a short read as a settled order.
+
+The measured cost of the whole verb against this backlog is about twenty-eight seconds: four for the
+two walks it issues together, three for the past-run corpus on disk, and the rest for the bodies and
+the two memory searches each printed head is measured with.
+
+A head is searched when it becomes one, never before: choosing the heads up front and searching them
+afterwards leaves the issue an earlier batch promoted with no answer of its own, and a relation only
+the search can see goes unfound. That would make every search a round of its own, which measured
+fifty-nine seconds, so the heads a batch does not move are asked for together and only a head a
+batch promoted costs a round — the rare case paying for itself instead of every case paying for it.
 
 ## The band has two sources, and the row says which decided
 
-`forge_issues` returns `complexity` on `list` and not on `get`, and its `fields` enum takes only
+`forge_issues` returns the size field on `list` and not on `get`, and its `fields` enum takes only
 `description`, `plan`, `acceptanceCriteria`, `sessionContext` and `releaseNotes`. Measured the same
 day: 3 of 330 issues carry a value, all three closed. So the band is read off the listing, and where
 the listing gives none the body's `Size:` line stands in through the reader `plugin/src/tracker/issue-shape.mjs`

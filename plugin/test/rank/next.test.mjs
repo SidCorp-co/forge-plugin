@@ -133,6 +133,50 @@ test("--json carries the score, its parts and every signal as its own column", a
   assert.equal(held.weights.priority.critical, 40);
 });
 
+/* A fixed window truncated the candidate a body would have promoted, and one whose whole width a
+   filter dropped reported nothing eligible while eligible issues sat below it (consult 2026-09-05). */
+test("the read goes on until the bodies settle the order, not for a fixed number of them", async () => {
+  const fix = "## Why\n\nA small thing.\n\n## Outcome\n\nFixed.\n\n## Out of scope\n\nNothing.\n\nSize: fix.\n";
+  const lease = { lease: { holder: "another-run", agent: "an agent", pid: "9",
+    renewedAt: new Date().toISOString(), minutes: 60, history: [] } };
+  /* Fifteen ahead of it by age, every one of them held, and the sixteenth is the only answer. A
+     read of one fixed pass sees none of it and reports nothing eligible. */
+  const many = Array.from({ length: 15 }, (_, at) => issue(`ISS-${at + 10}`,
+    { priority: "critical", createdAt: "2026-08-01T00:00:00.000Z", sessionContext: lease }));
+  load([...many, issue("ISS-90", { priority: "critical", createdAt: "2026-09-05T00:00:00.000Z", description: fix })]);
+  const run = await ran(["next", "--count", "1"]);
+  assert.equal(run.status, 0, run.stderr);
+  const [head] = run.stdout.split("\n").filter((line) => line.startsWith("ISS-"));
+  assert.match(head, /^ISS-90\b/u, `every issue above it is leased, and the read stopped short: ${run.stdout}`);
+  assert.match(run.stdout, /left out — 15 of the 16 candidate\(s\) judged/u,
+    "so the read went past its first pass rather than reporting nothing eligible");
+});
+
+test("a candidate a body would promote is read even where it sits below the first pass", async () => {
+  const fix = "## Why\n\nA small thing.\n\n## Outcome\n\nFixed.\n\n## Out of scope\n\nNothing.\n\nSize: fix.\n";
+  const plain = Array.from({ length: 14 }, (_, at) =>
+    issue(`ISS-${at + 20}`, { priority: "critical", createdAt: "2026-09-01T00:00:00.000Z" }));
+  load([...plain, issue("ISS-91", { priority: "critical", createdAt: "2026-09-01T00:00:00.000Z", description: fix })]);
+  const run = await ran(["next", "--count", "1"]);
+  assert.equal(run.status, 0, run.stderr);
+  const [head] = run.stdout.split("\n").filter((line) => line.startsWith("ISS-"));
+  assert.match(head, /^ISS-91\b/u, "its Size line is worth five points and nothing else separates them");
+});
+
+test("a carrier reading the tracker cut says eligible means no blocker was found", async () => {
+  load([issue("ISS-1", { priority: "critical", description: claims("second thing") }), issue("ISS-2")]);
+  state.answer.forge_issues = (args) => {
+    if (args.action !== "list") return state.issues.find((one) => one.documentId === args.documentId) ?? {};
+    if (!args.filters?.search) return { issues: state.issues, returned: state.issues.length, hasMore: false };
+    return { issues: [], returned: 0, hasMore: true, truncated: true, truncatedBy: "response-size" };
+  };
+  const run = await ran(["next"]);
+  delete state.answer.forge_issues;
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /issues claiming an edge/u);
+  assert.match(run.stderr, /eligible here means only that no blocker was found/u);
+});
+
 test("a flag this verb does not take is refused, and an argument is not a flag", async () => {
   load([issue("ISS-1")]);
   for (const [argv, matching] of [

@@ -12,17 +12,18 @@ const candidate = (issueId, band = "xs") => ({
   score: { band },
 });
 
-/* Both maps are the head's own, keyed by the head a search or a record was asked about. */
-const asked = (keys, value) => new Map([["ISS-1", keys instanceof Map ? keys : value]]);
+/* `relates` is keyed by the head it was read off; `near` is one head's own answer, handed to
+   `batchUnder` by the caller that asked the search about that head. */
+const relatesOf = (keys) => new Map([["ISS-1", keys]]);
 const context = (held = {}) => ({ relates: new Map(), near: new Map(), paths: new Map(), ...held });
 
 test("relatedness is read three ways, and the line says which one made it", () => {
   const head = candidate("ISS-1");
   const other = candidate("ISS-2");
-  const byRelation = relatednessOf(head, other, context({ relates: asked(null, ["ISS-2"]) }));
+  const byRelation = relatednessOf(head, other, context({ relates: relatesOf(["ISS-2"]) }));
   assert.equal(byRelation.how, RELATION);
   assert.match(byRelation.said, /related to ISS-1 by relation/u);
-  const bySearch = relatednessOf(head, other, context({ near: asked(null, new Map([["ISS-2", 0.83]])) }));
+  const bySearch = relatednessOf(head, other, context({ near: new Map([["ISS-2", 0.83]]) }));
   assert.equal(bySearch.how, SEARCH);
   assert.match(bySearch.said, /reads like ISS-1 at 0\.83/u);
   const paths = new Map([["ISS-1", ["plugin/src/rank/next.mjs"]], ["ISS-2", ["plugin/src/rank/"]]]);
@@ -36,14 +37,14 @@ test("relatedness is read three ways, and the line says which one made it", () =
    because the strongest reading is the one worth printing. */
 test("the strongest of the three is what the member's line says", () => {
   const held = relatednessOf(candidate("ISS-1"), candidate("ISS-2"),
-    context({ relates: asked(null, ["ISS-2"]), near: asked(null, new Map([["ISS-2", 0.9]])) }));
+    context({ relates: relatesOf(["ISS-2"]), near: new Map([["ISS-2", 0.9]]) }));
   assert.equal(held.how, RELATION);
 });
 
 test("a batch holds three and refuses the fourth, which prints as related rather than vanishing", () => {
   const head = candidate("ISS-1");
   const rest = ["ISS-2", "ISS-3", "ISS-4"].map((one) => candidate(one));
-  const near = asked(null, new Map(rest.map((one) => [one.issueId, 0.9])));
+  const near = new Map(rest.map((one) => [one.issueId, 0.9]));
   const { members, aside } = batchUnder(head, rest, context({ near }), DEFAULTS);
   assert.deepEqual(members.map((one) => one.issueId), ["ISS-2", "ISS-3"], "the head is the third member");
   assert.deepEqual(aside.map((one) => one.issueId), ["ISS-4"]);
@@ -53,7 +54,7 @@ test("a batch holds three and refuses the fourth, which prints as related rather
 test("a related issue that is not fix-size rides with nothing and is printed as such", () => {
   const head = candidate("ISS-1");
   const large = candidate("ISS-2", "l");
-  const near = asked(null, new Map([["ISS-2", 0.9]]));
+  const near = new Map([["ISS-2", 0.9]]);
   const { members, aside } = batchUnder(head, [large], context({ near }), DEFAULTS);
   assert.deepEqual(members, []);
   assert.deepEqual(aside.map((one) => one.issueId), ["ISS-2"]);
@@ -62,27 +63,51 @@ test("a related issue that is not fix-size rides with nothing and is printed as 
   assert.deepEqual(big.members, [], "and a head that is not fix-size batches nothing either");
 });
 
-test("an issue is a member once, and one the cap turned away is a head of its own", () => {
+test("an issue is a member once, and one the cap turned away is a head of its own", async () => {
   const ranked = ["ISS-1", "ISS-2", "ISS-3", "ISS-4"].map((one) => candidate(one));
-  const near = asked(null, new Map([["ISS-2", 0.9], ["ISS-3", 0.9], ["ISS-4", 0.9]]));
-  const held = batchesOf(ranked, context({ near }), DEFAULTS);
+  const asked = [];
+  const nearOf = (head) => {
+    asked.push(head.issueId);
+    return new Map(head.issueId === "ISS-1" ? [["ISS-2", 0.9], ["ISS-3", 0.9], ["ISS-4", 0.9]] : []);
+  };
+  const held = await batchesOf(ranked, { ...context(), nearOf }, DEFAULTS);
   assert.deepEqual(held[0].members.map((one) => one.issueId), ["ISS-2", "ISS-3"]);
   assert.deepEqual(held[0].aside.map((one) => one.issueId), ["ISS-4"]);
   assert.deepEqual(held.map((one) => one.head.issueId), ["ISS-1", "ISS-4"],
     "a member rides once; the one the cap turned away is still a candidate");
+  assert.deepEqual(asked, ["ISS-1", "ISS-4"],
+    "and every head that printed was searched, including the one an earlier batch promoted");
 });
 
-/* The search is asked per head, so a hit belongs to the head it was asked about and to no other. */
-test("a search asked about one head answers about that head alone", () => {
-  const ranked = ["ISS-1", "ISS-2"].map((one) => candidate(one));
-  const held = batchesOf(ranked, context({ near: new Map([["ISS-9", new Map([["ISS-2", 0.9]])]]) }), DEFAULTS);
+/* The head is settled before it is searched: choosing every head up front and searching them after
+   left the issue an earlier batch promoted with no answer of its own. */
+test("a head an earlier batch promoted is searched before its own batch is formed", async () => {
+  const ranked = ["ISS-1", "ISS-2", "ISS-3"].map((one) => candidate(one));
+  const nearOf = (head) => new Map(head.issueId === "ISS-2" ? [["ISS-3", 0.95]] : []);
+  const held = await batchesOf(ranked, { ...context(), nearOf }, DEFAULTS);
   assert.deepEqual(held.map((one) => one.head.issueId), ["ISS-1", "ISS-2"]);
+  assert.deepEqual(held[1].members.map((one) => one.issueId), ["ISS-3"],
+    "ISS-2 became a head only after ISS-1 took none, and it was searched then");
+});
+
+test("the limit stops the batching rather than the printing, so no head is searched for nothing", async () => {
+  const ranked = ["ISS-1", "ISS-2", "ISS-3"].map((one) => candidate(one));
+  const asked = [];
+  const held = await batchesOf(ranked, {
+    ...context(),
+    nearOf: (head) => {
+      asked.push(head.issueId);
+      return new Map();
+    },
+  }, DEFAULTS, 2);
+  assert.equal(held.length, 2);
+  assert.deepEqual(asked, ["ISS-1", "ISS-2"], "ISS-3 was never a head, so it cost no search");
 });
 
 test("a batch spans modules where a relation or a search put it there", () => {
   const head = candidate("ISS-1");
   const other = candidate("ISS-2");
   const paths = new Map([["ISS-1", ["plugin/src/rank/"]], ["ISS-2", ["docs/cli/"]]]);
-  const { members } = batchUnder(head, [other], context({ paths, near: asked(null, new Map([["ISS-2", 0.8]])) }), DEFAULTS);
+  const { members } = batchUnder(head, [other], context({ paths, near: new Map([["ISS-2", 0.8]]) }), DEFAULTS);
   assert.deepEqual(members.map((one) => one.how), [SEARCH], "different trees, one run's saving");
 });

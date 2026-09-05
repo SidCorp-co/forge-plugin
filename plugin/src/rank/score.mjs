@@ -3,25 +3,24 @@ import { TAKEABLE } from "./weights.mjs";
 
 const DAY = 86_400_000;
 
-/* The word is the CLI's, never the tracker's name for the column it reads: checks/tracker-names. */
 export const bandOf = (row, { fix = null } = {}) => {
   if (row?.complexity) return { band: String(row.complexity), from: "the tracker's size" };
   if (fix === true) return { band: "xs", from: "the Size line" };
   return { band: "unset", from: fix === null ? "the body unread" : "neither source" };
 };
 
-/** Every issue this one holds up: blocking one that blocks three counts four, and a cycle
- *  terminates on the visited set. */
+/** Every issue this one holds up: blocking one that blocks three counts four, a cycle terminates on
+ *  the visited set, and the walk stops at one that landed — what waited on it is free already. */
 export const chainOf = (key, blocks, open) => {
   const held = new Set();
   const queue = [...(blocks.get(key) ?? [])];
   while (queue.length) {
     const one = queue.shift();
-    if (held.has(one) || one === key) continue;
+    if (held.has(one) || one === key || !open.has(one)) continue;
     held.add(one);
     queue.push(...(blocks.get(one) ?? []));
   }
-  return [...held].filter((one) => open.has(one));
+  return [...held];
 };
 
 const points = (table, name, fallback = 0) =>

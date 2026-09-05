@@ -17,7 +17,8 @@ export const DEFAULTS = {
   blocks: 3,
   similarity: 0.78,
   batchCap: 3,
-  windowCap: 25,
+  windowCap: 12,
+  readCap: 60,
 };
 
 const TABLES = ["priority", "kind", "band"];
@@ -86,7 +87,8 @@ export const weightLines = (weights) => [
   row("blocks", `${weights.blocks} per open issue this one blocks, counted through the chain`),
   row("similarity", `${weights.similarity} — the floor a search hit is read back as related at`),
   row("batchCap", `${weights.batchCap} members, and every one of them fix-size`),
-  row("windowCap", `${weights.windowCap} — the most candidates whose body is read whole`),
+  row("windowCap", `${weights.windowCap} — candidates whose body is read in one pass`),
+  row("readCap", `${weights.readCap} — the most bodies read in all, whatever the passes ask for`),
   "",
   "Ties break on the filing date, oldest first.",
 ];

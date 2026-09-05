@@ -2,7 +2,6 @@
    the order the issue gives. Why the module reading stops where it does: docs/cli/next.md. */
 import { meets } from "./eligible.mjs";
 
-/* The order a member is tested in, so its line says the strongest of the three. */
 export const RELATION = "relation";
 export const SEARCH = "search";
 export const MODULE = "module";
@@ -20,7 +19,7 @@ export const relatednessOf = (head, other, { relates = new Map(), near = new Map
   if ((relates.get(head.issueId) ?? []).includes(other.issueId)) {
     return { how: RELATION, said: `related to ${head.issueId} by relation` };
   }
-  const score = (near.get(head.issueId) ?? new Map()).get(other.issueId);
+  const score = near.get(other.issueId);
   if (score !== undefined) {
     return { how: SEARCH, said: `reads like ${head.issueId} at ${score.toFixed(2)}` };
   }
@@ -48,17 +47,20 @@ export const batchUnder = (head, rest, context, weights) => {
   return { members, aside };
 };
 
-/** Every head with its batch, each issue appearing once: a member is not a head of its own. */
-export const batchesOf = (ranked, context, weights) => {
+/** Each issue appearing once, and a head settled before it is searched: heads chosen up front leave
+ *  the one an earlier batch promoted with no search of its own. */
+export const batchesOf = async (ranked, { nearOf, ...context }, weights, limit = Infinity) => {
   const taken = new Set();
   const out = [];
   for (const head of ranked) {
+    if (out.length >= limit) break;
     if (taken.has(head.issueId)) continue;
     const rest = ranked.filter((one) => one.issueId !== head.issueId && !taken.has(one.issueId));
-    const { members, aside } = batchUnder(head, rest, context, weights);
+    const near = await nearOf(head);
+    const { members, aside } = batchUnder(head, rest, { ...context, near }, weights);
     for (const one of members) taken.add(one.issueId);
     taken.add(head.issueId);
-    out.push({ head, members, aside });
+    out.push({ head, members, aside, near });
   }
   return out;
 };

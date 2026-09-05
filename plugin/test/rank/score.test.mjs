@@ -84,6 +84,16 @@ test("a blocker of a blocker outranks a lone critical issue by what the chain ho
   assert.equal(chainOf("ISS-1", blocks, new Set(["ISS-2"])).length, 1, "a closed issue is not counted");
 });
 
+/* A -> B -> C with B landed: C waited on B and B is gone, so landing A frees nothing. Counting C
+   would pay A for a landing that releases no one. */
+test("the chain stops at an issue that has already landed", () => {
+  const blocks = graph([["ISS-1", "ISS-2"], ["ISS-2", "ISS-3"]]);
+  const open = new Set(["ISS-1", "ISS-3"]);
+  assert.deepEqual(chainOf("ISS-1", blocks, open), [], "ISS-2 landed, so ISS-3 is not ISS-1's to free");
+  assert.deepEqual(chainOf("ISS-1", blocks, new Set(["ISS-1", "ISS-2", "ISS-3"])).sort(), ["ISS-2", "ISS-3"],
+    "and with the middle still open it is");
+});
+
 test("a cycle in the graph terminates rather than recursing", () => {
   const blocks = graph([["ISS-1", "ISS-2"], ["ISS-2", "ISS-3"], ["ISS-3", "ISS-1"]]);
   const open = new Set(["ISS-1", "ISS-2", "ISS-3"]);
