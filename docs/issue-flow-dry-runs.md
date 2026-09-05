@@ -2361,3 +2361,27 @@ the installed copy. No restart owed. Closed by its run. Folded from the record.
 - A document sits thirty characters under its one-pass cap, so the paragraph had to be written to the
   length of the one it replaced; the next run to add anything there trips the gate after the writing
   (ISS-294). A cap met tells the next writer nothing until it fires.
+
+## Ninety-fourth dry run — ISS-278 and ISS-280
+
+One agent withheld the dependency verb on a credential that cannot write edges and moved a misplaced
+comment (3.35.106). The gate key grew an action, since the same tool answers reads on the token and
+refuses writes; the probe sends the write action with no ids, because the credential check runs before
+argument validation, so it measures the class and writes nothing. Only the device-required refusal
+records a gate. Verified against the installed copy: the verb off the help and the did-you-mean set,
+a direct call refusing in one line, the tool still listed and its schema still printed. Every sentence
+routing a run to the verb retired at once, across the contract, the diagram, the guides and the CLI
+pages. No restart owed. Both closed by the run. Folded from the record.
+
+- Eight duplicates carried the hand-built edge as their answer. One dropped as landed; six left open,
+  each with a note closing that route and naming what stays live on it; one untouched because its real
+  ask was a different verb's help. Reading each duplicate's remaining half is what keeps a withholding
+  from closing an issue that only mentioned the verb in passing.
+- A page that says the opposite of what the withholding retires owed nothing here, and its three stale
+  tracker facts were filed instead (ISS-293), since touching the skills tree would have made a
+  restart-free landing owe one. A fix that is only near the change pays its own cost in its own run.
+- One ledger branch is pinned by a test and confirmed live on neither token: a paired device is
+  assumed to reach validation and keep the verb. The run said so rather than claiming both.
+- The third batch reading was owed again at ship and already open (ISS-267); the ship's counter reports
+  the same mark every landing until a reading moves it, so the ledger note is the reading's, not a
+  fresh filing.
