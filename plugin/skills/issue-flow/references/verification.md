@@ -12,10 +12,10 @@ rather than proceeding as though it were green.
 leaves every step behind it unknown, and a baseline naming that one red is a baseline for
 nothing after it: run the remaining steps by hand and record what each answered.
 
-**The gate is spent once per unit of work.** The baseline above is the whole run and the only one
-the work owes; after it, one scoped run when a unit of work is finished — a change that stands on
-its own, never each edit inside one — and in between the changed file's own suite, which answers one
-question faster than any gate reaches it. The ship spends the gate itself, so the release's gate is
+**The gate is spent once per unit of work.** The baseline above is the only whole run the work owes;
+after it, one scoped run when a unit of work is finished — a change that stands on its own, never
+each edit inside one — and in between the changed file's own suite, which answers one question
+faster than any gate reaches it. The ship spends the gate itself, so the release's gate is
 that run and there is nothing left to spend after the push. A gate that reads the diff and remembers
 its passes makes the last of five runs cost what one costs, which is all the four before it bought:
 1191 gate runs over 97 flow runs, five a run inside the build phase and 1.3 after a ship that had

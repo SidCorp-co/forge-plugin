@@ -254,9 +254,12 @@ test("the gate's cadence is stated in the verification reference and restated no
   const held = flat(readFileSync(VERIFICATION, "utf8"));
   for (const [beat, phrase] of [
     ["how often the gate is spent", "The gate is spent once per unit of work"],
+    ["that the baseline is the only whole run", "the only whole run the work owes"],
+    ["what a finished unit spends", "one scoped run when a unit of work is finished"],
     ["that a unit is not an edit", "never each edit inside one"],
     ["what runs between units", "the changed file's own suite"],
-    ["that the ship's gate is the release's", "the release's gate is that run"],
+    ["that the ship's gate is the release's",
+      "the release's gate is that run and there is nothing left to spend after the push"],
   ]) {
     assert.ok(held.includes(phrase), `the verification reference no longer states ${beat}, so a run `
       + `reading it is back to guessing how often to spend the gate (ISS-290)`);
