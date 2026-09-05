@@ -1,7 +1,8 @@
-/* Where the mark lives, what the count over it reads, and what a batch reading is OWED — which is
-   here and in no prompt, so the run reads it off its own issue and a person types none of it. The
-   counting and the filing are the runner's; `docs/cli/knowledge.md` says why this half moved. */
-import { gitOut } from "../checkout.mjs";
+/* Where the mark lives, what a write of it has to prove, what the count over it reads, and what a
+   batch reading is OWED — the last of these here and in no prompt, so the run reads it off its own
+   issue and a person types none of it. The counting and the filing are the runner's;
+   `docs/cli/knowledge.md` says why this half moved. */
+import { gitOut, REMOTE } from "../checkout.mjs";
 
 export const REVIEWED = "refs/forge/reviewed";
 export const REVIEW_PATHS = ["plugin/src", "plugin/hooks", "plugin/bin"];
@@ -65,4 +66,42 @@ export const reviewBody = ({ tree, from, to, volume, self }) => {
     "notice.",
     "",
   ].join("\n");
+};
+
+const OFF = "is on no history reaching this tree's head";
+const BACK = (from) => `is not a descendant of the mark at ${from.slice(0, 7)}`;
+const BY_HAND = (to, from) =>
+  `git update-ref ${REVIEWED} ${to.slice(0, 7)}${from ? ` ${from.slice(0, 7)}` : ""}`;
+
+/** What a target has to be for the range it opens to be countable: on the history this tree's head
+ *  reaches, and ahead of the mark. The second implies nothing about the first — a side branch rooted
+ *  after the mark passes it and reaches no head, as does one fetched but never merged (ISS-159). */
+export const markRefused = ({ tree, from, to, reaches, forward, self }) => {
+  const at = to.slice(0, 7);
+  const dead = `so the range it opens is not this repository's work and the count over it would `
+    + `measure nothing.`;
+  if (!from) {
+    return `${at} ${OFF}, ${dead} Name a commit this head descends from — a tree that has not `
+      + `fetched is the usual reason: git -C ${tree} fetch ${REMOTE}. Where the commit is right and `
+      + `this tree is not the one to read it from, plant it by hand and say so: ${BY_HAND(to)}`;
+  }
+  const byHand = `move it by hand and say so: ${BY_HAND(to, from)}`;
+  if (reaches) {
+    return `${at} ${BACK(from)}, and a mark that moves backwards hands the next reading a range `
+      + `already read. Name a commit ahead of it — or, where the mark itself is the mistake, ${byHand}`;
+  }
+  if (forward) {
+    return `${at} ${OFF}, ${dead} It descends from the mark at ${from.slice(0, 7)}, which is the `
+      + `other question and does not answer this one: a side branch rooted after the mark, and a `
+      + `commit this tree holds but has not merged, both pass it. Read which of the two it is — `
+      + `git -C ${tree} log --left-right --oneline HEAD...${at} — and where it marks nothing \`<\`, `
+      + `this head holds nothing the target lacks and can be brought to it: `
+      + `git -C ${tree} merge --ff-only ${at}. Where it marks one, the target is a branch, and what `
+      + `to name is the head on this history the reading reached: ${self} review --done <that head>. `
+      + `Where the commit is right and this tree is not the one to read it from, ${byHand}`;
+  }
+  return `${at} ${OFF}, and it ${BACK(from)} either, ${dead} Neither fix on its own reaches it: a `
+    + `commit ahead of the mark this head does not reach is refused, and one this head reaches that `
+    + `sits behind the mark is refused too. Name a commit that is both — ${self} review --done <that `
+    + `head> — or, where the mark itself is the mistake, ${byHand}`;
 };

@@ -13,7 +13,7 @@ import { checkoutRoot, defaultBranch, git, gitOut, REMOTE, Stop, stop } from "./
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { isRelease, onlyRelease, RELEASE_FILES, versionAt } from "./run/landing.mjs";
-import { REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
+import { markRefused, REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
 import { fileIssue } from "../plugin/src/tracker/filing.mjs";
 import { refusing } from "../plugin/src/resolve/settings.mjs";
 import { CEILINGS, overCeiling, resizeForm, tierOf } from "../plugin/src/ladder.mjs";
@@ -474,21 +474,10 @@ const review = ({ flags }) => {
   const asked = done ?? "HEAD";
   const to = gitOut(["rev-parse", "--verify", `${asked}^{commit}`], tree);
   if (!to) stop(`\`${asked}\` is no commit in this tree, and the mark records where a reading reached.`);
-  if (!from && git(["merge-base", "--is-ancestor", to, "HEAD"], tree).status !== 0) {
-    stop(`${to.slice(0, 7)} is on no history reaching this tree's head, so the range it opens is not `
-      + `this repository's work and the count over it would measure nothing. Name a commit this head `
-      + `descends from — a tree that has not fetched is the usual reason: git -C ${tree} fetch ${REMOTE}. `
-      + `Where the commit is right and this tree is not the one to read it from, plant it by hand and `
-      + `say so: git update-ref ${REVIEWED} ${to.slice(0, 7)}`);
-  }
-  if (from && git(["merge-base", "--is-ancestor", from, to], tree).status !== 0) {
-    stop(`${to.slice(0, 7)} is not a descendant of the mark at ${from.slice(0, 7)}, and a mark that `
-      + `moves backwards hands the next reading a range already read. Name a commit ahead of it — or, `
-      + `where the mark itself is the mistake, move it by hand and say so: `
-      + `git update-ref ${REVIEWED} ${to.slice(0, 7)} ${from.slice(0, 7)}`);
-  }
-  /* Two review worktrees share this ref, so the old value goes with the write: the second to finish
-     is refused rather than silently dropping the range the first had already read. */
+  const reaches = git(["merge-base", "--is-ancestor", to, "HEAD"], tree).status === 0;
+  const forward = !from || git(["merge-base", "--is-ancestor", from, to], tree).status === 0;
+  if (!reaches || !forward) stop(markRefused({ tree, from, to, reaches, forward, self: SELF }));
+  /* Two worktrees share this ref: without the old value, the second to finish drops the first's range. */
   loud("git", ["update-ref", REVIEWED, to, from ?? ""], tree,
     `The mark is not where this run read it. Another reading finished first: ${SELF} review, then move it again.`);
   console.log(from

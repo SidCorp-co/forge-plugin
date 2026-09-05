@@ -4,7 +4,7 @@
    responsibility; the release steps themselves are `run-script.test.mjs`. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { BARE, called, git, lastStep, landIn, noBacklog, owedAt, pushed, ref, runIn, seen }
@@ -227,13 +227,15 @@ test("a shape refusal of the body this step generates is named as this plugin's,
   const { work } = owedAt("shape");
   noBacklog();
   /* The body the step generates, made unreadable by the shape, and committed because the first ship
-     step refuses a dirty tree: forcing the refusal from outside would prove nothing of this route. */
+     step refuses a dirty tree: forcing the refusal from outside would prove nothing of this route.
+     Everything else the module exports is re-exported off the module itself, so this is one override
+     and not a list of names whose drift is a SyntaxError rather than a red assertion. */
+  const beside = join("tools", "run", "review-itself.mjs");
+  renameSync(join(work, "tools", "run", "review.mjs"), join(work, beside));
   writeFileSync(join(work, "tools", "run", "review.mjs"),
-    'export const REVIEWED = "refs/forge/reviewed";\n'
-    + 'export const REVIEW_PATHS = ["plugin/src", "plugin/hooks", "plugin/bin"];\n'
-    + "export const REVIEW_LINES = 500;\n"
+    'export * from "./review-itself.mjs";\n'
     + 'export const reviewBody = () => "a body carrying no heading at all";\n');
-  git(work, "add", join("tools", "run", "review.mjs"));
+  git(work, "add", join("tools", "run", "review.mjs"), beside);
   git(work, "commit", "-m", "a body the shape will not carry");
 
   const run = lastStep(work);
@@ -365,6 +367,56 @@ test("the mark only ever moves forward, and the refusal carries the way past a w
   assert.match(back.stderr, /git update-ref refs\/forge\/reviewed [0-9a-f]{7} [0-9a-f]{7}/u,
     "a refusal over a mark that is itself the mistake has to carry the way past it");
   assert.equal(ref(work), git(work, "rev-parse", "HEAD").stdout.trim(), "the refused write moved nothing");
+});
+
+/* Descent from the mark and ancestry of the head are different questions, and a move owes both: a
+   side branch rooted after the mark and a commit fetched but never merged each descend from the
+   mark and reach no head, so each would become the mark and open a range measured from a start this
+   history has no line to (ISS-159). The plant's own case is above, and stays its own. */
+test("a move proves the target is on this history too, and the three refusals stay apart", () => {
+  const { work } = pushed("moveoff");
+  const before = git(work, "rev-parse", "HEAD").stdout.trim();
+  landIn(work, join("plugin", "src", "one.mjs"), 4, "the change the mark is planted over");
+  runIn(work, ["review", "--done"], BARE);
+  const mark = ref(work);
+  landIn(work, join("plugin", "src", "two.mjs"), 4, "what landed while the reading was being read");
+  const head = git(work, "rev-parse", "HEAD").stdout.trim();
+  const held = git(work, "rev-parse", "HEAD^{tree}").stdout.trim();
+  const child = (parent, why) => git(work, "commit-tree", held, "-p", parent, "-m", why).stdout.trim();
+
+  for (const [what, target] of [
+    ["a side branch rooted after the mark", child(mark, "an attempt nobody merged")],
+    ["a commit this tree holds and has not merged", child(head, "a fetched head ahead of this one")],
+  ]) {
+    const off = runIn(work, ["review", "--done", target], BARE);
+    assert.equal(off.status, 1, `${what} became the mark:\n${off.stdout}`);
+    assert.match(off.stderr, /is on no history reaching this tree's head/u, `${what}: ${off.stderr}`);
+    assert.doesNotMatch(off.stderr, /is not a descendant of the mark/u,
+      `${what} does descend from the mark, so that refusal would send the reader to a fix it already has`);
+    assert.ok(off.stderr.includes(`git update-ref refs/forge/reviewed ${target.slice(0, 7)} ${mark.slice(0, 7)}`),
+      `a move's escape carries the old value, or the by-hand write is refused too:\n${off.stderr}`);
+    assert.ok(off.stderr.includes(`log --left-right --oneline HEAD...${target.slice(0, 7)}`),
+      `both shapes show one commit on the target's side, so only a symmetric read says which:\n${off.stderr}`);
+    assert.equal(ref(work), mark, `${what}: the refused write moved nothing`);
+  }
+
+  const orphan = git(work, "commit-tree", held, "-m", "a commit on no branch of this repository").stdout.trim();
+  const both = runIn(work, ["review", "--done", orphan], BARE);
+  assert.equal(both.status, 1, both.stdout);
+  assert.match(both.stderr, /is on no history reaching this tree's head/u, both.stderr);
+  assert.match(both.stderr, /is not a descendant of the mark at [0-9a-f]{7}/u,
+    "a target that is neither says both, because neither fix on its own reaches it");
+  assert.equal(ref(work), mark, "the refused write moved nothing");
+
+  const back = runIn(work, ["review", "--done", before], BARE);
+  assert.equal(back.status, 1, back.stdout);
+  assert.match(back.stderr, /is not a descendant of the mark at [0-9a-f]{7}/u, back.stderr);
+  assert.doesNotMatch(back.stderr, /is on no history reaching this tree's head/u,
+    "a commit this head descends from is on this history, whatever the mark makes of it");
+
+  const told = runIn(work, ["review", "--done", head], BARE);
+  assert.equal(told.status, 0, told.stderr);
+  assert.equal(ref(work), head, "a target ahead of the mark and behind the head is what the mark is for");
 });
 
 /* The gate this release spent a step earlier wrote the newest figure, so the release is where it is
