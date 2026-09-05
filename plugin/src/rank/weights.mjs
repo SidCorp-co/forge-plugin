@@ -1,6 +1,6 @@
 /* The one table `forge next` scores against, and the one place a project overrides a weight. Every
-   number here was set by the issue that asked for the verb; what each is FOR, and why the window is
-   derived rather than chosen, is docs/cli/next.md's. */
+   number here was set by the issue that asked for the verb; what each is FOR, and why the reading
+   stops where it does, is docs/cli/next.md's. */
 import { rankConvention } from "../resolve/settings.mjs";
 
 export const TAKEABLE = ["open", "confirmed", "clarified", "approved", "reopen"];

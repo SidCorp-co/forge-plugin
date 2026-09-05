@@ -17,10 +17,10 @@ at a time, and what stops the reading is not a count but a bound: a body decides
 nothing else about the score, so an unread row can climb by the band's own spread and no further.
 The reading stops when the best an unread row could reach cannot beat the last candidate asked for.
 
-A fixed window would have been wrong twice, and both were found in review before this landed. It
-truncates the row a body would have promoted — twenty-five tied issues and a twenty-sixth declaring
-a fix size, and the winner is never read. And a window every filter drops reports nothing eligible
-while eligible issues sit below it, because eligibility is judged over what was read. Reading in
+A fixed window is wrong two ways. It truncates the row a body would have promoted — twenty-five
+tied issues and a twenty-sixth declaring a fix size, and the winner is never read. And a window
+every filter drops reports nothing eligible while eligible issues sit below it, because eligibility
+is judged over what was read. Reading in
 passes and re-judging the whole read set answers both.
 
 The bound is over the candidates the *printing* can need rather than the batches asked for: a batch
@@ -45,8 +45,8 @@ dispatches on it may treat as bounded, and a notice only the human form carries 
 `unblocks ISS-a (eligible after this lands)` is a claim, so it is made only about an issue this one
 blocks and that nothing else still holding blocks. An issue with a second blocker is named with it;
 an issue further down the chain waits for the wave in front of it and is printed behind them rather
-than promised. The first draft claimed eligibility for everything the chain reached, which is false
-in both of those cases.
+than promised. Claiming eligibility for everything the chain reaches is false in both of those
+cases.
 
 What ends a blocker is not this verb's to decide. `forge advance` already refuses a move past a
 blocker below `developed`, and the flow exports that answer, so a blocker here is exactly one the
