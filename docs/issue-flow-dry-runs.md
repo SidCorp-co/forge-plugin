@@ -2481,3 +2481,26 @@ Folded from the record.
 - Two gate defects were met and routed to their open issues rather than filed again: a heredoc-fed
   interpreter writes a guarded path the same gate refuses to a direct edit (ISS-37), and a pure read
   of a guarded path was refused before the call and reported as a change after it (ISS-81).
+
+## Ninety-ninth dry run — ISS-288
+
+One agent landed half of an outcome and parked the other half (3.35.114, then on hold as blocked). A
+translation refusal now ends with the command that writes the text, in the shipped binary's own path
+with this CLI's register flags, which is what forty help reads on the other project were for. The
+core half, the release note translated by the CLI itself, stopped at a read-back comparator that
+closes over the object before translation: with the note in the translation layer, every note write on
+a Vietnamese project would land and then be refused as not read back as written. The comparator, its
+wording and its case are in the flow module another run holds, so the design went to that run as a
+comment and the park's reason carries it. No restart owed. Folded from the record.
+
+- A half that can land is landed and the half that cannot is parked with its design on the holder's
+  thread, rather than the whole outcome waiting on the hold. The re-dispatch reads the design off two
+  places and owes nothing to the first run's memory.
+- Asking the release script for one verb's help ran the release: it reached the gate against the
+  shared checkout before it was caught, and landed nothing only because master had nothing to release
+  (ISS-301, raised to high by the fold). A verb that acts when asked to explain itself is the one
+  defect a run cannot afford to meet twice.
+- Filing into an existing issue posted the same comment twice with no word (ISS-300), and a verdict
+  flag typed for the next criterion block landed in the previous one, misfiling three of six (added
+  to ISS-234). The second is the same shape ISS-296 recorded a day earlier from the per-criterion
+  route, which says the neighbour smudge is the flag reader's, not the route's.
