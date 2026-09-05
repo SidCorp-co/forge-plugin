@@ -3505,3 +3505,30 @@ comments and the two filings were read back.
 - The skill's inline text already advertised the flag's working form, false before this change and
   true after, so no skill file moved and no restart was charged for a change that made a sentence
   true.
+
+## Hundred-and-thirty-seventh dry run — ISS-399
+
+The second batch reading of the wave, over the five releases since the mark at 27206a7, prepared the
+same way as the first: the dispatcher's four simplify angles deduplicated to twenty-five items and
+posted on the issue as a finding. One reading of the size mark, one predicate for a light rung and one
+runner for git landed over twenty-three files (3.35.152, landed as 847a68c); seven items were refused
+with the reason on the record, and three of the finding's premises were corrected there too, among them
+an arithmetic error in the hot-path item, which had multiplied the rank verb's passes by the raised
+read cap when the window is what bounds them. The whole-set read raised three, all accepted: one
+reverted an item whole, because a filing's rung derived from its arguments disagreed with the body when
+an unterminated fence swallowed the appended mark. The frozen-file item was weighed and declined, its
+hazard already caught by a test that drives every frozen entry through the real gate. The mark moved to
+dc5907e, and the next range is short of the threshold that files a reading. No restart owed. Closed by
+its run. Folded from its handback; the three filings and five routed findings were read back.
+
+- The dispatcher's finding was wrong in three places the run could name, and right in most. A
+  finding posted as a hypothesis costs the run a verification per item and nothing more; a brief that
+  carried the same items as instructions would have landed the wrong arithmetic.
+- A knowledge entry stamped at a head the ship's own rebase orphaned resolves in one worktree's reflog
+  and nowhere else; the run re-stamped at the landed commit after the close and said so on the issue.
+  The largest file in the commit had no knowledge owner, and now has one.
+- Clamping a gate's git budget changes which turns get a refusal, so a fix that looks like a dedup is
+  a behaviour change; the reviewer caught it and the clamp went out as a finding on the issue that owns
+  the stop budget.
+- The dispatcher's map of held files named the wrong file for one run; the run said so, and touched
+  neither.
