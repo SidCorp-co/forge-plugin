@@ -79,12 +79,15 @@ const bodiesFor = async (window) =>
  *  can consume `count` times the cap before the last head is settled. */
 export const wanted = (count, weights) => count * weights.batchCap;
 
-/** Whether the bodies read so far settle the order. Where a body carries nothing but its size, a row
- *  still unread can climb by the band's own spread and no further, so the read stops when the best
- *  it could reach cannot beat the last candidate the printing can need. A body that declared a
- *  blocking relation breaks that bound — an unread row's relations could raise any score by any
- *  amount — so a read that met one settles nothing and says so instead of certifying an order. */
-export const settled = (eligible, unread, count, weights, edges = 0) => {
+/** Whether the size bound holds over what is still unread. A body's own size is the one weight it
+ *  decides, so an unread row can climb by the band's spread and no further, and the read stops when
+ *  the best it could reach cannot beat the last candidate the printing can need. It bounds nothing
+ *  about a blocking relation, which only a body carries and which raises whatever it names by the
+ *  whole chain behind it — so a read that has already met one keeps going rather than pretending
+ *  the next body holds none. What it can never cover is a relation in a body nobody opened, and
+ *  that is what `settled` is for: the two answers are separate because they certify different
+ *  things, and one word for both would claim the stronger. */
+export const bounded = (eligible, unread, count, weights, edges = 0) => {
   if (!unread.length) return true;
   if (edges) return false;
   const needed = wanted(count, weights);
@@ -205,7 +208,7 @@ export const next = async (argv) => {
   const preScored = ordered(takeable.map((row) => ({
     issueId: row.issueId,
     row,
-    score: scoreOf(row, { weights, chain: chainOf(row.issueId, blocks, open) }),
+    score: scoreOf(row, { weights, chain: chainOf(row.issueId, blocks, alive) }),
   })));
   const held = await heldFrom(holding.flatMap((one) => keysIn(one)), rows);
   const runs = measuredRuns(rootFor(asked.project ?? process.cwd()));
@@ -251,7 +254,7 @@ export const next = async (argv) => {
   for (;;) {
     judged = ordered(preScored.slice(0, cursor).map(judge));
     const unread = preScored.slice(cursor);
-    if (settled(judged.filter((one) => one.eligible), unread, count, weights, edges)) break;
+    if (bounded(judged.filter((one) => one.eligible), unread, count, weights, edges)) break;
     if (cursor >= weights.readCap) break;
     const take = unread.slice(0, Math.min(weights.windowCap, weights.readCap - cursor));
     if (!take.length) break;
@@ -279,15 +282,18 @@ export const next = async (argv) => {
   }));
   /* Said before either branch, and carried in the json as a field: an order the budget cut is not
      one a machine may treat as settled, and a warning only the human form prints hides it. */
-  const settledWhole = settled(eligible, preScored.slice(cursor), count, weights, edges);
+  const unread = preScored.slice(cursor);
+  const holds = bounded(eligible, unread, count, weights, edges);
   const readSaid = {
     judged: cursor,
     takeable: preScored.length,
-    settled: settledWhole,
+    settled: !unread.length,
+    bounded: holds,
+    relationsSeen: edges,
     readCap: weights.readCap,
   };
-  if (!settledWhole) {
-    console.error(`warning: this order is not settled — ${cursor} of ${preScored.length} takeable`
+  if (!holds) {
+    console.error(`warning: this order is not bounded — ${cursor} of ${preScored.length} takeable`
       + ` issue(s) were read whole${edges
         ? `, and ${edges} of them declared a blocking relation, which no bound over the unread ones`
           + " survives: an issue further down could be holding up work nothing here counted"
@@ -305,9 +311,10 @@ export const next = async (argv) => {
     console.log(`\nleft out — ${dropped.length} of the ${judged.length} candidate(s) judged:`);
     for (const one of dropped) console.log(droppedLine(one));
   }
-  if (cursor < preScored.length && settledWhole) {
+  if (unread.length && holds) {
     console.log(`\nRead whole: the top ${cursor} of ${preScored.length} takeable. The rest scored on the`
-      + " listing alone, and none of them could reach this order at the band's own spread.");
+      + " listing alone, and none could reach this order at the band's own spread — but a body among"
+      + " them declaring a blocking relation would, and this reading did not open them.");
   }
   return console.log(`\n${eligible.length} eligible of ${takeable.length} takeable, ${rows.length} on the`
     + ` backlog. Weights from ${from}; nothing was written.`);

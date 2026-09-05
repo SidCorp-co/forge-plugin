@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { DEFAULTS } from "../../src/rank/weights.mjs";
 import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
-import { settled, waveUnder, wanted } from "../../src/rank/next.mjs";
+import { bounded, waveUnder, wanted } from "../../src/rank/next.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
@@ -219,8 +219,9 @@ test("an order the read budget cut says so on stderr and in the json alike", asy
   const run = await ran(["next", "--json"], standing({ readCap: 4, windowCap: 2 }));
   assert.equal(run.status, 0, run.stderr);
   const held = JSON.parse(run.stdout);
-  assert.deepEqual(held.read, { judged: 4, takeable: 8, settled: false, readCap: 4 });
-  assert.match(run.stderr, /this order is not settled — 4 of 8 takeable issue\(s\) were read whole/u);
+  assert.deepEqual(held.read,
+    { judged: 4, takeable: 8, settled: false, bounded: false, relationsSeen: 0, readCap: 4 });
+  assert.match(run.stderr, /this order is not bounded — 4 of 8 takeable issue\(s\) were read whole/u);
   assert.match(run.stderr, /stopped at readCap/u);
   assert.match(run.stderr, /rank\.readCap/u, "and the way to raise it");
 });
@@ -259,20 +260,32 @@ const scored = (total) => ({ score: { total } });
 test("the read is bounded against every candidate a batch could consume", () => {
   assert.equal(wanted(5, DEFAULTS), 15);
   const eligible = Array.from({ length: 5 }, () => scored(43));
-  assert.equal(settled(eligible, [scored(30)], 5, DEFAULTS), false,
+  assert.equal(bounded(eligible, [scored(30)], 5, DEFAULTS), false,
     "five eligible cannot settle five batches: one batch can absorb three of them");
   const plenty = Array.from({ length: 15 }, () => scored(43));
-  assert.equal(settled(plenty, [scored(30)], 5, DEFAULTS), true, "43 - 30 is more than the band's spread");
-  assert.equal(settled(plenty, [scored(36)], 5, DEFAULTS), false, "36 + 8 reaches 43, so it is still open");
-  assert.equal(settled(plenty, [], 5, DEFAULTS), true, "nothing unread settles it whatever the scores");
+  assert.equal(bounded(plenty, [scored(30)], 5, DEFAULTS), true, "43 - 30 is more than the band's spread");
+  assert.equal(bounded(plenty, [scored(36)], 5, DEFAULTS), false, "36 + 8 reaches 43, so it is still open");
+  assert.equal(bounded(plenty, [], 5, DEFAULTS), true, "nothing unread bounds it whatever the scores");
 });
 
 /* A body carrying a blocking relation can raise any score by any amount, and an unread body's
    relations are unknown, so no bound over the unread rows survives one (consult 2026-09-05). */
-test("a relation found in a body settles nothing, and the answer says so", () => {
+test("a relation found in a body bounds nothing, and a whole read is the only settled one", async () => {
   const plenty = Array.from({ length: 15 }, () => scored(43));
-  assert.equal(settled(plenty, [scored(0)], 5, DEFAULTS, 1), false);
-  assert.equal(settled(plenty, [], 5, DEFAULTS, 1), true, "unless there is nothing left unread");
+  assert.equal(bounded(plenty, [scored(0)], 5, DEFAULTS, 1), false);
+  assert.equal(bounded(plenty, [], 5, DEFAULTS, 1), true, "unless there is nothing left unread");
+  /* The two answers certify different things: the bound covers the size a body declares and can
+     never cover a relation in a body nobody opened, which is what settled is for. */
+  const day = "2026-09-01T00:00:00.000Z";
+  load(Array.from({ length: 8 }, (_, at) =>
+    issue(`ISS-${at + 60}`, { priority: at < 3 ? "critical" : "none", createdAt: day })));
+  const run = await ran(["next", "--json", "--count", "1"], standing({ windowCap: 2, readCap: 60 }));
+  const read = JSON.parse(run.stdout).read;
+  assert.equal(read.bounded, true, "the size bound held after the first passes");
+  assert.equal(read.settled, false, "and it is not settled: five bodies were never opened");
+  assert.equal(run.stderr, "", "a bound that held is no warning");
+  assert.match(await ran(["next", "--count", "1"], standing({ windowCap: 2, readCap: 60 }))
+    .then((one) => one.stdout), /this reading did not open them/u);
 });
 
 test("what a landing frees is told apart from what it reaches", () => {

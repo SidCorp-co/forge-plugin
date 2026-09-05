@@ -27,16 +27,18 @@ The bound is over the candidates the *printing* can need rather than the batches
 takes members out of the eligible list, so five batches can consume five times the batch cap before
 the last head is settled.
 
-And the bound has a hole that is disclosed rather than closed. A body may declare a blocking
-relation, which raises whatever it names by three points per issue in the chain behind it — an
-amount no size-only bound covers, and an unread body's relations are unknown by definition. So a
-read that met one settles nothing: the order prints, and it says it is not settled and why. On this
-tracker no issue's relations came back filled at all, so the disclosure has never fired here; on one
-that fills them, an order is certified only by reading every candidate.
+And the bound has a hole that is disclosed rather than closed, which is why the answer carries two
+words and not one. A body may declare a blocking relation, and that raises whatever it names by
+three points for every issue in the chain behind it — an amount no size-only bound covers. Where one
+has already been met the read keeps going rather than pretending the next body holds none. What
+nothing can cover is a relation in a body nobody opened, so *bounded* says the size bound held over
+what is unread and *settled* says every candidate was read. They certify different things and one
+word for both would claim the stronger of the two. On this tracker no issue's relations came back
+filled at all, so the first has always held here and the second has not.
 
 `readCap` is the budget the 503 above set, and where it bites the answer says so on the error stream
 and in a field of the machine-readable one both — an order a budget cut is not one whatever
-dispatches on it may treat as settled, and a notice only the human form carries hides exactly that.
+dispatches on it may treat as bounded, and a notice only the human form carries hides exactly that.
 
 ## What a landing frees, and what it only reaches
 
@@ -50,6 +52,8 @@ What ends a blocker is one set and not two: an issue being worked, waiting on a 
 and not yet closed is nobody's to dispatch and is still every waiting issue's blocker. Reading the
 dispatch set as the blocker set instead loses the whole chain through anything in flight — the size
 of the mistake being that the issues most likely to be mid-chain are exactly the ones being worked.
+Both the score that orders the reading and the score that prints read the same set, because a
+candidate the first one undercounts is one the bound then keeps from ever being read.
 
 The measured cost of the whole verb against this backlog is about twenty-eight seconds: four for the
 two walks it issues together, three for the past-run corpus on disk, and the rest for the bodies and
