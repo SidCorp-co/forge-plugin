@@ -2273,3 +2273,26 @@ from the record.
   cannot. A record is read back through the reader that will read it.
 - The upload verb's refusal of a source file's type names no accepted type and no route, met again and
   routed to the issue that holds it rather than filed a fourth time.
+
+## Ninetieth dry run — ISS-279
+
+One agent stopped the learning gate refusing writes the shell would still expand (3.35.103): since the
+shared move reading, the gate joined every relative write token to each tree the shell could stand in,
+and a home-relative or variable destination reached that loop looking exactly like a relative path. One
+predicate beside the token pattern: a leading tilde or a dollar the character class dropped means the
+word names no directory here, so it is placed against no tree; a token spelling a guarded path on its own
+face still denies. Reproduced first on the pre-fix code through the gate's own entry; both mechanisms
+reverted alone turn their own case red; judged against the installed copy. One hook file moved, so a
+restart is owed. Closed by its run. Folded from the record.
+
+- The second opinion's braced-variable finding was rejected on evidence — allowed on the fix and on the
+  head alike, since the match starts at the slash and the join already excludes an absolute token — which
+  is why the fix has two mechanisms and not three; a case for it went into the suite anyway. A finding
+  refuted by running earns a case as much as one confirmed.
+- Its quoting finding was accepted as a bounded false negative with no code change: a quote-region scan
+  is a second reading that can err in the over-refusing direction, the exact defect this issue removes.
+  Declined deliberately, with the residual named in the decision ledger.
+- Routed to the issue that holds it: the commit gate records a pending file by path and time with no
+  digest of what the consult read, so this repository's own proof method — revert each mechanism alone,
+  run, restore — re-charges a full consult on bytes already reviewed. It cost this run one consult, and
+  costs every run that proves by reverting.
