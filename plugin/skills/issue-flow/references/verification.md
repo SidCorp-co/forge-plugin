@@ -94,7 +94,8 @@ range the user's stack owns.
   module-not-found from a background process is usually the working directory.
 - **Wait for long work, never poll it.** Give the call its own timeout in the foreground, up to
   the shell tool's ten-minute cap, or start it in the background and take the harness's completion
-  notice as the wake-up; a `sleep` inside a `while` or `until` is refused.
+  notice as the wake-up; a `sleep` inside a `while` or `until` is refused (`forge hooks --how
+  polling`).
 - **After stopping anything, confirm the user's own stack still answers.** The guard can
   refuse a command that cannot be aimed; it cannot tell you that you aimed correctly.
 
