@@ -2431,3 +2431,24 @@ Folded from the record.
 - The paragraph the verification reference owes was posted on the batch that held the file at plan
   time, and that batch had closed by ship time. A held-file note is addressed to the run holding the
   file when the note is written, so the fold re-routed it to the run holding it now (ISS-290).
+
+## Ninety-seventh dry run — ISS-284
+
+One agent gave the flow a measuring verb (3.35.111): where a run's minutes and rounds go, read off the
+transcripts the harness keeps for a project, by phase and by tool class, with the refusals a run met
+and the commands it repeated. Nothing written, nothing read from the tracker: it measures the flow,
+not the backlog. Two one-line rows were taken in files other runs held, because the gate refuses a verb
+without them; both holders had closed by the landing. No restart owed. Closed by its run. Folded from
+the record.
+
+- The hand profile that motivated the verb was wrong in three places the verb exposed: whole-file
+  matching admitted twenty-six review subagents as runs, a process lookup for the ship was counted as
+  the ship so the judging phase read as zero minutes, and the gate count came out at nearly double.
+  A number produced once by hand is a hypothesis; the verb is what makes it a measurement.
+- Read on landing day: the close phase is the second-longest here at thirteen minutes and forty-one
+  calls a run, filled by gate runs after the ship and by ships run again. The cadence issue in flight
+  (ISS-290) owns the first; the second is the rebase the ship's own advice prescribes (ISS-225).
+- The other project spends a third of its tool time in poll-shaped calls, and its judging phase runs
+  twenty-three minutes against four here. The guard that landed the same day (ISS-286) reaches the
+  first; the second is what a batched verdict write (ISS-289) was added for, once that project's
+  installed copy carries it.
