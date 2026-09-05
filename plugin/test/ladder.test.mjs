@@ -34,7 +34,17 @@ const state = {
     { ...issue("feature"), documentId: "claimed-uuid", issueId: "ISS-73" },
   ],
   comments: {},
-  answer: { forge_config: () => ({ config: state.config }) },
+  answer: {
+    forge_config: () => ({ config: state.config }),
+    /* The lease is a payload write's own gate, so the fixture keeps what a claim puts on the issue. */
+    forge_issues: (args) => {
+      if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
+      const held = state.issues.find((one) => one.documentId === args.documentId) ?? state.issues[0];
+      if (args.action === "get") return held;
+      if (args.action === "update") return Object.assign(held, args.data);
+      return { documentId: args.documentId, ...(args.data ?? {}) };
+    },
+  },
 };
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
@@ -188,6 +198,24 @@ test("the ceiling names which of the two a landing is past, and the route up nam
   assert.match(resizeForm("ISS-3", lowest), new RegExp(`Size: ${lowest} -> ${TIERS[1]}`, "u"));
   assert.match(resizeForm("ISS-3", TIERS[1]), /Size: fix -> feature/u, "and the rung above it names the top");
   assert.equal(heightOf("a word this ladder has not got"), 0, "an unknown rung is the shortest, never negative");
+});
+
+/* The stamp `forge stats runs` reads. Filled at the write from the description the write already
+   has, so it proves the rung rather than proving somebody typed a word; refused as a flag, and a
+   record that arrived without it is refused nothing, every entry check reading the body itself. */
+test("a confirmation a write posts carries the rung, and one handed in without it is not refused", async () => {
+  const [trivial] = TIERS;
+  await ranAsync(FORGE, ["claim", "ISS-70"], tracker.env);
+  const wrote = await ranAsync(FORGE,
+    ["record", "confirmation", "ISS-70", "--where", "src/ladder.mjs", "--is", "a rung", "--finding", "holds"],
+    tracker.env);
+  assert.equal(wrote.status, 0, wrote.stderr);
+  const posted = state.calls.filter((one) => one.args.action === "create").at(-1)?.args.data?.body ?? "";
+  assert.match(posted, new RegExp(`^tier: ${trivial}$`, "mu"),
+    "the rung is stamped at the write, off the body, rather than asked of whoever is writing");
+  const asked = await ranAsync(FORGE, ["record", "confirmation", "ISS-70", "--tier", trivial], tracker.env);
+  assert.notEqual(asked.status, 0, "and is not a flag, or a run could claim a rung its issue never carried");
+  assert.match(`${asked.stdout}${asked.stderr}`, /--tier/u, "refused by the name it was given");
 });
 
 test("--owed reports the rung the checks run, what it drops and every route up from it", async () => {
