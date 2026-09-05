@@ -16,6 +16,7 @@ const HOME = homeEnv("learning-gate");
    the ones that judge content build a real directory below. */
 const MEMORY = "/home/dev/.claude/projects/-home-dev-app/memory";
 const SKILL = "plugin/skills/issue-flow/SKILL.md";
+const SKILL_DIR = "/home/dev/app/plugin/skills/issue-flow";
 
 /* The gate stamps /tmp once per session per file, so a fixture reusing a session id passes on a
    re-run for the wrong reason. Every call gets its own session. */
@@ -191,6 +192,44 @@ test("the braced form resolves too", () => {
 
 test("a relative write after cd into the guarded directory is refused", () => {
   assert.equal(decide(`cd ${MEMORY} && cat > trap.md <<'EOF'\nx\nEOF`).allowed, false);
+});
+
+/* Three gates ask which directory a command runs in and this one kept its own answer: the last `cd`
+   in the text won, whatever preceded it, and the shell's own cwd was no tree at all (ISS-260). */
+test("a relative write is placed against every tree the shell could be standing in", () => {
+  assert.equal(
+    decide(`cd ${dirname(MEMORY)} && cd memory && cat > trap.md <<'EOF'\nx\nEOF`).allowed,
+    false,
+    "two relative moves compose, where the last of them alone names nothing guarded",
+  );
+  const doubted = decide(`cd ${MEMORY} || cd /tmp/a && echo x > trap.md`);
+  assert.equal(doubted.allowed, false, "a cd in front of a || may have run, so its tree is still live");
+  assert.match(doubted.reason, /could run in more than one tree/u, "and the refusal names the doubt");
+  assert.match(doubted.reason, /Join them with .&&./u, "with the one action that settles it");
+  assert.equal(decide(`(cd ${MEMORY}; echo hi); echo x > trap.md`).allowed, true, "a subshell's move died with it");
+  assert.equal(decide(`pushd ${MEMORY} && echo x > trap.md`).allowed, false, "a pushd moves this shell too");
+  assert.equal(
+    decide(`pushd ${MEMORY} && popd && echo x > trap.md`).allowed,
+    true,
+    "and the stack it returns to is what the reading declines to model, so that tree is named nowhere",
+  );
+});
+
+/* Refusing on this doubt would refuse every relative `.md` write behind a `cd -`, and a gate refusing too much is one somebody switches off. */
+test("a tree the command does not name leaves the token to decide alone", () => {
+  assert.equal(decide(`cd - && echo x > notes.md`).allowed, true);
+  assert.equal(decide(`cd - && echo x > ${MEMORY}/trap.md`).allowed, false, "while the token still counts");
+  assert.equal(decide(`cd /tmp/a || cd /tmp/b && echo x > notes.md`).allowed, true, "and doubt alone refuses nothing");
+});
+
+/* The shell stands somewhere before any `cd`, and that tree was read as no tree: a relative write
+   from a session already inside the directory it guards was the write nobody was asked about. */
+test("the call's own cwd is a tree the write resolves against", () => {
+  const at = (cwd, command) => answered(ask({ tool_name: "Bash", tool_input: { command }, cwd }));
+  assert.equal(at(MEMORY, `echo x > trap.md`).allowed, false);
+  assert.equal(at(`${SKILL_DIR}`, `sed -i s/a/b/ references/plan.md`).allowed, false, "a skill's own text too");
+  assert.equal(at(MEMORY, `echo x >> MEMORY.md`).allowed, true, "the index is still not a memory");
+  assert.equal(at("/tmp/notes", `echo x > trap.md`).allowed, true, "and a tree guarding nothing refuses nothing");
 });
 
 test("a literal path is still refused", () => {

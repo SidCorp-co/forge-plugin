@@ -13,10 +13,10 @@ gates decide by it, and a second account here would diverge the first time one o
 
 ## Which tree a command runs in
 
-An agent's shell resets its cwd between calls, so the tree at stake is where the last `cd` left it and
-not the event's cwd. Two gates need that — whose work a `git stash` takes, which tree a commit closes
-over — so it is the harness's. Reading it wrong is silent in the dangerous direction: a clean checkout
-stands the git rules down, and the refusal never happens.
+An agent's shell resets its cwd each call, so the tree at stake is where a `cd` left it, not the
+event's cwd. Three gates need that — whose work a `git stash` takes, which tree a commit closes over,
+where a relative write lands — so it is the harness's. Read wrong it is silent in the dangerous
+direction: a clean checkout stands the rules down and nothing is refused.
 
 ## Writing a refusal, and the document behind it
 

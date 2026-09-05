@@ -79,13 +79,16 @@ export const spans = (text, { pipes = false } = {}) => {
   return out;
 };
 
-/* What may precede a `cd` and still leave the move to this shell: a group, or a keyword whose condition
-   or body runs here — never a `!`, which inverts. The destination is one shell word, and it is optional. */
+/* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, and a `-n` moves the stack and not the shell, so it is no move at all. */
 const AHEAD = String.raw`(?:[({]\s*|\b(?:if|elif|while|until|then|else|do)\s+)*`;
 const WORD = String.raw`(?:'[^']*'|"[^"]*"|\\.|[^\s;&|()<>])+`;
-const MOVES = new RegExp(`^${AHEAD}cd(?=\\s|$)(?:\\s+-[\\w-]+)*(?:\\s+(${WORD}))?`, "u");
-/** A destination the text does not carry — `cd -`, a bare `cd`, one still holding a `$`. Guessed it would
- *  answer for a tree nobody named; `movedTo` hands it back rather than the cwd, and `resolve` throws on it. */
+const MOVES = new RegExp(
+  `^${AHEAD}(?:popd(?=\\s|$)|(?:cd|pushd)(?=\\s|$))((?:\\s+-[\\w-]+)*)(?:\\s+(${WORD}))?`,
+  "u",
+);
+const STAYS = /(?:^|\s)-[\w-]*n/u;
+/** A destination the text does not carry — `cd -`, a bare `cd` or `pushd`, a `popd` whose stack this
+ *  declines to model, one holding a `$`. `movedTo` hands it back rather than the cwd, and `resolve` throws. */
 export const NOWHERE = Symbol("a tree the command does not name");
 /** What each separator says about the move, and what a `then` or `do` after one proves — except after
  *  an `until`, whose body runs where the `cd` failed, so there the doubt is what holds. */
@@ -101,7 +104,7 @@ export const spelled = (one) =>
 const PLAIN = /^[\w./@+][\w./@+-]*$/u;
 export const typed = (one) =>
   PLAIN.test(one) ? one : `'${one.replace(/'/gu, String.raw`'\''`)}'`;
-const named = (to) => to !== "" && to !== "-" && !to.includes("$");
+const named = (to) => to !== "" && to !== "-" && !to.startsWith("+") && !to.includes("$");
 const onto = (base, to) => {
   if (to === NOWHERE) return NOWHERE;
   if (isAbsolute(to)) return to;
@@ -119,8 +122,8 @@ export const standsIn = (text, before) => {
     const one = text.slice(start, end).trim();
     for (let n = opens; n > 0; n -= 1) outer.push(could);
     const move = STAGE.test(after) ? null : MOVES.exec(one);
-    const to = move && move[1] !== undefined ? spelled(move[1]) : "";
-    const said = move && (named(to) ? to : NOWHERE);
+    const to = move && move[2] !== undefined ? spelled(move[2]) : "";
+    const said = move && !STAYS.test(move[1]) && (named(to) ? to : NOWHERE);
     if (said) could = [...could.map((f) => onto(f, said)), ...(after[0] === "|" ? held : [])];
     const next = text.slice(end).replace(COMMENT, "");
     if (one) after = next.match(/^[;&|\s]+/u)?.[0] ?? "";

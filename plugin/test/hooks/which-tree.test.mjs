@@ -306,6 +306,27 @@ test("a span closing two subshells hands back two cwds", () => {
   );
 });
 
+/* A `pushd` moves this shell exactly as a `cd` does, and it reached the reading only through the copy
+   the learning gate kept: three gates read one text, so it belongs here or nowhere (ISS-260). */
+test("a pushd is a move, and the stack a popd returns to is a tree nobody named", () => {
+  const verb = "stash";
+  const dirty = dirtyRepo();
+  assert.match(from(cleanRepo(), `pushd ${dirty} && git ${verb}`), /stash silently reverts/u);
+  reads([
+    ["pushd /one && cd two && git status", ["/one/two"], "and it composes with the moves around it"],
+    ["popd && git status", [NOWHERE], "while a popd names no tree this reading can check"],
+    ["pushd && git status", [NOWHERE], "nor a pushd with nothing to move to"],
+    ["pushd +1 && git status", [NOWHERE], "nor one rotating the stack"],
+    ["pushd -n /one && git status", [null], "while a -n moves the stack and leaves the shell where it was"],
+    ["popd -n && git status", [null], "so the tree it started in is known, and reading it as unknown lost one"],
+  ]);
+  assert.match(
+    from(cleanRepo(), `pushd ${dirty} && popd && git ${verb}`),
+    /cannot be read from the command/u,
+    "so what follows one is treated as having work at stake, and told to spell the directory out",
+  );
+});
+
 /* `MOVES` allowed only an optional `(` in front of `cd`, so a compound's move was not seen at all. */
 test("a cd a compound command runs is this shell's move", () => {
   const verb = "stash";
