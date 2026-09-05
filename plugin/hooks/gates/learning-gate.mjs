@@ -8,6 +8,12 @@ import { NOWHERE, QUOTED, REDIRECT, RUNS, WRITES, askedAlready, askedByAnyone, d
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../../src/checks/learning.mjs";
 const MD_TOKEN = /[A-Za-z0-9_./@~-]+\.md/g;
+/* Every `.md` a text names, and whether the shell would still expand the word it came from: a leading `~` is no relative path, and a `$` the class above drops leaves a name that reads exactly like one. Neither names a directory here, so neither is placed against a tree — `named()` draws that line for a `cd` destination — while the token still answers for what it spells. */
+const tokens = (said) =>
+  [...said.matchAll(MD_TOKEN)].map((one) => ({
+    token: one[0],
+    placed: one[0][0] !== "~" && said[one.index - 1] !== "$",
+  }));
 /* Twelve refusals in three days were a sentence inside a string — a write word and a skill path in one
    line of prose. A path and a mode hold no space, so a span with one is prose; a `-c` body is code. */
 const spoken = (text) =>
@@ -131,14 +137,14 @@ export const run = (ev) => {
     };
     const named = spans(text).flatMap(({ start, end }) => {
       const said = spoken(text.slice(start, end).trim());
-      return WRITES.test(said) ? (said.match(MD_TOKEN) ?? []).map((token) => ({ token, at: start })) : [];
+      return WRITES.test(said) ? tokens(said).map((one) => ({ ...one, at: start })) : [];
     });
     const aimed = [...text.matchAll(REDIRECT)]
-      .flatMap((one) => (unquote(one[1]).match(MD_TOKEN) ?? []).map((token) => ({ token, at: one.index })));
+      .flatMap((one) => tokens(unquote(one[1])).map((each) => ({ ...each, at: one.index })));
     if (named.length === 0 && aimed.length === 0) done();
-    for (const { token, at } of [...aimed, ...named]) {
+    for (const { token, placed, at } of [...aimed, ...named]) {
       if (basename(token) === "MEMORY.md") continue;
-      const trees = token.startsWith("/") ? [] : standing(at);
+      const trees = placed && !token.startsWith("/") ? standing(at) : [];
       const resolved = [token, ...trees.map((tree) => join(tree, token))].find((path) => GUARDED.test(path));
       if (resolved) {
         // Being sent to another tool teaches nothing about whether the fact belongs in a file at all.

@@ -31,6 +31,7 @@ const answered = (run) => {
 };
 
 const decide = (command) => answered(ask({ tool_name: "Bash", tool_input: { command } }));
+const at = (cwd, command) => answered(ask({ tool_name: "Bash", tool_input: { command }, cwd }));
 
 /* A value naming another was dropped whole rather than carried, so this exact write — found by firing
    the live gate — landed a memory file with nothing asked. The `/memory/` it spells out is enough. */
@@ -225,11 +226,28 @@ test("a tree the command does not name leaves the token to decide alone", () => 
 /* The shell stands somewhere before any `cd`, and that tree was read as no tree: a relative write
    from a session already inside the directory it guards was the write nobody was asked about. */
 test("the call's own cwd is a tree the write resolves against", () => {
-  const at = (cwd, command) => answered(ask({ tool_name: "Bash", tool_input: { command }, cwd }));
   assert.equal(at(MEMORY, `echo x > trap.md`).allowed, false);
   assert.equal(at(`${SKILL_DIR}`, `sed -i s/a/b/ references/plan.md`).allowed, false, "a skill's own text too");
   assert.equal(at(MEMORY, `echo x >> MEMORY.md`).allowed, true, "the index is still not a memory");
   assert.equal(at("/tmp/notes", `echo x > trap.md`).allowed, true, "and a tree guarding nothing refuses nothing");
+});
+
+/* Placing a token against the cwd placed one the *shell* would still have expanded there too, so an agent standing in a skills tree had every `~/…md` write of its own refused, and an over-refusal on a file nowhere near the tree is how a gate gets routed around (ISS-279). `MD_TOKEN` admits no `$`, so the second match begins after it and the rest reads as a relative path. */
+test("a `~` destination is placed against no tree", () => {
+  assert.equal(at(SKILL_DIR, `echo x > ~/notes.md`).allowed, true);
+  assert.equal(at(SKILL_DIR, `echo x > notes~.md`).allowed, false, "while a `~` inside a token is a path");
+});
+
+test("a destination whose `$` the token class dropped is placed against no tree", () => {
+  assert.equal(at(SKILL_DIR, `echo x > $HOME/notes.md`).allowed, true);
+  assert.equal(at(SKILL_DIR, `cat > $UNSET/notes.md <<EOF\nx\nEOF`).allowed, true, "set or unset alike");
+  assert.equal(at(SKILL_DIR, "echo x > ${HOME}/notes.md").allowed, true, "the braced form, whose match starts at the `/`");
+});
+
+/* Only the join moved: read as "skip the token", the same fix would have freed every guarded path written through a variable, which is the shape the gate was built for. */
+test("an expanded destination still answers for what the token itself spells", () => {
+  assert.equal(at(SKILL_DIR, `printf x > "$HOME/p/memory/trap.md"`).allowed, false);
+  assert.equal(at(SKILL_DIR, `echo x > ~/p/memory/trap.md`).allowed, false);
 });
 
 test("a literal path is still refused", () => {
