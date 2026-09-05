@@ -7,7 +7,7 @@ import test from "node:test";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { BARE, committed, corrected, emptyAnswer, GATE, git, lastStep, landIn, planned, pushed, ref,
+import { BARE, brokenAnswer, committed, corrected, emptyAnswer, GATE, git, lastStep, landIn, planned, pushed, ref,
   ROOT, runIn, scratch, sized, stubbed } from "./run-fixtures.mjs";
 
 /* Step 7 is reached only from a tree that is not the checkout, so every fixture shipping from the
@@ -437,6 +437,11 @@ test("an answer with nothing in it costs the ship the ceiling and not the run", 
   assert.doesNotMatch(said, /TypeError|Cannot read/u, "and the ship does not carry the throw out with it");
   assert.match(said, /the copy the next session loads/u,
     "while every step after the ceiling still runs and says what it found");
+  brokenAnswer(at);
+  const worse = shipOnBranch(work, "iss-318");
+  const also = `${worse.stdout}\n${worse.stderr}`;
+  assert.doesNotMatch(also, /ceiling|SyntaxError|JSON/u, also);
+  assert.match(also, /the copy the next session loads/u, "and an answer that is not JSON at all costs no more");
 });
 
 /* The rung the work is on, never the one its body still claims: an issue corrected to the top rung

@@ -26,6 +26,19 @@ Where it applies, and what each case would have done read the other way:
 | a plan declaring one name twice | `yes`, wherever in the plan it stands | read the first, so `no` above `yes` waives a payload the plan explicitly declared, and the same two lines reordered do not |
 | a ceiling read from a projection that lost a correction | printed all the same | the loss only ever lowers the rung, so it tightens a print that refuses nothing: it nags where nothing was owed and never falls silent where something was |
 
+## The ship's ceiling
+
+`tools/run.mjs` prints the landed file and line count against the rung's ceiling, and it is the
+backstop rather than the decision: by the time a ship runs, a refusal protects nothing, so it prints
+and returns. It is contained whole for the same reason — the release has already happened by the
+time it runs, and an advisory number is not worth the lines that say what landed. Every doubtful
+read makes it silent rather than loud: an unnamed branch, a tracker that could not answer, an answer
+that is not an object. The one loss it accepts is the correction page's, which carries the latest
+correction of its kind and no earlier one, so a re-size an ordinary correction followed is not read
+here. That loss is one-directional — a dropped correction only ever lowers the rung, which tightens
+a print that refuses nothing, so it nags where nothing was owed and never falls silent where
+something was.
+
 ## Two readings the rule does not govern
 
 **A mark inside an example is not a doubtful mark — it is not a mark.** A fenced or indented block

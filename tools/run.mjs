@@ -365,48 +365,36 @@ const gateGrew = (tree) => {
   }
 };
 
-/* The backstop, never the decision: by the time a ship runs a refusal protects nothing. The rung
-   comes off the issue the branch names, `start` having cut `iss-nn`, so this sets none of its own.
-   Silent where no issue is named: a ceiling nobody set has no claim behind it, and read at the rung
-   the work is on rather than the one its body still claims. */
+/* The backstop, never the decision, and contained whole: what it prints and why it refuses nothing,
+   why it is silent rather than loud on a doubtful read, and why the loss in that read only ever
+   tightens it, are docs/cli/the-ladder.md's. The rung comes off the issue the branch names. */
 const BRANCH_KEY = /^iss-(\d+)/u;
 
-const tierAsked = (tree) => {
-  const key = BRANCH_KEY.exec(gitOut(["rev-parse", "--abbrev-ref", "HEAD"], tree) ?? "")?.[1];
-  if (!key) return null;
-  const ref = `ISS-${key}`;
-  const said = forgeSays(tree, ["issue", ref, "--fields", "description,plan"]);
-  if (said.why) return null;
-  let body;
-  try {
-    body = JSON.parse(said.out);
-  } catch {
-    return null;
-  }
-  if (!body || typeof body !== "object") return null;
-  /* One string: every climb on it is a climb. Only the latest correction, a loss that tightens a
-     print refusing nothing (docs/cli/the-ladder.md). */
-  const page = forgeSays(tree, ["record", "report", ref]);
-  const moved = page.why ? [] : [page.out];
-  return { key: ref, tier: tierOf({ description: body.description, plan: body.plan, moved, whole: true }) };
-};
-
-/* Contained whole: the release has happened, so a throw would cost the run the lines saying what did. */
 const tierCeiling = (tree, was) => {
   try {
-    const asked = tierAsked(tree);
-    if (!asked || !CEILINGS[asked.tier]) return undefined;
+    const key = BRANCH_KEY.exec(gitOut(["rev-parse", "--abbrev-ref", "HEAD"], tree) ?? "")?.[1];
+    if (!key) return undefined;
+    const ref = `ISS-${key}`;
+    const said = forgeSays(tree, ["issue", ref, "--fields", "description,plan"]);
+    if (said.why) return undefined;
+    /* Parsed, never matched: JSON escapes newlines. `null` parses; anything worse takes the catch. */
+    const body = JSON.parse(said.out);
+    if (!body || typeof body !== "object") return undefined;
+    /* One string: every climb on it is a climb, whichever record carried it, and only the latest. */
+    const page = forgeSays(tree, ["record", "report", ref]);
+    const size = { description: body.description, plan: body.plan, whole: true, moved: page.why ? [] : [page.out] };
+    const tier = tierOf(size), ceiling = CEILINGS[tier];
+    if (!ceiling) return undefined;
     const rows = (gitOut(["diff", "--numstat", `${was}..HEAD`], tree) ?? "").split("\n").filter(Boolean);
-    const moved = (row) => row.split("\t").slice(0, 2).reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0);
-    const landed = { files: rows.length, lines: rows.reduce((sum, row) => sum + moved(row), 0) };
-    const ceiling = CEILINGS[asked.tier];
-    const said = `  ${asked.key} is a \`${asked.tier}\` and landed ${landed.files} file(s) and `
+    const each = (row) => row.split("\t").slice(0, 2).reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0);
+    const landed = { files: rows.length, lines: rows.reduce((sum, row) => sum + each(row), 0) };
+    const line = `  ${ref} is a \`${tier}\` and landed ${landed.files} file(s) and `
       + `${landed.lines} changed line(s), against that tier's ceiling of ${ceiling.files} and ${ceiling.lines}`;
-    const over = overCeiling(asked.tier, landed);
-    if (!over) return console.log(said);
-    console.error(`${said} — past it on ${over.join(" and ")}`);
+    const over = overCeiling(tier, landed);
+    if (!over) return console.log(line);
+    console.error(`${line} — past it on ${over.join(" and ")}`);
     return console.error("    a landing larger than its tier owes a correction naming the re-size, and the "
-      + `tier's skipped obligations are earned before the close:\n      ${resizeForm(asked.key, asked.tier)}`);
+      + `tier's skipped obligations are earned before the close:\n      ${resizeForm(ref, tier)}`);
   } catch {
     return undefined;
   }

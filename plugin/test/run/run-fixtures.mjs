@@ -152,6 +152,10 @@ if (argv[0] === "issue") {
   const description = existsSync(marked) ? readFileSync(marked, "utf8") : "no mark here";
   const planned = join(room, "forge-plan");
   const plan = existsSync(planned) ? readFileSync(planned, "utf8") : "";
+  if (existsSync(join(room, "forge-broken"))) {
+    process.stdout.write("not json at all {");
+    process.exit(0);
+  }
   const shape = existsSync(join(room, "forge-null"))
     ? null
     : { issueId: argv[1], status, description, plan };
@@ -195,7 +199,9 @@ export const stubbed = (work) => {
  *  two things that climb from it, and `null`, which parses and has no field to read. */
 export const sized = (at, tier) => writeFileSync(join(at, "forge-size"), `a body.\n\nSize: ${tier}.\n`);
 export const planned = (at, text) => writeFileSync(join(at, "forge-plan"), text);
+/** Two answers the ceiling cannot measure: `null`, which parses and has no field, and neither. */
 export const emptyAnswer = (at) => writeFileSync(join(at, "forge-null"), "");
+export const brokenAnswer = (at) => writeFileSync(join(at, "forge-broken"), "");
 export const corrected = (at, moved) =>
   writeFileSync(join(at, "forge-record-page"), `Correction  (2026-09-05T10:00, contract 1)\n  What moved: ${moved}\n`);
 
