@@ -2227,3 +2227,27 @@ up rather than waited for. No restart owed. Closed by its run. Folded from the r
   depends on a decision nobody has written — whether that tool may import from the plugin's source. The
   run had asserted the boundary existed; the review caught it, and the doc now says it does not (ISS-277).
   The dependency verb on a personal token was filed once more with its workaround written out (ISS-278).
+
+## Eighty-eighth dry run — ISS-257 and ISS-275
+
+One agent gave the fold one home and a comment its true reason (3.35.101). ISS-257: whether a filing
+lands as a comment on an open neighbour is decided once, in the neighbours module, which takes the
+read-first hold and posts; the create path and the feedback verb each spend it and keep only what is
+theirs — body, title, the relation flag, whether the write is soft, and every printed line. The neighbour
+search stayed each route's own call because the raw create path is a third caller that must never fold.
+Two new cases watched failing, one comparing the two routes' output from the fold sentence onward. The
+review's one finding — a failure-keeper moved ahead of a show — was accepted, put back where the issue's
+own rules had it, and refuted on recheck. ISS-275: the comment above the project verb's usage gives the
+length reason and names its sibling. No restart owed. Both closed by the run. Folded from the record.
+
+- The reading the parent asked for, on the record and on the related issue: one home does not settle
+  ISS-250. The feedback verb has folded since its landing; one unfolded note carried no fix mark, and the
+  run's own marked note was shown two neighbours at a high score and folded onto neither because neither
+  named the same place. Both of the fold's signals fail on that wall for different reasons; what one home
+  buys is that the answer is one expression on one line.
+- A file the run only read gained a caller from the file it changed, while another run held the first
+  file on a branch cut earlier; the run told the parent, since a rename there would break the fold and no
+  gate catches the edge. An import across two live branches is a message owed, not a merge surprise.
+- A sibling comment two declarations away states a fact three landings made false (ISS-280); kept out
+  and filed, since the issue named one comment. The run's own note on a documented cap duplicated two open
+  issues and was dropped, becoming the evidence for the second reading above.
