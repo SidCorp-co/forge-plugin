@@ -3279,7 +3279,8 @@ repository's own weights. The run filed it (ISS-395), fixed it as a separate com
 correction, and filed the reason the config-only landing had shipped green onto a tree it made red
 (ISS-396, left open). A fresh occurrence of a log attachment refused on sniffed type went to ISS-158.
 No restart owed. Closed by its run. Folded from its handback; the filings were confirmed on the
-tracker.
+tracker, the comment on ISS-158 only at the hundred-and-thirty-third fold, once the dispatcher read
+threads through the raw comments call rather than the issue verb, which prints none.
 
 - A config-only commit from the dispatcher broke a test, and the ledger let it ship green because no
   step's declared inputs had moved. The run that found it was the next one to replay onto master. The
@@ -3315,8 +3316,9 @@ as ISS-390 owns. No restart owed. Closed by its run. Folded from its handback.
   stamps searches wherever the directory resolves, and after the redirect that is the run's own root.
 - A gap record lost two phrases to shell backtick substitution, and the run posted a second one saying
   so. A record body written through the shell is read by the shell first.
-- Of the two cross-references the handback names, the note on ISS-390 was read back on its thread and
-  the one on ISS-395 was not, so the dispatcher posted that one on the run's behalf.
+- Both cross-references the handback names were on their threads. The dispatcher's fold read them
+  through the issue verb, which prints no comments, took the one on ISS-395 as missing and posted a
+  duplicate; corrected at the hundred-and-thirty-third fold.
 
 ## Hundred-and-thirtieth dry run — ISS-317
 
@@ -3327,8 +3329,9 @@ twenty-three files, four of them docs and two requirements. The blocker had clea
 at the call that the tracker's get and list both return the field, so no fake tracker was needed. The
 body's size line does not retire yet, because every open row still has the field unset and the line
 is their only source. The run rebased onto the fixed rank test on the dispatcher's message and did not
-re-diagnose it. No restart owed. Closed by its run. Folded from its handback; of the writes it names,
-ISS-403, ISS-394 and the comments on ISS-400 and ISS-389 were read back, and two were not.
+re-diagnose it. No restart owed. Closed by its run. Folded from its handback; every write it names was
+on the tracker, though the fold first read two of them as missing through the issue verb, which
+prints no comments.
 
 - The checker the run shipped to hold the size table to one file cannot fire on the copies it exists
   to catch: its selector needs both the smallest and the largest value in one file, and every copy
@@ -3337,11 +3340,12 @@ ISS-403, ISS-394 and the comments on ISS-400 and ISS-389 were read back, and two
 - The landing left two sentences stating the exemption rule the change had just made false, three
   lines above the corrected rule in the same help output. The next run to read that file found it
   (ISS-400), not this run's criteria; the run then added a third site the issue had missed.
-- Two plugin defects the run met never reached the tracker: a shared reason after several criterion
-  blocks attached to the last block only, and the feedback verb that was meant to file it ended once
-  with no trace and once claiming a fold onto a thread that shows no such comment. The dispatcher
-  filed both by hand at the fold (ISS-404, ISS-405). A verb that writes nothing and says nothing is
-  the worse of the two.
+- A plugin defect the run met, a shared reason after several criterion blocks attaching to the last
+  block only, was folded by the feedback verb onto ISS-357 as its handback said. The dispatcher's fold
+  read that thread through the issue verb, which prints no comments, took the write as missing and
+  filed ISS-404 and ISS-405 on that reading; both were dropped at the hundred-and-thirty-third fold
+  once the thread was read through the raw comments call. The run's first feedback call ending with
+  no trace stands as reported and has no filing.
 - Two knowledge rows now name symbols the change retired. The run left them and said so, because the
   store has no undo; they are the batch reading's (ISS-399) to re-stamp.
 
@@ -3378,8 +3382,8 @@ consult recorded against the bytes, not the modification time, so a restored fil
 the kill switch is the only stand-down, since a stand-down on a filesystem error would put the
 unchecked reader on the same path a moment later. Six consults, twelve findings, all accepted and all
 refuted by recheck; the approving read was the whole touched set at the replayed head. No restart
-owed. Closed by its run. Folded from its handback; the note on ISS-392 was read back, the one on
-ISS-395 was not and the dispatcher posted it.
+owed. Closed by its run. Folded from its handback; both notes it names were on their threads, and
+the dispatcher's duplicate on ISS-395 came from reading the thread through the issue verb.
 
 - A rule as the issue wrote it would have passed a file the reviewer never saw. The run read the
   request path before trusting the issue's clearing command, which is the first rule of the flow
@@ -3418,4 +3422,7 @@ its handback.
   mechanism the contract provides.
 - No wrapped verb delivers a comment body: the issue verb's fields do not name them and the resume
   verb says in its own help that it is no delivery of them, so the run read them through the raw
-  call. Recorded as a gap on the issue and not filed, since a closed issue made it a design.
+  call. Recorded as a gap on the issue and not filed, since a closed issue made it a design. The
+  dispatcher had been folding on the same misreading for five runs: every "write not found" in runs
+  128 to 132 was a thread read through the issue verb, and every one of those writes was there. Four
+  duplicate comments and two filings came of it, corrected at this fold.
