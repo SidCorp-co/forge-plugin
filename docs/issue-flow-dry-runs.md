@@ -3480,3 +3480,28 @@ ISS-402 and ISS-120 were read back through the raw comments call.
   ISS-402 instead, where the count is now two.
 - The whole gate took half again as long as it did a day earlier, unrelated to the change; the
   handback said so for whoever watches the ledger.
+
+## Hundred-and-thirty-sixth dry run — ISS-151
+
+The issue verb's field flag refused names the same verb prints under its full form. The ask is now
+split: narrow on the wire where every name is one the tracker declares, otherwise one whole-body read
+projected locally, with the words a caller may type being the words the verb prints and the tracker's
+own names still refused; the accepted set is read off each answer and off the tracker's declaration,
+never listed in the code (3.35.151, landed as beaec7a). Fourteen cases, ten red without the change.
+The reviewer's one finding on the code was a real defect: a mixed ask rejected a declared name the full
+answer omitted, fixed by joining the declared set into both the check and the refusal's candidates,
+with a planted case. No restart owed. Closed by its run. Folded from its handback; the four routed
+comments and the two filings were read back.
+
+- A fix tier drops the plan field, then the landing refuses for naming no path in a plan the tier
+  removed, so every fix that writes a file owes a correction retyping the list the refusal printed
+  (ISS-415). The third run in this wave to meet the shape, each filing it a little sharper.
+- Two documents now sit within a few characters of the one-pass cap after this run's additions; the
+  run said so on ISS-294 and filed the projections topic's own split (ISS-416) rather than leaving
+  the next writer to find the wall.
+- A knowledge row the run would have refreshed belongs to the batch reading in flight, and the store
+  has no conditional write, so a second writer is a lost write with no way back; the run routed the
+  two symbols the row needs as a filing onto that reading instead.
+- The skill's inline text already advertised the flag's working form, false before this change and
+  true after, so no skill file moved and no restart was charged for a change that made a sentence
+  true.
