@@ -92,6 +92,14 @@ export const readRecords = (body, shapeOf) => {
   });
 };
 
+/* What the first record in a body stamped, which is the one a write printed: docs/cli/the-ladder.md. */
+const FIRST_TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract \\d+\`?[ \t]*$`, "mu");
+
+export const stampedIn = (body, kind, flag) => {
+  if (FIRST_TAG.exec(body ?? "")?.[1] !== kind) return null;
+  return (payloadIn(body) ?? []).find(([key]) => key === flag)?.[1] ?? null;
+};
+
 /** A number or nothing: a caller keys a map by this, and `NaN` is a key nothing can supply. */
 export const criterionNumber = (value) => {
   const found = /^\s*(\d+)/u.exec(String(value ?? ""));

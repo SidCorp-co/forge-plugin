@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { VERB_NAMES } from "../resolve/visibility.mjs";
+import { stampedIn } from "../flow/machine.mjs";
 
 export const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`);
 
@@ -14,20 +15,20 @@ const OUTPUT = /^a\S*\.output$/u;
 
 
 /* The brief, never the whole file: over the raw text a transcript that had only GREPPED for the
-   words was admitted as a run and its search argument read as its claim. The rung below is keyed on
-   the CALL's class and read line-anchored, for the reasons docs/cli/stats.md carries. */
+   words was admitted as a run and its search argument read as its claim. The rung below is read off
+   a record and not off the words either, for the reasons docs/cli/stats.md carries. */
 export const FLOW_BRIEF = /issue-flow/u;
 
 const CONFIRMS = "forge record confirmation";
-/* Column zero: `blockOf` indents a continuation line, so an indented key is prose (the-ladder.md). */
-const TIER_LINE = /^tier:[ \t]*([a-z]+)[ \t]*$/gmu;
+const CONFIRMED = "confirmation";
 
 export const UNTIERED = "untiered";
 
+/* Off the record the write posted, never off the output a class covers whole: the-ladder.md. */
 export const tierOf = (calls, tiers) => {
   const said = calls
     .filter((call) => call.class === CONFIRMS)
-    .flatMap((call) => [...String(call.body ?? "").matchAll(TIER_LINE)].map((found) => found[1].toLowerCase()))
+    .map((call) => String(stampedIn(call.body ?? "", CONFIRMED, "tier") ?? "").trim().toLowerCase())
     .filter((one) => tiers.includes(one));
   /* The largest, which is the batch rule: a run of three issues is as heavy as its heaviest. */
   return said.length ? said.reduce((held, one) => (tiers.indexOf(one) > tiers.indexOf(held) ? one : held)) : UNTIERED;

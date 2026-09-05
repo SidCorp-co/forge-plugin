@@ -115,11 +115,13 @@ type proving only that they typed it. It is a copy for this table and never a so
 check reads the description — so a hand-written confirmation lacking the line is refused nothing and
 one claiming a rung the description does not moves no status.
 
-The key is that call's own class, never the words anywhere in the transcript. A `forge issue` or a `forge resume` printing the same thread
-carries the same line, and read from those a run is filed under the rung of whatever issue it
-happened to open. A run that confirmed nothing is `untiered` and keeps its own row: folded into a
-rung it would flatter that rung, and dropped it would leave a table that quietly counts fewer runs
-than the profile above it.
+The call's own class picks which call to read, and the record inside its output says which line is
+that write's. A `forge issue` or a `forge resume` printing the same thread carries the line too, and
+read from those a run is filed under the rung of whatever issue it happened to open; so does anything
+the same shell call printed after the write, which a class covering the whole call cannot tell apart.
+A run that confirmed nothing is `untiered` and keeps its own row: folded into a rung it would flatter
+that rung, and dropped it would leave a table that quietly counts fewer runs than the profile above
+it.
 
 **A batch counts at the largest rung among its members.** A run carrying three issues is as
 expensive as its heaviest, and filing it under the cheapest would make every rung look better the

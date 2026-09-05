@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { blockOf } from "../../src/flow/machine.mjs";
+import { render } from "../../src/flow/record.mjs";
 import { UNTIERED, classOf, markerOf, shellOf, slugFor, tierOf } from "../../src/stats/transcripts.mjs";
 import { unionSeconds } from "../../src/stats/runs.mjs";
 import { TIERS } from "../../src/ladder.mjs";
@@ -64,45 +64,43 @@ const transcript = () => [
    printed: read from those, a run is filed at the tier of whatever issue it happened to read. */
 const said = (klass, body) => ({ class: klass, body });
 
+/* Written by `render`, the only writer of these records: a body composed by hand would not carry the
+   tag and fence that say which record a stamped key belongs to, and asserting over one would
+   re-derive the blind spot (F2 of the whole-set read). */
+const wrote = (tier, extra = {}) =>
+  render("confirmation", { where: ["src/a.mjs"], is: "a reading", finding: "holds", tier, ...extra });
+
 test("a run's tier is read off the confirmation it wrote, and off no other call that echoes one", () => {
-  assert.equal(tierOf([said("forge record confirmation", "finding: holds\ntier: trivial")], TIERS), "trivial");
+  const [trivial, , feature] = TIERS;
+  assert.equal(tierOf([said("forge record confirmation", wrote(trivial))], TIERS), trivial);
   assert.equal(tierOf([], TIERS), UNTIERED, "a run that confirmed nothing is filed under no tier");
   for (const klass of ["forge issue", "forge resume", "read", "forge record verdict"]) {
-    assert.equal(tierOf([said(klass, "tier: trivial")], TIERS), UNTIERED,
-      `\`${klass}\` printing the word is a run reading a thread, not a run that claimed a tier`);
+    assert.equal(tierOf([said(klass, wrote(trivial))], TIERS), UNTIERED,
+      `\`${klass}\` printing the record is a run reading a thread, not a run that claimed a tier`);
   }
-  assert.equal(tierOf([said("forge record confirmation", "tier: enormous")], TIERS), UNTIERED,
+  assert.equal(tierOf([said("forge record confirmation", wrote("enormous"))], TIERS), UNTIERED,
     "a word this ladder has not got names no rung, and is not folded into the nearest one");
-  assert.equal(tierOf([said("forge record confirmation", "is: the tier: trivial reading is wrong\ntier: feature")], TIERS),
-    "feature",
-    "the key stands at the start of its own line, so another field quoting the word overrides nothing");
-  assert.equal(tierOf([said("forge record confirmation", "tier: trivial\n---\ntier: feature")], TIERS),
-    "feature",
-    "and one shell call writing two confirmations is read as both, not as whichever printed first");
+  assert.equal(tierOf([said("forge record confirmation", `${wrote(trivial)}\n\ntier: ${feature}`)], TIERS), trivial,
+    "and a line the same call printed after the record is prose: the class covers the shell, not the write");
   assert.equal(
-    tierOf([said("forge record confirmation", "tier: trivial"), said("forge record confirmation", "tier: feature")], TIERS),
-    "feature",
+    tierOf([said("forge record confirmation", wrote(trivial)), said("forge record confirmation", wrote(feature))], TIERS),
+    feature,
     "a batch is as heavy as its heaviest member, never the cheapest of them",
   );
 });
 
-/* Written by `blockOf`, which is the only writer of these records, rather than by hand: it indents
-   every continuation line of a multi-line field by two spaces, so a reading that admitted an
-   indented key would let a confirmation's own detail re-file the run that wrote it. Asserting over
-   a synthetic body would re-derive the blind spot the writer creates (F3). */
+/* Two ways a body carries the word without a record having stamped it, and the writer makes both:
+   `blockOf` indents every continuation line of a multi-line field, and a chained read prints whole
+   records of its own. A reading that took either would re-file the run that wrote it (F2, F3). */
 test("prose inside a field cannot claim a rung the run did not stamp", () => {
   const [trivial, , feature] = TIERS;
-  const written = blockOf([
-    ["where", "src/a.mjs"],
-    ["is", "a reading that resolves downward"],
-    ["finding", "holds"],
-    ["detail", `the plan said one thing\ntier: ${feature}`],
-    ["tier", trivial],
-  ]);
+  const written = wrote(trivial, { detail: `the plan said one thing\ntier: ${feature}` });
   assert.match(written, /\n {2}tier: feature/u, "the writer really does indent a continuation line");
   assert.equal(tierOf([said("forge record confirmation", written)], TIERS), trivial,
     "so the stamped key decides, and a sentence a person typed under another field does not");
-  assert.equal(tierOf([said("forge record confirmation", blockOf([["tier", feature]]))], TIERS), feature,
+  assert.equal(tierOf([said("forge record confirmation", `${wrote(trivial)}\n\n${wrote(feature)}`)], TIERS), trivial,
+    "and the record the write printed is the first one: a thread read after it belongs to another issue");
+  assert.equal(tierOf([said("forge record confirmation", wrote(feature))], TIERS), feature,
     "while the key the writer really wrote is read, or nothing would be");
 });
 

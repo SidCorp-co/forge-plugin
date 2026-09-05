@@ -45,12 +45,21 @@ something was.
 is stripped before the mark is looked for, because the contract's own guide prints the syntax and a
 body quoting it would otherwise claim whatever rung it quoted. Answering with the higher of the
 stripped and unstripped readings would be worse than either: an example naming `feature` would then
-raise a rung the body genuinely claimed, and no trivial issue could ever quote the mark.
+raise a rung the body genuinely claimed, and no trivial issue could ever quote the mark. A wall
+closes on its own character, at least as long as the one that opened it and alone on its line:
+anything looser ends the block at a line of content and reads the mark under it as the body's. A
+block nothing closes runs to the end of the text, so what that loses, it loses upward.
 
-**A key indented inside a record is prose, not a field.** `blockOf` indents every continuation line
-of a multi-line value by two spaces, so `forge stats runs` reads a stamped rung only at column zero.
-Admitting an indented one would let a sentence somebody typed under `detail` re-file the run that
-wrote it — and that is not an ambiguous reading resolved the wrong way, it is reading the wrong text.
+**A line a call printed is not a field a write stamped.** A run's rung is read off the confirmation
+record in the call's output — its tag and its fence — and never off the words in it. A class covers
+the whole shell call, so `forge record confirmation …; printf 'tier: feature'` is a confirmation
+whose output carries a rung nothing stamped; and `blockOf` indents every continuation line of a
+multi-line value, so a sentence somebody typed under `detail` carries the key as well. Neither is an
+ambiguous reading resolved the wrong way, it is reading the wrong text. The record a write printed is
+the first in that output, so a call chaining two writes reports the first rather than the larger:
+that keeps the batch rule across calls, where each write is one, and drops it inside a single call,
+where taking the largest record in the output would let a thread read after the write file the run at
+another issue's rung.
 
 ## What the rule is not
 

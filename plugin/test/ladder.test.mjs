@@ -137,6 +137,10 @@ test("a mark inside an example claims nothing, and does not move a mark the body
     `no mark here\n\n~~~\nExample:\nSize: ${lowest}.\n~~~\n`,
     `no mark here\n\n\`\`\`\nExample:\nSize: ${lowest}.\n`,
     `no mark here\n\n    Example:\n    Size: ${lowest}.\n`,
+    /* A wall closes on its own character and nothing else on the line: a pattern taking any line
+       that starts with one ended the example here and read the mark below it as the body's (F1). */
+    `no mark here\n\n\`\`\`text\nExample:\n\`\`\`not-a-closing-wall\nSize: ${lowest}.\n\`\`\`\n`,
+    `no mark here\n\n~~~\nExample:\n\`\`\`\nSize: ${lowest}.\n~~~\n`,
   ]) {
     assert.equal(tierIn(shown), top, "an example is the only apparent mark, and the body claims nothing");
   }
@@ -144,6 +148,8 @@ test("a mark inside an example claims nothing, and does not move a mark the body
     "while a mark standing between two examples is prose, so stripping cannot run past a closing wall");
   assert.equal(tierIn(`Size: ${lowest}.\n\n\`\`\`\nSize: ${top}.\n\`\`\`\n`), lowest,
     "and an example beside a real mark leaves the real one standing, rather than being read beside it");
+  assert.equal(tierIn(`\`\`\`\nSize: ${top}.\n\`\`\`\`\n\nSize: ${lowest}.\n`), lowest,
+    "a longer wall closes too, so a body writing one does not lose the mark standing after it");
   assert.equal(markedIn("a body with no mark at all"), null,
     "no mark is told from the top rung, so a report cannot say a body carrying one carries none");
   assert.equal(markedIn(`Size: ${top}.`), top, "and the top rung claimed in full reads as claimed");
@@ -221,7 +227,8 @@ test("a confirmation a write posts carries the rung, and one handed in without i
   assert.doesNotMatch(handed, /^tier:/mu, "the shape does not put the field there, so a person's record lacks it");
   state.comments["claimed-uuid"] = [{ createdAt: "2026-09-05T10:00:00.000Z", body: handed }];
   const read = await owed("ISS-73");
-  assert.doesNotMatch(read.stdout, /no confirmation/u,
+  assert.equal(read.status, 0, read.stderr);
+  assert.match(read.stdout, /confirmed is next and the record earns it/u,
     "and it earns the status all the same: every entry check reads the description, never this copy");
 });
 
