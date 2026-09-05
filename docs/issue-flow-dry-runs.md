@@ -3266,3 +3266,30 @@ from its handback; the five filings and the comment on ISS-294 were confirmed on
 - Cost: three runs in the wave's window at a median of 92 minutes and 277 calls; this one ran 88
   minutes as the only run measured at the feature rung today. The dispatcher's opening spend was four
   review agents and one filing.
+
+## Hundred-and-twenty-eighth dry run — ISS-208
+
+The second run through the runner role, dispatched in a wave of four with the three others still
+working. Naming a record kind after `forge record` now narrows `-h` to that kind's arguments instead
+of refusing for the flag being asked about, for every kind, with the guard placed so the three kinds
+dispatched before the shaped ones answer too (3.35.143, landed as e27bfa0). The run also met a red
+gate that was not its own: the dispatcher's commit raising the rank read cap in the project's config
+had turned a rank test red, because the test spawned at the checkout root and so read this
+repository's own weights. The run filed it (ISS-395), fixed it as a separate commit under a posted
+correction, and filed the reason the config-only landing had shipped green onto a tree it made red
+(ISS-396, left open). A fresh occurrence of a log attachment refused on sniffed type went to ISS-158.
+No restart owed. Closed by its run. Folded from its handback; the filings were confirmed on the
+tracker.
+
+- A config-only commit from the dispatcher broke a test, and the ledger let it ship green because no
+  step's declared inputs had moved. The run that found it was the next one to replay onto master. The
+  dispatcher's own commits are subject to the same gate as a run's, and a landing that widens the gate
+  run to everything still skips what the ledger says did not move (ISS-396).
+- The method has no branch for a replay that turns the gate red for a reason outside the issue:
+  condition 3 assumes something of the run's own failed. The run broke the tie on its own criterion,
+  which said the full gate passes on the branch, and recorded the gap on the issue.
+- Three sibling runs in the wave were below the commit that carried the red, so each would have met
+  it at its own replay; the handback said so, and the fold's job is to tell them once rather than let
+  three runs re-diagnose one defect.
+- The verb's own help is where the mechanics landed, and the doc page got no line, on the rule that
+  a tool's `-h` is the one home for what it takes.
