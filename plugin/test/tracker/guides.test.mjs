@@ -12,9 +12,12 @@ import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("guides").path;
 const {
   GUIDE_TABLE,
+  LOCAL_ROWS,
+  LOCAL_SLUGS,
   REVIEWED,
   dispositionOf,
   heldSlugs,
+  localGuide,
   reviewGuideTable,
   supersededSlugs,
   trackerHeader,
@@ -34,6 +37,20 @@ const review = (extra = {}) =>
     resolves: (ref) => existsSync(join(PLUGIN, ref)),
     ...extra,
   });
+
+/* The registry the verb asks instead of comparing a slug against one constant of its own. Both
+   directions: a local slug answers with something callable, and a slug the tracker serves answers
+   `null` — a registry claiming a tracker guide would serve a stale copy of a page off disk. */
+test("a local guide is answered from this copy, and nothing else is", () => {
+  const answer = localGuide("contract");
+  assert.equal(typeof answer, "function", "the contract is answered from disk");
+  assert.deepEqual(answer({ part: "confirmed" }).lines.length, 1, "and its part comes back as one body");
+  for (const slug of [...REVIEWED, "", "contracts", undefined]) {
+    assert.equal(localGuide(slug), null, `${slug} is the tracker's, and this copy holds no page of it`);
+  }
+  assert.deepEqual(LOCAL_SLUGS, ["contract"], "one local guide today, and the skills join it");
+  assert.equal(LOCAL_ROWS.length, LOCAL_SLUGS.length, "a local guide the listing would not print is hidden");
+});
 
 test("every disposition is one the verb acts on", () => {
   for (const row of GUIDE_TABLE) {

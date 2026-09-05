@@ -5,6 +5,15 @@
    tracker, and a project cannot rightly turn a contradiction back on. docs/cli/the-guides.md
    carries what the stale rules cost; `forge guide contract` prints what holds instead. */
 
+import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./contract.mjs";
+
+/* The guides this copy answers off its own disk, listed rather than reached by the verb comparing a
+   slug against one constant of its own; a slug absent from it is the tracker's, answered `null`. */
+const LOCAL = [{ slug: CONTRACT_SLUG, row: CONTRACT_ROW, answer: contractAnswer }];
+export const LOCAL_SLUGS = LOCAL.map((one) => one.slug);
+export const LOCAL_ROWS = LOCAL.map((one) => one.row);
+export const localGuide = (slug) => LOCAL.find((one) => one.slug === slug)?.answer ?? null;
+
 /* Having a row is what withholds the guide, whichever disposition the row carries: neither a page
    the contract replaced nor a page half of which is the runner's is one an agent can follow whole,
    and naming a stale guide is how an agent comes to weigh two sources. A slug in no row is the

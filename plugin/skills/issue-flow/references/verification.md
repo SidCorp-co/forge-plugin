@@ -49,26 +49,9 @@ gate's defect and the gate-review skill is the route to it, never a reason to sp
 said.** A library has no deployment; a CLI has no screen. Silence about a skipped step
 reads as a step that passed.
 
-## Judge the head that will land
+## One run of the evidence, at the head Phase 4's last two steps left
 
-A verdict claims the evidence beside it was taken on the code that landed, so it names the commit it
-judged — and that commit has to be the one the landing carries. **Replay the change on top of the
-project's default branch head before you judge**, once, and prove it from there: that direction
-moves the change and lands none of it. A branch cut days ago and brought forward only at the landing
-is one whose proved head never lands, and every criterion then costs a second verdict at a head the
-first could not have known.
-
-The replay and the read that earns the review are Phase 4's last two steps, in that order, so the
-head the reviewer judged and the head every verdict names are one head. A run that judges before
-that read has bought its verdicts against a head the read can still move.
-
-That leaves the landing whatever it adds of its own, and whatever other people landed while you were
-judging, which where several runs work one tree at once is not nothing. Neither is a re-judging:
-what a landing brings is other people's commits, and this change's own diff is unchanged by them.
-Which of the two the flow makes you pay, and what the merged mark has to say for the verdicts to
-stand: `forge guide contract developed`.
-
-Run the evidence once, at that head, and attach it once. A suite re-run per criterion proves nothing
+Run it once, at that head, and attach it once. A suite re-run per criterion proves nothing
 the first run did not, and it was five and a half re-runs a run before this. Then judge every
 criterion in one write rather than one apiece — `forge record verdict -h` carries the form — and run
 again only for a criterion whose evidence is its own.
@@ -99,8 +82,8 @@ range the user's stack owns.
   module-not-found from a background process is usually the working directory.
 - **Wait for long work, never poll it.** The routes that ask nothing, and what asking again costs:
   `forge hooks --how polling`.
-- **After stopping anything, confirm the user's own stack still answers.** The guard can
-  refuse a command that cannot be aimed; it cannot tell you that you aimed correctly.
+- **After stopping anything, confirm the user's own stack still answers** — no guard can tell you
+  that you aimed correctly.
 
 ## When a symptom's cause is the environment
 

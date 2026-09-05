@@ -4,110 +4,45 @@
 produces a corpus nobody reads, and the few entries that mattered are buried in it. The
 default at the end of a round is silence.
 
-## First, separate two things that are not the same
+## What the gate asks, and what it cannot
 
-- **Project knowledge** — true of *this repository*: an invariant, a danger, how a
-  mechanism actually works. It belongs to the project: its `CLAUDE.md`, or the tracker's
-  memory under the tracker's own categories. It is not this rule's business beyond saying
-  where it goes.
-- **A skill learning** — true of *the method*: the workflow anticipated something wrongly,
-  or a trap recurs across projects. **This belongs to the skill and the plugin around it**,
-  and this rule exists so the skill develops instead of accreting.
+The conditions a record has to meet, the categories a skill edit is typed by, and how to write
+through the refusal are the learning gate's own text, printed at the write it stops:
+`forge hooks --how learning-gate`. Where project knowledge goes and what an entry owes is the store
+verb's: `forge knowledge -h`, and `forge schema forge_knowledge` for the values it classifies by.
+The rest of this file is what neither of them can ask about — what a round *removes*, and what
+happens when the method itself was the thing that was wrong.
 
-Writing a skill learning into project memory is the common mistake and it loses the lesson
-twice: the project inherits a rule it never agreed to, and the skill repeats the mistake in
-the next repository.
-
-## The test — all four, not any
-
-Whichever kind it is, recording it is worth doing only when every one of these holds:
-
-1. **It cost a cycle**, not a thought. A wrong turn corrected in the next command is not a
-   finding; an hour on a symptom whose cause was elsewhere is.
-2. **It will recur.** It is a property of the tool, the repository or the method — not of
-   this issue's particular shape.
-3. **Its failure is silent.** A thing that announces its own cause needs no note; the next
-   reader needs the same thirty seconds you spent reading the message.
-4. **It is not already written.** Search first. A second copy is worse than nothing: the two
-   drift, and whoever finds one cannot know the other exists.
-
-Fail any of the four and the round ends with nothing recorded. That is the normal outcome.
-
-## Where a skill learning goes
-
-**Type the gap where you met it, before deciding what it earns.** A phase with no branch for what
+**Type the gap where you met it, before deciding what it earns** — a phase with no branch for what
 happened, a reference that sent the run the wrong way, a rule that contradicted the tracker's own —
-each goes onto the issue's record at that moment, under the kind the tracker CLI owns for it. The
-four conditions below are then judged against what was typed rather than what is remembered, and a
-run that met none says so on the record too. A closing message written from memory keeps the
+so that the conditions are judged against what was typed rather than what is remembered. The record
+has a kind for it, and for the run that met none. A closing message written from memory keeps the
 workaround and loses the gap that forced it.
 
-**1. Into the plugin's code.** A trap a program can recognise belongs in the program: a
-hook that refuses the command, a check in the CLI, a validation that makes the mistake
-unrepresentable. It is the only destination that cannot be missed — prose is read by an
-agent that decided to read it; a check fires whether or not anyone remembered.
+## Where a skill learning lands, once it has earned a place
 
-Judge it by whether the wrong state has a *shape*: a command matching a pattern, a field
-absent, a file missing, an ordering violated. If it does, it is a check waiting to be
-written, not a paragraph.
+**Into the plugin's code**, wherever the wrong state has a *shape*: a command matching a pattern, a
+field absent, a file missing, an ordering violated. It is the only destination that cannot be
+missed — prose is read by an agent that decided to read it; a check fires whether or not anyone
+remembered. If it has no shape, **into the skill's own text, in the place that category belongs**
+and never appended to a general pile: a learning that survives lands in the reference for its
+category and not in `SKILL.md`, whose spine changes only when a rule changes or a phase's shape was
+wrong. A sentence that ends up in both is a correction waiting to be missed in one of them. And
+third, **nowhere**, which is still the most common answer.
 
-**2. Into the skill's own text — and into the specific place it belongs**, never appended
-to a general pile:
+One category *subtracts*, and it is the easiest to miss: a rule that turns out to have been one
+project's convention is deleted rather than softened, and the change says what replaced it.
 
-| Category | What it is | Where it lands |
-|---|---|---|
-| **trap** | the environment or a tool behaves in a way the method did not anticipate | a check in the plugin; failing that, `verification.md` |
-| **method defect** | a phase produced the wrong outcome, or had no branch for what happened | that phase in `SKILL.md` |
-| **invariant** | something that must hold in every project, not just this one | a rule in `SKILL.md` — and only if it outranks a phase |
-| **discovery gap** | something Phase 0 should have established and did not | `project-discovery.md`'s list of what to establish |
-| **boundary error** | the skill asserted something that is a project's to decide | **delete it from the skill**, and say what replaced it |
-
-The last row is a real outcome and the easiest to miss: some learnings *subtract*. A rule
-that turned out to be one project's convention is removed, not softened.
-
-**3. Nowhere.** Still the most common answer.
-
-**A learning that survives lands in the reference for its category — not in `SKILL.md`.**
-The spine is a fixed set of rules and phases; it changes only when a rule changes or a
-phase's shape was wrong. Everything else that a round teaches grows in the references, and
-a sentence that ends up in both is a correction waiting to be missed in one of them.
-
-## Where project knowledge goes, since it will come up in the same breath
-
-Three destinations, and they are not interchangeable.
-
-**The knowledge store.** A module's owners, its shared helpers, the thing inside it that trapped
-you: that belongs there, so whoever comes after does not repeat the tracing. Two kinds of it earn
-their own mention here:
-
-- The **project brief**, one per project, which is Phase 0's whole first call. A run that had to
-  establish by hand something the brief left *not stated*, or that read a source the brief's stale
-  line named, refreshes that line before it leaves — otherwise the next run pays the same reading.
-- A **convention two runs each half-followed** — one wrote it one way, one the other, and a third
-  is about to guess. The store is where that goes, and a fix is not: correcting one side leaves the
-  convention unwritten, and the run after it guesses in a third direction. What the entry then has
-  to carry is the store verb's to say, not this file's.
-
-**The tracker's memory**, which classifies by `source`: **`knowledge`** (how this codebase
-actually works — you had to trace it), **`decision`** (a choice among alternatives, with the
-reason), **`policy`** (a rule whose violation is a defect regardless of tests passing),
-**`note`** (episodic — why this one issue happened). **The agent's own memory files**
-classify by `type`: **`user`**, **`feedback`**, **`project`**, **`reference`**.
-
-Nothing about a payload's shape belongs here: the store's verb owns that, and its own help is
-where a run reads it.
-
-**One entry is one fact** — an entry holding three things is found by none of the three
-queries that wanted one of them. And **a lesson about the user is never a lesson about the
-code**: a preference is `feedback`, and filing it as `policy` turns one person's choice into
-a rule the next project inherits.
+Writing a skill learning into project memory is the common mistake, and it loses the lesson twice:
+the project inherits a rule it never agreed to, and the skill repeats the mistake in the next
+repository.
 
 ## The second occurrence is the promotion trigger
 
 A trap that fires twice while still living in prose is evidence the prose does not work. The
 second occurrence is not a reason to word the sentence more firmly — it is the trigger to
-move it down to destination 1. If it cannot be made into a check, say why in the same
-change, because "this cannot be automated" is itself worth knowing.
+move it into code. If it cannot be made into a check, say why in the same change, because
+"this cannot be automated" is itself worth knowing.
 
 ## Pruning is half of learning
 
@@ -132,28 +67,6 @@ rewritten from a single bad round is fitted to that round. Then read
 `references/prior-art.md`, which says what the current shape already considered and turned
 down.
 
-**The gate is a hook, not this paragraph.** The learning gate stops the first write
-to a memory store *and* the first edit to a skill's own text, returning the four conditions
-and the categories; what it does not judge and how to write through it are its own to say —
-`forge hooks --how learning-gate`. It exists because the failure it guards is a reflex — reaching for "save
-what I learned" as a way of ending a task — and a reflex is not interrupted by a document it
-has already stopped reading.
-
-## A checker that hard-codes its cases is worse than none
-
-A list written by hand knows only the cases its author had met. It fails twice: silent on a
-case it never heard of, and — the expensive one — reporting a false gap when someone extends
-the thing correctly. A checker that cries wolf gets switched off, and a switched-off checker
-protects nothing.
-
-Derive instead: read the enum, parse the switch, key on the declared return type rather than
-the function's name. Then a case added next year is covered without anyone remembering the
-checker exists. Prove it by breaking each invariant on purpose and watching it fire — a green
-checker has demonstrated nothing.
-
-Enumerating is sometimes the point: a ratchet's list of migrated directories is *supposed* to
-be incomplete. Say so in a comment above the list, which is also what silences the hook.
-
 ## Where a rule goes, and why a hook is the last place
 
 Push a rule as far down this list as it will go; one that sits higher than it needs to is
@@ -163,15 +76,11 @@ maintenance nobody asked for.
    value is one of a closed set lets a typo become a branch that silently never runs.
 2. **A checker the gate runs.** Sees the whole tree, may be slow and thorough, and is the
    authority on its own rule — a hook that reimplements one has created the second definition,
-   and the second definition is the one that drifts.
+   and the second definition is the one that drifts. What it must not do is enumerate by hand
+   the cases it could have derived: `forge hooks --how derive-dont-list`.
 3. **A hook.** One tool call, tight timeout, near-zero tolerance for noise. Reserved for what
    a checker cannot see: an action that leaves no tree to scan, and a write whose *decision*
-   has to happen before the file exists.
+   has to happen before the file exists. A file hook matched on `Write` and `Edit` alone is
+   watching the side door, and what counts as a write for every gate that asks is one
+   answer, given once: `forge hooks --how writes`.
 4. **Prose.** Last, because it is read only by someone who chose to read it.
-
-**A file hook that watches only Write and Edit is watching the side door.** `sed -i`, a
-heredoc and a python one-liner all write files through Bash and were invisible to every file
-hook here until measured. Two fixes, and which one applies depends on when the rule has to
-act: a check on the *result* runs after the call and reads the file from disk, which covers
-every route at once; a check on the *decision* cannot, so for those files the shell route is
-refused outright and the file tools are required.
