@@ -42,6 +42,7 @@ import { briefLines, confirmSource, projectLines, readBrief, refreshBrief, relea
 import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./tracker/contract.mjs";
 import { doctor } from "./tools/doctor.mjs";
 import { deps } from "./tools/deps.mjs";
+import { next } from "./rank/next.mjs";
 import { cloudflare } from "./tools/cloudflare.mjs";
 import { knowledge } from "./tools/knowledge.mjs";
 import { feedback } from "./tools/feedback.mjs";
@@ -253,6 +254,7 @@ export const commands = {
   advance,
   spec,
   deps,
+  next,
   knowledge,
   cloudflare,
   feedback,

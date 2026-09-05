@@ -85,6 +85,7 @@ const POINTS_AT = {
   spec: null,
   attach: null,
   deps: "forge_issues",
+  next: null,
   dep: "forge_project_pm",
   guide: "forge_guide",
   project: null,
@@ -126,6 +127,7 @@ test("which values are the tracker's is read off the args line alone", () => {
     ["<file.md|@file|->", false],
     ["<file>...", false],
     ["<uuid|ISS-45> <report.md|@file|-> --title T", false],
+    ["[--count n] [--project dir]", false],
   ]) {
     assert.equal(takesATrackerField(args), earns, `\`${args}\``);
   }

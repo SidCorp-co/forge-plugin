@@ -86,7 +86,7 @@ const key = (from, to) => `${from}\u0000${to}`;
 
 /* Collected by pair rather than by the issue that spoke — that is what makes a one-sided claim
    visible. */
-const graphOf = (issues, universe) => {
+export const graphOf = (issues, universe) => {
   const claims = new Map();
   const unresolved = [];
   const silent = [];
@@ -134,14 +134,34 @@ const printGraph = ({ claims, unresolved, carriers }, focus, total, long) => {
 };
 
 /* One search, not three: the other two phrases returned strict subsets. */
-const MARKER_SEARCH = PROSE.marker;
+export const MARKER_SEARCH = PROSE.marker;
+
+/** The candidates a prose edge can be read out of, and the bodies to read it from: the search
+ *  narrows, the regex above decides. `forge next` ranks on the same edges this verb prints, so it
+ *  spends this rather than matching the sentence a second time. */
+export const carriersOf = async () => {
+  const matched = await everyIssue({ search: MARKER_SEARCH });
+  if (!matched.rows.length) return { issues: [], read: matched };
+  const issues = await Promise.all(
+    matched.rows.map(async (summary) => ({
+      ...summary,
+      ...(await scoped("forge_issues", {
+        action: "get",
+        documentId: summary.documentId,
+        fields: ["description"],
+      })),
+    })),
+  );
+  return { issues, read: matched };
+};
 
 export const deps = async (rest) => {
   const long = rest.includes("--long");
   const [focus] = rest.filter((argument) => argument !== "--long");
   /* Both sets walked, and issued in parallel: the ranking is against every issue rather than only
      those carrying prose, and the carriers are every issue whose body claims an edge. */
-  const [all, matched] = await Promise.all([everyIssue(), everyIssue({ search: MARKER_SEARCH })]);
+  const [all, carried] = await Promise.all([everyIssue(), carriersOf()]);
+  const matched = carried.read;
   const universe = all.rows;
   const ranked = shortOf(all, "the set every node here is ranked against");
   if (ranked) {
@@ -153,24 +173,13 @@ export const deps = async (rest) => {
   if (carriers) {
     console.error(`warning: ${carriers}\nSo a node this graph does not show may claim edges anyway.`);
   }
-  const candidates = matched.rows;
-  if (!candidates.length) {
+  const issues = carried.issues;
+  if (!issues.length) {
     fail(
       `No issue carries the sentence "${PROSE.marker}" (${depsConvention().from}).\n` +
         "Set `deps: { marker, blockedBy, blocks }` in .forge.json if this tracker words it differently.",
     );
   }
-  /* Only `description` is read, and the whole body is ~8% more wire for nothing. */
-  const issues = await Promise.all(
-    candidates.map(async (summary) => ({
-      ...summary,
-      ...(await scoped("forge_issues", {
-        action: "get",
-        documentId: summary.documentId,
-        fields: ["description"],
-      })),
-    })),
-  );
   const wanted = focus?.toUpperCase();
   if (wanted && !issues.some((issue) => issue.issueId?.toUpperCase() === wanted)) {
     console.log(`${focus} carries no dependency prose, and no issue names it.

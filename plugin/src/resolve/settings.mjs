@@ -157,3 +157,5 @@ export const depsConvention = once(() => {
     from: given ? ".forge.json" : "the built-in English default",
   };
 });
+
+export const rankConvention = once(() => sourced(".forge.json", forgeJson().parsed?.rank));

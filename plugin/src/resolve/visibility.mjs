@@ -19,6 +19,8 @@ export const VERBS = [
   ["spec", "<id>[~<rev>]", "one clause of the requirements tree, read by its identifier"],
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context", "forge_uploads"],
   ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues"],
+  ["next", "[--count n] [--why] [--json] [--holding ISS-45] [--project dir]",
+    "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues"],
   ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm",
     { action: "set_dependency",
       refusal: "forge dep needs forge_project_pm set_dependency, which the tracker gives to a "
@@ -65,7 +67,7 @@ const readFromHere = (value) =>
   value
     .replaceAll(/[<>]|\.{3}$/gu, "")
     .split("|")
-    .some((one) => /^(?:-|@\S*|file|\S*\.\w+)$/u.test(one));
+    .some((one) => /^(?:-|@\S*|file|dir|\S*\.\w+)$/u.test(one));
 
 export const takesATrackerField = (args = "") => {
   const values = args

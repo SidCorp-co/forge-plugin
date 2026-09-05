@@ -103,6 +103,32 @@ tool's arguments. A surface that hid what it had not wrapped would make the wrap
   WHEN a verb is asked what it takes THEN it SHALL answer on its own, and asking SHALL never be
   read as a failure or as the verb's argument.
 
+### UC-02-7 — Which issue to work next, ranked off the record
+
+Rev: 1 · Actors: agent, developer · Enforces: BR-01, BR-07, BR-09
+
+The order the backlog is worked in is arithmetic over the metadata the tracker already carries,
+computed at the moment it is asked for and stored nowhere. One table of weights answers for it, a
+project overrides a weight without editing the code, and the answer accounts for itself: what each
+issue scored, what left it out, and what one landing would free.
+
+- **AC-02-7-1** · Rev: 1 · Proof: plugin/test/rank/next.test.mjs "the rank prints the eligible issues and writes nothing at all"
+  WHEN the backlog is ranked THEN the CLI SHALL change nothing the tracker holds.
+- **AC-02-7-2** · Rev: 1 · Proof: plugin/test/rank/eligible.test.mjs "a live lease drops the issue and the sentence names the session and its expiry"
+  WHEN an issue is kept out of the ranking THEN the CLI SHALL name what kept it out, and SHALL name
+  the run holding it where a claim is what did.
+- **AC-02-7-3** · Rev: 1 · Proof: plugin/test/rank/score.test.mjs "every weight in the table moves the order on its own"
+  WHERE two issues differ in one weighted field alone, the CLI SHALL order them by that field.
+- **AC-02-7-4** · Rev: 1 · Proof: plugin/test/rank/score.test.mjs "the band's own weight moves it, from the Size line as from the field"
+  IF the tracker reports no size for an issue THEN the CLI SHALL take the size the body declares
+  instead, and SHALL report which of the two it read.
+- **AC-02-7-5** · Rev: 1 · Proof: plugin/test/rank/next.test.mjs "a blocker prints the wave it frees, a two-deep chain as a chain"
+  WHEN one issue holds up others THEN the CLI SHALL weigh it by every issue waiting behind it rather
+  than by those waiting directly, and SHALL print what the landing would free.
+- **AC-02-7-6** · Rev: 1 · Proof: plugin/test/rank/weights.test.mjs "a weight the table does not hold is refused, not dropped"
+  IF a project sets a weight the table does not carry THEN the CLI SHALL refuse the ranking and
+  SHALL name the weights it does carry.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*
@@ -113,3 +139,5 @@ tool's arguments. A surface that hid what it had not wrapped would make the wrap
 | BR-06 | the CLI's verb and the tracker's own tool are judged alike |
 | BR-14 | a flag, a trailing argument or a duplicate number is used or refused, never dropped |
 | BR-02 | a truncated read is not a record, and a transient error is not an event |
+| BR-07 | the ranking weighs the trees an issue names and infers no layout from a checkout |
+| BR-09 | one weight table, printed by the help that scores from it |
