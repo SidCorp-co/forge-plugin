@@ -235,3 +235,34 @@ test("a wait that polls is refused, and a pause on its own is not", () => {
   assert.ok(decide(`while read -r l; do echo "$l"; done < /tmp/f`).allowed, "a wait with no pause polls nothing");
   assert.ok(decide(`echo "until x; do ${nap} 1; done"`).allowed, "and the shape inside an argument is prose");
 });
+
+/* The stash stack is the repository's, not the worktree's: a push in one tree is what a pop in
+   another takes. So the tree about to receive somebody else's work is clean by definition, which is
+   the one state `needsDirtyTree` stands the rule down in. */
+const sharedStack = () => {
+  const room = tempRoom("shared-stack-");
+  const git = (at, ...args) =>
+    spawnSync("git", ["-C", at, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", room], { encoding: "utf8" });
+  writeFileSync(join(room, "tracked.txt"), "committed\n");
+  git(room, "add", "tracked.txt");
+  git(room, "commit", "-qm", "base");
+  const second = join(tempRoom("shared-stack-out-"), "wt");
+  const added = git(room, "worktree", "add", "-q", "-b", "second", second);
+  assert.equal(added.status, 0, added.stderr);
+  return { room, second };
+};
+
+test("a stash that moves a shared stack is refused in a clean worktree too", () => {
+  const verb = "stash";
+  const { room, second } = sharedStack();
+  const refused = from(second, `git ${verb} pop`);
+  assert.match(refused, /stack belongs to the repository/u, "the reason a clean tree is refused at all");
+  assert.match(refused, /git worktree/u, "the first route out");
+  assert.match(refused, /aside/u, "and the second");
+  assert.equal(from(cleanRepo(), `git ${verb} pop`).trim(), "", "one worktree keeps today's reading");
+  assert.equal(from(second, `git ${verb} list`).trim(), "", "reading the stack still moves nothing");
+  assert.equal(from(second, `git ${verb} show -p`).trim(), "", "nor does showing one");
+  assert.match(from(cleanRepo(), `git -C ${room} ${verb} pop`), /stack belongs to the repository/u, "counted in the tree named");
+  assert.match(from(DIRTY, `git ${verb}`), /silently reverts/u, "and a dirty single worktree reads as it did");
+});

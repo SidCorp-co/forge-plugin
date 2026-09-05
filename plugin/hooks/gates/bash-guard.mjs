@@ -29,6 +29,15 @@ const stagesEverything = (one) => {
   return paths.includes(".") || (paths.length === 0 && flags.some((t) => /^(?:--all|-[a-zA-Z]*A[a-zA-Z]*)$/u.test(t)));
 };
 
+/* Every stash subcommand that pushes to or takes from the stack; the bare form is a push. */
+const READS_THE_STACK = new Set(["list", "show", "create"]);
+const movesTheStack = (one) => {
+  const rest = new RegExp(`${GIT}["']?stash["']?(?![\\w-])(.*)$`, "u").exec(one)?.[1];
+  if (rest === undefined) return false;
+  const next = rest.split(/\s+/u).filter(Boolean)[0]?.replace(/['"]/gu, "");
+  return next === undefined || !READS_THE_STACK.has(next);
+};
+
 const RULES = [
   {
     // `--fix-type` writes too; `--fix-dry-run` writes nothing and is how you see the diff first.
@@ -60,6 +69,17 @@ const RULES = [
       "git add -A stages everything in the tree, including work in progress that is not yours " +
       "and probes you meant to throw away.",
     instead: "Stage the paths you changed, explicitly.",
+  },
+  {
+    pattern: { test: movesTheStack },
+    needsSharedStack: true,
+    cause:
+      "The stash stack belongs to the repository, not to this worktree, and this repository has " +
+      "more than one worktree. A stash pushed in one tree is what a pop in another takes, so this " +
+      "call can hand your work to a session working elsewhere, or apply theirs over your files.",
+    instead:
+      "Cut a second `git worktree` at the base for a clean baseline, or copy the one file aside and " +
+      "restore it afterwards. `git stash list` and `git stash show` read the stack and stay allowed.",
   },
   {
     // `list` and `show` read the stash and revert nothing, and refusing one cost a whole line.
@@ -113,6 +133,23 @@ function treeIsDirty(cwd) {
   if (out.error) return true;
   if (out.status !== 0) return false; // not a repository: the rule has nothing to protect
   return out.stdout.trim() !== "";
+}
+
+/** How many worktrees share this repository's stash stack, a stale entry included since the verb
+ *  reports one. One on any doubt: a refusal invented from a failed probe reads as noise. */
+function worktreeCount(cwd) {
+  let out;
+  try {
+    out = spawnSync("git", ["worktree", "list", "--porcelain"], {
+      cwd: cwd || undefined,
+      encoding: "utf8",
+      timeout: Math.max(500, Math.min(5000, remaining() - 1000)),
+    });
+  } catch {
+    return 1;
+  }
+  if (out.error || out.status !== 0) return 1;
+  return Math.max(1, out.stdout.split("\n").filter((line) => line.startsWith("worktree ")).length);
 }
 
 /* A literal inside a program an interpreter runs is data — a triple quote and an escape first, since
@@ -184,6 +221,13 @@ export const run = (ev) => {
     if (!answered.has(tree)) answered.set(tree, treeIsDirty(tree));
     return answered.get(tree);
   };
+  /* A tree the text does not name is left to the dirty reading, which already treats it as at stake. */
+  const counted = new Map();
+  const shared = (tree) => {
+    if (tree === NOWHERE) return false;
+    if (!counted.has(tree)) counted.set(tree, worktreeCount(tree) > 1);
+    return counted.get(tree);
+  };
   /* One reading of the waits per text, shared by every candidate: the offsets `startsAt` gave are
      into the same text, so a `sleep` is inside a wait exactly where its own start is. */
   const waited = new Map();
@@ -191,12 +235,14 @@ export const run = (ev) => {
     if (!waited.has(one.source)) waited.set(one.source, waitsIn(one.source));
     return waited.get(one.source).some(([from, to]) => one.at >= from && one.at < to);
   };
-  for (const { pattern, cause, instead, needsDirtyTree, needsWait, topic } of RULES) {
+  for (const { pattern, cause, instead, needsDirtyTree, needsSharedStack, needsWait, topic } of RULES) {
     const hits = run.filter((one) => pattern.test(one.said) && (!needsWait || inWait(one)));
     if (!hits.length) continue;
-    const hit = needsDirtyTree && hits.find((one) => treesOf(one, ev.cwd).some(dirty));
-    if (needsDirtyTree && !hit) continue;
-    const trees = hit ? treesOf(hit, ev.cwd) : [];
+    /* At most one reading gates a rule, and the doubt suffixes below are written about the dirty one. */
+    const atStake = needsDirtyTree ? dirty : (needsSharedStack ? shared : null);
+    const hit = atStake && hits.find((one) => treesOf(one, ev.cwd).some(atStake));
+    if (atStake && !hit) continue;
+    const trees = needsDirtyTree && hit ? treesOf(hit, ev.cwd) : [];
     const unsure = trees.includes(NOWHERE) ? UNNAMED : (trees.length > 1 ? UNSURE : "");
     deny(`Refused. ${cause}\n\nInstead: ${instead}${unsure}${topic ? how(topic) : how()}`);
   }
