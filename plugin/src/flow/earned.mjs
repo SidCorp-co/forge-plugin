@@ -249,7 +249,13 @@ const verdictsOwed = (view, ref) => {
   const ask = (number) =>
     `forge record verdict ${ref} --criterion ${number} --verdict pass --commit ${merged ?? "<sha>"} `
     + `--evidence <attachment|url|sha>`;
-  const out = view.owed.map((number) => need(`criterion ${number} has no verdict`, ask(number)));
+  /* One item and one write for the set: fourteen commands is fourteen writes, and this is where the batched form is read. */
+  const askAll = (numbers) =>
+    `forge record verdict ${ref} --commit ${merged ?? "<sha>"} --evidence <attachment|url|sha>`
+    + numbers.map((number) => ` --criterion ${number} --verdict pass`).join("");
+  const out = view.owed.length > 1
+    ? [need(`criteria ${view.owed.join(", ")} have no verdict`, askAll(view.owed))]
+    : view.owed.map((number) => need(`criterion ${number} has no verdict`, ask(number)));
   const atJudged = [];
   for (const [number, { record }] of [...view.verdicts].sort((a, b) => a[0] - b[0])) {
     const held = record.fields;

@@ -3,7 +3,7 @@
 import { fail, translateTo } from "../resolve/settings.mjs";
 import {
   CLOSES_FROM, FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, blockOf, criterionNumber, markedCommit,
-  readRecord, tagFor, unwrap,
+  readRecords, tagFor, unwrap,
 } from "./machine.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
@@ -58,6 +58,15 @@ export const USAGE = [
   "  criteria     <file.md|@file|->   numbered lines, one criterion each",
   "  report       the latest record of each kind, the latest verdict per criterion, and what is owed",
   "",
+  "--criterion repeats: each one opens a block, and one write carries a verdict on every criterion",
+  "it names. What stands before the first --criterion is every block's, so one commit and one",
+  "evidence set cover them all. A block's own value of a flag taking one replaces the shared one; a",
+  "repeatable flag adds to it, so a criterion whose evidence is its own cites that too:",
+  "  record verdict ISS-45 --commit <sha> --evidence run.txt --verdict pass \\",
+  "    --criterion 1 --criterion 2 --criterion 3 --verdict fail --why \"<what failed>\"",
+  "A file two criteria cite goes up once, under the one name both of them carry. Each block reads",
+  "back as the record a single write makes, so nothing downstream can tell one write from three.",
+  "",
   "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
   "  --pushed        the branch, head, base and files touched, read from git at this moment",
   "  --review        the last codex consult, its findings and what it owes, read from the log now",
@@ -100,24 +109,27 @@ export const joinedCriteria = (criteria, words) =>
    the tag last in a code span for the same reason. The stamp is read off the issue at the write —
    which status a park left, which reopen a finding belongs to — and is no flag, because a value the
    author could type is one they could get wrong about the very thing the record is matched by. */
-export const render = (kind, fields, status = null) => {
+export const render = (kind, blocks, status = null) => {
   const shape = SHAPES[kind];
-  const entries = shape.fields
+  /* Each block whole, so one of them is byte for byte the record a single write makes. */
+  const entries = (Array.isArray(blocks) ? blocks : [blocks]).flatMap((fields) => shape.fields
     .map((field) => [field.flag, fields[field.flag]])
-    .filter(([, value]) => !(value === undefined || value === null || (Array.isArray(value) && !value.length)));
+    .filter(([, value]) => !(value === undefined || value === null || (Array.isArray(value) && !value.length))));
   if (shape.stamp && status) entries.push([shape.stamp.flag, status]);
   return [`## ${shape.heading}`, "", blockOf(entries), "", tagFor(kind, CONTRACT)].join("\n");
 };
 
-export const parse = (body) => readRecord(unwrap(body), (kind) => SHAPES[kind]);
+export const parseAll = (body) => readRecords(unwrap(body), (kind) => SHAPES[kind]);
+
+/* The first block: for readers asking about the comment rather than about a criterion. */
+export const parse = (body) => parseAll(body)[0] ?? null;
 
 const criterionOf = (record) => criterionNumber(record.fields.criterion);
 
 /* Latest of each kind, latest verdict per criterion, and the criteria no verdict names. */
 export const assemble = (comments, criteria) => {
   const records = comments
-    .map((one) => ({ at: one.createdAt ?? "", record: parse(one.body ?? "") }))
-    .filter((one) => one.record)
+    .flatMap((one) => parseAll(one.body ?? "").map((record) => ({ at: one.createdAt ?? "", record })))
     .sort((a, b) => a.at.localeCompare(b.at));
   const latest = {};
   const verdicts = new Map();
@@ -236,7 +248,7 @@ export const post = async (documentId, body, ref = documentId, next = undefined,
    wrote the first record of the kind, and the rest of a loop inherit that citation rather than a
    guess. Not per criterion — one document answers twenty of them, which is the loop it removes. */
 const citedBy = (comments, kind) =>
-  comments.map((one) => parse(one.body ?? "")).filter((one) => one?.kind === kind).at(-1)?.fields.evidence ?? [];
+  comments.flatMap((one) => parseAll(one.body ?? "")).filter((one) => one.kind === kind).at(-1)?.fields.evidence ?? [];
 
 /* An upload is refused where the page was cut rather than risked past it: a name it has to be
    unique against may live on a comment the cut held back, and one attached twice is two documents. */
@@ -254,7 +266,7 @@ const BEHIND = (kind, flag, cut) => `record ${kind} reads --${flag} off this iss
 /* The record answers for the flag it was not given, and says where the value came from: a default
    nobody can see is one nobody can catch being wrong. Where it cannot answer, the refusal says what
    the issue does carry, because the old one named a flag and left the reader to go and look. */
-export const fromRecord = (kind, got, { comments, names, cut = null }) => {
+export const fromRecord = (kind, got, { comments, names, cut = null }, say = console.error) => {
   const shape = SHAPES[kind];
   const commit = shape.fields.find((one) => one.commit);
   if (commit && got.commit === undefined) {
@@ -265,7 +277,7 @@ export const fromRecord = (kind, got, { comments, names, cut = null }) => {
         + "this issue names one to read it from.");
     }
     got.commit = marked;
-    console.error(`--commit ${marked}, from the merged mark's note.`);
+    say(`--commit ${marked}, from the merged mark's note.`);
   }
   const evidence = shape.fields.find((one) => one.evidence);
   /* Asked of the field, never inferred from the check: a check refusing something else entirely
@@ -283,44 +295,105 @@ export const fromRecord = (kind, got, { comments, names, cut = null }) => {
       + "Name an attachment, a URL, a commit, or a file to put up.");
   }
   got[evidence.flag] = before;
-  console.error(`--evidence ${before.join(", ")}, as the latest ${kind} on this issue cites it.`);
+  say(`--evidence ${before.join(", ")}, as the latest ${kind} on this issue cites it.`);
 };
 
 /* From the project's config, because a line an author could type proves only that they typed it. */
-const derive = async (kind, got) => {
+const derive = async (kind, blocks) => {
   if (kind !== "verification") return;
   const held = releaseLine(await releasePolicy());
-  if (held) got[held[0]] = held[1];
+  if (held) for (const got of blocks) got[held[0]] = held[1];
+};
+
+/* The argv split by the rule `groupsIn` splits the payload by, so what one call writes is what the
+   reader hands back as several records. One commit and one evidence set over fourteen criteria. */
+export const blocksIn = (argv, per) => {
+  const flag = `--${per}`;
+  const opens = per ? argv.indexOf(flag) : -1;
+  if (opens < 0) return [argv];
+  const shared = argv.slice(0, opens);
+  const blocks = [];
+  for (const token of argv.slice(opens)) {
+    if (token === flag) blocks.push([...shared]);
+    blocks.at(-1).push(token);
+  }
+  return blocks;
+};
+
+/* Refused here and nowhere later, and by the number the reader keys by, so `01` and `1` are one:
+   the map every check keys keeps the last of two blocks naming one, and says so nowhere. */
+const blocksOf = (kind, argv) => {
+  const shape = SHAPES[kind];
+  const blocks = blocksIn(argv, shape.per).map((one) => gather(kind, one, DEFERRED));
+  const seen = new Set();
+  for (const got of blocks) {
+    const named = got[shape.per];
+    if (named === undefined) continue;
+    const key = criterionNumber(named) ?? named;
+    if (seen.has(key)) {
+      refuse(`This write names ${shape.per} ${key} twice. A ${kind} judges one ${shape.per}, and `
+        + `the second block would replace the first with nothing on the record saying so.`);
+    }
+    seen.add(key);
+  }
+  return blocks;
+};
+
+/* One plan over what every block cites: a document three criteria prove goes up once under the one
+   name all three carry, so the collision `attachPlan` refuses is never this write citing its own. */
+const citeOnce = (kind, blocks, { held, cut }) => {
+  const refs = [...new Set(blocks.flatMap((one) => one.evidence ?? []))];
+  if (!refs.length) return null;
+  const plan = attachPlan(refs, held, (ref) => evidenceHeld(ref, held));
+  if (plan.refusal) refuse(plan.refusal);
+  if (cut && plan.upload.length) refuse(CROWDED(kind, cut));
+  const cited = new Map(refs.map((one, at) => [one, plan.cite[at]]));
+  for (const one of blocks) one.evidence = one.evidence.map((ref) => cited.get(ref));
+  return plan;
+};
+
+/* A criterion is named by number and quoted as it stood, because the field can change later and the
+   record has to say what it was about. Read off the shape, so every kind that cites one does it the
+   same way and a citation of a criterion the issue has not got is refused. */
+const quoteCriteria = (kind, blocks, body, reference) => {
+  const cites = SHAPES[kind].fields.find((one) => one.criterion);
+  if (!cites) return;
+  let lines = null;
+  for (const got of blocks) {
+    if (got[cites.flag] === undefined) continue;
+    lines ??= criteriaLines(unwrap(body.acceptanceCriteria));
+    const held = lines.find((one) => one.number === Number(got[cites.flag]));
+    if (!held) refuse(`${reference} has no criterion ${got[cites.flag]}; its field holds ${criteriaCount(body)}.`);
+    got[cites.flag] = `${held.number} — ${held.text}`;
+  }
 };
 
 const recordShaped = async (kind, reference, argv, { next, patch }) => {
-  const got = gather(kind, argv, DEFERRED);
-  const { documentId, body } = await issueOf(reference);
   const shape = SHAPES[kind];
+  const blocks = blocksOf(kind, argv);
+  const { documentId, body } = await issueOf(reference);
   const asks = shape.fields.some((one) => one.evidence || one.commit);
   const page = asks ? await commentPage(documentId) : { comments: [], hasMore: false };
   const { comments } = page;
   const cut = page.hasMore ? cutLine(page) : null;
   const held = attachmentNames(body, comments);
-  const plan = got.evidence?.length ? attachPlan(got.evidence, held, (ref) => evidenceHeld(ref, held)) : null;
-  if (plan?.refusal) refuse(plan.refusal);
-  if (cut && plan?.upload.length) refuse(CROWDED(kind, cut));
-  if (plan) got.evidence = plan.cite;
+  const plan = citeOnce(kind, blocks, { held, cut });
   const names = [...held, ...(plan?.upload ?? []).map((one) => one.name)];
-  if (asks) fromRecord(kind, got, { comments, names, cut });
-  checked(kind, got);
-  await derive(kind, got);
-  const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
-  if (bad) refuse(bad);
-  /* A criterion is named by number and quoted as it stood, because the field can change later and
-     the record has to say what it was about. Read off the shape, so every kind that cites one does
-     it the same way and a citation of a criterion the issue has not got is refused. */
-  const cites = shape.fields.find((one) => one.criterion);
-  if (cites && got[cites.flag] !== undefined) {
-    const held = criteriaLines(unwrap(body.acceptanceCriteria)).find((one) => one.number === Number(got[cites.flag]));
-    if (!held) refuse(`${reference} has no criterion ${got[cites.flag]}; its field holds ${criteriaCount(body)}.`);
-    got[cites.flag] = `${held.number} — ${held.text}`;
+  /* Every block fills from the same record; three copies of one line is reading the write spared. */
+  const spoken = new Set();
+  const say = (line) => {
+    if (spoken.has(line)) return;
+    spoken.add(line);
+    console.error(line);
+  };
+  for (const got of blocks) {
+    if (asks) fromRecord(kind, got, { comments, names, cut }, say);
+    checked(kind, got);
+    const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
+    if (bad) refuse(bad);
   }
+  await derive(kind, blocks);
+  quoteCriteria(kind, blocks, body, reference);
   const stamp = shape.stamp ? String(body[shape.stamp.from ?? "status"] ?? "") : null;
   /* Asked here as well as in `post`, because a record that cannot be posted must not leave its
      evidence up: the two calls are one refusal a caller can act on and one nothing may skip. */
@@ -334,7 +407,7 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
     await renew(documentId, reference);
     await uploadTo("issue", documentId, one.path, (name) => sent.push(name));
   }
-  const written = await post(documentId, render(kind, got, stamp), reference, next, patch);
+  const written = await post(documentId, render(kind, blocks, stamp), reference, next, patch);
   /* Dropped on the way out and never in a `finally`: a thrown failure unwinds through one before the
      exit, and the notice would be gone for every route but `fail()`'s. */
   process.off("exit", stranded);

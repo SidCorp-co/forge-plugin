@@ -44,6 +44,13 @@ a correction beside any of them.
 - **AC-04-1-3** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a repeated value carrying the separator, a newline and a fence marker reads back byte for byte"
   WHEN a field holds several values THEN the record SHALL read back with exactly the values it was
   written with, whatever those values contain.
+- **AC-04-1-4** · Rev: 1 · Proof: plugin/test/flow/batched-verdict.test.mjs "one write carries a block per criterion, and each block reads back as its own record"
+  WHERE a kind names the key its payload opens a block on, one write SHALL carry a block for each
+  value of that key, and each block SHALL read back as the record a write of that block alone
+  produces.
+- **AC-04-1-5** · Rev: 1 · Proof: plugin/test/flow/batched-verdict.test.mjs "a criterion named twice in one write is refused, and nothing is posted"
+  IF one write opens two blocks on the same value THEN the CLI SHALL refuse the write and SHALL name
+  that value.
 
 ### UC-04-2 — Evidence is checked before it is cited
 
@@ -59,6 +66,9 @@ client no check sits in front of.
   SHALL say what the reference has to be.
 - **AC-04-2-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "released needs a verification and a release note, and closed needs only released"
   WHEN a record is read back THEN its evidence SHALL be checked again against the issue.
+- **AC-04-2-3** · Rev: 1 · Proof: plugin/test/flow/batched-verdict.test.mjs "a file two criteria cite goes up once, under the one name both of them carry"
+  WHERE more than one block of one write cites the same file, the CLI SHALL upload it once and every
+  block citing it SHALL cite the name it was uploaded under.
 
 ### UC-04-3 — A review is two voices in one record
 
@@ -116,6 +126,9 @@ counts, and nobody writes a report from memory.
 - **AC-04-6-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "--owed ends by naming the contract's part for the status it would enter, on both answers"
   WHEN a report is asked for THEN it SHALL name what is owed, so a criterion with no verdict is
   visible without anyone counting.
+- **AC-04-6-2** · Rev: 1 · Proof: plugin/test/flow/batched-verdict.test.mjs "three criteria are judged in one write, and the report prints each one"
+  WHEN a report holds a record carrying several blocks THEN it SHALL print each block as it prints a
+  record written on its own.
 
 ## The way back
 
@@ -126,7 +139,10 @@ every record already on the tracker unreadable. Two things make that reversible:
 version on the last line of every record, and the contract's own rule about what a payload written
 under an older version still earns (`docs/issue-flow-contract.md`, "A rule change owes nothing
 backwards"). So a shape change bumps the version and leaves the old reader in place; it never
-rewrites a record, and it never deletes one (BR-03).
+rewrites a record, and it never deletes one (BR-03). A shape change that only adds does not bump it,
+and the test of that is the direction an older reader is wrong in: a reader that takes the first
+value of each single field reads the first block of a several-block payload and reports the rest as
+owed, which refuses a status it should have earned rather than earning one it should not.
 
 ## Business rules enforced
 

@@ -61,19 +61,35 @@ const valuesFor = (entries, field) => {
   return held.length ? held[0] : undefined;
 };
 
+/* A `per` key opens a block; what stands before the first is every block's (ISS-289). */
+const groupsIn = (entries, per) => {
+  const opens = per ? entries.findIndex(([key]) => key === per) : -1;
+  if (opens < 0) return [entries];
+  const shared = entries.slice(0, opens);
+  const groups = [];
+  for (const entry of entries.slice(opens)) {
+    if (entry[0] === per) groups.push([...shared]);
+    groups.at(-1).push(entry);
+  }
+  return groups;
+};
+
 /* Keys resolving to none of the shape's is rewritten, not empty; and no body sources a derived one. */
-export const readRecord = (body, shapeOf) => {
+export const readRecords = (body, shapeOf) => {
   const tag = TAG.exec(body ?? "");
   const shape = tag ? shapeOf(tag[1]) : null;
-  if (!shape) return null;
+  if (!shape) return [];
   const fenced = payloadIn(body);
   const { entries, rewritten } = fenced ? { entries: fenced, rewritten: false } : labelledIn(body, shape);
-  const fields = {};
-  for (const field of [...shape.fields.filter((one) => !one.derived), ...(shape.stamp ? [shape.stamp] : [])]) {
-    const held = valuesFor(entries, field);
-    if (held !== undefined) fields[field.flag] = held;
-  }
-  return { kind: tag[1], contract: Number(tag[2]), fields, rewritten };
+  const read = [...shape.fields.filter((one) => !one.derived), ...(shape.stamp ? [shape.stamp] : [])];
+  return groupsIn(entries, shape.per).map((group) => {
+    const fields = {};
+    for (const field of read) {
+      const held = valuesFor(group, field);
+      if (held !== undefined) fields[field.flag] = held;
+    }
+    return { kind: tag[1], contract: Number(tag[2]), fields, rewritten };
+  });
 };
 
 /* A number or nothing: a caller keys a map by this, and `NaN` is a key and an unsuppliable item. */
@@ -305,8 +321,10 @@ export const SHAPES = {
     heading: "Baseline",
     fields: [FIELD("gate", "Gate"), FIELD("result", "Result"), FIELD("commit", "Commit", { commit: true })],
   },
+  /* `per` opens a block: one write, a verdict per criterion. A stamp renders last, so a shape with `per` takes none. */
   verdict: {
     heading: "Verdict",
+    per: "criterion",
     fields: [
       FIELD("criterion", "Criterion", { criterion: true }),
       FIELD("verdict", "Verdict", { oneOf: VERDICTS }),

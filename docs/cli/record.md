@@ -39,7 +39,27 @@ what an issue's evidence is belongs to whoever cited it first: the one attachmen
 may be a design document nobody cited, and a default from it would turn a refused verdict into a
 passing one. It is not read per criterion — one document answers twenty of them, which is where the
 forty arguments went — so the line it prints names the record it came from and not the criterion. So the first of a loop names it — a path there goes up and is cited — and the rest inherit. A
-default nobody can see is one nobody can catch being wrong, which is why neither is silent. And where the comment list stopped with more behind it, each is
+default nobody can see is one nobody can catch being wrong, which is why neither is silent. That
+took the typing out of a verdict loop and left the calls. Judging is the most call-heavy phase a run
+has — the profile behind ISS-289 counted one write per criterion, evidence attached per criterion,
+and the suite re-run five and a half times inside judging for evidence the build phase had already
+produced — so `--criterion` repeats, and each one opens a block of the same payload: one write
+carries a verdict, an evidence set and a reason for each criterion it names. What stands before the
+first `--criterion` is every block's, which is where the saving is; a block's own value of a flag
+that takes one replaces the shared value, so the criterion that failed carries its own reason beside
+thirteen that passed, and a repeatable flag adds to the shared set rather than replacing it, which is
+how the one criterion whose evidence is its own cites that beside the run they all share. Each block is rendered whole rather than as a shared header and thirteen references back to
+it, which buys two things: a write naming one criterion renders exactly what it always rendered, and
+every block reads back as the record a single write makes — so the assembly, the entry checks and the
+report are handed one record per criterion and none of them can tell one write from fourteen. That is
+also why the contract version does not move: an older copy reading such a payload takes the first
+value of each single field, so it reads the first criterion and reports the rest as owed, which
+under-earns and never over-earns. A criterion two blocks of one write both name is refused, because
+the map every reader keys by criterion would keep the last of them and nothing on the record would
+say the first was dropped. A document two criteria prove goes up once under the one name both of them
+carry, for the reason any name goes up once. And `forge advance --owed` names the criteria with no
+verdict in one item whose command is the single write that answers them all, a list of fourteen
+commands being fourteen writes. And where the comment list stopped with more behind it, each is
 read from the page when the page carries one — the cut keeps the most recent rows, so a mark or a
 citation found there is the latest — and asked for by name only where the page carries none, since
 then the one that would answer may be exactly a comment behind the cut. The refusal says which cap

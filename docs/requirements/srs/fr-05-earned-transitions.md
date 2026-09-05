@@ -45,6 +45,9 @@ agent learns what a status wants.
 - **AC-05-1-3** · Rev: 1 · Proof: none yet — ISS-12
   WHEN the move being rehearsed is a park or a drop THEN the CLI SHALL rehearse it like any other
   move rather than refusing to rehearse it.
+- **AC-05-1-4** · Rev: 1 · Proof: plugin/test/flow/batched-verdict.test.mjs "several criteria with no verdict are one owed item carrying one write"
+  WHERE more than one criterion has no verdict, the CLI SHALL name them in one item and the command
+  beside it SHALL be the single write that supplies all of them.
 
 ### UC-05-2 — Advance to the next status
 
@@ -68,6 +71,9 @@ deciding a status.
 - **AC-05-2-4** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "a comment carrying the tag and little else is no payload"
   WHEN a comment carries a record's tag but not the fields its shape declares THEN the CLI SHALL
   treat it as no payload.
+- **AC-05-2-5** · Rev: 1 · Proof: plugin/test/flow/batched-verdict.test.mjs "advance earns tested from a batched write exactly as from one write per criterion"
+  WHEN the verdicts on several criteria are written in one record THEN the CLI SHALL judge the status
+  exactly as it judges one record per criterion.
 
 ### UC-05-3 — Refuse a jump
 
