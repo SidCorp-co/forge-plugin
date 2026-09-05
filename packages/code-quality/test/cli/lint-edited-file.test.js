@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -41,7 +49,7 @@ function runHook(root, filePath, { stdin, script = hookScript, env = {}, session
     cwd: root,
     encoding: "utf8",
     input: stdin ?? JSON.stringify(event),
-    env: { ...process.env, CLAUDE_PROJECT_DIR: root, ...env },
+    env: { ...process.env, TMPDIR: root, CLAUDE_PROJECT_DIR: root, ...env },
   });
 }
 
@@ -226,6 +234,56 @@ test("the install warning is per session, not once for all time", () => {
   write(root, "src/file.js", "export const ok = true;\n");
   assert.equal(runHook(root, "src/file.js", { session: "one" }).status, 2);
   assert.equal(runHook(root, "src/file.js", { session: "two" }).status, 2);
+});
+
+// TMPDIR is the root above, so `stampRoom()` resolves inside it: the case reads the directory the
+// script writes rather than asserting on a name it hard-codes.
+function stampRoom(root) {
+  const owned = readdirSync(root).filter((name) => name.startsWith("code-quality-said-"));
+  assert.equal(owned.length, 1, `expected one stamp directory under ${root}, found ${owned}`);
+  return path.join(root, owned[0]);
+}
+
+test("a stamp older than the bound is swept when the next one is written", () => {
+  const root = makeConsumer({ eslint: false });
+  write(root, "src/file.js", "export const ok = true;\n");
+
+  assert.equal(runHook(root, "src/file.js", { session: "old" }).status, 2);
+  const room = stampRoom(root);
+  const [stale] = readdirSync(room);
+  const twoDaysAgo = new Date(Date.now() - 2 * 86_400_000);
+  utimesSync(path.join(room, stale), twoDaysAgo, twoDaysAgo);
+
+  assert.equal(runHook(root, "src/file.js", { session: "fresh" }).status, 2);
+  const left = readdirSync(room);
+  assert.ok(!left.includes(stale), `the stamp older than the bound survived: ${left}`);
+  assert.equal(left.length, 1, `expected only the stamp just written, found ${left}`);
+});
+
+test("a stamp younger than the bound survives the sweep", () => {
+  const root = makeConsumer({ eslint: false });
+  write(root, "src/file.js", "export const ok = true;\n");
+
+  assert.equal(runHook(root, "src/file.js", { session: "first" }).status, 2);
+  assert.equal(runHook(root, "src/file.js", { session: "second" }).status, 2);
+  assert.equal(readdirSync(stampRoom(root)).length, 2);
+});
+
+test("the sweep reads its own directory and never the temp root", () => {
+  const root = makeConsumer({ eslint: false });
+  write(root, "src/file.js", "export const ok = true;\n");
+  // A leftover from the flat naming this fix replaces, and older than any bound.
+  const strays = ["code-quality-said-deadbeefdeadbeef", "someone-elses-file"];
+  const longAgo = new Date(Date.now() - 30 * 86_400_000);
+  for (const name of strays) {
+    writeFileSync(path.join(root, name), "");
+    utimesSync(path.join(root, name), longAgo, longAgo);
+  }
+
+  assert.equal(runHook(root, "src/file.js", { session: "one" }).status, 2);
+  for (const name of strays) {
+    assert.ok(readdirSync(root).includes(name), `${name} was removed from the temp root`);
+  }
 });
 
 test("reports a missing plugin through the consumer config", () => {

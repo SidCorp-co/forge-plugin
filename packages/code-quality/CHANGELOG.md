@@ -2,6 +2,12 @@
 
 All notable changes to this package are documented here.
 
+## 0.14.0 - 2026-09-05
+
+### Fixed
+
+- The edit hook's "ESLint is configured here but not installed" stamp is reaped. It was a zero-byte `code-quality-said-<key>` per (session, workspace) written flat into the system temp root, and nothing had ever removed one: 553 of them on one machine and 216 on another, both counted the same day. The stamps now live in a single `code-quality-said-<uid>` directory the script makes on first write, and every write first reads that directory and unlinks the entries older than a day — a session's memory, and no session outlives one. The sweep reads only its own directory, so a temp root full of other people's files is neither scanned nor touched, and the ones the old naming already left behind stay where they are. The directory carries the user id because a shared name belongs to whoever creates it first, and the second user's failed `mkdir` would have turned "said once per session" into said on every edit.
+
 ## 0.13.0 - 2026-08-31
 
 ### Fixed

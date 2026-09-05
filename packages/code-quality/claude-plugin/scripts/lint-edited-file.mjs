@@ -2,7 +2,17 @@
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -144,12 +154,46 @@ function resolveEslint(require) {
   }
 }
 
+/**
+ * One directory holds every stamp, so a sweep is a directory read and never a scan of the temp
+ * root. Per user, because a shared name belongs to whoever creates it first and the second user
+ * would fail into the catch below, saying the message on every edit instead of once.
+ */
+const stampRoom = () => path.join(tmpdir(), `code-quality-said-${process.getuid?.() ?? "one"}`);
+
+/** How long a stamp answers for: a session's memory, and no session outlives a day. Left forever
+ *  they reached 553 files on one machine and 216 on another, in a fortnight. */
+const STAMP_MS = 86_400_000;
+
+/* Before the write, not after: a temp filesystem out of inodes refuses a create and allows an
+   unlink, which is the case where sweeping matters most. */
+function sweep(room) {
+  const expired = Date.now() - STAMP_MS;
+  let names;
+  try {
+    names = readdirSync(room);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    const stamp = path.join(room, name);
+    try {
+      if (statSync(stamp).mtimeMs < expired) rmSync(stamp);
+    } catch {
+      continue;
+    }
+  }
+}
+
 /** Whether this session was already told, recorded outside the tree the message describes. */
 function alreadySaid(sessionId, subject) {
   const key = createHash("sha1").update(`${sessionId ?? ""}\0${subject}`).digest("hex").slice(0, 16);
-  const stamp = path.join(tmpdir(), `code-quality-said-${key}`);
+  const room = stampRoom();
+  const stamp = path.join(room, key);
   if (existsSync(stamp)) return true;
+  sweep(room);
   try {
+    mkdirSync(room, { recursive: true });
     writeFileSync(stamp, "");
   } catch {
     // A stamp we cannot write means we say it again, which is the safe direction.
