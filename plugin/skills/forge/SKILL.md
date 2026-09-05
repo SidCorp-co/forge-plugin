@@ -13,45 +13,30 @@ description: >-
 
 # Skill: forge
 
-**Run `forge -h` first.** It lists the verbs *this* credential can actually use. `forge <verb> -h`
-says what to type for one of them and names the schema holding its arguments in full; `forge -h
---full` adds the tracker's own rules for writing an issue. What follows is how to spend a call well. What is read
-once — where settings come from, what `doctor` reports, and the two verb families that are not the
-tracker — is in `references/`, named at the point it becomes relevant. When this plugin is the
-problem — a refusal with no route, a flag that did not do what its help said, a hook that fired on
-the right shape, a call it made you spend twice — `forge feedback` files it as a bug on the
-plugin's own project, from whatever project you are standing in, before you work around it. It
-reads the body against the bug shape and fills in which version and which copy answered, so a note
-costs a title and what happened. A workaround nobody filed is a defect nobody fixes.
+**Run `forge -h` first.** It lists the verbs *this* credential can actually use, and `forge <verb>
+-h` names the schema holding one's arguments in full. Nothing about their shapes is repeated here.
+What follows is how to spend a call well; what is read once is in `references/`, named at the point
+it becomes relevant.
 
-## Payloads: inline, `@file`, or `-`
+When this plugin is the problem — a refusal with no route, a flag that did not do what its help
+said, a hook that fired on the right shape, a call it made you spend twice — `forge feedback` files
+it as a bug on the plugin's own project, from whatever project you are standing in, **before** you
+work around it. A workaround nobody filed is a defect nobody fixes.
 
-One rule everywhere a payload is taken. `forge new report.md`, `forge new @report.md`,
-`forge new - < report.md`, `forge call forge_issues '{"action":"list"}'`,
-`forge call forge_issues @args.json`.
+## Spend the call, not the context
 
-Pass a path when the content already exists. Measured on a 3,895-character body: an existing file
-costs 153 characters against 4,202 inline — but *writing* that file in the same breath costs 4,078,
-within 3% of inlining. Never create a file just to pass it.
+A round trip is about twenty bytes of command; the payload is the cost. Two consequences worth
+knowing before the first call.
 
-## Fetch narrow, then fetch again
+**Pass a path when the content already exists, and never create a file to pass one.** Measured on a
+3,895-character body: an existing file costs 153 characters against 4,202 inline — but *writing*
+that file in the same breath costs 4,078, within 3% of inlining.
 
-Three tiers, and the payload is what costs — a round trip is ~20 bytes of command:
+**Fetch narrow, then fetch again.** One part of one body is 21× cheaper than the whole. Measured on
+a 50-issue tracker, the list costs 6,602 bytes against ~1,700 for a single body, so drilling into 48
+of the 50 one at a time still costs less than one call that returned them all.
 
-- `forge issues [--status s] [--search q] [--limit n]` — one line per issue: `ISS-45  open  title`.
-- `forge issue ISS-45` — one whole body, empty fields omitted.
-- `forge issue ISS-45 --fields plan` — one part of one body. **21× cheaper** than the whole.
-
-Measured on a 50-issue tracker: the list is 6,602 bytes against ~1,700 for a single body, so
-drilling into 48 of the 50 one at a time still costs less than one call returning them all.
-
-**`issues` returns every matching row.** One `list` answer is capped by response bytes, so the CLI
-walks the set in created-time windows and prints the count and the requests it took; `--limit` is
-how many of them print, out of that whole set, and the line says what the print cut left out.
-Filters and `--fields` are validated against the server's own schema before the call, so a typo
-answers `Did you mean: --status?` rather than costing a round trip.
-
-**`ISS-45` works wherever a uuid does** — including inside a raw `call` payload, in `documentId`,
+`ISS-45` works wherever a uuid does — including inside a raw `call` payload, in `documentId`,
 `dependsOnId`, `blocksId`, `fromIssueId` and `toIssueId`.
 
 ## Before a write
