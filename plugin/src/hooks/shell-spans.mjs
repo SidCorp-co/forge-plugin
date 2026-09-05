@@ -138,3 +138,20 @@ export const movedTo = (text, before) => {
   const [first] = standsIn(text, before);
   return typeof first === "string" || first === NOWHERE ? first : null;
 };
+
+/* A wait opens where a command does — one inside an argument opens nothing — and `done` closes it. */
+const WAITS = /^(?:[({]\s*|\b(?:if|elif|then|else|do)\s+)*(?:while|until)(?=\s|$)/u;
+const ENDS = /^done(?=[\s;&|)<>]|$)/u;
+
+/** Where each `while`/`until` … `done` runs, as `[from, to)` over the same text — one range per
+ *  wait, innermost first, an unclosed opener dropped rather than swallowing the rest of the line. */
+export const waitsIn = (text) => {
+  const out = [];
+  const open = [];
+  for (const { start, end } of spans(text, { pipes: true })) {
+    const one = text.slice(start, end).trim();
+    if (WAITS.test(one)) open.push(start);
+    else if (ENDS.test(one) && open.length) out.push([open.pop(), end]);
+  }
+  return out;
+};

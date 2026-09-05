@@ -210,3 +210,25 @@ test("a body a shell runs is commands, whatever names it happens to carry", () =
   assert.equal(decide(`zsh <<'SH'\necho ${NODE_ESCAPE}\n${STAGE_ALL}\nSH`).allowed, false);
   assert.ok(decide(`bash <<'SH'\necho "git ${verb}"\nSH`).allowed, "while a literal there is still an argument");
 });
+
+/* The three shapes counted in the transcripts, and the two routes the refusal has to offer instead:
+   1,691 poll-shaped calls on one project in three days, 46 of them lost to the shell tool's cap. */
+test("a wait that polls is refused, and a pause on its own is not", () => {
+  const nap = `sl${"eep"}`;
+  const first = decide(`until curl -sf localhost:3000; do ${nap} 5; done`);
+  assert.equal(first.allowed, false);
+  assert.match(first.reason, /foreground with the tool's own timeout/u, "the first route");
+  assert.match(first.reason, /background and let the harness's completion notice/u, "the second");
+  assert.match(first.reason, /ten-minute cap/u, "and what the foreground one is bounded by");
+  assert.match(first.reason, /forge hooks --how polling/u, "the argument has its own page");
+  assert.equal(decide(`while ! grep -q ready /tmp/log; do ${nap} 10; done`).allowed, false);
+  assert.equal(decide(`while true; do date; ${nap} 30; done`).allowed, false);
+  assert.equal(decide(`until nc -z localhost 5432\ndo\n  ${nap} 5\ndone`).allowed, false, "`do` on its own line");
+  assert.equal(decide(`npm test | while read -r l; do ${nap} 1; done`).allowed, false, "past a pipeline");
+  assert.equal(decide(`until a; do until b; do ${nap} 1; done; done`).allowed, false, "and nested");
+  assert.ok(decide(`${nap} 2`).allowed, "a pause on its own waits once and asks nothing");
+  assert.ok(decide(`${nap} 2 && npm test`).allowed, "one before the work is still one pause");
+  assert.ok(decide(`until a; do echo x; done && ${nap} 3`).allowed, "and one after a wait is outside it");
+  assert.ok(decide(`while read -r l; do echo "$l"; done < /tmp/f`).allowed, "a wait with no pause polls nothing");
+  assert.ok(decide(`echo "until x; do ${nap} 1; done"`).allowed, "and the shape inside an argument is prose");
+});

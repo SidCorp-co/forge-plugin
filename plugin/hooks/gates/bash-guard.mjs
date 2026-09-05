@@ -1,10 +1,11 @@
 // Refuse the shell commands whose damage cannot be undone, and the one that launders a finding into
 // a green run. Narrow on purpose: a guard refusing too much gets disabled — how/bash-guard.md.
+// It also refuses a wait that polls, which loses nothing and costs a turn per wake-up — how/polling.md.
 
 import { spawnSync } from "node:child_process";
 import { isAbsolute, resolve } from "node:path";
 
-import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, deny, gitTreeOf, remaining, spawnsIn, standsIn, startsAt, unwrapped, how, done } from "../_hook.mjs";
+import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, deny, gitTreeOf, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
 
 /* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec
    bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. */
@@ -82,6 +83,17 @@ const RULES = [
     needsDirtyTree: true,
     cause: "git reset --hard discards every uncommitted change in the tree at once.",
     instead: "Reset the specific paths, or commit first so the state is recoverable.",
+  },
+  {
+    pattern: /^(?:\S*\/)?sleep(?=\s|$)/u,
+    needsWait: true,
+    topic: "polling",
+    cause:
+      "A sleep inside a wait polls: every wake-up is a turn spent asking, and a wait longer than "
+      + "the shell tool's ten-minute cap ends with the state it was waiting on lost.",
+    instead:
+      "Run the work in the foreground with the tool's own timeout, up to that ten-minute cap, or "
+      + "start it in the background and let the harness's completion notice be the wake-up.",
   },
 ];
 
@@ -172,13 +184,20 @@ export const run = (ev) => {
     if (!answered.has(tree)) answered.set(tree, treeIsDirty(tree));
     return answered.get(tree);
   };
-  for (const { pattern, cause, instead, needsDirtyTree } of RULES) {
-    const hits = run.filter((one) => pattern.test(one.said));
+  /* One reading of the waits per text, shared by every candidate: the offsets `startsAt` gave are
+     into the same text, so a `sleep` is inside a wait exactly where its own start is. */
+  const waited = new Map();
+  const inWait = (one) => {
+    if (!waited.has(one.source)) waited.set(one.source, waitsIn(one.source));
+    return waited.get(one.source).some(([from, to]) => one.at >= from && one.at < to);
+  };
+  for (const { pattern, cause, instead, needsDirtyTree, needsWait, topic } of RULES) {
+    const hits = run.filter((one) => pattern.test(one.said) && (!needsWait || inWait(one)));
     if (!hits.length) continue;
     const hit = needsDirtyTree && hits.find((one) => treesOf(one, ev.cwd).some(dirty));
     if (needsDirtyTree && !hit) continue;
     const trees = hit ? treesOf(hit, ev.cwd) : [];
     const unsure = trees.includes(NOWHERE) ? UNNAMED : (trees.length > 1 ? UNSURE : "");
-    deny(`Refused. ${cause}\n\nInstead: ${instead}${unsure}${how()}`);
+    deny(`Refused. ${cause}\n\nInstead: ${instead}${unsure}${topic ? how(topic) : how()}`);
   }
 };

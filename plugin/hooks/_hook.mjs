@@ -11,7 +11,7 @@ import { spans } from "../src/hooks/shell-spans.mjs";
 import { hookOff } from "../src/hooks/hook-switch.mjs";
 
 export { askedAlready, askedByAnyone } from "../src/hooks/stamps.mjs";
-export { NOWHERE, movedTo, spans, spelled, standsIn, typed } from "../src/hooks/shell-spans.mjs";
+export { NOWHERE, movedTo, spans, spelled, standsIn, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
 
 const TOKEN = /[A-Za-z0-9_./@-]+\.[A-Za-z0-9]+/g;
 /** How long after a call a file's mtime still answers for it. */
