@@ -2894,3 +2894,30 @@ start. Closed by its run. Folded from its own record. Landed as 230ad05, release
   ISS-338's one filing interface is where that belongs.
 - ISS-358 filed from the user's note: the gate runner orders its steps by the seconds the ledger
   already records, cheapest first.
+
+## Hundred-and-fourteenth dry run — ISS-127
+
+Dispatched by the parent after the user's restart on 3.35.129, as one of the restart-owing issues
+gathered so that one restart covers the wave. The code-quality delegate's "configured but not
+installed" stamp now lives in one directory named for the package and the user, made on first write,
+and every write sweeps it of entries older than a day before creating the next
+(`eslint-plugin-code-quality` 0.14.0, plugin 3.35.130, landed as ed7d1fa). Re-vendored rather than
+edited, and the vendor check reports in sync. Twelve criteria; one consult with one major finding,
+rejected with a reason and then withdrawn by codex on recheck at the same head, so the approval was
+earned rather than written over a live rejection. No restart: the vendored delegate is spawned per
+edit, not registered, and the ship's frozen-set filter named nothing. Closed by its run. Folded from
+its handback.
+
+- "Named for the package" was read as per package *and* per user: a bare shared directory belongs to
+  its first creator, and a second user's failed `mkdir` would fall into the existing catch and turn
+  "said once" into said on every edit. The run wrote that reading down where a reviewer finds it.
+- A rejected finding is not an approval: the run rejected F1 with its reason, then spent the recheck
+  so the reviewer could withdraw it, and only then recorded `approved`. The cheaper route, writing
+  `approved` over a live rejection, was there and was not taken.
+- Two plugin defects met were already open (ISS-158 and ISS-80 on `--evidence` refusing a `.log`;
+  ISS-16 on `advance --owed` offering a finding line as the way past `changes-requested`), so the run
+  filed nothing and left a `gap` record pointing at ISS-16 with what it cost: one round.
+- The release note was withheld with the reason on the issue: nothing outside the machine's temp
+  directory sees this change.
+- A scratch file under `/tmp` with the run's own prefix was not its own — hours older, from another
+  project — and was left alone. A prefix is not ownership.
