@@ -2714,3 +2714,37 @@ range, measured on the two hook paths and not inferred. Closed by its run. Folde
 - The ship's push was rejected once because another run's release landed during a 316-second gate
   run; the mark was then planted by its named ref. A ship that rebases past a release must not
   default the mark to whatever head it finds.
+
+## Hundred-and-ninth dry run — ISS-321
+
+One agent trimmed three skills across three releases (3.35.122, 3.35.123, 3.35.125): the issue-flow
+skill lost 8,025 bytes, the forge skill 3,041, and the tree fell from 119,444 to 108,378, every cut
+sentence named beside the command or refusal that states it now, thirteen of them run in the worktree
+to prove they answer. The one-home check was widened so a skill sentence restating a hook's page or a
+verb's line of help is red, watched failing on the parent commit against a real sentence in the plan
+reference, and the one hit it found on the tree was cut. A registry seam for local guides landed
+unwired. The stub conversion the issue asked for did not land: `forge guide <skill> [<part>]` needs
+a hunk in commands.mjs and a usage line, both held by ISS-322, and the exact code is filed there.
+Nine criteria, one correction on the record found at judging time and said so, one rewritten
+criterion for the gate-review skill, which was measured clean and kept. Three defects filed (ISS-337,
+ISS-342, and a finding onto ISS-206). Restart owed, once, for seven skill documents. Closed by its run.
+Folded from the record.
+
+- A stub whose one command is refused is worse than the fat skill it replaces: the body would leave
+  every open session while `forge guide <skill>` answers nothing. The run landed the half that stands
+  alone and filed the exact hunk for the half that needs another run's file, which is the same
+  division as run 103.
+- A criterion that bundled a measurement with the help text around it would have deleted the fact:
+  "one part of one body is 21x cheaper than the whole" is a number this repository took, printed by
+  no `-h`. The correction retired the enumeration and kept the number; found at judging, which the
+  record calls the weak order.
+- The gate-review skill was measured and not trimmed, because its own opening says it is written for a
+  harness this repository has never seen: a pointer at `node tools/gates.mjs` would put one
+  checkout's fact inside a global skill. Measuring against the rule and recording why nothing moved
+  is the criterion, not the cut.
+- Two duplicate posts (ISS-321's own thread and ISS-206), each because a grep over the reply made a
+  successful write read as a failure; the parent made the same mistake on ISS-316 the same hour. No
+  verb retracts a comment (ISS-343), and the post says nothing on a repeat (ISS-300).
+- The three releases put seven skill files under the hand's feet, and the sessions open during them
+  are reading retired text. ISS-320, which landed beside this run, is the change that stops a gate
+  landing from owing one; skills still owe theirs until the stubs land.
