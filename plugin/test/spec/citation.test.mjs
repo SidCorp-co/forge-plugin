@@ -103,7 +103,9 @@ test("a rule of the tree's own index is named as one and never looked up as a cl
   assert.match(said[0], /not a clause of the specification/u);
 });
 
-test("a clause two documents define is refused as two, and never answered with the copy read first", () => {
+/* The fix a refusal names has to clear it: retiring a clause keeps its number (R-12), so the only
+   thing that gives an identifier one home is the second definition becoming a reference. */
+test("a clause two documents define is refused as two, and citing it from one of them clears that", () => {
   const twice = clauseIndex([
     { file: "srs/fr-01-first.md", text: REQUIREMENT },
     { file: "srs/fr-01-copy.md", text: REQUIREMENT },
@@ -111,6 +113,17 @@ test("a clause two documents define is refused as two, and never answered with t
   const said = citationProblems(twice, "this serves FR-01~2");
   assert.equal(said.length, 1);
   assert.match(said[0], /defined in srs\/fr-01-first\.md and srs\/fr-01-copy\.md/u);
+  assert.match(said[0], /keep the clause in one document and cite it from the other/u);
+  const retired = clauseIndex([
+    { file: "srs/fr-01-first.md", text: REQUIREMENT },
+    { file: "srs/fr-01-copy.md", text: REQUIREMENT.replace("Rev: 2 ·", "Rev: 2 · Status: retired ·") },
+  ]);
+  assert.equal(citationProblems(retired, "this serves FR-01~2").length, 1, "a retired clause is a second home still");
+  const referenced = clauseIndex([
+    { file: "srs/fr-01-first.md", text: REQUIREMENT },
+    { file: "srs/fr-01-copy.md", text: "# SRS §4 — FR-02 — The second\n\nRev: 1 · Enforces: BR-01\n\nIt extends FR-01~2.\n" },
+  ]);
+  assert.deepEqual(citationProblems(referenced, "this serves FR-01~2"), [], "the fix the refusal names is one that clears it");
 });
 
 test("a citation that resolves at the revision it names is no problem, and is said twice as once", () => {

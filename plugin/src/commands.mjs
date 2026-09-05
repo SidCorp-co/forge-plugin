@@ -57,9 +57,8 @@ import { notAnothers, renew } from "./flow/lease.mjs";
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
 
-/* Resolved before anything is sent, and only where the project keeps a tree: a plan is one field
-   replaced rather than accumulated, so a refusal costs the author nothing but the clause they meant,
-   while a wrong citation stored is one the spec gate reports about a plan nobody is holding. */
+/* Before anything is sent, and only where the project keeps a tree: a wrong citation refused costs
+   the author the clause they meant, and one stored costs a gate reporting a plan nobody holds. */
 const citationsChecked = (text) => {
   if (!hasTree()) return;
   const index = specTree();

@@ -8,6 +8,7 @@ import { didYouMean } from "../suggest.mjs";
 import { LINK_TEXT_PATTERN } from "../markdown.mjs";
 import { FORMS, KIND, parseRef } from "./parse.mjs";
 import { ambiguousUnder, clauseOf, lookup, nearest, withDescendants } from "./index.mjs";
+import { ONE_HOME } from "./citation.mjs";
 import { specTree } from "./tree.mjs";
 
 const LINK = new RegExp(LINK_TEXT_PATTERN, "gu");
@@ -138,10 +139,7 @@ const clauseFor = (index, ref) => {
   const found = lookup(index, ref.id);
   if (found.ambiguous) {
     const what = found.via ? `${ref.id} sits under ${found.via}, which is` : `${ref.id} is`;
-    refuse(
-      `${what} defined in ${found.ambiguous.join(" and ")}, and an identifier names one clause.\n`
-        + "Retire one of them: a retired clause keeps its number and is never reused, so the other stands.",
-    );
+    refuse(`${what} defined in ${found.ambiguous.join(" and ")}, ${ONE_HOME}`);
   }
   if (found.foreign) {
     refuse(`${ref.id} names ${found.foreign}, which is not a clause of the specification. Ask for one of ${FORMS}.`);
