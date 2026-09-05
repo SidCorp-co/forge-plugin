@@ -2780,3 +2780,42 @@ Closed by its run. Folded from the record.
   release prints the narrowed one.
 - A premise read off the code and found false narrows the work: the run measured what was frozen
   before building, and half the issue's set was never frozen. Confirmation is where that is cheap.
+
+## Hundred-and-eleventh dry run — ISS-322
+
+One agent gave the CLI `forge next` (3.35.127): the open issues ranked off what the tracker holds,
+priority, kind, band, age with a cap, reopens and what each blocks counted through the chain, with
+three efficiency signals printed beside the score and entering no total: the median cost of past runs
+in the same band, a restart flag on a body naming a hook or a skill, and a warm mark on a tree the
+last landing touched. Eligibility drops print their own sentence, relatedness is read three ways and
+each member's line says which, a batch is at most three fix-size issues, and `--why` accounts for
+every point beside the number. Bodies are read a pass at a time in score order and the reading stops
+on a bound, not a count, with a warning when no bound survives. Nothing is written. Fourteen
+criteria, five consult rounds, ten findings all accepted, three corrections on the record. Live at
+the landed head the order was ISS-316, ISS-317, ISS-318 on equal points, then two high bugs, with one
+issue left out for a live blocker. One defect filed (ISS-347: a dropped blocker gates forever), and
+the ship filed the fifth batch reading (ISS-351). No restart owed, and the ship's narrowed set said so
+by name. Closed by its run. Folded from the record.
+
+- The blocker floor is the contract's `developed`, not "a terminal status": two floors would have
+  `forge next` call an issue blocked that `forge advance` moves without complaint. The verb that
+  decides eligibility spends the reading the flow already refuses on, and ISS-316 must spend the
+  same one.
+- A single window sized off the count truncates the row a body would have promoted; the reading
+  became passes in score order that stop on a bound. What review proved wrong was the criterion's
+  shape, and the correction says so rather than fitting the code to the words.
+- The criterion's own arithmetic was wrong: at this table's weights a four-issue chain is twelve
+  points and cannot beat a thirty-point priority gap, so the achievable case is a five-issue chain
+  on a high issue against a lone critical. A criterion that names numbers is checked against the
+  table before it is written.
+- Three of 350 issues carry the tracker's complexity value and all three are closed; no open body
+  carries a size line. The band printed "unset (neither source)" on every row, which is the honest
+  answer and the measurement ISS-334 and ISS-317 start from.
+- Five consult rounds each numbered findings from one, and the review record's grammar takes only
+  `F<n>`, so the run renumbered chronologically and wrote a gap record carrying the mapping; ISS-34
+  owes the grammar. `record verification` refused every upload because the thread was past the
+  comment cut (ISS-194), so the landed-head output survives only as prose in the record.
+- Two agents filed the same defect within an hour (ISS-341, ISS-342: a merged mark's note read as
+  moved paths) past the same near-duplicate search this verb now uses. The fold dropped one onto
+  the other; the search's floor is what ISS-336's class of false holds and this class of misses
+  share.
