@@ -41,14 +41,14 @@ export const callHookAsync = (hook, event, env = process.env) =>
     child.stdin.end(JSON.stringify(event));
   });
 
-/* Thousands of these have filled the mount a shell needed (ISS-42, ISS-125), on a tmpfs that runs
-   out of inodes while gigabytes are free. So a suite's rooms are made here, inside one root this
-   process removes on its way out. `prefix` names the room and is kept whole, so only the parent
-   directory moves. Ctrl-C and a kill run no handler at all, which is why the pid is in the root's
-   name: a root whose process is gone is swept by the next process to ask for a room, and a root
-   this fixture never named is nobody's to delete. */
+/* Thousands of these have filled the mount a shell needed (ISS-42, ISS-125), on a tmpfs out of
+   inodes while gigabytes are free. So a suite's rooms go inside one root this process removes on its
+   way out, the pid in its name because Ctrl-C runs no handler: a root whose process is gone is swept
+   by the next to ask for one, and one this fixture never named is nobody's. It is made at import
+   because `TMPDIR` points at it below and a gate stamps under `tmpdir()` per call, so a suite
+   leaving that alone fills the room every hook reaps; `MACHINE` is therefore read before then. */
 const OWNED = /^forge-plugin-test-(\d+)-/u;
-let root;
+const MACHINE = tmpdir();
 
 const gone = (pid) => {
   try {
@@ -60,25 +60,24 @@ const gone = (pid) => {
 };
 
 const sweep = () => {
-  for (const name of readdirSync(tmpdir())) {
+  for (const name of readdirSync(MACHINE)) {
     const owner = OWNED.exec(name);
     if (!owner || Number(owner[1]) === process.pid || !gone(Number(owner[1]))) continue;
     try {
-      rmSync(join(tmpdir(), name), { recursive: true, force: true });
+      rmSync(join(MACHINE, name), { recursive: true, force: true });
     } catch {
       /* Another process sweeping the same root, or one that is not this user's to remove. */
     }
   }
 };
 
-export const tempRoom = (prefix) => {
-  if (!root) {
-    root = mkdtempSync(join(tmpdir(), `forge-plugin-test-${process.pid}-`));
-    process.on("exit", () => rmSync(root, { recursive: true, force: true }));
-    sweep();
-  }
-  return mkdtempSync(join(root, prefix));
-};
+const root = mkdtempSync(join(MACHINE, `forge-plugin-test-${process.pid}-`));
+process.on("exit", () => rmSync(root, { recursive: true, force: true }));
+sweep();
+
+process.env.TMPDIR = root;
+
+export const tempRoom = (prefix) => mkdtempSync(join(root, prefix));
 
 export const tempHome = (name) => {
   const path = tempRoom(`${name}-home-`);

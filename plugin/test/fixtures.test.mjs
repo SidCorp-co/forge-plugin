@@ -11,6 +11,7 @@ import { tempRoom } from "./fixtures.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
 const FIXTURES = ["plugin/test/fixtures.mjs", "packages/code-quality/test/fixtures/room.js"];
+const STAMPS = "plugin/src/hooks/stamps.mjs";
 /* The identifier rather than the call, so an alias or the async form is caught too, and the three
    files that state the rule name it as well and are not held to it. */
 const RAW = /\bmkdtemp(?:Sync)?\b/u;
@@ -50,6 +51,29 @@ test("no test file makes a temporary directory of its own", () => {
     found,
     [],
     `these name mkdtemp themselves, so a directory they make is one nothing removes; take the room from ${FIXTURES.join(" or ")} instead:\n${found.join("\n")}`,
+  );
+});
+
+/* A gate resolves its stamp room per call under `tmpdir()`, so a test leaving `TMPDIR` alone writes
+   a file per session per subject into the room every hook on the machine reaps before every stamp of
+   its own (ISS-361). A child spawned with the fixture's environment inherits the room it made. */
+const stamps = (fixture) => `
+  import "${pathToFileURL(fixture).href}";
+  const { askedAlready, stampRoom } = await import("${pathToFileURL(join(ROOT, STAMPS)).href}");
+  askedAlready({ session_id: "one" }, "/w/a.md", "learning-gate");
+  process.stdout.write(stampRoom());
+`;
+
+test("a gate a test process fires stamps inside that process's own root", () => {
+  const room = tempRoom("fixture-stamps-");
+  const argv = ["--input-type=module", "-e", stamps(join(ROOT, FIXTURES[0]))];
+  const run = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...process.env, TMPDIR: room } });
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /\/forge-plugin-test-\d+-[^/]+\/forge-hook-stamps-/u, "the room is under the root it removes");
+  assert.deepEqual(
+    readdirSync(room).filter((name) => name.startsWith("forge-hook-stamps-")),
+    [],
+    `a test process stamped into ${room}, which on a machine is the room every hook reaps before every stamp`,
   );
 });
 

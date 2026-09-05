@@ -12,6 +12,7 @@ import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
 import { ledgerFor, LEDGER_UNSEEN, recordPass } from "./gates/ledger.mjs";
 import { editsDerivation, mergeBaseDiff, planFor } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
+import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
 import { recordDir, recordRun, seriesFile } from "./gates/timing.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
@@ -40,6 +41,10 @@ no others, however many scoped runs sit between them. A scoped figure is printed
 subtracted. This says what it recorded; the release is the one place that prints the change.
 
 ${LEDGER_UNSEEN}
+
+Every step runs under a temporary directory of this run's own, and a step that leaves the plugin's
+hook stamps in it is failed: on a developer's machine that directory is the room every hook reaps
+before every stamp, and a suite that fills it is a cost no green can show.
 
 A run in the shared checkout is refused while that checkout holds uncommitted paths: more than one
 session stands there, so the result would be about a tree none of them owns. A worktree is never
@@ -99,6 +104,10 @@ if (dirty.length > 0) {
   console.log(`\n${banner}`);
   listed((line) => console.log(line));
 }
+
+/* Every step runs under this and not under the machine's temp root, so what a step leaves there is
+   this run's alone and no live session's hooks are mixed into it. It removes itself at exit. */
+const scratch = gateTmp();
 
 /* Every exit past the banner, not the green one alone: the run that stops at a failing step is the
    one whose reader most needs to know it was told about a tree two sessions were writing. */
@@ -161,12 +170,19 @@ const started = Date.now();
 for (const step of planned) {
   console.log(`\n=== ${step.label} ===`);
   const at = Date.now();
-  const { status, error } = spawnSync(step.argv[0], step.argv.slice(1), { cwd: ROOT, stdio: "inherit" });
+  const env = { ...process.env, TMPDIR: scratch };
+  const { status, error } = spawnSync(step.argv[0], step.argv.slice(1), { cwd: ROOT, env, stdio: "inherit" });
   const took = Math.round((Date.now() - at) / 1000);
   console.log(`\n--- ${step.label}: ${took}s`);
   if (error || status !== 0) {
     console.error(`\nGate failed: ${step.label}${error ? ` (${error.message})` : ""} — the tree judged: ${ROOT}`);
     finish(status ?? 1);
+  }
+  /* Before the pass is recorded, or the ledger holds a step green that left the machine dirtier. */
+  const leak = roomLeft(scratch);
+  if (leak) {
+    console.error(`\nGate failed: ${step.label} — the tree judged: ${ROOT}\n${leakMessage(leak)}`);
+    finish(1);
   }
   if (ledger) recordPass(ledger.dir, step, took);
 }

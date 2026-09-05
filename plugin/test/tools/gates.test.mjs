@@ -5,9 +5,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { stampRoom } from "../../src/hooks/stamps.mjs";
 import { STEPS, WHOLE_TREE_TESTS } from "../../../tools/gates/steps.mjs";
 import { recordRun, runSays, runSeries } from "../../../tools/gates/timing.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -16,7 +17,9 @@ const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", ".."
 const RUNNER = join("tools", "gates.mjs");
 const COPIED = [RUNNER, join("tools", "checkout.mjs"), join("tools", "gates", "steps.mjs"),
   join("tools", "gates", "scope.mjs"), join("tools", "gates", "ledger.mjs"),
-  join("tools", "gates", "timing.mjs")];
+  join("tools", "gates", "timing.mjs"), join("tools", "gates", "stamp-room.mjs"),
+  join("plugin", "src", "hooks", "stamps.mjs")];
+const STAMPED = basename(stampRoom());
 
 /* One file per top-level entry the table claims, plus one under every path a step reads, so a
    scratch run scopes the way the real one does instead of widening on a path nothing owns. */
@@ -38,21 +41,34 @@ const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
 const run = (work, argv = [], cwd = work) =>
   spawnSync(process.execPath, [join(work, RUNNER), ...argv], { cwd, encoding: "utf8" });
 
-const scripts = (failing) =>
+/* A step writing the hook stamp room into whatever temporary directory it was handed, which is the
+   shape a suite has when nothing points TMPDIR at a room of its own (ISS-361). */
+const LEAKS = "node -e \"const fs=require('node:fs'),os=require('node:os'),p=require('node:path');"
+  + `const room=p.join(os.tmpdir(),'${STAMPED}');fs.mkdirSync(room,{recursive:true});`
+  + "fs.writeFileSync(p.join(room,'learning-gate-planted'),'')\"";
+
+const command = (label, failing, leaking) => {
+  if (label === failing) return "node -e \"process.exit(1)\"";
+  if (label === leaking) return LEAKS;
+  return "node -e \"\"";
+};
+
+const scripts = (failing, leaking) =>
   Object.fromEntries(STEPS.filter((step) => !step.tests)
-    .map((step) => [step.label, failing === step.label ? "node -e \"process.exit(1)\"" : "node -e \"\""]));
+    .map((step) => [step.label, command(step.label, failing, leaking)]));
 
 /* Its own checkout, because the questions are about a tree: the branch a diff is taken against,
    and whether the tree is the shared one. Committed on master, then worked on a branch, so the
    merge-base is a real base and a change to it is a real diff. */
-const scratch = (name, failing) => {
+const scratch = (name, failing, leaking) => {
   const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
   for (const one of COPIED) write(work, one, readFileSync(join(ROOT, one), "utf8"));
   for (const one of [...PLACED, ...NAMED, "plugin/test/tools/one.test.mjs"]) {
     write(work, one, one.endsWith(".test.mjs") ? `import test from "node:test";\ntest("${one}", () => {});\n` : `${one}\n`);
   }
-  write(work, "package.json", JSON.stringify({ name: "scratch", version: "1.0.0", scripts: scripts(failing) }, null, 2));
+  write(work, "package.json",
+    JSON.stringify({ name: "scratch", version: "1.0.0", scripts: scripts(failing, leaking) }, null, 2));
   git(work, "init", "-b", "master");
   for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(work, "config", key, value);
   git(work, "add", "-A");
@@ -74,7 +90,7 @@ const runs = (work) => readFileSync(runsFile(work), "utf8").trim().split("\n");
 test("-h names the two flags and what the record cannot see", () => {
   const said = run(ROOT.replace(/\/$/u, ""), ["-h"]).stdout;
   for (const one of ["--full", "--anyway", "node_modules", "merge-base", "tree judged",
-    "seconds that step took", "one line per green run"]) {
+    "seconds that step took", "one line per green run", "a temporary directory of this run's own"]) {
     assert.ok(said.includes(one), `${one} is not in the usage:\n${said}`);
   }
 });
@@ -181,6 +197,21 @@ test("a red step records nothing, and the failing verdict names the tree", () =>
     assert.match(said.stderr, new RegExp(`Gate failed: lint — the tree judged: ${work}`, "u"), said.stderr);
     assert.ok(!existsSync(ledgerFile(work, "lint")), "a step that failed was recorded as passed");
     assert.ok(!existsSync(ledgerFile(work, "test")), "a step the run never reached was recorded as passed");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+test("a step that leaves hook stamps in the temp root it was handed is refused, and records nothing", () => {
+  const { at, work } = scratch("stamps", null, "lint");
+  try {
+    landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
+    const said = run(work);
+    assert.equal(said.status, 1, said.stdout);
+    assert.match(said.stderr, new RegExp(`Gate failed: lint — the tree judged: ${work}`, "u"), said.stderr);
+    assert.match(said.stderr, new RegExp(`left 1 hook stamp\\(s\\) in \\S+/${STAMPED}`, "u"), said.stderr);
+    assert.match(said.stderr, /plugin\/test\/fixtures\.mjs/u, said.stderr);
+    assert.ok(!existsSync(ledgerFile(work, "lint")), "a step that filled a stamp room was recorded as passed");
   } finally {
     rmSync(at, { recursive: true, force: true });
   }

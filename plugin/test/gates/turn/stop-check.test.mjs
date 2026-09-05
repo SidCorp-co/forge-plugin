@@ -14,9 +14,9 @@ const HOOK = new URL("../../../hooks/entries/turn/stop-check.mjs", import.meta.u
 const REPO = new URL("../../../..", import.meta.url).pathname.replace(/\/$/u, "");
 
 /* Set before the gate is loaded and not after: the consult log's path is read once, at the import,
-   and this suite must not read the developer's own log or stamp against their own session. */
+   and this suite must not read the developer's own log. Where its stamps land is the fixture's,
+   which pointed `TMPDIR` at this process's own root before this line ran. */
 process.env.XDG_CONFIG_HOME = tempRoom("stop-check-own-");
-process.env.TMPDIR = tempRoom("stop-check-own-tmp-");
 const { run, silentSince } = await import("../../../hooks/gates/turn/stop-check.mjs");
 
 /* Both roots are the child's too, for the same two reasons. */
