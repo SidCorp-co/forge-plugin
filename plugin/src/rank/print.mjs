@@ -14,7 +14,7 @@ const costSaid = (cost) =>
 const marks = (candidate) =>
   [candidate.restart ? "restart" : null, candidate.warm ? "warm" : null].filter(Boolean).join(" ");
 
-export const headRow = (candidate) =>
+const headRow = (candidate) =>
   [
     candidate.issueId.padEnd(KEY),
     String(candidate.score.total).padStart(3),
@@ -27,12 +27,12 @@ export const headRow = (candidate) =>
   ].join(" ");
 
 /* A `said` that is only the points again is the number twice: `reopened 0 0` reads as a bug. */
-export const whyLine = (candidate) =>
+const whyLine = (candidate) =>
   `  why    ${candidate.score.parts
     .map(([name, said, points]) => (said === String(points) ? `${name} ${points}` : `${name} ${said} ${points}`))
     .join(" · ")}`;
 
-export const signalLine = (candidate) => {
+const signalLine = (candidate) => {
   const { cost } = candidate;
   const over = cost.minutes === null
     ? "no measured run under this transcript root; --project names the checkout the runs were worked in"
@@ -45,16 +45,16 @@ export const signalLine = (candidate) => {
   return `  signal ${said.join(" · ")}`;
 };
 
-export const memberLine = (member) =>
+const memberLine = (member) =>
   `  + ${member.issueId.padEnd(KEY)} ${member.said.padEnd(44)} ${cut(member.row.title, TITLE)}`;
 
-export const asideLine = (one) =>
+const asideLine = (one) =>
   `  ~ ${one.issueId.padEnd(KEY)} related, not batched: ${one.capped ? "the batch is full" : `it ${one.said}, and a batch is fix-size throughout`}`;
 
 const chainSaid = (path) => path.join(" -> ");
 
 /* Rendering only; which of the three list an issue falls in is `waveUnder`'s. */
-export const unblocksLine = ({ frees, waiting, behind }) => [
+const unblocksLine = ({ frees, waiting, behind }) => [
   "  unblocks",
   [
     frees.length ? `${frees.join(", ")} (eligible after this lands)` : null,
@@ -63,7 +63,7 @@ export const unblocksLine = ({ frees, waiting, behind }) => [
   ].filter(Boolean).join("; "),
 ].join(" ");
 
-export const hasWave = ({ frees, waiting, behind }) => Boolean(frees.length || waiting.length || behind.length);
+const hasWave = ({ frees, waiting, behind }) => Boolean(frees.length || waiting.length || behind.length);
 
 export const droppedLine = (one) =>
   `  ${one.issueId.padEnd(KEY)} ${one.reason}`;

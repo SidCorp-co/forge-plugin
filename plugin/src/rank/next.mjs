@@ -20,7 +20,7 @@ import { usageOf } from "../resolve/visibility.mjs";
 const DEFAULT_COUNT = 5;
 const BOOLEAN = ["--json", "--why"];
 
-export const usageLines = (weights) => [
+const usageLines = (weights) => [
   usageOf("next"),
   "The open issues this project should work next, ranked off what the tracker already holds, and",
   "nothing written. Eligibility first, then the score, then the batches that ride together.",

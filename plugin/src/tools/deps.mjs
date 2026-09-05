@@ -134,7 +134,7 @@ const printGraph = ({ claims, unresolved, carriers }, focus, total, long) => {
 };
 
 /* One search, not three: the other two phrases returned strict subsets. */
-export const MARKER_SEARCH = PROSE.marker;
+const MARKER_SEARCH = PROSE.marker;
 
 /** The candidates a prose edge can be read out of, and the bodies to read it from: the search
  *  narrows, the regex above decides. `forge next` ranks on the same edges this verb prints, so it

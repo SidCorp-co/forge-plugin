@@ -8,7 +8,7 @@ export const MODULE = "module";
 
 const FIX = ["xs", "s"];
 
-export const isFixSize = (band) => FIX.includes(String(band));
+const isFixSize = (band) => FIX.includes(String(band));
 
 const sharedPath = (mine, theirs) =>
   mine.find((path) => theirs.some((other) => meets(path, other))) ?? null;

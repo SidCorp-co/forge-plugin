@@ -14,7 +14,7 @@ const WITHIN = join("guides", "skills");
 export const BODY = "guide.md";
 const REFERENCES = "references";
 
-export const skillGuidesRoot = (root = HERE) => join(root, WITHIN);
+const skillGuidesRoot = (root = HERE) => join(root, WITHIN);
 
 export const referencesOf = (slug, root = HERE) => {
   const dir = join(skillGuidesRoot(root), slug, REFERENCES);

@@ -7,7 +7,7 @@ import { meets, pathsNamed } from "./eligible.mjs";
 import { bandOf } from "./score.mjs";
 import { runsUnder } from "../stats/runs.mjs";
 
-export const RESTARTS = ["plugin/hooks", "plugin/skills"];
+const RESTARTS = ["plugin/hooks", "plugin/skills"];
 
 export const rootFor = (directory) => join(transcriptBase(), slugFor(directory.replace(/\/+$/u, "") || "/"));
 
