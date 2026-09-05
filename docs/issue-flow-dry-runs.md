@@ -3426,3 +3426,30 @@ its handback.
   dispatcher had been folding on the same misreading for five runs: every "write not found" in runs
   128 to 132 was a thread read through the issue verb, and every one of those writes was there. Four
   duplicate comments and two filings came of it, corrected at this fold.
+
+## Hundred-and-thirty-fourth dry run — ISS-393
+
+The issue asked that the advance to `released` run the deploy, and three readings of the repository
+disproved the premise: the flow writes nothing and reads no repository at transition time, and the
+project config carries no deploy command. What was built is the check the issue's own rules describe:
+where a project has said production ships without a person's look, `released` refuses a verification
+whose commit is not the one the merged mark names, and one whose evidence is a bare sha (3.35.149,
+landed as 8305b16). The reviewer's first pass forced the escape: a host that coalesces landings builds
+a head the change never was, so the verification shape gained one optional field saying the landed
+commit is contained in the build that reports a later one, and the refusal names that route. The check
+ran live on this issue's own advance. No restart owed. Closed by its run. Folded from its handback; the
+filing and the comment it names were read back through the raw comments call.
+
+- A premise corrected in the decision record and the plan, before the code, is the flow's first rule
+  applied to the issue's Outcome section; the issue's Rules section was right where its Outcome was
+  wrong, and the run built the rules.
+- A policy fetched only on the path that reads it means the check could never fire until the route
+  fetched it wherever `released` is entered; the run found that by watching the checker, with the
+  hook unhooked, fail two cases.
+- The unplanned-path check fires at `developed`, which is after the ship, so by then the write it
+  asks a correction for is already landed; two runs in one wave met it, which is the learning
+  reference's own promotion trigger, and it went out as ISS-411.
+- Neither the method nor the contract says what a wording fix taken after a clean whole-set pass
+  owes; the run re-took the whole read at the new head rather than call it a recheck, at one round.
+- Two acceptance clauses in the requirements tree cite the same test case, so dropping either
+  assertion leaves both green; noted on the record for whoever reads the spec.
