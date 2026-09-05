@@ -3206,3 +3206,30 @@ Folded from its handback.
   proof.
 - The one gate that went red on the way was the width check firing correctly. A run that meets no
   defect files nothing, and says so.
+
+## Hundred-and-twenty-sixth dry run — ISS-359
+
+The park of run 119, resumed in the same agent once ISS-318 landed, at the user's word: the agent
+re-claimed the issue and started at Phase 2 from the three narrowings its confirmation had left. Three
+entry checks now read the record and nothing else, one each at `in_progress`, `tested` and
+`developed`: a partial baseline, a screen change with no attachment among its evidence, and a landed
+path no plan or correction named; the contract states them. The baseline shape gained a scope field asked at
+the write and excused at the read-back, the ship prints the new clause, and the three sentences the
+checks replace left the skill guide and the verification reference for the contract (3.35.141, landed
+as d0114c7). Each check was watched refuse with its wiring removed, and the third fired live on this
+issue's own advance and cleared on the first call. No restart owed. Closed by its run. Folded from its
+handback.
+
+- Resuming the parked agent cost no re-reading: the narrowings it had recorded were where it started,
+  and the run that ceded the checks had named them in its own handback. The rule is now the dispatch
+  skill's, Phase 6.
+- One whole-set read raised four findings, all accepted and fixed; the advisor caught a fifth that the
+  reviewer did not, since the ladder ISS-318 landed the same afternoon drops the plan field below the
+  feature rung, and the unplanned-path check would have refused every fix-tier landing. Two readers
+  with different views of the day's landings found different things.
+- A flag split across template literals is invisible to the route checker, which reads source as
+  written; the split form passed green while the same flag on one line was refused, and that is how a
+  missing usage row surfaced at all (ISS-386).
+- Both advances to `developed` and `tested` warned that the comment page was cut at the response cap
+  with more behind it, so those two edges earned what the visible page earned. A record grown past
+  one page is judged on the page, and the warning is the only sign.
