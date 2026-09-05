@@ -58,6 +58,12 @@ test("a doubtful reading answers with the rung that owes more, never the one tha
     assert.equal(tierIn(order), middle,
       "a body claiming two rungs is unsettled, and whichever the reader met first must not decide it");
   }
+  /* The top rung is the default, so writing it changes nothing alone and everything beside a lower
+     mark. This repository's own issues write it in full, which is how the hole was found. */
+  const top = TIERS.at(-1);
+  assert.equal(tierIn(`Size: ${top}.`), top, "the top rung is a mark like any other, not an absence");
+  assert.equal(tierIn(`Size: ${top}.\nSize: ${lowest}.`), top,
+    "so a body claiming it beside a lower one has claimed it, and does not read as the lower");
   assert.deepEqual(climbsIn(`Size: ${TIERS.at(-1)} -> ${lowest}`), [],
     "a pair pointing down is no climb: read by its destination alone it would raise a trivial to a fix");
   assert.deepEqual(climbsIn(`Size: ${lowest} -> ${middle}\nSize: ${middle} -> ${TIERS.at(-1)}`),

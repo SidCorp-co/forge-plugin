@@ -9,11 +9,10 @@ export const TIERS = ["trivial", "fix", "feature"];
 const [TRIVIAL, FIX] = TIERS;
 export const FEATURE = TIERS.at(-1);
 
-const MARKED = TIERS.filter((one) => one !== FEATURE);
 const markLine = (tier) => new RegExp(String.raw`^[ \t]*size:[ \t]*${tier}\.?[ \t]*$`, "imu");
 
 export const tierIn = (description) => {
-  const found = MARKED.filter((tier) => markLine(tier).test(String(description ?? "")));
+  const found = TIERS.filter((tier) => markLine(tier).test(String(description ?? "")));
   return found.length ? found.at(-1) : FEATURE;
 };
 

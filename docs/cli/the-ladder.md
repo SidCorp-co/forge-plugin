@@ -17,6 +17,7 @@ Where it applies, and what each case would have done read the other way:
 | The doubt | Resolved | Read downward it would have |
 |---|---|---|
 | a description carrying two marks | the highest of them | let whichever the reader found first decide, so `Size: fix.` above `Size: trivial.` is a trivial and the same body reordered is a fix |
+| a description marking the top rung | that rung, which is writable like any other | read `Size: feature.` as no mark at all, so a body claiming it beside a lower one reads as the lower — and this repository's own issues write it in full |
 | a comment page the tracker cut | `feature`, whatever the mark says | lose a re-size the cut hid, shrinking a shortfall every other check can only grow |
 | a correction naming a pair | only where the pair climbs | let `feature -> fix` raise a trivial to a fix, reading where it points and never where it came from |
 | several climbs on one page | the highest | take the newest, so a plan correction written after a re-size erases it (ISS-161) |
