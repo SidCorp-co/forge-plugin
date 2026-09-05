@@ -2385,3 +2385,29 @@ pages. No restart owed. Both closed by the run. Folded from the record.
 - The third batch reading was owed again at ship and already open (ISS-267); the ship's counter reports
   the same mark every landing until a reading moves it, so the ledger note is the reading's, not a
   fresh filing.
+
+## Ninety-fifth dry run — ISS-286
+
+One agent taught the shell guard to refuse a sleep-polling loop (3.35.108). That shape is read
+off the shared span decomposition as one more export, past the prefixes a shell allows before a
+compound command, and an unclosed opener is dropped rather than swallowing the line; a lone pause,
+one before or after a wait, and the shape quoted inside an argument all pass. The refusal names both
+routes out and the tool's cap. The argument got its own topic page, since the guard's page sits two
+characters under its ceiling and its claim is about a loss that cannot be undone, which a poll is not.
+Proven by neutering the pattern and watching the case fail. Evidence captured from the installed copy,
+not the worktree. Three hook files moved, so a restart is owed. Closed by its run. Folded from the
+record.
+
+- The one sentence the Outcome asked of a skill file another run holds went to that run as a
+  ready-to-paste comment, and the skills tree stayed untouched. Two landings on one file are avoided
+  by handing the wording over, not by waiting.
+- One consult finding widened the shape to two prefixes and both were planted in the case before the
+  recheck. A finding about coverage is answered with a case, not a sentence.
+- A batch of verdict writes echoed the previous criterion's text on one criterion once; the standalone
+  re-run was right and the smudged record was corrected by hand. The run left it named on the record
+  because it did not reproduce; the fold filed it (ISS-296), since a wrong tracker write is a defect whether
+  or not it recurs, and the batched write that landed the same hour may already be the fix.
+- The harness's own tool description recommends an until-loop for waiting on a condition, on a
+  different tool than the one the guard reads. The topic page names no harness tool on purpose, since
+  the plugin runs in projects it cannot see; the adjacency is noted here so the next reader does not
+  file it as a contradiction.
