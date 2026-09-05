@@ -3317,3 +3317,50 @@ as ISS-390 owns. No restart owed. Closed by its run. Folded from its handback.
   so. A record body written through the shell is read by the shell first.
 - Of the two cross-references the handback names, the note on ISS-390 was read back on its thread and
   the one on ISS-395 was not, so the dispatcher posted that one on the run's behalf.
+
+## Hundred-and-thirtieth dry run — ISS-317
+
+The critical issue of the wave, and the one the ranking put first. The tracker's complexity field
+now claims a rung through one table in the ladder module, both sources are read upward with the
+higher rung deciding, and the owed report says which source decided (3.35.145, landed as f656fa6);
+twenty-three files, four of them docs and two requirements. The blocker had cleared: the run verified
+at the call that the tracker's get and list both return the field, so no fake tracker was needed. The
+body's size line does not retire yet, because every open row still has the field unset and the line
+is their only source. The run rebased onto the fixed rank test on the dispatcher's message and did not
+re-diagnose it. No restart owed. Closed by its run. Folded from its handback; of the writes it names,
+ISS-403, ISS-394 and the comments on ISS-400 and ISS-389 were read back, and two were not.
+
+- The checker the run shipped to hold the size table to one file cannot fire on the copies it exists
+  to catch: its selector needs both the smallest and the largest value in one file, and every copy
+  the issue removed was partial. The run re-planted one and the suite stayed green, then filed it
+  (ISS-403). A green first run of a new checker is not the case that fails without it.
+- The landing left two sentences stating the exemption rule the change had just made false, three
+  lines above the corrected rule in the same help output. The next run to read that file found it
+  (ISS-400), not this run's criteria; the run then added a third site the issue had missed.
+- Two plugin defects the run met never reached the tracker: a shared reason after several criterion
+  blocks attached to the last block only, and the feedback verb that was meant to file it ended once
+  with no trace and once claiming a fold onto a thread that shows no such comment. The dispatcher
+  filed both by hand at the fold (ISS-404, ISS-405). A verb that writes nothing and says nothing is
+  the worse of the two.
+- Two knowledge rows now name symbols the change retired. The run left them and said so, because the
+  store has no undo; they are the batch reading's (ISS-399) to re-stamp.
+
+## Hundred-and-thirty-first dry run — ISS-110
+
+One word in the kinds paragraph of the filing verb's doc: the rule-family figure counts issues, not
+heading occurrences, and could not exceed the paragraph's own population of ninety (3.35.146, landed
+as 185ae5d). The run re-fetched the same snapshot body by body and re-measured before changing it,
+then left every other figure alone because the corpus had drifted since they were taken and only
+this one was provably wrong. Master moved under the run twice, and the second move edited the same
+file, so the whole-file read was taken again at the shipping head. The fix tier withheld the release
+note on the grounds the owed report states. No restart owed. Closed by its run. Folded from its
+handback; ISS-400 and ISS-402 were read back.
+
+- A criterion carried a figure that was not in the file at all, brought across from another issue's
+  plan; the run corrected it in the open before any verdict. A criterion is a claim too.
+- The unplanned-path check excuses the lower tiers by asking whether any plan text exists rather
+  than whether the tier owes a plan, so a criteria correction on a fix-tier issue took the excuse
+  away and the landing then demanded a correction for a file the change had named from the start
+  (ISS-402). The run wrote the correction truthfully rather than in the refusal's words.
+- The release crossed the reading threshold and the ship said so; ISS-399 was already open for the
+  mark, so the run filed nothing and left the reading to its own run.
