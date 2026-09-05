@@ -2977,3 +2977,31 @@ with them. Closed by its run. Folded from its handback.
   the three routes codex named, spent the full gate, and A/B'd `forge next --why` between the
   unedited checkout and its tree byte for byte. A reviewer's qualification is a claim to verify,
   not a caveat to quote.
+
+## Hundred-and-seventeenth dry run — ISS-316
+
+The dispatch skill, dispatched by the parent whose job it describes. A seventh skill, `dispatch`, ships
+as a stub under the byte ceiling with its body and two references served by `forge guide dispatch`;
+three role definitions live under a new `plugin/agents/` root and are invoked as `forge:<role>`; the
+roles root joins the frozen set and `forge doctor` prints a `roles` line; the skill-paths check reads
+the new root (3.35.133, landed as 4d315ad). Sixteen criteria, all judged at the replayed head. One whole-set consult with two major findings, both real and both
+fixed: the skill had duplicated issue-flow's batching and disposition policy, the one-home rule the
+issue itself demands, and a single subdirectory under the roles root would have taken every role file
+out of the path guard, reproduced by hand before the fix and pinned by a regression case. Restart
+owed for two files, and for a directory no open session's watcher covers. Closed by its run. Folded
+from its handback.
+
+- A newly created directory is invisible to a session that started before it existed, whatever the
+  frozen set says. `plugin/agents/` is in that set now, and the first role invocation waits for the
+  restart the set already names.
+- Twice during the replay, another run's landed work came into this run's diff as a revert: invisible
+  in the working tree, green on the gate. Caught by diffing against the remote head and restored both
+  times (ISS-369). A gate proves the tree it sees; it cannot see what the tree used to hold.
+- `forge project` can replace a brief line but not add one, so one new fact cost two writes to a store
+  with no undo (ISS-362).
+- No dispatch ran through a role in this run: the executor is not the master, and the roles do not
+  resolve before the restart. The first wave after it judges its list against what the master would
+  have done by hand, and files a correction if the two differ; that is written down rather than
+  assumed.
+- The triage role names no complexity and no ladder tier because neither exists yet (ISS-317,
+  ISS-318). A role that pretends to a field the tracker lacks is a brief claim waiting to be wrong.
