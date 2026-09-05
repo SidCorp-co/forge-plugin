@@ -59,7 +59,7 @@ test("no run of anything else is advertised", () => {
 test("a verb with actions of its own keeps its own help", () => {
   const out = ask("codex", "-h");
   assert.equal(out.status, 0);
-  assert.match(`${out.stdout}${out.stderr}`, /--verify risk/u);
+  assert.match(`${out.stdout}${out.stderr}`, /--verify <risk>/u);
 });
 
 /* A reference followed by `-h` names a file to post, and help there is a write that never ran. */

@@ -51,14 +51,21 @@ const sources = () => {
       }
     }
   };
-  walk(join(ROOT, "plugin", "src"));
-  walk(join(ROOT, "plugin", "hooks"));
+  for (const tree of TREES) walk(join(ROOT, ...tree.split("/")));
   return out;
 };
+
+/* Tools print `forge` commands a reader types and sat outside this walk, so a route refused from the
+   day it was written passed a green gate (ISS-118). The proof names a file per tree, not this list,
+   which would fall silent with the tree it names. */
+const TREES = ["plugin/src", "plugin/hooks", "tools"];
 
 test("every `forge` form the source prints names a verb the CLI has and flags its usage carries", () => {
   const files = sources();
   for (const { rel, text } of files) assert.deepEqual(routeProblems(text, held), [], rel);
+  for (const rel of ["plugin/src/cli.mjs", "plugin/hooks/gate.mjs", "tools/run.mjs"]) {
+    assert.ok(files.some((one) => one.rel === rel), `${rel} is in no walk, so its routes are read by nothing`);
+  }
   const counted = files.reduce((sum, { text }) => sum + (text.match(/forge [a-z]+/gu) ?? []).length, 0);
   assert.ok(files.length > 30, `${files.length} source file(s) walked`);
   assert.ok(counted > 60, `${counted} forms across ${files.length} files: the pattern found nothing`);
@@ -104,4 +111,28 @@ test("the three worklog flags are on claim's own line, which is what the tree la
   assert.deepEqual(routeProblems("forge claim ISS-65 --pushed", older),
     ["`forge claim --pushed` is in no usage line"],
     "which is the row as it stood before this issue, and the finding this checker was written for");
+});
+
+/* The printed route answered `[]` and the CLI refused it: the value past `--size` went unread (ISS-118). */
+test("a value the flag does not take fails, and the printed route is that case", () => {
+  const printed = 'console.log(`  file its issue:  forge new - --title "review ${range}" --size feature`);';
+  assert.deepEqual(routeProblems(printed, held), ["`forge new --size feature` is no value it takes: fix"]);
+  assert.deepEqual(routeProblems(printed.replace("--size", "--kind"), held), [],
+    "and `--kind feature`, which is what that line meant, is what the step prints now");
+  assert.deepEqual(routeProblems("forge record verdict ISS-1 --verdict maybe", held),
+    ["`forge record --verdict maybe` is no value it takes: pass or fail or skipped"],
+    "and a set the usage spells as alternatives is read the same way");
+});
+
+test("a value against a placeholder is not judged, and the surfaces spell their placeholders", () => {
+  assert.deepEqual(routeProblems("forge claim ISS-118 --next start-here", held), []);
+  assert.deepEqual(routeProblems("forge stats runs --project /tmp/x --since 3d", held), []);
+  const padded = { ...held,
+    usageOf: () => "Usage: forge record <kind> <uuid|ISS-45>\n  --pushed        the branch and its head, read from git" };
+  assert.deepEqual(routeProblems("forge record note ISS-1 --pushed now", padded), [],
+    "a flag padded out to its column is a detail line, and the prose after it is not a value it takes");
+  const bare = { ...held, usageOf: () => "Usage: forge claim <uuid|ISS-45> [--next line]" };
+  assert.deepEqual(routeProblems("forge claim ISS-118 --next start-here", bare),
+    ["`forge claim --next start-here` is no value it takes: line"],
+    "which is what an unbracketed placeholder costs, and why the surfaces bracket theirs");
 });

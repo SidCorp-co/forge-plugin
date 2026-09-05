@@ -482,7 +482,7 @@ export const verdict = (rest, root) => {
   const { values: rejected, rest: r2 } = pullRepeated(r1, "--rejected", "codex verdict");
   const { note, of } = flags(r2, "codex verdict");
   if (!accepted.length && !rejected.length && !note) {
-    fail('Usage: forge codex verdict --accepted F1,F3 --rejected F2=why [--note "why"] [--of id]');
+    fail('Usage: forge codex verdict --accepted F1,F3 --rejected F2=why [--note "why"] [--of <id>]');
   }
   /* This repository's last consult that made findings and heard nothing back, not the last answer:
      after a converged recheck the last answer found nothing, and a verdict landed on it twice. */

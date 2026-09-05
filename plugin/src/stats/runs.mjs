@@ -24,13 +24,13 @@ const WINDOW = /^(?<many>\d+)(?<unit>[dhm])$/u;
 const UNITS = { d: 86_400_000, h: 3_600_000, m: 60_000 };
 
 export const USAGE = [
-  "Usage: forge stats runs [--since 3d] [--project dir] [--json]",
+  "Usage: forge stats runs [--since 3d] [--project <dir>] [--json]",
   "Where an issue-flow run's time and rounds go, read off the transcripts the harness keeps for a",
   "project. Nothing is written and nothing the tracker holds is read: this measures the flow, not",
   "the backlog. A transcript with no issue-flow marker in it is skipped and counted as skipped.",
   "",
   "  --since 3d     the window, in d, h or m; the whole corpus unless you say otherwise",
-  "  --project dir  an absolute project directory, whose transcript root is derived from its path;",
+  "  --project <dir>  an absolute project directory, whose transcript root is derived from its path;",
   "                 the working directory unless you say otherwise, so a run from a worktree names",
   "                 the checkout the runs were worked in",
   "  --json         the whole table rather than the top rows, for a diff between two weeks",
