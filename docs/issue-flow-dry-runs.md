@@ -2529,3 +2529,30 @@ closed by the run. Folded from the record.
 - Closing an issue does not release its lease: both showed this session as holder for three hours
   after the close, until collapsed to a minute with a closing next line. A closed issue with a live
   holder reads as claimed to the next run.
+
+## Hundred-and-first dry run — ISS-293
+
+One agent rewrote the forge skill's dependencies page against the tracker as measured (3.35.115). All
+three of its claims were false on this token: the graph answers with two hundred nodes, an issue read
+returns its relations naming the far end by key, and a relation sent on an update lands and reports
+whether it created or updated. Each claim now cites the schema or the doctor's own report rather than
+restating it, and the heading stopped asserting that the store holds no edges. One file moved, under
+the skills tree, so a restart is owed. Closed by its run. Folded from the record.
+
+- The first draft added a retraction mechanism and a claim about retracted edges that were never
+  measured; they came from the tool description, the same provenance as the three claims the issue
+  existed to remove. The review caught it, and a criterion was corrected in the open on the record
+  rather than judged against its old wording. A page about what the tracker does is measured line by
+  line, or it is the old page with new mistakes.
+- Re-sending an already-expired edge is how the update route was measured without mutating anything:
+  the graph was byte-identical after. A measurement that would change the store is designed as a
+  no-op first.
+- The ship's own install step rewrites every skill file into the plugin cache seconds before its next
+  step tells the run to read one, and the landed-learning gate refused the read as a write (ISS-302;
+  kept apart from ISS-242 by gate and selector, cross-referenced). The plugin walked its own gate for
+  two turns.
+- A high-priority open issue (ISS-69) plans a resolver for a relation shape the tracker now returns
+  directly; the measurement was left on it before anyone builds it. A finding that saves the next run
+  a module is worth one comment now.
+- The push raced twice during the gate and the ship's advice re-ran the review each time, so one
+  unchanged diff cost three consults (ISS-225, recorded as a gap).
