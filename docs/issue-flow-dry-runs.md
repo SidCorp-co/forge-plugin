@@ -4292,3 +4292,32 @@ fifteen comments, ISS-506, ISS-507 and the ISS-290 note were read back; ISS-509 
   whole heredoc. A thread carries its own scaffolding; the next reader is told which planks are loose.
 - The phase-number constants ISS-502 routed here were declined as outside an approved issue's
   criteria and filed as ISS-507 instead. A routed item does not widen the issue it lands on.
+
+## Hundred-and-sixty-sixth dry run — ISS-333
+
+One landing at a time on a checkout, and the reading threshold is the project's (3.35.181, landed as
+6d91da0, judged head d69084a, eleven files). The ship takes a file whose existence is the lock, holds
+it through the gate, and releases it on every exit; the batch-reading trigger is read from the
+project's config with fifteen hundred as the default, so the count that files a reading is a project's
+decision and not a script's constant. Shipped by the run's own changed script from its worktree.
+Thirty-six criteria, all judged at the judged head and the three that name a landing re-judged at the
+merged commit; the whole-set gate green at both heads. No restart owed. Closed by its run. Folded from
+its handback; the seventeen comments were read back.
+
+- The first push was rejected, and the thing that beat it was this journal's own commit for run 164:
+  pushed straight to master from the shared checkout, a route the lock does not cover because the
+  lock is the ship's. The parent's fold is a landing too, and it took no lock: ISS-512.
+- The unwind ran for real on its first outing: the version commit was undone on its own record,
+  the tree left clean with the change alone at head and no lock or bump file, and the resume landed
+  one change and exactly one release commit. Six criteria were observed in production rather than in
+  fixtures, which is the reading a fixture cannot give.
+- Four review findings accepted, each fix watched failing with the source reverted: an untracked
+  lockfile swept into the bump and then deleted by the undo, a created-but-unwritable lock leaked with
+  nothing to release it, a null threshold silently defaulting, and a filing body printing the constant
+  it had just stopped being.
+- A dispatcher premise was disproved and said so: the brief's fourth file did not mention the
+  threshold at all; its "five hundred" was a status-row ceiling. Nothing under docs moved, and the run
+  wrote which counts moved and which one was a tier ceiling left alone rather than a global replace.
+- One sentence of the landing account was inferred and later corrected in a comment of its own: the
+  reflog showed a commit, not a fast-forward merge. A correction that names the sentence is cheaper
+  than a reader who has to find it.
