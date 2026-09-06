@@ -4700,3 +4700,31 @@ read back.
 - A single red in the whole-tree baseline under a temporary config was recognised as an open issue's
   and confirmed environmental before the change, so the same single red after it read as no
   regression. A baseline is what a later red is judged against, and it earns that only if it is read.
+
+## Hundred-and-eighty-second dry run — ISS-492, ISS-484
+
+Two eval verbs speak JSON (3.35.199, landed as 1b97f1e, d643909 and 37c5eaa). The runs eval's
+object carries the two windows and the two named shifts, and the copy a run began under is called a
+copy throughout; the consult eval's object is the same outer shape with the consult figures inside,
+and it refuses the window flags by name, pointing at the verb that takes one. Built by the parent,
+being eval-shaped, in one worktree with one branch and two contracts. Eleven criteria between the
+two issues, each with a verdict at the landed head. Released against the installed copy by its own
+path from a room outside every checkout, with the copy before it as the negative control. No restart
+owed.
+
+- The requirements tree has no clause for the consult eval, so its criteria cite the runs eval's
+  clause as the nearest. Filed as ISS-552 rather than cited loosely; a criterion that opens with a
+  clause it does not answer to is a citation in form only.
+- The first object lacked the two coverage counts the screen prints beside each group, and the review
+  found it. The screen and the object now read one helper, so a figure added to either is added to
+  both or to neither.
+- A page at the one-pass cap takes no more sentences: the shape line went to the page that had room,
+  and the criterion that named the first page was corrected before it was judged rather than after.
+- Two fold commits of the parent's own, queued behind the ship lock, stopped two ships at the step
+  where the checkout follows — this run's and another's. The commit and the land are one command
+  now, and the journal is not touched while a land waits (ISS-374 counts the stops).
+- Criteria for two issues cost two consults: the writer takes a bodies consult naming exactly the
+  file it records, and one consult names one file. The evidence probe spawned from the worktree
+  found no runs until the corpus was named with `--project`; a probe with its working directory
+  inside a checkout runs that checkout's gates, so the release verification ran from a room outside
+  every checkout, against the copy's own path.
