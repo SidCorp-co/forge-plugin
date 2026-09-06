@@ -12,8 +12,8 @@ import { freezesSession, FROZEN, pluginCopy } from "../plugin/src/tools/plugin-c
 import { checkoutRoot, defaultBranch, git, gitOut, loud, parsed, read, REMOTE, Stop, stop } from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
+import { cleanTree, land, LANDS, PUSHES, pushing, runLanding, waitMs } from "./run/land.mjs";
 import { isRelease, onlyRelease } from "./run/landing.mjs";
-import { shipHolder, takeShipLock, WAIT_MS } from "./run/lock.mjs";
 import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
 import { mintRunId, runIdAt, RUN_ID_VAR } from "./run/run-id.mjs";
 import { markRefused, REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, spannedIn } from "./run/review.mjs";
@@ -35,7 +35,7 @@ const NO_MARK = `no ${REVIEWED} in this repository, so what is owed a reading ca
 const sig = (verb) => VERBS.get(verb).signature;
 
 const usage = () => [
-  `Usage: ${SELF} <start|ship|review> [args]`,
+  `Usage: ${SELF} <start|ship|land|review> [args]`,
   "The repository's own steps around one change: the worktree a run works in, and the release that",
   "puts its commit in the plugin copy the next session loads. Everything else is the change itself.",
   "",
@@ -46,6 +46,11 @@ const usage = () => [
   "                          head, push, the checkout pulled, the marketplace and the plugin",
   "                          updated, then the installed copy named, the sha the change landed as,",
   "                          and every file of it a session cannot pick up without restarting",
+  `  ${sig("land")}         land a commit that is not a release: clean tree, fetch, rebase, push,`,
+  "                          under the same lock the ship takes and nothing else of it. It spends no",
+  "                          gate and raises no version, so what it pushes is the caller's judgement",
+  "                          and the installed plugin copy is untouched. It is the checkout's own",
+  "                          verb — a wave's journal entry, not a run's change, which is a release",
   `  ${sig("review")}   the range the next review reads, or --done to move the mark to it`,
   "",
   ...flagLines([...VERBS.values()].flatMap((one) => one.flags)),
@@ -75,12 +80,15 @@ const usage = () => [
   "all. A mark left unmoved keeps the count growing, which is how a skipped reading stays visible",
   "at the next ship; a mark planted too far forward grows nothing, which is why it is refused here.",
   "",
-  "One landing at a time: from the fetch to the push the ship holds a lock every worktree of this",
+  "One landing at a time: from the fetch to the push a landing holds a lock every worktree of this",
   "checkout shares, so a sibling's landing cannot move the branch under a gate run and the rebase is",
   "taken once, against a head nobody else is moving. It says whose landing it waits behind, waits on a",
   "notification rather than a poll, and holds nothing after the push — the install steps run unlocked.",
-  "A lock a killed ship left is named with the one command that removes it, and never taken over",
-  "silently. Where the push is rejected anyway, by a landing from another machine, the version commit",
+  "It is one lock and both landing verbs take it, so a `land` from the checkout waits behind a ship in",
+  "a worktree and a ship waits behind it: a push that took no lock is what put a rejected push in the",
+  "middle of a run's release. A lock a killed landing left is named with the one command that removes",
+  "it, and never taken over silently. Where a ship's push is rejected anyway, by a landing from",
+  "another machine, the version commit",
   "step 5 made for a version now taken is undone before the refusal is printed, so the tree a caller",
   "rebases holds only the change; a commit this run did not make whole, or a tree with uncommitted",
   "work in it, is left exactly where it is and the refusal says so.",
@@ -128,13 +136,6 @@ const start = ({ words: [given, slug] }) => {
   console.log(`  ${join(path, "plugin", "bin", "forge")} <args>`);
   console.log(`  node ${join(path, "plugin", "hooks", "entries")}/<gate>.mjs   one gate, alone`);
   console.log(`Ship it from that tree: ${SELF} ship`);
-};
-
-const cleanTree = (tree) => {
-  const dirty = gitOut(["status", "--porcelain"], tree);
-  if (dirty === null) stop(`${tree} is no git checkout.`);
-  if (dirty) stop(`the tree is dirty and a release ships commits:\n${dirty}\nCommit or drop these first.`);
-  console.log("  nothing uncommitted");
 };
 
 /* In the tree's git directory and not in this process: --from is a new process, and after the push
@@ -454,11 +455,6 @@ const named = () => ({
 
 const GATE = "the gate";
 
-/* The span one landing holds this checkout's lock for: the fetch, whose answer the rebase and the
-   version are taken against, through the push. The install steps touch no branch. */
-const LANDS = "lands";
-const PUSHES = "pushes";
-
 const shipSteps = (tree, root, base, note) => {
   const { market, plugin } = named();
   if (!market || !plugin) stop("this checkout names no marketplace or no plugin, so there is nothing to install.");
@@ -476,13 +472,10 @@ const shipSteps = (tree, root, base, note) => {
     [GATE, () => loud("npm", ["run", "check"], tree,
       "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run."), LANDS],
     [`a version above ${REMOTE}/${base}`, () => versionAbove(tree, base, note), LANDS],
-    /* Not `loud`: the refusal is composed after the tree is put back, so it describes what is there. */
     [`push to ${REMOTE}/${base}`, () => {
-      const run = spawnSync("git", ["push", REMOTE, `HEAD:${base}`], { cwd: tree, encoding: "utf8", stdio: "inherit" });
-      if (run.error) stop(`git could not be run: ${run.error.message}. Check the remote is reachable.`);
-      if (run.status === 0) return forgetBump(tree);
-      return stop(`git push ${REMOTE} HEAD:${base} exited ${run.status}. Rejected means the remote `
+      pushing(tree, base, () => `Rejected means the remote `
         + `moved${unwound(tree)}: rebase, re-run the review of the rebased head, then ${SELF} ship --from 2`);
+      forgetBump(tree);
     }, PUSHES],
     ["the checkout follows", () => {
       if (resolve(tree) === resolve(root)) return console.log("  this tree is the checkout");
@@ -527,9 +520,7 @@ const ship = async ({ flags }) => {
   const asked = flags.get("--from");
   const from = asked === undefined ? 1 : Number.parseInt(asked, 10);
   const note = flags.get("--note") ?? null;
-  const patience = flags.get("--wait");
-  const minutes = patience === undefined ? WAIT_MS / 60_000 : Number(patience);
-  if (!(minutes > 0)) stop(`--wait takes the minutes to wait behind another landing, not \`${patience}\`.`);
+  const ms = waitMs(flags);
   const tree = process.cwd();
   const root = checkoutRoot(tree);
   const base = defaultBranch(tree);
@@ -547,39 +538,23 @@ const ship = async ({ flags }) => {
      and holding the branch through that would block every sibling for a landing nobody makes. */
   const pushAt = steps.findIndex(([, , role]) => role === PUSHES);
   const lands = order.includes(pushAt) ? (at) => Boolean(steps[at][2]) : () => false;
-  let drop = null;
-  try {
-    for (const at of order) {
-      const [name, run] = steps[at];
-      if (!drop && lands(at)) drop = await takeShipLock(tree, shipHolder(tree), { ms: minutes * 60_000 });
-      console.log(`\nstep ${at + 1}/${steps.length}  ${name}`);
-      try {
-        await run();
-      } catch (error) {
-        if (!(error instanceof Stop)) throw error;
-        console.error(`\nstopped at step ${at + 1} (${name}): ${error.message}`);
-        console.error(`Resume from there: ${SELF} ship --from ${at + 1}`);
-        process.exitCode = 1;
-        return;
-      }
-      if (at === pushAt && drop) {
-        drop();
-        drop = null;
-      }
-    }
-  } finally {
-    if (drop) drop();
-  }
+  const whole = await runLanding(steps, order, tree, {
+    ms,
+    held: lands,
+    again: (at) => `Resume from there: ${SELF} ship --from ${at + 1}`,
+  });
+  if (!whole) return;
   console.log(`\nReleased. Verify the change against the installed copy by its own path, not \`forge\` on PATH.`);
 };
 
-const VERB_RUNS = new Map([["start", start], ["ship", ship], ["review", review]]);
+const VERB_RUNS = new Map([["start", start], ["ship", ship],
+  ["land", (read) => land(read, SELF)], ["review", review]]);
 
 const main = (argv) => {
   const [verb, ...rest] = argv;
   if (!verb || verb === "-h" || verb === "--help") return console.log(usage());
   if (!VERB_RUNS.has(verb)) {
-    stop(`no step \`${verb}\`. It is start, ship or review; \`${SELF} -h\` says what each does.`);
+    stop(`no step \`${verb}\`. It is start, ship, land or review; \`${SELF} -h\` says what each does.`);
   }
   const read = wanted(verb, rest, SELF);
   return read ? VERB_RUNS.get(verb)(read) : console.log(verbUsage(verb, SELF));

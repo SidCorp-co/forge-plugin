@@ -49,17 +49,38 @@ test("step 7 follows to the pushed head over a dirty checkout, and stops where a
 
 /* The threshold and the mark are typed here rather than imported: nothing imports an entry point,
    and a second party that has to agree with the constants is what pins them to the help at all. */
-test("-h names all three steps, the resume flag and the threshold it counts against", () => {
+test("-h names all four steps, the resume flag and the threshold it counts against", () => {
   const run = runIn(ROOT, ["-h"]);
   assert.equal(run.status, 0, run.stderr);
-  for (const said of ["start <ISS-nn>", "ship [--from N]", "review [--done [ref]]", "--from N",
-    "worktree", "restart", "refs/forge/reviewed", "1500 changed line(s)", "npm run check",
+  for (const said of ["start <ISS-nn>", "ship [--from N]", "land [--wait M]", "review [--done [ref]]",
+    "--from N", "worktree", "restart", "refs/forge/reviewed", "1500 changed line(s)", "npm run check",
     "The release count is printed beside it and decides nothing",
     "the sha the change landed as", "not the pushed head the push printed",
-    "--done <the range's end>"]) {
+    "--done <the range's end>", "land a commit that is not a release", "It spends no",
+    "gate and raises no version"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
   assert.ok(!run.stdout.includes("3 release(s)"), `a release count is no part of the trigger:\n${run.stdout}`);
+  /* Two verbs wait behind the one lock on the one flag, and the top-level list flattens both. */
+  assert.equal((run.stdout.match(/^ {2}--wait M {4}/gmu) ?? []).length, 1,
+    `a flag two verbs share is listed more than once:\n${run.stdout}`);
+});
+
+/* `land` reaches a push in four steps and no gate stands before it, so a `-h` that ran one would
+   push whatever the checkout is sitting on. The tree here is a pushed scratch checkout, on the
+   default branch and clean, which is exactly the tree `land` would run whole against. */
+test("land -h prints land's own arguments and reaches no step", () => {
+  const { at, work } = pushed("land-help");
+  const was = git(work, "rev-parse", "HEAD").stdout.trim();
+
+  const run = runIn(work, ["land", "-h"], BARE);
+  assert.equal(run.status, 0, run.stderr);
+  for (const said of ["land [--wait M]", "--wait M"]) {
+    assert.ok(run.stdout.includes(said), `${said} is not in land's own help:\n${run.stdout}`);
+  }
+  assert.ok(!/step 1\//u.test(run.stdout + run.stderr), `a request for help reached a step:\n${run.stdout}${run.stderr}`);
+  assert.equal(git(join(at, "origin.git"), "rev-parse", "HEAD").stdout.trim(), was,
+    "a request for help pushed to the remote");
 });
 
 /* The one shape this case exists for: `ship -h`, typed to read the verb's arguments, ran the

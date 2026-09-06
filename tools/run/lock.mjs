@@ -88,17 +88,17 @@ export const watching = (path, ms) => {
   };
 };
 
-const staleSaid = (path, one) => `a ship that is no longer running left this checkout's landing lock behind, `
+const staleSaid = (path, one) => `a landing that is no longer running left this checkout's landing lock behind, `
   + `so nothing can land until it is cleared:\n  ${path}\n  taken by ${whose(one)}, and that pid is not `
   + `running.\nNothing removes it for you — a lock taken over silently is one that was never a lock. `
-  + `Clear it, then ship again:\n  rm ${path}`;
+  + `Clear it, then run this landing again:\n  rm ${path}`;
 
 const spent = (ms) => (ms < 60_000 ? `${Math.round(ms / 1000)} second(s)` : `${Math.round(ms / 60_000)} minute(s)`);
 
 const wedgedSaid = (path, one, ms) => `this checkout's landing lock has been held by ${whose(one)} for `
-  + `${spent(ms)} and that process is still running, so this ship waited rather `
+  + `${spent(ms)} and that process is still running, so this landing waited rather `
   + `than racing it. Read what that run is doing. Where it is wedged rather than gating, clear the lock `
-  + `and ship again:\n  rm ${path}`;
+  + `and run this landing again:\n  rm ${path}`;
 
 /** The lock, waited for on a notification rather than a poll, and the release to call. */
 export const takeShipLock = async (from, mine, { ms = WAIT_MS, say = console.log } = {}) => {

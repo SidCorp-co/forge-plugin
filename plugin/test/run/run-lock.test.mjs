@@ -1,7 +1,9 @@
 /* One landing at a time on a checkout, and what a rejected push leaves behind. The lock is
    exercised twice over: through the module, where a handoff can be made deterministic, and through
-   the ship, where the span and the release are. The other two readers of `tools/run.mjs` are
-   `run-script.test.mjs` for the steps and `run-review.test.mjs` for the count. */
+   the two verbs that take it — the ship, where the span and the release are, and `land`, the
+   checkout's own, which is the same span with no gate and no version (ISS-512). The other two
+   readers of `tools/run.mjs` are `run-script.test.mjs` for the steps and `run-review.test.mjs` for
+   the count. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
@@ -169,6 +171,10 @@ test("a ship waiting behind a landing names it, reaches no step, and refuses rat
   assert.doesNotMatch(run.stdout, /step 2\/10/u, "a ship waiting for the lock took the fetch anyway");
   assert.match(run.stderr, /has been held by \/run\/wt-ISS-999/u, run.stderr);
   assert.ok(run.stderr.includes(`rm ${at(work, LOCK)}`), run.stderr);
+  /* A landing and not a ship: the checkout lands the wave's own record through this same lock, and
+     a refusal naming the step the caller does not take is one it cannot act on (ISS-512). */
+  assert.match(run.stderr, /so this landing waited rather than racing it/u, run.stderr);
+  assert.match(run.stderr, /clear the lock and run this landing again/u, run.stderr);
   assert.equal(git(work, "rev-parse", "HEAD").stdout.trim(), was, "a waiting ship committed a version");
 });
 
@@ -179,9 +185,12 @@ test("a lock left by a ship that died is named with the command that clears it, 
 
   const run = runIn(work, ["ship"], BARE);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /a ship that is no longer running left this checkout's landing lock behind/u, run.stderr);
+  assert.match(run.stderr, /a landing that is no longer running left this checkout's landing lock behind/u, run.stderr);
   assert.match(run.stderr, /\/run\/wt-ISS-998/u, run.stderr);
   assert.ok(run.stderr.includes(`pid ${gone}`), run.stderr);
+  /* The escape is one command and it is the same for either verb, so the fold reads its own way out
+     of it as the ship does: `ship again` is a step a dispatcher folding a wave does not take. */
+  assert.match(run.stderr, /Clear it, then run this landing again/u, run.stderr);
   assert.ok(run.stderr.includes(`rm ${at(work, LOCK)}`), run.stderr);
   assert.ok(existsSync(at(work, LOCK)), "the ship took over a lock it was told to leave alone");
 });
@@ -381,4 +390,160 @@ test("the ship's own count is the project's too", () => {
 
   const run = runIn(room.work, ["ship"], env);
   assert.match(run.stdout, /short of the 40 line\(s\) that call for a reading/u, `${run.stdout}${run.stderr}`);
+});
+
+/* The verb the wave's own record lands through. What separates it from a release is what it does
+   NOT do, so the gate here writes a file if it ever runs and the version is read off the remote. */
+const REMOTE_AT = (room) => join(room.at, "origin.git");
+const GATE_MARKER = "node -e \"require('fs').writeFileSync('../gate-ran','it did')\"";
+
+test("land pushes the checkout's commit under the same lock, spending no gate and raising no version", () => {
+  const room = remoted("land-lands", GATE_MARKER);
+  landIn(room.work, join("docs", "wave.md"), 3, "the wave's own record (ISS-512)");
+
+  const run = runIn(room.work, ["land"], BARE);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /step 4\/4  push to origin\/master/u, run.stdout);
+  assert.match(git(REMOTE_AT(room), "log", "--format=%s", "master").stdout,
+    /the wave's own record \(ISS-512\)/u, "land pushed nothing to the branch it names");
+  assert.ok(!existsSync(join(room.at, "gate-ran")), "land spent the project's gate, which is the ship's step");
+  assert.equal(JSON.parse(git(REMOTE_AT(room), "show", "master:package.json").stdout).version, "1.0.0",
+    "land raised a version, so the plugin copy the next session loads moved for a commit that is no release");
+  assert.doesNotMatch(git(REMOTE_AT(room), "log", "--format=%s", "master").stdout, /chore\(release\)/u,
+    "land made a version commit");
+  assert.ok(!existsSync(at(room.work, LOCK)), "land kept its lock past the push");
+});
+
+test("land runs no install step, so nothing asks for the marketplace or the plugin", () => {
+  const room = remoted("land-no-install");
+  landIn(room.work, join("docs", "wave.md"), 1, "the wave's own record");
+  const env = claudeSaying(room, "claude-saw");
+
+  const run = runIn(room.work, ["land"], env);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.ok(!existsSync(join(room.at, "claude-saw")),
+    "land called `claude`, so it installed a release nobody made");
+  assert.doesNotMatch(run.stdout, /marketplace|the copy the next session loads/u, run.stdout);
+});
+
+test("a land behind a held landing names the tree holding it, waits, and reaches no push", () => {
+  const room = remoted("land-waits");
+  landIn(room.work, join("docs", "wave.md"), 1, "the wave's own record");
+  const other = idle();
+  held(room.work, { tree: "/run/wt-ISS-996", pid: other.pid, branch: "iss-996", since: "2026-09-06T06:00:00.000Z" });
+  const was = git(REMOTE_AT(room), "rev-parse", "master").stdout.trim();
+
+  const run = runIn(room.work, ["land", "--wait", "0.05"], BARE);
+  other.kill();
+
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stdout, /waiting behind the landing in \/run\/wt-ISS-996/u, run.stdout);
+  assert.match(run.stdout, /this is a wait and not a hang/u, "a fold behind a ship is told it is waiting");
+  assert.doesNotMatch(run.stdout, /step 4\/4/u, "a land that waited out its ceiling pushed anyway");
+  assert.equal(git(REMOTE_AT(room), "rev-parse", "master").stdout.trim(), was,
+    "the branch moved under a landing that never reached its push");
+  assert.ok(existsSync(at(room.work, LOCK)), "a waiting land removed the lock the ship ahead of it holds");
+});
+
+/* The other direction, which is the whole point of one lock: what the fold takes, the release waits
+   behind. The lock file records no verb — `shipHolder` writes the tree and the branch and both
+   verbs write it from wherever they run — so what is exercised here is the holder record a land
+   from the checkout leaves, and that both verbs meet it on the one sentence. That a land takes this
+   very file is the case above, and the two compose. */
+test("a ship waits behind the lock record a land from the checkout leaves, on the one sentence", () => {
+  const room = remoted("ship-waits-behind-land");
+  const other = idle();
+  held(room.work, { tree: room.work, pid: other.pid, branch: "master", since: "2026-09-06T06:00:00.000Z" });
+
+  const shipped = runIn(room.work, ["ship", "--wait", "0.05"], BARE);
+  const landed = runIn(room.work, ["land", "--wait", "0.05"], BARE);
+  other.kill();
+
+  const sentence = /waiting behind the landing in (.*) — one landing at a time on this checkout, /u;
+  assert.equal(shipped.status, 1, shipped.stdout);
+  assert.match(shipped.stdout, sentence, shipped.stdout);
+  assert.equal(shipped.stdout.match(sentence)[0], landed.stdout.match(sentence)?.[0],
+    "the two landing verbs print two different contention messages for one lock");
+  assert.ok(shipped.stdout.includes(room.work), `the tree the record names is not printed:\n${shipped.stdout}`);
+  assert.doesNotMatch(shipped.stdout, /step 2\/10/u, "a ship behind a land took the fetch anyway");
+});
+
+/* Every guard case runs against a lock somebody else is holding, and that is what makes them about
+   ordering rather than about tidying up: a guard behind the acquisition would meet that lock and say
+   so, and an absent lock afterwards would look the same either way. */
+const behindALandingIn = (room) => {
+  const other = idle();
+  held(room.work, { tree: "/run/wt-ISS-995", pid: other.pid, branch: "iss-995", since: "2026-09-06T06:00:00.000Z" });
+  return other;
+};
+
+const refusedBeforeTheLock = (room, run, said) => {
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, said, run.stderr);
+  assert.doesNotMatch(run.stdout, /waiting behind the landing/u,
+    `the guard ran behind the acquisition, so a refused land waited for the branch first:\n${run.stdout}`);
+  assert.doesNotMatch(run.stdout, /step 1\/4/u, "a refused land reached a step");
+  assert.ok(existsSync(at(room.work, LOCK)), "a refused land removed the lock the landing ahead holds");
+};
+
+test("land from a worktree is refused for the checkout's verb, before the lock is reached", () => {
+  const room = remoted("land-from-worktree");
+  const tree = join(room.at, "wt-ISS-512");
+  git(room.work, "worktree", "add", tree, "-b", "iss-512");
+  const other = behindALandingIn(room);
+
+  const run = runIn(tree, ["land"], BARE);
+  other.kill();
+  refusedBeforeTheLock(room, run, /land is the checkout's verb/u);
+  assert.ok(run.stderr.includes(room.work), `the checkout it should be run from is not named:\n${run.stderr}`);
+  assert.match(run.stderr, /run\.mjs ship/u, "the refusal does not name the verb a worktree takes instead");
+});
+
+test("land from a checkout parked on another branch is refused, and names that branch", () => {
+  const room = remoted("land-off-branch");
+  git(room.work, "checkout", "-b", "somebody-elses-work");
+  landIn(room.work, join("docs", "theirs.md"), 1, "work that is not the default branch's");
+  const was = git(REMOTE_AT(room), "rev-parse", "master").stdout.trim();
+  const other = behindALandingIn(room);
+
+  const run = runIn(room.work, ["land"], BARE);
+  other.kill();
+  refusedBeforeTheLock(room, run, /the checkout is on somebody-elses-work/u);
+  assert.equal(git(REMOTE_AT(room), "rev-parse", "master").stdout.trim(), was,
+    "land pushed a branch that is not the default one to the default one");
+});
+
+test("land on a tree with uncommitted work is refused with the paths, before the lock is taken", () => {
+  const room = remoted("land-dirty");
+  landIn(room.work, join("docs", "wave.md"), 1, "the wave's own record");
+  writeFileSync(join(room.work, "docs", "wave.md"), "the section the fold is still writing\n");
+  const other = behindALandingIn(room);
+
+  const run = runIn(room.work, ["land"], BARE);
+  other.kill();
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /the tree is dirty and a landing pushes commits/u, run.stderr);
+  assert.match(run.stderr, /docs\/wave\.md/u, `the uncommitted path is not named:\n${run.stderr}`);
+  assert.doesNotMatch(run.stdout, /waiting behind the landing/u,
+    `the clean check ran behind the acquisition, so a tree nobody can rebase waited for the branch:\n${run.stdout}`);
+  assert.ok(existsSync(at(room.work, LOCK)), "a refused land removed the lock the landing ahead holds");
+});
+
+/* The runner both verbs go through, on the path no verb reaches on purpose: a step that throws
+   something that is not a `Stop` leaves the branch held unless the outer `finally` drops it. */
+test("a landing whose step throws what it cannot handle still drops the lock on its way out", async () => {
+  const { work } = pushed("landing-throws");
+  const { runLanding } = await import(join(ROOT, "tools", "run", "land.mjs"));
+  const boom = new Error("a step nobody wrote a stop for");
+  const steps = [["the step that breaks", () => {
+    throw boom;
+  }, "lands"]];
+
+  await assert.rejects(() => runLanding(steps, [0], work, {
+    ms: 30_000,
+    held: () => true,
+    again: () => "unreachable",
+  }), (error) => error === boom);
+  assert.ok(!existsSync(at(work, LOCK)),
+    "a landing that threw kept the lock, so every sibling waits behind a landing that is over");
 });

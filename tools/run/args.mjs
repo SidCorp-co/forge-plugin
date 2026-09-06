@@ -20,6 +20,13 @@ export const VERBS = new Map([
     ],
     words: 0,
   }],
+  ["land", {
+    signature: "land [--wait M]",
+    flags: [
+      takes("--wait", "M", "minutes to wait behind another landing on this checkout before refusing"),
+    ],
+    words: 0,
+  }],
   ["review", {
     signature: "review [--done [ref]]",
     flags: [takes("--done", "[ref]",
@@ -30,8 +37,11 @@ export const VERBS = new Map([
 
 const WIDTH = 12;
 
+/* By name, because the top-level help flattens every verb's flags into one list and two landing
+   verbs wait behind the same lock on the same flag: listed twice it reads as two different waits. */
 export const flagLines = (flags) =>
-  flags.map((one) => `  ${`${one.name} ${one.value}`.padEnd(WIDTH)} ${one.why}`);
+  [...new Map(flags.map((one) => [one.name, one])).values()]
+    .map((one) => `  ${`${one.name} ${one.value}`.padEnd(WIDTH)} ${one.why}`);
 
 export const verbUsage = (verb, self) => {
   const spec = VERBS.get(verb);
