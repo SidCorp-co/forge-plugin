@@ -13,7 +13,7 @@ import { citedClauses } from "../spec/checked.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post, render } from "./record.mjs";
 import { PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, transitionCall, viewFrom } from "./earned.mjs";
-import { lookAhead, owedLine, policyFor, targetOf } from "./route.mjs";
+import { credentialAhead, deployFor, lookAhead, owedLine, policyFor, targetOf } from "./route.mjs";
 import { FIELD, leaseOf, nextLine, renew } from "./lease.mjs";
 
 /* A needs_info park owes the readings only the question shape carries. */
@@ -82,7 +82,10 @@ const viewOf = async (reference, given) => {
   const cited = () => citedClauses(body);
   if (!readsTheRecord(body, given)) return viewFrom(documentId, body, [], null, null, cited);
   const page = await commentPage(documentId);
-  return viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, await policyFor(body.plan, body.status), cited);
+  /* Only the rehearsal prints the line, so only the rehearsal reads what it is built from. */
+  const deploy = given.owed ? await deployFor(body.plan, body.status) : null;
+  return viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null,
+    await policyFor(body.plan, body.status), cited, deploy);
 };
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs
@@ -182,6 +185,8 @@ export const checkTarget = (to, next, view, ref) => {
 const sayAhead = (view, ref, next) => {
   const size = fixReport(view, ref);
   if (size) console.log(`\n${size}`);
+  const shortly = credentialAhead(view, ref);
+  if (shortly) console.log(`\n${shortly}`);
   const said = lookAhead(view, ref);
   if (said) console.log(`\n${said}`);
   console.log(`\n${stageLine(next, partsOf(readContract()))}`);

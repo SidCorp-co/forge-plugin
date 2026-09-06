@@ -530,10 +530,10 @@ export const CHECKS = {
   dropped: () => [],
 };
 /* The whole record in one object, so every check reads fields rather than fetching. `cited` is the one argument passed unevaluated: resolving an issue's clauses walks the checkout, which only the `approved` check has a reason to do, and a caller handing over the answer would make every other transition pay for it and fail where the checkout is unreadable. */
-export const viewFrom = (documentId, issue, comments, cut = null, release = null, cited = null) => {
+export const viewFrom = (documentId, issue, comments, cut = null, release = null, cited = null, deploy = null) => {
   const criteria = criteriaOf(issue);
   const names = attachmentNames(issue, comments);
-  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, ...assemble(comments, criteria) };
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, ...assemble(comments, criteria) };
 };
 export const parkRecord = (view, wanted = () => true, since = null, until = null) => {
   const found = view.comments

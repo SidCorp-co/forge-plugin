@@ -26,7 +26,7 @@ import {
   transitionCall,
   viewFrom,
 } from "./earned.mjs";
-import { releasePolicy } from "../tracker/project-config.mjs";
+import { releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
 
 /* A park is a checkpoint with a person at it: the reply that resumes it is a comment by somebody
    other than whoever parked the issue. A hold nobody was asked to answer resumes by hand. */
@@ -202,6 +202,27 @@ export const lookAhead = (view, ref) => {
     + `  forge advance ${ref} --park screen-review --why "<why>" --evidence <attachment|url|sha>`;
 };
 
+const TESTED = "tested";
+
+/* Said while a run can still do something about it, and not from the entry check, whose every item
+   is one owed. Not keyed on `tested` being next — nothing arrives there until the change has
+   landed — but on every status below it. A null deploy is unread, never empty. advance.md. */
+export const credentialAhead = (view, ref) => {
+  if (planFlags(unwrap(view.issue.plan)).screen !== "yes") return null;
+  if (atLeast(view.issue.status, TESTED) || !view.deploy || view.deploy.withheld.length) return null;
+  return `Ahead: ${TESTED} wants an attachment on every verdict that is not skipped, and this project
+`
+    + `holds no test credential, so no login reaches the rendered state. Two verdict shapes get past
+`
+    + `it without one — a render taken where no login is needed, cited as the evidence, and a skip —
+`
+    + `and each names the credential nobody has in \`--why\`:
+`
+    + `  forge record verdict ${ref} --commit <sha> --criterion <n> --verdict skipped --why "<which credential>"
+`
+    + "  forge guide issue-flow verification";
+};
+
 /* Said only where a park of the right kind is on the page and nothing pairs it with the move. */
 const unpaired = (view, status) => {
   const stale = status !== SILENT && parkRecord(view, (one) => PARK_STATUS[one] === status);
@@ -272,6 +293,11 @@ export const owedLine = (view, ref, held) => {
 const RELEASED = "released";
 export const policyFor = async (plan, status = null) =>
   (personLooks(planFlags(unwrap(plan))) || stepAfter(status) === RELEASED ? releasePolicy() : null);
+
+/* Gated as `policyFor` is, on `credentialAhead`'s own two conditions: spelled twice because the
+   fetch is async and the line is not, held together by the case that counts the calls. */
+export const deployFor = async (plan, status = null) =>
+  (planFlags(unwrap(plan)).screen === "yes" && !atLeast(status, TESTED) ? stagingDeploy() : null);
 
 export const owedSaid = async (documentId, issue, comments, ref, cut = null) => {
   const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan, issue.status), () => citedClauses(issue));

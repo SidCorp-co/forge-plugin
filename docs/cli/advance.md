@@ -95,3 +95,10 @@ time under the items; a run reading the line under its own write has no list ben
 two places saying the same number is one of them going stale. Where the reading refuses — a closed
 issue, a side status whose page holds no park record — the line is the refusal's first sentence, and
 the verb that refused is the one that prints the command under it.
+
+A sixth, and the first thing this verb says that refuses nothing. The obvious home for it was the
+`tested` entry check whose refusal it runs ahead of, and that is the wrong shape twice over: everything a check returns becomes an item owed and a non-zero exit, and this is a
+shortfall a run carries rather than clears; and *`tested` is next* is a trigger that fires after the
+landing, the merged mark standing between an issue and `developed`. So the reading is the project's
+deploy, taken where a plan declares a screen and not otherwise, and said from every status below
+`tested` — the window in which the plan is written and the evidence captured.

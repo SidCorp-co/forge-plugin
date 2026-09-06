@@ -4,12 +4,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { tempHome } from "../fixtures.mjs";
+import { tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("route").path;
-const { render } = await import("../../src/flow/record.mjs");
-const { viewFrom } = await import("../../src/flow/earned.mjs");
-const { targetOf } = await import("../../src/flow/route.mjs");
+const { render } = await import("../../../src/flow/record.mjs");
+const { viewFrom } = await import("../../../src/flow/earned.mjs");
+const { targetOf } = await import("../../../src/flow/route.mjs");
 
 let clock = 0;
 const at = () => `2026-09-03T11:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
@@ -259,3 +259,4 @@ test("a needs_info park that an earlier entry already used is not read by a late
     return true;
   });
 });
+
