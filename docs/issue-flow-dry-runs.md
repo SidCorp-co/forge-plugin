@@ -4834,3 +4834,20 @@ run. No restart owed. Folded from its handback; the twenty-three comments were r
 - A finding routed onto this issue while its tree held a directory the transport swap did not touch
   was filed on as two issues of its own (ISS-565, ISS-566) rather than carried in a change it did not
   belong to.
+
+## Hundred-and-eighty-eighth dry run — ISS-106
+
+Dropped as already fixed: the sentence the issue quotes from the issue-shape gate's document had been
+removed, and the pointer its outcome asks for added, by ISS-111's landing eighty minutes after the
+issue was filed on 2026-09-04. The run read the file, the live document and the installed copy, found
+them identical, and wrote the confirmation with the disposition; nothing landed and nothing was owed.
+Filed ISS-573 on the way (the project brief prints no credentials line where nothing is deployed, so
+a flag is a silent no-op). Folded from its handback; the two comments were read back.
+
+- The dispatcher's triage line was false when written: it read the issue body and not the file the
+  body is about, and a body describes the file as it stood when the body was typed. A triage line is
+  written off the file, or it is a second copy of the claim it was meant to check — and this one
+  cost a slot a run.
+- A run handed "landed, released and closed" as its shape still owes the disposition when the claim
+  is false; the skill's rule that the project outranks the brief is what let it stop at `dropped`
+  rather than build the change twice.
