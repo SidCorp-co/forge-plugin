@@ -4124,3 +4124,33 @@ verification and ISS-477, ISS-487, ISS-488 and ISS-493 were read back.
   not take it for a break.
 - Two orphaned test processes from a run of 2026-09-05 still hold ports under a deleted worktree. The
   run named their pids and left them, since it could not claim them; the dispatcher owns that call.
+
+## Hundred-and-sixtieth dry run — ISS-474
+
+The fifth batch reading, f09dfb0..690eda2, read once as a whole by a run that wrote none of it and
+landed as one commit that only simplifies (3.35.175, landed as 742a762, pushed head b34d647,
+twenty-five files, behaviour byte-identical over a frozen corpus of a hundred and twenty runs). The
+mark moved to 690eda2. The dispatcher ran the four simplify angles first and posted thirty-three
+deduplicated items in two comments, the tracker's ten-thousand-character cap splitting the list. Of
+those, the run landed the folds, refused four with the reason and filed the interface changes as their
+own issues: ISS-492, 494, 495, 496, 497, 498, 499, 501. No restart owed. Closed by its run. Folded
+from its handback; the mark, the eight filings and the routed comments were read back.
+
+- A hold set moves in both directions during a run: one sibling's grew to cover a test file after this
+  run had written it, then the sibling closed before the routed comment landed; another's grew to cover
+  two files this run had already landed. Reading the hold sets before the landing is not enough. The
+  run's own word: re-read before each write and again before each routed comment, because a closed
+  issue takes no routing. ISS-498 is where the four re-homed findings live.
+- Eight of nine routings written into one record were silently absent from it: the routed record keeps
+  only its last pair. Found by reading the record back, filed as ISS-501. A write that drops seven of
+  eight arguments and says nothing is the shape the read-back exists to catch.
+- The read-first hold fired on nearly every write of this run, because the run wrote under its own
+  session id and the hook credits the dispatching session's. ISS-467 had the shape from the
+  dispatcher's own run; ISS-497 now carries it with the mechanism named.
+- Four items were refused with a reason each: a module split is a boundary change, not a duplication;
+  a parser with no second home yet has nothing to share; heterogeneous rows given one shape encode a
+  false sameness; two slices that look repeated select two different windows. A reading that refuses
+  with reasons is worth more than one that lands everything.
+- One helper could not go where it belonged because a one-line module allows zero comment lines. It
+  went next door with a correction saying so. A density rule has a floor, and the floor is a fact the
+  reading meets.
