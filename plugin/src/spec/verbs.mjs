@@ -176,9 +176,11 @@ const checked = (rest) => {
 };
 
 const run = (argv) => {
-  if (!argv.length || wantsHelp(argv)) return console.log(argv[0] === CHECK ? CHECK_USAGE : USAGE);
+  if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
   if (argv[0] === CHECK) {
-    const said = checked(argv.slice(1));
+    const rest = argv.slice(1);
+    if (wantsHelp(rest)) return console.log(CHECK_USAGE);
+    const said = checked(rest);
     return said === null ? undefined : fail(said);
   }
   const { given, token } = read(argv);
