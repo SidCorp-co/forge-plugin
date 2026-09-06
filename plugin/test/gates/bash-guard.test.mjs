@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
+import { waitsIn } from "../../src/hooks/shell-spans.mjs";
 import { callHook, cleanRepo, dirtyRepo, homeEnv, tempRoom } from "../fixtures.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "bash-guard.mjs");
@@ -231,12 +232,40 @@ test("a wait that polls is refused, and a pause on its own is not", () => {
   assert.equal(decide(`until a; do until b; do ${nap} 1; done; done`).allowed, false, "and nested");
   assert.equal(decide(`! while true; do ${nap} 1; done`).allowed, false, "past a prefix that inverts");
   assert.equal(decide(`time until a; do ${nap} 1; done`).allowed, false, "and past one that measures");
+  assert.equal(decide(`while true; do for x in a; do :; done; ${nap} 1; done`).allowed, false, "past a for whose done is not the wait's");
+  assert.equal(decide(`until a; do select x in a; do :; done; ${nap} 1; done`).allowed, false, "and past a select's");
+  assert.equal(decide(`while true; do for ((i=0; i<3; i++)); do :; done; ${nap} 1; done`).allowed, false, "and past an arithmetic head, whose own `;` the span reader cuts");
+  assert.equal(decide(`while true; do for ((i=0; i<3; i++)) { :; }; ${nap} 1; done`).allowed, false, "and past the brace body an arithmetic for may take instead, which no done closes");
+  assert.equal(decide(`while true; for ((i=0; i<3; i++)) { :; }; do ${nap} 1; done`).allowed, false, "and where that brace body is in the wait's condition, so the do is still the wait's");
+  assert.equal(decide(`while true; for x in a; do :; done; do ${nap} 1; done`).allowed, false, "and where the loop in the condition takes a do of its own, which is not the wait's");
+  assert.equal(decide(`while true; for ((i=0; for < 3; i++)) { :; }; do ${nap} 1; done`).allowed, false, "and where an arithmetic head names a variable spelled like a loop, which opens none");
+  assert.equal(decide(`while true; do ${nap} 1; for ((i=0; i<1; i++)) { :; while false; do :; done; }; done`).allowed, false, "and where a wait is written inside that brace body, whose do is its own");
+  assert.equal(decide(`while true; do for x in "a { b"; do :; done; ${nap} 1; done`).allowed, false, "and where the brace is a character of a quoted word, which opens no body");
+  assert.equal(decide(`while true; do for f in "a\\" { b"; do :; done; ${nap} 1; done`).allowed, false, "and where an escape inside that word carries the quote it would otherwise have closed");
+  assert.equal(decide(`until a\ndo\n  for x in a\n  do\n    :\n  done\n  ${nap} 5\ndone`).allowed, false, "the same nesting spelled over lines");
   assert.ok(decide(`${nap} 2`).allowed, "a pause on its own waits once and asks nothing");
   assert.ok(decide(`${nap} 2 && npm test`).allowed, "one before the work is still one pause");
   assert.ok(decide(`${nap} 2 && until a; do echo x; done`).allowed, "and one before a wait is outside it");
   assert.ok(decide(`until a; do echo x; done && ${nap} 3`).allowed, "and one after a wait is outside it");
   assert.ok(decide(`while read -r l; do echo "$l"; done < /tmp/f`).allowed, "a wait with no pause polls nothing");
+  assert.ok(decide(`for x in a b; do ${nap} 1; done`).allowed, "a for bounded by a count is no wait, so the pause in it stands");
   assert.ok(decide(`echo "until x; do ${nap} 1; done"`).allowed, "and the shape inside an argument is prose");
+});
+
+/* The reading the rule above spends, on its own, because the guard's verdict cannot say which frame
+   a `done` closed: a `for` is pushed so that its own `done` pops it, and only a wait comes back as a
+   range (ISS-306). */
+test("a done closes the loop it belongs to, and only a wait is a range", () => {
+  const nap = `sl${"eep"}`;
+  const nested = `while true; do for x in a; do :; done; ${nap} 1; done`;
+  const [[from, to], ...rest] = waitsIn(nested);
+  assert.deepEqual([from, to, rest], [0, nested.length, []], "one range, the wait's own, running to its own done");
+  const at = nested.indexOf(nap);
+  assert.ok(at >= from && at < to, `the pause at ${at} is inside it, and not past the inner done at ${nested.indexOf("done")}`);
+  assert.deepEqual(waitsIn(`for x in a b; do ${nap} 1; done`), [], "a for's body is a frame too, and is no wait");
+  const braced = `while true; do for ((i=0;i<3;i++)) { :; }; while :; do ${nap} 1; done; done`;
+  assert.equal(waitsIn(braced).length, 2, "a brace body opens no frame, so it takes no done and leaves both waits their own");
+  assert.deepEqual(waitsIn("until a; do until b; do :; done; done"), [[8, 31], [0, 37]], "nested waits still answer innermost first");
 });
 
 /* The stash stack is the repository's, not the worktree's: a push in one tree is what a pop in

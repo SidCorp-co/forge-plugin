@@ -139,19 +139,61 @@ export const movedTo = (text, before) => {
   return typeof first === "string" || first === NOWHERE ? first : null;
 };
 
-/* A wait opens where a command does, past a `!` that inverts one or a `time` that measures it. */
-const WAITS = /^(?:[({]\s*|!\s*|\btime\s+(?:-\S+\s+)*|\b(?:if|elif|then|else|do)\s+)*(?:while|until)(?=\s|$)/u;
+/* A loop opens where a command does, past a `!` that inverts one or a `time` that measures it.
+   `for` and `select` are here beside the two waits because a `done` cannot tell them apart, and one
+   left off the list has that `done` close the wait around it instead. */
+const LOOPS = /^(?:[({]\s*|!\s*|\btime\s+(?:-\S+\s+)*|\b(?:if|elif|then|else|do)\s+)*(while|until|for|select)(?=\s|$)/u;
+const WAITS = /^(?:while|until)$/u;
+/* What a `done` closes is the body a `do` opened, and the two are not the same token because a wait
+   may run a whole condition list between them while a `for` or `select` takes its body next. So a
+   wait is a frame from its keyword and its `do` only says the body has begun, a `for` is named and
+   becomes a frame at the `do` it takes, and the newest name has the next `do` over any wait short of
+   one. The other body form is `{ … }`, which only an arithmetic `for` may take: `}` closes it, no
+   `done` ever reaches it, and the name it closed is spent without becoming a frame. */
+const BODY = /^do(?=\s|$)/u;
+/* The other body form, which only an arithmetic `for` may take. It is read where it opens rather
+   than where it closes, because a name still standing over the body would take the `do` of a loop
+   written inside it. A `${…}` is no body, its brace carrying no word boundary before it, and a
+   `{a,b}` none either, its brace carrying none after; and a brace inside a quoted word is a
+   character of that word, so the quoted runs go before the search does. */
+const BRACE = /(?:^|[\s;&|()])\{(?=\s|$)/u;
+const QUOTED = /'[^']*'|"(?:\\[\s\S]|[^"\\])*"/gu;
 const ENDS = /^done(?=[\s;&|)<>]|$)/u;
+/* What a `for` or `select` takes next: the variable it walks, or the arithmetic head. A word that is
+   neither is a span the arithmetic head was cut into — `for ((i=0; for < 3; i++))` puts one there —
+   and naming a loop for it spends a `do` the wait around it was owed. A `while` needs no such test:
+   what follows it is a command list, and a phantom one opens a frame `c370d0a` opens too. */
+const OVER = /^(?:\(\(|[A-Za-z_]\w*)/u;
 
 /** Where each `while`/`until` … `done` runs, as `[from, to)` over the same text — one range per
- *  wait, innermost first, an unclosed opener dropped rather than swallowing the rest of the line. */
+ *  wait, innermost first, a frame nothing closed dropped rather than swallowing the rest of the
+ *  line. Every loop's body is a frame and only a wait's is a range, so a `done` closes the loop it
+ *  belongs to and a wait containing a `for` still runs to its own. */
 export const waitsIn = (text) => {
   const out = [];
   const open = [];
+  const named = [];
   for (const { start, end } of spans(text, { pipes: true })) {
     const one = text.slice(start, end).trim();
-    if (WAITS.test(one)) open.push(start);
-    else if (ENDS.test(one) && open.length) out.push([open.pop(), end]);
+    if (BODY.test(one)) {
+      if (named.length) open.push({ ...named.pop(), body: true });
+      else {
+        const waiting = open.findLast((frame) => !frame.body);
+        if (waiting) waiting.body = true;
+      }
+    } else if (ENDS.test(one) && open.length) {
+      const shut = open.pop();
+      if (shut.waits) out.push([shut.start, end]);
+    }
+    /* After the two above, because one span can open the body above it and name the next: `do for`. */
+    const loop = LOOPS.exec(one);
+    if (loop) {
+      if (WAITS.test(loop[1])) open.push({ start, waits: true, body: false });
+      else if (OVER.test(one.slice(loop[0].length).trimStart())) named.push({ start, waits: false });
+    }
+    /* Past the keyword, so the brace a head is followed by spends that head's own name and not one
+       standing over it. */
+    if (BRACE.test(one.slice(loop ? loop[0].length : 0).replace(QUOTED, " "))) named.pop();
   }
   return out;
 };
