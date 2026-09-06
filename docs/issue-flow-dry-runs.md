@@ -3714,3 +3714,27 @@ for the same agent to resume.
   that ISS-334 must not land first or its field writes become a fourth copy.
 - A park reason that carries the reading costs the re-dispatch nothing but the reading's age; the
   dispatch skill's rule that a parked run is resumed in its own agent is what makes that cost zero.
+
+## Hundred-and-forty-fifth dry run — ISS-242
+
+Cut off by the model's session limit while placing its test case, resumed in its own agent once the
+limit lifted. The learning gate read a skill path out of a command's text rather than out of what the
+command writes, in two shapes narrower than the body described and found by a triage role's eight
+planted cases: a whitespace-free quoted path was read as a write's target, and a path assembled from a
+root variable was not. The harness now reads a quoted span as prose by its shape rather than its
+whitespace, and a shell write assembled through a heredoc is resolved by a new module (3.35.159,
+landed as 3619663; ten paths, all under the hooks and their tests). Verified against the installed
+copy's own entry with a real event from a temp tree, four tests red at the base. Five review rounds,
+thirteen findings, eleven accepted; the earning recheck over all ten files found none. No restart
+owed. Closed by its run. Folded from its handback; both filings were read back.
+
+- A review round that produces three or four more genuine lexical corners each time has stopped
+  being a gate and become an inventory; the flow has no rule for when to stop, and the run used the
+  criteria as the discriminator. The closeable version needs a tokenizer per runner, and no criterion
+  asked for one; the corner outside the model went out as ISS-444.
+- A triage role's planted cases made the issue buildable: the body's two shapes were both wrong in
+  the particular, and the eight probes named the two that held, so the run planned against the
+  probes and not the prose.
+- A correction record written through the shell lost its backticked identifiers to interpretation
+  for the second time this wave; a second correction restates it and says so, and the report shows
+  only the complete one.
