@@ -4042,3 +4042,33 @@ two reviews and ISS-470 were read back.
 - Two verdict texts came back from the tracker with a marker token mangled mid-prose; the attached
   evidence carries the exact text. Another product's sanitiser, out of scope by the issue's own words,
   and not a `forge feedback`.
+
+## Hundred-and-fifty-seventh dry run — ISS-479
+
+The review phase opens on the first consult after the build has begun, not before it (3.35.172,
+landed as ccca238, pushed head 558fa9e). Filed and worked by the dispatching session at the user's
+word, off the evaluator's first reading: the eval's largest shift, the review row's median rising
+from 8 to 23 minutes, was the profiler's boundary moving when ISS-365 put the plan's consult before
+the plan write, so every run since jumped from phase 1 to phase 3 and the whole build landed in the
+review row. The cutter now refuses to open the review while the run is below the build, and the
+baseline record joins the build's markers so a fix-tier run that writes no plan enters it. Fix tier
+throughout: no plan, no decision, no release note owed. No restart owed. Closed by its run.
+
+- The issue's own outcome named the run's first edit as an alternative start of the build. That was
+  wrong and was not built: the plan file is written to a temporary path by an edit-class call before
+  the consult that reads it, so an edit would have opened the build exactly where the consult does
+  now. The confirmation record says so, which is the place for a premise the filer got wrong.
+- The evaluator's finding gave the fix its shape and its evidence in one comment: the marker, the
+  line that cannot pull a run back, the two windows' counts of runs with a build phase. A reading that
+  names the mechanism is a triage line the dispatcher does not have to write.
+- Re-run on the installed copy, the eval shows the build phase back in 42 of the last 50 runs where
+  the copy before showed 21, and the review row still rising 8.7 to 22.4 minutes. Part of that rise is
+  real and part is the next boundary: the first post-build consult is a commit gate's, and the review
+  row carries 322 gate runs and 663 test runs after it. Filed as its own fix (ISS-481).
+- The verification's first form cited the change's sha and was refused: the mark says the release
+  landed at the pushed head, and a verification has to name the sha the deployment reports and say
+  which landed commit it contains. The second form did, with the ship log's closing steps attached
+  under a name of their own; the whole log, at 331 KB, was refused as evidence.
+- Eleven tracker writes, and read-first held six of them once for the record the run's own previous
+  write had posted, exactly as ISS-467's filing describes. A fix-tier run under a per-run id pays a
+  call per write for the shape.
