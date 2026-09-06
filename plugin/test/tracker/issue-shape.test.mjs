@@ -44,7 +44,7 @@ test("a body carrying the outcome, a rule and an out-of-scope line files with no
    command filed a titled issue with an empty description, while the same lint had twice refused a
    5.9 kB epic for its headings. */
 test("a body with no text in it is refused first, mark or no mark", () => {
-  for (const body of ["", "   \n\n\t", `⟦UNTRUSTED_DATA source="x"⟧\n\n⟦END_UNTRUSTED_DATA⟧`, SIZE_LINE]) {
+  for (const body of ["", "   \n\n\t", SIZE_LINE]) {
     const { gaps, fix } = shapeOf({ title: TITLE, body });
     assert.equal(gaps.length, 1, JSON.stringify(body));
     assert.match(gaps[0].read, /no text in them/u);
@@ -144,8 +144,8 @@ test("the mark clears the fix route on every route, because the CLI writes it in
     assert.equal(shapeOf({ title: TITLE, body: withMark(body, rung) }).fix, rung === TIERS.at(-1),
       "the two rungs below the top are exempt from the sections, and the top one is not");
   }
-  assert.equal(markedIn(`⟦UNTRUSTED_DATA source="issue.description"⟧\n${SIZE_LINE}\n⟦END_UNTRUSTED_DATA⟧`), FIX,
-    "the description comes back fenced, and the mark is read a line at a time");
+  assert.equal(markedIn(`## Where\n\nplugin/src/tracker/rpc.mjs\n\n${SIZE_LINE}`), FIX,
+    "the mark is read a line at a time, wherever in the body its line stands");
   for (const near of ["Size: fix later", "Size: fix-me", "Size: fix!", "the Size: fix. it wants"]) {
     assert.equal(markedIn(near), null, `${near} is not the mark, and a body it appears in owes its route`);
   }

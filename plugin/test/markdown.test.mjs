@@ -22,7 +22,7 @@ import {
   withoutMarkup,
   withoutSpans,
 } from "../src/markdown.mjs";
-import { FENCE_PATTERN } from "../src/flow/machine.mjs";
+import { FENCE_PATTERN } from "../src/tracker/rpc.mjs";
 import { typed } from "../src/hooks/shell-spans.mjs";
 import { DATA_FIELD, sseData } from "../src/sse.mjs";
 import { checkStructure } from "../src/checks/claude-md.mjs";
@@ -32,7 +32,7 @@ const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MARKDOWN = "plugin/src/markdown.mjs";
 const SHELL = "plugin/src/hooks/shell-spans.mjs";
 const SSE = "plugin/src/sse.mjs";
-const MACHINE = "plugin/src/flow/machine.mjs";
+const RPC = "plugin/src/tracker/rpc.mjs";
 const HELP_WORD = "plugin/src/resolve/help-word.mjs";
 const LINE_AT = "plugin/src/line-at.mjs";
 
@@ -89,7 +89,7 @@ const NEEDLES = [
   ["a markup class", MARKDOWN, [MARKUP_PATTERN]],
   ["a shell word", SHELL, [String.raw`[\w./@+][\w./@+-]*`, SHELL_ESCAPE]],
   ["an SSE frame reader", SSE, SSE_NEEDLES],
-  ["the untrusted-data fence", MACHINE, [FENCE_WORD]],
+  ["the untrusted-data fence", RPC, [FENCE_WORD]],
   ["the help predicate", HELP_WORD, HELP_FORMS, ANY_POSITION],
   ["a line number from an index", LINE_AT, LINE_AT_FORMS, WHOLE_TEXT],
 ];
@@ -115,7 +115,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [SHELL, SSE, MACHINE, HELP_WORD, LINE_AT]) {
+  for (const home of [SHELL, SSE, RPC, HELP_WORD, LINE_AT]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -152,7 +152,7 @@ test("the guard fires on a module that re-declares one", () => {
     `f.mjs declares a shell word of its own; ${SHELL} holds it`,
     `h.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
     `i.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
-    `j.mjs declares the untrusted-data fence of its own; ${MACHINE} holds it`,
+    `j.mjs declares the untrusted-data fence of its own; ${RPC} holds it`,
     `m.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
     `n.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
     `o.mjs declares a line number from an index of its own; ${LINE_AT} holds it`,
@@ -189,7 +189,7 @@ test("escaping an apostrophe for a shell is not re-declaring the quoter", () => 
 });
 
 /* Tied back to the home's own source, so the needle cannot drift from the pattern it watches. */
-test("the fence needle is the source machine.mjs holds, and catches a copy anchored any way", () => {
+test("the fence needle is the source rpc.mjs holds, and catches a copy anchored any way", () => {
   assert.ok(FENCE_PATTERN.includes(FENCE_WORD), "the needle no longer occurs in the pattern it watches");
   const copies = [
     String.raw`const F = /^⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧\s*$/gmu;`,
@@ -197,7 +197,7 @@ test("the fence needle is the source machine.mjs holds, and catches a copy ancho
   ];
   for (const text of copies) {
     assert.deepEqual(redeclared([{ rel: "k.mjs", text }]),
-      [`k.mjs declares the untrusted-data fence of its own; ${MACHINE} holds it`]);
+      [`k.mjs declares the untrusted-data fence of its own; ${RPC} holds it`]);
   }
 });
 

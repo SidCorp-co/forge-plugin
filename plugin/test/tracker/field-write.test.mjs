@@ -151,13 +151,22 @@ test("the comparator is the field's own, and so is the refusal it gives", async 
   rewrite = null;
 });
 
-test("a criteria field reads back through the tracker's own fence and is not called a change", async () => {
+test("a criteria field the tracker fenced reads back as written, and is not called a change", async () => {
   rewrite = (data) => (data.acceptanceCriteria
     ? { ...data, acceptanceCriteria: `${FENCE_OPEN}\n${data.acceptanceCriteria}\n${FENCE_SHUT}` }
     : data);
   await setting("acceptanceCriteria", "1. one outcome a reader could check");
-  assert.equal(updates.length, 1, "the write landed: the fence is the wrapping, not a rewrite");
+  assert.equal(updates.length, 1, "the write landed: the transport took the fence, and it is no rewrite");
   rewrite = null;
+});
+
+/* A note half is compared byte for byte, so the read path may take the tracker's fence off a body
+   and may not touch anything else: a strip written as a trim refuses this write after it landed. */
+test("a note half keeps the whitespace its author wrote, and reads back with no refusal", async () => {
+  const note = { section: "Fixed", userFacing: "the marker no longer shows  ", technical: "" };
+  const back = await setting("releaseNotes", note);
+  assert.deepEqual(back, note, "every half as it was sent, trailing spaces included");
+  assert.equal(updates.length, 1);
 });
 
 /* The half the whole cap check turns on: `onSent` is handed the copy the boundary rewrote, and the

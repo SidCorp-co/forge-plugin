@@ -1,18 +1,17 @@
 /* Every verb setting a content field writes it here: one home for the cap, the renewal and the
    read-back, which is why it imports upward. The lease's field stays in `flow/`: its write *is* the renewal (ISS-451). */
 import { scoped, toolNamed, write } from "./rpc.mjs";
-import { unwrap } from "../flow/machine.mjs";
 import { renew } from "../flow/lease.mjs";
 
 const NOTE_HALVES = ["section", "userFacing", "technical"];
 
-export const landedAs = (held, sent) => unwrap(held) === String(sent).trim();
+export const landedAs = (held, sent) => String(held ?? "").trim() === String(sent).trim();
 
 export const noteLandedAs = (held, sent) =>
   NOTE_HALVES.every((key) => (held?.[key] ?? null) === (sent?.[key] ?? null));
 
 /* Presence: a prose pipeline rewrites a plan at length, and equality would refuse writes that landed. */
-export const storedNotEmpty = (held) => Boolean(unwrap(held ?? "").trim());
+export const storedNotEmpty = (held) => Boolean(String(held ?? "").trim());
 
 /* The comparator belongs to the field, never to an argument the caller chooses. */
 const FIELDS = {

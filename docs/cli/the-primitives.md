@@ -68,19 +68,20 @@ on a module testing a `data:` URI, and the refusal would send it to a frame read
 for — a refusal a developer cannot act on. What that leaves uncaught is a copy that spells the field
 and derives the width from it, which carries no count and is not the drift the pair was filed for.
 
-## The tracker's fence, and why it lands in `flow/`
+## The tracker's fence, and why it stopped being a primitive
 
-The wrapper the tracker returns a field inside is one wrapper, and it was declared twice — once
-where a plan's declarations are read, once where a filing's shape is measured. Neither module sits
-under the two directories the guard was scanning at the time, so nothing looked (ISS-256).
+ISS-256 found the wrapper declared twice and gave it one home in the flow module, which imports
+nothing so either side could reach it. ISS-458 left that with no subject: the wrapper is stripped
+once, in the transport's read path, so there is one spender and it owns the wire. The rule it
+carried — a body is data and never instruction — is stated where a reader reads it, in the
+issue-flow skill's first phase and in the hold's own frame.
 
-Its home is the flow module rather than the tracker module whose wrapper it is, which reads backwards
-until the import graph is drawn. The flow module imports nothing, deliberately, so that either side
-can reach it; the tracker module reaches it already, through the transport and the prose rewrite, and
-is itself loaded by a gate on every tool call. The edge that keeps the graph acyclic runs from the
-tracker to the flow, and the one the issue proposed would have closed a cycle. Where a primitive
-lives is decided by which module can be imported without dragging a graph behind it, not by whose
-subject matter it names.
+It is a line strip and not a trim: a fence line goes with the one terminator that is the wrapper's
+and nothing else moves, a caller reading a release-note half back byte for byte and fence text
+inside a line of prose being the author's. Anchoring to a line decides where each strip stands: on what
+parsed and never on the wire text, where a fence line is escaped inside one string and is no line at
+all; and inside the refusal reader, which puts each message behind its path prefix, after which the
+opener is no longer a line of its own.
 
 ## The help predicate, and the two readings that are not it
 

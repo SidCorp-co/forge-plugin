@@ -80,8 +80,8 @@ comment, the plan field, an upload, a dependency edge — renew the lease and le
 returns none of them. The renew that precedes each payload write is where the list is made, and the
 one route that renews nothing, `forge call`, makes it from its own payload. An empty list costs one
 line and no round at all. Comments this session has not been shown *are* the refusal: every one on
-the page the list returns is printed whole, in the fence the tracker returned it in, with the count
-when the tracker holds more, and the same command sent again lands — so
+the page the list returns is printed whole, as its author wrote it with the tracker's fence already
+off it, with the count when the tracker holds more, and the same command sent again lands — so
 the round that is spent carries the content the rule exists to deliver rather than a pointer to it.
 The delivery is recorded under `~/.config/forge/`, which is what makes one process's reading the
 next one's and a run's reading its delegates' — the account's directory outlives both, where a

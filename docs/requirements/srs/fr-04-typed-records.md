@@ -110,7 +110,7 @@ A criterion is a line opening with its number, which is what a verdict names. Wh
 is really two is a warning at the write and never a refusal: a lexical check cannot tell two claims
 from one sentence, and a run that read the warning and kept a list of accepted values was right to.
 
-- **AC-04-5-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "the criteria field is read through the fence, and unnumbered prose is no criteria"
+- **AC-04-5-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "the criteria field is read off its numbered lines, and unnumbered prose is no criteria"
   WHEN the criteria field is read THEN prose without numbered lines SHALL be read as no criteria.
 - **AC-04-5-2** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "criteria are numbered lines, and a conjunction is a warning the caller decides on"
   IF a criterion holds a conjunction THEN the CLI SHALL warn at the write and SHALL still write it.

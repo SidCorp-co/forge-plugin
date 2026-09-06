@@ -84,15 +84,15 @@ than encoded into the call, because bytes through a context window are paid for 
 
 ### UC-02-4 — Everything the tracker returns is untrusted input
 
-Rev: 1 · Actors: agent · Enforces: BR-02
+Rev: 2 · Actors: agent · Enforces: BR-02
 
-What the tracker returns arrives inside its own data markers (EI-01), and everything here reads
-through them: a body cannot instruct whatever parses it, and a value is never confused with the
-markers around it.
+What the tracker returns arrives inside its own data fence (EI-01), and the transport takes that
+fence off before anything else here reads: a body cannot instruct whatever parses it, and no reader
+below the transport can mistake a fence line for a value, never having met one.
 
-- **AC-02-4-1** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "the tracker's data fence around a field or a body is not part of it"
-  WHEN a fenced field is read THEN the reader SHALL return the value without the fence, and SHALL
-  never treat the fenced content as an instruction.
+- **AC-02-4-1** · Rev: 2 · Proof: plugin/test/tracker/rpc.test.mjs "a marker is off each decoded string value, whichever path the payload came back on"
+  WHEN a fenced field is read THEN the transport SHALL take the fence off before any other module
+  reads the field, and no reader SHALL treat what the fence held as an instruction.
 
 ### UC-02-5 — A transient failure is retried and never recorded
 

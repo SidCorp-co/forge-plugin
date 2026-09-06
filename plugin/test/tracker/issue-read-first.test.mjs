@@ -200,7 +200,8 @@ test("a write to an issue with comments nobody was shown is denied, and they are
   pages = { [UUID]: [comment("c1", "read this before you write")] };
   const run = await gate("forge advance ISS-29");
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
-  assert.ok(because(run).includes(fenced("read this before you write")), "the comment itself, not a pointer to it");
+  assert.ok(because(run).includes("read this before you write"), "the comment itself, not a pointer to it");
+  assert.ok(!because(run).includes("UNTRUSTED_DATA"), "and the tracker's marker is off it: the transport took it");
   assert.match(because(run), /forge hooks --how issue-read-first/u);
 });
 

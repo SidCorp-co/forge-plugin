@@ -106,10 +106,8 @@ export const criterionNumber = (value) => {
   return found ? Number(found[1]) : null;
 };
 
-/* One wrapper, one source, and here rather than in the tracker: docs/cli/the-primitives.md. The fence a field comes back in is no part of it, and the mark's note is where the commit is. */
-export const FENCE_PATTERN = String.raw`^⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧\s*$`;
-const FENCE = new RegExp(FENCE_PATTERN, "gmu");
-export const unwrap = (text) => String(text ?? "").replace(FENCE, "").trim();
+/* A trim: the fence is off before a field reaches here, so this goes with its callers (ISS-470). */
+export const unwrap = (text) => String(text ?? "").trim();
 
 const MARK = /^mark_merged\b/u;
 const AT_SHA = /\bat ([0-9a-f]{7,40})\b/iu;

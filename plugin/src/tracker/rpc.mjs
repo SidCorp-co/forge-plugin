@@ -54,19 +54,34 @@ const retryAfter = (text, headers) => {
   return FALLBACK_RETRY_SECONDS;
 };
 
+/* The tracker's fence: one home, and where each strip has to stand — docs/cli/the-primitives.md. */
+export const FENCE_PATTERN = String.raw`⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧`;
+const FENCE = new RegExp(String.raw`(\r?\n)?^(${FENCE_PATTERN})[ \t]*$(\r?\n)?`, "gmu");
+const CLOSER = "⟦END";
+
+const unfenced = (text) =>
+  String(text).replace(FENCE, (all, before, marker, after) => (marker.startsWith(CLOSER) ? after ?? "" : before ?? ""));
+
+export const unfencedIn = (value) => {
+  if (typeof value === "string") return unfenced(value);
+  if (Array.isArray(value)) return value.map(unfencedIn);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value).map(([key, held]) => [key, unfencedIn(held)]));
+};
+
 /* The path and the message are the whole signal; the uuid pattern repeats ~150 chars per field. */
 const readable = (text) => {
   const start = text.indexOf("[");
-  if (start < 0) return text;
+  if (start < 0) return unfenced(text);
   let parsed;
   try {
     parsed = JSON.parse(text.slice(start));
   } catch {
-    return text;
+    return unfenced(text);
   }
-  if (!Array.isArray(parsed) || !parsed.length) return text;
+  if (!Array.isArray(parsed) || !parsed.length) return unfenced(text);
   return parsed
-    .map((issue) => `${(issue.path ?? []).join(".") || "(root)"}: ${issue.message ?? issue.code}`)
+    .map((issue) => `${(issue.path ?? []).join(".") || "(root)"}: ${unfenced(issue.message ?? issue.code)}`)
     .join("\n");
 };
 
@@ -198,11 +213,11 @@ export const callTool = async (name, args, soft = false, transport = false) => {
     const rendered = readable(text) || JSON.stringify(result);
     fail(`${name} refused:\n${rendered}${await misplaced(name, rendered)}`);
   }
-  if (result?.structuredContent) return result.structuredContent;
+  if (result?.structuredContent) return unfencedIn(result.structuredContent);
   try {
-    return JSON.parse(text);
+    return unfencedIn(JSON.parse(text));
   } catch {
-    return text;
+    return unfenced(text);
   }
 };
 

@@ -21,9 +21,9 @@ recorded (UC-02-5).
 - **AC-19-1-1** · Rev: 1 · Proof: plugin/test/tracker/rpc.test.mjs "the identifying argument is derivable from the reference set"
   WHEN the tracker declares a surface THEN the CLI SHALL read the declaration rather than assume
   it, and SHALL refresh the cached copy when a name lookup misses.
-- **AC-19-1-2** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "the tracker's data fence around a field or a body is not part of it"
-  WHEN a field arrives inside the tracker's data fence THEN the reader SHALL take the value and
-  never the fence.
+- **AC-19-1-2** · Rev: 2 · Proof: plugin/test/tracker/rpc.test.mjs "the marker takes the one line terminator that is the wrapper's, and no other"
+  WHEN a field arrives inside the tracker's data fence THEN the transport SHALL hand on the value
+  with the whitespace its author wrote and without the fence or the line terminators it owned.
 
 ### EI-02 — The review provider
 

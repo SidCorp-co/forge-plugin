@@ -7,7 +7,6 @@
    plugin/hooks/how/issue-shape.md. */
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
-import { FENCE_PATTERN } from "../flow/machine.mjs";
 import { FIX, MARK_LINE, TIERS, bandFor, belowTop, markFor, markedIn, rungFrom } from "../ladder.mjs";
 import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
 import { didYouMean } from "../suggest.mjs";
@@ -222,13 +221,11 @@ export const noticeFor = ({ kind, named, left }) => {
   return `${head}${rest}`;
 };
 
-const FENCE = new RegExp(FENCE_PATTERN, "gmu");
-
 export const openTitles = (rows) =>
   rows.filter((one) => !SETTLED.includes(one.status)).map((one) => ({
     issueId: one.issueId ?? "",
     documentId: one.documentId ?? null,
-    title: String(one.title ?? "").replace(FENCE, "").trim(),
+    title: String(one.title ?? "").trim(),
   }));
 
 const HEADING = /^#{1,6}[ \t]+(.*)$/gmu;
@@ -274,7 +271,7 @@ export const placeIn = (body) => {
 };
 
 export const seedFor = ({ title, body, kind = null }) => {
-  const text = String(body ?? "").replace(FENCE, "").replace(MARK_LINE, "");
+  const text = String(body ?? "").replace(MARK_LINE, "");
   const under = shapeFor(kind)?.needs.map((one) => sectionUnder(text, one.heading))
     .find((one) => one?.trim());
   return `${String(title ?? "").trim()}\n\n${(under ?? text).trim().slice(0, SEED)}`.trim();
@@ -390,7 +387,7 @@ const sectionGaps = (text, shape, among) =>
  *  `everySection` is for a filing with no such route and no light path — docs/cli/feedback.md. */
 export const shapeOf = ({ title, body, kind = null }, { everySection = false } = {}) => {
   const text = String(body ?? "");
-  const written = text.replace(FENCE, "").replace(MARK_LINE, "").trim();
+  const written = text.replace(MARK_LINE, "").trim();
   const asks = { place: placeIn(text), seed: seedFor({ title, body: text, kind }) };
   if (!written) {
     return { ...asks, gaps: [need(`${text.length} character(s) of body and no text in them`, "the issue itself: "

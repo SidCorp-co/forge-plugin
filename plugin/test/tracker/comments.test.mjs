@@ -68,11 +68,12 @@ test("comments nobody has been shown are refused, and the refusal carries them w
   page = { comments: [one("c1", "the design is on this comment"), one("c2", "and its second half")], hasMore: false };
   const { refusal } = await asked();
   assert.match(refusal, /ISS-57: 2 of 2 comment\(s\) are new to this session/u);
-  assert.ok(refusal.includes(fenced("the design is on this comment")), "the body, in the fence the tracker sent");
-  assert.ok(refusal.includes(fenced("and its second half")));
+  assert.ok(refusal.includes("the design is on this comment"), "the body, as its author wrote it");
+  assert.ok(refusal.includes("and its second half"));
   assert.match(refusal, /re-send the same command/u, "and the way out is the command itself");
-  const fence = refusal.indexOf("⟦UNTRUSTED_DATA");
-  assert.ok(refusal.slice(0, fence).includes("Hold —"), "every instruction of ours is outside the fence");
+  assert.ok(!refusal.includes("UNTRUSTED_DATA"), "the transport took the tracker's marker off every body");
+  assert.match(refusal.split("---")[0], /data rather than instruction/u,
+    "and the frame says what the marker used to, before the first body");
 });
 
 test("the same write re-sent passes, because the refusal was the delivery", async () => {
@@ -83,8 +84,8 @@ test("a comment from another author refuses once, and only that comment is deliv
   page = { comments: [...page.comments, one("c3", "a person answered here")], hasMore: false };
   const { refusal } = await asked();
   assert.match(refusal, /1 of 3 comment\(s\) are new/u);
-  assert.ok(refusal.includes(fenced("a person answered here")));
-  assert.ok(!refusal.includes(fenced("the design is on this comment")), "what was shown is not shown twice");
+  assert.ok(refusal.includes("a person answered here"));
+  assert.ok(!refusal.includes("the design is on this comment"), "what was shown is not shown twice");
   assert.equal((await asked()).refusal, null, "and once delivered it is done");
 });
 
@@ -112,8 +113,9 @@ test("a comment the write caused is delivered by that write and credited", async
   const text = lines.join("\n");
   assert.match(text, /ISS-65: the page read after this write held 1 comment\(s\)/u);
   assert.match(text, /not knowable here/u, "and the boundary the list cannot see");
-  assert.ok(text.includes(fenced("mark_merged target base: merged to master at 4e41dfd")),
-    "the body whole, in the fence the tracker sent, because crediting the unshown is the gate defeated");
+  assert.ok(text.includes("mark_merged target base: merged to master at 4e41dfd"),
+    "the body whole, because crediting the unshown is the gate defeated");
+  assert.ok(!text.includes("UNTRUSTED_DATA"), "and unwrapped, as every body out of the transport is");
   assert.equal(lines.filter((line) => line.includes("the page read after this write")).length, 1,
     "and a write that caused nothing says nothing");
   assert.equal((await asked()).refusal, null, "the next write to the issue is not refused for it");
