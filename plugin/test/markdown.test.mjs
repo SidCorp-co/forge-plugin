@@ -76,15 +76,12 @@ const WHOLE_TEXT = ["plugin/src/checks/claude-md.mjs", "plugin/src/codex/codex-p
    where a run widening this scan reads it; docs/cli/the-primitives.md carries why. */
 const ANY_POSITION = ["plugin/src/codex/codex.mjs"];
 
-/* A live copy, not a reader with its own difference: the two lists above are permanent, this one is a debt ISS-421 clears with the row. An exclusion outliving its issue is the copy going unwatched again. */
-const HELD_ELSEWHERE = ["plugin/src/rank/eligible.mjs"];
-
 /* The extension class alone: a reader set spelled twice is a gate refusing what the profiler cannot count. */
 const LOG_FORMS = [String.raw`log|out|output|err`];
 
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
-  ["a non-empty inline code span", MARKDOWN, [CODE_SPAN_NONEMPTY_PATTERN], HELD_ELSEWHERE],
+  ["a non-empty inline code span", MARKDOWN, [CODE_SPAN_NONEMPTY_PATTERN]],
   /* A prefix of the closed form, so one row watches both spellings; the closed needle could not see the one copy in the tree that had lost its paren. */
   ["a link target", MARKDOWN, [LINK_TARGET_OPEN_PATTERN]],
   ["a link text", MARKDOWN, [LINK_TEXT_PATTERN]],

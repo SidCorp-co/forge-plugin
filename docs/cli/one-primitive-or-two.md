@@ -45,9 +45,9 @@ The needle is the opener's string, which is a literal prefix of the closed one, 
 both spellings. That is what the old row could not do: it held the closed form whole, and the one
 copy in the tree that had lost the paren was invisible to it.
 
-**One row of the table is not a reader's own difference.** `plugin/src/rank/eligible.mjs` still holds
-a live copy, byte for byte, and ISS-138 could not take it because another run held that tree. It is
-excluded by path like the two readings above it and for an entirely different reason — a debt with an
-owner rather than a permanent carve-out — so the list is its own, and ISS-421 removes the row with
-the copy. An exclusion that outlives its issue is the copy going unwatched again, which is the
-condition this whole file exists to describe.
+**An exclusion the guard carries is one of two kinds, and only one of them is permanent.** A reader
+with its own difference — the same words asking another question — is a carve-out, and it stays as
+long as that reader does. A live copy a run in flight holds when the primitive is sent home is a
+debt: it goes on a list of its own, never among the carve-outs, and the issue that owns it takes the
+row out with the copy. An exclusion that outlives its issue is the copy going unwatched again, which
+is the condition this whole file exists to describe.

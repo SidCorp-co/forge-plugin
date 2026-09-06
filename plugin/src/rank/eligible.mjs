@@ -1,12 +1,13 @@
 /* Which open issues a run may take, and the sentence for every one it may not. A filter dropping a
    row in silence is a backlog that shrank for no stated reason: docs/cli/next.md. */
+import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
 import { describe, leaseOf, stateOf } from "../flow/lease.mjs";
 import { TAKEABLE } from "./weights.mjs";
 import { holdsBack } from "../flow/earned.mjs";
 import { sessionOf } from "../resolve/config.mjs";
 
 /* A path in a code span, in the segment shape a repository names a file or a tree by. */
-const SPAN = /`([^`\n]+)`/gu;
+const SPAN = new RegExp(CODE_SPAN_NONEMPTY_PATTERN, "gu");
 const PATH = /^[\w.@-]+(?:\/[\w.@-]*)+$/u;
 
 export const pathsNamed = (text) => {
