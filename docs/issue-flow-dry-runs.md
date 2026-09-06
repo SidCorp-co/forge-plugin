@@ -4728,3 +4728,23 @@ owed.
   found no runs until the corpus was named with `--project`; a probe with its working directory
   inside a checkout runs that checkout's gates, so the release verification ran from a room outside
   every checkout, against the copy's own path.
+
+## Hundred-and-eighty-third dry run — ISS-497
+
+The read-before-write gate reads the session id off the command it is judging (3.35.201, landed as
+7f50f6e), as a first row of the id's sources, so a run that exports its own id on the line is held
+once for what it has not read and not on every write after. Fifteen criteria; one proved by
+reverting the 238-byte row alone and watching exactly two cases fail. Closed by its run. No restart
+owed. Folded from its handback; the eighteen comments were read back.
+
+- The fix reaches no session already running, the run's own included: every hold it paid after the
+  ship came from the copy that session registered at its start. A gate fix is judged in the next
+  session, and the round it saves is counted there.
+- A rebase that applies cleanly in text can still leave a case naming a binding the other landing
+  renamed, and the gate's lint is where that shows. The run fixed its own two lines and resumed from
+  the gate rather than touching the landing that moved the fixture.
+- A finding on a file another live tree holds was routed into that tree's issue as a comment and not
+  edited, at the cost that the run holding the tree may never read it. The route is right; whether a
+  routed finding reaches a running run is the tracker's gap (ISS-563 is the related one).
+- A doc page 15 bytes under the one-pass cap has no room for the paragraph a reviewer asks for, and
+  the run filed the gap (ISS-564) rather than trim a page it did not own.
