@@ -5024,3 +5024,26 @@ own declaration. No restart owed. Folded from its handback; the eighteen comment
 - The contract wants the replay before the earning read and the ship owns the replay, so every run
   reviews a head the ship rewrites; the merged mark carries a clause for it and ISS-595 carries the
   gap, so the fix does not die on a closed issue.
+
+## Hundred-and-ninety-sixth dry run — ISS-552
+
+The consult log's eval is a use case of FR-06 (3.35.214, landed as cae8882): UC-06-6 with seven
+criteria appended after the last clause so no existing digest moved, and one assertion added to the
+case a Proof names so the fourth dimension it claims is actually proven there. Twenty-four criteria
+pass at the judged head, which the landing moved nothing of. Two filed (ISS-593, ISS-585, the second
+corrected by its own filer on the same comment), one routed to ISS-484 naming the clauses it can now
+cite. Closed by its run; the release note withheld on the fix tier. No restart owed. Folded from its
+handback; the fourteen comments were read back.
+
+- The placement was the decision: the tree splits by which store a clause is about, and the consult
+  log is this product's own store where the session host's record is one it only reads. The body
+  offered both homes; the run chose and wrote why, and the reviewer confirmed it.
+- A Proof that names a case proves only what the case asserts. The case named for the fourth
+  dimension counted three; the run added the assertion rather than citing the case as it stood, which
+  is what the Proof column is for.
+- A filing disproved by its filer's next reading is corrected on its own page and left, not deleted:
+  ISS-585 keeps the half that survived. A filer who reads the code after filing is the one who finds
+  out first.
+- The merged mark's note is parsed and not read: prose after "landing moved nothing" was taken as the
+  moved-path list and the mark had to be written twice. ISS-341 already carries it; this run is its
+  second occurrence today.
