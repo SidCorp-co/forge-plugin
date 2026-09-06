@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 import { fail, translateTo } from "../resolve/settings.mjs";
+import { TRANSLATE_UNCHANGED } from "./vi-exit.mjs";
 import { protectMachine, restoreMachine } from "../flow/machine.mjs";
 
 export const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "vi-natural");
@@ -25,9 +26,9 @@ export const commandLine = (shown) => [BUNDLED, ...shown, ...REGISTER].map(quote
 const refuseWith = (shown, said) =>
   fail(`${said}\n\nThis is the command that writes it. Run it, then post what it leaves:\n  ${commandLine(shown)}`);
 
-const viNatural = (argv, shown = argv) => {
+const viNatural = (argv, shown = argv, done = [0]) => {
   const run = spawnSync(BUNDLED, [...argv, ...REGISTER], { encoding: "utf8" });
-  if (run.error || run.status !== 0) {
+  if (run.error || !done.includes(run.status)) {
     refuseWith(
       shown,
       "vi-natural could not write the Vietnamese, so nothing was posted:\n" +
@@ -56,9 +57,11 @@ const translatedBody = (text) => {
   }
 };
 
+/* A title with nothing in it to translate comes back as it was sent, under the code that says so: an answer and not a failure.
+   Refusing the post on it would stop writes this layer has always let through, and what one left in English costs is ISS-579's. */
 const translatedTitle = (text) => {
   const argv = ["translate", "--kind", "doc", text];
-  const written = viNatural(argv).stdout.trim();
+  const written = viNatural(argv, argv, [0, TRANSLATE_UNCHANGED]).stdout.trim();
   if (!written) refuseWith(argv, "vi-natural returned an empty title. Nothing was posted.");
   return written;
 };

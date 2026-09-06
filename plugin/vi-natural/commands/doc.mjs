@@ -3,6 +3,12 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, extname } from "node:path";
 
+/* The code a caller reads to tell an untranslated string from a translated one is spent on both
+   sides of the spawn — here, and in `src/tools/vi.mjs`, which runs this verb for every tracker
+   title — so it is declared once, in a module that imports nothing. README's Layout section says
+   which way an import may run between the two trees. */
+import { TRANSLATE_UNCHANGED } from "../../src/tools/vi-exit.mjs";
+
 import * as markdown from "../format/doc.mjs";
 import { CliError, err } from "../util.mjs";
 import { DOC_TASK } from "../text/prompts.mjs";
@@ -37,9 +43,16 @@ export async function translate(args, makeClient) {
     for (const problem of problems) err(`! ${problem.reason}`);
     return 1;
   }
-  process.stdout.write(`${results.get("1")}\n`);
+  const written = results.get("1");
+  process.stdout.write(`${written}\n`);
+  /* Handing the string back is the right answer for one with nothing in it to translate — a command,
+     an identifier, a word already Vietnamese — but a caller that shells out reads stdout and cannot
+     tell that answer from a translation, and pushes the English on (ISS-84). So the string it
+     happened to is named, and the code says it happened. */
+  const unchanged = written.trim() === text;
+  if (unchanged) err(`vi-natural: unchanged, the gateway returned this string as it was sent: ${JSON.stringify(text)}`);
   if (args.verbose) err(client.usageNote());
-  return 0;
+  return unchanged ? TRANSLATE_UNCHANGED : 0;
 }
 
 export async function doc(args, makeClient) {

@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 /* The spelling of a help flag is the plugin's, not this CLI's, and the name each site spends says
    which reading it wants. Borrowed from a module that imports nothing — README, Layout. */
 import { isHelpWord, wantsHelp } from "../src/resolve/help-word.mjs";
+import { TRANSLATE_UNCHANGED } from "../src/tools/vi-exit.mjs";
 
 import { CliError, err } from "./util.mjs";
 import { Client } from "./gateway/client.mjs";
@@ -68,7 +69,8 @@ Common options:
   -v, --verbose      progress on stderr
   --version          print the version
 
-Exit codes: 0 clean · 1 error, or review found something · 2 written, some strings refused.`;
+Exit codes: 0 clean · 1 error, or review found something · 2 written, some strings refused
+            · ${TRANSLATE_UNCHANGED} translate only: the gateway returned the string as it was sent, and stdout carries it.`;
 
 function parse(argv) {
   if (argv.includes("--version")) return { command: "version" };

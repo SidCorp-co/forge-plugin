@@ -130,6 +130,11 @@ gateway offers.
 - `0` — clean
 - `1` — error, or `review` found something
 - `2` — file written, but some strings were refused and left in English
+- `3` — `translate` only: the gateway returned the string exactly as it was sent
+
+Returning the string unchanged is the right answer for one with nothing in it to translate. `3` is
+there because stdout alone cannot say which answer it is, and a script that pushes what it gets back
+would push the English on.
 
 ## Layout
 
