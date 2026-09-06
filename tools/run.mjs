@@ -16,6 +16,7 @@ import { isRelease, onlyRelease, RELEASE_FILES, versionAt } from "./run/landing.
 import { mintRunId, runIdAt, RUN_ID_VAR } from "./run/run-id.mjs";
 import { markRefused, REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
 import { fileIssue } from "../plugin/src/tracker/filing/route.mjs";
+import { runsMark } from "../plugin/src/stats/eval.mjs";
 import { refusing } from "../plugin/src/resolve/settings.mjs";
 import { CEILINGS, overCeiling, resizeForm, tierOf } from "../plugin/src/ladder.mjs";
 
@@ -551,6 +552,8 @@ const shipSteps = (tree, root, base, note) => {
       if (was) tierCeiling(tree, was);
       gateGrew(tree);
       await reviewOwed(tree);
+      const mark = runsMark(root);
+      if (mark) console.log(`  ${mark}`);
     }],
   ];
 };

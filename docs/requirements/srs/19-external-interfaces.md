@@ -121,3 +121,11 @@ it. Reading is all this product does there.
 - **AC-19-8-3** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "every row of a fixture run is what the transcript adds up to"
   WHERE a call in that record was never answered the CLI SHALL report it as unanswered and SHALL
   add nothing to any waiting time on its account.
+- **AC-19-8-4** · Rev: 1 · Proof: plugin/test/stats/eval.test.mjs "fewer than two full windows is said: the shortfall, or nothing yet to compare"
+  WHEN two windows of runs are compared THEN the CLI SHALL take the last fifty runs and the fifty
+  before them by each run's own last record, adjacent and non-overlapping, and SHALL say how many
+  the earlier window is short of rather than compare against a window it does not hold.
+- **AC-19-8-5** · Rev: 1 · Proof: plugin/test/stats/eval.test.mjs "the ship's mark is one line at a multiple of the window, read off the corpus, and silent otherwise"
+  WHEN a release lands and the project's run count is a positive multiple of the window THEN the
+  release step SHALL end on one line naming the comparison to run, and SHALL keep no record of the
+  crossing beyond the corpus itself.

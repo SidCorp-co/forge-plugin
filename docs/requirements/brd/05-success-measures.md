@@ -19,6 +19,7 @@ here: a measurement quoted in a second place is a number that will disagree with
 | **M-06** Node processes started per tool call by the gate arrangement. | `docs/HOOKS.md` | one |
 | **M-07** Requirements with no issue citing them, and issues citing no clause. | the trace report (ISS-29) | both falling |
 | **M-08** Clauses whose citations went suspect and were never resolved. | the spec gate (ISS-27) | none |
+| **M-09** Minutes and calls per issue-flow run at each rung, the last fifty runs against the fifty before. | `forge stats eval` | falling, or flat while the rounds fall |
 
 ## What is deliberately not measured
 

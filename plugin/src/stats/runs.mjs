@@ -17,7 +17,7 @@ import {
 } from "./transcripts.mjs";
 import { TIERS } from "../ladder.mjs";
 import { fail } from "../resolve/settings.mjs";
-import { flags, wantsHelp } from "../resolve/flags.mjs";
+import { flags } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
 
 const ROWS = 10;
@@ -26,7 +26,7 @@ const LONG_WAIT_MINUTES = 10;
 const WINDOW = /^(?<many>\d+)(?<unit>[dhm])$/u;
 const UNITS = { d: 86_400_000, h: 3_600_000, m: 60_000 };
 
-export const USAGE = [
+export const RUNS_USAGE = [
   "Usage: forge stats runs [--since 3d] [--project <dir>] [--json]",
   "Where an issue-flow run's time and rounds go, read off the transcripts the harness keeps for a",
   "project. Nothing is written and nothing the tracker holds is read: this measures the flow, not",
@@ -49,7 +49,7 @@ const median = (values) => {
 const minutes = (seconds) => Math.round((seconds / 60) * 10) / 10;
 const share = (part, whole) => (whole ? `${Math.round((part / whole) * 100)}%` : "—");
 const add = (map, key, by = 1) => map.set(key, (map.get(key) ?? 0) + by);
-const stamp = (at) => new Date(at).toISOString().slice(0, 16).replace("T", " ");
+export const stamp = (at) => new Date(at).toISOString().slice(0, 16).replace("T", " ");
 
 const REFUSED = /\brefused\b|^Hold —|Exit code [1-9]/mu;
 /* 143 is the shell's own answer to a killed command; the words alone appear in a log a run was
@@ -389,10 +389,10 @@ const windowFrom = (since) => {
   return Date.now() - Number(asked.many) * UNITS[asked.unit];
 };
 
-const projectFrom = (given) => {
+export const projectFrom = (given, verb = "stats runs") => {
   if (given === undefined) return process.cwd();
   if (!given.startsWith("/")) {
-    fail(`stats runs: --project takes an absolute project directory, not \`${given}\`. `
+    fail(`${verb}: --project takes an absolute project directory, not \`${given}\`. `
       + "The transcript root is derived from that path; no transcript is opened by name.");
   }
   return given.replace(/\/+$/u, "") || "/";
@@ -401,7 +401,7 @@ const projectFrom = (given) => {
 export const printRuns = (rest) => {
   /* The generic parser keeps any valued flag it is handed, so `--sincee 1d` profiled the whole
      corpus and said nothing: a filter silently dropped is a measurement that is materially false. */
-  const wrong = unknownFlag("stats runs", rest, { usage: USAGE });
+  const wrong = unknownFlag("stats runs", rest, { usage: RUNS_USAGE });
   if (wrong) fail(wrong);
   const { since, project, json } = flags(rest, "stats runs", ["--json"]);
   const from = windowFrom(since);
@@ -425,23 +425,3 @@ export const printRuns = (rest) => {
   console.log(`${root}\n${aside}\n`);
   for (const line of profileLines(held)) console.log(line);
 };
-
-const SUBJECTS = { runs: printRuns };
-
-export const stats = (argv) => {
-  const [subject, ...rest] = argv;
-  /* Both places help can stand on a verb that takes a subject, through the one predicate that
-     decides what help is: after the verb, and after the subject. */
-  if (wantsHelp(argv) || wantsHelp(rest)) {
-    console.log(USAGE);
-    process.exit(0);
-  }
-  if (!subject || !Object.hasOwn(SUBJECTS, subject)) {
-    if (subject) console.error(`stats: no subject named ${subject}. There is: runs.\n`);
-    console.error(USAGE);
-    process.exit(1);
-  }
-  SUBJECTS[subject](rest);
-};
-
-stats.answersHelp = true;

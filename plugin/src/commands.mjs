@@ -45,7 +45,7 @@ import { knowledge } from "./tools/knowledge.mjs";
 import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
 import { bodyChecked } from "./codex/codex-read.mjs";
-import { stats } from "./stats/runs.mjs";
+import { stats } from "./stats/stats.mjs";
 import { hooks } from "./hooks/hook-log.mjs";
 import { record } from "./flow/record.mjs";
 import { advance } from "./flow/advance.mjs";

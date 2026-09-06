@@ -10,6 +10,7 @@ import { LOG_PATH, MARK, answered, logEntries, modelKey, numbered, scoreOf } fro
 import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
+import { shiftBetween, twoWindows } from "../stats/windows.mjs";
 
 const DEFAULT_WINDOW = 100;
 const REPLAY_WINDOW = 30;
@@ -122,11 +123,7 @@ export const printStats = (rest) => {
    Every number is a column one of the two readers above already computes — a second copy would
    answer differently from `stats` the day either moved. It writes nothing.
    docs/cli/codex-the-log.md. */
-export const evalWindows = (entries, size = MARK) => {
-  const both = windowOf(entries, { last: size * 2 });
-  const now = both.slice(-size);
-  return { now, before: both.slice(0, both.length - now.length) };
-};
+export const evalWindows = (entries, size = MARK) => twoWindows(windowOf(entries, { last: size * 2 }), size);
 
 /* Both dimensions in one key: it is what the issue asks the numbers per, and it is the only key
    under which `scoreOf` answers with exactly one row rather than re-splitting by effort inside. */
@@ -183,19 +180,7 @@ const DIMENSIONS = [
    "unchanged" is the one word that must not describe the mix these numbers are read against. Named
    and never called a cause either — `effort` is derived from a change's size, so a window that moved
    may have met bigger diffs rather than a new default. */
-export const changedBetween = (now, before) => {
-  const tally = (rows, of) => rows.reduce((held, row) => held.set(of(row), (held.get(of(row)) ?? 0) + 1), new Map());
-  return DIMENSIONS.map(([name, of]) => {
-    const here = tally(now, of);
-    const there = tally(before, of);
-    return {
-      name,
-      values: [...new Set([...there.keys(), ...here.keys()])]
-        .map((value) => ({ value, now: here.get(value) ?? 0, before: there.get(value) ?? 0 }))
-        .sort((a, b) => b.now - a.now || b.before - a.before),
-    };
-  });
-};
+export const changedBetween = (now, before) => shiftBetween(now, before, DIMENSIONS);
 
 const changedLine = ({ name, values }) =>
   `  ${name.padEnd(WHEN)} ${values.map((one) => `${one.value} ${one.before || "—"} → ${one.now || "—"}`).join(", ")}`;

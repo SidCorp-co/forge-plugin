@@ -38,6 +38,7 @@ needs that topic and by nobody else.
 | [the filing](cli/filing.md) | Why every route that files an issue calls one interface, why that interface neither prints nor exits, why a route contributes a section rather than joining text on first, and the two decisions each route still makes for itself. |
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, what a call that never returned counts as, and the three rows a hand profile got wrong. |
+| [stats — the eval](cli/stats-the-eval.md) | Why the eval adds no figure of its own, why a window is fifty runs by the run's last record, what the copy installed at a run's start does and does not fix, why the ship prints the mark and nothing remembers it, and why a role on the strongest model reads the result. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, what is withheld by default, and how the CLAUDE.md claims were calibrated. |
 | [which gates run](cli/which-gates-run.md) | Why the switch is derived from the hooks directory, and why exactly one place answers whether a gate is off. |
 | [the project](cli/the-project.md) | Why a host is told from a secret by the shape of the value, where the trim stops, and the edge the credential guard states rather than claims. |
