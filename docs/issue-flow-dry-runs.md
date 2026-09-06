@@ -4430,3 +4430,30 @@ read back. This entry is the first landed through the new verb.
   reader is told which plank is loose.
 - The run reported one instruction it broke: a stream edit on a scratch file where the tool routing
   says Edit. Reported in the handback rather than found later, which is what the routing rule is for.
+
+## Hundred-and-seventy-first dry run — ISS-481, ISS-485, ISS-507
+
+The stats profile's phases, its consult classes and its refusals listing (3.35.186, three commits in
+one ship pass, landed d781564, 656b5a0 and 25868fa). A phase number is declared on the marker row that
+names the phase; the review phase opens on the whole-set read that earns it rather than on a commit
+gate's consult; the refusals listing counts what this plugin refused and not any non-zero exit, with
+the other errors on a line of their own. Verified against the installed copy byte for byte on the
+profile's own output. The corrected reading: sixty-five runs enter review against a hundred and forty
+before, and the listing drops from twenty-five hundred rows to a hundred and seventy-six. No restart
+owed. All three closed by the run. Folded from its handback; the three threads were read back.
+
+- A fix-tier issue drops the plan field, and the developed check still compares the landed files
+  against a plan, so every file reads as the change having grown. The run recorded the gap on the
+  issue it hit; the tier rule and the check disagree, and one of them is wrong.
+- The merged mark's note template invites prose into a slot the developed check parses as a path
+  list. This is the second run in a row to pay for it, three re-marks this time; ISS-511 already
+  holds it and the gap record here says so.
+- The filter on error results was reversed on measurement rather than on argument: four hundred and
+  eleven real refusals against about seven quotations, read off the corpus before the line was kept.
+  A correction to a correction followed, a criterion number off by three, made in the open.
+- One verdict was corrected against the run's own pass: a criterion the build had narrowed was first
+  judged under the broad text. The narrow rule went into a correction and the verdict was superseded;
+  a verdict that passes the wrong sentence is the failure the phase exists to catch.
+- A review finding was rejected with two commits as evidence rather than accepted for peace: the
+  clause it said must bump had not bumped for two earlier additions. A reviewer's rule is checked
+  against the tree's own history before the tree is changed to satisfy it.
