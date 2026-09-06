@@ -150,6 +150,12 @@ than one session works the same checkout, each takes its own worktree. What `in_
 what the landing wrote, and `developed` refuses a path in it that neither the plan nor a correction
 names.
 
+**A file that exists is changed with the Edit tool**, and a new one written with Write; Bash runs
+things. An edit's cost is the old text and the new, and a heredoc pays for the script around them as
+well — and the Edit tool refuses an ambiguous match before it writes, which a script does only where
+somebody wrote that in. A whole-file rewrite is what a file most of whose lines change is owed, and
+nothing else.
+
 **Do not disturb the user's environment.** Establish which one process you may stop before stopping
 anything; `forge hooks --how bash-guard` carries the rest.
 
