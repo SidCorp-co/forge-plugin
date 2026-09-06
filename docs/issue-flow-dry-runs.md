@@ -4210,3 +4210,30 @@ and the skill, not kept in a memory. Fix tier throughout. No restart owed. Close
   is met by taking words out, and the words that go first are the stale ones.
 - Fourteen tracker writes; read-first held eight once each on the run's own previous record, the shape
   ISS-497 now carries with its mechanism.
+
+## Hundred-and-sixty-third dry run — ISS-502
+
+The sixth batch reading, 690eda2..a6c93cd, read once as a whole and landed as one commit that only
+simplifies: fourteen of the dispatcher's nineteen items across fifteen files (3.35.178, landed as
+5e99270, pushed head 49934b9), behaviour proved neutral by running master's binary and the branch's
+over one corpus and comparing byte for byte. The mark moved to a6c93cd. Filed ISS-504 and ISS-505;
+routed four items one record each, two of them into ISS-483 on the file it holds. No restart owed.
+Closed by its run. Folded from its handback; the sixteen comments, the mark and the two filings were
+read back.
+
+- One routed item is the dispatcher's to watch: a withheld release note's reason is stored in the
+  user-facing field, and the translation tool lists that field unconditionally, so a project that sets
+  `translate` has an English withholding reason rewritten as Vietnamese product prose. This project
+  sets none, which is why nothing here showed it. It sits on ISS-483's thread.
+- One item was refused against a primary source: the lease test states that the field writer borrows
+  the lease's comparator by design, and the cycle the reading wanted to break survives the move
+  anyway. A reading's premise loses to the test that states the design.
+- The plan's file set missed a test file the `isReference` move dragged along; `advance --owed`
+  caught it before `developed` and a correction named it. The gate that refuses a landing wrote a
+  file the plan does not name is doing exactly this.
+- The comment-density checker fired on ten files, because removing code while adding explaining
+  comments raises the ratio. Already a checker with an actionable message, so no prose entry was
+  written; the learning guide's pruning rule held.
+- A leased issue refuses a bare `forge comment` and accepts `forge new --into`, so for a finding on a
+  held file the filing route is the only one that works while the holder's lease is live. The
+  dispatcher's briefs say so from here on.
