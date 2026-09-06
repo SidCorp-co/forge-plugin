@@ -148,7 +148,9 @@ function touching(ev, freshMs) {
 
   const cwd = ev.cwd || process.cwd();
   const now = Date.now();
-  const tokens = String(ti.command ?? "").match(TOKEN) ?? [];
+  const command = String(ti.command ?? "");
+  /* Two texts: as written, and with a shell binding and a body's own assembly resolved, so a name the call computed is one to ask the disk about. Beside the raw scan and never instead — the resolved one drops a data heredoc's body. how/writes.md. */
+  const tokens = [...new Set([...(command.match(TOKEN) ?? []), ...(shellWrites(command).match(TOKEN) ?? [])])];
   const since = tokens.length ? callAt(turnRecords(ev.transcript_path ?? "")) : 0;
   const out = new Set();
   for (const token of tokens) {
@@ -331,8 +333,7 @@ export const startsAt = (text) =>
 
 export const starts = (text) => startsAt(text).map((one) => one.said);
 
-/** The one text every write test reads: values resolved, a data heredoc dropped, a `-c` body run. */
-/* Unwrapped before expanded: the shell that takes a `-c` body is what an `env` prefix reaches. */
+/** The one text every write test reads: values resolved, a data heredoc dropped, a `-c` body run — unwrapped before expanded, since the shell that takes a `-c` body is what an `env` prefix reaches. */
 export const shellText = (command, onProgram) =>
   expanded(unwrapped(bodiless(String(command ?? ""), onProgram)));
 

@@ -4,19 +4,18 @@ Why: most edits arrive as `sed -i`, a heredoc or an interpreter opening a path, 
 tool routes sees a fraction of them.
 
 After the call, the disk answers: a token naming a real file whose mtime is at or after this call's
-request was written by it. A checkout stamps a whole tree, so young is not written.
+request was written by it. The token is looked for in the command as written and again with a shell binding resolved
+and a heredoc body's own assembly folded. A checkout stamps a tree, so young is not written.
 
 Before the call there is only the text. A write verb counts in command position — a line's start,
-after `;` `&` `|` `(`, after `-exec`, an assignment prefix, or a wrapper that runs it (`sudo`, `env`,
-`xargs`, …). A library call (`open(…, "w")`, `writeFileSync`, …) counts anywhere.
+after `;` `&` `|` `(` or `-exec`, an assignment prefix, or a wrapper (`sudo`, `env`, `xargs`, …). A
+library call (`open(…, "w")`, `writeFileSync`) counts anywhere. Only a redirect names its target. A
+variable takes an earlier command's assignment, not its own prefix, and `$(…)` is text.
 
-To mention one without writing: keep it out of command position — a `--name` value — or in a data
-heredoc. A `-c` body is run by the shell that takes it, so a verb inside
-`sh -c '…'` is in command position, nested or not.
-
-Only a redirect names its target, so a verb with a target of its own names none. A variable takes an
-assignment from an earlier command, not its own prefix; a name holding another is followed, `$(…)`
-is text, and what only looks like one sets nothing. A body is read by its own bindings, so a path it
-assembles is one it writes.
+To mention one without writing: out of command position — a `--name` value — or in a data heredoc.
+A shell's `-c` body is code, so a write verb there counts.
 
 Not judged: what the write contains, or whether it should happen.
+
+Not seen: a name no spelling produces — a glob's match, a command's output, a variable set
+elsewhere, an interpreter's inline `-c` assembly. Spell it, or reach for `Edit`.

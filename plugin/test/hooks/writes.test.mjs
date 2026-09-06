@@ -4,13 +4,14 @@
    file this call wrote, and a transcript that cannot say. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { realpathSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdirSync, realpathSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { FRESH_MS, callAt, glued, touched } from "../../hooks/_hook.mjs";
+import { FRESH_MS, callAt, glued, shellWrites, touched } from "../../hooks/_hook.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const room = tempRoom("writes-");
+mkdirSync(join(room, "plugin", "src"), { recursive: true });
 const NOW = Date.now();
 let made = 0;
 
@@ -80,6 +81,71 @@ test("the file tools answer with their own path and consult no clock", () => {
   const file = stamped("edited.md", NOW - 10 * FRESH_MS);
   const ev = { session_id: "s1", tool_name: "Edit", tool_input: { file_path: file }, cwd: room };
   assert.deepEqual(touched(ev), [file]);
+});
+
+/* The other half of the same reading: a name the command computes rather than spells. ISS-242 gave
+   the harness `expanded` for a shell's own bindings and `glued` for an interpreter body's, and
+   `shellWrites` runs both — but only the readings taken before a call spent it. The post-call reader
+   spends it *beside* the raw text and never instead of it, because `bodiless` drops a data heredoc's
+   body and the tokens in there are answers this reader has always given (ISS-37). */
+const heredoc = (...lines) => ["python3 - <<'PY'", ...lines, "PY"].join("\n");
+
+test("a path the shell assembled from a binding of its own is a write the reader sees", () => {
+  const file = stamped("plugin/src/piece.mjs", NOW - 5_000);
+  assert.deepEqual(touched(bash("H=plugin/src; sed -i s/x/y/ $H/piece.mjs", asked(NOW - 10_000))), [file]);
+});
+
+test("a path an interpreter body assembled from a binding of its own is one too", () => {
+  const file = stamped("plugin/src/glued.mjs", NOW - 5_000);
+  const bind = ["from pathlib import Path", 'root = "plugin/src"'];
+  const at = asked(NOW - 10_000);
+  assert.deepEqual(
+    touched(bash(heredoc(...bind, 'Path(root + "/glued.mjs").write_text("z")'), at)),
+    [file],
+    "concatenation",
+  );
+  assert.deepEqual(
+    touched(bash(heredoc(...bind, 'Path(f"{root}/glued.mjs").write_text("z")'), at)),
+    [file],
+    "the f-string",
+  );
+  assert.deepEqual(
+    touched(bash(`python3 -c 'root = "plugin/src"; open(root + "/glued.mjs", "w").write("z")'`, at)),
+    [],
+    "an inline body is not folded, only a heredoc's — ISS-444, and how/writes.md names it",
+  );
+});
+
+/* The case a reader that resolved *instead of* reading the raw text would lose. */
+test("a data heredoc's body still names a write, though the resolved text has dropped it", () => {
+  const file = stamped("plugin/src/data.mjs", NOW - 5_000);
+  const command = ["cat <<'EOF' | grep x", "plugin/src/data.mjs", "EOF"].join("\n");
+  assert.equal(shellWrites(command).includes("data.mjs"), false, "the body is data, so it is gone");
+  assert.deepEqual(touched(bash(command, asked(NOW - 10_000))), [file]);
+});
+
+test("a loop over names the command spells is read, and one over a glob is a write nobody sees", () => {
+  const one = stamped("plugin/src/one.mjs", NOW - 5_000);
+  const two = stamped("plugin/src/two.mjs", NOW - 5_000);
+  const at = asked(NOW - 10_000);
+  assert.deepEqual(
+    touched(bash('for f in plugin/src/one.mjs plugin/src/two.mjs; do sed -i s/x/y/ "$f"; done', at)),
+    [one, two],
+  );
+  assert.deepEqual(
+    touched(bash('for f in plugin/src/*.mjs; do sed -i s/x/y/ "$f"; done', at)),
+    [],
+    "no spelling in the text produces what a glob matched, and how/writes.md says so",
+  );
+});
+
+test("a name only a binding produces still answers to this call's floor", () => {
+  stamped("plugin/src/stamped.mjs", NOW - 30_000);
+  assert.deepEqual(
+    touched(bash("H=plugin/src; sed -i s/x/y/ $H/stamped.mjs", asked(NOW - 10_000))),
+    [],
+    "young enough for the window and older than the call, so the floor is what turns it down",
+  );
 });
 
 test("the call began where the last assistant record stands, and a record with no timestamp says nothing", () => {
