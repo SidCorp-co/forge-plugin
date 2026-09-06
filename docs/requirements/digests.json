@@ -1002,12 +1002,12 @@
       "digest": "efa1469835bdb53c05632ca8d700d3bc24c6eb62a714e72423e68478bbf592a5"
     },
     "UC-07-2": {
-      "rev": 2,
-      "digest": "082f1d229dbbfc31eb41addb402a0aa4ab32f1f4295f1bcc27bd9b52f68f865e"
+      "rev": 3,
+      "digest": "4fcbd4d9442d0a757769eca2edb6a4317baddcc8b36b674fdf1f818454828f81"
     },
     "AC-07-2-1": {
-      "rev": 1,
-      "digest": "dbfa37ea649c6d045469c606ca0fa6af3f27e94a0687bea96ad06720076a50c2"
+      "rev": 2,
+      "digest": "b34af1ebe3888ffb9ab0172123f1c9002296f034bba26cf8e9dba85faff612fa"
     },
     "AC-07-2-2": {
       "rev": 1,
@@ -1024,6 +1024,10 @@
     "AC-07-2-5": {
       "rev": 1,
       "digest": "46088251ab75cafeaeefcb5d675be36f060e53e184adcd52564660efa781f15f"
+    },
+    "AC-07-2-6": {
+      "rev": 1,
+      "digest": "b84bf7394362102c5e73fc078f43bb43704d4b60fe44187c32e09b86807b3d7b"
     },
     "UC-07-3": {
       "rev": 1,

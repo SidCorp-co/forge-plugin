@@ -50,23 +50,31 @@ rest are not asked; after one, every gate's answer travels together.
 
 ### UC-07-2 — What counts as a write
 
-Rev: 2 · Actors: agent · Enforces: BR-08, BR-09
+Rev: 3 · Actors: agent · Enforces: BR-08, BR-09
 
 Most edits arrive through a shell, so a gate watching the host's edit routes sees a fraction of
 them. One account answers for every gate that asks: after a call the disk answers, and before a
 call the command's text does, judged where a command starts.
 
 The reach of that account is exactly its mechanism, and the clause says so rather than promising
-more: after a call, a token in the command that names a real file whose mtime is at or after the
-moment that call was asked for is a write, so a route that spells its target is covered, one that
-computes the name is not, and a tree stamped whole before the call is nobody's work. Three cases sit
-outside it and are claimed by nothing: a write that lands after its own call has been judged, a
-route that preserves a timestamp it did not set, and a file written by another call of the same
-request.
+more. After a call a candidate is a token in the command naming a real file whose mtime is at or
+after the moment that call was asked for, so a route that spells its target is covered, one that
+computes the name is not, and a tree stamped whole before the call is nobody's work. A candidate the
+command's own text claims a write for is settled there. Any other is set aside only where the
+repository is asked and answers that it holds nothing about that file, neither a change against the
+last commit nor one staged for it — so a call that moved the tree and then read what it moved is
+separated from one that handed a path to a route whose text carries no write shape and really
+changed it, while a candidate the repository could not be asked about is kept, doubt costing a write
+claimed twice rather than one claimed by nobody. What that costs is a route of the second kind
+putting a file back to exactly the bytes the repository already holds, which nothing after the fact
+separates from never having touched it. Claimed by nothing: a write that lands after its own call
+has been judged, and a route that preserves a timestamp it did not set. A file written by another
+call of the same request is claimed by whichever call names it, since the calls of one request share
+the moment they were asked for.
 
-- **AC-07-2-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
-  WHEN a call has written a file whose name the command spells THEN the gates SHALL see that file,
-  whichever route wrote it.
+- **AC-07-2-1** · Rev: 2 · Proof: plugin/test/hooks/writes.test.mjs "a tracked file the same call really changed is a write, whichever route wrote it"
+  WHEN a call has left a file whose name the command spells differing from what the repository holds
+  THEN the gates SHALL see that file, whichever route changed it.
 - **AC-07-2-2** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "a literal inside a program is data, and the line that ran it is not"
   IF a write verb appears where a command starts THEN it SHALL count as a write, and one inside a
   data body SHALL not.
@@ -78,6 +86,10 @@ request.
 - **AC-07-2-5** · Rev: 1 · Proof: plugin/test/hooks/writes.test.mjs "a file the checkout stamped before the call began is nobody's write"
   WHERE a checkout stamped every file in it moments before a call, a call that only reads one of
   those files SHALL count as no write.
+- **AC-07-2-6** · Rev: 1 · Proof: plugin/test/hooks/writes.test.mjs "a checkout in the same call stamped the files, and the verb after it only named them"
+  WHERE a call left a file's timestamp fresh, the command's own text claims no write to it, and the
+  repository is asked and answers that it holds nothing about that file, the gates SHALL count no
+  write.
 
 ### UC-07-3 — A refusal, and the document behind it
 
