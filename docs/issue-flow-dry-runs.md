@@ -3793,3 +3793,29 @@ routed notes were read back.
 - The merged mark was written twice, the first note's landing clause reading a test name for paths;
   the correction sits behind the comment-page cut while the mark does not, so a later reader sees the
   bad note without its explanation, and nothing on the CLI can fix that.
+
+## Hundred-and-forty-eighth dry run — ISS-445
+
+The wave's own defect, taken over its rank the hour it was filed: every agent of a dispatched wave
+answered the parent's session id, because the id fell through to a variable every subagent inherits, so
+a whole wave was one lease holder and the live-holder refusal was unreachable in the only case it
+exists for. The run measured that no ambient per-agent discriminator exists — the process id and the
+messaging socket both name the parent, the working directory the main checkout — so a per-run id must
+be given, not derived: the start of a run mints one and keeps it in the worktree's git directory, the
+id source is a table a caller can ask, and the doctor reads it without minting (3.35.162, landed as
+f5b9bc2; fifteen files). Purely additive: with no id given the session reads exactly as before, so no
+held lease of the parent or of a live sibling changed meaning mid-wave. Disclose, not refuse. No
+restart owed. Closed by its run. Folded from its handback; the filing was read back.
+
+- The hook stamps key on the event's own session id and the codex state reads none, so the one source
+  that changed reached exactly the readers the plan named; the run checked each rather than asserting
+  it.
+- A no-op rebase that rewrites a sha and nothing else re-owes every verdict, because the advance
+  compares the sha rather than the tree over the touched set; a push race with a sibling charged
+  seventeen re-recorded verdicts for zero changed bytes (ISS-453).
+- The run's first feedback call created its issue and printed a neighbour list the run read as a
+  failure, so the retry appended the body a second time as a comment; the key is at the head of the
+  reply and the list at the tail. One of ISS-449's five sightings is this shape and not a missing
+  write, and the dispatcher's triage says which to separate first.
+- A whole-tree baseline at the branch base came from a throwaway worktree, since both the stash and
+  the checkout of the tree are refused in a repository with several worktrees, correctly.
