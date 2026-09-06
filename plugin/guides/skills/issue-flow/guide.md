@@ -123,9 +123,12 @@ the same change rewrites. It carries the declaration lines `forge guide contract
 Declaring a screen change is what turns the credential ask from worth making into owed, because the
 declaration is what makes a rendered state this issue's evidence.
 
-Criteria are numbered, one outcome per line a reader could check without opening the diff, no
-conjunctions: a criterion joined by "and" is two. They are written before the code and never relaxed
-to match what got built; a wrong one is corrected in the open, with `forge record correction`.
+Criteria are numbered, one outcome per line a reader could check without opening the diff: a line
+carrying two outcomes is two criteria, and the write refuses the ones it can prove, naming each half
+before any consult is asked for. A conjunction inside one outcome — two nouns, two subjects under
+one verb, a condition joined to its outcome — is one claim and stands. They are written before the
+code and never relaxed to match what got built; a wrong one is corrected in the open, with `forge
+record correction`.
 
 **Both are read before the issue takes them.** Every later phase is built against this text, so a
 second reader here is worth more than the same reader after the code: `forge plan` and `forge record

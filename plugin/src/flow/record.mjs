@@ -3,8 +3,9 @@
 import { fail, translateTo } from "../resolve/settings.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { criteriaChecked } from "../spec/checked.mjs";
-import { CLOSES_FROM, FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, atMinute, blockOf, criterionNumber, markedCommit, readRecords, tagFor, unwrap } from "./machine.mjs";
-import { bodyChecked } from "../codex/codex-read.mjs";
+import { CLOSES_FROM, FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, atMinute, blockOf, compoundCriteria, criterionNumber, markedCommit, readRecords, tagFor, unwrap } from "./machine.mjs";
+import { readOrRefuse } from "../codex/codex-read.mjs";
+import { bodyFrom } from "../resolve/payload.mjs";
 import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
 import { commentPage, cutLine, postComment } from "../tracker/comments.mjs";
 import {
@@ -95,13 +96,6 @@ export const kindHelp = (kind) => [
     + `${KINDS.length - 1} kinds: \`forge record -h\`.`,
 ].join("\n");
 
-const wordIn = (word, text) => new RegExp(`(?:^|[^\\p{L}])${word}(?![\\p{L}])`, "iu").test(text);
-
-/* The list follows the project's prose language, English where it names none: a warning at the
-   write, never a refusal, because "and" also joins two nouns in one outcome. */
-export const conjunctionsFor = (language = translateTo()) =>
-  /^vi/iu.test(language ?? "") ? ["và", "hoặc", "cũng như", "đồng thời"] : ["and", "or", "as well as", "plus"];
-
 export const criteriaLines = (text) => {
   const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
   const out = [];
@@ -116,8 +110,22 @@ export const criteriaLines = (text) => {
   return out;
 };
 
-export const joinedCriteria = (criteria, words) =>
-  criteria.filter((one) => words.some((word) => wordIn(word, one.text))).map((one) => one.number);
+/* The grammar's own reading, in the language the project writes its prose in: `machine.mjs` says
+   which shapes it can prove and which it lets through. The refusal carries the halves, because a
+   line named without them is a second reading the author has to make. */
+export const compoundRefused = (criteria, language = translateTo()) => {
+  const found = compoundCriteria(criteria, language);
+  if (!found.length) return;
+  refuse([
+    `${found.length === 1 ? "One criterion carries" : `${found.length} criteria carry`} two outcomes,`
+      + " which is two criteria, so nothing was written:",
+    ...found.flatMap((one) => [
+      `  ${one.number}. one outcome: ${one.first}`,
+      `  ${String(one.number).replace(/./gu, " ")}  another: ${one.second}`,
+    ]),
+    "Split each into two numbered lines, renumber what follows, and send the file one consult reads.",
+  ].join("\n"));
+};
 
 /* A heading for a person, the payload fenced and the tag in a code span so the prose rewrite copies
    both byte for byte. The stamp is read off the issue at the write and is no flag: a value the
@@ -493,16 +501,18 @@ const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
   if (!path) refuse(CRITERIA_BODY);
   if (path.startsWith("--")) refuse(`${didYouMean("record criteria flag", path, RUN_FLAGS)} ${CRITERIA_BODY}`);
   if (extra.length) refuse(`record criteria takes one file and nothing after it, not \`${extra.join(" ")}\`.`);
-  const criteria = criteriaLines(await bodyChecked(path, refuse));
+  /* The file's own shape first, the consult after it: a criterion this verb will refuse anyway is
+     one no review round should have been spent on, which is the whole of ISS-483. */
+  const { refusal, text } = readOrRefuse(path);
+  if (refusal && text === null) refuse(refusal);
+  const criteria = criteriaLines(text ?? await bodyFrom(path));
   criteriaChecked(criteria, refuse);
-  const joined = joinedCriteria(criteria, conjunctionsFor());
+  compoundRefused(criteria);
+  if (refusal) refuse(refusal);
   const { documentId, body } = await issueOf(reference);
   const acceptanceCriteria = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");
   sayStored("criteria");
   await writeField(documentId, "acceptanceCriteria", acceptanceCriteria, { ref: reference, next, patch, refuse });
-  for (const number of joined) {
-    console.error(`criterion ${number} holds a conjunction: is it two? A verdict judges one outcome.`);
-  }
   console.log(acceptanceCriteria);
   await sayOwed(documentId, { ...body, acceptanceCriteria }, reference);
 };

@@ -184,7 +184,7 @@ hid — so a page that came back short is judged as a feature's.
 | the plan is possible | the plan in its field; numbered criteria in theirs; the screen and schema flags, and the user-facing outcome where a person judges the result | `approved` |
 | **trivial** — the plan is possible | numbered criteria alone, as the row below; writing a plan that declares a screen change or a user-facing outcome moves it one rung to `fix` | `approved` |
 | **fix** — the plan is possible | numbered criteria alone, being the one check that fails without the change; no plan field, and its absent declarations read *no* — writing one that declares a screen change or a user-facing outcome is how a fix moves up a rung | `approved` |
-| a criterion joined by a conjunction | a warning at the write, never a refusal | unchanged until the author splits it or keeps it |
+| a criterion carrying two outcomes | refused at the write, each half named | unchanged until the author splits it into two numbered lines |
 | planning proves the claim false | a new confirmation with a disposition finding | back to `confirmed`, then `dropped` |
 | the project names an approver | nothing more | `approved` once that person has commented |
 
@@ -651,9 +651,9 @@ by number and quotes the text it judged; one with no evidence is refused; a crit
 verdict keeps the issue out of `tested`. An evidence document is attached once under one name, and
 an amended one goes up under a new name that the later verdicts cite, because a name attached twice
 resolves to two documents and every verdict naming it is ambiguous (ISS-55 owes the refusal). The kind of evidence a criterion needs is its author's to
-name and the reviewer's to judge; the contract checks presence and the commit, not truth. Whether
-a criterion is really two is a warning at the write, from a conjunction list the project's prose
-language supplies, never a refusal.
+name and the reviewer's to judge; the contract checks presence and the commit, not truth. A criterion
+carrying two outcomes is refused at the write with each half named, and the grammar that reads it is
+the project's prose language: where that language has no grammar, no line is refused.
 
 **A change that claims no behaviour change earns `tested` by identity.** A refactor has nothing to
 observe, so its criteria are the three things a move can break: the export surface of every touched

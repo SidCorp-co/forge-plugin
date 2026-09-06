@@ -102,18 +102,29 @@ after approval is refused without one, so criteria cannot be relaxed to fit what
   WHEN a report is assembled THEN it SHALL show every instance of a kind that repeats rather than
   the latest one.
 
-### UC-04-5 — The criteria are numbered lines, and a conjunction is a warning
+### UC-04-5 — The criteria are numbered lines, and a line carrying two outcomes is refused
 
-Rev: 1 · Actors: agent · Enforces: BR-01
+Rev: 2 · Actors: agent · Enforces: BR-01
 
-A criterion is a line opening with its number, which is what a verdict names. Whether a criterion
-is really two is a warning at the write and never a refusal: a lexical check cannot tell two claims
-from one sentence, and a run that read the warning and kept a list of accepted values was right to.
+A criterion is a line opening with its number, which is what a verdict names. A line carrying two
+outcomes is two criteria and is refused before the write, with each half named, because a verdict
+judges one outcome. What is refused is an outcome on each side of the coordinator and never the
+coordinator itself: a reading that cannot prove both halves are outcomes writes the line, since a
+miss costs one review round and a wrong refusal costs the write. The refusal comes before the
+consult the write asks for, or the round it saves is the round it spends.
 
 - **AC-04-5-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "the criteria field is read off its numbered lines, and unnumbered prose is no criteria"
   WHEN the criteria field is read THEN prose without numbered lines SHALL be read as no criteria.
-- **AC-04-5-2** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "criteria are numbered lines, and a conjunction is a warning the caller decides on"
-  IF a criterion holds a conjunction THEN the CLI SHALL warn at the write and SHALL still write it.
+- **AC-04-5-2** · Rev: 2 · Proof: plugin/test/flow/record.test.mjs "criteria are numbered lines, and a line carrying two outcomes is refused with the halves"
+  IF a criterion carries two outcomes THEN the CLI SHALL refuse the write and SHALL name each half it read.
+- **AC-04-5-3** · Rev: 1 · Proof: plugin/test/flow/criteria.test.mjs "the compound reading refuses a second clause and lets a second noun phrase write"
+  WHERE a coordinator joins two noun phrases, joins two subjects under one verb, joins conditions to one outcome, sits inside a word, or sits inside a code span, the CLI SHALL write the criterion.
+- **AC-04-5-4** · Rev: 1 · Proof: plugin/test/flow/criteria.test.mjs "the compound reading refuses a second clause and lets a second noun phrase write"
+  WHERE the project's prose language is one the criteria grammar does not carry, the CLI SHALL write every criterion.
+- **AC-04-5-5** · Rev: 1 · Proof: plugin/test/flow/criteria.test.mjs "the frozen corpus of sixty criteria is read as three compound lines and no more"
+  WHILE a set of criteria written before this reading existed is read, the CLI SHALL refuse only the lines carrying two outcomes.
+- **AC-04-5-6** · Rev: 1 · Proof: plugin/test/flow/criteria.test.mjs "a compound line is refused before the consult the write asks for"
+  IF a criterion carries two outcomes THEN the CLI SHALL raise its refusal before asking for a review of the file.
 
 ### UC-04-6 — A report is assembled, never remembered
 

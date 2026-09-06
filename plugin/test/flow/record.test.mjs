@@ -11,7 +11,7 @@ import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-");
 const {
-  KINDS, USAGE, assemble, checked, conjunctionsFor, criteriaLines, fromRecord, joinedCriteria, noteFrom, parse, render,
+  KINDS, USAGE, assemble, checked, compoundRefused, criteriaLines, fromRecord, noteFrom, parse, render,
 } = await import("../../src/flow/record.mjs");
 const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../src/flow/machine.mjs");
 const { CONTRACT } = await import("../../src/guides/contract.mjs");
@@ -176,12 +176,12 @@ test("a park records the status it left, and free text is no record", () => {
   assert.equal(parse("`forge-record: nonsense · contract 1`"), null, "an unknown kind is no record");
 });
 
-test("criteria are numbered lines, and a conjunction is a warning the caller decides on", () => {
+test("criteria are numbered lines, and a line carrying two outcomes is refused with the halves", () => {
   const criteria = criteriaLines("1. The list is sorted by name.\n\n2. An empty list shows the empty state and hides the export.\n");
   assert.deepEqual(criteria.map((one) => one.number), [1, 2]);
-  assert.deepEqual(joinedCriteria(criteria, conjunctionsFor("off")), [2]);
-  assert.deepEqual(joinedCriteria(criteria, conjunctionsFor("vi")), [], "another language, another list");
-  assert.deepEqual(conjunctionsFor("vi"), ["và", "hoặc", "cũng như", "đồng thời"]);
+  assert.throws(() => compoundRefused(criteria, "en"), /2\. one outcome: An empty list shows the empty state/u);
+  assert.throws(() => compoundRefused(criteria, "en"), /another: hides the export\./u);
+  assert.doesNotThrow(() => compoundRefused(criteria, "vi"), "another prose language, no grammar and no refusal");
   assert.throws(() => criteriaLines("The list is sorted.\n"), /numbered line/u);
   assert.throws(() => criteriaLines("\n"), /No criteria/u);
   assert.throws(() => criteriaLines("1. A.\n1. B.\n"), /Two criteria are numbered 1/u);

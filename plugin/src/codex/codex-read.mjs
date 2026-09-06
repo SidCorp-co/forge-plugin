@@ -29,7 +29,8 @@ const carriedWhole = (entry, rel) => {
 };
 
 const STOOD_DOWN = { refusal: null, text: null };
-const refusing = (refusal) => ({ refusal, text: null });
+/* The bytes ride along with the consult refusal: a caller whose own checks refuse this file spends no consult on it. */
+const refusing = (refusal, text = null) => ({ refusal, text });
 
 /* Any consult, not the latest: restored bytes are read bytes, which a hash says and a clock denies. */
 const readWhole = (mine, rel, sha) => mine.some((one) => carriedWhole(one, rel)?.sha === sha);
@@ -70,7 +71,7 @@ export const readOrRefuse = (path, cwd = process.cwd()) => {
   const text = readFileSync(held.real, "utf8");
   const mine = judgedBy(logEntries(), root, [held.rel]);
   if (readWhole(mine, held.rel, digest(text))) return { refusal: null, text };
-  return refusing(readIt(here, root, held.rel, whyNot(mine, held.rel)));
+  return refusing(readIt(here, root, held.rel, whyNot(mine, held.rel)), text);
 };
 
 /** The body both verbs write: the judged bytes, or — only under the kill switch — the reader's own. */

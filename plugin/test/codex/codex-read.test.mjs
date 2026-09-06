@@ -200,13 +200,18 @@ test("the log this suite wrote is the sandbox's, never the developer's", () => {
 });
 
 /* The caller posts these bytes and never reads again: between a second read and the first sits a
-   tracker round trip, and the field would carry the file nobody was shown. */
-test("what comes back is the text that was judged, not a promise to read it again", () => {
+   tracker round trip, and the field would carry the file nobody was shown. Unjudged bytes come back
+   too, under a refusal, so a caller can refuse the file's own shape before spending a consult on it
+   (ISS-483); what keeps them off the tracker is the refusal beside them, which every caller raises. */
+test("what comes back is the text that was judged, and unjudged text arrives under a refusal", () => {
   const { root, path, rel } = room();
   consulted(root, rel, PLAN, { id: "byte01" });
   assert.deepEqual(readOrRefuse(path, root), { refusal: null, text: PLAN });
   writeFileSync(path, "swapped after the read\n");
-  assert.equal(readOrRefuse(path, root).text, null);
+  const seen = readOrRefuse(path, root);
+  assert.equal(seen.text, "swapped after the read\n");
+  assert.match(seen.refusal, /its text has changed since/u);
+  assert.equal(readOrRefuse(root, root).text, null, "and a path no read could reach carries none");
 });
 
 /* A command a caller pastes has to survive their shell: a name with a space in it became two paths,
