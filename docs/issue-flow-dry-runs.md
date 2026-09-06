@@ -3901,3 +3901,29 @@ were read back, and ISS-454 was dropped as already fixed by the dispatcher.
 - ISS-5 was commented on and reads `open`; the run had no record of its pre-comment status, so
   whether the comment reset a park (ISS-429) is unknown. The tracker's history is not readable through
   the raw call, so the fold could not settle it either.
+
+## Hundred-and-fifty-second dry run — ISS-449
+
+The silent-filing defect, half of it: every arm of `forge new` and `forge feedback` now ends its
+standard output on a line naming the id it wrote, and that id is one a second read found rather than
+the create's own echo (3.35.167, landed as eb7ccc8). The other half was disproved rather than fixed: a
+call that exits zero and writes nothing is not reachable on this code. What the dispatcher had seen
+five times was the read-first hold refusing once, on standard error with standard output empty, and
+crediting the delivery so that the second identical call wrote; the zero on record was the pipeline's
+own exit status, from the filter after the pipe. The landed writes that read as failures were the ones
+whose reply ended on the neighbour block's trailer with the key only in the head. No restart owed.
+Closed by its run. Folded from its handback; the two release verifications, the merged mark, ISS-467
+and ISS-468 were read back.
+
+- The plan's fifth rung, a non-zero exit where a read-back found nothing, turned thirty-four cases red
+  across five suites: every fake tracker in the tree echoes a create without storing it, exactly as
+  the real reply does. A caller told a landed write failed sends it twice, which is worse than the
+  defect, so the rung came out and a correction says why.
+- The tracker directory and its test mirror were both at the ten-file ceiling, so the filing modules
+  moved into a directory of their own and eleven importers moved with them. A plan record naming the
+  old paths is stale, and the handback says so for the runs still open.
+- A run that sets its own session id after claiming under the wave's is locked out of its own lease;
+  the per-run id written at the cut is read by nothing (ISS-467). The dispatcher's own eval run set
+  the id before its first write and was not caught.
+- Seven consult rounds hardened one plan clause that a single gate run then disproved; a gap record
+  names the method.
