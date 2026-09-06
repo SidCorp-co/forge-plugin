@@ -1,6 +1,8 @@
 /* A project whose `.forge.json` names a prose language has every body and prose field rewritten on
-   the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite
-   copies byte for byte: a fenced block, or a code span. Nothing imports here, so both sides can. */
+   the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. Nothing imports here, so both sides can. */
+
+/** An ISO stamp to the minute, as every screen in this tree shows one; apart from `lease.mjs`'s and `stats/runs.mjs`'s, which take milliseconds. */
+export const atMinute = (at) => String(at ?? "").slice(0, 16);
 
 const INFO = "forge-record";
 const KEY = /^([a-z][a-z0-9-]*): ?(.*)$/u;

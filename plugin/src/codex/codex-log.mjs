@@ -127,7 +127,7 @@ const verdictLine = (held) => {
    only order. One sharing a file is what "still open" can be answered against. */
 const sharing = (one, rels) => (one.files ?? []).some((file) => rels.includes(file));
 
-/** The answered consults of this root naming any of these files, oldest first — the subset three readings want, one of them in another module. */
+/** The answered consults of this root naming any of these files, oldest first: what a recheck here follows, and what codex-read.mjs asks the same question of. */
 export const judgedBy = (entries, root, rels) =>
   answered(entries).filter((one) => one.root === root && sharing(one, rels));
 
@@ -494,9 +494,10 @@ export const verdict = (rest, root) => {
      after a converged recheck the last answer found nothing, and a verdict landed on it twice. */
   const entries = logEntries();
   const own = answered(entries).filter((one) => !root || one.root === root);
+  const open = unverdicted(entries, root);
   const last = of
     ? own.find((one) => one.id === of)
-    : unverdicted(entries, root) && own.find((one) => one.id === unverdicted(entries, root).id) || own.at(-1);
+    : open && own.find((one) => one.id === open.id) || own.at(-1);
   if (!last) fail(of ? `codex: no consult ${of} has answered here.` : `codex: no consult has answered${root ? " for this repository" : ""} yet.`);
   const held = verdictRecord(last, {
     accepted: accepted.length ? accepted.join(",") : undefined,

@@ -10,6 +10,7 @@ import {
   answered, countedIn, logEntries, numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted,
   verdictsBy,
 } from "../codex/codex-log.mjs";
+import { atMinute } from "./machine.mjs";
 
 export const KEY = "worklog";
 export const OPEN_KEPT = 8;
@@ -176,7 +177,7 @@ export const worklogLines = (worklog, next = null) => {
     if (worklog?.[name]) out.push(`${name.padEnd(11)} ${worklog[name]}`);
   }
   if (worklog?.touched) out.push(`touched     ${worklog.touched}`);
-  if (worklog?.at) out.push(`captured    ${worklog.at.slice(0, 16)}, from git at that moment`);
+  if (worklog?.at) out.push(`captured    ${atMinute(worklog.at)}, from git at that moment`);
   if (worklog?.copy) out.push(`copy        ${worklog.copy}`);
   if (worklog?.review) out.push(`review      ${reviewLine(worklog.review)}`);
   for (const one of worklog?.open ?? []) out.push(`open        ${one}`);

@@ -3,7 +3,8 @@
 
 import { deny, done, how, shellText, starts } from "../_hook.mjs";
 import { refusalFor, sessionKey } from "../../src/tracker/comments.mjs";
-import { filingsOf, joined, refusalForCall, writeTargets } from "../../src/tracker/issue-read.mjs";
+import { filingsOf, joined, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
+import { actionIn, wrappedRefusal } from "../../src/resolve/visibility.mjs";
 import { refusalFrom, shapeOf } from "../../src/tracker/issue-shape.mjs";
 import { documentIdOf } from "../../src/tracker/issues.mjs";
 import { accountCredentials } from "../../src/resolve/settings.mjs";
@@ -22,7 +23,7 @@ export const run = async (ev) => {
   const call = { name: ev.tool_name, input: ev.tool_input };
   const refs = writeTargets(call, said);
   const filings = filingsOf(call, said);
-  const wrapped = refusalForCall(call);
+  const wrapped = wrappedRefusal(toolOfCall(call.name), actionIn(call.input));
   if (!refs.length && !filings.length && !wrapped) done();
   const { url, token } = accountCredentials();
   if (!url.value || !token.value) done();

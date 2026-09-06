@@ -44,19 +44,16 @@ const problemOf = (index, one) => {
 
 const once = (entries, key) => [...new Map(entries.map((one) => [key(one), one])).values()];
 
-/** One sentence per identifier of `ids` carrying a revision that does not resolve against `index`.
- *  The parsed list is the unit, never the text behind it, which the caller has already read once. */
+/** One sentence per identifier of `ids` carrying a revision that does not resolve against `index`. The parsed list is the unit, never the text behind it, which the caller has already read once. */
 export const citationProblems = (index, ids) =>
   once(ids.filter((one) => one.rev !== null), (one) => `${one.id}~${one.rev}`)
     .map((one) => problemOf(index, one))
     .filter(Boolean);
 
 /** Said and never refused until ISS-27's gate compares the recorded hash. */
-export const unrevisionedIn = (index, ids) =>
-  once(
-    ids.filter((one) => one.rev === null && lookup(index, one.id).clause),
-    (one) => one.id,
-  ).map((one) => one.id);
+export const unrevisionedIn = (index, ids) => [...new Set(ids
+  .filter((one) => one.rev === null && lookup(index, one.id).clause)
+  .map((one) => one.id))];
 
 export const citationRefusal = (problems) => (problems.length
   ? ["This citation does not resolve against this project's requirements tree, so nothing was written:",

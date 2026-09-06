@@ -385,10 +385,17 @@ const sectionGaps = (text, shape, among) =>
 /** Every gap the body decides with no tracker read, and the one line a shortfall no gap refuses
  *  earns. `fix` is returned rather than refused: what clears it is the route the caller named.
  *  `everySection` is for a filing with no such route and no light path — docs/cli/feedback.md. */
+/** What a filing asks the backlog with: the place its body names, and the words it would be found
+ *  by. Read from the filing alone, so a caller ranking heads pays none of the shape reading. */
+export const asksOf = ({ title, body, kind = null }) => {
+  const text = String(body ?? "");
+  return { place: placeIn(text), seed: seedFor({ title, body: text, kind }) };
+};
+
 export const shapeOf = ({ title, body, kind = null }, { everySection = false } = {}) => {
   const text = String(body ?? "");
   const written = text.replace(MARK_LINE, "").trim();
-  const asks = { place: placeIn(text), seed: seedFor({ title, body: text, kind }) };
+  const asks = asksOf({ title, body: text, kind });
   if (!written) {
     return { ...asks, gaps: [need(`${text.length} character(s) of body and no text in them`, "the issue itself: "
       + "what is true after the change, the rule that says so, and what is out of scope",

@@ -15,6 +15,7 @@ import { owedLine, policyFor } from "./route.mjs";
 import { worklogLines } from "./worklog.mjs";
 import { briefOf } from "./brief.mjs";
 import { SHARED_HOLDER } from "./lease.mjs";
+import { atMinute } from "./machine.mjs";
 
 export const USAGE = [
   usageOf("resume"),
@@ -54,7 +55,7 @@ const held = (brief) => {
   if (!one) return [];
   return [
     `${one.state}: session ${one.holder} (${one.agent}, pid ${one.pid}), renewed `
-    + `${one.renewedAt.slice(0, 16)} for ${one.minutes} minute(s), ${one.claims} claim(s) on the record`,
+    + `${atMinute(one.renewedAt)} for ${one.minutes} minute(s), ${one.claims} claim(s) on the record`,
     ...(one.holderShared ? [SHARED_HOLDER] : []),
   ];
 };

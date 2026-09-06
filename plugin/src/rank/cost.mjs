@@ -1,14 +1,10 @@
 /* The three signals printed beside the score and folded into none of it: docs/cli/next.md. */
-import { join } from "node:path";
-
-import { callsIn, readTranscript, slugFor, transcriptBase } from "../stats/transcripts.mjs";
+import { callsIn, readTranscript } from "../stats/transcripts.mjs";
 import { keysIn } from "../tracker/issues.mjs";
 import { meets, pathsNamed } from "./eligible.mjs";
 import { bandOf } from "./score.mjs";
 import { freezesSession } from "../tools/plugin-copy.mjs";
 import { runsUnder } from "../stats/runs.mjs";
-
-export const rootFor = (directory) => join(transcriptBase(), slugFor(directory.replace(/\/+$/u, "") || "/"));
 
 const claimedIn = (text) => {
   const claim = callsIn(text).calls.find((call) => call.class === "forge claim");

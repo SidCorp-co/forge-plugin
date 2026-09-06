@@ -139,7 +139,7 @@ export const claim = async (argv) => {
   const context = issue?.sessionContext ?? null;
   const lease = leaseOf(context);
   const mine = sessionSourced();
-  const holder = mine.id || sessionOf();
+  const holder = sessionOf();
   const state = stateOf(lease, holder);
   if (state === "live") fail(claimRefusal(ref, lease));
   const left = lease?.next ?? null;

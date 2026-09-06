@@ -12,13 +12,16 @@ import { scoped, write } from "./rpc.mjs";
 const COMMENT_PAGE = 200;
 
 export const commentPage = (documentId) =>
-  scoped("forge_comments", { action: "list", filters: { issue: documentId }, limit: COMMENT_PAGE }).then((got) => ({
-    comments: rowsOf(got, "comments"),
-    hasMore: Boolean(got?.hasMore),
-    returned: Number(got?.returned ?? rowsOf(got, "comments").length),
-    by: got?.truncatedBy ? String(got.truncatedBy) : null,
-    notice: got?.notice ? String(got.notice) : null,
-  }));
+  scoped("forge_comments", { action: "list", filters: { issue: documentId }, limit: COMMENT_PAGE }).then((got) => {
+    const comments = rowsOf(got, "comments");
+    return {
+      comments,
+      hasMore: Boolean(got?.hasMore),
+      returned: Number(got?.returned ?? comments.length),
+      by: got?.truncatedBy ? String(got.truncatedBy) : null,
+      notice: got?.notice ? String(got.notice) : null,
+    };
+  });
 
 /* What a message spends on a cut page: the tracker's own count, cap and notice, and none of ours. */
 export const cutLine = ({ returned = 0, by = null, notice = null } = {}) => {
@@ -109,14 +112,19 @@ export const delivery = (owed) => [
   ...owed.flatMap((one) => bodies(one.ref, one.unshown)),
 ].join("\n\n");
 
+/* One reading of "not yet delivered", so the refusing gate and the crediting one cannot drift. */
+const unshownIn = (session, documentId, comments) => {
+  const shown = shownTo(session, documentId);
+  return comments.filter((one) => !shown.has(idOf(one)));
+};
+
 export const unshownFor = async (targets, session) => {
   const owed = [];
   const none = [];
   for (const { ref, documentId } of targets) {
     const page = await commentPage(documentId);
     if (!page.comments.length) none.push(ref);
-    const shown = shownTo(session, documentId);
-    const unshown = page.comments.filter((one) => !shown.has(idOf(one)));
+    const unshown = unshownIn(session, documentId, page.comments);
     if (unshown.length) owed.push({ ref, documentId, ...page, unshown });
   }
   return { none, owed };
@@ -137,8 +145,7 @@ export const creditCaused = async (targets, ev = null) => {
   const session = sessionKey(ev);
   for (const { ref, documentId } of targets) {
     const { comments } = await commentPage(documentId);
-    const shown = shownTo(session, documentId);
-    const caused = comments.filter((one) => !shown.has(idOf(one)));
+    const caused = unshownIn(session, documentId, comments);
     if (!caused.length) continue;
     console.error(`${ref}: the page read after this write held ${caused.length} comment(s) this `
       + "session had not been shown, quoted whole below and credited as read, "

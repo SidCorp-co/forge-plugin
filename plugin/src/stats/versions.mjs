@@ -1,25 +1,19 @@
 /* Which installed copy a run began under, read off the plugin cache's directory creation times
    rather than off a field no transcript carries: docs/cli/stats-the-eval.md. */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+
+import { readJson } from "../resolve/config.mjs";
 
 export const UNRECORDED = "unrecorded";
 
 const RECORD = join(homedir(), ".claude", "plugins", "installed_plugins.json");
 const OWN = new URL("../../.claude-plugin/plugin.json", import.meta.url);
 
-const read = (path) => {
-  try {
-    return JSON.parse(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
-};
-
 /* The record plugin-copy.mjs reads, read again: that module is frozen, and an export there costs a restart. */
 const installPathOf = (name, record) => {
-  const held = read(record)?.plugins;
+  const held = readJson(record)?.plugins;
   if (!held || typeof held !== "object") return null;
   return Object.entries(held)
     .filter(([key]) => key.split("@")[0] === name)
@@ -30,7 +24,7 @@ const installPathOf = (name, record) => {
 };
 
 export const cacheRoot = (record = RECORD) => {
-  const name = read(OWN)?.name;
+  const name = readJson(OWN)?.name;
   const path = name ? installPathOf(name, record) : null;
   return path ? dirname(path) : null;
 };

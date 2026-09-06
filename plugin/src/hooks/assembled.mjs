@@ -16,14 +16,17 @@ const BINDS = new RegExp(
 );
 /* Only a string form that interpolates: python's f-string and a JS template literal. An ordinary `"{root}/x"` or `"${root}/x"` is a literal in both languages and stays one. */
 const HOLDS = {
-  python: { spans: /\b(?:rf|fr|f)(['"])((?:[^\\\n]|\\.)*?)\1/giu, name: /\{([A-Za-z_]\w*)\}/gu },
+  python: {
+    spans: /\b(?:rf|fr|f)(['"])((?:[^\\\n]|\\.)*?)\1/giu,
+    name: /\{([A-Za-z_]\w*)\}/gu,
+    plain: (span) => span,
+  },
   node: {
     spans: /`(?:[^`\\]|\\[\s\S])*`/gu,
     name: /(?<!\\)\$\{([A-Za-z_]\w*)\}/gu,
     plain: (span) => (/^`[^`"\n\\$]*`$/u.test(span) ? `"${span.slice(1, -1)}"` : span),
   },
 };
-HOLDS.python.plain = (span) => span;
 const SPEAKS = { python: "python", python3: "python", node: "node", deno: "node", bun: "node" };
 const JOINS = new RegExp(
   String.raw`\b(os\.path\.join|posixpath\.join|path\.join|pathlib\.Path|Path)\s*\(([^()]*)\)`,
@@ -76,8 +79,7 @@ export const glued = (body, runner) => {
       bindings = bound(out, lang);
       read = out;
     }
-    const valueOf = bindings;
-    out = out.replace(pattern, (...args) => made(args, args[args.length - 2], valueOf) ?? args[0]);
+    out = out.replace(pattern, (...args) => made(args, args[args.length - 2], bindings) ?? args[0]);
   };
   const quoted = (valueOf, name, at) => {
     const held = valueOf(name, at);

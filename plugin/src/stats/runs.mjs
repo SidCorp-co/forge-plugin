@@ -1,8 +1,6 @@
 /* `forge stats runs` — where an issue-flow run's time and rounds go, rerun rather than rewritten.
    Two profiles of this corpus were written by hand as throwaway scripts, which is a measurement
    taken once. What each figure means, and what it deliberately does not: docs/cli/stats.md. */
-import { join } from "node:path";
-
 import {
   FLOW_BRIEF,
   PHASES,
@@ -10,9 +8,8 @@ import {
   callsIn,
   markerOf,
   readTranscript,
-  slugFor,
+  rootFor,
   tierRun,
-  transcriptBase,
   transcriptsUnder,
 } from "./transcripts.mjs";
 import { TIERS } from "../ladder.mjs";
@@ -394,7 +391,19 @@ const windowFrom = (since) => {
   return Date.now() - Number(asked.many) * UNITS[asked.unit];
 };
 
-export const projectFrom = (given, verb = "stats runs") => {
+/** What a reading passed over, in the words both `stats runs` and `stats eval` say it in. A window
+ *  the eval has no notion of counts nothing, so the field is absent rather than zero there. */
+export const readingAside = ({ skipped, outsideWindow = 0, unreadable = 0 }) =>
+  `${skipped} transcript(s) skipped as no issue-flow run`
+  + `${outsideWindow ? `, ${outsideWindow} outside the window` : ""}`
+  + `${unreadable ? `, ${unreadable} this reading could not parse` : ""}`;
+
+/** Where the root came from, said once: a reader who sees an empty corpus is looking at a path
+ *  derived from a directory rather than named, and `--project` is the whole of the way out. */
+export const derivedFrom = (directory) =>
+  `\nThat root is derived from ${directory}; name the checkout the runs were worked in with --project.`;
+
+export const projectFrom = (given, verb) => {
   if (given === undefined) return process.cwd();
   if (!given.startsWith("/")) {
     fail(`${verb}: --project takes an absolute project directory, not \`${given}\`. `
@@ -410,15 +419,13 @@ export const printRuns = (rest) => {
   if (wrong) fail(wrong);
   const { since, project, json } = flags(rest, "stats runs", ["--json"]);
   const from = windowFrom(since);
-  const directory = projectFrom(project);
-  const root = join(transcriptBase(), slugFor(directory));
+  const directory = projectFrom(project, "stats runs");
+  const root = rootFor(directory);
   const { runs, skipped, outsideWindow, unreadable } = runsUnder(root, from);
-  const aside = `${skipped} transcript(s) skipped as no issue-flow run`
-    + `${outsideWindow ? `, ${outsideWindow} outside the window` : ""}`
-    + `${unreadable ? `, ${unreadable} this reading could not parse` : ""}`;
+  const aside = readingAside({ skipped, outsideWindow, unreadable });
   if (!runs.length) {
     return console.log(`No issue-flow run under ${root}${since ? ` in the last ${since}` : ""}. ${aside}.`
-      + `\nThat root is derived from ${directory}; name the checkout the runs were worked in with --project.`);
+      + derivedFrom(directory));
   }
   const held = profileOf(runs);
   if (json) {

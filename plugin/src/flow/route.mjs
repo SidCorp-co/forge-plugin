@@ -3,7 +3,7 @@
    the record it is read out of, is earned.mjs. The flow: `forge guide contract the-flow`. */
 import { citedClauses } from "../spec/checked.mjs";
 import { Refused, refuse } from "../refusal.mjs";
-import { TRIAGES, criterionNumber, planFlags, unwrap } from "./machine.mjs";
+import { TRIAGES, atMinute, criterionNumber, planFlags, unwrap } from "./machine.mjs";
 import {
   CHECKS,
   ORDER,
@@ -28,6 +28,8 @@ import {
 } from "./earned.mjs";
 import { releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
 
+const RELEASED = "released";
+
 /* A park is a checkpoint with a person at it: the reply that resumes it is a comment by somebody
    other than whoever parked the issue. A hold nobody was asked to answer resumes by hand. */
 const resumeOwed = (view, held, ref) => {
@@ -47,7 +49,7 @@ const resumeOwed = (view, held, ref) => {
   return replied
     ? []
     : [need(
-      `the park is kind ${kind} and nobody has answered it since ${since.slice(0, 16)}, and an answer `
+      `the park is kind ${kind} and nobody has answered it since ${atMinute(since)}, and an answer `
         + "is a comment by somebody other than whoever parked it: the advance that reads one resumes "
         + `the issue to ${left}`,
       `forge comment ${ref} <file|->    (from whoever the park asks, and this run is not that reader)`,
@@ -63,7 +65,7 @@ const FALLS_TO = { "wrong-test": "developed", "not-met": "in_progress" };
    reopen of a close and the contract sends it to `released`. No mark means nothing landed, so it is
    the reopen of a drop and it goes back to the status the dropped park recorded. */
 const landedOn = (view, ref) => {
-  if (view.issue.mergedAt) return "released";
+  if (view.issue.mergedAt) return RELEASED;
   const left = parkRecord(view, (one) => one === "dropped")?.record.fields.left;
   if (!ORDER.includes(left)) {
     refuse(`${ref} is ${REOPEN} and has no merged mark, so nothing landed and this is the reopen of a `
@@ -196,7 +198,7 @@ const reopenTarget = (view, ref) => {
    the fourth dry run's lesson is that an obligation nobody is told about early is one that slips. */
 export const lookAhead = (view, ref) => {
   const said = personLooks(planFlags(unwrap(view.issue.plan)), view.release);
-  if (!said || atLeast(view.issue.status, "released") || answered(view, "screen-review")) return null;
+  if (!said || atLeast(view.issue.status, RELEASED) || answered(view, "screen-review")) return null;
   return `Ahead: released owes a person's look, because the plan declares ${said}. Ask for it with
 `
     + `  forge advance ${ref} --park screen-review --why "<why>" --evidence <attachment|url|sha>`;
@@ -290,7 +292,6 @@ export const owedLine = (view, ref, held) => {
 /* A call made only where its answer is read: a plan declaring neither line owes no person, and the
    deploy `released` asks after is asked after only where `released` is the status being entered.
    The step is `stepAfter`'s, which answers null for a status the flow does not hold. */
-const RELEASED = "released";
 export const policyFor = async (plan, status = null) =>
   (personLooks(planFlags(unwrap(plan))) || stepAfter(status) === RELEASED ? releasePolicy() : null);
 

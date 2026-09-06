@@ -1,11 +1,12 @@
 /* `forge next` — the open issues this project should work next, ranked and written nowhere. The
    call budget, and why the score is computed on the browse projection: docs/cli/next.md. */
 import { bandSpread, weightLines, weightsFrom } from "./weights.mjs";
-import { bandsOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart, rootFor } from "./cost.mjs";
+import { bandsOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart } from "./cost.mjs";
 import { chainOf, holdingKeys, ordered, scoreOf, takeableKeys } from "./score.mjs";
 import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
-import { placeIn, seedFor } from "../tracker/issue-shape.mjs";
+import { asksOf } from "../tracker/issue-shape.mjs";
+import { rootFor } from "../stats/transcripts.mjs";
 import { markedIn } from "../ladder.mjs";
 import { batchesOf } from "./batch.mjs";
 import { candidateLines, droppedLine, HEAD } from "./print.mjs";
@@ -156,10 +157,7 @@ const searcher = (heads, ask) => {
 const nearFor = async (head, bodies, live, weights) => {
   const body = bodies.get(head.issueId);
   const filing = { title: head.row.title, body: body?.description ?? "", kind: head.row.category ?? null };
-  const beside = await neighboursOf(
-    { seed: seedFor(filing), place: placeIn(filing.body) },
-    live,
-  );
+  const beside = await neighboursOf(asksOf(filing), live);
   return new Map(beside.suggestions
     .filter((one) => one.score !== null && one.score >= weights.similarity && one.issueId !== head.issueId)
     .map((one) => [one.issueId, one.score]));
@@ -235,10 +233,11 @@ export const next = async (argv) => {
   const judge = (one) => {
     const body = bodies.get(one.issueId);
     const text = body?.description ?? "";
+    const read = bodies.has(one.issueId);
     const score = scoreOf(one.row, {
       weights,
       chain: chainOf(one.issueId, blocks, alive),
-      read: bodies.has(one.issueId),
+      read,
       marked: body?.marked ?? null,
     });
     const blockers = (blockedBy.get(one.issueId) ?? []).map((key) =>
@@ -247,14 +246,14 @@ export const next = async (argv) => {
       blockers,
       unresolved: named.get(one.issueId) ?? [],
       lease: body?.sessionContext,
-      body: bodies.has(one.issueId) ? text : null,
+      body: read ? text : null,
       held,
     });
     return {
       ...one,
       score,
       body: text,
-      read: bodies.has(one.issueId),
+      read,
       relates: (body?.relations?.relates ?? []).flatMap((other) => keysIn(other?.issueId ?? other)),
       cost: costFor(score.band, runs, bands),
       restart: owesRestart(text),

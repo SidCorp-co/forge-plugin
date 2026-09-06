@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { VERBS, actionIn, gateKey, verbFor, wrappedRefusal, wrapsOf } from "../../src/resolve/visibility.mjs";
-import { refusalForCall } from "../../src/tracker/issue-read.mjs";
+import { toolOfCall } from "../../src/tracker/issue-read.mjs";
 import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
@@ -36,26 +36,27 @@ test("a pair a verb claims answers with that verb, and one no row claims answers
   assert.equal(verbFor("forge_issues", "constructor"), null);
 });
 
-test("the action a row spends is read out of whichever column carries it", () => {
+test("the action a row spends is read out of whichever key of its gate object carries it", () => {
   assert.deepEqual(wrapsOf(rowFor("dep")), { set_dependency: "`forge dep`" },
-    "the gate object already spells it, and spelling it twice is how the two go out of step");
+    "a gated row is the route to the action it names, and spelling it twice is how the two go out of step");
   assert.equal(wrapsOf(rowFor("plan")), null, "a verb that is no action's route claims none");
   assert.equal(wrapsOf(rowFor("call")), null);
 });
 
-/* The regression the routing column could have caused and nothing else would have shown: `gateKey`
-   composes `tool.action` wherever row[4] exists, and `forge doctor` records five keys and no
-   others. An action moved into row[4] here would compose a key nothing records, and the verb would
-   stop being hidden from a credential that cannot spend it. */
-test("the routing column leaves every capability key exactly where it was", () => {
+/* The regression a routing entry could cause and nothing else would show: `gateKey` composes
+   `tool.action`, and `forge doctor` records five keys and no others. A route read as a gate would
+   compose a key nothing records, and the verb would stop being hidden from a credential that cannot
+   spend it. So the key is composed off `action` alone, and this watches that it is. */
+test("routing an action leaves every capability key exactly where it was", () => {
   assert.equal(gateKey(rowFor("knowledge")), "forge_knowledge");
   assert.equal(gateKey(rowFor("issues")), "forge_issues");
   assert.equal(gateKey(rowFor("attach")), "forge_uploads");
   assert.equal(gateKey(rowFor("project")), "forge_projects.list");
   assert.equal(gateKey(rowFor("dep")), "forge_project_pm.set_dependency");
   for (const row of VERBS) {
-    if (!row[5]) continue;
-    assert.equal(gateKey(row), row[3], `${row[0]} composed a key out of its routing column`);
+    if (!row[4]?.wraps) continue;
+    assert.equal(row[4].action, undefined, `${row[0]} names an action beside its routing entry`);
+    assert.equal(gateKey(row), row[3], `${row[0]} composed a key out of its routing entry`);
   }
 });
 
@@ -100,8 +101,8 @@ test("a payload naming no action, or one that is not a name, claims nothing", ()
   assert.equal(actionIn({}), null);
   assert.equal(actionIn(null), null);
   assert.equal(wrappedRefusal("forge_issues", null), null);
-  assert.equal(refusalForCall({ name: "Bash", input: { command: "forge issues" } }), null,
-    "a shell command is the CLI's to refuse, and the CLI holds the same reading");
+  assert.equal(toolOfCall("Bash"), null,
+    "a shell command names no tool, so the gate asks the table nothing and the CLI holds that reading");
 });
 
 test("the refusal names the verb and what it does that the raw call does not", () => {

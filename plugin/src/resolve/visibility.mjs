@@ -6,14 +6,14 @@ import { fail, projectScope } from "./settings.mjs";
 
 export const VERBS = [
   ["issues", "[--status s] [--search q] [--limit n]", "every matching issue, walked; --limit is how many print",
-    "forge_issues", null, { list: "`forge issues`" }],
+    "forge_issues", { wraps: { list: "`forge issues`" } }],
   ["issue", "<uuid|ISS-45> [--fields a,b] [--full]", "one body, or named parts of it",
-    "forge_issues", null, { get: "`forge issue`" }],
+    "forge_issues", { wraps: { get: "`forge issue`" } }],
   ["new", "<file.md|@file|-> --title T [--kind K] [--status S] [--priority P] [--size fix] [--into ISS-45] [--with ISS-45] [--new]",
     "file one, read against the shape its kind needs; --into comments there instead",
-    "forge_issues", null, { create: "`forge new`" }],
+    "forge_issues", { wraps: { create: "`forge new`" } }],
   ["comment", "<uuid|ISS-45> <file.md|@file|->", "post a comment",
-    "forge_comments", null, { create: "`forge comment` (or `forge new --into` to file the body there)" }],
+    "forge_comments", { wraps: { create: "`forge comment` (or `forge new --into` to file the body there)" } }],
   ["plan", "<uuid|ISS-45> <file.md>", "write the issue's plan field, from a file a consult has read", "forge_issues"],
   ["claim", "<uuid|ISS-45> [--minutes n] [--next <line>] [--pushed] [--review] [--open <line>]",
     "take the issue's lease, or reclaim one a dead run left", "forge_issues"],
@@ -22,7 +22,7 @@ export const VERBS = [
   ["advance", "<uuid|ISS-45> [...]", "the next status, earned by the record or refused with what it owes", "forge_issues"],
   ["spec", "<id>[~<rev>]", "one clause of the requirements tree, read by its identifier"],
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context",
-    "forge_uploads", null, { request: "`forge attach`" }],
+    "forge_uploads", { wraps: { request: "`forge attach`" } }],
   ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues"],
   ["next", "[--count n] [--why] [--json] [--holding ISS-45] [--project <dir>]",
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues"],
@@ -39,12 +39,13 @@ export const VERBS = [
     "the id, the branches a change lands on, the staging deploy, and the project's own brief",
     "forge_projects.list"],
   ["knowledge", "<list|get|write|search|delete>",
-    "what a run learned of this codebase, stored where the next one reads it", "forge_knowledge", null,
-    { list: "`forge knowledge list`",
+    "what a run learned of this codebase, stored where the next one reads it", "forge_knowledge",
+    { wraps: {
+      list: "`forge knowledge list`",
       get: "`forge knowledge get`",
       upsert: "`forge knowledge write`",
       search: "`forge knowledge search`",
-      delete: "`forge knowledge delete`" }],
+      delete: "`forge knowledge delete`" } }],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials"],
   ["codex", "<consult|verdict|pending|show|log|stats|eval|replay>", "a second model reviews what this turn changed"],
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
@@ -115,14 +116,15 @@ export const isGated = (tool) => Boolean(recorded().gates[tool]);
 export const gatedTools = () => new Set(Object.keys(recorded().gates).filter(isGated));
 export const withheldVerbs = () => new Set(userConfig().withheld ?? []);
 
-/* A row naming one action is gated on it, so what is asked about tools goes on seeing the tool a
-   verb cannot spend, and `row[3]` stays the schema pointer either way — docs/cli/deps.md. */
-export const gateKey = (row) => (row?.[4] ? `${row[3]}.${row[4].action}` : row?.[3]);
+/* A row naming one action is gated on it, and `row[3]` stays the schema pointer either way. Off
+   `action` and never off the column existing, or a routing row composes a key nothing records —
+   docs/cli/deps.md. */
+export const gateKey = (row) => (row?.[4]?.action ? `${row[3]}.${row[4].action}` : row?.[3]);
 
-/* The actions this verb is the ROUTE for — not every action it spends. Why they are a column of
-   their own rather than row[4]'s, and what breaks when they are not: wrapped.test.mjs. */
+/* The actions this verb is the ROUTE for — not every action it spends. A gated row routes the one
+   it names, every other route says so in `wraps`, and wrapped.test.mjs watches the two apart. */
 export const wrapsOf = (row) =>
-  row?.[5] ?? (row?.[4]?.action ? { [row[4].action]: `\`forge ${row[0]}\`` } : null);
+  row?.[4]?.wraps ?? (row?.[4]?.action ? { [row[4].action]: `\`forge ${row[0]}\`` } : null);
 
 /* And read backwards: which verb is the route to the tool and action a raw call asks for. A pair no
    row claims is what `forge call` is left for, and the table's silence is that decision. */
@@ -141,8 +143,8 @@ export const verbFor = (tool, action) => {
   return null;
 };
 
-/* A withheld verb is still the route: the withholding is the decision, and the raw action is not
-   what is left when the verb goes. */
+/* Why a verb cannot be typed, in the words its own refusal already carries, or nothing where it
+   can. The argument for refusing rather than falling back: how/wrapped-route.md. */
 const unavailable = (verb) => {
   if (withheldVerbs().has(verb)) {
     return `\`forge ${verb}\` is withheld on this machine — \`forge doctor --show ${verb}\` offers it again`;

@@ -10,7 +10,7 @@ import { LOG_PATH, MARK, answered, logEntries, modelKey, numbered, scoreOf } fro
 import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
-import { shiftBetween, twoWindows } from "../stats/windows.mjs";
+import { WHEN, shiftBetween, shiftLine, twoWindows } from "../stats/windows.mjs";
 
 const DEFAULT_WINDOW = 100;
 const REPLAY_WINDOW = 30;
@@ -43,8 +43,7 @@ export const windowOf = (entries, { last = DEFAULT_WINDOW, days, root } = {}) =>
 
 const share = (many, of) => (of ? `${Math.round((many / of) * 100)}%` : "—");
 
-/** The prompt a row ran at: the version and the digest of the text actually sent, so an edit nobody
- *  bumped for still separates two windows. */
+/** The prompt a row ran at: the version and the digest of the text actually sent, so an edit nobody bumped for still separates two windows. */
 const promptKey = (row) => (row.prompt ? `v${row.prompt.v} ${row.prompt.sha}` : "unversioned");
 
 export const statsOf = (rows) => {
@@ -140,7 +139,6 @@ const byKey = (rows) => {
    which looks like a log nobody ruled on rather than like a defect. */
 const groupNumbers = (rows, verdicts) => ({ score: scoreOf([...verdicts, ...rows])[0], held: statsOf(rows) });
 
-const WHEN = 7;
 
 /* An absent measurement is said, never averaged as a zero: a group whose rows predate `usage` would
    otherwise read as the cheap window, which is the one mistake the comparison exists to avoid. */
@@ -182,9 +180,6 @@ const DIMENSIONS = [
    may have met bigger diffs rather than a new default. */
 export const changedBetween = (now, before) => shiftBetween(now, before, DIMENSIONS);
 
-const changedLine = ({ name, values }) =>
-  `  ${name.padEnd(WHEN)} ${values.map((one) => `${one.value} ${one.before || "—"} → ${one.now || "—"}`).join(", ")}`;
-
 const evalHead = (now, before) => {
   const span = (rows) => `${rows[0].at} to ${rows.at(-1).at}`;
   return [
@@ -211,7 +206,7 @@ export const evalLines = (now, before, verdicts) => {
       ...groupLines(beforeBy.get(key) ?? [], verdicts, "before"),
     ]),
     ...(before.length
-      ? ["", "what separates the two windows, in consults before → now", ...changedBetween(now, before).map(changedLine)]
+      ? ["", "what separates the two windows, in consults before → now", ...changedBetween(now, before).map((shift) => shiftLine(shift))]
       : []),
     "",
     "Whether a reply could not check, and whether a recheck raised something New, are read from the "

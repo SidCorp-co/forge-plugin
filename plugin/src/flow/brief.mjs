@@ -3,7 +3,7 @@
    disagree. Under earned.mjs's rule about what it may touch, for the same reason (ISS-44). */
 import { sessionSourced } from "../resolve/config.mjs";
 import { FIELD, leaseOf, sharedHolder, stateOf } from "./lease.mjs";
-import { unwrap } from "./machine.mjs";
+import { atMinute, unwrap } from "./machine.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, methodOf, parkRecord } from "./earned.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
 import { worklogOf } from "./worklog.mjs";
@@ -33,7 +33,7 @@ const headlineOf = (held, kind) => {
   const fields = held.record.fields;
   const one = fields[HEADLINE[kind]] ?? fields.none ?? Object.values(fields)[0];
   const said = Array.isArray(one) ? one.join("; ") : one;
-  return { at: String(held.at ?? "").slice(0, 16), said: oneLine(said) };
+  return { at: atMinute(held.at), said: oneLine(said) };
 };
 
 const markedCriteria = (view) =>
@@ -73,7 +73,7 @@ const leaseIn = (view) => {
 
 const commentsRead = (view) =>
   view.comments.map((one) => ({
-    at: String(one.createdAt ?? "").slice(0, 16),
+    at: atMinute(one.createdAt),
     kind: one.body && /forge-record: ([a-z]+)/u.exec(unwrap(one.body))?.[1],
   }));
 

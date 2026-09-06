@@ -32,7 +32,7 @@ const readFrom = (dir) => {
   }));
 };
 
-export const documents = () => {
+const documents = () => {
   const dir = treeDir();
   if (!dir) {
     refuse(

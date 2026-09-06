@@ -1,12 +1,10 @@
 /* `forge stats eval` — the last fifty issue-flow runs against the fifty before them, on the figures
    the profile already computes, and the one line the ship prints when the corpus reaches a multiple
    of the window. Nothing is written — docs/cli/stats-the-eval.md. */
-import { join } from "node:path";
-
-import { slugFor, transcriptBase } from "./transcripts.mjs";
-import { profileOf, projectFrom, runsUnder, stamp } from "./runs.mjs";
+import { rootFor } from "./transcripts.mjs";
+import { derivedFrom, profileOf, projectFrom, readingAside, runsUnder, stamp } from "./runs.mjs";
 import { UNRECORDED, cacheRoot, installedCopies, spansInstall, versionAt } from "./versions.mjs";
-import { shiftBetween, twoWindows } from "./windows.mjs";
+import { WHEN, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
@@ -53,7 +51,11 @@ const DIMENSIONS = [
 
 const groupsOf = (rows) => {
   const held = new Map();
-  for (const row of rows) held.set(row.copy, [...(held.get(row.copy) ?? []), row]);
+  for (const row of rows) {
+    const group = held.get(row.copy) ?? [];
+    if (!group.length) held.set(row.copy, group);
+    group.push(row);
+  }
   return [...held].map(([copy, runs]) => ({ copy, runs: runs.length, profile: profileOf(runs) }));
 };
 
@@ -71,10 +73,14 @@ const movedIn = (nowRows, beforeRows, key) => {
       runsBefore: before.runs,
       runsNow: now.runs,
     }));
-  return {
-    rose: pairs.filter((one) => one.by > 0).sort((a, b) => b.by - a.by)[0] ?? null,
-    fell: pairs.filter((one) => one.by < 0).sort((a, b) => a.by - b.by)[0] ?? null,
-  };
+  /* One pass, and strictly: the sorts this replaces were stable, so the first row of an equal pair
+     won, and only a strict comparison keeps that reading. */
+  const moved = { rose: null, fell: null };
+  for (const one of pairs) {
+    if (one.by > 0 && one.by > (moved.rose?.by ?? 0)) moved.rose = one;
+    if (one.by < 0 && one.by < (moved.fell?.by ?? 0)) moved.fell = one;
+  }
+  return moved;
 };
 
 const windowOf = (rows, size) => {
@@ -99,8 +105,6 @@ export const evalRuns = (runs, copies, size = WINDOW) => {
     shifts: beforeHeld ? shiftBetween(now, before, DIMENSIONS) : [],
   };
 };
-
-const WHEN = 7;
 
 const figureLine = (when, held) => {
   const p = held.profile;
@@ -142,26 +146,18 @@ const movedLine = (what, one, way) => (one
     + `over ${one.runsBefore} → ${one.runsNow} run(s)  ${way}`
   : `  ${what.padEnd(6)} no row ${way} on both sides`);
 
-const shiftLine = ({ name, values }) => {
-  const named = values.filter((one) => one.now >= SMALL || one.before >= SMALL || name !== "copy");
-  const rest = values.length - named.length;
-  const said = named.map((one) => `${one.value} ${one.before || "—"} → ${one.now || "—"}`);
-  if (rest) {
-    const folded = values.filter((one) => !named.includes(one));
-    said.push(`${rest} more with fewer than ${SMALL} runs on either side `
-      + `${folded.reduce((many, one) => many + one.before, 0)} → ${folded.reduce((many, one) => many + one.now, 0)}`);
-  }
-  return `  ${name.padEnd(WHEN)} ${said.join(", ")}`;
-};
+/* Only the copies are folded: every other dimension has a handful of values a reader wants named. */
+const FOLD = { least: SMALL, folds: (name) => name === "copy" };
 
 const head = (held) => {
   const full = held.now.runs < held.size ? `  — ${held.size} is a full window and the corpus holds no more` : "";
+  const first = `the last ${held.now.runs} issue-flow run(s)  ${stamp(held.now.from)} to ${stamp(held.now.to)}${full}`;
   if (!held.before) {
-    return [`the last ${held.now.runs} issue-flow run(s)  ${stamp(held.now.from)} to ${stamp(held.now.to)}${full}`,
+    return [first,
       `no window before them: the corpus holds ${held.total} run(s) in all, so there is nothing yet to compare this one against.`];
   }
   return [
-    `the last ${held.now.runs} issue-flow run(s)  ${stamp(held.now.from)} to ${stamp(held.now.to)}${full}`,
+    first,
     `the ${held.before.runs} before them  ${stamp(held.before.from)} to ${stamp(held.before.to)}`
       + (held.before.short > 0 ? `  — short of a full ${held.size} by ${held.before.short}` : ""),
   ];
@@ -185,7 +181,7 @@ export const evalLines = (held) => {
     movedLine("phase", held.moved.phases.fell, "fell"),
     "",
     "what separates the two windows, in runs before → now",
-    ...held.shifts.map(shiftLine),
+    ...held.shifts.map((shift) => shiftLine(shift, FOLD)),
     "",
     "A copy is the one installed when the run began, read off the cache directory's creation time, and "
       + "fixes the guide text, the CLI and the gates its calls used until the next install; a run that saw a "
@@ -197,7 +193,7 @@ export const evalLines = (held) => {
 /** The one line the ship prints at a multiple of the window, or null. The count is the corpus's own,
  *  read each time, so nothing remembers a crossing and nothing can remember it wrongly. */
 export const runsMark = (directory, size = WINDOW) => {
-  const { runs } = runsUnder(join(transcriptBase(), slugFor(directory)), null);
+  const { runs } = runsUnder(rootFor(directory), null);
   const many = runs.length;
   return many > 0 && many % size === 0 ? `stats: ${many} issue-flow runs in this project's corpus — \`forge stats eval\`.` : null;
 };
@@ -208,13 +204,12 @@ export const printEval = (rest) => {
   const { project, size, json } = flags(rest, "stats eval", ["--json"]);
   const window = sized(size);
   const directory = projectFrom(project, "stats eval");
-  const root = join(transcriptBase(), slugFor(directory));
+  const root = rootFor(directory);
   const { runs, skipped, unreadable } = runsUnder(root, null);
   const copies = installedCopies(cacheRoot());
   if (!runs.length) {
-    return console.log(`No issue-flow run under ${root}, so there is nothing to compare. ${skipped} transcript(s) skipped as no `
-      + `issue-flow run${unreadable ? `, ${unreadable} this reading could not parse` : ""}.`
-      + `\nThat root is derived from ${directory}; name the checkout the runs were worked in with --project.`);
+    return console.log(`No issue-flow run under ${root}, so there is nothing to compare. `
+      + `${readingAside({ skipped, unreadable })}.${derivedFrom(directory)}`);
   }
   const held = evalRuns(runs, copies, window);
   if (json) {

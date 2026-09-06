@@ -1,7 +1,6 @@
 /* Which issues a call writes to, read from the arguments the verb takes and not searched for in the
    text: a reference in a heredoc, a quoted value or a path is no target, and one by uuid is. And
    which call files a new one, which names no issue yet and so owes no comment delivery. */
-import { actionIn, wrappedRefusal } from "../resolve/visibility.mjs";
 import { HUMAN_REF, UUID } from "./issues.mjs";
 
 const READS = new Set(["list", "get"]);
@@ -82,8 +81,6 @@ const VERB = /^(?:\S*\/)?forge\s+([a-z]+)\b/u;
 const MCP = /^mcp__forge__(forge_\w+)$/u;
 
 export const toolOfCall = (name) => MCP.exec(name ?? "")?.[1] ?? null;
-
-export const refusalForCall = ({ name, input }) => wrappedRefusal(toolOfCall(name), actionIn(input));
 
 const spokenTargets = (one) => {
   const called = CALL.exec(one);

@@ -11,13 +11,14 @@ export const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() 
 
 export const slugFor = (directory) => directory.replaceAll(/[^a-zA-Z0-9]/gu, "-");
 
+/** Where one project's transcripts sit; the trailing separator is cut first, or one checkout named two ways answers as two corpora. */
+export const rootFor = (directory) => join(transcriptBase(), slugFor(directory.replace(/\/+$/u, "") || "/"));
+
 const OUTPUT = /^a\S*\.output$/u;
 
-
-
-/* The brief, never the whole file: over the raw text a transcript that had only GREPPED for the
-   words was admitted as a run and its search argument read as its claim. The rung below is read off
-   a record and not off the words either, for the reasons docs/cli/stats.md carries. */
+/* The brief, never the whole file: over the raw text a transcript that had only GREPPED for the words
+   was admitted as a run and its search argument read as its claim. The rung below is read off a
+   record and not off the words either, for the reasons docs/cli/stats.md carries. */
 export const FLOW_BRIEF = /issue-flow/u;
 
 const CONFIRMS = "forge record confirmation";
@@ -130,8 +131,7 @@ const textOf = (content) => {
 };
 
 /** A transcript folded into its calls, the moments it ran between and the brief it opened with. The
- *  bounds are every record's: the opening prompt and the closing report are generation the run
- *  spent, and a window it belongs to. */
+ *  bounds are every record's: the opening prompt and the closing report are generation the run spent, and a window it belongs to. */
 export const callsIn = (whole) => {
   const uses = new Map();
   const results = new Map();

@@ -3,10 +3,7 @@
 import { fail, translateTo } from "../resolve/settings.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { criteriaChecked } from "../spec/checked.mjs";
-import {
-  CLOSES_FROM, FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, blockOf, criterionNumber, markedCommit,
-  readRecords, tagFor, unwrap,
-} from "./machine.mjs";
+import { CLOSES_FROM, FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, atMinute, blockOf, criterionNumber, markedCommit, readRecords, tagFor, unwrap } from "./machine.mjs";
 import { bodyChecked } from "../codex/codex-read.mjs";
 import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
 import { commentPage, cutLine, postComment } from "../tracker/comments.mjs";
@@ -171,7 +168,7 @@ export const assemble = (comments, criteria) => {
    read back under one heading. A rewritten one carries no key and says so instead of nothing. */
 const printRecord = ({ at, record }) => {
   const shape = SHAPES[record.kind];
-  console.log(`${shape.heading}  (${at.slice(0, 16)}, contract ${record.contract})`);
+  console.log(`${shape.heading}  (${atMinute(at)}, contract ${record.contract})`);
   if (record.rewritten) return console.log("  rewritten by the prose pipeline: no field of this shape reads back");
   for (const field of [...shape.fields, ...(shape.stamp ? [shape.stamp] : [])]) {
     const value = record.fields[field.flag];
