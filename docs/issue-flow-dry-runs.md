@@ -4654,3 +4654,28 @@ Folded from its handback; the sixteen comments, two routed records and one filin
 - Three issues' work declared out of scope in the plan and left there: a rule set another issue
   shipped, a measure another issue owns, a judgement outside the tree. Scope held is a run that
   lands.
+
+## Hundred-and-eightieth dry run — ISS-532
+
+fr-07's use case and criterion describe the reading the code performs (3.35.197, landed as 9238f2e):
+the tree's agreement with HEAD beside the mtime, both revisions moved, one criterion added with a
+proof that resolves, and the digest record regenerated in the same commit. Two files, twenty-eight
+criteria. Closed by its run. No restart owed. Folded from its handback; the fifteen comments were
+read back.
+
+- Two of the issue's premises were disproved and the plan written against the code: the module the
+  issue and the dispatch brief both named does not exist, the reading having landed in the git probe,
+  and the case the issue said was given up is not the one the change gave up. The brief carried the
+  issue's words; a brief is only as true as the issue it copies from.
+- The brief had expired by the third phase: another run landed the digest record while this branch
+  sat at its base, so the file the brief called held was free and the digest moved inside this
+  commit rather than being routed. A held-file list is read at dispatch and true for an hour.
+- Two consult findings, each verified by running code: the agreement test is with the last commit
+  and what is staged for it, and a criterion reads on a file left differing from the repository, not
+  on one the call changed, because the case the change gives up is exactly a change back to the
+  committed bytes.
+- A gate log refused as evidence for its MIME type, the third occurrence on ISS-158, and the run
+  reached for a worse workaround than the rename that issue records because the refusal does not name
+  the rename. Counted onto ISS-158.
+- A mutation proved the new criterion's case: with the probe's answer emptied the case goes red and
+  restored it goes green. A criterion whose proof cannot be made to fail proves nothing.
