@@ -60,9 +60,11 @@ The tracker's tool is judged by the action it names rather than by its name.
   command carries SHALL still count.
 - **AC-10-2-3** · Rev: 1 · Proof: none yet — ISS-15
   WHERE a verb writes the record it SHALL be covered by this gate, the payload verbs included.
-- **AC-10-2-4** · Rev: 1 · Proof: none yet — ISS-561
-  WHEN the run that reads is the run that writes THEN the gate SHALL be satisfied, and a read from
-  an earlier turn or another agent SHALL not satisfy it.
+- **AC-10-2-4** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first.test.mjs "the id the command grants is whose reading counts, and a second harness id is not a second run"
+  WHEN the run that reads is the run that writes THEN the gate SHALL be satisfied.
+- **AC-10-2-5** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "a command granting an id nobody credited is denied, whatever the harness was shown"
+  IF a read was made by another agent rather than the run that writes THEN that read SHALL not
+  satisfy the gate for the writing run.
 
 ### UC-10-3 — Only the tracker's own keys count as keys
 

@@ -1282,8 +1282,12 @@
       "digest": "9a8e45a2e898f7366663b52530128a79b9d1a25a43f152b71b42174dea54d92f"
     },
     "AC-10-2-4": {
+      "rev": 2,
+      "digest": "e05630e220f436615b28b93efeba288dcfe98eda84f63aa514e035f773ffeb98"
+    },
+    "AC-10-2-5": {
       "rev": 1,
-      "digest": "ee2b62da5cff8f4b1d5293b4e8f3385002900278f0da730b8bdf7251e2515697"
+      "digest": "6a5f122f3e30034b525ec14e066546c00e56a22cd8c3c72d940eb0d0cdd4d55b"
     },
     "UC-10-3": {
       "rev": 1,
