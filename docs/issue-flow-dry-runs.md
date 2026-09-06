@@ -3927,3 +3927,93 @@ and ISS-468 were read back.
   the id before its first write and was not caught.
 - Seven consult rounds hardened one plan clause that a single gate run then disproved; a gap record
   names the method.
+
+## Hundred-and-fifty-third dry run — ISS-452
+
+The first batch reading that a run made and landed: 879e587..f09dfb0 under the three code roots, read
+once by a run that wrote none of it, four folds landed as 942a9f0 with no behaviour change (3.35.168,
+pushed head 8f14019), the reviewed mark moved to f09dfb0, and the wins the reading could not land in
+one change went to the backlog by name — ISS-461 to ISS-466, ISS-471, ISS-473. Four more were refused
+with the reason on the issue rather than built. Reviewed by consult over all twenty-two bodies with one
+recheck, approved, one finding accepted. No restart owed. Closed by its run. Folded from its handback;
+the mark, the review, the two corrections and the eight filings were read back, and the thread's
+verdicts were readable only to the ten most recent rows.
+
+- Eighty-seven criteria for a reading that changes no behaviour is the shape the issue's rules asked
+  for, and it is what cut the thread: the fold sees five verdict blocks and nothing before them. The
+  run met the cut itself and filed it (ISS-473), which is the rule working; the criteria count is the
+  cost the rule did not name.
+- Criterion 87 forbade a mention that the review's one finding then required, so the fix to F1 and the
+  criterion could not both stand. A correction withdrew the criterion with the reason, which is the
+  right order — a criterion written before a finding exists is a claim about the code, not about the
+  finding.
+- The merged mark was posted twice a minute apart, the second carrying the line that nothing frozen
+  moved. The first form was complete under the contract; the second is a call spent on a sentence the
+  ship already prints.
+- The largest win in the reading — `citedClauses` building the whole index before it asks whether the
+  text cites anything, which turns a throw into an empty result where the tree cannot be read — was
+  filed rather than fixed. The rule that a reading lands or files held, and it is the filing that
+  keeps a reading of twenty-nine files inside one run.
+
+## Hundred-and-fifty-fourth dry run — ISS-459
+
+The issue-flow eval: `forge stats eval` puts the last fifty runs against the fifty before on the
+profile's own figures, grouped by the plugin copy installed at each run's start, and the ship prints
+one line naming it at a multiple of fifty; an evaluator role on the fable model reads both evals
+through the harness-eval skill and looks for room the figures do not name (3.35.170, landed as
+25aab22, pushed head 690eda2). Worked by the dispatching session itself rather than a runner, at the
+user's word, with two further instructions folded mid-run — the role, and the rule that the numbers say
+where to look and not what to change. Restart owed: the role and the skill stub are in the frozen set.
+The ship filed ISS-474, the next batch reading. Closed by its run; the verification cites the change
+and the release commit where the thread refused every upload.
+
+- Seven plan consult rounds, most splitting compound criteria. One finding was rejected with the
+  reason and its label kept: a run cannot be attributed to a plugin *version* when the guide is served
+  per call, so the grouping is "the copy installed at the run's start", read off the cache's directory
+  birth times.
+- The second instruction arrived with the ship's gate running. Stopping it cost nothing that had left
+  the tree — nothing was pushed — and the change was amended, re-consulted and re-judged; the
+  twenty-seven verdicts were cited again at the amended head, which is the one the landing carried.
+- A verdict write of twenty-seven blocks misaligned its reasons by one from criterion 3 on: each
+  `--criterion` opens a block and a `--why` belongs to the block it follows, which a long command
+  written by hand loses track of. A superseding write with aligned reasons is on the thread; the shape
+  is right and the command is long.
+- Attaching evidence failed three ways in one phase: a `.log` name by MIME, a name already attached,
+  and then any upload at all once the thread passed the comment cut (ISS-473). The verification's
+  first form cited the commit and was refused — a bare sha names no deployment — and the accepted form
+  cites the commit's URL, which is the same sha with a host in front. The refusal is right and the
+  accepted evidence is thin; the `--where` carries the output the attachment would have.
+- Every write after the first was held once by read-first, delivering the record the run's own
+  previous write had posted: the run wrote under its per-run id and the hook credits the session's.
+  Filed on ISS-467. Two calls per write, for three phases.
+- The eval's first live reading: review-phase median 9.9 to 22.4 minutes, run median 53.5 to 62,
+  forty-seven of the fifty recent runs saw a release land while they ran, and the codex log crossed
+  its own mark in the same hour. That is the evaluator's first brief, and it goes out after the
+  restart.
+
+## Hundred-and-fifty-fifth dry run — ISS-72
+
+The test credential is asked for at the start rather than met at the deploy: Phase 0 reads the line
+`forge project` already printed, Phase 2 asks for a missing one as a question record once the issue is
+claimed, and the verification reference names the only two verdict shapes `tested` leaves open under a
+declared screen change with no login — `skipped` with the reason, or `pass` citing an attachment that
+shows that criterion's own state (3.35.169, landed as 3e7d0a5, pushed head d8aa3a6). Three files, none
+frozen. No restart owed by this run. Closed by its run. Folded from its handback; the review, the
+verdicts, the mark, the release verification and ISS-472 and ISS-475 were read back.
+
+- The test parses the verdict shapes out of the reference and drives each through the `tested` check,
+  so the prose cannot drift from the refusal it describes without going red. Proven by planting a
+  third bullet: the first slicer missed it and was fixed before the claim was made.
+- Two asks refused with the premise: writing hosts back into the deploy record, which the tracker's
+  schema makes read-only but for one notes field, and a thirteenth park kind, which the question kind
+  already carries. Both named in the plan's own does-not-change section.
+- The ship's last step could not file the reading its count called for: two ship-generated titles
+  differ only in their short hashes, and the duplicate measure drops those and scores them equal
+  (ISS-475). The range reached the backlog as ISS-474 through a four-second window between one
+  issue's close and the next ship, which is not a route. ISS-133 is the same step's opposite failure
+  and is linked there.
+- The run retracted its own earlier filing on ISS-452 — that the reviewed mark was that issue's to
+  move — after reading the criterion that said it had moved. A retraction posted with the reason is
+  the cheapest correction on record.
+- The scoped gate passed eight steps of thirteen; a criterion that says *whole* earned a full run
+  beside it rather than a smaller word, and the full run is what the verdict cites.
