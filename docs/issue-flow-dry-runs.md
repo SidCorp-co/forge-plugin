@@ -4748,3 +4748,24 @@ owed. Folded from its handback; the eighteen comments were read back.
   routed finding reaches a running run is the tracker's gap (ISS-563 is the related one).
 - A doc page 15 bytes under the one-pass cap has no room for the paragraph a reviewer asks for, and
   the run filed the gap (ISS-564) rather than trim a page it did not own.
+
+## Hundred-and-eighty-fourth dry run — ISS-538
+
+A citation inside the requirements tree at a revision its clause has left is reported stale on the
+citing line (3.35.203, landed as 46d7484); before, the walk dropped the case and `forge spec check`
+exited clean over a tree that cited the past. Fifteen criteria, judged at the merged commit and
+proved in the released copies by an A/B of the copy before against the copy after. Closed by its run.
+No restart owed. Folded from its handback; the seventeen comments were read back.
+
+- The run's own ship caught its plan being wrong: another landing moved a clause's revision mid-ship,
+  and the notation example the plan had pinned to that clause went stale inside one rebase. The rule
+  cannot tell an example from a claim, so every example in the tree now writes a placeholder that
+  parses to no revision, and two corrections carry the reversal. A gate that fires on the run that
+  wrote it is the gate working.
+- A finding read at the landed head and not reproduced was routed onto its owner (ISS-508) and said
+  to be unreproduced there. A routed finding carries how far it was checked, or the owner re-does the
+  reading to learn it.
+- A knowledge entry that claimed two things the landing made false was amended by the run that
+  falsified them, on the way out, rather than left for a later reading to trip on.
+- A coverage check that names its files by hand cannot see a rule that moved to a third file; filed
+  (ISS-553) rather than widened, because the fix wants a naming decision and not a passing edit.
