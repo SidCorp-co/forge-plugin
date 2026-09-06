@@ -63,23 +63,26 @@ const window = async (held, offset) => {
   const page = rowsOf(payload);
   const rows = page.filter((row) => keeps(row, held.filters));
   for (const row of rows) {
-    const key = String(row?.issueId ?? "").toUpperCase();
-    if (key) held.index.set(key, row.documentId);
-    held.rows.set(row?.documentId ?? key, row);
+    held.rows.set(row?.documentId ?? String(row?.issueId ?? "").toUpperCase(), row);
   }
   held.read += page.length;
   return { rows, whole: payload?.hasMore === false };
 };
 
-/* One walk per process per ask, and the PROMISE is shared: a memo assigned after the await lets two
-   concurrent readers each fetch the same page. Keyed by project, `forge feedback` aiming elsewhere. */
+/* One walk per ask, sharing the promise the WHOLE walk resolves: the offset is the count already
+   read, so two readers advancing one walk skip a page and still reach `whole` (codex F1, ISS-538). */
 const walks = new Map();
 
 const walkFor = (filters) => {
   if (!walks.has(keyFor(filters))) {
     walks.set(keyFor(filters), (async () => {
-      const held = { filters, index: new Map(), rows: new Map(), pages: 0, read: 0 };
+      const held = { filters, rows: new Map(), pages: 0, read: 0 };
       held.page = await window(held, 0);
+      while (!held.page.whole) {
+        const before = held.read;
+        held.page = await window(held, held.read);
+        if (held.read === before) break;
+      }
       return held;
     })());
   }
@@ -95,15 +98,7 @@ const readOf = (held) => ({
 });
 
 /** Every row matching `filters`, paged to the end; `whole` false is a ceiling, not absence. */
-export const everyIssue = async (filters = {}) => {
-  const held = await walkFor(filters);
-  while (!held.page.whole) {
-    const before = held.read;
-    held.page = await window(held, held.read);
-    if (held.read === before) break;
-  }
-  return readOf(held);
-};
+export const everyIssue = async (filters = {}) => readOf(await walkFor(filters));
 
 /** The names a body projects to are its own keys and the ones the tracker declares, read off each
  *  answer and never listed here; a declared name the answer left out is empty. */
@@ -123,8 +118,8 @@ export const projectedTo = (body, names, declared = []) => {
 
 export const readSaid = (read) => `${read.rows.length} issue(s) over ${read.pages} page(s)`;
 
-/** What an incomplete reading owes its reader, and null where it was whole. The route sends no
- *  sentence of its own about a cut, so the count and the way out are the whole of what is said. */
+/** What an incomplete reading owes its reader, null where it was whole; the route says nothing
+ *  about a cut, so the count and the way out are all of it. */
 export const shortOf = (read, what) => (read.whole ? null
   : `${what} reached ${readSaid(read)} and the reading is incomplete: a page still reported rows`
     + " behind it and the next offset returned none.\nA narrower ask comes back whole where this one"

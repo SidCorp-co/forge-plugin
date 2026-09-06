@@ -151,6 +151,25 @@ test("the whole set is paged to the end, however many pages that takes", async (
   assert.equal(pages(), Math.ceil(WHOLE.length / FITS));
 });
 
+/* On a module that has walked nothing yet, so the pair meets at page one rather than at a walk
+   already finished: an offset read off the count already read lets two readers ask one page twice,
+   step over the next, and hand back a set short by that page with `whole` true on it. */
+test("two readers starting one walk together read every page of it, not every other one", async () => {
+  SET = WHOLE;
+  FITS = 7;
+  asked.length = 0;
+  const fresh = await import(`../../src/tracker/issues.mjs?walk=${Date.now()}`);
+  const [one, two] = await Promise.all([
+    fresh.everyIssue({ status: "open" }),
+    fresh.everyIssue({ status: "open" }),
+  ]);
+  for (const read of [one, two]) {
+    assert.equal(read.rows.length, WHOLE.length, `a reader was handed ${read.rows.length} of ${WHOLE.length}`);
+    assert.equal(read.whole, true);
+  }
+  assert.equal(pages(), Math.ceil(WHOLE.length / FITS), "and the pair paid for one walk between them");
+});
+
 test("two readers of one ask share the walk, and a second ask is walked on its own", async () => {
   SET = WHOLE;
   FITS = 7;
