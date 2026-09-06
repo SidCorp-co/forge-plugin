@@ -34,8 +34,8 @@ export const headed = (text) => {
 };
 
 /** What the project's linter says about one file, or "" where it says nothing. `at` names which
- *  directory is the project: the delegate reads the session's before the event's, and neither is the
- *  file's once a run writes outside the directory it started in. Silent unless it exits 2. */
+ *  directory is the project, as a candidate: a file outside it — a worktree beside the checkout — is
+ *  the business of its own tree, which the delegate resolves (ISS-530). Silent unless it exits 2. */
 const lintOne = (ev, file, ms, at = null) => {
   try {
     execFileSync("node", [delegateFor(file)], {

@@ -77,6 +77,39 @@ test("fails a changed file with a comment-quality diagnostic", () => {
   assert.match(result.stderr, /src[/\\]fail\.js/);
 });
 
+/* A worktree cut beside the checkout puts every file a run writes outside CLAUDE_PROJECT_DIR, and
+   for months that meant the delegate exited 0 without a word (ISS-530). */
+test("a file in a tree beside the session's directory is linted by that tree", () => {
+  const session = makeConsumer();
+  const worktree = makeConsumer();
+  writeFileSync(path.join(worktree, ".git"), "gitdir: /elsewhere/.git/worktrees/one\n");
+  const file = write(worktree, "src/fail.js", "// Previously this returned zero.\nexport const answer = 42;\n");
+  const result = runHook(session, file);
+  assert.equal(result.status, 2, result.stderr);
+  assert.match(result.stderr, /no-historical-narration/);
+  assert.match(result.stderr, /src[/\\]fail\.js/);
+});
+
+test("a relative path is placed against the session's directory before the tree is chosen", () => {
+  const session = makeConsumer();
+  const worktree = makeConsumer();
+  writeFileSync(path.join(worktree, ".git"), "gitdir: /elsewhere/.git/worktrees/one\n");
+  write(worktree, "src/fail.js", "// Previously this returned zero.\nexport const answer = 42;\n");
+  symlinkSync(path.join(worktree, "src"), path.join(session, "linked"), "dir");
+  const result = runHook(session, "linked/fail.js");
+  assert.equal(result.status, 2, result.stderr);
+  assert.match(result.stderr, /no-historical-narration/);
+});
+
+test("a file beside the session's directory in no tree at all is still nobody's", () => {
+  const session = makeConsumer();
+  const loose = tempRoom("code quality loose ");
+  const file = write(loose, "src/fail.js", "// Previously this returned zero.\nexport const answer = 42;\n");
+  const result = runHook(session, file);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, "");
+});
+
 test("fails a changed file that exceeds the god-file limit", () => {
   const root = makeConsumer();
   const lines = Array.from({ length: 501 }, (_, index) => `export const value${index} = ${index};`);

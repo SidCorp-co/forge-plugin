@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
@@ -82,4 +82,31 @@ test("a project that configured no linter hears nothing, and the same file speak
     'import { configure } from "eslint-plugin-code-quality";\nexport default configure({ "comment-density": "error" });\n');
   assert.match(JSON.parse(call().stdout).reason, /code-quality\/comment-density/u,
     "and with a linter behind it the same file is refused, so the silence was the decision");
+});
+
+/* Every session started in a checkout carries that checkout as CLAUDE_PROJECT_DIR, and every run a
+   wave dispatches writes in a worktree beside it: the one case the gate met all day, and never
+   answered (ISS-530). */
+test("a file in a worktree beside the session's directory is linted by the tree that holds it", () => {
+  const home = homeEnv("code-quality-worktree");
+  const session = realpathSync(tempRoom("session-"));
+  const worktree = realpathSync(tempRoom("worktree-"));
+  writeFileSync(join(worktree, ".git"), "gitdir: /elsewhere/.git/worktrees/one\n");
+  writeFileSync(join(worktree, "package.json"), JSON.stringify({ name: "worktree", private: true }));
+  /* This tree's own package, not whatever the checkout's node_modules points at. */
+  mkdirSync(join(worktree, "node_modules"));
+  symlinkSync(join(REPO, "node_modules", "eslint"), join(worktree, "node_modules", "eslint"), "dir");
+  symlinkSync(join(REPO, "packages", "code-quality"), join(worktree, "node_modules", "eslint-plugin-code-quality"), "dir");
+  writeFileSync(join(worktree, "eslint.config.mjs"),
+    'import { configure } from "eslint-plugin-code-quality";\nexport default configure({ "comment-density": "error" });\n');
+  const file = join(worktree, "thing.mjs");
+  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  const run = callHook(
+    HOOK,
+    { session_id: randomUUID(), tool_name: "Write", tool_input: { file_path: file }, cwd: session },
+    { ...home, CLAUDE_PROJECT_DIR: session },
+  );
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(JSON.parse(run.stdout).reason, /code-quality\/comment-density/u,
+    "the worktree's own configuration answers for a file the session's directory does not hold");
 });

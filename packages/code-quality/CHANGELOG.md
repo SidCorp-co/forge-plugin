@@ -2,6 +2,12 @@
 
 All notable changes to this package are documented here.
 
+## 0.14.1 - 2026-09-06
+
+### Fixed
+
+- The edit hook lints a file written outside `CLAUDE_PROJECT_DIR` when that file has a tree of its own. It used to return null for any path whose relation to the session's directory began with `../` and exit 0 without a word, so a git worktree cut beside the checkout — where every file a delegated run writes lands — was never linted on edit, and the only trace was a gate that had not spoken in a day. The project a file is linted from is now the session's directory when the file is under it, else the nearest ancestor of the file holding a `.git` entry; a file under neither is still declined, which is the opt-out silence a project without ESLint already gets. A relative path is placed against the session's directory once, before the tree is chosen from where it lands.
+
 ## 0.14.0 - 2026-09-05
 
 ### Fixed

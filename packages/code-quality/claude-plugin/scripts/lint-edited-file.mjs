@@ -74,16 +74,38 @@ function getEditedPath(event) {
   return typeof candidate === "string" && candidate.length > 0 ? candidate : null;
 }
 
-function resolveProjectRoot(event) {
+function resolveSessionRoot(event) {
   const candidate = process.env.CLAUDE_PROJECT_DIR || event?.cwd || process.cwd();
   return path.resolve(candidate);
 }
 
-function resolveEditedFile(rawPath, projectRoot) {
-  const absolute = path.isAbsolute(rawPath)
-    ? path.normalize(rawPath)
-    : path.resolve(projectRoot, rawPath);
+function absolutePath(rawPath, from) {
+  return path.isAbsolute(rawPath) ? path.normalize(rawPath) : path.resolve(from, rawPath);
+}
 
+/** The nearest directory above the file with a `.git` entry — a linked worktree's is a file. */
+function treeOf(file) {
+  let directory = path.dirname(file);
+  for (;;) {
+    if (existsSync(path.join(directory, ".git"))) return directory;
+    const parent = path.dirname(directory);
+    if (parent === directory) return null;
+    directory = parent;
+  }
+}
+
+// The session's directory owns every file under it; a file outside it — a worktree cut beside the
+// checkout puts every write there — belongs to its own tree, and only a file under no tree at all
+// falls back to the session's directory, which `resolveEditedFile` then declines.
+function resolveProjectRoot(sessionRoot, file) {
+  if (!existsSync(file)) return sessionRoot;
+  const realRoot = existsSync(sessionRoot) ? realpathSync(sessionRoot) : sessionRoot;
+  const relative = path.relative(realRoot, realpathSync(file));
+  const outside = relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
+  return outside ? (treeOf(realpathSync(file)) ?? sessionRoot) : sessionRoot;
+}
+
+function resolveEditedFile(absolute, projectRoot) {
   if (!supportedExtensions.has(path.extname(absolute).toLowerCase())) return null;
   if (!existsSync(absolute)) return null;
 
@@ -275,9 +297,10 @@ const event = readEvent();
 const rawPath = getEditedPath(event);
 if (!rawPath) process.exit(0);
 
-const projectRoot = resolveProjectRoot(event);
+const sessionRoot = resolveSessionRoot(event);
+const projectRoot = resolveProjectRoot(sessionRoot, absolutePath(rawPath, sessionRoot));
 // The extension test costs no I/O, so it settles the .md and .json edits before anything is read.
-const editedFile = resolveEditedFile(rawPath, projectRoot);
+const editedFile = resolveEditedFile(absolutePath(rawPath, sessionRoot), projectRoot);
 if (!editedFile) process.exit(0);
 
 const { directory: workspace, config } = resolveWorkspace(editedFile, projectRoot);

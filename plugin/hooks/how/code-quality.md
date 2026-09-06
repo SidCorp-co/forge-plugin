@@ -11,5 +11,9 @@ It writes. The delegate runs the project's `prettier` before linting, so a file 
 back formatted. A file is reported once per content in a session: a command that only names it again
 is not answered twice, and the log line carries the rules that fired.
 
+Which project: the one that holds the file. A worktree cut beside the checkout is outside the
+directory the session started in, and its files answer to the worktree's own configuration, not to
+nobody's.
+
 Not judged: anything the project has not configured. No ESLint means silence, which is an opt-out and
 not a misconfiguration. Every rule comes from the project.
