@@ -7,8 +7,6 @@ import { join } from "node:path";
 import {
   CONFIG_PATH,
   INHERITED,
-  INHERITED_MEANS,
-  OWN_ID,
   configDir,
   readJson,
   saveConfig,
@@ -58,21 +56,14 @@ const line = (mark, label, detail) => {
 
 /* Reports that each part resolved and from where, never the values: a credential fragment in a
    transcript is still a credential. `--full` is for a human holding two tokens. */
-/* Whose lease a write takes is this id, so where it came from is the answer; what each source means
-   is `resolve/config.mjs`'s to say. Read without minting: a diagnostic that saved an id would be
-   answering its own question. */
-const SESSION_SAID = {
-  asked: () => "FORGE_SESSION_ID — this run says which run it is",
-  inherited: () => `CLAUDE_CODE_SESSION_ID — ${INHERITED_MEANS}. ${OWN_ID}`,
-  saved: () => `${sessionPath()} — this machine's, kept across sessions`,
-};
-
+/* The sentence rides on the row that answered: a table here keyed on those names is a second copy a
+   new source would throw against. The level stays this file's, and the read mints nothing. */
 const checkSession = () => {
-  const { id, source } = sessionSourced();
+  const { id, source, said } = sessionSourced();
   if (!id) {
     return line(OK, "session id", `none held yet — the next verb needing one mints it and saves it at ${sessionPath()}`);
   }
-  return line(source === INHERITED ? NOTE : OK, "session id", `${id}  ← ${SESSION_SAID[source]()}`);
+  return line(source === INHERITED ? NOTE : OK, "session id", `${id}  ← ${said}`);
 };
 
 const masked = (token, full) => {

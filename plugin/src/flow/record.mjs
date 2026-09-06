@@ -330,7 +330,7 @@ export const fromRecord = (kind, got, { comments, names, cut = null }, say = con
 };
 
 /* Read off what the write already knows, a line an author could type proving only that they typed it: the release policy from the config, the tier off the `get` this write has already made. Both of the rung's sources go to the ladder's one reading, so the stamp is not a second answer to the question the entry checks ask.
-   It is not the checks' answer either, and this comment claimed it was: the stamp reads the band and the description, where `tierOf` climbs from there for a plan's declarations and for a correction that re-sized the issue, and answers the top rung outright on a cut page (ISS-428).
+   It is not the checks' answer either: the stamp reads the band and the description, where `tierOf` climbs from there for a plan's declarations and for a correction that re-sized the issue, and answers the top rung outright on a cut page (ISS-428).
    It stays a copy for a reader outside the flow, so a hand-written record lacking it is refused nothing. */
 const DERIVED = {
   verification: async () => {

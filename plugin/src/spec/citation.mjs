@@ -2,11 +2,11 @@
    notation is `parse.mjs`'s, the ways a reference fails are `index.mjs`'s, and R-10 in
    `docs/requirements/README.md` is why one carries a revision. No file is read here. */
 import { didYouMean } from "../suggest.mjs";
-import { FORMS, identifiersIn } from "./parse.mjs";
+import { FORMS } from "./parse.mjs";
 import { lookup } from "./index.mjs";
 
 /** What clears an identifier two documents define — not retiring one, which keeps its number (R-12). */
-export const ONE_HOME = "and an identifier names one clause. One of the two is a definition that"
+const ONE_HOME = "and an identifier names one clause. One of the two is a definition that"
   + " should be a reference: keep the clause in one document and cite it from the other.";
 
 const revisionProblem = (clause, one) => {
@@ -44,15 +44,15 @@ const problemOf = (index, one) => {
 
 const once = (entries, key) => [...new Map(entries.map((one) => [key(one), one])).values()];
 
-/** One sentence per citation of `text` not resolving against `index`, naming its fix. A citation is
- *  `<id>~<rev>`; a bare identifier makes no checkable claim, and is `unrevisionedIn`'s. */
-export const citationProblems = (index, text, ids = identifiersIn(text)) =>
+/** One sentence per identifier of `ids` carrying a revision that does not resolve against `index`.
+ *  The parsed list is the unit, never the text behind it, which the caller has already read once. */
+export const citationProblems = (index, ids) =>
   once(ids.filter((one) => one.rev !== null), (one) => `${one.id}~${one.rev}`)
     .map((one) => problemOf(index, one))
     .filter(Boolean);
 
 /** Said and never refused until ISS-27's gate compares the recorded hash. */
-export const unrevisionedIn = (index, text, ids = identifiersIn(text)) =>
+export const unrevisionedIn = (index, ids) =>
   once(
     ids.filter((one) => one.rev === null && lookup(index, one.id).clause),
     (one) => one.id,

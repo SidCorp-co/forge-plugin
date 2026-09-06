@@ -7,7 +7,8 @@ import test from "node:test";
 import { mkdirSync, realpathSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { FRESH_MS, callAt, glued, shellWrites, touched } from "../../hooks/_hook.mjs";
+import { FRESH_MS, callAt, shellWrites, touched } from "../../hooks/_hook.mjs";
+import { glued } from "../../src/hooks/assembled.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const room = tempRoom("writes-");

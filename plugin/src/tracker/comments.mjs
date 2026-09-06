@@ -3,7 +3,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { configDir, readJson, sessionAsked, sessionSaved, writeJsonPrivate } from "../resolve/config.mjs";
+import { configDir, readJson, sessionSourced, writeJsonPrivate } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { rowsOf } from "./issues.mjs";
 import { scoped, write } from "./rpc.mjs";
@@ -35,8 +35,8 @@ const STATE = () => join(configDir("forge"), "comments-shown.json");
    drops the coldest. */
 export const KEPT = { sessions: 8, issues: 40, ids: 400 };
 
-/* Environment, then event, then the saved id — which outlives a run and would credit one to another. */
-export const sessionKey = (ev = null) => sessionAsked() || ev?.session_id || sessionSaved() || "";
+/* The order is `SOURCES`'s, and the event is a row of it rather than a fourth source spelled here. */
+export const sessionKey = (ev = null) => sessionSourced(ev).id || "";
 
 const stored = () => {
   const held = readJson(STATE());

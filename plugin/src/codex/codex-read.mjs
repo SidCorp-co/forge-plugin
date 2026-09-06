@@ -3,7 +3,7 @@ import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { digest, locate } from "./codex-api.mjs";
-import { answered, logEntries } from "./codex-log.mjs";
+import { judgedBy, logEntries } from "./codex-log.mjs";
 import { repoRoot } from "./codex.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
@@ -28,14 +28,8 @@ const carriedWhole = (entry, rel) => {
   return held && !held.clipped && Number(held.chars) > 0 ? held : null;
 };
 
-const named = (entry, rel) => (entry.files ?? []).includes(rel);
-
 const STOOD_DOWN = { refusal: null, text: null };
 const refusing = (refusal) => ({ refusal, text: null });
-
-/* The one subset both readings below want, filtered once: the answered consults of this repository that named this file, oldest first. The log is tens of megabytes, so a second pass over it is the cost of the refusal path. */
-const consultsOf = (entries, root, rel) =>
-  answered(entries).filter((one) => one.root === root && named(one, rel));
 
 /* Any consult, not the latest: restored bytes are read bytes, which a hash says and a clock denies. */
 const readWhole = (mine, rel, sha) => mine.some((one) => carriedWhole(one, rel)?.sha === sha);
@@ -74,7 +68,7 @@ export const readOrRefuse = (path, cwd = process.cwd()) => {
       + `write the text to a file and name that. ${OFF}`);
   }
   const text = readFileSync(held.real, "utf8");
-  const mine = consultsOf(logEntries(), root, held.rel);
+  const mine = judgedBy(logEntries(), root, [held.rel]);
   if (readWhole(mine, held.rel, digest(text))) return { refusal: null, text };
   return refusing(readIt(here, root, held.rel, whyNot(mine, held.rel)));
 };

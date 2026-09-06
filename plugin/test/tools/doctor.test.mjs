@@ -281,6 +281,22 @@ test("the session id is reported with the source it came from", () => {
   assert.match(shared, /Give each run an id of its own in FORGE_SESSION_ID/, "and the one thing that fixes it");
 });
 
+/* Doctor kept its own table keyed on the names `SOURCES` declares, so a source added there printed
+   nothing and threw on a name doctor had not got. The label rides on the row that answered instead. */
+test("the label doctor prints comes off the source row and not a table keyed on its name", async () => {
+  const env = { ...process.env };
+  process.env.FORGE_SESSION_ID = "one-run-of-a-wave";
+  const { sessionSourced } = await import("../../src/resolve/config.mjs");
+  const held = sessionSourced();
+  assert.equal(held.source, "asked");
+  assert.match(held.said, /FORGE_SESSION_ID/u, "the row says what it means");
+  assert.equal(held.said, report(null, { FORGE_SESSION_ID: "one-run-of-a-wave" })
+    .split("session id")[1].split("←")[1].split("\n")[0].trim(), "and the report prints that, unchanged");
+  const doctor = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "tools", "doctor.mjs"), "utf8");
+  assert.ok(!doctor.includes("SESSION_SAID"), "and doctor keeps no table of its own to go stale");
+  Object.assign(process.env, env);
+});
+
 /* A diagnostic that minted an id would be answering its own question, and a wave would race one file. */
 test("the report mints no session id to have one to report", () => {
   const home = tempRoom("doctor-session-");

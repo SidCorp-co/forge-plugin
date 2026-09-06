@@ -127,6 +127,10 @@ const verdictLine = (held) => {
    only order. One sharing a file is what "still open" can be answered against. */
 const sharing = (one, rels) => (one.files ?? []).some((file) => rels.includes(file));
 
+/** The answered consults of this root naming any of these files, oldest first — the subset three readings want, one of them in another module. */
+export const judgedBy = (entries, root, rels) =>
+  answered(entries).filter((one) => one.root === root && sharing(one, rels));
+
 export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
   const scored = verdictsBy(entries);
   const own = answered(entries).filter((one) => one.root === root);
@@ -245,7 +249,7 @@ export const outcomeOf = (held, id) => {
 /* A follow-up round rules on the last consult's findings about these files — another file's would
    clear this one unread. Six open rounds each found a narrower nit; asked to confirm, one converges. */
 export const recheckPlan = (entries, root, rels) => {
-  const judged = answered(entries).filter((one) => one.root === root && sharing(one, rels)).at(-1);
+  const judged = judgedBy(entries, root, rels).at(-1);
   if (!judged) return null;
   const held = verdictsBy(entries).get(judged.id ?? judged.at);
   const findings = numbered(judged.reply, rels);

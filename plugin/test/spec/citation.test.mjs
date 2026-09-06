@@ -72,7 +72,10 @@ const tree = () => clauseIndex([
   { file: "brd/04-business-rules.md", text: RULES },
 ]);
 
-const problems = (text) => citationProblems(tree(), text);
+/* The unit both readers take is the parsed list, so a test naming a text parses it the way a
+   caller does; `identifiersIn` is the one reading of what a reference is. */
+const problems = (text) => citationProblems(tree(), identifiersIn(text));
+const unrevised = (index, text) => unrevisionedIn(index, identifiersIn(text));
 
 test("a citation naming no clause is refused with the nearest identifiers", () => {
   const said = problems("this serves AC-01-1-9~1");
@@ -110,7 +113,7 @@ test("a clause two documents define is refused as two, and citing it from one of
     { file: "srs/fr-01-first.md", text: REQUIREMENT },
     { file: "srs/fr-01-copy.md", text: REQUIREMENT },
   ]);
-  const said = citationProblems(twice, "this serves FR-01~2");
+  const said = citationProblems(twice, identifiersIn("this serves FR-01~2"));
   assert.equal(said.length, 1);
   assert.match(said[0], /defined in srs\/fr-01-first\.md and srs\/fr-01-copy\.md/u);
   assert.match(said[0], /keep the clause in one document and cite it from the other/u);
@@ -118,12 +121,12 @@ test("a clause two documents define is refused as two, and citing it from one of
     { file: "srs/fr-01-first.md", text: REQUIREMENT },
     { file: "srs/fr-01-copy.md", text: REQUIREMENT.replace("Rev: 2 ·", "Rev: 2 · Status: retired ·") },
   ]);
-  assert.equal(citationProblems(retired, "this serves FR-01~2").length, 1, "a retired clause is a second home still");
+  assert.equal(citationProblems(retired, identifiersIn("this serves FR-01~2")).length, 1, "a retired clause is a second home still");
   const referenced = clauseIndex([
     { file: "srs/fr-01-first.md", text: REQUIREMENT },
     { file: "srs/fr-01-copy.md", text: "# SRS §4 — FR-02 — The second\n\nRev: 1 · Enforces: BR-01\n\nIt extends FR-01~2.\n" },
   ]);
-  assert.deepEqual(citationProblems(referenced, "this serves FR-01~2"), [], "the fix the refusal names is one that clears it");
+  assert.deepEqual(citationProblems(referenced, identifiersIn("this serves FR-01~2")), [], "the fix the refusal names is one that clears it");
 });
 
 test("a citation that resolves at the revision it names is no problem, and is said twice as once", () => {
@@ -135,10 +138,10 @@ test("a citation that resolves at the revision it names is no problem, and is sa
 
 test("an identifier written with no revision is said and never refused, and only where it resolves", () => {
   const index = tree();
-  assert.deepEqual(unrevisionedIn(index, "this serves UC-01-1 and FR-01"), ["UC-01-1", "FR-01"]);
-  assert.deepEqual(unrevisionedIn(index, "this serves AC-01-1-9"), [], "an identifier naming nothing is not an unrevised citation");
-  assert.deepEqual(unrevisionedIn(index, "this serves UC-01-1~1"), [], "and neither is one that carries its revision");
-  assert.deepEqual(citationProblems(index, "this serves AC-01-1-9"), [], "a bare identifier makes no citation to refuse");
+  assert.deepEqual(unrevised(index, "this serves UC-01-1 and FR-01"), ["UC-01-1", "FR-01"]);
+  assert.deepEqual(unrevised(index, "this serves AC-01-1-9"), [], "an identifier naming nothing is not an unrevised citation");
+  assert.deepEqual(unrevised(index, "this serves UC-01-1~1"), [], "and neither is one that carries its revision");
+  assert.deepEqual(citationProblems(index, identifiersIn("this serves AC-01-1-9")), [], "a bare identifier makes no citation to refuse");
   assert.match(revisionSaid(["UC-01-1"]), /names a clause and carries no revision/u);
   assert.match(revisionSaid(["UC-01-1", "FR-01"]), /name clauses and carry no revision/u);
   assert.equal(revisionSaid([]), null);

@@ -13,9 +13,9 @@ process.env.XDG_CONFIG_HOME = HOME.path;
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
-  ADVISORY, MINUTES, RECLAIMS_BEFORE_PARK, agentOf, canonical, claimRefusal, claimed, describe,
-  expiryOf, historyLine, leaseOf, nextLine, parksAsCrashed, pidOf, reclaimsOf, stateOf,
-  writeRefusal,
+  ADVISORY, MINUTES, RECLAIMS_BEFORE_PARK, SHARED_HOLDER, agentOf, canonical, claimRefusal, claimed,
+  describe, expiryOf, historyLine, leaseOf, nextLine, parksAsCrashed, pidOf, reclaimsOf,
+  sharedHolder, stateOf, writeRefusal,
 } = await import("../../src/flow/lease.mjs");
 const { sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced } = await import("../../src/resolve/config.mjs");
 const { sessionKey } = await import("../../src/tracker/comments.mjs");
@@ -261,11 +261,16 @@ test("each source of the holder is named, and naming it changes no holder", () =
   delete process.env.FORGE_SESSION_ID;
   delete process.env.CLAUDE_CODE_SESSION_ID;
   const saved = sessionOf();
-  assert.deepEqual(sessionSourced(), { id: saved, source: "saved" }, "the file the mint left");
+  const named = (ev) => { const { id, source } = sessionSourced(ev); return { id, source }; };
+  assert.deepEqual(named(), { id: saved, source: "saved" }, "the file the mint left");
+  assert.deepEqual(named({ session_id: "the-event" }), { id: "the-event", source: "event" },
+    "which the event a call is answering outranks, since the saved id outlives a run");
   process.env.CLAUDE_CODE_SESSION_ID = "the-harness";
-  assert.deepEqual(sessionSourced(), { id: "the-harness", source: "inherited" }, "which outranks it");
+  assert.deepEqual(named({ session_id: "the-event" }), { id: "the-harness", source: "inherited" }, "which outranks it");
   process.env.FORGE_SESSION_ID = "asked-for";
-  assert.deepEqual(sessionSourced(), { id: "asked-for", source: "asked" }, "and a run saying which it is outranks both");
+  assert.deepEqual(named(), { id: "asked-for", source: "asked" }, "and a run saying which it is outranks both");
+  assert.ok(sessionSourced().said.includes("FORGE_SESSION_ID"),
+    "and each row says what it means, so no second table is kept beside this one");
   for (const [asked, harness, want] of [
     ["asked-for", "the-harness", "asked-for"], [undefined, "the-harness", "the-harness"], [undefined, undefined, saved],
   ]) {
@@ -276,7 +281,28 @@ test("each source of the holder is named, and naming it changes no holder", () =
     assert.equal(sessionAsked(), harness || asked ? want : null,
       "and only the environment answers this one, which is what keys a comment as shown");
     assert.equal(sessionKey(), want, "so the delivery reader is left where it was");
+    assert.equal(sessionKey({ session_id: "the-event" }), harness || asked ? want : "the-event",
+      "and the event is a row of the same table rather than a fourth source beside it");
   }
+  Object.assign(process.env, env);
+});
+
+/* `stateOf` reads an inherited holder as this run's own, so what is said instead is decided on both
+   halves — the source AND the id. A predicate testing the source alone would warn about a lease that
+   is somebody else's, which is the opposite of what the sentence claims (ISS-445). */
+test("the shared-holder caveat is said for this run's own inherited id, and for no other lease", () => {
+  const env = { ...process.env };
+  const mine = (holder, source) => sharedHolder(holder === null ? null : { holder }, { id: "wave-id", source });
+  assert.equal(mine("wave-id", "inherited"), true, "the wave's id, held by a lease naming it");
+  assert.equal(mine("another-run", "inherited"), false, "an inherited id that is not this lease's holder");
+  assert.equal(mine("wave-id", "asked"), false, "a run that said which run it is shares nothing");
+  assert.equal(mine("wave-id", "saved"), false, "and neither does the id this machine kept");
+  assert.equal(mine(null, "inherited"), false, "and there is no lease to be shared");
+  process.env.CLAUDE_CODE_SESSION_ID = "the-harness";
+  delete process.env.FORGE_SESSION_ID;
+  assert.equal(sharedHolder({ holder: "the-harness" }), true, "and the session is read where none is passed");
+  assert.equal(sharedHolder({ holder: "somebody" }), false);
+  assert.match(SHARED_HOLDER, /names a wave and not a run/u, "the words stay beside the predicate");
   Object.assign(process.env, env);
 });
 
@@ -289,7 +315,7 @@ test("reading the holder without one held mints nothing", () => {
   delete process.env.FORGE_SESSION_ID;
   delete process.env.CLAUDE_CODE_SESSION_ID;
   assert.equal(sessionHeld(), null, "nobody's, and no file behind it");
-  assert.deepEqual(sessionSourced(), { id: null, source: null });
+  assert.deepEqual(sessionSourced(), { id: null, source: null, said: null, environment: false });
   assert.equal(existsSync(sessionPath()), false, "and the read left none");
   assert.match(sessionOf(), /^machine-/u, "which the mint, and only the mint, then writes");
   assert.equal(existsSync(sessionPath()), true);

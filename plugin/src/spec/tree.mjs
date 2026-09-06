@@ -24,10 +24,13 @@ const treeDir = () => {
   return dir && existsSync(dir) ? dir : null;
 };
 
-/** Whether this project keeps a tree at all. A writer checking a citation has to stay silent where
- *  it does not, and `documents()` refuses, which is the answer a reader who asked for a clause is
- *  owed and the wrong one for a verb that was asked for something else. */
-export const hasTree = () => treeDir() !== null;
+const readFrom = (dir) => {
+  const root = projectRoot();
+  return walk(dir).map((path) => ({
+    file: relative(root, path),
+    text: readFileSync(path, "utf8"),
+  }));
+};
 
 export const documents = () => {
   const dir = treeDir();
@@ -38,11 +41,16 @@ export const documents = () => {
         + "identifier, under the rules the tree's own index states. Scaffolding one from templates is ISS-30.",
     );
   }
-  const root = projectRoot();
-  return walk(dir).map((path) => ({
-    file: relative(root, path),
-    text: readFileSync(path, "utf8"),
-  }));
+  return readFrom(dir);
 };
 
 export const specTree = () => clauseIndex(documents());
+
+/** The index, or `null` where this project keeps no tree — one probe of the directory rather than an
+ *  asking pass and a reading one. A writer checking a citation has to stay silent where there is no
+ *  tree, and `documents()` refuses, which is the answer a reader who asked for a clause is owed and
+ *  the wrong one for a verb that was asked for something else. */
+export const specTreeIfAny = () => {
+  const dir = treeDir();
+  return dir ? clauseIndex(readFrom(dir)) : null;
+};

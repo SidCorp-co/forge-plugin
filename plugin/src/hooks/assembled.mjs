@@ -23,6 +23,7 @@ const HOLDS = {
     plain: (span) => (/^`[^`"\n\\$]*`$/u.test(span) ? `"${span.slice(1, -1)}"` : span),
   },
 };
+HOLDS.python.plain = (span) => span;
 const SPEAKS = { python: "python", python3: "python", node: "node", deno: "node", bun: "node" };
 const JOINS = new RegExp(
   String.raw`\b(os\.path\.join|posixpath\.join|path\.join|pathlib\.Path|Path)\s*\(([^()]*)\)`,
@@ -41,8 +42,8 @@ const SPOKEN_IN = {
   node: /`(?:[^`\\]|\\[\s\S])*`|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/gu,
 };
 
-const bound = (said, runner) => {
-  const scan = SPOKEN_IN[SPEAKS[runner] ?? ""] ?? SPOKEN_IN.python;
+const bound = (said, lang) => {
+  const scan = SPOKEN_IN[lang] ?? SPOKEN_IN.python;
   const strings = [];
   const code = said.replace(scan, (span, comment, at) => {
     if (comment !== undefined) return " ".repeat(span.length);
@@ -64,20 +65,30 @@ const THEN_NAME = new RegExp(String.raw`(${LITERAL})\s*([+/])\s*\b([A-Za-z_]\w*)
  *  `+` and pathlib's `/` fold to a fixed point. Each pass reads what the pass before it produced and finds its bindings there, so an offset always answers against the text it was measured in:
  *  order is what a binding is read by, and no pass reorders. Shapes with no model — `.format`, `%`, `"/".join`, a value read at runtime — leave the text alone. how/writes.md. */
 export const glued = (body, runner) => {
-  const holds = HOLDS[SPEAKS[runner] ?? ""];
+  const lang = SPEAKS[runner];
+  const holds = HOLDS[lang];
   let out = String(body);
+  /* `bound` answers off `out` and `lang` alone, so it is rebuilt only where a pass moved the text. */
+  let read = null;
+  let bindings = null;
   const pass = (pattern, made) => {
-    const valueOf = bound(out, runner);
+    if (read !== out) {
+      bindings = bound(out, lang);
+      read = out;
+    }
+    const valueOf = bindings;
     out = out.replace(pattern, (...args) => made(args, args[args.length - 2], valueOf) ?? args[0]);
   };
-  const quoted = (valueOf, name, at) => (valueOf(name, at) === null ? null : `"${valueOf(name, at)}"`);
+  const quoted = (valueOf, name, at) => {
+    const held = valueOf(name, at);
+    return held === null ? null : `"${held}"`;
+  };
   /* A constructor cannot fold while its argument is still a concatenation, and a concatenation cannot reach a name no fold has reached yet, so the stages run together until the text stops moving. */
   for (let hop = 0; hop < FOLDS; hop += 1) {
     const before = out;
     if (holds) {
       pass(holds.spans, ([span], at, valueOf) => {
-        const made = span.replace(holds.name, (whole, name) => valueOf(name, at) ?? whole);
-        return holds.plain ? holds.plain(made) : made;
+        return holds.plain(span.replace(holds.name, (whole, name) => valueOf(name, at) ?? whole));
       });
     }
     pass(NAME_THEN, ([, name, sign], at, valueOf) => {

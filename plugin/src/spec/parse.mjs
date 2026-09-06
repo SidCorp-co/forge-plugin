@@ -87,28 +87,31 @@ export const fieldsOf = (line) => {
   return Object.keys(out).length ? out : null;
 };
 
+/* Both readers below match the same `REFERENCE`, so both read its groups here: the prefix and the
+   number make the identifier, and a `~` with digits behind it makes the revision. */
+const referenceOf = (found) => ({
+  id: `${found[1]}-${found[2]}`,
+  prefix: found[1],
+  rev: found[3] === undefined ? null : Number(found[3]),
+});
+
 /** Every identifier a text names, the tree's own rules among them, with the revision where one was
  *  written. A writer resolving a citation needs the rules too — `R-10~1` is a reference to refuse
  *  and not a clause to look up — which is the whole of what separates this from `citationsIn`. */
 export const identifiersIn = (text) =>
-  [...String(text ?? "").matchAll(ANY_ID)].map((one) => ({
-    id: `${one[1]}-${one[2]}`,
-    prefix: one[1],
-    rev: one[3] === undefined ? null : Number(one[3]),
-  }));
+  [...String(text ?? "").matchAll(ANY_ID)].map(referenceOf);
 
-/** The citations a clause makes: the revision is what makes one, and a rule of the tree's own index
- *  is no clause of the specification, so neither an identifier without a revision nor an `R-` is
- *  one. This answer is hashed into every clause, so its boundary is the one `CITED` drew. */
 /** The reference a text opens with, `<id>~<rev>` or a bare identifier, and `null` where it opens
  *  with anything else. An identifier further into the text is prose — a criterion may name one to
  *  say what a reader will see — and makes no claim this reader can settle. */
 export const opensWith = (text) => {
   const found = OPENING.exec(String(text ?? ""));
-  if (!found) return null;
-  return { id: `${found[1]}-${found[2]}`, prefix: found[1], rev: found[3] === undefined ? null : Number(found[3]) };
+  return found ? referenceOf(found) : null;
 };
 
+/** The citations a clause makes: the revision is what makes one, and a rule of the tree's own index
+ *  is no clause of the specification, so neither an identifier without a revision nor an `R-` is
+ *  one. This answer is hashed into every clause, so its boundary is the one `CITED` drew. */
 export const citationsIn = (text) =>
   identifiersIn(text)
     .filter((one) => one.rev !== null && KIND[one.prefix])

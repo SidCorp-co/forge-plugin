@@ -21,8 +21,8 @@ import {
   parkRecord,
   parkThatSet,
   personLooks,
-  stepAfter,
   shapeGaps,
+  stepAfter,
   transitionCall,
   viewFrom,
 } from "./earned.mjs";
@@ -268,8 +268,7 @@ export const owedLine = (view, ref, held) => {
 
 /* A call made only where its answer is read: a plan declaring neither line owes no person, and the
    deploy `released` asks after is asked after only where `released` is the status being entered.
-   The step is `stepAfter`'s and not index arithmetic of this file's: a status the flow does not hold
-   answers null there and `ORDER[-1 + 1]` here, which is the first status rather than no status. */
+   The step is `stepAfter`'s, which answers null for a status the flow does not hold. */
 const RELEASED = "released";
 export const policyFor = async (plan, status = null) =>
   (personLooks(planFlags(unwrap(plan))) || stepAfter(status) === RELEASED ? releasePolicy() : null);

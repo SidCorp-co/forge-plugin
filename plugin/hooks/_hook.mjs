@@ -16,7 +16,6 @@ export { DEADLINES };
 export { askedAlready, askedByAnyone } from "../src/hooks/stamps.mjs";
 export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
 export { NOWHERE, spans, standsIn, unquote };
-export { glued };
 
 /** A name with an extension, as a command spells one. `~` is a home a shell would expand and belongs only where a caller judges the spelling, so the readings differ by that one character; `tail` is which extensions a caller wants, one gate judging `.md` alone. Exported so the class is spelt here and nowhere else. */
 export const nameLike = (extra, tail = "[A-Za-z0-9]+") => new RegExp(`[A-Za-z0-9_./@${extra}-]+\\.${tail}`, "g");

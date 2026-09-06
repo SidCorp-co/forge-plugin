@@ -100,24 +100,46 @@ export const INHERITED_MEANS =
 /** Named without a command: what sets it is a project's business, and this plugin cannot see one. */
 export const OWN_ID = "Give each run an id of its own in FORGE_SESSION_ID.";
 
+/* Ordered, first row holding an id wins. Each carries its own `said`, so a row added here needs no
+   edit elsewhere, and `environment` marks the two a process was handed rather than found. */
 const SOURCES = [
-  ["asked", () => process.env.FORGE_SESSION_ID || null],
-  [INHERITED, () => process.env.CLAUDE_CODE_SESSION_ID || null],
-  ["saved", sessionSaved],
+  {
+    source: "asked",
+    read: () => process.env.FORGE_SESSION_ID || null,
+    said: () => "FORGE_SESSION_ID — this run says which run it is",
+    environment: true,
+  },
+  {
+    source: INHERITED,
+    read: () => process.env.CLAUDE_CODE_SESSION_ID || null,
+    said: () => `CLAUDE_CODE_SESSION_ID — ${INHERITED_MEANS}. ${OWN_ID}`,
+    environment: true,
+  },
+  {
+    source: "event",
+    read: (ev) => ev?.session_id || null,
+    said: () => "the hook event this call is answering, which names the session that made it",
+  },
+  {
+    source: "saved",
+    read: sessionSaved,
+    said: () => `${sessionPath()} — this machine's, kept across sessions`,
+  },
 ];
 
-/* Read without minting: a reader asking whose lease this is must not write a file to find out. */
-export const sessionSourced = () => {
-  for (const [source, read] of SOURCES) {
-    const id = read();
-    if (id) return { id, source };
+/* Read without minting: a reader asking whose lease this is must not write a file to find out. An
+   event outranks the saved id, which outlives a run and would credit one run's reading to another. */
+export const sessionSourced = (ev = null) => {
+  for (const row of SOURCES) {
+    const id = row.read(ev);
+    if (id) return { id, source: row.source, said: row.said(), environment: Boolean(row.environment) };
   }
-  return { id: null, source: null };
+  return { id: null, source: null, said: null, environment: false };
 };
 
 export const sessionAsked = () => {
-  const { id, source } = sessionSourced();
-  return source === "asked" || source === INHERITED ? id : null;
+  const { id, environment } = sessionSourced();
+  return environment ? id : null;
 };
 
 export const sessionHeld = () => sessionSourced().id;

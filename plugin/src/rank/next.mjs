@@ -230,8 +230,7 @@ export const next = async (argv) => {
     action: "get", documentId: landed.documentId, fields: ["description"] }))?.description ?? "") : [];
   /* The mark is read when the body lands, not in `judge`: `judge` is re-run over the whole read
      prefix on every pass — up to five of them under the caps below — and the body does not change
-     between them. It rides on the body's own entry: a second map keyed the same way is one more
-     thing a reader has to keep beside the first, for a value that has no life without it. */
+     between them. It rides on the body's own entry, having no life without it. */
   const bodies = new Map();
   const judge = (one) => {
     const body = bodies.get(one.issueId);

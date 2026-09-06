@@ -23,10 +23,8 @@ export const SHARED_HOLDER =
   `That holder id is ${INHERITED_MEANS}. A lease matching it is no proof another run is not on this `
   + `issue. ${OWN_ID}`;
 
-export const sharedHolder = (lease) => {
-  const { id, source } = sessionSourced();
-  return source === INHERITED && lease?.holder === id ? SHARED_HOLDER : null;
-};
+export const sharedHolder = (lease, held = sessionSourced()) =>
+  held.source === INHERITED && lease?.holder === held.id;
 
 const UNKNOWN = "unknown";
 

@@ -1,7 +1,7 @@
 /* The pick: the lease a run takes before it writes anything, the reclaim of one a dead run left
    behind, and the park a status that keeps crashing earns. docs/cli/claim.md. */
 import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
-import { sessionOf } from "../resolve/config.mjs";
+import { sessionOf, sessionSourced } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
@@ -14,6 +14,7 @@ import {
   ADVISORY,
   MINUTES,
   RECLAIMS_BEFORE_PARK,
+  SHARED_HOLDER,
   claimRefusal,
   claimed,
   describe,
@@ -137,7 +138,8 @@ export const claim = async (argv) => {
   const issue = await scoped("forge_issues", { action: "get", documentId });
   const context = issue?.sessionContext ?? null;
   const lease = leaseOf(context);
-  const holder = sessionOf();
+  const mine = sessionSourced();
+  const holder = mine.id || sessionOf();
   const state = stateOf(lease, holder);
   if (state === "live") fail(claimRefusal(ref, lease));
   const left = lease?.next ?? null;
@@ -152,8 +154,7 @@ export const claim = async (argv) => {
   for (const one of nextLines(how, left, taken.next)) console.log(one);
   /* Beside the lease it is about, and above every route out of here: a claim that answers a park
      returns below, and the run would take the lease without being told what it matched on. */
-  const shared = sharedHolder(taken);
-  if (shared) console.log(shared);
+  if (sharedHolder(taken, mine)) console.log(SHARED_HOLDER);
   /* Decided after the write, so what decides is the history this claim has just added to. */
   if (issue.status === PARKS_IN) {
     if (await answerPark(documentId, ref, next, line)) return undefined;

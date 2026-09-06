@@ -378,8 +378,8 @@ export const verificationForm = (ref, commit, evidence, tail = "") =>
   + `--evidence ${evidence}${tail}`;
 
 /* Nothing here can run a deploy — the machine that advances need not be the one that shipped — so where the config says production deploys on its own, the verification is asked to prove one happened, out of two values the record already holds. docs/cli/the-entry-checks.md.
-   The test is `autoProd` and deliberately not `waitsForPerson`, which is a different question: that one answers *waits* for a project whose branches are unset and *does not wait* for one promoting staging to a separate production branch, and neither of those owes a deploy proof here (ISS-428).
-   `verificationForm` above is the one spelling of the command, so a flag renamed on `SHAPES.verification` is renamed once; each caller keeps its own placeholders, because what a missing record is asked for and what a deploy is asked to prove are not one sentence. */
+   The test is `autoProd` alone — `pipelineConfig.autoProdDeploy`, as `releaseFrom` reads it — and deliberately not `waitsForPerson`, which answers a different question off the branch pair. Neither branch is consulted here, so a project with either shape of branches owes the proof when that flag is true (ISS-428).
+   `verificationForm` above is the one spelling of the sentence and not of its flags, which are literals in it and are spelled again on `SHAPES.verification` and in `record.mjs`'s usage row; each caller keeps its own placeholders, because what a missing record is asked for and what a deploy is asked to prove are not one sentence. */
 const deployOwed = (view, ref) => {
   if (!view.release?.autoProd) return [];
   const held = view.latest.verification.record.fields;

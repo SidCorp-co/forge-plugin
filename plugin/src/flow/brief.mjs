@@ -1,7 +1,7 @@
 /* One issue's whole context assembled out of the record and the worklog, and nothing formatted:
    the printer is resume.mjs and `--json` is this object, so the screen and a tool's reading cannot
    disagree. Under earned.mjs's rule about what it may touch, for the same reason (ISS-44). */
-import { sessionHeld } from "../resolve/config.mjs";
+import { sessionSourced } from "../resolve/config.mjs";
 import { FIELD, leaseOf, sharedHolder, stateOf } from "./lease.mjs";
 import { unwrap } from "./machine.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, methodOf, parkRecord } from "./earned.mjs";
@@ -62,11 +62,12 @@ const leaseIn = (view) => {
   const held = leaseOf(view.issue?.[FIELD]);
   if (!held) return null;
   const { history, ...rest } = held;
+  const mine = sessionSourced();
   return {
     ...rest,
-    state: stateOf(held, sessionHeld()),
+    state: stateOf(held, mine.id),
     claims: history.length,
-    ...(sharedHolder(held) ? { holderShared: true } : {}),
+    ...(sharedHolder(held, mine) ? { holderShared: true } : {}),
   };
 };
 
