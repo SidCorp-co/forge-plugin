@@ -37,9 +37,9 @@ export const markFor = (tier) => `Size: ${tier}.`;
 
 export const heightOf = (tier) => Math.max(0, TIERS.indexOf(tier));
 
-/* The tracker's five sizes, smallest first, against the rung each claims: the second source of a size. Keys and never a shown string — that field's own name costs a reader a round. */
+/* The tracker's five sizes, smallest first, against the rung each claims: the second source of a size. Keys and never a shown string — that field's own name costs a reader a round. `BAND_NAMES` is exported for the check that keeps this table's only copy in this file, which asks about the sizes the table holds rather than about a second spelling of them (ISS-403). */
 const BANDS = { xs: TRIVIAL, s: FIX, m: FEATURE, l: FEATURE, xl: FEATURE };
-const BAND_NAMES = Object.keys(BANDS);
+export const BAND_NAMES = Object.keys(BANDS);
 const SPLIT_FROM = 3;
 
 export const rungFrom = (band) => BANDS[String(band ?? "")] ?? null;

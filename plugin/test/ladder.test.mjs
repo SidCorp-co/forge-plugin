@@ -12,8 +12,8 @@ import { fakeTracker, ranAsync, tempHome } from "./fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("ladder").path;
 const {
-  CEILINGS, LIGHTER, SPARES, TIERS, bandFor, belowTop, climbsIn, escalatedBy, heightOf, lightens,
-  markedIn, overCeiling, resizeForm, rungBetween, rungFrom, sizeFrom, splits, tierOf,
+  BAND_NAMES, CEILINGS, LIGHTER, SPARES, TIERS, bandFor, belowTop, climbsIn, escalatedBy, heightOf,
+  lightens, markedIn, overCeiling, resizeForm, rungBetween, rungFrom, sizeFrom, splits, tierOf,
 } = await import("../src/ladder.mjs");
 const { planFlags } = await import("../src/flow/machine.mjs");
 const { render } = await import("../src/flow/record.mjs");
@@ -383,21 +383,61 @@ test("a correction re-sizing upward outranks a tracker size naming a lower rung"
 });
 
 
-/* Two of the five are words nothing else spells, so a second copy of the table is a file this finds.
-   `rank/weights.mjs` scores a value rather than mapping it, and a project may override that table. */
+/* A size counts where it is spelt as a literal in code — a quoted string or a bare object key, with
+   comments stripped first and a backtick span never counting — `s`, `m` and `l` being single letters
+   this tree writes as prose, as a plural and as another table's key. Two of the five are words
+   nothing else spells, so one alone is a copy and the other three are one in pairs; the complete
+   table the last selector asked for matched no copy (ISS-403). `rank/weights.mjs` only scores one. */
+const COMMENTS = /\/\*[\s\S]*?\*\/|^[ \t]*\/\/[^\n]*/gmu;
+const spelling = (band) => new RegExp(String.raw`(['"])${band}\1|(?<![\w$.'"\x60\\])${band}\s*:`, "u");
+const TELLING = BANDS.filter((one) => one.length > 1);
+const copiesTable = (text) => {
+  const code = text.replaceAll(COMMENTS, "");
+  const named = BANDS.filter((one) => spelling(one).test(code));
+  return named.some((one) => TELLING.includes(one)) || named.length > 1;
+};
+
 test("the table from a tracker size to a rung lives in one file, and the one carve-out is named", () => {
   const ROOT = new URL("../src", import.meta.url).pathname;
   const found = [];
   const walk = (dir, at) => {
     for (const one of readdirSync(dir, { withFileTypes: true })) {
       if (one.isDirectory()) walk(join(dir, one.name), `${at}/${one.name}`);
-      else if (one.name.endsWith(".mjs")) {
-        const text = readFileSync(join(dir, one.name), "utf8");
-        if (/\bxs\b/u.test(text) && /\bxl\b/u.test(text)) found.push(`${at}/${one.name}`);
+      else if (one.name.endsWith(".mjs") && copiesTable(readFileSync(join(dir, one.name), "utf8"))) {
+        found.push(`${at}/${one.name}`);
       }
     }
   };
   walk(ROOT, "plugin/src");
+  assert.deepEqual(BANDS, BAND_NAMES,
+    "the selector asks about every size the ladder's table holds, or one added there goes unguarded");
   assert.deepEqual(found.sort(), ["plugin/src/ladder.mjs", "plugin/src/rank/weights.mjs"],
-    `a size a reader has to map to a rung is spelt outside the ladder:\n${found.join("\n")}`);
+    "a size a reader has to map to a rung is spelt outside plugin/src/ladder.mjs, where the table"
+    + " lives, and outside plugin/src/rank/weights.mjs, which is the one carve-out because it scores"
+    + ` a size rather than mapping it. Collected:\n${found.join("\n")}`);
+});
+
+/* A walk is green over a clean tree whether its selector reads anything or not, which is how the last one shipped broken: three of these are the copies ISS-317 took out of the files named beside them, and the fourth is that table's top half, which the two-letter names alone walk past. */
+test("a partial copy is collected, and a size that is prose, a plural or another table's key is not", () => {
+  for (const [where, planted] of [
+    ["plugin/src/rank/batch.mjs", `const FIX = ["xs", "s"];`],
+    ["plugin/src/tracker/issue-shape.mjs", `export const SIZES = { xs: "fix" };`],
+    ["plugin/src/rank/score.mjs", `if (fix === true) return { band: "xs", from: "the Size line" };`],
+    ["the three sizes that claim the top rung", "const TOP = { m: FEATURE, l: FEATURE };"],
+    ["a key on its own line", `const SIZES = { xs\n: "fix" };`],
+    ["a key holding a comment off its colon", `const SIZES = { xs /* the smallest */: "fix" };`],
+  ]) {
+    assert.equal(copiesTable(planted), true, `${where}: \`${planted}\` is a partial table and goes uncollected`);
+  }
+  for (const [what, green] of [
+    ["a plural", `const at = \`criterion\${numbers.length > 1 ? "s" : ""}\`;`],
+    ["another table's key", "const UNITS = { d: 86_400_000, h: 3_600_000, m: 60_000 };"],
+    ["one size, however often it is written", `const only = ["m", "m", "m"];`],
+    ["a code span in a comment", "/* so `l` and `xl` still score apart on a three-wide rung */"],
+    ["a count of seconds in a template", "const said = `${PAYLOAD_MS / 1000}s: nothing fed it`;"],
+    ["a size named in prose", `/* The tracker calls the smallest "xs" and the largest "xl". */`],
+    ["a whole copy quoted by the comment arguing against it", `/* never write const SIZES = { xs: "fix" }; */`],
+  ]) {
+    assert.equal(copiesTable(green), false, `${what}: \`${green}\` maps nothing and is collected`);
+  }
 });
