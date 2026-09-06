@@ -20,6 +20,7 @@ import {
   parkRecord,
   parkThatSet,
   personLooks,
+  stepAfter,
   shapeGaps,
   transitionCall,
   viewFrom,
@@ -265,12 +266,12 @@ export const owedLine = (view, ref, held) => {
 };
 
 /* A call made only where its answer is read: a plan declaring neither line owes no person, and the
-   deploy `released` asks after is asked after only where `released` is the status being entered. */
+   deploy `released` asks after is asked after only where `released` is the status being entered.
+   The step is `stepAfter`'s and not index arithmetic of this file's: a status the flow does not hold
+   answers null there and `ORDER[-1 + 1]` here, which is the first status rather than no status. */
 const RELEASED = "released";
 export const policyFor = async (plan, status = null) =>
-  (personLooks(planFlags(unwrap(plan))) || ORDER[ORDER.indexOf(status) + 1] === RELEASED
-    ? releasePolicy()
-    : null);
+  (personLooks(planFlags(unwrap(plan))) || stepAfter(status) === RELEASED ? releasePolicy() : null);
 
 export const owedSaid = async (documentId, issue, comments, ref, cut = null) => {
   const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan, issue.status));

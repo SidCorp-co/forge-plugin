@@ -125,11 +125,13 @@ export const dispositionOf = (view) => {
   return FINDINGS.includes(finding) && finding !== "holds" ? finding : null;
 };
 
-export const nextOf = (status, view) => {
-  if (status === "confirmed" && dispositionOf(view)) return "dropped";
+export const stepAfter = (status) => {
   const at = ORDER.indexOf(status);
   return at < 0 || at === ORDER.length - 1 ? null : ORDER[at + 1];
 };
+
+export const nextOf = (status, view) =>
+  (status === "confirmed" && dispositionOf(view) ? "dropped" : stepAfter(status));
 
 export const need = (what, command) => ({ what, command });
 
@@ -369,16 +371,18 @@ const shownOwed = (view, ref) => {
   )];
 };
 
-/* Nothing here can run a deploy — the machine that advances need not be the one that shipped — so
-   where the config says production deploys on its own and nobody is waited for, the verification is
-   asked to prove one happened, out of two values the record already holds. docs/cli/the-entry-checks.md. */
+export const verificationForm = (ref, commit, evidence, tail = "") =>
+  `forge record verification ${ref} --where "<where it runs>" --commit ${commit} `
+  + `--evidence ${evidence}${tail}`;
+
+/* Nothing here can run a deploy — the machine that advances need not be the one that shipped — so where the config says production deploys on its own, the verification is asked to prove one happened, out of two values the record already holds. docs/cli/the-entry-checks.md.
+   The test is `autoProd` and deliberately not `waitsForPerson`, which is a different question: that one answers *waits* for a project whose branches are unset and *does not wait* for one promoting staging to a separate production branch, and neither of those owes a deploy proof here (ISS-428).
+   `verificationForm` above is the one spelling of the command, so a flag renamed on `SHAPES.verification` is renamed once; each caller keeps its own placeholders, because what a missing record is asked for and what a deploy is asked to prove are not one sentence. */
 const deployOwed = (view, ref) => {
   if (!view.release?.autoProd) return [];
   const held = view.latest.verification.record.fields;
   const merged = markedCommit(view.comments);
-  const asks = (commit, tail = "") => `forge record verification ${ref} --where "<where it runs>" `
-    + `--commit ${commit} --evidence <the deployment's build log>${tail}`;
-  const ask = asks(merged ?? "<the sha the deployment built>");
+  const asks = (commit, tail = "") => verificationForm(ref, commit, "<the deployment's build log>", tail);
   const out = [];
   if (merged && !sameCommit(held.commit, merged) && !sameCommit(held.contains, merged)) {
     out.push(need(
@@ -393,7 +397,7 @@ const deployOwed = (view, ref) => {
     out.push(need(
       `every evidence item on the verification is a bare commit sha, and a sha names no deployment, `
         + `so nothing on the record says one ran for ${merged ?? "this change"}`,
-      ask,
+      asks(merged ?? "<the sha the deployment built>"),
     ));
   }
   return out;
@@ -495,7 +499,7 @@ export const CHECKS = {
       view,
       "verification",
       "no verification: where the change now runs, at which commit, and the evidence",
-      `forge record verification ${ref} --where "<where it runs>" --commit <sha> --evidence <attachment|url|sha>`,
+      verificationForm(ref, "<sha>", "<attachment|url|sha>"),
     );
     /* One or the other: a payload with gaps has no fields to compare against anything. */
     const out = verification.length ? verification : deployOwed(view, ref);

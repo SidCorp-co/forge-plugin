@@ -3,7 +3,7 @@
    `docs/requirements/README.md` is why one carries a revision. No file is read here. */
 import { didYouMean } from "../suggest.mjs";
 import { FORMS, identifiersIn } from "./parse.mjs";
-import { lookup, nearest } from "./index.mjs";
+import { lookup } from "./index.mjs";
 
 /** What clears an identifier two documents define — not retiring one, which keeps its number (R-12). */
 export const ONE_HOME = "and an identifier names one clause. One of the two is a definition that"
@@ -20,33 +20,41 @@ const revisionProblem = (clause, one) => {
     + " still says what you meant.";
 };
 
-const problemOf = (index, one) => {
-  const found = lookup(index, one.id);
+/** The three ways an identifier names no one clause, for both readers that ask: this file returns the sentence and `forge spec` refuses on it, `verb` is how each hands the forms back, and the clause rides along so neither pays a second lookup. The revision is not judged here — a stale one still prints its clause. */
+export const lookupProblem = (index, id, verb) => {
+  const found = lookup(index, id);
   if (found.ambiguous) {
-    const what = found.via ? `${one.id} sits under ${found.via}, which is` : `${one.id} is`;
-    return `${what} defined in ${found.ambiguous.join(" and ")}, ${ONE_HOME}`;
+    const what = found.via ? `${id} sits under ${found.via}, which is` : `${id} is`;
+    return { problem: `${what} defined in ${found.ambiguous.join(" and ")}, ${ONE_HOME}`, clause: null };
   }
   if (found.foreign) {
-    return `${one.id} names ${found.foreign}, which is not a clause of the specification. Cite one`
-      + ` of ${FORMS}.`;
+    return { problem: `${id} names ${found.foreign}, which is not a clause of the specification. ${verb} one`
+      + ` of ${FORMS}.`, clause: null };
   }
-  if (!found.clause) return didYouMean("clause", one.id, nearest(index, one.id), `The forms are ${FORMS}.`);
-  return revisionProblem(found.clause, one);
+  if (!found.clause) {
+    return { problem: didYouMean("clause", id, found.nearest, `The forms are ${FORMS}.`), clause: null };
+  }
+  return { problem: null, clause: found.clause };
+};
+
+const problemOf = (index, one) => {
+  const { problem, clause } = lookupProblem(index, one.id, "Cite");
+  return problem ?? revisionProblem(clause, one);
 };
 
 const once = (entries, key) => [...new Map(entries.map((one) => [key(one), one])).values()];
 
 /** One sentence per citation of `text` not resolving against `index`, naming its fix. A citation is
  *  `<id>~<rev>`; a bare identifier makes no checkable claim, and is `unrevisionedIn`'s. */
-export const citationProblems = (index, text) =>
-  once(identifiersIn(text).filter((one) => one.rev !== null), (one) => `${one.id}~${one.rev}`)
+export const citationProblems = (index, text, ids = identifiersIn(text)) =>
+  once(ids.filter((one) => one.rev !== null), (one) => `${one.id}~${one.rev}`)
     .map((one) => problemOf(index, one))
     .filter(Boolean);
 
 /** Said and never refused until ISS-27's gate compares the recorded hash. */
-export const unrevisionedIn = (index, text) =>
+export const unrevisionedIn = (index, text, ids = identifiersIn(text)) =>
   once(
-    identifiersIn(text).filter((one) => one.rev === null && lookup(index, one.id).clause),
+    ids.filter((one) => one.rev === null && lookup(index, one.id).clause),
     (one) => one.id,
   ).map((one) => one.id);
 

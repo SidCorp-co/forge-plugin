@@ -37,8 +37,7 @@ const splitAsk = (band) => (splits(band) ? [
   "and this one confirmed as the first of them. Nothing above is owed differently either way.",
 ] : []);
 
-const climbSaid = (size, claimed, tier) => {
-  const { plan } = size;
+const climbSaid = (plan, claimed, tier) => {
   if (tier === claimed) return null;
   const declared = looksTo(planFlags(plan));
   const byPlan = declared && heightOf(claimed) < TIERS.length - 1;
@@ -62,7 +61,7 @@ export const sizeReport = (size, ref) => {
       "correction that re-sized it, so the tier is not applied and the full set is asked."].join("\n");
   }
   const tier = tierOf(size);
-  const climbed = climbSaid(size, claimed.rung, tier);
+  const climbed = climbSaid(size.plan, claimed.rung, tier);
   const opened = `${markSaid(claimed)}${climbed ? `, and ${climbed}` : ""}. The entry checks run that tier:`;
   const dropped = lighterLines(tier);
   return [

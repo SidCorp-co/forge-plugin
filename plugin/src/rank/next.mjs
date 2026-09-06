@@ -228,10 +228,11 @@ export const next = async (argv) => {
   const landed = lastLanded(rows);
   const warmPaths = landed ? pathsNamed((await scoped("forge_issues", {
     action: "get", documentId: landed.documentId, fields: ["description"] }))?.description ?? "") : [];
+  /* The mark is read when the body lands, not in `judge`: `judge` is re-run over the whole read
+     prefix on every pass — up to five of them under the caps below — and the body does not change
+     between them. It rides on the body's own entry: a second map keyed the same way is one more
+     thing a reader has to keep beside the first, for a value that has no life without it. */
   const bodies = new Map();
-  /* Read when the body lands, not in `judge`: `judge` is re-run over the whole read prefix on every
-     pass — up to five of them under the caps below — and the body does not change between them. */
-  const marks = new Map();
   const judge = (one) => {
     const body = bodies.get(one.issueId);
     const text = body?.description ?? "";
@@ -239,7 +240,7 @@ export const next = async (argv) => {
       weights,
       chain: chainOf(one.issueId, blocks, alive),
       read: bodies.has(one.issueId),
-      marked: marks.get(one.issueId) ?? null,
+      marked: body?.marked ?? null,
     });
     const blockers = (blockedBy.get(one.issueId) ?? []).map((key) =>
       ({ otherDisplayId: key, otherStatus: statusOf.get(key) ?? "unknown", kind: "blocks" }));
@@ -276,8 +277,7 @@ export const next = async (argv) => {
     const take = unread.slice(0, Math.min(weights.windowCap, weights.readCap - cursor));
     if (!take.length) break;
     for (const [key, body] of await bodiesFor(take)) {
-      bodies.set(key, body);
-      marks.set(key, markedIn(body?.description ?? ""));
+      bodies.set(key, { ...body, marked: markedIn(body?.description ?? "") });
     }
     for (const one of take) {
       edges += withRelations(blocks, blockedBy, { ...bodies.get(one.issueId), issueId: one.issueId });

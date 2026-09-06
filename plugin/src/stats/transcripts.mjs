@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { VERB_NAMES } from "../resolve/visibility.mjs";
-import { TIERS, heightOf } from "../ladder.mjs";
+import { TIERS, highest } from "../ladder.mjs";
 import { stampedIn } from "../flow/machine.mjs";
 
 export const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`);
@@ -32,7 +32,7 @@ export const tierRun = (calls) => {
     .map((call) => String(stampedIn(call.body ?? "", CONFIRMED, "tier") ?? "").trim().toLowerCase())
     .filter((one) => TIERS.includes(one));
   /* The largest, which is the batch rule: a run of three issues is as heavy as its heaviest. */
-  return said.length ? TIERS[Math.max(...said.map(heightOf))] : UNTIERED;
+  return said.length ? highest(said) : UNTIERED;
 };
 
 const namesIn = (directory) => {

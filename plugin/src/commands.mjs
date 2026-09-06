@@ -49,6 +49,7 @@ import { record } from "./flow/record.mjs";
 import { advance } from "./flow/advance.mjs";
 import { spec } from "./spec/verbs.mjs";
 import { citationProblems, citationRefusal, revisionSaid, unrevisionedIn } from "./spec/citation.mjs";
+import { identifiersIn } from "./spec/parse.mjs";
 import { hasTree, specTree } from "./spec/tree.mjs";
 import { claim } from "./flow/claim.mjs";
 import { resume } from "./flow/resume.mjs";
@@ -57,14 +58,15 @@ import { notAnothers, renew } from "./flow/lease.mjs";
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
 
-/* Before anything is sent, and only where the project keeps a tree: a wrong citation refused costs
-   the author the clause they meant, and one stored costs a gate reporting a plan nobody holds. */
+/* Before anything is sent, and only where the project keeps a tree: a wrong citation refused costs the author the clause they meant, and one stored costs a gate reporting a plan nobody holds.
+   The text is asked before the project is — a plan naming no identifier has nothing to resolve, and building the index for it walks, reads and parses every document of the tree to answer nothing. That order is also the one place this check is not invisible: where the tree is unreadable — a file where the directory should be, a permission — a plan citing nothing stores, because it makes no traversal it has no reason to make. */
 const citationsChecked = (text) => {
-  if (!hasTree()) return;
+  const ids = identifiersIn(text);
+  if (!ids.length || !hasTree()) return;
   const index = specTree();
-  const refusal = citationRefusal(citationProblems(index, text));
+  const refusal = citationRefusal(citationProblems(index, text, ids));
   if (refusal) fail(refusal);
-  const said = revisionSaid(unrevisionedIn(index, text));
+  const said = revisionSaid(unrevisionedIn(index, text, ids));
   if (said) console.error(said);
 };
 

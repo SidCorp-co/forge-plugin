@@ -4,11 +4,10 @@ import { fail } from "../resolve/settings.mjs";
 import { wantsHelp } from "../resolve/flags.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { Refused, refuse } from "../flow/record.mjs";
-import { didYouMean } from "../suggest.mjs";
 import { LINK_TEXT_PATTERN } from "../markdown.mjs";
 import { FORMS, KIND, parseRef } from "./parse.mjs";
-import { ambiguousUnder, clauseOf, lookup, nearest, withDescendants } from "./index.mjs";
-import { ONE_HOME } from "./citation.mjs";
+import { ambiguousUnder, clauseOf, lookup, withDescendants } from "./index.mjs";
+import { lookupProblem } from "./citation.mjs";
 import { specTree } from "./tree.mjs";
 
 const LINK = new RegExp(LINK_TEXT_PATTERN, "gu");
@@ -136,16 +135,9 @@ const read = (argv) => {
 };
 
 const clauseFor = (index, ref) => {
-  const found = lookup(index, ref.id);
-  if (found.ambiguous) {
-    const what = found.via ? `${ref.id} sits under ${found.via}, which is` : `${ref.id} is`;
-    refuse(`${what} defined in ${found.ambiguous.join(" and ")}, ${ONE_HOME}`);
-  }
-  if (found.foreign) {
-    refuse(`${ref.id} names ${found.foreign}, which is not a clause of the specification. Ask for one of ${FORMS}.`);
-  }
-  if (!found.clause) refuse(didYouMean("clause", ref.id, nearest(index, ref.id), `The forms are ${FORMS}.`));
-  return found.clause;
+  const { problem, clause } = lookupProblem(index, ref.id, "Ask for");
+  if (problem) refuse(problem);
+  return clause;
 };
 
 const run = (argv) => {

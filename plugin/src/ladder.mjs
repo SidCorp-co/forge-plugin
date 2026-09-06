@@ -23,12 +23,14 @@ const EXAMPLE = new RegExp([
 ].join("|"), "gmu");
 const prose = (text) => String(text ?? "").replaceAll(EXAMPLE, "");
 
-/* Null, not the top rung: a body carrying `Size: feature.` is not one carrying no mark. */
+/* `highest` is the heaviest of a list, the rule wherever two sources or two issues each claim a rung; the empty list is the caller's answer to give, since *no rung* is `null` to a body and a word of its own to a run. And null, not the top rung, is what a body carrying `Size: feature.` is told apart from by one carrying no mark. */
+export const highest = (rungs) => TIERS[Math.max(...rungs.map(heightOf))];
+
 export const markedIn = (description) => {
   const text = String(description ?? "");
   if (!ASKS.test(text)) return null;
   const found = [...prose(text).matchAll(MARKED)].map((one) => one[1].toLowerCase());
-  return found.length ? TIERS[Math.max(...found.map(heightOf))] : null;
+  return found.length ? highest(found) : null;
 };
 
 export const markFor = (tier) => `Size: ${tier}.`;
