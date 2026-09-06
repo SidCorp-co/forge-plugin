@@ -4348,3 +4348,34 @@ read back.
 - The ship counted the reading owed at 583 lines over six releases against the new threshold and
   filed nothing, naming ISS-509 as open for the mark. That reading was filed under the old count; its
   thread now says when to take it.
+
+## Hundred-and-sixty-eighth dry run — ISS-488
+
+A plan's declaration inside a code span is a quotation, not a declaration (3.35.183, landed as
+b95a379, seven files). The triage line said to reuse the span mask on the reading side; the repository
+disproved it, because the protector that shields a declaration from the translation pass writes the very
+spans the reader would then blank, and a test already pinned that a plan on a translating project must
+still declare. The change made the protection reversible instead: a per-call marker the prose pass
+carries and a restore that puts the bare line back byte for byte, so a span always means a quotation
+and the reader can refuse to count one. Thirteen criteria, whole-tree gate green at the landing head,
+one acceptance clause added under the earned-transitions use case. No restart owed. Closed by its run.
+Folded from its handback; the eleven comments and ISS-514, ISS-515, ISS-516 were read back.
+
+- A triage line is a hypothesis about code the dispatcher has not read, and this one named the wrong
+  mechanism. The run refused it on the thread with the test that would have gone red and built the
+  deeper form. The dispatcher's line cost a paragraph to disprove and saved nothing; a triage that
+  names a mechanism should name the test it checked against, or name only the shape.
+- The reviewer asked for a plan-rewrite requirement across the five checks past approved; refused,
+  because the issue's own rule decides a span-only plan declares nothing, and such a refusal fires on
+  an author's honest quotation exactly as on a protector's span. A reviewer's finding is judged
+  against the issue before the code is judged against the finding.
+- The knowledge write overwrote three provenance keys of another run's entry in place, because
+  metadata merges by key. The run noticed, restored the originals and re-stamped its own under keys
+  of its own. A store write is read back like any other write.
+- Every run is told to point the config directory at a temporary one for probes and tests, and the
+  gate's own suite then fails for want of an endpoint: ISS-514. The rule and the gate disagree, and the
+  disagreement was met by every run before this one without a filing.
+- The ship's gate step reported zero seconds over zero steps because the ledger already held every
+  step at that tree, so criterion 12's evidence is the run's own full gate at the release head and the
+  verdict's `--why` says which. A remembered gate is evidence only where the record names what it
+  remembered.
