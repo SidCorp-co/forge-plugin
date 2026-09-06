@@ -268,7 +268,11 @@ export const commands = {
        not the raw tool answers this credential, and a refusal naming none is what this removes. */
     const wrapped = wrappedRefusal(name, actionIn(args));
     if (wrapped) fail(wrapped);
-    if (!rowFor(name, args)) fail(`${suggestTool(name)}\n\n${noRouteRefusal(keyOf(name, args))}`);
+    /* No-such-tool then a suggestion of the name just typed is a line a reader sees past. */
+    if (!rowFor(name, args)) {
+      const known = served().some((row) => row.tool === name);
+      fail(known ? noRouteRefusal(keyOf(name, args)) : `${suggestTool(name)}\n\n${noRouteRefusal(keyOf(name, args))}`);
+    }
     refuseIfGated(name);
     const resolved = await resolveReferences(args);
     /* `call` reaches the same writes the wrapped verbs do, so it takes the same gates — and it is
@@ -462,11 +466,10 @@ export const commands = {
     show(await write("forge_project_pm", { action: "set_dependency", fromIssueId, toIssueId, kind }));
   },
   /* Read through this plugin's disposition of them, which guides/guides.mjs holds and explains. A
-     held slug is answered as a slug the tracker never served, through that refusal's own call site
-     so the two answers cannot drift apart, and its body is never fetched: hiding a page an agent
-     cannot follow comes before naming it, and a line saying one exists and is stale is what makes
-     an agent go read it. --tracker is the maintainer's way past that, and the only one. The contract
-     is on disk, so it is answered before the transport is touched. */
+     held slug is answered as one the tracker never served, through that refusal's own call site so
+     the two cannot drift, and its body is never fetched: a line saying a page exists and is stale
+     is what sends an agent to read it. --tracker is the maintainer's way past that, and the only
+     one. The contract is on disk, so it is answered before the transport is touched. */
   guide: async (argv) => {
     const { positionals, flagArgv } = partition(argv, ["--tracker"]);
     onlyFlags("guide", flagArgv, ["--tracker"]);

@@ -261,6 +261,17 @@ test("a verb nobody has is named back before the list of the ones there are", as
   assert.match(run.stderr, /^No verb named nosuchverb\./u);
 });
 
+/* Two names in one refusal, and one of them the name that was typed: an action no row serves is a
+   pair the table does not carry, never a tool nobody has heard of. */
+test("an unserved action on a served tool is not offered the tool it already names", async () => {
+  const run = await ran("call", "forge_issues", '{"action":"nosuchaction"}');
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^forge_issues\.nosuchaction is not a capability this CLI declares a route for/mu);
+  assert.doesNotMatch(run.stderr, /No tool named/u, "the tool is one this CLI serves, and was not what was wrong");
+  const absent = await ran("call", "forge_nosuchtool", '{"action":"list"}');
+  assert.match(absent.stderr, /No tool named forge_nosuchtool/u, "while a name nothing serves is still named back");
+});
+
 test("a synonym typed at the CLI answers with the one verb, on the real dispatcher", async () => {
   for (const [given, meant] of Object.entries(ALIASES)) {
     const run = await ran(given);
