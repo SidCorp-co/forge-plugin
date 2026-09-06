@@ -4954,3 +4954,52 @@ owed. Folded from its handback; the thirteen comments were read back.
 - Two of four consults were spent because the criteria verb reveals its citation requirement only on
   refusal, after the consult that cleared the previous text has been paid for. Filed by the fold as
   the run named it and did not file it (ISS-578).
+
+## Hundred-and-ninety-third dry run — ISS-348
+
+One write, one verb (3.35.211, landed as 974f18e): the comment verb takes a title, the filing verb
+drops its into-flag, the feedback verb expands to the note shape, and a retired name answers for one
+release with the line to use instead before it is refused outright. Fifty-five files. Thirty-one
+criteria pass, one of them qualified: the exemption written for the harness-eval guide was not needed,
+because ISS-478 landed mid-run and freed the file, so the line was rewritten here and the finding
+routed there is answered by this landing. The review was four whole-set passes, none with a finding,
+because the set was two and a half times the payload cap. Nothing filed; routed to ISS-375 and
+ISS-478. Closed by its run. **Restart owed**: the forge skill's text is under the frozen set. Folded
+from its handback; the sixteen comments were read back.
+
+- A set larger than one consult can carry has no route in the method: the run split it by hand into
+  four passes and wrote which pass read what, and what none did, as a comment because the review
+  record has no field for it (ISS-34). The last fifth of one diagram was read by the reviewer's own
+  tool rather than sent.
+- The folder-width limit is a gate step and not an edit-hook check, so two suites placed in the wrong
+  folder failed at the first clean full gate, after the build; both moved to sit beside the code they
+  judge. A limit met once the work is done is paid for twice.
+- A retiring row carries the release it answers for and nothing compares that to the version the tree
+  is at, so the landing that deletes the rows and retires the names for good is an issue or it is
+  forgotten. Filed by the fold (ISS-591).
+- The lock covers fetch to push and the checkout's follow is outside it; a run that landed while
+  another landing was queued was not stopped this time, the first fold of the day timed against the
+  in-progress list rather than the lock.
+
+## Hundred-and-ninety-fourth dry run — ISS-84
+
+The translate verb says when the gateway handed a string back as it was sent (3.35.212, landed as
+5cfbabd): one stderr line naming the string and a third exit code, stdout unchanged because returning
+the string is still the right answer. Eight criteria pass, every proof against a local server planted
+to answer with what it was asked, no live gateway call spent. Two filed (ISS-579, ISS-580), two
+findings routed to ISS-579. Closed by its run; the release note withheld on the fix tier. No restart
+owed: the exit-code guidance went to the skill's reference rather than its stub, chosen so. Folded
+from its handback; the ten comments were read back.
+
+- The triage line was written off the verb and stopped there; the caller was the thing that mattered.
+  The tracker layer spawns this verb for every title on a prose-vi project and refused on any non-zero
+  status, so the new code would have refused every filing until the layer was told which codes count
+  as done. A new exit code is a contract with every caller, and the callers are found by grep before
+  the code is chosen.
+- The approved stage demands a clause and no clause owed this behaviour; the run cited the nearest
+  and filed the gap rather than writing the clause, which the tree's rules reserve for the analyst.
+  Two runs today met the same wall (ISS-552 was dispatched for the other), and ISS-31 would make it a
+  blocking issue rather than a citation of the nearest thing.
+- The brief named a route that retired while the run was in flight: ISS-348 landed mid-run and the
+  CLI answered the retired flag with the verb to use instead, which is what the one-release window is
+  for. The brief text this wave dispatches from says `forge comment` from here.
