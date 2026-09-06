@@ -4457,3 +4457,24 @@ owed. All three closed by the run. Folded from its handback; the three threads w
 - A review finding was rejected with two commits as evidence rather than accepted for peace: the
   clause it said must bump had not bumped for two earlier additions. A reviewer's rule is checked
   against the tree's own history before the tree is changed to satisfy it.
+
+## Hundred-and-seventy-second dry run — ISS-401
+
+The occupied-path refusal reads whose worktree it found (3.35.188, landed as 6b0be5f, judged head
+fb828fe, five files). A start that meets a directory another repository's worktree holds now says so,
+names that repository, and offers no remove, because clearing it is that repository's to do; a tree
+this checkout made keeps the remove and its run id. Proved live against the other project's tree that
+sits beside this checkout. Eleven criteria, whole gate green at the landing head, both new cases
+proven to fail on the pre-change script. No restart owed. Closed by its run. Folded from its handback;
+the eleven comments were read back.
+
+- The brief named the wrong base: the dispatcher wrote the head it had last pulled, while the tree
+  was cut a landing later. Nothing in the run depended on it, and the run said so rather than letting
+  the record stand. A brief's base is read off the tree at the cut, not off the dispatcher's memory.
+- The Outcome's first half, a project-unique path, was declined with the test that pins the current
+  path and an undo line: the rule that existing trees keep their paths decides it. One half of an
+  Outcome can be the whole change when the other half contradicts a rule the same body states.
+- A fourth refusal branch for "could not compare" was rejected at review: a path that refuses and
+  never instructs is the defect the issue was about. The guard folded into the comparison instead.
+- The ship printed the consult log's eval trigger at fifteen hundred consults and the run reported it
+  rather than running it, which is the division the evaluator role exists for.
