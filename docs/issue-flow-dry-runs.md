@@ -4851,3 +4851,60 @@ a flag is a silent no-op). Folded from its handback; the two comments were read 
 - A run handed "landed, released and closed" as its shape still owes the disposition when the claim
   is false; the skill's rule that the project outranks the brief is what let it stop at `dropped`
   rather than build the change twice.
+
+## Hundred-and-eighty-ninth dry run — ISS-478
+
+Each eval mark writes its reading, and `--against` pins the before window to it (3.35.208, landed as
+4a1ef05). The release step and the consult crossing write the comparison they name as one record beside
+the consult log, once per mark — a runs reading is the project's, a consult reading the device's — and
+both evals take a stored reading in the sliding before's place through the lines the sliding one uses.
+The consult screen renders from the window object and the shifts from each window's own tallies, so a
+stored window needs no rows. Two requirements clauses moved to their second revision and one was
+added. Built by the parent, being eval-shaped; thirty-one criteria, one write of verdicts at the
+landing head; codex read the plan three times and the code three times. No restart owed.
+
+- The requirements clause forbade what the issue asked for: AC-19-8-5 said the release step keeps no
+  record of the crossing. The issue is the spec-change the tree asks a business analyst to route
+  through an issue, so the clause moved rather than the issue bending to it — and AC-19-8-4's
+  unconditional adjacency had to move with it, which the plan review found and the author had not.
+- The criteria writer resolves each cited revision against the tree, so a clause revision is made
+  before the criteria that cite it, and the requirements edit is the first commit of the change, not
+  the last.
+- The consult screen still rendered from rows, and a group's key folds slots and efforts together, so
+  a stored window could not have reproduced the shifts: the review caught both, and the window
+  object grew the tallies while the rows were there to count. "Every figure comes from the object"
+  was true of one eval and assumed of the other.
+- A reading written at a crossing is the log as it stood at the crossing, not as it stands when the
+  write runs: a consult finishing just behind the two-hundredth would otherwise be inside mark 200's
+  window, permanently, and the once-rule would keep the wrong window.
+- The codex usage line lives in the verb table as well as in the verb, and the help tests pin both;
+  the plan named neither, and the gate's test step found them. A verb added to one place is a verb
+  added to two.
+- Six cost-free-looking sentences failed a gate: the comment-density rule refused four modules and the
+  duplicate-statement check paired two doc comments across the two evals. A doc comment that states
+  the same rule in two files is the second copy the repository forbids, even when both are new.
+- The evidence upload of a `.log` file was refused on its MIME type after the verdict text was built,
+  the defect ISS-134 already carries; renamed to `.txt` and re-sent.
+
+## Hundred-and-ninetieth dry run — ISS-531
+
+The consult replay proves a sent file's bytes by the recorded digest rather than by the recorded
+commit (3.35.207, landed as cd114ef), accepting the nearest later commit whose blob hashes the same,
+rebuilding the diff against the anchor, and refusing outright the two cases a digest cannot settle;
+a file resolved outside the checkout keeps its text in the log row under two named caps. Measured
+over one frozen copy of the live log with both binaries back to back: eight rebuilt before, thirty-one
+after, and thirty-nine of a hundred on the live log by the close, against the two the issue was filed
+on. Twenty-five criteria, judged twice — the second time in full at the landed head after the contract
+caught that the landing moved one touched path. Closed by its run. No restart owed. Folded from its
+handback; the comments were read back.
+
+- A measurement of a change to what a log records is not reproducible after the landing: the
+  record half takes effect only in the copy making the consult, so sessions on the older copy keep
+  writing the old rows and the live count climbs as they pick the new one up. The controlled pair
+  was taken before the ship, from one frozen log, which is the only time it could be.
+- Twenty-five verdicts in one write are refused over the comment body's cap after the evidence has
+  uploaded (ISS-41), and the contract cites an issue for a verdict grammar the issue does not carry
+  (ISS-34); both filed, the second routed around with a correction.
+- Phase 4's last step says to replay onto the default branch's head before the earning read, and
+  never says how a run reaches that head from a dirty tree whose commit is itself gated on a
+  consult; recorded as a gap on the issue rather than as a rule anywhere.
