@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
+import { NOTHING, logRead } from "../hooks/log-reads.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { TIERS, highest } from "../ladder.mjs";
 import { stampedIn } from "../flow/machine.mjs";
@@ -85,13 +86,15 @@ export const shellOf = (command) => command.replaceAll(HEREDOC, "<<");
 /* The invocation, never the mention: `pgrep -f "tools/run.mjs ship"` is a run WAITING for one. */
 const SHIP = at(String.raw`node[ \t]+\S*tools/run\.mjs[ \t]+ship\b`);
 
+export const POLL = "poll";
+
 export const CLASSES = [
   ["gate", at(String.raw`(?:npm run check|node\s+\S*tools/gates\.mjs)`)],
   ["ship", SHIP],
   ["test", at(String.raw`(?:node --test|npm (?:run )?test|npx vitest|npx playwright)`)],
   ["forge", forgeClass],
   ["git", at(String.raw`git\s`)],
-  ["poll", at(String.raw`(?:sleep|until|while|pgrep)\s`)],
+  [POLL, at(String.raw`(?:sleep|until|while|pgrep)\s`)],
   ["edit heredoc", at(String.raw`(?:python3|node) - <<`)],
   ["edit sed", at(String.raw`sed -i\s`)],
   ["edit file", at(String.raw`(?:cat|tee)\s+>`)],
@@ -118,6 +121,22 @@ export const classOf = (name, shell) => {
     if (found) return found;
   }
   return "shell";
+};
+
+/* A poll is only in the order, so: off the same function `bash-guard.mjs` refuses with, forgetting
+   where that gate forgets — one class here is one refusal there, and the third read is the recovery. */
+const polled = (calls) => {
+  let before = "";
+  for (const call of calls) {
+    const key = call.name === "Bash" ? logRead(call.command) : null;
+    if (key && key === before) {
+      call.class = POLL;
+      before = "";
+      continue;
+    }
+    if (key !== NOTHING) before = key ?? "";
+  }
+  return calls;
 };
 
 export const PHASES = ["0 discover", "1 plan", "2 build", "3 review", "4 judge", "5 ship", "6 close"];
@@ -179,7 +198,7 @@ export const callsIn = (whole) => {
       }
     }
   }
-  const calls = order.map((id) => {
+  const calls = polled(order.map((id) => {
     const use = uses.get(id);
     const result = results.get(id);
     const shell = use.name === "Bash" ? shellOf(use.command) : "";
@@ -198,7 +217,7 @@ export const callsIn = (whole) => {
       body: result?.body ?? "",
       error: result?.error ?? false,
     };
-  });
+  }));
   return { calls, brief, firstAt, lastAt: Math.max(lastAt, ...calls.map((one) => one.endedAt)) };
 };
 

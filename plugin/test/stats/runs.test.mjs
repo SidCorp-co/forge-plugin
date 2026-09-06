@@ -8,7 +8,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { render } from "../../src/flow/record.mjs";
-import { UNTIERED, classOf, markerOf, shellOf, slugFor, tierRun } from "../../src/stats/transcripts.mjs";
+import { UNTIERED, callsIn, classOf, markerOf, shellOf, slugFor, tierRun } from "../../src/stats/transcripts.mjs";
 import { unionSeconds } from "../../src/stats/runs.mjs";
 import { TIERS } from "../../src/ladder.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -409,4 +409,73 @@ test("a flag this verb does not have is refused rather than ignored", () => {
   assert.equal(wrong.status, 1);
   assert.match(wrong.stderr, /No stats runs flag named --sincee/u, wrong.stderr);
   assert.match(wrong.stderr, /Did you mean: --since/u, wrong.stderr);
+});
+
+const typedCall = (id, at, name, input) =>
+  JSON.stringify({ timestamp: new Date(at * 1000).toISOString(), message: { content: [{ type: "tool_use", id, name, input }] } });
+const gotBack = (id, at) =>
+  JSON.stringify({ timestamp: new Date(at * 1000).toISOString(), message: { content: [{ type: "tool_result", tool_use_id: id, content: "x" }] } });
+
+/* The class no one call carries: a poll spread over turns is a read repeated, and `bash-guard.mjs`
+   refuses that shape off the same function — a `.err` neither file names, so both read it from one
+   home. What the profiler counts and what the gate refuses cannot drift apart on one side. */
+test("a read of a log typed again is a poll, and the first read of it is not", () => {
+  const typed = [
+    ["a", "tail -50 /tmp/ship.log"],
+    ["b", "tail -50 /tmp/ship.log"],
+    ["c", "grep err /tmp/ship.log"],
+    ["d", "echo checking"],
+    ["e", "grep err /tmp/ship.log"],
+    ["f", "npm test"],
+    ["g", "grep err /tmp/ship.log"],
+    ["h", "cat /tmp/build.err"],
+    ["i", "cat /tmp/build.err"],
+  ];
+  const whole = typed
+    .flatMap(([id, command], at) => [typedCall(id, at * 2 + 1, "Bash", { command }), gotBack(id, at * 2 + 2)])
+    .join("\n");
+  assert.deepEqual(
+    callsIn(whole).calls.map((one) => one.class),
+    ["read", "poll", "read", "shell", "poll", "test", "read", "read", "poll"],
+  );
+});
+
+/* The gate clears its memory when it refuses, so the read past a refusal is one it allows. This counts
+   the same way or the recovery it offers would be counted as the waste it was offered instead of. */
+test("the third of three identical reads is the recovery, and is no more a poll than the first was", () => {
+  const typed = ["tail -f /tmp/gate.log", "tail -f /tmp/gate.log", "tail -f /tmp/gate.log",
+    "tail -f /tmp/gate.log", "tail -f /tmp/gate.log"];
+  const whole = typed
+    .flatMap((command, at) => [typedCall(`p${at}`, at * 2 + 1, "Bash", { command }), gotBack(`p${at}`, at * 2 + 2)])
+    .join("\n");
+  const classes = callsIn(whole).calls.map((one) => one.class);
+  assert.deepEqual(classes, ["read", "poll", "read", "poll", "read"]);
+  assert.equal(
+    classes.filter((one) => one === "poll").length,
+    2,
+    "five identical reads meet the gate twice, so they count twice: one class here is one refusal there",
+  );
+});
+
+/* The second read of a log is where the rejection first appears, because the first one caught the
+   ship mid-push. Promoting that read to `poll` says the turn was wasted, never that its body was:
+   with the fixture where both reads carry the rejection, dropping the promoted one changes no count,
+   which is why this run's first read carries none (F5 of the review on ISS-490). */
+test("a push rejection that only the repeated read of the log carries is still counted", () => {
+  const room = tempRoom("stats-late-rejection-");
+  const tasks = join(room, `claude-${process.getuid()}`, slugFor(PROJECT), "s", "tasks");
+  mkdirSync(tasks, { recursive: true });
+  const bash = (id, start, command, body = "ok") => [use(id, start, "Bash", { command }), result(id, start + 2, body)];
+  const rejected = "stopped at step 6 (push to origin/master): git push origin HEAD:master exited 1. "
+    + "Rejected means the remote moved: rebase, then ship --from 2";
+  writeFileSync(join(tasks, "a9.output"), [
+    JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-98" } }),
+    ...bash("t1", 10, "./plugin/bin/forge claim ISS-98", "claimed"),
+    ...bash("t2", 20, "node /w/tools/run.mjs ship > /tmp/iss98-ship.log 2>&1", ""),
+    ...bash("t3", 300, "tail -3 /tmp/iss98-ship.log", "step 5 (gate): npm run check ..."),
+    ...bash("t4", 400, "tail -3 /tmp/iss98-ship.log", rejected),
+  ].join("\n"));
+  const said = ask(room);
+  assert.equal(said.status, 0, said.stderr);
+  assert.match(said.stdout, /a push rejected in 1 run\(s\)/u, said.stdout);
 });

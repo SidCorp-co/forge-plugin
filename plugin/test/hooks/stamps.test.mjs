@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { tempHome } from "../fixtures.mjs";
 
-import { STAMP_MS, askedAlready, askedByAnyone, stampRoom } from "../../src/hooks/stamps.mjs";
+import { STAMP_MS, askedAlready, askedByAnyone, note, noted, stampRoom } from "../../src/hooks/stamps.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SOURCE = join(HERE, "..", "..", "src", "hooks", "stamps.mjs");
@@ -83,4 +83,20 @@ test("the harness hands the gates these very functions", async () => {
   const harness = await import("../../hooks/_hook.mjs");
   assert.equal(harness.askedAlready, askedAlready, "so no gate's import has to move");
   assert.equal(harness.askedByAnyone, askedByAnyone);
+});
+
+/* A note is not a stamp: a gate spends it on every call, and reaping a whole room per call is what
+   this one is written to avoid. So the planted stale file that a stamp write removes survives a note. */
+test("the note carries what the last call said, per session, and reaps nothing on the way", () => {
+  const stale = plant("kept-through-a-note", STAMP_MS * 2);
+  assert.equal(noted(EV, "polled"), "", "a session that has said nothing has said nothing");
+  note(EV, "polled", "tail -50 /tmp/ship.log");
+  assert.equal(noted(EV, "polled"), "tail -50 /tmp/ship.log");
+  assert.equal(noted({ session_id: "another" }, "polled"), "", "and it is this session's alone");
+  assert.equal(noted(EV, "asked"), "", "as it is this kind's");
+  note(EV, "polled", "");
+  assert.equal(noted(EV, "polled"), "", "overwritten, never added to");
+  assert.ok(existsSync(stale), "a note walks no directory, so nothing stale is swept by one");
+  askedAlready({ session_id: "sweeper" }, "/w/a.md", "reaping");
+  assert.equal(existsSync(stale), false, "which is what a stamp write does do");
 });

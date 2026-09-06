@@ -1,11 +1,13 @@
 // Refuse the shell commands whose damage cannot be undone, and the one that launders a finding into
 // a green run. Narrow on purpose: a guard refusing too much gets disabled — how/bash-guard.md.
-// It also refuses a wait that polls, which loses nothing and costs a turn per wake-up — how/polling.md.
+// It also refuses the two shapes of a poll — a wait that sleeps, and one read of a log typed again
+// with nothing done between — which lose nothing and cost a turn per wake-up: how/polling.md.
 
 import { isAbsolute, resolve } from "node:path";
 
 import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
-import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, deny, gitTreeOf, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
+import { NOTHING, logRead, logsIn } from "../../src/hooks/log-reads.mjs";
+import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, deny, gitTreeOf, note, noted, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
 
 /* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. `git -C other stash` and `git -c k=v add -A` are the verb with a global before it. */
 const GIT = String.raw`^(?:\S*\/)?git\s+` + GIT_GLOBALS;
@@ -180,8 +182,29 @@ const UNNAMED =
   + " from a variable name no directory this reading can check — so it is treated as having"
   + " uncommitted work. Spell the directory out: `cd <path> && \u2026`.";
 
+/* The memory this gate keeps between calls, under the stamp room: what the last one read, and nothing
+   else. A tool call this gate is registered for that is not a shell is something done, so it clears. */
+const POLLED = "polled";
+
+/* Keyed by `logRead`, which is where what the key is made of is decided. An inert call leaves the
+   memory alone, which is the point of it; a refusal clears it, so this says a thing once and the call
+   it could not judge — the log finished between the two — is one turn away. */
+const readAgain = (ev, said) => {
+  const key = logRead(said);
+  const before = noted(ev, POLLED);
+  if (key && key === before) {
+    note(ev, POLLED, "");
+    return logsIn(said);
+  }
+  if (key !== NOTHING) note(ev, POLLED, key ?? "");
+  return null;
+};
+
 export const run = (ev) => {
-  if (ev.tool_name !== "Bash") done();
+  if (ev.tool_name !== "Bash") {
+    note(ev, POLLED, "");
+    done();
+  }
   /* Where each command starts, because a rule quoted in an argument is data: `echo "git stash"` prints.
      A `-c` body is promoted first — the shell it names runs what is inside as commands of its own. */
   const { outer, handed } = instructions((ev.tool_input ?? {}).command ?? "");
@@ -224,5 +247,17 @@ export const run = (ev) => {
     const doubt = atStake === "dirty" ? found : [];
     const unsure = doubt.includes(NOWHERE) ? UNNAMED : (doubt.length > 1 ? UNSURE : "");
     deny(`Refused. ${cause}\n\nInstead: ${instead}${unsure}${topic ? how(topic) : how()}`);
+  }
+
+  const again = readAgain(ev, (ev.tool_input ?? {}).command ?? "");
+  if (again) {
+    deny(
+      `Refused. This is the read before it, typed again with nothing done between: ${again.join(", ")}. `
+      + "A read repeated with nothing between it and the last one is a wait spent asking."
+      + "\n\nInstead: if the work writing it is still running, let the harness's completion notice be the "
+      + "wake-up — it arrives when the work ends, however long that takes. If it has already ended, then "
+      + "the read before this one came too early: ask the finished log what you now want to know, which "
+      + `is a different question. This rule says a thing once, so sending this again passes.${how("polling")}`,
+    );
   }
 };

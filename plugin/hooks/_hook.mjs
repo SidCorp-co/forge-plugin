@@ -13,7 +13,7 @@ import { glued } from "../src/hooks/assembled.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 
 export { DEADLINES };
-export { askedAlready, askedByAnyone } from "../src/hooks/stamps.mjs";
+export { askedAlready, askedByAnyone, note, noted } from "../src/hooks/stamps.mjs";
 export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
 export { NOWHERE, spans, standsIn, unquote };
 

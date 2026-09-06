@@ -1,21 +1,20 @@
 # polling — a wait that asks again is a turn spent asking
 
-Why: over three days, poll-shaped calls cost one session 143 minutes and another 1,344, every
-wake-up being a model turn; 46 of them ran past the shell tool's ten-minute cap and ended with the
-state they were waiting on lost.
+Why: poll-shaped waits cost one session 143 minutes over three days and another 1,344; and 11 runs
+of 60 in a day spent 228 turns reading a log while it was written.
 
-Two routes wait without asking. In the foreground, give the call its own timeout, up to that
-ten-minute cap, and the work either finishes or the cap is the answer. In the background, start it
-and let the harness's completion notice be the wake-up: it arrives whenever the work ends, so
-nothing is spent waiting and no cap applies. Which one to take is the expected duration — under the
-cap, the foreground; over it, or unknown, the background.
+Two routes wait without asking: a timeout of the call's own, up to the shell's ten-minute cap; or
+start it in the background and let the completion notice be the wake-up, which arrives whenever
+the work ends and has no cap. Re-send with the wait taken off; a lone `sleep` is untouched.
 
-Re-send the command with the wait taken off. A single `sleep` is untouched, so a pause before one
-call is still a pause.
+A wait also spreads over turns — the sleep taken out, one read of the log per turn — so an
+identical read repeated with nothing done between is refused too. Ask something else and it
+passes: a `tail` showing a failure and a `grep` chasing it are two questions.
 
-If the wait genuinely has no completion to notice — nothing exits, nothing writes — say so to the
-user rather than shortening the interval until the refusal misses.
+Nothing here sees the notice arrive, so where the work has finished, the read before this one came
+too early; ask the finished log what you now want to know and that passes. It says this once and
+clears what it was made from: one turn is all a wrong reading costs.
 
-Not judged: how long the work takes, a `for` bounded by a count, and a wait inside a body handed to
-another interpreter. Turning this off with `--off bash-guard` takes that gate's other refusals with
-it, since the switch is the gate's and not the topic's.
+Not judged: how long the work takes, a `for` bounded by a count, a wait inside a body handed to
+another interpreter, a file not named like a log, and the same read by another session. `--off
+bash-guard` takes that gate's other refusals with it.

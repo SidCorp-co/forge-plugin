@@ -194,6 +194,10 @@ the change goes onto the default branch here, after the judging, and the merged 
 landing earns `developed` and `tested` on the record Phase 5 wrote. What the mark carries:
 `forge guide contract developed`.
 
+**The ship is the longest wait a run has**, and it is waited on by the rule every other wait here
+obeys, which the poll guard enforces on its log too: `forge hooks --how polling`, read before the
+first read of that log rather than after the guard refuses the second.
+
 Then verify the change where it now runs, post the release note, and move the status, in that
 order: a note published before the change ships announces what has not happened, and the status is
 what other people's queries filter on, so it moves last. What the move is owed:

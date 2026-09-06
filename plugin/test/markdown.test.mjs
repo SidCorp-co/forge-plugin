@@ -35,6 +35,7 @@ const SSE = "plugin/src/sse.mjs";
 const RPC = "plugin/src/tracker/rpc.mjs";
 const HELP_WORD = "plugin/src/resolve/help-word.mjs";
 const LINE_AT = "plugin/src/line-at.mjs";
+const LOG_READS = "plugin/src/hooks/log-reads.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -78,6 +79,9 @@ const ANY_POSITION = ["plugin/src/codex/codex.mjs"];
 /* A live copy, not a reader with its own difference: the two lists above are permanent, this one is a debt ISS-421 clears with the row. An exclusion outliving its issue is the copy going unwatched again. */
 const HELD_ELSEWHERE = ["plugin/src/rank/eligible.mjs"];
 
+/* The extension class alone: a reader set spelled twice is a gate refusing what the profiler cannot count. */
+const LOG_FORMS = [String.raw`log|out|output|err`];
+
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
   ["a non-empty inline code span", MARKDOWN, [CODE_SPAN_NONEMPTY_PATTERN], HELD_ELSEWHERE],
@@ -92,6 +96,7 @@ const NEEDLES = [
   ["the untrusted-data fence", RPC, [FENCE_WORD]],
   ["the help predicate", HELP_WORD, HELP_FORMS, ANY_POSITION],
   ["a line number from an index", LINE_AT, LINE_AT_FORMS, WHOLE_TEXT],
+  ["a log's name", LOG_READS, LOG_FORMS],
 ];
 
 const redeclared = (sources) =>
@@ -115,7 +120,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [SHELL, SSE, RPC, HELP_WORD, LINE_AT]) {
+  for (const home of [SHELL, SSE, RPC, HELP_WORD, LINE_AT, LOG_READS]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);

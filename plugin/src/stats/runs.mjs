@@ -5,6 +5,7 @@ import {
   FLOW_BRIEF,
   EDIT_ROUTES,
   PHASES,
+  POLL,
   UNTIERED,
   callsIn,
   markerOf,
@@ -136,11 +137,13 @@ const advanceRuns = (calls) => {
 };
 
 /* The ship's refusal as it renders when the remote moved under its gate, in the ship's own result or
-   in a read of a log file; a read of a source or test file that carries the same text is not one.
-   One per run, however often the log was read. */
+   in a read of a log file, which the second read of one still is — the promotion to `poll` says the
+   turn was wasted, never that the body was. One per run, however often the log was read. */
 const REJECTED_PUSH = /stopped at step \d+ \(push to [^)]+\): git push [^\n]*exited \d+\. Rejected means the remote moved/u;
 const LOG_READ = /\.log\b/u;
-const reportsShip = (call) => call.class === "ship" || (call.class === "read" && LOG_READ.test(call.shell));
+const READS_A_LOG = new Set(["read", POLL]);
+const reportsShip = (call) =>
+  call.class === "ship" || (READS_A_LOG.has(call.class) && LOG_READ.test(call.shell));
 const RESUMED = /--from\s+\d/u;
 
 /* The passes a landing took: every ship call, those resumed with --from, and whether a push came

@@ -14,13 +14,16 @@ const HOME = homeEnv("bash-guard");
 
 /* The git rules stand down on a clean tree, so the fixtures bring their own dirty one. */
 const DIRTY = dirtyRepo();
-const decide = (command) => {
-  const run = callHook(HOOK, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command }, cwd: DIRTY }, HOME);
+/* The session travels, because one rule here is about what the call before this one in it did. */
+const decideIn = (session, command, tool = "Bash") => {
+  const run = callHook(HOOK, { session_id: session, tool_name: tool, tool_input: { command }, cwd: DIRTY }, HOME);
   assert.equal(run.status, 0, run.stderr);
   if (!run.stdout.trim()) return { allowed: true };
   const answer = JSON.parse(run.stdout).hookSpecificOutput;
   return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason };
 };
+
+const decide = (command) => decideIn(randomUUID(), command);
 
 /* Assembled: the guard reads this suite's own command line when a shell writes the file. */
 const STAGE_ALL = `git ${"add"} -A`;
@@ -265,4 +268,65 @@ test("a stash that moves a shared stack is refused in a clean worktree too", () 
   assert.equal(from(second, `git ${verb} show -p`).trim(), "", "nor does showing one");
   assert.match(from(cleanRepo(), `git -C ${room} ${verb} pop`), /stack belongs to the repository/u, "counted in the tree named");
   assert.match(from(DIRTY, `git ${verb}`), /silently reverts/u, "and a dirty single worktree reads as it did");
+});
+
+/* The wait taken out of the loop and one read typed per turn, which the rule above cannot see: over
+   24h, 11 runs of 60 spent 228 turns reading their own gate or ship log while it ran. */
+test("the same read of a log typed again is refused, and another question of it is not", () => {
+  const session = randomUUID();
+  const read = "tail -50 /tmp/ship.log";
+  assert.ok(decideIn(session, read).allowed, "the first read asks something nobody knows yet");
+  const again = decideIn(session, read);
+  assert.equal(again.allowed, false);
+  assert.match(again.reason, /\/tmp\/ship\.log/u, "the refusal names the log it is about");
+  assert.match(again.reason, /still running/u, "what to do while the work writing it runs");
+  assert.match(again.reason, /already\s+ended/u, "and what to do once that work has ended");
+  assert.match(again.reason, /came too early/u, "which is what the read before it was, since this gate cannot see the notice");
+  assert.match(again.reason, /is a different question/u, "so the way through is named rather than left to be found");
+  assert.match(again.reason, /says a thing once/u, "and the refusal that cannot see the log finish leaves a way past itself");
+  assert.ok(decideIn(session, read).allowed, "which is the read after the refusal, since the refusal cleared what it was made from");
+  assert.equal(decideIn(session, read).allowed, false, "and the one after that is a repeat again");
+  assert.match(again.reason, /forge hooks --how polling/u, "the argument has its own page");
+  assert.ok(decideIn(session, "grep -n error /tmp/ship.log").allowed, "another question is not the same ask");
+  assert.ok(decideIn(session, "tail -20 /tmp/ship.log").allowed, "nor is another depth of the same one");
+});
+
+test("what stands between two identical reads is what decides the second", () => {
+  const session = randomUUID();
+  const read = "tail -20 /tmp/gate.log";
+  assert.ok(decideIn(session, read).allowed);
+  assert.ok(decideIn(session, "echo checking").allowed, "a label is not work");
+  assert.equal(decideIn(session, read).allowed, false, "so the read past it is still the read before it");
+  assert.ok(decideIn(session, "npm test").allowed, "and this is");
+  assert.ok(decideIn(session, read).allowed, "so the read past that one asks something new");
+  assert.ok(decideIn(session, "x", "Edit").allowed, "a call this gate judges nothing of is still a call");
+  assert.ok(decideIn(session, read).allowed, "and it clears the memory too");
+});
+
+/* `.err` is named in no pattern of this gate: it answers for one because the class has one home. */
+test("a repeat nobody was waiting on passes: another file, another session, a verb that wrote", () => {
+  const session = randomUUID();
+  const notALog = "cat /tmp/notes.txt";
+  assert.ok(decideIn(session, notALog).allowed);
+  assert.ok(decideIn(session, notALog).allowed, "a file being worked on is not one being waited for");
+  const read = "tail -5 /tmp/build.err";
+  assert.ok(decideIn(session, read).allowed);
+  assert.ok(decideIn(randomUUID(), read).allowed, "another session has asked this of nothing");
+  assert.equal(decideIn(session, read).allowed, false, "while this one has");
+  assert.ok(decideIn(session, "echo done > /tmp/flag.log").allowed, "a redirect writes, whatever the verb");
+  assert.ok(decideIn(session, read).allowed, "so the read past it is new again");
+});
+
+
+/* Keyed on the command as the transcript records it, so the gate and `forge stats runs` cannot refuse
+   and count different things. Everything the two would read apart is outside the rule instead. */
+test("a shape the profiler could not key the same way is outside this rule, not read a second way", () => {
+  const session = randomUUID();
+  const wrapped = "bash -c 'tail -5 /tmp/ship.log'";
+  assert.ok(decideIn(session, wrapped).allowed);
+  assert.ok(decideIn(session, wrapped).allowed, "a body this rule does not open is no read of a log");
+  const asked = "grep 'error  code' /tmp/ship.log";
+  assert.ok(decideIn(session, asked).allowed);
+  assert.ok(decideIn(session, "grep 'error code' /tmp/ship.log").allowed, "quoted spacing is the question");
+  assert.equal(decideIn(session, "grep 'error code' /tmp/ship.log").allowed, false, "and asking it twice is not");
 });

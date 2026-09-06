@@ -19,6 +19,8 @@ each edit inside one — and in between the changed file's own suite, which answ
 faster than any gate reaches it. The ship spends the gate itself, so the release's gate is
 that run and there is nothing left to spend after the push. A gate too slow to spend once a unit is
 the gate's defect and the gate-review skill is the route to it, never a reason to spend it less often.
+Whichever of those runs, it is started in the background and its log is read when the completion
+notice arrives, never before.
 
 ## The order
 
