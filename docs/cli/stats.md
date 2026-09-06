@@ -93,7 +93,9 @@ be thirteen of them.
 Phase boundaries are read off the first call of each kind, because no run writes a phase into its own
 transcript — and off the **class** the call already carries rather than a second set of patterns, so
 the two cannot disagree about what a call was. A phase already passed cannot pull a run backwards,
-and the ship call is the last call of its own phase rather than the first of the next.
+the review does not open before the build has — the plan is consulted before it is written, and that
+consult is the plan's — and the ship call is the last call of its own phase rather than the first of
+the next.
 
 Each phase's minutes and calls are medians **over the runs that entered that phase**, with the count
 of those runs beside them. A median over the whole window reports a phase most of it never reached as

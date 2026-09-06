@@ -112,7 +112,7 @@ export const PHASES = ["0 discover", "1 plan", "2 build", "3 review", "4 judge",
    transcript, and the first call of each kind is where a phase opens. */
 export const MARKERS = [
   [1, ["forge claim", "forge record confirmation"]],
-  [2, ["forge plan", "forge record plan"]],
+  [2, ["forge plan", "forge record plan", "forge record baseline"]],
   [3, ["forge codex consult"]],
   [4, ["forge record verdict"]],
   [5, ["ship"]],

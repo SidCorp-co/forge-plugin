@@ -266,6 +266,7 @@ test("one class per shape of work, whatever way it was typed", () => {
 test("a phase opens on the call that makes it, not on a line that names it", () => {
   for (const [command, expected] of [
     ["forge claim ISS-99", 1],
+    ["forge record baseline ISS-99 --gate 'npm run check' --result green", 2],
     ["cd /w && ./plugin/bin/forge record verdict ISS-99 --criterion 1", 4],
     ["forge codex consult --diff", 3],
     ["forge codex consult --recheck", null],
@@ -277,6 +278,34 @@ test("a phase opens on the call that makes it, not on a line that names it", () 
   ]) {
     assert.equal(markerOf(classOf("Bash", shellOf(command))), expected, command);
   }
+});
+
+/* Since ISS-365 the plan is consulted before it is written, so the first consult of every run came
+   before its plan marker and opened the review over the whole build. The review opens on the first
+   consult AFTER the build has; the one before it is the plan's. */
+test("a consult before the plan write is the plan's, and the review opens on the one after the build", () => {
+  const room = tempRoom("stats-early-consult-");
+  const tasks = join(room, `claude-${process.getuid()}`, slugFor(PROJECT), "s", "tasks");
+  mkdirSync(tasks, { recursive: true });
+  const early = [
+    ["e1", 0, 5, "./plugin/bin/forge claim ISS-99", "claimed"],
+    ["e2", 60, 600, "forge codex consult --send bodies /tmp/plan.md", "0 findings"],
+    ["e3", 700, 5, "forge plan ISS-99 /tmp/plan.md", "planned"],
+    ["e4", 800, 30, "node --test plugin/test/stats/runs.test.mjs", "ok"],
+    ["e5", 900, 300, "forge codex consult --diff --only blocker", "0 findings"],
+    ["e6", 1300, 5, "forge record verdict ISS-99 --criterion 1", "recorded"],
+  ];
+  writeFileSync(join(tasks, "a9.output"), [
+    JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-99" } }),
+    ...early.flatMap(([id, start, waited, command, body]) =>
+      [use(id, start, "Bash", { command }), result(id, start + waited, body)]),
+  ].join("\n"));
+  const run = ask(room);
+  assert.equal(run.status, 0, run.stderr);
+  const has = (line) => assert.ok(run.stdout.includes(line), `${line}\n--- printed ---\n${run.stdout}`);
+  has("1 plan          1     11.0       11        2.0  forge codex consult 1 10m · forge claim 1 0m");
+  has("2 build         1      2.8        3        2.0  test 1 1m · forge plan 1 0m");
+  has("3 review        1      6.2        6        1.0  forge codex consult 1 5m");
 });
 
 /* The host issues several calls in one turn and they run at once. Summed, their durations exceed
