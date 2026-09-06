@@ -80,7 +80,7 @@ test("past the threshold the step files the reading's issue itself, and prints t
   const to = git(work, "rev-parse", "HEAD").stdout.trim();
   const filing = creating();
   assert.ok(filing, `nothing was filed:\n${owed.stdout}${owed.stderr}`);
-  assert.equal(filing.category, "feature", "the filing names no kind the shape reads a body against");
+  assert.equal(filing.category, "review", "a reading filed as a feature reads as work somebody owes");
   assert.ok(filing.title.includes(`${from.slice(0, 7)}..${to.slice(0, 7)}`),
     `the title names no commit pair: ${filing.title}`);
   assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 0,
@@ -98,6 +98,47 @@ test("past the threshold the step files the reading's issue itself, and prints t
   assert.ok(owed.stdout.includes("filed ISS-777"), owed.stdout);
   assert.ok(owed.stdout.includes("Work ISS-777. Use the Skill tool: skill forge:issue-flow, args ISS-777."),
     `the launch line is not printed as the parent reads it:\n${owed.stdout}`);
+});
+
+/* The keys of a reading are its range's, off the commit subjects, and its own body cites others as
+   the reasons its rules exist: a body scan would relate those. The range's issues are closed by the
+   time the reading is filed, so the resolve reads every row the walk returned (ISS-334). */
+test("the reading relates the issues its range spans, closed included, and not the ones its body cites", () => {
+  const { work } = owedAt("edges");
+  noBacklog({ key: "ISS-777", issues: [
+    { issueId: "ISS-77", documentId: "u-77", status: "closed", title: "the module a run grew" },
+    { issueId: "ISS-146", documentId: "u-146", status: "open", title: "the invoice export writes a header row" },
+    { issueId: "ISS-95", documentId: "u-95", status: "open", title: "a colour token resolves in the dark theme" },
+  ] });
+  const owed = lastStep(work);
+  const filing = creating();
+  assert.ok(filing, `nothing was filed:\n${owed.stdout}${owed.stderr}`);
+  assert.deepEqual(filing.relations, [{ kind: "relates", blocksId: "u-77" }],
+    `the edges are not the range's alone:\n${JSON.stringify(filing.relations)}`);
+  for (const cited of ["ISS-146", "ISS-95"]) {
+    assert.ok(filing.description.includes(cited),
+      `the body cites no ${cited}, so nothing here proves a body scan was not made`);
+  }
+});
+
+/* `data.relations` takes twenty and a range's span is unbounded: refused, the step files nothing,
+   the volume keeps growing and every later ship fails the same way. */
+test("a range naming more keys than a create takes files with the twenty it takes", () => {
+  const { work } = owedAt("capped");
+  const keys = Array.from({ length: 25 }, (_, at) => `ISS-${800 + at}`);
+  noBacklog({ key: "ISS-777", issues: keys.map((one) =>
+    ({ issueId: one, documentId: `u-${one}`, status: "closed", title: `the work ${one} carried` })) });
+  for (const [at, key] of keys.entries()) {
+    landIn(work, join("plugin", "src", `each-${at}.mjs`), 2, `one more change (${key})`);
+  }
+  const owed = lastStep(work);
+  const filing = creating();
+  assert.ok(filing, `nothing was filed:\n${owed.stdout}${owed.stderr}`);
+  assert.equal(filing.relations.length, 20, "twenty is the payload's ceiling, and past it nothing files");
+  assert.ok(filing.description.includes(keys.at(-1)),
+    "and the body's own line still names the whole span the edges could not carry");
+  assert.match(owed.stdout, /the range named more than the filing relates: 5 over the 20 one create carries/u,
+    "and the five are said where the key is, an edge absent in silence reading as one nobody wanted");
 });
 
 test("the generated title and body are a filing this CLI's own shape reader accepts", () => {
@@ -268,7 +309,7 @@ test("a tracker that does not answer files nothing, prints the route, and leaves
   assert.match(blind.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\), 1 file\(s\), 501 changed line\(s\)/u, blind.stdout);
   assert.match(blind.stderr, /the tracker did not answer the lookup, so nothing is filed and the next ship asks again/u,
     `a silence names which call it was, so a refusal is not read as one:\n${blind.stderr}`);
-  assert.match(blind.stdout, /forge new - --title "review [0-9a-f]{7}\.\.HEAD" --kind feature/u,
+  assert.match(blind.stdout, /forge new - --title "review [0-9a-f]{7}\.\.HEAD" --kind review/u,
     `the route it prints has to run as printed, and --size takes only \`fix\` (ISS-118):\n${blind.stdout}`);
   assert.match(blind.stdout, /start <that ISS-nn>/u, blind.stdout);
   assert.equal(seen("create").length, 0, "a refused list may not file");

@@ -23,24 +23,40 @@ have been ignored. One accessor, because the `X-Forge-Project-Slug` header, the 
 lookup, the duplicate reads and `write`'s announcement each read the slug for themselves, and a
 switch in three of the four places files under one project's header into another's id.
 
-**A matching title routes, so the match is exact after normalising case and spacing.** `forge new`
-measures overlap across a title and every sentence of a body, and *suggests*; on a hit it refuses
-and a caller decides. This verb decides for the caller, and an overlap score is not a thing a
-caller can predict: a note appended to an unrelated issue is the note lost again, which is the
-failure the verb exists to end. For the same reason the shape read is the body-only one — the
-tracker-reading refusal `forge new` uses would refuse a near-duplicate note and drop the body on
-the floor. That read asks for every section, which is not the default: `forge new` short-circuits
-two ways — a body marked at a rung below `feature` is read against no section, and one naming a code token with
+**A duplicate refuses nothing here.** `forge new` measures overlap across a title and every
+sentence of a body and refuses on a hit, leaving the caller to decide. That refusal is the one thing
+this verb cannot afford: a note refused is a finding lost, and the run that met the defect has
+already spent the turn writing it. So the shape read is the body-only one, and the neighbour block
+under the reply is what shows the filer what the refusal would have said.
+
+That read asks for every section, which is not the default: `forge new` short-circuits two ways — a
+body marked at a rung below `feature` is read against no section, and one naming a code token with
 neither rules nor an out-of-scope is offered the three routes a small change takes instead of being
 refused. Both are routes a note does not have. A note is one shape, always the bug's, so the
 shortcuts are switched off for it and every section is read; without that a note missing two of its
 four sections filed clean.
 
-**Past the title, a note is measured the way a filing is.** Both routes that file ask the tracker's
-own memory what is open beside what they are about to write, print it under the result, and land a
-marked note on the neighbour that shares its place rather than filing a second issue. The rules, the
-floor and the reason the fold answers to two signals instead of one are [`beside`](beside.md)'s,
-including why that reverses the paragraph above for the fold and not for the title.
+**A note is measured the way a filing is, and folds the way one does.** Both routes that file ask
+the tracker's own memory what is open beside what they are about to write, print it under the
+result, and land a marked note on the neighbour that shares its place rather than filing a second
+issue. The rules, the floor and the reason the fold answers to two signals instead of one are
+[`beside`](beside.md)'s.
+
+**There is no second fold on the title.** This verb used to route a note onto any open issue whose
+title matched after case and spacing were normalised, before the fold above ran, on the argument
+that an exact match is a thing a caller can predict where an overlap score is not. What that bought
+was a rule with no reader: a title is one line of a note and the fold measures the whole of it
+against the whole of a neighbour, and two runs meeting one defect write the title two ways more
+often than they write it one. What it cost was a second route to remember, on the one verb whose
+whole promise is that a finding reaches the backlog whatever else is true. Title equality is now a
+neighbour like any other, scored with the rest (ISS-334).
+
+**A note names the issue it belongs to with `--with`.** The keys a note's own body mentions are
+listed under the reply beside that flag rather than written as edges, the same way `forge new` does
+it, and for the same reason: a body cites a key as a reason as often as it names related work. A key
+given on the flag is resolved after the destination is aimed at this plugin, so it names an issue of
+this backlog and never one of the caller's; and a note that names one declines the fold, because a
+note related to an issue is carried by that issue's flow and a fold would put it on some third one.
 
 **It declares no backing tool, though it writes to one.** Every other verb with a tracker tool
 behind it names that tool, and a credential the server refuses it to loses the verb from `-h` and

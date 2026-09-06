@@ -12,7 +12,6 @@ const { UNRANKED, duplicateOf, filedAs, partsIn, priorityFor, refusalFrom,
   shapeOf, tokensNamed, twoChangesIn, withMark } = await import("../../src/tracker/issue-shape.mjs");
 const { FIX, TIERS, belowTop, markFor, markedIn } = await import("../../src/ladder.mjs");
 const SIZE_LINE = markFor(FIX);
-const SHORT = "`forge dep` should take the `data.relations` route.";
 const { filingsOf } = await import("../../src/tracker/issue-read.mjs");
 
 const WHOLE = [
@@ -189,9 +188,10 @@ const RANKS = ["critical", "high", "medium", "low", "none"];
 test("a filing nobody ranked is the bottom of the set, and the line says by default", () => {
   const ranked = priorityFor(undefined, RANKS);
   assert.equal(ranked.value, UNRANKED);
-  assert.equal(ranked.said, "priority low, by default");
+  assert.equal(ranked.said, "priority none, by default");
   assert.equal(ranked.refusal, undefined);
-  assert.equal(RANKS.at(-2), UNRANKED, "the bottom a queue can be worked from, `none` being no rank at all");
+  assert.equal(RANKS.at(-1), UNRANKED, "the tracker's own value for nobody having judged");
+  assert.notEqual(UNRANKED, "low", "a rank somebody chose has to read apart from one nobody did");
 });
 
 test("a rank the filer typed is kept, and the line says it was theirs", () => {
@@ -215,19 +215,19 @@ test("a set the schema did not declare refuses nothing", () => {
 /* The default answers to the same set a typed value does. Held to nothing, a tracker that renamed
    this rank would refuse every unranked filing in its own words, at the write, with no route out. */
 test("a set that no longer holds the default refuses the filing and names the plugin as the fix", () => {
-  const { refusal, value } = priorityFor(undefined, ["critical", "high", "medium", "none"]);
+  const { refusal, value } = priorityFor(undefined, ["critical", "high", "medium", "low"]);
   assert.equal(value, undefined);
-  assert.match(refusal, /files an issue nobody ranked as `low`/u);
-  assert.match(refusal, /the tracker's set is now critical, high, medium, none/u);
+  assert.match(refusal, /files an issue nobody ranked as `none`/u);
+  assert.match(refusal, /the tracker's set is now critical, high, medium, low/u);
   assert.match(refusal, /Name one with --priority/u);
   assert.match(refusal, /the default is what has to change/u);
 });
 
 test("the filed line names the key, and degrades to what the reply did carry", () => {
   const said = priorityFor(undefined, RANKS).said;
-  assert.equal(filedAs({ issueId: "ISS-157", documentId: "u" }, said), "ISS-157 is filed, priority low, by default.");
-  assert.equal(filedAs({ documentId: "u" }, said), "u is filed, priority low, by default.");
-  assert.match(filedAs({}, said), /^Filed, priority low, by default; the reply named no key/u);
+  assert.equal(filedAs({ issueId: "ISS-157", documentId: "u" }, said), "ISS-157 is filed, priority none, by default.");
+  assert.equal(filedAs({ documentId: "u" }, said), "u is filed, priority none, by default.");
+  assert.match(filedAs({}, said), /^Filed, priority none, by default; the reply named no key/u);
 });
 
 /* End to end: the refusal text, the mark landing in the description and the two routes are the
@@ -252,15 +252,19 @@ const { mkdirSync, writeFileSync } = await import("node:fs");
 const { join } = await import("node:path");
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const room = tempHome("filing").path;
-/* The verb spawns with the tracker's own home; the one case below calls the reader in this process,
-   whose credential path was fixed at import, so the same endpoint is written where that path looks.
-   A temporary home either way: a run on the developer's credential is the one thing a test may not do. */
+/* The verb spawns with the tracker's own home and one case below reads in this process, whose
+   credential path was fixed at import, so the same endpoint is written where that path looks. */
 mkdirSync(join(home.path, "forge"), { recursive: true });
 writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t" }));
-const filed = (body, ...argv) => {
+/* The helper names a kind where the argv did not, that not being what these cases are about. */
+const bodyAt = (body) => {
   const path = join(room, "body.md");
   writeFileSync(path, body);
-  return ranAsync(FORGE, ["new", path, ...argv], tracker.env);
+  return path;
+};
+const filed = (body, ...argv) => {
+  const kind = argv.includes("--kind") || argv.includes("--into") ? [] : ["--kind", "feature"];
+  return ranAsync(FORGE, ["new", bodyAt(body), ...argv, ...kind], tracker.env);
 };
 
 /* What a whole pass over one body costs, counted through a getter, because a body scanned for its
@@ -281,6 +285,8 @@ test("the verb refuses a fix with the three routes and the open issues naming wh
   assert.equal(run.status, 1);
   assert.match(run.stderr, /--into ISS-nn/u);
   assert.match(run.stderr, /--with ISS-nn/u);
+  assert.match(run.stderr, /--kind, which a comment is not read against and the verb refuses beside it/u,
+    "the comment route names the flag it replaces; taken beside --kind it is a second refusal");
   /* The mark stopped meaning "files it": where an open issue both reads like the filing and names
      its place, the mark lands it there instead, and the route that promised a filing would be a
      refusal telling a filer the wrong thing (ISS-139). */
@@ -326,7 +332,8 @@ test("--with files it and relates it in the same create, so one branch carries b
 
 /* Every input is used or refused, never dropped: the second dry run found six of that family. */
 test("a flag that belongs to a filing is refused on the comment route, not silently dropped", async () => {
-  for (const argv of [["--size", "fix"], ["--priority", "high"], ["--status", "draft"]]) {
+  for (const argv of [["--size", "fix"], ["--priority", "high"], ["--status", "draft"],
+    ["--kind", "feature"]]) {
     const run = await filed(WHOLE, "--title", TITLE, "--into", "ISS-45", ...argv);
     assert.equal(run.status, 1, argv.join(" "));
     assert.match(run.stderr, new RegExp(`${argv[0]} belongs to a filing`, "u"));
@@ -342,11 +349,14 @@ test("the two routes are two, and asking for both is refused", async () => {
 /* The shared parser takes an empty string as a value, so a route read by truthiness is a route
    dropped: this one filed the issue instead of commenting, silently. */
 test("a route named with nothing is refused, and never read as no route at all", async () => {
-  for (const argv of [["--into", ""], ["--with", ""]]) {
-    const run = await filed(WHOLE, "--title", TITLE, ...argv);
-    assert.equal(run.status, 1, argv.join(" "));
-    assert.match(run.stderr, /neither an issue uuid nor an issue key/u);
-  }
+  const run = await filed(WHOLE, "--title", TITLE, "--into", "");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /neither an issue uuid nor an issue key/u);
+  /* The relating flag takes a list, so an empty one is no key rather than one that will not
+     resolve, and the refusal names both shapes it does take. */
+  const empty = await filed(WHOLE, "--title", TITLE, "--with", " , ");
+  assert.equal(empty.status, 1);
+  assert.match(empty.stderr, /--with takes an issue key, or several separated by commas/u);
 });
 
 test("a whole body files with no output but the issue", async () => {
@@ -376,7 +386,7 @@ test("a raw call filing is refused with the verb that reads it, from a file as f
 /* Reading to EOF on a stdin nobody fed waited two minutes and then filed. */
 test("`-` with nothing on stdin is refused, and never read as an empty body", async () => {
   state.calls = [];
-  const run = await ranAsync(FORGE, ["new", "-", "--title", TITLE], tracker.env);
+  const run = await ranAsync(FORGE, ["new", "-", "--title", TITLE, "--kind", "feature"], tracker.env);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /read nothing from stdin/u);
   assert.equal(state.calls.some((one) => one.args.action === "create"), false);
@@ -419,139 +429,8 @@ test("a whole reading buys the filing no search at all", async () => {
   assert.deepEqual(searches, [], "the hidden row is unreachable and nothing was asked for it");
 });
 
-/* The kinds end to end: what the verb refuses before it reads anything, what it sends the tracker
-   for the kind it was given, and what it says about a shortfall it files anyway. */
-const BUG = [
-  "## What happened",
-  "",
-  "`forge new` answered success and stored a description with no section in it.",
-  "",
-  "## Outcome",
-  "",
-  "A filing is read against the shape the kind it names asks for.",
-  "",
-  "## Rules",
-  "",
-  "- The refusal names the missing section and the kind that requires it.",
-  "",
-  "## Out of scope",
-  "",
-  "Any change to the tracker.",
-].join("\n");
-
-test("a kind outside the set is refused with the set, before a single tracker call", async () => {
-  state.calls = [];
-  const run = await filed(BUG, "--title", TITLE, "--kind", "chore");
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /No kind named chore\. The set is bug, enhancement, feature\./u);
-  assert.match(run.stderr, /read as a feature/u, "and the kind a filing naming none is read as");
-  assert.deepEqual(state.calls, [], "nothing was asked of the tracker to find that out");
-});
-
-test("the kind the filing names is what the body is read against, and what the tracker is sent", async () => {
-  state.calls = [];
-  const refused = await filed(WHOLE, "--title", TITLE, "--kind", "bug");
-  assert.equal(refused.status, 1);
-  assert.match(refused.stderr, /no heading naming what happened/u);
-  assert.match(refused.stderr, /required of a bug/u);
-  state.calls = [];
-  const run = await filed(BUG, "--title", TITLE, "--kind", "bug");
-  assert.equal(run.status, 0, run.stderr);
-  const create = state.calls.find((one) => one.args.action === "create");
-  assert.equal(create.args.data.category, "bug");
-  assert.match(run.stdout, /"kind": "bug"/u, "and the answer is read back in the CLI's own word");
-  assert.doesNotMatch(run.stdout, /category/u);
-});
-
-test("a filing naming no kind is filed as it was before kinds, and told what it was read as", async () => {
-  state.calls = [];
-  const run = await filed(WHOLE, "--title", TITLE);
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stderr, /Read as a feature, the kind a filing naming none is read as/u);
-  const create = state.calls.find((one) => one.args.action === "create");
-  assert.equal("category" in create.args.data, false, "and the field is left for a filing that chose");
-});
-
-test("a nice-to-have section left out is said on the way past, and the issue is filed", async () => {
-  state.calls = [];
-  const run = await filed(BUG, "--title", TITLE, "--kind", "bug");
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stderr, /leaves out Where, nice to have on a bug/u);
-  assert.ok(state.calls.some((one) => one.args.action === "create"), "said, not refused");
-});
-
-/* The mark reaches the tracker's field, flag-written or typed, so both sources agree from the create. */
-test("--size marks the description and writes the tracker's field from that mark", async () => {
-  /* The top rung buys no exemption, so its body still owes every section the shape asks for. */
-  const created = async (body, ...argv) => {
-    state.calls = [];
-    const run = await filed(body, "--title", `forge dep writes an edge a token can write ${argv}`, ...argv);
-    assert.equal(run.status, 0, run.stderr);
-    return state.calls.find((one) => one.args.action === "create");
-  };
-  for (const [rung, held, body] of [["trivial", "xs", SHORT], ["fix", "s", SHORT], ["feature", "m", WHOLE]]) {
-    const create = await created(body, "--size", rung);
-    assert.match(create.args.data.description, new RegExp(markFor(rung), "u"));
-    assert.equal(create.args.data.complexity, held, rung);
-    assert.equal(create.args.data.status, "open", "and the same body is filed either way");
-  }
-  const typed = await created(`${SHORT}\n\n${markFor("trivial")}`);
-  assert.equal(typed.args.data.complexity, "xs", "the line the filer typed writes the field too");
-});
-
-test("a filing that named no rank is filed at the bottom, and the reply says which line ranked it", async () => {
-  state.calls = [];
-  const run = await filed(WHOLE, "--title", TITLE);
-  assert.equal(run.status, 0, run.stderr);
-  const create = state.calls.find((one) => one.args.action === "create");
-  assert.equal(create.args.data.priority, "low", "the tracker was left to fill its own middle");
-  assert.match(run.stdout, /^filed-uuid is filed, priority low, by default\.$/mu);
-});
-
-test("a rank the filer typed is what is written, and the reply says it was theirs", async () => {
-  state.calls = [];
-  const run = await filed(WHOLE, "--title", TITLE, "--priority", "high");
-  assert.equal(run.status, 0, run.stderr);
-  assert.equal(state.calls.find((one) => one.args.action === "create").args.data.priority, "high");
-  assert.match(run.stdout, /is filed, priority high, as given\.$/mu);
-});
-
-/* The set is the tracker's, declared in its own schema: read at the call, so a rank outside it is
-   refused here rather than filed and read back later as one somebody chose. */
-test("a rank outside the tracker's set is refused before the body is even read", async () => {
-  state.calls = [];
-  const run = await filed(WHOLE, "--title", TITLE, "--priority", "urgent");
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /No priority named urgent/u);
-  assert.match(run.stderr, /The set is critical, high, medium, low, none/u);
-  assert.equal(state.calls.some((one) => one.args.action === "create"), false, "a refused rank filed an issue");
-});
-
-test("a rank is a filing flag, so the comment route refuses it rather than dropping it", async () => {
-  state.calls = [];
-  const run = await filed(WHOLE, "--title", TITLE, "--into", "ISS-45", "--priority", "high");
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /--priority belongs to a filing/u);
-  assert.equal(state.calls.some((one) => one.name === "forge_comments"), false);
-});
-
-test("`forge new -h` says what a filing with no rank gets", async () => {
-  const run = await ranAsync(FORGE, ["new", "-h"], tracker.env);
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /absent it a filing is low/u);
-});
-
-test("`forge new -h` lists every kind with the sections it requires", async () => {
-  const run = await ranAsync(FORGE, ["new", "-h"], tracker.env);
-  assert.equal(run.status, 0, run.stderr);
-  for (const kind of ["bug", "enhancement", "feature"]) assert.match(run.stdout, new RegExp(`\\n  ${kind} `, "u"));
-  assert.match(run.stdout, /required {3}What happened, Outcome, Rules, Out of scope/u);
-  assert.match(run.stdout, /nice {7}Where/u);
-  assert.match(run.stdout, /Usage: forge new/u, "and what to type is still the first line of it");
-});
-
-/* The duplicate check's own line. Called in process — the line is a console.error beside a refusal
-   that may be null, so spawning a verb would judge the wrong thing. */
+/* The duplicate check's own line, in process: it is a console.error beside a refusal that may be
+   null, so spawning a verb would judge the wrong thing. */
 const said = async (page) => {
   const kept = console.error;
   const lines = [];

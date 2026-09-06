@@ -14,8 +14,8 @@ import { recordDir, runSays } from "./gates/timing.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { isRelease, onlyRelease, RELEASE_FILES, versionAt } from "./run/landing.mjs";
 import { mintRunId, runIdAt, RUN_ID_VAR } from "./run/run-id.mjs";
-import { markRefused, REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
-import { fileIssue } from "../plugin/src/tracker/filing/route.mjs";
+import { markRefused, REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody, spannedIn } from "./run/review.mjs";
+import { edgesLeft, fileIssue } from "../plugin/src/tracker/filing/route.mjs";
 import { runsMark } from "../plugin/src/stats/eval.mjs";
 import { refusing } from "../plugin/src/resolve/settings.mjs";
 import { CEILINGS, overCeiling, resizeForm, tierOf } from "../plugin/src/ladder.mjs";
@@ -336,10 +336,12 @@ const fileReview = async (tree, from, volume) => {
     + `that wrote none of it, and the mark moves`;
   /* Inside `refusing`, so a credential or a transport this CLI would exit over comes back here: a
      release is mid-flight at this point and nothing about a filing may end it. */
+  /* Keys off the commit subjects, never the body, which cites the issues that shaped this step. */
   const filed = await refusing(() => fileIssue({
     title,
     body: reviewBody({ tree, from, to, volume, self: SELF }),
-    kind: "feature",
+    kind: "review",
+    relateKeys: spannedIn(tree, from),
     soft: true,
   })).catch((error) => ({ threw: error }));
   if (filed.threw) return { why: filed.threw.message, whose: "the filing could not be made" };
@@ -350,7 +352,7 @@ const fileReview = async (tree, from, volume) => {
   if (filed.answer?.refused) return { why: filed.answer.refused, whose: whose({}, "the filing") };
   const key = filed.joined?.issueId ?? filed.answer?.issueId ?? null;
   return key
-    ? { key, filed: true }
+    ? { key, filed: true, related: filed.related }
     : { why: JSON.stringify(filed.answer ?? null), whose: "the filing answered with no issue key" };
 };
 
@@ -440,7 +442,7 @@ const reviewOwed = async (tree) => {
   }
   if (asked.why) {
     console.error(`  ${asked.whose}, so nothing is filed and the next ship asks again: ${asked.why}`);
-    console.log(`    file its issue:  forge new - --title "review ${range}" --kind feature`);
+    console.log(`    file its issue:  forge new - --title "review ${range}" --kind review`);
     console.log(`    give it a tree:  ${SELF} start <that ISS-nn>`);
     console.log(`    it ends by moving the mark, finding or none: ${SELF} review --done <the range's end>`);
     return;
@@ -453,6 +455,8 @@ const reviewOwed = async (tree) => {
   console.log(asked.filed
     ? `    filed ${asked.key}`
     : `    ${asked.key} is ${asked.status} for this mark already, so nothing was filed`);
+  const left = edgesLeft(asked.related);
+  if (left) console.log(`    the range named more than the filing relates: ${left}`);
   console.log(`  ${launch(asked.key)}`);
 };
 

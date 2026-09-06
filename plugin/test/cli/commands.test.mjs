@@ -125,28 +125,29 @@ const noted = (title) => {
   return ran(["feedback", path, "--title", title]);
 };
 
-/* Nobody ranks a defect they merely met, so the note is filed unranked and says so. The flag the
-   other filing route takes is not one of this verb's — its own help and refusal say why. */
+/* Nobody ranks a defect they merely met, so the note is filed unranked and says so. `none` is the
+   tracker's own value for that, and it is not `low`: a rank somebody chose reads apart from one
+   nobody did, which is what the field was worth writing for (ISS-334). */
 test("a note filed against this plugin is ranked by nobody, so it lands at the bottom saying so", async () => {
   state.issues = [];
   state.calls = [];
   const run = await noted("the browse verb answers in an order a run can work from");
   assert.equal(run.status, 0, run.stderr);
   const create = state.calls.find((one) => one.name === "forge_issues" && one.args.action === "create");
-  assert.equal(create.args.data.priority, "low");
-  assert.match(run.stdout, /^filed-uuid is filed, priority low, by default\.$/mu);
+  assert.equal(create.args.data.priority, "none");
+  assert.match(run.stdout, /^filed-uuid is filed, priority none, by default\.$/mu);
 });
 
-test("a note taken as a comment on a title already open ranks nothing at all", async () => {
+test("a title already open on that project no longer takes the note as a comment", async () => {
   const title = "the browse verb answers in an order a run can work from";
   state.issues = [{ issueId: "ISS-9", documentId: "u-9", status: "open", title }];
   state.calls = [];
   const run = await noted(title);
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(state.calls.some((one) => one.args.action === "create" && one.name === "forge_issues"), false);
-  const said = state.calls.find((one) => one.name === "forge_comments" && one.args.action === "create");
-  assert.equal("priority" in said.args.data, false, "a comment is no filing and owes no rank");
-  assert.doesNotMatch(run.stdout, /priority/u);
+  const create = state.calls.find((one) => one.name === "forge_issues" && one.args.action === "create");
+  assert.equal(create.args.data.title, title, "the note is its own issue, measured like any filing");
+  assert.equal(state.calls.some((one) => one.name === "forge_comments" && one.args.action === "create"),
+    false, "and nothing was posted on the issue that happened to share the words");
 });
 
 /* The cut that matters is by response BYTES, so no ask of any size gets past it: two rows of four

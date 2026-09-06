@@ -14,14 +14,16 @@ export const REVIEW_LINES = 500;
 const KEY = /ISS-\d+/gu;
 
 /** The issues whose work the range carries, ascending, read off the subjects rather than from any
- *  list a person keeps: a release commit names no issue, and the commits it released do. */
-const spanned = (tree, from) => {
+ *  list a person keeps: a release commit names no issue, and the commits it released do. Exported
+ *  because the filing relates them as edges and the body names them in prose, and a second reading
+ *  of the body for keys would relate the issues this one CITES as reasons (ISS-334). */
+export const spannedIn = (tree, from) => {
   const subjects = gitOut(["log", "--first-parent", "--format=%s", `${from}..HEAD`], tree) ?? "";
   return [...new Set(subjects.match(KEY) ?? [])].sort((one, two) => Number(one.slice(4)) - Number(two.slice(4)));
 };
 
 export const reviewBody = ({ tree, from, to, volume, self }) => {
-  const keys = spanned(tree, from);
+  const keys = spannedIn(tree, from);
   const paths = REVIEW_PATHS.join(" ");
   return [
     "## Outcome",

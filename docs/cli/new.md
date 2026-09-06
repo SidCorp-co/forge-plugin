@@ -25,8 +25,9 @@ a backlog that large is a refusal nobody can act on.
 Where nothing in the body is a rule and nothing is out of scope, its size is the finding rather
 than its shape, and three flags take such a filing instead of the tracker. `--into ISS-45` posts the
 body as a comment there and files nothing, which is the route for a finding that belongs on an issue already open; it renews no lease,
-because a finding on an issue nobody holds is nobody's claim. `--with ISS-45` files it and writes a
-relates edge in the same create, so one branch, one review and one release carry both; it writes no
+because a finding on an issue nobody holds is nobody's claim. `--with ISS-45`, or several keys
+separated by commas, files it and writes a relates edge to each in the same create, so one branch,
+one review and one release carry both; it writes no
 mark, because the flow such a filing is carried by is the related issue's. `--size` takes one of the
 contract's three rungs and marks it at that one,
 and a marked filing no longer always becomes an issue: where one already open both reads like it and
@@ -41,62 +42,48 @@ and then filed a titled issue with no body at all, which is the one filing the s
 stop. Every verb taking a payload reads it through the same module now, so the two copies that
 differed there are one.
 
+## The keys a body names are offered, and only the reading's own are written
+
+A body cites `ISS-45` as often to say why something is as it is as to name work this filing relates
+to, and nothing lexical tells the two apart: the batch reading's own generated body cites two issues
+in its Rules and its Why as the reasons those rules exist. So the keys a body names are printed under
+the reply beside the flag that would relate them, and the filer decides. What that costs is one more
+command where the answer was yes; what writing them would cost is an edge nobody asked for on an
+issue nobody was looking at, and no verb here retracts one.
+
+The one filing that relates without being asked is the ship step's batch reading, and its keys are
+not its body's: they are read off the commit subjects of the range it covers, which is the set the
+reading is a reading *of*. Those issues are closed by the time it files, so the keys resolve against
+every row the filing's own walk read rather than against the open-issue projection the duplicate
+check uses. The tracker takes twenty edges on a create and the count of a range is unbounded, so the
+first twenty are written and the body's own Rules line goes on naming the whole span: a filing
+refused for its edges is a release step that files nothing, and the next ship would fail the same way.
+
 The mark is a line in the description — `Size: trivial.`, `Size: fix.` or `Size: feature.` — and the
 filing writes the tracker's own size field from it in the same create. Two sources, not two truths:
 `forge advance --owed` reads whichever of them claims the higher rung and says which one did, so the
 line carries every issue filed before the field was readable and the field carries one nobody marked.
 The undo is an update that rewrites the description without the line and clears the field.
 
-## A rank is written for every filing, and the empty field the kind keeps is not the model
+## A rank is written for every filing, and the value it is written with says nobody judged
 
 Two issues filed on 2026-09-04 with nothing said about their rank came back reading `medium`, which
 is also what an issue somebody weighed and called medium reads. A backlog sorted on that field cannot
 tell the two apart, so it was sorted by hand instead, and the field bought nothing.
 
-The reason the kind's field is left empty does not carry over, and the difference is the tracker's,
-not this CLI's: leaving the kind out leaves it out, while leaving the rank out fills it with the
-middle of the set. So the choice is not between a default and no default — it is between an unjudged
-middle and an unjudged bottom, and only the bottom leaves a list workable from the top. Both filing
-routes write it; the reply says whether the filer chose it or the CLI did, because a filer who meant
-more than the bottom finds out while the command is still in their hand. The set behind it is read
-from the tracker's own schema at the call, and a rank outside it is refused before anything is
-filed — this CLI keeps no copy of those five names.
+Leaving the rank out is not an option the way leaving the kind out was: the tracker fills an absent
+one with the middle of its own set. What it does carry is `none`, the last of its five values, which
+is not a rank below `low` but the tracker's own word for nobody having judged. That is what a filing
+nobody ranked is written with, so `low` goes back to meaning a rank somebody chose and the two are
+legible apart on the field alone. Both filing routes write it; the reply says whether the filer chose
+it or the CLI did, because a filer who meant more than the bottom finds out while the command is
+still in their hand. The set behind it is read from the tracker's own schema at the call, and a rank
+outside it is refused before anything is filed — this CLI keeps no copy of those five names. The
+browse verb needs no rule of its own for it: it sorts by that same schema order, whose last two
+values are `low` and then `none`.
 
 The defect route ranks nothing at all. Whoever met a defect in this plugin is not whoever schedules
 the fix, and a note that ranked itself would be one finder's estimate of another's queue.
 
-## The kind decides which sections, and the set is what this backlog writes
-
-The tracker's schema is the base and this project never changes it: its field for a kind takes any
-string of a hundred characters, so the strictness is this CLI's. What the CLI adds is a set of kinds
-and, per kind, the sections a body of that kind carries. `forge new -h` is the table of both, stated
-there and read from there by the lint, the refusal and the help alike.
-
-The set is three, measured rather than picked. Across the 101 issues this project had filed, the
-tracker's field for a kind was empty on every one, so nothing could be read off the field and the
-bodies answered instead. Of the 90 carrying headings, 20 open with a past-tense section and never a
-present-tense one, 51 open with a present-tense one and never a past-tense one, and 19 open with
-neither; the overlap between those two families is zero. Under them: an outcome in 89, an
-out-of-scope in 89, a rule-family heading in 90, a *Why* in 15 — and *Expected*, *Where*, *Steps*
-and *Reproduce* in none at all. So a defect's *expected* is the outcome heading 89 bodies already
-write it under, and *Where* is asked for and not required: a section no filing has ever carried
-would be a refusal nobody could learn the habit from.
-
-Required is refused and nice-to-have is said, because the two shortfalls cost differently. A body
-missing the section its kind is defined by cannot be confirmed at all, and pays that again at every
-status; one that does not say where costs a reader a single search. A filing naming no kind is read
-as a feature — the shape every filing was held to before kinds existed, so nothing filed under the
-older rule is refused for having followed it — and told so on the way past. A body carrying the mark
-is read against no section and against no kind, so it is told nothing: the mark is already the answer
-to what shape the flow should ask of it. The field is left empty
-rather than defaulted, because a value written there for a filing that chose nothing reads later as
-a kind somebody chose, and the measurement above is what that spoils.
-
-Both words are the CLI's. `--kind` is the flag, `kind` is what the answer comes back saying, and the
-tracker's own name for that field and for the size beside it sit in the one writer — a flag naming
-either of them instead is refused with the word that reads the body. The tracker's name for the size
-is refused tree-wide in any string a developer is shown; its name for the kind is an ordinary English
-word a gate prints for an unrelated meaning, so that one is held by a case over the kinds' own text
-rather than by a pattern over the tree. `--size` writes the mark and the field the mark maps onto: the flow's word for a size and the
-tracker's value for it meet in one statement, in the ladder, and both directions of it are read
-there — so a filing leaves the two agreeing rather than leaving one of them to be set later by hand.
+What the four kinds are, what each one's body owes and why the set is that size:
+[`the-kinds`](the-kinds.md).

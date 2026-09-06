@@ -14,7 +14,8 @@ needs that topic and by nobody else.
 | [the way in](cli/the-way-in.md) | Why `-h` is intercepted before the verb, answers on stdout, and carries the tracker's write-time rules in the binary. |
 | [what the projections leave out](cli/the-projections.md) | Which fields the browse and issue projections drop, and why no local copy of a name the server publishes is kept. |
 | [the guides](cli/the-guides.md) | Why seven of the twelve guides the tracker serves are withheld, and what the disposition table still decides. |
-| [`new`](cli/new.md) | What a title and a body are read against before the tracker sees them, the kinds that decide which sections that is, and the three flags that take a filing the shape refuses. |
+| [`new`](cli/new.md) | What a title and a body are read against before the tracker sees them, the value a filing nobody ranked carries, the keys a body names and the three flags that take a filing the shape refuses. |
+| [`the-kinds`](cli/the-kinds.md) | Why a filing has to name a kind, what the four are, which sections each one's body owes and how the set was measured. |
 | [`record`](cli/record.md) | Why the CLI owns every payload's shape, which two flags are read off the record, and what a record cannot undo. |
 | [`advance`](cli/advance.md) | What the entry criteria are read from, why git is never asked at the transition while the requirements tree is, and how a reopen is routed. |
 | [`claim`](cli/claim.md) | How far a lease can be promised without a conditional write, what the step line is for, and why every write lists the issue's comments first. |
@@ -34,7 +35,7 @@ needs that topic and by nobody else.
 | [codex — the request](cli/codex-the-request.md) | Which cache the request is written for, what a consult replays, what a path may reach, and what the reviewer's own tools mean by no argument. |
 | [codex — the log](cli/codex-the-log.md) | What the log makes a session out of, what the stats window answers, what makes anyone run it, and what the commit gate demands before a commit. |
 | [`beside`](cli/beside.md) | What the create path asks the tracker before it files, the floor it drops a neighbour under, why a fix-size filing folds onto one only when two independent answers agree, and the cases it still cannot reach. |
-| [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue and not a file, where the destination project is held, and why a matching title routes on an exact match rather than an overlap score. |
+| [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue and not a file, where the destination project is held, and why nothing on this route refuses a note. |
 | [the filing](cli/filing.md) | Why every route that files an issue calls one interface, why that interface neither prints nor exits, why a route contributes a section rather than joining text on first, and the two decisions each route still makes for itself. |
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, what a call that never returned counts as, and the three rows a hand profile got wrong. |

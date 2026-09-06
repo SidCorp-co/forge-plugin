@@ -4,6 +4,7 @@
    closed, a search that could not run at all. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -367,11 +368,14 @@ test("a raw create is refused with the verb that reads it, and files nothing", a
 
 /* The defect route files on the same measure: ISS-162 was filed through it as a duplicate of the
    open ISS-156, which is the case ISS-139 was opened for. */
-const noted = (...argv) => {
+const noteFile = () => {
   const path = join(room, "note.md");
   writeFileSync(path, `${BODY}\n\nSize: fix.\n`);
-  return ranAsync(FORGE, ["feedback", path, "--title", TITLE, ...argv], tracker.env);
+  return path;
 };
+
+const noted = (...argv) =>
+  ranAsync(FORGE, ["feedback", noteFile(), "--title", TITLE, ...argv], tracker.env);
 
 test("a note whose title is open nowhere folds onto the neighbour that shares its place", async () => {
   before();
@@ -380,7 +384,30 @@ test("a note whose title is open nowhere folds onto the neighbour that shares it
   assert.equal(run.status, 0, run.stderr);
   assert.equal(created(), undefined);
   assert.equal(commented().args.data.issue, OPEN.documentId);
-  assert.match(run.stdout, /No open issue on forge-plugin carries this title, and ISS-45 is open/u);
+  assert.match(run.stdout, /^ISS-45 is open, names the same place/mu);
+});
+
+/* An exact title is a neighbour like any other and routes nothing on its own (ISS-334); the note
+   below is measured under the fold's floor, so nothing else could have acted either. */
+test("a note whose title is already open on that project is filed rather than commented there", async () => {
+  before();
+  state.memory = both(OPEN.issueId, 0.5);
+  const run = await ranAsync(FORGE, ["feedback", noteFile(), "--title", OPEN.title], tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.ok(created(), "the title matches ISS-45 exactly and no longer routes the note there");
+  assert.equal(commented(), undefined);
+  assert.equal(created().args.data.title, OPEN.title);
+});
+
+/* A note that names its issue rides that issue's flow, so the fold may not put it on a third. */
+test("a note naming an issue with --with relates it and declines the fold", async () => {
+  before();
+  state.memory = both(OPEN.issueId, 0.83);
+  const run = await ranAsync(FORGE, ["feedback", noteFile(), "--title", TITLE, "--with", "ISS-52"], tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.ok(created(), "0.83 would have folded it, and --with is a route of its own");
+  assert.equal(commented(), undefined);
+  assert.deepEqual(created().args.data.relations, [{ kind: "relates", blocksId: ELSEWHERE.documentId }]);
 });
 
 test("a note declines the fold with --new, and prints the block under what it filed", async () => {
@@ -397,7 +424,7 @@ test("the note verb still refuses a flag that is neither of its two", async () =
   before();
   const run = await noted("--kind", "bug");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /feedback takes --title and --new and nothing else; --kind names no flag/u);
+  assert.match(run.stderr, /feedback takes --title, --with and --new and nothing else; --kind names no flag/u);
 });
 
 /* The band the block prints from is the band the measurement calls machinery rather than subject,
@@ -458,11 +485,53 @@ test("--new on an unmarked filing names the neighbour that would have qualified"
 test("a body piped in is printed back by a refusal that comes after the read", async () => {
   before();
   const body = "## Outcome\n\nthe piped body reaches the refusal and comes back out of it\n";
-  const argv = ["new", "-", "--title", "the piped body survives what refuses it"];
+  const argv = ["new", "-", "--title", "the piped body survives what refuses it", "--kind", "feature"];
   const run = await ranAsync(FORGE, argv, tracker.env, process.cwd(), body);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /Your body, so that nothing here loses it:/u);
   assert.match(run.stderr, /the piped body reaches the refusal and comes back out of it/u);
+  assert.equal(created(), undefined);
+});
+
+/* The other half of the same rule: a refusal BEFORE the read may not consume the one payload
+   nothing can send twice, so the kind is asked for ahead of the body rather than beside it. */
+test("a filing with no kind is refused without reading the stdin it was piped", async () => {
+  before();
+  const body = "## Outcome\n\nthe body nothing read is the body still in the sender's hand\n";
+  const argv = ["new", "-", "--title", "the kind is asked for before the body is taken"];
+  const run = await ranAsync(FORGE, argv, tracker.env, process.cwd(), body);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /A filing needs --kind/u);
+  assert.match(run.stderr, /bug, enhancement, feature, review/u);
+  assert.doesNotMatch(run.stderr, /Your body, so that nothing here loses it:/u,
+    "nothing was read, so there is nothing to print back and nothing was lost");
+  assert.equal(created(), undefined);
+});
+
+/* A closed stdin proves nothing: a body read before the refusal reads empty and the case above
+   still passes. Here the pipe is never ended, so a route that takes the body cannot answer at all. */
+test("that refusal answers on a stdin nothing ever closes", async () => {
+  before();
+  const child = spawn(FORGE, ["new", "-", "--title", "the kind is asked for before the body is taken"],
+    { env: tracker.env, stdio: ["pipe", "pipe", "pipe"] });
+  child.stdin.write("## Outcome\n\nheld open, and the sender still has it\n");
+  const said = await new Promise((done) => {
+    let err = "";
+    const giveUp = setTimeout(() => {
+      child.kill("SIGKILL");
+      done({ code: null, err });
+    }, 20000);
+    child.stderr.on("data", (chunk) => {
+      err += chunk;
+    });
+    child.on("exit", (code) => {
+      clearTimeout(giveUp);
+      done({ code, err });
+    });
+  });
+  child.stdin.destroy();
+  assert.equal(said.code, 1, `the refusal never came; the body was being waited for:\n${said.err}`);
+  assert.match(said.err, /A filing needs --kind/u);
   assert.equal(created(), undefined);
 });
 

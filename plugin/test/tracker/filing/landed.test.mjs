@@ -418,14 +418,16 @@ test("a note that folds ends its stdout with the comment id it posted", async ()
   assert.equal(lastOf(run.stdout), `Comment ${posted[0].documentId} is posted on ${NEAR.issueId}, read back from the tracker.`);
 });
 
-test("a note whose title is already open names the comment it posted, not only the issue", async () => {
+/* A shared title is not a shared subject, and the note it swallowed was the finding: the fold a
+   note still takes is the neighbour above, measured, and its reply is the case before this (ISS-334). */
+test("a note whose title is already open is filed anyway, and its last line names the key", async () => {
   before();
   state.issues = [{ ...ISSUE, title: TITLE }, NEAR];
   const posted = stores();
   state.issues = [{ ...ISSUE, title: TITLE }, NEAR];
   const run = await noted();
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /is open on forge-plugin under this title/u);
-  assert.equal(posted.length, 1);
-  assert.equal(lastOf(run.stdout), `Comment ${posted[0].documentId} is posted on ${ISSUE.issueId}, read back from the tracker.`);
+  assert.doesNotMatch(run.stdout, /is open on forge-plugin under this title/u);
+  assert.equal(posted.length, 0, "and nothing is posted on the issue that happens to share the title");
+  assert.equal(lastOf(run.stdout), "ISS-810 is filed at uuid-810, read back from the tracker.");
 });

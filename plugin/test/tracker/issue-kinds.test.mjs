@@ -10,6 +10,7 @@ import {
   KINDS_HELP,
   KIND_NAMES,
   inFlowWords,
+  keysOffered,
   insteadOf,
   kindRefusal,
   noticeFor,
@@ -34,8 +35,8 @@ const gapsOf = (text, kind) => shapeOf({ title: TITLE, body: text, kind });
 const said = (text, kind) => gapsOf(text, kind).gaps.map((one) => `${one.read} ${one.wants} ${one.clear}`).join(" | ");
 
 test("the set is what the backlog's body shapes measured, and every name is one word", () => {
-  assert.deepEqual(KIND_NAMES, ["bug", "enhancement", "feature"]);
-  assert.ok(KIND_NAMES.includes(DEFAULT_KIND), "the kind a filing naming none is read as is one of them");
+  assert.deepEqual(KIND_NAMES, ["bug", "enhancement", "feature", "review"]);
+  assert.ok(KIND_NAMES.includes(DEFAULT_KIND), "the kind a raw create naming none is read as is one of them");
   for (const name of KIND_NAMES) assert.match(name, /^[a-z]+$/u, name);
   assert.equal(KIND_NAMES.includes("chore"), false);
 });
@@ -110,6 +111,21 @@ test("a nice-to-have section left out is said in one line, and refuses nothing",
     "and a kind that left nothing out is told nothing");
 });
 
+/* The fourth is nobody's to type: a reading filed as a feature reads as work somebody owes. */
+test("a reading is a kind of its own, sharing the feature's sections and not its name", () => {
+  const reading = KINDS.find((one) => one.kind === "review");
+  const feature = KINDS.find((one) => one.kind === "feature");
+  assert.deepEqual(reading.needs.map((one) => one.title), feature.needs.map((one) => one.title));
+  assert.deepEqual(reading.says.map((one) => one.title), feature.says.map((one) => one.title));
+  assert.deepEqual(gapsOf(body("outcome", "rules", "scope", "why"), "review").gaps, []);
+  const missing = gapsOf(body("outcome", "rules", "why"), "review");
+  assert.equal(missing.gaps.length, 1, JSON.stringify(missing.gaps));
+  assert.match(missing.gaps[0].wants, /out-of-scope heading.*required of a review/u);
+  assert.deepEqual(trackerFields({ kind: "review" }), { category: "review" },
+    "the value is what a reader filters a reading off, so it has to reach the field");
+});
+
+/* A raw create carries no flag to require, so the shared reader still reads a body as a feature. */
 test("a filing naming no kind is read as the default and told so", () => {
   const read = gapsOf(body("outcome", "rules", "scope", "why"), null);
   assert.deepEqual(read.gaps, []);
@@ -127,8 +143,10 @@ test("a body marked `Size: fix.` is read against no section, whatever kind it na
     assert.deepEqual(read.gaps, [], String(kind));
     assert.equal(read.said, null, "and nothing is said about a reading that did not happen");
   }
-  assert.match(KINDS_HELP, /no section and against no kind, so nothing is read\nof it and nothing is said/u,
+  assert.match(KINDS_HELP, /no section and against no kind, so\nnothing is read of it and nothing is said/u,
     "which is what the help says, so the two cannot drift into promising a line the mark suppresses");
+  assert.match(KINDS_HELP, /the mark is not an exemption from the flag/u,
+    "the sections are what the mark drops, and the set is not among them");
   /* The mark exempts the sections and not the set, and the tracker's own tool is the route that
      can carry both at once. */
   const outside = gapsOf(marked, "chore");
@@ -158,6 +176,18 @@ test("a flag naming the tracker's field is refused with the word this CLI reads"
   }
   assert.equal(insteadOf({ priority: "high", status: "open" }), null, "and the fields it does pass through");
   assert.equal(insteadOf({}), null);
+});
+
+/* Offered, never written: no verb here retracts an edge, and nothing lexical tells a key cited as
+   a reason from one naming related work. */
+test("the keys a body names come back with the read, and the line offers them with the flag", () => {
+  const cited = `${body("outcome", "rules", "scope")}\n\nIt is why ISS-45 was filed, and iss-46 says so.`;
+  assert.deepEqual(gapsOf(cited, "feature").keys, ["ISS-45", "ISS-46"], "one entry per key, upper-cased");
+  assert.match(keysOffered(["ISS-45", "ISS-46"]), /^This body names ISS-45, ISS-46\. `--with ISS-45,ISS-46`/u);
+  assert.match(keysOffered(["ISS-45"]), /a key being as often a sentence's reason/u);
+  assert.equal(keysOffered(["ISS-45"], ["iss-45"]), null, "a key already related is not offered again");
+  assert.equal(keysOffered([]), null);
+  assert.deepEqual(gapsOf(body("outcome", "rules", "scope"), "feature").keys, []);
 });
 
 test("the writer sends the kind the filing named, and nothing where it named none", () => {

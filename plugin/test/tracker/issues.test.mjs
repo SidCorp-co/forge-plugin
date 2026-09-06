@@ -71,6 +71,13 @@ test("the rank comes first, in the order the tracker's own set declares", () => 
   assert.deepEqual(keys(rows), ["critical", "medium", "low"]);
 });
 
+/* The value a filing nobody ranked carries is the last of the tracker's own set, so what nobody has
+   weighed sits under what somebody called low and the top of the browse is workable (ISS-334). */
+test("an unranked filing sorts under every issue somebody called low", () => {
+  const rows = [at("none", "2026-01-01"), at("low", "2026-02-01"), at("medium", "2026-03-01")];
+  assert.deepEqual(keys(rows), ["medium", "low", "none"], "and the older `none` still goes last");
+});
+
 test("at one rank the oldest is first, because it has waited longest", () => {
   const rows = [
     at("high", "2026-03-01", "new"),

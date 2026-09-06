@@ -3,7 +3,7 @@
    module, because the verb that files an issue and the gate that refuses one through the tracker's
    own tool have to refuse the same body, and because a set of sections held apart from the reader of
    them is two places to correct. The tracker's half of the schema is read live from its own schema
-   and copied nowhere. Why three kinds and why these sections: docs/cli/new.md;
+   and copied nowhere. Why these kinds and why these sections: docs/cli/the-kinds.md;
    plugin/hooks/how/issue-shape.md. */
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
@@ -83,7 +83,9 @@ const WHY = section({
   heading: /\bwhy\b/iu,
 });
 
-/* Three, measured: nothing here names a kind, so the set is the body shapes this backlog writes. */
+/* Three measured off the bodies this backlog had written, and a fourth this CLI writes itself: a
+   batch reading filed as one of the three reads as work somebody still has to do. A row rather than
+   a synonym for the feature shape it copies, the value having to reach the field to be filtered. */
 export const KINDS = [
   {
     kind: "bug",
@@ -100,6 +102,12 @@ export const KINDS = [
   {
     kind: "feature",
     is: "something that is not there at all",
+    needs: [OUTCOME, RULES, SCOPE],
+    says: [WHY],
+  },
+  {
+    kind: "review",
+    is: "a reading of work already landed, whose outcome is findings landed or filed and a mark moved",
     needs: [OUTCOME, RULES, SCOPE],
     says: [WHY],
   },
@@ -121,7 +129,15 @@ const KIND_WANTS = `one of ${listed(KIND_NAMES)} — ${KIND_ROUTE}`;
 
 export const kindRefusal = (given) =>
   `${didYouMean("kind", given, KIND_NAMES)}\nIt names no shape to read the body against, and`
-  + ` ${KIND_ROUTE}. A filing naming no kind is read as a ${DEFAULT_KIND}.`;
+  + ` ${KIND_ROUTE}.`;
+
+/** A filing that named none at all: prose decides neither the sections nor the field, the same
+ *  headings carrying a bug and a feature. */
+export const kindNeeded = () =>
+  `A filing needs --kind. It decides which sections the body is read against and it is what the`
+  + ` tracker's own field for a kind carries, so a filing without one is read against a guess and`
+  + ` stored against nothing.\nName one of ${listed(KIND_NAMES)} — ${KIND_ROUTE}. \`forge new -h\``
+  + ` is the table of what each one's body owes.`;
 
 /* Each name a key, never a string a developer is shown: one to translate back costs a round. */
 const FLOW = {
@@ -152,7 +168,7 @@ export const trackerFields = ({ kind, rung = null }) => ({
    be — left out, the tracker fills the middle of its own set; docs/cli/new.md holds the rest. */
 export const PRIORITY_AT = ["data", "properties", "priority", "enum"];
 
-export const UNRANKED = "low";
+export const UNRANKED = "none";
 
 export const priorityFor = (given, allowed = []) => {
   const wanted = given ?? UNRANKED;
@@ -178,8 +194,9 @@ export const filedAs = (answer, said) => {
 
 export const PRIORITY_HELP = [
   `--priority takes the tracker's own set, read at the call, and absent it a filing is ${UNRANKED}.`,
-  "The reply says which of the two it was. An issue nobody ranked sorts to the bottom of the browse",
-  "verb rather than into the middle of it, so what is left there is what nobody has judged yet.",
+  `The reply says which of the two it was. \`${UNRANKED}\` is the tracker's own value for nobody`,
+  "having judged, so an unranked filing is not a `low` one and is not read as one: it sorts to the",
+  "bottom of the browse verb, and what is left there is what nobody has weighed yet.",
 ].join("\n");
 
 export const inFlowWords = (record) => {
@@ -204,9 +221,10 @@ export const KINDS_HELP = [
   ...KINDS.flatMap(kindRows),
   "",
   "A heading is matched by family and not by that wording: `Business rules` is a rule section and",
-  `\`What it is now\` is a today one. A filing naming no kind is read as a ${DEFAULT_KIND} and told`,
-  "so. A body marked `Size: fix.` is read against no section and against no kind, so nothing is read",
-  "of it and nothing is said.",
+  "`What it is now` is a today one. `forge new` refuses a filing that names no kind; a create sent",
+  `through the tracker's own tool carries no flag to refuse, so one arriving there is read as a`,
+  `${DEFAULT_KIND}. A body marked \`Size: fix.\` is read against no section and against no kind, so`,
+  "nothing is read of it and nothing is said — the mark is not an exemption from the flag.",
 ].join("\n");
 
 /** One line or nothing: what the body was read as, and what it left out. Neither is a refusal. */
@@ -219,6 +237,15 @@ export const noticeFor = ({ kind, named, left }) => {
     ? ` It leaves out ${listed(titles(left))}, nice to have on a ${kind} and refused on nothing.`
     : "";
   return `${head}${rest}`;
+};
+
+export const keysOffered = (keys, held = []) => {
+  const taken = new Set(held.map((one) => String(one).toUpperCase()));
+  const left = (keys ?? []).filter((one) => !taken.has(one));
+  if (!left.length) return null;
+  return `This body names ${listed(left)}. \`--with ${left.join(",")}\` relates what it names in the`
+    + " same create; nothing is written from a body on its own, a key being as often a sentence's"
+    + " reason as it is work this filing relates to.";
 };
 
 export const openTitles = (rows) =>
@@ -389,7 +416,8 @@ const sectionGaps = (text, shape, among) =>
  *  by. Read from the filing alone, so a caller ranking heads pays none of the shape reading. */
 export const asksOf = ({ title, body, kind = null }) => {
   const text = String(body ?? "");
-  return { place: placeIn(text), seed: seedFor({ title, body: text, kind }) };
+  return { place: placeIn(text), seed: seedFor({ title, body: text, kind }),
+    keys: [...new Set(keysIn(text).map((one) => one.toUpperCase()))] };
 };
 
 export const shapeOf = ({ title, body, kind = null }, { everySection = false } = {}) => {
@@ -477,7 +505,8 @@ const alsoNamed = async (tokens, live) => {
 };
 
 const fixRoutes = (tokens, candidates) => [
-  `  --into ISS-nn   post this body as a comment on that issue and file nothing`,
+  `  --into ISS-nn   post this body as a comment on that issue and file nothing; it replaces`,
+  `                  --kind, which a comment is not read against and the verb refuses beside it`,
   `  --with ISS-nn   file it and relate it, so one branch, one review and one release carry both`,
   `  --size ${TIERS.join("|")}`,
   `                  mark it at a rung: the two below the top carry it on the light path, and where`,

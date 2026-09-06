@@ -36,11 +36,20 @@ calls when it wants that assembly and its shape verdict before anything reaches 
 `forge feedback` asks it before it aims the project at this plugin, so a malformed note costs no
 call at all.
 
-**Two things stayed a route's own, on purpose.** The duplicate check is off for `forge feedback`,
-because that verb routes a note whose title is already open into a comment on that issue: an overlap
-refusal above that would refuse exactly the notes the route exists to place. And `forge feedback`'s
-title match runs before the filing and buys the open-issues page the filing then reuses, so the
-route that needed a reading for its own reason does not pay for a second.
+**One thing stays a route's own, on purpose.** The duplicate check is off for `forge feedback`: a
+note refused as a near-duplicate is a finding lost, which is the one failure that verb exists to
+prevent, and the neighbour block under its reply shows the filer everything the refusal would have
+said. Its own title fold went with ISS-334, so the reading it buys is now the filing's own and the
+route pays for one.
+
+**Keys become edges on one route and an offer on the others.** A key in a body is as often the
+reason for a sentence as it is work the filing relates to, so `forge new` and `forge feedback` print
+the keys they found beside `--with` and write none. The batch reading writes them, because its keys
+are not its body's: they come off the commit subjects of the range it reads. Those issues are closed
+by then, so the interface resolves a key against every row of the reading it already made rather than
+against the open-issue projection the duplicate check uses, and it caps the set at the twenty
+`data.relations` takes — a create refused for its edges is a release step that files nothing and a
+next ship that fails identically.
 
 **The kind table did not move up a layer.** The kinds and the sections each one's body owes are
 already one declaration, and the help, the refusal and the hook's shape reader all render from it,

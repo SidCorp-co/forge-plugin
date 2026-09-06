@@ -61,7 +61,7 @@ test("a note filed from another project lands on this plugin's, as a bug", async
   assert.equal(run.filed.args.data.category, "bug");
   assert.equal(run.filed.args.data.title, TITLE);
   assert.equal(run.filed.slug, "forge-plugin", "the filing went out under the caller's project header");
-  assert.match(run.stdout, /No open issue on forge-plugin carries this title/u);
+  assert.match(run.stdout, /^The note is a new bug on forge-plugin\.$/mu);
 });
 
 test("the Where section is written by the verb and names the copy, the version and the caller", async () => {
@@ -106,14 +106,31 @@ test("a body calling itself a fix is read against every section all the same", a
   assert.equal(run.filed, undefined, "the mark exempted a note from its sections");
 });
 
-test("a title already open there takes the note as a comment, and files nothing", async () => {
+/* Title equality is a neighbour like any other and routes nothing by itself (ISS-334): a title is
+   one line of a note, the fold measures the whole of it, and two runs meeting one defect write the
+   title two ways more often than one. */
+test("a title already open there does not take the note, which is filed as its own issue", async () => {
   const held = { documentId: OPEN, issueId: "ISS-9", status: "open", title: `  ${TITLE.toUpperCase()} ` };
   const run = await send(["feedback", note(), "--title", TITLE], { issues: [held] });
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(run.filed, undefined, "a second issue was filed under a title already open");
-  assert.equal(run.said?.args.data.issue, OPEN);
-  assert.match(run.stdout, /ISS-9 is open on forge-plugin under this title/u);
-  assert.equal(run.of("forge_issues", "update").length, 0, "the verb wrote to the issue it commented on");
+  assert.ok(run.filed, "the note is its own issue, the title having routed nothing");
+  assert.equal(run.filed.args.data.title, TITLE);
+  assert.equal(run.said, undefined, "and nothing was posted on the issue that shared the words");
+});
+
+/* The finder's own route to relating: `forge new`'s flag, on the verb that files without a lease. */
+test("a note names the issue it belongs to with --with, resolved on this plugin's project", async () => {
+  const held = { documentId: OPEN, issueId: "ISS-9", status: "open", title: "an issue this note belongs under" };
+  const run = await send(["feedback", note(), "--title", TITLE, "--with", "ISS-9"], { issues: [held] });
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(run.filed.args.data.relations, [{ kind: "relates", blocksId: OPEN }]);
+});
+
+test("--with naming nothing is refused with the two shapes it takes", async () => {
+  const run = await send(["feedback", note(), "--title", TITLE, "--with", " , "]);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /--with takes an issue key, or several separated by commas/u);
+  assert.equal(run.filed, undefined);
 });
 
 /* The run has already spent the turn writing the note, and a body from stdin is nowhere else. */
@@ -183,7 +200,7 @@ test("a forge_issues gate recorded in the caller's project does not withhold it"
 test("its help says what to type and where the note goes", async () => {
   const run = await send(["feedback", "-h"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^Usage: forge feedback <file\.md\|@file\|-> --title T$/mu);
+  assert.match(run.stdout, /^Usage: forge feedback <file\.md\|@file\|-> --title T \[--with ISS-45,ISS-46\] \[--new\]$/mu);
   assert.match(run.stdout, /The destination is forge-plugin, fixed here/u);
   assert.match(run.stdout, /No lease is taken/u);
 });
@@ -219,7 +236,7 @@ test("a note the walk could not finish reading for is told the check was partial
     answer: { forge_issues: pageOf(ONE_TIMESTAMP, 2) },
   });
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stderr, /the set this note was checked against reached 2 issue\(s\)/u);
+  assert.match(run.stderr, /the set this note was measured against reached 2 issue\(s\)/u);
 });
 
 test("that warning says what the short reading costs the note, which is being filed twice", async () => {
@@ -227,7 +244,7 @@ test("that warning says what the short reading costs the note, which is being fi
     issues: ONE_TIMESTAMP,
     answer: { forge_issues: pageOf(ONE_TIMESTAMP, 2) },
   });
-  assert.match(run.stderr, /filed as a second issue rather than folded onto it/u);
+  assert.match(run.stderr, /filed as a second issue rather than a finding/u);
 });
 
 test("that warning names no limit, and carries the tracker's own instruction", async () => {
@@ -235,7 +252,7 @@ test("that warning names no limit, and carries the tracker's own instruction", a
     issues: ONE_TIMESTAMP,
     answer: { forge_issues: pageOf(ONE_TIMESTAMP, 2) },
   });
-  const said = run.stderr.split("\n").find((line) => line.includes("checked against reached")) ?? "";
+  const said = run.stderr.split("\n").find((line) => line.includes("measured against reached")) ?? "";
   assert.doesNotMatch(said, /\b500\b/u);
   assert.match(said, /A higher limit will NOT help/u);
 });

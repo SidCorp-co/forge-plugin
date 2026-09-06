@@ -7,6 +7,7 @@ import {
   MAX_LIMIT,
   documentIdOf,
   everyIssue,
+  notAReference,
   projectedTo,
   queued,
   rowsOf,
@@ -24,10 +25,12 @@ import {
   filedAs,
   inFlowWords,
   insteadOf,
+  keysOffered,
+  kindNeeded,
   kindRefusal,
 } from "./tracker/issue-shape.mjs";
 import { BESIDE_HELP, foldedInto, suggestionLines } from "./tracker/filing/neighbours.mjs";
-import { filedOrFail, rankFor } from "./tracker/filing/route.mjs";
+import { filedOrFail, keysFrom, rankFor } from "./tracker/filing/route.mjs";
 import { commentLanded, issueLanded, sayLanded } from "./tracker/filing/landed.mjs";
 import { TIERS } from "./ladder.mjs";
 import { targetsOfTool } from "./tracker/issue-read.mjs";
@@ -335,15 +338,14 @@ export const commands = {
     if (kind !== undefined && !KIND_NAMES.includes(kind)) fail(kindRefusal(kind));
     const instead = insteadOf(given);
     if (instead) fail(instead);
-    /* Before the body is read: a stdin payload cannot be sent twice, and a rank the tracker's own
-       set does not carry is knowable without it. The filing takes the answer rather than asking
-       again, so one filing costs one reading of that set. */
-    const rank = await rankFor(priority);
-    if (rank.refusal) fail(rank.refusal.text);
     /* Presence, never truth: the shared parser takes an empty string as a value, and a route read
        by truthiness would drop `--into ""` on the floor and file the issue instead. */
     const commenting = into !== undefined;
     const relating = rides !== undefined;
+    const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
+    if (badKeys) fail(badKeys);
+    const wrongRoute = commenting ? notAReference(into) : null;
+    if (wrongRoute) fail(wrongRoute);
     if (commenting && relating) fail("--into posts a comment and --with files an issue. Ask for one of them.");
     if (commenting && fresh) {
       fail("--into posts the body on the issue you named and --new refuses to post it on an issue at "
@@ -356,6 +358,14 @@ export const commands = {
       fail(`--into posts a comment, and ${filing.map((one) => `--${one}`).join(", ")} belongs to a filing. `
         + "Drop it, or file the issue and comment on it separately.");
     }
+    /* The filing route's, not the verb's: `--into` is refused a kind above, so requiring it of
+       both clears nothing. Before the body, a stdin payload not being sendable twice. */
+    if (!commenting && kind === undefined) fail(kindNeeded());
+    /* Every refusal a call could not change is above this line, and this is the one call a filing
+       makes before the body: a rank outside the tracker's own set is knowable without one, and the
+       filing takes this answer rather than asking again. */
+    const rank = await rankFor(priority);
+    if (rank.refusal) fail(rank.refusal.text);
     const body = await bodyFrom(path);
     /* Registered the moment there is something to lose, and only then: a body from a file is on
        disk, and one from stdin cannot be sent a second time. */
@@ -379,7 +389,10 @@ export const commands = {
       fields: carried,
       routed: relating,
       fresh,
-      relations: relating ? [{ kind: "relates", blocksId: await documentIdOf(rides) }] : null,
+      relations: withKeys.length
+        ? await Promise.all(withKeys.map(async (one) =>
+          ({ kind: "relates", blocksId: await documentIdOf(one) })))
+        : null,
     });
     if (filed.shape.said) console.error(filed.shape.said);
     if (filed.joined) {
@@ -393,6 +406,8 @@ export const commands = {
     keepOnFailure(null);
     show(inFlowWords(filed.answer));
     console.log(filedAs(filed.answer, filed.ranked.said));
+    const offered = keysOffered(filed.shape.keys, withKeys);
+    if (offered) console.log(offered);
     sayBeside(filed.beside, filed.said);
     return sayLanded(await issueLanded(filed.answer));
   },
