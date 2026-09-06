@@ -4,11 +4,73 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, askedByAnyone, deny, how, nameLike, settled, shellText, shellWrites, writtenPaths, done } from "../_hook.mjs";
+import { askedAlready, askedByAnyone, deny, how, nameLike, settled, shellText, shellWrites, spans, unquote, writtenPaths, WRITES, done } from "../_hook.mjs";
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../../src/checks/learning.mjs";
 /* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. The class is `_hook.mjs`'s, so a name it would read is a name this reads. */
 const MD_TOKEN = nameLike("~", "md");
+
+/* Where each of the verbs `WRITES` knows puts the file it writes: the last operand for `cp`, `install` and `rsync`, each of its own for `tee`, `sed -i`, `truncate` and `touch`, both for `mv` and for an `rsync` that unlinks the one it reads, and the `of=` one for `dd`. `curl` and `wget` name none, their target arriving as the value of `-o` or `-O`, which the reading below never strikes out anyway; and `sed` and `dd` name none in the readings — `sed -n`, a `dd` with no `of=` — that write nothing at all. */
+const AIMS = { cp: "last", curl: "none", dd: "of", install: "last", mv: "each", rsync: "last", sed: "each", tee: "each", touch: "each", truncate: "each", wget: "none" };
+const IN_PLACE = /\s(?:-[a-hj-z]*i(?![\w-])|--in-place)/u;
+const UNLINKS = /\s--remove-source-files(?![\w-])/u;
+
+/* A word, kept whole through its quotes; the three classes of word that are not a program's operands — what runs before the verb, a word carrying a redirect, which is `echo x>a` as much as `> a` and is the one reading struck text must not lose, and a flag, whose value a gate has no way to tell from a flag that takes none; and the move whose destination is read for the tree it leaves behind rather than as an operand. */
+const WORDS = /(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|[^\s;&|])+/gu;
+const BEFORE = /^(?:[A-Za-z_]\w*=|(?:sudo|command|nohup|time|env|exec|do|then|else|elif|if|while|until)$)/u;
+const AIMED = /[<>]/u;
+const FLAG = /^-/u;
+const MOVES = /^(?:cd|pushd|popd)$/u;
+const HANDED = /\bxargs\b|(?:^|\s)-exec\b|\{\}/u;
+
+/** The operands of one command, with the words that are not operands left out, each `{ from, to }` in the text this stage was cut from. */
+const operandsOf = (words) => {
+  const out = [];
+  for (let at = 0; at < words.length; at += 1) {
+    /* Its own spelling, quotes off: a shell takes `'--output'` for the option it is, and reading the raw word left the destination beside it unguarded. */
+    const said = unquote(words[at].text);
+    const before = at > 0 ? unquote(words[at - 1].text) : "";
+    if (FLAG.test(said) || FLAG.test(before) || AIMED.test(said) || AIMED.test(before)) continue;
+    out.push(words[at]);
+  }
+  return out;
+};
+
+/** Which of one command's operands its write lands on, `null` where this cannot say — a verb whose operands are somewhere else, or a write made by a language's own call, which names no position here. `said` is the same command with every word's quotes off, which is how a shell reads a flag; `stage` is what it wrote, since unquoting it would promote a verb quoted inside an argument. */
+const aimsOf = (program, operands, stage, said) => {
+  const aim = AIMS[program];
+  if (!aim) return WRITES.test(stage) ? null : [];
+  if (aim === "none" || (program === "sed" && !IN_PLACE.test(said))) return [];
+  if (aim === "of") return operands.filter((one) => unquote(one.text).startsWith("of="));
+  return aim === "last" && !UNLINKS.test(said) ? operands.slice(-1) : operands;
+};
+
+/** Every operand of one command that its write does not land on, or `null` to leave the whole span alone. */
+const readsIn = (stage, from) => {
+  const words = [...stage.matchAll(WORDS)].map((m) => ({ text: m[0], from: from + m.index, to: from + m.index + m[0].length }));
+  let at = 0;
+  while (at < words.length && BEFORE.test(unquote(words[at].text))) at += 1;
+  const program = basename(unquote(words[at]?.text ?? ""));
+  if (MOVES.test(program)) return [];
+  const operands = operandsOf(words.slice(at + 1));
+  const aims = aimsOf(program, operands, stage, ` ${words.map((one) => unquote(one.text)).join(" ")}`);
+  return aims && operands.filter((one) => !aims.includes(one));
+};
+
+/** The command text with every operand a write does not land on struck out, space for space so a relative name still resolves against the trees it did.
+ *  `writtenPaths` answers with every name standing beside a write shape, which is the breadth a gate asking what a call may have touched wants and the wrong one here: a `grep` of a skill piped into `tee` was held as a write to the skill, and the refusal cost the unrelated appends beside it (ISS-81). A guarded path this gate holds has to be the write's own target. `HANDED` is where the file a write lands on is not in the command at all — `xargs` and `-exec` hand it over from another and `{}` stands in for one — and that span is left whole, which is the answer the gate gave before. */
+const struck = (text) => {
+  let out = text;
+  for (const { start, end } of spans(text)) {
+    const span = text.slice(start, end);
+    if (!WRITES.test(span) || HANDED.test(span)) continue;
+    const reads = spans(span, { pipes: true })
+      .map((stage) => readsIn(span.slice(stage.start, stage.end), start + stage.start))
+      .reduce((all, one) => all && one && [...all, ...one], []);
+    for (const { from, to } of reads ?? []) out = `${out.slice(0, from)}${" ".repeat(to - from)}${out.slice(to)}`;
+  }
+  return out;
+};
 
 /* Doubt is an action, and the one branch with a tree to name is where this gate can be one. */
 const UNSURE =
@@ -114,7 +176,7 @@ export const run = (ev) => {
   if (tool === "Bash") {
     const text = shellText(ti.command);
     if (CALLED.test(text)) decide(payloadIn(text));
-    const written = writtenPaths(shellWrites(ti.command), ev.cwd || process.cwd(), MD_TOKEN);
+    const written = writtenPaths(struck(shellWrites(ti.command)), ev.cwd || process.cwd(), MD_TOKEN);
     if (written.length === 0) done();
     for (const { token, trees, paths } of written) {
       if (basename(token) === "MEMORY.md") continue;

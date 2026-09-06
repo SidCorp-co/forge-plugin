@@ -17,7 +17,7 @@ sentence the skill already says is refused.
 A file landing anyway is answered for late: `forge hooks --how learning-landed`.
 
 How to write through it: `Write` or `Edit`. The shell route is closed — `sed -i` carries no content to
-read. A guarded path counts beside a write shape, spelled out or assembled; a string that could not
-be one filename is payload. A pipeline is one command.
+read. The write's target counts, spelled out or assembled, and not a path beside it; where the verb
+is handed its file, every path in the command counts.
 
 Not judged: whether the fact is true or useful. Only that the write was decided on.

@@ -102,6 +102,8 @@ test("a `-c` body inside a `-c` body is unwrapped too", () => {
 test("the write verbs an agent reaches for are writes", () => {
   for (const command of [
     `touch ${MEMORY}/trap.md`,
+    `truncate -s 0 ${MEMORY}/trap.md`,
+    `mv a.md ${MEMORY}/trap.md`,
     `install -m 644 a.md ${MEMORY}/trap.md`,
     `rsync a.md ${MEMORY}/trap.md`,
     `dd if=a.md of=${MEMORY}/trap.md`,
@@ -409,6 +411,54 @@ test("stderr redirection is not a write", () => {
 
 test("a read of a guarded file that writes somewhere else is free", () => {
   assert.equal(decide(`sed -n 1,5p ${MEMORY}/a.md > /tmp/out.txt`).allowed, true);
+});
+
+/* The shared reading answers with every name beside a write shape, the breadth a gate asking what a
+   call may have touched wants: here it held a `grep` of a skill piped into `tee` as a write (ISS-81). */
+test("a guarded path a pipeline stage only reads is not where the write lands", () => {
+  assert.equal(decide(`grep -n rule ${SKILL} | tee /tmp/ev.txt`).allowed, true);
+  assert.equal(decide(`grep -n rule ${SKILL} | tee -a /tmp/ev.txt`).allowed, true);
+  assert.equal(decide(`cat ${MEMORY}/a.md | tee /tmp/ev.txt`).allowed, true);
+  assert.equal(decide(`sed -n 1,5p ${MEMORY}/a.md | tee /tmp/ev.txt`).allowed, true, "a `sed -n` writes nothing");
+  assert.equal(decide(`grep -n rule /tmp/notes.md | tee ${SKILL}`).allowed, false, "tee's own target counts");
+  assert.equal(decide(`echo x>${SKILL} | tee /tmp/ev.txt`).allowed, false, "and so does a redirect with no space");
+});
+
+test("a copy reads its source and writes its destination", () => {
+  assert.equal(decide(`cp ${SKILL} /tmp/backup.md`).allowed, true);
+  assert.equal(decide(`dd if=${SKILL} of=/tmp/o.md`).allowed, true);
+  assert.equal(decide(`rsync ${SKILL} /tmp/b.md`).allowed, true);
+  assert.equal(decide(`cp a.md ${SKILL}`).allowed, false, "the destination is still a write");
+  assert.equal(decide(`cp -a ${SKILL} /tmp/backup.md`).allowed, false, "a source after a flag may be its value");
+});
+
+test("a verb that unlinks what it reads writes its source too", () => {
+  assert.equal(decide(`mv ${SKILL} /tmp/backup.md`).allowed, false);
+  assert.equal(decide(`rsync --remove-source-files ${SKILL} /tmp/b.md`).allowed, false);
+  assert.equal(decide(`rsync ${SKILL} /tmp/b.md --remove-source-files`).allowed, false, "wherever the flag stands");
+  assert.equal(decide(`rsync ${SKILL} /tmp/b.md '--remove-source-files'`).allowed, false, "and however it is quoted");
+  assert.equal(decide(`sed '-i' s/a/b/ ${SKILL} | tee /tmp/ev.txt`).allowed, false, "as with a quoted `-i`");
+});
+
+/* Which flags take a value is not knowable here, so the word after one is never struck out. */
+test("a guarded path a flag carries is a target in either spelling", () => {
+  assert.equal(decide(`rsync --log-file=${SKILL} a.md /tmp/b.md`).allowed, false);
+  assert.equal(decide(`rsync --log-file ${SKILL} a.md /tmp/b.md`).allowed, false);
+  assert.equal(decide(`curl -sS https://x/a.md -o ${SKILL}`).allowed, false);
+  assert.equal(decide(`wget -O ${SKILL} https://x/a.md`).allowed, false);
+  assert.equal(decide(`curl '--output' ${SKILL} https://x/a.md | tee /tmp/ev.txt`).allowed, false, "quoted too");
+});
+
+/* Where the file never reaches the verb, which name it is would be a guess, so the command stands whole. */
+test("a write handed its file by another command counts every name beside it", () => {
+  assert.equal(at(SKILL_DIR, "grep -l rule SKILL.md | xargs sed -i s/a/b/").allowed, false);
+  assert.equal(at(SKILL_DIR, "find . -name SKILL.md -exec sed -i s/a/b/ {} +").allowed, false);
+  assert.equal(decide(`printf '%s' ${MEMORY}/trap.md | xargs cp -t /tmp`).allowed, false);
+});
+
+test("a write made by a language's own call names no position here, so it is read as it was", () => {
+  assert.equal(decide(`python3 <<'EOF'\nopen("${MEMORY}/trap.md", "w")\nEOF`).allowed, false);
+  assert.equal(decide(`python3 -c 'shutil.copyfile("a.md", "${MEMORY}/trap.md")'`).allowed, false);
 });
 
 test("a redirect aimed at a guarded file is refused, appended or truncated", () => {
