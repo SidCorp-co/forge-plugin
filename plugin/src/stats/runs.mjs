@@ -16,6 +16,7 @@ import {
   transcriptsUnder,
 } from "./transcripts.mjs";
 import { TIERS } from "../ladder.mjs";
+import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
@@ -51,14 +52,52 @@ const share = (part, whole) => (whole ? `${Math.round((part / whole) * 100)}%` :
 const add = (map, key, by = 1) => map.set(key, (map.get(key) ?? 0) + by);
 export const stamp = (at) => new Date(at).toISOString().slice(0, 16).replace("T", " ");
 
-const REFUSED = /\brefused\b|^Hold —|Exit code [1-9]/mu;
 /* 143 is the shell's own answer to a killed command; the words alone appear in a log a run was
    reading, and counting those made a transcript that MENTIONED a timeout into one that hit it. */
 const timedOut = (call) => /Exit code 143/u.test(call.body) || (call.error && /timed out/iu.test(call.body));
 
-const firstLineOf = (body) => {
-  const line = body.trim().split("\n")[0] ?? "";
-  return (line.slice(0, 110) || "(empty)").replaceAll(/ISS-\d+/gu, "ISS-nn").replaceAll(/[0-9a-f]{7,}/gu, "<sha>");
+const shortened = (line) =>
+  (line.trim().slice(0, 110) || "(empty)").replaceAll(/ISS-\d+/gu, "ISS-nn").replaceAll(/[0-9a-f]{7,}/gu, "<sha>");
+
+/* Every gate's refusal ends on the line `how()` writes, whatever it opens with, and the harness
+   returns a denial as the whole result — so where that line is last, the rule is named on the first.
+   A body that only quotes a refusal goes on printing past it. */
+const GATE_HOW = /^How: `forge hooks --how \S+`$/u;
+
+/* A gate's two openers and `rpc.mjs`'s `<name> refused:`, which carries the rule after the colon for
+   a transport failure and on the next line for a tool's. These are read first, because a refusal
+   opening on one goes on to quote the lines it was refused over and those look like the shape below. */
+const MARKED = /^(?:Hold — .*|Refused\. .*|\S+ refused:.*)$/u;
+
+/* `settings.mjs` refuses with a verb this CLI has and no marker, and so does a line an ANSWERING
+   call printed — `project id: …`. Hence both the failed-call guard and the precedence a marked line
+   holds over this shape wherever each sits, which docs/cli/stats-rows.md costs out both ways. */
+const VERB_SENTENCE = new RegExp(String.raw`^(?:forge )?(?:${VERB_NAMES.join("|")})\b.*?: .*$`, "u");
+
+const TOOL_RULE = /^\S+ refused:[ \t]*(?<rule>.*)$/u;
+
+const lastOf = (lines, shape) => {
+  for (let at = lines.length - 1; at >= 0; at -= 1) if (shape.test(lines[at])) return at;
+  return -1;
+};
+
+/** The line naming the rule a call was refused by, or null where it met none of this plugin's own.
+ *  Never the body's first line by default: a forge call prints its provenance banner before it
+ *  refuses, and reading line one filed 187 of those banners under a row that names no rule. */
+export const refusalIn = (call) => {
+  const lines = call.body.trim().split("\n").filter((one) => one.trim());
+  if (!lines.length) return null;
+  if (call.error && GATE_HOW.test(lines.at(-1))) return shortened(lines[0]);
+  /* A marked line counts however the call exited: a run that pipes a refusal through `tail`, or
+     ends the line with `; echo EXIT=$?`, met it just the same and the shell answered 0 for it.
+     411 of this project's 813 marked refusals arrived that way, against seven bodies that merely
+     quoted one — which is the trade, and docs/cli/stats-rows.md carries it. */
+  let at = lastOf(lines, MARKED);
+  if (at < 0 && call.error) at = lastOf(lines, VERB_SENTENCE);
+  if (at < 0) return null;
+  const tool = TOOL_RULE.exec(lines[at]);
+  if (!tool) return shortened(lines[at]);
+  return shortened(tool.groups.rule || lines[at + 1] || lines[at]);
 };
 
 const said = (command) => command.replaceAll(/\s+/gu, " ").trim().slice(0, 160);
@@ -171,6 +210,7 @@ export const runFrom = (path, session, text) => {
   const endedAt = read.lastAt;
   const byClass = new Map();
   const refusals = new Map();
+  const errors = new Map();
   const repeats = new Map();
   const longest = [];
   let toolSeconds = 0;
@@ -182,7 +222,9 @@ export const runFrom = (path, session, text) => {
     byClass.set(call.class, { calls: was.calls + 1, wait: was.wait + call.wait });
     if (!call.answered) unanswered += 1;
     if (call.name === "Bash") add(repeats, said(call.command));
-    if (call.error || REFUSED.test(call.body)) add(refusals, firstLineOf(call.body));
+    const refusal = refusalIn(call);
+    if (refusal) add(refusals, refusal);
+    else if (call.error) add(errors, call.class);
     if (timedOut(call)) timeouts += 1;
     if (call.wait >= LONG_WAIT_MINUTES * 60) {
       longest.push({ minutes: minutes(call.wait), what: said(call.command || call.name).slice(0, 110) });
@@ -216,6 +258,7 @@ export const runFrom = (path, session, text) => {
     edits: editsIn(calls),
     byClass,
     refusals,
+    errors,
     repeats: new Map([...repeats].filter(([, many]) => many >= REPEATED)),
     longest,
     phases: foldPhases(calls, startedAt),
@@ -347,6 +390,7 @@ export const profileOf = (runs) => {
     tiers: perTier(runs),
     byClass: mergedClasses(runs, (run) => run.byClass),
     refusals: mergedCounts(runs, (run) => run.refusals),
+    errors: mergedCounts(runs, (run) => run.errors),
     repeats: mergedCounts(runs, (run) => run.repeats),
     longest: runs.flatMap((run) => run.longest).sort((left, right) => right.minutes - left.minutes),
   };
@@ -412,6 +456,8 @@ export const profileLines = (held, all = false) => [
   `ships           ${held.ships.passes} pass(es), median ${held.ships.perRun}/run, ${held.ships.resumed} resumed with --from, `
     + `a push rejected in ${held.ships.rejectedRuns} run(s)`,
   `timeouts        ${held.timeouts}`,
+  `other errors    ${held.errors.reduce((sum, [, many]) => sum + many, 0)} non-zero exit(s) refused by no rule of this plugin`
+    + `${held.errors.length ? `: ${held.errors.map(([label, many]) => `${label} ${many}`).join(", ")}` : ""}`,
   ...tierLines(held),
   ...phaseLines(held),
   ...listing(
@@ -422,7 +468,7 @@ export const profileLines = (held, all = false) => [
       + `${share(one.wait, held.toolMinutes * 60).padStart(7)}${String(one.calls).padStart(7)}`,
     all,
   ),
-  ...listing("refusals and errors, by first line", held.refusals,
+  ...listing("refusals this plugin wrote, by the line naming the rule", held.refusals,
     ([line, many]) => `  ${String(many).padStart(4)}  ${line}`, all),
   ...listing(`commands repeated ${REPEATED}+ times inside one run`, held.repeats,
     ([line, many]) => `  ${String(many).padStart(4)}  ${line.slice(0, 108)}`, all),

@@ -138,3 +138,8 @@ it. Reading is all this product does there.
   WHEN a profile is printed THEN the CLI SHALL name each route a run wrote files through with its
   calls per run and the characters a call carried, and SHALL count the passes a landing took, the
   passes resumed and the runs whose push was rejected, each read off the call's own record.
+- **AC-19-8-8** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "the refusals listing is what this plugin refused, keyed on the line that names the rule"
+  WHEN the refusals a window met are listed THEN the CLI SHALL count only a body carrying a line in
+  one of this plugin's own refusal shapes, SHALL key the row on the line that names the rule rather
+  than on the body's first line, and SHALL count every other non-zero exit on a line of its own
+  broken down by the call's class.

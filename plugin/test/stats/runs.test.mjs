@@ -416,6 +416,72 @@ test("waits that overlap are counted once against the wall clock", () => {
   assert.equal(held.modelMinutes, 0);
 });
 
+/* Six of the listing's top ten rows were not refusals: the word `refused` inside an issue body, a
+   `-h` read, a grep that matched nothing, a test's failure line. And a forge call prints its
+   provenance banner before it refuses, so the row that did name a refusal named the banner. */
+test("the refusals listing is what this plugin refused, keyed on the line that names the rule", () => {
+  const room = tempRoom("stats-refusals-");
+  const tasks = join(room, `claude-${process.getuid()}`, slugFor(PROJECT), "s", "tasks");
+  mkdirSync(tasks, { recursive: true });
+  const BANNER = "forge_issues -> project forge-plugin (from .forge.json), prose as written";
+  const bad = (id, start, command, body) =>
+    [use(id, start, "Bash", { command }), result(id, start + 1, body, true)];
+  writeFileSync(join(tasks, "a6.output"), [
+    JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-97" } }),
+    use("f1", 10, "Bash", { command: "./plugin/bin/forge claim ISS-97" }), result("f1", 11, "claimed"),
+    /* The banner comes first and names no rule; the refusal after it does. */
+    ...bad("f2", 20, "forge advance ISS-97", `${BANNER}\nHold — ISS-97 owes a release note.`),
+    /* The tracker writes a tool's refusal with the rule on the NEXT line, and a transport's inline. */
+    ...bad("f3", 30, "forge comment ISS-97 /tmp/c.md", `${BANNER}\nforge_comments refused:\ndata.body: Too big: expected string to have <=500 characters`),
+    ...bad("f4", 40, "forge issues --status open", `Forge refused: {"code":-32001,"message":"token expired"}`),
+    /* The second of the two openers, which names the rule on the line it opens. */
+    ...bad("f5", 50, "git add -A", "Refused. git add -A stages everything in the tree.\n\nInstead: name the paths.\n\nHow: `forge hooks --how bash-guard`"),
+    /* A chained read printed a refusal it was reading about before the command that met one. */
+    ...bad("f6", 60, "cat notes.md && forge advance ISS-97", "Hold — a quoted refusal somebody wrote down.\n\n---\n" + `${BANNER}\nHold — ISS-97 is not yours to advance.`),
+    /* Three non-zero exits this plugin refused nothing about. */
+    ...bad("f7", 70, "grep -rn nothing docs/", ""),
+    ...bad("f8", 80, "node --test plugin/test/a.test.mjs", "# fail 1\nExit code 1"),
+    ...bad("f9", 90, "cd /w && npm run check", "Gate failed: lint\nExit code 1"),
+    /* A gate that denies on neither opener is still a gate: the `How:` line it ends on is what says
+       so, and the rule is named on the first line because the denial is the whole result. */
+    ...bad("f12", 55, "git commit -m x", "Codex has not read what this commit stages.\n\nDo this: consult it.\n\nHow: `forge hooks --how codex-second`"),
+    /* The same line quoted by a document that goes on printing after it is not a refusal met. */
+    use("f13", 57, "Bash", { command: "cat plugin/hooks/how/codex-second.md" }),
+    result("f13", 58, "How: `forge hooks --how codex-second`\n\nand the page continues past it."),
+    /* A marked line beats a verb sentence wherever each sits, because a marked refusal quotes the
+       lines it was refused over and those read as verb sentences. The cost is this body: the
+       `guide:` refusal is the one the call met and the row is the quoted mark above it. */
+    ...bad("f11", 95, "cat notes.md && forge guide nothing", "Hold — a mark quoted from a comment.\n\nguide: one slug, not `nothing`."),
+    /* And a read that exited zero carrying the word, which is what filed 178 rows under `{`. */
+    use("f10", 100, "Bash", { command: "forge issue ISS-97 --full" }),
+    result("f10", 101, '{\n  "description": "the write is refused when the body is empty"\n}'),
+  ].join("\n"));
+  const run = ask(room);
+  assert.equal(run.status, 0, run.stderr);
+  const out = run.stdout;
+  const has = (line) => assert.ok(out.includes(line), `${line}\n--- printed ---\n${out}`);
+  const hasnt = (line) => assert.ok(!out.includes(line), `still listed: ${line}\n--- printed ---\n${out}`);
+
+  has("     1  Hold — ISS-nn owes a release note.");
+  has("     1  data.body: Too big: expected string to have <=500 characters");
+  has('     1  {"code":-32001,"message":"token expired"}');
+  has("     1  Refused. git add -A stages everything in the tree.");
+  has("     1  Hold — ISS-nn is not yours to advance.");
+  hasnt(BANNER);
+  hasnt("  Exit code 1");
+  hasnt("forge_comments refused:");
+  hasnt("the write is refused when the body is empty");
+  assert.ok(!/ {5}1 {2}Hold — a quoted refusal/u.test(out),
+    `the quoted refusal beat the one the call met\n--- printed ---\n${out}`);
+  has("     1  Hold — a mark quoted from a comment.");
+  hasnt("guide: one slug, not `nothing`.");
+  has("     1  Codex has not read what this commit stages.");
+  hasnt("and the page continues past it.");
+
+  /* The three that refused nothing are counted by class instead, and none of them is listed. */
+  has("other errors    3 non-zero exit(s) refused by no rule of this plugin: read 1, test 1, gate 1");
+});
+
 /* The shape is the host's: a record it changes must cost this reading one transcript, said out
    loud, rather than the corpus. */
 test("a record this reading cannot parse costs it that transcript and says so", () => {
