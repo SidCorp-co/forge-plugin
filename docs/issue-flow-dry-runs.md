@@ -4072,3 +4072,28 @@ throughout: no plan, no decision, no release note owed. No restart owed. Closed 
 - Eleven tracker writes, and read-first held six of them once for the record the run's own previous
   write had posted, exactly as ISS-467's filing describes. A fix-tier run under a per-run id pays a
   call per write for the shape.
+
+## Hundred-and-fifty-eighth dry run — ISS-451
+
+The lease's own write goes through the field writer, so one place in the tree updates an issue
+(3.35.173, landed as dc393f4, pushed head 5ab8016). The one-create check became a one-writer check
+over both shapes and was proven by planting a second update and watching the suite name the file and
+the line. No restart owed. Closed by its run. Folded from its handback; the eighteen comments — four
+corrections, three approving reviews, the verdicts, the gap — and ISS-489 were read back.
+
+- The push was rejected twice by master moving under a running gate, and each rejection cost a rebase
+  and a fresh whole-set read at high effort: three approving reviews with zero findings between them,
+  at three heads that differ only by what siblings landed. The run's gap record asks for the review's
+  version of the landing-moved-nothing clause. ISS-333 now describes this race from both sides, and
+  the landing lock proposed there is the fix.
+- Two modules that import each other were joined by a lazily built table, after the code-quality gate
+  refused the arrow-wrapper deferral the plan had chosen. The plan's decision record had cited the
+  cycle wrongly and a correction says so; a decision whose evidence is wrong is corrected, not defended.
+- ISS-474's batch reading routed four items onto this issue four minutes after it closed, and the run
+  routed them back with every coordinate re-checked. A closed issue advances nowhere, so a filing onto
+  one is a filing onto nothing; the dispatcher owns those four until ISS-474's fold gives them a home.
+- The batch list's line numbers for `field-write.mjs` were moved by this landing, and the run posted
+  the new anchors onto ISS-474 rather than leaving the reader to search. A held file that lands moves
+  every citation of it.
+- An attachment listed a test suite under a header with no result beneath it, and the run posted a
+  correction saying the file does not exist at either head. A bare header reads as a suite that passed.
