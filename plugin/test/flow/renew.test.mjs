@@ -125,6 +125,37 @@ test("the notice is said after the write, not before it", async () => {
   assert.deepEqual(order.filter((one) => one !== "other"), ["write", "notice"]);
 });
 
+/* The wave case, which is the one the refusal was built for and the one it never reached: two runs
+   of one dispatched wave carry the same inherited id, so `stateOf` reads the other's lease as this
+   run's own. Both directions, because the refusal is reachable only once two runs are two ids
+   (ISS-445). */
+test("a payload write is refused across two ids and goes through across one shared", async () => {
+  const env = { asked: process.env.FORGE_SESSION_ID, harness: process.env.CLAUDE_CODE_SESSION_ID };
+  try {
+    process.env.FORGE_SESSION_ID = "run-two";
+    delete process.env.CLAUDE_CODE_SESSION_ID;
+    field = lease("run-one", ago(1));
+    const refusal = await refused(() => renew(ISSUE, "ISS-445"));
+    assert.match(refusal, /ISS-445 is held by another run/u, "two runs, two holders, and the guard fires");
+    assert.match(refusal, /run-one/u, "naming which run holds it");
+    assert.equal(leaseOf(field).holder, "run-one", "and nothing of run two's was written");
+
+    delete process.env.FORGE_SESSION_ID;
+    process.env.CLAUDE_CODE_SESSION_ID = "the-dispatching-session";
+    field = lease("the-dispatching-session", ago(1));
+    const { lines } = await said(() => renew(ISSUE, "ISS-445"));
+    assert.equal(leaseOf(field).holder, "the-dispatching-session",
+      "one id between two runs, and the second writes over the first unrefused: the defect itself");
+    assert.ok(Date.parse(leaseOf(field).renewedAt) > Date.now() - 60_000, "having renewed what it read as its own");
+    assert.deepEqual(lines.filter((one) => /dispatched/u.test(one)), [],
+      "and the write path stays silent: what a run is told about a shared id is said where it claims and reads");
+  } finally {
+    for (const [key, was] of [["FORGE_SESSION_ID", env.asked], ["CLAUDE_CODE_SESSION_ID", env.harness]]) {
+      if (was === undefined) delete process.env[key]; else process.env[key] = was;
+    }
+  }
+});
+
 test("another run's lease is refused as it was, live or expired", async () => {
   field = lease("the-other-run", ago(1));
   const live = await refused(() => renew(ISSUE, "ISS-65"));

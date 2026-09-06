@@ -14,6 +14,7 @@ import { shortfall } from "./advance.mjs";
 import { owedLine, policyFor } from "./route.mjs";
 import { worklogLines } from "./worklog.mjs";
 import { briefOf } from "./brief.mjs";
+import { SHARED_HOLDER } from "./lease.mjs";
 
 export const USAGE = [
   usageOf("resume"),
@@ -51,8 +52,11 @@ const block = (heading, lines) => {
 const held = (brief) => {
   const one = brief.lease;
   if (!one) return [];
-  return [`${one.state}: session ${one.holder} (${one.agent}, pid ${one.pid}), renewed `
-    + `${one.renewedAt.slice(0, 16)} for ${one.minutes} minute(s), ${one.claims} claim(s) on the record`];
+  return [
+    `${one.state}: session ${one.holder} (${one.agent}, pid ${one.pid}), renewed `
+    + `${one.renewedAt.slice(0, 16)} for ${one.minutes} minute(s), ${one.claims} claim(s) on the record`,
+    ...(one.holderShared ? [SHARED_HOLDER] : []),
+  ];
 };
 
 /* Two answers assembled with the record, never worked out here: whether the edge holds the status

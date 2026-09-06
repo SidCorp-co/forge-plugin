@@ -87,11 +87,40 @@ export const saveConfig = (values) => {
 
 /* Which run this is: the lease's holder and what a session has been shown are both keyed by it. */
 export const sessionPath = () => join(configDir("forge"), "session.json");
-export const sessionAsked = () => process.env.FORGE_SESSION_ID || process.env.CLAUDE_CODE_SESSION_ID || null;
 export const sessionSaved = () => readJson(sessionPath())?.session || null;
 
+/* Where an id came from is half the answer, and this is the one place that says so: a second copy
+   of this table is how two readers disagree about whose an id is (ISS-445). */
+export const INHERITED = "inherited";
+
+export const INHERITED_MEANS =
+  "the session that dispatched this run, and every agent it dispatched carries the same value, so "
+  + "an id matching it names a wave and not a run";
+
+/** Named without a command: what sets it is a project's business, and this plugin cannot see one. */
+export const OWN_ID = "Give each run an id of its own in FORGE_SESSION_ID.";
+
+const SOURCES = [
+  ["asked", () => process.env.FORGE_SESSION_ID || null],
+  [INHERITED, () => process.env.CLAUDE_CODE_SESSION_ID || null],
+  ["saved", sessionSaved],
+];
+
 /* Read without minting: a reader asking whose lease this is must not write a file to find out. */
-export const sessionHeld = () => sessionAsked() || sessionSaved();
+export const sessionSourced = () => {
+  for (const [source, read] of SOURCES) {
+    const id = read();
+    if (id) return { id, source };
+  }
+  return { id: null, source: null };
+};
+
+export const sessionAsked = () => {
+  const { id, source } = sessionSourced();
+  return source === "asked" || source === INHERITED ? id : null;
+};
+
+export const sessionHeld = () => sessionSourced().id;
 
 export const sessionOf = () => {
   const held = sessionHeld();

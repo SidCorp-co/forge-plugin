@@ -24,6 +24,7 @@ import {
   parksAsCrashed,
   reclaimsOf,
   setLease,
+  sharedHolder,
   stateOf,
 } from "./lease.mjs";
 
@@ -149,6 +150,10 @@ export const claim = async (argv) => {
   const taken = leaseOf(next);
   console.log(`${ref}  ${how ?? "renewed"}: ${describe(taken)}`);
   for (const one of nextLines(how, left, taken.next)) console.log(one);
+  /* Beside the lease it is about, and above every route out of here: a claim that answers a park
+     returns below, and the run would take the lease without being told what it matched on. */
+  const shared = sharedHolder(taken);
+  if (shared) console.log(shared);
   /* Decided after the write, so what decides is the history this claim has just added to. */
   if (issue.status === PARKS_IN) {
     if (await answerPark(documentId, ref, next, line)) return undefined;

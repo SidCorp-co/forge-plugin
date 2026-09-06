@@ -1,6 +1,6 @@
 /* A setting doctor does not read is a green report in front of a command that cannot run. */
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -266,4 +266,30 @@ test("the saved credential is owner-only, and lands outside the repository it wa
   /* The whole checkout and not its root alone: a writer resolving the config dir from the working
      directory would land the token under `.git/`, where a listing of the top level sees nothing. */
   assert.deepEqual(holds(repo), [], "and nothing of the account is written anywhere in the checkout");
+});
+
+/* A run that inherited its dispatcher's id carries what every agent that session dispatched carries,
+   so the value alone cannot say whether it names a run or a wave: the report says where it came from. */
+test("the session id is reported with the source it came from", () => {
+  const own = report(null, { FORGE_SESSION_ID: "one-run-of-a-wave" });
+  assert.match(own, /\[ {2}ok {2}\] session id\s+one-run-of-a-wave\s+← FORGE_SESSION_ID — this run says which run it is/);
+
+  const shared = report(null, { CLAUDE_CODE_SESSION_ID: "the-dispatching-session" });
+  assert.match(shared, /\[ note \] session id\s+the-dispatching-session\s+← CLAUDE_CODE_SESSION_ID/);
+  assert.match(shared, /every agent it dispatched carries the same value/, "what the value is shared by");
+  assert.match(shared, /names a wave and not a run/, "and what that costs a lease matching it");
+  assert.match(shared, /Give each run an id of its own in FORGE_SESSION_ID/, "and the one thing that fixes it");
+});
+
+/* A diagnostic that minted an id would be answering its own question, and a wave would race one file. */
+test("the report mints no session id to have one to report", () => {
+  const home = tempRoom("doctor-session-");
+  const run = spawnSync(process.execPath, [CLI, "doctor"], {
+    encoding: "utf8",
+    cwd: tempRoom("doctor-session-cwd-"),
+    env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+  });
+  assert.match(run.stdout, /\[ {2}ok {2}\] session id\s+none held yet/, run.stdout);
+  assert.match(run.stdout, /mints it and saves it at/, "and says which verb would, and where");
+  assert.equal(existsSync(join(home, "forge", "session.json")), false, "and the report wrote none");
 });

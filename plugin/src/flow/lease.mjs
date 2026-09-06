@@ -1,7 +1,7 @@
 /* The issue's session field, read as a lease: who holds it, until when, the one line naming the
    step they are on, and the claims before this one. The tracker has no conditional write (ISS-7),
    so a write here is a read-back compare and the claim says so out loud. docs/cli/claim.md. */
-import { sessionOf } from "../resolve/config.mjs";
+import { INHERITED, INHERITED_MEANS, OWN_ID, sessionOf, sessionSourced } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { mustBeShown } from "../tracker/comments.mjs";
 import { scoped, write } from "../tracker/rpc.mjs";
@@ -17,6 +17,16 @@ export const ADVISORY =
   "The lease is advisory: the tracker refuses no stale write yet (ISS-7), so two runs that both "
   + "find no lease both claim, and the later write erases the earlier. A project running more than "
   + "one agent at a time needs the tracker's refusal before it can trust this.";
+
+/* Said, not refused: `stateOf` reads an inherited holder as this run's own. docs/cli/claim.md. */
+export const SHARED_HOLDER =
+  `That holder id is ${INHERITED_MEANS}. A lease matching it is no proof another run is not on this `
+  + `issue. ${OWN_ID}`;
+
+export const sharedHolder = (lease) => {
+  const { id, source } = sessionSourced();
+  return source === INHERITED && lease?.holder === id ? SHARED_HOLDER : null;
+};
 
 const UNKNOWN = "unknown";
 

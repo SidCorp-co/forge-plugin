@@ -17,7 +17,8 @@ const {
   expiryOf, historyLine, leaseOf, nextLine, parksAsCrashed, pidOf, reclaimsOf, stateOf,
   writeRefusal,
 } = await import("../../src/flow/lease.mjs");
-const { sessionOf } = await import("../../src/resolve/config.mjs");
+const { sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced } = await import("../../src/resolve/config.mjs");
+const { sessionKey } = await import("../../src/tracker/comments.mjs");
 const { retryOf } = await import("../../src/tracker/rpc.mjs");
 const { parkAnswers } = await import("../../src/flow/lease.mjs");
 const { USAGE, nextLines, parkWrite } = await import("../../src/flow/claim.mjs");
@@ -250,6 +251,48 @@ test("the holder is the harness's session, then the caller's own, then a file", 
   const minted = sessionOf();
   assert.match(minted, /^machine-/u, "and outside a harness, a file names the machine");
   assert.equal(sessionOf(), minted, "which is stable, or every command would be a new run");
+  Object.assign(process.env, env);
+});
+
+/* The same four in the same order, said as where each came from: a reader that has to act on an id
+   a whole wave shares cannot tell from the value alone (ISS-445). */
+test("each source of the holder is named, and naming it changes no holder", () => {
+  const env = { ...process.env };
+  delete process.env.FORGE_SESSION_ID;
+  delete process.env.CLAUDE_CODE_SESSION_ID;
+  const saved = sessionOf();
+  assert.deepEqual(sessionSourced(), { id: saved, source: "saved" }, "the file the mint left");
+  process.env.CLAUDE_CODE_SESSION_ID = "the-harness";
+  assert.deepEqual(sessionSourced(), { id: "the-harness", source: "inherited" }, "which outranks it");
+  process.env.FORGE_SESSION_ID = "asked-for";
+  assert.deepEqual(sessionSourced(), { id: "asked-for", source: "asked" }, "and a run saying which it is outranks both");
+  for (const [asked, harness, want] of [
+    ["asked-for", "the-harness", "asked-for"], [undefined, "the-harness", "the-harness"], [undefined, undefined, saved],
+  ]) {
+    if (asked) process.env.FORGE_SESSION_ID = asked; else delete process.env.FORGE_SESSION_ID;
+    if (harness) process.env.CLAUDE_CODE_SESSION_ID = harness; else delete process.env.CLAUDE_CODE_SESSION_ID;
+    assert.equal(sessionOf(), want, "every combination answers as it did before the source was readable");
+    assert.equal(sessionHeld(), want);
+    assert.equal(sessionAsked(), harness || asked ? want : null,
+      "and only the environment answers this one, which is what keys a comment as shown");
+    assert.equal(sessionKey(), want, "so the delivery reader is left where it was");
+  }
+  Object.assign(process.env, env);
+});
+
+/* A reader asking whose lease this is must not write a file to find out, or a diagnostic answers
+   its own question and a wave of runs races one path. */
+test("reading the holder without one held mints nothing", () => {
+  const env = { ...process.env };
+  const home = tempHome("no-mint");
+  process.env.XDG_CONFIG_HOME = home.path;
+  delete process.env.FORGE_SESSION_ID;
+  delete process.env.CLAUDE_CODE_SESSION_ID;
+  assert.equal(sessionHeld(), null, "nobody's, and no file behind it");
+  assert.deepEqual(sessionSourced(), { id: null, source: null });
+  assert.equal(existsSync(sessionPath()), false, "and the read left none");
+  assert.match(sessionOf(), /^machine-/u, "which the mint, and only the mint, then writes");
+  assert.equal(existsSync(sessionPath()), true);
   Object.assign(process.env, env);
 });
 

@@ -13,6 +13,7 @@ import { checkoutRoot, defaultBranch, git, gitOut, REMOTE, Stop, stop } from "./
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { isRelease, onlyRelease, RELEASE_FILES, versionAt } from "./run/landing.mjs";
+import { mintRunId, runIdAt, RUN_ID_VAR } from "./run/run-id.mjs";
 import { markRefused, REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
 import { fileIssue } from "../plugin/src/tracker/filing.mjs";
 import { refusing } from "../plugin/src/resolve/settings.mjs";
@@ -123,8 +124,10 @@ const start = ({ words: [given, slug] }) => {
   const root = checkoutRoot(HERE);
   const path = worktreePath(root, key);
   if (existsSync(path)) {
+    const held = runIdAt(path);
     stop(`${path} is already there, and start never touches a worktree it did not make. Work in it, `
-      + `or remove it: git -C ${root} worktree remove ${path}`);
+      + `or remove it: git -C ${root} worktree remove ${path}`
+      + (held ? `\nThe id that run takes the lease under: ${RUN_ID_VAR}=${held}` : ""));
   }
   const branch = `iss-${key.slice(4).toLowerCase()}${slug ? `-${slug}` : ""}`;
   const base = defaultBranch(root);
@@ -148,6 +151,9 @@ const start = ({ words: [given, slug] }) => {
       + `again and nothing is half-made. Install the checkout's dependencies, then start over.`);
   }
   console.log(`\nBranch ${branch} on ${path}, cut from ${base}.`);
+  console.log(`This run's own lease holder, which its every forge call carries — without it the run`);
+  console.log(`writes under the dispatching session's id, which every agent of a wave shares:`);
+  console.log(`  ${RUN_ID_VAR}=${mintRunId(path, key)}`);
   console.log(`Probe the change with this tree's own wrapper, never the one on PATH:`);
   console.log(`  ${join(path, "plugin", "bin", "forge")} <args>`);
   console.log(`  node ${join(path, "plugin", "hooks", "entries")}/<gate>.mjs   one gate, alone`);

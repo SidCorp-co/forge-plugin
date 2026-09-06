@@ -9,6 +9,7 @@ import { dirname, join } from "node:path";
 
 import { BARE, brokenAnswer, committed, corrected, emptyAnswer, GATE, git, lastStep, landIn, planned, pushed, ref,
   ROOT, runIn, scratch, sized, stubbed } from "./run-fixtures.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
 /* Step 7 is reached only from a tree that is not the checkout, so every fixture shipping from the
    scratch root early-returns past it (ISS-143). `pull.rebase` is set in the scratch repository
@@ -153,6 +154,34 @@ test("start adds the worktree, links what the checkout installed, and names the 
   assert.equal(again.status, 1, again.stdout);
   assert.ok(again.stderr.includes(tree), `the refusal does not name the worktree already there:\n${again.stderr}`);
   assert.ok(again.stderr.includes("worktree remove"), again.stderr);
+});
+
+/* Every agent a session dispatches inherits that session's id, so a wave of runs writes under one
+   lease holder and the lease refuses nothing between two of them (ISS-445). A worktree is what a
+   run gets of its own, so the id is minted with it — and kept beside the worktree rather than in
+   the account's config, which a wave would race. */
+test("start mints a holder id for the worktree, keeps it beside it, and hands it back on the refusal", () => {
+  const { work } = scratch("run-id");
+  git(work, "init", "-b", "master");
+  committed(work, "one");
+  const home = tempRoom("run-id-home-");
+  const env = { ...BARE, XDG_CONFIG_HOME: home };
+  const run = runIn(work, ["start", "ISS-89"], env);
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  const id = /FORGE_SESSION_ID=([^\s,]+)/u.exec(run.stdout)?.[1];
+  assert.ok(id, `no holder id was printed for the run to carry:\n${run.stdout}`);
+  assert.match(id, /^iss-89-/u, "named for the issue it works, so two worktrees are two runs");
+  const tree = join(dirname(work), "wt-ISS-89");
+  const kept = join(work, ".git", "worktrees", "wt-ISS-89", "forge-run-id");
+  assert.equal(readFileSync(kept, "utf8").trim(), id, `the id is not kept at ${kept}`);
+  assert.ok(!existsSync(join(home, "forge", "session.json")),
+    "and nowhere the account shares, which every run of a wave would race");
+
+  const again = runIn(work, ["start", "ISS-89"], env);
+  assert.equal(again.status, 1, again.stdout);
+  assert.ok(again.stderr.includes(tree), again.stderr);
+  assert.equal(/FORGE_SESSION_ID=([^\s,]+)/u.exec(again.stderr)?.[1], readFileSync(kept, "utf8").trim(),
+    `the refusal reads the id back off the record rather than handing back what it just minted:\n${again.stderr}`);
 });
 
 /* A rebase drops a bump identical to one already upstream without a conflict, and the tree then

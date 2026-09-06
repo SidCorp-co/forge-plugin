@@ -4,7 +4,18 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { CONFIG_PATH, configDir, readJson, saveConfig, userConfig } from "../resolve/config.mjs";
+import {
+  CONFIG_PATH,
+  INHERITED,
+  INHERITED_MEANS,
+  OWN_ID,
+  configDir,
+  readJson,
+  saveConfig,
+  sessionPath,
+  sessionSourced,
+  userConfig,
+} from "../resolve/config.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { BUNDLED } from "./vi.mjs";
 import { accountCredentials, fail, mcpForgeIgnored, projectRoot, projectScope, translateScope } from "../resolve/settings.mjs";
@@ -47,6 +58,23 @@ const line = (mark, label, detail) => {
 
 /* Reports that each part resolved and from where, never the values: a credential fragment in a
    transcript is still a credential. `--full` is for a human holding two tokens. */
+/* Whose lease a write takes is this id, so where it came from is the answer; what each source means
+   is `resolve/config.mjs`'s to say. Read without minting: a diagnostic that saved an id would be
+   answering its own question. */
+const SESSION_SAID = {
+  asked: () => "FORGE_SESSION_ID — this run says which run it is",
+  inherited: () => `CLAUDE_CODE_SESSION_ID — ${INHERITED_MEANS}. ${OWN_ID}`,
+  saved: () => `${sessionPath()} — this machine's, kept across sessions`,
+};
+
+const checkSession = () => {
+  const { id, source } = sessionSourced();
+  if (!id) {
+    return line(OK, "session id", `none held yet — the next verb needing one mints it and saves it at ${sessionPath()}`);
+  }
+  return line(source === INHERITED ? NOTE : OK, "session id", `${id}  ← ${SESSION_SAID[source]()}`);
+};
+
 const masked = (token, full) => {
   const bare = token.replace(/^Bearer /u, "");
   if (!full) return `set (${bare.length} chars)`;
@@ -443,6 +471,7 @@ export const doctor = async (rest) => {
   else line(BAD, "endpoint url", "nothing saved — `forge doctor --url <endpoint>`");
   if (token.value) line(OK, "token", `${masked(token.value, full)}  ← ${token.from}`);
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
+  checkSession();
 
   const stale = mcpForgeIgnored();
   /* Each half is named separately: a project whose credentials are already saved and whose slug

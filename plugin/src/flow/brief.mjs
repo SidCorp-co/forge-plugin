@@ -2,7 +2,7 @@
    the printer is resume.mjs and `--json` is this object, so the screen and a tool's reading cannot
    disagree. Under earned.mjs's rule about what it may touch, for the same reason (ISS-44). */
 import { sessionHeld } from "../resolve/config.mjs";
-import { FIELD, leaseOf, stateOf } from "./lease.mjs";
+import { FIELD, leaseOf, sharedHolder, stateOf } from "./lease.mjs";
 import { unwrap } from "./machine.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, methodOf, parkRecord } from "./earned.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
@@ -62,7 +62,12 @@ const leaseIn = (view) => {
   const held = leaseOf(view.issue?.[FIELD]);
   if (!held) return null;
   const { history, ...rest } = held;
-  return { ...rest, state: stateOf(held, sessionHeld()), claims: history.length };
+  return {
+    ...rest,
+    state: stateOf(held, sessionHeld()),
+    claims: history.length,
+    ...(sharedHolder(held) ? { holderShared: true } : {}),
+  };
 };
 
 const commentsRead = (view) =>

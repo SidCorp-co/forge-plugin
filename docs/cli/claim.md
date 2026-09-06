@@ -33,10 +33,26 @@ taking its own lapsed lease back appends nothing to the history and brings no pa
 
 The holder is the harness's own session, read twice to check that it is stable for the life of a
 process tree. Outside a harness it is a file under the config directory, which names a machine
-rather than a run: two runs there look like one holder and neither is refused. Each payload write
-costs three calls for the lease — the read, the write, the read back — and every one of them pays,
-because a park is three writes and an upload of four files is four: a run reclaimed halfway through
-has to be refused at the next of them rather than carried to the end.
+rather than a run: two runs there look like one holder and neither is refused. **Inside one, so do
+the agents of a dispatched wave** — every one of them inherits the dispatching session's
+`CLAUDE_CODE_SESSION_ID`, so a wave of runs is one holder and the refusal this whole mechanism
+exists for is unreachable in the only situation where more than one run exists at once (ISS-445).
+Nothing ambient separates them: the process id and the socket both name the parent, and the working
+directory is not one run's for the length of a run. So a run is given an id, in `FORGE_SESSION_ID`,
+by whatever creates it.
+
+Where it was not, the CLI **says so and does not refuse**. A run whose own id came from the
+dispatching session is told, where it claims and where it reads the lease, that the holder it
+matched names a wave rather than a run. Refusing that write instead would change what a claim means
+and would stop the runs the arrangement exists to let work; the guard is the id, not the refusal.
+Holder equality is half the test, so another run's explicitly given id is never called shared —
+nothing about a holder string this reader did not write is this reader's to judge. `forge doctor`
+names the source of the id it holds, so a wave sharing one is visible before it writes rather than
+after.
+
+Each payload write costs three calls for the lease — the read, the write, the read back — and every
+one of them pays, because a park is three writes and an upload of four files is four: a run
+reclaimed halfway through has to be refused at the next of them rather than carried to the end.
 
 Two facts beside the lease itself. **The holder names the kind of agent and the process id
 beside the session**, because a uuid places nobody: when ISS-26's shell died, whoever had to decide
