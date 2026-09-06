@@ -4321,3 +4321,30 @@ its handback; the seventeen comments were read back.
 - One sentence of the landing account was inferred and later corrected in a comment of its own: the
   reflog showed a commit, not a fast-forward merge. A correction that names the sentence is cheaper
   than a reader who has to find it.
+
+## Hundred-and-sixty-seventh dry run — ISS-482
+
+The runner writes a file through the tool that costs the old and new text (3.35.182, landed as
+e3f2f86, judged head 01c1eac, two files): the runner role routes a file that exists to the Edit tool
+and a new one to Write, by name, over the harness's standing preference for the shell, and the
+issue-flow guide's Phase 4 carries the same rule for a session that never dispatches. The measure the
+issue asked for was not built: the profiler's edit routes had landed two runs earlier, so the criterion
+was judged on the shipped output. Twelve criteria, whole-tree gate green at the landing head. Fix tier,
+so no plan field and no release note, and the withholding is the rule. Closed by its run. **A restart
+is owed**: the runner agent file is in the frozen set. Folded from its handback; the ten comments were
+read back.
+
+- The ship's restart line named the right file and the wrong reason: the reason clause was this
+  journal's sentence about ISS-333, because the gate reads the last assistant line of the transcript
+  it is handed, and under a delegated run that transcript is the dispatcher's. The run's own reason
+  was never recorded. Filed as ISS-510 and routed onto the run's own record.
+- A mark clause that reads "landing moved nothing" followed by prose is parsed as a list of paths,
+  and the refusal it produces names twelve verdicts to re-post that cannot clear it. The run rewrote
+  the clause, then filed ISS-511 and said in the filing that the workaround came first, which is
+  itself the rule broken and the honest order to report it in.
+- Two sibling landings arrived under the rebase and neither touched the two files, so the reviewed
+  text was the landed text and no second whole-set read was owed. The rule is the set of files, not
+  the count of rebases.
+- The ship counted the reading owed at 583 lines over six releases against the new threshold and
+  filed nothing, naming ISS-509 as open for the mark. That reading was filed under the old count; its
+  thread now says when to take it.
