@@ -4586,3 +4586,24 @@ from either. Closed by its run.
   mark's note spares that write. One write carries them all; judge first, then re-issue in one.
 - Three ships stopped at the checkout-follows step today, this one among them, each on a fold
   commit waiting behind the very lock the ship held. Counted onto ISS-374 with the three shas.
+
+## Hundred-and-seventy-seventh dry run — ISS-403
+
+The ladder checker's selector (3.35.196, landed as 6518023). The guard against a second copy of the
+size-to-rung table now counts a size only where it is spelt as a JavaScript literal, comments stripped
+first, and collects a file that spells a two-letter size or two distinct ones; the ladder exports its
+band names so the test's vocabulary is the table's own. Eleven criteria. Closed by its run. No
+restart owed. Folded from its handback; the ten comments and one routed finding were read back.
+
+- Two of the issue's own claims did not hold and the confirmation record carries both: the stated
+  threshold could not make its own second half true, and the widening the body suggested is a live
+  false positive on a comment's code span today. The record, not a quiet correction, is what lets
+  the next reader of the issue trust what remains of it.
+- Proven by watching it fire three ways, then again inside the installed copy — planted red, restored
+  byte-identical green — because a green tree here says nothing about the copy a session loads.
+- A finding accepted in part had to be recorded as rejected: the review writer has no word for the
+  disposition the contract defines. Routed onto ISS-34 rather than argued in the record.
+- A stale project-brief marker was left alone: a confirm would re-stamp lines the run never read,
+  against a store with no revision and no undo. The batch reading is the route for that too.
+- The ship waited its turn behind two other landings and passed the checkout-follows step: the
+  fold's commit had landed by then. The window is the one ISS-374 now counts.
