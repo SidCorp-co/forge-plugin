@@ -3,7 +3,7 @@
    of the window. Nothing is written — docs/cli/stats-the-eval.md. */
 import { rootFor } from "./transcripts.mjs";
 import { derivedFrom, profileOf, projectFrom, readingAside, runsUnder, stamp } from "./runs.mjs";
-import { UNRECORDED, cacheRoot, installedCopies, spansInstall, versionAt } from "./versions.mjs";
+import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";
 import { WHEN, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
@@ -39,12 +39,13 @@ const STEADY = "one copy throughout";
 
 const versioned = (runs, copies) => runs.map((run) => ({
   ...run,
-  copy: versionAt(copies, run.startedAt),
+  copy: copyAt(copies, run.startedAt),
   spanned: spansInstall(copies, run) ? SPANNED : STEADY,
 }));
 
+/* No copy row: the group block below is where copies are compared, and a second tally of the same
+   runs under a second fold printed the same numbers twice (ISS-492). */
 const DIMENSIONS = [
-  ["copy", (run) => run.copy],
   ["tier", (run) => run.tier],
   ["spanned", (run) => run.spanned],
 ];
@@ -76,16 +77,14 @@ const movedIn = (nowRows, beforeRows, key) => {
   return moved;
 };
 
-const windowOf = (rows, size) => {
-  const profile = profileOf(rows);
-  return { runs: rows.length, short: size - rows.length, from: profile.from, to: profile.to, profile, groups: groupsOf(rows) };
-};
+/* Nothing a reader can derive: the profile carries the bounds, and the shortfall is the size less the runs. */
+const windowOf = (rows) => ({ runs: rows.length, profile: profileOf(rows), groups: groupsOf(rows) });
 
 /** The comparison, every figure of it one `profileOf` computes over a window or a group. */
 export const evalRuns = (runs, copies, size = WINDOW) => {
   const { now, before } = twoWindows(versioned(byEnd(runs), copies), size);
-  const nowHeld = windowOf(now, size);
-  const beforeHeld = before.length ? windowOf(before, size) : null;
+  const nowHeld = windowOf(now);
+  const beforeHeld = before.length ? windowOf(before) : null;
   return {
     size,
     total: runs.length,
@@ -101,7 +100,7 @@ export const evalRuns = (runs, copies, size = WINDOW) => {
 
 const figureLine = (when, held) => {
   const p = held.profile;
-  return `  ${when.padEnd(WHEN)} ${String(held.runs).padStart(3)} run(s)  ${stamp(held.from)} to ${stamp(held.to)}  `
+  return `  ${when.padEnd(WHEN)} ${String(held.runs).padStart(3)} run(s)  ${stamp(p.from)} to ${stamp(p.to)}  `
     + `median ${p.medianMinutes} min, ${p.medianCalls} calls, ${p.waitShare} waiting  `
     + `per run ${p.perRun.gate} gate, ${p.perRun.consult} consult, ${p.perRun.verdict} verdict, ${p.perRun.advance} advance, `
     + `${p.ships.perRun} ship, ${p.editCharsPerRun} edit chars`;
@@ -140,20 +139,18 @@ const movedLine = (what, one, way) => (one
     + `over ${one.runsBefore} → ${one.runsNow} run(s)  ${way}`
   : `  ${what.padEnd(6)} no row ${way} on both sides`);
 
-/* Only the copies are folded: every other dimension has a handful of values a reader wants named. */
-const foldFor = (name) => (name === "copy" ? SMALL : null);
-
 const head = (held) => {
+  const span = (window) => `${stamp(window.profile.from)} to ${stamp(window.profile.to)}`;
   const full = held.now.runs < held.size ? `  — ${held.size} is a full window and the corpus holds no more` : "";
-  const first = `the last ${held.now.runs} issue-flow run(s)  ${stamp(held.now.from)} to ${stamp(held.now.to)}${full}`;
+  const first = `the last ${held.now.runs} issue-flow run(s)  ${span(held.now)}${full}`;
   if (!held.before) {
     return [first,
       `no window before them: the corpus holds ${held.total} run(s) in all, so there is nothing yet to compare this one against.`];
   }
+  const short = held.size - held.before.runs;
   return [
     first,
-    `the ${held.before.runs} before them  ${stamp(held.before.from)} to ${stamp(held.before.to)}`
-      + (held.before.short > 0 ? `  — short of a full ${held.size} by ${held.before.short}` : ""),
+    `the ${held.before.runs} before them  ${span(held.before)}${short > 0 ? `  — short of a full ${held.size} by ${short}` : ""}`,
   ];
 };
 
@@ -175,7 +172,7 @@ export const evalLines = (held) => {
     movedLine("phase", held.moved.phases.fell, "fell"),
     "",
     "what separates the two windows, in runs before → now",
-    ...held.shifts.map((shift) => shiftLine(shift, foldFor(shift.name))),
+    ...held.shifts.map((shift) => shiftLine(shift)),
     "",
     "A copy is the one installed when the run began, read off the cache directory's creation time, and "
       + "fixes the guide text, the CLI and the gates its calls used until the next install; a run that saw a "

@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { WINDOW, evalRuns, evalLines, runsMark } from "../../src/stats/eval.mjs";
 import { profileOf, runsUnder } from "../../src/stats/runs.mjs";
 import { slugFor } from "../../src/stats/transcripts.mjs";
-import { UNRECORDED, installedCopies, spansInstall, versionAt } from "../../src/stats/versions.mjs";
+import { UNRECORDED, copyAt, installedCopies, spansInstall } from "../../src/stats/versions.mjs";
 import { shiftBetween, twoWindows } from "../../src/stats/windows.mjs";
 import { changedBetween, evalWindows } from "../../src/codex/codex-stats.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -72,10 +72,10 @@ test("the codex eval's split and tally are the shared functions, not a second co
 });
 
 test("the copy a run began under is the newest installed before its first record, or unrecorded", () => {
-  const copies = [{ version: "1.0.0", at: 100, born: true }, { version: "1.1.0", at: 200, born: true }];
-  assert.equal(versionAt(copies, 150), "1.0.0");
-  assert.equal(versionAt(copies, 200), "1.1.0", "at the install moment the new copy is the one on the path");
-  assert.equal(versionAt(copies, 50), UNRECORDED, "older than every copy present is said, not filed under the oldest");
+  const copies = [{ copy: "1.0.0", at: 100, born: true }, { copy: "1.1.0", at: 200, born: true }];
+  assert.equal(copyAt(copies, 150), "1.0.0");
+  assert.equal(copyAt(copies, 200), "1.1.0", "at the install moment the new copy is the one on the path");
+  assert.equal(copyAt(copies, 50), UNRECORDED, "older than every copy present is said, not filed under the oldest");
   assert.equal(spansInstall(copies, { startedAt: 150, endedAt: 250 }), true);
   assert.equal(spansInstall(copies, { startedAt: 200, endedAt: 250 }), false, "an install at the first record is the run's own copy");
   assert.equal(spansInstall(copies, { startedAt: 210, endedAt: 250 }), false);
@@ -87,7 +87,7 @@ test("installed copies are read off the cache directory with their creation mome
   writeFileSync(join(root, "not-a-copy.txt"), "");
   mkdirSync(join(root, "3.35.1"));
   const held = installedCopies(root);
-  assert.deepEqual(held.map((one) => one.version).sort(), ["3.35.1", "3.35.2"], "a file beside the directories is no copy");
+  assert.deepEqual(held.map((one) => one.copy).sort(), ["3.35.1", "3.35.2"], "a file beside the directories is no copy");
   assert.ok(held.every((one) => one.at > 0), "each carries the moment it arrived");
   assert.ok(held[0].at <= held[1].at, "oldest first");
   assert.deepEqual(installedCopies(null), [], "no cache root is no copies, not a throw");
@@ -105,6 +105,10 @@ test("every figure of a window is the profile over that window's runs, ordered b
   assert.deepEqual(held.before.profile, profileOf(byEnd.slice(10, 60)));
   assert.deepEqual(held.now.groups.map((one) => one.copy), [UNRECORDED], "no cache answers, so one group");
   assert.deepEqual(held.shifts.find((one) => one.name === "spanned").values, [{ value: "one copy throughout", now: 50, before: 50 }]);
+  /* Nothing a reader can derive, and no dimension that re-tallies the group block (ISS-492). */
+  assert.deepEqual(Object.keys(held.now).sort(), ["groups", "profile", "runs"]);
+  assert.deepEqual(Object.keys(held.before).sort(), ["groups", "profile", "runs"]);
+  assert.deepEqual(held.shifts.map((one) => one.name), ["tier", "spanned"], "copies are compared in the group block alone");
 });
 
 test("the rows that moved most carry both values and both counts, and a row absent on one side is not a fall", () => {
@@ -154,6 +158,8 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
   assert.equal(held.before.runs, 50);
   assert.equal(held.project, PROJECT);
   assert.equal(held.copies, 0);
+  assert.deepEqual(Object.keys(held), ["root", "project", "skipped", "unreadable", "copies", "size", "total", "now", "before", "moved", "shifts"]);
+  assert.ok(held.now.profile.from <= held.now.profile.to, "the bounds are the profile's, not a second copy on the window");
 
   const sized = JSON.parse(ask(room, "--size", "7", "--json").stdout);
   assert.equal(sized.now.runs, 7);

@@ -43,12 +43,12 @@ export const installedCopies = (root) => {
     .map((one) => {
       const held = statSync(join(root, one.name));
       const born = held.birthtimeMs > 0;
-      return { version: one.name, at: born ? held.birthtimeMs : held.mtimeMs, born };
+      return { copy: one.name, at: born ? held.birthtimeMs : held.mtimeMs, born };
     })
     .sort((a, b) => a.at - b.at);
 };
 
 /* Older than every copy present is said, never filed under the oldest. */
-export const versionAt = (copies, when) => copies.filter((one) => one.at <= when).at(-1)?.version ?? UNRECORDED;
+export const copyAt = (copies, when) => copies.filter((one) => one.at <= when).at(-1)?.copy ?? UNRECORDED;
 
 export const spansInstall = (copies, run) => copies.some((one) => one.at > run.startedAt && one.at <= run.endedAt);

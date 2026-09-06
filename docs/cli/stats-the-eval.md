@@ -28,6 +28,12 @@ Two windows are adjacent and never overlap. When the corpus holds fewer than two
 earlier one is compared as far as it reaches and the shortfall is printed beside it, because a window
 padded or silently shortened reads exactly like a full one.
 
+`--json` prints the comparison as one object — `size`, `total`, `now`, `before`, `moved`, `shifts` —
+and each window is its `runs`, its `profile` and its `groups` by copy. Nothing in it can be derived
+from another field: the bounds are the profile's and the shortfall is the size less the runs, so a
+reader that parses it holds one spelling of each figure and the screen computes the rest where it
+prints (ISS-492).
+
 ## What the copy installed at a run's start fixes, and what it does not
 
 No transcript records the plugin version it ran under, and the device does. Each installed copy is a
