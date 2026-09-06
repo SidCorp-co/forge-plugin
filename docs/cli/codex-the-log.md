@@ -64,7 +64,7 @@ population the eval compares and because a failed consult exits before it could 
 mark landing on one would pass in silence and never come round. The verb puts the last hundred against
 the hundred before, per model and prompt version, through these same readers, and names what separates
 the windows — a slot, the model behind it, a prompt version, an effort — so the numbers are read
-against whatever upgrade lies between. It writes nothing; the log stays the only record.
+against whatever upgrade lies between. Its write at the mark: stats-the-eval.md.
 
 What a row of this log can be replayed into, and what a rebuild proves, is
 [`codex — the replay`](codex-the-replay.md).

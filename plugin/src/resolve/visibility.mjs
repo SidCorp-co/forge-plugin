@@ -47,7 +47,7 @@ export const VERBS = [
       search: "`forge knowledge search`",
       delete: "`forge knowledge delete`" } }],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials"],
-  ["codex", "<consult|verdict|pending|show|log|stats|eval|replay>", "a second model reviews what this turn changed"],
+  ["codex", "<consult|verdict|pending|show|log|stats|eval|marks|replay>", "a second model reviews what this turn changed"],
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
     "what the gates refused, why one does, which are off", null],
   /* No `needs`, though it writes: the gates below are the CALLER's project's — docs/cli/feedback.md. */

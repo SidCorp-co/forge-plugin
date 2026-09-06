@@ -314,12 +314,12 @@
       "digest": "c9e352959c2da72dade24bd8c14464c980f0d28f1a21e7c8337c6189549ac7fc"
     },
     "AC-19-8-4": {
-      "rev": 1,
-      "digest": "1d1daf88a5d50e04455e46b0b59941f76af2ea61aecb9af3763f26f06dfd32ee"
+      "rev": 2,
+      "digest": "a78a697b86c12a60bb6f1b9cf4eaea578d8f368a208953f11ffde7928859f62b"
     },
     "AC-19-8-5": {
-      "rev": 1,
-      "digest": "1bda397e4146f86fc8f1cabf44f2d44b198fe219ef6c04a8638e0cc8b31760c8"
+      "rev": 2,
+      "digest": "a483857c396d75f65be7a89bbc3f855bd507f7ceb3432e0a7195158194d824eb"
     },
     "AC-19-8-6": {
       "rev": 2,
@@ -332,6 +332,10 @@
     "AC-19-8-8": {
       "rev": 1,
       "digest": "8906b22e21d816ea8cab1356e98a8221702ddd6d328a61e577027fb80b5dd11f"
+    },
+    "AC-19-8-9": {
+      "rev": 1,
+      "digest": "345086954c3ac7f689f216374cae9c7346a799ea598a27c0a40648a3c037987e"
     },
     "FR-01": {
       "rev": 1,

@@ -1,9 +1,9 @@
 /* `forge stats <subject>` — one verb, a subject per thing profiled: docs/cli/stats.md. */
-import { EVAL_USAGE, printEval } from "./eval.mjs";
+import { EVAL_USAGE, printEval, printMarks } from "./eval.mjs";
 import { RUNS_USAGE, printRuns } from "./runs.mjs";
 import { wantsHelp } from "../resolve/flags.mjs";
 
-const SUBJECTS = { runs: printRuns, eval: printEval };
+const SUBJECTS = { runs: printRuns, eval: printEval, marks: printMarks };
 
 export const USAGE = [RUNS_USAGE, "", EVAL_USAGE].join("\n");
 

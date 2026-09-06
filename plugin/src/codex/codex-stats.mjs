@@ -13,7 +13,8 @@ import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
-import { WHEN, groupBy, shiftBetween, shiftLine, twoWindows } from "../stats/windows.mjs";
+import { WHEN, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
+import { CONSULTS, againstIn, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "../stats/marks.mjs";
 
 const DEFAULT_WINDOW = 100;
 const REPLAY_WINDOW = 30;
@@ -123,8 +124,8 @@ export const printStats = (rest) => {
 /* What the cadence line points at: the last hundred answered consults against the hundred before
    them, so a harness upgrade is read off the log rather than off the feel of the next few consults.
    Every number is a column one of the two readers above already computes — a second copy would
-   answer differently from `stats` the day either moved. It writes nothing.
-   docs/cli/codex-the-log.md. */
+   answer differently from `stats` the day either moved. The crossing writes the comparison once and
+   `--against` reads it back as the before window — docs/cli/stats-the-eval.md. */
 export const evalWindows = (entries, size = MARK) => twoWindows(windowOf(entries, { last: size * 2 }), size);
 
 /* Both dimensions in one key: it is what the issue asks the numbers per, and it is the only key
@@ -146,15 +147,14 @@ const coverageOf = (rows) => ({
   metered: rows.filter((row) => row.usage && Object.keys(row.usage).length).length,
 });
 
-const groupLines = (rows, verdicts, when) => {
-  if (!rows.length) return [`  ${when.padEnd(WHEN)} not in this window`];
-  const { score, held } = groupNumbers(rows, verdicts);
+const groupLines = (group, when) => {
+  if (!group) return [`  ${when.padEnd(WHEN)} not in this window`];
+  const { score, stats: held, timed, metered } = group;
   const ruled = score.accepted + score.rejected;
-  const { timed, metered } = coverageOf(rows);
   const per = (many) => Math.round(many / metered);
-  const short = (many) => many < rows.length;
+  const short = (many) => many < group.consults;
   return [
-    `  ${when.padEnd(WHEN)} ${String(rows.length).padStart(3)} consult(s)  ${String(score.findings).padStart(4)} finding(s) `
+    `  ${when.padEnd(WHEN)} ${String(group.consults).padStart(3)} consult(s)  ${String(score.findings).padStart(4)} finding(s) `
       + `(${score.zero} found none)  ${ruled ? `${share(score.accepted, ruled)} kept of ${ruled} ruled` : "none ruled on"}  `
       + `${held.raisedNew} of ${held.rechecks} recheck(s) raised New  `
       + `${timed ? `${score.median}s median${short(timed) ? ` of the ${timed} timed` : ""}` : "none timed"}  `
@@ -180,36 +180,40 @@ const DIMENSIONS = [
 /* Counted, not merely present: a window that went 99 low-effort to one has the same values in it, and
    "unchanged" is the one word that must not describe the mix these numbers are read against. Named
    and never called a cause either — `effort` is derived from a change's size, so a window that moved
-   may have met bigger diffs rather than a new default. */
-export const changedBetween = (now, before) => shiftBetween(now, before, DIMENSIONS);
+   may have met bigger diffs rather than a new default. Off each window's own tally, since a group's
+   key folds slots and efforts together and a stored window has no rows to ask. */
+export const changedBetween = (now, before) => shiftBetween(now.mix, before.mix);
 
-const evalHead = (now, before) => {
-  const span = (rows) => `${rows[0].at} to ${rows.at(-1).at}`;
-  return [
-    `the last ${now.length} answered consult(s)  ${span(now)}`
-      + (now.length < MARK ? `  — ${MARK} is a full window and the log holds no more` : ""),
-    before.length
-      ? `the ${before.length} before them  ${span(before)}`
-        + (before.length < MARK ? `  — the log does not reach a full ${MARK} further back` : "")
-      : `no window before them: the log holds ${now.length} answered consult(s) in all, so there is `
-        + "nothing yet to compare this one against.",
-  ];
+const evalHead = (held) => {
+  const { now, before } = held;
+  const span = (window) => `${window.from} to ${window.to}`;
+  const first = `the last ${now.consults} answered consult(s)  ${span(now)}`
+    + (now.consults < MARK ? `  — ${MARK} is a full window and the log holds no more` : "");
+  if (!before) {
+    return [first, `no window before them: the log holds ${now.consults} answered consult(s) in all, so there is `
+      + "nothing yet to compare this one against."];
+  }
+  if (held.against !== undefined) {
+    const overlap = now.from <= before.to ? "  — overlapping the recent window, which begins before this one ends" : "";
+    return [first, `the ${before.consults} held at mark ${held.against}  ${span(before)}${overlap}`];
+  }
+  return [first, `the ${before.consults} before them  ${span(before)}`
+    + (before.consults < MARK ? `  — the log does not reach a full ${MARK} further back` : "")];
 };
 
-export const evalLines = (now, before, verdicts) => {
-  const nowBy = byKey(now);
-  const beforeBy = byKey(before);
+/** The screen, off the object `--json` prints: one reader for a live before and a stored one. */
+export const evalLines = (held) => {
+  const { now, before } = held;
+  const byKeyOf = (window) => new Map((window?.groups ?? []).map((group) => [group.key, group]));
+  const nowBy = byKeyOf(now);
+  const beforeBy = byKeyOf(before);
   const groups = [...new Set([...nowBy.keys(), ...beforeBy.keys()])].sort();
   return [
-    ...evalHead(now, before),
+    ...evalHead(held),
     "",
-    ...groups.flatMap((key) => [
-      key,
-      ...groupLines(nowBy.get(key) ?? [], verdicts, "now"),
-      ...groupLines(beforeBy.get(key) ?? [], verdicts, "before"),
-    ]),
-    ...(before.length
-      ? ["", "what separates the two windows, in consults before → now", ...changedBetween(now, before).map((shift) => shiftLine(shift))]
+    ...groups.flatMap((key) => [key, ...groupLines(nowBy.get(key), "now"), ...groupLines(beforeBy.get(key), "before")]),
+    ...(before
+      ? ["", "what separates the two windows, in consults before → now", ...held.shifts.map((shift) => shiftLine(shift))]
       : []),
     "",
     "Whether a reply could not check, and whether a recheck raised something New, are read from the "
@@ -219,11 +223,17 @@ export const evalLines = (now, before, verdicts) => {
 };
 
 const EVAL_USAGE = [
-  "Usage: forge codex eval [--json]",
+  "Usage: forge codex eval [--against [<mark>]] [--json]",
   `The last ${MARK} answered consults on this device against the ${MARK} before them, over every project`,
-  "the log holds, per model, effort and prompt. Nothing is written. `forge codex stats` takes a window.",
+  "the log holds, per model, effort and prompt. The consult that crosses a hundred-mark writes the",
+  "comparison once, and --against puts that reading in the before window's place. `forge codex stats`",
+  "takes a window.",
   "",
-  "  --json   the comparison alone, one object, in the outer shape `forge stats eval --json` prints",
+  "  --against [<mark>]  the reading held at that mark as the before window, or the newest held",
+  "  --json              the comparison alone, one object, in the outer shape `forge stats eval --json` prints",
+  "",
+  "Usage: forge codex marks",
+  "The readings held on this device, one line each, newest first.",
 ].join("\n");
 
 /* One group per key, its rows' own figures: the same numbers the screen prints, under one spelling
@@ -244,24 +254,47 @@ const groupObject = (rows, verdicts) => {
   };
 };
 
-const windowObject = (rows, verdicts) => ({
+/* The bounds and the mix are written while the rows are there: a stored window has none. */
+export const windowObject = (rows, verdicts) => ({
   consults: rows.length,
+  from: rows[0]?.at ?? null,
+  to: rows.at(-1)?.at ?? null,
   stats: statsOf(rows),
+  mix: tallied(rows, DIMENSIONS),
   groups: [...byKey(rows).values()].map((group) => groupObject(group, verdicts)),
 });
 
-/** The comparison as `stats eval --json` shapes its own: the windows, then what separates them. */
-export const evalObject = (now, before, verdicts, total) => ({
-  size: MARK,
-  total,
-  now: windowObject(now, verdicts),
-  before: before.length ? windowObject(before, verdicts) : null,
-  shifts: before.length ? changedBetween(now, before) : [],
-});
+/** The comparison in the outer shape `stats eval --json` prints (`evalRuns` in stats/eval.mjs). */
+export const compared = (now, before, verdicts, total, against = null) => {
+  const nowHeld = windowObject(now, verdicts);
+  const beforeHeld = against ? against.now : before.length ? windowObject(before, verdicts) : null;
+  return {
+    size: MARK,
+    total,
+    ...(against ? { against: against.mark } : {}),
+    now: nowHeld,
+    before: beforeHeld,
+    shifts: beforeHeld ? changedBetween(nowHeld, beforeHeld) : [],
+  };
+};
+
+export const evalObject = (entries, against = null) => {
+  const { now, before } = evalWindows(entries);
+  return compared(now, before, entries.filter((one) => one.kind === "verdict"), answered(entries).length, against);
+};
+
+/** What the consult that crossed a mark says, having written the reading once: the log as it stood
+ *  when that consult landed, so one finishing just behind it is not in the window the mark names. */
+export const crossingSaid = ({ mark, at, said }) => {
+  const wrote = writeMark({ kind: CONSULTS, mark, at: new Date().toISOString(), ...evalObject(logEntries().slice(0, at + 1)) });
+  return `${said} ${wroteSaid(wrote, mark, "forge codex eval")}`;
+};
 
 const WINDOW_FLAGS = ["--last", "--days", "--root", "--here"];
+const WRITES = "the consult that brings the log to a multiple of a hundred answered consults writes one";
 
-export const printEval = (rest) => {
+export const printEval = (argv) => {
+  const { against, rest } = againstIn(argv, "codex eval");
   if (rest.some((one) => WINDOW_FLAGS.includes(one))) {
     fail(`codex: eval takes no window — it reads the last ${MARK} answered consults on this device `
       + `and the ${MARK} before them, over every project the log holds. \`forge codex stats\` is the one `
@@ -270,13 +303,22 @@ export const printEval = (rest) => {
   const wrong = unknownFlag("codex eval", rest, { usage: EVAL_USAGE });
   if (wrong) fail(wrong);
   const { json } = flags(rest, "codex eval", ["--json"]);
-  const entries = logEntries();
-  const { now, before } = evalWindows(entries);
-  const verdicts = entries.filter((one) => one.kind === "verdict");
-  /* The object first: a reader parsing it gets an empty window as one, not the prose the screen gets. */
-  if (json) return console.log(JSON.stringify(evalObject(now, before, verdicts, answered(entries).length), null, 2));
-  if (!now.length) return console.log(`No answered consult logged yet, so there is nothing to compare. ${LOG_PATH}`);
-  for (const line of evalLines(now, before, verdicts)) console.log(line);
+  const stored = against === undefined ? null
+    : resolveAgainst(CONSULTS, against, { verb: "codex eval", list: "forge codex marks", writes: WRITES });
+  const held = evalObject(logEntries(), stored);
+  if (json) return console.log(JSON.stringify(held, null, 2));
+  if (!held.now.consults) return console.log(`No answered consult logged yet, so there is nothing to compare. ${LOG_PATH}`);
+  for (const line of evalLines(held)) console.log(line);
+};
+
+/** `forge codex marks`: the device's consult readings, as `stats marks` lists a project's runs. */
+export const printMarks = (rest) => {
+  const wrong = unknownFlag("codex marks", rest, { usage: EVAL_USAGE });
+  if (wrong) fail(wrong);
+  flags(rest, "codex marks");
+  const held = marksOf(CONSULTS);
+  if (!held.length) return console.log(`No reading is held on this device yet; ${WRITES}.`);
+  for (const line of markLines(held, (one) => `${String(one.now.consults).padStart(3)} consult(s)  ${one.now.from} to ${one.now.to}`)) console.log(line);
 };
 
 const gitIn = (root, argv) => spawnSync("git", argv, { cwd: root, encoding: "utf8", maxBuffer: 1e8 });

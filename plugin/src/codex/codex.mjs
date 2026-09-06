@@ -40,7 +40,7 @@ import {
   roleFor,
   sameFamily,
 } from "./codex-api.mjs";
-import { printEval, printReplay, printStats } from "./codex-stats.mjs";
+import { crossingSaid, printEval, printMarks, printReplay, printStats } from "./codex-stats.mjs";
 import {
   LOG_PATH,
   consults,
@@ -63,7 +63,7 @@ import {
 const DEFAULT_PATH_RE = "^docs/.*\\.md$";
 
 export const USAGE = [
-  "Usage: forge codex <consult|verdict|pending|show|log|stats|eval|replay> [args]",
+  "Usage: forge codex <consult|verdict|pending|show|log|stats|eval|marks|replay> [args]",
   "GPT-5 Codex reviews the files you name, streamed over the gateway's own API. The files travel",
   "with the prompt; beyond them it reads for itself — read_file, list_dir, grep and git_diff, over",
   "this checkout and any other you name a file in, and nothing else on the machine. The log is what",
@@ -83,9 +83,11 @@ export const USAGE = [
   "  stats [--last n] [--days n] [--root p] [--here]   what the harness did over a window: calls",
   "                            against their budget, replies that could not check, rechecks that",
   "                            raised something New, tokens by kind, and the prompt versions that ran",
-  "  eval [--json]             the last 100 answered consults on this device against the 100 before",
-  "                            them, per model and prompt version, with what separates the windows",
-  "                            named. The consult that crosses a hundred-mark says to run it.",
+  "  eval [--against [<mark>]] [--json]   the last 100 answered consults on this device against the",
+  "                            100 before them, per model and prompt version, with what separates the",
+  "                            windows named. The consult that crosses a hundred-mark says to run it and",
+  "                            writes the reading once; --against puts a held reading in the before's place",
+  "  marks                     the readings held on this device, one line each, newest first",
   "  replay --prompt <file> [--last n] [--root p]      which of a window a candidate prompt could be",
   "                            scored against: the bytes wherever a commit or the record still proves",
   "                            them, and a row refused with its reason where nothing does",
@@ -451,7 +453,7 @@ const consult = async (given) => {
     if (held.refused.length) console.error(`codex: refused ${held.refused.length} tool call(s): ${held.refused.join("; ")}.`);
     if (left.length) console.error(`codex: ${left.length} file(s) still pending, recorded ${ageOf(since)}: ${left.join(", ")}.`);
     if (held.stop === "max_tokens") console.error("codex: the reply hit `codex.maxTokens`.");
-    if (crossing) console.error(crossing);
+    if (crossing) console.error(crossingSaid(crossing));
   } catch (error) {
     logConsult({ ...record, kind: "consult", budget, ms: Date.now() - started, ok: false, error: error.message });
     const partial = shown ? `\n\ncodex: the ${shown} characters above are an incomplete reply and were `
@@ -561,6 +563,7 @@ const SUBS = {
   log: printLog,
   stats: printStats,
   eval: printEval,
+  marks: printMarks,
   replay: printReplay,
 };
 

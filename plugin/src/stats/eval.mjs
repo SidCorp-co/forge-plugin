@@ -1,10 +1,12 @@
 /* `forge stats eval` — the last fifty issue-flow runs against the fifty before them, on the figures
-   the profile already computes, and the one line the ship prints when the corpus reaches a multiple
-   of the window. Nothing is written — docs/cli/stats-the-eval.md. */
+   the profile already computes; the one line the ship prints when the corpus reaches a multiple of
+   the window, and the reading it writes there once, which `--against` reads back as the before
+   window — docs/cli/stats-the-eval.md. */
 import { rootFor } from "./transcripts.mjs";
 import { derivedFrom, profileOf, projectFrom, readingAside, runsUnder, stamp } from "./runs.mjs";
 import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";
 import { WHEN, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
+import { RUNS, againstIn, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "./marks.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
@@ -12,15 +14,20 @@ import { unknownFlag } from "../suggest.mjs";
 export const WINDOW = 50;
 
 export const EVAL_USAGE = [
-  "Usage: forge stats eval [--project <dir>] [--size 50] [--json]",
+  "Usage: forge stats eval [--project <dir>] [--size 50] [--against [<mark>]] [--json]",
   "The last fifty issue-flow runs against the fifty before them, on the figures `stats runs` computes,",
   "each window grouped by the copy installed when its runs began, and what separates the two named.",
-  "Nothing is written. The ship says when to run it: at every multiple of the window in the project's",
-  "own corpus, the way the consult that crosses a hundred-mark names `forge codex eval`.",
+  "The ship says when to run it: at every multiple of the window in the project's own corpus, the way",
+  "the consult that crosses a hundred-mark names `forge codex eval` — and writes the reading there,",
+  "once per mark, which `--against` puts in the before window's place.",
   "",
-  "  --project <dir>  as for runs",
-  "  --size n       runs per window; fifty unless you say otherwise",
-  "  --json         the comparison alone, one object",
+  "  --project <dir>    as for runs",
+  "  --size n           runs per window; fifty unless you say otherwise",
+  "  --against [<mark>] the reading held at that mark as the before window, or the newest held",
+  "  --json             the comparison alone, one object",
+  "",
+  "Usage: forge stats marks [--project <dir>]",
+  "The readings held for this project, one line each, newest first.",
 ].join("\n");
 
 const sized = (raw) => {
@@ -42,13 +49,6 @@ const versioned = (runs, copies) => runs.map((run) => ({
   copy: copyAt(copies, run.startedAt),
   spanned: spansInstall(copies, run) ? SPANNED : STEADY,
 }));
-
-/* No copy row: the group block below is where copies are compared, and a second tally of the same
-   runs under a second fold printed the same numbers twice (ISS-492). */
-const DIMENSIONS = [
-  ["tier", (run) => run.tier],
-  ["spanned", (run) => run.spanned],
-];
 
 const groupsOf = (rows) =>
   [...groupBy(rows, (row) => row.copy)].map(([copy, runs]) => ({ copy, runs: runs.length, profile: profileOf(runs) }));
@@ -77,30 +77,46 @@ const movedIn = (nowRows, beforeRows, key) => {
   return moved;
 };
 
-/* Nothing a reader can derive: the profile carries the bounds, and the shortfall is the size less the runs. */
-const windowOf = (rows) => ({ runs: rows.length, profile: profileOf(rows), groups: groupsOf(rows) });
+/* Nothing a reader can derive: the profile carries the bounds and the tier counts, the shortfall is the
+   size less the runs, and `spanned` is the one count the shifts need that nothing else holds. */
+const windowOf = (rows) => ({
+  runs: rows.length,
+  spanned: rows.filter((row) => row.spanned === SPANNED).length,
+  profile: profileOf(rows),
+  groups: groupsOf(rows),
+});
 
-/** The comparison, every figure of it one `profileOf` computes over a window or a group. */
-export const evalRuns = (runs, copies, size = WINDOW) => {
+/* The tallies the shifts compare, read off a window and never its rows: a stored before has none. */
+const mixOf = (window) => ({
+  tier: Object.fromEntries(window.profile.tiers.map((row) => [row.tier, row.runs])),
+  spanned: { [SPANNED]: window.spanned, [STEADY]: window.runs - window.spanned },
+});
+
+/** The comparison, every figure of it one `profileOf` computes over a window or a group. With a stored
+ *  reading, its recent window stands where the earlier one would, through the same lines. */
+export const evalRuns = (runs, copies, size = WINDOW, against = null) => {
   const { now, before } = twoWindows(versioned(byEnd(runs), copies), size);
   const nowHeld = windowOf(now);
-  const beforeHeld = before.length ? windowOf(before) : null;
+  const beforeHeld = against ? against.now : before.length ? windowOf(before) : null;
   return {
     size,
     total: runs.length,
+    ...(against ? { against: against.mark } : {}),
     now: nowHeld,
     before: beforeHeld,
     moved: beforeHeld
       ? { tiers: movedIn(nowHeld.profile.tiers, beforeHeld.profile.tiers, "tier"),
         phases: movedIn(nowHeld.profile.phases, beforeHeld.profile.phases, "name") }
       : null,
-    shifts: beforeHeld ? shiftBetween(now, before, DIMENSIONS) : [],
+    shifts: beforeHeld ? shiftBetween(mixOf(nowHeld), mixOf(beforeHeld)) : [],
   };
 };
 
+const span = (window) => `${stamp(window.profile.from)} to ${stamp(window.profile.to)}`;
+
 const figureLine = (when, held) => {
   const p = held.profile;
-  return `  ${when.padEnd(WHEN)} ${String(held.runs).padStart(3)} run(s)  ${stamp(p.from)} to ${stamp(p.to)}  `
+  return `  ${when.padEnd(WHEN)} ${String(held.runs).padStart(3)} run(s)  ${span(held)}  `
     + `median ${p.medianMinutes} min, ${p.medianCalls} calls, ${p.waitShare} waiting  `
     + `per run ${p.perRun.gate} gate, ${p.perRun.consult} consult, ${p.perRun.verdict} verdict, ${p.perRun.advance} advance, `
     + `${p.ships.perRun} ship, ${p.editCharsPerRun} edit chars`;
@@ -140,12 +156,16 @@ const movedLine = (what, one, way) => (one
   : `  ${what.padEnd(6)} no row ${way} on both sides`);
 
 const head = (held) => {
-  const span = (window) => `${stamp(window.profile.from)} to ${stamp(window.profile.to)}`;
   const full = held.now.runs < held.size ? `  — ${held.size} is a full window and the corpus holds no more` : "";
   const first = `the last ${held.now.runs} issue-flow run(s)  ${span(held.now)}${full}`;
   if (!held.before) {
     return [first,
       `no window before them: the corpus holds ${held.total} run(s) in all, so there is nothing yet to compare this one against.`];
+  }
+  if (held.against !== undefined) {
+    const overlap = held.now.profile.from <= held.before.profile.to
+      ? "  — overlapping the recent window, which begins before this one ends" : "";
+    return [first, `the ${held.before.runs} held at mark ${held.against}  ${span(held.before)}${overlap}`];
   }
   const short = held.size - held.before.runs;
   return [
@@ -181,30 +201,66 @@ export const evalLines = (held) => {
   ];
 };
 
-/** The one line the ship prints at a multiple of the window, or null. The count is the corpus's own,
- *  read each time, so nothing remembers a crossing and nothing can remember it wrongly. */
-export const runsMark = (directory, size = WINDOW) => {
-  const { runs } = runsUnder(rootFor(directory), null);
-  const many = runs.length;
-  return many > 0 && many % size === 0 ? `stats: ${many} issue-flow runs in this project's corpus — \`forge stats eval\`.` : null;
+const corpusOf = (directory) => {
+  const root = rootFor(directory);
+  return { root, ...runsUnder(root, null), copies: installedCopies(cacheRoot()) };
 };
 
-export const printEval = (rest) => {
+/** The object `--json` prints, and the record the ship writes: one assembly, so a stored reading is
+ *  what the verb would have computed at that moment. */
+const readingOf = (directory, corpus, size, against = null) => ({
+  root: corpus.root,
+  project: directory,
+  skipped: corpus.skipped,
+  unreadable: corpus.unreadable,
+  copies: corpus.copies.length,
+  ...evalRuns(corpus.runs, corpus.copies, size, against),
+});
+
+const WRITES = "the release step writes one at every multiple of fifty runs in the corpus";
+
+/** The one line the ship prints at a multiple of the window, or null. The count is the corpus's own,
+ *  read each time and never off the store, so no stale memory of a crossing can misplace it; the
+ *  reading is written there once, and a second ship landing on the same count appends nothing. */
+export const runsMark = (directory, size = WINDOW) => {
+  const corpus = corpusOf(directory);
+  const many = corpus.runs.length;
+  if (!(many > 0 && many % size === 0)) return null;
+  const said = `stats: ${many} issue-flow runs in this project's corpus — \`forge stats eval\`.`;
+  const wrote = writeMark({ kind: RUNS, mark: many, at: new Date().toISOString(), ...readingOf(directory, corpus, size) });
+  return `${said} ${wroteSaid(wrote, many, "forge stats eval")}`;
+};
+
+export const printEval = (argv) => {
+  const { against, rest } = againstIn(argv, "stats eval");
   const wrong = unknownFlag("stats eval", rest, { usage: EVAL_USAGE });
   if (wrong) fail(wrong);
   const { project, size, json } = flags(rest, "stats eval", ["--json"]);
   const window = sized(size);
   const directory = projectFrom(project, "stats eval");
-  const root = rootFor(directory);
-  const { runs, skipped, unreadable } = runsUnder(root, null);
-  const copies = installedCopies(cacheRoot());
-  if (!runs.length) {
-    return console.log(`No issue-flow run under ${root}, so there is nothing to compare. `
-      + `${readingAside({ skipped, unreadable })}.${derivedFrom(directory)}`);
+  const corpus = corpusOf(directory);
+  /* The reading asked for is resolved before the corpus is judged: a mark nobody wrote is refused by
+     name whatever the corpus holds, rather than answered with the empty corpus's sentence. */
+  const stored = against === undefined ? null
+    : resolveAgainst(RUNS, against, { root: corpus.root, verb: "stats eval", list: "forge stats marks", writes: WRITES });
+  if (!corpus.runs.length) {
+    return console.log(`No issue-flow run under ${corpus.root}, so there is nothing to compare. `
+      + `${readingAside(corpus)}.${derivedFrom(directory)}`);
   }
-  const held = evalRuns(runs, copies, window);
-  if (json) {
-    return console.log(JSON.stringify({ root, project: directory, skipped, unreadable, copies: copies.length, ...held }, null, 2));
-  }
+  const held = readingOf(directory, corpus, window, stored);
+  if (json) return console.log(JSON.stringify(held, null, 2));
   for (const line of evalLines(held)) console.log(line);
+};
+
+/** `forge stats marks` — the readings held for the project, newest first. */
+export const printMarks = (rest) => {
+  const wrong = unknownFlag("stats marks", rest, { usage: EVAL_USAGE });
+  if (wrong) fail(wrong);
+  const { project } = flags(rest, "stats marks");
+  const directory = projectFrom(project, "stats marks");
+  const held = marksOf(RUNS, rootFor(directory));
+  if (!held.length) return console.log(`No reading is held for this project yet; ${WRITES}.`);
+  const lines = markLines(held, (one) =>
+    `${String(one.now.runs).padStart(3)} run(s)  ${stamp(one.now.profile.from)} to ${stamp(one.now.profile.to)}`);
+  for (const line of lines) console.log(line);
 };

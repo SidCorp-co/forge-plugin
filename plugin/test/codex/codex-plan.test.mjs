@@ -22,13 +22,17 @@ const {
   evalObject,
   evalLines,
   evalWindows,
+  compared,
   printEval,
   rebuiltFrom,
   replayOf,
   statsOf,
   windowOf,
+  windowObject,
 } = await import("../../src/codex/codex-stats.mjs");
 const { KEPT_CHARS, KEPT_TOTAL, LOG_PATH, scoreOf, sentFrom } = await import("../../src/codex/codex-log.mjs");
+const { marksPath, writeMark } = await import("../../src/stats/marks.mjs");
+const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const { digest, promptMark, roleFor } = await import("../../src/codex/codex-api.mjs");
 
 const LIMITS = { base: 3, ceiling: 5, small: 40, large: 400 };
@@ -395,7 +399,7 @@ test("the eval is the last hundred against the hundred before, scored on the who
   assert.equal(before.length, 100);
   assert.equal(now[0].id, "w150", "the recent window ends at the log's last answered consult");
   assert.equal(before.at(-1).id, "w149", "and the earlier one abuts it");
-  const said = evalLines(now, before, verdicts).join("\n");
+  const said = evalLines(evalObject([...rows, ...verdicts])).join("\n");
   assert.match(said, /new-model @medium {2}prompt v2 bbb/u, "one block per model and prompt version");
   assert.match(said, /100 consult\(s\) {2,}100 finding\(s\)/u);
   assert.match(said, /100% kept of 100 ruled/u, "the verdicts reach the scoring");
@@ -407,21 +411,29 @@ test("the eval is the last hundred against the hundred before, scored on the who
    numbers are meant to be read against saying nothing (codex F1, this change). */
 test("what separates the windows is counted per value, not merely listed", () => {
   const rows = Array.from({ length: 250 }, (one, n) => WINDOWED(n));
-  const { now, before } = evalWindows(rows);
-  const held = Object.fromEntries(changedBetween(now, before).map((one) => [one.name, one]));
+  const object = evalObject(rows);
+  const held = Object.fromEntries(object.shifts.map((one) => [one.name, one]));
   assert.deepEqual(held.model.values, [{ value: "new-model", now: 100, before: 0 }, { value: "old-model", now: 0, before: 100 }]);
   assert.deepEqual(held.slot.values, [{ value: "codex", now: 100, before: 100 }], "the slot is the name, and it did not move");
-  const said = evalLines(now, before, []).join("\n");
+  const said = evalLines(object).join("\n");
   assert.match(said, /model {3}new-model — → 100, old-model 100 → —/u);
   assert.match(said, /slot {4}codex 100 → 100/u);
   assert.match(said, /none ruled on/u, "no verdict in the log is said, not shown as a share");
 
-  const mixed = evalLines(
+  const mixed = evalLines(compared(
     Array.from({ length: 4 }, (one, n) => WINDOWED(n + 200, )).map((row) => ({ ...row, effort: "high" })),
     Array.from({ length: 4 }, (one, n) => WINDOWED(n + 100)),
-    [],
-  ).join("\n");
+    [], 8,
+  )).join("\n");
   assert.match(mixed, /effort {2}high — → 4, medium 4 → —/u, "the same dimension in different amounts still reads as a move");
+
+  /* Criterion 19: a group's key folds slots together, so the mix is what keeps them apart. */
+  const twoSlots = [WINDOWED(200), { ...WINDOWED(201), slot: "other" }];
+  const window = windowObject(twoSlots, []);
+  assert.equal(window.groups.length, 1, "one model, prompt and effort is one group");
+  assert.deepEqual(window.mix.slot, { codex: 1, other: 1 });
+  assert.deepEqual(changedBetween(window, windowObject([WINDOWED(100)], [])).find((one) => one.name === "slot").values,
+    [{ value: "codex", now: 1, before: 1 }, { value: "other", now: 1, before: 0 }], "one consult per slot, as the rows said");
 });
 
 /* A row that predates a field is not an observed zero: averaged in, the older window reads as the
@@ -433,10 +445,10 @@ test("a measurement nobody recorded is said rather than averaged as nothing", ()
     delete row.ms;
     return row;
   });
-  const said = evalLines(bare, [], []).join("\n");
+  const said = evalLines(compared(bare, [], [], 4)).join("\n");
   assert.match(said, /no consult here recorded what it spent/u);
   assert.match(said, /none timed/u);
-  const half = evalLines([...bare.slice(0, 3), WINDOWED(9)], [], []).join("\n");
+  const half = evalLines(compared([...bare.slice(0, 3), WINDOWED(9)], [], [], 4)).join("\n");
   assert.match(half, /tokens\/consult over the 1 that recorded usage {2}1000 in/u, "divided by the rows that recorded, not by all four");
   assert.match(half, /20s median of the 1 timed/u, "the one timed consult's own median, not one dragged to nought by the three beside it");
 });
@@ -448,15 +460,16 @@ test("a short window says its real size, and a log too young says it has no wind
   const { now, before } = evalWindows(young);
   assert.equal(now.length, 40);
   assert.equal(before.length, 0);
-  const said = evalLines(now, before, []).join("\n");
+  const said = evalLines(evalObject(young)).join("\n");
   assert.match(said, /the last 40 answered consult\(s\)/u);
   assert.match(said, /100 is a full window and the log holds no more/u);
   assert.match(said, /no window before them/u);
   assert.doesNotMatch(said, /what separates/u);
 
-  const half = evalWindows(Array.from({ length: 150 }, (one, n) => WINDOWED(n)));
+  const rows = Array.from({ length: 150 }, (one, n) => WINDOWED(n));
+  const half = evalWindows(rows);
   assert.equal(half.before.length, 50);
-  assert.match(evalLines(half.now, half.before, []).join("\n"), /the 50 before them.*does not reach a full 100 further back/u);
+  assert.match(evalLines(evalObject(rows)).join("\n"), /the 50 before them.*does not reach a full 100 further back/u);
 });
 
 /* The reader that quotes a figure exactly takes the object, and it is the screen's numbers under one
@@ -464,14 +477,17 @@ test("a short window says its real size, and a log too young says it has no wind
 test("--json is the comparison as one object, in stats eval's outer shape, and its figures are the screen's", () => {
   const rows = Array.from({ length: 250 }, (one, n) => WINDOWED(n));
   const verdicts = rows.map((one, n) => SCORED(n));
-  const { now, before } = evalWindows([...rows, ...verdicts]);
-  const held = evalObject(now, before, verdicts, rows.length);
+  const { now } = evalWindows([...rows, ...verdicts]);
+  const held = evalObject([...rows, ...verdicts]);
   assert.deepEqual(Object.keys(held), ["size", "total", "now", "before", "shifts"]);
   assert.equal(held.size, 100);
   assert.equal(held.total, 250);
   for (const window of [held.now, held.before]) {
-    assert.deepEqual(Object.keys(window), ["consults", "stats", "groups"]);
+    /* Criterion 17: the bounds and the mix, written while the rows are there, and nothing else new. */
+    assert.deepEqual(Object.keys(window), ["consults", "from", "to", "stats", "mix", "groups"]);
     assert.equal(window.consults, 100);
+    assert.ok(window.from < window.to);
+    assert.deepEqual(Object.keys(window.mix), ["slot", "model", "prompt", "effort"]);
     assert.equal(window.groups.reduce((sum, group) => sum + group.consults, 0), window.consults, "the groups partition the window");
     for (const group of window.groups) {
       assert.deepEqual(Object.keys(group), ["key", "slot", "model", "prompt", "effort", "consults", "timed", "metered", "score", "stats"]);
@@ -488,7 +504,7 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
   assert.equal(group.stats.spent.input_tokens, 100_000);
   assert.equal(held.shifts.find((one) => one.name === "model").values[0].value, "new-model");
 
-  const young = evalObject(now.slice(0, 40), [], verdicts, 40);
+  const young = evalObject([...rows.slice(0, 40), ...verdicts]);
   assert.equal(young.before, null, "a log too young has no earlier window, said as null");
   assert.deepEqual(young.shifts, []);
 
@@ -499,7 +515,9 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
   try {
     printEval(["--json"]);
     const empty = JSON.parse(String(said.mock.calls[0].arguments[0]));
-    assert.deepEqual(empty, { size: 100, total: 0, now: { consults: 0, stats: statsOf([]), groups: [] }, before: null, shifts: [] });
+    assert.deepEqual(empty, {
+      size: 100, total: 0, now: { consults: 0, from: null, to: null, stats: statsOf([]), mix: { slot: {}, model: {}, prompt: {}, effort: {} }, groups: [] }, before: null, shifts: [],
+    });
   } finally {
     said.mock.restore();
   }
@@ -537,4 +555,48 @@ test("the eval writes nothing and refuses a window nobody can act on", () => {
     stopped.mock.restore();
     cried.mock.restore();
   }
+});
+
+/* Criteria 9, 11, 13 and 21, 23: a reading held on the device is the before window whichever checkout
+   asks, its figures are the ones scored at the mark, and the list subject shows what is held. */
+test("a stored consult reading is the before window, scored as it was at the mark, on every checkout", () => {
+  const rows = Array.from({ length: 250 }, (one, n) => WINDOWED(n));
+  const verdicts = rows.map((one, n) => SCORED(n));
+  mkdirSync(dirname(LOG_PATH), { recursive: true });
+  writeFileSync(LOG_PATH, `${[...rows, ...verdicts].map((one) => JSON.stringify(one)).join("\n")}\n`);
+  const env = { ...process.env };
+  const ask = (...argv) => spawnSync(FORGE, ["codex", ...argv], { encoding: "utf8", env });
+
+  const empty = ask("marks");
+  assert.match(`${empty.status} ${empty.stdout}`, /^0 No reading is held on this device yet; the consult that brings the log to a multiple of a hundred answered consults writes one/u);
+  const none = ask("eval", "--against");
+  assert.match(`${none.status} ${none.stderr}`, /^1 codex eval: --against names no reading — none is held on this device yet/u);
+
+  /* The reading, as the crossing writes it: the log as it stood, with the rows' own verdicts. */
+  const stored = { kind: "consults", mark: 200, at: "2026-09-05T00:00:00.000Z", ...evalObject([...rows.slice(0, 200), ...verdicts.slice(0, 200)]) };
+  assert.equal(writeMark(stored), "written");
+  assert.equal(writeMark(stored), "held", "criterion 5: the same mark again is not a second record");
+  assert.equal(readFileSync(marksPath(), "utf8").trim().split("\n").length, 1);
+
+  const pinned = JSON.parse(ask("eval", "--against", "200", "--json").stdout);
+  assert.deepEqual([pinned.against, pinned.now.consults, pinned.before], [200, 100, JSON.parse(JSON.stringify(stored.now))], "the stored recent window, as the file holds it");
+  assert.equal(JSON.parse(ask("eval", "--against", "--json").stdout).against, 200, "criterion 9: bare --against is the newest held, and no root narrows it");
+  const screen = ask("eval", "--against", "200");
+  assert.match(screen.stdout, /^the 100 held at mark 200 {2}.* — overlapping the recent window, which begins before this one ends$/mu, screen.stderr);
+  assert.match(screen.stdout, /what separates the two windows/u);
+  const missing = ask("eval", "--against", "999");
+  assert.match(`${missing.status} ${missing.stderr}`, /^1 codex eval: no consults reading at mark 999 on this device\. `forge codex marks` lists what is held\./u);
+  const listed = ask("marks");
+  assert.match(listed.stdout, /^mark {3}200 {2}2026-09-05 00:00 {2}100 consult\(s\) {2}2026-09-01T01:40:00\.000Z to 2026-09-01T03:19:00\.000Z$/mu, listed.stderr);
+
+  /* Criterion 13: the rows are gone and later verdicts reject everything, and the stored side still
+     reads as it was scored at the mark. */
+  const rejecting = rows.map((one, n) => ({ ...SCORED(n), accepted: 0, rejected: 1, kept: [], dropped: { F1: "no" } }));
+  const later = compared(rows.slice(200), [], rejecting, 250, stored);
+  const said = evalLines(later).join("\n");
+  /* The stored window is rows 100 to 199: fifty of each model, so two groups of fifty. */
+  assert.match(said, /before {3}50 consult\(s\) {4}50 finding\(s\) \(0 found none\) {2}100% kept of 50 ruled/u, "the stored window's score");
+  assert.match(said, /now {6}50 consult\(s\) {4}50 finding\(s\) \(0 found none\) {2}0% kept of 50 ruled/u, "the live one's");
+  assert.match(said, /old-model @medium {2}prompt v2 aaa\n {2}now {5}not in this window\n {2}before {3}50 consult/u, "a group the live window lacks still prints its stored side");
+  assert.match(said, /tokens\/consult {2}1000 in, 500 from cache, 0 written, 200 out/u);
 });

@@ -9,12 +9,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { WINDOW, evalRuns, evalLines, runsMark } from "../../src/stats/eval.mjs";
+import { marksOf, marksPath, writeMark } from "../../src/stats/marks.mjs";
 import { profileOf, runsUnder } from "../../src/stats/runs.mjs";
 import { slugFor } from "../../src/stats/transcripts.mjs";
 import { UNRECORDED, copyAt, installedCopies, spansInstall } from "../../src/stats/versions.mjs";
-import { shiftBetween, twoWindows } from "../../src/stats/windows.mjs";
-import { changedBetween, evalWindows } from "../../src/codex/codex-stats.mjs";
+import { shiftBetween, tallied, twoWindows } from "../../src/stats/windows.mjs";
+import { evalObject, evalWindows } from "../../src/codex/codex-stats.mjs";
 import { tempRoom } from "../fixtures.mjs";
+
+/* The mark writes a reading under the config directory, so the process's own is moved first. */
+process.env.XDG_CONFIG_HOME = tempRoom("stats-eval-home-");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const CODEX_STATS = new URL("../../src/codex/codex-stats.mjs", import.meta.url).pathname;
@@ -42,12 +46,14 @@ const corpusOf = (many, room = tempRoom("stats-eval-")) => {
   return room;
 };
 
-const ask = (room, ...argv) =>
-  spawnSync(FORGE, ["stats", "eval", "--project", PROJECT, ...argv], {
+/* HOME points at an empty room, so no install record answers and every run is unrecorded; the config
+   directory is a fresh room unless the case hands over the one its own mark wrote into. */
+const askStats = (room, argv, home = tempRoom("stats-eval-home-")) =>
+  spawnSync(FORGE, ["stats", ...argv], {
     encoding: "utf8",
-    /* HOME points at an empty room, so no install record answers and every run is unrecorded. */
-    env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-eval-home-"), TMPDIR: room, HOME: tempRoom("stats-eval-user-") },
+    env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room, HOME: tempRoom("stats-eval-user-") },
   });
+const ask = (room, ...argv) => askStats(room, ["eval", "--project", PROJECT, ...argv]);
 
 const runsOf = (many) => runsUnder(join(corpusOf(many), `claude-${process.getuid()}`, slugFor(PROJECT)), null).runs;
 
@@ -56,8 +62,10 @@ test("two windows are the last N and the N before them, adjacent, and a short li
   assert.deepEqual(twoWindows(rows, 3), { now: [4, 5, 6], before: [1, 2, 3] });
   assert.deepEqual(twoWindows(rows, 5), { now: [2, 3, 4, 5, 6], before: [0, 1] }, "before is what the list holds, not padded");
   assert.deepEqual(twoWindows([1, 2], 3), { now: [1, 2], before: [] });
-  const shifted = shiftBetween([{ k: "a" }, { k: "a" }], [{ k: "b" }], [["k", (row) => row.k]]);
+  const dimensions = [["k", (row) => row.k]];
+  const shifted = shiftBetween(tallied([{ k: "a" }, { k: "a" }], dimensions), tallied([{ k: "b" }], dimensions));
   assert.deepEqual(shifted, [{ name: "k", values: [{ value: "a", now: 2, before: 0 }, { value: "b", now: 0, before: 1 }] }]);
+  assert.deepEqual(shiftBetween({ k: { a: 0 } }, { k: { a: 0 } }), [{ name: "k", values: [] }], "a value neither window holds is no difference");
 });
 
 /* Criterion 17: the codex eval and the runs eval split and tally through one pair of functions. */
@@ -68,7 +76,7 @@ test("the codex eval's split and tally are the shared functions, not a second co
   const rows = Array.from({ length: 250 }, (_, n) => ({ kind: "consult", ok: true, reply: "x", at: at(n), id: `w${n}`, slot: n < 150 ? "a" : "b" }));
   const { now, before } = evalWindows(rows);
   assert.deepEqual({ now, before }, twoWindows(rows, 100));
-  assert.deepEqual(changedBetween(now, before)[0].values, [{ value: "b", now: 100, before: 0 }, { value: "a", now: 0, before: 100 }]);
+  assert.deepEqual(evalObject(rows).shifts[0].values, [{ value: "b", now: 100, before: 0 }, { value: "a", now: 0, before: 100 }]);
 });
 
 test("the copy a run began under is the newest installed before its first record, or unrecorded", () => {
@@ -105,10 +113,16 @@ test("every figure of a window is the profile over that window's runs, ordered b
   assert.deepEqual(held.before.profile, profileOf(byEnd.slice(10, 60)));
   assert.deepEqual(held.now.groups.map((one) => one.copy), [UNRECORDED], "no cache answers, so one group");
   assert.deepEqual(held.shifts.find((one) => one.name === "spanned").values, [{ value: "one copy throughout", now: 50, before: 50 }]);
-  /* Nothing a reader can derive, and no dimension that re-tallies the group block (ISS-492). */
-  assert.deepEqual(Object.keys(held.now).sort(), ["groups", "profile", "runs"]);
-  assert.deepEqual(Object.keys(held.before).sort(), ["groups", "profile", "runs"]);
+  /* Nothing a reader can derive, and no dimension that re-tallies the group block (ISS-492); `spanned`
+     is the one count the shifts need that neither the profile nor the groups hold (ISS-478). */
+  assert.deepEqual(Object.keys(held.now).sort(), ["groups", "profile", "runs", "spanned"]);
+  assert.deepEqual(Object.keys(held.before).sort(), ["groups", "profile", "runs", "spanned"]);
+  assert.equal(held.now.spanned, 0);
   assert.deepEqual(held.shifts.map((one) => one.name), ["tier", "spanned"], "copies are compared in the group block alone");
+  /* Criterion 18: off the window objects, and what the row tally said. */
+  const rowTally = (rows) => tallied(rows, [["tier", (run) => run.tier], ["spanned", (run) => (run.spanned ? "saw a release land" : "one copy throughout")]]);
+  const untallied = shiftBetween(rowTally(byEnd.slice(-50).map((run) => ({ ...run, spanned: false }))), rowTally(byEnd.slice(10, 60).map((run) => ({ ...run, spanned: false }))));
+  assert.deepEqual(held.shifts, untallied, "the tallies the windows carry give the shifts the rows gave");
 });
 
 test("the rows that moved most carry both values and both counts, and a row absent on one side is not a fall", () => {
@@ -159,6 +173,7 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
   assert.equal(held.project, PROJECT);
   assert.equal(held.copies, 0);
   assert.deepEqual(Object.keys(held), ["root", "project", "skipped", "unreadable", "copies", "size", "total", "now", "before", "moved", "shifts"]);
+  assert.deepEqual(Object.keys(held.now), ["runs", "spanned", "profile", "groups"], "criterion 15: the window carries spanned and nothing else new");
   assert.ok(held.now.profile.from <= held.now.profile.to, "the bounds are the profile's, not a second copy on the window");
 
   const sized = JSON.parse(ask(room, "--size", "7", "--json").stdout);
@@ -180,27 +195,127 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
   assert.match(wrong.stderr, /No stats eval flag named --sizee/u);
 });
 
-/* Criteria 14 to 16: the mark fires at a multiple of the window, from the corpus, and only there. */
+/* The mark fires at a multiple of the window, from the corpus, and only there; and it writes the
+   reading there once (ISS-478, criteria 1 to 3). */
 test("the ship's mark is one line at a multiple of the window, read off the corpus, and silent otherwise", () => {
-  const rootOf = (many) => {
-    const room = corpusOf(many);
-    process.env.TMPDIR = room;
-    return room;
+  const rootOf = (many, room) => {
+    const held = corpusOf(many, room);
+    process.env.TMPDIR = held;
+    return held;
   };
-  const was = process.env.TMPDIR;
+  const was = { TMPDIR: process.env.TMPDIR, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
+  process.env.XDG_CONFIG_HOME = tempRoom("stats-eval-marks-");
   try {
-    rootOf(50);
-    assert.equal(runsMark(PROJECT), "stats: 50 issue-flow runs in this project's corpus — `forge stats eval`.");
+    const room = rootOf(50);
+    const root = join(room, `claude-${process.getuid()}`, slugFor(PROJECT));
+    assert.equal(runsMark(PROJECT),
+      "stats: 50 issue-flow runs in this project's corpus — `forge stats eval`. The reading is held as mark 50 (`forge stats eval --against 50`).");
+    const [record] = marksOf("runs", root);
+    assert.equal(record.kind, "runs");
+    assert.equal(record.mark, 50);
+    assert.equal(record.root, root);
+    assert.ok(Date.parse(record.at) > 0, "the moment it was written");
+    const printed = JSON.parse(ask(room, "--json").stdout);
+    assert.deepEqual(Object.keys(record), ["kind", "mark", "at", ...Object.keys(printed)], "the object --json prints, under the mark's own three fields");
+    /* The profile and the count: the groups and `spanned` name copies, and this process sees the real cache where the spawned verb sees an empty HOME. */
+    assert.deepEqual([record.now.runs, record.now.profile], [printed.now.runs, printed.now.profile], "and the same figures");
+    const bytes = readFileSync(marksPath());
+    assert.equal(runsMark(PROJECT), "stats: 50 issue-flow runs in this project's corpus — `forge stats eval`. Mark 50 was already held, so nothing was written.");
+    assert.deepEqual(readFileSync(marksPath()), bytes, "criterion 2: a second landing on the same count appends nothing");
+
     rootOf(100);
-    assert.match(runsMark(PROJECT), /^stats: 100 issue-flow runs .* — `forge stats eval`\.$/u);
+    assert.match(runsMark(PROJECT), /^stats: 100 issue-flow runs .* — `forge stats eval`\. The reading is held as mark 100/u);
     rootOf(51);
-    assert.equal(runsMark(PROJECT), null);
+    assert.equal(runsMark(PROJECT), null, "criterion 3: fifty-one is no crossing");
     rootOf(49);
     assert.equal(runsMark(PROJECT), null);
+    assert.equal(marksOf("runs").length, 2, "and neither wrote");
     assert.equal(runsMark("/fixture/nowhere"), null, "an empty corpus is no crossing");
     assert.equal(tmpdir(), process.env.TMPDIR, "the corpus root follows the temporary directory, so the case read what it wrote");
   } finally {
-    process.env.TMPDIR = was;
+    Object.assign(process.env, was);
+  }
+});
+
+/* Criteria 6 to 8, 10, 20 and 22: a reading held at a mark is the before window, through the lines
+   the sliding before takes, and the list subject shows what is held. */
+test("a stored reading is the before window, and the screen says where the windows overlap", () => {
+  const was = { TMPDIR: process.env.TMPDIR, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
+  const home = tempRoom("stats-eval-against-");
+  process.env.XDG_CONFIG_HOME = home;
+  try {
+    const room = corpusOf(50);
+    process.env.TMPDIR = room;
+    const empty = askStats(room, ["marks", "--project", PROJECT], home);
+    assert.equal(empty.status, 0, empty.stderr);
+    assert.match(empty.stdout, /^No reading is held for this project yet; the release step writes one at every multiple of fifty runs/u);
+    const none = ask(room, "--against");
+    assert.equal(none.status, 1);
+    assert.match(none.stderr, /stats eval: --against names no reading — none is held for this project yet/u);
+
+    assert.match(runsMark(PROJECT), /held as mark 50/u);
+    const [record] = marksOf("runs");
+    corpusOf(75, room);
+    const pinned = askStats(room, ["eval", "--project", PROJECT, "--against", "50"], home);
+    assert.equal(pinned.status, 0, pinned.stderr);
+    assert.match(pinned.stdout, /^the last 50 issue-flow run\(s\)/u);
+    assert.match(pinned.stdout, /^the 50 held at mark 50 {2}.* — overlapping the recent window, which begins before this one ends$/mu);
+    assert.match(pinned.stdout, /moved most, in median minutes before → now/u, "the rest of the screen is the sliding one's");
+
+    const json = JSON.parse(askStats(room, ["eval", "--project", PROJECT, "--against", "50", "--json"], home).stdout);
+    assert.equal(json.against, 50, "criterion 7");
+    assert.deepEqual(json.before, record.now, "the stored recent window, byte for byte, as the before");
+    assert.equal(json.now.runs, 50);
+    assert.deepEqual(Object.keys(json).slice(5, 8), ["size", "total", "against"]);
+
+    const newest = JSON.parse(askStats(room, ["eval", "--project", PROJECT, "--against", "--json"], home).stdout);
+    assert.equal(newest.against, 50, "criterion 8: bare --against is the newest held");
+    const sliding = JSON.parse(askStats(room, ["eval", "--project", PROJECT, "--json"], home).stdout);
+    assert.equal(sliding.against, undefined, "and without it nothing is pinned");
+    assert.equal(sliding.before.runs, 25);
+
+    const missing = askStats(room, ["eval", "--project", PROJECT, "--against", "999"], home);
+    assert.equal(missing.status, 1);
+    assert.match(missing.stderr, /stats eval: no runs reading at mark 999 for this project\. `forge stats marks` lists what is held\./u);
+    /* Over an empty corpus too: the mark asked for is judged before the corpus is (codex F1, this change). */
+    const bare = askStats(tempRoom("stats-eval-empty-"), ["eval", "--project", PROJECT, "--against", "999"], home);
+    assert.equal(bare.status, 1);
+    assert.match(bare.stderr, /no runs reading at mark 999 for this project/u);
+    const unheld = askStats(tempRoom("stats-eval-empty-"), ["eval", "--project", PROJECT, "--against"], tempRoom("stats-eval-home-"));
+    assert.equal(unheld.status, 1);
+    assert.match(unheld.stderr, /--against names no reading — none is held for this project yet/u);
+    const bad = askStats(room, ["eval", "--project", PROJECT, "--against", "x"], home);
+    assert.equal(bad.status, 1);
+    assert.match(bad.stderr, /--against takes a mark — the count the mark line printed — not `x`/u);
+
+    const listed = askStats(room, ["marks", "--project", PROJECT], home);
+    assert.equal(listed.status, 0, listed.stderr);
+    assert.match(listed.stdout, /^mark {4}50 {2}\d{4}-\d\d-\d\d \d\d:\d\d {3}50 run\(s\) {2}\d{4}-\d\d-\d\d \d\d:\d\d to \d{4}-\d\d-\d\d \d\d:\d\d$/mu, listed.stdout);
+    const elsewhere = askStats(room, ["marks", "--project", "/fixture/elsewhere"], home);
+    assert.match(elsewhere.stdout, /^No reading is held for this project yet/u, "a runs reading is its project's");
+    /* The store's own once: the same kind, mark and root twice is one record; and a write that fails
+       is said as failed, never as held (codex F3). */
+    assert.equal(writeMark(record), "held");
+    process.env.XDG_CONFIG_HOME = join(tempRoom("stats-eval-file-"), "a-file");
+    writeFileSync(process.env.XDG_CONFIG_HOME, "");
+    const cried = [];
+    const said = console.error;
+    console.error = (line) => cried.push(line);
+    try {
+      assert.equal(writeMark({ ...record, mark: 51 }), "failed");
+    } finally {
+      console.error = said;
+    }
+    assert.match(cried[0], /could not write .*eval-marks\.jsonl .*; this reading is not held\./u);
+    process.env.TMPDIR = corpusOf(50);
+    console.error = () => {};
+    try {
+      assert.match(runsMark(PROJECT), /The reading could not be written, so mark 50 is not held\.$/u, "a runs crossing says the write failed, not that the mark was held");
+    } finally {
+      console.error = said;
+    }
+  } finally {
+    Object.assign(process.env, was);
   }
 });
 
@@ -211,5 +326,5 @@ test("the eval subject stands beside runs in the verb's own help", () => {
   assert.match(help.stdout, /Usage: forge stats eval/u);
   const wrong = spawnSync(FORGE, ["stats", "consults"], { encoding: "utf8", env });
   assert.equal(wrong.status, 1);
-  assert.match(wrong.stderr, /no subject named consults\. There is: runs, eval\./u);
+  assert.match(wrong.stderr, /no subject named consults\. There is: runs, eval, marks\./u);
 });

@@ -7,19 +7,26 @@ export const twoWindows = (sorted, size) => {
   return { now, before: both.slice(0, both.length - now.length) };
 };
 
-export const shiftBetween = (now, before, dimensions) => {
-  const tally = (rows, of) => rows.reduce((held, row) => held.set(of(row), (held.get(of(row)) ?? 0) + 1), new Map());
-  return dimensions.map(([name, of]) => {
-    const here = tally(now, of);
-    const there = tally(before, of);
+/** One count per value of each dimension — `{ name: { value: count } }` — kept on a window for when its rows are gone. */
+export const tallied = (rows, dimensions) => Object.fromEntries(dimensions.map(([name, of]) => {
+  const held = {};
+  for (const row of rows) held[of(row)] = (held[of(row)] ?? 0) + 1;
+  return [name, held];
+}));
+
+/** What separates two windows, off their tallies and never their rows: a stored before has none. */
+export const shiftBetween = (now, before) =>
+  [...new Set([...Object.keys(now), ...Object.keys(before)])].map((name) => {
+    const here = now[name] ?? {};
+    const there = before[name] ?? {};
     return {
       name,
-      values: [...new Set([...there.keys(), ...here.keys()])]
-        .map((value) => ({ value, now: here.get(value) ?? 0, before: there.get(value) ?? 0 }))
+      values: [...new Set([...Object.keys(there), ...Object.keys(here)])]
+        .map((value) => ({ value, now: here[value] ?? 0, before: there[value] ?? 0 }))
+        .filter((one) => one.now || one.before)
         .sort((a, b) => b.now - a.now || b.before - a.before),
     };
   });
-};
 
 /** Rows under the key each answers to, first-seen order. Both harness evals were spelling their own. */
 export const groupBy = (rows, keyOf) => {

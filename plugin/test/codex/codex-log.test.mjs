@@ -39,6 +39,8 @@ const {
   startedState,
   verdictsBy,
 } = await import("../../src/codex/codex-log.mjs");
+const { crossingSaid } = await import("../../src/codex/codex-stats.mjs");
+const { marksOf, marksPath } = await import("../../src/stats/marks.mjs");
 
 /* A verdict is a separate record; replaying advice without what was done with it made resolved /
    still open a guess. */
@@ -532,13 +534,27 @@ test("the consult that takes the log onto a hundred-mark names the eval; the one
   try {
     plant(199);
     assert.equal(answered(logEntries()).length, 199, "planted as answered consults, which is what the counter counts");
-    const said = loggedWithMark(PLANTED(199));
+    const crossing = loggedWithMark(PLANTED(199));
     assert.equal(answered(logEntries()).length, 200, "and the consult's own write is what crossed it");
-    assert.match(said, /200 answered consults in the log/u);
-    assert.match(said, /`forge codex eval`/u);
+    assert.deepEqual([crossing.mark, crossing.at], [200, 199], "the count and the record's place, for the reading the caller writes");
+    assert.match(crossing.said, /200 answered consults in the log — `forge codex eval`/u);
+
+    /* Criteria 4 and 5: the consult end writes the reading once, of the log as it stood at the
+       crossing, so a consult that landed just behind it is not in mark 200's window (codex F2). */
+    logConsult(PLANTED(200));
+    assert.match(crossingSaid(crossing), /^codex: 200 answered consults in the log — `forge codex eval`\. The reading is held as mark 200 \(`forge codex eval --against 200`\)\.$/u);
+    const [record] = marksOf("consults");
+    assert.deepEqual(Object.keys(record), ["kind", "mark", "at", "size", "total", "now", "before", "shifts"], "the object `codex eval --json` prints");
+    assert.deepEqual([record.mark, record.root, record.total, record.now.consults, record.now.to], [200, undefined, 200, 100, PLANTED(199).at],
+      "the device's, with no root; the log as it stood at the crossing, not the 201 it holds now");
+    assert.ok(Date.parse(record.at) > 0);
+    const written = readFileSync(marksPath(), "utf8");
+    assert.match(crossingSaid(crossing), /Mark 200 was already held, so nothing was written\.$/u);
+    assert.equal(readFileSync(marksPath(), "utf8"), written, "the same crossing met again appends nothing");
 
     plant(198);
     assert.equal(loggedWithMark(PLANTED(198)), null, "199 is short of the mark");
+    assert.equal(marksOf("consults").length, 1, "and short of the mark nothing is written");
 
     plant(199);
     assert.equal(loggedWithMark({ ...PLANTED(199), ok: false, reply: undefined, error: "gateway" }), null,
@@ -554,7 +570,7 @@ test("two consults finishing together, only the one that landed on the mark says
   const kept = readFileSync(LOG_PATH, "utf8");
   try {
     writeFileSync(LOG_PATH, `${Array.from({ length: 199 }, (one, n) => JSON.stringify(PLANTED(n))).join("\n")}\n`);
-    assert.match(loggedWithMark(PLANTED(199)), /200 answered consults/u, "the 200th");
+    assert.match(loggedWithMark(PLANTED(199)).said, /200 answered consults/u, "the 200th");
     assert.equal(loggedWithMark(PLANTED(200)), null, "and the one right behind it announces nothing");
   } finally {
     writeFileSync(LOG_PATH, kept);
@@ -575,5 +591,5 @@ test("a co-tenant sharing this record's id does not lend it their ordinal", () =
   const theirs = { ...PLANTED(199), id: "abc", root: "/another-checkout" };
   const log = [...Array.from({ length: 198 }, (one, n) => PLANTED(n)), mine, theirs];
   assert.equal(markOf(log, mine), null, "mine is the 199th, whatever id the 200th shares with it");
-  assert.match(markOf(log, theirs), /200 answered consults/u, "and theirs is the one that landed on it");
+  assert.match(markOf(log, theirs).said, /200 answered consults/u, "and theirs is the one that landed on it");
 });

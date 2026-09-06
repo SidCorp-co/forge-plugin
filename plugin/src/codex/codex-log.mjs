@@ -85,8 +85,11 @@ export const markedAt = (ordinal) => (ordinal > 0 && ordinal % MARK === 0 ? ordi
 
 export const markOf = (entries, record) => {
   const of = (one) => `${one.id ?? ""}|${one.at}|${one.root ?? ""}`;
-  const mark = markedAt(answered(entries).findLastIndex((one) => of(one) === of(record)) + 1);
-  return mark ? `codex: ${mark} answered consults in the log — \`forge codex eval\`.` : null;
+  const same = (one) => of(one) === of(record);
+  const mark = markedAt(answered(entries).findLastIndex(same) + 1);
+  return mark
+    ? { mark, at: entries.findLastIndex(same), said: `codex: ${mark} answered consults in the log — \`forge codex eval\`.` }
+    : null;
 };
 
 export const loggedWithMark = (record) => (logConsult(record) ? markOf(logEntries(), record) : null);
