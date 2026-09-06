@@ -3819,3 +3819,29 @@ restart owed. Closed by its run. Folded from its handback; the filing was read b
   write, and the dispatcher's triage says which to separate first.
 - A whole-tree baseline at the branch base came from a throwaway worktree, since both the stash and
   the checkout of the tree are refused in a repository with several worktrees, correctly.
+
+## Hundred-and-forty-ninth dry run — ISS-37
+
+An old issue re-triaged against the landing two releases before it: the post-call reader's account of
+what a call wrote now tokenises the assembled form of the command as well as the raw text and unions
+the two before the disk filter, so a shell binding or a heredoc-body assembly reaches the readers
+after the call (3.35.163, landed as fe64ee9; three files). The re-triage narrowed the body: its second
+shape, a target named only inside a program handed to another interpreter, was already covered after
+the call and proven so by probe, since the body sits inside the command and the reader asks the disk;
+only the first shape was left, and it split into what a text reading can resolve and what it cannot — a
+glob's match, a substitution's output, a variable set elsewhere — which the how page now names in prose.
+Both halves of the Outcome were buildable, not either. No restart owed. Closed by its run. Folded from
+its handback; the filing and the routed note were read back.
+
+- A runtime notice for an unattributable write was measured before it was built, and the measurement
+  said not to: over thirty-four thousand shell commands in the transcripts a per-write predicate fires
+  on under one percent, dominated by two false-positive classes the quoted-span reader cannot demote.
+  A note claiming a file was written that was not is worse than silence; the measurement went out as
+  ISS-450 with the reason.
+- Three ships, two lost to files at budget: the how page sat one character under its ceiling, and the
+  harness exactly on its comment-density limit, so a one-line comment cost merging two others. An
+  addition to a saturated file is paid for out of what is already there, and nothing points from a how
+  page to the six suites that read it.
+- The one-issue-per-problem check fires on an out-of-scope bullet that names a sibling issue, and
+  fired again on the draft reporting it; routed to ISS-375. The run duplicated that comment by
+  re-calling after mistaking a truncated reply for the silent no-write, and deleted the duplicate.
