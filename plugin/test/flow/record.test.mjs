@@ -11,7 +11,8 @@ import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-");
 const {
-  KINDS, USAGE, assemble, checked, compoundRefused, criteriaLines, fromRecord, noteFrom, parse, render,
+  KINDS, USAGE, assemble, checked, compoundRefused, criteriaLines, fromRecord, kindHelp, noteFrom,
+  parse, render, usage,
 } = await import("../../src/flow/record.mjs");
 const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../src/flow/machine.mjs");
 const { CONTRACT } = await import("../../src/guides/contract.mjs");
@@ -25,6 +26,27 @@ test("every kind is on the usage line, and -h prints it without touching the tra
   const run = ask("record", "-h");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(run.stdout.includes("Usage: forge record"), run.stdout);
+  assert.match(run.stdout, /--user T\(500\)/u, "the cap among them, with no endpoint saved to ask");
+});
+
+/* A note was drafted against a cap nobody had, refused, and rewritten — six sends for one note on
+   ISS-525 (ISS-46). The row prints the cap it was handed, which is what a number of its own would
+   fail on. */
+test("the cap of a capped field is on its row, and a row with no cap read prints what it always did", () => {
+  const caps = {
+    releaseNotes: { self: null, halves: { userFacing: 40, technical: 41 } },
+    acceptanceCriteria: { self: 42, halves: {} },
+  };
+  const shown = usage(caps);
+  assert.match(shown, /^ {2}note {9}--section S --user T\(40\) \[--technical T\(41\)\]/mu, "both halves of the note");
+  assert.match(shown, /^ {2}criteria {5}<file\.md>\(42\) +numbered lines/mu, "and the criteria file");
+  assert.match(shown, /^A number in parentheses after a value is that field's cap in code points/mu, "notation said once");
+  assert.match(USAGE, /^ {2}note {9}--section S --user T \[--technical T\]/mu, "no cap read, and the row is untouched");
+  assert.match(USAGE, /^ {2}criteria {5}<file\.md> +numbered lines/mu, "the description column holding where it was");
+  assert.doesNotMatch(USAGE, /A number in parentheses/u, "and no notation to explain, so none is printed");
+  assert.match(kindHelp("note", caps), /--user T\(40\) \[--technical T\(41\)\][\s\S]*A number in parentheses/u,
+    "the kind's own help carries the caps and the notation");
+  assert.doesNotMatch(kindHelp("note"), /\(\d+\)|A number in parentheses/u, "and neither where none was read");
 });
 
 /* `record` answers its own help, so the dispatcher's route never sees the tail and `-h` after a kind
