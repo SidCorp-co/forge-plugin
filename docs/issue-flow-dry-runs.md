@@ -3763,3 +3763,31 @@ were read back.
   line documenting the verb itself; recovered from scrollback and filed (ISS-448).
 - The one runner for a spawned tool now has its home stated as a rule in the knowledge store, since
   the run counted sixteen hand-rolled git spawns under the source tree where the finding claimed two.
+
+## Hundred-and-forty-seventh dry run — ISS-422
+
+The criterion half split off ISS-28. The criteria write now resolves the citation each criterion opens
+with against the project's requirements tree, and the advance to approved is refused where a project
+keeps a tree and the issue's description, plan and criteria name no clause of it (3.35.161, landed as
+5497e77; seventeen files). The enabling move was four lines: the refusal helpers left the record module
+for a file of their own, which broke the import edge a shared step would have cycled on and freed the
+three lines the module needed to stay under its ceiling. The reader resolves rather than recognises, so
+a prefix with a revision is not a clause. The reviewer's one finding was accepted: the clause read ran
+before the record-free close branch, so a close or a park would have walked the whole tree; it is now
+passed unevaluated and read only by the one check that needs it, with a test that fails if any other
+check calls it. No restart owed. Closed by its run. Folded from its handback; the filing and the two
+routed notes were read back.
+
+- A thunk passed where a value was is a trap of its own: an array in its place has a length too, so the
+  need would fire on every issue while the suite stayed green. The run named the trap and guarded it
+  by planting the call into another check and watching the test go red.
+- One criterion could not be proved through the CLI path because no issue on the tracker stood at the
+  status before approved, and driving another run's issue up two statuses for a test's sake is a write
+  the tracker keeps; the run recorded the gap before the ship and judged the condition by loading the
+  installed copy's own functions over two real issues, one refused and one not.
+- The run's two feedback calls exited zero and wrote nothing, the symptom filed an hour earlier as
+  ISS-449; it re-read every filing it made and found them present. A wave's filings are what the
+  tracker holds, not what a reply said.
+- The merged mark was written twice, the first note's landing clause reading a test name for paths;
+  the correction sits behind the comment-page cut while the mark does not, so a later reader sees the
+  bad note without its explanation, and nothing on the CLI can fix that.
