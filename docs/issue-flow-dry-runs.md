@@ -5047,3 +5047,28 @@ handback; the fourteen comments were read back.
 - The merged mark's note is parsed and not read: prose after "landing moved nothing" was taken as the
   moved-path list and the mark had to be written twice. ISS-341 already carries it; this run is its
   second occurrence today.
+
+## Hundred-and-ninety-seventh dry run — ISS-81
+
+The learning gate holds the write's own target, not a path read beside it (3.35.215, landed as
+5ed80ec): a stage inside the gate blanks, space for space, every operand no write lands on and hands
+the text to the shared reading unchanged, and a span carrying a find-exec, an xargs or a language's
+own write call stands whole. Thirteen criteria pass, one qualified because three criteria name no
+command and so are not test cases. The installed copy was run by its own path over ten shapes: the
+grep beside a tee is allowed, the append to the skill is still held. Nothing filed; two how-page
+clauses that left for the page's ceiling were routed to ISS-443 as a comment. Closed by its run; the
+release note withheld on the fix tier. No restart owed. Folded from its handback; the eleven comments
+were read back.
+
+- The shared reading was left alone and the gate narrowed what it is shown: blanking the operands the
+  write does not reach keeps every other gate's answer where it was, where a change to the reading
+  would have been a change to all of them. The fix sits at the altitude of the one rule that was
+  wrong.
+- The ship stopped at step 7 as the brief said it might, on another run's release commit rather than a
+  fold, and resumed with `--from 7` after that commit landed; the eighth stop of the day and the first
+  taken by the route the brief names. The copy the run verified was one release above the one it
+  built, because a sibling's release coalesced above it between the push and the install; the record
+  names the commit and a copy containing it, which is what the contract asks.
+- A how page has a ceiling and this one was at it: two clauses had to leave to make room for the one
+  that changed. What leaves a page goes somewhere, and here it went to the issue that owns the page's
+  shape rather than into a second page.
