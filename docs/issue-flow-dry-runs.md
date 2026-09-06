@@ -3778,9 +3778,11 @@ passed unevaluated and read only by the one check that needs it, with a test tha
 check calls it. No restart owed. Closed by its run. Folded from its handback; the filing and the two
 routed notes were read back.
 
-- A thunk passed where a value was is a trap of its own: an array in its place has a length too, so the
-  need would fire on every issue while the suite stayed green. The run named the trap and guarded it
-  by planting the call into another check and watching the test go red.
+- A thunk passed where a value was is a trap of its own, and the run first described it backwards in
+  its handback: an array in its place throws loudly, while a reader that tests the thunk's length
+  without calling it reads a zero-argument function's arity as "names no clause" and refuses every
+  issue in silence. The sibling reading caught the inversion, the run settled it by running both, and
+  the guard was right either way.
 - One criterion could not be proved through the CLI path because no issue on the tracker stood at the
   status before approved, and driving another run's issue up two statuses for a test's sake is a write
   the tracker keeps; the run recorded the gap before the ship and judged the condition by loading the
