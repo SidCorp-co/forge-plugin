@@ -1,7 +1,8 @@
-/* Every verb setting a content field writes it here: one home for the cap, the renewal and the
-   read-back, which is why it imports upward. The lease's field stays in `flow/`: its write *is* the renewal (ISS-451). */
+/* Every verb setting a field of the issue writes it here: one home for the cap, the renewal, the
+   comment delivery and the read-back, which is why it imports upward (ISS-346, ISS-451). */
 import { scoped, toolNamed, write } from "./rpc.mjs";
-import { renew } from "../flow/lease.mjs";
+import { mustBeShown } from "./comments.mjs";
+import { leaseLandedAs, leaseMismatch, renew } from "../flow/lease.mjs";
 
 const NOTE_HALVES = ["section", "userFacing", "technical"];
 
@@ -13,18 +14,22 @@ export const noteLandedAs = (held, sent) =>
 /* Presence: a prose pipeline rewrites a plan at length, and equality would refuse writes that landed. */
 export const storedNotEmpty = (held) => Boolean(String(held ?? "").trim());
 
-/* The comparator belongs to the field, never to an argument the caller chooses. */
-const FIELDS = {
+/* Comparator, cap, gate and renewal are the field's, never a caller's argument. Built on first use
+   because `flow/lease.mjs` imports back; the lease renews nothing, since `renew` writes through here. */
+let rows = null;
+const fields = () => (rows ??= {
   plan: {
     same: storedNotEmpty,
+    renews: true,
     said: (ref) => `The update answered success but ${ref} still has no plan. Nothing was stored.`,
   },
-  acceptanceCriteria: { same: landedAs },
-  releaseNotes: { same: noteLandedAs, halves: NOTE_HALVES },
-};
+  acceptanceCriteria: { same: landedAs, renews: true },
+  releaseNotes: { same: noteLandedAs, halves: NOTE_HALVES, renews: true },
+  sessionContext: { same: leaseLandedAs, said: leaseMismatch, shows: true, renews: false },
+});
 
-const mismatch = (field, ref) =>
-  FIELDS[field].said?.(ref)
+const mismatch = (field, ref, back) =>
+  fields()[field].said?.(ref, back)
   ?? `The update answered success but ${field} did not read back as written. Nothing to rely on.`;
 
 /* Code points, what `maxLength` counts and never above the code-unit count: it can only miss a refusal. */
@@ -72,7 +77,7 @@ export const capRefusal = (where, cap, sent, given) => {
 /* Synchronous on purpose: `write` does not await this, so a check returning a promise would let the
    send go ahead. Everything it reads is resolved before `write` is entered. */
 export const capChecked = (field, caps, sent, given, refuse) => {
-  const row = FIELDS[field];
+  const row = fields()[field];
   const held = caps[field] ?? { self: null, halves: {} };
   if (!row.halves) {
     if (held.self !== null && lengthOf(sent) > held.self) refuse(capRefusal(field, held.self, sent, given));
@@ -87,17 +92,20 @@ export const capChecked = (field, caps, sent, given, refuse) => {
 };
 
 export const writeField = async (documentId, field, value, { ref, next, patch, refuse }) => {
-  if (!FIELDS[field]) {
-    refuse(`${field} is not a field this writer sets. It takes ${Object.keys(FIELDS).join(", ")}.`);
+  const row = fields()[field];
+  if (!row) {
+    refuse(`${field} is not a field this writer sets. It takes ${Object.keys(fields()).join(", ")}.`);
   }
   const caps = await capsOf();
-  await renew(documentId, ref, next, patch);
-  let sent = value;
-  await write("forge_issues", { action: "update", documentId, data: { [field]: value } }, (data) => {
-    sent = data?.[field] ?? value;
-    capChecked(field, caps, sent, value, refuse);
+  if (row.shows) await mustBeShown([{ ref, documentId }]);
+  if (row.renews) await renew(documentId, ref, next, patch);
+  const given = typeof value === "function" ? await value() : value;
+  let sent = given;
+  await write("forge_issues", { action: "update", documentId, data: { [field]: given } }, (data) => {
+    sent = data?.[field] ?? given;
+    capChecked(field, caps, sent, given, refuse);
   });
   const back = await scoped("forge_issues", { action: "get", documentId, fields: [field] });
-  if (!FIELDS[field].same(back?.[field], sent)) refuse(mismatch(field, ref));
+  if (!row.same(back?.[field], sent)) refuse(mismatch(field, ref, back?.[field]));
   return back?.[field];
 };

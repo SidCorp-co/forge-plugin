@@ -140,6 +140,8 @@ export const FIXTURE_CAPS = {
       technical: orNull({ type: "string", maxLength: 500 }),
     },
   }),
+  /* Declared and uncapped, as the tracker has it: leaving it out would prove the no-cap path by silence. */
+  sessionContext: orNull({ type: "object", propertyNames: { type: "string" }, additionalProperties: {} }),
 };
 const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
 const ownSlug = () =>

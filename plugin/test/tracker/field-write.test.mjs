@@ -33,6 +33,12 @@ const lease = () => ({
 /* What the tracker stored, so a read-back answers the write rather than a constant. */
 let stored = {};
 let updates = [];
+/* The lease's own updates, kept apart: the point of several cases is how many of each went out. */
+let leaseWrites = [];
+/* Each call in the order it was made, so a case can say the gate ran before the value existed. */
+let trail = [];
+/* Stands in for the tracker handing a stored object back in its own key order, or another run's. */
+let readBack = null;
 /* Stands in for a project's prose pipeline: what the boundary sends when it is not what was typed. */
 let rewrite = null;
 
@@ -46,16 +52,19 @@ globalThis.fetch = async (url, init) => {
       { name: "forge_comments", inputSchema: { properties: {} } },
     ],
   };
+  if (name) trail.push(`${name}:${args.action ?? "list"}`);
   if (name === "forge_comments") result = { structuredContent: { comments: [], returned: 0, hasMore: false } };
   if (name === "forge_issues" && args.action === "get") {
     const fields = args.fields ?? [];
+    const held = stored.sessionContext ?? lease().sessionContext;
     result = { structuredContent: fields.includes("sessionContext")
-      ? { sessionContext: stored.sessionContext ?? lease().sessionContext }
+      ? { sessionContext: readBack ? readBack(held) : held }
       : { [fields[0]]: stored[fields[0]] ?? null } };
   }
   if (name === "forge_issues" && args.action === "update") {
     const data = rewrite ? rewrite(args.data) : args.data;
-    if (!data.sessionContext) updates.push(data);
+    if (data.sessionContext) leaseWrites.push(data.sessionContext);
+    else updates.push(data);
     for (const [key, value] of Object.entries(data)) stored[key] = value;
     result = { structuredContent: { documentId: ISSUE, ...data } };
   }
@@ -72,6 +81,8 @@ const refuse = (message) => {
 const setting = async (field, value) => {
   stored = {};
   updates = [];
+  leaseWrites = [];
+  trail = [];
   return writeField(ISSUE, field, value, { ref: "ISS-9", refuse });
 };
 
@@ -102,7 +113,9 @@ test("the caps come off the schema, and a field it does not cap is not capped he
   assert.equal(capsIn({ f: loose }).f.self, null, "including when that is the branch declaring no cap");
   const holed = { anyOf: [{ type: "string", maxLength: 100 }, null] };
   assert.equal(capsIn({ f: holed }).f.self, null, "a branch that is not an object is read, not thrown on");
-  assert.equal(caps.sessionContext, undefined, "and a field it declares nothing for is absent");
+  assert.equal(caps.sessionContext.self, null, "a field declared with no maxLength anywhere carries no cap");
+  assert.deepEqual(caps.sessionContext.halves, {}, "and an object declaring no properties has no halves");
+  assert.equal(caps.nothingDeclaresThis, undefined, "and a field it declares nothing for is absent");
 });
 
 test("a note over the cap is refused, and the note is never sent", async () => {
@@ -189,9 +202,77 @@ test("the cap is measured on what the boundary sent, not on what the author type
 });
 
 test("a field the writer does not own is refused by name", async () => {
-  await assert.rejects(() => setting("sessionContext", { lease: {} }), (error) => {
+  await assert.rejects(() => setting("description", "a body"), (error) => {
     assert.match(error.message, /not a field this writer sets/u);
-    assert.match(error.message, /plan, acceptanceCriteria, releaseNotes/u, "and the ones it does are named");
+    assert.match(
+      error.message,
+      /plan, acceptanceCriteria, releaseNotes, sessionContext/u,
+      "and the ones it does are named",
+    );
     return true;
   });
+});
+
+/* The lease joined this table on ISS-451, and the four cases below are the four things that separate
+   its row from a content field's: it renews nothing, it shows the comments itself, its value may be
+   a thunk, and its compare is blind to the key order the tracker answers in. */
+test("the lease's write renews nothing, so one update goes out where a content field sends two", async () => {
+  await setting("sessionContext", lease().sessionContext);
+  assert.equal(leaseWrites.length, 1, "a renewing row would have written the lease twice");
+  assert.equal(updates.length, 0, "and nothing else was written");
+
+  await setting("acceptanceCriteria", "1. one outcome a reader could check");
+  assert.equal(updates.length, 1, "the content field itself");
+  assert.equal(leaseWrites.length, 1, "and the renewal that carries it, which is the row's own write");
+});
+
+/* The delivery reaches a content write only through that renewal, which is the consequence of the
+   row property: a content row written `renews: false` would stop showing comments and fail nothing. */
+test("a content write is shown its unshown comments, by way of the renewal", async () => {
+  await setting("plan", "a plan with words in it");
+  assert.ok(trail.includes("forge_comments:list"), "the gate never ran for the content write");
+  assert.ok(
+    trail.indexOf("forge_comments:list") < trail.lastIndexOf("forge_issues:update"),
+    "and it ran before the field itself was written",
+  );
+});
+
+test("the gate runs before a value that is a thunk is resolved, because the write is built on the last read", async () => {
+  const value = async () => {
+    trail.push("resolved");
+    return lease().sessionContext;
+  };
+  await setting("sessionContext", value);
+  assert.ok(trail.includes("resolved"), "the thunk was never called");
+  assert.ok(
+    trail.indexOf("forge_comments:list") < trail.indexOf("resolved"),
+    `the comments were not shown before the value was built: ${trail.join(" ")}`,
+  );
+  assert.ok(trail.indexOf("resolved") < trail.lastIndexOf("forge_issues:update"), "and it was built before the send");
+  assert.equal(leaseWrites.length, 1, "one write carried the resolved value");
+});
+
+test("the lease reads back through its own key order, and a long line in it is measured by nothing", async () => {
+  readBack = (held) => JSON.parse(JSON.stringify(held, Object.keys(held.lease).reverse().concat("lease")));
+  const long = { lease: { ...lease().sessionContext.lease, next: "x".repeat(4000) } };
+  const back = await setting("sessionContext", long);
+  assert.equal(leaseWrites.length, 1, "the write went out");
+  assert.equal(leaseWrites[0].lease.next.length, 4000, "with the line whole, since nothing caps this field");
+  assert.ok(back, "and a read-back in another key order is the same lease, not a mismatch");
+  readBack = null;
+});
+
+test("a lease that came back another run's is refused in the lease's own words", async () => {
+  readBack = () => ({
+    lease: {
+      holder: "another-session", agent: "b", pid: "9",
+      renewedAt: "2026-09-06T04:00:00.000Z", minutes: 30, next: null, history: [],
+    },
+  });
+  const said = await refusedBy("sessionContext", lease().sessionContext);
+  readBack = null;
+  assert.match(said, /did not read back as written/u, "the lease's sentence, not the generic one");
+  assert.match(said, /another-session/u, "AC-03-2-1: the run that holds it");
+  assert.match(said, /expiring 2026-09-06T04:30/u, "its renew time, read out of the lease");
+  assert.match(said, /forge claim ISS-9/u, "and the one command that clears it");
 });

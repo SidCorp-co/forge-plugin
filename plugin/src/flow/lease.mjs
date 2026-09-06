@@ -3,8 +3,8 @@
    so a write here is a read-back compare and the claim says so out loud. docs/cli/claim.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID, sessionOf, sessionSourced } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
-import { mustBeShown } from "../tracker/comments.mjs";
-import { scoped, write } from "../tracker/rpc.mjs";
+import { writeField } from "../tracker/field-write.mjs";
+import { scoped } from "../tracker/rpc.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
 export const FIELD = "sessionContext";
@@ -165,24 +165,19 @@ export const canonical = (value) => {
 export const readContext = async (documentId) =>
   (await scoped("forge_issues", { action: "get", documentId, fields: [FIELD] }))?.[FIELD] ?? null;
 
-/* The compare-and-set the tracker owes (ISS-7): it cannot stop another run's write, only refuse —
-   and the one place every payload write reaches, so the unshown comments are delivered here. */
-export const setLease = async (documentId, value, ref) => {
-  await mustBeShown([{ ref, documentId }]);
-  /* A thunk runs here, after the gate: it is a round trip, and a write is built on the last read. */
-  const next = typeof value === "function" ? await value() : value;
-  await write("forge_issues", { action: "update", documentId, data: { [FIELD]: next } });
-  const back = await readContext(documentId);
-  if (canonical(back) !== canonical(next)) {
-    const held = leaseOf(back);
-    fail(
-      `The lease on ${ref} did not read back as written${held ? `: ${describe(held)} holds it` : ""}. `
-      + `Another run wrote the field between the read and the write, and nothing here is yours to `
-      + `build on. Read the record, then claim again:\n  forge claim ${ref}`,
-    );
-  }
-  return next;
+/* The compare-and-set the tracker owes (ISS-7): it cannot stop another run's write, only refuse. The
+   write itself is the field writer's, and `sessionContext`'s row there is where these three are spent. */
+export const leaseLandedAs = (held, sent) => canonical(held) === canonical(sent);
+
+export const leaseMismatch = (ref, back) => {
+  const held = leaseOf(back);
+  return `The lease on ${ref} did not read back as written${held ? `: ${describe(held)} holds it` : ""}. `
+    + `Another run wrote the field between the read and the write, and nothing here is yours to `
+    + `build on. Read the record, then claim again:\n  forge claim ${ref}`;
 };
+
+export const setLease = async (documentId, value, ref) =>
+  writeField(documentId, FIELD, value, { ref, refuse: fail });
 
 /* An edge touches two issues and one of them is being worked: the other is only checked, so a
    blocker just filed, holding no lease at all, can still be named. */

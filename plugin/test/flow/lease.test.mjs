@@ -355,3 +355,28 @@ test("the verb says what to type, and says the lease is advisory", () => {
   assert.equal(folded.status, 1, "and a line that is two lines is refused before anything is read");
   assert.match(folded.stderr, /--next takes one line/u);
 });
+
+/* The lease's write is the field writer's (ISS-451), and the field writer borrows this module's
+   comparator and its sentence, so the two import each other. A cycle holds only while nothing is
+   read across it while a body runs: a row naming `leaseLandedAs` instead of wrapping it, or a table
+   key written `[FIELD]`, dies in exactly one of the two orders and looks clean in the other. */
+const LEASE = new URL("../../src/flow/lease.mjs", import.meta.url).href;
+const WRITER = new URL("../../src/tracker/field-write.mjs", import.meta.url).href;
+
+const entering = (first) => spawnSync(process.execPath, ["--input-type=module", "-e", `
+  await import(${JSON.stringify(first)});
+  const lease = await import(${JSON.stringify(LEASE)});
+  const writer = await import(${JSON.stringify(WRITER)});
+  if (typeof lease.setLease !== "function") throw new Error("setLease did not resolve");
+  if (typeof writer.writeField !== "function") throw new Error("writeField did not resolve");
+  if (lease.leaseLandedAs({ a: 1, b: 2 }, { b: 2, a: 1 }) !== true) throw new Error("the comparator is not the lease's");
+  process.stdout.write("both");
+`], { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: HOME.path } });
+
+for (const [name, first] of [["the lease", LEASE], ["the field writer", WRITER]]) {
+  test(`a process entering the cycle at ${name} resolves both modules`, () => {
+    const run = entering(first);
+    assert.equal(run.status, 0, `${run.stderr}`);
+    assert.equal(run.stdout, "both", run.stderr);
+  });
+}
