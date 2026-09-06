@@ -32,7 +32,11 @@ padded or silently shortened reads exactly like a full one.
 and each window is its `runs`, its `profile` and its `groups` by copy. Nothing in it can be derived
 from another field: the bounds are the profile's and the shortfall is the size less the runs, so a
 reader that parses it holds one spelling of each figure and the screen computes the rest where it
-prints (ISS-492).
+prints (ISS-492). `forge codex eval --json` answers in the same outer shape — `size`, `total`, `now`,
+`before`, `shifts` — each window its `consults`, its `stats` and its `groups` per model, effort and
+prompt, a group carrying its `score`, its `stats` and how many rows were `timed` and `metered`; the
+two readers the harness-eval method names take the same argument and are quoted the same way
+(ISS-484).
 
 ## What the copy installed at a run's start fixes, and what it does not
 

@@ -353,7 +353,9 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
     assert.equal(window.consults, 100);
     assert.equal(window.groups.reduce((sum, group) => sum + group.consults, 0), window.consults, "the groups partition the window");
     for (const group of window.groups) {
-      assert.deepEqual(Object.keys(group), ["key", "slot", "model", "prompt", "effort", "consults", "score", "stats"]);
+      assert.deepEqual(Object.keys(group), ["key", "slot", "model", "prompt", "effort", "consults", "timed", "metered", "score", "stats"]);
+      assert.equal(group.timed, group.consults, "every fixture row is timed and metered, and the counts say so");
+      assert.equal(group.metered, group.consults);
     }
   }
   const [group] = held.now.groups;

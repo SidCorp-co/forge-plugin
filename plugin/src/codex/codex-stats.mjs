@@ -138,12 +138,17 @@ const groupNumbers = (rows, verdicts) => ({ score: scoreOf([...verdicts, ...rows
 
 /* An absent measurement is said, never averaged as a zero: a group whose rows predate `usage` would
    otherwise read as the cheap window, which is the one mistake the comparison exists to avoid. */
+/* How many rows a figure stands on: a median over the timed rows and tokens over the metered ones. */
+const coverageOf = (rows) => ({
+  timed: rows.filter((row) => row.ms !== undefined).length,
+  metered: rows.filter((row) => row.usage && Object.keys(row.usage).length).length,
+});
+
 const groupLines = (rows, verdicts, when) => {
   if (!rows.length) return [`  ${when.padEnd(WHEN)} not in this window`];
   const { score, held } = groupNumbers(rows, verdicts);
   const ruled = score.accepted + score.rejected;
-  const timed = rows.filter((row) => row.ms !== undefined).length;
-  const metered = rows.filter((row) => row.usage && Object.keys(row.usage).length).length;
+  const { timed, metered } = coverageOf(rows);
   const per = (many) => Math.round(many / metered);
   const short = (many) => many < rows.length;
   return [
@@ -231,6 +236,7 @@ const groupObject = (rows, verdicts) => {
     prompt: promptKey(row),
     effort: row.effort ?? "unrecorded",
     consults: rows.length,
+    ...coverageOf(rows),
     score,
     stats: held,
   };
