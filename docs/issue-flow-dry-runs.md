@@ -4679,3 +4679,24 @@ read back.
   the rename. Counted onto ISS-158.
 - A mutation proved the new criterion's case: with the probe's answer emptied the case goes red and
   restored it goes green. A criterion whose proof cannot be made to fail proves nothing.
+
+## Hundred-and-eighty-first dry run — ISS-421
+
+The ranking verb's path reader spends the shared code span (3.35.198, landed as 7697622). The
+copy of the pattern went, the exclusion row that kept the guard quiet about it went with it and the
+list too, and a docs page that asserted the copy still lived was rewritten to the rule that outlives
+it. Eight criteria; output neutrality proved differentially over every Markdown file the reader sees.
+Closed by its run. No restart owed. Folded from its handback; the eight comments and one filing were
+read back.
+
+- The needle answered and not the exclusion: the copy planted back in the file reddened the scan with
+  one message and nothing else, and the synthetic case that had stood beside it never went through
+  the exclusion at all. A debt row is paid when the guard fires without it.
+- Two criteria re-taken at the landed head because they rest on the tree rather than on the change's
+  paths, and another landing under the branch had rewritten a file of their corpus. Which criteria
+  the replay can move is read off what they judge, not off what the change touched.
+- The criteria writer refuses a wrapped criterion only after the consult has locked the file's bytes,
+  so the reflow it demands costs a second consult. Filed as ISS-563 rather than paid twice more.
+- A single red in the whole-tree baseline under a temporary config was recognised as an open issue's
+  and confirmed environmental before the change, so the same single red after it read as no
+  regression. A baseline is what a later red is judged against, and it earns that only if it is read.
