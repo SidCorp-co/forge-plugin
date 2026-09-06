@@ -243,6 +243,7 @@ test("a wait that polls is refused, and a pause on its own is not", () => {
   assert.equal(decide(`while true; do for x in "a { b"; do :; done; ${nap} 1; done`).allowed, false, "and where the brace is a character of a quoted word, which opens no body");
   assert.equal(decide(`while true; do for f in "a\\" { b"; do :; done; ${nap} 1; done`).allowed, false, "and where an escape inside that word carries the quote it would otherwise have closed");
   assert.equal(decide(`for x in a; do(:); done; while true; do ${nap} 1; done`).allowed, false, "and where a do opens on a subshell, so the loop before the wait takes its own");
+  assert.equal(decide(`while true; do for x in { a; do :; done; ${nap} 1; done`).allowed, false, "and where a bare brace is ordinary data in a word list, no body a plain for could take");
   assert.equal(decide(`until a\ndo\n  for x in a\n  do\n    :\n  done\n  ${nap} 5\ndone`).allowed, false, "the same nesting spelled over lines");
   assert.ok(decide(`${nap} 2`).allowed, "a pause on its own waits once and asks nothing");
   assert.ok(decide(`${nap} 2 && npm test`).allowed, "one before the work is still one pause");

@@ -144,7 +144,7 @@ const LOOPS = /^(?:[({]\s*|!\s*|\btime\s+(?:-\S+\s+)*|\b(?:if|elif|then|else|do)
 const WAITS = /^(?:while|until)$/u;
 /* A wait's condition is a command list, so a loop written in it takes the next `do` and the keyword is not the body: the newest name has the `do` over any wait still short of one. Read before the keyword below, because one span can open the body above it and name the next — `do for`. */
 const BODY = /^do(?=[\s;&|()<>]|$)/u;
-/* The other body, which only an arithmetic `for` may take, read past the keyword and where it opens rather than where it closes: the head's own brace must spend the head's own name, and a name left standing over the body would be taken by the `do` of a wait written inside it. Quoted runs are blanked first, a brace inside a word being a character of that word; a `${…}` carries no word boundary before its brace and a `{a,b}` none after. */
+/* The other body, which only an arithmetic `for` may take — `for x in a { :; }` is a syntax error — so only an arithmetic name is spendable and elsewhere a bare `{` is ordinary data in a word list. Read past the keyword and where the body opens rather than where it closes: the head's own brace must spend the head's own name, and a name left standing over the body would be taken by the `do` of a wait written inside it. Quoted runs are blanked first, a brace inside a word being a character of that word; a `${…}` carries no word boundary before its brace and a `{a,b}` none after. */
 const BRACE = /(?:^|[\s;&|()])\{(?=\s|$)/u;
 const QUOTED = /'[^']*'|"(?:\\[\s\S]|[^"\\])*"/gu;
 const ENDS = /^done(?=[\s;&|)<>]|$)/u;
@@ -170,11 +170,15 @@ export const waitsIn = (text) => {
       if (shut.waits) out.push([shut.start, end]);
     }
     const loop = LOOPS.exec(one);
+    const past = one.slice(loop ? loop[0].length : 0);
     if (loop) {
       if (WAITS.test(loop[1])) open.push({ start, waits: true, body: false });
-      else if (OVER.test(one.slice(loop[0].length).trimStart())) named.push({ start, waits: false });
+      else {
+        const head = past.trimStart();
+        if (OVER.test(head)) named.push({ start, waits: false, arith: head.startsWith("((") });
+      }
     }
-    if (BRACE.test(one.slice(loop ? loop[0].length : 0).replace(QUOTED, " "))) named.pop();
+    if (named.at(-1)?.arith && BRACE.test(past.replace(QUOTED, " "))) named.pop();
   }
   return out;
 };
