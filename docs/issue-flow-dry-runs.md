@@ -4379,3 +4379,30 @@ Folded from its handback; the eleven comments and ISS-514, ISS-515, ISS-516 were
   step at that tree, so criterion 12's evidence is the run's own full gate at the release head and the
   verdict's `--why` says which. A remembered gate is evidence only where the record names what it
   remembered.
+
+## Hundred-and-sixty-ninth dry run — ISS-506
+
+A clause for the refusals that cost a turn (3.35.184, landed as 01cbc07, judged at the same head,
+three files under the requirements tree). The wait shapes get a quality requirement of their own with
+two criteria proved by the gate's existing polling cases, the business rules gain a row whose home is
+the polling how page, and the irreversibility rule loses the word "exactly" for a sentence that says
+what ground a refusal stands on. The run found a third turn-cost rule the issue had not named and gave
+it a row too. Nineteen verdicts at the judged head; the landing moved nothing. No restart owed. Closed
+by its run. Folded from its handback; the fifteen comments and the routed lines on ISS-375, ISS-27 and
+ISS-16 were read back.
+
+- The review was recorded twice at the same head on purpose: changes requested while the reviewer
+  held a finding the author had rejected, then approved after a recheck shown the parser that
+  withdrew it. The recheck separates the two records, and the cost of having only two outcomes to
+  choose from was measured onto the issue that owns the missing third.
+- The run filed a defect the moment it met it, found the open issue it duplicated at 0.92 from the
+  filing's own neighbour list, and put the one new detail on the older thread. The dispatcher took the
+  duplicate disposition at the fold under a ten-minute lease: ISS-517 is dropped for ISS-375.
+- A filing made after the close cannot be routed, because the routed record is refused on a closed
+  issue. ISS-521 exists and no record on ISS-506 points at it. The order is file, route, then advance
+  past tested; the run said so itself.
+- Where a duty binds beyond one gate, the clause goes where the duty is and not under the requirement
+  the gate happens to enforce; widening the irreversibility requirement to hold a turn-cost use case
+  would have put it under a goal no clause meets. Recorded as a decision with its undo.
+- The brief line the run confirmed still holds in prose while the link beside it resolves nowhere.
+  A confirmation is of the sentence read, not of the page, and the run filed the link separately.
