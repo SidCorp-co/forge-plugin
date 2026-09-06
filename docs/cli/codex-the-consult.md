@@ -1,7 +1,9 @@
 # codex — the consult
 
 What one round buys, what effort it is asked at, and what a follow-up round is for:
-[the round](codex-the-round.md).
+[the round](codex-the-round.md). What a finding coming back has to carry, and where the two
+boundaries the reviewer cannot see for itself are filled from: [the
+finding](codex-the-finding.md).
 
 **No local agent.** The first engine spawned a `claude` session with `--allowedTools Read Grep Glob`;
 that flag auto-approves and does not confine, so the child inherited this machine's skills, answered a

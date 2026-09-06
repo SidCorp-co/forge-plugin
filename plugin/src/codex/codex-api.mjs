@@ -36,7 +36,7 @@ export const ANGLES = {
 
 /* Bumped by hand; the digest catches the edits nobody bumped for. Both ride every row, so a prompt
    change is a line in the stats rather than a thing somebody remembers doing. */
-export const PROMPT_VERSION = 2;
+export const PROMPT_VERSION = 3;
 
 export const promptMark = (system) => ({ v: PROMPT_VERSION, sha: digest(String(system ?? "")) });
 
@@ -46,7 +46,21 @@ const RECHECK = `THIS IS A RECHECK, NOT A NEW REVIEW.
 You made the findings in the verification list yourself, in an earlier round on these same files. Your whole job now is to say whether each still stands. Answer the list, and stop.
 - Do not go looking for anything else. The reading you would do for a fresh review, you already did.
 - If something genuinely NEW is unavoidable — a defect the fix itself introduced, or one the earlier round could not have seen — you may raise it, but its bullet must carry a clause naming why it was not visible to you before. A New finding without that clause is one you should have made the first time, and it is left out.
-- A finding you are no longer sure of is REFUTED, not restated in weaker words.`;
+- A finding you are no longer sure of is REFUTED, not restated in weaker words.
+- A New finding carries one clause and only one: **Read** — the tool call that grounded it — or **Inferred**, the word alone. The five clauses a first review owes are not asked for here.`;
+
+/* The last clause is the one nothing else could ask for: a model that inspected and a model that guessed write the same confident sentence. docs/cli/codex-the-finding.md. */
+const CLAUSES = `- Every finding carries five clauses, in this order and under these names. One missing any of them is not made:
+  1. the \`path:line\` anchor and the line quoted from what you were given;
+  2. **Fails when** — the concrete input or state, and what goes wrong;
+  3. **Fix** — the smallest change that answers it, named by file and symbol;
+  4. **Proven by** — the test or case that fails without that fix, one that exists or one to be written;
+  5. **Read** — the tool call that grounded the finding — or **Inferred**, the word alone, where you did not check.
+  Clauses 2 to 5 are written as indented lines under the finding's bullet, so the bullet itself stays one line.`;
+
+/* Both self-guard on "where you are given", so a filled section costs no second prompt digest. */
+const SCOPED = `- WHERE you are given an OUT OF SCOPE section, a finding that is real but falls inside it is not numbered and carries no severity. It goes as one line under a single closing heading OUT OF SCOPE, and those lines are not counted in the findings line — that section may follow \`CODEX: 0 findings\`, which is the case where everything real you saw was out of scope. A finding true of the code before this turn is PRE-EXISTING whatever the scope text says; OUT OF SCOPE is for this turn's own change.
+- WHERE you are given a CHECKS THIS PROJECT RUNS section, a finding one of those checks already refuses is left out. Telling me what my own gate is about to tell me costs a round and moves nothing.`;
 
 export const roleFor = (angles = Object.keys(ANGLES), { check = false, recheck = false } = {}) => {
   const named = angles.map((one) => ANGLES[one]);
@@ -62,9 +76,10 @@ FORM
 - Where you were given a list to verify, answer it FIRST — every item, with its verdict — and only then the findings line. A verification list is never skipped, whatever you found.
 - Open the findings with exactly one line: \`CODEX: <n> findings (<b> blocker, <m> major, <k> minor)\`, counting what you are about to write. Where you find nothing, that line is \`CODEX: 0 findings\` and you stop there.
 - Anchor every finding to \`path:line\` — the path as you were given it, the line as numbered in the text you were given. A finding you cannot place is a finding you cannot ground.
-- Number every finding: its bullet opens \`- **F<n> — <New|Still open> — <severity>:**\`, n counting up from 1 across every angle. The caller's verdict names these ids, and the next consult reads them back.
+- Number every finding: its bullet opens \`- **F<n> — <New|Still open> — <severity>:**\`, n counting up from 1 across every angle. The caller's verdict names these ids, and the next consult reads them back.${recheck ? "" : `\n${CLAUSES}`}
 
 RULES
+${SCOPED}
 - You are given the full text of each changed file. Ground every finding in a quotation from what you were given, or in something you read with a tool.
 - You have tools over the checkouts under review: \`read_file\`, \`list_dir\`, \`grep\`, \`git_diff\`. Use them whenever a finding depends on something you were not given — the caller, the test, the config, the other end of an interface. Never guess at a file you could read, and never assert what a symbol does without seeing it. A citation you could not check is a finding you do not make. Tools are read-only and confined to those checkouts; a refusal comes back as text and is not worth arguing with.${
   check ? "\n- \`run_check\` runs this checkout's own check command, once: use it when the caller claims the tree is green and the claim matters to a finding. Its output is evidence; that you did not run it is not." : ""}
@@ -276,6 +291,15 @@ const verifyBlock = (risks) =>
 line that decides it. A risk you cannot decide from what you were given is CANNOT TELL and says what
 you would need. Only after all of them, add anything else you found.\n\n${risks.map((one, at) => `${at + 1}. ${one}`).join("\n")}`;
 
+/* 56 of 149 dropped findings were real and outside the issue, and only the record knows where it ends. */
+const scopeBlock = (text) =>
+  "OUT OF SCOPE for the issue I am working, in the issue's own words. A real finding that falls in "
+  + `here goes under the closing OUT OF SCOPE heading rather than among the numbered findings:\n\n${text}`;
+
+const checksBlock = (text) =>
+  "CHECKS THIS PROJECT RUNS over this change before it lands. A finding one of these already refuses "
+  + `is left out:\n\n${text}`;
+
 const floorBlock = (only) =>
   `REPORT ONLY ${only.map((one) => one.toUpperCase()).join(" and ")} FINDINGS. A finding below that bar is left out `
   + `entirely rather than downgraded — this run is asking for precision, not coverage.`;
@@ -284,7 +308,7 @@ const SEP = "\n\n---\n\n";
 
 /* Two halves, because the first is the one that repeats: the history opens every call of a consult
    and the next consult on this repository, so it takes the cache breakpoint. */
-const promptSections = (intent, parts, history = [], { risks = [], only = [], bodies = false } = {}) => {
+const promptSections = (intent, parts, history = [], { risks = [], only = [], bodies = false, scope = "", checks = "" } = {}) => {
   /* Derived, not passed: a caller that says "anchored" while sending no diffs would be asking the
      reviewer to anchor to nothing. */
   const anchored = parts.some((part) => part.diff);
@@ -305,6 +329,8 @@ const promptSections = (intent, parts, history = [], { risks = [], only = [], bo
     intent
       ? `WHAT I WAS DOING THIS TURN — my intent and plan, in my own words:\n\n${intent}`
       : "I have not described my intent. Say so if a finding turns on it.",
+    ...(scope ? [scopeBlock(scope)] : []),
+    ...(checks ? [checksBlock(checks)] : []),
     ...(risks.length ? [verifyBlock(risks)] : []),
     ...(anchored ? [ANCHORED] : []),
     ...(only.length ? [floorBlock(only)] : []),

@@ -123,7 +123,7 @@ test("the system prompt carries a version and a digest, and the recheck clause i
   assert.equal(pass.includes("THIS IS A RECHECK"), false);
   assert.match(again, /THIS IS A RECHECK/u);
   assert.match(again, /naming why it was not visible to you before/u);
-  assert.equal(promptMark(pass).v, 2);
+  assert.equal(promptMark(pass).v, 3);
   assert.equal(promptMark(pass).sha, digest(pass));
   assert.notEqual(promptMark(pass).sha, promptMark(again).sha, "a clause that changes is a digest that changes");
 });

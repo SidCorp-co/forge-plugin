@@ -177,25 +177,51 @@ export const digestOf = (reply, held = null) => {
 const FINDING = /^\s*[-*]\s+\*\*([^*]*\b(?:blocker|major|minor)\b[^*]*)\*\*\s*(.+)$/gimu;
 const RULING = /\b(?:resolved|confirmed|refuted|cannot tell)\b/iu;
 const ANCHOR = /`([^`:\s]+):\d+(?:-\d+)?`/u;
-const FINDING_CHARS = 400;
+const FINDING_CHARS = 900;
 
 const ID = /^\s*F(\d+)\b\s*[—-]?\s*/u;
 
+const INDENTED = /^[ \t]+\S/u;
+const OWN_BULLET = new RegExp(FINDING.source, "u");
+
+/* Indentation is where a v3 finding's clauses end, and a bullet naming a severity is its own finding at
+   whatever indent. One blank line inside the block is a layout a reviewer writes; two is a section break. */
+const clausesAfter = (reply, from) => {
+  const held = [];
+  let gap = 0;
+  for (const line of reply.slice(from).split("\n").slice(1)) {
+    if (!line.trim()) {
+      gap += 1;
+      if (gap > 1) break;
+      continue;
+    }
+    if (!INDENTED.test(line) || OWN_BULLET.test(line)) break;
+    if (gap && held.length) held.push("");
+    gap = 0;
+    held.push(line.trim());
+  }
+  return held.length ? `\n${held.join("\n")}` : "";
+};
+
 /* Each finding with its id, `F<n>` as the reply numbered it or by its place in the whole reply where
-   it did not — before any file filter, so a recheck on one file keeps the ids a verdict was given against. */
+   it did not — before any file filter, so a recheck on one file keeps the ids a verdict was given against.
+   `head` is the bullet alone, because a Fix clause naming a second path is not where this finding lives. */
 export const numbered = (reply, files = null) => {
+  const whole = String(reply ?? "");
   const seen = new Set();
-  return [...String(reply ?? "").matchAll(FINDING)]
+  return [...whole.matchAll(FINDING)]
     .filter(([, kind]) => !RULING.test(kind))
-    .map(([, kind, text], at) => {
-      const own = ID.exec(kind);
+    .map((found, at) => {
+      const own = ID.exec(found[1]);
+      const head = `${found[1].replace(ID, "").replace(/:\s*$/u, "")}: ${found[2]}`;
       return {
         id: `F${own ? own[1] : at + 1}`,
-        text: `${kind.replace(ID, "").replace(/:\s*$/u, "")}: ${text}`.slice(0, FINDING_CHARS),
+        head,
+        text: `${head}${clausesAfter(whole, found.index + found[0].length)}`.slice(0, FINDING_CHARS),
       };
     })
     .filter((one) => !seen.has(one.id) && seen.add(one.id))
-    .filter((one) => !files || !ANCHOR.test(one.text) || files.includes(ANCHOR.exec(one.text)[1]));
+    .filter((one) => !files || !ANCHOR.test(one.head) || files.includes(ANCHOR.exec(one.head)[1]));
 };
 
 export const findingsIn = (reply, files = null) => numbered(reply, files).map((one) => one.text);

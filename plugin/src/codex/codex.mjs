@@ -72,6 +72,7 @@ export const USAGE = [
   "  consult [file...] [--diff [--base <ref>]] [--verify <risk>]... [--only s,s] [--recheck]",
   "                            review; pipe your intent on stdin",
   "                            [--angles a,a] [--effort e] [--rounds n] [--send m] [--allow-echo]",
+  "                            [--out-of-scope <text>] [--checks <text>]",
   "  verdict --accepted F1,F3 --rejected F2=why [--note t] [--of <id>]   what became of each finding;",
   "                            a recheck records one for what it refuted, and a commit waits for one",
   "  pending [--drop]          what this turn touched and has not been consulted on",
@@ -127,6 +128,12 @@ export const USAGE = [
   "                 refuses and names `--send bodies`, which is the pass a review is earned by.",
   "                 Name no file and it reads the range that consult recorded, never a wider one;",
   "                 a path you type is your range and is sent as typed.",
+  "  --out-of-scope <text>  what the issue put out of scope, in the issue's own words. A real",
+  "                 finding falling in it comes back under one closing OUT OF SCOPE heading,",
+  "                 unnumbered, instead of costing a verdict round and a filing.",
+  "  --checks <text>  the checks this project runs before the change lands, so a finding one of",
+  "                 them already refuses is left out. The `codex.check` command in .forge.json",
+  "                 unless you say otherwise.",
   "  --angles a,a   which angles review this consult: tech, ba, user, ux.",
   "",
   "  FORGE_CODEX_DISABLE=1     the one variable: a kill switch has to work when config is broken",
@@ -233,6 +240,9 @@ export const consultArgs = (given) => {
     bodies: chosenSend(held.send),
     recheck: Boolean(held.recheck),
     angles: chosenAngles(held.angles),
+    /* The issue's own sentence and the checkout's own command: a scope this end composes moves the boundary the reviewer is judged against. */
+    scope: held["out-of-scope"] ?? "",
+    checks: held.checks ?? projectCheck()?.command ?? "",
   };
 };
 
@@ -274,7 +284,7 @@ const consult = async (given) => {
   if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
-  const { named, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, bodies, recheck, angles } = consultArgs(given);
+  const { named, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, bodies, recheck, angles, scope, checks } = consultArgs(given);
   let rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
   let offered = (many) => `${many} this turn touched`;
   /* Asked for a diff and given nothing to diff, the tree answers: the round it replaces was reading
@@ -392,7 +402,7 @@ const consult = async (given) => {
     process.stdout.write(text);
   };
   try {
-    const opening = openingFor(intent, parts, history, { risks, only, bodies });
+    const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks });
     const held = await reviewed(
       values, model, opening,
       /* `reached` and not `anchoredTo`: a recheck whose tree has not moved sent no diff and so
@@ -506,10 +516,13 @@ export const hookRecord = (event, paths, told = () => false, log = logEntries) =
     /* Asked only while there is something to say, because asking is what marks the turn told. */
     if (added && !announce && !told(root)) announce = rel;
   }
+  /* The two new values are named by where they are read, never by what to write: a check list from memory is one the gate contradicts. */
   return announce
     ? `You changed a document this turn (${announce}). Before you finish, once over everything changed: `
       + `\`echo "<what you were doing, and what the advisor said>" | forge codex consult --diff --only `
-      + `blocker,major\`, then \`forge codex verdict\`. Why: \`forge hooks --how codex-turn\`.`
+      + `blocker,major --out-of-scope "<the issue's Out of scope text>" --checks "<codex.check in `
+      + `.forge.json, else the gate command>"\`, then \`forge codex verdict\`. `
+      + "Why: `forge hooks --how codex-turn`."
     : null;
 };
 
