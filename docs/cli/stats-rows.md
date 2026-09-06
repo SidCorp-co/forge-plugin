@@ -22,8 +22,13 @@ got wrong:
 - **A mention of a ship is not a ship.** A run waiting on one polls for the process by name; read
   as the invocation, that line moved every such run into its closing phase.
 
-Two verbs earn a row per action, because their actions cost differently: a consult against a
-recheck, a verdict against the other records. Writing a file earns a row per route — edit tool, write
+Two verbs earn a row per action, because their actions cost differently: a verdict against the other
+records, and a consult in the three shapes it comes in. The whole-set read that earns a review, the
+consult a commit gate asks for over what a commit stages, and a recheck are one verb and three
+costs, and folding them left the review's own read indistinguishable from the build's. Which of the
+three a call was is read off the flag its command line carries; a `codex.send` setting in a user's
+configuration makes a bare consult a whole-set read too, and no transcript records that, so such a
+run's commit-gate consults are filed as reads. Writing a file earns a row per route — edit tool, write
 tool, heredoc, whole-file redirect, `sed` — because one change carries a different number of characters
 by each, and the `edits` line puts that number beside the route. The `ships` line counts a landing's
 passes, resumes and rejected pushes: a landing that raced a sibling's paid the gate twice. Every
@@ -37,6 +42,12 @@ the two cannot disagree about what a call was. A phase already passed cannot pul
 the review does not open before the build has — the plan is consulted before it is written, and that
 consult is the plan's — and the ship call is the last call of its own phase rather than the first of
 the next.
+
+**The review opens on the read that earns it and on no other consult.** A build commits several
+times and each commit is gated by a consult over what that commit stages, so a boundary drawn at the
+first consult after the build began was drawn at the first commit: on this project's own corpus that
+row carried 429 gate runs and 991 test runs beside its consults, and a rise reported there was the
+build's tail moving, not the review's cost.
 
 Each of those last two rules is declared on the marker row it constrains rather than beside the cut
 it makes, so a phase number is written once. Renumbering a phase then moves the cut with it; a

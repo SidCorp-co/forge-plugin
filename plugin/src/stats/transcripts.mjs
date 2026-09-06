@@ -67,12 +67,17 @@ const FORGE = at(String.raw`(?:\S*/)?forge[ \t]+(?<verb>[a-z][a-z-]*)(?:[ \t]+(?
 /* Two verbs whose actions cost differently enough to earn rows; `forge guide` would be thirteen. */
 const SUBBED = new Set(["codex", "record"]);
 
+/** The consult reading every file the change touched, which is the pass a review is earned by. Told by the flag and never by a `codex.send` setting, which no transcript records: docs/cli/stats-rows.md. */
+export const WHOLE_SET_CLASS = "forge codex whole-set";
+const WHOLE_SET = /--send[= \t]+bodies\b/u;
+
 /* The binary by path and by name is one row, and what follows has to be a verb this CLI has. */
 const forgeClass = (shell) => {
   const found = FORGE.exec(shell)?.groups;
   if (!found || !VERB_NAMES.includes(found.verb)) return null;
   if (found.verb === "codex" && found.sub === "consult") {
-    return shell.includes("--recheck") ? "forge codex recheck" : "forge codex consult";
+    if (shell.includes("--recheck")) return "forge codex recheck";
+    return WHOLE_SET.test(shell) ? WHOLE_SET_CLASS : "forge codex consult";
   }
   return SUBBED.has(found.verb) && found.sub ? `forge ${found.verb} ${found.sub}` : `forge ${found.verb}`;
 };
@@ -146,7 +151,7 @@ export const PHASES = ["0 discover", "1 plan", "2 build", "3 review", "4 judge",
 export const MARKERS = [
   { phase: 1, classes: ["forge claim", "forge record confirmation"] },
   { phase: 2, classes: ["forge plan", "forge record plan", "forge record baseline"] },
-  { phase: 3, classes: ["forge codex consult"], after: 2 },
+  { phase: 3, classes: [WHOLE_SET_CLASS], after: 2 },
   { phase: 4, classes: ["forge record verdict"] },
   { phase: 5, classes: ["ship"], last: true },
 ];

@@ -7,6 +7,7 @@ import {
   PHASES,
   POLL,
   UNTIERED,
+  WHOLE_SET_CLASS,
   callsIn,
   markerOf,
   readTranscript,
@@ -206,7 +207,9 @@ export const runFrom = (path, session, text) => {
     advance: advanceRuns(calls),
     gates: counted("gate"),
     tests: counted("test"),
-    consults: counted("forge codex consult"),
+    /* Both consult classes, summed inside the run: the split is about which phase a call opens,
+       and a figure that fell because a class was renamed reads as a run that consulted less. */
+    consults: counted("forge codex consult") + counted(WHOLE_SET_CLASS),
     rechecks: counted("forge codex recheck"),
     verdicts: counted("forge record verdict"),
     ships: shipsIn(calls),

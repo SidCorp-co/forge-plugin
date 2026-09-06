@@ -8,7 +8,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { render } from "../../src/flow/record.mjs";
-import { MARKERS, UNTIERED, callsIn, classOf, markerOf, shellOf, slugFor, tierRun } from "../../src/stats/transcripts.mjs";
+import {
+  MARKERS, UNTIERED, WHOLE_SET_CLASS, callsIn, classOf, markerOf, shellOf, slugFor, tierRun,
+} from "../../src/stats/transcripts.mjs";
 import { segmented, unionSeconds } from "../../src/stats/runs.mjs";
 import { TIERS } from "../../src/ladder.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -36,7 +38,7 @@ const CALLS = [
   ["c3", 60, 5, "forge plan ISS-99 /tmp/plan.md", "planned"],
   ["c4", 120, 120, "cd /w && npm run check 2>&1 | tail -5", "All 12 gate step(s) passed"],
   ["c5", 300, 30, "node --test plugin/test/stats/runs.test.mjs", "ok"],
-  ["c6", 400, 900, "forge codex consult --diff --only blocker", "1 finding"],
+  ["c6", 400, 900, "forge codex consult --send bodies plugin/src/stats/runs.mjs", "1 finding"],
   ["c7", 1400, 300, "forge codex consult --recheck", "confirmed"],
   ["c8", 1800, 5, "forge record verdict ISS-99 --criterion 1", "recorded"],
   ["c9", 1850, 5, "forge advance ISS-99", "developed -> tested"],
@@ -170,15 +172,15 @@ test("every row of a fixture run is what the transcript adds up to", () => {
   /* The ship call is the last of its own phase; the `pgrep` line that waits for one is a poll and
      leaves the run where it was, which is what moved every real run into `6 close` before. */
   has("0 discover      1      0.2        0        1.0  read 1 0m");
-  has("3 review        1     22.8       23        2.0  forge codex consult 1 15m · forge codex recheck 1 5m");
+  has("3 review        1     22.8       23        2.0  forge codex whole-set 1 15m · forge codex recheck 1 5m");
   has("5 ship          1      4.8        5        1.0  ship 1 4m");
   has("6 close         1      6.0        6        6.0  poll 1 0m · forge issue 3 0m · forge advance 1 0m · git 1 0m");
 
-  has("forge codex consult             15.0    54%      1");
+  has("forge codex whole-set           15.0    54%      1");
   has("gate                             2.0     7%      1");
   has("     1  Hold — ISS-nn owes a release note.");
   has("     3  forge issue ISS-99 --full");
-  has("    15.0 min  forge codex consult --diff --only blocker");
+  has("    15.0 min  forge codex consult --send bodies plugin/src/stats/runs.mjs");
 });
 
 test("--json carries what the screen leaves out", () => {
@@ -195,7 +197,7 @@ test("--json carries what the screen leaves out", () => {
   });
   assert.deepEqual(
     held.byClass.map(([label]) => label).sort(),
-    ["forge advance", "forge claim", "forge codex consult", "forge codex recheck", "forge issue",
+    ["forge advance", "forge claim", "forge codex recheck", "forge codex whole-set", "forge issue",
       "forge plan", "forge record verdict", "gate", "git", "poll", "read", "ship", "test"],
   );
 });
@@ -255,6 +257,10 @@ test("one class per shape of work, whatever way it was typed", () => {
     ["cat > /tmp/c.md <<'EOF'\n1. npm run check stays green\nEOF", "edit file"],
     ["forge codex consult --recheck plugin/src/cli.mjs", "forge codex recheck"],
     ["forge codex consult plugin/src/cli.mjs", "forge codex consult"],
+    ["forge codex consult --diff --only blocker", "forge codex consult"],
+    ["forge codex consult --send diffs plugin/src/cli.mjs", "forge codex consult"],
+    ["echo x | forge codex consult --send bodies a.md b.md", "forge codex whole-set"],
+    ["forge codex consult --send=bodies a.md", "forge codex whole-set"],
     ["forge guide contract released", "forge guide"],
     ['until ! pgrep -f "tools/run.mjs ship"; do sleep 10; done', "poll"],
     ["node /w/tools/run.mjs ship --note x", "ship"],
@@ -273,7 +279,8 @@ test("a phase opens on the call that makes it, not on a line that names it", () 
     ["forge claim ISS-99", 1],
     ["forge record baseline ISS-99 --gate 'npm run check' --result green", 2],
     ["cd /w && ./plugin/bin/forge record verdict ISS-99 --criterion 1", 4],
-    ["forge codex consult --diff", 3],
+    ["forge codex consult --send bodies plugin/src/cli.mjs", 3],
+    ["forge codex consult --diff", null],
     ["forge codex consult --recheck", null],
     ["node /w/tools/run.mjs ship", 5],
     ['until ! pgrep -f "tools/run.mjs ship"; do sleep 10; done', null],
@@ -291,10 +298,10 @@ test("a phase opens on the call that makes it, not on a line that names it", () 
    assertion fails on the cut itself, which is what makes this a checker rather than a restatement
    of the numbers the table happens to carry. */
 test("the cutter reads its phase numbers off the rows that declare them", () => {
-  const calls = ["forge claim", "forge codex consult", "forge plan", "forge codex consult"]
+  const calls = ["forge claim", WHOLE_SET_CLASS, "forge plan", WHOLE_SET_CLASS]
     .map((klass) => ({ class: klass }));
   assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 2, 3],
-    "a consult before the plan is the plan's, and the one after it opens the review");
+    "a whole-set read before the plan is the plan's, and the one after it opens the review");
 
   const review = MARKERS.find((row) => row.after !== undefined);
   const held = { ...review };
@@ -308,9 +315,10 @@ test("the cutter reads its phase numbers off the rows that declare them", () => 
   assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 2, 3], "and the table is left as it was found");
 });
 
-/* Since ISS-365 the plan is consulted before it is written, so the first consult of every run came
-   before its plan marker and opened the review over the whole build. The review opens on the first
-   consult AFTER the build has; the one before it is the plan's. */
+/* Two consults a build takes and one it does not. The plan's comes before the plan is written and
+   is the plan's; a commit gate's sends what the commit stages and belongs to the build that asked
+   for it; the whole-set read after the last commit is the one the review is earned by, and the row
+   opens there. Read as one class, the review row started at the first commit of the build. */
 test("a consult before the plan write is the plan's, and the review opens on the one after the build", () => {
   const room = tempRoom("stats-early-consult-");
   const tasks = join(room, `claude-${process.getuid()}`, slugFor(PROJECT), "s", "tasks");
@@ -320,8 +328,11 @@ test("a consult before the plan write is the plan's, and the review opens on the
     ["e2", 60, 600, "forge codex consult --send bodies /tmp/plan.md", "0 findings"],
     ["e3", 700, 5, "forge plan ISS-99 /tmp/plan.md", "planned"],
     ["e4", 800, 30, "node --test plugin/test/stats/runs.test.mjs", "ok"],
-    ["e5", 900, 300, "forge codex consult --diff --only blocker", "0 findings"],
-    ["e6", 1300, 5, "forge record verdict ISS-99 --criterion 1", "recorded"],
+    ["e5", 850, 5, "git commit -m 'the first half'", "1 file changed"],
+    ["e6", 900, 300, "forge codex consult --diff --only blocker", "0 findings"],
+    ["e7", 1250, 5, "git commit -m 'the second half'", "1 file changed"],
+    ["e8", 1300, 240, "forge codex consult --send bodies plugin/src/stats/runs.mjs", "0 findings"],
+    ["e9", 1600, 5, "forge record verdict ISS-99 --criterion 1", "recorded"],
   ];
   writeFileSync(join(tasks, "a9.output"), [
     JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-99" } }),
@@ -331,9 +342,9 @@ test("a consult before the plan write is the plan's, and the review opens on the
   const run = ask(room);
   assert.equal(run.status, 0, run.stderr);
   const has = (line) => assert.ok(run.stdout.includes(line), `${line}\n--- printed ---\n${run.stdout}`);
-  has("1 plan          1     11.0       11        2.0  forge codex consult 1 10m · forge claim 1 0m");
-  has("2 build         1      2.8        3        2.0  test 1 1m · forge plan 1 0m");
-  has("3 review        1      6.2        6        1.0  forge codex consult 1 5m");
+  has("1 plan          1     11.0       11        2.0  forge codex whole-set 1 10m · forge claim 1 0m");
+  has("2 build         1      9.9       10        5.0  forge codex consult 1 5m · test 1 1m · git 2 0m · forge plan 1 0m");
+  has("3 review        1      4.8        5        1.0  forge codex whole-set 1 4m");
 });
 
 /* One call per route a run writes files through, with what each carried, and a landing that took two

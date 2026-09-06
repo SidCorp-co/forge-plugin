@@ -130,10 +130,10 @@ it. Reading is all this product does there.
   release step SHALL end on one line naming the comparison to run, and SHALL keep no record of the
   crossing beyond the corpus itself.
 
-- **AC-19-8-6** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "a consult before the plan write is the plan's, and the review opens on the one after the build"
-  WHEN a run's calls are cut into phases THEN the CLI SHALL open the review phase only on a consult
-  taken after the build has begun, and SHALL count a consult taken before that in the phase the run
-  was in.
+- **AC-19-8-6** · Rev: 2 · Proof: plugin/test/stats/runs.test.mjs "a consult before the plan write is the plan's, and the review opens on the one after the build"
+  WHEN a run's calls are cut into phases THEN the CLI SHALL open the review phase only on a
+  whole-set consult taken after the build has begun, and SHALL count in the phase the run was
+  already in both a consult taken before that and a consult sent only what a commit stages.
 - **AC-19-8-7** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "the edits line names each route with its calls and characters, and the ships line counts passes, resumes and rejected pushes"
   WHEN a profile is printed THEN the CLI SHALL name each route a run wrote files through with its
   calls per run and the characters a call carried, and SHALL count the passes a landing took, the
