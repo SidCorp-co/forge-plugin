@@ -288,6 +288,62 @@ test("each source of the holder is named, and naming it changes no holder", () =
   Object.assign(process.env, env);
 });
 
+/* A hook is handed no `FORGE_SESSION_ID` and the run inside the command it judges has one, so the
+   command text is where that row is read. Everything the text does not show the grant reaching is
+   the inherited id and one hold, which is what a reader that never looked would cost (ISS-497). */
+test("the id a command grants the writer is a source, and every shape that does not show it reaching is not", () => {
+  const env = { ...process.env };
+  delete process.env.FORGE_SESSION_ID;
+  process.env.CLAUDE_CODE_SESSION_ID = "the-harness";
+  const named = (command) => {
+    const { id, source } = sessionSourced({ tool_name: "Bash", tool_input: { command } });
+    return { id, source };
+  };
+  const grants = { id: "a-run", source: "granted" };
+  const falls = { id: "the-harness", source: "inherited" };
+  for (const command of [
+    "export FORGE_SESSION_ID=a-run && cd /elsewhere && ./plugin/bin/forge advance ISS-29",
+    "export FORGE_SESSION_ID=a-run; forge advance ISS-29",
+    `export FORGE_SESSION_ID='a-run'; forge advance ISS-29`,
+    `  export FORGE_SESSION_ID="a-run"`,
+    "FORGE_SESSION_ID=a-run forge advance ISS-29",
+    "env FORGE_SESSION_ID=a-run ./plugin/bin/forge advance ISS-29",
+  ]) assert.deepEqual(named(command), grants, command);
+  for (const [command, why] of [
+    ["export FORGE_SESSION_ID=a-run 2>&1 | tee run.log; forge advance ISS-29", "a pipeline stage keeps its own environment"],
+    ["export FORGE_SESSION_ID=a-run &", "and so does a background job"],
+    ["export FORGE_SESSION_ID=a-run > run.log", "a redirection is where the exporting line ended"],
+    ["export FORGE_SESSION_ID=a-run; unset FORGE_SESSION_ID; forge advance ISS-29", "taken back before the write"],
+    ["export FORGE_SESSION_ID=a-run && sudo forge advance ISS-29", "handed to a launcher that need not pass it on"],
+    ["FORGE_SESSION_ID=a-run true && forge advance ISS-29", "a prefix reaches the one command it prefixes"],
+    ["FORGE_SESSION_ID=a-run npm run check", "which is this CLI or it is not this CLI's id to read"],
+    ["(export FORGE_SESSION_ID=a-run) && forge advance ISS-29", "and a subshell's export dies with it"],
+    [`FORGE_SESSION_ID=a-run echo "$(forge advance ISS-29)"`, "the substitution runs before the prefix reaches echo"],
+    ["FORGE_SESSION_ID=a-run sudo forge advance ISS-29", "and the prefix names a launcher, not the writer"],
+    ["export FORGE_SESSION_ID=a-run && forge comment ISS-29 <<EOF\nFORGE_SESSION_ID=b-run was the old id\nEOF",
+      "a second value has no single answer, one key covering every target of the event"],
+    [`FORGE_SESSION_ID="$CLAUDE_CODE_SESSION_ID" forge advance ISS-29`,
+      "a value the shell expands is not the value the text spells"],
+    ["export FORGE_SESSION_ID=a-run; (unset FORGE_SESSION_ID; forge advance ISS-29)",
+      "and a bracket opens a command position, where taking it back still takes it back"],
+    ["export FORGE_SESSION_ID=a-run; { unset FORGE_SESSION_ID; forge advance ISS-29; }",
+      "a brace group running in this very shell most of all"],
+    ["forge advance ISS-29", "and a command granting nothing grants nothing"],
+    [`export FORGE_SESSION_ID='run#1'; forge advance ISS-29`,
+      "an id outside the class this reads costs the round it would have cost unread, never a wrong key"],
+  ]) assert.deepEqual(named(command), falls, why);
+  assert.deepEqual(named(["export FORGE_SESSION_ID=a-run && forge advance ISS-29"]), grants,
+    "a command handed over as a list is the one text its parts make");
+  for (const prose of [
+    `export FORGE_SESSION_ID=a-run && forge record confirmation ISS-29 --is "the source of the id"`,
+    `export FORGE_SESSION_ID=a-run; forge claim ISS-29 --next 'explain (unset FORGE_SESSION_ID)'`,
+  ]) assert.deepEqual(named(prose), grants,
+    "a run's own prose travels through as an argument, and a withdrawal quoted inside one runs nothing");
+  assert.deepEqual(sessionSourced({ session_id: "the-event" }), sessionSourced({}),
+    "an event carrying no command is read exactly where it was");
+  Object.assign(process.env, env);
+});
+
 /* `stateOf` reads an inherited holder as this run's own, so what is said instead is decided on both
    halves — the source AND the id. A predicate testing the source alone would warn about a lease that
    is somebody else's, which is the opposite of what the sentence claims (ISS-445). */

@@ -41,6 +41,13 @@ Nothing ambient separates them: the process id and the socket both name the pare
 directory is not one run's for the length of a run. So a run is given an id, in `FORGE_SESSION_ID`,
 by whatever creates it.
 
+**Write it where the gate can read it.** The read-before-write gate runs in the harness's process,
+handed no `FORGE_SESSION_ID`, so the only place it learns which run this is is the command it
+judges: `export FORGE_SESSION_ID=<id>` at the head of that command, or `FORGE_SESSION_ID=<id>`
+prefixing a `forge` call. Spell the id out; this reader has the text, not the shell that will run
+it, so `"$RUN_ID"` names nothing. Given any other way it reads none, and the run pays the round it
+would with no reader at all rather than a wrong one.
+
 Where it was not, the CLI **says so and does not refuse**. A run whose own id came from the
 dispatching session is told, where it claims and where it reads the lease, that the holder it
 matched names a wave rather than a run. Refusing that write instead would change what a claim means

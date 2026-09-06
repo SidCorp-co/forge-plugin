@@ -60,7 +60,7 @@ The tracker's tool is judged by the action it names rather than by its name.
   command carries SHALL still count.
 - **AC-10-2-3** · Rev: 1 · Proof: none yet — ISS-15
   WHERE a verb writes the record it SHALL be covered by this gate, the payload verbs included.
-- **AC-10-2-4** · Rev: 1 · Proof: none yet — ISS-33
+- **AC-10-2-4** · Rev: 1 · Proof: none yet — ISS-561
   WHEN the run that reads is the run that writes THEN the gate SHALL be satisfied, and a read from
   an earlier turn or another agent SHALL not satisfy it.
 

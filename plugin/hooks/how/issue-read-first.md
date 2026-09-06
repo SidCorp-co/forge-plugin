@@ -10,8 +10,9 @@ front of you. An issue with no comments refuses nothing, and this CLI says so in
 
 How to work through it: what a session has been shown is remembered per issue, so later writes pass
 in silence until a comment nobody here has seen appears — a person's, or the audit line a merged
-mark leaves. A record written through this CLI never refuses you. An agent you delegate to shares
-this with you, transcript or no transcript, and a new session owes the delivery once.
+mark leaves. A record written through this CLI never refuses you. A run that names itself owes its
+own delivery, not yours, and this reads that name off the command it judges: an export at
+its head, or a prefix on the forge call.
 
 Not judged: what you write once you have read, whether you read it, or a mention of a write verb —
 the target is the argument the verb takes, so a reference in a heredoc, a path or prose is not one.

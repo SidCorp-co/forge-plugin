@@ -170,12 +170,17 @@ const endpoint = (url) => {
 const live = () => tracker.url;
 
 let session = 0;
-const gate = async (command, { url = live(), fresh = true } = {}) => {
+/* `harness` is the shape production has: no hook is handed a `FORGE_SESSION_ID`, so the id it holds
+   is whatever dispatched the session and the run's own is in the command it is judging (ISS-497). */
+const gate = async (command, { url = live(), fresh = true, harness = null } = {}) => {
   if (fresh) session += 1;
   endpoint(url);
-  const run = await callHookAsync(HOOK, { tool_name: "Bash", tool_input: { command }, cwd: process.cwd() }, {
-    ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: `probe-${session}`,
-  });
+  const env = { ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: `probe-${session}` };
+  if (harness) {
+    delete env.FORGE_SESSION_ID;
+    env.CLAUDE_CODE_SESSION_ID = harness;
+  }
+  const run = await callHookAsync(HOOK, { tool_name: "Bash", tool_input: { command }, cwd: process.cwd() }, env);
   return { ...run, out: run.stdout.trim() ? JSON.parse(run.stdout) : null };
 };
 const because = (run) => run.out?.hookSpecificOutput?.permissionDecisionReason ?? "";
@@ -193,6 +198,30 @@ test("the re-send passes, and no read of the transcript decided either answer", 
   assert.equal((await gate("forge advance ISS-29", { fresh: false })).out, null);
   const source = readFileSync(new URL("../../../hooks/gates/issue-read-first.mjs", import.meta.url), "utf8");
   assert.ok(!/transcript/u.test(source), "the gate that read one credited another turn's read and missed its own");
+});
+
+/* The run's own record was quoted back at it on every write after it, once per half of the gate,
+   because the CLI credited the id the command exported and this hook asked under the one its harness
+   was handed. Two harness ids and one run is the shape that tells those two readings apart. */
+test("the id the command grants is whose reading counts, and a second harness id is not a second run", async () => {
+  state.comments = { [UUID]: [comment("c1", "the record this run wrote thirty seconds ago")] };
+  const command = "export FORGE_SESSION_ID=the-run && forge advance ISS-29";
+  const first = await gate(command, { harness: "harness-one" });
+  assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
+  assert.equal((await gate(command, { harness: "harness-two" })).out, null,
+    "and the credit is the run the command names, which outlives the session that spawned it");
+});
+
+/* The other half of the same reading: crediting the harness would satisfy every run under it, and a
+   run of its own has been shown nothing by its dispatcher having looked. */
+test("a command granting an id nobody credited is denied, whatever the harness was shown", async () => {
+  state.comments = { [UUID]: [comment("c2", "shown to the harness and to no run of its own")] };
+  const shown = await gate("forge advance ISS-29", { harness: "harness-three" });
+  assert.equal(shown.out.hookSpecificOutput.permissionDecision, "deny", "the harness has not looked either");
+  assert.equal((await gate("forge advance ISS-29", { harness: "harness-three" })).out, null, "and now it has");
+  const own = await gate("export FORGE_SESSION_ID=another-run && forge advance ISS-29", { harness: "harness-three" });
+  assert.equal(own.out.hookSpecificOutput.permissionDecision, "deny",
+    "which satisfies nothing for a run that has not");
 });
 
 test("the uuid form is denied where the reference form is", async () => {

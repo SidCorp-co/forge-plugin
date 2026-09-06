@@ -15,6 +15,8 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
+import { idGrantedBy } from "./granted-id.mjs";
+
 export const configDir = (name) =>
   join(process.env.XDG_CONFIG_HOME || join(homedir(), ".config"), name);
 
@@ -101,8 +103,14 @@ export const INHERITED_MEANS =
 export const OWN_ID = "Give each run an id of its own in FORGE_SESSION_ID.";
 
 /* Ordered, first row holding an id wins. Each carries its own `said`, so a row added here needs no
-   edit elsewhere, and `environment` marks the two a process was handed rather than found. */
+   edit elsewhere; `environment` marks the two a process was handed rather than found, and `granted`
+   is neither, being read off an event about a process that has not started. */
 const SOURCES = [
+  {
+    source: "granted",
+    read: (ev) => idGrantedBy(ev?.tool_input?.command),
+    said: () => "FORGE_SESSION_ID — the command this call is judging grants it to the run inside it",
+  },
   {
     source: "asked",
     read: () => process.env.FORGE_SESSION_ID || null,
