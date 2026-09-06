@@ -4017,3 +4017,28 @@ verdicts, the mark, the release verification and ISS-472 and ISS-475 were read b
   the cheapest correction on record.
 - The scoped gate passed eight steps of thirteen; a criterion that says *whole* earned a full run
   beside it rather than a smaller word, and the full run is what the verdict cites.
+
+## Hundred-and-fifty-sixth dry run — ISS-458
+
+The tracker's untrusted-data fence is stripped once, at the transport, so no verb prints it and no
+other module knows it (3.35.171, landed as 7f32bc7, pushed head 427d926, twenty-six files). Filed at
+the user's word the same morning and landed the same day. Two consult rounds found the two seams that
+carry the change: the strip goes on what parsed and never on the wire text, and it goes inside the
+reader rather than around it, because the path prefix breaks the opener off its own line. No restart
+owed. Closed by its run. Folded from its handback; the seventeen comments on the thread, the mark, the
+two reviews and ISS-470 were read back.
+
+- The plan was written while four flow modules were held by ISS-452, and both held-file runs landed
+  mid-flight and changed the right answer: the seventeen callers of the trim shim were then free to
+  retire, and the run judged a blanket substitution noisier than the per-site retirement it filed as
+  ISS-470. A gap record says the method had no step for a hold that lifts.
+- Three verified knowledge entries named the fence's old home and were made false by the landing; the
+  run corrected them in place with the landing's commit and the moving issue in their metadata. That is
+  the first fold of the knowledge store by the run that broke it, and it is what "verified" has to mean.
+- The ship reported the batch reading it owed and filed nothing, because ISS-474 already held that
+  mark. The right silence, and the second time today one run's ship met another's filing.
+- A reviewer's scope and the answers it left unverified have no field on the review record; they went
+  in a plain comment, and ISS-34 already owes the field. Met, not re-filed.
+- Two verdict texts came back from the tracker with a marker token mangled mid-prose; the attached
+  evidence carries the exact text. Another product's sanitiser, out of scope by the issue's own words,
+  and not a `forge feedback`.
