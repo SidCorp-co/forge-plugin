@@ -4154,3 +4154,59 @@ from its handback; the mark, the eight filings and the routed comments were read
 - One helper could not go where it belonged because a one-line module allows zero comment lines. It
   went next door with a correction saying so. A density rule has a floor, and the floor is a fact the
   reading meets.
+
+## Hundred-and-sixty-first dry run — ISS-334
+
+A filing's record carries what the CLI read it as: the kind is required on `forge new` and refused
+before the body is read, a fourth kind `review` exists, an unranked filing is written `none` and never
+`low`, keys named in a body are offered as edges with a comma list on both filing verbs, and the
+feedback route's exact-title fold is gone (3.35.176, landed as 69baa56, pushed head a6c93cd). The
+sixth premise, the complexity field, was already ISS-317's and was not rebuilt. Proven live rather than
+by fixture: the ship's own batch-reading filing came back with the review kind, priority none and
+eight edges read off the range's commit subjects. No restart owed. Closed by its run. Folded from its
+handback; the twelve comments returned, ISS-502 and ISS-503 were read back.
+
+- The run landed second behind the batch reading and replayed onto it with two conflicts resolved by
+  hand, both named on the mark as paths the landing moved, which cost a second review record, a second
+  gate and all twenty-three verdicts again. Its gap record says Phase 4's last step has no branch for a
+  replay that conflicts. ISS-333's landing lock is the answer to the race; the branch in the method is
+  its own issue.
+- Seven of the batch reading's eight routed simplifications were refused with one reason: landing them
+  after the whole-set read at the commit would have made the review non-approving. The eighth was in
+  the run's own hold set and was taken. A routed item arriving after the read is the next run's.
+- Four superseded records sit on the thread behind the comment cut: a routed record posted as a test
+  of a refusal's head, two duplicates from re-running routing commands unconditionally, and a
+  placeholder verdict. None can be erased. A write to the tracker is a write, and a probe of a
+  refusal belongs on a fixture.
+- One ship attempt carried the temporary config override meant for tests and was corrected on the
+  resume. The rule that a run's own verbs use the live config has to survive into the ship command.
+- The ship printed its own launch line for ISS-502 and the run could not act on it: a runner does not
+  dispatch. The dispatcher reads that line off the handback.
+
+## Hundred-and-sixty-second dry run — ISS-500
+
+The profiler measures what the eval discussion had measured by hand: five edit classes where there
+was one, a size on every call taken from its own input, and two new profile lines — one for edits, one
+for ship passes with their resumes and rejected pushes (3.35.177, landed as 4993f3b, pushed head
+134d6dd). The eval's figure line
+carries ship passes and edit characters per run, and the harness-eval guide's Phase 3b names both
+lines. Worked by the dispatching session at the user's word: what an eval finds is built into the CLI
+and the skill, not kept in a memory. Fix tier throughout. No restart owed. Closed by its run.
+
+- The first live reading corrected the hand measurement: 232 ship passes over two days with 60
+  resumes, where the script had counted 60 passes and 7 resumes because it excluded resumes; and edit
+  characters per run doubled between the eval's two windows. A measure kept in a verb is one the next
+  reader gets for the price of typing it.
+- The whole-set read raised two findings the commit-time consults had not: the new class rows were not
+  anchored at a command position, so a grep naming the shapes would have counted as an edit; and an
+  exclusion of the review sub-verb was dead, since the ship's row already requires the word. Both
+  fixed, both pinned. The read of the whole files finds what a diff hides.
+- A rejected push was first detected off its sentence anywhere in a result, which would have counted a
+  read of the source or of the test that carries the sentence. Two consult rounds narrowed it to the
+  rendered refusal in a ship result or a read of a log path, and the fixture pins a read of the test
+  file as no rejection. A phrase the code prints is also a phrase the code contains.
+- The docs topic sat thirty-eight characters under its cap before the change, so a paragraph cost four
+  trims elsewhere, including a heading that counted three corrections where four bullets stood. A cap
+  is met by taking words out, and the words that go first are the stale ones.
+- Fourteen tracker writes; read-first held eight once each on the run's own previous record, the shape
+  ISS-497 now carries with its mechanism.
