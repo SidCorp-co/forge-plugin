@@ -1,0 +1,41 @@
+{
+  "taken": "2026-09-06",
+  "routes": {
+    "answer": "PATCH /issues/:documentId"
+  },
+  "rest": {
+    "answer": {
+      "id": "ad4afc2c-4642-4827-a0d0-620e1219a124",
+      "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+      "issSeq": 523,
+      "title": "ISS-508 capture scratch — deleted by the script that made it",
+      "description": "## What happens today\n\nA capture script made this row to read one REST answer back.\n\n## Outcome\n\nIt is deleted before the script exits.\n",
+      "descriptionFormat": "markdown",
+      "descriptionTemplate": null,
+      "status": "open",
+      "priority": "low",
+      "category": null,
+      "reportedBy": null,
+      "createdVia": "web",
+      "detectorKey": null,
+      "assigneeId": null,
+      "createdById": "0a3bb457-c689-4773-bf87-f3aba7198539",
+      "mergedAt": null,
+      "complexity": null,
+      "reopenCount": 0,
+      "waitingKind": null,
+      "source": "manual",
+      "externalId": null,
+      "plan": "one line",
+      "acceptanceCriteria": null,
+      "sessionContext": null,
+      "releaseNotes": null,
+      "metadata": null,
+      "releaseBatchRunId": null,
+      "identSearch": "'508':2 'a':15 'answer':25 'back':26 'before':31 'by':6 'capture':3,16 'deleted':5,30 'exits':34 'happens':13 'is':29 'iss':1 'it':11,28 'made':10,18 'one':23 'outcome':27 'read':22 'rest':24 'row':20 'scratch':4 'script':8,17,33 'that':9 'the':7,32 'this':19 'to':21 'today':14 'what':12",
+      "createdAt": "2026-09-06T09:23:08.415Z",
+      "updatedAt": "2026-09-06T09:23:08.724Z",
+      "displayId": "ISS-523"
+    }
+  }
+}

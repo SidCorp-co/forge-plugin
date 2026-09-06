@@ -108,12 +108,11 @@ test("a base name on none of the issue's documents is sent as before", async () 
 
 /* The list takes no cursor, so past its cut the names cannot be read whole — and unlike `record
    --evidence`, which can cite a URL and send nothing, a refusal here is one nothing the caller could
-   type would clear. So it is said, in the tracker's own count and cap (ISS-131), and sent. */
+   type would clear. So it is said, in the count the tracker returned (ISS-131), and sent. */
 test("a comment page the tracker cut is said on stderr, and the file still goes up", async () => {
   state.answer.forge_comments = (args) =>
     (args.action === "list"
-      ? { comments: [{ documentId: COMMENT, body: "one of many", attachments: [] }], returned: 1,
-        hasMore: true, truncatedBy: "response-size" }
+      ? { comments: [{ documentId: COMMENT, body: "one of many", attachments: [] }], returned: 1, hasMore: true }
       : { documentId: COMMENT });
   /* The first call is spent on the read-before-write hold, which the page's own comment earns. */
   await ask("attach", "issue", "ISS-1", wrote("cut-page.txt"));
@@ -121,8 +120,8 @@ test("a comment page the tracker cut is said on stderr, and the file still goes 
   delete state.answer.forge_comments;
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /^The names already on ISS-1 cannot be read whole\./mu);
-  assert.match(run.stderr, /returned 1 comment\(s\) and reported more behind them, cut by response size/u,
-    "the tracker's own count and cap, never a number of ours (ISS-131)");
+  assert.match(run.stderr, /returned 1 comment\(s\) and reported more behind them, for a reason it did not name/u,
+    "the count the tracker returned, and no cap of ours (ISS-131)");
   assert.match(run.stderr, /resolves to two documents/u, "what the unread names could cost");
   assert.ok(sunk.some((one) => one.endsWith("/put/cut-page.txt")), `sank ${sunk.join(", ")}`);
 });

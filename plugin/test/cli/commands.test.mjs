@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { terse } from "../../src/commands.mjs";
 import { MAX_LIMIT } from "../../src/tracker/issues.mjs";
 import { uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
-import { fakeTracker, pageOf, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, pageOf, ranAsync, shortPage, tempRoom } from "../fixtures.mjs";
 
 /* The shape forge_uploads returns, as observed on ISS-22's one attachment. */
 const ATTACHMENT = {
@@ -183,12 +183,11 @@ test("a walked reading claims no cut", async () => {
   assert.doesNotMatch(run.stdout, /incomplete/u, "nothing was withheld, so nothing is owed to say so");
 });
 
-/* Every row on one timestamp: an interval one millisecond wide is the only indivisible one, so this
-   is the only shape a walk cannot get past, and the honest sentence is what is left. */
-const ALWAYS_CUT = ROWS.map((one) => ({ ...one, createdAt: "2026-01-01T00:00:00.000Z" }));
-const stuckAt = (fits) => {
-  state.issues = ALWAYS_CUT;
-  state.answer = { forge_issues: pageOf(ALWAYS_CUT.map((one, at) => ({ ...one, touched: at })), fits) };
+/* The one reading an offset walk cannot finish: a route counting rows it will not serve, so the
+   walk pages to the end of what it hands over and the count still says there are more. */
+const stuckAt = (served) => {
+  state.issues = ROWS;
+  state.answer = { forge_issues: shortPage(ROWS.slice(0, served), ROWS.length - served) };
 };
 
 test("a reading that stays cut says so, in the count it measured", async () => {
@@ -198,13 +197,6 @@ test("a reading that stays cut says so, in the count it measured", async () => {
   const said = run.stdout.split("\n").find((line) => line.includes("incomplete")) ?? "";
   assert.match(said, /2 issue\(s\) over \d+ page\(s\)/u);
   assert.doesNotMatch(said, /\b(?:200|500)\b/u, "a limit in this sentence is the one thing that cannot help");
-});
-
-test("the tracker's own notice reaches the reader, which is where the route lives", async () => {
-  stuckAt(2);
-  const run = await ran(["issues"]);
-  assert.match(run.stdout, /A higher limit will NOT help/u,
-    "the only sentence that knows which cap bit, and it is the tracker's");
 });
 
 test("that reading routes to an ask narrow enough to come back whole", async () => {
@@ -273,21 +265,17 @@ test("a short page from a server that reports nothing is read as whole", async (
   state.answer = undefined;
 });
 
-/* A page that names the cap that cut it is a cut page, whichever of the envelope's other fields the
-   answer happens to carry: a reading resting on one field alone is the defect again, one field over. */
-test("a page naming only the cap that bit is still walked past", async () => {
+/* A page saying rows are behind it is walked past however few rows it carried, and the walk asks
+   from where it got to: a reading that stopped at the first short page is the defect again. */
+test("a page reporting rows behind it is walked past, and every row is printed", async () => {
   state.issues = ROWS;
-  let asked = 0;
-  state.answer = {
-    forge_issues: () => {
-      asked += 1;
-      return asked === 1
-        ? { issues: ROWS.slice(0, 2), returned: 2, truncatedBy: "response-size" }
-        : { issues: ROWS.slice(2), returned: 2 };
-    },
-  };
+  state.answer = { forge_issues: pageOf(ROWS, 2) };
+  state.calls = [];
   const run = await ran(["issues"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.ok(asked > 1, "one field was enough to read the cut and walk on");
+  assert.deepEqual(keysOf(run).sort(), ROWS.map((one) => one.issueId).sort());
+  assert.doesNotMatch(run.stdout, /incomplete/u, "nothing was withheld, so nothing is owed to say so");
+  const offsets = state.calls.filter((one) => one.query?.offset).map((one) => one.query.offset);
+  assert.deepEqual(offsets, ["2"], "and the second ask started where the first left off");
   state.answer = undefined;
 });

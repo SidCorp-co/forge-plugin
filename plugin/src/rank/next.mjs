@@ -85,7 +85,9 @@ const withRelations = (blocks, blockedBy, body) => {
 const bodiesFor = async (window) =>
   new Map(await Promise.all(window.map(async (one) => [
     one.issueId,
-    await scoped("forge_issues", { action: "get", documentId: one.row.documentId }),
+    /* The edges are named because the ordering reads them; the attachments are not, and this runs
+       once per candidate, so the route nobody asked for would be paid for a window at a time. */
+    await scoped("forge_issues", { action: "get", documentId: one.row.documentId, fields: ["relations"] }),
   ])));
 
 /** How many eligible candidates the printing can need: a batch absorbs members, so `count` batches

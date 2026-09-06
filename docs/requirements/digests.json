@@ -230,12 +230,12 @@
       "digest": "e7f55778b62b6a05407439371ecf7c8ca0132efdd383b12cccee3b37ee006600"
     },
     "EI-01": {
-      "rev": 1,
-      "digest": "d531a334524c3cca6c08230b8d679ce1912d65909a8712afaafd65df3a294cc5"
+      "rev": 2,
+      "digest": "aba910fcd5c1f4f0fceadccbed0d7967cb81e19bacd2b97138866bb7223f3baa"
     },
     "AC-19-1-1": {
-      "rev": 1,
-      "digest": "cb1cb8381829279cf07c0f8441277fa22bc44f57ace4f3b1322bed9274cfa621"
+      "rev": 2,
+      "digest": "a1e625baf39e2e04a38db8480e25d21557adfc4c83c7c1733821db5c82bd5ca2"
     },
     "AC-19-1-2": {
       "rev": 2,
@@ -390,12 +390,12 @@
       "digest": "05b99a74e144baef35d20a335601ec7e56dae1b4a75ff5859d772b14e1560dc0"
     },
     "UC-02-1": {
-      "rev": 2,
-      "digest": "bf0cc563b4e1a8b0e9c2b44c716ae61a7fc29dc1ea7cdeb47b0ea2fe5127415b"
+      "rev": 3,
+      "digest": "d322a9f84f6ef0192203dff6fbb34bdf1a4a921c999257573548037dbcc2287f"
     },
     "AC-02-1-1": {
-      "rev": 1,
-      "digest": "7b2df4860a365738c4e6617437151d2b687777924fb9a41178f17738f37037b9"
+      "rev": 2,
+      "digest": "c8df475ac2aa15b39a84a3703762997b11cd57d3d415a51a348fd9bb70f22076"
     },
     "AC-02-1-2": {
       "rev": 1,
@@ -414,12 +414,12 @@
       "digest": "e748249bb7d50bfc132bbb96ea8e92666bef3cb2fe6158c4c87d978ab75bf83e"
     },
     "AC-02-1-6": {
-      "rev": 1,
-      "digest": "1bf3f86df58cce5725c8daeaf2f5e9f3540ff912ace794717cb22fb738b25d1a"
+      "rev": 2,
+      "digest": "4170039d084a7ac1419b52bb5ed3cbc709a4cd1aea5fec81efedd513a3c739a7"
     },
     "AC-02-1-7": {
-      "rev": 1,
-      "digest": "358967594553abbccd1eb5409222bb449aa0b39fccff8d3cb4f5e73646404508"
+      "rev": 2,
+      "digest": "30071f8e5b95b9ddf0f7b1757dacbd3f5d3c23d28eaf69e896584ac0de97d389"
     },
     "UC-02-2": {
       "rev": 1,
@@ -458,12 +458,16 @@
       "digest": "af2c539eeb7eee649e7dec66b051c9120dadae73d745d03e6cef90c2ea0a1744"
     },
     "UC-02-6": {
-      "rev": 1,
-      "digest": "c8da439f67d80f5fa5538e3f3e3e579ac2a6596526762a9c348be2694b29d03e"
+      "rev": 2,
+      "digest": "203e0cf802f87aaebbd7267d5a39e3eefd6285d6c87a2ac61b83c2c459ead5a6"
     },
     "AC-02-6-1": {
       "rev": 1,
       "digest": "5ab6a6afb74c5e128d1b52e67d9a151cec58ab36ee24af32c70b372be15aad26"
+    },
+    "AC-02-6-2": {
+      "rev": 1,
+      "digest": "cdf5ba023bc0b111e4cf845194c4bb39522b91aa22e7eacbc75bad8a825efa57"
     },
     "UC-02-7": {
       "rev": 1,

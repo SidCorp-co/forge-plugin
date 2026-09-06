@@ -4,10 +4,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync } from "../fixtures.mjs";
+import { fakeTracker, ranAsync } from "../../fixtures.mjs";
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../..", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const ROOT = new URL("../../../..", import.meta.url).pathname;
 
 /* `unheardOfKey` is named in no source file: it stands for the field the tracker grows next. */
 const ISSUE = {
@@ -46,7 +46,11 @@ const asked = async (...argv) => {
   return { ...run, body: run.status === 0 ? JSON.parse(run.stdout) : null };
 };
 
-const gets = () => state.calls.filter((one) => one.args?.action === "get");
+/* Sorted, because the parts of one read are asked for together and arrive in no fixed order. */
+const paths = () => state.calls
+  .filter((one) => one.method === "GET" && one.path?.startsWith("/api/issues/"))
+  .map((one) => one.path)
+  .sort();
 
 test("a name only the body carries answers where it used to be refused", async () => {
   const run = await asked("--fields", "status");
@@ -65,24 +69,27 @@ test("a projection prints nothing the ask did not name", async () => {
   assert.deepEqual(Object.keys(run.body), ["documentId", "issueId", "status"]);
 });
 
-test("a name the tracker declares is still projected on the wire", async () => {
-  const run = await asked("--fields", "plan");
-  assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(gets().map((one) => one.args.fields), [["plan"]]);
-  assert.equal(run.body.plan, ISSUE.plan);
-});
-
-test("one ask mixing a declared name with a body-only one answers both", async () => {
+test("one ask naming two fields answers both", async () => {
   const run = await asked("--fields", "plan,status");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(run.body.plan, ISSUE.plan);
   assert.equal(run.body.status, "open");
 });
 
-test("the mixed ask costs one get, and asks it for the whole body", async () => {
+/* The issue's body is one route and its edges and attachments are two more, so a read that named
+   neither pays for neither: the lease alone reads a field four times a command. */
+test("a read naming fields skips the routes those fields are not on", async () => {
   await asked("--fields", "plan,status");
-  assert.equal(gets().length, 1);
-  assert.equal(gets()[0].args.fields, undefined);
+  assert.deepEqual(paths(), [`/api/issues/${ISSUE.documentId}`]);
+});
+
+test("a read naming no field at all reads the whole issue, edges and attachments included", async () => {
+  await asked("--full");
+  assert.deepEqual(paths(), [
+    `/api/issues/${ISSUE.documentId}`,
+    `/api/issues/${ISSUE.documentId}/dependencies`,
+    `/api/issues/${ISSUE.documentId}/attachments`,
+  ].sort());
 });
 
 test("a field comes back under the word this verb prints it under", async () => {
@@ -121,15 +128,11 @@ test("a key only the answer carries is selectable, with no name kept here", asyn
   assert.equal(run.body.unheardOfKey, ISSUE.unheardOfKey);
 });
 
-test("a declared name the answer left out is empty rather than a typo", async () => {
-  const run = await asked("--fields", "fixture-only,status");
-  assert.equal(run.status, 0, run.stderr);
-  assert.equal(run.body.status, "open");
-  assert.equal(Object.hasOwn(run.body, "fixture-only"), false);
-});
-
-test("a name only the tracker's enum declares goes to the wire rather than back as a typo", async () => {
+/* The route answers with every column of the issue, so the askable set is the answer's own keys: a
+   name it does not carry is a typo and nothing else, and the column the tracker grows next is
+   selectable the day it appears without a list here learning about it. */
+test("a name the answer does not carry is a typo, and no declaration excuses it", async () => {
   const run = await asked("--fields", "fixture-only");
-  assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(gets().map((one) => one.args.fields), [["fixture-only"]]);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No field named fixture-only\./u);
 });

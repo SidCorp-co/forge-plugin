@@ -1,10 +1,11 @@
-/* A human reference is resolved through one list of every issue, and `forge dep <a> <b>` asks for
-   two of them at once — so what a memo holds has to be the request and not its answer. */
+/* A human reference is resolved by searching the offsets of the set ordered oldest first, and the
+   whole set is read by paging that same order — so what is judged here is the arithmetic on both:
+   how many requests a key costs, and that a walk ends where the route says there is nothing behind. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { pageOf, tempRoom } from "../fixtures.mjs";
+import { tempRoom } from "../fixtures.mjs";
 
 /* Imported after the endpoint is written, because `resolve/config.mjs` resolves its path on load. */
 const HOME = tempRoom("issues-home-");
@@ -15,52 +16,59 @@ writeFileSync(
 );
 process.env.XDG_CONFIG_HOME = HOME;
 
-const ROWS = [
-  { issueId: "ISS-1", documentId: "aaaa" },
-  { issueId: "ISS-2", documentId: "bbbb" },
-];
+const row = (number) => ({
+  id: `u-${number}`,
+  displayId: `ISS-${number}`,
+  status: "open",
+  priority: "medium",
+  createdAt: `2026-01-${String(number).padStart(2, "0")}T00:00:00.000Z`,
+  title: `issue ${number}`,
+});
 
-/* What the tracker answers, which a paging case replaces. The default is the whole set in one whole
-   page, so a case about anything else asks for nothing it has to describe. */
-let scene = () => ({ issues: ROWS });
+/* The set the stub serves, and how many rows one request of it carries. A case replaces both. */
+let SET = [row(1), row(2)];
+let FITS = 200;
 const asked = [];
-const filters = [];
-globalThis.fetch = async (url, init) => {
-  const sent = JSON.parse(init.body);
-  asked.push(sent.params?.name ?? sent.method);
-  if (sent.params?.name === "forge_issues") filters.push(sent.params?.arguments?.filters ?? {});
-  const result =
-    sent.method === "tools/list"
-      ? { tools: [{ name: "forge_issues", inputSchema: { properties: {} } }] }
-      : { structuredContent: scene(sent.params?.arguments ?? {}) };
+
+const paged = (url) => {
+  const query = url.searchParams;
+  const offset = Number(query.get("offset") ?? 0);
+  const limit = Math.min(Number(query.get("limit") ?? 200), FITS);
+  const rows = query.get("sort") === "createdAt:asc" ? SET : [...SET].reverse();
+  const filtered = rows.filter((one) => !query.get("status") || one.status === query.get("status"));
+  const page = filtered.slice(offset, offset + limit);
   return {
-    ok: true,
-    status: 200,
-    headers: new Map(),
-    text: async () => JSON.stringify({ jsonrpc: "2.0", id: 1, result }),
+    items: page,
+    returned: page.length,
+    total: filtered.length,
+    limit,
+    offset,
+    hasMore: offset + page.length < filtered.length,
   };
 };
 
-const { documentIdOf, queued } = await import("../../src/tracker/issues.mjs");
+globalThis.fetch = async (address) => {
+  const url = new URL(address);
+  asked.push({ path: url.pathname, query: Object.fromEntries(url.searchParams) });
+  const body = url.pathname === "/api/projects"
+    ? [{ id: "p-1", slug: "forge-plugin" }]
+    : paged(url);
+  return { ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify(body) };
+};
 
-test("two references resolved at once share one list", async () => {
-  const both = await Promise.all([documentIdOf("ISS-1"), documentIdOf("ISS-2")]);
-  assert.deepEqual(both, ["aaaa", "bbbb"]);
-  assert.deepEqual(
-    asked.filter((name) => name === "forge_issues"),
-    ["forge_issues"],
-    "`dep <a> <b>` resolves both from the same request",
-  );
-  assert.equal(await documentIdOf("ISS-2"), "bbbb");
-  assert.equal(asked.filter((name) => name === "forge_issues").length, 1, "and a later one refetches nothing");
-});
+const { documentIdOf, everyIssue, keeps, queued } = await import("../../src/tracker/issues.mjs");
+
+const lookups = () => asked.filter((one) => one.query.limit === "1").length;
+const pages = () => asked.filter((one) => one.query.limit !== "1" && one.path.endsWith("/issues")).length;
 
 test("a uuid is its own answer and asks for no list", async () => {
   const uuid = "56d4641e-fd47-4a80-b468-2c602265ce85";
+  asked.length = 0;
   assert.equal(await documentIdOf(uuid), uuid);
+  assert.equal(asked.length, 0);
 });
 
-/* The order the page is worked in, which the tracker has no argument for: its `list` answers in the
+/* The order the page is worked in, which the tracker has no argument for: its list answers in the
    order things were last touched, so a queue is the CLI's to impose on what arrived. */
 const ORDER = ["critical", "high", "medium", "low", "none"];
 const at = (priority, createdAt, issueId = priority) => ({ issueId, priority, createdAt });
@@ -99,152 +107,79 @@ test("a row with no timestamp takes the back of its rank and keeps the page it a
   assert.deepEqual(keys(rows), ["dated", "undated"]);
 });
 
-test("a schema declaring no set leaves the page exactly as it arrived", () => {
+test("a declaration carrying no set leaves the page exactly as it arrived", () => {
   const rows = [at("low", "2026-01-01"), at("critical", "2026-01-01")];
   assert.deepEqual(keys(rows, []), ["low", "critical"]);
   assert.deepEqual(queued(rows, []), rows, "and the rows themselves are the ones handed in");
 });
 
-/* The crack is in the difference between what a list is asked for and what it answers, so the case
-   needs the tracker's own paging: `fixtures.pageOf`. A `touched` out of step with `createdAt` is
-   what a created-order frontier walks straight past. */
-const day = (one) => `2026-01-0${one}T00:00:00.000Z`;
-const CUT = [
-  { issueId: "ISS-1", documentId: "one", createdAt: day(1), touched: 1 },
-  { issueId: "ISS-2", documentId: "two", createdAt: day(2), touched: 2 },
-  { issueId: "ISS-3", documentId: "three", createdAt: day(3), touched: 3 },
-  { issueId: "ISS-4", documentId: "four", createdAt: day(4), touched: 6 },
-  { issueId: "ISS-5", documentId: "five", createdAt: day(5), touched: 4 },
-  { issueId: "ISS-6", documentId: "six", createdAt: day(6), touched: 5 },
-];
+/* Where nothing below a key was removed, its number is the offset it sits at, and the arithmetic is
+   what makes the lookup one request rather than a walk of the backlog. */
+const WHOLE = Array.from({ length: 40 }, (unused, index) => row(index + 1));
 
-/* The index is one per process by design, so a case that walks it starts from an empty one. */
-let cases = 0;
-const walking = async (rows = CUT, fits = 2) => {
-  scene = pageOf(rows, fits);
+test("a key on a backlog with no gaps costs one request, whatever page it would be on", async () => {
+  SET = WHOLE;
+  FITS = 2;
   asked.length = 0;
-  cases += 1;
-  return (await import(`../../src/tracker/issues.mjs?case=${cases}`)).documentIdOf;
-};
-const lists = () => asked.filter((name) => name === "forge_issues").length;
-
-test("a key the first page could not carry resolves anyway", async () => {
-  const resolve = await walking();
-  assert.equal(await resolve("ISS-1"), "one", "the oldest issue, four pages under the waterline");
+  assert.equal(await documentIdOf("ISS-37"), "u-37");
+  assert.equal(lookups(), 1, `${lookups()} request(s) for a key nineteen pages down`);
 });
 
-test("a key created after one on the page, and absent from it, resolves too", async () => {
-  const resolve = await walking();
-  assert.equal(await resolve("ISS-5"), "five",
-    "ISS-5 is younger than ISS-4, which the page carries, so the gap is not a range");
-});
+/* Rows deleted below the key move the answer earlier than its number, which is the case the search
+   exists for; it has to end, and to cost less than reading the backlog. */
+const GAPPED = [row(2), row(5), row(11), row(12), row(30)];
 
-test("a key on the first page costs one request, cut page or not", async () => {
-  const resolve = await walking();
-  assert.equal(await resolve("ISS-4"), "four");
-  assert.equal(lists(), 1, "nothing is walked for a key already in hand");
-});
-
-test("the walk stops at the key instead of reading the backlog first", async () => {
-  const near = await walking();
-  await near("ISS-5");
-  const stopped = lists();
-  const far = await walking();
-  await far("ISS-1");
-  assert.ok(stopped < lists(), `${stopped} request(s) for ISS-5 should be under ${lists()} for ISS-1`);
-});
-
-test("two references under the waterline share one walk", async () => {
-  const resolve = await walking();
-  assert.deepEqual(await Promise.all([resolve("ISS-1"), resolve("ISS-2")]), ["one", "two"]);
-  const together = lists();
-  const alone = await walking();
-  await alone("ISS-1");
-  assert.equal(together, lists(), "the second reference waited for the first walk rather than running one");
-});
-
-test("a page the tracker answers with no envelope at all is read as whole", async () => {
-  scene = () => ({ issues: ROWS });
+test("a key with rows deleted below it is found by searching the offsets", async () => {
+  SET = GAPPED;
+  FITS = 200;
   asked.length = 0;
-  cases += 1;
-  const { documentIdOf: resolve } = await import(`../../src/tracker/issues.mjs?case=${cases}`);
-  assert.equal(await resolve("ISS-1"), "aaaa");
-  assert.equal(lists(), 1, "a short page from a server that says nothing is not a reason to walk");
+  assert.equal(await documentIdOf("ISS-30"), "u-30");
+  assert.ok(lookups() > 1, "the offset the key implies was past the end");
+  assert.ok(lookups() <= GAPPED.length, `${lookups()} request(s) for ${GAPPED.length} rows`);
 });
 
-/* Touched in reverse, so the two rows the page carries are the two created EARLIEST. The newest
-   stamp on a cut page is then nowhere near the newest creation under the frontier, and a walk that
-   treats it as the last subdivision available gives up with the key still reachable. */
-const TOUCHED_BACKWARDS = CUT.map((one, place) => ({ ...one, touched: CUT.length - place }));
+/* A key nothing holds exits the process rather than throwing, so both refusals are judged where a
+   refusal can be read — `plugin/test/cli/reference-lookup.test.mjs`, which spawns the verb. */
 
-test("a cut page whose newest stamp is nowhere near the newest creation still resolves", async () => {
-  const resolve = await walking(TOUCHED_BACKWARDS);
-  assert.equal(await resolve("ISS-6"), "six", "narrowing to a stamp the page returned would stop short");
-});
-
-/* The walk keeps the rows now, not only the key it was walking for: every reader of the whole set
-   takes it, and a reader that took one page reported a fifth of the backlog as all of it (ISS-221). */
-const reading = async (rows = CUT, fits = 2) => {
-  scene = pageOf(rows, fits);
+test("the whole set is paged to the end, however many pages that takes", async () => {
+  SET = WHOLE;
+  FITS = 7;
   asked.length = 0;
-  filters.length = 0;
-  cases += 1;
-  return (await import(`../../src/tracker/issues.mjs?case=${cases}`)).everyIssue;
-};
-
-const found = (read) => read.rows.map((one) => one.issueId).sort();
-
-test("a set no single answer can hold comes back whole anyway", async () => {
-  const everyIssue = await reading();
-  const read = await everyIssue();
-  assert.deepEqual(found(read), ["ISS-1", "ISS-2", "ISS-3", "ISS-4", "ISS-5", "ISS-6"]);
-  assert.equal(read.whole, true, "a window with no lower bound came back uncut, which is the only licence");
-  assert.ok(read.pages > 1, `${read.pages} request(s) for six rows two at a time`);
-});
-
-test("a set one answer holds costs one request and says so", async () => {
-  const everyIssue = await reading(CUT, 6);
-  const read = await everyIssue();
-  assert.equal(read.rows.length, 6);
-  assert.deepEqual({ whole: read.whole, pages: read.pages }, { whole: true, pages: 1 });
-});
-
-/* The caller's own interval is the walk's ceiling and floor. A frontier read off a window is a
-   subdivision of it, and a walk that let one widen past the bound would hand back rows the caller
-   excluded — silently, and looking exactly like a correct answer. */
-const before = (at) => filters.every((one) => !one.createdBefore || Date.parse(one.createdBefore) <= at);
-const after = (at) => filters.every((one) => !one.createdAfter || Date.parse(one.createdAfter) >= at);
-
-test("a walk under the caller's createdBefore never widens past it", async () => {
-  const everyIssue = await reading(TOUCHED_BACKWARDS);
-  const read = await everyIssue({ createdBefore: day(4) });
-  assert.deepEqual(found(read), ["ISS-1", "ISS-2", "ISS-3"], "the bound is exclusive, so ISS-4 is out");
-  assert.ok(before(Date.parse(day(4))), `a window asked past the caller's ceiling: ${JSON.stringify(filters)}`);
-});
-
-test("a walk over the caller's createdAfter never widens below it", async () => {
-  const everyIssue = await reading(TOUCHED_BACKWARDS);
-  const read = await everyIssue({ createdAfter: day(4) });
-  assert.deepEqual(found(read), ["ISS-4", "ISS-5", "ISS-6"], "the bound is inclusive, so ISS-4 is in");
-  assert.ok(after(Date.parse(day(4))), `a window asked below the caller's floor: ${JSON.stringify(filters)}`);
+  const read = await everyIssue({ status: "open" });
+  assert.equal(read.rows.length, WHOLE.length);
+  assert.equal(read.whole, true);
+  assert.equal(pages(), Math.ceil(WHOLE.length / FITS));
 });
 
 test("two readers of one ask share the walk, and a second ask is walked on its own", async () => {
-  const everyIssue = await reading();
-  const [one, other] = await Promise.all([everyIssue(), everyIssue()]);
-  assert.deepEqual(found(one), found(other));
-  const shared = lists();
-  await everyIssue({ createdAfter: day(4) });
-  assert.ok(lists() > shared, "a different set of filters is a different set of rows");
+  SET = WHOLE;
+  FITS = 7;
+  asked.length = 0;
+  const [one, two] = await Promise.all([everyIssue({ status: "open" }), everyIssue({ status: "open" })]);
+  assert.equal(one.rows.length, two.rows.length);
+  const shared = pages();
+  await everyIssue({ status: "closed" });
+  assert.ok(pages() > shared, "a different ask is a different walk");
 });
 
-/* Every row on one timestamp: the interval a walk cannot subdivide, and the one reading that has to
-   report a ceiling rather than a count. */
-const ONE_TIMESTAMP = CUT.map((one) => ({ ...one, createdAt: day(1) }));
+/* The five filters the route does not narrow on are applied to the rows that came back, so the
+   browse verb keeps every flag it took. */
+test("a filter the route does not serve is applied to the page it answered with", () => {
+  assert.equal(keeps({ status: "open" }, { statusNot: "closed" }), true);
+  assert.equal(keeps({ status: "closed" }, { statusNot: "closed" }), false);
+  assert.equal(keeps({ complexity: "fix" }, { complexity: "fix" }), true);
+  assert.equal(keeps({ complexity: "s" }, { complexity: "fix" }), false);
+});
 
-test("a reading that stayed cut is handed back as one, with what it reached", async () => {
-  const everyIssue = await reading(ONE_TIMESTAMP);
-  const read = await everyIssue();
-  assert.equal(read.whole, false, "a millisecond-wide window still came back cut, so nothing licenses a count");
-  assert.equal(read.rows.length, 2, "and what it reached is what it reached");
+test("a date filter reads the row's own stamp, and an undated row is outside every window", () => {
+  const dated = { createdAt: "2026-02-01T00:00:00.000Z" };
+  assert.equal(keeps(dated, { createdAfter: "2026-01-01T00:00:00.000Z" }), true);
+  assert.equal(keeps(dated, { createdAfter: "2026-03-01T00:00:00.000Z" }), false);
+  assert.equal(keeps(dated, { createdBefore: "2026-03-01T00:00:00.000Z" }), true);
+  assert.equal(keeps({}, { createdAfter: "2026-01-01T00:00:00.000Z" }), false);
+});
+
+test("a filter nothing here applies leaves every row standing", () => {
+  assert.equal(keeps({ status: "open" }, { status: "open" }), true);
+  assert.equal(keeps({ status: "open" }, {}), true);
 });

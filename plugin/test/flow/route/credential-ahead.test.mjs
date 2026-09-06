@@ -95,6 +95,8 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);
+/* One route serves the project's config and its deploy alike, so what a count says is how many
+   times a run read that row: once for the config every run needs, twice where the line is built. */
 const fetched = () => state.calls.filter((one) => one.name === "forge_projects.get").length;
 
 /* The verb and not the helper: only a run says what the exit code was, and only the tracker's call
@@ -110,7 +112,7 @@ test("--owed says a screen change has no login to prove it with, and refuses not
   assert.match(said.stdout, /--verdict skipped --why/u, "and it names the skip");
   assert.match(said.stdout, /forge guide issue-flow verification/u, "and where the rest of it is");
   assert.equal(moves(), before, "a rehearsal moves nothing, this line included");
-  assert.ok(fetched() > nothing, "the project's deploy is read, the plan having declared a screen");
+  assert.equal(fetched() - nothing, 2, "the row is read a second time, the plan having declared a screen");
 
   state.deploy = LOGIN;
   const held = await owed("ISS-97");
@@ -124,7 +126,7 @@ test("--owed says a screen change has no login to prove it with, and refuses not
   const asked = fetched();
   const refused = await ranAsync(FORGE, ["advance", "ISS-97"], tracker.env);
   assert.equal(refused.status, 1, refused.stdout);
-  assert.equal(fetched(), asked, "a move that prints no line pays no round to build one");
+  assert.equal(fetched() - asked, 1, "a move that prints no line pays no round to build one");
 });
 
 test("a plan declaring no screen change pays no round to hear what the project's deploy holds", async () => {
@@ -132,7 +134,7 @@ test("a plan declaring no screen change pays no round to hear what the project's
   const quiet = await owed("ISS-98");
   assert.equal(quiet.status, 0, quiet.stderr);
   assert.doesNotMatch(quiet.stdout, /test credential/u, "nothing is said");
-  assert.equal(fetched(), before, "and nothing was asked to say it");
+  assert.equal(fetched() - before, 1, "and nothing beyond the config every run reads was asked to say it");
 });
 
 /* The shortfall case above would read the same if the line became a fifth thing owed, `--owed`

@@ -1,0 +1,67 @@
+{
+  "taken": "2026-09-06",
+  "tool": "forge_issues",
+  "action": "at",
+  "routes": {
+    "page": "GET /projects/cda0adf0-fa3e-436c-ad7e-f3357e62778a/issues?limit=1&offset=0&sort=createdAt:asc"
+  },
+  "note": "No tool answered this: the offset lookup replaces the MCP date-window walk, so what is pinned here is the envelope the projection reads its two fields off.",
+  "secretsDropped": [
+    "apiKey",
+    "webhookSecret"
+  ],
+  "rest": {
+    "answer": {
+      "items": [
+        {
+          "id": "ede0d97f-c1bf-4fc7-9d82-6fe56a827706",
+          "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+          "issSeq": 1,
+          "title": "A document the reviewer already read at this content is re-recorded pending when merely named",
+          "description": "## Outcome\n\nA document the second-opinion gate has already read, at the content it holds now, is never recorded as pending again. Reading it, listing it or naming it in a command changes nothing; only a change to its content does.\n\n## What happens today\n\nAfter a document is edited and consulted, any later command that merely names or reads the file inside the freshness window records it pending a second time. The commit gate then refuses every commit until the entry is dropped by hand, although the reviewer has read exactly this content. Seen three times in one afternoon on the same file while assembling a review page from it.\n\n## Business rules\n\n- Pending means \"content the reviewer has not read\". The record is keyed by content, not by when the file was last touched.\n- A file whose current content equals what the latest consult read is not pending, whatever its modification time.\n- A real edit after the consult still records the file, and the commit gate still refuses until that content is read.\n- Dropping an entry by hand stays available but is no longer needed for this case.\n\n## Invariants\n\n- No consult is skipped that would have been required before this change.\n- The freshness window for detecting a touched file stays as it is; only the decision to record changes.\n\n## Out of scope\n\n- The heuristic that detects a touched file in the first place.\n- The commit gate's other refusals.\n",
+          "descriptionFormat": "markdown",
+          "descriptionTemplate": null,
+          "status": "closed",
+          "priority": "medium",
+          "category": null,
+          "reportedBy": null,
+          "createdVia": "mcp",
+          "detectorKey": null,
+          "assigneeId": null,
+          "createdById": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "mergedAt": "2026-09-02T09:41:05.896Z",
+          "complexity": null,
+          "reopenCount": 0,
+          "waitingKind": null,
+          "source": "manual",
+          "externalId": null,
+          "plan": "## Plan\n\n**Files touched.** `plugin/src/codex-log.mjs` gains a reader for the hash the latest answered consult sent for one file of one checkout. `plugin/src/codex.mjs` (`hookRecord`) compares that hash with the file's current content before recording it. `plugin/test/codex.test.mjs` gains the case; `docs/FORGE-CLI.md` or the codex-turn how-doc says the rule in one line if either already describes when a file is recorded.\n\n**Before.** Any recordable file whose mtime is inside the freshness window is added to the pending list whenever a command names it, even when its content is exactly what the last consult read.\n\n**After.** Such a file is added only when its content hash differs from the hash the latest answered consult for that checkout sent for it. A file the log has never sent, or whose content changed since, is recorded as today.\n\n**Acceptance criteria.** In the field beside this one.\n\n**Deliberately unchanged.** The freshness window and the mtime heuristic; what a consult sends and hashes; the manual drop; every other commit-gate refusal.\n\n**Verified in code to be sure this is possible.** Each answered consult's log record carries `sent[]` with `{rel, sha}` where `sha` is the truncated sha256 of the full file text, computed by the same `digest` helper the hook can import. The hook already resolves the checkout root and relative path before recording.\n\n**Conventions reversed.** None.\n\n**Assumptions.** See the decision record comment; four decisions, each with its undo sentence.\n\n**Flags.** Screen change: no. Schema coupling: no.\n",
+          "acceptanceCriteria": "1. A file whose content hash equals the hash the latest answered consult for its checkout sent for it is not added to the pending list when the hook fires on it.\n2. A file the log has never sent for that checkout is recorded exactly as before.\n3. A file whose content changed after the latest answered consult is recorded, and the commit gate refuses until it is consulted.\n4. A consult logged without an answer does not clear a file: the file is recorded as if that consult had not happened.\n5. A file already pending or outside the recordable pattern is handled without reading the log.\n6. The full check suite passes with the change, and the new test fails when the comparison is removed.",
+          "sessionContext": null,
+          "releaseNotes": {
+            "section": "Fixed",
+            "technical": "hookRecord skips a file whose full-content digest equals the sha the latest answered consult for that checkout sent for it (sentShaOf); a pending or unrecordable file never opens the log.",
+            "userFacing": "Reading a document the reviewer has already seen no longer asks for a second review. Before, naming or opening a document shortly after it was edited put it back on the unread list, and your next commit was refused until you cleared the list by hand. Now only a real change to the document counts. Restart your session to pick up plugin 3.26.1."
+          },
+          "metadata": null,
+          "releaseBatchRunId": null,
+          "identSearch": "'a':1,18,47,52,62,85,122,151,169,223,243 'after':61,172 'afternoon':115 'again':38 'already':5,25 'although':102 'an':191 'and':66,179 'any':68 'as':36,227 'assembling':121 'at':7,27 'available':196 'been':213 'before':215 'business':127 'but':197 'by':100,141,144,193 'case':204 'change':53,217 'changes':49,235 'command':48,70 'commit':89,94,181,251 'consult':160,174,207 'consulted':67 'content':9,29,56,109,131,142,155,187 'current':154 'decision':232 'detecting':222 'detects':242 'document':2,19,63 'does':57 'dropped':99 'dropping':190 'edit':171 'edited':65 'entry':97,192 'equals':156 'every':93 'exactly':107 'file':77,119,147,152,178,225,245 'first':248 'for':202,221 'freshness':80,219 'from':125 'gate':23,90,182,252 'hand':101,194 'happens':59 'has':24,105,134 'have':212 'heuristic':240 'holds':31 'in':46,113,246 'inside':78 'invariants':205 'is':10,33,64,98,139,162,188,198,208,229 'it':30,40,42,45,83,126,228 'its':55,166 'keyed':140 'last':149 'later':69 'latest':159 'listing':41 'longer':200 'means':130 'merely':15,72 'modification':167 'named':16 'names':73 'naming':44 'needed':201 'never':34 'no':199,206 'not':135,143,163 'nothing':50 'now':32 'of':237 'on':116 'one':114 'only':51,230 'opinion':22 'or':43,74 'other':254 'out':236 'outcome':17 'page':124 'pending':13,37,84,129,164 'place':249 're':11 'read':6,26,106,136,161,189 'reading':39 'reads':75 'real':170 'record':138,234 'recorded':12,35 'records':82,176 'refusals':255 'refuses':92,184 'required':214 'review':123 'reviewer':4,104,133 'rules':128 's':253 'same':118 'scope':238 'second':21,86 'seen':110 'skipped':209 'stays':195,226 'still':175,183 'that':71,186,210,241 'the':3,20,28,76,79,88,96,103,117,132,137,146,158,173,177,180,218,231,239,247,250 'then':91 'this':8,108,203,216 'three':111 'time':87,168 'times':112 'to':54,233 'today':60 'touched':150,224,244 'until':95,185 'was':148 'what':58,157 'whatever':165 'when':14,145 'while':120 'whose':153 'window':81,220 'would':211",
+          "createdAt": "2026-09-02T09:34:32.394Z",
+          "updatedAt": "2026-09-02T09:43:44.390Z",
+          "displayId": "ISS-1",
+          "creatorEmail": "thanhnh@sidcorp.co",
+          "creatorIsAgent": true,
+          "creatorLabel": "Forge Agent",
+          "pipelineHealth": {
+            "stage": "closed"
+          }
+        }
+      ],
+      "returned": 1,
+      "total": 526,
+      "limit": 1,
+      "offset": 0,
+      "hasMore": true
+    }
+  }
+}

@@ -1,64 +1,22 @@
-/* Two halves of the transport. The refusal path answers from the tool's own schema, so what is
-   tested there is the walk: a key that is real but one level out has to be found where it lives.
-   The read path takes the tracker's fence off every string of a response, which is the whole of what
-   this repository knows about that fence — so a field reaches a reader as its author wrote it, no
-   verb prints a marker, and a string carrying none comes back untouched, the half a trim breaks. */
+/* Two halves of the transport. The refusal path renders the tracker's own validation error, which
+   is where a rejected key and the set a value was outside of are named. The read path takes the
+   tracker's fence off every string of a response, which is the whole of what this repository knows
+   about that fence — so a field reaches a reader as its author wrote it, no verb prints a marker,
+   and a string carrying none comes back untouched, the half a trim breaks. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
 import { fakeTracker, ranAsync } from "../fixtures.mjs";
-import { callTool, keyPaths, REFERENCE_KEYS, unfencedIn } from "../../src/tracker/rpc.mjs";
+import { callTool, unfencedIn } from "../../src/tracker/rpc.mjs";
+import { useProject } from "../../src/resolve/settings.mjs";
+import { REFERENCE_KEYS } from "../../src/tracker/rest.mjs";
 
-/* The shape forge_issues declares: an id at the top, and `data` carrying a same-named field that
-   means something else. That collision is the whole reason a key is never relocated for you. */
-const SCHEMA = {
-  properties: {
-    action: { type: "string", enum: ["get", "update", "mark_merged"] },
-    documentId: { type: "string" },
-    data: {
-      properties: {
-        issueId: { type: "string" },
-        status: { type: "string" },
-        relations: {
-          items: { properties: { dependsOnId: { type: "string" } } },
-        },
-      },
-    },
-    filters: { properties: { label: {} } },
-  },
-};
-
-test("a key one level out is found where it lives", () => {
-  assert.deepEqual(keyPaths(SCHEMA, "issueId"), ["data.issueId"]);
-});
-
-test("a top-level key reports itself", () => {
-  assert.deepEqual(keyPaths(SCHEMA, "documentId"), ["documentId"]);
-});
-
-test("a key inside an array marks the array", () => {
-  assert.deepEqual(keyPaths(SCHEMA, "dependsOnId"), ["data.relations[].dependsOnId"]);
-});
-
-test("a key the schema does not have finds nothing", () => {
-  assert.deepEqual(keyPaths(SCHEMA, "sales_admin"), []);
-});
-
-test("a branching schema is searched through every branch", () => {
-  const branched = { anyOf: [{ properties: { a: {} } }, { properties: { b: {} } }] };
-  assert.deepEqual(keyPaths(branched, "b"), ["b"]);
-});
-
-test("a cycle does not run away", () => {
-  const cyclic = { properties: { self: {} } };
-  cyclic.properties.self = cyclic;
-  assert.equal(keyPaths(cyclic, "missing").length, 0);
-});
-
-test("the identifying argument is derivable from the reference set", () => {
-  const top = Object.keys(SCHEMA.properties).filter((key) => REFERENCE_KEYS.has(key));
-  assert.deepEqual(top, ["documentId"]);
-  assert.ok(REFERENCE_KEYS.has("issueId"));
+/* Which arguments identify a record, which is what a raw call resolves a key in before it sends. */
+test("the identifying arguments are the ones that name a record, and no other", () => {
+  for (const key of ["documentId", "issueId", "issue", "dependsOnId", "blocksId"]) {
+    assert.ok(REFERENCE_KEYS.has(key), key);
+  }
+  assert.ok(!REFERENCE_KEYS.has("status"), "a field carrying a value is not one naming a record");
 });
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -97,17 +55,15 @@ test.after(() => tracker.close());
 const ran = (...argv) => ranAsync(FORGE, argv, tracker.env, ROOT, null);
 process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
 
-/* The three shapes a payload comes back in, answered in this process so the decode is watchable.
-   The JSON-in-text one is the trap: on the wire a fence line is escaped inside one long string, so
-   a strip run before the parse leaves every marker standing in every value the parse hands back. */
-const answering = async (result, call) => {
+/* Answered in this process so the decode is watchable: every part a row asks for gets the same
+   body, which is all a strip is judged on. */
+const answering = async (bodies, call) => {
   const held = globalThis.fetch;
-  globalThis.fetch = async () => ({
-    ok: true,
-    status: 200,
-    headers: new Map(),
-    text: async () => JSON.stringify({ jsonrpc: "2.0", id: 1, result }),
-  });
+  const queued = [...bodies];
+  globalThis.fetch = async () => {
+    const [status, body] = queued.length > 1 ? queued.shift() : queued[0];
+    return { ok: status < 400, status, headers: new Map(), text: async () => JSON.stringify(body) };
+  };
   try {
     return await call();
   } finally {
@@ -115,26 +71,57 @@ const answering = async (result, call) => {
   }
 };
 
-test("a payload carried as JSON inside a text part is stripped, as a structured one is", async () => {
-  const sent = { description: fenced("issue.description", "the body a reader wanted"), n: 2 };
-  const wanted = { description: "the body a reader wanted", n: 2 };
-  const inText = { content: [{ type: "text", text: JSON.stringify(sent) }] };
-  assert.deepEqual(await answering(inText, () => callTool("forge_issues", { action: "get" })), wanted);
-  assert.deepEqual(await answering({ structuredContent: sent }, () => callTool("forge_issues", { action: "get" })), wanted);
+const ok = (body) => [200, body];
+
+test("a decoded body is stripped whichever route of a composed read it came back on", async () => {
+  const row = {
+    id: "u-1",
+    displayId: "ISS-1",
+    description: fenced("issue.description", "the body a reader wanted"),
+    title: fenced("issue.title", TITLE),
+  };
+  const answer = await answering([ok(row), ok({ outgoing: [], incoming: [] }), ok([])],
+    () => callTool("forge_issues", { action: "get", documentId: "u-1" }));
+  assert.equal(answer.description, "the body a reader wanted");
+  assert.equal(answer.title, TITLE);
 });
 
-/* A refusal is prose too, and `readable` prefixes each message with its path: after the prefix an
-   opener is no longer a line of its own, so the strip has to run on each message before it. */
-test("a tool's own refusal carries its messages unfenced, prefix and all", async () => {
-  const said = JSON.stringify([{ path: ["data", "description"], message: fenced("issue.description", "too long by 40") }]);
-  const refusal = { isError: true, content: [{ type: "text", text: `Invalid arguments: ${said}` }] };
-  const answer = await answering(refusal, () => callTool("forge_issues", { action: "update" }, true));
-  assert.equal(answer.refused, "data.description: too long by 40");
+/* The project a path segment carries is resolved by a call of its own, and a caller beside its real
+   work holds the refusal: an exit inside that lookup takes the run the check was made for with it. */
+test("a soft call whose project cannot be resolved is refused, not exited from", async () => {
+  useProject({ slug: "no-project-answers-to-this", from: "a case" });
+  try {
+    const answer = await answering([ok({ items: [], returned: 0, total: 0, hasMore: false })],
+      () => callTool("forge_issues", { action: "list", limit: 1 }, true, true));
+    assert.match(answer.refused, /No Forge project has slug no-project-answers-to-this/u);
+  } finally {
+    useProject({ slug: null, from: null });
+  }
 });
 
-test("a text part that parses as nothing is stripped as the string it is", async () => {
-  const said = { content: [{ type: "text", text: fenced("comment.body", "not JSON, just prose") }] };
-  assert.equal(await answering(said, () => callTool("forge_comments", { action: "list" })), "not JSON, just prose");
+/* A refusal is prose too, and the renderer prefixes each field's messages with the field name: after
+   the prefix an opener is no longer a line of its own, so the strip has to run on the joined text. */
+test("the tracker's own refusal carries its messages unfenced, prefix and all", async () => {
+  const refusal = {
+    code: "BAD_REQUEST",
+    message: "Invalid input",
+    details: { formErrors: [], fieldErrors: { description: [fenced("issue.description", "too long by 40")] } },
+  };
+  const answer = await answering([[400, refusal]],
+    () => callTool("forge_issues", { action: "update", documentId: "u-1", data: {} }, true));
+  assert.match(answer.refused, /description: too long by 40/u);
+  assert.ok(!answer.refused.includes(MARKER));
+});
+
+test("a refusal naming an unrecognised key names that key, out of the tracker's own words", async () => {
+  const refusal = {
+    code: "BAD_REQUEST",
+    message: "Invalid input",
+    details: { formErrors: ['Unrecognized key: "status"'], fieldErrors: {} },
+  };
+  const answer = await answering([[400, refusal]],
+    () => callTool("forge_issues", { action: "update", documentId: "u-1", data: {} }, true));
+  assert.match(answer.refused, /Unrecognized key: "status"/u);
 });
 
 test("a wrapped title comes off the transport as one line, with nothing added around it", async () => {

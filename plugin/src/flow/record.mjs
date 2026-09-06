@@ -7,7 +7,7 @@ import { CLOSES_FROM, FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, atMinute, bloc
 import { readOrRefuse } from "../codex/codex-read.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
-import { commentPage, cutLine, postComment } from "../tracker/comments.mjs";
+import { commentPage, cutIn, cutLine, postComment } from "../tracker/comments.mjs";
 import {
   TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo,
 } from "../tracker/evidence.mjs";
@@ -265,7 +265,7 @@ const sayOwed = async (documentId, issue, ref, held = null) => {
   try {
     const { owedSaid } = await import("./route.mjs");
     const page = held ?? await commentPage(documentId);
-    const cut = held ? held.cut : (page.hasMore ? cutLine(page) : null);
+    const cut = held ? held.cut : cutIn(page);
     console.error(await owedSaid(documentId, issue, page.comments, ref, cut));
   } catch (error) {
     console.error(`what this write now owes could not be read: ${error.message}`);
@@ -420,7 +420,7 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
   const asks = shape.fields.some((one) => one.evidence || one.commit);
   const page = asks ? await commentPage(documentId) : { comments: [], hasMore: false };
   const { comments } = page;
-  const cut = page.hasMore ? cutLine(page) : null;
+  const cut = cutIn(page);
   const held = attachmentNames(body, comments);
   const plan = citeOnce(kind, blocks, { held, cut });
   const names = [...held, ...(plan?.upload ?? []).map((one) => one.name)];
@@ -527,7 +527,7 @@ const recordReport = async (reference) => {
   }
   const page = await commentPage(documentId);
   const { comments } = page;
-  if (page.hasMore) console.error(`${cutLine(page)} This report was assembled from those rows and `
+  if (cutIn(page)) console.error(`${cutLine(page)} This report was assembled from those rows and `
     + "from no others.");
   const { latest, verdicts, owed, repeated, unreadable } = assemble(comments, criteria);
   for (const kind of Object.keys(SHAPES)) {

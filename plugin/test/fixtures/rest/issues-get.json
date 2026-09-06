@@ -1,0 +1,126 @@
+{
+  "taken": "2026-09-06",
+  "tool": "forge_issues",
+  "action": "get",
+  "routes": {
+    "issue": "GET /issues/164a3e8e-1768-4fc8-99cc-dbe5b78b688a",
+    "dependencies": "GET /issues/164a3e8e-1768-4fc8-99cc-dbe5b78b688a/dependencies",
+    "attachments": "GET /issues/164a3e8e-1768-4fc8-99cc-dbe5b78b688a/attachments"
+  },
+  "secretsDropped": [
+    "apiKey",
+    "webhookSecret"
+  ],
+  "rest": {
+    "issue": {
+      "id": "164a3e8e-1768-4fc8-99cc-dbe5b78b688a",
+      "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+      "issSeq": 516,
+      "title": "the planning phase names the requirements citation the criteria write demands, so a run pays one consult for it and not two",
+      "description": "## What happened\n\nPhase 3 of the issue-flow guide says the plan and the criteria are both read by a consult before the\nissue takes them, and names nothing else either write demands. The `approved` entry check demands\none more thing: that the description, the plan or the criteria name a clause of the requirements\ntree, written `<id>~<rev>`.\n\nA run that follows the phase as written pays for the omission in consults. On ISS-488, read at\nc8771d6 and shipped at b95a379:\n\n```\n$ forge record criteria ISS-488 <criteria.md>\n  no clause of this project's requirements tree is named by the description, the plan or the\n  criteria, and a citation is `<id>~<rev>`\n```\n\nBy then the consult had already read both files. Both writes refuse a file whose text has changed\nsince the consult read it — the right rule — so adding the citation costs a whole further consult on\nboth. Four planning consults where two would have done.\n\n## Outcome\n\nA run reads Phase 3 once and writes the plan and the criteria once.\n\n## Rules\n\n- The phase names every demand the two writes make, or names none and points at the one command that\n  prints them. Half a list is worse than none, because a reader stops at the end of it.\n- The demand is the project's, not the method's: a project with no requirements tree is asked for no\n  citation. So the sentence belongs where it can say *where a project keeps one*, and the consult\n  intent is what has to know before the file is written.\n- Nothing about the refusal itself changes. It names the clause form and the command, and it is\n  right to fire.\n\n## Out of scope\n\nWhether a criterion is the right home for the citation rather than the plan — the check takes any of\nthe three and this note asks only that the phase say so.\n\nThe re-read rule on `forge plan` and `forge record criteria`. It is what makes a consult mean\nsomething, and the cost above is the phase's to remove, not that rule's.\n\n## Where\n\n- forge 3.35.183 at /run/media/thanh/New/ai-project/wt-ISS-488/plugin\n- met from project forge-plugin (.forge.json), prose as written\n- agent claude-code_2-1-258_agent, in /run/media/thanh/New/ai-project/wt-ISS-488\n",
+      "descriptionFormat": "markdown",
+      "descriptionTemplate": null,
+      "status": "open",
+      "priority": "none",
+      "category": "bug",
+      "reportedBy": null,
+      "createdVia": "mcp",
+      "detectorKey": null,
+      "assigneeId": null,
+      "createdById": "0a3bb457-c689-4773-bf87-f3aba7198539",
+      "mergedAt": null,
+      "complexity": null,
+      "reopenCount": 0,
+      "waitingKind": null,
+      "source": "manual",
+      "externalId": null,
+      "plan": null,
+      "acceptanceCriteria": null,
+      "sessionContext": null,
+      "releaseNotes": null,
+      "metadata": null,
+      "releaseBatchRunId": null,
+      "identSearch": "'1':394 '183':368 '2':393 '258':395 '3':26,181,366 '35':367 '488':96,108,378,406 'a':13,42,73,80,128,143,162,177,214,221,239,259,301,346 'about':278 'above':353 'adding':158 'agent':390,396 'ai':374,402 'already':136 'and':20,35,49,100,127,183,187,204,263,288,291,321,338,350 'any':317 'approved':57 'are':38 'as':86,388 'asked':246 'asks':324 'at':98,102,206,224,369 'b95a379':103 'because':220 'before':44,272 'belongs':253 'both':39,138,140,167 'by':41,119,131 'c8771d6':99 'can':256 'changed':148 'changes':282 'check':59,315 'citation':7,129,160,249,309 'claude':391 'clause':74,110,286 'code':392 'command':209,290 'consult':17,43,134,151,165,265,347 'consults':93,170 'cost':352 'costs':161 'criteria':9,37,71,106,126,189,341 'criterion':302 'demand':196,230 'demands':11,55,60 'description':66,121 'done':175 'either':53 'else':52 'end':226 'entry':58 'every':195 'file':144,274 'files':139 'fire':296 'flow':30 'follows':83 'for':18,89,247,307 'forge':104,336,339,365,383,385 'form':287 'four':168 'from':381 'further':164 'guide':31 'had':135 'half':213 'happened':24 'has':147,269 'have':174 'home':306 'in':92,397 'intent':266 'is':117,130,216,231,245,267,275,293,303,343,354 'iss':95,107,377,405 'issue':29,46 'it':19,153,228,255,283,292,342 'itself':281 'json':386 'keeps':261 'know':271 'list':215 'make':200 'makes':345 'mean':348 'media':371,399 'met':380 'method':237 'more':62 'name':72 'named':118 'names':4,50,194,202,284 'new':373,401 'no':109,242,248 'none':203,219 'not':21,235,360 'note':323 'nothing':51,277 'of':27,75,111,227,298,318 'omission':91 'on':94,166,335 'once':182,190 'one':16,61,208,262 'only':325 'or':69,124,201 'out':297 'outcome':176 'pays':15,88 'phase':3,25,85,180,193,328,356 'plan':34,68,123,186,313,337 'planning':2,169 'plugin':379,384 'points':205 'prints':211 'project':113,233,240,260,375,382,403 'prose':387 'rather':310 're':332 'read':40,97,137,152,333 'reader':222 'reads':179 'record':105,340 'refusal':280 'refuse':142 'remove':359 'requirements':6,77,115,243 'right':155,294,305 'rule':156,334,362 'rules':191 'run':14,81,178,370,398 's':114,234,238,357,363 'say':257,329 'says':32 'scope':299 'sentence':252 'shipped':101 'since':149 'so':12,157,250,330 'something':349 'stops':223 'takes':47,316 'text':146 'than':218,311 'thanh':372,400 'that':64,82,210,326,361 'the':1,5,8,28,33,36,45,56,65,67,70,76,84,90,120,122,125,133,150,154,159,185,188,192,197,207,225,229,232,236,251,264,273,279,285,289,304,308,312,314,319,327,331,351,355 'them':48,212 'then':132 'thing':63 'this':112,322 'three':320 'to':270,295,358 'tree':78,116,244 'two':22,172,198 'what':23,268,344 'where':171,254,258,364 'whether':300 'whole':163 'whose':145 'with':241 'worse':217 'would':173 'write':10,54 'writes':141,184,199 'written':79,87,276,389 'wt':376,404",
+      "createdAt": "2026-09-06T08:16:53.276Z",
+      "updatedAt": "2026-09-06T08:16:53.276Z",
+      "displayId": "ISS-516",
+      "creatorEmail": "thanhnh@sidcorp.co",
+      "creatorIsAgent": true,
+      "creatorLabel": "Forge Agent",
+      "agentSessions": [],
+      "agentStatus": null,
+      "pipelineHealth": {
+        "stage": "open"
+      },
+      "labels": [],
+      "comments": [],
+      "activity": []
+    },
+    "dependencies": {
+      "outgoing": [
+        {
+          "id": "da8df252-bff3-462a-b5ef-48a2e6c925a6",
+          "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+          "fromIssueId": "164a3e8e-1768-4fc8-99cc-dbe5b78b688a",
+          "toIssueId": "184c6d7a-212d-49bb-884b-3162b7b663ab",
+          "kind": "relates",
+          "reason": null,
+          "createdById": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "createdAt": "2026-09-06T08:16:53.276Z",
+          "validUntil": null,
+          "fromTitle": "the planning phase names the requirements citation the criteria write demands, so a run pays one consult for it and not two",
+          "fromStatus": "open",
+          "fromMergedAt": null,
+          "toTitle": "a plan that quotes Screen change: yes inside a code span is read as declaring one, though the rewrite beside the reader calls a span safe",
+          "toStatus": "closed",
+          "toMergedAt": "2026-09-06T08:08:35.678Z",
+          "fromDisplayId": "ISS-516",
+          "toDisplayId": "ISS-488"
+        }
+      ],
+      "incoming": []
+    },
+    "attachments": []
+  },
+  "mcp": {
+    "documentId": "164a3e8e-1768-4fc8-99cc-dbe5b78b688a",
+    "issueId": "ISS-516",
+    "title": "the planning phase names the requirements citation the criteria write demands, so a run pays one consult for it and not two",
+    "description": "## What happened\n\nPhase 3 of the issue-flow guide says the plan and the criteria are both read by a consult before the\nissue takes them, and names nothing else either write demands. The `approved` entry check demands\none more thing: that the description, the plan or the criteria name a clause of the requirements\ntree, written `<id>~<rev>`.\n\nA run that follows the phase as written pays for the omission in consults. On ISS-488, read at\nc8771d6 and shipped at b95a379:\n\n```\n$ forge record criteria ISS-488 <criteria.md>\n  no clause of this project's requirements tree is named by the description, the plan or the\n  criteria, and a citation is `<id>~<rev>`\n```\n\nBy then the consult had already read both files. Both writes refuse a file whose text has changed\nsince the consult read it — the right rule — so adding the citation costs a whole further consult on\nboth. Four planning consults where two would have done.\n\n## Outcome\n\nA run reads Phase 3 once and writes the plan and the criteria once.\n\n## Rules\n\n- The phase names every demand the two writes make, or names none and points at the one command that\n  prints them. Half a list is worse than none, because a reader stops at the end of it.\n- The demand is the project's, not the method's: a project with no requirements tree is asked for no\n  citation. So the sentence belongs where it can say *where a project keeps one*, and the consult\n  intent is what has to know before the file is written.\n- Nothing about the refusal itself changes. It names the clause form and the command, and it is\n  right to fire.\n\n## Out of scope\n\nWhether a criterion is the right home for the citation rather than the plan — the check takes any of\nthe three and this note asks only that the phase say so.\n\nThe re-read rule on `forge plan` and `forge record criteria`. It is what makes a consult mean\nsomething, and the cost above is the phase's to remove, not that rule's.\n\n## Where\n\n- forge 3.35.183 at /run/media/thanh/New/ai-project/wt-ISS-488/plugin\n- met from project forge-plugin (.forge.json), prose as written\n- agent claude-code_2-1-258_agent, in /run/media/thanh/New/ai-project/wt-ISS-488\n",
+    "descriptionFormat": "markdown",
+    "descriptionTemplate": null,
+    "descriptionSlots": null,
+    "status": "open",
+    "priority": "none",
+    "category": "bug",
+    "complexity": null,
+    "assigneeId": null,
+    "reopenCount": 0,
+    "plan": null,
+    "acceptanceCriteria": null,
+    "sessionContext": null,
+    "releaseNotes": null,
+    "mergedAt": null,
+    "createdAt": "2026-09-06T08:16:53.276Z",
+    "updatedAt": "2026-09-06T08:16:53.276Z",
+    "attachments": [],
+    "labels": [],
+    "relations": {
+      "blocks": [
+        {
+          "edgeId": "da8df252-bff3-462a-b5ef-48a2e6c925a6",
+          "kind": "relates",
+          "fromIssueId": "164a3e8e-1768-4fc8-99cc-dbe5b78b688a",
+          "toIssueId": "184c6d7a-212d-49bb-884b-3162b7b663ab",
+          "otherIssueId": "184c6d7a-212d-49bb-884b-3162b7b663ab",
+          "otherDisplayId": "ISS-488",
+          "otherStatus": "closed",
+          "otherMergedAt": "2026-09-06T08:08:35.678Z",
+          "validUntil": null,
+          "expired": false
+        }
+      ],
+      "blockedBy": []
+    }
+  }
+}

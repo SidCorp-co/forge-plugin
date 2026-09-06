@@ -2,12 +2,10 @@
    write answered with. Why nothing here refuses, whatever it finds: docs/cli/filing.md. */
 import { tried } from "../rpc.mjs";
 
-const PAGE = 200;
 const AGAIN = "Do not send this call again before reading that id: a write the tracker took and a "
   + "write it dropped answer alike, and a second send files the body twice.";
 
-/* `tried` is soft on the refusal and the transport and on nothing else: a malformed envelope
-   throws inside `callTool`, and that would exit 1 on a write that landed. */
+/* Anything `tried` is not soft on would exit 1 on a write that landed, so nothing raises past here. */
 const asked = async (name, args) => {
   try {
     return await tried(name, args);
@@ -33,7 +31,7 @@ const noId = (what, answer) => {
     + "so nothing was read back and nothing here can say what it wrote.");
 };
 
-/** The empty object is the tracker denying the row, and still no evidence the write was dropped. */
+/** A row carrying no id is the tracker denying it, and still no evidence the write was dropped. */
 export const issueLanded = async (answer) => {
   const documentId = idOf(answer);
   if (!documentId) return noId("filing", answer);
@@ -44,7 +42,7 @@ export const issueLanded = async (answer) => {
   if (back.documentId === documentId) {
     return verified(`${back.issueId ?? documentId} is filed at ${documentId}, read back from the tracker.`);
   }
-  if (Object.keys(back).length) {
+  if (back.documentId) {
     return unverified(`${said} and the read-back answered about something else, so the filing is unverified.`);
   }
   return unverified(`${said} and a read of that id came back with no issue.`);
@@ -54,12 +52,10 @@ export const issueLanded = async (answer) => {
 export const commentLanded = async (documentId, answer, ref) => {
   const posted = idOf(answer);
   if (!posted) return noId("comment", answer);
-  const back = await asked("forge_comments", { action: "list", filters: { issue: documentId }, limit: PAGE });
+  const back = await asked("forge_comments", { action: "list", filters: { issue: documentId } });
   const said = `Comment ${posted} was answered for ${ref}`;
   if (back?.refused) return unverified(`${said} and the read-back could not run: ${oneLine(back.refused)}.`);
-  const page = plain(back) && Array.isArray(back.comments) ? back.comments : null;
-  if (!page) return unverified(`${said} and the read-back answered with no comment page to read.`);
-  if (page.some((one) => one?.documentId === posted)) {
+  if ((back?.comments ?? []).some((one) => one?.documentId === posted)) {
     return verified(`Comment ${posted} is posted on ${ref}, read back from the tracker.`);
   }
   if (back.hasMore !== false) {

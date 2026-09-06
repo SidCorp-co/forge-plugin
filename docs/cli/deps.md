@@ -11,18 +11,16 @@ made git read the whole file as binary: no diff, no blame, no `git grep`.
 
 ## The write is gated on an action, not on a tool
 
-`forge dep` wraps `forge_project_pm set_dependency`, which the tracker gives to a paired device
-alone, and `~/.config/forge/config.json` is documented to hold a personal access token. So the verb
-is withheld rather than re-routed onto a second transport: two ways to write one edge is a
-precedence rule and a report that has to explain which one ran.
+`forge dep` wraps `forge_project_pm set_dependency`, and the data plane this CLI speaks serves no
+route that writes an edge. So the verb is withheld rather than re-routed onto a second transport:
+two ways to write one edge is a precedence rule and a report that has to explain which one ran.
 
 The capability record it is withheld by is keyed `<tool>.<action>`, because the same tool answers
-`snapshot`, `graph` and `runner_load` to the credential that cannot spend `set_dependency` —
-gating the tool would take a printable schema and three working reads away to hide one verb. The
-probe names the action and none of its ids: the credential class is checked before the arguments
-are, so it stops there and writes nothing, and only a `PM_REQUIRES_DEVICE` refusal counts. Any other
-refusal is the probe's own missing arguments, which is what a paired device gets back, and reading
-that as a gate would hide the verb from the one credential it is for.
+`snapshot`, `graph` and `runner_load` on routes this credential reaches — gating the tool would take
+a printable schema and three working reads away to hide one verb. The probe names the action and
+none of its ids: the CLI's route table declares nothing for the edge write, so the refusal comes
+before any request and nothing is sent. Only that refusal counts; any other is a fault of the
+moment, and reading a dropped socket as a gate would hide the verb from every run after it.
 
 The read above and the write are therefore two stores: this graph is what the bodies claim, and the
 tracker's own relations are set where an issue is filed (`forge new --with`, a `relates` edge) or by

@@ -5,7 +5,7 @@ import test from "node:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, pageOf, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, pageOf, ranAsync, shortPage, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const OPEN = "33333333-3333-4333-8333-333333333333";
@@ -217,9 +217,9 @@ const OPEN_ROWS = Array.from({ length: 4 }, (_, at) => ({
   touched: 4 - at,
 }));
 
-/* One timestamp on every row: the interval a walk cannot subdivide, which is the only reading left
-   that a note can be checked against incompletely. */
-const ONE_TIMESTAMP = OPEN_ROWS.map((one) => ({ ...one, createdAt: "2026-01-01T00:00:00.000Z" }));
+/* A route counting two rows it will not hand over: the offset walk pages to the end of what it
+   serves and `hasMore` is still true, the one reading a note can be checked against incompletely. */
+const CUT_SHORT = shortPage(OPEN_ROWS.slice(0, 2), 2);
 
 test("a note checked against a cut page is checked against the walked set instead", async () => {
   const run = await send(["feedback", note(), "--title", TITLE], {
@@ -232,8 +232,8 @@ test("a note checked against a cut page is checked against the walked set instea
 
 test("a note the walk could not finish reading for is told the check was partial", async () => {
   const run = await send(["feedback", note(), "--title", TITLE], {
-    issues: ONE_TIMESTAMP,
-    answer: { forge_issues: pageOf(ONE_TIMESTAMP, 2) },
+    issues: OPEN_ROWS,
+    answer: { forge_issues: CUT_SHORT },
   });
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /the set this note was measured against reached 2 issue\(s\)/u);
@@ -241,20 +241,21 @@ test("a note the walk could not finish reading for is told the check was partial
 
 test("that warning says what the short reading costs the note, which is being filed twice", async () => {
   const run = await send(["feedback", note(), "--title", TITLE], {
-    issues: ONE_TIMESTAMP,
-    answer: { forge_issues: pageOf(ONE_TIMESTAMP, 2) },
+    issues: OPEN_ROWS,
+    answer: { forge_issues: CUT_SHORT },
   });
   assert.match(run.stderr, /filed as a second issue rather than a finding/u);
 });
 
-test("that warning names no limit, and carries the tracker's own instruction", async () => {
+/* The route sends no sentence of its own about a cut, so the count and the way out are this CLI's. */
+test("that warning names no limit, and carries the way out", async () => {
   const run = await send(["feedback", note(), "--title", TITLE], {
-    issues: ONE_TIMESTAMP,
-    answer: { forge_issues: pageOf(ONE_TIMESTAMP, 2) },
+    issues: OPEN_ROWS,
+    answer: { forge_issues: CUT_SHORT },
   });
-  const said = run.stderr.split("\n").find((line) => line.includes("measured against reached")) ?? "";
-  assert.doesNotMatch(said, /\b500\b/u);
-  assert.match(said, /A higher limit will NOT help/u);
+  assert.doesNotMatch(run.stderr, /\b500\b/u);
+  assert.match(run.stderr, /add filters until/u);
+  assert.doesNotMatch(run.stderr, /higher limit/u, "no advice is invented about a limit nobody sent");
 });
 
 test("a whole page leaves the note's filing silent about truncation", async () => {

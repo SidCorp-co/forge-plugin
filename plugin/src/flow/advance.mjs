@@ -4,7 +4,7 @@
 import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { commentPage, creditAfter, cutLine } from "../tracker/comments.mjs";
+import { commentPage, creditAfter, cutIn } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
@@ -87,7 +87,7 @@ const viewOf = async (reference, given) => {
     given.owed ? deployFor(body.plan, body.status) : null,
     policyFor(body.plan, body.status),
   ]);
-  return viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, release, cited, deploy);
+  return viewFrom(documentId, body, page.comments, cutIn(page), release, cited, deploy);
 };
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs

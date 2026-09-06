@@ -1,0 +1,104 @@
+{
+  "taken": "2026-09-06",
+  "tool": "forge_project_pm",
+  "action": "snapshot",
+  "routes": {
+    "snapshot": "GET /projects/cda0adf0-fa3e-436c-ad7e-f3357e62778a/pm/snapshot"
+  },
+  "secretsDropped": [
+    "apiKey",
+    "webhookSecret"
+  ],
+  "rest": {
+    "snapshot": {
+      "countsByStatus": {
+        "closed": 182,
+        "dropped": 45,
+        "in_progress": 5,
+        "open": 274,
+        "released": 12
+      },
+      "activeJobs": [],
+      "stalledIssues": [
+        {
+          "id": "e15db6d0-6e27-4e8f-bb2d-24bc74d41ebb",
+          "issueId": "ISS-481",
+          "status": "in_progress",
+          "updatedAt": "2026-09-06T09:00:55.401Z"
+        },
+        {
+          "id": "0513533b-6a72-4a2e-8e7f-dbcbe4c92f63",
+          "issueId": "ISS-507",
+          "status": "in_progress",
+          "updatedAt": "2026-09-06T09:08:10.387Z"
+        },
+        {
+          "id": "d3960d99-070b-4118-8d0a-e68749b7c0d8",
+          "issueId": "ISS-508",
+          "status": "in_progress",
+          "updatedAt": "2026-09-06T09:08:22.648Z"
+        },
+        {
+          "id": "39e40682-9d40-4960-9df2-6edad7c3bec4",
+          "issueId": "ISS-485",
+          "status": "in_progress",
+          "updatedAt": "2026-09-06T09:10:57.777Z"
+        },
+        {
+          "id": "5c06e635-6187-4096-88f1-d77b6e1077d7",
+          "issueId": "ISS-512",
+          "status": "in_progress",
+          "updatedAt": "2026-09-06T09:23:00.814Z"
+        }
+      ],
+      "queuedCount": 0,
+      "recentFailures": [],
+      "runnerHealth": []
+    }
+  },
+  "mcp": {
+    "countsByStatus": {
+      "closed": 182,
+      "dropped": 45,
+      "in_progress": 5,
+      "open": 274,
+      "released": 12
+    },
+    "activeJobs": [],
+    "stalledIssues": [
+      {
+        "id": "e15db6d0-6e27-4e8f-bb2d-24bc74d41ebb",
+        "issueId": "ISS-481",
+        "status": "in_progress",
+        "updatedAt": "2026-09-06T09:00:55.401Z"
+      },
+      {
+        "id": "0513533b-6a72-4a2e-8e7f-dbcbe4c92f63",
+        "issueId": "ISS-507",
+        "status": "in_progress",
+        "updatedAt": "2026-09-06T09:08:10.387Z"
+      },
+      {
+        "id": "d3960d99-070b-4118-8d0a-e68749b7c0d8",
+        "issueId": "ISS-508",
+        "status": "in_progress",
+        "updatedAt": "2026-09-06T09:08:22.648Z"
+      },
+      {
+        "id": "39e40682-9d40-4960-9df2-6edad7c3bec4",
+        "issueId": "ISS-485",
+        "status": "in_progress",
+        "updatedAt": "2026-09-06T09:10:57.777Z"
+      },
+      {
+        "id": "5c06e635-6187-4096-88f1-d77b6e1077d7",
+        "issueId": "ISS-512",
+        "status": "in_progress",
+        "updatedAt": "2026-09-06T09:23:00.814Z"
+      }
+    ],
+    "queuedCount": 0,
+    "recentFailures": [],
+    "runnerHealth": []
+  }
+}

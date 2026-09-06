@@ -1,0 +1,14 @@
+{
+  "taken": "2026-09-06",
+  "routes": {
+    "answer": "POST /issues/:documentId/transition"
+  },
+  "rest": {
+    "answer": {
+      "id": "ad4afc2c-4642-4827-a0d0-620e1219a124",
+      "status": "confirmed",
+      "reopenCount": 0,
+      "transitionedAt": "2026-09-06T09:23:09.046Z"
+    }
+  }
+}

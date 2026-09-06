@@ -1,0 +1,20 @@
+{
+  "taken": "2026-09-06",
+  "routes": {
+    "answer": "PATCH /issues/:documentId"
+  },
+  "status": 400,
+  "rest": {
+    "answer": {
+      "code": "BAD_REQUEST",
+      "message": "Invalid input",
+      "details": {
+        "formErrors": [
+          "Unrecognized key: \"status\"",
+          "no fields to update"
+        ],
+        "fieldErrors": {}
+      }
+    }
+  }
+}

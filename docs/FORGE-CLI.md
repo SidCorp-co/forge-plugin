@@ -48,6 +48,6 @@ needs that topic and by nobody else.
 | [the project's brief](cli/the-brief.md) | Why `--refresh` takes the answer it is meant to produce, which files a digest covers and which it deliberately does not, and why a store that will not answer is never printed as a store with no brief. |
 | [settings](cli/settings.md) | Why provenance is the shape of every answer, which six environment variables remain, and where a credential is allowed to sit. |
 | [withholding a verb](cli/withholding-a-verb.md) | The difference between a tool the server gates and a verb a human hid, and why `forge doctor` is the only surface allowed to say so. |
-| [one transport](cli/one-transport.md) | What a stated rate limit is honoured up to, what an error carries, why the tool surface is cached, and why a write announces itself here. |
+| [one transport](cli/one-transport.md) | Why the route each capability takes is a declared table, which two keep the other endpoint, what a capability with no route does instead, and why a write announces itself here. |
 | ["did you mean"](cli/did-you-mean.md) | Why matching is on the separator-stripped form: an agent recalls a name from the wrong shape rather than fat-fingering a key. |
 | [vietnamese](cli/vietnamese.md) | Why `vi-natural review` cannot be the gate, and which copy of the binary is spawned. |

@@ -1,0 +1,14 @@
+{
+  "taken": "2026-09-06",
+  "routes": {
+    "answer": "PUT /projects/:project/knowledge/:slug"
+  },
+  "rest": {
+    "answer": {
+      "id": "5eab8eaf-6edc-4e57-9e68-2a0d62a61ba4",
+      "slug": "zz-iss508-capture",
+      "degraded": false,
+      "truncated": false
+    }
+  }
+}

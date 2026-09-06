@@ -21,10 +21,10 @@ configured.
 
 An agent is offered what it can use and nothing else. A verb disappears for one of two reasons:
 
-- **The server refuses its backing tool.** `forge doctor` probes and records that; the verb then
+- **The capability behind it refuses.** `forge doctor` probes and records that; the verb then
   leaves the usage list, `forge tools` stops listing the tool, and `forge schema` refuses to print
-  its arguments. On this deployment `forge_project_pm` answers `FORBIDDEN: PM_REQUIRES_DEVICE`, so
-  `dep` is normally absent — edge writes need a device credential, not a PAT.
+  its arguments. On this deployment `forge_project_pm set_dependency` reaches no route at all, so
+  `dep` is normally absent — nothing here writes an edge.
 - **A human ran `forge doctor --hide <verb>`.** That one is unlisted but still runs;
   `forge doctor --show <verb>` puts it back.
 

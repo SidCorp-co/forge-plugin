@@ -54,8 +54,7 @@ const line = (mark, label, detail) => {
   console.log(`[${mark}] ${label.padEnd(22)} ${detail}`);
 };
 
-/* Reports that each part resolved and from where, never the values: a credential fragment in a
-   transcript is still a credential. `--full` is for a human holding two tokens. */
+/* Which part resolved and from where, never the value: `--full` is for a human holding two tokens. */
 /* The sentence rides on the row that answered: a table here keyed on those names is a second copy a
    new source would throw against. The level stays this file's, and the read mints nothing. */
 const checkSession = () => {
@@ -139,8 +138,17 @@ const checkCodex = () => {
   line(OK, "codex", `${model}  ${consults(logEntries()).length} consult(s) logged at ${LOG_PATH}`);
 };
 
-/* No ids, so it stops at the credential check and writes nothing; docs/cli/deps.md says the rest. */
-const DEVICE_ONLY = { key: "forge_project_pm.set_dependency", only: /PM_REQUIRES_DEVICE/u };
+const DEVICE_ONLY = { key: "forge_project_pm.set_dependency" };
+
+/* Something saying no, against a fault of the moment: a dropped socket or a 5xx is one bad minute,
+   and recorded as a gate it hides the verb from every run after it (codex F4). */
+const SAYS_NO = /FORBIDDEN|UNAUTHORIZED|NOT_ALLOWED|no route|not enabled|not allowed|may not/u;
+
+/** Gating on a refusal of that kind and on no other, for every probe rather than one. */
+export const gatingRefusal = (answer, gate) => {
+  const said = answer?.refused ? answer.refused.split("\n")[0] : null;
+  return said && (gate?.only ?? SAYS_NO).test(said) ? said : null;
+};
 
 /* Declared is not callable — all 67 are declared to a PAT and six then refuse. Probed, read-only. */
 const CAPABILITIES = [
@@ -165,9 +173,7 @@ const probe = async (scoped, slug) => {
   const findings = {};
   let gated = 0;
   for (const [label, tool, args, why, gate] of CAPABILITIES) {
-    const answer = await scoped(tool, args, true);
-    const said = answer?.refused ? answer.refused.split("\n")[0] : null;
-    const refusal = said && (!gate?.only || gate.only.test(said)) ? said : null;
+    const refusal = gatingRefusal(await scoped(tool, args, true), gate);
     findings[gate?.key ?? tool] = refusal;
     if (refusal) {
       gated += 1;
@@ -411,9 +417,12 @@ const checkRelease = async () => {
 
 /* Lazy: the transport exits the process when credentials have not resolved. */
 const checkEndpoint = async (full) => {
-  const { refreshTools, projectId, scoped } = await import("../tracker/rpc.mjs");
-  const declared = await refreshTools();
-  line(OK, "tool surface", `${declared.length} declared in ${groups(declared)} groups`);
+  const { forgetProjects, projectId, restBase, scoped } = await import("../tracker/rpc.mjs");
+  const { served } = await import("../tracker/rest.mjs");
+  forgetProjects();
+  const declared = served().map((row) => ({ name: row.tool }));
+  line(OK, "rest base", restBase());
+  line(OK, "route table", `${declared.length} route(s) over ${groups(declared)} tool(s)`);
   const { value: slug } = projectScope();
   if (!slug) {
     console.log("\nNo project slug: capability probes are project-scoped and were skipped.");

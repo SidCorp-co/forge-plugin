@@ -1,0 +1,84 @@
+{
+  "taken": "2026-09-06",
+  "tool": "forge_projects.get",
+  "action": null,
+  "routes": {
+    "project": "GET /projects/cda0adf0-fa3e-436c-ad7e-f3357e62778a"
+  },
+  "secretsDropped": [
+    "apiKey",
+    "webhookSecret"
+  ],
+  "rest": {
+    "project": {
+      "id": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+      "slug": "forge-plugin",
+      "name": "Forge Plugin",
+      "orgId": "50af4c49-37ff-47ed-b9ab-5ab180585791",
+      "createdBy": "0a3bb457-c689-4773-bf87-f3aba7198539",
+      "description": "The Claude Code plugin for the Forge tracker: the forge CLI, the hooks that guard a session, and the skills that drive both. Repository: github.com/SidCorp-co/forge-plugin.",
+      "repoPath": "git@github.com:SidCorp-co/forge-plugin.git",
+      "repoUrl": null,
+      "workspaceSetup": null,
+      "baseBranch": "master",
+      "productionBranch": "master",
+      "defaultDeviceId": null,
+      "agentConfig": {
+        "plugins": [
+          {
+            "name": "forge",
+            "pinnedRef": "9fb23b5d2f55ce7fa34cfb04dc960d0d56c51b2c",
+            "autoUpdate": false,
+            "marketplace": "SidCorp-co/forge-plugin"
+          }
+        ],
+        "projectFacts": {
+          "done-means": "A change to any SKILL.md or references/ is done only when `npm run check` is green on the TRACKED tree and, for the two code-quality skills, `node tools/sync-skills.mjs --check` passes — the copy under packages/code-quality/claude-plugin/skills is generated from plugin/skills and never edited by hand.",
+          "test-commands": "`npm test` runs plugin/test/*.test.mjs with node --test. `npm run check` is the full gate CI runs — lint, test, check:package, vi-text, vi-goldens, vendor, skill-paths, skill-boundaries, dup, sync:skills:check — and is what a verdict rests on. Two of those gates read the tracked tree via `git ls-files`, so stage new files before trusting a green.",
+          "build-commands": "There is no compile step: the plugin is plain ESM and the runner reads it from disk. \"Builds\" means `npm ci` succeeds and `npm run lint` (eslint, including the repo's own code-quality rules) is clean. The standalone package is checked with `npm run check:package` and its pack shape with `npm --prefix packages/code-quality run pack:check`."
+        },
+        "pipelineConfig": {
+          "states": {},
+          "autoProdDeploy": true
+        }
+      },
+      "previewDeploy": null,
+      "archivedAt": null,
+      "createdAt": "2026-09-02T07:29:19.097Z",
+      "role": "admin",
+      "orgRole": "owner",
+      "members": [
+        {
+          "userId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "role": "admin"
+        }
+      ],
+      "labels": [],
+      "devicePool": []
+    }
+  },
+  "mcp": {
+    "project": {
+      "id": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+      "slug": "forge-plugin",
+      "name": "Forge Plugin",
+      "description": "The Claude Code plugin for the Forge tracker: the forge CLI, the hooks that guard a session, and the skills that drive both. Repository: github.com/SidCorp-co/forge-plugin.",
+      "orgId": "50af4c49-37ff-47ed-b9ab-5ab180585791",
+      "createdBy": "0a3bb457-c689-4773-bf87-f3aba7198539",
+      "role": "admin",
+      "repoPath": "git@github.com:SidCorp-co/forge-plugin.git",
+      "workspaceSetup": null,
+      "baseBranch": "master",
+      "productionBranch": "master",
+      "defaultDeviceId": null,
+      "previewDeploy": {
+        "stagingUrl": null,
+        "stagingApiUrl": null,
+        "testingUrls": [],
+        "testCredentials": [],
+        "notes": null
+      },
+      "createdAt": "2026-09-02T07:29:19.097Z"
+    }
+  }
+}

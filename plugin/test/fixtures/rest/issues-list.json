@@ -1,0 +1,176 @@
+{
+  "taken": "2026-09-06",
+  "tool": "forge_issues",
+  "action": "list",
+  "routes": {
+    "page": "GET /projects/cda0adf0-fa3e-436c-ad7e-f3357e62778a/issues?limit=2&sort=updatedAt:desc"
+  },
+  "rowsTrimmed": true,
+  "secretsDropped": [
+    "apiKey",
+    "webhookSecret"
+  ],
+  "rest": {
+    "page": {
+      "items": [
+        {
+          "id": "5c06e635-6187-4096-88f1-d77b6e1077d7",
+          "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+          "issSeq": 512,
+          "title": "The dispatcher's fold push takes the ship lock too",
+          "description": "## What happens today\n\nISS-333 (3.35.181) made the ship take `.git/forge-ship-lock` around its fetch, rebase, gate, version and push, so two ships on one checkout land one at a time. The dispatcher's fold does not go through the ship: it commits the dry-run journal entry in the shared checkout and pushes it with `git fetch && git rebase origin/master && git push origin HEAD:master`. That push takes no lock, so it can land between a ship's rebase and its push. It did, on the lock's own first outing: run 164's journal commit (c8771d6) beat ISS-333's ship at step 6, the push was rejected, and the run resumed with `--from 2` (ISS-333's landing account, comment of 07:45, corrected at 07:51).\n\n## Outcome\n\nA fold's landing honours the same lock a ship's landing does. Either `tools/run.mjs` gains a verb for landing a commit that is not a release (take the lock, fetch, rebase, push, release — no gate, no version), or the lock is exposed so a caller can hold it around its own push. The dispatch guide's fold step names that route in place of the bare rebase-and-push line, and a push from the shared checkout while a ship holds the lock is what the guide tells a dispatcher not to do.\n\n## Rules\n\n- The lock is one file and one rule; the fold does not grow a second lock or a second contention message.\n- A fold blocked by a held lock waits for the ship's release rather than failing — a fold has nothing to unwind.\n- The lock's holder record names the tree that holds it, so a dispatcher can see which run it waits on.\n\n## Out of scope\n\n- Commits made by hand outside both the ship and the fold.\n- Changing what the ship does while it holds the lock.\n\n## Where\n\n`tools/run.mjs`, `tools/run/lock.mjs`, `plugin/guides/skills/dispatch/guide.md`.\n\n## Why\n\nThe rejected push costs a run one resume: a second fetch, a second rebase, and a second gate of several minutes. The profiler's `ships` line counts these; the parent's own pushes are one of the causes it cannot see.",
+          "descriptionFormat": "markdown",
+          "descriptionTemplate": null,
+          "status": "in_progress",
+          "priority": "medium",
+          "category": "enhancement",
+          "reportedBy": null,
+          "createdVia": "mcp",
+          "detectorKey": null,
+          "assigneeId": null,
+          "createdById": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "mergedAt": null,
+          "complexity": null,
+          "reopenCount": 0,
+          "waitingKind": null,
+          "source": "manual",
+          "externalId": null,
+          "plan": "# Plan — the fold's landing takes the ship's lock, through a verb of its own\n\nScreen change: no\nSchema coupling: no\nUser-facing outcome: no\n\n## The one thing verified in code that makes this possible\n\n`lockFile()` in `tools/run/lock.mjs` resolves through `gitCommonDir()`, never\n`--absolute-git-dir`, so the shared checkout and every `wt-ISS-*` worktree contend on one file,\n`<common>/forge-ship-lock`. `plugin/test/run/run-lock.test.mjs` asserts that equality directly. A\npush made from the checkout root under `takeShipLock` therefore serializes against a worktree's\nship with no new mechanism at all — the lock already spans the pair, it was simply never taken by\nanything but `ship`.\n\n## Correction to the issue's premise\n\nThe issue asks that the dispatch guide's fold step name the locked route \"in place of the bare\nrebase-and-push line\". That line is not in the guide: `plugin/guides/skills/dispatch/guide.md` and\n`references/the-fold.md` contain neither the word `push` nor `rebase`. The bare command was the\ndispatcher's own habit, unwritten. So the fold reference *gains* the rule rather than replacing a\nline.\n\nThe issue's third rule — \"the lock's holder record names the tree that holds it\" — is already met:\n`shipHolder()` returns `{ tree, branch }` and `whose()` prints both. No code is owed for it; the\ncriteria judge it as standing behaviour.\n\n## Before and after\n\n**Before.** `node tools/run.mjs` has three verbs. `start` cuts a worktree, `ship` runs ten steps and\nholds the lock from the fetch to the push, `review` moves a mark. Nothing lands a commit that is not\na release, so the dispatcher's journal commit reaches `master` by a bare `git fetch && git rebase &&\ngit push` from the shared checkout, which can land between a ship's rebase and its push and did\n(run 164's `c8771d6` against ISS-333's own first ship).\n\n**After.** A fourth verb, `land`, lands one commit that is not a release: four steps — the tree is\nclean, fetch, rebase, push — of which the last three are the locked span, dropped at the push. The\nclean check is outside it, where the ship's own step 1 already is: a tree nobody can rebase is\nrefused before the branch is held rather than after, and the lock is taken only by a run that will\nreach a push. No gate, no version bump, no install steps, no `forge-ship-from` mark, no review\ncount. A fold behind a held lock prints whose landing it waits on and waits for the release, as a\nship does.\n\n## What `land` is, and what its three guards are not\n\n`land` spends no gate, so what it pushes is the caller's judgement and not this script's. It is the\nroute for a commit a release would be wrong for — the wave journal the fold writes — and it is\nstated that way in the help, because a verb that looked like a checked route would be one somebody\nlands code through.\n\nIts guards close the mis-invocation the shape invites, and none is a claim about the content: a run\ntyping `land` in its own worktree instead of `ship`. They are that this tree is the checkout itself,\nthat its HEAD is on the default branch, and that nothing is uncommitted — the three things true of\nthe shared checkout the fold commits in, and the second is what stops a checkout parked on somebody's\nbranch from pushing it. All three run before the lock is taken, so a refused `land` never held the\nbranch. A clean code commit sitting on the checkout's own default branch passes all three and is\nlanded ungated; that is the route working as intended, and the help says so rather than implying a\ncheck.\n\n## Files\n\n- **`tools/run/args.mjs`** — a `land` entry in `VERBS`: signature `land [--wait M]`, the one flag,\n  no bare words. `flagLines` dedupes by flag name, because `usage()` flattens every verb's flags\n  into one list and `--wait` would otherwise print twice.\n- **`tools/run.mjs`** — `landSteps(tree, base)` returning the four steps, the last three carrying\n  the ship's own `LANDS`/`PUSHES` roles, and `land({ flags })` running them under `takeShipLock`\n  with the same `--wait` reading `ship` does, after the guards. `usage()` gains `land`'s signature, its lines and the sentences saying it lands what is\n  not a release and spends no gate; the first line becomes `<start|ship|land|review>`; `VERB_RUNS`\n  and the unknown-verb refusal name it. `cleanTree`'s refusal says \"a landing pushes commits\" rather\n  than \"a release ships commits\", one message serving both callers.\n- **`tools/run/lock.mjs`** — `staleSaid` and `wedgedSaid` say *landing* where they said *ship*, and\n  the stale escape says to run the landing again rather than to ship again. One lock, one contention\n  message, true for either caller. No new export and no second lock.\n- **`plugin/guides/skills/dispatch/guide.md`, `references/the-fold.md`** — the fold's own landing\n  goes through the project's landing route, which serializes with the runs' landings; a push made\n  from the shared checkout while a run is landing is what a dispatcher does not do. Stated as\n  method: no path and no verb name, because this guide travels to every project that installs the\n  plugin and the project's own record is where its route is named.\n- **`plugin/test/run/run-lock.test.mjs`** — cases for the span: a `land` behind a held lock names the\n  holder, waits, and against a fixture whose remote nobody else moves reaches no push and leaves that\n  holder's lock in place; `land` spends no gate and makes no version commit; a `land` from a\n  worktree, from a branch that is not the default, and on a dirty tree are each refused, take no lock\n  and leave none behind.\n- **`plugin/test/run/run-script.test.mjs`** — the `-h` case grows to four verbs and asserts `land`'s\n  signature; a `land -h` reaches no step, as `ship -h` does.\n\n## What this deliberately does not change\n\n- What the ship does while it holds the lock: the same span, the same steps, the same order.\n- The lock's file, its acquire loop, its wait, its stale and wedged refusals as *rules* — only the\n  noun in two sentences.\n- Commits made by hand outside both the ship and the fold: past its three guards `land` judges nothing\n  about what it is asked to push, and no gate stands between that commit and the branch.\n- `tools/gates/steps.mjs`: the `test` step already declares `tools` and `plugin`, so both changed\n  trees are inside a step that runs.\n- The project brief: its landing line already ends by pointing at `node tools/run.mjs -h`, which\n  will name `land`.\n\n## Documented convention reversed\n\nNone. `docs/` names no verb table for this script — `node tools/run.mjs -h` is its whole surface, and\nthat is what this change rewrites.\n",
+          "acceptanceCriteria": "1. `node tools/run.mjs land` lands the checkout's HEAD on the default branch by fetch, rebase and push.\n2. BR-06~1: `land` holds the same `forge-ship-lock` file the ship holds, across its fetch, its rebase and its push.\n3. A `land` that meets a lock held by a running ship names the tree holding it.\n4. That `land` waits for the lock's release rather than refusing at once.\n5. A `land` that waits out its ceiling makes no push of its own.\n6. A ship that meets a lock a `land` holds waits behind it rather than racing it.\n7. That waiting ship prints the same contention sentence a waiting `land` prints.\n8. `land` runs the project's gate at no point.\n9. `land` makes no version commit of its own.\n10. `land` runs no install step: neither the marketplace update nor the plugin update.\n11. `land` from a tree that is not the checkout itself is refused.\n12. That refusal names the route a worktree takes instead.\n13. `land` from a HEAD that is not on the default branch is refused.\n14. That refusal names the branch it found.\n15. `land` on a tree with uncommitted work is refused.\n16. That refusal lists the uncommitted paths.\n17. A `land` its own guards refuse takes no lock, so none is left behind.\n18. A `land` that waits out its ceiling leaves the holder's lock exactly where it was.\n19. `node tools/run.mjs -h` names `land` with its signature.\n20. That same usage says `land` lands a commit that is not a release.\n21. That same usage says `land` spends no gate.\n22. `node tools/run.mjs land -h` prints `land`'s own arguments.\n23. `node tools/run.mjs land -h` reaches no step.\n24. The usage prints one line per flag name, so a flag two verbs share is listed once.\n25. The stale-lock refusal names a landing rather than a ship.\n26. The wedged-lock refusal names a landing rather than a ship.\n27. The stale-lock refusal's escape is a command a dispatcher folding a wave can act on.\n28. `tools/run/lock.mjs` names exactly one lock file after the change, as it did before it.\n29. `tools/run/lock.mjs` carries exactly one contention message after the change, as it did before it.\n30. The lock's holder record names the tree holding it.\n31. A run waiting behind a lock prints that tree.\n32. `forge guide dispatch the-fold` tells a dispatcher that the fold's own landing goes through the project's landing route rather than a bare push from the shared checkout.\n33. That guide text names no path, no script and no verb of this repository.\n34. `npm run check` is green on the branch at the head that lands.",
+          "sessionContext": {
+            "lease": {
+              "pid": "2299409",
+              "next": null,
+              "agent": "claude-code_2-1-258_agent",
+              "holder": "iss-512-09311d11",
+              "history": [
+                {
+                  "at": "2026-09-06T08:38:14.596Z",
+                  "how": "claim",
+                  "next": null,
+                  "holder": "iss-512-09311d11",
+                  "status": "open"
+                }
+              ],
+              "minutes": 30,
+              "renewedAt": "2026-09-06T09:22:03.177Z"
+            }
+          },
+          "releaseNotes": null,
+          "metadata": null,
+          "releaseBatchRunId": null,
+          "identSearch": "'07':140,144 '164':109 '181':18 '2':132 '3':16 '333':15,116,134 '35':17 '45':141 '51':145 '6':121 'a':44,92,147,155,165,169,174,193,221,228,238,257,261,265,269,281,299,351,355,358,362 'account':137 'and':33,67,96,126,217,220,249,319,361 'are':380 'around':27,198 'at':43,119,143 'bare':215 'beat':114 'between':91 'blocked':267 'both':316 'by':268,313 'c8771d6':113 'caller':194 'can':89,195,301 'cannot':386 'causes':384 'changing':322 'checkout':40,66,226 'comment':138 'commit':112,170 'commits':57,311 'contention':263 'corrected':142 'costs':350 'counts':373 'did':100 'dispatch':203,343 'dispatcher':2,47,239,300 'do':242 'does':50,159,254,326 'dry':59 'either':160 'entry':62 'exposed':191 'failing':280 'fetch':29,72,179,357 'file':248 'first':106 'fold':4,49,148,206,253,266,282,321 'for':167,273 'forge':24 'from':131,223 'gains':164 'gate':31,184,364 'git':23,71,73,77 'go':52 'grow':256 'guide':204,236,344 'guides':341 'hand':314 'happens':12 'has':283 'head':80 'held':270 'hold':196 'holder':290 'holds':230,296,329 'honours':151 'in':63,211 'is':172,190,233,246 'iss':14,115,133 'it':56,69,88,99,197,297,305,328,385 'its':28,97,199 'journal':61,111 'land':41,90 'landing':136,150,158,168 'line':219,372 'lock':9,26,86,103,154,178,189,232,245,259,271,288,331,338 'made':19,312 'master':76,81 'md':345 'message':264 'minutes':367 'mjs':163,335,339 'names':208,292 'no':85,183,185 'not':51,173,240,255 'nothing':284 'of':139,213,309,365,382 'on':38,101,307 'one':39,42,247,250,353,381 'or':187,260 'origin':75,79 'out':308 'outcome':146 'outing':107 'outside':315 'own':105,200,378 'parent':376 'place':212 'plugin':340 'profiler':369 'push':5,34,78,83,98,123,181,201,218,222,349 'pushes':68,379 'rather':278 'rebase':30,74,95,180,216,360 'record':291 'rejected':125,348 'release':175,182,277 'resume':354 'resumed':129 'route':210 'rule':251 'rules':243 'run':60,108,128,162,304,334,337,352 's':3,48,94,104,110,117,135,149,157,205,276,289,370,377 'same':153 'scope':310 'second':258,262,356,359,363 'see':302,387 'several':366 'shared':65,225 'ship':8,21,25,55,93,118,156,229,275,318,325 'ships':37,371 'skills':342 'so':35,87,192,298 'step':120,207 'take':22,176 'takes':6,84 'tells':237 'than':279 'that':82,171,209,295 'the':1,7,20,46,54,58,64,102,122,127,152,177,188,202,214,224,231,235,244,252,274,287,293,317,320,324,330,347,368,375,383 'these':374 'through':53 'time':45 'to':241,285 'today':13 'too':10 'tools':161,333,336 'tree':294 'two':36 'unwind':286 'verb':166 'version':32,186 'waits':272,306 'was':124 'what':11,234,323 'where':332 'which':303 'while':227,327 'why':346 'with':70,130",
+          "createdAt": "2026-09-06T07:54:56.204Z",
+          "updatedAt": "2026-09-06T09:22:03.940Z",
+          "displayId": "ISS-512",
+          "creatorEmail": "thanhnh@sidcorp.co",
+          "creatorIsAgent": true,
+          "creatorLabel": "Forge Agent",
+          "pipelineHealth": {
+            "stage": "in_progress"
+          }
+        },
+        {
+          "id": "7a5b1e76-9ba9-4c02-bde3-70673e4da975",
+          "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+          "issSeq": 517,
+          "title": "forge new --into still demands --title, though its own usage says a comment needs none",
+          "description": "## What happened\n\n`forge new <file> --into ISS-27` is refused with \"An issue needs --title; the tracker refuses an\nuntitled one\", although both the usage line and the guide say `--into` comments on that issue\ninstead of filing and \"needs none\".\n\n`plugin/src/commands.mjs:333` runs the title check before the route is chosen:\n\n```\nconst { into, with: rides, size, kind, priority, new: fresh, ...given } = flags(rest, \"new\", [\"--new\"]);\nif (!given.title) fail(\"An issue needs --title; the tracker refuses an untitled one.\");\n```\n\n`commenting` is decided twelve lines further down (`const commenting = into !== undefined;`), so the\nrefusal that belongs to a filing is spoken over a comment. Seen at 3.35.183 while routing a finding\nout of ISS-506, which is the route the issue-flow guide gives for a finding that belongs to another\nissue: \"`forge new --into`, which takes no lease\".\n\n## Outcome\n\n`forge new <file> --into ISS-45` posts the comment with no `--title`, as its own usage says. A run\nthat has a finding for another issue types the one command the guide names and it works, rather\nthan inventing a title the comment does not use.\n\n## Rules\n\n- The check stays where a filing is made: an issue with no `--into` is still refused without a\n  title, and its message does not change.\n- The fix is one move of an existing check, not a new flag or a new message.\n\n## Out of scope\n\nEvery other refusal of `new`, and what `--into` does once it is past this one.\n\n## Where\n\n`plugin/src/commands.mjs:333`, against the usage at `NEW_USAGE` in the same tree.\n\n## Where\n\n- forge 3.35.183 at /run/media/thanh/New/ai-project/wt-ISS-506/plugin\n- met from project forge-plugin (.forge.json), prose as written\n- agent claude-code_2-1-258_agent, in /run/media/thanh/New/ai-project/wt-ISS-506\n",
+          "descriptionFormat": "markdown",
+          "descriptionTemplate": null,
+          "status": "dropped",
+          "priority": "none",
+          "category": "bug",
+          "reportedBy": null,
+          "createdVia": "mcp",
+          "detectorKey": null,
+          "assigneeId": null,
+          "createdById": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "mergedAt": null,
+          "complexity": null,
+          "reopenCount": 0,
+          "waitingKind": null,
+          "source": "manual",
+          "externalId": null,
+          "plan": null,
+          "acceptanceCriteria": null,
+          "sessionContext": {
+            "lease": {
+              "pid": "2299409",
+              "next": null,
+              "agent": "claude-code_2-1-258_agent",
+              "holder": "1bd89a37-df5c-4170-8ecd-1c31e2a072d6",
+              "history": [
+                {
+                  "at": "2026-09-06T09:19:58.891Z",
+                  "how": "claim",
+                  "next": null,
+                  "holder": "1bd89a37-df5c-4170-8ecd-1c31e2a072d6",
+                  "status": "open"
+                }
+              ],
+              "minutes": 10,
+              "renewedAt": "2026-09-06T09:20:26.004Z"
+            }
+          },
+          "releaseNotes": null,
+          "metadata": null,
+          "releaseBatchRunId": null,
+          "identSearch": "'1':312 '183':126,286 '2':311 '258':313 '27':22 '3':124,284 '333':60,271 '35':125,285 '45':164 '506':134,296,324 'a':12,115,120,129,145,176,180,198,210,223,241,245 'against':272 'agent':308,314 'ai':292,320 'although':36 'an':26,33,88,95,214,237 'and':41,53,192,225,256 'another':150,183 'as':171,306 'at':123,275,287 'before':65 'belongs':113,148 'both':37 'change':230 'check':64,207,239 'chosen':69 'claude':309 'code':310 'command':188 'commands':58,269 'comment':13,121,167,201 'commenting':98,106 'comments':46 'const':70,105 'decided':100 'demands':5 'does':202,228,259 'down':104 'every':251 'existing':238 'fail':87 'filing':52,116,211 'finding':130,146,181 'fix':232 'flag':243 'flags':80 'flow':141 'for':144,182 'forge':1,18,152,160,283,301,303 'fresh':78 'from':299 'further':103 'given':79,85 'gives':143 'guide':43,142,190 'happened':17 'has':179 'if':84 'in':278,315 'instead':50 'into':3,20,45,71,107,154,162,218,258 'inventing':197 'is':23,68,99,117,136,212,219,233,262 'iss':21,133,163,295,323 'issue':27,49,89,140,151,184,215 'it':193,261 'its':8,172,226 'json':304 'kind':75 'lease':158 'line':40 'lines':102 'made':213 'media':289,317 'message':227,247 'met':298 'mjs':59,270 'move':235 'names':191 'needs':14,28,54,90 'new':2,19,77,82,83,153,161,242,246,255,276,291,319 'no':157,169,217 'none':15,55 'not':203,229,240 'of':51,132,236,249,254 'on':47 'once':260 'one':35,97,187,234,265 'or':244 'other':252 'out':131,248 'outcome':159 'over':119 'own':9,173 'past':263 'plugin':56,267,297,302 'posts':165 'priority':76 'project':293,300,321 'prose':305 'rather':195 'refusal':111,253 'refused':24,221 'refuses':32,94 'rest':81 'rides':73 'route':67,138 'routing':128 'rules':205 'run':177,288,316 'runs':61 'same':280 'say':44 'says':11,175 'scope':250 'seen':122 'size':74 'so':109 'spoken':118 'src':57,268 'stays':208 'still':4,220 'takes':156 'than':196 'thanh':290,318 'that':48,112,147,178 'the':30,38,42,62,66,92,110,137,139,166,186,189,200,206,231,273,279 'this':264 'though':7 'title':6,29,63,86,91,170,199,224 'to':114,149 'tracker':31,93 'tree':281 'twelve':101 'types':185 'undefined':108 'untitled':34,96 'usage':10,39,174,274,277 'use':204 'what':16,257 'where':209,266,282 'which':135,155 'while':127 'with':25,72,168,216 'without':222 'works':194 'written':307 'wt':294,322",
+          "createdAt": "2026-09-06T09:02:41.509Z",
+          "updatedAt": "2026-09-06T09:20:27.195Z",
+          "displayId": "ISS-517",
+          "creatorEmail": "thanhnh@sidcorp.co",
+          "creatorIsAgent": true,
+          "creatorLabel": "Forge Agent",
+          "pipelineHealth": {
+            "stage": "dropped"
+          }
+        }
+      ],
+      "returned": 2,
+      "total": 518,
+      "limit": 2,
+      "offset": 0,
+      "hasMore": true
+    }
+  },
+  "mcp": {
+    "issues": [
+      {
+        "documentId": "5c06e635-6187-4096-88f1-d77b6e1077d7",
+        "issueId": "ISS-512",
+        "title": "The dispatcher's fold push takes the ship lock too",
+        "status": "in_progress",
+        "priority": "medium",
+        "category": "enhancement",
+        "complexity": null,
+        "assigneeId": null,
+        "reopenCount": 0,
+        "mergedAt": null,
+        "createdAt": "2026-09-06T07:54:56.204Z",
+        "updatedAt": "2026-09-06T09:22:03.940Z"
+      },
+      {
+        "documentId": "7a5b1e76-9ba9-4c02-bde3-70673e4da975",
+        "issueId": "ISS-517",
+        "title": "forge new --into still demands --title, though its own usage says a comment needs none",
+        "status": "dropped",
+        "priority": "none",
+        "category": "bug",
+        "complexity": null,
+        "assigneeId": null,
+        "reopenCount": 0,
+        "mergedAt": null,
+        "createdAt": "2026-09-06T09:02:41.509Z",
+        "updatedAt": "2026-09-06T09:20:27.195Z"
+      }
+    ],
+    "returned": 2,
+    "limit": 2,
+    "hasMore": true,
+    "truncated": true,
+    "truncatedBy": "limit",
+    "notice": "More rows match than were returned: your limit of 2 bound this to the 2 most recent. Raise limit or add status/priority/category/label filters to see the rest."
+  }
+}

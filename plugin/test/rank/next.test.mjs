@@ -256,7 +256,8 @@ test("a carrier reading the tracker cut says eligible means no blocker was found
   state.answer.forge_issues = (args) => {
     if (args.action !== "list") return state.issues.find((one) => one.documentId === args.documentId) ?? {};
     if (!args.filters?.search) return { issues: state.issues, returned: state.issues.length, hasMore: false };
-    return { issues: [], returned: 0, hasMore: true, truncated: true, truncatedBy: "response-size" };
+    /* A route counting a carrier it will not hand over: the walk pages to the end of nothing. */
+    return { issues: [], returned: 0, hasMore: false, beyond: 1 };
   };
   const run = await ran(["next"]);
   delete state.answer.forge_issues;

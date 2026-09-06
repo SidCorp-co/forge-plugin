@@ -1,0 +1,95 @@
+{
+  "taken": "2026-09-06",
+  "tool": "forge_knowledge",
+  "action": "list",
+  "routes": {
+    "page": "GET /projects/cda0adf0-fa3e-436c-ad7e-f3357e62778a/knowledge"
+  },
+  "rowsTrimmed": true,
+  "secretsDropped": [
+    "apiKey",
+    "webhookSecret"
+  ],
+  "rest": {
+    "page": {
+      "rows": [
+        {
+          "id": "20948e75-633f-4b52-9c42-44d45f5dbd40",
+          "slug": "module-checks",
+          "kind": "reference",
+          "title": "plugin/src/checks — what the gate steps read this repository against",
+          "injection": "on_demand",
+          "confidence": "verified",
+          "authoredBy": "agent",
+          "orderIndex": 0,
+          "updatedAt": "2026-09-06T05:22:49.084Z"
+        },
+        {
+          "id": "2383bd8b-7e55-46b7-b7ed-b3ba95197351",
+          "slug": "module-cli-entry",
+          "kind": "reference",
+          "title": "plugin/bin and the CLI entry — the link, the copy chooser, the verb table and the surface it prints",
+          "injection": "on_demand",
+          "confidence": "verified",
+          "authoredBy": "agent",
+          "orderIndex": 0,
+          "updatedAt": "2026-09-05T16:24:08.615Z"
+        },
+        {
+          "id": "4764b676-a14a-4da3-8759-c1f371178438",
+          "slug": "module-codex",
+          "kind": "reference",
+          "title": "plugin/src/codex — the second-opinion review, its log, and what the reviewer may reach",
+          "injection": "on_demand",
+          "confidence": "verified",
+          "authoredBy": "agent",
+          "orderIndex": 0,
+          "updatedAt": "2026-09-06T06:57:18.535Z"
+        }
+      ],
+      "truncated": false,
+      "returned": 16,
+      "total": 16
+    }
+  },
+  "mcp": {
+    "rows": [
+      {
+        "id": "20948e75-633f-4b52-9c42-44d45f5dbd40",
+        "slug": "module-checks",
+        "kind": "reference",
+        "title": "plugin/src/checks — what the gate steps read this repository against",
+        "injection": "on_demand",
+        "confidence": "verified",
+        "authoredBy": "agent",
+        "orderIndex": 0,
+        "updatedAt": "2026-09-06T05:22:49.084Z"
+      },
+      {
+        "id": "2383bd8b-7e55-46b7-b7ed-b3ba95197351",
+        "slug": "module-cli-entry",
+        "kind": "reference",
+        "title": "plugin/bin and the CLI entry — the link, the copy chooser, the verb table and the surface it prints",
+        "injection": "on_demand",
+        "confidence": "verified",
+        "authoredBy": "agent",
+        "orderIndex": 0,
+        "updatedAt": "2026-09-05T16:24:08.615Z"
+      },
+      {
+        "id": "4764b676-a14a-4da3-8759-c1f371178438",
+        "slug": "module-codex",
+        "kind": "reference",
+        "title": "plugin/src/codex — the second-opinion review, its log, and what the reviewer may reach",
+        "injection": "on_demand",
+        "confidence": "verified",
+        "authoredBy": "agent",
+        "orderIndex": 0,
+        "updatedAt": "2026-09-06T06:57:18.535Z"
+      }
+    ],
+    "truncated": false,
+    "returned": 16,
+    "total": 16
+  }
+}

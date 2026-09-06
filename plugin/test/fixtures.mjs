@@ -109,116 +109,29 @@ export const cleanRepo = () => {
   return room;
 };
 
-const DECLARED = ["forge_issues", "forge_comments", "forge_projects.list", "forge_uploads",
-  "forge_projects.get", "forge_config", "forge_memory.search", "forge_knowledge"];
-/* `scoped` reads the schema to know whether to send the project id, so a tool declared with no
-   properties is one a verb calls unscoped — which is a real call the tracker would refuse. Both of
-   these declare one, so the id lookup runs, and the listing that answers it is served below from
-   this repository's own slug rather than left for every suite to stub. */
-const TAKES_PROJECT = ["forge_projects.get", "forge_config", "forge_memory.search", "forge_knowledge"];
-/* Deliberately not the tracker's own sets, field names included: a verb reading them off the schema
-   at the call accepts `fixture-only` and refuses `guide`, which one holding a copy does the reverse
-   of. So the fixture is what proves there is no copy. */
-export const FIXTURE_ENUMS = {
-  kind: ["reference", "rule", "fixture-only"],
-  injection: ["always", "none"],
-  confidence: ["verified", "inferred"],
-};
-export const FIXTURE_FIELDS = ["plan", "sessionContext", "fixture-only"];
-/* The caps the tracker declares, so `section` carries none here because it carries none there. */
-/* The tracker's own shape: every nullable field is a union, and declaring these flat is what made an
-   unwired cap reader look green. `section` carries none on purpose. */
-const orNull = (node) => ({ anyOf: [node, { type: "null" }] });
-export const FIXTURE_CAPS = {
-  plan: orNull({ type: "string", maxLength: 200_000 }),
-  acceptanceCriteria: orNull({ type: "string", maxLength: 100_000 }),
-  releaseNotes: orNull({
-    type: "object",
-    properties: {
-      section: { type: "string", enum: ["Added", "Changed", "Fixed", "Removed", "Security", "Skip"] },
-      userFacing: { type: "string", minLength: 1, maxLength: 500 },
-      technical: orNull({ type: "string", maxLength: 500 }),
-    },
-  }),
-  /* Declared and uncapped, as the tracker has it: leaving it out would prove the no-cap path by silence. */
-  sessionContext: orNull({ type: "object", propertyNames: { type: "string" }, additionalProperties: {} }),
-};
 const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
+/* The project travels as an id in a path now, so a case asking which project a call went to reads
+   the slug back through the one listing the fixture serves. */
+const SLUGS = new Map();
 const ownSlug = () =>
   JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", ".forge.json"), "utf8")).slug;
-/* The browse order and the rank refusal read this; `scoped` keys on `projectId` alone. */
-const RANKS = ["critical", "high", "medium", "low", "none"];
-const declaration = (name) => ({
-  name,
-  inputSchema: {
-    properties: {
-      ...(TAKES_PROJECT.includes(name) ? { projectId: { type: "string" } } : {}),
-      ...(name === "forge_issues"
-        ? {
-          data: { properties: { priority: { enum: RANKS }, ...FIXTURE_CAPS } },
-          fields: { items: { enum: FIXTURE_FIELDS } },
-        }
-        : {}),
-      ...(name === "forge_knowledge"
-        ? Object.fromEntries(Object.entries(FIXTURE_ENUMS).map(([field, values]) => [field, { enum: values }]))
-        : {}),
-    },
-  },
-});
-
-/** The tracker's `list` as it actually answers, for a case about paging: rows in the order they were
- *  last touched, cut to what FITS rather than to the limit, `createdBefore` exclusive and
- *  `createdAfter` inclusive. A `touched` out of step with `createdAt` drops a row off page one. */
+/** The route pages by offset, so a fixture page is a size rather than a window: the rows come back
+ *  whole and `fits` is how many of them one request serves, binding below whatever a caller asked. */
 export const pageOf = (rows, fits) => (args) => {
-  const before = args.filters?.createdBefore ? Date.parse(args.filters.createdBefore) : Infinity;
-  const after = args.filters?.createdAfter ? Date.parse(args.filters.createdAfter) : -Infinity;
-  const matched = rows
-    .filter((one) => Date.parse(one.createdAt) < before && Date.parse(one.createdAt) >= after)
-    .sort((one, other) => other.touched - one.touched);
-  const page = matched.slice(0, fits);
-  const short = page.length < matched.length;
-  return {
-    issues: page,
-    returned: page.length,
-    limit: args.limit,
-    hasMore: short,
-    ...(short
-      ? {
-        truncated: true,
-        truncatedBy: "response-size",
-        notice: `More rows match than were returned: the response-size cap cut this to the ${page.length}`
-          + " most recent of them. A higher limit will NOT help — add status/priority/category/label"
-          + " filters instead.",
-      }
-      : {}),
-  };
+  const wanted = String(args.filters?.search ?? "").toLowerCase();
+  const matched = rows.filter((one) => !wanted || JSON.stringify(one).toLowerCase().includes(wanted));
+  return { issues: matched, returned: matched.length, hasMore: false, fits };
 };
 
-/** The other cap, which the byte one hides: the caller's own `limit` bound the page, so raising it
- *  is what helps and the tracker says so. `truncatedBy` is the only thing telling the two apart. */
-export const boundByLimit = (rows) => (args) => {
-  const page = rows.slice(0, args.limit);
-  const short = page.length < rows.length;
-  return {
-    issues: page,
-    returned: page.length,
-    limit: args.limit,
-    hasMore: short,
-    ...(short
-      ? {
-        truncated: true,
-        truncatedBy: "limit",
-        notice: `More rows match than were returned: your limit of ${args.limit} bound this to the`
-          + ` ${page.length} most recent. Raise limit or add status/priority/category/label filters to`
-          + " see the rest.",
-      }
-      : {}),
-  };
-};
+/** A route that counts more rows than it will serve: the walk pages to the end of what it hands
+ *  over and `hasMore` is still true, which is the one reading that comes back short. */
+export const shortPage = (rows, beyond) => () =>
+  ({ issues: rows, returned: rows.length, hasMore: false, beyond });
 
-/** A tracker a verb can be spawned against, answering out of `state` at request time so a case that
- *  changes the state changes the answer. `state.calls` collects every call for a case to assert on;
- *  a handler in `state.answer` keyed by tool takes precedence over the defaults below. */
+/** The caller's own `limit` bound the page, which the route honours exactly: one cap, not two. */
+export const boundByLimit = (rows) => () =>
+  ({ issues: rows, returned: rows.length, hasMore: false });
+
 /* The knowledge store as probed on 2026-09-04: `upsert` writes the row it was handed and nothing
    of the row it replaces, `get` refuses an absent slug, `delete` says whether there was one. Two
    suites answer with it — the store's own verb and the project verb's brief — so the tracker's
@@ -259,6 +172,56 @@ export const fakeStore = () => {
   return { store, knowledge };
 };
 
+/* The tool-shaped answer a handler wrote, turned back into the envelope the route it stands for
+   would have sent. Tests author what the tool answers; the CLI reads what the route serves, and
+   this is the one place the two meet. */
+const OFF_THE_ROW = new Set(["documentId", "issueId", "relations", "attachments"]);
+const asRow = (issue) => ({
+  id: issue?.documentId,
+  displayId: issue?.issueId,
+  ...Object.fromEntries(Object.entries(issue ?? {}).filter(([name]) => !OFF_THE_ROW.has(name))),
+});
+
+const asComment = (comment) => {
+  const { documentId, ...rest } = comment ?? {};
+  return { id: documentId, ...rest };
+};
+
+const seqOf = (row) => Number(String(row?.displayId ?? "").replace(/\D+/gu, "")) || 0;
+
+/* The route the key lookup searches is the set oldest first, so the fixture orders by the number in
+   the key, which is what rises with a row's age on the tracker it stands for. */
+const ordered = (rows, sort) =>
+  (sort === "createdAt:asc" ? [...rows].sort((one, two) => seqOf(one) - seqOf(two)) : rows);
+
+const asPage = (rows, offset, limit, hasMore) => ({
+  items: rows,
+  returned: rows.length,
+  total: rows.length + offset,
+  limit,
+  offset,
+  hasMore,
+});
+
+/* An edge authored in the shape a reader sees, sent back in the shape the route serves: the tests
+   above name relations, and the projection is what turns one into the other. */
+const sided = (edge, side) => ({
+  id: edge.edgeId, kind: edge.kind, fromIssueId: edge.fromIssueId, toIssueId: edge.toIssueId,
+  [`${side}DisplayId`]: edge.otherDisplayId,
+  [`${side}Status`]: edge.otherStatus,
+  [`${side}MergedAt`]: edge.otherMergedAt,
+  validUntil: edge.validUntil ?? null,
+  ...(edge.gatesDispatch === undefined ? {} : { gatesDispatch: edge.gatesDispatch }),
+});
+
+const edgesOf = (issue) => ({
+  outgoing: (issue?.relations?.blocks ?? []).map((edge) => sided(edge, "to")),
+  incoming: (issue?.relations?.blockedBy ?? []).map((edge) => sided(edge, "from")),
+});
+
+/** A tracker a verb can be spawned against, answering out of `state` at request time so a case that
+ *  changes the state changes the answer; a handler in `state.answer` keyed by tool wins over the
+ *  defaults, and `state.calls` collects every call for a case to assert on. */
 export const fakeTracker = async (state) => {
   const body = (request) =>
     new Promise((done) => {
@@ -266,10 +229,11 @@ export const fakeTracker = async (state) => {
       request.on("data", (chunk) => {
         text += chunk;
       });
-      request.on("end", () => done(JSON.parse(text)));
+      request.on("end", () => done(text ? JSON.parse(text) : {}));
     });
-  /* `state.hidden` is what lies past the page the list returns: a search reaches it, a listing
-     does not, which is the seam a duplicate check with no cursor has to answer for. */
+  /* `state.hidden` is what the list route does not carry and the search route, a different index,
+     reaches: the seam a duplicate check answers for. A reading the walk cannot finish is `shortPage`
+     and nothing else, since a route that counts what it will not serve is the only shape with one. */
   const listed = (filters = {}) => {
     const wanted = String(filters.search ?? "").toLowerCase();
     const pool = wanted ? [...(state.issues ?? []), ...(state.hidden ?? [])] : (state.issues ?? []);
@@ -297,47 +261,168 @@ export const fakeTracker = async (state) => {
       score,
       stale: false,
     }));
+
+  /* One row per call, carrying both the route it went to and the tool and action it stood for, so a
+     test asserting on either reads the same list; a route two tools answer on writes two. The route
+     is held rather than written and revised, because `run-fixtures.mjs` records to a file. */
+  let pending = null;
+  const noted = (name, args) => {
+    (state.calls ??= []).push({ ...pending, name, args });
+    if (pending) pending.stood = true;
+  };
+
+  /* A handler a test registered wins over the built-in one, exactly as it did on the other
+     transport: the key is the tool's name, and never a route. */
+  const answered = (name, args) => {
+    noted(name, args);
+    const held = builtIn(name, args);
+    if (name === "forge_projects.list") {
+      for (const one of held.projects ?? []) SLUGS.set(one.id, one.slug);
+    }
+    return held;
+  };
+
+  const builtIn = (name, args) => {
+    const own = (state.answer ?? {})[name];
+    if (own) return own(args);
+    if (name === "forge_memory.search") return { hits: memory(args) };
+    if (name === "forge_issues") return issues(args);
+    if (name === "forge_comments") return comments(args);
+    if (name === "forge_projects.list") return { projects: [{ ...OWN, slug: ownSlug() }] };
+    return {};
+  };
+
+  const projectRow = (held) => ({
+    ...OWN,
+    slug: ownSlug(),
+    ...(held.project ?? {}),
+    ...(held.config ?? {}),
+    agentConfig: {
+      ...(held.config?.agentConfig ?? {}),
+      ...(held.config?.pipelineConfig ? { pipelineConfig: held.config.pipelineConfig } : {}),
+      ...(held.config?.projectFacts ? { projectFacts: held.config.projectFacts } : {}),
+      ...(held.config?.plugins ? { plugins: held.config.plugins } : {}),
+    },
+  });
+
+  /* One page of a handler's whole answer, by the offset and limit the caller sent: `fits` binds
+     below whatever was asked for, and `beyond` is a count the route reports and will not serve. */
+  const windowOn = (q, held, sort) => {
+    const rows = ordered(rowsFrom(held).map(asRow), sort);
+    const offset = Number(q.get("offset") ?? 0);
+    const limit = Math.min(Number(q.get("limit") ?? 200), held.fits ?? state.page ?? Infinity);
+    const page = rows.slice(offset, offset + limit);
+    const counted = rows.length + (held.beyond ?? 0);
+    return { items: page, returned: page.length, total: counted, limit, offset,
+      hasMore: offset + page.length < counted };
+  };
+
+  /* One row per route the CLI may call: the pattern it matches, and the envelope its tool-shaped
+     answer becomes. `parts` names what a route serves out of a body the handler answered whole. */
+  const ROUTES = [
+    [/^\/api\/projects\/[^/]+\/issues\/search$/u, (q) =>
+      windowOn(q, answered("forge_issues", { action: "list", filters: { search: q.get("q") } }))],
+    [/^\/api\/projects\/[^/]+\/issues$/u, (q, sent, method) => {
+      if (method === "POST") return asRow(answered("forge_issues", { action: "create", data: sent }));
+      /* Omitted where the query narrowed on nothing, exactly as the caller omits it: a handler
+         asking whether a page was filtered may not be told it always was. */
+      const narrowed = filtersFrom(q);
+      return windowOn(q, answered("forge_issues",
+        { action: "list", ...(Object.keys(narrowed).length ? { filters: narrowed } : {}) }), q.get("sort"));
+    }],
+    [/^\/api\/issues\/([^/]+)\/dependencies$/u, (q, sent, method, [id]) =>
+      edgesOf(answered("forge_issues", { action: "get", documentId: id }))],
+    [/^\/api\/issues\/([^/]+)\/attachments$/u, (q, sent, method, [id]) =>
+      answered("forge_issues", { action: "get", documentId: id })?.attachments ?? []],
+    [/^\/api\/issues\/([^/]+)\/comments$/u, (q, sent, method, [id]) => {
+      if (method === "POST") return asComment(answered("forge_comments", { action: "create", data: { issue: id, ...sent } }));
+      const held = answered("forge_comments", { action: "list", filters: { issue: id } });
+      const rows = (held.comments ?? []).map(asComment);
+      /* Not coerced: a handler answering `hasMore: null` is modelling an envelope that said nothing
+         about its own completeness, which is a page no reader may call whole. */
+      const says = Object.hasOwn(held ?? {}, "hasMore") ? held.hasMore : false;
+      const failing = held.refused || held.notARecord;
+      return { ...asPage(rows, 0, rows.length, says), ...(failing ? held : {}) };
+    }],
+    [/^\/api\/issues\/([^/]+)\/transition$/u, (q, sent, method, [id]) => {
+      const { toStatus, ...rest } = sent;
+      return asRow(answered("forge_issues",
+        { action: "transition", documentId: id, data: { status: toStatus, ...rest } }));
+    }],
+    [/^\/api\/issues\/([^/]+)\/merge$/u, (q, sent, method, [id]) =>
+      answered("forge_issues", { action: method === "DELETE" ? "unmark" : "mark_merged", data: { issueId: id, ...sent } })],
+    [/^\/api\/issues\/([^/]+)$/u, (q, sent, method, [id]) =>
+      asRow(answered("forge_issues", method === "PATCH"
+        ? { action: "update", documentId: id, data: sent }
+        : { action: "get", documentId: id }))],
+    [/^\/api\/projects\/[^/]+\/knowledge\/([^/]+)$/u, (q, sent, method, [slug]) =>
+      answered("forge_knowledge", { action: method === "PUT" ? "upsert" : method === "DELETE" ? "delete" : "get", slug, ...sent })],
+    [/^\/api\/projects\/[^/]+\/knowledge$/u, (q) =>
+      answered("forge_knowledge", { action: "list", kindFilter: q.get("kind") ?? undefined, injectionFilter: q.get("injection") ?? undefined })],
+    [/^\/api\/memory\/search$/u, (q, sent) => answered("forge_memory.search", sent)],
+    [/^\/api\/guides\/([^/]+)$/u, (q, sent, method, [slug]) => answered("forge_guide", { action: "get", slug })],
+    [/^\/api\/guides$/u, () => answered("forge_guide", { action: "list" })],
+    [/^\/api\/projects\/[^/]+\/pm\/([a-z-]+)$/u, (q, sent, method, [what]) =>
+      answered("forge_project_pm", { action: what === "runner-load" ? "runner_load" : what })],
+    [/^\/api\/projects\/([^/]+)$/u, () => projectRow({
+      ...answered("forge_config", { action: "get" }),
+      ...(state.answer?.["forge_projects.get"] ? answered("forge_projects.get", {}) : {}),
+    })],
+    [/^\/api\/projects$/u, () => rowsFrom(answered("forge_projects.list", {}), "projects").map((one) => ({ ...one }))],
+  ];
+
   const served = createServer(async (request, response) => {
     if (state.status) {
       response.writeHead(state.status, { "Content-Type": "text/plain" });
       response.end("no");
       return;
     }
-    const call = await body(request);
-    const name = call.params?.name;
-    const args = call.params?.arguments ?? {};
-    (state.calls ??= []).push({ name, args, slug: request.headers["x-forge-project-slug"] });
-    /* Extended, never replaced: one suite's tool is not every suite's declared surface. */
-    let result = { tools: [...DECLARED, ...(state.declared ?? [])].map(declaration) };
-    const own = (state.answer ?? {})[name];
-    /* A handler answering `{ refused }` is the tool's own refusal, which the transport reads from
-       `isError` and no structured content: the shape a verb's way out is reached by. */
-    if (own) {
-      const answered = own(args);
-      /* `{ envelope: r }`: the tool's own result, neither a refusal nor an answer. */
-      if (answered?.envelope) {
-        response.writeHead(200, { "Content-Type": "application/json" });
-        response.end(JSON.stringify({ jsonrpc: "2.0", id: call.id ?? 1, result: answered.envelope }));
-        return;
-      }
-      if (answered?.http) {
-        response.writeHead(answered.http, { "Content-Type": "text/plain" });
-        response.end("gateway");
-        return;
-      }
-      result = answered?.refused
-        ? { isError: true, content: [{ type: "text", text: answered.refused }] }
-        : { structuredContent: answered };
+    const url = new URL(request.url, "http://x");
+    const sent = request.method === "GET" || request.method === "DELETE" ? {} : await body(request);
+    /* The two capabilities that keep this endpoint reach it here, and their handlers are authored
+       the same way as every other: by tool name, against the arguments the tool takes. */
+    if (url.pathname === "/mcp") {
+      pending = { path: url.pathname, method: request.method, slug: request.headers["x-forge-project-slug"] };
+      const held = answered(sent.params?.name, sent.params?.arguments ?? {});
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ jsonrpc: "2.0", id: sent.id ?? 1, result: { structuredContent: held ?? {} } }));
+      return;
     }
-    else if (name === "forge_memory.search") result = { structuredContent: { hits: memory(args) } };
-    else if (name === "forge_issues") result = { structuredContent: issues(args) };
-    else if (name === "forge_comments") result = { structuredContent: comments(args) };
-    else if (name === "forge_projects.list") {
-      result = { structuredContent: { projects: [{ ...OWN, slug: ownSlug() }] } };
+    pending = {
+      path: url.pathname,
+      method: request.method,
+      query: Object.fromEntries(url.searchParams),
+      sent,
+      slug: SLUGS.get(url.pathname.split("/")[3]) ?? null,
+    };
+    const row = ROUTES.find(([pattern]) => pattern.test(url.pathname));
+    if (!row) {
+      (state.calls ??= []).push(pending);
+      response.writeHead(404, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ code: "NOT_FOUND", message: `Not Found: ${request.method} ${url.pathname}` }));
+      return;
     }
-    else if (name) result = { structuredContent: {} };
+    const [, ...caught] = row[0].exec(url.pathname);
+    const answer = row[1](url.searchParams, sent, request.method, caught);
+    if (!pending.stood) (state.calls ??= []).push(pending);
+    if (answer?.refused) {
+      response.writeHead(400, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ code: "BAD_REQUEST", message: answer.refused }));
+      return;
+    }
+    if (answer?.http) {
+      response.writeHead(answer.http, { "Content-Type": "text/plain" });
+      response.end("gateway");
+      return;
+    }
+    /* A 200 whose body is not a record: what a proxy in front of the tracker answers with. */
+    if (answer?.notARecord) {
+      response.writeHead(200, { "Content-Type": "text/plain" });
+      response.end(answer.notARecord);
+      return;
+    }
     response.writeHead(200, { "Content-Type": "application/json" });
-    response.end(JSON.stringify({ jsonrpc: "2.0", id: call.id ?? 1, result }));
+    response.end(JSON.stringify(answer ?? {}));
   });
   await new Promise((ready) => served.listen(0, "127.0.0.1", ready));
   const home = tempHome("tracker");
@@ -347,3 +432,12 @@ export const fakeTracker = async (state) => {
   return { url, env: { ...process.env, XDG_CONFIG_HOME: home.path }, close: () => served.close(),
     unref: () => served.unref() };
 };
+
+const rowsFrom = (payload, key = "issues") =>
+  payload?.[key] ?? payload?.data ?? (Array.isArray(payload) ? payload : []);
+
+const FILTERS = ["status", "priority", "category"];
+
+const filtersFrom = (query) =>
+  Object.fromEntries(FILTERS.map((name) => [name, query.get(name) ?? undefined])
+    .filter(([, value]) => value !== undefined));

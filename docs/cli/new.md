@@ -77,10 +77,10 @@ is not a rank below `low` but the tracker's own word for nobody having judged. T
 nobody ranked is written with, so `low` goes back to meaning a rank somebody chose and the two are
 legible apart on the field alone. Both filing routes write it; the reply says whether the filer chose
 it or the CLI did, because a filer who meant more than the bottom finds out while the command is
-still in their hand. The set behind it is read from the tracker's own schema at the call, and a rank
-outside it is refused before anything is filed — this CLI keeps no copy of those five names. The
-browse verb needs no rule of its own for it: it sorts by that same schema order, whose last two
-values are `low` and then `none`.
+still in their hand. The set behind it is declared once, on the route table, and a rank outside it is
+refused before anything is filed — the route refuses one without saying what it wanted, so the
+refusal names the declaration and where it is kept. The browse verb needs no rule of its own for it:
+it sorts by that same declared order, whose last two values are `low` and then `none`.
 
 The defect route ranks nothing at all. Whoever met a defect in this plugin is not whoever schedules
 the fix, and a note that ranked itself would be one finder's estimate of another's queue.

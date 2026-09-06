@@ -11,16 +11,22 @@ and what it does when the assumption fails.
 
 ### EI-01 — The tracker
 
-Rev: 1 · Enforces: BR-02, BR-14
+Rev: 2 · Enforces: BR-02, BR-14
 
-One request per call over the tracker's own endpoint, with the credential and the project's slug in
-the request. The tracker owns its state machine, its fields and its data fence; this product owns
-none of them. Its errors are the network's fault rather than the work's, and are retried and never
-recorded (UC-02-5).
+Calls go over the tracker's REST API, with the credential as a bearer token and the project carried
+as a path segment naming its identifier rather than as a header naming its slug. One capability may
+compose more than one request, because the shape this product answers with is sometimes assembled
+from routes the tracker keeps apart. The tracker owns its state machine, its fields and its data
+fence; this product owns none of them. Its errors are the network's fault rather than the work's,
+and are retried and never recorded (UC-02-5). Two capabilities have no twin a shell process can
+reach — an upload answering with an image content block, and the call that opens a session — and
+go over the tracker's JSON-RPC endpoint instead; which those are is something this product declares
+rather than discovers, since the declaration it used to read is the surface being withdrawn.
 
-- **AC-19-1-1** · Rev: 1 · Proof: plugin/test/tracker/rpc.test.mjs "the identifying argument is derivable from the reference set"
-  WHEN the tracker declares a surface THEN the CLI SHALL read the declaration rather than assume
-  it, and SHALL refresh the cached copy when a name lookup misses.
+- **AC-19-1-1** · Rev: 2 · Proof: plugin/test/tracker/rest.test.mjs "the one capability REST does not serve names the route it wanted"
+  WHEN the CLI calls a tracker capability THEN it SHALL send the request its own declaration for
+  that capability names, and SHALL refuse a capability its declaration leaves without one rather
+  than reaching the tracker by another transport.
 - **AC-19-1-2** · Rev: 2 · Proof: plugin/test/tracker/rpc.test.mjs "the marker takes the one line terminator that is the wrapper's, and no other"
   WHEN a field arrives inside the tracker's data fence THEN the transport SHALL hand on the value
   with the whitespace its author wrote and without the fence or the line terminators it owned.

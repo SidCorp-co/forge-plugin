@@ -112,16 +112,28 @@ test("the refusal names the verb and what it does that the raw call does not", (
   assert.equal(said.split("\n").length, 1, "one line, as a spent turn is owed");
 });
 
-/* ISS-335's second rule. `dep` is gated for a personal access token, and the raw action is not what
-   is left when the verb goes: the withholding is the decision, so the refusal names it. */
+/* `forge tools` prints the table's keys, and a caller who types one back is naming a pair rather
+   than a tool: read as a tool name it would reach the route past this refusal and past the
+   read-before-write check, both of which are keyed on the tool the tracker knows. */
+test("a key typed where a tool name goes is refused by the verb that wraps the pair", async () => {
+  const { ran, close } = await gated();
+  try {
+    const run = await ran("call", "forge_issues.create", '{"data":{"title":"x"}}');
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /forge_issues create is what `forge new` wraps/u);
+  } finally {
+    await close();
+  }
+});
+
+/* ISS-335's second rule. `dep` is gated because the route table declares nothing for the edge
+   write, so no handler here is asked for one, and the raw action is not what is left when the verb
+   goes: the withholding is the decision, so the refusal names it. */
 const gated = async () => {
   const tracker = await fakeTracker({
     declared: ["forge_project_pm", "forge_issues"],
     answer: {
-      forge_project_pm: (args) =>
-        (args.action === "set_dependency"
-          ? { refused: "FORBIDDEN: PM_REQUIRES_DEVICE — this action needs a paired-device token" }
-          : { nodes: [] }),
+      forge_project_pm: () => ({ nodes: [] }),
       forge_guide: () => ({ guides: [] }),
       "forge_projects.list": () => ({ projects: [{ slug: SLUG, id: "1e1c1a1e-0000-4000-8000-00000000027d" }] }),
     },
@@ -159,7 +171,7 @@ test("a gated verb's action is refused with the verb and the withholding, not le
     const run = await ran("call", "forge_project_pm", '{"action":"set_dependency","data":{"from":"ISS-1"}}');
     assert.equal(run.status, 1);
     assert.match(run.stderr, /forge_project_pm set_dependency is what `forge dep` wraps/u);
-    assert.match(run.stderr, /paired device alone and this credential may not call/u);
+    assert.match(run.stderr, /has no route to on the tracker's data plane and may not call/u);
     assert.match(run.stderr, /not the way round/u);
   } finally {
     await close();

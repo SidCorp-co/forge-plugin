@@ -25,35 +25,36 @@ wider one was measured and found to be mostly bytes that said nothing.
 
 ### UC-02-1 — Browse and read
 
-Rev: 2 · Actors: agent, developer · Enforces: BR-14
+Rev: 3 · Actors: agent, developer · Enforces: BR-14
 
-A browse projection for many issues and a full read for the one about to be worked. Any field of
-the full read may be asked for by the name the read prints it under, whether or not the tracker
-will project that field itself. Absence is meaningful: a field with nothing in it is left out
-rather than returned as an empty value that says only that the field exists.
+A browse projection for many issues and a full read for the one about to be worked. The full read
+answers with every column the record carries, so any field of it may be asked for by the name the
+read prints it under and the column the tracker grows next is askable the day it appears. Absence
+is meaningful: a field with nothing in it is left out rather than returned as an empty value that
+says only that the field exists.
 
-- **AC-02-1-1** · Rev: 1 · Proof: plugin/test/tracker/issues.test.mjs "two references resolved at once share one list"
-  WHEN two references are resolved in one call THEN the CLI SHALL share one listing between them
-  rather than paging twice.
+- **AC-02-1-1** · Rev: 2 · Proof: plugin/test/tracker/issues.test.mjs "a key on a backlog with no gaps costs one request, whatever page it would be on"
+  WHEN a reference naming an issue by its key is resolved THEN the CLI SHALL ask the tracker for the
+  one record that key names rather than reading the backlog to find it.
 - **AC-02-1-2** · Rev: 1 · Proof: plugin/test/tracker/issues.test.mjs "a uuid is its own answer and asks for no list"
   WHEN the reference given is already an identifier the tracker stores THEN the CLI SHALL ask for no
   listing at all.
 - **AC-02-1-3** · Rev: 1 · Proof: plugin/test/cli/commands.test.mjs "nothing else in the record is touched"
   WHEN a read returns an attachment THEN the CLI SHALL collapse it to the reference that fetches it
   and SHALL leave everything else in the record untouched.
-- **AC-02-1-4** · Rev: 1 · Proof: plugin/test/tracker/issue-fields.test.mjs "a name only the body carries answers where it used to be refused"
+- **AC-02-1-4** · Rev: 1 · Proof: plugin/test/tracker/issue/fields.test.mjs "a name only the body carries answers where it used to be refused"
   WHEN a field is asked for by the name the full read prints it under THEN the CLI SHALL answer with
   that field, and SHALL print no field the ask did not name beyond the identifiers the tracker
   returns unasked.
-- **AC-02-1-5** · Rev: 1 · Proof: plugin/test/tracker/issue-fields.test.mjs "a name the tracker declares is still projected on the wire"
+- **AC-02-1-5** · Rev: 1 · Status: retired (ISS-508)
   WHERE every name a read asks for is one the tracker declares it will project, the CLI SHALL ask
   the tracker for those names rather than for the whole body.
-- **AC-02-1-6** · Rev: 1 · Proof: plugin/test/tracker/issue-fields.test.mjs "a name nothing carries is refused with the command that prints the names"
-  IF a name is asked for that neither the tracker declares nor the body carries THEN the CLI SHALL
-  refuse it and SHALL name the command that prints the names it does take.
-- **AC-02-1-7** · Rev: 1 · Proof: plugin/test/tracker/issue-fields.test.mjs "the mixed ask costs one get, and asks it for the whole body"
-  WHEN a read names fields THEN the CLI SHALL read the issue exactly once, whichever of the two
-  routes the names it was given take.
+- **AC-02-1-6** · Rev: 2 · Proof: plugin/test/tracker/issue/fields.test.mjs "a name nothing carries is refused with the command that prints the names"
+  IF a name is asked for that the record does not carry THEN the CLI SHALL refuse it and SHALL name
+  the command that prints the names it does take.
+- **AC-02-1-7** · Rev: 2 · Proof: plugin/test/tracker/issue/fields.test.mjs "a read naming fields skips the routes those fields are not on"
+  WHEN a read names fields THEN the CLI SHALL read the issue exactly once and SHALL ask only for the
+  parts of it those fields are served by.
 
 ### UC-02-2 — A read is never mistaken for complete
 
@@ -75,10 +76,10 @@ A comment, a plan, an attachment and a filing are writes, and each is a write wh
 takes: the CLI's own verb, or the tracker's tool called directly. An attachment is uploaded rather
 than encoded into the call, because bytes through a context window are paid for twice.
 
-- **AC-02-3-1** · Rev: 1 · Proof: plugin/test/tracker/issue-read-first.test.mjs "every verb that writes the record names its issue, and the read verbs name none"
+- **AC-02-3-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "every verb that writes the record names its issue, and the read verbs name none"
   WHEN a comment, a plan or an attachment is written THEN the gates SHALL treat it as a write, and
   a transition asked for through the tracker's own tool SHALL be treated as one too.
-- **AC-02-3-2** · Rev: 1 · Proof: plugin/test/tracker/issue-read-first.test.mjs "the tracker's own tool is judged by its action, with its arguments already parsed"
+- **AC-02-3-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "the tracker's own tool is judged by its action, with its arguments already parsed"
   WHEN the tracker's own tool is called THEN the CLI SHALL judge the call by the action it names
   rather than by the tool's name.
 
@@ -106,16 +107,20 @@ comment, and moves no status.
   IF a response status is in the retry table THEN the CLI SHALL retry to the limit, and one that is
   not SHALL cost exactly one request.
 
-### UC-02-6 — Anything not wrapped is still reachable
+### UC-02-6 — Anything not wrapped is still reachable, up to a declared edge
 
-Rev: 1 · Actors: agent, developer · Enforces: BR-01, BR-14
+Rev: 2 · Actors: agent, developer · Enforces: BR-01, BR-14
 
-A verb the CLI does not wrap is still callable with its own payload, and one command prints a
-tool's arguments. A surface that hid what it had not wrapped would make the wrapper a ceiling.
+A capability the CLI does not wrap in a verb is still callable with its own payload, as far as the
+set the CLI declares it can reach; one command prints that set and another prints what a capability
+takes. A surface that hid its own edge would make every gap look like a mistake by the caller.
 
 - **AC-02-6-1** · Rev: 1 · Proof: plugin/test/cli/cli-help.test.mjs "every verb says what to type"
   WHEN a verb is asked what it takes THEN it SHALL answer on its own, and asking SHALL never be
   read as a failure or as the verb's argument.
+- **AC-02-6-2** · Rev: 1 · Proof: plugin/test/tracker/rest.test.mjs "is named and refused, rather than dropped between here and the tracker"
+  IF a call carries an argument the CLI's declaration for that capability does not put on the
+  request THEN the CLI SHALL send nothing at all and SHALL name that argument.
 
 ### UC-02-7 — Which issue to work next, ranked off the record
 

@@ -5,7 +5,7 @@
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { commentPage, cutLine } from "../tracker/comments.mjs";
+import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { Refused } from "../refusal.mjs";
 import { issueOf } from "./record.mjs";
@@ -112,7 +112,7 @@ const run = async (argv) => {
   for (const one of Object.keys(given)) if (one !== "json") fail(`resume takes no --${one}. Flags: --json`);
   const { documentId, body } = await issueOf(ref);
   const page = await commentPage(documentId);
-  const view = viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, await policyFor(body.plan, body.status), () => citedClauses(body));
+  const view = viewFrom(documentId, body, page.comments, cutIn(page), await policyFor(body.plan, body.status), () => citedClauses(body));
   const brief = briefOf(view, ref);
   return given.json ? console.log(JSON.stringify(brief, null, 2)) : print(brief, view, ref);
 };

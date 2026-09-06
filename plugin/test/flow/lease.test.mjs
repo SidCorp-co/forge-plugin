@@ -20,6 +20,7 @@ const {
 const { sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced } = await import("../../src/resolve/config.mjs");
 const { sessionKey } = await import("../../src/tracker/comments.mjs");
 const { retryOf } = await import("../../src/tracker/rpc.mjs");
+const { ROUTES } = await import("../../src/tracker/rest.mjs");
 const { parkAnswers } = await import("../../src/flow/lease.mjs");
 const { USAGE, nextLines, parkWrite } = await import("../../src/flow/claim.mjs");
 
@@ -323,21 +324,24 @@ test("reading the holder without one held mints nothing", () => {
 });
 
 /* Retried where the tracker said it did not process the call, and where nothing is stored either
-   way. A create whose answer was lost would post twice, and only the mark is idempotent. */
+   way. A create whose answer was lost would post twice, and only the mark is idempotent. Whether a
+   call may be sent again is the route table's own word on the row, never a reading of the payload:
+   an action that mutated outside `data` was a write the payload reading called a read. */
 test("a call that may write is retried on one status, a read on the gateway's too", () => {
-  const read = { arguments: { action: "get" } };
-  const stores = { arguments: { action: "create", data: { body: "x" } } };
-  const edge = { arguments: { action: "set_dependency", fromIssueId: "a", toIssueId: "b" } };
-  assert.equal(retryOf(429, stores), "rate-limited");
-  assert.equal(retryOf(429, read), "rate-limited");
-  assert.equal(retryOf(502, read), "transient");
-  assert.equal(retryOf(null, read), "transient", "a dropped socket answered nothing at all");
-  assert.equal(retryOf(502, stores), null, "the write may have landed, so it is not sent again");
-  assert.equal(retryOf(null, stores), null);
-  assert.equal(retryOf(400, read), null, "a bad argument does not become good by being asked again");
-  assert.equal(retryOf(403, read), null);
-  assert.equal(retryOf(502, edge), null, "an action mutating outside `data` is no read");
-  assert.equal(retryOf(502, {}), "transient", "and a call with no arguments asks the server for its list");
+  const again = true;
+  const once = false;
+  assert.equal(retryOf(429, once), "rate-limited");
+  assert.equal(retryOf(429, again), "rate-limited");
+  assert.equal(retryOf(502, again), "transient");
+  assert.equal(retryOf(null, again), "transient", "a dropped socket answered nothing at all");
+  assert.equal(retryOf(502, once), null, "the write may have landed, so it is not sent again");
+  assert.equal(retryOf(null, once), null);
+  assert.equal(retryOf(400, again), null, "a bad argument does not become good by being asked again");
+  assert.equal(retryOf(403, again), null);
+  for (const key of ["forge_issues.create", "forge_issues.transition", "forge_comments.create"]) {
+    assert.equal(ROUTES[key].writes, true, `${key} is a write and its row has to say so`);
+  }
+  assert.equal(ROUTES["forge_issues.get"].writes, undefined, "and a read declares none");
 });
 
 test("the verb says what to type, and says the lease is advisory", () => {

@@ -16,10 +16,6 @@ test.after(() => tracker.close());
 /* Set before the modules load: `settings()` resolves the endpoint out of this directory once. */
 process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
 const { commentLanded, issueLanded, sayLanded } = await import("../../../src/tracker/filing/landed.mjs");
-const { tools } = await import("../../../src/tracker/rpc.mjs");
-/* `tried` reads only the cached declarations, so a suite that never resolved them measures the
-   uncached rung and nothing else. Resolved once here; one case clears it again on purpose. */
-await tools();
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const room = tempHome("landed").path;
@@ -65,7 +61,7 @@ test("a read-back the tool refuses is unverified, and says not to send the call 
   state.answer = { forge_issues: (args) => (args.action === "get" ? { refused: "not your project" } : {}) };
   const landed = await issueLanded({ documentId: "uuid-804" });
   assert.match(landed.line, /uuid-804/u, "the id is named whatever the read did");
-  assert.match(landed.line, /the read-back could not run: not your project/u);
+  assert.match(landed.line, /the read-back could not run:.*not your project/u);
   assert.match(landed.line, /Do not send this call again/u);
 });
 
@@ -76,18 +72,21 @@ test("a read-back whose transport fails is unverified too", async () => {
   assert.match(landed.line, /the read-back could not run/u);
 });
 
-/* `tried` is soft on two things and not on the third: a result whose `content` is not an array
-   throws inside `callTool`, and an exception reaching the CLI exits 1 on a write that landed. */
-test("a read-back whose envelope is malformed is unverified, and never raised", async () => {
+/* A 200 whose body is not a record is what a proxy in front of the tracker answers with, and it is
+   the one answer that must not be projected: an empty page built out of HTML reads as the tracker
+   saying the row is not there, and the reply of a write that landed would say so. */
+test("a read-back answered with something that is not a record is unverified", async () => {
   before();
-  state.answer = { forge_issues: (args) => (args.action === "get" ? { envelope: { content: {} } } : {}) };
+  state.answer = { forge_issues: (args) => (args.action === "get" ? { notARecord: "<html>502</html>" } : {}) };
   const landed = await issueLanded({ documentId: "uuid-809" });
   assert.match(landed.line, /uuid-809 and the read-back could not run/u);
+  assert.match(landed.line, /answered 200 with no record/u, "and what it answered with instead");
+  assert.doesNotMatch(landed.line, /came back with no issue/u, "never as the tracker denying the row");
 });
 
-test("a comment read-back whose envelope is malformed is unverified too", async () => {
+test("a comment page answered with something that is not a record is unverified too", async () => {
   before();
-  state.answer = { forge_comments: () => ({ envelope: { content: {} } }) };
+  state.answer = { forge_comments: () => ({ notARecord: "<html>502</html>" }) };
   const landed = await commentLanded("uuid-800", { documentId: "c-9" }, "ISS-800");
   assert.match(landed.line, /the read-back could not run/u);
 });
@@ -99,7 +98,7 @@ test("a refusal carrying newlines is put on one line, so the id stays on the las
   state.answer = { forge_issues: (args) => (args.action === "get" ? { refused: "first\nsecond\nthird" } : {}) };
   const landed = await issueLanded({ documentId: "uuid-813" });
   assert.equal(landed.line.split("\n").length, 1, "one line, whatever the tracker sent");
-  assert.match(landed.line, /uuid-813 and the read-back could not run: first second third\./u);
+  assert.match(landed.line, /uuid-813 and the read-back could not run:.*first second third\./u);
 });
 
 test("a non-empty answer that does not carry the id asked for is unverified, not absence", async () => {
@@ -107,16 +106,6 @@ test("a non-empty answer that does not carry the id asked for is unverified, not
   state.answer = { forge_issues: () => ({ documentId: "uuid-somethingelse", issueId: "ISS-999" }) };
   const landed = await issueLanded({ documentId: "uuid-806" });
   assert.match(landed.line, /answered about something else/u);
-});
-
-/* `callTool` hands back the raw text where the body did not parse, so a string reaches the reader
-   and is not something absence can be read off. */
-test("an answer that is not a record at all is unverified rather than absent", async () => {
-  before();
-  state.answer = { forge_issues: (args) => (args.action === "get" ? { text: "<html>502</html>" } : {}) };
-  const landed = await issueLanded({ documentId: "uuid-807" });
-  assert.match(landed.line, /answered about something else/u);
-  assert.doesNotMatch(landed.line, /came back with no issue/u, "and never as the tracker denying the row");
 });
 
 test("a create answered with no id reads nothing back at all", async () => {
@@ -144,10 +133,18 @@ test("a comment absent from a page the tracker reports cut is unverified, never 
   assert.match(landed.line, /the page read back was cut before it/u);
 });
 
+/* `hasMore` absent. Reading it as `!hasMore` would be this reader inferring a whole page, so the
+   projection carries the silence through as null and every reader of it says unverified. */
 test("a page that asserts nothing about its own completeness is unverified too", async () => {
   before();
-  /* `hasMore` absent. Reading it as `!hasMore` would be this reader inferring a whole page. */
-  state.answer = { forge_comments: () => ({ comments: [{ documentId: "c-1" }], returned: 1 }) };
+  state.answer = { forge_comments: () => ({ comments: [{ documentId: "c-1" }], returned: 1, hasMore: null }) };
+  const landed = await commentLanded("uuid-800", { documentId: "c-9" }, "ISS-800");
+  assert.match(landed.line, /cut before it/u);
+});
+
+test("an answer carrying no comments at all asserts nothing either", async () => {
+  before();
+  state.answer = { forge_comments: () => ({ ok: true, hasMore: null }) };
   const landed = await commentLanded("uuid-800", { documentId: "c-9" }, "ISS-800");
   assert.match(landed.line, /cut before it/u);
 });
@@ -164,14 +161,7 @@ test("a comment page the tool refuses is unverified", async () => {
   before();
   state.answer = { forge_comments: () => ({ refused: "no such issue" }) };
   const landed = await commentLanded("uuid-800", { documentId: "c-9" }, "ISS-800");
-  assert.match(landed.line, /the read-back could not run: no such issue/u);
-});
-
-test("an answer carrying no comment array is unverified rather than an empty whole page", async () => {
-  before();
-  state.answer = { forge_comments: () => ({ ok: true }) };
-  const landed = await commentLanded("uuid-800", { documentId: "c-9" }, "ISS-800");
-  assert.match(landed.line, /no comment page to read/u);
+  assert.match(landed.line, /the read-back could not run:.*no such issue/u);
 });
 
 test("a comment answered with no id reads nothing back", async () => {

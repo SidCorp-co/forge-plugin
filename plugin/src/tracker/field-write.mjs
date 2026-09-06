@@ -1,6 +1,6 @@
 /* Every verb setting a field of the issue writes it here: one home for the cap, the renewal, the
    comment delivery and the read-back, which is why it imports upward (ISS-346, ISS-451). */
-import { scoped, toolNamed, write } from "./rpc.mjs";
+import { declaredFor, scoped, write } from "./rpc.mjs";
 import { mustBeShown } from "./comments.mjs";
 import { leaseLandedAs, leaseMismatch, renew } from "../flow/lease.mjs";
 
@@ -11,7 +11,6 @@ export const landedAs = (held, sent) => String(held ?? "").trim() === String(sen
 export const noteLandedAs = (held, sent) =>
   NOTE_HALVES.every((key) => (held?.[key] ?? null) === (sent?.[key] ?? null));
 
-/* Presence: a prose pipeline rewrites a plan at length, and equality would refuse writes that landed. */
 export const storedNotEmpty = (held) => Boolean(String(held ?? "").trim());
 
 /* Comparator, cap, gate and renewal are the field's, never a caller's argument, and renewal is what a
@@ -31,37 +30,16 @@ const mismatch = (field, ref, back) =>
   fields()[field].said?.(ref, back)
   ?? `The update answered success but ${field} did not read back as written. Nothing to rely on.`;
 
-/* Code points, what `maxLength` counts and never above the code-unit count: it can only miss a refusal. */
+/* Code points, and never above the code-unit count: it can only miss a refusal. */
 export const lengthOf = (value) => [...String(value)].length;
 
-/* A nullable field is a union, so the cap sits in a branch: reading the node caps nothing, and a check
-   that never fires looks like a clean tree. */
-const branches = (node) => (Array.isArray(node?.anyOf) ? node.anyOf : Array.isArray(node?.oneOf) ? node.oneOf : [node]);
-/* A union takes what any branch takes: the widest cap binds, and an uncapped text branch proves none. */
-const takesText = (one) => {
-  const type = one?.type;
-  return type === undefined || type === "string" || (Array.isArray(type) && type.includes("string"));
-};
-const capped = (node) => {
-  const able = branches(node).filter(takesText);
-  if (!able.length || able.some((one) => !Number.isFinite(one?.maxLength))) return null;
-  return Math.max(...able.map((one) => one.maxLength));
-};
-const halvesOf = (node) => branches(node).find((one) => one?.properties)?.properties ?? {};
+/* The routes refuse a bad length without naming the number, so the number is declared beside them. */
+export const capsOf = async () => declaredFor("forge_issues", "caps");
 
-export const capsIn = (data) => Object.fromEntries(Object.entries(data ?? {}).map(([field, node]) => [field, {
-  self: capped(node),
-  halves: Object.fromEntries(Object.entries(halvesOf(node)).map(([half, child]) => [half, capped(child)])),
-}]));
+/* Both lengths where a rewrite moved it, the tracker measuring what it was sent (ISS-430). */
+const NOTHING_SENT = " Nothing was sent.";
 
-let declared = null;
-export const capsOf = async () => {
-  declared ??= capsIn((await toolNamed("forge_issues"))?.inputSchema?.properties?.data?.properties);
-  return declared;
-};
-
-/* Both lengths where a rewrite moved it: the tracker measures what it was sent (ISS-430). */
-export const capRefusal = (where, cap, sent, given) => {
+const capClause = (where, cap, sent, given) => {
   const posted = lengthOf(sent);
   const wrote = lengthOf(given);
   const over = posted - cap;
@@ -69,12 +47,13 @@ export const capRefusal = (where, cap, sent, given) => {
     + (wrote === posted
       ? `Shorten it by ${over}.`
       : `You wrote ${wrote}; this project rewrites ${where} on the way out and the tracker measures `
-        + `the rewrite, so ${over} has to come off what was posted, not off what you typed.`)
-    + " Nothing was sent.";
+        + `the rewrite, so ${over} has to come off what was posted, not off what you typed.`);
 };
 
-/* Synchronous on purpose: `write` does not await this, so a check returning a promise would let the
-   send go ahead. Everything it reads is resolved before `write` is entered. */
+export const capRefusal = (where, cap, sent, given) => capClause(where, cap, sent, given) + NOTHING_SENT;
+
+/* Synchronous on purpose: `write` does not await this, so a promise would let the send go ahead.
+   Every over-cap half at once, too — refusing inside the loop cost a round per half (ISS-325). */
 export const capChecked = (field, caps, sent, given, refuse) => {
   const row = fields()[field];
   const held = caps[field] ?? { self: null, halves: {} };
@@ -82,12 +61,11 @@ export const capChecked = (field, caps, sent, given, refuse) => {
     if (held.self !== null && lengthOf(sent) > held.self) refuse(capRefusal(field, held.self, sent, given));
     return;
   }
-  for (const half of row.halves) {
-    const cap = held.halves?.[half] ?? null;
-    const value = sent?.[half];
-    if (cap === null || typeof value !== "string") continue;
-    if (lengthOf(value) > cap) refuse(capRefusal(`${field}.${half}`, cap, value, given?.[half] ?? value));
-  }
+  const over = row.halves
+    .map((half) => ({ half, cap: held.halves?.[half] ?? null, value: sent?.[half] }))
+    .filter(({ cap, value }) => cap !== null && typeof value === "string" && lengthOf(value) > cap)
+    .map(({ half, cap, value }) => capClause(`${field}.${half}`, cap, value, given?.[half] ?? value));
+  if (over.length) refuse(over.join(" ") + NOTHING_SENT);
 };
 
 export const writeField = async (documentId, field, value, { ref, next, patch, refuse }) => {

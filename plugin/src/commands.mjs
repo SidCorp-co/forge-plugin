@@ -1,9 +1,9 @@
 import { fail, keepOnFailure } from "./resolve/settings.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
-import { projectId, REFERENCE_KEYS, enumAt, scoped, toolNamed, tools, write } from "./tracker/rpc.mjs";
+import { declaredFor, projectId, scoped, write } from "./tracker/rpc.mjs";
+import { REFERENCE_KEYS, asToolCall, keyOf, noRouteRefusal, rowFor, served } from "./tracker/rest.mjs";
 import {
   DEFAULT_LIMIT,
-  FIELDS_AT,
   MAX_LIMIT,
   documentIdOf,
   everyIssue,
@@ -13,14 +13,13 @@ import {
   rowsOf,
   shortOf,
 } from "./tracker/issues.mjs";
-import { commentPage, creditAfter, credited, cutLine, mustBeShown, postComment } from "./tracker/comments.mjs";
+import { commentPage, creditAfter, credited, cutIn, mustBeShown, postComment } from "./tracker/comments.mjs";
 import { attachmentNames, uploadRead, uploadTo, urlBearing } from "./tracker/evidence.mjs";
 import { writeField } from "./tracker/field-write.mjs";
 import {
   INSTEAD_FLAGS,
   KINDS_HELP,
   KIND_NAMES,
-  PRIORITY_AT,
   PRIORITY_HELP,
   filedAs,
   inFlowWords,
@@ -89,18 +88,6 @@ export const terse = (value) => {
   return value;
 };
 
-/* A pattern without a format is kept — that one carries the only copy of its rule. */
-const trimPatterns = (node) => {
-  if (Array.isArray(node)) return node.map(trimPatterns);
-  if (!node || typeof node !== "object") return node;
-  const out = {};
-  for (const [key, value] of Object.entries(node)) {
-    if (key === "pattern" && typeof node.format === "string") continue;
-    out[key] = trimPatterns(value);
-  }
-  return out;
-};
-
 const limitFrom = (raw) => {
   if (raw === undefined) return DEFAULT_LIMIT;
   const value = Number(raw);
@@ -153,8 +140,11 @@ const onlyFlags = (verb, argv, hidden = []) => {
   if (said) fail(said);
 };
 
-const suggestTool = async (name) =>
-  didYouMean("tool", name, callable(await tools()).map((tool) => tool.name), "Ask `forge tools`.");
+const toolNames = () => [...new Set(served().map((row) => row.tool))];
+
+const suggestTool = (name) =>
+  didYouMean("tool", name, callable(toolNames().map((tool) => ({ name: tool }))).map((tool) => tool.name),
+    "Ask `forge tools`.");
 
 /* Two names, and the one place they are stated: `attach` reads its target from them. */
 const ATTACH_TARGETS = ["issue", "comment"];
@@ -244,40 +234,41 @@ export const commands = {
   codex,
   hooks,
   stats,
-  tools: async (rest) => {
+  tools: (rest) => {
     onlyFlags("tools", rest);
     const { all } = flags(rest, "tools", ["--all"]);
-    for (const tool of await tools()) {
-      if (all || !isGated(tool.name)) console.log(tool.name);
+    for (const row of served()) {
+      if (all || !isGated(row.tool)) console.log(`${row.key.padEnd(30)} ${row.requests.join("  +  ")}`);
     }
   },
-  schema: async ([name, ...rest]) => {
+  schema: ([name, ...rest]) => {
     if (!name) fail(usageOf("schema"));
     onlyFlags("schema", rest, ["--all"]);
     const { all } = flags(rest, "schema", ["--all"]);
-    const tool = await toolNamed(name);
-    if (!tool) fail(await suggestTool(name));
+    const rows = served().filter((row) => row.tool === name || row.key === name);
+    if (!rows.length) fail(suggestTool(name));
     refuseIfGated(name, all);
-    show({ description: tool.description, inputSchema: trimPatterns(tool.inputSchema) });
+    show(Object.fromEntries(rows.map((row) => [row.key, { requests: row.requests, sends: row.sends }])));
   },
   call: async (argv) => {
-    const [name, json] = argv;
-    if (!name) fail(usageOf("call"));
+    const [given, json] = argv;
+    if (!given) fail(usageOf("call"));
     onlyFlags("call", argv);
     const raw = json === undefined || json === "-" || json.startsWith("@") ? await bodyFrom(json ?? "-") : json;
     if (json === undefined || json === "-") keepOnFailure(`Your payload, so that nothing loses it:\n\n${raw}`);
-    if (!raw.trim()) fail(`No arguments given for ${name}. Pass json as an argument or on stdin.`);
-    let args;
+    if (!raw.trim()) fail(`No arguments given for ${given}. Pass json as an argument or on stdin.`);
+    let sent;
     try {
-      args = JSON.parse(raw);
+      sent = JSON.parse(raw);
     } catch (error) {
-      return fail(`Arguments for ${name} are not json: ${error.message}`);
+      return fail(`Arguments for ${given} are not json: ${error.message}`);
     }
+    const { name, args } = asToolCall(given, sent);
     /* Before the tool list and the capability replay: a verb is the route to its action whether or
        not the raw tool answers this credential, and a refusal naming none is what this removes. */
     const wrapped = wrappedRefusal(name, actionIn(args));
     if (wrapped) fail(wrapped);
-    if (!(await toolNamed(name))) fail(await suggestTool(name));
+    if (!rowFor(name, args)) fail(`${suggestTool(name)}\n\n${noRouteRefusal(keyOf(name, args))}`);
     refuseIfGated(name);
     const resolved = await resolveReferences(args);
     /* `call` reaches the same writes the wrapped verbs do, so it takes the same gates — and it is
@@ -298,13 +289,13 @@ export const commands = {
   issues: async (rest) => {
     const { limit: raw, ...filters } = flags(rest, "issues");
     const limit = limitFrom(raw);
-    const allowed = Object.keys(await enumAt("forge_issues", ["filters", "properties"]));
+    const allowed = declaredFor("forge_issues", "filters");
     for (const given of Object.keys(filters)) {
       if (allowed.length && !allowed.includes(given)) {
         fail(didYouMean("filter", `--${given}`, [...allowed.map((one) => `--${one}`), "--limit"]));
       }
     }
-    printIssues(await everyIssue(filters), limit, await enumAt("forge_issues", PRIORITY_AT));
+    printIssues(await everyIssue(filters), limit, declaredFor("forge_issues", "priority"));
   },
   /* Three tiers, and the payload is what costs. Fetch narrow, then fetch again. */
   issue: async ([reference, ...rest]) => {
@@ -312,12 +303,12 @@ export const commands = {
     onlyFlags("issue", rest);
     const { fields, full } = flags(rest, "issue", ["--full"]);
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
-    const declared = names ? await enumAt("forge_issues", FIELDS_AT) : [];
-    const narrow = Boolean(names) && names.every((one) => declared.includes(one));
     const documentId = await documentIdOf(reference);
-    const answer = inFlowWords(await scoped("forge_issues",
-      { action: "get", documentId, ...(narrow ? { fields: names } : {}) }));
-    const body = filled(names && !narrow ? projectedTo(answer, names, declared) : answer);
+    /* The names ride along so the read skips the routes nothing asked for; the answer is the row
+       whole either way, and the projection is taken from it. */
+    const held = await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: names } : {}) });
+    const answer = inFlowWords(held);
+    const body = filled(names ? projectedTo(answer, names) : answer);
     show(full ? body : terse(body));
   },
   /* `open` marks the active set; `draft` never dispatches. A filing is read before it is made,
@@ -439,16 +430,15 @@ export const commands = {
     if (!target || !targetRef || !paths.length) fail(usageOf("attach"));
     if (!ATTACH_TARGETS.includes(target)) fail(didYouMean("attach target", target, ATTACH_TARGETS));
     const targetId = target === "issue" ? await documentIdOf(targetRef) : targetRef;
-    /* One name on one issue names one document, whichever verb attached it (ISS-137), and the read
-       comes before the first PUT: what is up can be neither deleted nor replaced, so a collision
-       seen afterwards is one nobody can clear. A comment id names no issue, here as for the lease
-       below, so that route reads no names and refuses on none. */
+    /* One name on one issue names one document (ISS-137), and the read comes before the first PUT:
+       what is up can be neither deleted nor replaced, so a collision seen afterwards is one nobody
+       can clear. A comment id names no issue, so that route reads no names and refuses on none. */
     if (target === "issue") {
       const [page, body] = await Promise.all([
         commentPage(targetId),
-        scoped("forge_issues", { action: "get", documentId: targetId }),
+        scoped("forge_issues", { action: "get", documentId: targetId, fields: ["attachments"] }),
       ]);
-      const cut = page.hasMore ? cutLine(page) : null;
+      const cut = cutIn(page);
       const read = uploadRead(paths, attachmentNames(body, page.comments), { reference: targetRef, cut });
       if (read.refusal) fail(read.refusal);
       if (read.said) console.error(read.said);
@@ -475,9 +465,8 @@ export const commands = {
      held slug is answered as a slug the tracker never served, through that refusal's own call site
      so the two answers cannot drift apart, and its body is never fetched: hiding a page an agent
      cannot follow comes before naming it, and a line saying one exists and is stale is what makes
-     an agent go read it. --tracker is the maintainer's way past that, and the only one. The
-     contract is this plugin's own and on disk, so it is answered before the transport is touched —
-     an installed copy with no tracker reachable still reads the rule. */
+     an agent go read it. --tracker is the maintainer's way past that, and the only one. The contract
+     is on disk, so it is answered before the transport is touched. */
   guide: async (argv) => {
     const { positionals, flagArgv } = partition(argv, ["--tracker"]);
     onlyFlags("guide", flagArgv, ["--tracker"]);

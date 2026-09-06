@@ -2,8 +2,8 @@
 
 A Claude Code plugin holding two CLIs and their skills:
 
-- **`forge`** — drive a Forge issue tracker over its own MCP HTTP endpoint, with no MCP client
-  connected in the asking session. JSON-RPC over one POST.
+- **`forge`** — drive a Forge issue tracker over its own REST API, with no MCP client connected in
+  the asking session. Two capabilities a request cannot serve keep the JSON-RPC endpoint.
 - **`vi-natural`** — natural Vietnamese for i18n catalogs and docs. Absorbed here because
   `forge` writes every Vietnamese issue through it; see `VI-NATURAL.md` for its own
   documentation and for the reasoning its client encodes.

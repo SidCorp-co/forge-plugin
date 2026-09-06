@@ -8,7 +8,7 @@
 
 | Part | What it is | Requirements |
 |---|---|---|
-| **The CLI** | one binary on the developer's path, reaching the tracker over a single request per call, with no client connected in the asking session | FR-01 to FR-06 |
+| **The CLI** | one binary on the developer's path, reaching the tracker over the requests one capability composes, with no client connected in the asking session | FR-01 to FR-06 |
 | **The gates** | checks the host runs before and after a tool call, in one process per event, that may refuse a call or answer after it | FR-07 to FR-12 |
 | **The skills** | the method an agent follows, carrying no project's facts and no rule a checker already keeps | cited by FR-05, FR-09 |
 | **The Vietnamese route** | a second CLI and one generated module holding every string the product may send | FR-13 |

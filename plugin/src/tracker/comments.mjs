@@ -8,34 +8,27 @@ import { fail } from "../resolve/settings.mjs";
 import { rowsOf } from "./issues.mjs";
 import { scoped, write } from "./rpc.mjs";
 
-/* What the request asked for, and no cap that fires: the tracker cuts by response size (ISS-131). */
-const COMMENT_PAGE = 200;
-
+/* The route serves the thread and takes no window, so ISS-131's named limit is one nobody sends. */
 export const commentPage = (documentId) =>
-  scoped("forge_comments", { action: "list", filters: { issue: documentId }, limit: COMMENT_PAGE }).then((got) => {
+  scoped("forge_comments", { action: "list", filters: { issue: documentId } }).then((got) => {
     const comments = rowsOf(got, "comments");
     return {
       comments,
-      hasMore: Boolean(got?.hasMore),
+      hasMore: got?.hasMore ?? null,
       returned: Number(got?.returned ?? comments.length),
-      by: got?.truncatedBy ? String(got.truncatedBy) : null,
-      notice: got?.notice ? String(got.notice) : null,
     };
   });
 
-/* What a message spends on a cut page: the tracker's own count, cap and notice, and none of ours. */
-export const cutLine = ({ returned = 0, by = null, notice = null } = {}) => {
-  const cap = by === "response-size"
-    ? "cut by response size, which a higher limit does not raise"
-    : (by ? `cut by ${by}` : "cut for a reason it did not name");
-  return `The comment list returned ${returned} comment(s) and reported more behind them, ${cap}. `
-    + "It takes no cursor, so nothing here reaches past the cut and the tracker's own screens are "
-    + `the whole read.${notice ? ` The tracker's words: ${notice}` : ""}`;
-};
+export const cutLine = ({ returned = 0 } = {}) =>
+  `The comment list returned ${returned} comment(s) and reported more behind them, for a reason it `
+  + "did not name. The route takes neither a limit nor a cursor, so nothing here reaches past the "
+  + "cut and the tracker's own screens are the whole read.";
+
+/** The sentence a page owes its reader unless the envelope called it whole: silence is not whole. */
+export const cutIn = (page) => (page?.hasMore === false ? null : cutLine(page));
 
 const STATE = () => join(configDir("forge"), "comments-shown.json");
-/* Bounded everywhere: eviction costs a delivery, and the touched issue is appended last so a cap
-   drops the coldest. */
+/* Bounded everywhere: eviction costs a delivery, the touched issue last so a cap drops the coldest. */
 export const KEPT = { sessions: 8, issues: 40, ids: 400 };
 
 /* The order is `SOURCES`'s, and the event is a row of it rather than a fourth source spelled here. */
@@ -101,7 +94,7 @@ const bodies = (ref, unshown) =>
 
 const heading = ({ ref, comments, hasMore, unshown, ...page }) =>
   `${ref}: ${unshown.length} of ${comments.length} comment(s) are new to this session`
-  + (hasMore ? `. ${cutLine(page)}` : "");
+  + (hasMore === false ? "" : `. ${cutLine(page)}`);
 
 export const delivery = (owed) => [
   `Hold — this writes to ${owed.map((one) => one.ref).join(", ")}, and every comment on the page the `
@@ -157,8 +150,8 @@ export const creditCaused = async (targets, ev = null) => {
   }
 };
 
-/* The status of a write that landed must stay success: a caller keyed on it would send the write
-   twice. `fail()` inside the list exits with no catch to reach, so the code is repaired from an exit
+/* The status of a write that landed must stay success, or a caller keyed on it sends the write
+   twice. `fail()` inside the list has no catch to reach, so the code is repaired from an exit
    listener; a thrown one is caught here, where the cause can be said. */
 export const creditAfter = async (name, targets) => {
   const landed = (code) => {

@@ -135,7 +135,7 @@ export const claim = async (argv) => {
   const line = nextLine(given.next);
   const patch = patchFrom({ pushed: given.pushed, review: given.review, open: pulled.values });
   const documentId = await documentIdOf(ref);
-  const issue = await scoped("forge_issues", { action: "get", documentId });
+  const issue = await scoped("forge_issues", { action: "get", documentId, fields: ["sessionContext", "status"] });
   const context = issue?.sessionContext ?? null;
   const lease = leaseOf(context);
   const mine = sessionSourced();

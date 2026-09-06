@@ -20,28 +20,30 @@ process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 
 const ISSUE = "22222222-2222-4222-8222-222222222222";
-const DECLARED = [
-  { name: "forge_issues", inputSchema: { properties: {} } },
-  { name: "forge_comments", inputSchema: { properties: {} } },
-];
 
 let field = null;
 const sent = [];
 
-globalThis.fetch = async (url, init) => {
-  const call = JSON.parse(init.body);
-  const args = call.params?.arguments ?? {};
-  let result = { tools: DECLARED };
-  if (call.method === "tools/call") {
-    sent.push(`${call.params.name}:${args.action}`);
-    if (args.action === "list") result = { structuredContent: { comments: [], returned: 0, limit: 200 } };
-    if (args.action === "get") result = { structuredContent: { documentId: ISSUE, sessionContext: field } };
-    if (args.action === "update") {
-      field = args.data.sessionContext ?? field;
-      result = { structuredContent: { documentId: ISSUE } };
-    }
+const answer = (body) => ({ ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify(body) });
+
+/* The read of the issue itself, which a case wanting to land something between two of them counts. */
+const reads = (address, init = {}) =>
+  (init.method ?? "GET") === "GET" && /^\/api\/issues\/[0-9a-f-]+$/u.test(new URL(address).pathname);
+
+globalThis.fetch = async (address, init = {}) => {
+  const url = new URL(address);
+  if (url.pathname === "/api/projects") return answer([{ id: "p-1", slug: "forge-plugin" }]);
+  if (url.pathname.endsWith("/comments")) {
+    sent.push("forge_comments:list");
+    return answer({ items: [], returned: 0, total: 0, limit: 0, offset: 0, hasMore: false });
   }
-  return { ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify({ jsonrpc: "2.0", id: 1, result }) };
+  if ((init.method ?? "GET") === "PATCH") {
+    sent.push("forge_issues:update");
+    field = JSON.parse(init.body).sessionContext ?? field;
+    return answer({ id: ISSUE });
+  }
+  sent.push("forge_issues:get");
+  return answer({ id: ISSUE, sessionContext: field });
 };
 
 const { leaseOf, renew, renewedLapsed, writeRefusal } = await import("../../src/flow/lease.mjs");
@@ -109,9 +111,8 @@ test("the notice is said after the write, not before it", async () => {
   field = lease("this-run", ago(45));
   const stub = globalThis.fetch;
   const order = [];
-  globalThis.fetch = async (url, init) => {
-    const call = JSON.parse(init.body);
-    if (call.params?.arguments?.action === "update") order.push("write");
+  globalThis.fetch = async (url, init = {}) => {
+    if ((init.method ?? "GET") === "PATCH") order.push("write");
     return stub(url, init);
   };
   const held = console.error;
@@ -173,9 +174,8 @@ test("a reclaim landing during the check is seen by the second read, and refuses
   field = lease("this-run", ago(45));
   const held = globalThis.fetch;
   let gets = 0;
-  globalThis.fetch = async (url, init) => {
-    const call = JSON.parse(init.body);
-    if (call.params?.arguments?.action === "get") {
+  globalThis.fetch = async (url, init = {}) => {
+    if (reads(url, init)) {
       gets += 1;
       if (gets === 2) field = lease("the-other-run", ago(0));
     }
@@ -216,9 +216,8 @@ test("a lease cleared between the two reads is free, and refuses", async () => {
   field = lease("this-run", ago(45));
   const stub = globalThis.fetch;
   let gets = 0;
-  globalThis.fetch = async (url, init) => {
-    const call = JSON.parse(init.body);
-    if (call.params?.arguments?.action === "get") {
+  globalThis.fetch = async (url, init = {}) => {
+    if (reads(url, init)) {
       gets += 1;
       if (gets === 2) field = null;
     }

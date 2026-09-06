@@ -129,7 +129,7 @@ const printGraph = ({ claims, unresolved, carriers }, focus, total, long) => {
   const sided = shown.filter((claim) => claim.by.size === 1).length;
   console.log(
     `${shown.length} edges${focus ? ` touching ${focus}` : ""}, ${sided} one-sided (?), ` +
-      `${carriers} of ${total} carry prose. Prose only; PM_REQUIRES_DEVICE.`,
+      `${carriers} of ${total} carry prose. Prose only; no edge route from here.`,
   );
 };
 

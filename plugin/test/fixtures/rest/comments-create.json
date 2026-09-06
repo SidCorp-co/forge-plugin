@@ -1,0 +1,20 @@
+{
+  "taken": "2026-09-06",
+  "routes": {
+    "answer": "POST /issues/:issue/comments"
+  },
+  "rest": {
+    "answer": {
+      "id": "6a9d0c91-e7af-4a49-8276-d5679128b0f2",
+      "issueId": "ad4afc2c-4642-4827-a0d0-620e1219a124",
+      "authorId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+      "authorDeviceId": null,
+      "body": "capture",
+      "format": "markdown",
+      "template": null,
+      "parentId": null,
+      "createdAt": "2026-09-06T09:23:10.027Z",
+      "updatedAt": "2026-09-06T09:23:10.027Z"
+    }
+  }
+}

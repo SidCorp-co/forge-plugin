@@ -1,12 +1,12 @@
-/* The one writer every verb that sets a content field goes through. The cap cases are the point:
-   the tracker declares `maxLength` and nothing read it, so a release note over the limit was refused
-   nine times after the write instead of once before it (ISS-46, ISS-346). */
+/* The one writer every verb that sets a content field goes through. The cap cases are the point: a
+   release note over the limit was refused nine times after the write instead of once before it
+   (ISS-46, ISS-346), and the route refuses a length without naming the number it wanted. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { FIXTURE_CAPS, tempHome } from "../fixtures.mjs";
+import { tempHome } from "../fixtures.mjs";
 
 const HOME = tempHome("field-write");
 mkdirSync(join(HOME.path, "forge"), { recursive: true });
@@ -17,10 +17,6 @@ process.env.FORGE_SESSION_ID = "field-write-session";
 const ISSUE = "22222222-2222-4222-8222-222222222222";
 const FENCE_OPEN = "\u27E6UNTRUSTED_DATA source=\"issue.acceptanceCriteria\"\u27E7";
 const FENCE_SHUT = "\u27E6END_UNTRUSTED_DATA\u27E7";
-/* The tracker's own declaration, not a second copy of it: a stub that flattens the unions the real
-   schema uses is a stub against which an unwired cap reader passes. */
-const CAPS = FIXTURE_CAPS;
-
 const lease = () => ({
   sessionContext: {
     lease: {
@@ -42,36 +38,31 @@ let readBack = null;
 /* Stands in for a project's prose pipeline: what the boundary sends when it is not what was typed. */
 let rewrite = null;
 
-globalThis.fetch = async (url, init) => {
-  const call = JSON.parse(init.body);
-  const args = call.params?.arguments ?? {};
-  const name = call.params?.name;
-  let result = {
-    tools: [
-      { name: "forge_issues", inputSchema: { properties: { data: { properties: CAPS } } } },
-      { name: "forge_comments", inputSchema: { properties: {} } },
-    ],
-  };
-  if (name) trail.push(`${name}:${args.action ?? "list"}`);
-  if (name === "forge_comments") result = { structuredContent: { comments: [], returned: 0, hasMore: false } };
-  if (name === "forge_issues" && args.action === "get") {
-    const fields = args.fields ?? [];
-    const held = stored.sessionContext ?? lease().sessionContext;
-    result = { structuredContent: fields.includes("sessionContext")
-      ? { sessionContext: readBack ? readBack(held) : held }
-      : { [fields[0]]: stored[fields[0]] ?? null } };
+const answer = (body) => ({ ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify(body) });
+
+globalThis.fetch = async (address, init = {}) => {
+  const url = new URL(address);
+  if (url.pathname === "/api/projects") return answer([{ id: "p-1", slug: "forge-plugin" }]);
+  if (url.pathname.startsWith("/api/projects/")) return answer({ id: "p-1", slug: "forge-plugin" });
+  if (url.pathname.endsWith("/comments")) {
+    trail.push("forge_comments:list");
+    return answer({ items: [], returned: 0, total: 0, limit: 0, offset: 0, hasMore: false });
   }
-  if (name === "forge_issues" && args.action === "update") {
-    const data = rewrite ? rewrite(args.data) : args.data;
+  if ((init.method ?? "GET") === "PATCH") {
+    trail.push("forge_issues:update");
+    const sent = JSON.parse(init.body);
+    const data = rewrite ? rewrite(sent) : sent;
     if (data.sessionContext) leaseWrites.push(data.sessionContext);
     else updates.push(data);
     for (const [key, value] of Object.entries(data)) stored[key] = value;
-    result = { structuredContent: { documentId: ISSUE, ...data } };
+    return answer({ id: ISSUE, ...data });
   }
-  return { ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify({ jsonrpc: "2.0", id: 1, result }) };
+  trail.push("forge_issues:get");
+  const held = stored.sessionContext ?? lease().sessionContext;
+  return answer({ id: ISSUE, ...stored, sessionContext: readBack ? readBack(held) : held });
 };
 
-const { capChecked, capRefusal, capsIn, capsOf, lengthOf, writeField } = await import("../../src/tracker/field-write.mjs");
+const { capChecked, capRefusal, capsOf, lengthOf, writeField } = await import("../../src/tracker/field-write.mjs");
 
 class Refused extends Error {}
 const refuse = (message) => {
@@ -96,26 +87,20 @@ const refusedBy = async (field, value) => {
   }
 };
 
-test("the caps come off the schema, and a field it does not cap is not capped here", async () => {
+/* The route refuses a bad length without naming the number it wanted, so the numbers are this CLI's
+   own declaration and a field it does not name is uncapped here — which is a call the tracker gets
+   to refuse, and never a crash on the way out. */
+test("the caps are the table's declaration, and a field it does not name is not capped here", async () => {
   const caps = await capsOf();
   assert.equal(caps.plan.self, 200_000, "the declared cap is read");
   assert.equal(caps.releaseNotes.halves.userFacing, 500, "and so is a cap on a half of an object field");
-  assert.equal(caps.acceptanceCriteria.self, 100_000, "through the null branch a nullable field declares");
-  assert.equal(caps.releaseNotes.halves.technical, 500, "and through a nullable half's own branches");
-  assert.equal(caps.releaseNotes.halves.section, null, "a half the schema does not cap carries none");
-  const two = { anyOf: [{ type: "string", maxLength: 100 }, { type: "string", maxLength: 200 }] };
-  assert.equal(capsIn({ f: two }).f.self, 200, "a union takes what any branch takes, so the widest is the cap");
-  const open = { anyOf: [{ type: "string", maxLength: 100 }, { type: "string" }] };
-  assert.equal(capsIn({ f: open }).f.self, null, "and a branch taking text uncapped means no cap is proven");
-  const listed = { anyOf: [{ type: "string", maxLength: 100 }, { type: ["string", "null"], maxLength: 300 }] };
-  assert.equal(capsIn({ f: listed }).f.self, 300, "a type given as a list counts as taking text");
-  const loose = { anyOf: [{ type: "string", maxLength: 100 }, { type: ["string", "null"] }] };
-  assert.equal(capsIn({ f: loose }).f.self, null, "including when that is the branch declaring no cap");
-  const holed = { anyOf: [{ type: "string", maxLength: 100 }, null] };
-  assert.equal(capsIn({ f: holed }).f.self, null, "a branch that is not an object is read, not thrown on");
-  assert.equal(caps.sessionContext.self, null, "a field declared with no maxLength anywhere carries no cap");
-  assert.deepEqual(caps.sessionContext.halves, {}, "and an object declaring no properties has no halves");
-  assert.equal(caps.nothingDeclaresThis, undefined, "and a field it declares nothing for is absent");
+  assert.equal(caps.acceptanceCriteria.self, 100_000);
+  assert.equal(caps.releaseNotes.halves.technical, 500);
+  assert.equal(caps.releaseNotes.halves.section, null, "a half the declaration does not cap carries none");
+  assert.equal(caps.sessionContext, undefined, "and a field it names nothing for is absent");
+  const said = [];
+  capChecked("sessionContext", caps, "x".repeat(9_000), "x".repeat(9_000), (one) => said.push(one));
+  assert.deepEqual(said, [], "an absent row is uncapped, not a throw");
 });
 
 test("a note over the cap is refused, and the note is never sent", async () => {
@@ -123,6 +108,19 @@ test("a note over the cap is refused, and the note is never sent", async () => {
   assert.match(said, /releaseNotes\.userFacing/u, "the refusal names the field");
   assert.match(said, /capped at 500/u, "and the cap the schema declares");
   assert.match(said, /is 501/u, "and the length it measured");
+  assert.equal(updates.length, 0, "and no update carried the note");
+});
+
+/* ISS-325 spent seven rounds on one note: four shortening `userFacing`, and only then three more on
+   a `technical` nothing had said was over, because the loop refused on the first half it measured. */
+test("a note over on both halves is refused once, naming each half and each overage", async () => {
+  const said = await refusedBy("releaseNotes",
+    { section: "Added", userFacing: "x".repeat(511), technical: "y".repeat(522) });
+  assert.match(said, /releaseNotes\.userFacing is capped at 500 code points and this one is 511/u);
+  assert.match(said, /releaseNotes\.technical is capped at 500 code points and this one is 522/u);
+  assert.match(said, /Shorten it by 11\./u, "the first overage");
+  assert.match(said, /Shorten it by 22\./u, "and the second, in the same refusal");
+  assert.equal(said.match(/Nothing was sent/gu).length, 1, "one write refused once, not once per half");
   assert.equal(updates.length, 0, "and no update carried the note");
 });
 

@@ -1,6 +1,5 @@
-/* Every verb that takes `ISS-nn` shares one lookup, and its refusal exits the process — so both
-   halves are judged by spawning the verb against a tracker that cuts a page the way the real one
-   does, and never by calling the lookup in this process. */
+/* Every verb taking `ISS-nn` shares one lookup whose refusal exits the process, so both halves are
+   judged by spawning the verb against a tracker that pages the way the real one does. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -20,9 +19,11 @@ const at = (number, touched) => ({
   touched,
 });
 
-/* Six issues in a page that carries two: ISS-4 is on it, ISS-5 is younger than ISS-4 and is not. */
+/* Six issues in a page that carries two: the lookup reaches the rest by offset. */
 const BACKLOG = [at(1, 1), at(2, 2), at(3, 3), at(4, 6), at(5, 4), at(6, 5)];
-const ONE_TIMESTAMP = BACKLOG.map((one) => ({ ...one, createdAt: day(1) }));
+/* The same backlog with rows deleted below the key wanted, so the offset a key implies is wrong by
+   as many as were removed and the search is what finds it. */
+const GAPPED = [at(2, 1), at(5, 2), at(6, 3), at(9, 4)];
 
 const state = { issues: BACKLOG, comments: {}, calls: [], answer: {} };
 const tracker = await fakeTracker(state);
@@ -65,7 +66,7 @@ test("a key the tracker does not hold is refused as a fact about the tracker", a
   const run = await ran(["issue", "ISS-99"]);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /ISS-99 is not on this project's tracker/u);
-  assert.match(run.stderr, /6 issue\(s\) over \d+ page\(s\) read, which is the whole backlog/u);
+  assert.match(run.stderr, /6 issue\(s\) were counted, which is the whole backlog/u);
 });
 
 test("a refusal names no limit, the limit having never been what cut the page", async () => {
@@ -83,28 +84,36 @@ test("a refusal over a covered backlog routes to the keys the tracker does hold"
   assert.doesNotMatch(run.stderr, /words from its title/u, "which a reader holding only a key has not got");
 });
 
-/* Every row on one timestamp: an interval one millisecond wide is the only indivisible one, so this
-   is the only shape that reaches the branch, and it has to end rather than halve forever. */
-test("a reading that stayed cut says so, and claims no absence", async () => {
-  cutTo(ONE_TIMESTAMP, 2);
-  const run = await ran(["issue", "ISS-99"]);
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /the reading is incomplete/u);
-  assert.match(run.stderr, /the lookup's ceiling and not the issue's absence/u);
-  assert.doesNotMatch(run.stderr, /whole backlog/u);
+/* A key's number is the offset it would sit at only where nothing below it was ever removed. Every
+   row deleted below it moves the answer earlier, which is the whole reason the offset is searched. */
+test("a key with rows deleted below it still resolves", async () => {
+  cutTo(GAPPED, 2);
+  const run = await ran(["issue", "ISS-9"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /"issueId": "ISS-9"/u);
 });
 
-test("that refusal routes to a set narrow enough to come back whole, and names no limit", async () => {
-  cutTo(ONE_TIMESTAMP, 2);
-  const run = await ran(["issue", "ISS-99"]);
-  assert.match(run.stderr, /forge issues --status open/u, "the one route a reader holding only a key can run");
+test("a key inside the gaps, which no offset holds, is refused as an absence", async () => {
+  cutTo(GAPPED, 2);
+  const run = await ran(["issue", "ISS-3"]);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /ISS-3 is not on this project's tracker/u);
+  assert.match(run.stderr, /4 issue\(s\) were counted/u);
+});
+
+test("a refusal routes to the verb that prints the keys, and names no limit", async () => {
+  cutTo(GAPPED, 2);
+  const run = await ran(["issue", "ISS-3"]);
+  assert.match(run.stderr, /`forge issues`/u, "the one route a reader holding only a key can run");
   assert.doesNotMatch(run.stderr, /500/u);
 });
 
-/* ISS-36. The wider shape sent a citation through the whole walk — measured live at 7 windows and
-   210 rows, identical to a key the tracker does not hold — and then called a clause an absent issue,
-   routing its reader to `forge issues`, where a specification clause was never going to be. */
-const asked = () => state.calls.filter((one) => one.name === "forge_issues").length;
+/* ISS-36. A wider shape sends a citation through the whole walk — 7 windows and 210 rows, measured
+   live — and then calls a clause an absent issue, routing its reader to `forge issues`. */
+const asked = () => state.calls.filter((one) => /\/issues/u.test(one.path ?? "")).length;
+
+/* Only the one-row reads the key search makes, which is what its cost is counted in. */
+const lookups = () => state.calls.filter((one) => one.query?.limit === "1").length;
 
 test("a requirements citation is refused before the tracker is asked anything at all", async () => {
   cutTo(BACKLOG, 2);
@@ -164,11 +173,21 @@ test("the lowercase form of a key still resolves, and to the same issue", async 
   assert.equal(lower.stdout, upper.stdout, "the lookup upper-cases, and nothing covered this before");
 });
 
-/* The walk itself is untouched: a real key below the cut page still costs the windows it needs. */
-test("a key the first page cannot carry still resolves through the walk", async () => {
+/* Where nothing below the key was removed, the offset the key implies is the answer and one request
+   finds it, however many pages the backlog would take to walk. */
+test("a key on a backlog with no gaps costs one lookup request", async () => {
   cutTo(BACKLOG, 2);
   state.calls = [];
   const run = await ran(["issue", "ISS-1"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.ok(asked() > 1, `${asked()} request(s) — the oldest key is under the waterline`);
+  assert.equal(lookups(), 1, `${lookups()} lookup request(s) — the offset a key implies was right`);
+});
+
+test("a key with gaps below it costs a search, and fewer requests than the backlog has rows", async () => {
+  cutTo(GAPPED, 2);
+  state.calls = [];
+  const run = await ran(["issue", "ISS-9"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.ok(lookups() > 1, "the implied offset missed, so the offsets were searched");
+  assert.ok(lookups() <= GAPPED.length, `${lookups()} request(s) for ${GAPPED.length} rows`);
 });

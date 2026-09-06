@@ -11,7 +11,7 @@ import { FIX, MARK_LINE, TIERS, bandFor, belowTop, markFor, markedIn, rungFrom }
 import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
-import { enumAt } from "./rpc.mjs";
+import { declaredFor } from "./rpc.mjs";
 
 const SETTLED = ["closed", "dropped"];
 const CANDIDATES = 4;
@@ -166,8 +166,6 @@ export const trackerFields = ({ kind, rung = null }) => ({
 
 /* What a filing is ranked, in one place. The kind's field above is left empty and this one cannot
    be — left out, the tracker fills the middle of its own set; docs/cli/new.md holds the rest. */
-export const PRIORITY_AT = ["data", "properties", "priority", "enum"];
-
 export const UNRANKED = "none";
 
 export const priorityFor = (given, allowed = []) => {
@@ -179,13 +177,13 @@ export const priorityFor = (given, allowed = []) => {
       + ` now ${listed(allowed)}. Name one with --priority, and file this against the plugin: the`
       + " default is what has to change, not the filing." };
   }
-  return { refusal: `${didYouMean("priority", given, allowed)} That set is the tracker's own, and`
-    + " this CLI holds no copy of it." };
+  return { refusal: `${didYouMean("priority", given, allowed)} That set is what the route table `
+    + "declares this tracker takes, and a value it has grown since is added there." };
 };
 
-/** The reading with the set fetched, which is where both filing routes take it from: the schema path
- *  is named once, and neither route decides for itself what a schema declaring nothing means. */
-export const rankOf = async (given) => priorityFor(given, await enumAt("forge_issues", PRIORITY_AT));
+/** The reading with the set read, which is where both filing routes take it from: the declaration is
+ *  named once, and neither route decides for itself what an empty set would mean. */
+export const rankOf = async (given) => priorityFor(given, declaredFor("forge_issues", "priority"));
 
 export const filedAs = (answer, said) => {
   const key = answer?.issueId ?? answer?.documentId ?? null;

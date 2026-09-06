@@ -1,0 +1,81 @@
+{
+  "taken": "2026-09-06",
+  "tool": "forge_projects.list",
+  "action": null,
+  "routes": {
+    "page": "GET /projects"
+  },
+  "rowsTrimmed": true,
+  "secretsDropped": [
+    "apiKey",
+    "webhookSecret"
+  ],
+  "rest": {
+    "page": [
+      {
+        "id": "125f3b8d-614c-44c4-af59-eabd2583c712",
+        "slug": "sidcorp-mail",
+        "name": "Sidcorp Mail",
+        "orgId": "50af4c49-37ff-47ed-b9ab-5ab180585791",
+        "orgName": "Sidcorp",
+        "orgIsPersonal": false,
+        "createdBy": "01ba4f5e-d26f-4391-bb33-70578ff8132f",
+        "archivedAt": null,
+        "createdAt": "2026-07-15T06:49:45.659Z",
+        "role": "admin",
+        "orgRole": "owner"
+      },
+      {
+        "id": "1f02624a-e3f7-422e-92b1-ec256fd7002a",
+        "slug": "trai-heo",
+        "name": "Trai Heo",
+        "orgId": "50af4c49-37ff-47ed-b9ab-5ab180585791",
+        "orgName": "Sidcorp",
+        "orgIsPersonal": false,
+        "createdBy": "0a3bb457-c689-4773-bf87-f3aba7198539",
+        "archivedAt": null,
+        "createdAt": "2026-09-03T04:56:41.176Z",
+        "role": "admin",
+        "orgRole": "owner"
+      },
+      {
+        "id": "2126d65a-d732-483b-a0ff-eb74fd88c53f",
+        "slug": "sid-desk",
+        "name": "SidDesk",
+        "orgId": "50af4c49-37ff-47ed-b9ab-5ab180585791",
+        "orgName": "Sidcorp",
+        "orgIsPersonal": false,
+        "createdBy": "01ba4f5e-d26f-4391-bb33-70578ff8132f",
+        "archivedAt": null,
+        "createdAt": "2026-05-13T05:16:53.218Z",
+        "role": "admin",
+        "orgRole": "owner"
+      }
+    ]
+  },
+  "mcp": {
+    "projects": [
+      {
+        "id": "125f3b8d-614c-44c4-af59-eabd2583c712",
+        "slug": "sidcorp-mail",
+        "name": "Sidcorp Mail",
+        "orgId": "50af4c49-37ff-47ed-b9ab-5ab180585791",
+        "role": "admin"
+      },
+      {
+        "id": "1f02624a-e3f7-422e-92b1-ec256fd7002a",
+        "slug": "trai-heo",
+        "name": "Trai Heo",
+        "orgId": "50af4c49-37ff-47ed-b9ab-5ab180585791",
+        "role": "admin"
+      },
+      {
+        "id": "2126d65a-d732-483b-a0ff-eb74fd88c53f",
+        "slug": "sid-desk",
+        "name": "SidDesk",
+        "orgId": "50af4c49-37ff-47ed-b9ab-5ab180585791",
+        "role": "admin"
+      }
+    ]
+  }
+}

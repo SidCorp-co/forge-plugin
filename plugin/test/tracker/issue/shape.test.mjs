@@ -4,15 +4,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, pageOf, ranAsync, tempHome } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, shortPage, tempHome } from "../../fixtures.mjs";
 
 const home = tempHome("issue-shape");
 process.env.XDG_CONFIG_HOME = home.path;
 const { UNRANKED, duplicateOf, filedAs, partsIn, priorityFor, refusalFrom,
-  shapeOf, tokensNamed, twoChangesIn, withMark } = await import("../../src/tracker/issue-shape.mjs");
-const { FIX, TIERS, belowTop, markFor, markedIn } = await import("../../src/ladder.mjs");
+  shapeOf, tokensNamed, twoChangesIn, withMark } = await import("../../../src/tracker/issue-shape.mjs");
+const { FIX, TIERS, belowTop, markFor, markedIn } = await import("../../../src/ladder.mjs");
 const SIZE_LINE = markFor(FIX);
-const { filingsOf } = await import("../../src/tracker/issue-read.mjs");
+const { filingsOf } = await import("../../../src/tracker/issue-read.mjs");
 
 const WHOLE = [
   "## Outcome",
@@ -202,12 +202,12 @@ test("a rank outside the tracker's set is refused with the set and the nearest n
   const { refusal, value } = priorityFor("hgh", RANKS);
   assert.equal(value, undefined, "nothing is filed under a rank that was refused");
   assert.match(refusal, /No priority named hgh\. Did you mean: high\?/u);
-  assert.match(refusal, /The set is critical, high, medium, low, none\. That set is the tracker's own/u);
+  assert.match(refusal, /The set is critical, high, medium, low, none\. That set is what the route table declares/u);
 });
 
-/* The schema is the only authority on the set, so a schema that answered with nothing leaves the
-   value alone rather than refusing on a set this CLI would have had to invent. */
-test("a set the schema did not declare refuses nothing", () => {
+/* The declaration is the only authority on the set, so a declaration answering with nothing leaves
+   the value alone rather than refusing on a set this reading would have had to invent. */
+test("a set the declaration did not carry refuses nothing", () => {
   assert.deepEqual(priorityFor("urgent", []), { value: "urgent", said: "priority urgent, as given" });
   assert.equal(priorityFor(undefined, []).value, UNRANKED);
 });
@@ -250,7 +250,7 @@ test.after(() => tracker.close());
 
 const { mkdirSync, writeFileSync } = await import("node:fs");
 const { join } = await import("node:path");
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const room = tempHome("filing").path;
 /* The verb spawns with the tracker's own home and one case below reads in this process, whose
    credential path was fixed at import, so the same endpoint is written where that path looks. */
@@ -394,15 +394,15 @@ test("`-` with nothing on stdin is refused, and never read as an empty body", as
 
 /* A reading the walk could not finish is the only thing left with rows behind it, and past that
    ceiling the one axis is the name — which is what the body already names, and what the fix route
-   already searches for. Every row on one timestamp is the interval a walk cannot subdivide. */
+   already searches for. A route counting rows it will not serve is the one shape with such a
+   reading, the offsets being exact otherwise. */
 test("a duplicate past a reading the walk could not finish is still found, through a search for what the body names", async () => {
-  const rows = state.issues.map((one, at) => ({ ...one, createdAt: "2026-01-01T00:00:00.000Z", touched: at }));
-  const page = pageOf(rows, 1);
+  const short = shortPage(state.issues, state.hidden.length);
   state.answer = {
     forge_issues: (args) => {
       if (args.action !== "list") return { documentId: state.mint ?? "filed-uuid", ...(args.data ?? {}) };
       const wanted = String(args.filters?.search ?? "").toLowerCase();
-      if (!wanted) return page(args);
+      if (!wanted) return short(args);
       const pool = [...state.issues, ...state.hidden];
       const found = pool.filter((one) => JSON.stringify(one).toLowerCase().includes(wanted));
       return { issues: found, returned: found.length, hasMore: false };
@@ -443,20 +443,13 @@ const said = async (page) => {
   return lines.join("\n");
 };
 
-/* What the walk hands back where a window one millisecond wide still came back cut: 97 rows of a
-   backlog nobody can count, over the 36 requests that proved the ceiling. */
-const SHORT_READ = {
-  rows: Array.from({ length: 97 }, () => ({})),
-  whole: false,
-  pages: 36,
-  notice: "More rows match than were returned: the response-size cap cut this to the 97 most recent"
-    + " of them. A higher limit will NOT help — add status/priority/category/label filters instead.",
-};
+/* A page still reporting rows the next offset did not serve: 97 rows over 36 requests. */
+const SHORT_READ = { rows: Array.from({ length: 97 }, () => ({})), whole: false, pages: 36 };
 
 test("the duplicate check says its reading was short, in the count it measured", async () => {
   const out = await said({ live: [], read: SHORT_READ });
   assert.match(out, /reached 97 issue\(s\) over 36 page\(s\)/u);
-  assert.match(out, /A higher limit will NOT help/u, "the tracker's own sentence, unparaphrased");
+  assert.match(out, /add filters until/u, "and the way out, the route sending no sentence of its own");
 });
 
 test("that line names no limit it asked for", async () => {

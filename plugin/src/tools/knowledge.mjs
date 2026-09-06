@@ -2,7 +2,7 @@
    the code is. Entries are the tracker's and nothing here writes a file. docs/cli/knowledge.md. */
 import { fail, keepOnFailure } from "../resolve/settings.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
-import { enumAt, refuseCredential, scoped, write } from "../tracker/rpc.mjs";
+import { declaredFor, refuseCredential, scoped, write } from "../tracker/rpc.mjs";
 import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { didYouMean, unknownFlag } from "../suggest.mjs";
 
@@ -44,15 +44,15 @@ const asked = (verb, argv, usage) => {
   if (said) fail(said);
 };
 
-/* The tool's own enum and never a copy, read off the declaration this endpoint answered with — which
-   is cached per endpoint, so the refusal carries what re-reads it. A schema declaring no enum
-   refuses nothing: silence is not an empty set. */
-const checked = async (value, field) => {
+/* The route refuses a value outside the set without naming the set, so the check stands here and
+   the set is `declaredFor`'s, whose own comment says what a refusal citing it owes its reader. */
+const checked = (value, field) => {
   if (value === undefined) return undefined;
-  const allowed = await enumAt("forge_knowledge", [field, "enum"]);
+  const allowed = declaredFor("forge_knowledge", field);
   if (allowed.length && !allowed.includes(value)) {
-    fail(`${didYouMean(field, value, allowed)} That set is the tool declaration this machine has `
-      + `cached; \`forge doctor\` re-reads it after the tracker grows a value.`);
+    fail(`${didYouMean(field, value, allowed)} That set is this CLI's own declaration of what the `
+      + `store takes, in \`plugin/src/tracker/rest.mjs\`, and the tracker names no set when it `
+      + `refuses one: a value the tracker has grown since is added there.`);
   }
   return value;
 };
@@ -99,8 +99,8 @@ export const entryLine = (row) =>
 const list = async (argv) => {
   asked("knowledge list", argv, USAGE);
   const given = flags(argv, "knowledge list");
-  const kindFilter = await checked(given.kind, "kind");
-  const injectionFilter = await checked(given.injection, "injection");
+  const kindFilter = checked(given.kind, "kind");
+  const injectionFilter = checked(given.injection, "injection");
   const filtered = Boolean(kindFilter || injectionFilter);
   const page = await scoped("forge_knowledge", {
     action: "list",
@@ -225,9 +225,9 @@ const written = async (argv) => {
   }
   asked("knowledge write", flagArgv, WRITE_USAGE);
   const given = flags(flagArgv, "knowledge write");
-  const kind = await checked(given.kind, "kind");
-  const injection = await checked(given.injection, "injection");
-  const confidence = await checked(given.confidence, "confidence");
+  const kind = checked(given.kind, "kind");
+  const injection = checked(given.injection, "injection");
+  const confidence = checked(given.confidence, "confidence");
   const body = await bodyFrom(path);
   if (path === "-") keepOnFailure(`Your entry, so that nothing here loses it:\n\n${body}`);
   const wrote = await upsertEntry({

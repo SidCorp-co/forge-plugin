@@ -1,8 +1,6 @@
-/* The page a long thread outgrows. The tracker cuts a comment list by response size and keeps the
-   most recent rows: measured at 33 to 41 rows under a limit of 200 on twelve of this project's own
-   issues. For eight runs the CLI read that one bit as a count and refused every move on a thread of
-   half the number it named, offering a hand transition — the one route that writes a status no entry
-   check saw (ISS-131, and ISS-17 for the cursor that would close the seam). */
+/* The page a long thread outgrows. The route reports rows behind the page and names no reason, so
+   what is judged here is a move earned on a page nobody can read past — where a hand transition,
+   the one route writing a status no entry check saw, was offered for eight runs (ISS-131, ISS-17). */
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -44,20 +42,11 @@ const state = {
       if (args.action === "update" && held) return Object.assign(held, args.data);
       return { documentId: args.documentId, ...(args.data ?? {}) };
     },
-    /* The envelope the live tracker sends when it cuts one, notice and all. */
+    /* The envelope the route sends when it holds rows back: `hasMore`, and no reason for it. */
     forge_comments: (args) => {
       if (args.action !== "list") return { documentId: "comment-uuid", ...(args.data ?? {}) };
       const held = state.comments[args.filters?.issue] ?? [];
-      return {
-        comments: held,
-        returned: held.length,
-        limit: args.limit,
-        hasMore: true,
-        truncated: true,
-        truncatedBy: "response-size",
-        notice: `More rows match than were returned: the response-size cap cut this to the ${held.length} `
-          + "most recent of them. A higher limit will NOT help — read the full thread in the UI instead.",
-      };
+      return { comments: held, returned: held.length, hasMore: true };
     },
   },
 };
@@ -69,7 +58,7 @@ const moved = () => state.calls.filter((one) => one.args.action === "transition"
 test("a cut page is judged, and the record on it earns the move", async () => {
   const run = await owed("ISS-95");
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /returned 1 comment\(s\) and reported more behind them, cut by response size/u, run.stdout);
+  assert.match(run.stdout, /returned 1 comment\(s\) and reported more behind them, for a reason it did not name/u, run.stdout);
   assert.match(run.stdout, /The cut keeps the most recent rows, so what the page earns it earns/u, run.stdout);
   assert.match(run.stdout, /confirmed is next and the record earns it/u, "and the page's own confirmation earns it");
   assert.doesNotMatch(run.stdout, /more than the 200/u, "no message names a cap the tracker did not report");

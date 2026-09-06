@@ -2,11 +2,10 @@
 
 Read this before answering what blocks what, and before trusting anything called a dependency here.
 
-The tracker does record edges and this credential reaches them: `forge_project_pm` answers, and
-`forge_issues` takes `data.relations` on a write and returns `relations.blocks` and
-`relations.blockedBy` on a `get`, an entry naming the issue at its far end. Which actions this
-credential may call is `forge doctor`'s to report; `forge schema forge_issues` owns the rest — what
-else an entry carries, what the reply to a write says of it, and how an edge is retracted. One
+The tracker does record edges and this credential reaches them: `forge_issues` takes
+`data.relations` on a write and returns `relations.blocks` and `relations.blockedBy` on a `get`, an
+entry naming the issue at its far end. Which actions this credential may call is `forge doctor`'s to
+report; `forge schema forge_issues` owns what a call may send. One
 field is worth knowing before the list is read: `expired`, because an edge whose `validUntil` has
 passed comes back with the live ones, so a count of relations is not a count of blockers.
 

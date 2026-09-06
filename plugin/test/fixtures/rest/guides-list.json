@@ -1,0 +1,59 @@
+{
+  "taken": "2026-09-06",
+  "tool": "forge_guide",
+  "action": "list",
+  "routes": {
+    "page": "GET /guides"
+  },
+  "rowsTrimmed": true,
+  "secretsDropped": [
+    "apiKey",
+    "webhookSecret"
+  ],
+  "rest": {
+    "page": {
+      "guides": [
+        {
+          "slug": "project-settings-and-test-credentials",
+          "title": "Project settings & test credentials",
+          "summary": "Where to fetch repo paths, branches, workspace setup, preview URLs, and test credentials — and why forge_config never returns them.",
+          "version": 2
+        },
+        {
+          "slug": "issue-dependencies",
+          "title": "Issue dependencies",
+          "summary": "How blocks edges gate dispatch, the merged_at unblock signal, how to set an edge without racing the first dispatch, and why splitting an oversized issue is plain work rather than a lifecycle.",
+          "version": 6
+        },
+        {
+          "slug": "memory-and-knowledge",
+          "title": "Memory & knowledge",
+          "summary": "The three context tiers (memory, knowledge, projectFacts), recall-first discipline, and the verify-at-recall feedback loop.",
+          "version": 1
+        }
+      ]
+    }
+  },
+  "mcp": {
+    "guides": [
+      {
+        "slug": "project-settings-and-test-credentials",
+        "title": "Project settings & test credentials",
+        "summary": "Where to fetch repo paths, branches, workspace setup, preview URLs, and test credentials — and why forge_config never returns them.",
+        "version": 2
+      },
+      {
+        "slug": "issue-dependencies",
+        "title": "Issue dependencies",
+        "summary": "How blocks edges gate dispatch, the merged_at unblock signal, how to set an edge without racing the first dispatch, and why splitting an oversized issue is plain work rather than a lifecycle.",
+        "version": 6
+      },
+      {
+        "slug": "memory-and-knowledge",
+        "title": "Memory & knowledge",
+        "summary": "The three context tiers (memory, knowledge, projectFacts), recall-first discipline, and the verify-at-recall feedback loop.",
+        "version": 1
+      }
+    ]
+  }
+}

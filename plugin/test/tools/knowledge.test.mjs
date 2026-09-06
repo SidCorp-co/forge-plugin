@@ -4,8 +4,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { FIXTURE_ENUMS, fakeStore, fakeTracker, ranAsync } from "../fixtures.mjs";
+import { fakeStore, fakeTracker, ranAsync } from "../fixtures.mjs";
 import { credentialLeak, deployFrom } from "../../src/tracker/project-config.mjs";
+import { DECLARES } from "../../src/tracker/rest.mjs";
+
+const SETS = DECLARES.forge_knowledge;
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
@@ -98,19 +101,21 @@ test("a create names its kind and its title, or is refused with what the tracker
   assert.deepEqual(upserts(), [], "a refusal that reached the tracker anyway");
 });
 
-/* The property, not the values: the fixture declares a set the real tracker does not have, so a
-   verb holding a copy of the tracker's kinds fails both halves of this. */
-test("the enums are the schema's at the call, and a value outside them never reaches the tracker", async () => {
-  const outside = await ran(["knowledge", "write", "fresh", "-", "--kind", "guide", "--title", "T"], BODY);
+/* The property, not the values: the route refuses a bad value without naming a set, so the set is
+   this CLI's own declaration and the refusal has to say so and say where it is kept — otherwise a
+   value the tracker grows is a refusal nobody can act on. */
+test("the enums are the table's declaration at the call, and a value outside them never reaches the tracker", async () => {
+  const outside = await ran(["knowledge", "write", "fresh", "-", "--kind", "nonesuch", "--title", "T"], BODY);
   assert.equal(outside.status, 1, outside.stdout);
-  assert.match(outside.stderr, /No kind named guide/u, outside.stderr);
-  assert.ok(outside.stderr.includes(FIXTURE_ENUMS.kind.join(", ")),
+  assert.match(outside.stderr, /No kind named nonesuch/u, outside.stderr);
+  assert.ok(outside.stderr.includes(SETS.kind.join(", ")),
     `the refusal does not print the set it read: ${outside.stderr}`);
+  assert.match(outside.stderr, /plugin\/src\/tracker\/rest\.mjs/u,
+    "and where a value the tracker has grown since is added");
   assert.deepEqual(upserts(), [], "refused after the call rather than before it");
 
-  const declared = await ran(["knowledge", "write", "fresh", "-", "--kind", "fixture-only",
-    "--title", "T"], BODY);
-  assert.equal(declared.status, 0, `a kind the schema declares was refused: ${declared.stderr}`);
+  const declared = await ran(["knowledge", "write", "fresh", "-", "--kind", "guide", "--title", "T"], BODY);
+  assert.equal(declared.status, 0, `a kind the table declares was refused: ${declared.stderr}`);
 });
 
 test("each enum flag is checked against its own field", async () => {
@@ -119,7 +124,7 @@ test("each enum flag is checked against its own field", async () => {
       flag, "nonsense"], BODY);
     assert.equal(run.status, 1, run.stdout);
     assert.match(run.stderr, new RegExp(`No ${field} named nonsense`, "u"), run.stderr);
-    assert.ok(run.stderr.includes(FIXTURE_ENUMS[field].join(", ")), run.stderr);
+    assert.ok(run.stderr.includes(SETS[field].join(", ")), run.stderr);
   }
 });
 
@@ -152,14 +157,19 @@ test("a delete says whether there was one to delete", async () => {
   assert.match(again.stdout, /no entry named module-knowledge was in the store/u, again.stdout);
 });
 
-test("search answers one line per hit, naming the slug", async () => {
+/* The one capability the store has and this transport does not. It fails where it is asked for,
+   naming the route it wanted, so the gap is reportable to the tracker as a route rather than as a
+   verb that quietly stopped working — and nothing here falls back to the other endpoint. */
+test("search names the route it wanted, sends nothing, and points at what still reads the store", async () => {
   await created();
+  state.calls.length = 0;
   const run = await ran(["knowledge", "search", "what the module owns", "--limit", "3"]);
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /0\.50 {2}module-knowledge/u, run.stdout);
-  assert.match(run.stdout, /^1 hit\(s\) for `what the module owns`$/mu, run.stdout);
-  const [asked] = state.calls.filter((one) => one.args.action === "search");
-  assert.equal(asked.args.topK, 3, "the limit is the tracker's topK");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /POST \/api\/projects\/:id\/knowledge\/search/u, run.stderr);
+  assert.match(run.stderr, /forge knowledge list/u, "and the two verbs that still reach the store");
+  assert.match(run.stderr, /forge knowledge get <slug>/u, run.stderr);
+  assert.deepEqual(state.calls.filter((one) => one.path === "/mcp"), [],
+    "and nothing fell back to the endpoint the tool answered on");
 });
 
 test("a limit outside the range is refused before the call", async () => {

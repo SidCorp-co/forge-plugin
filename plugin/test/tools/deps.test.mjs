@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, pageOf, ranAsync } from "../fixtures.mjs";
+import { fakeTracker, pageOf, ranAsync, shortPage } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
@@ -32,15 +32,23 @@ const ran = (argv) => ranAsync(FORGE, argv, tracker.env, ROOT);
 
 /* The listing every node is ranked against came back cut while the marker SEARCH reached the whole
    set: the graph looked complete because its candidates were all there (ISS-203, ISS-221). */
+/* A browse row carries no body, so a carrier's prose comes from the `get` this answers whole. */
+const bodyOf = (rows) => (args) => ({ ...rows.find((one) => one.documentId === args.documentId) });
+
+const whole = (rows, args) => ({
+  issues: rows.filter((one) => !args.filters?.search
+    || JSON.stringify(one).toLowerCase().includes(String(args.filters.search).toLowerCase())),
+  returned: rows.length,
+  hasMore: false,
+});
+
 const cutTo = (fits, rows = ROWS) => {
   const page = pageOf(rows, fits);
-  state.answer.forge_issues = (args) =>
-    (args.action === "list" && !args.filters?.search
-      ? page(args)
-      : { issues: rows.filter((one) => !args.filters?.search
-        || JSON.stringify(one).toLowerCase().includes(String(args.filters.search).toLowerCase())),
-      returned: rows.length,
-      hasMore: false });
+  const body = bodyOf(rows);
+  state.answer.forge_issues = (args) => {
+    if (args.action !== "list") return body(args);
+    return args.filters?.search ? whole(rows, args) : page(args);
+  };
 };
 
 test("a graph whose listing came back cut is ranked against every node anyway", async () => {
@@ -51,12 +59,19 @@ test("a graph whose listing came back cut is ranked against every node anyway", 
   assert.doesNotMatch(run.stderr, /incomplete/u, "the walk reached them, so nothing is owed to say so");
 });
 
-/* One timestamp on every row: the only interval a walk cannot subdivide, so the only shape left
-   that costs the graph nodes. */
-const ONE_TIMESTAMP = ROWS.map((one) => ({ ...one, createdAt: "2026-01-01T00:00:00.000Z" }));
+/* A route counting two rows it will not hand over: the walk pages to the end of what it serves and
+   `hasMore` is still true, which is the one reading an offset walk comes back short from. */
+const cutShort = (rows = ROWS) => {
+  const page = shortPage(rows.slice(0, 2), 2);
+  const body = bodyOf(rows);
+  state.answer.forge_issues = (args) => {
+    if (args.action !== "list") return body(args);
+    return args.filters?.search ? whole(rows, args) : page(args);
+  };
+};
 
 test("a graph the walk could not finish reading says so, in the nodes it read", async () => {
-  cutTo(2, ONE_TIMESTAMP);
+  cutShort();
   const run = await ran(["deps"]);
   const said = run.stderr.split("\n").find((line) => line.includes("incomplete")) ?? "";
   assert.match(said, /2 issue\(s\)/u);
@@ -64,15 +79,17 @@ test("a graph the walk could not finish reading says so, in the nodes it read", 
 });
 
 test("the warning says what the short reading costs the graph", async () => {
-  cutTo(2, ONE_TIMESTAMP);
+  cutShort();
   const run = await ran(["deps"]);
   assert.match(run.stderr, /an edge whose end fell outside what was reached cannot appear/u);
 });
 
-test("the tracker's own notice reaches the reader here too", async () => {
-  cutTo(2, ONE_TIMESTAMP);
+/* The route sends no sentence of its own about a cut, so the way out is this CLI's to name. */
+test("the way out reaches the reader here too", async () => {
+  cutShort();
   const run = await ran(["deps"]);
-  assert.match(run.stderr, /A higher limit will NOT help/u);
+  assert.match(run.stderr, /add filters until/u);
+  assert.doesNotMatch(run.stderr, /higher limit/u, "and no advice is invented about a limit nobody sent");
 });
 
 test("a page the tracker reports whole warns about nothing", async () => {
@@ -88,8 +105,9 @@ const CLAIMING = 2;
 const CARRIERS = ROWS.map((one, at) => (at < CLAIMING ? { ...one, description: claim(`ISS-${at + 22}`) } : one));
 const cutSearch = (fits, rows = CARRIERS) => {
   const page = pageOf(rows.slice(0, CLAIMING), fits);
+  const body = bodyOf(rows);
   state.answer.forge_issues = (args) => {
-    if (args.action !== "list") return { documentId: args.documentId, ...(args.data ?? {}) };
+    if (args.action !== "list") return body(args);
     return args.filters?.search ? page(args) : { issues: rows, returned: rows.length, hasMore: false };
   };
 };
@@ -103,7 +121,12 @@ test("a carrier no single search answer could hold is still a node", async () =>
 });
 
 test("a carrier set the walk could not finish reading is said out loud", async () => {
-  cutSearch(1, CARRIERS.map((one) => ({ ...one, createdAt: "2026-01-01T00:00:00.000Z" })));
+  const short = shortPage(CARRIERS.slice(0, 1), 1);
+  const body = bodyOf(CARRIERS);
+  state.answer.forge_issues = (args) => {
+    if (args.action !== "list") return body(args);
+    return args.filters?.search ? short() : { issues: CARRIERS, returned: CARRIERS.length, hasMore: false };
+  };
   const run = await ran(["deps"]);
   assert.match(run.stderr, /the set of issues claiming an edge reached 1 issue\(s\)/u);
   assert.match(run.stderr, /a node this graph does not show may claim edges anyway/u);

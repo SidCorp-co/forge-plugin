@@ -65,9 +65,8 @@ one, and a hit that resolves to nothing open is not a suggestion.
 tracker's own refusal and not the transport's, because the transport's exits the process — right for
 a verb whose whole job is the call, and wrong for a check running beside a write that has to land: a
 dropped socket would have taken the filing with it, and a body that arrived on stdin cannot be sent
-again. So this read answers with a refusal whatever refused it. Along the way, a read named by its
-tool rather than by an action field stopped being read as a write: it is retried like the read it is,
-and no longer warns that it may have been processed.
+again. So this read answers with a refusal whatever refused it, and it is retried like the read it
+is: which a call is, is declared on its own row rather than guessed from the shape of its payload.
 
 **The defect route folds on a measure although its title match is exact, and that reverses what
 [`feedback`](feedback.md) says about it.** The reason the title match is exact still holds — a caller

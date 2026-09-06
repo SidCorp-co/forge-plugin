@@ -713,8 +713,9 @@ names a version that carries none of the change and nothing red to say so. A rel
 installed copy naming the merged commit, so the merged mark's evidence carries that pair, version and
 commit, read from the installed copy and not from the tree (ISS-71).
 
-**The schema is the document.** `forge schema forge_issues` and `forge advance --owed` carry the
-entry criteria in the tool's own words. Nothing in the skill repeats them.
+**The verb is the document.** `forge advance --owed` carries the entry criteria for the status in
+hand, and `forge schema forge_issues` the arguments a call may send. Nothing in the skill repeats
+either.
 
 **Every route this plugin sees is the same route.** The CLI enforces; the pre-hook applies the same
 check to the tracker tool called directly, so the contract cannot be stepped around by choosing a

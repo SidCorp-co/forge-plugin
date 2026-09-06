@@ -28,9 +28,9 @@ export const VERBS = [
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues"],
   ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm",
     { action: "set_dependency",
-      refusal: "forge dep needs forge_project_pm set_dependency, which the tracker gives to a "
-        + "paired device alone and this credential may not call: no edge is written from here, and "
-        + "no other verb needs a device. `forge doctor` measured that." }],
+      refusal: "forge dep needs forge_project_pm set_dependency, which this CLI has no route to on "
+        + "the tracker's data plane and may not call: no edge is written from here, and no other "
+        + "verb needs one. `forge doctor` measured that." }],
   /* No flag of this verb is named here, deliberately — docs/cli/withholding-a-verb.md. */
   ["guide", "[contract [part]|<skill> [reference]|slug]",
     "this plugin's contract and each skill's method, one part per call, and the tracker's guides this flow stands behind",

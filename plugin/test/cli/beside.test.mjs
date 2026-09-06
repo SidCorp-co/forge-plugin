@@ -330,7 +330,8 @@ test("a search the tracker refuses files the issue and says the check could not 
   const run = await filed("--size", "fix");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "the filing lands whatever the check did");
-  assert.match(run.stdout, /the semantic query could not run: forge_memory.search is not available/u);
+  assert.match(run.stdout, /the semantic query could not run: .*forge_memory.search is not available/u,
+    "the tracker's own code and message, and no words of ours in front of them");
   assert.match(run.stdout, /the keyword query could not run/u);
   assert.match(run.stdout, /this filing was made as it would have been without it/u);
   assert.doesNotMatch(run.stdout, /the check ran and found none/u, "which it did not");

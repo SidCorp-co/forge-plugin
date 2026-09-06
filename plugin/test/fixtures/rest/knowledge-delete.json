@@ -1,0 +1,11 @@
+{
+  "taken": "2026-09-06",
+  "routes": {
+    "answer": "DELETE /projects/:project/knowledge/:slug"
+  },
+  "rest": {
+    "answer": {
+      "deleted": true
+    }
+  }
+}

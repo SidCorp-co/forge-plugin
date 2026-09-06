@@ -1,0 +1,136 @@
+{
+  "taken": "2026-09-06",
+  "tool": "forge_comments",
+  "action": "list",
+  "routes": {
+    "page": "GET /issues/184c6d7a-212d-49bb-884b-3162b7b663ab/comments"
+  },
+  "rowsTrimmed": true,
+  "secretsDropped": [
+    "apiKey",
+    "webhookSecret"
+  ],
+  "rest": {
+    "page": {
+      "items": [
+        {
+          "id": "f7e6db62-f351-433c-80d4-542c5655f2c6",
+          "issueId": "184c6d7a-212d-49bb-884b-3162b7b663ab",
+          "authorId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "authorDeviceId": null,
+          "body": "## Triage at c8771d6: planFlags still reads inside code spans, and the span mask it needs is three screens above it\n\n## Triage at c8771d6: planFlags still reads inside code spans, and the span mask it needs is three screens above it\n\nSize: fix.\n\n## Where\n\n`plugin/src/flow/machine.mjs:245-251` at c8771d6: `planFlags` collects every `<name>: yes|no` match over the whole field and answers `yes` where any is; nothing skips a span. The premise holds. Since ISS-483 (3.35.179) the same module has `masked` at line 147 — the span-blanking `compoundCriteria` uses — and `protectMachine` at 265 keeps its \"already safe\" comment, so the one set the issue's first rule asks for exists: `planFlags` reads the masked text and the three agree. Readers of `planFlags`: `flow/route.mjs:300,304`, `flow/earned.mjs`, `ladder.mjs`, `ladder-report.mjs` — behaviour unchanged for a plan with no span. Dispatched into a wave with ISS-333 (tools/run.mjs, tools/run/, tools/checkout.mjs, plugin/src/resolve/settings.mjs), ISS-490 (plugin/hooks/_hook.mjs, bash-guard.mjs, the polling how page, the issue-flow guide and its verification reference) and ISS-482 (plugin/agents/runner.md, the guide's Phase 4). None holds machine.mjs; re-read the hold sets before each write anyway.",
+          "format": "markdown",
+          "template": null,
+          "parentId": null,
+          "createdAt": "2026-09-06T07:29:04.981Z",
+          "updatedAt": "2026-09-06T07:29:04.981Z",
+          "replies": [],
+          "attachments": [],
+          "author": {
+            "type": "user",
+            "id": "0a3bb457-c689-4773-bf87-f3aba7198539",
+            "displayName": "thanhnh@sidcorp.co",
+            "isAgent": false
+          }
+        },
+        {
+          "id": "2c68806b-ec48-4757-b18f-2372f029aa92",
+          "issueId": "184c6d7a-212d-49bb-884b-3162b7b663ab",
+          "authorId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "authorDeviceId": null,
+          "body": "## Confirmation\n\n```forge-record\nwhere: plugin/src/flow/machine.mjs:243-273 (lineFor, planFlags, MACHINE.plan, SPAN, protectMachine), plugin/src/tools/vi.mjs:72-92, plugin/test/flow/rewrite.test.mjs:84-86 and 184-195, plugin/test/flow/advance.test.mjs:87-107, plugin/src/flow/earned.mjs:454-460, docs/cli/the-ladder.md, plugin/guides/issue-flow-contract.md:192-197\nis: planFlags matches <name>: yes|no over the raw plan field, so a declaration a plan quotes inside a code span is counted as one the plan makes; protectMachine two dozen lines below splits on the same span shape and calls what is inside one already safe. The premise holds at c8771d6.\nfinding: holds\ndetail: The triage line's mechanism does not work, and the suite already says so. (1) masked() blanks quoted strings and parenthesised text as well as code spans, so reading planFlags off it would put a bare (Screen change: no) outside the reader while protectMachine still rewrites it — the same one-set violation, pointing the other way. (2) protectMachine is not only a reader of spans, it makes them: vi.mjs:86 wraps every bare declaration in a code span and posts the wrapped text, so on a translate=vi project every stored plan carries its declarations inside spans. A planFlags that blanks spans would read all three as unset there, and earned.mjs:459 would refuse every plan on such a project. plugin/test/flow/rewrite.test.mjs:84-86 asserts exactly that pipeline and goes red. So the one set the issue asks for is reached by making the protection reversible — the prose pass carries a marker, the bare declaration comes back after it — not by pointing the reader at masked(). Two more disagreements found in the same fifteen lines: lineFor reads <name>:\\s*(yes|no) while MACHINE.plan reads <name>:[ \\t]*(yes|no), so a value on the next line is counted and never protected; and rewrite.test.mjs:192-194 encodes the behaviour this issue calls a defect.\ntier: feature\n```\n\n`forge-record: confirmation · contract 1`",
+          "format": "markdown",
+          "template": null,
+          "parentId": null,
+          "createdAt": "2026-09-06T07:37:47.327Z",
+          "updatedAt": "2026-09-06T07:37:47.327Z",
+          "replies": [],
+          "attachments": [],
+          "author": {
+            "type": "user",
+            "id": "0a3bb457-c689-4773-bf87-f3aba7198539",
+            "displayName": "thanhnh@sidcorp.co",
+            "isAgent": false
+          }
+        },
+        {
+          "id": "3847d6c2-e089-46ea-a34b-6ef884911f14",
+          "issueId": "184c6d7a-212d-49bb-884b-3162b7b663ab",
+          "authorId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "authorDeviceId": null,
+          "body": "## Decision record\n\n```forge-record\ndecision: The protection stops being a code span and becomes a marker the prose pass carries, restored to the bare declaration once it has run | the one set both halves read is the code span: the protector leaves what is inside one alone and the reader refuses to count it, so a plan can quote a declaration without making it | revert the ship commit; nothing outside the checkout holds state, and a plan already stored with wrapped declarations is re-read the moment the revert lands\ndecision: The marker is an inert identifier inside a code span, not a second sentinel vocabulary | vi-natural's protectInline swaps a whole span for its own token and restores it byte for byte, and its verify only accounts for tokens shaped VI<n>, so an identifier inside a span survives the pass untouched and trips nothing | change the marker text in machine.mjs; it exists only between the protect and the restore and is never stored\ndecision: One declaration pattern for both halves, with the value allowed to sit across whitespace | lineFor reads <name>:\\s*(yes|no) and MACHINE.plan reads <name>:[ \\t]*(yes|no) today, so a value on the next line is counted by the reader and never protected; sharing the wider one and normalising what the protector emits closes it without narrowing the reader downward | put the two patterns back; the shared constant is one line\ndecision: A plan already stored on a translate=vi project with its declarations wrapped reads as declaring nothing after this change | no such project is known to this repository, and a guard that counted a wrapped declaration would be the defect this issue names; the plan is re-written rather than re-read | revert the ship commit, which restores the old reader for stored text\n```\n\n`forge-record: decision · contract 1`",
+          "format": "markdown",
+          "template": null,
+          "parentId": null,
+          "createdAt": "2026-09-06T07:38:26.865Z",
+          "updatedAt": "2026-09-06T07:38:26.865Z",
+          "replies": [],
+          "attachments": [],
+          "author": {
+            "type": "user",
+            "id": "0a3bb457-c689-4773-bf87-f3aba7198539",
+            "displayName": "thanhnh@sidcorp.co",
+            "isAgent": false
+          }
+        }
+      ],
+      "returned": 11,
+      "total": 11,
+      "limit": 11,
+      "offset": 0,
+      "hasMore": false
+    }
+  },
+  "mcp": {
+    "comments": [
+      {
+        "documentId": "f7e6db62-f351-433c-80d4-542c5655f2c6",
+        "issueId": "184c6d7a-212d-49bb-884b-3162b7b663ab",
+        "authorId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+        "authorDeviceId": null,
+        "body": "## Triage at c8771d6: planFlags still reads inside code spans, and the span mask it needs is three screens above it\n\n## Triage at c8771d6: planFlags still reads inside code spans, and the span mask it needs is three screens above it\n\nSize: fix.\n\n## Where\n\n`plugin/src/flow/machine.mjs:245-251` at c8771d6: `planFlags` collects every `<name>: yes|no` match over the whole field and answers `yes` where any is; nothing skips a span. The premise holds. Since ISS-483 (3.35.179) the same module has `masked` at line 147 — the span-blanking `compoundCriteria` uses — and `protectMachine` at 265 keeps its \"already safe\" comment, so the one set the issue's first rule asks for exists: `planFlags` reads the masked text and the three agree. Readers of `planFlags`: `flow/route.mjs:300,304`, `flow/earned.mjs`, `ladder.mjs`, `ladder-report.mjs` — behaviour unchanged for a plan with no span. Dispatched into a wave with ISS-333 (tools/run.mjs, tools/run/, tools/checkout.mjs, plugin/src/resolve/settings.mjs), ISS-490 (plugin/hooks/_hook.mjs, bash-guard.mjs, the polling how page, the issue-flow guide and its verification reference) and ISS-482 (plugin/agents/runner.md, the guide's Phase 4). None holds machine.mjs; re-read the hold sets before each write anyway.",
+        "format": "markdown",
+        "template": null,
+        "slots": null,
+        "text": null,
+        "parentId": null,
+        "createdAt": "2026-09-06T07:29:04.981Z",
+        "updatedAt": "2026-09-06T07:29:04.981Z",
+        "attachments": []
+      },
+      {
+        "documentId": "2c68806b-ec48-4757-b18f-2372f029aa92",
+        "issueId": "184c6d7a-212d-49bb-884b-3162b7b663ab",
+        "authorId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+        "authorDeviceId": null,
+        "body": "## Confirmation\n\n```forge-record\nwhere: plugin/src/flow/machine.mjs:243-273 (lineFor, planFlags, MACHINE.plan, SPAN, protectMachine), plugin/src/tools/vi.mjs:72-92, plugin/test/flow/rewrite.test.mjs:84-86 and 184-195, plugin/test/flow/advance.test.mjs:87-107, plugin/src/flow/earned.mjs:454-460, docs/cli/the-ladder.md, plugin/guides/issue-flow-contract.md:192-197\nis: planFlags matches <name>: yes|no over the raw plan field, so a declaration a plan quotes inside a code span is counted as one the plan makes; protectMachine two dozen lines below splits on the same span shape and calls what is inside one already safe. The premise holds at c8771d6.\nfinding: holds\ndetail: The triage line's mechanism does not work, and the suite already says so. (1) masked() blanks quoted strings and parenthesised text as well as code spans, so reading planFlags off it would put a bare (Screen change: no) outside the reader while protectMachine still rewrites it — the same one-set violation, pointing the other way. (2) protectMachine is not only a reader of spans, it makes them: vi.mjs:86 wraps every bare declaration in a code span and posts the wrapped text, so on a translate=vi project every stored plan carries its declarations inside spans. A planFlags that blanks spans would read all three as unset there, and earned.mjs:459 would refuse every plan on such a project. plugin/test/flow/rewrite.test.mjs:84-86 asserts exactly that pipeline and goes red. So the one set the issue asks for is reached by making the protection reversible — the prose pass carries a marker, the bare declaration comes back after it — not by pointing the reader at masked(). Two more disagreements found in the same fifteen lines: lineFor reads <name>:\\s*(yes|no) while MACHINE.plan reads <name>:[ \\t]*(yes|no), so a value on the next line is counted and never protected; and rewrite.test.mjs:192-194 encodes the behaviour this issue calls a defect.\ntier: feature\n```\n\n`forge-record: confirmation · contract 1`",
+        "format": "markdown",
+        "template": null,
+        "slots": null,
+        "text": null,
+        "parentId": null,
+        "createdAt": "2026-09-06T07:37:47.327Z",
+        "updatedAt": "2026-09-06T07:37:47.327Z",
+        "attachments": []
+      },
+      {
+        "documentId": "3847d6c2-e089-46ea-a34b-6ef884911f14",
+        "issueId": "184c6d7a-212d-49bb-884b-3162b7b663ab",
+        "authorId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+        "authorDeviceId": null,
+        "body": "## Decision record\n\n```forge-record\ndecision: The protection stops being a code span and becomes a marker the prose pass carries, restored to the bare declaration once it has run | the one set both halves read is the code span: the protector leaves what is inside one alone and the reader refuses to count it, so a plan can quote a declaration without making it | revert the ship commit; nothing outside the checkout holds state, and a plan already stored with wrapped declarations is re-read the moment the revert lands\ndecision: The marker is an inert identifier inside a code span, not a second sentinel vocabulary | vi-natural's protectInline swaps a whole span for its own token and restores it byte for byte, and its verify only accounts for tokens shaped VI<n>, so an identifier inside a span survives the pass untouched and trips nothing | change the marker text in machine.mjs; it exists only between the protect and the restore and is never stored\ndecision: One declaration pattern for both halves, with the value allowed to sit across whitespace | lineFor reads <name>:\\s*(yes|no) and MACHINE.plan reads <name>:[ \\t]*(yes|no) today, so a value on the next line is counted by the reader and never protected; sharing the wider one and normalising what the protector emits closes it without narrowing the reader downward | put the two patterns back; the shared constant is one line\ndecision: A plan already stored on a translate=vi project with its declarations wrapped reads as declaring nothing after this change | no such project is known to this repository, and a guard that counted a wrapped declaration would be the defect this issue names; the plan is re-written rather than re-read | revert the ship commit, which restores the old reader for stored text\n```\n\n`forge-record: decision · contract 1`",
+        "format": "markdown",
+        "template": null,
+        "slots": null,
+        "text": null,
+        "parentId": null,
+        "createdAt": "2026-09-06T07:38:26.865Z",
+        "updatedAt": "2026-09-06T07:38:26.865Z",
+        "attachments": []
+      }
+    ],
+    "returned": 11,
+    "limit": 200,
+    "hasMore": false
+  }
+}
