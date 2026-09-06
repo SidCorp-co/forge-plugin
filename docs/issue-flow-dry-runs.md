@@ -4557,3 +4557,32 @@ three routed findings were read back.
 - Two consult findings accepted and both refuted on recheck, two rejected and argued in the review
   record. A finding rejected with its reason written down is a review; one rejected in silence is a
   verdict nobody can audit.
+
+## Hundred-and-seventy-sixth dry run — ISS-530
+
+Two gates every delegated run went without, built by the dispatching session at the user's word
+rather than by a runner (3.35.190, landed as d2c2427; then 3.35.194, landed as 01c2489). The on-edit
+linter dropped every file a worktree run wrote because it sat outside the session's directory, and
+the stop gate judged the parent's empty transcript on every subagent stop; the second landing found
+the stop gate's linter had never run on any stop at all, the clock handing children a fractional
+millisecond they refuse. Thirteen criteria across the two heads. The user's rule landed in it: no
+subagent's stop is judged unless the project's `.forge.json` names its agent type. No restart owed
+from either. Closed by its run.
+
+- The entry and the suite pass through one clock and the registered line through another, and only
+  the registered line, run against the installed copy from a room outside every checkout, showed
+  the silence. A checker whose route differs from the registered one proves the route, not the rule;
+  the new case spawns the line hooks.json names.
+- Two probes lied before one told the truth, each for a reason `plugin/hooks/how/copies.md` already
+  states about which copy a call runs. A release before the fix therefore cannot be exercised from
+  the cache at all, and the watched negative control lives in the suite, where the old clock is
+  swapped in and the case goes silent.
+- Default-off, and the project names its agents: a plugin's hooks reach every session on the
+  machine, so which delegated agents answer to a gate is the project's to say in its own config, not
+  a plugin default the dispatch happens to rely on.
+- The follow-up cost a plan correction, a criteria re-consult (the diff form refused, the bodies
+  form required), the review and thirteen verdicts at the replayed head, and the thirteen again at
+  the landed sha: the advance reads each verdict's commit against the mark, and no phrasing of the
+  mark's note spares that write. One write carries them all; judge first, then re-issue in one.
+- Three ships stopped at the checkout-follows step today, this one among them, each on a fold
+  commit waiting behind the very lock the ship held. Counted onto ISS-374 with the three shas.
