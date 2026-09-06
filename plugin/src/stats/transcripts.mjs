@@ -92,11 +92,24 @@ export const CLASSES = [
   ["forge", forgeClass],
   ["git", at(String.raw`git\s`)],
   ["poll", at(String.raw`(?:sleep|until|while|pgrep)\s`)],
-  ["edit", /(?:python3|node) - <<|sed -i|(?:^|[\s;&|(])(?:cat|tee)\s+>/u],
+  ["edit heredoc", at(String.raw`(?:python3|node) - <<`)],
+  ["edit sed", at(String.raw`sed -i\s`)],
+  ["edit file", at(String.raw`(?:cat|tee)\s+>`)],
   ["read", at(String.raw`(?:cat|sed -n|head|tail|grep|rg|ls|wc|find)\s`)],
 ];
 
-const TOOL_CLASS = { Read: "read", Grep: "read", Glob: "read", Edit: "edit", Write: "edit", NotebookEdit: "edit" };
+const TOOL_CLASS = { Read: "read", Grep: "read", Glob: "read", Edit: "edit", Write: "write", NotebookEdit: "edit" };
+
+/** The routes a run writes a file through, each a class above. */
+export const EDIT_ROUTES = ["edit", "write", "edit heredoc", "edit file", "edit sed"];
+
+/** What a call carried, in characters of the model's own output. */
+const sizeOf = (name, input) => {
+  if (name === "Bash") return string(input?.command).length;
+  if (name === "Edit") return string(input?.old_string).length + string(input?.new_string).length;
+  if (name === "Write") return string(input?.content).length;
+  return 0;
+};
 
 export const classOf = (name, shell) => {
   if (name !== "Bash") return TOOL_CLASS[name] ?? name.toLowerCase();
@@ -158,7 +171,8 @@ export const callsIn = (whole) => {
     if (!Array.isArray(content)) continue;
     for (const block of content) {
       if (block?.type === "tool_use") {
-        uses.set(block.id, { at: stamp, name: string(block.name) || "Bash", command: string(block.input?.command) });
+        const name = string(block.name) || "Bash";
+        uses.set(block.id, { at: stamp, name, command: string(block.input?.command), size: sizeOf(name, block.input) });
         order.push(block.id);
       } else if (block?.type === "tool_result") {
         results.set(block.tool_use_id, { at: stamp, body: textOf(block.content), error: Boolean(block.is_error) });
@@ -173,6 +187,7 @@ export const callsIn = (whole) => {
       at: use.at,
       name: use.name,
       command: use.command,
+      size: use.size,
       shell,
       class: classOf(use.name, shell),
       answered: Boolean(result),

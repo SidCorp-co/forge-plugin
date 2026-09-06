@@ -3,6 +3,7 @@
    taken once. What each figure means, and what it deliberately does not: docs/cli/stats.md. */
 import {
   FLOW_BRIEF,
+  EDIT_ROUTES,
   PHASES,
   UNTIERED,
   callsIn,
@@ -134,6 +135,31 @@ const advanceRuns = (calls) => {
   return { total, after };
 };
 
+/* The ship's refusal as it renders when the remote moved under its gate, in the ship's own result or
+   in a read of a log file; a read of a source or test file that carries the same text is not one.
+   One per run, however often the log was read. */
+const REJECTED_PUSH = /stopped at step \d+ \(push to [^)]+\): git push [^\n]*exited \d+\. Rejected means the remote moved/u;
+const LOG_READ = /\.log\b/u;
+const reportsShip = (call) => call.class === "ship" || (call.class === "read" && LOG_READ.test(call.shell));
+const RESUMED = /--from\s+\d/u;
+
+/* The passes a landing took: every ship call, those resumed with --from, and whether a push came
+   back rejected. */
+const shipsIn = (calls) => {
+  const passes = calls.filter((call) => call.class === "ship");
+  return {
+    passes: passes.length,
+    resumed: passes.filter((call) => RESUMED.test(call.shell)).length,
+    rejected: calls.some((call) => reportsShip(call) && REJECTED_PUSH.test(call.body)) ? 1 : 0,
+  };
+};
+
+/* Per route, the calls and what each carried. */
+const editsIn = (calls) => new Map(EDIT_ROUTES.map((route) => {
+  const sizes = calls.filter((call) => call.class === route).map((call) => call.size);
+  return [route, { calls: sizes.length, sizes }];
+}));
+
 export const runFrom = (path, session, text) => {
   const read = callsIn(text);
   const calls = segmented(read.calls);
@@ -182,6 +208,8 @@ export const runFrom = (path, session, text) => {
     consults: counted("forge codex consult"),
     rechecks: counted("forge codex recheck"),
     verdicts: counted("forge record verdict"),
+    ships: shipsIn(calls),
+    edits: editsIn(calls),
     byClass,
     refusals,
     repeats: new Map([...repeats].filter(([, many]) => many >= REPEATED)),
@@ -299,6 +327,18 @@ export const profileOf = (runs) => {
       advance: per((run) => run.advance.total),
       advanceAfterRecord: per((run) => run.advance.after),
     },
+    edits: EDIT_ROUTES.map((route) => ({
+      route,
+      perRun: per((run) => run.edits.get(route).calls),
+      medianChars: median(runs.flatMap((run) => run.edits.get(route).sizes)),
+    })),
+    editCharsPerRun: per((run) => [...run.edits.values()].reduce((sum, one) => sum + one.sizes.reduce((a, b) => a + b, 0), 0)),
+    ships: {
+      passes: runs.reduce((sum, run) => sum + run.ships.passes, 0),
+      perRun: per((run) => run.ships.passes),
+      resumed: runs.reduce((sum, run) => sum + run.ships.resumed, 0),
+      rejectedRuns: runs.reduce((sum, run) => sum + run.ships.rejected, 0),
+    },
     phases,
     tiers: perTier(runs),
     byClass: mergedClasses(runs, (run) => run.byClass),
@@ -363,6 +403,10 @@ export const profileLines = (held, all = false) => [
   `per run         ${held.perRun.gate} gate, ${held.perRun.test} test, ${held.perRun.consult} consult, `
     + `${held.perRun.recheck} recheck, ${held.perRun.verdict} verdict, ${held.perRun.advance} advance `
     + `(${held.perRun.advanceAfterRecord} of them after a record)`,
+  `edits           per run ${held.edits.map((one) => `${one.route} ${one.perRun}`).join(", ")} · `
+    + `median chars/call ${held.edits.map((one) => `${one.route} ${one.medianChars}`).join(", ")}`,
+  `ships           ${held.ships.passes} pass(es), median ${held.ships.perRun}/run, ${held.ships.resumed} resumed with --from, `
+    + `a push rejected in ${held.ships.rejectedRuns} run(s)`,
   `timeouts        ${held.timeouts}`,
   ...tierLines(held),
   ...phaseLines(held),

@@ -164,6 +164,8 @@ test("every row of a fixture run is what the transcript adds up to", () => {
   has("to first claim  median 0.5 min");
   has("per run         1 gate, 1 test, 1 consult, 1 recheck, 1 verdict, 2 advance (1 of them after a record)");
   has("timeouts        0");
+  has("edits           per run edit 0, write 0, edit heredoc 0, edit file 0, edit sed 0 · median chars/call edit 0, write 0, edit heredoc 0, edit file 0, edit sed 0");
+  has("ships           1 pass(es), median 1/run, 0 resumed with --from, a push rejected in 0 run(s)");
 
   /* The ship call is the last of its own phase; the `pgrep` line that waits for one is a poll and
      leaves the run where it was, which is what moved every real run into `6 close` before. */
@@ -246,8 +248,11 @@ test("one class per shape of work, whatever way it was typed", () => {
     ["F=./plugin/bin/forge; $F record verdict ISS-99", "shell"],
     ['echo "next: forge record verdict ISS-99" >> /tmp/notes', "shell"],
     ["grep -rn 'forge claim' docs/", "read"],
-    ["cat > /tmp/c.md <<'EOF'\n1. forge and the tracker agree\nEOF", "edit"],
-    ["cat > /tmp/c.md <<'EOF'\n1. npm run check stays green\nEOF", "edit"],
+    ["cat > /tmp/c.md <<'EOF'\n1. forge and the tracker agree\nEOF", "edit file"],
+    ["grep -n 'sed -i' docs/cli/stats.md", "read"],
+    ["grep -rn 'python3 - <<' plugin/", "read"],
+    ["node /w/tools/run.mjs review --done abc1234", "shell"],
+    ["cat > /tmp/c.md <<'EOF'\n1. npm run check stays green\nEOF", "edit file"],
     ["forge codex consult --recheck plugin/src/cli.mjs", "forge codex recheck"],
     ["forge codex consult plugin/src/cli.mjs", "forge codex consult"],
     ["forge guide contract released", "forge guide"],
@@ -274,6 +279,7 @@ test("a phase opens on the call that makes it, not on a line that names it", () 
     ['until ! pgrep -f "tools/run.mjs ship"; do sleep 10; done', null],
     ['echo "next: forge record verdict ISS-99" >> /tmp/notes', null],
     ["grep -rn 'forge claim' docs/", null],
+    ["grep -n 'sed -i' docs/cli/stats.md", null],
     ["cat > /tmp/c.md <<'EOF'\n1. forge record verdict is typed once\nEOF", null],
   ]) {
     assert.equal(markerOf(classOf("Bash", shellOf(command))), expected, command);
@@ -306,6 +312,46 @@ test("a consult before the plan write is the plan's, and the review opens on the
   has("1 plan          1     11.0       11        2.0  forge codex consult 1 10m · forge claim 1 0m");
   has("2 build         1      2.8        3        2.0  test 1 1m · forge plan 1 0m");
   has("3 review        1      6.2        6        1.0  forge codex consult 1 5m");
+});
+
+/* One call per route a run writes files through, with what each carried, and a landing that took two
+   passes: the two lines the eval reads are pinned against a transcript that adds up by hand. */
+test("the edits line names each route with its calls and characters, and the ships line counts passes, resumes and rejected pushes", () => {
+  const room = tempRoom("stats-routes-");
+  const tasks = join(room, `claude-${process.getuid()}`, slugFor(PROJECT), "s", "tasks");
+  mkdirSync(tasks, { recursive: true });
+  const bash = (id, start, command, body = "ok") => [use(id, start, "Bash", { command }), result(id, start + 2, body)];
+  writeFileSync(join(tasks, "a7.output"), [
+    JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-99" } }),
+    ...bash("r1", 10, "./plugin/bin/forge claim ISS-99", "claimed"),
+    use("r2", 20, "Edit", { file_path: "/w/a.mjs", old_string: "abcd", new_string: "abcdef" }), result("r2", 21, "edited"),
+    use("r3", 30, "Write", { file_path: "/w/b.md", content: "x".repeat(40) }), result("r3", 31, "written"),
+    ...bash("r4", 40, "python3 - <<'EOF'\nprint(1)\nEOF"),
+    ...bash("r5", 50, "cat > /w/c.txt <<'EOF'\nhello\nEOF"),
+    ...bash("r6", 60, "sed -i 's/a/b/' /w/a.mjs"),
+    ...bash("r7", 100, "node /w/tools/run.mjs ship", "stopped at step 6 (push to origin/master): git push origin HEAD:master exited 1. Rejected means the remote moved: rebase, then ship --from 2"),
+    ...bash("r8", 200, "node /w/tools/run.mjs ship --from 2", "Released."),
+    ...bash("r9", 300, "grep -n Rejected tools/run.mjs", "521: `Rejected means the remote moved: rebase, then ${SELF} ship --from 2`"),
+    ...bash("r10", 310, "cat plugin/test/stats/runs.test.mjs", "stopped at step 6 (push to origin/master): git push origin HEAD:master exited 1. Rejected means the remote moved"),
+  ].join("\n"));
+  const run = ask(room);
+  assert.equal(run.status, 0, run.stderr);
+  const has = (line) => assert.ok(run.stdout.includes(line), `${line}\n--- printed ---\n${run.stdout}`);
+  /* Edit carries old plus new (4 + 6), Write its content (40), and each shell route its own text, newlines counted. */
+  has("edits           per run edit 1, write 1, edit heredoc 1, edit file 1, edit sed 1 · median chars/call edit 10, write 40, edit heredoc 30, edit file 32, edit sed 24");
+  has("ships           2 pass(es), median 2/run, 1 resumed with --from, a push rejected in 1 run(s)");
+  /* A second run: the ship ran in the background, and the refusal is read off its log twice. */
+  writeFileSync(join(tasks, "a8.output"), [
+    JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-98" } }),
+    ...bash("s1", 10, "./plugin/bin/forge claim ISS-98", "claimed"),
+    ...bash("s2", 20, "node /w/tools/run.mjs ship > /tmp/iss98-ship.log 2>&1", ""),
+    ...bash("s3", 400, "tail -3 /tmp/iss98-ship.log", "stopped at step 6 (push to origin/master): git push origin HEAD:master exited 1. Rejected means the remote moved: rebase"),
+    ...bash("s4", 500, "tail -3 /tmp/iss98-ship.log", "stopped at step 6 (push to origin/master): git push origin HEAD:master exited 1. Rejected means the remote moved: rebase"),
+  ].join("\n"));
+  const both = ask(room);
+  assert.equal(both.status, 0, both.stderr);
+  assert.ok(both.stdout.includes("ships           3 pass(es), median 1.5/run, 1 resumed with --from, a push rejected in 2 run(s)"),
+    `two runs, one rejection each\n--- printed ---\n${both.stdout}`);
 });
 
 /* The host issues several calls in one turn and they run at once. Summed, their durations exceed

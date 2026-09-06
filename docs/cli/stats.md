@@ -64,29 +64,31 @@ So a mistyped `--since` profiled the whole corpus and said nothing about it. For
 compared with next week's, a filter silently dropped is worse than a refusal, so a flag this verb
 does not have is named back.
 
-## The classifier, and three wrong rows it was built to avoid
+## The classifier, and the wrong rows it was built to avoid
 
-The classifier is one table read top to bottom, and each of its three corrections is a row a hand
-profile got wrong on this corpus:
+The classifier is one table read top to bottom, and each correction below is a row a hand profile
+got wrong:
 
 - **A heredoc carries a document, not shell.** The criteria and plan files a run writes name
-  `npm run check` inside their own text; read as commands, 423 of them were counted as gate runs
-  that never happened. The body is cut before the line is classified.
-- **A word after the binary's name is not a verb.** Taking it on trust turned prose into calls: a
-  heredoc mentioning the tool minted a class named for whatever word came next, and a run that had
-  put the binary behind a shell expansion minted one named for the expansion. What follows has to be
-  a verb this CLI has, and the same verb reached by path and by name is one call and one row.
+  `npm run check` in their text; read as commands, 423 of them counted as gate runs that never
+  happened. The body is cut before the line is classified.
+- **A word after the binary's name is not a verb.** Taken on trust, a heredoc mentioning the tool
+  minted a class for whatever word came next, and a binary behind a shell expansion minted one for
+  the expansion. What follows has to be a verb this CLI has, and the verb reached by path and by
+  name is one row.
 - **A bare space is not a command position.** Every row is anchored where a command actually
   starts — the beginning, or after one of the separators, with an assignment or a short list of
-  leading words allowed in between. Read as a command position, a space made an echoed reminder into
-  a record and a search argument into a claim, and each opened a phase the run had not reached.
-- **A mention of a ship is not a ship.** A run waiting on one polls for the process by name; read as
-  the invocation itself, that line moved every such run straight into its closing phase, which is
-  what left the judging phase looking empty in the hand profile.
+  leading words allowed in between; read as one, a space made an echoed reminder into a record and
+  a search argument into a claim, each opening a phase the run had not reached.
+- **A mention of a ship is not a ship.** A run waiting on one polls for the process by name; read
+  as the invocation, that line moved every such run into its closing phase.
 
-Two verbs earn a row per action, because their actions cost differently: a consult against a recheck,
-and a verdict against the rest of the records. Every other verb is one row, or the guides alone would
-be thirteen of them.
+Two verbs earn a row per action, because their actions cost differently: a consult against a
+recheck, a verdict against the other records. Writing a file earns a row per route — edit tool, write
+tool, heredoc, whole-file redirect, `sed` — because one change carries a different number of characters
+by each, and the `edits` line puts that number beside the route. The `ships` line counts a landing's
+passes, resumes and rejected pushes: a landing that raced a sibling's paid the gate twice. Every
+other verb is one row.
 
 ## The phase table
 

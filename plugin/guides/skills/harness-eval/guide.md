@@ -65,6 +65,11 @@ where a recheck found nothing new to confirm. Each entry is a round somebody pai
 a refusal's wording, a default or a gate's scope would have saved it, and read that text before
 answering.
 
+The profile's `edits` line says which route the runs wrote files through and what a call on each
+route carried, and its `ships` line says how many passes a landing took, how many were resumed and in
+how many runs a push came back rejected. A route that carries twice another's characters for the same
+kind of change, or a second pass per landing, is a saving with its count already beside it.
+
 Then read what the runs read: the guide a run follows at the phase where its minutes went, the
 refusal it met most often, the gate step that grew. A saving may sit in a sentence no figure points
 at — a phase that asks for a read the previous one already made, a refusal whose route costs a call

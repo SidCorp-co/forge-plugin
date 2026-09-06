@@ -134,3 +134,7 @@ it. Reading is all this product does there.
   WHEN a run's calls are cut into phases THEN the CLI SHALL open the review phase only on a consult
   taken after the build has begun, and SHALL count a consult taken before that in the phase the run
   was in.
+- **AC-19-8-7** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "the edits line names each route with its calls and characters, and the ships line counts passes, resumes and rejected pushes"
+  WHEN a profile is printed THEN the CLI SHALL name each route a run wrote files through with its
+  calls per run and the characters a call carried, and SHALL count the passes a landing took, the
+  passes resumed and the runs whose push was rejected, each read off the call's own record.

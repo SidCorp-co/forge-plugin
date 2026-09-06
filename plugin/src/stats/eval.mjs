@@ -110,7 +110,8 @@ const figureLine = (when, held) => {
   const p = held.profile;
   return `  ${when.padEnd(WHEN)} ${String(held.runs).padStart(3)} run(s)  ${stamp(held.from)} to ${stamp(held.to)}  `
     + `median ${p.medianMinutes} min, ${p.medianCalls} calls, ${p.waitShare} waiting  `
-    + `per run ${p.perRun.gate} gate, ${p.perRun.consult} consult, ${p.perRun.verdict} verdict, ${p.perRun.advance} advance`;
+    + `per run ${p.perRun.gate} gate, ${p.perRun.consult} consult, ${p.perRun.verdict} verdict, ${p.perRun.advance} advance, `
+    + `${p.ships.perRun} ship, ${p.editCharsPerRun} edit chars`;
 };
 
 const groupLine = (when, group) =>
