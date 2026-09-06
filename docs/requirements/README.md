@@ -48,7 +48,7 @@ the checker and does not restate what it says.
 | R-07 | An open question is an issue, never a marker in a clause. | No clause contains a deferral marker; every row of `brd/08-open-items.md` carries an issue key. | the spec gate |
 | R-08 | Every use case has at least one acceptance criterion. | Each `UC-` heading is followed, before the next `UC-`, by at least one `AC-` line. | the spec gate |
 | R-09 | Every business rule is enforced somewhere. | Each `BR-` in `brd/04-business-rules.md` appears in at least one clause's `Enforces:` field. | the spec gate |
-| R-10 | A citation carries the revision it was written against. | Every citation is `<id>~<rev>`; the gate hashes the clause's content, compares it with the hash recorded for that revision, and reports the citation suspect when the two differ. | ISS-525, which owes the recorded hash and is the only rule here nothing checks yet |
+| R-10 | A citation carries the revision it was written against. | Every citation is `<id>~<rev>`; the gate hashes the clause's content, compares it with the hash recorded for that revision, and reports the citation suspect when the two differ. A clause the record no longer records — reached at no revision, at another one, or at a digest that is not the clause's words now — is a finding of the same rule, whether or not anything cites it. | the spec gate, against the record `digests.json` beside these documents |
 | R-11 | An acceptance criterion is in EARS form and names the case that proves it. | Two lines: a field line opening with the identifier and carrying `Proof:` — a path that resolves, carrying after it the case's own name in double quotes where that path is a test file, or `none yet` with an issue key — then a sentence opening with `WHEN`, `IF`, `WHILE` or `WHERE`, holding `SHALL`, and holding `THEN` when it opened with `WHEN` or `IF`. | `plugin/test/spec/proof-cases.test.mjs`, then the spec gate |
 | R-12 | An identifier is never reused and never renumbered. | A retired clause keeps its number and is marked retired; no number appears twice in the tree. | the spec gate |
 | R-13 | Each document carries the sections its kind declares. | The section list below, matched against the headings of each file. | the spec gate |
@@ -121,8 +121,12 @@ Explanatory prose inside a clause counts, because a clause is meant to be comple
 anything inside it can change what it obliges; the `Rev` value itself does not, or bumping it would
 never settle. The hash of each clause at its current revision is a **generated file in this tree,
 committed beside the clauses**, so a spec edit and its hashes move in one commit and a citation can
-be judged with no network. The gate that writes it (ISS-525) fixes its name and format; until then a
-citation carries its revision and nothing compares it.
+be judged with no network. It is `digests.json`, one entry per clause that carries a revision —
+that revision, and the digest of the clause's content at it — and `forge spec check --record` writes
+it and nothing else does, since a second writer would be a second answer to what a clause said. A
+clause the record no longer records is refused too, and separately from any citation of it: a
+comparison with nothing recorded refuses nothing, and one against a fingerprint of words that are
+gone reads exactly like one that holds.
 
 **Why no machine identifier beside the human one.** StrictDoc keeps a machine id so a rename stays
 traceable. Here R-12 buys the same stability for nothing: a number that is never reused and never

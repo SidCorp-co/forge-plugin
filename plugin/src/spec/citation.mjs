@@ -48,7 +48,7 @@ export const citationProblems = (index, ids) =>
     .map((one) => problemOf(index, one))
     .filter(Boolean);
 
-/** Said and never refused until ISS-27's gate compares the recorded hash. */
+/** Said and never refused: an identifier with no revision makes no claim a checker could fail. */
 export const unrevisionedIn = (index, ids) => [...new Set(ids
   .filter((one) => one.rev === null && lookup(index, one.id).clause)
   .map((one) => one.id))];
@@ -62,5 +62,6 @@ export const revisionSaid = (ids) => {
   if (!ids.length) return null;
   const names = ids.length > 1 ? `${ids.join(", ")} name clauses and carry` : `${ids[0]} names a clause and carries`;
   return `${names} no revision. R-10 asks for \`<id>~<rev>\`, so a clause that is reworded takes its`
-    + " citations with it; nothing compares the hash yet (ISS-27) and this was written as given.";
+    + " citations with it: only a citation carrying a revision is compared with the digest the tree"
+    + " records, and this was written as given.";
 };

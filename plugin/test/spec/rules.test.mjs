@@ -438,7 +438,7 @@ test("the verb refuses an argument, because it reads the whole tree or nothing",
 for (const word of ["-h", "--help"]) {
   test(`the sub-verb answers ${word} with its own usage rather than refusing it as an argument`, () => {
     const ran = execFileSync(FORGE, ["spec", "check", word], { cwd: ROOT, encoding: "utf8" });
-    assert.match(ran, /^Usage: forge spec check$/mu);
+    assert.match(ran, /^Usage: forge spec check \[--record\]$/mu);
     assert.match(ran, /prints\nnothing and exits 0 rather than refusing/u);
   });
 }

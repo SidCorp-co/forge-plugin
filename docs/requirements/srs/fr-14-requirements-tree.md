@@ -82,7 +82,7 @@ there, a marker that is absent.
 - **AC-14-3-2** · Rev: 1 · Proof: plugin/test/spec/rules.test.mjs "every rule this check reports has a case of its own that fails without it"
   WHEN the gate ships THEN it SHALL ship with a fixture that fails for each rule it holds, since a
   check nobody has watched refuse is a check nobody has.
-- **AC-14-3-3** · Rev: 1 · Proof: none yet — ISS-525
+- **AC-14-3-3** · Rev: 1 · Proof: plugin/test/spec/recorded.test.mjs "a citation of a clause whose words moved at the same revision is suspect"
   IF a citation names a revision whose recorded hash differs from the clause's current content THEN
   the gate SHALL report the citation suspect and SHALL name both.
 

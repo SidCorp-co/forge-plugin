@@ -9,8 +9,9 @@ import { FORMS, KIND, parseRef } from "./parse.mjs";
 import { ambiguousUnder, clauseOf, lookup, withDescendants } from "./index.mjs";
 import { lookupProblem } from "./citation.mjs";
 import { identifierProblems } from "./rules.mjs";
+import { entriesOf, movedIn, recordProblems } from "./recorded.mjs";
 import { shapeProblems } from "./shape.mjs";
-import { specTree, specTreeRead } from "./tree.mjs";
+import { specTree, specTreeRead, writeSpecRecord } from "./tree.mjs";
 
 const LINK = new RegExp(LINK_TEXT_PATTERN, "gu");
 
@@ -21,6 +22,7 @@ const HELD_IN_A_ROW = ["BR", "G", "M", "C", "A"];
 const KNOWN = ["--json", "--where"];
 const TWO_HOMES = "two documents define this: ask for it alone, and both are named.";
 const CHECK = "check";
+const RECORDING = "--record";
 
 export const USAGE = [
   usageOf("spec"),
@@ -33,19 +35,25 @@ export const USAGE = [
   "  --json      the clause and everything printed under it, one object each, for a verb to read",
   "  --where     the file and heading behind each clause, the one path this verb ever prints",
   `  ${CHECK}       the whole tree against the rules its own index states; \`forge spec ${CHECK} -h\``,
+  `  ${CHECK} ${RECORDING}  writes the digest of every clause to the file those rules compare a citation against`,
   "",
   "An unknown identifier is refused with the nearest ones, and one that two documents define is",
   "refused as ambiguous. The rules, the notation and what a citation claims: docs/requirements/.",
 ].join("\n");
 
 export const CHECK_USAGE = [
-  `Usage: forge spec ${CHECK}`,
+  `Usage: forge spec ${CHECK} [${RECORDING}]`,
   "",
   "This project's requirements tree against the rules stated in its own index, one line per",
   "finding: the file and line, the identifier or section it is about, the rule, and what to do.",
   "It judges presence and resolution and never fit — an identifier that exists, a citation that",
   "resolves, a section that is there, a marker that is absent — because whether a clause is right",
   "is a person's to say and a gate that tried would refuse honest clauses and pass dishonest ones.",
+  "",
+  `  ${RECORDING}   write the digest of every clause at the revision it carries, name the entries that`,
+  "             moved, and then check as usual. It is the one thing that writes that file, and an",
+  "             author types it: a citation of a clause whose words moved at the same revision is",
+  "             suspect until the revision is bumped or the digest re-recorded.",
   "",
   "A project that keeps no requirements tree is a project this says nothing about, so it prints",
   "nothing and exits 0 rather than refusing. A finding is an exit of 1, and the tree's own index",
@@ -164,11 +172,29 @@ const inOrder = (problems) =>
   [...problems].sort((left, right) =>
     left.file.localeCompare(right.file) || left.line - right.line || left.rule.localeCompare(right.rule));
 
+/* The gate step runs `spec check` and writes nothing, so the one writer of R-10's record is a flag
+   somebody types: the record moves when an author moves a clause, never underneath a check. */
+const recorded = (tree) => {
+  const want = entriesOf(tree.index);
+  const moved = movedIn(tree.recorded.clauses, want.clauses);
+  const file = writeSpecRecord(want);
+  tree.recorded = { file, clauses: want.clauses, why: null };
+  console.log(`${file}: ${Object.keys(want.clauses).length} clause(s), ${moved.length} moved.`);
+  for (const line of moved) console.log(line);
+};
+
 const checked = (rest) => {
-  if (rest.length) refuse(`spec ${CHECK} reads the whole tree and takes no argument, not \`${rest.join(" ")}\`.`);
+  const writing = rest.includes(RECORDING);
+  const extra = rest.filter((one) => one !== RECORDING);
+  if (extra.length) {
+    refuse(`spec ${CHECK} reads the whole tree and takes no argument but ${RECORDING}, not \`${extra.join(" ")}\`.`);
+  }
   const tree = specTreeRead();
   if (!tree) return null;
-  const problems = inOrder([...identifierProblems(tree), ...shapeProblems(tree.documents)]);
+  if (writing) recorded(tree);
+  const problems = inOrder([
+    ...identifierProblems(tree), ...recordProblems(tree), ...shapeProblems(tree.documents),
+  ]);
   for (const one of problems) console.log(`${one.file}:${one.line}  ${one.id}  ${one.rule}  ${one.fix}.`);
   if (!problems.length) return null;
   return `${problems.length} finding(s) in ${tree.documents.length} document(s). `

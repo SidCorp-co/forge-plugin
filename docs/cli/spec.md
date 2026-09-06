@@ -19,7 +19,7 @@ so a citation of one is answered with that fact rather than called stale.
 
 The clause a citation was written against is decided by a digest of the clause's own words with
 its markup gone — a reflowed paragraph is the same clause and a reworded one is not. It is printed
-and never stored: the file that records a digest per revision is the gate's (ISS-27), and a second
+and never stored here: the file that records a digest per revision is the gate's, and a second
 place writing it would be a second answer. A revision that has moved is reported *stale* here,
 because *suspect* is spoken for — a citation whose recorded digest disagrees is the gate's word,
 and the two failures are not the same one.
@@ -51,11 +51,18 @@ verb's: a gate that asked would refuse honest clauses and pass dishonest ones. A
 tree gets silence and a zero rather than a refusal, since this runs in repositories it cannot see
 and a project that has not decided is one this says nothing about.
 
-Two rules of the tree are not held here and say so in their own row. A citation whose recorded
-digest disagrees with the clause's current words is *suspect*, and nothing records a digest yet
-(ISS-525) — which is why *stale* above is a different word for a different failure. And the overlap
-measure that would catch a clause restating its source's argument cannot see a table cell, where a
-restated rule in this tree would most naturally sit (ISS-526).
+**The one rule that compares two moments needs an artifact, and `forge spec check --record` is what
+writes it.** What the record holds, where it lives and what an author does about a clause it no
+longer matches are R-10's, stated once in the tree's own index. Two things about it are this verb's.
+**It is JSON and not a document:** the walk that reads the tree takes only `.md`, and a record whose
+rows carried identifiers would define every clause a second time and leave the whole tree ambiguous.
+**And the flag is typed, never spent by a suite:** the gate step runs the check and writes nothing,
+so the record moves when an author moves a clause rather than underneath a green run. *Suspect* is
+that comparison's word, which is why *stale* above is a different word for a different failure.
+
+One rule of the tree is still not held here and says so in its own row: the overlap measure that
+would catch a clause restating its source's argument cannot see a table cell, where a restated rule
+in this tree would most naturally sit (ISS-526).
 
 ## A citation read at a write
 
@@ -66,8 +73,8 @@ still holding the file is told which revision to write instead.
 
 Two boundaries decide what that check may refuse. **A citation is `<id>~<rev>`, and an identifier
 written without one is not one:** it makes no claim a checker could fail, R-10 is what wants the
-revision, and the gate that would compare the recorded hash has not shipped (ISS-27), so a bare
-identifier that names a real clause is said and the plan is written. **A project that keeps no tree
+revision, and the recorded digest the gate compares is keyed on one, so a bare identifier that names
+a real clause is said and the plan is written. **A project that keeps no tree
 reads nothing:** this runs in repositories it cannot see, and `documents()` refuses outright where
 there is no `docs/requirements/`, which is the right answer to somebody who asked for a clause and
 the wrong one to somebody who asked to write a plan. The predicate that separates the two is

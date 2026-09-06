@@ -1,11 +1,12 @@
 /* Where the tree is stored, known here and nowhere else: a caller asks for an identifier, so the
    day this reads an API instead of a checkout no caller changes. */
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import { projectRoot } from "../resolve/settings.mjs";
 import { refuse } from "../refusal.mjs";
 import { clauseIndex } from "./index.mjs";
+import { RECORD, malformedIn, written } from "./recorded.mjs";
 
 export const TREE = "docs/requirements";
 
@@ -32,6 +33,33 @@ const readFrom = (dir) => {
   }));
 };
 
+/* The record is JSON and the walk above takes only `.md`: read as a document, its table of
+   identifiers would define every clause of this tree a second time. */
+const recordAt = (dir) => {
+  const file = relative(projectRoot(), join(dir, RECORD));
+  const path = join(dir, RECORD);
+  if (!existsSync(path)) return { file, clauses: null, why: "is not there" };
+  let held = null;
+  try {
+    held = JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    return { file, clauses: null, why: `does not parse as JSON: ${error.message}` };
+  }
+  const clauses = held?.clauses;
+  if (!clauses || typeof clauses !== "object") return { file, clauses: null, why: "carries no clauses object" };
+  const bad = malformedIn(clauses);
+  if (bad) return { file, clauses: null, why: `has no revision and digest for ${bad}` };
+  return { file, clauses, why: null };
+};
+
+/** The record written from what the tree owes, and its path. The one writer R-10 admits. */
+export const writeSpecRecord = (record) => {
+  const dir = treeDir();
+  if (!dir) return null;
+  writeFileSync(join(dir, RECORD), written(record));
+  return relative(projectRoot(), join(dir, RECORD));
+};
+
 const documents = () => {
   const dir = treeDir();
   if (!dir) {
@@ -55,10 +83,10 @@ export const specTreeIfAny = () => {
   return dir ? clauseIndex(readFrom(dir)) : null;
 };
 
-/** The documents beside the index: a finding names a line, and a line is not in the index. */
+/** The documents and the record beside the index: a finding names a line, which the index drops. */
 export const specTreeRead = () => {
   const dir = treeDir();
   if (!dir) return null;
   const documents = readFrom(dir);
-  return { documents, index: clauseIndex(documents) };
+  return { documents, index: clauseIndex(documents), recorded: recordAt(dir) };
 };
