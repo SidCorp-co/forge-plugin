@@ -63,23 +63,21 @@ const firstLineOf = (body) => {
 const said = (command) => command.replaceAll(/\s+/gu, " ").trim().slice(0, 160);
 
 /* The phase a call sits in, and the segments the markers cut. A marker already passed cannot pull
-   the run backwards, the review cannot open before the build has (the plan is consulted before it
-   is written, and that consult is the plan's), and the ship call is the last of its phase rather
-   than the first of the next. */
-const BUILD = 2;
-const REVIEW = 3;
-const segmented = (calls) => {
+   the run backwards; every other rule is the marker row's own, so this holds no phase number and
+   renumbering a row in `transcripts.mjs` moves the cut with it. */
+export const segmented = (calls) => {
   const seen = new Set();
   let phase = 0;
   return calls.map((call) => {
     const marker = markerOf(call.class);
-    const early = marker === REVIEW && phase < BUILD;
-    if (marker && marker > phase && !seen.has(marker) && !early) {
-      seen.add(marker);
-      phase = marker;
+    if (marker && marker.phase > phase && !seen.has(marker.phase) && phase >= (marker.after ?? 0)) {
+      seen.add(marker.phase);
+      phase = marker.phase;
     }
     const held = phase;
-    if (call.class === "ship" && phase === 5) phase = 6;
+    /* A `last` call closes the phase it opened rather than leaving the run in it: the ship is the
+       last call of its own phase, never the first of the next. */
+    if (marker?.last && phase === marker.phase) phase = marker.phase + 1;
     return { ...call, phase: held };
   });
 };

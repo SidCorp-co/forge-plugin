@@ -142,16 +142,16 @@ const polled = (calls) => {
 export const PHASES = ["0 discover", "1 plan", "2 build", "3 review", "4 judge", "5 ship", "6 close"];
 
 /* Off the class the call already has, so the two cannot disagree: no run writes a phase into its
-   transcript, and the first call of each kind is where a phase opens. */
+   transcript. `after` is the phase that must have opened first; `last` closes its own phase. */
 export const MARKERS = [
-  [1, ["forge claim", "forge record confirmation"]],
-  [2, ["forge plan", "forge record plan", "forge record baseline"]],
-  [3, ["forge codex consult"]],
-  [4, ["forge record verdict"]],
-  [5, ["ship"]],
+  { phase: 1, classes: ["forge claim", "forge record confirmation"] },
+  { phase: 2, classes: ["forge plan", "forge record plan", "forge record baseline"] },
+  { phase: 3, classes: ["forge codex consult"], after: 2 },
+  { phase: 4, classes: ["forge record verdict"] },
+  { phase: 5, classes: ["ship"], last: true },
 ];
 
-export const markerOf = (label) => MARKERS.find(([, classes]) => classes.includes(label))?.[0] ?? null;
+export const markerOf = (label) => MARKERS.find((row) => row.classes.includes(label)) ?? null;
 
 /* A name that is not a string is what a change on the host's side looks like from here. */
 const string = (value) => (typeof value === "string" ? value : "");

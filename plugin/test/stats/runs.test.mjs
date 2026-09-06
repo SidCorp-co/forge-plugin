@@ -8,8 +8,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { render } from "../../src/flow/record.mjs";
-import { UNTIERED, callsIn, classOf, markerOf, shellOf, slugFor, tierRun } from "../../src/stats/transcripts.mjs";
-import { unionSeconds } from "../../src/stats/runs.mjs";
+import { MARKERS, UNTIERED, callsIn, classOf, markerOf, shellOf, slugFor, tierRun } from "../../src/stats/transcripts.mjs";
+import { segmented, unionSeconds } from "../../src/stats/runs.mjs";
 import { TIERS } from "../../src/ladder.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -282,8 +282,30 @@ test("a phase opens on the call that makes it, not on a line that names it", () 
     ["grep -n 'sed -i' docs/cli/stats.md", null],
     ["cat > /tmp/c.md <<'EOF'\n1. forge record verdict is typed once\nEOF", null],
   ]) {
-    assert.equal(markerOf(classOf("Bash", shellOf(command))), expected, command);
+    assert.equal(markerOf(classOf("Bash", shellOf(command)))?.phase ?? null, expected, command);
   }
+});
+
+/* A phase number copied into the cutter is invisible until a phase is renumbered, so this case
+   renumbers one. Write `marker === REVIEW && phase < BUILD` back into `segmented` and the second
+   assertion fails on the cut itself, which is what makes this a checker rather than a restatement
+   of the numbers the table happens to carry. */
+test("the cutter reads its phase numbers off the rows that declare them", () => {
+  const calls = ["forge claim", "forge codex consult", "forge plan", "forge codex consult"]
+    .map((klass) => ({ class: klass }));
+  assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 2, 3],
+    "a consult before the plan is the plan's, and the one after it opens the review");
+
+  const review = MARKERS.find((row) => row.after !== undefined);
+  const held = { ...review };
+  try {
+    Object.assign(review, { phase: 4, after: 3 });
+    assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 2, 2],
+      "renumbered to open after a phase this run never reached, the cut follows the row rather than a copy of the old number");
+  } finally {
+    Object.assign(review, held);
+  }
+  assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 2, 3], "and the table is left as it was found");
 });
 
 /* Since ISS-365 the plan is consulted before it is written, so the first consult of every run came
