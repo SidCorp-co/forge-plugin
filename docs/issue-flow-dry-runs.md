@@ -4097,3 +4097,30 @@ corrections, three approving reviews, the verdicts, the gap — and ISS-489 were
   every citation of it.
 - An attachment listed a test suite under a header with no result beneath it, and the run posted a
   correction saying the file does not exist at either head. A bare header reads as a suite that passed.
+
+## Hundred-and-fifty-ninth dry run — ISS-472
+
+`forge advance --owed` at tested says when a screen change has no test credential to prove it with,
+so the shortfall is learned at the write rather than met at the deploy (3.35.174, landed as 625c841,
+pushed head 845037d). The CLI half of ISS-72, filed by that run and taken the same morning. No
+restart owed. Closed by its run. Folded from its handback; the fifteen comments, the second
+verification and ISS-477, ISS-487, ISS-488 and ISS-493 were read back.
+
+- The ship's gate was scoped, six steps of thirteen, and the change landed directly on ISS-451's head,
+  so the composition of the two was never judged whole. The run re-ran the full gate at the pushed head
+  after the fact and posted a second verification citing that sha. A scoped ship gate is a saving that
+  a landing onto a sibling's fresh head spends back.
+- The change's own rule fired on this issue's own plan: a line quoting a screen-change declaration
+  inside a code span was read as declaring one. Found by being the first run under the rule, filed as
+  ISS-488. A checker's first victim is usually its author.
+- A codex finding was taken in half: the transport-tolerance half was rejected because the reader it
+  would soften is shared with the credential-leak guard, where softness passes an unchecked payload.
+  The exposure predates the change and went to ISS-487 as its own issue rather than a widening here.
+- A knowledge entry now omits two functions this change added, and the run left it unwritten on
+  purpose: ISS-474 is re-stamping entries live, the store has no revision or conditional write, and a
+  second write is the only undo. Deferred with the reason is the honest form.
+- The credential test passes from a project checkout and fails two of six from inside the installed
+  plugin copy, correctly, because a copy has no project. Said in the handback so the next reader does
+  not take it for a break.
+- Two orphaned test processes from a run of 2026-09-05 still hold ports under a deleted worktree. The
+  run named their pids and left them, since it could not claim them; the dispatcher owns that call.
