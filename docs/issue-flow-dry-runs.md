@@ -4908,3 +4908,27 @@ handback; the comments were read back.
 - Phase 4's last step says to replay onto the default branch's head before the earning read, and
   never says how a run reaches that head from a dirty tree whose commit is itself gated on a
   consult; recorded as a gap on the issue rather than as a rule anywhere.
+
+## Hundred-and-ninety-first dry run — ISS-115
+
+A kind beginning with a vowel reads as one wherever the CLI names it (3.35.210, landed as 905aa41):
+the notice printer's three sites and the kinds help line take the article from the helper that
+already sat beside them, and the helper moved above the help line it is now joined into at import.
+One test case per printer per article, watched failing on the unfixed module. Ten criteria, one
+verdict record at the judged head, which the landing moved nothing of. Two filed, two routed. Closed
+by its run. No restart owed. Folded from its handback; the twelve comments were read back.
+
+- The body named two printers and the tree had one: the refusal printer has no article site at all,
+  and the help line the same clause named does. The triage line was written off the file and held;
+  the body's second half did not, and the confirmation record says which.
+- The first baseline record counted the table's steps rather than the ones the gate reached, the
+  case the verification reference already names. The run caught its own record, spent the ten
+  unreached steps by hand at the landing head and wrote a second baseline in the open.
+- A constant joined at import from a helper declared below it is a temporal dead zone the tests only
+  meet when the helper is first called from that constant — the fix moved the declaration, which no
+  linter had asked for.
+- The ship's gate runs in the caller's environment: a temporary config home with nothing in it stops
+  the ship on a pre-existing red and the release step needs a credential that resolves, so the run
+  copied the live config into an isolated home for the ship and deleted it after. The cost is on
+  ISS-499, where the red already lives; a second filing of the same red (ISS-574) was marked a
+  duplicate by the run that filed it.
