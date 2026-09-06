@@ -199,7 +199,7 @@ export const bundle = (root, rels) => {
   return parts;
 };
 
-const DIFF_CHARS = 20_000;
+export const DIFF_CHARS = 20_000;
 
 const partingOf = (cwd, ref) => {
   const ran = (argv) => spawnSync("git", argv, { cwd, encoding: "utf8" });

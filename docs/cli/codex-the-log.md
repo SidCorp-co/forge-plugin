@@ -66,15 +66,8 @@ the hundred before, per model and prompt version, through these same readers, an
 the windows — a slot, the model behind it, a prompt version, an effort — so the numbers are read
 against whatever upgrade lies between. It writes nothing; the log stays the only record.
 
-**A prompt is versioned because "it seems better" is not a comparison.** Every consult records the
-system prompt's version and the digest of the text actually sent, so an edit nobody bumped for still
-shows. `forge codex replay --prompt <file>` is the other half, and it is honest about how little of it
-there is: the log keeps each sent file's sha256 and never its bytes, so a consult can only be rebuilt
-where `git show <head>:<path>` still produces bytes that hash to what was sent. A consult is run on a
-dirty tree by nature, so most cannot — over the last thirty, two rebuild. The verb prints the window,
-what it kept, and what it lost with the reason, rather than replaying approximately and calling the
-comparison a measurement. Storing the prompt whole would make it exact at roughly 140 KB a consult,
-which is the trade the log does not take.
+What a row of this log can be replayed into, and what a rebuild proves, is
+[`codex — the replay`](codex-the-replay.md).
 
 What counts as a document is `codex.pathRe`, `^docs/.*\.md$` by default, because prose is what nothing
 else here checks — and a document written by a heredoc is a document. The turn is keyed by canonical git

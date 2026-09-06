@@ -36,9 +36,10 @@ does not compete with `PRE-EXISTING`: a finding true of the code before this tur
 whatever the scope says, and two closing headings claiming one finding is what a reader cannot act
 on.
 
-**A prompt change is verified by running it, and the verb that was meant to do it before the switch
-cannot.** `forge codex replay --prompt <file>` rebuilds a past consult's payload from git and keeps
-only the rows whose bytes still match; over the last hundred consults on this device it kept two.
-The reasons are on the verb's own output and ISS-531 holds them. So what stands in front of a prompt
-switch is the first live run of the new prompt read by hand, and `forge codex eval` a hundred
-consults later; the replay's figures are recorded for what they are rather than treated as a score.
+**A prompt change is verified by running it, and the verb in front of the switch answers on part of
+a window rather than on all of it.** `forge codex replay --prompt <file>` rebuilds a past consult's
+payload wherever git provably holds it and refuses every row it cannot prove, so its share is a real
+sample and never the whole window: what it cannot reach is a file dirty at every commit, whose text
+the log holds no copy of by design (`cli/codex-the-replay.md`). So a prompt switch still stands on that
+sample, on the first live run of the new prompt read by hand, and on `forge codex eval` a hundred
+consults later; the replay's figures are read for the share they are rather than treated as a score.

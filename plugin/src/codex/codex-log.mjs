@@ -2,7 +2,7 @@
    request knows nothing of the last — so continuity is these entries replayed, and scoring the
    advice later is the same file read a different way. docs/cli/codex-the-log.md. */
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 import { configDir, userConfig } from "../resolve/config.mjs";
 import { masked } from "../hooks/hook-log.mjs";
@@ -90,6 +90,23 @@ export const markOf = (entries, record) => {
 };
 
 export const loggedWithMark = (record) => (logConsult(record) ? markOf(logEntries(), record) : null);
+
+/** Text kept only where git never can — an absolute `rel` is `locate`'s word for outside the root, and a file inside it is the review payload the log is not a copy of. A cap drops the text whole and names itself, since a row that just left it out would read as one from before this (ISS-531). */
+export const KEPT_CHARS = 20_000;
+export const KEPT_TOTAL = 40_000;
+
+export const sentFrom = (parts) => {
+  let room = KEPT_TOTAL;
+  return parts.map((part) => {
+    const row = { rel: part.rel, sha: part.sha, chars: part.chars, clipped: Boolean(part.clipped) };
+    if (!isAbsolute(part.rel) || typeof part.text !== "string") return row;
+    if (part.text.length > KEPT_CHARS) return { ...row, textOmitted: "the file cap" };
+    if (part.text.length > room) return { ...row, textOmitted: "the record cap" };
+    room -= part.text.length;
+    /* The text sent, not the file: a clipped part went clipped, and its `sha` is of the whole. */
+    return { ...row, text: part.text };
+  });
+};
 
 /* The hash the latest answered consult for this checkout sent for one file; null when none did. */
 export const sentShaOf = (entries, root, rel) => {
@@ -444,7 +461,8 @@ export const logLine = (stored, full) => {
   if (!full) return `${head}\n${files}`;
   /* The bytes that were judged: a field with no reader is a field nobody can trust. */
   const sent = (entry.sent ?? [])
-    .map((one) => `  ${one.sha ?? "?"}  ${String(one.chars ?? "?").padStart(6)}  ${one.rel}${one.clipped ? "  clipped" : ""}`)
+    .map((one) => `  ${one.sha ?? "?"}  ${String(one.chars ?? "?").padStart(6)}  ${one.rel}${one.clipped ? "  clipped" : ""}`
+      + `${one.text ? "  text kept" : ""}${one.textOmitted ? `  text over ${one.textOmitted}` : ""}`)
     .join("\n");
   return [head, files, sent, "", entry.reply ?? entry.error ?? "", ""].filter((one) => one !== null).join("\n");
 };

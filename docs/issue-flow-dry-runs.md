@@ -634,7 +634,8 @@ before and after that names its own counter-result. Ran in parallel with ISS-79 
   the earning review runs on the whole set is the rule; the run shows what it costs to skip.
 - The log keeps each sent file's digest and never its bytes, so the issue's "last thirty consults'
   inputs" is unreachable: two of thirty rebuild. Replay refuses a row it cannot rebuild and says why,
-  rather than replaying approximately.
+  rather than replaying approximately. *Superseded by ISS-531: the digest is the proof and it is not
+  tied to the recorded commit, so most of a window is reachable — `cli/codex-the-replay.md`.*
 - The plan was refused for want of `Screen change` and `Schema coupling` lines, and the contract part
   the plan reference sends a reader to did not name them. The literals are now in the `approved`
   part; the reference was pointing at a promise.

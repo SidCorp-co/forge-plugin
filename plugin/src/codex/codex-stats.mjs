@@ -4,9 +4,11 @@
    docs/cli/codex-the-log.md. */
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { isAbsolute } from "node:path";
 
-import { digest } from "./codex-api.mjs";
+import { DIFF_CHARS, digest } from "./codex-api.mjs";
 import { LOG_PATH, MARK, answered, logEntries, modelKey, numbered, scoreOf } from "./codex-log.mjs";
+import { gitRootOf } from "./codex-tools.mjs";
 import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
@@ -279,39 +281,100 @@ export const printEval = (rest) => {
 
 const gitIn = (root, argv) => spawnSync("git", argv, { cwd: root, encoding: "utf8", maxBuffer: 1e8 });
 
-/* The recorded sha is the digest of the file whole, before any clipping, so it is the one thing a
-   checkout can be held to. Where the consult was anchored the diff is rebuilt too, base against
-   head — sound only because a row that hashes clean had a clean tree, which is when the two agree. */
-export const rebuiltFrom = (row) => {
+const NEAR_COMMITS = 10;
+const MODE_LINE = /^(?:old|new) mode /mu;
+
+/** Where a sent file's bytes provably are: the recorded commit, else the nearest commit after it holding a blob that hashes to the recorded digest, which is the whole proof — whichever commit answers it holds the bytes that were sent (ISS-531). */
+const heldAt = (root, head, one) => {
+  const at = gitIn(root, ["show", `${head}:${one.rel}`]);
+  if (at.status === 0 && digest(at.stdout) === one.sha) return { commit: head, text: at.stdout, recorded: true };
+  /* Every ref rather than this checkout's HEAD, since which checkout answered decides what HEAD is and the bytes are wherever they are; ordered on commit time, because a rebased-away head leaves the whole default branch in that range and the oldest of it is not the commit after the consult. */
+  const since = Number(gitIn(root, ["show", "-s", "--format=%ct", head]).stdout.trim()) || 0;
+  const walked = gitIn(root, ["log", "--format=%H%x09%ct", "--all", "--not", head, "--", one.rel]);
+  const near = (walked.status === 0 ? walked.stdout.trim().split("\n").filter(Boolean) : [])
+    .map((line) => line.split("\t"))
+    .filter(([, when]) => Number(when) >= since)
+    .sort((a, b) => Number(a[1]) - Number(b[1]))
+    .slice(0, NEAR_COMMITS);
+  for (const [commit] of near) {
+    const show = gitIn(root, ["show", `${commit}:${one.rel}`]);
+    if (show.status === 0 && digest(show.stdout) === one.sha) return { commit, text: show.stdout, recorded: false };
+  }
+  return null;
+};
+
+/** The sent diff was the anchor against the WORKING TREE (`changedIn`) and `git diff` compares blobs, so the commit holding the sent bytes yields the same hunks. Two things that cannot prove, and both refuse the row: a path absent at the anchor was shown as an addition patch or as NEW FILE and the record does not say which; a mode header means the sides differ in mode, and the mode of the tree that was diffed is recorded nowhere. */
+const diffFor = (root, row, one, commit) => {
+  if (!row.anchoredTo) return { text: null };
+  if (!commit.recorded && gitIn(root, ["cat-file", "-e", `${row.anchoredTo}:${one.rel}`]).status !== 0) {
+    return { why: "a sent file was not in the base it was anchored to, so a new file and a changed one cannot be told apart" };
+  }
+  const diff = gitIn(root, ["diff", "--no-color", row.anchoredTo, commit.commit, "--", one.rel]);
+  /* Status, not the text: a failed `git diff` answers with an empty stdout, and taking that for an
+     empty diff would call an unreconstructable anchor a file that did not change. */
+  if (diff.status !== 0) return { why: "the base it was anchored to is gone" };
+  if (MODE_LINE.test(diff.stdout)) return { why: "a sent file's mode changed, and the mode of the tree that was diffed is not recorded" };
+  /* Trimmed and clipped as `changedIn` does it, so this is the text the reviewer was given. */
+  const text = diff.stdout.trim();
+  return { text: text.slice(0, DIFF_CHARS) };
+};
+
+/** What a candidate prompt could be scored against, for one row, or the one reason it cannot be had. `roots` are checkouts to try where the recorded one is gone: the recorded commit and the digest are the proof, so a wrong checkout cannot pass. docs/cli/codex-the-replay.md. */
+export const rebuiltFrom = (row, roots = []) => {
   if (!row.head) return { why: "no commit recorded" };
-  if (!existsSync(row.root)) return { why: "checkout gone" };
+  const from = existsSync(row.root)
+    ? row.root
+    : roots.find((root) => gitIn(root, ["cat-file", "-e", `${row.head}^{commit}`]).status === 0);
+  if (!from) return { why: "checkout gone, and no live checkout holds the commit" };
   const parts = [];
   for (const one of row.sent ?? []) {
     if (!one.sha) return { why: "no digest recorded" };
-    const show = gitIn(row.root, ["show", `${row.head}:${one.rel}`]);
-    if (show.status !== 0) return { why: "a sent file is not in the commit recorded", where: one.rel };
-    if (digest(show.stdout) !== one.sha) return { why: "a sent file was dirty when it was sent", where: one.rel };
-    const diff = row.anchoredTo ? gitIn(row.root, ["diff", "--no-color", row.anchoredTo, row.head, "--", one.rel]) : null;
-    /* Status, not the text: a failed `git diff` answers with an empty stdout, and taking that for an
-       empty diff would call an unreconstructable anchor a file that did not change. */
-    if (diff && diff.status !== 0) return { why: "the base it was anchored to is gone", where: one.rel };
-    parts.push({ rel: one.rel, text: show.stdout, chars: one.chars, sha: one.sha, clipped: Boolean(one.clipped), diff: diff ? diff.stdout : null });
+    const part = { rel: one.rel, chars: one.chars, sha: one.sha, clipped: Boolean(one.clipped) };
+    if (typeof one.text === "string") {
+      /* A file the log holds the text of was resolved outside the checkout, so `changedIn` answered
+         untracked and the reviewer was shown NEW FILE rather than a diff — unless it sits in another
+         checkout, where a diff was sent and this cannot reach the ref it was taken against. */
+      if (row.anchoredTo && gitRootOf(one.rel)) return { why: "a sent file in another checkout carried a diff this cannot rebuild", where: one.rel };
+      parts.push({ ...part, text: one.text, from: "the log", diff: null, masked: !one.clipped && digest(one.text) !== one.sha });
+      continue;
+    }
+    if (one.textOmitted) return { why: `a sent file outside the checkout was over ${one.textOmitted}, so its text was not kept`, where: one.rel };
+    if (isAbsolute(one.rel)) return { why: "a sent file was outside the checkout, from before the log kept its text", where: one.rel };
+    const commit = heldAt(from, row.head, one);
+    if (!commit) return { why: "a sent file was dirty at the commit and its bytes are in no later one", where: one.rel };
+    const diff = diffFor(from, row, one, commit);
+    if (diff.why) return { why: diff.why, where: one.rel };
+    parts.push({ ...part, text: commit.text, from: commit.commit, diff: diff.text });
   }
   /* Unrecorded is not "diffs": `send` was only written from this change on, and claiming a shape
      for a row that never carried one is the defect this verb exists to avoid. */
   if (!row.send) return { why: "the shape it was sent in was not recorded" };
-  return parts.length ? { parts, sends: row.send, anchoredTo: row.anchoredTo ?? null } : { why: "nothing was sent" };
+  return parts.length ? { parts, sends: row.send, anchoredTo: row.anchoredTo ?? null, root: from } : { why: "nothing was sent" };
 };
+
+/* Every checkout the window itself names that is still there, plus the one the verb runs in: a
+   worktree removed after its consult leaves the commit in the repository it was cut from. */
+const rootsIn = (rows) => [
+  ...new Set([gitRootOf(process.cwd()), ...rows.map((one) => one.root)].filter((one) => one && existsSync(one))),
+];
 
 export const replayOf = (rows) => {
   const kept = [];
   const lost = new Map();
+  const roots = rootsIn(rows);
   for (const row of rows) {
-    const held = rebuiltFrom(row);
+    const held = rebuiltFrom(row, roots);
     if (held.parts) kept.push({ row, ...held });
     else lost.set(held.why, { many: (lost.get(held.why)?.many ?? 0) + 1, where: lost.get(held.why)?.where ?? held.where });
   }
   return { kept, lost: [...lost.entries()].sort((a, b) => b[1].many - a[1].many) };
+};
+
+/** Every place a kept row's bytes came from, and the checkout that answered where it is not the one recorded: a rebuild off a later commit, another worktree or the log itself is a different claim from a rebuild off the row's own commit, and a reader counting rows is owed the difference. */
+const sourceOf = (parts, row, from) => {
+  const each = parts.map((part) => (part.from === row.head ? "the commit recorded" : part.from === "the log" ? "the log" : `commit ${part.from.slice(0, 7)}`));
+  return `${[...new Set(each)].join(" and ")}${from === row.root ? "" : ` in ${from}`}`
+    + `${parts.some((part) => part.masked) ? ", a masked body among them" : ""}`;
 };
 
 export const printReplay = (rest) => {
@@ -330,20 +393,23 @@ export const printReplay = (rest) => {
   console.log(`window            ${rows.length} answered consult(s)`);
   console.log(`rebuildable       ${kept.length}`);
   for (const [why, held] of lost) console.log(`  not rebuilt     ${held.many}  ${why}${held.where ? `, such as ${held.where}` : ""}`);
-  for (const { row, parts } of kept) {
+  for (const { row, parts, root: from } of kept) {
     const made = numbered(row.reply, row.files).length;
     console.log(`  ${row.id ?? row.at}  ${row.head}  ${parts.length} file(s) sent as ${row.send}`
       + `${row.anchoredTo ? ` against ${row.anchoredTo}` : ""}, ${made} finding(s) at `
-      + `${row.prompt ? `prompt v${row.prompt.v}` : "an unversioned prompt"}`);
+      + `${row.prompt ? `prompt v${row.prompt.v}` : "an unversioned prompt"}`
+      + `, from ${sourceOf(parts, row, from)}`);
   }
   if (kept.length < rows.length) {
-    console.log(`\n${rows.length - kept.length} of ${rows.length} cannot be replayed: the log keeps each sent `
-      + "file's digest and not its bytes, and a consult is run on a dirty tree by nature. Widen the window, "
-      + "or compare prompt versions with `forge codex stats` over the rounds each one ran.");
+    console.log(`\n${rows.length - kept.length} of ${rows.length} cannot be replayed, each for the reason above `
+      + "it: a file dirty at every commit the search reaches has bytes the log never kept, and a consult is "
+      + "run on a dirty tree by nature. Widen the window, or compare prompt versions with `forge codex stats` "
+      + "over the rounds each one ran.");
   }
   if (kept.length) {
-    console.log("\nWhat is rebuilt is each file's body, and the diff where the consult was anchored. The "
-      + "replayed history a consult opened with is not: it was the log as it then stood, and the log has "
-      + "grown since. A comparison here is of the review, not of the byte-identical request.");
+    console.log("\nWhat is rebuilt is each file's body, and the diff where the consult was anchored. Two things "
+      + "are not: the replayed history a consult opened with, which was the log as it then stood, and a file's "
+      + "mode, which no row records — so a mode a working tree carried and no commit did would not show. A "
+      + "comparison here is of the review, not of the byte-identical request.");
   }
 };

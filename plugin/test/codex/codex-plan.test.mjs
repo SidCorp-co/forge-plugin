@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -28,7 +28,7 @@ const {
   statsOf,
   windowOf,
 } = await import("../../src/codex/codex-stats.mjs");
-const { LOG_PATH, scoreOf } = await import("../../src/codex/codex-log.mjs");
+const { KEPT_CHARS, KEPT_TOTAL, LOG_PATH, scoreOf, sentFrom } = await import("../../src/codex/codex-log.mjs");
 const { digest, promptMark, roleFor } = await import("../../src/codex/codex-api.mjs");
 
 const LIMITS = { base: 3, ceiling: 5, small: 40, large: 400 };
@@ -179,8 +179,9 @@ test("a window is the last n consults, or the days asked for, and never another 
   assert.equal(windowOf([old, recent], { root: "/other" }).length, 1);
 });
 
-/* The log keeps each sent file's digest and not its bytes, so a replay set is only what git can
-   still produce byte for byte — and saying how much of the window that is not is the point. */
+/* A replay set is the rows whose payload can be proved — bytes that hash to the recorded digest,
+   and a diff nothing about the row leaves ambiguous — and saying how much of a window that is not
+   is the point. */
 const REPO = join(sandbox, "repo");
 mkdirSync(REPO, { recursive: true });
 const git = (...argv) => spawnSync("git", argv, { cwd: REPO, encoding: "utf8" });
@@ -247,6 +248,126 @@ test("a base git cannot resolve is a lost row, not an empty diff", () => {
     sent: [{ rel: "a.mjs", sha: digest("const one = 1;\n"), chars: 15 }],
   }));
   assert.match(held.why, /anchored to is gone/u);
+});
+
+/* A worktree removed after its consult leaves the commit in the repository it was cut from, and the
+   recorded commit with the recorded digest is the whole proof that a checkout holds the right bytes,
+   so a wrong one cannot pass. */
+test("a row whose checkout is gone is rebuilt from one holding the commit, and names it", () => {
+  const row = ROW({
+    root: join(sandbox, "no-such-checkout"),
+    head: HEAD,
+    send: "bodies",
+    sent: [{ rel: "a.mjs", sha: digest("const one = 1;\n"), chars: 15 }],
+  });
+  const held = rebuiltFrom(row, [REPO]);
+  assert.equal(held.root, REPO, "the checkout that answered is named");
+  assert.equal(held.parts[0].text, "const one = 1;\n");
+  assert.match(rebuiltFrom(row, [sandbox]).why, /no live checkout holds the commit/u, "a candidate without it is none");
+});
+
+/* `git diff` compares blobs, so a commit holding the bytes that were sent yields the diff that was
+   sent against the working tree. That is what lets a file committed after its consult replay. */
+test("bytes committed after the consult rebuild both the body and the diff that was sent", () => {
+  writeFileSync(join(REPO, "b.mjs"), "one\n");
+  git("add", "b.mjs");
+  git("commit", "-qm", "b one");
+  const base = git("rev-parse", "--short", "HEAD").stdout.trim();
+  writeFileSync(join(REPO, "b.mjs"), "one\ntwo\n");
+  const sent = spawnSync("git", ["diff", "--no-color", base, "--", "b.mjs"], { cwd: REPO, encoding: "utf8" }).stdout.trim();
+  git("add", "b.mjs");
+  git("commit", "-qm", "b two");
+  const held = rebuiltFrom(ROW({
+    root: REPO,
+    head: base,
+    anchoredTo: base,
+    send: "diffs",
+    sent: [{ rel: "b.mjs", sha: digest("one\ntwo\n"), chars: 8 }],
+  }));
+  assert.equal(held.parts[0].text, "one\ntwo\n", "the bytes come from the commit that holds them");
+  assert.equal(held.parts[0].diff, sent, "and the diff is the text the reviewer was given");
+  assert.notEqual(held.parts[0].from, base, "which is not the commit the row recorded");
+});
+
+/* Two things a digest cannot prove, each refusing the row rather than replaying approximately: what
+   was shown for a path the anchor never had, and a mode no row records. */
+test("a file the anchor never had is refused, because a new file and a changed one look alike", () => {
+  const anchor = git("rev-parse", "--short", "HEAD").stdout.trim();
+  writeFileSync(join(REPO, "c.mjs"), "new\n");
+  git("add", "c.mjs");
+  git("commit", "-qm", "c");
+  const held = rebuiltFrom(ROW({
+    root: REPO,
+    head: anchor,
+    anchoredTo: anchor,
+    send: "diffs",
+    sent: [{ rel: "c.mjs", sha: digest("new\n"), chars: 4 }],
+  }));
+  assert.match(held.why, /not in the base it was anchored to/u);
+});
+
+test("a mode that moved between the anchor and the bytes refuses the row", () => {
+  writeFileSync(join(REPO, "d.mjs"), "same\n");
+  git("add", "d.mjs");
+  git("commit", "-qm", "d");
+  const base = git("rev-parse", "--short", "HEAD").stdout.trim();
+  writeFileSync(join(REPO, "d.mjs"), "changed\n");
+  chmodSync(join(REPO, "d.mjs"), 0o755);
+  git("add", "d.mjs");
+  git("commit", "-qm", "d executable");
+  const held = rebuiltFrom(ROW({
+    root: REPO,
+    head: base,
+    anchoredTo: base,
+    send: "diffs",
+    sent: [{ rel: "d.mjs", sha: digest("changed\n"), chars: 8 }],
+  }));
+  assert.match(held.why, /mode changed/u);
+});
+
+/* A plan or criteria file is resolved outside the checkout, so no commit will ever hold it: the log
+   keeps its text, git is never asked, and the reviewer was shown NEW FILE rather than a diff. */
+test("a sent file the log kept the text of is rebuilt with git never asked", () => {
+  const outside = join(sandbox, "plan.md");
+  const sent = { rel: outside, sha: digest("# plan\n"), chars: 7, text: "# plan\n" };
+  const held = rebuiltFrom(ROW({ root: REPO, head: HEAD, send: "bodies", sent: [sent] }));
+  assert.equal(held.parts[0].text, "# plan\n");
+  assert.equal(held.parts[0].from, "the log");
+  assert.equal(held.parts[0].diff, null);
+  assert.equal(held.parts[0].masked, false);
+  const masked = rebuiltFrom(ROW({ root: REPO, head: HEAD, send: "bodies", sent: [{ ...sent, text: "# plan ***\n" }] }));
+  assert.equal(masked.parts[0].masked, true, "a body the mask touched no longer hashes to the digest");
+});
+
+/* The log kept no text before this, and a cap dropped this one: two situations, and a row that only
+   left the text out could not tell them apart, which is what `textOmitted` is written for. */
+test("an outside file with no text is refused, and a capped one is refused for the cap", () => {
+  const outside = join(sandbox, "plan.md");
+  const before = rebuiltFrom(ROW({ root: REPO, head: HEAD, send: "bodies", sent: [{ rel: outside, sha: "x", chars: 7 }] }));
+  const capped = rebuiltFrom(ROW({
+    root: REPO,
+    head: HEAD,
+    send: "bodies",
+    sent: [{ rel: outside, sha: "x", chars: 30_000, textOmitted: "the file cap" }],
+  }));
+  assert.match(before.why, /from before the log kept its text/u);
+  assert.match(capped.why, /over the file cap/u);
+  assert.notEqual(capped.why, before.why, "and the two are not one reason");
+});
+
+test("the record keeps the text of a file no commit can hold, and only within the caps", () => {
+  const rows = sentFrom([
+    { rel: "a.mjs", sha: "1", chars: 15, text: "const one = 1;\n" },
+    { rel: "/tmp/plan.md", sha: "2", chars: 7, text: "# plan\n" },
+    { rel: "/tmp/big.md", sha: "3", chars: KEPT_CHARS + 1, text: "x".repeat(KEPT_CHARS + 1) },
+    { rel: "/tmp/fills.md", sha: "4", chars: KEPT_CHARS, text: "y".repeat(KEPT_CHARS) },
+    { rel: "/tmp/rest.md", sha: "5", chars: KEPT_CHARS, text: "z".repeat(KEPT_CHARS) },
+  ]);
+  assert.equal(rows[0].text, undefined, "a path inside the checkout is git's to answer for");
+  assert.equal(rows[1].text, "# plan\n");
+  assert.equal(rows[2].textOmitted, "the file cap");
+  assert.equal(rows[3].text.length, KEPT_CHARS, "a file at the cap is kept whole");
+  assert.equal(rows[4].textOmitted, "the record cap", `and ${KEPT_TOTAL} is all one record keeps`);
 });
 
 /* Two windows of a hundred, each one row per model-and-prompt, off the readers `stats` and
