@@ -5003,3 +5003,24 @@ from its handback; the ten comments were read back.
 - The brief named a route that retired while the run was in flight: ISS-348 landed mid-run and the
   CLI answered the retired flag with the verb to use instead, which is what the one-release window is
   for. The brief text this wave dispatches from says `forge comment` from here.
+
+## Hundred-and-ninety-fifth dry run — ISS-358
+
+The gate runner spends its steps cheapest first, by the seconds its record holds (3.35.213, landed
+as 0492ea7): one read of the record immediately before the spend loop, so the scoped run, the full
+run and the three widenings are ordered the same way, and a step never recorded sorts last with a
+line beside it. Sixteen criteria pass in one write at the judged head, which the landing moved
+nothing of. Two filed (ISS-594, ISS-595), one routed to ISS-408. Closed by its run; the release note
+withheld on the fix tier after a correction, because the approved plan had promised one against its
+own declaration. No restart owed. Folded from its handback; the eighteen comments were read back.
+
+- Two reviews were paid for one change: the folder-width limit moved a split-out test file after
+  the first approving read, and the head the review had approved was no longer the head. The same
+  limit cost ISS-348's run its first clean gate; a limit that is a gate step and not an edit-hook
+  check is met after the work, and today it was met twice.
+- The ship's release line quoted a whole-gate figure written by a sibling worktree into the shared
+  runs series, three seconds after its own scoped run: two trees on one device share one series,
+  and the line reads the newest entry as its own (ISS-594).
+- The contract wants the replay before the earning read and the ship owns the replay, so every run
+  reviews a head the ship rewrites; the merged mark carries a clause for it and ISS-595 carries the
+  gap, so the fix does not die on a closed issue.
