@@ -1,8 +1,9 @@
 /* R-10's record and the findings over it: what the tree owes the file, what its absence costs, and
-   which citation the comparison calls suspect. The rule is `docs/requirements/README.md`'s, the
-   digest is `parse.mjs`'s, and no file is opened here, so a fixture proves each of these. */
+   which citation is stale and which suspect. The rule is `docs/requirements/README.md`'s, the digest
+   `parse.mjs`'s, and no file is opened here, so a fixture proves each of these. */
 import { lineAt } from "../line-at.mjs";
 import { KIND, identifiersIn } from "./parse.mjs";
+import { revisionFix } from "./citation.mjs";
 import { finding } from "./rules.mjs";
 
 /** The record's name inside the tree; `tree.mjs` joins it and nothing else writes it. */
@@ -81,8 +82,6 @@ const coverage = (index, recorded, want) => {
   return out;
 };
 
-/* Judged beside the record's drift and not instead of it: that says the file no longer records the
-   clause, this says which claim about it is unsupported — and an uncited clause makes none. */
 const suspectFix = (id, rev) =>
   `is suspect: ${id} is at revision ${rev} and its words have moved since the digest recorded for `
   + `that revision. ${ROUTES(rev)}`;
@@ -98,31 +97,37 @@ const citationsOf = (text) => {
   return [...out.values()];
 };
 
-const suspicions = (documents, index, recorded) => {
+/* Stale is settled by the clause's own revision and no record's, which is why it is asked first and
+   why its sentence is `citation.mjs`'s: a third wording of it would be a third answer. */
+const citations = (documents, index, recorded) => {
   const out = [];
   for (const { file, text } of documents) {
     for (const one of citationsOf(text)) {
       const clause = index.clauses.get(one.id);
-      const held = recorded.clauses[one.id];
       if (!clause || index.duplicates.has(one.id)) continue;
-      if (clause.rev !== one.rev || !held || held.rev !== one.rev) continue;
-      if (held.digest === clause.hash) continue;
-      out.push(finding(file, lineAt(text, text.indexOf(one.written)), one.written, "R-10",
-        suspectFix(one.id, one.rev)));
+      const at = () => lineAt(text, text.indexOf(one.written));
+      const stale = revisionFix(clause, one);
+      if (stale) {
+        out.push(finding(file, at(), one.written, "R-10", stale));
+        continue;
+      }
+      const held = recorded.clauses?.[one.id];
+      if (!held || held.rev !== one.rev || held.digest === clause.hash) continue;
+      out.push(finding(file, at(), one.written, "R-10", suspectFix(one.id, one.rev)));
     }
   }
   return out;
 };
 
-/** R-10 over a tree and the record beside it. A null `recorded.clauses` is a record that is not there
- *  or will not parse, and that is one finding naming the file: the one thing to do is the same. */
+const missing = (recorded, want) => (Object.keys(want).length
+  ? [finding(recorded.file, 1, RECORD, "R-10",
+    `records the digest of every clause of this tree and ${recorded.why}. Write it with ${WRITER}, `
+    + "so a citation is judged against the words the clause carried when it was written")]
+  : []);
+
+/** R-10 over a tree and the record beside it. A record that is not there is one finding naming the file, and a tree where no clause carries a revision owes no record at all — but the citations are walked either way, since what makes one stale is the clause's own revision, which a tree with no record still has. */
 export const recordProblems = ({ documents, index, recorded }) => {
   const want = entriesOf(index).clauses;
-  if (!recorded.clauses) {
-    if (!Object.keys(want).length) return [];
-    return [finding(recorded.file, 1, RECORD, "R-10",
-      `records the digest of every clause of this tree and ${recorded.why}. Write it with ${WRITER}, `
-      + "so a citation is judged against the words the clause carried when it was written")];
-  }
-  return [...coverage(index, recorded, want), ...suspicions(documents, index, recorded)];
+  const found = recorded.clauses ? coverage(index, recorded, want) : missing(recorded, want);
+  return [...found, ...citations(documents, index, recorded)];
 };

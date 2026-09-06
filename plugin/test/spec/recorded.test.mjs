@@ -126,17 +126,47 @@ test("a clause whose words moved is the record's drift, whether or not anything 
   assert.match(found[0], /Bump the clause's revision, .* or re-record with `forge spec check --record`/u);
 });
 
-/* Stale and suspect are two words for two failures: a citation at a revision the clause has left is
-   the reader's to call stale, and this rule says nothing about it. */
-test("a citation at a revision the clause has left raises no suspicion, only an uncovered record", () => {
+/* Stale and suspect are two words for two failures, and the citing document is told the first: the
+   clause has moved past the revision written, so no digest of any revision settles anything. Both
+   findings stand together — the record no longer covers the clause, and the citation names nothing. */
+test("a citation at a revision the clause has left is stale, beside the record it no longer covers", () => {
   const bumped = withRequirement(reworded(reworded(REQUIREMENT,
     "- **AC-01-1-1** · Rev: 1", "- **AC-01-1-1** · Rev: 2"),
   "WHEN a clause is asked for THEN the CLI SHALL print it.",
   "WHEN a clause is asked for THEN the CLI SHALL print it and everything under it."));
   const found = said(bumped, recordedAs(CURRENT));
   assert.deepEqual(found.filter((one) => one.includes("suspect")), [], found.join(" · "));
-  assert.equal(found.length, 1, found.join(" · "));
+  assert.equal(found.length, 2, found.join(" · "));
   assert.match(found[0], /AC-01-1-1 R-10 is at revision 2 and the digest recorded for it is revision 1's/u);
+  assert.match(found[1], /^docs\/requirements\/srs\/fr-01-first\.md:19 AC-01-1-1~1 R-10 is stale/u,
+    "on the line that cites it, not on the record");
+  assert.match(found[1], /AC-01-1-1 is at revision 2, not 1/u, "and it names the revision it is at now");
+  assert.match(found[1], /cite AC-01-1-1~2 if it still says what you meant/u, "and what to write instead");
+});
+
+/* Route one out of a suspect citation, walked to its end: bumping the revision drops the verdicts
+   that cited the old one and leaves the tree's own citations of it naming a revision no clause
+   carries, which is the same failure R-10 exists to prevent reached from the other side. */
+test("re-recording after a bump clears the record's finding and leaves the stale citation standing", () => {
+  const bumped = withRequirement(reworded(REQUIREMENT,
+    "- **AC-01-1-1** · Rev: 1", "- **AC-01-1-1** · Rev: 2"));
+  const found = said(bumped, recordedAs(entriesOf(treeOf(bumped).index).clauses));
+  assert.equal(found.length, 1, found.join(" · "));
+  assert.match(found[0], /fr-01-first\.md:19 AC-01-1-1~1 R-10 is stale/u);
+});
+
+/* A citation of a clause whose table carries no Rev column at all: not stale, since there is no
+   revision it has moved past, and the sentence says which. The conditions are the case's whole
+   point — no clause of this tree carries a revision and there is no record — so a reader that kept
+   the citation walk behind the missing-record return answers nothing here and this fails. */
+test("a citation naming a revision of a clause that carries none is told that, with no record in it", () => {
+  const cites = `${BUSINESS_RULES}\nThe rule this enforces is BR-01~1.\n`;
+  const found = said([{ ...DOCUMENTS[1], text: cites }], { file: FILE, clauses: null, why: "is not there" });
+  assert.equal(found.length, 1, found.join(" · "));
+  assert.match(found[0], /^docs\/requirements\/brd\/04-business-rules\.md:11 BR-01~1 R-10/u);
+  assert.match(found[0], /names a revision and BR-01 carries none: its table has no Rev column/u);
+  assert.match(found[0], /Cite it as BR-01/u);
+  assert.ok(!found[0].includes("stale"), found[0]);
 });
 
 test("a clause the record does not reach, and an entry the tree no longer carries, are each a finding", () => {

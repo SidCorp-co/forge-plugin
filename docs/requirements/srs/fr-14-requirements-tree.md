@@ -85,6 +85,13 @@ there, a marker that is absent.
 - **AC-14-3-3** · Rev: 1 · Proof: plugin/test/spec/recorded.test.mjs "a citation of a clause whose words moved at the same revision is suspect"
   IF a citation names a revision whose recorded hash differs from the clause's current content THEN
   the gate SHALL report the citation suspect and SHALL name both.
+- **AC-14-3-4** · Rev: 1 · Proof: plugin/test/spec/recorded.test.mjs "a citation at a revision the clause has left is stale, beside the record it no longer covers"
+  IF a document of the tree cites a clause at a revision the clause has moved past THEN the gate
+  SHALL report that citation stale on the line it is written on and SHALL name the revision the
+  clause is at now.
+- **AC-14-3-5** · Rev: 1 · Proof: plugin/test/spec/recorded.test.mjs "a citation naming a revision of a clause that carries none is told that, with no record in it"
+  IF a citation names a revision and the clause it names carries none THEN the gate SHALL say so
+  rather than call the citation stale.
 
 ### UC-14-4 — An issue cites the clause it serves
 

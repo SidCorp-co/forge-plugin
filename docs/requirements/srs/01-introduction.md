@@ -54,9 +54,15 @@ clause's heading, and it holds `Key: value` pairs separated by `·`:
 | `Source` | a requirement | where in this repository the behaviour is already stated, so a reader can see the clause was drawn rather than invented |
 | `Status` | a clause not yet in force | `proposal`, with the issue that would build it; absent means in force |
 
-**A citation** is `<identifier>~<revision>`: `UC-05-3~2` cites the second revision of that use case.
-A citation without a revision is a reference for a reader; one with a revision is a claim about
-particular words, and it is the form a tracker verdict uses.
+**A citation** is `<identifier>~<revision>`: `UC-02-1~<revision>` cites that use case at the revision
+written in place of the placeholder. A citation without a revision is a reference for a reader; one
+with a revision is a claim about particular words, and it is the form a tracker verdict uses.
+
+The placeholder is why this line names no revision. A citation carrying one is a claim the gate
+holds to the clause it names (R-10), and an *example* has no claim to make — so a live revision here
+would be a maintenance obligation this document owes on every clause it happens to have picked, and
+one that goes stale the moment somebody reasonably rewords that clause. The rule this document
+states is the notation; demonstrating it costs the reader nothing that a placeholder cannot carry.
 
 **An acceptance criterion is two lines**, because it is a list item rather than a heading and its
 field line has nowhere else to go:

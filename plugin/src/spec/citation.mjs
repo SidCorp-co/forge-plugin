@@ -1,6 +1,6 @@
-/* A citation written outside the tree — in a plan, in a criterion — resolved against it. The
-   notation is `parse.mjs`'s, the ways a reference fails are `index.mjs`'s, and R-10 in
-   `docs/requirements/README.md` is why one carries a revision. No file is read here. */
+/* A citation resolved against the tree — written outside it in a plan or a criterion, or, through
+   `revisionFix` alone, inside one of the tree's own documents. The notation is `parse.mjs`'s, the
+   ways a reference fails `index.mjs`'s, and R-10 is why a citation carries a revision. */
 import { didYouMean } from "../suggest.mjs";
 import { FORMS } from "./parse.mjs";
 import { lookup } from "./index.mjs";
@@ -9,15 +9,20 @@ import { lookup } from "./index.mjs";
 const ONE_HOME = "and an identifier names one clause. One of the two is a definition that"
   + " should be a reference: keep the clause in one document and cite it from the other.";
 
-const revisionProblem = (clause, one) => {
+/** What to do about a citation whose revision does not resolve, or `null` where it does — the tail of the sentence alone, so a refusal can open with the citation and a gate finding with the line it sits on. */
+export const revisionFix = (clause, one) => {
   if (clause.rev === null) {
-    return `The citation ${one.id}~${one.rev} names a revision and ${one.id} carries none: its table`
-      + ` has no Rev column. Cite it as ${one.id}.`;
+    return `names a revision and ${one.id} carries none: its table has no Rev column. Cite it as`
+      + ` ${one.id}`;
   }
   if (clause.rev === one.rev) return null;
-  return `The citation ${one.id}~${one.rev} is stale: ${one.id} is at revision ${clause.rev}, not`
-    + ` ${one.rev}. Read it with \`forge spec ${one.id}\` and cite ${one.id}~${clause.rev} if it`
-    + " still says what you meant.";
+  return `is stale: ${one.id} is at revision ${clause.rev}, not ${one.rev}. Read it with \`forge spec`
+    + ` ${one.id}\` and cite ${one.id}~${clause.rev} if it still says what you meant`;
+};
+
+const revisionProblem = (clause, one) => {
+  const fix = revisionFix(clause, one);
+  return fix === null ? null : `The citation ${one.id}~${one.rev} ${fix}.`;
 };
 
 /** The three ways an identifier names no one clause, for both readers that ask: this file returns the sentence and `forge spec` refuses on it, `verb` is how each hands the forms back, and the clause rides along so neither pays a second lookup. The revision is not judged here — a stale one still prints its clause. */

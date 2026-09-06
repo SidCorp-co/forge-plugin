@@ -20,7 +20,9 @@ So a reader who wants the rule follows the last column, and a tool that renders 
 clause quotes that source. This table is the only source for what the sequence holds; which
 requirements enforce a rule is rendered by ISS-29 from the `Enforces` fields, never kept here.
 
-A citation of a rule carries its revision: `BR-09~1`.
+A citation of a rule carries its revision: `BR-09~<revision>`, the revision written in place of the
+placeholder. It is a placeholder because an example makes no claim, and R-10 cannot tell one from a
+citation that does.
 
 | Rule | Rev | Name | Stated in |
 |---|---|---|---|

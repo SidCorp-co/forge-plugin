@@ -57,8 +57,13 @@ longer matches are R-10's, stated once in the tree's own index. Two things about
 **It is JSON and not a document:** the walk that reads the tree takes only `.md`, and a record whose
 rows carried identifiers would define every clause a second time and leave the whole tree ambiguous.
 **And the flag is typed, never spent by a suite:** the gate step runs the check and writes nothing,
-so the record moves when an author moves a clause rather than underneath a green run. *Suspect* is
-that comparison's word, which is why *stale* above is a different word for a different failure.
+so the record moves when an author moves a clause rather than underneath a green run.
+
+The check speaks both words, and they are two failures rather than two names for one. *Stale* is a
+revision the clause has moved past, settled by the clause alone and by no record, so a tree with no
+record still gets it and re-recording never clears it. *Suspect* is a digest that disagrees at a
+revision that does hold. A citation is asked the first question first, because the second one has
+nothing to compare once the revision it names is gone.
 
 One rule of the tree is still not held here and says so in its own row: the overlap measure that
 would catch a clause restating its source's argument cannot see a table cell, where a restated rule

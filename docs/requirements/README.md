@@ -48,7 +48,7 @@ the checker and does not restate what it says.
 | R-07 | An open question is an issue, never a marker in a clause. | No clause contains a deferral marker; every row of `brd/08-open-items.md` carries an issue key. | the spec gate |
 | R-08 | Every use case has at least one acceptance criterion. | Each `UC-` heading is followed, before the next `UC-`, by at least one `AC-` line. | the spec gate |
 | R-09 | Every business rule is enforced somewhere. | Each `BR-` in `brd/04-business-rules.md` appears in at least one clause's `Enforces:` field. | the spec gate |
-| R-10 | A citation carries the revision it was written against. | Every citation is `<id>~<rev>`; the gate hashes the clause's content, compares it with the hash recorded for that revision, and reports the citation suspect when the two differ. A clause the record no longer records — reached at no revision, at another one, or at a digest that is not the clause's words now — is a finding of the same rule, whether or not anything cites it. | the spec gate, against the record `digests.json` beside these documents |
+| R-10 | A citation carries the revision it was written against, and that revision is one the clause has. | Every citation is `<id>~<rev>`; the gate hashes the clause's content, compares it with the hash recorded for that revision, and reports the citation suspect when the two differ. A citation naming a revision the clause has moved past, or one the clause never had, is reported stale on the line it is written on. A clause the record no longer records — reached at no revision, at another one, or at a digest that is not the clause's words now — is a finding of the same rule, whether or not anything cites it. | the spec gate, against the record `digests.json` beside these documents |
 | R-11 | An acceptance criterion is in EARS form and names the case that proves it. | Two lines: a field line opening with the identifier and carrying `Proof:` — a path that resolves, carrying after it the case's own name in double quotes where that path is a test file, or `none yet` with an issue key — then a sentence opening with `WHEN`, `IF`, `WHILE` or `WHERE`, holding `SHALL`, and holding `THEN` when it opened with `WHEN` or `IF`. | `plugin/test/spec/proof-cases.test.mjs`, then the spec gate |
 | R-12 | An identifier is never reused and never renumbered. | A retired clause keeps its number and is marked retired; no number appears twice in the tree. | the spec gate |
 | R-13 | Each document carries the sections its kind declares. | The section list below, matched against the headings of each file. | the spec gate |
@@ -80,8 +80,22 @@ one integer and the tool owns the hash: a text change makes every citation of th
 and the author either bumps the revision — which drops the verdicts that cited the old one — or
 clears the suspicion, which moves the recorded hash and leaves the verdicts standing.
 
-**And a citation is an identifier carrying a revision.** `BR-18` is an identifier; `BR-18~1` is a
-citation. So a field line naming a rule or a clause — `Enforces: BR-18`, `Of: UC-05-3` — makes no
+**And bumping is a route that has to be walked to its end.** It drops the verdicts, and it also
+leaves every citation *inside this tree* naming a revision no clause carries — the same failure this
+rule exists to prevent, reached from the other side, and one no digest can report because there is
+no revision left to compare. So a stale citation is a finding of its own, on the citing line rather
+than on the record, and re-recording does not clear it.
+
+**Which is why a document illustrating the notation writes a placeholder, not a revision.** The rule
+reaches every citation in the tree and cannot tell an example from a claim — the identifier and the
+revision are all there is to read. A live revision in an example is therefore an obligation the
+document owes on a clause it picked for illustration, discharged only by whoever next rewords that
+clause; `srs/01-introduction.md` had one break inside a single rebase. `<revision>` in place of the
+number says the same thing to a reader and makes no claim, which is what an example should have
+been making all along.
+
+**And a citation is an identifier carrying a revision.** `BR-18` is an identifier; `BR-18~<revision>`
+is a citation. So a field line naming a rule or a clause — `Enforces: BR-18`, `Of: UC-05-3` — makes no
 citation and R-10 does not reach it, which is why every field in this tree is bare and why nothing
 has ever refused one. R-03 is the rule a bare identifier answers to: it has to resolve. This is
 stated here because a reviewer reading R-10's row alone concluded the opposite and held it (ISS-506,
