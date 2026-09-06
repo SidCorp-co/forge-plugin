@@ -4502,3 +4502,33 @@ as the duplicate of ISS-497 it declared itself to be.
   printed, because a knowledge write has no way back. The counter is the trigger; the fold is not.
 - Four exports imported nowhere were filed fix-size rather than shipped a third time: a full gate and
   a consult round for four keywords is what the fold-onto-a-neighbour route exists to avoid.
+
+## Hundred-and-seventy-fourth dry run — ISS-325
+
+Codex prompt v3 (3.35.191, landed as e6eb830). A finding now carries five named clauses — the anchor
+with its quoted line, what fails, the smallest fix, what proves it, and whether the reviewer read or
+inferred — and two caller-filled sections sit outside the prompt digest on purpose. Twenty-two
+criteria, re-issued against the landed sha with an empty-diff proof after the ship's rebase moved the
+reviewed head. The half no gate reaches was proven by running it: the first live v3 finding is quoted
+on the issue, its fix clause implemented verbatim and its proof clause turned into the test. Closed by
+its run. No restart owed. Folded from its handback; the comments were read back, sixteen on the page.
+
+- The ship stopped at step seven of ten: the shared checkout held the previous fold's journal commit,
+  which was still landing, so the checkout could not fast-forward and the run rightly pushed nothing
+  that was not its own. The release was already upstream; only the installed copy stayed a release
+  behind until the next ship. A fold's commit and its landing are one step, and the ship between them
+  is what a lock on the push does not cover.
+- The merged mark was written twice, two minutes apart and word for word: a raw call has no read-back
+  that says the mark already stands, so a re-send on a hold writes a second one. The one reader of the
+  mark takes the newest, so nothing broke, and the duplicate is the cost of a raw route with no
+  idempotent shape.
+- A criterion written from the issue's own Why was judged against what the verb does: the replay's
+  prompt flag never scores a candidate, so the figure the criterion asked for does not exist. Filed
+  as ISS-531 and the criterion judged on the seven rows that could be rebuilt, rather than passed on
+  the premise.
+- Two good consults do not measure a prompt. The eval is the evaluator role's at the next
+  hundred-mark against the baseline the run posted, and the close names it as a debt rather than
+  claiming it.
+- A recorded gap: the method types evidence as a green gate, and a change whose output no gate reads
+  has to quote its own output. That is CLAUDE.md's rule, stated where the run reached for it and
+  found the skill silent.
