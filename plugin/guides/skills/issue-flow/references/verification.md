@@ -65,6 +65,33 @@ and the suite runs again only for a criterion whose evidence is its own.
 | Generated output | the artefact opened, not the generator's exit code |
 | Infrastructure | the plan, and a validation against a real environment |
 
+## When no login reaches the rendered state
+
+Phase 0 read the credential line and Phase 2 asked; the answer has not come, or there is none to
+give. The run is not stopped and the issue is not parked for it — a missing credential is a
+qualification on the record, not a reason to set the work down.
+
+What still stands. The deployed build, identified by the routes it answers and the version it
+reports, says which commit is serving and nothing about what that commit draws, so it never carries
+a rendered-state criterion by itself. A render of the same screen taken where no login is needed —
+locally against the released commit, or on a route of the deployed host that does not authenticate —
+is the thing a person can look at, and it is what a criterion is judged on.
+
+Two verdict shapes get past `tested` under a declared screen change, and routing evidence alone is
+neither of them:
+
+- **`skipped`, with the reason in `--why`.** For a criterion no available route reaches. A skip owes
+  no evidence at all, so it owes no attachment either, and `--why` names the credential that is
+  missing rather than the symptom it produced.
+- **`pass`, citing an attachment, with the missing credential in `--why`.** For a criterion another
+  route renders. The attachment has to show the state that criterion is about — a render of some
+  other screen clears the check and proves nothing, which is worse than a skip because it reads as
+  judged — and `--why` says which host the image is not from.
+
+Anything else is refused: the check reads a verdict under a declared screen change and wants an
+attachment this issue carries on every one that is not skipped, so a redirect, a pair of answering
+routes and a version number earn no verdict at all.
+
 ## Standing up something to run against
 
 **If the project has its own stack tooling, that tooling is the mechanism** — including

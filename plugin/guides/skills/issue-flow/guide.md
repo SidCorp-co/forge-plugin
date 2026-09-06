@@ -53,6 +53,12 @@ this phase establishes with where it was read. A line reading *not stated*, or a
 `stale:` line says has moved, is discovered by hand: `forge guide issue-flow project-discovery`,
 which is the whole of this phase where a project has no brief yet.
 
+**The deploy lines end with the credential one**, *test credentials: present* or *none*, and it is
+read here rather than at Phase 7. A screen is proved by a rendered state and a login is what reaches
+one on a deployed host, so a *none* found now is a shortfall a run can still do something about,
+and the same line found at Phase 7 is a criterion already gone unjudged. Phase 0 writes nothing —
+carry it into Phase 1, where the claim comes before the first write.
+
 Then `forge knowledge search "<the issue's title>"`. An entry about the module this issue touches is
 read before the code and verified against the source it cites, never quoted as a fact.
 
@@ -103,12 +109,19 @@ person chooses between visible results: `forge record question -h`. Then park it
 `question` and move to the next issue. What the decision record earns: `forge guide contract
 clarified`.
 
+**A credential Phase 0 found missing is asked for here**, once Phase 1's claim is taken, and never
+at Phase 7. It is the question record alone and not the park: the fallback evidence carries the run
+while the answer is outstanding, so nothing is set down waiting on it. What stands instead:
+`forge guide issue-flow verification`.
+
 ## Phase 3 — Plan and acceptance criteria, in the issue's own fields
 
 Both land in fields of the issue, one each, never a comment and never a local file. The plan names
 the files it touches, the behaviour before and after, what it deliberately does **not** change, the
 one thing verified in code that makes it possible, and any documented convention it reverses, which
 the same change rewrites. It carries the declaration lines `forge guide contract approved` prints.
+Declaring a screen change is what turns the credential ask from worth making into owed, because the
+declaration is what makes a rendered state this issue's evidence.
 
 Criteria are numbered, one outcome per line a reader could check without opening the diff, no
 conjunctions: a criterion joined by "and" is two. They are written before the code and never relaxed
@@ -158,7 +171,8 @@ written here. Which head, what each kind of change owes as evidence and how to c
 `forge guide contract developed`, `forge guide contract tested`.
 
 **A change to a screen parks the issue for human review before Phase 7**, and the park is refused
-without the thing to look at. A change that proves unshippable is an outcome: post the finding,
+without the thing to look at. Where no login reaches the rendered state, what stands instead and the
+two verdict shapes it earns: `forge guide issue-flow verification`. A change that proves unshippable is an outcome: post the finding,
 leave the branch named, park the issue.
 
 Something you found that belongs to another issue goes there as a filing, `forge new --into`, which

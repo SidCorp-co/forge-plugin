@@ -553,3 +553,54 @@ test("the checks point back from the guides, and the evidence table keeps the ki
   assert.ok(guide.includes("`developed` refuses a path in it that neither the plan nor a correction"),
     "Phase 4 no longer names the check that refuses a file the plan does not name");
 });
+
+/* The fallback is prose about a refusal, so it can drift from the refusal without failing anything.
+   The shapes are parsed out of the section rather than asserted beside it: a third bullet, or one
+   opening on a verdict the check refuses, is a run told to spend a Phase 5 on evidence `tested` will
+   not take, and it fails here. The check's own file is another run's (ISS-72). */
+const SHAPES = { skipped: [], pass: ["rendered.png"] };
+const SECTION = "## When no login reaches the rendered state";
+/* The whole section, not the one list in it: a shape offered in a second list, or in a sentence
+   under its own bullet, reaches a run exactly as the first list does. */
+const shapesIn = (text) => {
+  const at = text.indexOf(SECTION);
+  const held = at < 0 ? "" : text.slice(at + SECTION.length).split("\n## ")[0];
+  return [...held.matchAll(/^- \*\*`(\w+)`/gmu)].map((found) => found[1]);
+};
+
+test("the fallback for a screen with no credential names the two shapes the tested check leaves", () => {
+  const text = readFileSync(VERIFICATION, "utf8");
+  const held = flat(text);
+  for (const [beat, phrase] of [
+    ["that a missing credential does not park the issue", "not a reason to set the work down"],
+    ["that routing evidence carries no rendered-state criterion", "nothing about what that commit draws"],
+    ["that the attachment shows its own criterion's state", "show the state that criterion is about"],
+  ]) {
+    assert.ok(held.includes(phrase), `the verification reference no longer names ${beat}, so a run `
+      + "with no login is back to guessing what evidence earns a verdict");
+  }
+  const criteria = "1. The first outcome.";
+  const judged = (verdict, evidence) => [{
+    createdAt: "2026-09-02T10:01:00.000Z",
+    authorId: "agent",
+    body: render("verdict", { criterion: "1. The outcome.", verdict, commit: "43b811e", evidence, why: "no credential on record" }),
+  }];
+  const seen = (comments) => viewFrom("the-uuid", {
+    plan: "Screen change: yes\nSchema coupling: no",
+    acceptanceCriteria: criteria,
+    attachments: [{ name: "rendered.png" }],
+  }, comments);
+  const owed = (comments) => CHECKS.tested(seen(comments), "ISS-72").map((one) => one.what);
+  /* Every shape the section offers, and only those: an offer the check refuses fails on the drive,
+     and one it accepts that nobody wrote a case for fails on the name. */
+  const offered = shapesIn(text);
+  assert.deepEqual(offered, Object.keys(SHAPES), "the fallback section offers a set of verdict "
+    + "shapes this test has no case for, so the guide and the check are no longer held together");
+  for (const verdict of offered) {
+    assert.deepEqual(owed(judged(verdict, SHAPES[verdict])), [], `the reference sends a criterion to `
+      + `\`${verdict}\` and the check does not leave it, so the guide asks for evidence \`tested\` refuses`);
+  }
+  const refused = owed(judged("pass", ["https://host.test/ 200", "43b811e"]));
+  assert.equal(refused.length, 1, "while routing evidence alone earns the refusal the reference warns of");
+  assert.match(refused[0], /cites no attachment/u);
+});
