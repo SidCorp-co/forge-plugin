@@ -4264,3 +4264,31 @@ three routed filings (ISS-463, ISS-27, ISS-356) were read back.
 - The reduction the issue exists for is not demonstrated yet: this run spent three criteria rounds, a
   whole-set read and a recheck inside the current window. The next window judges it, which is what
   the measure line on the issue is for.
+
+## Hundred-and-sixty-fifth dry run — ISS-490
+
+The poll a run spreads over turns: the guard refuses one read of a log typed again with nothing done
+between, and the profiler classes the same shape as a poll, both off one function, so one class in the
+report is one refusal in a session (3.35.180, landed as e3ece95, judged head 90b94dc, seventeen files).
+The gate paragraph's clause filed into ISS-290 was carried into the verification reference on the way.
+Verified against the deployed copy's own gate entry under a temporary config: allow, the whole refusal,
+the recovery, a different question. No restart owed. Closed by its run. Folded from its handback; the
+fifteen comments, ISS-506, ISS-507 and the ISS-290 note were read back; ISS-509 was the ship's filing.
+
+- The ship raced siblings four times over: a gate at 90b94dc, a rejected push, a resume from the
+  fetch, a seventh gate by the run's own count. It landed one release before the landing lock did. The
+  measure was taken by the run that paid it, and the fix landed in the slot beside it.
+- Three failures the baseline did not report were the tree refusing restatement: the one-home checker
+  measured Phase 7 against the polling how page at 0.83, the how page blew its character ceiling by a
+  paragraph, and the duplicate check caught one sentence in two comments. Criteria 20 to 22 had asked
+  for the restatement; they were corrected in the open, and Phase 7 now routes to the page at the
+  cost of one more call for a run that wants the how.
+- Five identical reads count two polls, not four: the guard clears its note when it refuses, the
+  classifier clears its key when it classes a poll, and the third read is the recovery both allow. The
+  poll figure is therefore refusals, not turns spent waiting, and the release note says so rather than
+  letting the number be quoted as the other.
+- Two void records sit on the thread and are disowned by the corrections after them: a probe written
+  to learn a verb's output shape, and one with both fields empty because a refused command loses its
+  whole heredoc. A thread carries its own scaffolding; the next reader is told which planks are loose.
+- The phase-number constants ISS-502 routed here were declined as outside an approved issue's
+  criteria and filed as ISS-507 instead. A routed item does not widen the issue it lands on.
