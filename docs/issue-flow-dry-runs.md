@@ -4478,3 +4478,27 @@ the eleven comments were read back.
   never instructs is the defect the issue was about. The guard folded into the comparison instead.
 - The ship printed the consult log's eval trigger at fifteen hundred consults and the run reported it
   rather than running it, which is the division the evaluator role exists for.
+
+## Hundred-and-seventy-third dry run — ISS-27
+
+The requirements tree read against its own rules (3.35.187, landed as 30dbbb0; then 3.35.189, landed
+as 82b13e4 on master as 1bf3a11). A check verb reads the tree against twelve of the rules its README
+states, the section table read out of that README rather than copied, and the gate gains a fourteenth
+step for it. The second landing fixed the run's own shipped code: the sub-verb's help word was refused
+by the very command the usage named, found by running the verb out of the installed copy. Forty-six
+criteria across the two heads. No restart owed from either. Closed by its run. Folded from its
+handback; the fourteen comments and seven filings were read back, and ISS-533 was dropped at the fold
+as the duplicate of ISS-497 it declared itself to be.
+
+- Three of the tree's rules and half of a fourth were declined by recorded decision and filed as
+  their own issues, the digest rule among them, and one is already running as ISS-525. A gate that
+  ships twelve rules with the other four named is a gate; one that waits for sixteen is a plan.
+- A verb proved against the installed copy found what the worktree's tests had not: an unreachable
+  export behind a help word. The second ship cost a full gate and a release for six lines, and was
+  cheaper than a reader meeting the refusal.
+- A filing routed out of another issue's body because it described behaviour that issue has not
+  landed: a clause that narrates the future is a clause the check would mark stale the day it lands.
+- Two stale facts in a knowledge entry were left for the batch reading, whose counter the ship
+  printed, because a knowledge write has no way back. The counter is the trigger; the fold is not.
+- Four exports imported nowhere were filed fix-size rather than shipped a third time: a full gate and
+  a consult round for four keywords is what the fold-onto-a-neighbour route exists to avoid.
