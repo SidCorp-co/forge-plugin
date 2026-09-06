@@ -2,14 +2,27 @@
    batch reading is OWED — the last of these here and in no prompt, so the run reads it off its own
    issue and a person types none of it. The counting and the filing are the runner's;
    `docs/cli/knowledge.md` says why this half moved. */
-import { gitOut, REMOTE } from "../checkout.mjs";
+import { projectReview } from "../../plugin/src/resolve/settings.mjs";
+import { gitOut, REMOTE, stop } from "../checkout.mjs";
 
 export const REVIEWED = "refs/forge/reviewed";
 export const REVIEW_PATHS = ["plugin/src", "plugin/hooks", "plugin/bin"];
 /* Volume alone, because the release count fired first on both readings it ever triggered — three
    releases at thirty-six changed lines the first time — so the trigger was the calendar of
    releases and not the code there is to read (ISS-112). Releases are still printed. */
-export const REVIEW_LINES = 500;
+export const REVIEW_LINES = 1500;
+
+/** The count in force: the project's `review.lines`, absent only taking the default — a key set to
+ *  null or to a typo silently taking it is a trigger nobody set (ISS-333). */
+export const reviewLines = () => {
+  const given = projectReview().lines;
+  if (given === undefined) return REVIEW_LINES;
+  if (!Number.isInteger(given) || given < 1) {
+    stop(`\`review.lines\` in .forge.json is a whole number of changed lines above zero, not `
+      + `\`${JSON.stringify(given)}\`. Drop the key to take the ${REVIEW_LINES} this script ships with.`);
+  }
+  return given;
+};
 
 const KEY = /ISS-\d+/gu;
 
@@ -23,6 +36,7 @@ export const spannedIn = (tree, from) => {
 };
 
 export const reviewBody = ({ tree, from, to, volume, self }) => {
+  const owed = reviewLines();
   const keys = spannedIn(tree, from);
   const paths = REVIEW_PATHS.join(" ");
   return [
@@ -77,7 +91,7 @@ export const reviewBody = ({ tree, from, to, volume, self }) => {
     "",
     "Every delegated run reviews its own diff and stops there, so what two runs each wrote is inside",
     "no run's range and is found by nobody (ISS-95). The ship step counts the volume since the mark",
-    `and files this reading itself once ${REVIEW_LINES} changed line(s) have landed, so nobody has to`,
+    `and files this reading itself once ${owed} changed line(s) have landed, so nobody has to`,
     "notice.",
     "",
   ].join("\n");

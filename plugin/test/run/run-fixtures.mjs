@@ -26,7 +26,8 @@ export const runIn = (cwd, argv, env = process.env) =>
 export const GATE = "node -e \"console.log('scratch gate ran')\"";
 
 const COPIED = [SCRIPT, join("tools", "run", "args.mjs"), join("tools", "run", "landing.mjs"),
-  join("tools", "run", "review.mjs"), join("tools", "run", "run-id.mjs"), join("tools", "checkout.mjs"),
+  join("tools", "run", "lock.mjs"), join("tools", "run", "review.mjs"), join("tools", "run", "run-id.mjs"),
+  join("tools", "run", "version.mjs"), join("tools", "checkout.mjs"),
   join("tools", "gates", "timing.mjs")];
 
 export const scratch = (name, gate = GATE) => {
@@ -210,11 +211,20 @@ export const called = (at) => readFileSync(join(at, "forge-calls.json"), "utf8")
   .split("\n").filter(Boolean).map((line) => JSON.parse(line));
 
 /* The range, the size and the rules are the step's to measure, never a person's to copy out (ISS-112). */
-export const owedAt = (name) => {
+/** The project's own reading threshold, committed: `.forge.json` is read out of the tree's head. */
+export const withReview = (work, lines) => {
+  const kept = JSON.parse(readFileSync(join(work, ".forge.json"), "utf8"));
+  writeFileSync(join(work, ".forge.json"), JSON.stringify({ ...kept, review: { lines } }, null, 2));
+  git(work, "add", ".forge.json");
+  git(work, "commit", "-m", "this project's own reading threshold");
+};
+
+export const owedAt = (name, lines = null) => {
   const { at, work } = pushed(name);
   stubbed(work);
+  if (lines !== null) withReview(work, lines);
   runIn(work, ["review", "--done"], BARE);
   const from = ref(work);
-  landIn(work, join("plugin", "src", "wide.mjs"), 501, "a module a run grew (ISS-77)");
+  landIn(work, join("plugin", "src", "wide.mjs"), (lines ?? 1500) + 1, "a module a run grew (ISS-77)");
   return { at, work, from };
 };

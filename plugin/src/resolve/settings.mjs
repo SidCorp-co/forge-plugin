@@ -175,3 +175,5 @@ export const depsConvention = once(() => {
 });
 
 export const rankConvention = once(() => sourced(".forge.json", forgeJson().parsed?.rank));
+
+export const projectReview = () => forgeJson().parsed?.review ?? {};

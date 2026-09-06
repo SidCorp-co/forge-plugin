@@ -53,7 +53,7 @@ test("-h names all three steps, the resume flag and the threshold it counts agai
   const run = runIn(ROOT, ["-h"]);
   assert.equal(run.status, 0, run.stderr);
   for (const said of ["start <ISS-nn>", "ship [--from N]", "review [--done [ref]]", "--from N",
-    "worktree", "restart", "refs/forge/reviewed", "500 changed line(s)", "npm run check",
+    "worktree", "restart", "refs/forge/reviewed", "1500 changed line(s)", "npm run check",
     "The release count is printed beside it and decides nothing",
     "the sha the change landed as", "not the pushed head the push printed",
     "--done <the range's end>"]) {

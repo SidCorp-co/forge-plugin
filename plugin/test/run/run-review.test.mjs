@@ -44,29 +44,29 @@ test("releases alone owe no reading, however many, and the count still names the
     const under = lastStep(work);
     assert.match(under.stdout, new RegExp(`${nth} release\\(s\\), ${nth} file\\(s\\)`, "u"), under.stdout);
     assert.doesNotMatch(under.stdout, /a review of/u, `${nth} release(s) of 4 lines is no reading's worth`);
-    assert.match(under.stdout, /short of the 500 line\(s\) that call for a reading/u, under.stdout);
+    assert.match(under.stdout, /short of the 1500 line\(s\) that call for a reading/u, under.stdout);
   }
 });
 
 /* Read through the verb rather than through a ship, so the release count stays at zero and the
    volume is the only thing that can be what fired. */
-test("the five hundredth changed line is owed a reading, and only in the counted paths", () => {
+test("the fifteen-hundredth changed line is owed a reading, and only in the counted paths", () => {
   const { work } = pushed("lines");
   runIn(work, ["review", "--done"], BARE);
 
-  landIn(work, join("docs", "long.md"), 600, "prose, which the one-home check reads");
+  landIn(work, join("docs", "long.md"), 1600, "prose, which the one-home check reads");
   const outside = runIn(work, ["review"], BARE);
   assert.match(outside.stdout, /holds 0 release\(s\), 0 file\(s\), 0 changed line\(s\)/u, outside.stdout);
-  assert.match(outside.stdout, /^Short of the 500 changed line\(s\)/mu, "docs/ is not a path this count reads");
+  assert.match(outside.stdout, /^Short of the 1500 changed line\(s\)/mu, "docs/ is not a path this count reads");
 
-  landIn(work, join("plugin", "src", "wide.mjs"), 499, "a module a run grew");
+  landIn(work, join("plugin", "src", "wide.mjs"), 1499, "a module a run grew");
   const under = runIn(work, ["review"], BARE);
-  assert.match(under.stdout, /holds 0 release\(s\), 1 file\(s\), 499 changed line\(s\)/u, under.stdout);
-  assert.match(under.stdout, /^Short of the/mu, "499 is one line short, and the boundary is exact");
+  assert.match(under.stdout, /holds 0 release\(s\), 1 file\(s\), 1499 changed line\(s\)/u, under.stdout);
+  assert.match(under.stdout, /^Short of the/mu, "1499 is one line short, and the boundary is exact");
 
-  landIn(work, join("plugin", "src", "wide.mjs"), 500, "the line that crosses it");
+  landIn(work, join("plugin", "src", "wide.mjs"), 1500, "the line that crosses it");
   const owed = runIn(work, ["review"], BARE);
-  assert.match(owed.stdout, /holds 0 release\(s\), 1 file\(s\), 500 changed line\(s\)/u, owed.stdout);
+  assert.match(owed.stdout, /holds 0 release\(s\), 1 file\(s\), 1500 changed line\(s\)/u, owed.stdout);
   assert.match(owed.stdout, /^A review is owed:/mu, owed.stdout);
   assert.match(lastStep(work).stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\)/u,
     "the release step says it too, on a release count of its own bump alone");
@@ -86,7 +86,7 @@ test("past the threshold the step files the reading's issue itself, and prints t
   assert.equal(called(at).filter((one) => one.argv[0] === "new").length, 0,
     "the filing spawned the CLI, which is the parse this step no longer makes");
 
-  for (const said of ["## Outcome", "## Rules", "## Out of scope", "1 file(s) and 501 changed line(s)",
+  for (const said of ["## Outcome", "## Rules", "## Out of scope", "1 file(s) and 1501 changed line(s)",
     `git diff ${from}..${to} -- plugin/src plugin/hooks plugin/bin`, "ISS-77", `review --done ${to}`,
     "forge knowledge write module-<name>", "forge project --refresh",
     /* One needle per obligation: dropping one leaves the batch read by no named instrument (ISS-339). */
@@ -98,6 +98,19 @@ test("past the threshold the step files the reading's issue itself, and prints t
   assert.ok(owed.stdout.includes("filed ISS-777"), owed.stdout);
   assert.ok(owed.stdout.includes("Work ISS-777. Use the Skill tool: skill forge:issue-flow, args ISS-777."),
     `the launch line is not printed as the parent reads it:\n${owed.stdout}`);
+});
+
+/* The threshold reaches the filing too: a body naming 1500 where the ship filed at 40 misleads it. */
+test("the reading the step files names the threshold the project set, not the one this script ships with", () => {
+  const { work } = owedAt("filed-project", 40);
+  noBacklog({ key: "ISS-778" });
+
+  const owed = lastStep(work);
+  const filing = creating();
+  assert.ok(filing, `nothing was filed at the project's own threshold:\n${owed.stdout}${owed.stderr}`);
+  assert.ok(filing.description.includes("once 40 changed line(s) have landed"),
+    `the filed body names a threshold nobody set:\n${filing.description}`);
+  assert.ok(!filing.description.includes("once 1500 changed line(s)"), filing.description);
 });
 
 /* The keys of a reading are its range's, off the commit subjects, and its own body cites others as
@@ -284,7 +297,7 @@ test("a shape refusal of the body this step generates is named as this plugin's,
   git(work, "commit", "-m", "a body the shape will not carry");
 
   const run = lastStep(work);
-  assert.match(run.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\), 1 file\(s\), 501 changed line\(s\)/u,
+  assert.match(run.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\), 1 file\(s\), 1501 changed line\(s\)/u,
     `the range and the count are printed whatever becomes of the filing:\n${run.stdout}`);
   assert.match(run.stderr, /this plugin's own filing check refused the body this step generates, and named no issue/u,
     `a check of this plugin's, reported as the tracker's:\n${run.stderr}`);
@@ -306,7 +319,7 @@ test("a tracker that does not answer files nothing, prints the route, and leaves
 
   const blind = lastStep(work);
   assert.equal(blind.status, 0, blind.stderr);
-  assert.match(blind.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\), 1 file\(s\), 501 changed line\(s\)/u, blind.stdout);
+  assert.match(blind.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\), 1 file\(s\), 1501 changed line\(s\)/u, blind.stdout);
   assert.match(blind.stderr, /the tracker did not answer the lookup, so nothing is filed and the next ship asks again/u,
     `a silence names which call it was, so a refusal is not read as one:\n${blind.stderr}`);
   assert.match(blind.stdout, /forge new - --title "review [0-9a-f]{7}\.\.HEAD" --kind review/u,
@@ -324,8 +337,8 @@ test("a tracker that does not answer files nothing, prints the route, and leaves
 test("a reading that finds nothing moves the mark in one line, and the count starts again there", () => {
   const { work } = pushed("moved");
   runIn(work, ["review", "--done"], BARE);
-  landIn(work, join("plugin", "src", "wide.mjs"), 501, "a module a run grew");
-  assert.match(lastStep(work).stdout, /a review of/u, "501 lines under plugin/src is past the threshold");
+  landIn(work, join("plugin", "src", "wide.mjs"), 1501, "a module a run grew");
+  assert.match(lastStep(work).stdout, /a review of/u, "1501 lines under plugin/src is past the threshold");
 
   const before = ref(work);
   const asked = runIn(work, ["review"], BARE);
@@ -376,7 +389,7 @@ test("a bare --done moves no mark already there, and the named ref moves it to t
   const planted = runIn(work, ["review", "--done"], BARE);
   assert.equal(planted.status, 0, `a plant answers to no range, so it is not refused:\n${planted.stderr}`);
   const from = ref(work);
-  landIn(work, join("plugin", "src", "wide.mjs"), 501, "a module a run grew, and the reading read to here");
+  landIn(work, join("plugin", "src", "wide.mjs"), 1501, "a module a run grew, and the reading read to here");
   const reached = git(work, "rev-parse", "HEAD").stdout.trim();
   landIn(work, join("plugin", "src", "later.mjs"), 20, "what another run landed while it was being read");
 

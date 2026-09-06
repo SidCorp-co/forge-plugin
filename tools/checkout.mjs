@@ -1,6 +1,7 @@
-/* One authority for what both of this repository's runners ask git. Two answers to "the base" is a
-   precedence rule nobody wrote down, and the runner that lost it gates a range the other never chose. */
+/* One authority for what both of this repository's runners ask git, and for the two things they do
+   that are not git. Two answers to "the base" is a precedence rule nobody wrote down. */
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 export const REMOTE = "origin";
@@ -13,6 +14,30 @@ export const stop = (message) => {
 };
 
 export const git = (args, cwd = process.cwd()) => spawnSync("git", args, { cwd, encoding: "utf8" });
+
+/** Loud, because a step's own output is the evidence that it did what it says. */
+export const loud = (command, args, cwd, why) => {
+  const run = spawnSync(command, args, { cwd, encoding: "utf8", stdio: "inherit" });
+  if (run.error) stop(`${command} could not be run: ${run.error.message}. ${why}`);
+  if (run.status !== 0) stop(`${command} ${args.join(" ")} exited ${run.status}. ${why}`);
+};
+
+/** JSON or null: unparseable and absent are one answer, every caller having one nothing to do. */
+export const parsed = (text) => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
+export const read = (path) => {
+  try {
+    return parsed(readFileSync(path, "utf8"));
+  } catch {
+    return null;
+  }
+};
 
 export const gitOut = (args, cwd) => {
   const run = git(args, cwd);

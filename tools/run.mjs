@@ -9,12 +9,14 @@ import { fileURLToPath } from "node:url";
 
 import { hookEntries } from "../plugin/src/hooks/hook-log-file.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../plugin/src/tools/plugin-copy.mjs";
-import { checkoutRoot, defaultBranch, git, gitOut, REMOTE, Stop, stop } from "./checkout.mjs";
+import { checkoutRoot, defaultBranch, git, gitOut, loud, parsed, read, REMOTE, Stop, stop } from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
-import { isRelease, onlyRelease, RELEASE_FILES, versionAt } from "./run/landing.mjs";
+import { isRelease, onlyRelease } from "./run/landing.mjs";
+import { shipHolder, takeShipLock, WAIT_MS } from "./run/lock.mjs";
+import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
 import { mintRunId, runIdAt, RUN_ID_VAR } from "./run/run-id.mjs";
-import { markRefused, REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody, spannedIn } from "./run/review.mjs";
+import { markRefused, REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, spannedIn } from "./run/review.mjs";
 import { edgesLeft, fileIssue } from "../plugin/src/tracker/filing/route.mjs";
 import { runsMark } from "../plugin/src/stats/eval.mjs";
 import { refusing } from "../plugin/src/resolve/settings.mjs";
@@ -32,7 +34,7 @@ const NO_MARK = `no ${REVIEWED} in this repository, so what is owed a reading ca
 
 const sig = (verb) => VERBS.get(verb).signature;
 
-const USAGE = [
+const usage = () => [
   `Usage: ${SELF} <start|ship|review> [args]`,
   "The repository's own steps around one change: the worktree a run works in, and the release that",
   "puts its commit in the plugin copy the next session loads. Everything else is the change itself.",
@@ -61,7 +63,7 @@ const USAGE = [
   "is about the change rather than about the release reads its sha from there and not off a log by eye.",
   "",
   `That last step also counts what landed under ${REVIEW_PATHS.join(", ")} since ${REVIEWED}, and`,
-  `says one reading of the whole of it is owed once the range holds ${REVIEW_LINES} changed line(s).`,
+  `says one reading of the whole of it is owed once the range holds ${reviewLines()} changed line(s).`,
   "The release count is printed beside it and decides nothing, so three one-line fixes owe no reading",
   "and one large landing owes one on its own. Past the threshold the step files the reading's issue",
   "itself, through this repository's own CLI, and prints the line that launches the run — and while",
@@ -72,50 +74,17 @@ const USAGE = [
   "runs land on this branch while a reading is being read, so a bare --done moves no existing mark at",
   "all. A mark left unmoved keeps the count growing, which is how a skipped reading stays visible",
   "at the next ship; a mark planted too far forward grows nothing, which is why it is refused here.",
+  "",
+  "One landing at a time: from the fetch to the push the ship holds a lock every worktree of this",
+  "checkout shares, so a sibling's landing cannot move the branch under a gate run and the rebase is",
+  "taken once, against a head nobody else is moving. It says whose landing it waits behind, waits on a",
+  "notification rather than a poll, and holds nothing after the push — the install steps run unlocked.",
+  "A lock a killed ship left is named with the one command that removes it, and never taken over",
+  "silently. Where the push is rejected anyway, by a landing from another machine, the version commit",
+  "step 5 made for a version now taken is undone before the refusal is printed, so the tree a caller",
+  "rebases holds only the change; a commit this run did not make whole, or a tree with uncommitted",
+  "work in it, is left exactly where it is and the refusal says so.",
 ].join("\n");
-
-/* Run for the person watching: a step's own output is the evidence that it did what it says. */
-const loud = (command, args, cwd, why) => {
-  const run = spawnSync(command, args, { cwd, encoding: "utf8", stdio: "inherit" });
-  if (run.error) stop(`${command} could not be run: ${run.error.message}. ${why}`);
-  if (run.status !== 0) stop(`${command} ${args.join(" ")} exited ${run.status}. ${why}`);
-};
-
-const parsed = (text) => {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-};
-
-const read = (path) => {
-  try {
-    return parsed(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
-};
-
-const parts = (version) => String(version ?? "").split(".").map((one) => Number.parseInt(one, 10));
-
-const above = (one, two) => {
-  const [a, b] = [parts(one), parts(two)];
-  for (let at = 0; at < 3; at += 1) {
-    if ((a[at] ?? 0) !== (b[at] ?? 0)) return (a[at] ?? 0) > (b[at] ?? 0);
-  }
-  return false;
-};
-
-/** The version this release must carry, or null when the tree already carries one above the remote
- *  head. A rebase drops a bump identical to one already upstream without a conflict, leaving a
- *  manifest that names a version carrying none of the change and nothing red to say so. */
-const nextVersion = (local, upstream) => {
-  if (!parts(local).every(Number.isInteger)) stop(`this tree's package.json names no version: \`${local}\`.`);
-  if (above(local, upstream)) return null;
-  const [major, minor, patch] = parts(upstream).every(Number.isInteger) ? parts(upstream) : parts(local);
-  return [major, minor, patch + 1].join(".");
-};
 
 const worktreePath = (root, key) => join(dirname(root), `wt-${key}`);
 
@@ -166,24 +135,6 @@ const cleanTree = (tree) => {
   if (dirty === null) stop(`${tree} is no git checkout.`);
   if (dirty) stop(`the tree is dirty and a release ships commits:\n${dirty}\nCommit or drop these first.`);
   console.log("  nothing uncommitted");
-};
-
-/* Whether the bump is committed is read from the tree against its own head, never from having just
-   made it: a resume after a failed commit finds the manifest already raised, and a step that took
-   that for done would push a release whose version is only on disk. */
-const versionAbove = (tree, base, note) => {
-  const upstream = versionAt(tree, `${REMOTE}/${base}`);
-  const want = nextVersion(read(join(tree, "package.json"))?.version, upstream);
-  if (want) {
-    console.log(`  ${REMOTE}/${base} carries ${upstream}; taking ${want}`);
-    loud("npm", ["version", want, "--no-git-tag-version"], tree, "The version lifecycle writes the manifest too.");
-  }
-  const mine = read(join(tree, "package.json"))?.version;
-  if (versionAt(tree, "HEAD") === mine) return console.log(`  ${mine} is committed and above ${upstream}`);
-  const touched = RELEASE_FILES.filter((one) => existsSync(join(tree, one)));
-  loud("git", ["add", ...touched], tree, "Stage them by name and commit the bump yourself.");
-  loud("git", ["commit", "-m", note ?? `chore(release): ${mine}, so the installed copy is this head`], tree,
-    "Commit the bump, then resume.");
 };
 
 /* In the tree's git directory and not in this process: --from is a new process, and after the push
@@ -279,7 +230,7 @@ const landed = (tree, from) => {
 const reviewSays = (tree, from) => {
   const { releases, files, lines } = landed(tree, from);
   return {
-    owed: lines >= REVIEW_LINES,
+    owed: lines >= reviewLines(),
     range: `${from.slice(0, 7)}..HEAD`,
     count: `${releases} release(s), ${files} file(s), ${lines} changed line(s)`,
     volume: `${files} file(s) and ${lines} changed line(s)`,
@@ -410,10 +361,10 @@ const reviewOwed = async (tree) => {
   const { owed, range, count, volume } = reviewSays(tree, from);
   if (!owed) {
     return console.log(`  ${count} under ${REVIEW_PATHS.join(", ")} since ${from.slice(0, 7)}, short `
-      + `of the ${REVIEW_LINES} line(s) that call for a reading`);
+      + `of the ${reviewLines()} line(s) that call for a reading`);
   }
   console.log(`  a review of ${range} is owed: ${count} under ${REVIEW_PATHS.join(", ")}, at or past `
-    + `${REVIEW_LINES} line(s). It is a delegated run of its own:`);
+    + `${reviewLines()} line(s). It is a delegated run of its own:`);
   const asked = await fileReview(tree, from, volume);
   /* Read, never launched: the check collides on similarity, so the key may not be a reading. */
   if (asked.collided) {
@@ -471,8 +422,8 @@ const review = ({ flags }) => {
     console.log(`${range} is the next review's, and holds ${count} under ${REVIEW_PATHS.join(", ")}.`);
     console.log(`  git diff ${from}..HEAD -- ${REVIEW_PATHS.join(" ")}`);
     return console.log(owed
-      ? `A review is owed: ${REVIEW_LINES} changed line(s) call for one, and this range is past that.`
-      : `Short of the ${REVIEW_LINES} changed line(s) that call for a reading.`);
+      ? `A review is owed: ${reviewLines()} changed line(s) call for one, and this range is past that.`
+      : `Short of the ${reviewLines()} changed line(s) that call for a reading.`);
   }
   /* Refused, not reported: a mark too far forward reads like a reading that finished and grows
      nothing; the volume since it is a net diff, shrinking as later commits delete (ISS-146). */
@@ -503,6 +454,11 @@ const named = () => ({
 
 const GATE = "the gate";
 
+/* The span one landing holds this checkout's lock for: the fetch, whose answer the rebase and the
+   version are taken against, through the push. The install steps touch no branch. */
+const LANDS = "lands";
+const PUSHES = "pushes";
+
 const shipSteps = (tree, root, base, note) => {
   const { market, plugin } = named();
   if (!market || !plugin) stop("this checkout names no marketplace or no plugin, so there is nothing to install.");
@@ -511,18 +467,23 @@ const shipSteps = (tree, root, base, note) => {
     [`fetch ${REMOTE}/${base}`, () => {
       loud("git", ["fetch", REMOTE, base], tree, "Check the remote is reachable.");
       writeFileSync(markFile(tree), `${gitOut(["rev-parse", `${REMOTE}/${base}`], tree)}\n`);
-    }],
+    }, LANDS],
     [`rebase onto ${REMOTE}/${base}`, () =>
-      loud("git", ["rebase", `${REMOTE}/${base}`], tree, `Resolve it, or \`git rebase --abort\`, then ${SELF} ship --from 3`)],
+      loud("git", ["rebase", `${REMOTE}/${base}`], tree, `Resolve it, or \`git rebase --abort\`, then ${SELF} ship --from 3`), LANDS],
     /* After the rebase, because the range is what the release actually ships, and before the bump,
        because the gate's record is keyed on the manifests too: run it after and every release pays
        for a whole gate over a change of one version string. */
     [GATE, () => loud("npm", ["run", "check"], tree,
-      "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run.")],
-    [`a version above ${REMOTE}/${base}`, () => versionAbove(tree, base, note)],
-    [`push to ${REMOTE}/${base}`, () =>
-      loud("git", ["push", REMOTE, `HEAD:${base}`], tree,
-        `Rejected means the remote moved: rebase, re-run the review of the rebased head, then ${SELF} ship --from 2`)],
+      "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run."), LANDS],
+    [`a version above ${REMOTE}/${base}`, () => versionAbove(tree, base, note), LANDS],
+    /* Not `loud`: the refusal is composed after the tree is put back, so it describes what is there. */
+    [`push to ${REMOTE}/${base}`, () => {
+      const run = spawnSync("git", ["push", REMOTE, `HEAD:${base}`], { cwd: tree, encoding: "utf8", stdio: "inherit" });
+      if (run.error) stop(`git could not be run: ${run.error.message}. Check the remote is reachable.`);
+      if (run.status === 0) return forgetBump(tree);
+      return stop(`git push ${REMOTE} HEAD:${base} exited ${run.status}. Rejected means the remote `
+        + `moved${unwound(tree)}: rebase, re-run the review of the rebased head, then ${SELF} ship --from 2`);
+    }, PUSHES],
     ["the checkout follows", () => {
       if (resolve(tree) === resolve(root)) return console.log("  this tree is the checkout");
       /* The marketplace installs from the checkout's working tree, so a checkout parked on another
@@ -566,6 +527,9 @@ const ship = async ({ flags }) => {
   const asked = flags.get("--from");
   const from = asked === undefined ? 1 : Number.parseInt(asked, 10);
   const note = flags.get("--note") ?? null;
+  const patience = flags.get("--wait");
+  const minutes = patience === undefined ? WAIT_MS / 60_000 : Number(patience);
+  if (!(minutes > 0)) stop(`--wait takes the minutes to wait behind another landing, not \`${patience}\`.`);
   const tree = process.cwd();
   const root = checkoutRoot(tree);
   const base = defaultBranch(tree);
@@ -579,18 +543,32 @@ const ship = async ({ flags }) => {
   const gateAt = steps.findIndex(([name]) => name === GATE);
   const order = [...steps.keys()].filter((at) => at >= from - 1);
   if (from - 1 > gateAt) order.unshift(gateAt);
-  for (const at of order) {
-    const [name, run] = steps[at];
-    console.log(`\nstep ${at + 1}/${steps.length}  ${name}`);
-    try {
-      await run();
-    } catch (error) {
-      if (!(error instanceof Stop)) throw error;
-      console.error(`\nstopped at step ${at + 1} (${name}): ${error.message}`);
-      console.error(`Resume from there: ${SELF} ship --from ${at + 1}`);
-      process.exitCode = 1;
-      return;
+  /* Taken only where this run will push: a resume aimed at the install steps spends the gate again,
+     and holding the branch through that would block every sibling for a landing nobody makes. */
+  const pushAt = steps.findIndex(([, , role]) => role === PUSHES);
+  const lands = order.includes(pushAt) ? (at) => Boolean(steps[at][2]) : () => false;
+  let drop = null;
+  try {
+    for (const at of order) {
+      const [name, run] = steps[at];
+      if (!drop && lands(at)) drop = await takeShipLock(tree, shipHolder(tree), { ms: minutes * 60_000 });
+      console.log(`\nstep ${at + 1}/${steps.length}  ${name}`);
+      try {
+        await run();
+      } catch (error) {
+        if (!(error instanceof Stop)) throw error;
+        console.error(`\nstopped at step ${at + 1} (${name}): ${error.message}`);
+        console.error(`Resume from there: ${SELF} ship --from ${at + 1}`);
+        process.exitCode = 1;
+        return;
+      }
+      if (at === pushAt && drop) {
+        drop();
+        drop = null;
+      }
     }
+  } finally {
+    if (drop) drop();
   }
   console.log(`\nReleased. Verify the change against the installed copy by its own path, not \`forge\` on PATH.`);
 };
@@ -599,7 +577,7 @@ const VERB_RUNS = new Map([["start", start], ["ship", ship], ["review", review]]
 
 const main = (argv) => {
   const [verb, ...rest] = argv;
-  if (!verb || verb === "-h" || verb === "--help") return console.log(USAGE);
+  if (!verb || verb === "-h" || verb === "--help") return console.log(usage());
   if (!VERB_RUNS.has(verb)) {
     stop(`no step \`${verb}\`. It is start, ship or review; \`${SELF} -h\` says what each does.`);
   }

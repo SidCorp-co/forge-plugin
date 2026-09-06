@@ -12,10 +12,11 @@ const takes = (name, value, why) => ({ name, value, why, spare: value.startsWith
 export const VERBS = new Map([
   ["start", { signature: "start <ISS-nn> [slug]", flags: [], words: 2 }],
   ["ship", {
-    signature: "ship [--from N] [--note S]",
+    signature: "ship [--from N] [--note S] [--wait M]",
     flags: [
       takes("--from", "N", "resume at step N, which a failed step prints for you"),
       takes("--note", "S", "the subject of the version commit, when the release has to make one"),
+      takes("--wait", "M", "minutes to wait behind another landing on this checkout before refusing"),
     ],
     words: 0,
   }],
