@@ -4406,3 +4406,27 @@ ISS-16 were read back.
   would have put it under a goal no clause meets. Recorded as a decision with its undo.
 - The brief line the run confirmed still holds in prose while the link beside it resolves nowhere.
   A confirmation is of the sentence read, not of the page, and the run filed the link separately.
+
+## Hundred-and-seventieth dry run — ISS-512
+
+The fold's landing takes the lock the ship takes (3.35.185, landed as 1fbe573, judged head 487e76b,
+eight files). The run script gains a fourth verb that lands a commit which is not a release: clean
+tree, fetch, rebase, push, under the same lock for the same span, with no gate, no version and no
+install. Both verbs run their steps through one shared runner, so neither can hold the branch for a
+span the other does not, and the fold reference now names the route in place of the typed push.
+Thirty-four criteria, gate green at the head that landed, nine of thirteen steps actually run. No
+restart owed. Closed by its run. Folded from its handback; the eighteen comments and ISS-528 were
+read back. This entry is the first landed through the new verb.
+
+- The plan named the guide beside the reference; the run left the guide alone and said so in the
+  correction, because the fold's landing rule has one home and the guide already points at it. A file
+  a plan lists is a file the plan expected to need, not one the run owes a write to.
+- A file named relative to the sibling listed before it counted as unplanned at the developed check,
+  and the only route past it was a correction whose moved line says the change grew when it did not.
+  Filed as ISS-528 and carried as the run's routed and gap records; the correction on the thread says
+  which it is.
+- Two evidence files were attached and only one is cited; an attachment cannot be deleted, so the run
+  said in a comment which one every verdict stands on. Where a thing cannot be taken back, the next
+  reader is told which plank is loose.
+- The run reported one instruction it broke: a stream edit on a scratch file where the tool routing
+  says Edit. Reported in the handback rather than found later, which is what the routing rule is for.
