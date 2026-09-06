@@ -16,7 +16,7 @@ needs that topic and by nobody else.
 | [the guides](cli/the-guides.md) | Why seven of the twelve guides the tracker serves are withheld, and what the disposition table still decides. |
 | [`new`](cli/new.md) | What a title and a body are read against before the tracker sees them, the kinds that decide which sections that is, and the three flags that take a filing the shape refuses. |
 | [`record`](cli/record.md) | Why the CLI owns every payload's shape, which two flags are read off the record, and what a record cannot undo. |
-| [`advance`](cli/advance.md) | What the entry criteria are read from, why nothing is read from the repository at the transition, and how a reopen is routed. |
+| [`advance`](cli/advance.md) | What the entry criteria are read from, why git is never asked at the transition while the requirements tree is, and how a reopen is routed. |
 | [`claim`](cli/claim.md) | How far a lease can be promised without a conditional write, what the step line is for, and why every write lists the issue's comments first. |
 | [`resume`](cli/resume.md) | What the worklog holds beside the lease, why no capture of it is automatic, and what the brief prints. |
 | [`spec`](cli/spec.md) | Why a clause is answered by its identifier, and the three readings of the notation that were narrowed rather than guessed. |

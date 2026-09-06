@@ -3,7 +3,7 @@
 import { fail } from "../resolve/settings.mjs";
 import { wantsHelp } from "../resolve/flags.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { Refused, refuse } from "../flow/record.mjs";
+import { Refused, refuse } from "../refusal.mjs";
 import { LINK_TEXT_PATTERN } from "../markdown.mjs";
 import { FORMS, KIND, parseRef } from "./parse.mjs";
 import { ambiguousUnder, clauseOf, lookup, withDescendants } from "./index.mjs";

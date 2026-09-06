@@ -6,11 +6,13 @@ import {
   FINDINGS, SHAPES, TRIAGES, judgedHead, landingMoved, landingWrote, looksTo, markedCommit,
   planFlags, reviewedHead, unwrap,
 } from "./machine.mjs";
+import { FORMS } from "../spec/parse.mjs";
 import { lightens } from "../ladder.mjs";
 import { sizeReport } from "../ladder-report.mjs";
 import { attachmentNames, evidenceHeld, isCommit } from "../tracker/evidence.mjs";
 
-import { Refused, assemble, criteriaLines, parse } from "./record.mjs";
+import { Refused } from "../refusal.mjs";
+import { assemble, criteriaLines, parse } from "./record.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
 import { waitsForPerson } from "../tracker/project-config.mjs";
 
@@ -462,6 +464,15 @@ export const CHECKS = {
     if (!view.criteria.length) {
       out.push(need("the criteria field holds no numbered line `N. outcome`", `forge record criteria ${ref} <criteria.md>`));
     }
+    /* Called here and nowhere else, so a transition with no citation to weigh reads no tree. A list and empty, never falsy — an empty array is truthy. Which absence is which: `citedClauses`. */
+    const cited = view.cited?.();
+    if (cited && !cited.length) {
+      out.push(need(
+        "no clause of this project's requirements tree is named by the description, the plan or the "
+          + `criteria, and a citation is \`<id>~<rev>\` — ${FORMS}`,
+        `forge record criteria ${ref} <criteria.md>, with a criterion opening \`<id>~<rev>:\``,
+      ));
+    }
     return out;
   },
   in_progress: (view, ref) => {
@@ -518,11 +529,11 @@ export const CHECKS = {
   closed: () => [],
   dropped: () => [],
 };
-/* The whole record in one object, so every check reads fields rather than fetching. */
-export const viewFrom = (documentId, issue, comments, cut = null, release = null) => {
+/* The whole record in one object, so every check reads fields rather than fetching. `cited` is the one argument passed unevaluated: resolving an issue's clauses walks the checkout, which only the `approved` check has a reason to do, and a caller handing over the answer would make every other transition pay for it and fail where the checkout is unreadable. */
+export const viewFrom = (documentId, issue, comments, cut = null, release = null, cited = null) => {
   const criteria = criteriaOf(issue);
   const names = attachmentNames(issue, comments);
-  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, ...assemble(comments, criteria) };
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, ...assemble(comments, criteria) };
 };
 export const parkRecord = (view, wanted = () => true, since = null, until = null) => {
   const found = view.comments

@@ -8,8 +8,13 @@ the transition, so a status nobody earned costs a refusal instead of a reader's 
 Two measurements shaped what it reads. The merged mark stamps a time and takes no commit, so the
 commit that landed lives in the note as `at <sha>`, read back from the audit comment the mark
 writes; a review may name seven hex digits where that note names forty, and the shorter of the two
-decides whether they are the same commit. Nothing is read from the repository at transition time:
-git is asked at the step that knows the answer, and the answer is written onto the issue there.
+decides whether they are the same commit. Git is never asked at transition time: it is asked at the
+step that knows the answer, and the answer is written onto the issue there, so a check reads a
+record of the moment it judges rather than the tree as it stands now. That is a rule about *git*, and
+one repository read survives it — whether the project keeps a `docs/requirements/` tree, and which
+of its clauses the issue names, which `approved` owes (AC-14-4-2). A tree is a standing fact about
+the project, like the release policy `released` asks the tracker for, and not an account of a change
+that some earlier step already wrote down.
 
 `--owed` is a question and answers zero; the same list without it is a refusal and answers one, so
 a caller can tell "not yet" from "here is what to type". Asked what is owed, it ends by naming the
@@ -27,9 +32,10 @@ to, so the landing status is a ceiling rather than a starting point.
 And the plan gained a third declaration, `User-facing outcome`, which is the only optional one of
 the three. What asks for a person's look before `released` was the screen-change line and nothing
 else, so a result with no screen to it shipped with nobody having judged it; a use case a person
-judges cannot be read off the criteria at the transition, because the clause that would say so lives
-in the repository and no status here is decided from there. It stays optional because FR-05 carries
-a shipped criterion whose sentence says the plan declares two lines.
+judges cannot be read off the criteria at the transition: the clause that would say so lives in the
+repository, and reading it back walks the whole tree, which only the `approved` check has a reason to
+do. It stays optional because FR-05 carries a shipped criterion whose sentence says the plan declares
+two lines.
 
 Whether that look is owed at all is the project's, and the answer was already on the tracker: a
 project has a staging branch, a production branch and a setting saying whether production deploys go

@@ -1,6 +1,8 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
    back by kind: docs/cli/record.md. The verb owns the shape; the tracker owns the fields. */
 import { fail, translateTo } from "../resolve/settings.mjs";
+import { Refused, refuse } from "../refusal.mjs";
+import { criteriaChecked } from "../spec/checked.mjs";
 import {
   CLOSES_FROM, FINDINGS, PARKS, SECTIONS, SHAPES, TRIAGES, blockOf, criterionNumber, markedCommit,
   readRecords, tagFor, unwrap,
@@ -20,13 +22,6 @@ import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { FIELD as SESSION, nextLine, renew } from "./lease.mjs";
 import { OPEN_KEPT, patchFrom, worklogLines, worklogOf } from "./worklog.mjs";
-
-/* Thrown, not exited: the helpers are tested in-process, and the verb turns one into a refusal.
-   `advance` reads the same record and refuses the same way, so both share this one class. */
-export class Refused extends Error {}
-export const refuse = (message) => {
-  throw new Refused(message);
-};
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
@@ -522,6 +517,7 @@ const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
   if (path.startsWith("--")) refuse(`${didYouMean("record criteria flag", path, RUN_FLAGS)} ${CRITERIA_BODY}`);
   if (extra.length) refuse(`record criteria takes one file and nothing after it, not \`${extra.join(" ")}\`.`);
   const criteria = criteriaLines(await bodyChecked(path, refuse));
+  criteriaChecked(criteria, refuse);
   const joined = joinedCriteria(criteria, conjunctionsFor());
   const { documentId, body } = await issueOf(reference);
   const acceptanceCriteria = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");

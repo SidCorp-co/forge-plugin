@@ -30,7 +30,7 @@ whenever an unrelated closing section changed, so it is left where a page render
 
 ## A citation read at a write
 
-`forge plan` resolves what a plan cites before it sends anything. The reader is the same one the
+`forge plan` and `forge record criteria` resolve what they are handed before either sends anything. The reader is the same one the
 verb above is, so a plan and a `spec` call disagree about no clause; what differs is the audience,
 and so the sentence — a reader who asked for one clause is told it is stale and stops, an author
 still holding the file is told which revision to write instead.
@@ -43,6 +43,21 @@ reads nothing:** this runs in repositories it cannot see, and `documents()` refu
 there is no `docs/requirements/`, which is the right answer to somebody who asked for a clause and
 the wrong one to somebody who asked to write a plan. The predicate that separates the two is
 `hasTree`.
+
+**A plan is read whole and a criterion only where it opens.** AC-14-4-1 says *opens with*, and the
+narrowing pays for itself immediately: a criterion is the one field that talks about identifiers as
+often as it makes claims about them, and this repository has already stored one saying what the
+reader answers for a rule of the index. Read whole, that criterion would be refused for quoting the
+example it exists to name. So a reference before the criterion's first colon is a claim and is
+resolved; the same reference three words later is prose and settles nothing. A plan has no opening,
+which is why it is still read whole and why quoting an identifier in one costs an author a refusal.
+
+**And an issue names a clause before it is approved.** Where the project keeps a tree, `forge
+advance` refuses `approved` until the description, the plan or the criteria names a clause that
+resolves — resolved at the transition and not recognised, since a prefix and a revision make an
+identifier and not a clause. There is no escape and none is coming: a use case nothing can cite is
+one AC-14-7-1 sends to a specification-change issue, and a run that writes its own exemption is the
+second home for a rule that this tree exists to prevent.
 
 The rules of the tree are identifiers to that check and citations to nothing. `R-10~1` has to reach
 the writer — it is a reference worth refusing, since a rule of the tree's own index is not a clause

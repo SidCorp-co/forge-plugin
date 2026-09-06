@@ -9,7 +9,9 @@ import { write } from "../tracker/rpc.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
 import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE } from "./machine.mjs";
-import { Refused, issueOf, post, refuse, render } from "./record.mjs";
+import { citedClauses } from "../spec/checked.mjs";
+import { Refused, refuse } from "../refusal.mjs";
+import { issueOf, post, render } from "./record.mjs";
 import { PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, transitionCall, viewFrom } from "./earned.mjs";
 import { lookAhead, owedLine, policyFor, targetOf } from "./route.mjs";
 import { FIELD, leaseOf, nextLine, renew } from "./lease.mjs";
@@ -21,8 +23,10 @@ const ASKED_AT = ["open", "confirmed"];
 export const USAGE = [
   usageOf("advance"),
   "The next status, its entry criteria checked against the issue's record alone, and either the",
-  "transition or every missing item beside the one command that supplies it. Nothing is read from",
-  "the repository: what git knew was written onto the issue at the step that knew it.",
+  "transition or every missing item beside the one command that supplies it. What git knew is never",
+  "asked again: it was written onto the issue at the step that knew it. What the project is, is read",
+  "where it is needed — the release policy, and whether it keeps a requirements tree the issue owes",
+  "a clause of.",
   "",
   "  --owed                  what the next status is owed, moving nothing, and the line last left",
   "  --next <line>           the step the status it enters starts on, for whoever comes next",
@@ -75,9 +79,10 @@ const readsTheRecord = (body, given) =>
 
 const viewOf = async (reference, given) => {
   const { documentId, body } = await issueOf(reference);
-  if (!readsTheRecord(body, given)) return viewFrom(documentId, body, [], null, null);
+  const cited = () => citedClauses(body);
+  if (!readsTheRecord(body, given)) return viewFrom(documentId, body, [], null, null, cited);
   const page = await commentPage(documentId);
-  return viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, await policyFor(body.plan, body.status));
+  return viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, await policyFor(body.plan, body.status), cited);
 };
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs

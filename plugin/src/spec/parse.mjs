@@ -36,7 +36,9 @@ const idPattern = (prefixes) => `\\b(${prefixes.join("|")})-(\\d+(?:-\\d+)*)\\b`
 const IDENT = new RegExp(`^${idPattern([...PREFIXES, ...Object.keys(FOREIGN)])}$`, "u");
 const HEADING_ID = new RegExp(idPattern(HEADED), "u");
 const BOLD_ID = new RegExp(`^\\*\\*${idPattern(PREFIXES)}\\*\\*\\s*(.*)$`, "u");
-const ANY_ID = new RegExp(`${idPattern([...PREFIXES, ...Object.keys(FOREIGN)])}(?:~(\\d+))?(?![\\w-])`, "gu");
+const REFERENCE = `${idPattern([...PREFIXES, ...Object.keys(FOREIGN)])}(?:~(\\d+))?(?![\\w-])`;
+const ANY_ID = new RegExp(REFERENCE, "gu");
+const OPENING = new RegExp(`^\\s*${REFERENCE}\\s*:`, "u");
 
 const HEADING = /^(#{1,6})\s+(.+)$/u;
 const AC_ITEM = /^\s*[-*]\s+\*\*(AC-\d+(?:-\d+)*)\*\*\s*(?:·\s*)?(.*)$/u;
@@ -98,6 +100,15 @@ export const identifiersIn = (text) =>
 /** The citations a clause makes: the revision is what makes one, and a rule of the tree's own index
  *  is no clause of the specification, so neither an identifier without a revision nor an `R-` is
  *  one. This answer is hashed into every clause, so its boundary is the one `CITED` drew. */
+/** The reference a text opens with, `<id>~<rev>` or a bare identifier, and `null` where it opens
+ *  with anything else. An identifier further into the text is prose — a criterion may name one to
+ *  say what a reader will see — and makes no claim this reader can settle. */
+export const opensWith = (text) => {
+  const found = OPENING.exec(String(text ?? ""));
+  if (!found) return null;
+  return { id: `${found[1]}-${found[2]}`, prefix: found[1], rev: found[3] === undefined ? null : Number(found[3]) };
+};
+
 export const citationsIn = (text) =>
   identifiersIn(text)
     .filter((one) => one.rev !== null && KIND[one.prefix])

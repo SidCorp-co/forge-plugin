@@ -1,7 +1,8 @@
 /* Where an issue goes next, and what that costs: the park it resumes from, the reopen a person's
    word left it at, and the one target the verb may move it to. What each status is earned by, and
    the record it is read out of, is earned.mjs. The flow: `forge guide contract the-flow`. */
-import { Refused, refuse } from "./record.mjs";
+import { citedClauses } from "../spec/checked.mjs";
+import { Refused, refuse } from "../refusal.mjs";
 import { TRIAGES, criterionNumber, planFlags, unwrap } from "./machine.mjs";
 import {
   CHECKS,
@@ -274,6 +275,6 @@ export const policyFor = async (plan, status = null) =>
   (personLooks(planFlags(unwrap(plan))) || stepAfter(status) === RELEASED ? releasePolicy() : null);
 
 export const owedSaid = async (documentId, issue, comments, ref, cut = null) => {
-  const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan, issue.status));
+  const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan, issue.status), () => citedClauses(issue));
   return owedLine(view, ref, owedIn(view, ref));
 };
