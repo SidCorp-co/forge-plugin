@@ -5072,3 +5072,30 @@ were read back.
 - A how page has a ceiling and this one was at it: two clauses had to leave to make room for the one
   that changed. What leaves a page goes somewhere, and here it went to the issue that owns the page's
   shape rather than into a second page.
+
+## Hundred-and-ninety-eighth dry run — ISS-567
+
+The batch reading of d320e80..3cd7645 lands what only simplifies (3.35.216, landed as 249fea0):
+sixteen files, behaviour-identical, the review mark moved to the range's end before the ship so the
+ship's own count meant what it said. Two halves of the reading, the simplify list the dispatcher
+posted and the hand half over the twenty-seven files the list never named, each claim given one
+disposition in a three-part ledger counted against the word *every*. Twenty-one criteria pass at the
+judged head, which the landing moved nothing of. Six filed (ISS-583, ISS-584, ISS-586, ISS-587,
+ISS-588, ISS-592), findings routed to ISS-348, ISS-561, ISS-115 and ISS-524, eight knowledge entries
+refreshed. Closed by its run; the release note withheld because a refactor has nothing to tell a
+person. No restart owed. Folded from its handback; the twenty-two comments were read back.
+
+- A finding that reads as a redundant write can be the write that keeps a stamp alive: the hand
+  half's first landing removed a note whose only job was to refresh a file's mtime for a reaper that
+  deletes by mtime. The whole-set consult caught it, the file went back to its landed text, and the
+  finding became an issue for the reasoning to live on (ISS-592). "Behaviour-identical" is a claim
+  the tests do not hold a stamp's age to.
+- Where the reading moves the mark decides what the ship counts: moved before the ship, the ship
+  saw the lines since the range's end and filed no reading; moved after, it would have filed one for
+  the range just read. The order is part of the method, not a detail of it.
+- Three modules with three different refusal shapes and no shared primitive is a finding dispositioned
+  "not landed, with the reason", and the reason is in the ledger where the next reading finds it. A
+  reading that merges what does not share a shape lands a fourth shape.
+- Two writes went through the shell where the brief required the editor; the run caught itself and
+  said so. The learning gate that would have held them judges skill and memory files only, so a rule a
+  brief carries and no gate reaches is kept by the run or not at all.
