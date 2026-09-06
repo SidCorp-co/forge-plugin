@@ -6,7 +6,7 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempHome } from "../fixtures.mjs";
+import { FIXTURE_CAPS, tempHome } from "../fixtures.mjs";
 
 const HOME = tempHome("field-write");
 mkdirSync(join(HOME.path, "forge"), { recursive: true });
@@ -17,11 +17,9 @@ process.env.FORGE_SESSION_ID = "field-write-session";
 const ISSUE = "22222222-2222-4222-8222-222222222222";
 const FENCE_OPEN = "\u27E6UNTRUSTED_DATA source=\"issue.acceptanceCriteria\"\u27E7";
 const FENCE_SHUT = "\u27E6END_UNTRUSTED_DATA\u27E7";
-const CAPS = {
-  plan: { maxLength: 200_000 },
-  acceptanceCriteria: { maxLength: 100_000 },
-  releaseNotes: { properties: { userFacing: { maxLength: 500 }, technical: { maxLength: 500 } } },
-};
+/* The tracker's own declaration, not a second copy of it: a stub that flattens the unions the real
+   schema uses is a stub against which an unwired cap reader passes. */
+const CAPS = FIXTURE_CAPS;
 
 const lease = () => ({
   sessionContext: {
@@ -64,7 +62,7 @@ globalThis.fetch = async (url, init) => {
   return { ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify({ jsonrpc: "2.0", id: 1, result }) };
 };
 
-const { capChecked, capRefusal, capsOf, lengthOf, writeField } = await import("../../src/tracker/field-write.mjs");
+const { capChecked, capRefusal, capsIn, capsOf, lengthOf, writeField } = await import("../../src/tracker/field-write.mjs");
 
 class Refused extends Error {}
 const refuse = (message) => {
@@ -91,7 +89,19 @@ test("the caps come off the schema, and a field it does not cap is not capped he
   const caps = await capsOf();
   assert.equal(caps.plan.self, 200_000, "the declared cap is read");
   assert.equal(caps.releaseNotes.halves.userFacing, 500, "and so is a cap on a half of an object field");
-  assert.equal(caps.releaseNotes.halves.section, undefined, "a half the schema does not cap carries none");
+  assert.equal(caps.acceptanceCriteria.self, 100_000, "through the null branch a nullable field declares");
+  assert.equal(caps.releaseNotes.halves.technical, 500, "and through a nullable half's own branches");
+  assert.equal(caps.releaseNotes.halves.section, null, "a half the schema does not cap carries none");
+  const two = { anyOf: [{ type: "string", maxLength: 100 }, { type: "string", maxLength: 200 }] };
+  assert.equal(capsIn({ f: two }).f.self, 200, "a union takes what any branch takes, so the widest is the cap");
+  const open = { anyOf: [{ type: "string", maxLength: 100 }, { type: "string" }] };
+  assert.equal(capsIn({ f: open }).f.self, null, "and a branch taking text uncapped means no cap is proven");
+  const listed = { anyOf: [{ type: "string", maxLength: 100 }, { type: ["string", "null"], maxLength: 300 }] };
+  assert.equal(capsIn({ f: listed }).f.self, 300, "a type given as a list counts as taking text");
+  const loose = { anyOf: [{ type: "string", maxLength: 100 }, { type: ["string", "null"] }] };
+  assert.equal(capsIn({ f: loose }).f.self, null, "including when that is the branch declaring no cap");
+  const holed = { anyOf: [{ type: "string", maxLength: 100 }, null] };
+  assert.equal(capsIn({ f: holed }).f.self, null, "a branch that is not an object is read, not thrown on");
   assert.equal(caps.sessionContext, undefined, "and a field it declares nothing for is absent");
 });
 
@@ -116,7 +126,7 @@ test("the length is counted in code points, so what only overflows as code units
   assert.equal(updates.length, 1, "400 code points is inside a 500 cap and was sent");
 });
 
-test("a rewrite is refused on the length it sent, and names the author's too", async () => {
+test("the refusal names the length that was sent and the author's, where a rewrite moved one", async () => {
   const said = capRefusal("releaseNotes.userFacing", 500, "y".repeat(600), "x".repeat(443));
   assert.match(said, /is 600/u, "the length measured is the rewrite's");
   assert.match(said, /You wrote 443/u, "and the author is told their own");

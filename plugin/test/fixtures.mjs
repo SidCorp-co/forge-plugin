@@ -126,10 +126,20 @@ export const FIXTURE_ENUMS = {
 };
 export const FIXTURE_FIELDS = ["plan", "sessionContext", "fixture-only"];
 /* The caps the tracker declares, so `section` carries none here because it carries none there. */
+/* The tracker's own shape: every nullable field is a union, and declaring these flat is what made an
+   unwired cap reader look green. `section` carries none on purpose. */
+const orNull = (node) => ({ anyOf: [node, { type: "null" }] });
 export const FIXTURE_CAPS = {
-  plan: { maxLength: 200_000 },
-  acceptanceCriteria: { maxLength: 100_000 },
-  releaseNotes: { properties: { userFacing: { maxLength: 500 }, technical: { maxLength: 500 } } },
+  plan: orNull({ type: "string", maxLength: 200_000 }),
+  acceptanceCriteria: orNull({ type: "string", maxLength: 100_000 }),
+  releaseNotes: orNull({
+    type: "object",
+    properties: {
+      section: { type: "string", enum: ["Added", "Changed", "Fixed", "Removed", "Security", "Skip"] },
+      userFacing: { type: "string", minLength: 1, maxLength: 500 },
+      technical: orNull({ type: "string", maxLength: 500 }),
+    },
+  }),
 };
 const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
 const ownSlug = () =>

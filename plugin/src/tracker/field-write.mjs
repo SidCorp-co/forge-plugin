@@ -1,6 +1,5 @@
-/* Every verb that sets a content field of an issue writes it here: one home for the cap, the renewal
-   and the read-back, and renewing is why it imports upward into `flow/`. The lease's own field stays
-   there (ISS-451) — a thunk value, a key-order-blind compare, and the write *is* the renewal. */
+/* Every verb setting a content field writes it here: one home for the cap, the renewal and the
+   read-back, which is why it imports upward. The lease's field stays in `flow/`: its write *is* the renewal (ISS-451). */
 import { scoped, toolNamed, write } from "./rpc.mjs";
 import { unwrap } from "../flow/machine.mjs";
 import { renew } from "../flow/lease.mjs";
@@ -29,19 +28,32 @@ const mismatch = (field, ref) =>
   FIELDS[field].said?.(ref)
   ?? `The update answered success but ${field} did not read back as written. Nothing to rely on.`;
 
-/* Code points, which is what `maxLength` counts, and never more than the UTF-16 code-unit count:
-   where the tracker counts units this misses an early refusal rather than inventing a false one. */
+/* Code points, what `maxLength` counts and never above the code-unit count: it can only miss a refusal. */
 export const lengthOf = (value) => [...String(value)].length;
+
+/* A nullable field is a union, so the cap sits in a branch: reading the node caps nothing, and a check
+   that never fires looks like a clean tree. */
+const branches = (node) => (Array.isArray(node?.anyOf) ? node.anyOf : Array.isArray(node?.oneOf) ? node.oneOf : [node]);
+/* A union takes what any branch takes: the widest cap binds, and an uncapped text branch proves none. */
+const takesText = (one) => {
+  const type = one?.type;
+  return type === undefined || type === "string" || (Array.isArray(type) && type.includes("string"));
+};
+const capped = (node) => {
+  const able = branches(node).filter(takesText);
+  if (!able.length || able.some((one) => !Number.isFinite(one?.maxLength))) return null;
+  return Math.max(...able.map((one) => one.maxLength));
+};
+const halvesOf = (node) => branches(node).find((one) => one?.properties)?.properties ?? {};
+
+export const capsIn = (data) => Object.fromEntries(Object.entries(data ?? {}).map(([field, node]) => [field, {
+  self: capped(node),
+  halves: Object.fromEntries(Object.entries(halvesOf(node)).map(([half, child]) => [half, capped(child)])),
+}]));
 
 let declared = null;
 export const capsOf = async () => {
-  if (declared) return declared;
-  const data = (await toolNamed("forge_issues"))?.inputSchema?.properties?.data?.properties ?? {};
-  const capped = (node) => (Number.isFinite(node?.maxLength) ? node.maxLength : null);
-  declared = Object.fromEntries(Object.entries(data).map(([field, node]) => [field, {
-    self: capped(node),
-    halves: Object.fromEntries(Object.entries(node?.properties ?? {}).map(([half, child]) => [half, capped(child)])),
-  }]));
+  declared ??= capsIn((await toolNamed("forge_issues"))?.inputSchema?.properties?.data?.properties);
   return declared;
 };
 
