@@ -14,17 +14,16 @@ export const noteLandedAs = (held, sent) =>
 /* Presence: a prose pipeline rewrites a plan at length, and equality would refuse writes that landed. */
 export const storedNotEmpty = (held) => Boolean(String(held ?? "").trim());
 
-/* Comparator, cap, gate and renewal are the field's, never a caller's argument. Built on first use
-   because `flow/lease.mjs` imports back; the lease renews nothing, since `renew` writes through here. */
+/* Comparator, cap, gate and renewal are the field's, never a caller's argument, and renewal is what a
+   write here means, so only a row that does not renew says so. Built on first use: `lease.mjs` imports back. */
 let rows = null;
 const fields = () => (rows ??= {
   plan: {
     same: storedNotEmpty,
-    renews: true,
     said: (ref) => `The update answered success but ${ref} still has no plan. Nothing was stored.`,
   },
-  acceptanceCriteria: { same: landedAs, renews: true },
-  releaseNotes: { same: noteLandedAs, halves: NOTE_HALVES, renews: true },
+  acceptanceCriteria: { same: landedAs },
+  releaseNotes: { same: noteLandedAs, halves: NOTE_HALVES },
   sessionContext: { same: leaseLandedAs, said: leaseMismatch, shows: true, renews: false },
 });
 
@@ -98,7 +97,7 @@ export const writeField = async (documentId, field, value, { ref, next, patch, r
   }
   const caps = await capsOf();
   if (row.shows) await mustBeShown([{ ref, documentId }]);
-  if (row.renews) await renew(documentId, ref, next, patch);
+  if (row.renews !== false) await renew(documentId, ref, next, patch);
   const given = typeof value === "function" ? await value() : value;
   let sent = given;
   await write("forge_issues", { action: "update", documentId, data: { [field]: given } }, (data) => {

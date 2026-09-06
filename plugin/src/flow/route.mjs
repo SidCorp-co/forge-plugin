@@ -197,7 +197,7 @@ const reopenTarget = (view, ref) => {
 /* What `released` will want, said at the rehearsal rather than at the refusal three statuses later:
    the fourth dry run's lesson is that an obligation nobody is told about early is one that slips. */
 export const lookAhead = (view, ref) => {
-  const said = personLooks(planFlags(unwrap(view.issue.plan)), view.release);
+  const said = personLooks(view.flags, view.release);
   if (!said || atLeast(view.issue.status, RELEASED) || answered(view, "screen-review")) return null;
   return `Ahead: released owes a person's look, because the plan declares ${said}. Ask for it with
 `
@@ -206,12 +206,16 @@ export const lookAhead = (view, ref) => {
 
 const TESTED = "tested";
 
+/* One gate, read by the line and by the fetch that feeds it: a screen change below `tested`, and not
+   `tested` being next, nothing arriving there until the change has landed. */
+export const credentialOwed = (flags, status) =>
+  (flags.screen === "yes" && !atLeast(status, TESTED));
+
 /* Said while a run can still do something about it, and not from the entry check, whose every item
-   is one owed. Not keyed on `tested` being next — nothing arrives there until the change has
-   landed — but on every status below it. A null deploy is unread, never empty. advance.md. */
+   is one owed. A null deploy is unread, never empty. advance.md. */
 export const credentialAhead = (view, ref) => {
-  if (planFlags(unwrap(view.issue.plan)).screen !== "yes") return null;
-  if (atLeast(view.issue.status, TESTED) || !view.deploy || view.deploy.withheld.length) return null;
+  if (!credentialOwed(view.flags, view.issue.status)) return null;
+  if (!view.deploy || view.deploy.withheld.length) return null;
   return `Ahead: ${TESTED} wants an attachment on every verdict that is not skipped, and this project
 `
     + `holds no test credential, so no login reaches the rendered state. Two verdict shapes get past
@@ -295,10 +299,9 @@ export const owedLine = (view, ref, held) => {
 export const policyFor = async (plan, status = null) =>
   (personLooks(planFlags(unwrap(plan))) || stepAfter(status) === RELEASED ? releasePolicy() : null);
 
-/* Gated as `policyFor` is, on `credentialAhead`'s own two conditions: spelled twice because the
-   fetch is async and the line is not, held together by the case that counts the calls. */
+/* Gated as `policyFor` is, on `credentialOwed`: the fetch is async and the line is not. */
 export const deployFor = async (plan, status = null) =>
-  (planFlags(unwrap(plan)).screen === "yes" && !atLeast(status, TESTED) ? stagingDeploy() : null);
+  (credentialOwed(planFlags(unwrap(plan)), status) ? stagingDeploy() : null);
 
 export const owedSaid = async (documentId, issue, comments, ref, cut = null) => {
   const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan, issue.status), () => citedClauses(issue));

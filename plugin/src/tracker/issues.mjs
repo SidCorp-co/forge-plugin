@@ -202,8 +202,9 @@ const notAKey = (reference) =>
       + ` looked for on the tracker at all: \`forge spec ${reference}\` reads that clause off disk.`
     : "");
 
-export const notAReference = (reference) =>
-  (UUID.test(reference) || HUMAN_REF.test(reference) ? null : notAKey(reference));
+export const isReference = (value) => typeof value === "string" && (UUID.test(value) || HUMAN_REF.test(value));
+
+export const notAReference = (reference) => (isReference(reference) ? null : notAKey(reference));
 
 /* Walked no further than the key: a lookup owes the whole backlog only where the key is not in it. */
 export const documentIdOf = async (reference) => {

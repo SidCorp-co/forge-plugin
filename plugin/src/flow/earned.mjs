@@ -353,7 +353,7 @@ const wholeOwed = (view, ref) => {
 /* A URL and a sha are citations; an attachment is the thing itself, and a screen is the one change
    whose proof is that somebody looked. `skipped` is exempt: there was nothing to look at. */
 const shownOwed = (view, ref) => {
-  if (planFlags(unwrap(view.issue.plan)).screen !== "yes") return [];
+  if (view.flags.screen !== "yes") return [];
   /* Current criteria only, as `judgedSince` reads: asked for again on a dropped number, the write refuses. */
   const current = new Set(view.criteria.map((one) => one.number));
   const numbers = [...view.verdicts]
@@ -450,7 +450,7 @@ export const CHECKS = {
   approved: (view, ref) => {
     const out = [];
     const plan = unwrap(view.issue.plan);
-    const flags = planFlags(plan);
+    const { flags } = view;
     /* Absent, the declarations read `no` in every reader downstream, so a fix defaults nothing here. */
     const asks = !lightPath(view, "approved");
     if (asks && !plan) out.push(need("the plan field is empty", `forge plan ${ref} <plan.md>`));
@@ -497,7 +497,7 @@ export const CHECKS = {
       return [need("the criteria field holds no numbered line, so there is nothing to judge", `forge record criteria ${ref} <criteria.md>`)];
     }
     const out = [...verdictsOwed(view, ref), ...judgedSince(view, ref), ...shownOwed(view, ref)];
-    if (planFlags(unwrap(view.issue.plan)).schema === "yes" && !view.names.length) {
+    if (view.flags.schema === "yes" && !view.names.length) {
       out.push(need(
         "the plan declares schema coupling, and no attachment carries the migration risk classification",
         `forge attach issue ${ref} <classification>`,
@@ -517,7 +517,7 @@ export const CHECKS = {
     if (!view.issue.releaseNotes?.section && !lightPath(view, "released")) {
       out.push(need("no release note and no withholding either", `forge record note ${ref} --section Added --user "<what the reporter sees>"`));
     }
-    const declared = personLooks(planFlags(unwrap(view.issue.plan)), view.release);
+    const declared = personLooks(view.flags, view.release);
     if (declared && !answered(view, "screen-review")) {
       out.push(need(
         `the plan declares ${declared}, and no person has answered since it was parked for review`,
@@ -533,7 +533,9 @@ export const CHECKS = {
 export const viewFrom = (documentId, issue, comments, cut = null, release = null, cited = null, deploy = null) => {
   const criteria = criteriaOf(issue);
   const names = attachmentNames(issue, comments);
-  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, ...assemble(comments, criteria) };
+  /* Parsed once: six readers here and in route.mjs each ran it over the same plan for the same answer. */
+  const flags = planFlags(unwrap(issue.plan));
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, ...assemble(comments, criteria) };
 };
 export const parkRecord = (view, wanted = () => true, since = null, until = null) => {
   const found = view.comments

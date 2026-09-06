@@ -77,10 +77,9 @@ export const relatedTo = (keys, rows) => {
   };
 };
 
-const readFiling = async (filing,
-  { routed = false, everySection = false, duplicates = true, page = null, shape: known = null } = {}) => {
+const readFiling = async (filing, read,
+  { routed = false, everySection = false, duplicates = true, shape: known = null } = {}) => {
   const shape = known ?? shapeOf(filing, { everySection });
-  const read = page ?? await liveTitles();
   const refused = duplicates
     ? await filingRefusal(filing, shape, { routed, page: read })
     : shapeRefusal(shape);
@@ -114,8 +113,8 @@ export const fileIssue = async ({
   if (ranked.refusal) return { refusal: refusalOf(ranked.refusal), description: null, shape: null };
   const { description, shape: known, rung } = bodyOf({ title, body, kind, sections, size, everySection });
   const seen = page ?? await liveTitles();
-  const { refusal, shape, beside } = await readFiling({ title, body: description, kind },
-    { routed, everySection, duplicates, page: seen, shape: known });
+  const { refusal, shape, beside } = await readFiling({ title, body: description, kind }, seen,
+    { routed, everySection, duplicates, shape: known });
   if (refusal) return { refusal, description, shape };
   const { joined, answer: comment, said } =
     await foldFiling(beside, { title, body: description, routed, fresh, soft });

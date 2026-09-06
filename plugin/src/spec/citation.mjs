@@ -42,11 +42,9 @@ const problemOf = (index, one) => {
   return problem ?? revisionProblem(clause, one);
 };
 
-const once = (entries, key) => [...new Map(entries.map((one) => [key(one), one])).values()];
-
 /** One sentence per identifier of `ids` carrying a revision that does not resolve against `index`. The parsed list is the unit, never the text behind it, which the caller has already read once. */
 export const citationProblems = (index, ids) =>
-  once(ids.filter((one) => one.rev !== null), (one) => `${one.id}~${one.rev}`)
+  [...new Map(ids.filter((one) => one.rev !== null).map((one) => [`${one.id}~${one.rev}`, one])).values()]
     .map((one) => problemOf(index, one))
     .filter(Boolean);
 

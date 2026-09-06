@@ -4,7 +4,7 @@
 import { rootFor } from "./transcripts.mjs";
 import { derivedFrom, profileOf, projectFrom, readingAside, runsUnder, stamp } from "./runs.mjs";
 import { UNRECORDED, cacheRoot, installedCopies, spansInstall, versionAt } from "./versions.mjs";
-import { WHEN, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
+import { WHEN, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
@@ -49,15 +49,8 @@ const DIMENSIONS = [
   ["spanned", (run) => run.spanned],
 ];
 
-const groupsOf = (rows) => {
-  const held = new Map();
-  for (const row of rows) {
-    const group = held.get(row.copy) ?? [];
-    if (!group.length) held.set(row.copy, group);
-    group.push(row);
-  }
-  return [...held].map(([copy, runs]) => ({ copy, runs: runs.length, profile: profileOf(runs) }));
-};
+const groupsOf = (rows) =>
+  [...groupBy(rows, (row) => row.copy)].map(([copy, runs]) => ({ copy, runs: runs.length, profile: profileOf(runs) }));
 
 /* Over rows present on both sides with runs on both: a row one window never reached has no median to
    move, and reading its zero as a fall is the mistake the phase table was built against. */
@@ -148,7 +141,7 @@ const movedLine = (what, one, way) => (one
   : `  ${what.padEnd(6)} no row ${way} on both sides`);
 
 /* Only the copies are folded: every other dimension has a handful of values a reader wants named. */
-const FOLD = { least: SMALL, folds: (name) => name === "copy" };
+const foldFor = (name) => (name === "copy" ? SMALL : null);
 
 const head = (held) => {
   const full = held.now.runs < held.size ? `  — ${held.size} is a full window and the corpus holds no more` : "";
@@ -182,7 +175,7 @@ export const evalLines = (held) => {
     movedLine("phase", held.moved.phases.fell, "fell"),
     "",
     "what separates the two windows, in runs before → now",
-    ...held.shifts.map((shift) => shiftLine(shift, FOLD)),
+    ...held.shifts.map((shift) => shiftLine(shift, foldFor(shift.name))),
     "",
     "A copy is the one installed when the run began, read off the cache directory's creation time, and "
       + "fixes the guide text, the CLI and the gates its calls used until the next install; a run that saw a "

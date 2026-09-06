@@ -57,10 +57,15 @@ const retryAfter = (text, headers) => {
 /* The tracker's fence: one home, and where each strip has to stand — docs/cli/the-primitives.md. */
 export const FENCE_PATTERN = String.raw`⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧`;
 const FENCE = new RegExp(String.raw`(\r?\n)?^(${FENCE_PATTERN})[ \t]*$(\r?\n)?`, "gmu");
+const OPENER = "⟦";
 const CLOSER = "⟦END";
 
-const unfenced = (text) =>
-  String(text).replace(FENCE, (all, before, marker, after) => (marker.startsWith(CLOSER) ? after ?? "" : before ?? ""));
+const unfenced = (text) => {
+  const held = String(text);
+  return held.includes(OPENER)
+    ? held.replace(FENCE, (all, before, marker, after) => (marker.startsWith(CLOSER) ? after ?? "" : before ?? ""))
+    : held;
+};
 
 export const unfencedIn = (value) => {
   if (typeof value === "string") return unfenced(value);
@@ -69,17 +74,22 @@ export const unfencedIn = (value) => {
   return Object.fromEntries(Object.entries(value).map(([key, held]) => [key, unfencedIn(held)]));
 };
 
-/* The path and the message are the whole signal; the uuid pattern repeats ~150 chars per field. */
-const readable = (text) => {
+const issueList = (text) => {
   const start = text.indexOf("[");
-  if (start < 0) return unfenced(text);
-  let parsed;
+  if (start < 0) return null;
   try {
-    parsed = JSON.parse(text.slice(start));
+    const parsed = JSON.parse(text.slice(start));
+    return Array.isArray(parsed) && parsed.length ? parsed : null;
   } catch {
-    return unfenced(text);
+    return null;
   }
-  if (!Array.isArray(parsed) || !parsed.length) return unfenced(text);
+};
+
+/* The path and the message are the whole signal. A message is stripped before its path goes in
+   front of it: the fence is line-anchored, and a marker with `x: ` ahead of it starts no line. */
+const readable = (text) => {
+  const parsed = issueList(text);
+  if (!parsed) return unfenced(text);
   return parsed
     .map((issue) => `${(issue.path ?? []).join(".") || "(root)"}: ${unfenced(issue.message ?? issue.code)}`)
     .join("\n");

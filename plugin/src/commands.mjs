@@ -341,9 +341,9 @@ export const commands = {
     /* Presence, never truth: the shared parser takes an empty string as a value, and a route read
        by truthiness would drop `--into ""` on the floor and file the issue instead. */
     const commenting = into !== undefined;
-    const relating = rides !== undefined;
     const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
     if (badKeys) fail(badKeys);
+    const relating = withKeys.length > 0;
     const wrongRoute = commenting ? notAReference(into) : null;
     if (wrongRoute) fail(wrongRoute);
     if (commenting && relating) fail("--into posts a comment and --with files an issue. Ask for one of them.");
@@ -389,7 +389,7 @@ export const commands = {
       fields: carried,
       routed: relating,
       fresh,
-      relations: withKeys.length
+      relations: relating
         ? await Promise.all(withKeys.map(async (one) =>
           ({ kind: "relates", blocksId: await documentIdOf(one) })))
         : null,

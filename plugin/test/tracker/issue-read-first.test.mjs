@@ -7,7 +7,8 @@ import { createServer } from "node:http";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { isReference, joined, targetsOfTool, writeTargets } from "../../src/tracker/issue-read.mjs";
+import { joined, targetsOfTool, writeTargets } from "../../src/tracker/issue-read.mjs";
+import { isReference } from "../../src/tracker/issues.mjs";
 import { shellText, starts } from "../../hooks/_hook.mjs";
 import { callHookAsync, tempHome } from "../fixtures.mjs";
 

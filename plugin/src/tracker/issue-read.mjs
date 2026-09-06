@@ -1,7 +1,7 @@
 /* Which issues a call writes to, read from the arguments the verb takes and not searched for in the
    text: a reference in a heredoc, a quoted value or a path is no target, and one by uuid is. And
    which call files a new one, which names no issue yet and so owes no comment delivery. */
-import { HUMAN_REF, UUID } from "./issues.mjs";
+import { isReference } from "./issues.mjs";
 
 const READS = new Set(["list", "get"]);
 const DEPTH = 4;
@@ -17,8 +17,6 @@ const payload = (text) => {
 };
 
 export const readAction = (held) => READS.has((typeof held === "string" ? payload(held) : held)?.action);
-
-export const isReference = (value) => typeof value === "string" && (UUID.test(value) || HUMAN_REF.test(value));
 
 /* Where each tool carries the issue — and a comment's own id, which names no issue, is not there. */
 const TARGET_KEYS = {

@@ -10,7 +10,7 @@ import { LOG_PATH, MARK, answered, logEntries, modelKey, numbered, scoreOf } fro
 import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
-import { WHEN, shiftBetween, shiftLine, twoWindows } from "../stats/windows.mjs";
+import { WHEN, groupBy, shiftBetween, shiftLine, twoWindows } from "../stats/windows.mjs";
 
 const DEFAULT_WINDOW = 100;
 const REPLAY_WINDOW = 30;
@@ -128,17 +128,12 @@ export const evalWindows = (entries, size = MARK) => twoWindows(windowOf(entries
    under which `scoreOf` answers with exactly one row rather than re-splitting by effort inside. */
 const keyOf = (row) => `${modelKey(row)}  prompt ${promptKey(row)}`;
 
-const byKey = (rows) => {
-  const held = new Map();
-  for (const row of rows) held.set(keyOf(row), [...(held.get(keyOf(row)) ?? []), row]);
-  return held;
-};
+const byKey = (rows) => groupBy(rows, keyOf);
 
 /* The whole log's verdicts, not the window's: a verdict is written after the consult it scores and
    lands outside the window as often as in it. Scored on the window alone every model reads 0 kept,
    which looks like a log nobody ruled on rather than like a defect. */
 const groupNumbers = (rows, verdicts) => ({ score: scoreOf([...verdicts, ...rows])[0], held: statsOf(rows) });
-
 
 /* An absent measurement is said, never averaged as a zero: a group whose rows predate `usage` would
    otherwise read as the cheap window, which is the one mistake the comparison exists to avoid. */

@@ -82,10 +82,12 @@ const viewOf = async (reference, given) => {
   const cited = () => citedClauses(body);
   if (!readsTheRecord(body, given)) return viewFrom(documentId, body, [], null, null, cited);
   const page = await commentPage(documentId);
-  /* Only the rehearsal prints the line, so only the rehearsal reads what it is built from. */
-  const deploy = given.owed ? await deployFor(body.plan, body.status) : null;
-  return viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null,
-    await policyFor(body.plan, body.status), cited, deploy);
+  /* Only the rehearsal prints the line, so only the rehearsal reads it; and neither read feeds the other. */
+  const [deploy, release] = await Promise.all([
+    given.owed ? deployFor(body.plan, body.status) : null,
+    policyFor(body.plan, body.status),
+  ]);
+  return viewFrom(documentId, body, page.comments, page.hasMore ? cutLine(page) : null, release, cited, deploy);
 };
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs
