@@ -98,11 +98,10 @@ export const dispatch = async (given, ev = readEvent()) => {
   });
 };
 
-/* The deadline is the event's, under what hooks.json registers, and runs from the process rather
-   than from this import: the entry hops before it, and a fallback would get a fresh budget. */
+/* The deadline is the event's, under what hooks.json registers, and runs from the process rather than from this import: the entry hops before it, and a fallback would get a fresh budget. Whole milliseconds: the origin is fractional, and a child's timeout throws on anything else (ISS-530). */
 const startedAt = performance.timeOrigin;
 let deadline = DEADLINES.post;
-export const remaining = () => deadline - (Date.now() - startedAt);
+export const remaining = () => Math.floor(deadline - (Date.now() - startedAt));
 
 /** One gate on its own, as the suite and a hand-run call it. */
 export const alone = (name) => dispatch([name]);

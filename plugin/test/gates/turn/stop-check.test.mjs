@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { callHook, cleanRepo, tempRoom } from "../../fixtures.mjs";
 
 const HOOK = new URL("../../../hooks/entries/turn/stop-check.mjs", import.meta.url).pathname;
+const GATE = new URL("../../../hooks/gate.mjs", import.meta.url).pathname;
 const REPO = new URL("../../../..", import.meta.url).pathname.replace(/\/$/u, "");
 
 /* Set before the gate is loaded and not after: the consult log's path is read once, at the import,
@@ -60,6 +61,21 @@ const consult = (root) => JSON.stringify({
   ok: true,
   files: ["a.mjs"],
   reply: "- **F1 — New — major:** `a.mjs:1` — x.",
+});
+
+/* The registered line, not the entry: it sets the stop clock, under which a lint's budget is what is
+   left rather than the ceiling, and a budget that is not a whole number is one no child accepts. */
+test("the registered stop line refuses a dense write too, on the stop clock", () => {
+  const file = join(REPO, "plugin", "test", `stop-clock-${randomUUID().slice(0, 8)}.mjs`);
+  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  try {
+    const ev = { hook_event_name: "Stop", session_id: randomUUID(), transcript_path: transcript(used("Write", { file_path: file })), cwd: cleanRepo() };
+    const said = spawnSync(process.execPath, [GATE, "stop", "stop-check"], { input: JSON.stringify(ev), encoding: "utf8", env: room() });
+    assert.equal(said.status, 0, said.stderr);
+    assert.match(said.stdout, /stop-clock-.*comment-density/su, `the stop clock's budget reached the linter: ${said.stdout || "(silent)"}`);
+  } finally {
+    rmSync(file, { force: true });
+  }
 });
 
 test("a turn that left nothing red ends in silence", () => {
