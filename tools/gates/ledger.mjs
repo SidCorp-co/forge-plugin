@@ -15,7 +15,8 @@ const ENTRY = new RegExp(`^([0-9a-f]{${DIGEST_LENGTH}}) (?:(\\d+)s )?(.+)$`, "u"
 const SHARED = /^package(?:-lock)?\.json$/u;
 
 export const LEDGER_UNSEEN = `Keyed on repository file content, the manifests, this runner's own modules and ${process.version}.
-It cannot see node_modules as installed, anything outside the repository, or a tool on PATH; --full ignores it.`;
+It cannot see node_modules as installed, anything outside the repository, or a tool on PATH. --full ignores
+those digests, and reads the seconds beside them all the same, for the order and for nothing else.`;
 
 const hashed = new Map();
 
@@ -68,6 +69,18 @@ export const recordPass = (dir, step, seconds) => {
   writeFileSync(staging, `${step.digest} ${seconds}s ${step.label}\n`);
   renameSync(staging, fileFor(dir, step.label));
 };
+
+// By label, so a run that may trust none of these digests is ordered by this record anyway; `ledgerFor`'s own `took` answers for its skip line and not for this, two reads of a file every worktree writes to being free to disagree.
+export const secondsFor = (root, steps) => {
+  const dir = recordDir(root);
+  return steps.map((step) => ({ ...step, seconds: recorded(dir, step.label).seconds ?? null }));
+};
+
+const LAST = Number.MAX_SAFE_INTEGER;
+
+// Never recorded and recorded before this kept seconds are one case, `null`, spent last. Stable sort.
+export const cheapestFirst = (timed) =>
+  [...timed].sort((one, other) => (one.seconds ?? LAST) - (other.seconds ?? LAST));
 
 /** One `reads` decides both whether the diff reaches a step and what its digest covers, so the
  *  ledger can never trust a wider or narrower set of inputs than the scoping already trusted. */

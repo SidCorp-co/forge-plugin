@@ -10,7 +10,6 @@ import { fileURLToPath } from "node:url";
 
 import { stampRoom } from "../../src/hooks/stamps.mjs";
 import { STEPS, WHOLE_TREE_TESTS } from "../../../tools/gates/steps.mjs";
-import { recordRun, runSays, runSeries } from "../../../tools/gates/timing.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
@@ -118,11 +117,35 @@ const plantSeconds = (work) => {
 
 const everyStepRan = (said) => new RegExp(`All ${STEPS.length} gate step\\(s\\) passed`, "u").test(said.stdout);
 
+/* Falling with the table, so cheapest-first is the table read backwards and no run could reach that
+   order by accident; the two cheapest share a figure, where a stable sort is watched (ISS-358). */
+const COSTS = new Map(STEPS.map((step, nth) => [step.label, Math.max(2, STEPS.length - nth) * 10]));
+// One entry stripped to the form written before the record kept seconds, one removed: both no figure.
+const LEGACY = STEPS.at(2).label;
+const ABSENT = STEPS.at(4).label;
+
+const plantCosts = (work) => {
+  for (const name of entryNames(work)) {
+    const at = join(entryDir(work), name);
+    const [digest, , label] = readFileSync(at, "utf8").trim().split(" ");
+    if (label === ABSENT) rmSync(at);
+    else writeFileSync(at, label === LEGACY ? `${digest} ${label}\n` : `${digest} ${COSTS.get(label)}s ${label}\n`);
+  }
+};
+
+const TIMED = STEPS.map((step) => step.label).filter((label) => label !== LEGACY && label !== ABSENT);
+const CHEAPEST_FIRST = [...TIMED.slice(-2), ...TIMED.slice(0, -2).reverse(), LEGACY, ABSENT];
+
+const spentIn = (said) => [...said.matchAll(/^=== (\S+) ===$/gmu)].map((one) => one[1]);
+const orderBlock = (said) => said.split("=== order:").at(1).split("\n\n")[0].split("\n").slice(1);
+const orderedIn = (said) => orderBlock(said).map((line) => line.trim().split(/\s+/u)[0]);
+
 test("-h names the two flags and what the record cannot see", () => {
   const said = run(ROOT.replace(/\/$/u, ""), ["-h"]).stdout;
   for (const one of ["--full", "--anyway", "node_modules", "merge-base", "tree judged",
     "seconds that step took", "one line per green run", "a temporary directory of this run's own",
-    "a path no step claims", "leaves the record", "records no pass"]) {
+    "a path no step claims", "leaves the record", "records no pass",
+    "decide the order the steps are spent in: cheapest first", "no seconds for"]) {
     assert.ok(said.includes(one), `${one} is not in the usage:\n${said}`);
   }
 });
@@ -169,7 +192,7 @@ test("a path no step claims leaves the record unread, and that run records no pa
     landed(work, "newdir/one.mjs", "export const one = 1;\n");
     const said = run(work);
     assert.equal(said.status, 0, said.stdout + said.stderr);
-    assert.match(said.stdout, /=== ledger: not read — no step claims newdir\/one\.mjs/u, said.stdout);
+    assert.match(said.stdout, /=== ledger: digests not read — no step claims newdir\/one\.mjs/u, said.stdout);
     assert.match(said.stdout, /Claim the path in tools\/gates\/steps\.mjs/u, said.stdout);
     assert.ok(!said.stdout.includes("green already"), `the record was read:\n${said.stdout}`);
     assert.ok(everyStepRan(said), said.stdout);
@@ -195,7 +218,7 @@ test("a diff holding a runner module and a path no step claims leaves the record
     assert.ok(everyStepRan(first), first.stdout);
     const again = run(work);
     assert.match(again.stdout, /the full gate — tools\/gates\/scope\.mjs decides what a run may skip/u, again.stdout);
-    assert.match(again.stdout, /=== ledger: not read — no step claims newdir\/one\.mjs/u, again.stdout);
+    assert.match(again.stdout, /=== ledger: digests not read — no step claims newdir\/one\.mjs/u, again.stdout);
     assert.ok(everyStepRan(again), again.stdout);
   } finally {
     rmSync(at, { recursive: true, force: true });
@@ -217,7 +240,7 @@ test("a run that can compute no merge base leaves the record unread", () => {
     const said = run(work);
     assert.equal(said.status, 0, said.stdout + said.stderr);
     assert.match(said.stdout, /the full gate — no merge base between HEAD and master/u, said.stdout);
-    assert.match(said.stdout, /=== ledger: not read — no merge base between HEAD and master/u, said.stdout);
+    assert.match(said.stdout, /=== ledger: digests not read — no merge base between HEAD and master/u, said.stdout);
     assert.ok(everyStepRan(said), said.stdout);
     assert.deepEqual(entries(work), held, "a run the record could not vouch for wrote to it");
   } finally {
@@ -245,7 +268,7 @@ test("a listing git refuses is not read as a tree where nothing moved", () => {
       { cwd: work, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
 
     assert.equal(said.status, 0, said.stdout + said.stderr);
-    assert.match(said.stdout, /=== ledger: not read — git diff --name-only \S+ was refused/u, said.stdout);
+    assert.match(said.stdout, /=== ledger: digests not read — git diff --name-only \S+ was refused/u, said.stdout);
     assert.ok(everyStepRan(said), said.stdout);
     assert.deepEqual(entries(work), held, "a run the record could not vouch for wrote to it");
   } finally {
@@ -382,6 +405,57 @@ test("--full runs every step whatever the diff and the record say", () => {
   }
 });
 
+/* The table's order was written by hand and the record already knew what each step costs, so a tree
+   about to fail a one-second step waited behind an eight-minute one to hear it (ISS-358). */
+test("the steps are spent cheapest first by the record, a step with no figure last, under --full too", () => {
+  const { at, work } = scratch("order");
+  try {
+    touchedEverywhere(work, "one");
+    assert.equal(run(work).status, 0);
+    assert.equal(entryNames(work).length, STEPS.length, "the record does not answer for every step yet");
+    plantCosts(work);
+
+    /* --full first: it records no pass, so the planted figures survive it for the scoped run below. */
+    const whole = run(work, ["--full"]);
+    assert.equal(whole.status, 0, whole.stdout + whole.stderr);
+    assert.deepEqual(spentIn(whole.stdout), CHEAPEST_FIRST, `--full spent the table's order:\n${whole.stdout}`);
+
+    touchedEverywhere(work, "two");
+    const said = run(work);
+    assert.equal(said.status, 0, said.stdout + said.stderr);
+    assert.deepEqual(spentIn(said.stdout), CHEAPEST_FIRST, `the steps were spent in another order:\n${said.stdout}`);
+    // The block a reader is given before the wait, against what the run then did with it.
+    assert.deepEqual(orderedIn(said.stdout), CHEAPEST_FIRST, `the order printed is not the order spent:\n${said.stdout}`);
+    for (const label of [LEGACY, ABSENT]) {
+      const line = orderBlock(said.stdout).find((one) => one.trim().split(/\s+/u)[0] === label);
+      assert.match(line, /no figure recorded, so last/u, `${label} has no figure and the run does not say so`);
+    }
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* Ordering is about which spent step goes first, and what these widenings withhold trust from is the
+   digests, which decide whether a step is spent at all — so the seconds are still read here. */
+test("a run that may not read the digests is ordered by the seconds all the same", () => {
+  const { at, work } = scratch("order-unread");
+  try {
+    touchedEverywhere(work, "one");
+    assert.equal(run(work).status, 0);
+    plantCosts(work);
+    const held = entries(work);
+
+    landed(work, "newdir/one.mjs", "export const one = 1;\n");
+    const said = run(work);
+    assert.equal(said.status, 0, said.stdout + said.stderr);
+    assert.match(said.stdout, /=== ledger: digests not read — no step claims newdir\/one\.mjs/u, said.stdout);
+    assert.deepEqual(spentIn(said.stdout), CHEAPEST_FIRST, `a widened run spent the table's order:\n${said.stdout}`);
+    assert.deepEqual(entries(work), held, "a run the record could not vouch for wrote to it");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
 /* More than one session stands in the shared checkout, so its uncommitted paths may be another
    agent's. A worktree is the opposite case: its uncommitted work is the point of having one. */
 test("the dirty shared checkout is refused, --anyway gates it and says so at both ends", () => {
@@ -496,79 +570,3 @@ test("a run whose step failed leaves no figure", () => {
   }
 });
 
-/* The sentence, on a planted record rather than on real timings: every step of a scratch checkout
-   is `node -e ""`, so a run there measures process startup and no comparison would be stable. */
-const planted = (lines) => {
-  const dir = join(tempRoom("said-"), "gate-ledger");
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "runs"), lines.length === 0 ? "" : `${lines.join("\n")}\n`);
-  return dir;
-};
-
-const FULL = "2026-01-01T00:00:00.000Z 80s 12/12";
-
-test("a figure is compared only with a whole-gate figure, and what is comparable is always named", () => {
-  assert.match(runSays(planted([])), /no run is recorded/u);
-  assert.match(runSays(planted([])), /npm run check -- --full/u);
-
-  /* The shape this repository actually produces: scoped ship-gate runs between the full ones. Read
-     off the newest two *runs* the comparison would never subtract anything at all. */
-  const apart = runSays(planted([FULL, "2026-01-02T00:00:00.000Z 9s 3/12", "2026-01-03T00:00:00.000Z 100s 12/12"]));
-  assert.match(apart, /100s over 12 of 12 step\(s\) on 2026-01-03, 1\.25x the 80s before it/u,
-    `two whole-gate figures with a scoped run between them were not subtracted:\n${apart}`);
-
-  const scoped = runSays(planted([FULL, "2026-01-03T00:00:00.000Z 9s 3/12"]));
-  assert.match(scoped, /^9s over 3 of 12 step\(s\) on 2026-01-03, which is scoped and measures less/u, scoped);
-  assert.match(scoped, /the whole gate last took 80s over 12 of 12 step\(s\) on 2026-01-01, the only whole-gate figure recorded/u,
-    `a scoped run that names no comparable figure leaves the reader to assume one:\n${scoped}`);
-
-  const first = runSays(planted(["2026-01-04T00:00:00.000Z 9s 3/12"]));
-  assert.match(first, /no run recorded spent the whole table; npm run check -- --full plants a figure/u, first);
-
-  /* A table that gained a step is another gate, and subtracting across the two reports the addition
-     as drift — which is the reading a review would then act on. */
-  const grown = runSays(planted([FULL, "2026-01-07T00:00:00.000Z 100s 13/13"]));
-  assert.match(grown, /100s over 13 of 13 step\(s\) on 2026-01-07, and the one before it was 80s over 12 of 12 step\(s\)/u, grown);
-  assert.match(grown, /a table of another size, so nothing is subtracted/u, grown);
-  assert.doesNotMatch(grown, /x the 80s/u, `a 12-step gate was subtracted from a 13-step one:\n${grown}`);
-
-  const sameSize = runSays(planted([FULL, "2026-01-08T00:00:00.000Z 40s 13/13", "2026-01-09T00:00:00.000Z 50s 13/13"]));
-  assert.match(sameSize, /50s over 13 of 13 step\(s\) on 2026-01-09, 1\.25x the 40s before it/u,
-    `two figures over the same table were not subtracted:\n${sameSize}`);
-
-  // A gate under a second is the scratch case, and a ratio over it is a division by zero.
-  assert.match(runSays(planted(["2026-01-05T00:00:00.000Z 0s 12/12", "2026-01-06T00:00:00.000Z 3s 12/12"])),
-    /3s more than the one before it, which took under a second, so there is no ratio/u);
-});
-
-/* Any trimming is a write that read the file first, and this one is shared, so the figure a release
-   is about to read is what a stale snapshot renamed over it would drop. It grows instead. */
-test("the record is only ever appended, however far past a reader's needs it has grown", () => {
-  const runs = (count) => Array.from({ length: count }, (one, nth) => `2026-01-01T00:00:0${nth % 10}.000Z ${nth}s 12/12`);
-  for (const count of [30, 65]) {
-    const dir = planted(runs(count));
-    recordRun(dir, { seconds: 7, ran: 12, total: 12 });
-    const held = runSeries(dir);
-    assert.equal(held.length, count + 1, `${count} run(s) plus one left ${held.length}: the file was rewritten`);
-    assert.equal(held.at(-1).seconds, 7, "the fresh figure is the last line");
-    assert.equal(held[0].seconds, 0, "the oldest line went, and only a rewrite can drop one");
-  }
-});
-
-/* Worktrees of one checkout share this file and each finishes a gate on its own clock. What proves
-   the write does not carry what it read is the case above; this pins the outcome that follows from
-   it, over real processes rather than over one that calls the module twice. */
-test("eight runs recording at once each leave their figure", () => {
-  const dir = planted([]);
-  const write = `import { recordRun } from "${join(ROOT, "tools", "gates", "timing.mjs")}";
-    recordRun(process.argv[2], { seconds: Number(process.argv[3]), ran: 3, total: 12 });`;
-  const at = join(dir, "write.mjs");
-  writeFileSync(at, write);
-  // Backgrounded and waited for: eight spawnSync calls would run one after another.
-  const together = spawnSync("sh",
-    ["-c", `for n in 1 2 3 4 5 6 7 8; do "${process.execPath}" "${at}" "${dir}" $n & done; wait`],
-    { encoding: "utf8" });
-  assert.equal(together.status, 0, together.stderr);
-  const seconds = runSeries(dir).map((run) => run.seconds).sort((a, b) => a - b);
-  assert.deepEqual(seconds, [1, 2, 3, 4, 5, 6, 7, 8], `8 runs recorded ${seconds.length} figure(s)`);
-});

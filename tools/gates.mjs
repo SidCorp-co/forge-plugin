@@ -9,7 +9,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
-import { ledgerFor, LEDGER_UNSEEN, recordPass } from "./gates/ledger.mjs";
+import { cheapestFirst, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
@@ -29,9 +29,9 @@ the merge-base with the default branch, so committing does not empty it. A chang
 claims widens the run to everything rather than guessing, and so does a change to the runner or
 its own modules.
 
-Widening is half of it. A run that cannot place every changed path in a step leaves the record
-unread as well, because no step's digest is keyed on a path no step reads, so the widening would
-be handed straight back. Three ways it cannot: a path no step claims, no merge base to diff
+Widening is half of it. A run that cannot place every changed path in a step leaves the record's
+digests unread as well, because no step's digest is keyed on a path no step reads, so the widening
+would be handed straight back. Three ways it cannot: a path no step claims, no merge base to diff
 against, and a listing git refused. Each of those says which it was, spends every step and
 records no pass. A diff that succeeded and came back empty is none of them, and keeps the record.
 
@@ -39,6 +39,14 @@ Past that, a step whose inputs are byte for byte what they were when it last pas
 says which digest matched. Only passes are recorded, so a red step is red again next time. The
 record lives under the common git directory, so a worktree's pass counts for the checkout's re-run
 of the same tree, and carries the seconds that step took when it passed.
+
+Those seconds decide the order the steps are spent in: cheapest first, so a tree that is going to be
+rejected is told about its cheapest failure rather than made to wait behind an expensive step, and a
+re-run after a fix pays the cheap steps and stops. A step the record holds no seconds for — never
+recorded, or recorded before the record kept them — is spent after every step that has them, and the
+order this prints says so beside it. Which steps are spent and what each answers are untouched; the
+step table stays a hand-written list and nothing is written back into it. --full orders the same way,
+spending every step whatever the digests say and reading the seconds beside them for the order alone.
 
 Beside it, one line per green run: the whole run's seconds and how many of the table's steps it
 actually spent. Only a run that spent every step measures this gate, which is what --full is for, so
@@ -176,8 +184,8 @@ if (!full) {
   if (plan.full) console.log(`\n=== scope: the full gate — ${plan.reason} ===`);
   else planned = plan.steps.filter((step) => step.run);
   if (plan.unread) {
-    console.log(`\n=== ledger: not read — ${plan.unread} ===`);
-    console.log(`Every step runs and this run records no pass. ${plan.act}`);
+    console.log(`\n=== ledger: digests not read — ${plan.unread} ===`);
+    console.log(`Every step runs and this run records no pass; the seconds beside them are read for the order. ${plan.act}`);
   } else {
     ledger = orRefuse("cannot read its own record", () => ledgerFor(planned, { root: ROOT, files, runner: SELF }));
     const green = ledger.entries.filter((step) => step.green);
@@ -188,6 +196,18 @@ if (!full) {
     }
     console.log(`${ledger.dir}\n${LEDGER_UNSEEN}`);
     planned = ledger.entries.filter((step) => !step.green);
+  }
+}
+
+/* Every arrival at the loop is ordered by the same read, the two trusting no digest included: what they
+   withhold trust from decides whether a step is spent, and this only which spent step goes first. */
+planned = orRefuse("cannot read the seconds its steps last took", () => cheapestFirst(secondsFor(ROOT, planned)));
+
+if (planned.length > 0) {
+  console.log(`\n=== order: ${planned.length} step(s), cheapest first by the seconds recorded ===`);
+  for (const step of planned) {
+    console.log(`  ${step.label.padEnd(22)} `
+      + (step.seconds === null ? "no figure recorded, so last" : `${step.seconds}s when it last passed`));
   }
 }
 
