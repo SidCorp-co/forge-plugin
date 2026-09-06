@@ -17,7 +17,7 @@ const REPO = new URL("../../../..", import.meta.url).pathname.replace(/\/$/u, ""
    and this suite must not read the developer's own log. Where its stamps land is the fixture's,
    which pointed `TMPDIR` at this process's own root before this line ran. */
 process.env.XDG_CONFIG_HOME = tempRoom("stop-check-own-");
-const { run, silentSince } = await import("../../../hooks/gates/turn/stop-check.mjs");
+const { run, silentSince, judgedStop } = await import("../../../hooks/gates/turn/stop-check.mjs");
 
 /* Both roots are the child's too, for the same two reasons. */
 const room = (log) => {
@@ -161,6 +161,96 @@ test("FORGE_STOP_DISABLE stands the whole gate down", () => {
   const cwd = cleanRepo();
   const env = { ...room(`${consult(realpathSync(cwd))}\n`), FORGE_STOP_DISABLE: "1" };
   assert.equal(stopped(env, { transcript_path: transcript(), cwd }), null);
+});
+
+/* A subagent's stop names the parent's transcript and cwd in the common fields and its own transcript
+   beside them; the first record of its own is the prompt it was handed, which nobody typed. For weeks
+   the gate read the parent's and passed every delegated run (ISS-530). */
+const handed = (...records) => written([
+  { type: "user", timestamp: AT, message: { content: "Work ISS-1." } }, ...records,
+]);
+const subagentStop = (event) => ({
+  hook_event_name: "SubagentStop", agent_type: "forge:runner", transcript_path: transcript(), ...event,
+});
+
+test("a subagent's stop is judged on the subagent's own transcript, not the parent's", () => {
+  const file = join(REPO, "plugin", "test", `stop-agent-${randomUUID().slice(0, 8)}.mjs`);
+  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  try {
+    const own = handed(used("Write", { file_path: file }));
+    const said = stopped(room(), subagentStop({ agent_transcript_path: own, cwd: cleanRepo() }));
+    assert.match(said?.reason ?? "", /stop-agent-/u, `the subagent's write is not named: ${said?.reason}`);
+    assert.match(said.reason, /code-quality\/comment-density/u);
+    assert.equal(stopped(room(), subagentStop({ agent_transcript_path: own, cwd: cleanRepo(), agent_type: "Explore" })), null,
+      "a subagent this plugin did not dispatch is not this gate's to judge");
+    assert.equal(stopped(room(), subagentStop({ agent_transcript_path: own, cwd: cleanRepo(), agent_type: "runner" }))?.reason.includes("stop-agent-"), true,
+      "the bare role name is the same role");
+  } finally {
+    rmSync(file, { force: true });
+  }
+});
+
+test("the tree a subagent stood in is the one its commands moved to, whatever the event's cwd says", () => {
+  const checkout = cleanRepo();
+  writeFileSync(join(checkout, "one.txt"), "committed\n");
+  git(checkout, "add", "one.txt");
+  git(checkout, "commit", "-qm", "base");
+  const wt = join(tempRoom("stop-check-agent-wt-"), "wt");
+  assert.equal(git(checkout, "worktree", "add", "-q", "-b", "side", wt).status, 0);
+  writeFileSync(join(wt, "one.txt"), "changed, and never committed\n");
+  /* One command per line, as a run types them; the `cd` not first, and a second `cd` relative to it. */
+  mkdirSync(join(wt, "sub"));
+  const own = handed(used("Bash", { command: `export FORGE_SESSION_ID=iss-1-abc\ncd ${wt}\ncd sub && git status --short` }));
+  const said = stopped(room(), subagentStop({ agent_transcript_path: own, cwd: checkout }));
+  assert.match(said?.reason ?? "", /is a worktree this turn left with tracked changes/u, said?.reason);
+  assert.match(said.reason, /git -C \S*wt add -u/u, "the worktree, not the checkout the event names");
+});
+
+test("the lease a subagent is judged on is the id its own commands exported", () => {
+  /* The operator sits flush against the value; the value is not the operator. */
+  const own = handed(used("Bash", { command: "export FORGE_SESSION_ID=iss-1-abc; forge claim ISS-1&&true" }));
+  const ev = subagentStop({ session_id: "s-parent", agent_transcript_path: own, cwd: cleanRepo() });
+  const asked = [];
+  const held = (...given) => {
+    const holder = given[3];
+    asked.push(holder);
+    return holder === "iss-1-abc" ? ["ISS-1"] : [];
+  };
+  const refused = decided(ev, held);
+  assert.equal(refused.kind, "block", refused.said);
+  assert.match(refused.said, /ISS-1 is in_progress under this session's lease/u);
+  assert.deepEqual(asked, ["iss-1-abc"], "the exported id, not the parent's session key");
+  const plain = decided(subagentStop({ session_id: "s-parent", agent_transcript_path: handed(), cwd: cleanRepo() }), held);
+  assert.equal(plain.kind, "none", `with nothing exported the parent's key stands and holds nothing: ${plain.said}`);
+});
+
+test("stop.agents in .forge.json decides which subagents' stops are judged", () => {
+  const runner = { hook_event_name: "SubagentStop", agent_type: "forge:runner" };
+  assert.equal(judgedStop(runner, []), false, "an empty list silences every subagent stop");
+  assert.equal(judgedStop({ ...runner, agent_type: "Explore" }, ["Explore"]), true, "a name set there is honoured");
+  assert.equal(judgedStop({ hook_event_name: "Stop" }, []), true, "the main agent's stop is always judged");
+  const file = join(REPO, "plugin", "test", `stop-config-${randomUUID().slice(0, 8)}.mjs`);
+  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  /* The judged cases above run from this repository, whose .forge.json lists its four roles. */
+  const at = (config) => {
+    const cwd = tempRoom("stop-check-config-");
+    writeFileSync(join(cwd, ".forge.json"), JSON.stringify(config));
+    return cwd;
+  };
+  try {
+    const own = handed(used("Write", { file_path: file }));
+    const from = (cwd) => {
+      const ev = { hook_event_name: "SubagentStop", agent_type: "forge:runner", session_id: randomUUID(), transcript_path: transcript(), agent_transcript_path: own, cwd };
+      const said = spawnSync(process.execPath, [HOOK], { input: JSON.stringify(ev), encoding: "utf8", env: room(), cwd });
+      assert.equal(said.status, 0, said.stderr);
+      return said.stdout.trim();
+    };
+    assert.equal(from(at({ slug: "x" })), "", "a project that named no agents hears nothing of any subagent's stop");
+    assert.equal(from(at({ slug: "x", stop: { agents: [] } })), "", "an emptied list is the same silence, said on purpose");
+    assert.match(from(at({ slug: "x", stop: { agents: ["runner"] } })), /stop-config-/u, "and the named role's dense write is refused");
+  } finally {
+    rmSync(file, { force: true });
+  }
 });
 
 test("a refusal is a block on the stop, never a permission decision", () => {

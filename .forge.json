@@ -9,5 +9,8 @@
   },
   "rank": {
     "readCap": 400
+  },
+  "stop": {
+    "agents": ["runner", "reviewer", "triage", "evaluator"]
   }
 }

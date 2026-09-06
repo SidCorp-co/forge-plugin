@@ -55,7 +55,8 @@ server is reported by `forge doctor` with the command that saves the same values
   "slug": "sid-growth",
   "translate": "vi",
   "deps": { "marker": "those edges are recorded", "blockedBy": "blocked by", "blocks": "blocks" },
-  "codex": { "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$" }
+  "codex": { "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$" },
+  "stop": { "agents": ["runner", "reviewer", "triage", "evaluator"] }
 }
 ```
 
@@ -64,7 +65,10 @@ server is reported by `forge doctor` with the command that saves the same values
 and defaults to the English sentence shown. `codex.pathRe` decides which of a turn's writes are
 worth a second opinion, and belongs here rather than in the account's config: a docs tree and a
 code tree do not want the same answer. `forge codex show` names which of the three levels
-answered.
+answered. `stop.agents` names the subagents whose stop the stop gate judges, bare or with their
+plugin's prefix; absent, no subagent's stop is judged, and the main agent's is judged regardless. A
+plugin's hooks reach every session on the machine, so which delegated agents answer to this one is
+the project's to say, and this repository names the four roles its dispatch sets up.
 
 The project **id** is never configured — it is looked up from the slug at runtime.
 

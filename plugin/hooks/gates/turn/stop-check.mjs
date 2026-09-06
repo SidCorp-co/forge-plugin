@@ -2,7 +2,7 @@
 // Once per item per turn, so a run that cannot clear one says so and ends. how/stop-check.md.
 
 import { execFileSync } from "node:child_process";
-import { statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,6 +11,7 @@ import { logEntries, unverdicted, verdictForm } from "../../../src/codex/codex-l
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { gitProbe } from "../../../src/hooks/git-probe.mjs";
 import { linting } from "../../../src/hooks/lint-delegate.mjs";
+import { projectStop } from "../../../src/resolve/settings.mjs";
 import { sessionKey } from "../../../src/tracker/comments.mjs";
 import { keysIn } from "../../../src/tracker/issues.mjs";
 import { askedAlready, block, done, how, remaining, sinceTurn, turnAt, turnRecords, turnWrites, typed }
@@ -23,6 +24,77 @@ const GIT_MS = 5_000;
 const CLI = fileURLToPath(new URL("../../../src/cli.mjs", import.meta.url));
 
 const left = () => remaining() - SPARE_MS;
+
+/* A subagent's stop names the parent's transcript and cwd in the common fields and its own transcript
+   beside them, so the agent's is read, and the tree and the holder are read off it (ISS-530). */
+const isSubagent = (ev) => ev.hook_event_name === "SubagentStop";
+const transcriptOf = (ev) => (isSubagent(ev) && ev.agent_transcript_path) || ev.transcript_path || "";
+
+const shellCommands = (records) => {
+  const out = [];
+  for (const record of sinceTurn(records)) {
+    if (!Array.isArray(record?.message?.content)) continue;
+    for (const one of record.message.content) {
+      if (one?.type === "tool_use" && one.name === "Bash" && one.input?.command) out.push(String(one.input.command));
+    }
+  }
+  return out;
+};
+
+const value = (hit) => hit[1] ?? hit[2] ?? hit[3];
+const CD = /(?:^|&&|\|\||[;\n])\s*cd\s+(?:"([^"]+)"|'([^']+)'|([^\s;&|]+))/gu;
+const EXPORTED_ID = /\bFORGE_SESSION_ID=(?:"([^"]+)"|'([^']+)'|([^\s;&|)]+))/gu;
+
+const lastExported = (commands) => {
+  let found = null;
+  for (const command of commands) for (const hit of command.matchAll(EXPORTED_ID)) found = value(hit);
+  return found;
+};
+
+/* Each shell call starts over at `from`; within one, every `cd` moves from where the last one left. */
+const movedTo = (commands, from) => {
+  let last = null;
+  for (const command of commands) {
+    let at = from;
+    let moved = false;
+    for (const hit of command.matchAll(CD)) {
+      at = resolve(at, value(hit));
+      moved = true;
+    }
+    if (moved) last = at;
+  }
+  return last;
+};
+
+/** The tree a subagent's turn stood in: the repository of the newest file it wrote through the file
+ *  tools, else of the directory its last shell call ended in, else the event's cwd. */
+const treeOf = (ev, records) => {
+  const fallback = ev.cwd || process.cwd();
+  if (!isSubagent(ev)) return fallback;
+  const newest = turnWrites(records).at(-1);
+  const owned = newest ? repoRoot(newest) : null;
+  if (owned) return owned;
+  const at = movedTo(shellCommands(records), fallback);
+  return at && existsSync(at) ? (repoRoot(at) ?? at) : fallback;
+};
+
+/** The id the turn's own writes went under: a run exports its own (ISS-445), which no hook inherits. */
+const holderOf = (ev, records) =>
+  (isSubagent(ev) && lastExported(shellCommands(records))) || sessionKey(ev);
+
+/** Every `Stop`; a `SubagentStop` only where the project lists its agent type in `stop.agents` — a
+ *  plugin's hooks reach every session on the machine, so no subagent is judged until a project says. */
+export const judgedStop = (ev, listed = projectStop().agents) => {
+  if (!isSubagent(ev)) return true;
+  const names = listed ?? [];
+  if (!Array.isArray(names) || names.some((one) => typeof one !== "string")) {
+    block("`stop.agents` in .forge.json is a list of agent names, the ones whose stop this gate judges. "
+      + "Drop the key and no subagent's stop is judged.");
+  }
+  const type = String(ev.agent_type ?? "");
+  const bare = type.slice(type.lastIndexOf(":") + 1);
+  return names.includes(type) || names.includes(bare);
+};
 
 /* Once per item per turn: a run that cannot clear one ends with it named, not looping here. */
 const asked = (ev, at, item, set) => askedAlready(ev, `${item}@${at}`, "stop-check", { set });
@@ -76,8 +148,7 @@ export const silentSince = (lease, holder) => {
 };
 
 /** The issues this turn named that are in one of those. */
-export const heldAndSilent = (ev, tree, records) => {
-  const holder = sessionKey(ev);
+export const heldAndSilent = (ev, tree, records, holder = sessionKey(ev)) => {
   const keys = keysNamed(records);
   if (!holder || !keys.length) return [];
   const listed = forge(tree, ["call", "forge_issues",
@@ -123,9 +194,11 @@ const linted = (ev, records) => {
 
 export const run = (ev, held = heldAndSilent) => {
   if (process.env.FORGE_STOP_DISABLE === "1") done();
-  const records = turnRecords(ev.transcript_path ?? "") ?? [];
-  const at = turnAt(records);
-  const tree = ev.cwd || process.cwd();
+  if (!judgedStop(ev)) done();
+  const records = turnRecords(transcriptOf(ev)) ?? [];
+  /* A subagent's transcript opens on the prompt it was handed, which nobody typed: its turn is the whole of it. */
+  const at = turnAt(records) || (isSubagent(ev) ? String(records[0]?.timestamp ?? "") : "");
+  const tree = treeOf(ev, records);
   const lines = [];
   const say = (item, line) => {
     if (!asked(ev, at, item, true)) lines.push(line);
@@ -143,7 +216,7 @@ export const run = (ev, held = heldAndSilent) => {
   }
 
   if (left() > 1000 && !asked(ev, at, "lease", false)) {
-    for (const key of held(ev, tree, records)) {
+    for (const key of held(ev, tree, records, holderOf(ev, records))) {
       say("lease", `${key} is in_progress under this session's lease and nothing was written since the claim.\n`
         + `  Clear it: \`forge record park ${key} --kind paused --why "<where you left it>"\`, or advance it.`);
     }
