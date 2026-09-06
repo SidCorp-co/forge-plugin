@@ -3738,3 +3738,28 @@ owed. Closed by its run. Folded from its handback; both filings were read back.
 - A correction record written through the shell lost its backticked identifiers to interpretation
   for the second time this wave; a second correction restates it and says so, and the report shows
   only the complete one.
+
+## Hundred-and-forty-sixth dry run — ISS-428
+
+The third batch reading of the wave, prepared like the two before it. Nine groups of duplication
+collapsed to one spelling each across eleven files: the consult-read log filter and root probe, the
+three lookup-failure branches now shared by the citation and spec verbs, the tree gate on a plan
+write, the order step and the verification form spent by the route, the highest-rung arithmetic, the
+size mark carried on the body entry (3.35.160, landed as ff4b702). Seven items refused with the
+reason, two of them on the run's own measurement against the finding's: the log parses in under a
+tenth of a second warm, not the four tenths claimed, and the has-own check is not the nullish form
+because they differ on inherited properties, so the shorter one would project a method into a fields
+answer. Four items routed to the issues that hold their files, one of them the third reading of the
+same path slice, framed on the thread rather than flipped a fourth time. Seven filings. The mark moved
+to the worktree's own cut. No restart owed. Closed by its run. Folded from its handback; the filings
+were read back.
+
+- The finding's efficiency figures were measured by a reviewer on one machine and refuted by the run
+  on the same machine; a number in a finding is a claim, and the run re-measured before spending a
+  change on it.
+- Evidence captured before the replay is void and the method does not say so: the pre-rebase full
+  gate was green, and the same run at the replayed head failed on a lint rule master landed under it.
+- A verb that counts body lines while the brief prints under a header, with no undo, destroyed the
+  line documenting the verb itself; recovered from scrollback and filed (ISS-448).
+- The one runner for a spawned tool now has its home stated as a rule in the knowledge store, since
+  the run counted sixteen hand-rolled git spawns under the source tree where the finding claimed two.
