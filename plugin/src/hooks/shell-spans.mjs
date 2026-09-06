@@ -152,7 +152,7 @@ const ENDS = /^done(?=[\s;&|)<>]|$)/u;
 const OVER = /^(?:\(\(|[A-Za-z_]\w*)/u;
 
 /** Where each `while`/`until` … `done` runs, as `[from, to)` over the same text — one range per wait, innermost first, a frame nothing closed dropped rather than swallowing the rest of the line.
- *  Every loop's body is a frame and only a wait's is a range, so a `done` closes the loop it belongs to. */
+ *  Every loop body a `done` closes is a frame and only a wait's is a range, so a `done` closes the loop it belongs to; the arithmetic brace body is the one no `done` reaches, and spends its name without becoming a frame. */
 export const waitsIn = (text) => {
   const out = [];
   const open = [];
