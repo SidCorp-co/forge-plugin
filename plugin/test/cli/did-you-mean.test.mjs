@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { ALIASES, didYouMean, flagsNamed, suggest, unknownFlag } from "../../src/suggest.mjs";
 import { RETIRED } from "../../src/checks/retired-names.mjs";
+import { RETIRING } from "../../src/resolve/retiring.mjs";
 import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
 import { FLAG_WORD, flags, partition, pullRepeated } from "../../src/resolve/flags.mjs";
 import { bodyFrom, notABody } from "../../src/resolve/payload.mjs";
@@ -193,18 +194,26 @@ test("an unknown flag is an unknown flag, never a known one given no value", asy
 });
 
 test("a verb taking no flag at all says what it does take", async () => {
+  const run = await ran("call", "forge_issues", "--body", "a finding");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No call flag named --body\./u);
+  assert.match(run.stderr, /Usage: forge call <tool> <'json'\|@file\|->/u);
+  assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
+});
+
+/* A verb that takes one: a set that short beats the route to it, so the usage is what is left out. */
+test("a verb taking one flag names the set rather than its usage", async () => {
   const run = await ran("comment", "ISS-1", "--body", "a finding");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No comment flag named --body\./u);
-  assert.match(run.stderr, /Usage: forge comment <uuid\|ISS-45> <file\.md\|@file\|->/u);
+  assert.match(run.stderr, /No comment flag named --body\. The set is --title\./u);
+  assert.doesNotMatch(run.stderr, /Usage: forge comment/u);
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
 });
 
 test("a flag standing in the body slot is this verb's own unknown flag", async () => {
   const run = await ran("new", "--read", "--title", "T");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No new flag named --read\./u);
-  assert.match(run.stderr, /Usage: forge new <file\.md\|@file\|->/u);
+  assert.match(run.stderr, /No new flag named --read\. The set is --title, --kind,/u);
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
   assert.doesNotMatch(run.stderr, /No Forge endpoint/u, "nor after a credential was looked for");
 });
@@ -270,6 +279,30 @@ test("an unserved action on a served tool is not offered the tool it already nam
   assert.doesNotMatch(run.stderr, /No tool named/u, "the tool is one this CLI serves, and was not what was wrong");
   const absent = await ran("call", "forge_nosuchtool", '{"action":"list"}');
   assert.match(absent.stderr, /No tool named forge_nosuchtool/u, "while a name nothing serves is still named back");
+});
+
+/* The one place this CLI answers a name with a replacement, and it is bounded: a write that had two
+   verbs gets one release of the line, in front of the did-you-mean, so an agent that learned the
+   losing name types the winning one next rather than reading a near miss (ISS-348). The window and
+   what closes it: docs/cli/withholding-a-verb.md. */
+test("a retiring name is refused with the verb to type, and nothing else", async () => {
+  for (const { typed, instead } of RETIRING) {
+    const argv = typed === "plan" ? ["plan", "ISS-1", "plan.md"] : ["new", "body.md", "--into", "ISS-1"];
+    const run = await ran(...argv);
+    assert.equal(run.status, 1, `forge ${typed}: ${run.stdout}`);
+    assert.match(run.stderr, new RegExp(`^\`forge ${typed}\` is retired`, "mu"));
+    assert.ok(run.stderr.includes(instead), `the line names no verb to type: ${run.stderr}`);
+    assert.doesNotMatch(run.stderr, /Did you mean/u, "a retirement is answered before the near miss");
+    assert.doesNotMatch(run.stderr, /ENOENT|No Forge endpoint/u, "and before anything was read or resolved");
+  }
+});
+
+/* `-h` on a retired name is the same question: an agent asking what a verb that is gone takes has spent the turn, and a usage line for it spends another. */
+test("asking a retiring verb what it takes gets the retirement, not a usage line", async () => {
+  const run = await ran("plan", "-h");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^`forge plan` is retired/mu);
+  assert.doesNotMatch(run.stderr, /Usage: forge plan/u);
 });
 
 test("a synonym typed at the CLI answers with the one verb, on the real dispatcher", async () => {

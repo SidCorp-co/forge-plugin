@@ -186,13 +186,16 @@ export const notAnothers = async (documentId, ref) => {
   if (stateOf(lease, sessionOf()) === "live") fail(writeRefusal("live", ref, lease));
 };
 
-/* Every payload write renews the lease; another run's is refused, and a read needs none. */
-export const renew = async (documentId, ref, next = undefined, patch = null) => {
+/* Every payload write renews the lease; another run's is refused, a read needs none, and `finder` is the one conditional renewal, answered by the return: asked for by `forge comment` alone and inherited by nobody, because the field writer awaits this and reads none of it, and a `false` handed back unasked would license a write on another run's issue. The lapsed reread below is outside the option — a handoff mid-write is a handoff whoever is writing. */
+export const renew = async (documentId, ref, next = undefined, patch = null, { finder = false } = {}) => {
   const holder = sessionOf();
   const context = await readContext(documentId);
   const lease = leaseOf(context);
   const state = stateOf(lease, holder);
-  if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
+  if (state !== "mine" && state !== "lapsed") {
+    if (finder) return false;
+    fail(writeRefusal(state, ref, lease));
+  }
   const value = (from, held) => claimed(from, {
     holder,
     at: new Date().toISOString(),
@@ -200,10 +203,13 @@ export const renew = async (documentId, ref, next = undefined, patch = null) => 
     next,
     worklog: worklogFor(from, patch),
   });
-  if (state === "mine") return setLease(documentId, value(context, lease), ref);
+  if (state === "mine") {
+    await setLease(documentId, value(context, lease), ref);
+    return true;
+  }
   /* Lapsed is the one another run may take: the last read decides, and the notice waits for the write. */
   let renewed = null;
-  const written = await setLease(documentId, async () => {
+  await setLease(documentId, async () => {
     const again = await readContext(documentId);
     const now = leaseOf(again);
     const state = stateOf(now, holder);
@@ -212,5 +218,5 @@ export const renew = async (documentId, ref, next = undefined, patch = null) => 
     return value(again, now);
   }, ref);
   if (renewed) console.error(renewedLapsed(ref, renewed));
-  return written;
+  return true;
 };

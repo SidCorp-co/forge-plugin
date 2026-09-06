@@ -2,9 +2,11 @@
    back by kind: docs/cli/record.md. The verb owns the shape; the tracker owns the fields. */
 import { fail, translateTo } from "../resolve/settings.mjs";
 import { Refused, refuse } from "../refusal.mjs";
-import { criteriaChecked } from "../spec/checked.mjs";
+import { citationsChecked, criteriaChecked } from "../spec/checked.mjs";
+
+export { KINDS, USAGE, kindHelp, usage } from "../resolve/record-rows.mjs";
 import { CLOSES_FROM, SECTIONS, SHAPES, atMinute, blockOf, compoundCriteria, criterionNumber, markedCommit, readRecords, tagFor, unwrap } from "./machine.mjs";
-import { CAP_LEGEND, HAS_CAP, kindRows } from "../resolve/record-rows.mjs";
+import { KINDS, USAGE, kindHelp, usage } from "../resolve/record-rows.mjs";
 import { readOrRefuse } from "../codex/codex-read.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
@@ -18,10 +20,10 @@ import { sizeFrom } from "../ladder.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { capsOf, writeField } from "../tracker/field-write.mjs";
 import { scoped } from "../tracker/rpc.mjs";
-import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
+import { refuseIfGated } from "../resolve/visibility.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { FIELD as SESSION, nextLine, renew } from "./lease.mjs";
-import { OPEN_KEPT, patchFrom, worklogLines, worklogOf } from "./worklog.mjs";
+import { patchFrom, worklogLines, worklogOf } from "./worklog.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
@@ -30,68 +32,8 @@ const RUN_FLAGS = ["--open", "--next", "--pushed", "--review"];
 const [OPEN, NEXT, ...TOGGLES] = RUN_FLAGS;
 
 const CRITERIA_BODY = "record criteria takes the file holding the numbered lines, which a consult reads before the issue takes them.";
+const PLAN_BODY = "record plan takes the file holding the plan, which a consult reads before the issue takes it.";
 
-export const KINDS = [...Object.keys(SHAPES), "note", "criteria", "report"];
-
-const CRITERION_BLOCKS = [
-  "--criterion repeats: each one opens a block, and one write carries a verdict on every criterion",
-  "it names. What stands before the first --criterion is every block's, so one commit and one",
-  "evidence set cover them all. A block's own value of a flag taking one replaces the shared one; a",
-  "repeatable flag adds to it, so a criterion whose evidence is its own cites that too:",
-  "  record verdict ISS-45 --commit <sha> --evidence run.txt --verdict pass \\",
-  "    --criterion 1 --criterion 2 --criterion 3 --verdict fail --why \"<what failed>\"",
-  "A file two criteria cite goes up once, under the one name both of them carry. Each block reads",
-  "back as the record a single write makes, so nothing downstream can tell one write from three.",
-];
-
-export const usage = (caps = {}) => {
-  const rows = kindRows(caps);
-  return [
-    usageOf("record"),
-    "A contract payload, written in the one shape the CLI owns and read back by kind. A missing field",
-    "is refused by name; the last line of every record names its kind and the contract version.",
-    "",
-    ...rows,
-    "",
-    ...(rows.some((row) => HAS_CAP.test(row)) ? [...CAP_LEGEND, ""] : []),
-    ...CRITERION_BLOCKS,
-    "",
-    "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
-    "  --pushed        the branch, head, base and files touched, read from git at this moment",
-    "  --review        the last codex consult, its findings and what it owes, read from the log now",
-    `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
-    "",
-    "Every write ends on stderr with the line `forge advance --owed` would print for the issue at that",
-    "moment: the next status and how much it is owed, or the status the record earns.",
-    "",
-    "Evidence is an attachment name on the issue, a URL, a commit of 7 to 40 hex digits, or a path to",
-    "a readable file, which goes up under its base name and is cited by it. A name already attached is",
-    "refused rather than attached twice.",
-    "",
-    "--commit and --evidence are read off the record where the flag is absent: the commit from the",
-    "merged mark's note, the evidence from what the latest record of this kind cited. Each is printed.",
-  ].join("\n");
-};
-
-/* The rows with no cap on them, for the readers asking which flags exist rather than what a field
-   takes: the route check `forge -h` answers to, and the kind table's own test. */
-export const USAGE = usage();
-
-const rowFor = (kind, caps) => kindRows(caps).find((row) => new RegExp(`^ {2}${kind}\\b`, "u").test(row));
-
-export const kindHelp = (kind, caps = {}) => {
-  const row = rowFor(kind, caps) ?? `  ${kind}`;
-  return [
-    usageOf("record").replace("<kind>", kind),
-    "",
-    row,
-    ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
-    ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
-    "",
-    "The flags every writing kind also takes, what counts as evidence, and the other "
-      + `${KINDS.length - 1} kinds: \`forge record -h\`.`,
-  ].join("\n");
-};
 
 export const criteriaLines = (text) => {
   const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
@@ -108,8 +50,7 @@ export const criteriaLines = (text) => {
 };
 
 /* The grammar's own reading, in the language the project writes its prose in: `machine.mjs` says
-   which shapes it can prove and which it lets through. The refusal carries the halves, because a
-   line named without them is a second reading the author has to make. */
+   which shapes it can prove and which it lets through. The refusal carries the halves — a line named without them is a second reading the author has to make. */
 export const compoundRefused = (criteria, language = translateTo()) => {
   const found = compoundCriteria(criteria, language);
   if (!found.length) return;
@@ -243,6 +184,7 @@ export const checked = (kind, got) => {
 const REWRITTEN = {
   record: "the payload block is stored as written; the heading above it is rewritten",
   criteria: "the criteria are rewritten, and the numbers a verdict names are what survives",
+  plan: "the plan is rewritten, and the three declaration lines a later reader takes a value off are what have to survive it",
   note: "the user-facing half is rewritten and the technical half is stored as written",
 };
 
@@ -514,6 +456,24 @@ const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
   await sayOwed(documentId, { ...body, acceptanceCriteria }, reference);
 };
 
+/* A kind rather than the top-level verb it replaced: the plan and the criteria are one payload by the contract's reckoning, and one write has one verb. */
+const recordPlan = async (reference, [path, ...extra], { next, patch }) => {
+  if (!path) refuse(PLAN_BODY);
+  if (path.startsWith("--")) refuse(`${didYouMean("record plan flag", path, RUN_FLAGS)} ${PLAN_BODY}`);
+  if (extra.length) refuse(`record plan takes one file and nothing after it, not \`${extra.join(" ")}\`.`);
+  const { refusal, text } = readOrRefuse(path);
+  if (refusal && text === null) refuse(refusal);
+  const plan = text ?? await bodyFrom(path);
+  if (!plan.trim()) refuse("An empty plan would clear the field; pass the plan itself.");
+  citationsChecked(plan, refuse);
+  if (refusal) refuse(refusal);
+  const { documentId, body } = await issueOf(reference);
+  sayStored("plan");
+  await writeField(documentId, "plan", plan, { ref: reference, next, patch, refuse });
+  console.log(plan);
+  await sayOwed(documentId, { ...body, plan }, reference);
+};
+
 const recordReport = async (reference) => {
   const { documentId, body } = await issueOf(reference);
   let criteria = [];
@@ -584,6 +544,7 @@ const run = async ([kind, reference, ...argv]) => {
   const run = { next, patch };
   if (kind === "note") return recordNote(reference, rest, run);
   if (kind === "criteria") return recordCriteria(reference, rest, run);
+  if (kind === "plan") return recordPlan(reference, rest, run);
   if (kind === "report") {
     if (asked) {
       refuse("record report writes nothing, so it renews no lease and carries no --next, --pushed, --review or --open.");

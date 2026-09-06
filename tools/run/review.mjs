@@ -56,7 +56,7 @@ export const reviewBody = ({ tree, from, to, volume, self }) => {
     "- What performs that reading, and in what order. First `simplify`, the skill of that name, over",
     "  the range's diff and nothing else: its four angles — reuse, simplification, efficiency,",
     "  altitude — read and deduplicated into one numbered list, posted on this issue as a finding",
-    "  before a run takes it (`forge new --into`). It is posted whether or not it raised anything and",
+    "  before a run takes it (`forge comment`). It is posted whether or not it raised anything and",
     "  names the range it read, so a reading that found nothing is a record here rather than an",
     "  absence. A run that finds no such record makes the reading itself, the same way, before it",
     "  reads anything by hand; a run whose listing has no `simplify` says so in its record by that",

@@ -45,7 +45,7 @@ issue. They write to the project, never to a transition.
 | `open` | someone filed this | nothing; the one status nobody earns | 1 Triage |
 | `confirmed` | we read the code; the problem is real and it is this | a confirmation: where the reader looked, what the issue is in the code's own terms, and a finding — *holds*, or one of the dispositions the triage reference admits | 2 Clarify |
 | `clarified` | every ambiguity is decided or answered | a decision record: each reading decided, its assumption and the sentence that undoes it, or an explicit *none found*; no question left open | 3 Plan |
-| `approved` | object to the plan now, not after | plan and numbered criteria, one per line, each in its own field; the plan states whether this is a screen change and whether it touches the schema | 4 Implement, to the branch |
+| `approved` | object to the plan now, not after | plan and numbered criteria, one per line, each in its own field, written by `forge record plan` and `forge record criteria`; the plan states whether this is a screen change and whether it touches the schema | 4 Implement, to the branch |
 | `in_progress` | code is being written against this plan | `approved`; every blocker that gates dispatch at least `developed`, read from the edge's own answer and not from the list it arrived in, so a mention gates nothing; a baseline naming what already fails, recorded before entering; for a batch, the member list written when the branch is cut | 4 Implement, to the review; 5 Prove; then 7's landing |
 | `developed` | the change was reviewed and is on the default branch | an approving review of the head that landed: the reviewer, the findings with a verdict on each by id, the outcome *approved*; a person's approval where the project asks for one; then the merged mark with its commit | 5 Prove |
 | `tested` | the evidence is here to be judged | one verdict per criterion, each citing evidence, all at the commit the `developed` stage says a verdict may cite; every skipped check named with its reason; the migration risk classification when the plan declared schema coupling | 6, 7 Ship |
@@ -492,7 +492,7 @@ missing input, failed CI, requested changes and "lost signals" in one column: ne
 Across all of them: the status and the typed payloads that earn it are written only by the agent that
 holds the lease; people write comments, replies, reviews and `reopen` at any time, need no lease and renew
 none, and those writes are what the parks wait for. A run that finds something on an issue it is not
-working posts it the same way, as a finding through `forge new --into`, and takes no lease: the lease
+working posts it the same way, as a finding through `forge comment`, and takes no lease: the lease
 says who is moving the status, and a finding moves nothing (ISS-63 owes the refusal that says so). The branch is pushed as it moves, and the status
 is the resume point. Nothing about the run has to be remembered
 by anyone, because nothing about it is held anywhere but the record.

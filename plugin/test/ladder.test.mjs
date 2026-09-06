@@ -274,7 +274,7 @@ test("--owed reports the rung the checks run, what it drops and every route up f
   assert.match(run.stdout, /is a `fix`: its body is marked `Size: fix\.`\. The entry checks run that tier/u);
   const reported = (row) => [`at ${row.status}`, row.drops, row.because].every((one) => run.stdout.includes(one));
   for (const row of LIGHTER) assert.ok(reported(row), `${row.status} is lightened and the report omits ${row.drops}`);
-  assert.match(run.stdout, /forge plan ISS-71 <plan\.md>/u, "one route up, in the form it wants");
+  assert.match(run.stdout, /forge record plan ISS-71 <plan\.md>/u, "one route up, in the form it wants");
   assert.match(run.stdout, /--moved "Size: fix -> feature"/u, "and the other, so neither is inferred");
   assert.match(run.stdout, /no confirmation/u, "while the confirmation with its where is owed all the same");
   assert.equal(state.calls.some((one) => one.args.action === "transition"), false, "and --owed moves nothing");

@@ -5,6 +5,7 @@ import { commands } from "./commands.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { blockedBy, helpLine, helpOf, offeredVerbs } from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
+import { retiredRefusal } from "./resolve/retiring.mjs";
 import { fail } from "./resolve/settings.mjs";
 
 const offered = offeredVerbs();
@@ -29,7 +30,7 @@ const PREAMBLE = [
   "    done to a file; `forge hooks --how issue-shape` has the three routes a small change takes.",
   "  A status is earned, not set. Each costs the payload the contract names, `forge advance --owed`",
   "    says which, and a jump is refused. Take the lease before the first write — `forge claim`.",
-  "  You write the plan and the criteria yourself, at `approved`, through `forge plan` and",
+  "  You write the plan and the criteria yourself, at `approved`, through `forge record plan` and",
   "    `forge record criteria`. Nothing here dispatches an issue or fills a field on your behalf.",
   "  Nothing landing is `dropped`. `closed` stamps the merged mark and releases every issue blocked",
   "    on this one, so it is what code that landed earns and nothing else.",
@@ -50,6 +51,15 @@ const FEEDBACK = "\nFeedback on this CLI, from any project: `forge feedback <not
 
 const [command, ...rest] = process.argv.slice(2);
 const asked = wantsHelp([command]);
+
+/* Before the help word: a retired verb's `-h` is the same question, and gets the same line. */
+const retired = command ? retiredRefusal(command) : null;
+
+if (retired) {
+  console.error(retired);
+  process.exit(1);
+}
+
 const needs = command ? blockedBy(command) : null;
 
 if (needs) {

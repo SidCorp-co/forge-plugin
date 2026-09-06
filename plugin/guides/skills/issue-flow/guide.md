@@ -131,8 +131,8 @@ code and never relaxed to match what got built; a wrong one is corrected in the 
 record correction`.
 
 **Both are read before the issue takes them.** Every later phase is built against this text, so a
-second reader here is worth more than the same reader after the code: `forge plan` and `forge record
-criteria` refuse a file no consult has read, and one consult naming both clears both writes — `echo
+second reader here is worth more than the same reader after the code: `forge record plan` and
+`forge record criteria` refuse a file no consult has read, and one consult naming both clears both writes — `echo
 "<the issue, and what the plan claims to have verified in code>" | forge codex consult --send bodies
 <plan file> <criteria file>`. The intent names the load-bearing assumption so the reviewer checks
 that rather than the prose, and the findings are owed a verdict as any consult's are.
@@ -184,8 +184,8 @@ without the thing to look at. Where no login reaches the rendered state, what st
 two verdict shapes it earns: `forge guide issue-flow verification`. A change that proves unshippable is an outcome: post the finding,
 leave the branch named, park the issue.
 
-Something you found that belongs to another issue goes there as a filing, `forge new --into`, which
-takes no lease. `forge comment` is the holder's verb, not the finder's.
+Something you found that belongs to another issue goes there with `forge comment`, which is the one
+verb for the one write whoever is typing it: `forge comment -h`.
 
 ## Phase 6 — Draft the release note
 

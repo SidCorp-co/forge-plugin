@@ -263,9 +263,11 @@ const bodyAt = (body) => {
   return path;
 };
 const filed = (body, ...argv) => {
-  const kind = argv.includes("--kind") || argv.includes("--into") ? [] : ["--kind", "feature"];
+  const kind = argv.includes("--kind") ? [] : ["--kind", "feature"];
   return ranAsync(FORGE, ["new", bodyAt(body), ...argv, ...kind], tracker.env);
 };
+
+const posted = (body, ...argv) => ranAsync(FORGE, ["comment", "ISS-45", bodyAt(body), ...argv], tracker.env);
 
 /* What a whole pass over one body costs, counted through a getter, because a body scanned for its
    shape a second time changes no output. The refusal is handed the read instead of taking one, so
@@ -280,13 +282,13 @@ test("one pass over a filing reads its body twice, and the line it says costs no
   assert.equal(reads, 2, "the shape read and the duplicate measure; a second shape read makes it three");
 });
 
-test("the verb refuses a fix with the three routes and the open issues naming what it names", async () => {
+test("the verb refuses a fix with the two flags, the comment route and the open issues naming what it names", async () => {
   const run = await filed("`forge dep` should take the `data.relations` route.", "--title", "forge dep writes an edge a token can write");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /--into ISS-nn/u);
+  assert.match(run.stderr, /forge comment ISS-nn <body>/u);
   assert.match(run.stderr, /--with ISS-nn/u);
-  assert.match(run.stderr, /--kind, which a comment is not read against and the verb refuses beside it/u,
-    "the comment route names the flag it replaces; taken beside --kind it is a second refusal");
+  assert.match(run.stderr, /it needs no --kind/u,
+    "the comment route says what a filing owes that it does not");
   /* The mark stopped meaning "files it": where an open issue both reads like the filing and names
      its place, the mark lands it there instead, and the route that promised a filing would be a
      refusal telling a filer the wrong thing (ISS-139). */
@@ -309,14 +311,14 @@ test("a size the contract has no path for is refused rather than kept", async ()
   assert.match(run.stderr, /the contract's three rungs, smallest first/u);
 });
 
-test("--into posts the body where it belongs and files nothing, lint or no lint", async () => {
+test("forge comment posts the body where it belongs and files nothing, lint or no lint", async () => {
   state.calls = [];
-  const run = await filed("`forge dep` should take the `data.relations` route.", "--title", "the edge a token can write", "--into", "ISS-45");
+  const run = await posted("`forge dep` should take the `data.relations` route.", "--title", "the edge a token can write");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(state.calls.some((one) => one.args.action === "create" && one.name === "forge_issues"), false);
-  const posted = state.calls.find((one) => one.name === "forge_comments" && one.args.action === "create");
-  assert.equal(posted.args.data.issue, "uuid-45");
-  assert.match(posted.args.data.body, /the edge a token can write/u);
+  const wrote = state.calls.find((one) => one.name === "forge_comments" && one.args.action === "create");
+  assert.equal(wrote.args.data.issue, "uuid-45");
+  assert.match(wrote.args.data.body, /the edge a token can write/u);
 });
 
 test("--with files it and relates it in the same create, so one branch carries both", async () => {
@@ -330,28 +332,31 @@ test("--with files it and relates it in the same create, so one branch carries b
   assert.doesNotMatch(create.args.data.description, new RegExp(SIZE_LINE, "u"));
 });
 
-/* Every input is used or refused, never dropped: the second dry run found six of that family. */
-test("a flag that belongs to a filing is refused on the comment route, not silently dropped", async () => {
+/* Every input is used or refused, never dropped: the second dry run found six of that family. And
+   the flags a filing takes are refused on the comment verb by the verb's own unknown-flag route,
+   which is what having two verbs removes — there is no route left to drop one on. */
+test("a flag that belongs to a filing is refused on the comment verb, not silently dropped", async () => {
   for (const argv of [["--size", "fix"], ["--priority", "high"], ["--status", "draft"],
     ["--kind", "feature"]]) {
-    const run = await filed(WHOLE, "--title", TITLE, "--into", "ISS-45", ...argv);
+    const run = await posted(WHOLE, ...argv);
     assert.equal(run.status, 1, argv.join(" "));
-    assert.match(run.stderr, new RegExp(`${argv[0]} belongs to a filing`, "u"));
+    assert.match(run.stderr, new RegExp(`No comment flag named ${argv[0]}`, "u"));
   }
 });
 
-test("the two routes are two, and asking for both is refused", async () => {
+test("the flag the comment verb took over is refused with it, and files nothing", async () => {
+  state.calls = [];
   const run = await filed(WHOLE, "--title", TITLE, "--into", "ISS-45", "--with", "ISS-45");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /Ask for one of them/u);
+  assert.match(run.stderr, /`forge new --into` is retired/u);
+  assert.match(run.stderr, /forge comment <uuid\|ISS-45>/u);
+  assert.equal(state.calls.some((one) => one.args.action === "create"), false);
 });
 
-/* The shared parser takes an empty string as a value, so a route read by truthiness is a route
-   dropped: this one filed the issue instead of commenting, silently. */
-test("a route named with nothing is refused, and never read as no route at all", async () => {
-  const run = await filed(WHOLE, "--title", TITLE, "--into", "");
+test("a key that is no key is refused, and never read as no target at all", async () => {
+  const run = await ranAsync(FORGE, ["comment", "", bodyAt(WHOLE)], tracker.env);
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /neither an issue uuid nor an issue key/u);
+  assert.match(run.stderr, /Usage: forge comment/u, "an empty target names no issue and no file either");
   /* The relating flag takes a list, so an empty one is no key rather than one that will not
      resolve, and the refusal names both shapes it does take. */
   const empty = await filed(WHOLE, "--title", TITLE, "--with", " , ");
@@ -414,7 +419,7 @@ test("a duplicate past a reading the walk could not finish is still found, throu
   state.answer = undefined;
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /ISS-99/u);
-  assert.match(run.stderr, /--into ISS-99/u);
+  assert.match(run.stderr, /forge comment ISS-99 <body>/u);
 });
 
 /* The same body against a reading that came back whole: every open issue is already in it, so a

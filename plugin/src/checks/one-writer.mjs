@@ -17,6 +17,24 @@ export const WRITERS = {
   },
 };
 
+/* And one place says what a filing did: the route returns a value and prints nothing, so a second verb wanting the same reply copied the three lines rather than the call, and the copies drifted a fold apart (ISS-348). Named by what each formats, so a route printing one by hand is the failure and not a route that files, and the module defining a line is no caller of it. docs/cli/filing.md. */
+export const SAYS = {
+  interface: "plugin/src/tracker/filing/say.mjs",
+  formatters: ["foldedInto", "filedAs", "issueLanded"],
+  instead: "Call `fileAndSay` there with the route's own intro line, rather than formatting a fold,"
+    + " a filed-as or a landed line a second time.",
+};
+/* The call and not the name: spending a line is what this counts, so the module defining one, the import carrying it and this registry naming all three are none of them a second copy. */
+const SAID = new RegExp(String.raw`\b(${SAYS.formatters.join("|")})\s*\(`, "gu");
+
+export const saidIn = (text, where) =>
+  [...String(text).matchAll(SAID)].map(({ index, 1: what }) => ({ where, what, line: lineAt(text, index) }));
+
+export const sayProblems = (found) =>
+  found.filter((one) => one.where !== SAYS.interface).map((one) =>
+    `${one.where}:${one.line} formats a filing's reply with \`${one.what}\`, and ${SAYS.interface} `
+    + `is the one place that may. ${SAYS.instead}`);
+
 /* The action is captured, so a create is never reported against the writer that owns updates. */
 const SHAPES = Object.keys(WRITERS).join("|");
 const WRITE = new RegExp(String.raw`["']${TOOL}["'][^;]{0,200}?action:\s*["'](${SHAPES})["']`, "gsu");

@@ -16,10 +16,15 @@ the tool's own name, so a create on another one — a comment, an upload — is 
 caller passing an action it was handed rather than writing one out is not a second decision about a
 filing and is not counted.
 
-**It neither prints nor exits, and both halves of that are load-bearing.** The words an outcome
-earns differ per route — "filed" against "No open issue on forge-plugin carries this title" against
-a release step's indented block — so the lines stay with the verb that speaks them and the module
-returns a value. The exit matters more: the release step files between its push and its install,
+**It neither prints nor exits, and both halves of that are load-bearing.** Three routes file and only
+two of them speak the same reply: the release step's outcome is an indented block inside a larger
+report, and a module that printed would have written it. So the interface returns a value, and the
+reply the other two share sits in a module of its own above it — `filing/say.mjs`, which formats the
+fold, the filed-as, the keys offered, the neighbours and the id, and takes from each route the one
+line that route speaks for itself and what it does with a soft refusal. That division is a rule with
+a checker: a route formatting a fold, a filed-as or a landed line by hand fails the suite with
+`say.mjs` named, because the two verbs said those lines separately until one of them quietly stopped
+echoing a fold's comment (ISS-348). The exit matters more: the release step files between its push and its install,
 where ending the process on a refusal would leave a release halfway done. So a refusal comes back
 as parts a caller branches on — the key a duplicate was read against, and whether the shape refused
 the body whatever else was open — decided where they are still values. A release step matching
@@ -62,7 +67,7 @@ Three routes ended their stdout with the neighbour block, whose closing line is 
 a refusal…"*, and a caller reading the tail took a filing that had landed for one that had been
 refused (ISS-449). The key still appeared in the JSON echo at the head, which is the problem: the
 tracker answers a create with the row it was sent, so the echo proves the call was accepted and not
-that anything was stored — the same reason `forge plan` reads its field back. So the id goes last,
+that anything was stored — the same reason `forge record plan` reads its field back. So the id goes last,
 and it is the id a second read found, not the one the write answered with.
 
 **The read-back says what it found and refuses nothing, whatever it finds.** The two readers ask

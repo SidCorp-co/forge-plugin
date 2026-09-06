@@ -8,14 +8,14 @@ import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 
 const home = tempHome("neighbours");
 process.env.XDG_CONFIG_HOME = home.path;
 const { BESIDE_HELP, FLOOR, foldFiling, foldOnto, foldedInto, suggestionLines } =
-  await import("../../src/tracker/filing/neighbours.mjs");
-const { TIERS, markFor } = await import("../../src/ladder.mjs");
-const { placeIn, seedFor } = await import("../../src/tracker/issue-shape.mjs");
+  await import("../../../src/tracker/filing/neighbours.mjs");
+const { TIERS, markFor } = await import("../../../src/ladder.mjs");
+const { placeIn, seedFor } = await import("../../../src/tracker/issue-shape.mjs");
 
 const suggestion = (issueId, score, samePlace) =>
   ({ issueId, documentId: `uuid-${issueId}`, title: `${issueId}'s title`, score, samePlace });
@@ -157,7 +157,7 @@ test.after(() => tracker.close());
 mkdirSync(join(home.path, "forge"), { recursive: true });
 writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t" }));
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const room = tempHome("filing").path;
 
 /* A body with no rule and no out-of-scope reads as a fix and is refused for a route, so every body
@@ -192,8 +192,14 @@ const wrote = (...argv) => {
   return ranAsync(FORGE, ["new", path, "--title", TITLE, ...argv], tracker.env);
 };
 
+const posted = (...argv) => {
+  const path = join(room, "body.md");
+  writeFileSync(path, `${BODY}\n`);
+  return ranAsync(FORGE, ["comment", "ISS-45", path, ...argv], tracker.env);
+};
+
 /* The body carries a *Where*, which is the bug shape's, so the kind is named on every filing but
-   the two that redirect: `--into` refuses every flag a filing takes, `--kind` among them. */
+   the one that redirects, `--size fix`, which reads no shape at all. */
 const filed = (...argv) => wrote("--kind", "bug", ...argv);
 
 const both = (key, score) => ({ semantic: [[key, score]], keyword: [[key, 0.0608]] });
@@ -271,18 +277,21 @@ test("--new declines the fold, files the issue and names what it would have join
   assert.equal("new" in created().args.data, false);
 });
 
-test("--into and --new ask for opposite things and are refused together", async () => {
+/* The flag this verb no longer takes: refused before any of the above is reached, so a filing it
+   would once have redirected costs no reading at all. */
+test("--into is refused with the verb that took it over, and files nothing", async () => {
   before();
   const run = await wrote("--into", "ISS-45", "--new");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /--into posts the body on the issue you named and --new refuses/u);
+  assert.match(run.stderr, /`forge new --into` is retired/u);
+  assert.match(run.stderr, /forge comment <uuid\|ISS-45>/u);
   assert.equal(state.calls.some((one) => one.args.action === "create"), false);
 });
 
-test("--into redirects as it did, and asks the tracker nothing about neighbours", async () => {
+test("forge comment redirects as --into did, and asks the tracker nothing about neighbours", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
-  const run = await wrote("--into", "ISS-45");
+  const run = await posted();
   assert.equal(run.status, 0, run.stderr);
   assert.ok(commented());
   assert.equal(state.calls.some((one) => one.name === "forge_memory.search"), false);

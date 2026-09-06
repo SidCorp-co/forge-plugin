@@ -7,7 +7,8 @@ import { readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { RETIRED, exempt, problems, registryProblems } from "../../src/checks/retired-names.mjs";
+import { RETIRED, exempt, problems, registryProblems, retiringProblems } from "../../src/checks/retired-names.mjs";
+import { RETIRING } from "../../src/resolve/retiring.mjs";
 import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -155,6 +156,22 @@ test("an entry holds a name, a kind and the release, and nothing pointing at a l
     "and a directory's name stays bare, the path form being the shape and not the name");
   assert.match(registryProblems([{ kind: "verb", release: "3.36.0" }])[0], /not a name a pattern can match/u);
   assert.deepEqual(registryProblems([AS_IF]), []);
+});
+
+/* The window and the registry are two halves of one rule, and the half that closes it is a landing
+   somebody has to make. What fires if they do not make it: the two holding one name at once. */
+test("a name is retiring here or retired there, and never both at once", () => {
+  assert.deepEqual(retiringProblems(), [], "the live registries are disjoint and every row is dated");
+  assert.ok(RETIRING.length > 0, "and there is a row, so the check above judged something");
+  for (const row of RETIRING) assert.ok(row.instead, `${row.typed} names the verb to type`);
+  assert.match(retiringProblems([{ typed: "plan", instead: "x" }])[0], /names no release/u);
+  const both = retiringProblems([{ typed: "plan", release: "3.36.0", instead: "x" }],
+    [{ name: "plan", kind: "verb", release: "3.36.0" }]);
+  assert.equal(both.length, 1, "one name in both registries is one finding");
+  assert.match(both[0], /it is this row that goes/u);
+  assert.equal(retiringProblems([{ typed: "new --into", release: "3.36.0", flag: "--into", instead: "x" }],
+    [{ name: "into", kind: "flag", release: "3.36.0" }]).length, 1,
+  "and a flag row is read by the bare flag the registry holds, not by the whole typed form");
 });
 
 test("neither the verb table nor the dispatcher holds a retired name, and the two agree", () => {

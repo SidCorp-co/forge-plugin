@@ -50,7 +50,7 @@ export const GUIDE_TABLE = [
       },
       {
         says: "`plan` and `acceptanceCriteria` are written by the clarify and plan steps",
-        instead: "the agent writes both at `approved`, through `forge plan` and `forge record criteria`",
+        instead: "the agent writes both at `approved`, through `forge record plan` and `forge record criteria`",
       },
       {
         says: "the recommended discard for non-work is `closed` plus `unmark`, a paragraph after the"
@@ -83,7 +83,7 @@ export const GUIDE_TABLE = [
       {
         says: "filing a new issue is never the route for a residual",
         instead: "a defect found while building is a new issue, related or blocking, and"
-          + " `forge new --into` posts a finding on an issue already open",
+          + " `forge comment` posts a finding on an issue already open, renewing no lease that is not yours",
       },
       {
         says: "non-work leaves by `closed` plus `unmark`",
@@ -148,7 +148,7 @@ export const GUIDE_TABLE = [
           + " spawns a pipeline run, burning a runner slot",
         instead: "`draft` is the reporter's status before `open` and `advance` never enters it;"
           + " nothing here dispatches, so `open` costs no slot, and what would have been that note"
-          + " is a finding on an issue already open through `forge new --into`",
+          + " is a finding on an issue already open through `forge comment`",
       },
       {
         says: "filing the issue and setting its blocks edge in a second call is a red flag, because"

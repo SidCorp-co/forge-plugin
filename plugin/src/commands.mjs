@@ -7,7 +7,6 @@ import {
   MAX_LIMIT,
   documentIdOf,
   everyIssue,
-  notAReference,
   projectedTo,
   queued,
   rowsOf,
@@ -15,22 +14,20 @@ import {
 } from "./tracker/issues.mjs";
 import { commentPage, creditAfter, credited, cutIn, mustBeShown, postComment } from "./tracker/comments.mjs";
 import { attachmentNames, uploadRead, uploadTo, urlBearing } from "./tracker/evidence.mjs";
-import { writeField } from "./tracker/field-write.mjs";
 import {
   INSTEAD_FLAGS,
   KINDS_HELP,
   KIND_NAMES,
   PRIORITY_HELP,
-  filedAs,
   inFlowWords,
   insteadOf,
-  keysOffered,
   kindNeeded,
   kindRefusal,
 } from "./tracker/issue-shape.mjs";
-import { BESIDE_HELP, foldedInto, suggestionLines } from "./tracker/filing/neighbours.mjs";
-import { filedOrFail, keysFrom, rankFor } from "./tracker/filing/route.mjs";
-import { commentLanded, issueLanded, sayLanded } from "./tracker/filing/landed.mjs";
+import { BESIDE_HELP } from "./tracker/filing/neighbours.mjs";
+import { keysFrom, rankFor } from "./tracker/filing/route.mjs";
+import { fileAndSay } from "./tracker/filing/say.mjs";
+import { commentLanded, sayLanded } from "./tracker/filing/landed.mjs";
 import { TIERS } from "./ladder.mjs";
 import { targetsOfTool } from "./tracker/issue-read.mjs";
 import { actionIn, callable, helpOf, isGated, refuseIfGated, usageOf, wrappedRefusal } from "./resolve/visibility.mjs";
@@ -46,23 +43,18 @@ import { cloudflare } from "./tools/cloudflare.mjs";
 import { knowledge } from "./tools/knowledge.mjs";
 import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
-import { bodyChecked } from "./codex/codex-read.mjs";
 import { stats } from "./stats/stats.mjs";
 import { hooks } from "./hooks/hook-log.mjs";
 import { record } from "./flow/record.mjs";
 import { advance } from "./flow/advance.mjs";
 import { spec } from "./spec/verbs.mjs";
-import { citationsChecked } from "./spec/checked.mjs";
 import { claim } from "./flow/claim.mjs";
 import { resume } from "./flow/resume.mjs";
 import { notAnothers, renew } from "./flow/lease.mjs";
+import { retiredFlagIn } from "./resolve/retiring.mjs";
 
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
-
-const sayBeside = (beside, options) => {
-  for (const line of suggestionLines(beside, options)) console.log(line);
-};
 
 /* Absence means empty; the schema already says the field exists. */
 const filled = (record) => {
@@ -323,8 +315,11 @@ export const commands = {
     if (!path) fail(usageOf("new"));
     const row = { usage: usageOf("new"), hidden: INSTEAD_FLAGS };
     if (path.startsWith("--")) fail(unknownFlag("new", [path], row) ?? notABody(path));
+    /* Before the unknown-flag route, whose nearest live name answers a question nobody asked. */
+    const retired = retiredFlagIn("new", rest);
+    if (retired) fail(retired);
     onlyFlags("new", rest, INSTEAD_FLAGS);
-    const { into, with: rides, size, kind, priority, new: fresh, ...given } = flags(rest, "new", ["--new"]);
+    const { with: rides, size, kind, priority, new: fresh, ...given } = flags(rest, "new", ["--new"]);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
     if (size !== undefined && !TIERS.includes(size)) {
       fail(`${didYouMean("size", size, TIERS)} They are the contract's three rungs, smallest first,`
@@ -333,29 +328,10 @@ export const commands = {
     if (kind !== undefined && !KIND_NAMES.includes(kind)) fail(kindRefusal(kind));
     const instead = insteadOf(given);
     if (instead) fail(instead);
-    /* Presence, never truth: the shared parser takes an empty string as a value, and a route read
-       by truthiness would drop `--into ""` on the floor and file the issue instead. */
-    const commenting = into !== undefined;
     const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
     if (badKeys) fail(badKeys);
     const relating = withKeys.length > 0;
-    const wrongRoute = commenting ? notAReference(into) : null;
-    if (wrongRoute) fail(wrongRoute);
-    if (commenting && relating) fail("--into posts a comment and --with files an issue. Ask for one of them.");
-    if (commenting && fresh) {
-      fail("--into posts the body on the issue you named and --new refuses to post it on an issue at "
-        + "all. Ask for one of them.");
-    }
-    const named = [...(size === undefined ? [] : ["size"]), ...(kind === undefined ? [] : ["kind"]),
-      ...(priority === undefined ? [] : ["priority"])];
-    const filing = [...Object.keys(given).filter((one) => one !== "title"), ...named];
-    if (commenting && filing.length) {
-      fail(`--into posts a comment, and ${filing.map((one) => `--${one}`).join(", ")} belongs to a filing. `
-        + "Drop it, or file the issue and comment on it separately.");
-    }
-    /* The filing route's, not the verb's: `--into` is refused a kind above, so requiring it of
-       both clears nothing. Before the body, a stdin payload not being sendable twice. */
-    if (!commenting && kind === undefined) fail(kindNeeded());
+    if (kind === undefined) fail(kindNeeded());
     /* Every refusal a call could not change is above this line, and this is the one call a filing
        makes before the body: a rank outside the tracker's own set is knowable without one, and the
        filing takes this answer rather than asking again. */
@@ -365,20 +341,11 @@ export const commands = {
     /* Registered the moment there is something to lose, and only then: a body from a file is on
        disk, and one from stdin cannot be sent a second time. */
     if (path === "-") keepOnFailure(`Your body, so that nothing here loses it:\n\n${body}`);
-    /* A comment is not an issue and owes none of the shape; the read the write owes is still owed,
-       and it takes no lease, because a finding on an issue nobody holds is nobody's claim. */
-    if (commenting) {
-      const issue = await documentIdOf(into);
-      await mustBeShown([{ ref: into, documentId: issue }]);
-      const posted = await postComment(issue, `## ${given.title}\n\n${body}`);
-      show(posted);
-      return sayLanded(await commentLanded(issue, posted, into));
-    }
     const { title, ...carried } = given;
-    const filed = await filedOrFail({
+    return fileAndSay({
       title,
       body,
-      kind: kind ?? null,
+      kind,
       ranked: rank.ranked,
       size,
       fields: carried,
@@ -388,45 +355,25 @@ export const commands = {
         ? await Promise.all(withKeys.map(async (one) =>
           ({ kind: "relates", blocksId: await documentIdOf(one) })))
         : null,
-    });
-    if (filed.shape.said) console.error(filed.shape.said);
-    if (filed.joined) {
-      show(filed.answer);
-      keepOnFailure(null);
-      console.log(foldedInto(filed.joined));
-      sayBeside(filed.beside, filed.said);
-      const { documentId, issueId } = filed.joined;
-      return sayLanded(await commentLanded(documentId, filed.answer, issueId));
-    }
-    keepOnFailure(null);
-    show(inFlowWords(filed.answer));
-    console.log(filedAs(filed.answer, filed.ranked.said));
-    const offered = keysOffered(filed.shape.keys, withKeys);
-    if (offered) console.log(offered);
-    sayBeside(filed.beside, filed.said);
-    return sayLanded(await issueLanded(filed.answer));
+    }, { withKeys });
   },
+  /* One verb for one write: the holder's post renews the lease and a finder's takes nothing, read
+     off the record rather than asked for, and said in the reply — a caller who thought they held the issue learns it here or not at all. `--title` frames a heading over the body. */
   comment: async (argv) => {
     onlyFlags("comment", argv);
-    const [reference, path] = argv;
+    const [reference, path, ...rest] = argv;
     if (!reference || !path) fail(usageOf("comment"));
+    const { title } = flags(rest, "comment");
     const issue = await documentIdOf(reference);
-    await renew(issue, reference);
-    show(await postComment(issue, await bodyFrom(path)));
-  },
-  /* A plan is a field, not a comment: one value, replaced rather than accumulated. Read back before
-         reporting success — a field accepted and dropped answers 200 like one that was stored. */
-  plan: async (argv) => {
-    onlyFlags("plan", argv);
-    const [reference, path] = argv;
-    if (!reference || !path) fail(usageOf("plan"));
-    /* Read before the reference is resolved: a round trip between two reads is a second file. */
-    const plan = await bodyChecked(path, fail);
-    if (!plan.trim()) fail("An empty plan would clear the field; pass the plan itself.");
-    citationsChecked(plan, fail);
-    const documentId = await documentIdOf(reference);
-    const stored = await writeField(documentId, "plan", plan, { ref: reference, refuse: fail });
-    show({ documentId, plan: String(stored ?? "").trim() });
+    await mustBeShown([{ ref: reference, documentId: issue }]);
+    const body = await bodyFrom(path);
+    const renewed = await renew(issue, reference, undefined, null, { finder: true });
+    const posted = await postComment(issue, title === undefined ? body : `## ${title}\n\n${body}`);
+    show(posted);
+    console.log(renewed
+      ? `The lease on ${reference} is yours and this post renewed it.`
+      : `No lease on ${reference} is yours, so this post is a finder's and renewed none.`);
+    return sayLanded(await commentLanded(issue, posted, reference));
   },
   attach: async (argv) => {
     onlyFlags("attach", argv);

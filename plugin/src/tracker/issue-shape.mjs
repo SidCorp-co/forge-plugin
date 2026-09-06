@@ -507,8 +507,8 @@ const alsoNamed = async (tokens, live) => {
 };
 
 const fixRoutes = (tokens, candidates) => [
-  `  --into ISS-nn   post this body as a comment on that issue and file nothing; it replaces`,
-  `                  --kind, which a comment is not read against and the verb refuses beside it`,
+  `  forge comment ISS-nn <body>   post this body there and file nothing; it needs no --kind,`,
+  `                  a comment being read against no shape, and renews a lease only where it is yours`,
   `  --with ISS-nn   file it and relate it, so one branch, one review and one release carry both`,
   `  --size ${TIERS.join("|")}`,
   `                  mark it at a rung: the two below the top carry it on the light path, and where`,
@@ -551,7 +551,7 @@ export const filingRefusal = async (filing, { gaps, fix, tokens }, { routed = fa
     out.unshift(need(
       `${same.where} of this filing, against ${same.key} \`${same.title}\`, overlapping at ${same.score.toFixed(2)}`,
       "one issue per problem",
-      `forge new <body> --title "<title>" --into ${same.key}`,
+      `forge comment ${same.key} <body> --title "<title>"`,
     ));
   }
   if (!out.length && !owesRoute) return null;

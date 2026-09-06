@@ -81,7 +81,8 @@ earns anything is the record, and a second lease write to close the gap would co
 on every payload and leave a gap of its own between the two. The measurement that asked for it: the sixth dry run's
 agent died mid-consult, and the one fact its record could not hold was which codex round it was in,
 so the round was run again to find out. The verbs that write something other than a payload — a
-comment, the plan field, an upload, a dependency edge — renew the lease and leave the line alone.
+comment, an upload, a dependency edge — renew the lease and leave the line alone; the plan is a
+record kind now and carries it.
 
 **Every write to an issue lists that issue's comments first**, because the read that looks complete
 returns none of them. The renew that precedes each payload write is where the list is made, and the

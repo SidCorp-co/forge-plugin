@@ -327,18 +327,18 @@ test("a fold whose comment write the tracker refuses exits non-zero", async () =
   assert.match(run.stderr, /comment too long/u);
 });
 
-test("--into ends its stdout with the comment id it posted", async () => {
+test("forge comment ends its stdout with the comment id it posted", async () => {
   before();
   stores();
   const env = { ...tracker.env, FORGE_SESSION_ID: "landed-into" };
-  const run = await ranAsync(FORGE, ["new", bodyFile(), "--into", ISSUE.issueId, "--title", TITLE], env);
+  const run = await ranAsync(FORGE, ["comment", ISSUE.issueId, bodyFile(), "--title", TITLE], env);
   assert.equal(run.status, 0, run.stderr);
   assert.equal(lastOf(run.stdout), `Comment c-1 is posted on ${ISSUE.issueId}, read back from the tracker.`);
 });
 
 /* The three sightings this issue was filed for. The gate refuses once and credits what it
    delivered, so the re-send writes — and the first call is non-zero with nothing sent. */
-test("--into held by the read-before-write gate exits non-zero and sends no create", async () => {
+test("a comment held by the read-before-write gate exits non-zero and sends no create", async () => {
   before();
   stores();
   state.comments = { [ISSUE.documentId]: [{ documentId: "c-old", body: "read me first", createdAt: "2026-09-01T00:00:00Z" }] };
@@ -349,7 +349,7 @@ test("--into held by the read-before-write gate exits non-zero and sends no crea
     return row;
   } };
   const env = { ...tracker.env, FORGE_SESSION_ID: "landed-held" };
-  const argv = ["new", bodyFile(), "--into", ISSUE.issueId, "--title", TITLE];
+  const argv = ["comment", ISSUE.issueId, bodyFile(), "--title", TITLE];
   const held = await ranAsync(FORGE, argv, env);
   assert.equal(held.status, 1, "the gate refuses the first call");
   assert.equal(state.calls.filter((one) => one.name === "forge_comments" && one.args.action === "create").length, 0);

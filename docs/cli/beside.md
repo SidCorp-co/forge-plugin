@@ -84,5 +84,5 @@ take less; and the body is registered before the first read, so the hold prints 
 losing it. It is the exact-title match on the defect route that stays exempt, and only that: there
 the filer typed the destination.
 
-**`--into` never reaches any of this.** It names its target, so there is nothing to suggest and
-nothing to decline, and it asks the tracker no question about neighbours at all.
+**`forge comment` never reaches any of this.** It names its target, so there is nothing to suggest
+and nothing to decline, and it asks the tracker no question about neighbours at all.

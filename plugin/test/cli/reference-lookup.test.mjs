@@ -46,17 +46,18 @@ test("the read verb reaches a key the first page could not carry", async () => {
 
 /* The route this defect cost a run: a finder writing to an issue it does not hold. It takes no
    lease by design, and a lease is the one thing that must not appear on the way through. */
-test("a finder reaches the same key through --into, and is asked for no lease", async () => {
+test("a finder reaches the same key through forge comment, and is asked for no lease", async () => {
   cutTo(BACKLOG, 2);
-  const run = await ran(["new", "-", "--title", "what the finder had nowhere to put", "--into", "ISS-1"],
+  const run = await ran(["comment", "ISS-1", "-", "--title", "what the finder had nowhere to put"],
     "a line for an issue nobody could reach");
   assert.equal(run.status, 0, run.stderr);
-  assert.doesNotMatch(run.stderr, /lease|forge claim/u);
+  assert.doesNotMatch(run.stderr, /forge claim/u);
+  assert.match(run.stdout, /No lease on ISS-1 is yours/u, "and the reply says the post took none");
 });
 
 test("the holder's verbs reach it too, the lookup being one", async () => {
   cutTo(BACKLOG, 2);
-  const run = await ran(["comment", "ISS-1", "-"], "a line for an issue nobody could reach");
+  const run = await ran(["record", "note", "ISS-1", "--section", "Fixed", "--user", "a line"]);
   assert.match(run.stderr, /ISS-1 carries no lease/u,
     "refused for the lease it wanted, which is a key it had already resolved");
 });

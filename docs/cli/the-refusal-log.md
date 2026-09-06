@@ -18,7 +18,7 @@ session, the refusals that stood in front of a tracker write and how many distin
 in front of. The number is refusals per *refused* write, and it is named that in the output, because
 only refusals are counted here: the writes that passed are in no denominator, so 1.0 is the
 rule working and 2.0 is a run re-sending. Across this session's own 307 refusals it read 1.16, with
-three on one `forge plan`; the worst row in the whole log is 6.5, from a session calling the
+three on one plan write; the worst row in the whole log is 6.5, from a session calling the
 tracker's tool directly, which is where the write is named by the tool rather than by the command.
 Two gates answering one attempt is one round, so a refusal of the same write inside a second counts
 once. A true rate wants a counter where every write already passes, which is

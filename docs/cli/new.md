@@ -23,9 +23,9 @@ did not already hold. What neither reaches is said on the way past, because refu
 a backlog that large is a refusal nobody can act on.
 
 Where nothing in the body is a rule and nothing is out of scope, its size is the finding rather
-than its shape, and three flags take such a filing instead of the tracker. `--into ISS-45` posts the
-body as a comment there and files nothing, which is the route for a finding that belongs on an issue already open; it renews no lease,
-because a finding on an issue nobody holds is nobody's claim. `--with ISS-45`, or several keys
+than its shape, and two flags take such a filing instead of the tracker — with `forge comment ISS-45`
+beside them for a finding that belongs on an issue already open, which posts the body there and files
+nothing, and renews a lease only where the lease is yours. `--with ISS-45`, or several keys
 separated by commas, files it and writes a relates edge to each in the same create, so one branch,
 one review and one release carry both; it writes no
 mark, because the flow such a filing is carried by is the related issue's. `--size` takes one of the
@@ -33,8 +33,8 @@ contract's three rungs and marks it at that one,
 and a marked filing no longer always becomes an issue: where one already open both reads like it and
 names the same place, the mark lands it there as a finding instead, and `--new` is how a filer
 declines that. What is asked of the tracker to know, and why the fold needs two answers rather than
-one: [`beside`](beside.md). The refusal lists all three flags and, from a search on the token the
-body names, the open issues that are candidates for the first two.
+one: [`beside`](beside.md). The refusal lists both flags and the comment route, and, from a search
+on the token the body names, the open issues that are candidates for the first two.
 
 An empty body is refused before any heading is looked for, and the payload `-` refuses a stdin that
 is a terminal or that closed with nothing on it: reading to EOF on one nobody fed waited two minutes

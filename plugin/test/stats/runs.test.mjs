@@ -35,7 +35,7 @@ const result = (id, seconds, content, isError = false) => JSON.stringify({
 const CALLS = [
   ["c1", 0, 10, "cat plugin/src/cli.mjs", "the file"],
   ["c2", 30, 5, "./plugin/bin/forge claim ISS-99", "claimed"],
-  ["c3", 60, 5, "forge plan ISS-99 /tmp/plan.md", "planned"],
+  ["c3", 60, 5, "forge record plan ISS-99 /tmp/plan.md", "planned"],
   ["c4", 120, 120, "cd /w && npm run check 2>&1 | tail -5", "All 12 gate step(s) passed"],
   ["c5", 300, 30, "node --test plugin/test/stats/runs.test.mjs", "ok"],
   ["c6", 400, 900, "forge codex consult --send bodies plugin/src/stats/runs.mjs", "1 finding"],
@@ -198,7 +198,7 @@ test("--json carries what the screen leaves out", () => {
   assert.deepEqual(
     held.byClass.map(([label]) => label).sort(),
     ["forge advance", "forge claim", "forge codex recheck", "forge codex whole-set", "forge issue",
-      "forge plan", "forge record verdict", "gate", "git", "poll", "read", "ship", "test"],
+      "forge record plan", "forge record verdict", "gate", "git", "poll", "read", "ship", "test"],
   );
 });
 
@@ -298,7 +298,7 @@ test("a phase opens on the call that makes it, not on a line that names it", () 
    assertion fails on the cut itself, which is what makes this a checker rather than a restatement
    of the numbers the table happens to carry. */
 test("the cutter reads its phase numbers off the rows that declare them", () => {
-  const calls = ["forge claim", WHOLE_SET_CLASS, "forge plan", WHOLE_SET_CLASS]
+  const calls = ["forge claim", WHOLE_SET_CLASS, "forge record plan", WHOLE_SET_CLASS]
     .map((klass) => ({ class: klass }));
   assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 2, 3],
     "a whole-set read before the plan is the plan's, and the one after it opens the review");
@@ -326,7 +326,7 @@ test("a consult before the plan write is the plan's, and the review opens on the
   const early = [
     ["e1", 0, 5, "./plugin/bin/forge claim ISS-99", "claimed"],
     ["e2", 60, 600, "forge codex consult --send bodies /tmp/plan.md", "0 findings"],
-    ["e3", 700, 5, "forge plan ISS-99 /tmp/plan.md", "planned"],
+    ["e3", 700, 5, "forge record plan ISS-99 /tmp/plan.md", "planned"],
     ["e4", 800, 30, "node --test plugin/test/stats/runs.test.mjs", "ok"],
     ["e5", 850, 5, "git commit -m 'the first half'", "1 file changed"],
     ["e6", 900, 300, "forge codex consult --diff --only blocker", "0 findings"],
@@ -343,7 +343,7 @@ test("a consult before the plan write is the plan's, and the review opens on the
   assert.equal(run.status, 0, run.stderr);
   const has = (line) => assert.ok(run.stdout.includes(line), `${line}\n--- printed ---\n${run.stdout}`);
   has("1 plan          1     11.0       11        2.0  forge codex whole-set 1 10m · forge claim 1 0m");
-  has("2 build         1      9.9       10        5.0  forge codex consult 1 5m · test 1 1m · git 2 0m · forge plan 1 0m");
+  has("2 build         1      9.9       10        5.0  forge codex consult 1 5m · test 1 1m · git 2 0m · forge record plan 1 0m");
   has("3 review        1      4.8        5        1.0  forge codex whole-set 1 4m");
 });
 

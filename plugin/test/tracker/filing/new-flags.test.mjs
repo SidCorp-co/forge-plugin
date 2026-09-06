@@ -49,9 +49,9 @@ const bodyAt = (body) => {
   return path;
 };
 /* A filing names its kind or is refused, and that is not what most of the cases below are about,
-   so the helper names one where the argv did not; `--into` refuses the flag and is left alone. */
+   so the helper names one where the argv did not. */
 const filed = (body, ...argv) => {
-  const kind = argv.includes("--kind") || argv.includes("--into") ? [] : ["--kind", "feature"];
+  const kind = argv.includes("--kind") ? [] : ["--kind", "feature"];
   return ranAsync(FORGE, ["new", bodyAt(body), ...argv, ...kind], tracker.env);
 };
 
@@ -94,12 +94,12 @@ test("a filing naming no kind is refused with the set, and files nothing", async
   assert.deepEqual(state.calls, [], "nothing was asked of the tracker to find that out");
 });
 
-/* The requirement is the filing route's: `--into` posts a comment, owes no shape and has no field
-   to fill, and refuses the flag two checks earlier — required of both, nothing would clear it. */
-test("the comment route needs no kind, the flag being one it refuses", async () => {
+/* The requirement is the filing verb's: a comment owes no shape and has no field to fill, so the
+   verb that posts one is asked for no kind rather than refusing the flag two checks earlier. */
+test("the comment verb needs no kind, and no shape either", async () => {
   state.calls = [];
   const run = await ranAsync(FORGE,
-    ["new", bodyAt("`forge dep` writes the edge."), "--title", TITLE, "--into", "ISS-45"], tracker.env);
+    ["comment", "ISS-45", bodyAt("`forge dep` writes the edge."), "--title", TITLE], tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(state.calls.some((one) => one.name === "forge_comments" && one.args.action === "create"));
 });
@@ -232,11 +232,12 @@ test("a rank outside the tracker's set is refused before the body is even read",
   assert.equal(state.calls.some((one) => one.args.action === "create"), false, "a refused rank filed an issue");
 });
 
-test("a rank is a filing flag, so the comment route refuses it rather than dropping it", async () => {
+test("a rank is a filing flag, and the comment verb takes none of it", async () => {
   state.calls = [];
-  const run = await filed(WHOLE, "--title", TITLE, "--into", "ISS-45", "--priority", "high");
+  const run = await ranAsync(FORGE,
+    ["comment", "ISS-45", bodyAt(WHOLE), "--priority", "high"], tracker.env);
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /--priority belongs to a filing/u);
+  assert.match(run.stderr, /No comment flag named --priority\. The set is --title\./u);
   assert.equal(state.calls.some((one) => one.name === "forge_comments"), false);
 });
 

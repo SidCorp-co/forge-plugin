@@ -36,8 +36,7 @@ export const targetsOfTool = (tool, input) => {
   return under(input, keys);
 };
 
-/* Quote removal as the shell does it, so the verb and this read one argument alike, and the hook
-   cannot defer to whichever CLI is on PATH: a quote inside a word joins it. */
+/* Quote removal as the shell does it, so the verb and this read one argument alike, and the hook cannot defer to whichever CLI is on PATH: a quote inside a word joins it. */
 const ESCAPED = /["$`\\]/u;
 const unquoted = (word) => {
   let out = "";
@@ -66,7 +65,6 @@ const CUT = /(?<!\\)\\$/u;
 /* Which argument is the issue — `dep` renews the second's lease. */
 const VERBS = {
   comment: { at: [0] },
-  plan: { at: [0] },
   claim: { at: [0] },
   attach: { at: [1], when: (args) => args[0] === "issue" },
   dep: { at: [1] },

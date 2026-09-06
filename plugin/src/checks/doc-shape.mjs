@@ -40,6 +40,9 @@ export const docClaims = (text) => {
   };
 };
 
+/* One document records what runs typed rather than telling a reader to type it, so a command right on the day it was written stays right and a rewrite falsifies the record. checks/retired-names.mjs holds the same path for the same reason. */
+export const RECORDS_RATHER_THAN_INSTRUCTS = /^docs\/issue-flow-dry-runs\.md$/u;
+
 /** A verb whose usage names no flag keeps them under a sub-verb, so its flags are not checked here. */
 export const claimProblems = (text, held) =>
   problemsIn({ ...docClaims(text), proposed: proposedIn(text) }, held);

@@ -35,7 +35,7 @@ two` is refused rather than rounded.
 could ever have asked for.** They are written into fields of an issue from a file that matches no path
 pattern and is never staged, so neither the turn's record nor what a commit closes over names them —
 and a wrong plan is the expensive error, because everything after it is built against it and the
-review that would catch it comes after the code. So `forge plan` and `forge record criteria` do the
+review that would catch it comes after the code. So `forge record plan` and `forge record criteria` do the
 asking themselves: each refuses a file no answered consult has read whole as it now stands, and prints
 the consult that clears it. Whole means the same here as it does to a recheck — one `--send bodies`
 pass — because what the log records per file is what was *read off disk* and not what travelled, so a

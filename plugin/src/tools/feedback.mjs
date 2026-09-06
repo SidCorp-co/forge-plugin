@@ -7,10 +7,9 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { agentOf } from "../flow/lease.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { documentIdOf, shortOf } from "../tracker/issues.mjs";
-import { filedAs, inFlowWords, keysOffered, liveTitles } from "../tracker/issue-shape.mjs";
-import { foldedInto, suggestionLines } from "../tracker/filing/neighbours.mjs";
-import { bodyOf, fileIssue, keysFrom } from "../tracker/filing/route.mjs";
-import { commentLanded, issueLanded, sayLanded } from "../tracker/filing/landed.mjs";
+import { liveTitles } from "../tracker/issue-shape.mjs";
+import { bodyOf, keysFrom } from "../tracker/filing/route.mjs";
+import { fileAndSay } from "../tracker/filing/say.mjs";
 
 /** This plugin's project, read from no checkout: the caller's `.forge.json` says where a note came
  *  FROM and never where it goes. */
@@ -40,9 +39,9 @@ export const USAGE = [
   "version, the copy that answered, the project you called from and the agent — so none of it is",
   "typed, and a body carrying its own Where heading gets this one after it.",
   "",
-  "No lease is taken and none is renewed. This is the finder's route, like `forge new --into`:",
-  "an issue you do not hold is commented on without claiming it. Nothing here ranks the note either,",
-  "so it is filed unranked and says so: whoever maintains this plugin raises it, not whoever met it.",
+  "No lease is taken and none is renewed, and nothing here ranks the note: it is filed unranked and",
+  "says so, because whoever maintains this plugin raises it and not whoever met it. A finding on an",
+  "issue already open is `forge comment`, which renews a lease only where the lease is yours.",
 ].join("\n");
 
 /* Typed by no caller: which version was running, which copy of it, whose project, and who met it. */
@@ -78,14 +77,11 @@ export const feedback = async (argv) => {
   }
   const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
   if (badKeys) fail(badKeys);
-  /* Registered the instant there is one to lose, a body from stdin being held nowhere else. What
-     it claims, and the one refusal above this line that it cannot reach: docs/cli/feedback.md. */
+  /* Registered the instant there is one to lose, a body from stdin being held nowhere else. What it claims, and the one refusal above this line it cannot reach: docs/cli/feedback.md. */
   const written = await bodyFrom(path);
   const keep = (text) => keepOnFailure(`Your note, so that nothing here loses it:\n\n${text}`);
   keep(written);
-  /* Before the project is aimed, so a note the shape will not carry costs no call. */
-  /* `routed` where the note names its issue: a note related to one is carried by that issue's flow,
-     and a fold would put its body on some third one instead. */
+  /* Read before the project is aimed, so a note the shape will not carry costs no call; `routed` where the note names its issue, a fold otherwise putting its body on some third one. */
   const asked = { title, body: written, kind: KIND, sections: [whereSection()], everySection: true,
     duplicates: false, routed: withKeys.length > 0 };
   const read = bodyOf(asked);
@@ -107,24 +103,6 @@ export const feedback = async (argv) => {
     console.error(`warning: ${short}\nA neighbour outside what was reached is not shown under this`
       + " note and is not folded onto, so the note is filed as a second issue rather than a finding.");
   }
-  const filed = await fileIssue({ ...asked, fresh, relations, page, soft: true });
-  if (filed.refusal) fail(filed.refusal.text);
-  const { beside, said } = filed;
-  if (filed.joined) {
-    if (filed.answer?.refused) lost(`a comment on ${filed.joined.issueId}`, filed.answer.refused);
-    keepOnFailure(null);
-    console.log(foldedInto(filed.joined));
-    for (const line of suggestionLines(beside, said)) console.log(line);
-    const { documentId, issueId } = filed.joined;
-    return sayLanded(await commentLanded(documentId, filed.answer, issueId));
-  }
-  if (filed.answer?.refused) lost("this filing", filed.answer.refused);
-  keepOnFailure(null);
-  console.log(`The note is a new ${KIND} on ${PROJECT}.`);
-  console.log(filedAs(filed.answer, filed.ranked.said));
-  console.log(JSON.stringify(inFlowWords(filed.answer), null, 2));
-  const offered = keysOffered(filed.shape.keys, withKeys);
-  if (offered) console.log(offered);
-  for (const line of suggestionLines(beside, said)) console.log(line);
-  return sayLanded(await issueLanded(filed.answer));
+  return fileAndSay({ ...asked, fresh, relations, page, soft: true },
+    { withKeys, intro: `The note is a new ${KIND} on ${PROJECT}.`, lost });
 };

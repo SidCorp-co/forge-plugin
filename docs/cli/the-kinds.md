@@ -11,9 +11,9 @@ there and read from there by the lint, the refusal and the help alike.
 `--kind` is required of a filing. It decides which sections the body is read against and it is what
 the tracker's field for a kind carries, and prose answers neither: the same headings carry a bug and
 a feature, and a field left empty is one nothing downstream can filter on. The requirement is the
-filing route's alone — `--into` posts a comment, which owes no shape and has no field to fill, and
-already refuses a kind as a flag belonging to a filing, so requiring it of both would be a refusal
-nothing clears. A create sent through the tracker's own tool has no flag to refuse and is still read
+filing route's alone — a comment owes no shape and has no field to fill, and `forge comment` is a
+verb of its own rather than a flag of this one, so a kind is asked for wherever a body is read
+against a shape and nowhere else. A create sent through the tracker's own tool has no flag to refuse and is still read
 as a feature; the mark is not an exemption either, a filing calling itself small being a filing
 still.
 

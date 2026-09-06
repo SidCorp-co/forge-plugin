@@ -48,7 +48,7 @@ const climbSaid = (plan, claimed, tier) => {
 
 const routesOff = (tier, ref) => (tier === FEATURE ? [] : [
   "Two routes up, both belonging before the plan —",
-  `  a plan declaring a screen change or a user-facing outcome:  forge plan ${ref} <plan.md>`,
+  `  a plan declaring a screen change or a user-facing outcome:  forge record plan ${ref} <plan.md>`,
   `  the work turned out larger:  ${resizeForm(ref, tier)}`,
 ]);
 

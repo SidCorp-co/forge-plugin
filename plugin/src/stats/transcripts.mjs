@@ -150,7 +150,7 @@ export const PHASES = ["0 discover", "1 plan", "2 build", "3 review", "4 judge",
    transcript. `after` is the phase that must have opened first; `last` closes its own phase. */
 export const MARKERS = [
   { phase: 1, classes: ["forge claim", "forge record confirmation"] },
-  { phase: 2, classes: ["forge plan", "forge record plan", "forge record baseline"] },
+  { phase: 2, classes: ["forge record plan", "forge record baseline"] },
   { phase: 3, classes: [WHOLE_SET_CLASS], after: 2 },
   { phase: 4, classes: ["forge record verdict"] },
   { phase: 5, classes: ["ship"], last: true },

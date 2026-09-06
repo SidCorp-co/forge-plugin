@@ -1,6 +1,7 @@
 /* The retired names, held once so a sentence naming a verb that no longer runs fails something. An
    entry names no replacement: pointing at what took over is the redirect docs/cli/withholding-a-verb.md forbids. */
 import { lineAt } from "../line-at.mjs";
+import { RETIRING } from "../resolve/retiring.mjs";
 
 export const RETIRED = [
   { name: "feedback", kind: "directory", release: "3.35.45" },
@@ -58,6 +59,19 @@ export const problems = (files, retired = RETIRED, live = []) =>
     .filter(({ rel }) => !exempt(rel))
     .flatMap((file) => retired.flatMap((entry) =>
       [...named(file, entry, live), ...mentions(file, entry)]));
+
+/* The window's own rule: the two registries may not both hold a name — an entry here carries no replacement and a retiring row is nothing but one — so a name in both is a window that never closed. */
+export const retiringProblems = (retiring = RETIRING, retired = RETIRED) =>
+  retiring.flatMap((row) => {
+    const who = row?.typed ?? "a retiring row";
+    if (!String(row?.release ?? "").trim()) {
+      return [`${who} names no release, so nothing says which one release it gets (${WHY})`];
+    }
+    return retired.some((one) => one.name === String(row.typed).split(" ").at(-1).replace(/^--/u, ""))
+      ? [`${who} is retiring here and retired in ${WHY}'s own registry: one of the two is wrong, and`
+        + " a retired name carries no replacement, so it is this row that goes"]
+      : [];
+  });
 
 /* An entry missing its release would fire a finding nobody can act on. */
 export const registryProblems = (retired = RETIRED) =>

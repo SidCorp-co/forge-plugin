@@ -21,7 +21,7 @@ const OTHER = "ee166bb0-839a-45a3-b436-036c2858d4d0";
 test("every verb that writes the record names its issue, and the read verbs name none", () => {
   const owed = {
     "forge comment ISS-29 @n.md": ["ISS-29"],
-    "forge plan ISS-29 -": ["ISS-29"],
+    "forge record plan ISS-29 -": ["ISS-29"],
     "forge claim ISS-29 --next 'go on'": ["ISS-29"],
     "forge attach issue ISS-29 shot.png": ["ISS-29"],
     "forge record verdict ISS-29 --criterion 1 --verdict pass": ["ISS-29"],
@@ -45,9 +45,9 @@ test("every verb that writes the record names its issue, and the read verbs name
 /* The three defects of the old reader, each its own case: a key was scraped from the whole command,
    so a citation or a filename was owed a read; and no key meant no gate, so the uuid form passed. */
 test("only the argument the verb writes to is a target", () => {
-  assert.deepEqual(targets("forge plan ISS-29 @plan.md # supersedes ISS-30"), ["ISS-29"]);
+  assert.deepEqual(targets("forge record plan ISS-29 @plan.md # supersedes ISS-30"), ["ISS-29"]);
   assert.deepEqual(targets("forge record criteria ISS-29 /tmp/ISS-30-criteria.md"), ["ISS-29"]);
-  const heredoc = "cat > /tmp/c.md <<'EOF'\n1. FR-05 and UC-05 say so, as ISS-30 does\nEOF\nforge plan ISS-29 -";
+  const heredoc = "cat > /tmp/c.md <<'EOF'\n1. FR-05 and UC-05 say so, as ISS-30 does\nEOF\nforge record plan ISS-29 -";
   assert.deepEqual(targets(heredoc), ["ISS-29"], "a body is data, and a clause is not a tracker key");
   assert.deepEqual(targets("echo 'run forge comment ISS-29 @n.md' > note.md"), [],
     "a quoted string holds no command position");
@@ -103,7 +103,7 @@ test("a prefix before the verb is still the verb", () => {
     "sudo forge comment ISS-29 @n.md",
     "(forge comment ISS-29 @n.md)",
     "NOTE=x forge comment ISS-29 @n.md",
-    "/usr/local/bin/forge plan ISS-29 -",
+    "/usr/local/bin/forge record plan ISS-29 -",
     `sh -c "forge comment ISS-29 @n.md"`,
     "cd /tmp && forge advance ISS-29",
   ]) {
@@ -363,7 +363,7 @@ test("a citation in the issue's own argument names no write target", () => {
 /* The reported case, kept as a case: it stopped reproducing when the reading became positional, and
    nothing pinned that it stays gone. */
 test("a plan whose body cites five clauses writes only to the issue it names", () => {
-  const command = "forge plan ISS-32 <(cat <<'MD'\n## Plan\nServes FR-05 and UC-05, criterion AC-05,"
+  const command = "forge record plan ISS-32 <(cat <<'MD'\n## Plan\nServes FR-05 and UC-05, criterion AC-05,"
     + " under BR-03 and NFR-02.\nMD\n)";
   assert.deepEqual(targets(command), ["ISS-32"]);
 });

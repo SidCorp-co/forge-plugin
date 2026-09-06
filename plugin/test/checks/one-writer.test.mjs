@@ -6,7 +6,7 @@ import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { TOOL, WRITERS, writesIn, writerProblems } from "../../src/checks/one-writer.mjs";
+import { SAYS, TOOL, WRITERS, saidIn, sayProblems, writesIn, writerProblems } from "../../src/checks/one-writer.mjs";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 
@@ -80,4 +80,32 @@ test("a write on another tool is not this rule's, and neither is one nobody wrot
   assert.deepEqual(writesIn(`scoped("${TOOL}", { action: "list", filters });`, "three.mjs"), []);
   assert.deepEqual(writesIn(`write("${TOOL}", { action: "transition", data });`, "four.mjs"), [],
     "a transition is forge advance's and is judged by neither row");
+});
+
+/* `forge new`'s filing branch and `forge feedback`'s route say the same four things about a filing,
+   and said them separately until one of them stopped echoing a fold's comment (ISS-348). */
+test("one module formats a filing's reply, and it is the one the routes call", () => {
+  const said = sources().flatMap(({ rel, text }) => saidIn(text, rel));
+  assert.ok(said.length > 0, "no formatter call found anywhere; the selector matches too little");
+  assert.deepEqual(sayProblems(said), []);
+  for (const what of SAYS.formatters) {
+    assert.ok(said.some((one) => one.what === what), `${what} is formatted nowhere, so that name is stale`);
+  }
+});
+
+test("a second route formatting a filing's reply fails, by line, and is told what to call instead", () => {
+  const second = "console.log(filedAs(answer, said));\n";
+  const said = sayProblems(saidIn(`const first = 1;\n${second}`, "plugin/src/tools/elsewhere.mjs"));
+  assert.equal(said.length, 1, "a second route printing its own filed-as line passed");
+  assert.match(said[0], /^plugin\/src\/tools\/elsewhere\.mjs:2 formats/u, said[0]);
+  assert.match(said[0], /fileAndSay/u, "a refusal has to name what to call instead");
+  assert.match(said[0], /plugin\/src\/tracker\/filing\/say\.mjs/u, "and where that one place is");
+});
+
+/* The rule is about a second copy of the reply, so the route that files without printing one, and
+   the standalone comment verb's own landed line, are neither of them this rule's. */
+test("filing without saying, and a comment's own landed line, are not this rule's", () => {
+  assert.deepEqual(saidIn("const filed = await fileIssue(asked);", "plugin/src/tools/release.mjs"), []);
+  assert.deepEqual(saidIn("return sayLanded(await commentLanded(issue, posted, ref));", "plugin/src/commands.mjs"), [],
+    "a comment is no filing, and the verb that posts one says so itself");
 });

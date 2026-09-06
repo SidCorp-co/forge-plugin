@@ -71,7 +71,7 @@ in this tree would most naturally sit (ISS-526).
 
 ## A citation read at a write
 
-`forge plan` and `forge record criteria` resolve what they are handed before either sends anything. The reader is the same one the
+`forge record plan` and `forge record criteria` resolve what they are handed before either sends anything. The reader is the same one the
 verb above is, so a plan and a `spec` call disagree about no clause; what differs is the audience,
 and so the sentence — a reader who asked for one clause is told it is stale and stops, an author
 still holding the file is told which revision to write instead.

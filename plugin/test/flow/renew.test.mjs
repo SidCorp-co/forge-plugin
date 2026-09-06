@@ -236,6 +236,68 @@ test("an issue nobody claimed refuses the write, because a payload is the holder
   assert.match(await refused(() => renew(ISSUE, "ISS-65")), /carries no lease/u);
 });
 
+/* The one conditional renewal, and the default that keeps it from being one. `forge comment` posts
+   for the holder and for whoever found something; every other payload write asks for nothing and
+   keeps the refusal, because `writeField` awaits this and reads none of what it answers. */
+test("the finder option renews the holder's lease and answers that it did", async () => {
+  field = lease("this-run", ago(1));
+  const { answer } = await said(() => renew(ISSUE, "ISS-348", undefined, null, { finder: true }));
+  assert.equal(answer, true, "asked for or not, a lease of this run's is renewed");
+  assert.equal(leaseOf(field).holder, "this-run");
+  assert.ok(Date.parse(leaseOf(field).renewedAt) > Date.now() - 60_000, "and the window starts again");
+});
+
+test("the finder option answers false on another run's lease and writes nothing", async () => {
+  for (const minutes of [1, 45]) {
+    field = lease("the-other-run", ago(minutes));
+    const before = leaseOf(field).renewedAt;
+    sent.length = 0;
+    const { answer } = await said(() => renew(ISSUE, "ISS-348", undefined, null, { finder: true }));
+    assert.equal(answer, false, `${minutes} minute(s) old: a finder is told, not refused`);
+    assert.equal(leaseOf(field).renewedAt, before, "and the other run's lease is untouched");
+    assert.deepEqual(sent.filter((one) => one.endsWith(":update")), [], "no write of any kind");
+  }
+});
+
+test("the finder option answers false where nobody holds it, and takes nothing", async () => {
+  field = null;
+  const { answer } = await said(() => renew(ISSUE, "ISS-348", undefined, null, { finder: true }));
+  assert.equal(answer, false, "a comment on an issue nobody holds is nobody's claim");
+  assert.equal(field, null, "and a finder claims none");
+});
+
+/* The reason the reading is inside `renew` and not in front of it: a caller that classified first
+   would have one read, and a handoff landing between it and the write would pass for a renewal. */
+test("a handoff landing after the finder's first read is refused, comment and lease alike", async () => {
+  field = lease("this-run", ago(45));
+  const stub = globalThis.fetch;
+  let gets = 0;
+  globalThis.fetch = async (url, init = {}) => {
+    if (reads(url, init)) {
+      gets += 1;
+      if (gets === 2) field = lease("the-other-run", ago(0));
+    }
+    return stub(url, init);
+  };
+  try {
+    const message = await refused(() => renew(ISSUE, "ISS-348", undefined, null, { finder: true }));
+    assert.match(message, /ISS-348 is held by another run/u, "the option does not reach the second read");
+    assert.equal(gets, 2, "which is still made, lapsed being the state another run may take");
+    assert.equal(leaseOf(field).holder, "the-other-run", "and nothing of this run's was written over it");
+  } finally {
+    globalThis.fetch = stub;
+  }
+});
+
+/* The default is what every field write inherits, and inheriting `false` would be a licence. */
+test("no caller gets the finder branch without asking, whatever else it passes", async () => {
+  for (const argv of [[], [undefined, null], ["a next line", { open: ["x"] }], [undefined, null, {}]]) {
+    field = lease("the-other-run", ago(1));
+    const message = await refused(() => renew(ISSUE, "ISS-348", ...argv));
+    assert.match(message ?? "", /ISS-348 is held by another run/u, JSON.stringify(argv));
+  }
+});
+
 test("the notice names the lease and the refusals stay four", () => {
   const held = { holder: "this-run", agent: "a-test-agent", pid: "4242", renewedAt: ago(45), minutes: 30, history: [] };
   assert.match(renewedLapsed("ISS-65", held), /read before it still named this-run/u);

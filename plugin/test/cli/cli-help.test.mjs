@@ -77,7 +77,6 @@ const POINTS_AT = {
   issue: "forge_issues",
   new: null,
   comment: null,
-  plan: null,
   claim: "forge_issues",
   resume: "forge_issues",
   record: "forge_issues",
@@ -100,6 +99,19 @@ const POINTS_AT = {
   schema: null,
   call: null,
 };
+
+/* The table is where an agent learns the surface, so one write has one row in it: a name a landing
+   retired leaves the table with the flag it was reached through, and the row that took the write
+   over says what it takes now. `plan` is judged by the deepEqual above; these are its two halves
+   the table still has rows for (ISS-348). */
+test("a retired name is in no row, and the row that took its write over says what it takes", () => {
+  const brief = ask("-h").stdout;
+  const rowOf = (verb) => brief.split("\n").find((line) => line.trim().startsWith(`${verb} `));
+  assert.ok(!rowOf("new").includes("--into"), `the new row still offers --into: ${rowOf("new")}`);
+  assert.match(rowOf("comment"), /\[--title T\] post a comment; the lease on the record decides/u);
+  assert.match(rowOf("feedback"), /`forge new` with the kind, the project and the Where filled in/u,
+    "and the verb kept as a name says what it expands to");
+});
 
 const pointerIn = (verb) =>
   helpOf(verb).split("\n").find((line) => line.startsWith("The fields the tracker takes"));
@@ -165,5 +177,5 @@ test("the preamble carries this CLI's rules and not the runner's", () => {
   }
   assert.match(full, /`forge new` refuses/u, "what a filing is refused without");
   assert.match(full, /A status is earned, not set/u, "and that a status is earned");
-  assert.match(full, /`forge plan` and\n\s+`forge record criteria`/u, "by the agent, through these");
+  assert.match(full, /`forge record plan` and\n\s+`forge record criteria`/u, "by the agent, through these");
 });

@@ -180,7 +180,7 @@ const REACHED_THE_TRACKER = /No Forge endpoint/u;
 const planned = (root, text) => {
   const file = join(root, "plan.md");
   writeFileSync(file, text);
-  return spawnSync(FORGE, ["plan", "ISS-1", file], {
+  return spawnSync(FORGE, ["record", "plan", "ISS-1", file], {
     encoding: "utf8",
     cwd: root,
     env: { ...process.env, FORGE_CODEX_DISABLE: "1" },
