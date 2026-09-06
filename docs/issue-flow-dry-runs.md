@@ -3845,3 +3845,59 @@ its handback; the filing and the routed note were read back.
 - The one-issue-per-problem check fires on an out-of-scope bullet that names a sibling issue, and
   fired again on the draft reporting it; routed to ISS-375. The run duplicated that comment by
   re-calling after mistaking a truncated reply for the silent no-write, and deleted the duplicate.
+
+## Hundred-and-fiftieth dry run — ISS-346
+
+The resumed park: one field writer under the tracker module owns the renew, the cap
+read, the write and the read-back for the content fields of an issue, and `forge plan`, `record note`
+and `record criteria` call it with a field name and a value. It landed twice. The first ship
+(3.35.164) carried a cap reader that read `maxLength` off the field node, and the tracker declares
+every nullable field as a union of a string branch and a null branch, so the reader found nothing and
+the check never fired in any project; the run caught it after its own verdicts, retracted the five
+that cited it by a correction record, and shipped again at 3.35.166 with the reader searching the
+union's branches. Live proof went through the worktree's own binary: a 501-code-point technical half
+refused before anything was sent. The lease's own write split to ISS-451, so the one-writer check the
+body asks for is deliberately not in this landing. No restart owed. Closed by its run. Folded from its
+handback; the twenty comments on the thread, ISS-456, and the filings on ISS-430, ISS-46, ISS-449
+and ISS-382 were read back.
+
+- The suite that should have caught the null cap declared its own flat copy of the schema, built to
+  the same wrong assumption as the code; a stub that mirrors what the code expects cannot contradict
+  it. The fixture now carries the tracker's real union shape, and the second ship planted the old
+  reader to watch three cases go red.
+- A codex review and sixteen verdicts approved a change whose central rule never ran, because every
+  one of them judged the code and none ran the refusal live. Criterion 4 is now proven by the message
+  itself, from the binary, and the release verification quotes it.
+- Two retraction filings correct the run's own earlier comments on ISS-430 and ISS-46, which had
+  claimed delivery on the strength of the first ship. A filing that says an issue is done is a claim
+  like any other, and the run that made it is the one that owes the retraction.
+- The unconfounded ISS-449 reproduction: two byte-identical `forge new --into` calls, one wrote and
+  one exited zero and did not, the thread going from eight comments to nine. A `text: null` field on
+  every comment nearly read as a lost write; the body is in `body`.
+- Twenty turns went to polling gate logs while two full gates contended across worktrees. Waiting on
+  the process id in the background is the shape that costs nothing.
+
+## Hundred-and-fifty-first dry run — ISS-335
+
+A raw call asking for an action a verb wraps is refused with the verb to type: the verb table
+gains a `wraps` column and is read backwards, so `forge call
+forge_comments create` answers with `forge comment` (3.35.165, landed as 91a7e81; ten files). The
+mapping is the one list the capability probe already keys on, with the action kept in its own column
+because folding it into the key would have composed pairs the probe never records, and an action no
+verb claims passes on the table's silence rather than an exemption list. A class-wide test scans every
+source for a printed raw call the table claims, and named `plugin/src/flow/advance.mjs` before the fix
+went in: the park escape printed a raw comment create at the one moment the record body was its only
+copy, filed as ISS-454 and then taken when the file came free. No restart owed. Closed by its run.
+Folded from its handback; the two release verifications, ISS-454, ISS-455 and the ISS-5 comments
+were read back, and ISS-454 was dropped as already fixed by the dispatcher.
+
+- Three tracker bodies named a file that existed when they were written and was dissolved before it
+  shipped, because a sibling landing filled the directory to its ten-file limit mid-review. A path in a
+  comment is a claim about a tree that keeps moving; the run posted the correction on each thread.
+- The park escape's heredoc delimiter is not `PARK`, because a `--why` of exactly that word would have
+  truncated the record. A delimiter is chosen against what the body can contain.
+- The release commit's subject lost its version prefix because `--note` on the retry replaced the
+  whole subject, as its help says. Anything counting releases by subject miscounts 3.35.165.
+- ISS-5 was commented on and reads `open`; the run had no record of its pre-comment status, so
+  whether the comment reset a park (ISS-429) is unknown. The tracker's history is not readable through
+  the raw call, so the fold could not settle it either.
