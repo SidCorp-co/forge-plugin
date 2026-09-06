@@ -415,6 +415,8 @@ test("what separates the windows is counted per value, not merely listed", () =>
   const held = Object.fromEntries(object.shifts.map((one) => [one.name, one]));
   assert.deepEqual(held.model.values, [{ value: "new-model", now: 100, before: 0 }, { value: "old-model", now: 0, before: 100 }]);
   assert.deepEqual(held.slot.values, [{ value: "codex", now: 100, before: 100 }], "the slot is the name, and it did not move");
+  assert.deepEqual(held.prompt.values, [{ value: "v2 bbb", now: 100, before: 0 }, { value: "v2 aaa", now: 0, before: 100 }],
+    "the prompt version, the fourth dimension AC-06-6-2 names and the one nothing here was asserting");
   const said = evalLines(object).join("\n");
   assert.match(said, /model {3}new-model — → 100, old-model 100 → —/u);
   assert.match(said, /slot {4}codex 100 → 100/u);

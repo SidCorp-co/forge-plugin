@@ -121,6 +121,45 @@ outcome; leaving it unruled makes "resolved or still open" a guess.
   WHEN a credential appears in anything written to the log THEN it SHALL be masked before it is
   written down.
 
+### UC-06-6 — Compare the log's last hundred consults with the hundred before them
+
+Rev: 1 · Actors: agent · Enforces: BR-16
+
+Nothing a reviewer answers is diffable, so an upgrade to the harness shows up only as a shift in what
+the reviews cost and in how much of them was kept. The log holds both, and this comparison is what
+turns them into a judgement rather than an impression. How the windows are sized, why a crossing
+writes a reading and what pinning one is for is `docs/cli/stats-the-eval.md`. That reading shares a
+store with the run corpus's, whose own side of it is EI-08, and this use case is the consult side
+alone.
+
+- **AC-06-6-1** · Rev: 1 · Proof: plugin/test/codex/codex-plan.test.mjs "the eval is the last hundred against the hundred before, scored on the whole log's verdicts"
+  WHEN the log holds two full windows THEN the CLI SHALL compare the hundred most recently answered
+  consults with the hundred answered before them, and SHALL score both on every disposition the log
+  holds rather than on those falling inside a window.
+- **AC-06-6-2** · Rev: 1 · Proof: plugin/test/codex/codex-plan.test.mjs "what separates the windows is counted per value, not merely listed"
+  WHEN two windows of consults are compared THEN the CLI SHALL say what separates them as a count of
+  consults on each side for every value of the slot asked for, the model behind it, the prompt
+  version and the reasoning effort.
+- **AC-06-6-3** · Rev: 1 · Proof: plugin/test/codex/codex-plan.test.mjs "the eval writes nothing and refuses a window nobody can act on"
+  WHEN the comparison is asked for, on the screen or as one object, THEN the CLI SHALL leave the log
+  exactly as it found it.
+- **AC-06-6-4** · Rev: 1 · Proof: plugin/test/codex/codex-log.test.mjs "the consult that takes the log onto a hundred-mark names the eval; the one before it says nothing"
+  WHEN a consult's own record brings the log to a positive multiple of a hundred answered consults
+  THEN that consult SHALL end on one line naming the comparison to run, counted from where that
+  record sits among the answered consults rather than from anything holding the last crossing.
+- **AC-06-6-5** · Rev: 1 · Proof: plugin/test/codex/codex-log.test.mjs "the consult that takes the log onto a hundred-mark names the eval; the one before it says nothing"
+  WHEN that line is printed THEN the CLI SHALL take the comparison from the log as it stood when the
+  record landed, SHALL attempt to append it as the reading for that mark unless that mark is held
+  already, and SHALL end the same line with what became of it.
+- **AC-06-6-6** · Rev: 1 · Proof: plugin/test/codex/codex-plan.test.mjs "a stored consult reading is the before window, scored as it was at the mark, on every checkout"
+  WHERE a held reading is named as the earlier window the CLI SHALL put that reading's later window
+  in the sliding one's place, scored as it stood at the mark rather than rescored by anything
+  recorded since.
+- **AC-06-6-7** · Rev: 1 · Proof: plugin/test/codex/codex-plan.test.mjs "a short window says its real size, and a log too young says it has no window before"
+  WHERE the log does not reach two full windows the CLI SHALL compare as far back as it reaches and
+  SHALL say how far short of a window it fell, rather than compare against consults the log does not
+  hold.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*
