@@ -218,6 +218,9 @@ for.
   IF the project's configuration says production deploys on its own and every evidence item on the
   release verification is a commit sha THEN the CLI SHALL refuse `released`, a sha naming no
   deployment.
+- **AC-05-7-9** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a declaration a plan quotes inside a code span is not one it makes"
+  WHERE a declaration sits inside an inline code span, the CLI SHALL read it as a value the plan
+  names rather than one it declares, because only what a plan leaves bare is what it commits to.
 
 ### UC-05-8 — A record too large to read whole
 

@@ -191,11 +191,12 @@ hid — so a page that came back short is judged as a feature's.
 ### `approved` — reads the plan, the criteria and the blocking relations
 
 The plan carries three declarations, each written `<name>: yes` or `<name>: no` in any case and
-anywhere in its text: `Screen change`, `Schema coupling` and `User-facing outcome`. The first two
-decide what the ship steps owe, and a plan without them does not earn `in_progress`; the third, with
-the first, decides whether a person reviews the rendered change before it ships. The reader takes
-the name, the colon and the next word, so a label closed in emphasis before its colon, as `**Screen
-change:** no`, is a declaration it does not find.
+anywhere in its text outside a code span: `Screen change`, `Schema coupling` and `User-facing
+outcome`. The first two decide what the ship steps owe, and a plan without them does not earn
+`in_progress`; the third, with the first, decides whether a person reviews the rendered change
+before it ships. The reader takes the name, the colon and the next word, so a label closed in
+emphasis before its colon, as `**Screen change:** no`, is a declaration it does not find; and a
+value the plan spans is one it quotes, so a plan may cite the rule and name the value it is not.
 
 Neither tier below `feature` owes a plan field, so each declares nothing and all three read *no*.
 That is the reading, not an oversight: a change nobody sees is what the mark claims, and one that is

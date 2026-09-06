@@ -11,6 +11,7 @@ import { tempHome } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("entry-checks").path;
 const { parse, render } = await import("../../../src/flow/record.mjs");
 const { CHECKS, shapeGaps, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { planFlags } = await import("../../../src/flow/machine.mjs");
 const { targetOf } = await import("../../../src/flow/route.mjs");
 
 let clock = 0;
@@ -187,4 +188,22 @@ test("no entry check other than approved asks for the issue's clauses", () => {
     if (status === "approved") continue;
     CHECKS[status](viewFrom("the-uuid", APPROVABLE, [], null, null, UNREAD), "ISS-3");
   }
+});
+
+test("a declaration a plan quotes inside a code span is not one it makes", () => {
+  const both = "Screen change: no. Schema coupling: no.\n\nWhere a plan declares `Screen change: yes`, a person looks.";
+  assert.deepEqual(planFlags(both), { screen: "no", schema: "no", look: null },
+    "the line the plan writes decides and the line it quotes does not");
+  const quoted = "This reads `Screen change: yes` and `Schema coupling: yes` off whatever plan it is given.";
+  assert.deepEqual(planFlags(quoted), { screen: null, schema: null, look: null });
+  assert.deepEqual(missing("approved", view({ plan: quoted, acceptanceCriteria: CRITERIA })), [
+    "the plan declares neither `Screen change: yes|no` nor `Schema coupling: yes|no`, and the "
+      + "two decide what the ship steps owe",
+  ], "such a plan declares nothing, which is what it means");
+  const landed = mark("merged to master at c8c3550");
+  const verdicts = [1, 2].map((number) =>
+    recorded("verdict", { criterion: `${number} — text`, verdict: "pass", commit: "c8c3550", evidence: ["c8c3550"] }));
+  const stamped = { mergedAt: "2026-09-02T13:49:51.777Z", acceptanceCriteria: CRITERIA, plan: quoted };
+  assert.deepEqual(missing("tested", view(stamped, [landed, ...verdicts])), [],
+    "and no migration risk classification is asked of a plan whose only coupling line is a quotation");
 });

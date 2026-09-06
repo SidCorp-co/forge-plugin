@@ -46,7 +46,7 @@ Where it applies, and what each case would have done read the other way:
 | a word the ladder has not got | the height of the lowest rung, never negative | index off the end of the table and answer with nothing |
 | a size value the table has not got | no claim from that source, so the mark decides alone | invent a rung for a value nobody mapped, and read it as the one that owes least |
 | a run's transcript naming several rungs | the largest among them | file a batch under its cheapest member, so every rung looks better the more work is batched onto it |
-| a plan declaring one name twice | `yes`, wherever in the plan it stands | read the first, so `no` above `yes` waives a payload the plan explicitly declared, and the same two lines reordered do not |
+| a plan declaring one name twice | `yes`, wherever outside a code span it stands | read the first, so `no` above `yes` waives a payload the plan explicitly declared, and the same two lines reordered do not |
 | a ceiling read from a projection that lost a correction | printed all the same | the loss only ever lowers the rung, so it tightens a print that refuses nothing: it nags where nothing was owed and never falls silent where something was |
 
 ## The ship's ceiling
@@ -72,6 +72,15 @@ raise a rung the body genuinely claimed, and no trivial issue could ever quote t
 closes on its own character, at least as long as the one that opened it and alone on its line:
 anything looser ends the block at a line of content and reads the mark under it as the body's. A
 block nothing closes runs to the end of the text, so what that loses, it loses upward.
+
+**A declaration a plan quotes is not a doubtful declaration — it is not a declaration.** An inline
+code span is blanked before the three names are looked for, because a plan is written under the rule
+it explains and one citing what another issue declared would otherwise declare it too. Answering with
+the higher of the spanned and unspanned readings would be worse than either: no plan could name the
+value it is not, and the rule would be unwritable in the document that states it. Both halves of
+`plugin/src/flow/machine.mjs` read one span for this — what the protector leaves alone crossing a
+prose rewrite is what the reader refuses to count — which is why the protection it applies is a mark
+it takes back rather than a span it leaves behind.
 
 **A line a call printed is not a field a write stamped.** A run's rung is read off the confirmation
 record in the call's output — its tag and its fence — and never off the words in it. A class covers

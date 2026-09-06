@@ -12,7 +12,7 @@ const { assemble, parse, render, sayStored } = await import("../../src/flow/reco
 /* The comparators moved to the field writer with the write they belong to (ISS-346). */
 const { landedAs, noteLandedAs } = await import("../../src/tracker/field-write.mjs");
 const { SHAPES } = await import("../../src/flow/machine.mjs");
-const { planFlags, protectMachine } = await import("../../src/flow/machine.mjs");
+const { planFlags, protectMachine, restoreMachine } = await import("../../src/flow/machine.mjs");
 const { CHECKS, ORDER, viewFrom } = await import("../../src/flow/earned.mjs");
 
 /* What the real call does, measured by putting a rendered record, a plan and a criteria list through
@@ -39,6 +39,14 @@ const viBlock = (block) => {
 
 /* The real segmentation, so what counts as prose is the pipeline's answer and not this file's. */
 const rewritten = (text) => segment(text).map(([kind, block]) => (kind === "text" ? viBlock(block) : block)).join("");
+
+/* The write boundary whole, in the order `plugin/src/tools/vi.mjs` runs it: hold the declarations,
+   rewrite the prose, hand them back. Reading a plan that had only been protected would judge text
+   this CLI never posts. */
+const throughVi = (text) => {
+  const marks = {};
+  return restoreMachine(rewritten(protectMachine("plan", text, marks)), marks);
+};
 
 let clock = 0;
 const at = () => `2026-09-03T11:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
@@ -81,7 +89,7 @@ test("every kind's payload survives the rewrite byte for byte, and reads back un
 });
 
 test("a status is earned from records that came back through the rewrite, with nothing owed", () => {
-  const plan = rewritten(protectMachine("plan", "Screen change: no\nSchema coupling: no\n\nThe plan itself."));
+  const plan = throughVi("Screen change: no\nSchema coupling: no\n\nThe plan itself.");
   const criteria = rewritten("1. The first outcome.\n2. The second outcome.");
   assert.deepEqual(planFlags(plan), { screen: "no", schema: "no", look: null }, "the declarations are read through it");
   assert.match(criteria, /^1\. /mu, "and a criterion keeps the number a verdict names");
@@ -181,17 +189,30 @@ test("a fenced value holding the old separator is one value, and a labelled one 
   assert.deepEqual(parse(older).fields.decision, ["keep A", "the second reading"]);
 });
 
-test("the protector wraps every declaration the reader accepts, once, wherever it sits in the plan", () => {
+test("the protector holds every declaration the reader accepts, once, wherever it sits in the plan", () => {
   const inline = "Screen change: no. Schema coupling: no.\n\nThe plan itself.";
-  const held = protectMachine("plan", inline);
-  assert.deepEqual(planFlags(rewritten(held)), { screen: "no", schema: "no", look: null }, "two on one line, with periods");
-  assert.equal(protectMachine("plan", held), held, "a wrapped declaration is not wrapped twice");
+  const marks = {};
+  const held = protectMachine("plan", inline, marks);
+  assert.deepEqual(marks.texts, ["Screen change: no", "Schema coupling: no"], "two on one line, with periods");
+  assert.equal(protectMachine("plan", held), held, "a marked declaration is not marked twice");
+  assert.equal(restoreMachine(held, marks), inline, "and the restore hands back what the author wrote");
+  assert.deepEqual(planFlags(throughVi(inline)), { screen: "no", schema: "no", look: null });
   const spread = "- Screen change: yes\nDecision: schema coupling: yes\nUser-facing outcome: no";
-  assert.deepEqual(planFlags(rewritten(protectMachine("plan", spread))), { screen: "yes", schema: "yes", look: "no" });
+  assert.deepEqual(planFlags(throughVi(spread)), { screen: "yes", schema: "yes", look: "no" });
   assert.deepEqual(planFlags(rewritten(spread)), { screen: null, schema: null, look: null }, "and unprotected it declares nothing");
+  const split = "Screen change:\n  yes\n\nSchema coupling: no.";
+  const held2 = {};
+  assert.equal(restoreMachine(protectMachine("plan", split, held2), held2), split,
+    "a value on the next line is held too, and comes back spaced as it was written");
+  assert.deepEqual(planFlags(throughVi(split)), { screen: "yes", schema: "no", look: null });
   const inside = "`Decision: screen change: yes because the migration lands first`";
   assert.equal(protectMachine("plan", inside), inside, "one already inside a span is left whole");
-  assert.equal(planFlags(rewritten(inside)).screen, "yes");
+  assert.equal(planFlags(throughVi(inside)).screen, null, "and quoted is named, not declared (ISS-488)");
+  assert.doesNotMatch(throughVi(inline), /forge-machine/u, "no mark of the protector's survives the boundary");
+  const quoting = "Screen change: no.\n\nThe mark is written `forge-machine-0` and means nothing here.";
+  const named = {};
+  assert.equal(restoreMachine(protectMachine("plan", quoting, named), named), quoting,
+    "a plan quoting the mark keeps its quotation: the protector names its own away from the text");
 });
 
 test("a field's read-back is compared with the copy the boundary sent, not the source it was handed", () => {

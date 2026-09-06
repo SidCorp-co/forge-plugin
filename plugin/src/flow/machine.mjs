@@ -141,10 +141,14 @@ const GRAMMAR = {
   },
 };
 
-const SPANS = /`[^`\n]+`|"[^"\n]*"|\([^)\n]*\)/gu;
+/* One inline code span, built from once below: what `protectMachine` leaves inside one is what `planFlags` refuses to count, and one half saying so alone is not the rule (ISS-488). */
+const CODE_SPAN = "`[^`\\n]+`";
+const SPAN = new RegExp(CODE_SPAN, "gu");
+const SPANS = new RegExp(`${CODE_SPAN}|"[^"\\n]*"|\\([^)\\n]*\\)`, "gu");
 const BREAKS = /[,;:—]$/u;
 
-const masked = (text) => text.replace(SPANS, (span) => "·".repeat(span.length));
+const blanked = (text, spans) => text.replace(spans, (span) => "·".repeat(span.length));
+const masked = (text) => blanked(text, SPANS);
 
 const tokensOf = (text) => {
   const out = [];
@@ -240,35 +244,61 @@ const pathsIn = (said) => {
 export const landingMoved = (comments) => pathsIn(MOVED.exec(lastMark(comments) ?? "")?.[1]?.trim());
 export const landingWrote = (comments) => pathsIn(WROTE.exec(lastMark(comments) ?? "")?.[1]?.trim());
 
-/* Machine data in prose; every occurrence, not the first, decides (docs/cli/the-ladder.md). */
+/* Machine data in prose; every occurrence outside a code span decides, not the first (docs/cli/the-ladder.md). */
 const DECLARED = { screen: "screen change", schema: "schema coupling", look: "user-facing outcome" };
-const lineFor = (name) => new RegExp(`${name}:\\s*(yes|no)\\b`, "giu");
+const DECLARED_VALUE = ":\\s*(yes|no)\\b";
+const lineFor = (name) => new RegExp(`${name}${DECLARED_VALUE}`, "giu");
 
-export const planFlags = (plan) =>
-  Object.fromEntries(Object.entries(DECLARED).map(([key, name]) => {
-    const said = [...String(plan ?? "").matchAll(lineFor(name))].map((found) => found[1].toLowerCase());
-    return [key, said.includes("yes") ? "yes" : (said[0] ?? null)];
+export const planFlags = (plan) => {
+  const said = blanked(String(plan ?? ""), SPAN);
+  return Object.fromEntries(Object.entries(DECLARED).map(([key, name]) => {
+    const found = [...said.matchAll(lineFor(name))].map((one) => one[1].toLowerCase());
+    return [key, found.includes("yes") ? "yes" : (found[0] ?? null)];
   }));
+};
 
 /** Which declaration asks for a person, beside the table it reads: FR-05 names two. */
 export const looksTo = ({ screen, look }) =>
   (look === "yes" ? "a user-facing outcome" : (screen === "yes" ? "a screen change" : null));
 
-/* As far as `lineFor` reaches: one accepted mid-line and left bare is renamed, and declares nothing. */
 const MACHINE = {
-  plan: new RegExp(`(${Object.values(DECLARED).join("|")}):[ \\t]*(yes|no)\\b`, "gimu"),
+  plan: new RegExp(`(?:${Object.values(DECLARED).join("|")})${DECLARED_VALUE}`, "giu"),
 };
-/* The spans the rewrite keeps, in the shape it reads them: what is inside one is already safe, and
-   a second pair of backticks in there would split the span and expose what it holds. */
-const SPAN = /(`[^`\n]+`)/u;
+/* What a declaration stands as while the prose pass runs. It cannot itself be a code span — the
+   reader refuses those — and an identifier inside one is carried whole by a pass that keeps spans byte for byte. */
+const HELD = "forge-machine";
+const SPAN_PART = new RegExp(`(${CODE_SPAN})`, "gu");
+/* Named away from anything the text already says, so a plan quoting the mark keeps its quotation:
+   the restore cannot tell a span it wrote from one it was given, so it is never given one. */
+const heldIn = (source) => {
+  let key = HELD;
+  while (source.includes(key)) key = `${key}x`;
+  return key;
+};
 
-export const protectMachine = (field, text) => {
+/** Every bare declaration out of the rewrite's way, its own text kept in `held` for the restore. */
+export const protectMachine = (field, text, held = {}) => {
   const pattern = MACHINE[field];
-  if (!pattern) return text;
-  return String(text)
-    .split(new RegExp(SPAN.source, "gu"))
-    .map((part, at) => (at % 2 ? part : part.replace(pattern, (_whole, name, value) => `\`${name}: ${value}\``)))
+  const source = String(text);
+  if (!pattern) return source;
+  const key = heldIn(source);
+  const texts = [];
+  const out = source
+    .split(SPAN_PART)
+    .map((part, at) => (at % 2 ? part : part.replace(pattern, (whole) => {
+      texts.push(whole);
+      return `\`${key}-${texts.length - 1}\``;
+    })))
     .join("");
+  Object.assign(held, { key, texts });
+  return out;
+};
+
+/** The other half of the protection: what `protectMachine` held, back where its own marks stand. */
+export const restoreMachine = (text, held = {}) => {
+  const { key, texts } = held;
+  if (!key || !texts?.length) return String(text);
+  return String(text).replace(new RegExp(`\`${key}-(\\d+)\``, "gu"), (mark, at) => texts[Number(at)] ?? mark);
 };
 
 /* What a payload of each kind holds, in the one table the write, the read-back and the usage

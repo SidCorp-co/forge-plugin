@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 import { fail, translateTo } from "../resolve/settings.mjs";
-import { protectMachine } from "../flow/machine.mjs";
+import { protectMachine, restoreMachine } from "../flow/machine.mjs";
 
 export const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "vi-natural");
 /* Every prose field an agent can write, and a release note is an object whose other two halves are
@@ -83,8 +83,10 @@ export const translated = (payload) => {
     const path = field.split(".");
     const held = leafAt(done, path);
     if (typeof held !== "string" || !held.trim()) continue;
-    const source = protectMachine(path.at(-1), held);
-    const written = path.at(-1) === "title" ? translatedTitle(source) : translatedBody(source);
+    const marks = {};
+    const source = protectMachine(path.at(-1), held, marks);
+    const rewritten = path.at(-1) === "title" ? translatedTitle(source) : translatedBody(source);
+    const written = restoreMachine(rewritten, marks);
     done = withLeaf(done, path, written);
     console.error(`--- ${field} as posted ---\n${written}\n`);
   }
