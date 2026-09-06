@@ -3691,3 +3691,26 @@ was read back.
 - A prose flag on the record verb stores an at-file token verbatim, so a record can point at one
   machine's temp directory (ISS-434); the run named which of its own two confirmation comments is the
   broken one.
+
+## Hundred-and-forty-fourth dry run — ISS-346
+
+A park, nothing landed. One field writer for every verb that sets a field of an issue has a rule that
+exactly one place writes an update and a check holds it, and two of the three write sites sat in files
+two other runs of the wave held with approved plans; landing the writer with the one free caller would
+have left the check red by construction, and the repository forbids both narrowing a selector and
+exempting the callers. The run parked blocked on those two runs and wrote into the park what a
+re-dispatch would otherwise re-derive: the four-call-site table, the lease circularity, a behaviour
+change hiding in one rule, and the caps read off the live schema. It wrote no plan, on the reasoning
+that a plan earns approved and an approved issue that is blocked tells the next dispatcher it is ready
+to build. Folded from its handback; the note on ISS-422 and the filing were read back. The tree stays
+for the same agent to resume.
+
+- Reading the lease to write the park, the run found that every agent of a dispatched wave answers the
+  parent's session id, so the lease's live-holder refusal is unreachable between two concurrent runs;
+  measured in three processes and filed as ISS-445. The dispatcher took it over its rank the same
+  hour, since four concurrent runs is what this wave is.
+- A dependency that the tracker's own tool would record is written as prose on the park, because the
+  verb that sets it needs a paired device this credential is not; the ordering the prose carries is
+  that ISS-334 must not land first or its field writes become a fourth copy.
+- A park reason that carries the reading costs the re-dispatch nothing but the reading's age; the
+  dispatch skill's rule that a parked run is resumed in its own agent is what makes that cost zero.
