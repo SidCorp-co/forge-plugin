@@ -103,6 +103,45 @@ test("a read in a checkout stamped moments ago is no document this turn changed"
   assert.deepEqual(pending(root), [], "and recorded as one");
 });
 
+/* ISS-39's own test rule is that no gate is offered the file: the floor stops at the call's edge, so
+   a git operation *inside* one stamps above it and every name after the `&&` read as written. A real
+   repository, because the answer is now the tree's and the fake `.git` above is one git refuses. */
+test("a checkout and the names in one call leave the gate with nothing to announce", () => {
+  const root = tempRoom("codex-turn-checkout-");
+  const git = (...args) =>
+    spawnSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+  mkdirSync(join(root, "docs"), { recursive: true });
+  const names = ["docs/G.md", "docs/H.md", "docs/I.md"];
+  spawnSync("git", ["init", "-q", "-b", "one", root], { encoding: "utf8" });
+  for (const name of names) writeFileSync(join(root, name), "one\n");
+  git("add", ...names);
+  git("commit", "-qm", "one");
+  git("checkout", "-qb", "two");
+  for (const name of names) writeFileSync(join(root, name), "two\n");
+  git("commit", "-qm", "two", ...names);
+  const path = join(room, "t-checkout.jsonl");
+  writeFileSync(path, [
+    JSON.stringify({ type: "user", promptSource: "typed", timestamp: "2026-09-01T13:00:00.000Z" }),
+    JSON.stringify({ type: "assistant", timestamp: new Date(Date.now() - 20_000).toISOString(), message: { content: [{ type: "tool_use", name: "Bash", input: {} }] } }),
+    "",
+  ].join("\n"));
+  git("checkout", "-q", "one");
+  const run = callHook(
+    HOOK,
+    {
+      session_id: "s4",
+      tool_name: "Bash",
+      tool_input: { command: `git checkout -q one && cat ${names.join(" ")}` },
+      transcript_path: path,
+      cwd: root,
+    },
+    HOME,
+  );
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.stdout.trim(), "", "the checkout's own stamps were announced as this turn's changes");
+  assert.deepEqual(pending(root), [], "and recorded as them");
+});
+
 /* A storm, because spawning ten hooks does not overlap them: process start staggers the writes and
    the race hides. Four processes recording into two checkouts at once is contention, and without a
    lock the read-modify-write loses whatever another one wrote in between. */

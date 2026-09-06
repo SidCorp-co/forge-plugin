@@ -11,6 +11,7 @@ import { scrubbed } from "../src/hooks/hook-log.mjs";
 import { NOWHERE, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
 import { glued } from "../src/hooks/assembled.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
+import { agreedWithHead } from "../src/hooks/git-probe.mjs";
 
 export { DEADLINES };
 export { askedAlready, askedByAnyone, note, noted } from "../src/hooks/stamps.mjs";
@@ -149,15 +150,19 @@ function touching(ev, freshMs) {
   const now = Date.now();
   const command = String(ti.command ?? "");
   /* Two texts: as written, and with a shell binding and a body's own assembly resolved, so a name the call computed is one to ask the disk about. Beside the raw scan and never instead — the resolved one drops a data heredoc's body. how/writes.md. */
-  const tokens = [...new Set([...(command.match(TOKEN) ?? []), ...(shellWrites(command).match(TOKEN) ?? [])])];
+  const resolved = shellWrites(command);
+  const tokens = [...new Set([...(command.match(TOKEN) ?? []), ...(resolved.match(TOKEN) ?? [])])];
   const since = tokens.length ? callAt(turnRecords(ev.transcript_path ?? "")) : 0;
-  const out = new Set();
+  /* What the text claims answers on the stamp alone: a write putting back HEAD's bytes is one the tree cannot report. The rest are mentions, which a git operation in this same call stamps too. */
+  const claims = new Set(tokens.length ? writtenPaths(resolved, cwd).map((one) => one.token) : []);
+  const out = new Map();
   for (const token of tokens) {
     for (const cand of [token, join(cwd, token)]) {
       try {
         const st = statSync(cand);
         if (st.isFile() && st.mtimeMs >= since && now - st.mtimeMs <= freshMs) {
-          out.add(realpathSync(cand));
+          const full = realpathSync(cand);
+          out.set(full, out.get(full) || claims.has(token));
           break;
         }
       } catch {
@@ -165,7 +170,9 @@ function touching(ev, freshMs) {
       }
     }
   }
-  return [...out].sort();
+  const mentioned = [...out].filter(([, claimed]) => !claimed).map(([path]) => path);
+  const restamped = mentioned.length ? agreedWithHead(mentioned, remaining) : new Set();
+  return [...out.keys()].filter((one) => !restamped.has(one)).sort();
 }
 
 /** The paths a call spelled, resolved but not followed: `touched` answers with what a name points at,

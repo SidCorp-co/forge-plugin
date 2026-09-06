@@ -1,14 +1,20 @@
 /* The freshness reading had a ceiling and no floor, so for two minutes after a checkout was cut every
    path a read command named answered as written — met in the first minute of every worktree per
    session run (ISS-200). The floor is the call, so the cases are a young file nobody wrote, a young
-   file this call wrote, and a transcript that cannot say. */
+   file this call wrote, and a transcript that cannot say.
+
+   The floor stops at the call's own edge: a git operation *inside* one stamps above it, so every name
+   after the `&&` read as written (ISS-39). The second half of the evidence is the tree, and the cases
+   for it are at the foot of this file. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { FRESH_MS, callAt, shellWrites, touched } from "../../hooks/_hook.mjs";
 import { glued } from "../../src/hooks/assembled.mjs";
+import { agreedWithHead, LEAST_MS } from "../../src/hooks/git-probe.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const room = tempRoom("writes-");
@@ -197,6 +203,112 @@ test("more than one assembly in a body, and more than two members in one", () =>
   assert.match(both, /"one\/x\.md"/u);
   assert.match(both, /"two\/y\.md"/u, "the second assembly folds too");
   assert.match(py('p = "plugin" + "/skills" + "/issue-flow" + "/SKILL.md"'), /"plugin\/skills\/issue-flow\/SKILL\.md"/u);
+});
+
+/* ISS-39: one call, a git operation and then the names. The floor is the moment the call was asked
+   for, so the checkout stamps above it and every name after the `&&` answered as written. What
+   separates the two is the tree: a file it still agrees with HEAD about was restamped, not written. */
+
+const git = (at, ...args) =>
+  spawnSync("git", ["-C", at, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+
+/* Two branches whose files differ, so checking one out rewrites all three and stamps them now. */
+const repoWithBranches = () => {
+  const at = tempRoom("writes-repo-");
+  spawnSync("git", ["init", "-q", "-b", "one", at], { encoding: "utf8" });
+  for (const name of ["a.md", "b.md", "c.md"]) writeFileSync(join(at, name), "one\n");
+  git(at, "add", "a.md", "b.md", "c.md");
+  git(at, "commit", "-qm", "one");
+  git(at, "checkout", "-qb", "two");
+  for (const name of ["a.md", "b.md", "c.md"]) writeFileSync(join(at, name), "two\n");
+  git(at, "commit", "-qm", "two", "a.md", "b.md", "c.md");
+  return { at, files: ["a.md", "b.md", "c.md"].map((one) => realpathSync(join(at, one))) };
+};
+
+const inRepo = (at, command, floor = NOW - 20_000) => ({
+  session_id: "s1",
+  tool_name: "Bash",
+  tool_input: { command },
+  cwd: at,
+  transcript_path: asked(floor),
+});
+
+/* The defect: `git rebase master && <read the files>` is this repository's own Phase 4 last step. */
+test("a checkout in the same call stamped the files, and the verb after it only named them", () => {
+  const { at } = repoWithBranches();
+  assert.deepEqual(touched(inRepo(at, "git checkout -q one && cat a.md b.md c.md")), []);
+});
+
+test("a tracked file the same call really changed is a write, whichever route wrote it", () => {
+  const { at, files } = repoWithBranches();
+  writeFileSync(join(at, "a.md"), "a script the command text says nothing about wrote this\n");
+  assert.deepEqual(touched(inRepo(at, "node tools/fix.mjs a.md")), [files[0]]);
+});
+
+test("a file the call created is a write, and one the repository ignores is too", () => {
+  const { at } = repoWithBranches();
+  writeFileSync(join(at, ".gitignore"), "made.log\nbuilt/\n");
+  mkdirSync(join(at, "built"), { recursive: true });
+  writeFileSync(join(at, "made.md"), "new\n");
+  writeFileSync(join(at, "made.log"), "new\n");
+  writeFileSync(join(at, "built", "out.js"), "new\n");
+  assert.deepEqual(touched(inRepo(at, "node tools/make.mjs made.md")), [realpathSync(join(at, "made.md"))]);
+  assert.deepEqual(
+    touched(inRepo(at, "node tools/make.mjs made.log")),
+    [realpathSync(join(at, "made.log"))],
+    "an ignored path is reported under --ignored and under no other flag",
+  );
+  assert.deepEqual(
+    touched(inRepo(at, "node tools/make.mjs built/out.js")),
+    [realpathSync(join(at, "built", "out.js"))],
+    "and one inside an ignored directory is reported by name, which --ignored=matching would not",
+  );
+});
+
+/* The tree cannot report a write that puts back the bytes HEAD holds, so the command's own text is
+   asked first and a claim there answers on the stamp alone. */
+test("a redirect onto a file the tree agrees with HEAD about is still a write", () => {
+  const { at, files } = repoWithBranches();
+  writeFileSync(join(at, "a.md"), "two\n");
+  assert.deepEqual(touched(inRepo(at, "printf 'two\\n' > a.md")), [files[0]]);
+  assert.deepEqual(touched(inRepo(at, "cat a.md")), [], "and the same bytes, only mentioned, are not");
+});
+
+/* The narrowing this change declares: with no write shape in the text, a script that restores a
+   file to HEAD's bytes cannot be told from a `git checkout --` of it, and neither is offered. */
+test("a route with no write shape that restores HEAD's bytes is the case this gives up", () => {
+  const { at } = repoWithBranches();
+  writeFileSync(join(at, "a.md"), "what a run had changed it to\n");
+  writeFileSync(join(at, "a.md"), "two\n");
+  assert.deepEqual(touched(inRepo(at, "node tools/restore.mjs a.md")), []);
+});
+
+test("a candidate in no repository answers as it always did", () => {
+  const file = stamped("outside-any-repo.md", NOW - 5_000);
+  assert.deepEqual(touched(bash("cat outside-any-repo.md", asked(NOW - 20_000))), [file]);
+});
+
+/* One allowance per probe and a run of them unbounded is no clock at all: 85 s of post deadline, five per probe. */
+test("a spent event budget stops the asking and drops nothing", () => {
+  const { at, files } = repoWithBranches();
+  assert.deepEqual([...agreedWithHead(files, () => 85_000)], files, "the three are clean, and the clock is not");
+  assert.deepEqual([...agreedWithHead(files, () => 0)], [], `nothing in ${at} was asked about`);
+});
+
+test("a budget that runs out between probes stops the run rather than overrunning it", () => {
+  const { at, files } = repoWithBranches();
+  let opened = false;
+  const draining = () => (opened ? LEAST_MS - 1 : ((opened = true), 85_000));
+  assert.deepEqual([...agreedWithHead(files, draining)], [], `no probe in ${at} was bought below the floor`);
+  assert.deepEqual([...agreedWithHead(files, () => LEAST_MS)], files, "the floor itself still buys one");
+});
+
+/* Doubt keeps a candidate: a wall that stands down where it cannot see is not a wall (ISS-200). */
+test("where git will not answer for the tree, nothing is dropped", () => {
+  const at = tempRoom("writes-broken-");
+  writeFileSync(join(at, ".git"), "gitdir: nowhere at all\n");
+  writeFileSync(join(at, "held.md"), "x\n");
+  assert.deepEqual(touched(inRepo(at, "cat held.md")), [realpathSync(join(at, "held.md"))]);
 });
 
 test("a body that binds nothing and assembles nothing comes back as it went in", () => {
