@@ -4237,3 +4237,30 @@ read back.
 - A leased issue refuses a bare `forge comment` and accepts `forge new --into`, so for a finding on a
   held file the filing route is the only one that works while the holder's lease is live. The
   dispatcher's briefs say so from here on.
+
+## Hundred-and-sixty-fourth dry run — ISS-483
+
+A compound criterion is refused at the write, before the consult is asked, with what it read as the two
+halves (3.35.179, landed as 9def3a5, pushed head 81556cc). The rule the eval said was
+costing a round per run is now the verb's, with the grammar the guide already stated as its source. A
+frozen corpus of sixty hand-checked criteria from three earlier runs is the oracle: exactly three lines
+refuse, every let-through shape writes, and anything loosening the rule meets those sixty rows first.
+No restart owed. Closed by its run. Folded from its handback; the confirmation, the baseline and the
+three routed filings (ISS-463, ISS-27, ISS-356) were read back.
+
+- The review's four findings were all about the rule being too eager — coordinated subjects and
+  reduced relatives falsely refused, a comma resetting subordination, the consult asked before the
+  refusal, the guide keeping the blanket conjunction rule — and all four were accepted and refuted on
+  recheck. A refusal that fires on the right shape and on a shape beside it is worse than no refusal;
+  the oracle is what lets the rule stay conservative.
+- Two boundaries disclosed rather than hidden: the grammar is English-only, so a Vietnamese-prose
+  project gets neither refusal nor warning; and the run's own criterion joining two outcomes with a
+  verb that takes no object still writes. Both are on the issue, which is where a rule's edge belongs.
+- A scripted edit left a requirement without its sentence and the gate stayed green; filed into
+  ISS-27 as the gap it is. A checker proven by watching it fire had not been watched for this.
+- The findings ISS-502 routed onto this thread about a withheld note's reason being translated were
+  re-homed to ISS-356 with a note on the closed thread saying where they went. A routed item lands
+  where it will be worked, and the closed thread names the forwarding.
+- The reduction the issue exists for is not demonstrated yet: this run spent three criteria rounds, a
+  whole-set read and a recheck inside the current window. The next window judges it, which is what
+  the measure line on the issue is for.
