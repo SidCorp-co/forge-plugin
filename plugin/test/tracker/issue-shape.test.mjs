@@ -357,27 +357,20 @@ test("a whole body files with no output but the issue", async () => {
   assert.doesNotMatch(run.stdout, /Hold/u);
 });
 
-/* The payload may arrive as a file or on stdin, which a hook reading the command line cannot see,
-   so the verb that parsed it lints it too. */
-test("a raw call filing from a file is linted, and the hook is not the only place it is", async () => {
-  const path = join(room, "create.json");
-  writeFileSync(path, JSON.stringify({ action: "create", data: { title: "fix", description: "It is broken." } }));
-  const run = await ranAsync(FORGE, ["call", "forge_issues", `@${path}`], tracker.env);
-  assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /a heading naming the outcome/u);
-  const whole = join(room, "whole.json");
-  writeFileSync(whole, JSON.stringify({ action: "create", data: { title: TITLE, description: WHOLE } }));
-  assert.equal((await ranAsync(FORGE, ["call", "forge_issues", `@${whole}`], tracker.env)).status, 0);
-});
-
-/* The route that arrives from a file or stdin is a filing too, so what the verb says about the kind
-   it read is owed there as well. */
-test("a raw call filing is told what kind it was read as, the same as the verb", async () => {
-  const path = join(room, "kindless.json");
-  writeFileSync(path, JSON.stringify({ action: "create", data: { title: TITLE, description: WHOLE } }));
-  const run = await ranAsync(FORGE, ["call", "forge_issues", `@${path}`], tracker.env);
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stderr, /Read as a feature, the kind a filing naming none is read as/u);
+/* ISS-335 closed this route: the payload may arrive from a file or on stdin, where a hook reading
+   the command line sees nothing, so the refusal is the verb's own and is made off the parsed body
+   whatever carried it. A body that would have passed the shape read is refused with the rest. */
+test("a raw call filing is refused with the verb that reads it, from a file as from the line", async () => {
+  state.calls = [];
+  for (const data of [{ title: "fix", description: "It is broken." }, { title: TITLE, description: WHOLE }]) {
+    const path = join(room, "create.json");
+    writeFileSync(path, JSON.stringify({ action: "create", data }));
+    const run = await ranAsync(FORGE, ["call", "forge_issues", `@${path}`], tracker.env);
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /forge_issues create is what `forge new` wraps/u);
+    assert.doesNotMatch(run.stderr, /a heading naming the outcome/u, "the body is not what refused it");
+  }
+  assert.equal(state.calls.some((one) => one.args.action === "create"), false, "and nothing was filed");
 });
 
 /* Reading to EOF on a stdin nobody fed waited two minutes and then filed. */

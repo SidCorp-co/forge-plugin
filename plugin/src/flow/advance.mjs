@@ -126,11 +126,12 @@ export const parkAs = async (view, ref, kind, why, evidence = [], left = null) =
     await post(view.documentId, body, ref);
   }
   catch (error) {
-    /* A record written now would stamp the side status as the one it left. */
+    /* A record written now would stamp the side status as the one it left. The body goes back on
+       stdin: a quoted argument would end on the apostrophes and newlines it holds. */
     refuse(`${ref} moved to ${status} and its park record did not go up: ${error.message}\n`
       + `Nothing on the page now says where it left, and \`forge record park\` would stamp `
-      + `${status} as that status. Put this body up as it stands:\n  `
-      + `forge call forge_comments '${JSON.stringify({ action: "create", data: { issue: view.documentId, body } })}'`);
+      + `${status} as that status. Put this body up as it stands:\n\n`
+      + `forge comment ${view.documentId} - <<'FORGE_PARK_RECORD'\n${body}\nFORGE_PARK_RECORD`);
   }
 };
 

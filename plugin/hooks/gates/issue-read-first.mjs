@@ -1,9 +1,9 @@
-// Why the write is where this gate sits, and not the reading: how/issue-read-first.md. Why a filing
-// is read before it is made, and what that refusal declines to judge: how/issue-shape.md.
+// Three refusals, three pages: how/issue-read-first.md for where the write's reading sits,
+// how/issue-shape.md for a filing read before it is made, how/wrapped-route.md for a verb's action.
 
 import { deny, done, how, shellText, starts } from "../_hook.mjs";
 import { refusalFor, sessionKey } from "../../src/tracker/comments.mjs";
-import { filingsOf, joined, writeTargets } from "../../src/tracker/issue-read.mjs";
+import { filingsOf, joined, refusalForCall, writeTargets } from "../../src/tracker/issue-read.mjs";
 import { refusalFrom, shapeOf } from "../../src/tracker/issue-shape.mjs";
 import { documentIdOf } from "../../src/tracker/issues.mjs";
 import { accountCredentials } from "../../src/resolve/settings.mjs";
@@ -22,7 +22,8 @@ export const run = async (ev) => {
   const call = { name: ev.tool_name, input: ev.tool_input };
   const refs = writeTargets(call, said);
   const filings = filingsOf(call, said);
-  if (!refs.length && !filings.length) done();
+  const wrapped = refusalForCall(call);
+  if (!refs.length && !filings.length && !wrapped) done();
   const { url, token } = accountCredentials();
   if (!url.value || !token.value) done();
   // The shape first: a filing refused is a filing that never happened, and it owes no reading.
@@ -30,6 +31,7 @@ export const run = async (ev) => {
     const refused = await refusalFrom(filing, shapeOf(filing));
     if (refused) deny(refused + how(SHAPE));
   }
+  if (wrapped) deny(wrapped + how("wrapped-route"));
   const { refusal } = await refusalFor(await resolved(refs), sessionKey(ev));
   if (refusal) deny(refusal + how());
   done();

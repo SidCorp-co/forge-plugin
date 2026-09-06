@@ -1,6 +1,7 @@
 /* Which issues a call writes to, read from the arguments the verb takes and not searched for in the
    text: a reference in a heredoc, a quoted value or a path is no target, and one by uuid is. And
    which call files a new one, which names no issue yet and so owes no comment delivery. */
+import { actionIn, wrappedRefusal } from "../resolve/visibility.mjs";
 import { HUMAN_REF, UUID } from "./issues.mjs";
 
 const READS = new Set(["list", "get"]);
@@ -80,6 +81,10 @@ const CALL = /^(?:\S*\/)?forge\s+call\s+(forge_\w+)\b/u;
 const VERB = /^(?:\S*\/)?forge\s+([a-z]+)\b/u;
 const MCP = /^mcp__forge__(forge_\w+)$/u;
 
+export const toolOfCall = (name) => MCP.exec(name ?? "")?.[1] ?? null;
+
+export const refusalForCall = ({ name, input }) => wrappedRefusal(toolOfCall(name), actionIn(input));
+
 const spokenTargets = (one) => {
   const called = CALL.exec(one);
   if (called) return targetsOfTool(called[1], payload(one));
@@ -115,7 +120,7 @@ export const joined = (command) => {
 /** Every issue one call writes to, so a compound is answered once — parsed for the tracker's own
  *  tool, and read where a command starts for a shell one. */
 export const writeTargets = ({ name, input }, spoken = []) => {
-  const tool = MCP.exec(name ?? "")?.[1];
+  const tool = toolOfCall(name);
   const found = tool ? targetsOfTool(tool, input) : spoken.flatMap(spokenTargets);
   return [...new Set(found)];
 };
@@ -134,7 +139,7 @@ const spokenFilings = (one) => (CALL.exec(one)?.[1] === "forge_issues" ? filingO
 
 /** `forge new` is absent: it reads its body off a file this cannot see, and refuses on this reader. */
 export const filingsOf = ({ name, input }, spoken = []) => {
-  const tool = MCP.exec(name ?? "")?.[1];
+  const tool = toolOfCall(name);
   if (tool) return tool === "forge_issues" ? filingOf(input) : [];
   return spoken.flatMap(spokenFilings);
 };

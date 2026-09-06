@@ -5,11 +5,15 @@ import { userConfig } from "./config.mjs";
 import { fail, projectScope } from "./settings.mjs";
 
 export const VERBS = [
-  ["issues", "[--status s] [--search q] [--limit n]", "every matching issue, walked; --limit is how many print", "forge_issues"],
-  ["issue", "<uuid|ISS-45> [--fields a,b] [--full]", "one body, or named parts of it", "forge_issues"],
+  ["issues", "[--status s] [--search q] [--limit n]", "every matching issue, walked; --limit is how many print",
+    "forge_issues", null, { list: "`forge issues`" }],
+  ["issue", "<uuid|ISS-45> [--fields a,b] [--full]", "one body, or named parts of it",
+    "forge_issues", null, { get: "`forge issue`" }],
   ["new", "<file.md|@file|-> --title T [--kind K] [--status S] [--priority P] [--size fix] [--into ISS-45] [--with ISS-45] [--new]",
-    "file one, read against the shape its kind needs; --into comments there instead", "forge_issues"],
-  ["comment", "<uuid|ISS-45> <file.md|@file|->", "post a comment", "forge_comments"],
+    "file one, read against the shape its kind needs; --into comments there instead",
+    "forge_issues", null, { create: "`forge new`" }],
+  ["comment", "<uuid|ISS-45> <file.md|@file|->", "post a comment",
+    "forge_comments", null, { create: "`forge comment` (or `forge new --into` to file the body there)" }],
   ["plan", "<uuid|ISS-45> <file.md>", "write the issue's plan field, from a file a consult has read", "forge_issues"],
   ["claim", "<uuid|ISS-45> [--minutes n] [--next <line>] [--pushed] [--review] [--open <line>]",
     "take the issue's lease, or reclaim one a dead run left", "forge_issues"],
@@ -17,7 +21,8 @@ export const VERBS = [
   ["record", "<kind> <uuid|ISS-45> [...]", "a contract payload in the one shape the CLI owns; read back by kind", "forge_issues"],
   ["advance", "<uuid|ISS-45> [...]", "the next status, earned by the record or refused with what it owes", "forge_issues"],
   ["spec", "<id>[~<rev>]", "one clause of the requirements tree, read by its identifier"],
-  ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context", "forge_uploads"],
+  ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context",
+    "forge_uploads", null, { request: "`forge attach`" }],
   ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues"],
   ["next", "[--count n] [--why] [--json] [--holding ISS-45] [--project <dir>]",
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues"],
@@ -34,7 +39,12 @@ export const VERBS = [
     "the id, the branches a change lands on, the staging deploy, and the project's own brief",
     "forge_projects.list"],
   ["knowledge", "<list|get|write|search|delete>",
-    "what a run learned of this codebase, stored where the next one reads it", "forge_knowledge"],
+    "what a run learned of this codebase, stored where the next one reads it", "forge_knowledge", null,
+    { list: "`forge knowledge list`",
+      get: "`forge knowledge get`",
+      upsert: "`forge knowledge write`",
+      search: "`forge knowledge search`",
+      delete: "`forge knowledge delete`" }],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials"],
   ["codex", "<consult|verdict|pending|show|log|stats|eval|replay>", "a second model reviews what this turn changed"],
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
@@ -47,7 +57,7 @@ export const VERBS = [
     "where an issue-flow run's time and rounds go, read off the transcripts the harness keeps", null],
   ["tools", "[--all]", "the reachable surface"],
   ["schema", "<tool>", "one tool's arguments"],
-  ["call", "<tool> <'json'|@file|->", "anything not wrapped above"],
+  ["call", "<tool> <'json'|@file|->", "anything no verb wraps; an action one does is refused with the verb to type"],
 ];
 
 export const VERB_NAMES = VERBS.map(([verb]) => verb);
@@ -108,6 +118,53 @@ export const withheldVerbs = () => new Set(userConfig().withheld ?? []);
 /* A row naming one action is gated on it, so what is asked about tools goes on seeing the tool a
    verb cannot spend, and `row[3]` stays the schema pointer either way — docs/cli/deps.md. */
 export const gateKey = (row) => (row?.[4] ? `${row[3]}.${row[4].action}` : row?.[3]);
+
+/* The actions this verb is the ROUTE for — not every action it spends. Why they are a column of
+   their own rather than row[4]'s, and what breaks when they are not: wrapped.test.mjs. */
+export const wrapsOf = (row) =>
+  row?.[5] ?? (row?.[4]?.action ? { [row[4].action]: `\`forge ${row[0]}\`` } : null);
+
+/* And read backwards: which verb is the route to the tool and action a raw call asks for. A pair no
+   row claims is what `forge call` is left for, and the table's silence is that decision. */
+export const actionIn = (input) => {
+  const held = input?.action;
+  return typeof held === "string" ? held : null;
+};
+
+export const verbFor = (tool, action) => {
+  if (!tool || !action) return null;
+  for (const row of VERBS) {
+    if (row[3] !== tool) continue;
+    const claimed = wrapsOf(row);
+    if (claimed && Object.hasOwn(claimed, action)) return { verb: row[0], line: claimed[action] };
+  }
+  return null;
+};
+
+/* A withheld verb is still the route: the withholding is the decision, and the raw action is not
+   what is left when the verb goes. */
+const unavailable = (verb) => {
+  if (withheldVerbs().has(verb)) {
+    return `\`forge ${verb}\` is withheld on this machine — \`forge doctor --show ${verb}\` offers it again`;
+  }
+  const blocked = blockedBy(verb);
+  if (!blocked) return null;
+  return blocked.said
+    ?? `\`forge ${verb}\` cannot spend ${blocked.key} on this credential — \`forge doctor\` measured that`;
+};
+
+export const wrappedRefusal = (tool, action) => {
+  const found = verbFor(tool, action);
+  if (!found) return null;
+  const gone = unavailable(found.verb);
+  if (gone) {
+    return `${tool} ${action} is what ${found.line} wraps, and ${gone.replace(/\.$/u, "")}. `
+      + "The raw call is not the way round that.";
+  }
+  return `${tool} ${action} is what ${found.line} wraps: type it instead — it makes this call `
+    + "and takes the reading this route skips.";
+};
+
 
 export const offeredVerbs = () => {
   const withheld = withheldVerbs();

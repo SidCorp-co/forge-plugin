@@ -348,7 +348,10 @@ test("a search the transport loses files the issue too, and does not exit before
     "a read named by its tool rather than by an action field is still a read");
 });
 
-test("a raw create is told what is open beside it and is never folded onto it", async () => {
+/* ISS-335 closed this route: the reading below is `forge new`'s, and the raw call took none of the
+   rest of it — no kind required, no rank written, no key in the reply. So the call is refused with
+   the verb, and nothing is filed by it. */
+test("a raw create is refused with the verb that reads it, and files nothing", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
   const payload = JSON.stringify({
@@ -356,10 +359,10 @@ test("a raw create is told what is open beside it and is never folded onto it", 
     data: { title: TITLE, description: `${BODY}\n\nSize: fix.\n`, category: "bug" },
   });
   const run = await ranAsync(FORGE, ["call", "forge_issues", payload], tracker.env);
-  assert.equal(run.status, 0, run.stderr);
-  assert.ok(created(), "the call asked for a create and got one");
-  assert.equal(commented(), undefined, "and carries no flag to decline a comment with");
-  assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /forge_issues create is what `forge new` wraps/u);
+  assert.equal(created(), undefined, "and the call it refused was never made");
+  assert.equal(run.stdout, "", "nothing was said beside a filing that did not happen");
 });
 
 /* The defect route files on the same measure: ISS-162 was filed through it as a duplicate of the

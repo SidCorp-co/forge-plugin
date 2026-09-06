@@ -282,10 +282,34 @@ test("a create through the raw call is denied where the tool is, because a form 
   assert.match(said.hookSpecificOutput.permissionDecisionReason, /forge hooks --how issue-shape/u);
 });
 
-test("a create that meets the shape is denied nothing, and neither is an update", async () => {
-  assert.equal((await filing({ title: TITLED, description: WHOLE })).out, null);
-  assert.equal((await filing({ title: "fix", description: "It is broken." }, { name: "mcp__forge__forge_comments" })).out, null,
-    "and a comment is not a filing");
+/* ISS-335. The shape is read first and the route second, so a body that cannot carry the flow still
+   hears about the body: fixing it is owed on either route, and hearing the verb first would cost the
+   caller the same two rounds in the other order. */
+test("a create that meets the shape is refused for its route, and named the verb that reads it", async () => {
+  const run = await filing({ title: TITLED, description: WHOLE });
+  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.match(because(run), /forge_issues create is what `forge new` wraps/u);
+  assert.doesNotMatch(because(run), /forge hooks --how issue-shape/u, "the shape is not what refused it");
+});
+
+test("a comment made through the tool is named its own verb, not the filing's", async () => {
+  const run = await filing({ issue: "ISS-29", body: "x" }, { name: "mcp__forge__forge_comments" });
+  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.match(because(run), /forge_comments create is what `forge comment/u);
+});
+
+test("an update no verb claims is refused by nothing this table says", async () => {
+  endpoint(live());
+  const run = await callHookAsync(HOOK, {
+    tool_name: "mcp__forge__forge_issues",
+    tool_input: { action: "update", documentId: UUID, data: { description: "b" } },
+    cwd: process.cwd(),
+  }, { ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: "probe-filing" });
+  const said = run.stdout.trim() ? JSON.parse(run.stdout) : null;
+  if (said) {
+    assert.doesNotMatch(said.hookSpecificOutput.permissionDecisionReason, /is what `forge \w+/u,
+      "an update is several verbs' and no verb's, so the route says nothing about it");
+  }
 });
 
 test("with no endpoint saved a filing is not judged either", async () => {

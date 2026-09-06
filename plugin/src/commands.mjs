@@ -27,10 +27,10 @@ import {
   kindRefusal,
 } from "./tracker/issue-shape.mjs";
 import { BESIDE_HELP, foldedInto, suggestionLines } from "./tracker/neighbours.mjs";
-import { filedOrFail, rankFor, readFiling } from "./tracker/filing.mjs";
+import { filedOrFail, rankFor } from "./tracker/filing.mjs";
 import { TIERS } from "./ladder.mjs";
-import { filingsOf, targetsOfTool } from "./tracker/issue-read.mjs";
-import { callable, helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
+import { targetsOfTool } from "./tracker/issue-read.mjs";
+import { actionIn, callable, helpOf, isGated, refuseIfGated, usageOf, wrappedRefusal } from "./resolve/visibility.mjs";
 import { didYouMean, unknownFlag } from "./suggest.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "./resolve/flags.mjs";
 import { LOCAL_ROWS, LOCAL_SLUGS, dispositionOf, localGuide, trackerHeader, visibleGuides } from "./guides/guides.mjs";
@@ -260,8 +260,6 @@ export const commands = {
     const [name, json] = argv;
     if (!name) fail(usageOf("call"));
     onlyFlags("call", argv);
-    if (!(await toolNamed(name))) fail(await suggestTool(name));
-    refuseIfGated(name);
     const raw = json === undefined || json === "-" || json.startsWith("@") ? await bodyFrom(json ?? "-") : json;
     if (json === undefined || json === "-") keepOnFailure(`Your payload, so that nothing loses it:\n\n${raw}`);
     if (!raw.trim()) fail(`No arguments given for ${name}. Pass json as an argument or on stdin.`);
@@ -271,6 +269,12 @@ export const commands = {
     } catch (error) {
       return fail(`Arguments for ${name} are not json: ${error.message}`);
     }
+    /* Before the tool list and the capability replay: a verb is the route to its action whether or
+       not the raw tool answers this credential, and a refusal naming none is what this removes. */
+    const wrapped = wrappedRefusal(name, actionIn(args));
+    if (wrapped) fail(wrapped);
+    if (!(await toolNamed(name))) fail(await suggestTool(name));
+    refuseIfGated(name);
     const resolved = await resolveReferences(args);
     /* `call` reaches the same writes the wrapped verbs do, so it takes the same gates — and it is
        the route that renews no lease, so the read-before-write check is made here by hand. */
@@ -278,22 +282,11 @@ export const commands = {
       targetsOfTool(name, args).map(async (ref) => ({ ref, documentId: await documentIdOf(ref) })),
     );
     if (targets.length) await mustBeShown(targets);
-    /* And the shape a filing owes, here rather than only in the hook: the payload may arrive from a
-       file or from stdin, which the hook reading the command line cannot see. Told what is open
-       beside the filing and never folded onto it: this route asked for a create. */
-    let beside = null;
-    for (const filing of filingsOf({ name: `mcp__forge__${name}`, input: args })) {
-      const read = await readFiling(filing);
-      if (read.refusal) fail(read.refusal.text);
-      if (read.shape.said) console.error(read.shape.said);
-      beside = read.beside;
-    }
     const wrote = Boolean(resolved.data);
     const answer = wrote ? await write(name, resolved) : await scoped(name, resolved);
     credited(name, resolved, answer);
     keepOnFailure(null);
     show(answer);
-    if (beside) sayBeside(beside);
     /* The mark writes a comment of the tracker's own and this is the route it takes, so the page is
        read once more after the write and what it brought is delivered here (ISS-65). */
     if (wrote && targets.length) await creditAfter(name, targets);
