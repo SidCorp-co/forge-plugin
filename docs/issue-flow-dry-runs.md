@@ -4607,3 +4607,27 @@ restart owed. Folded from its handback; the ten comments and one routed finding 
   against a store with no revision and no undo. The batch reading is the route for that too.
 - The ship waited its turn behind two other landings and passed the checkout-follows step: the
   fold's commit had landed by then. The window is the one ISS-374 now counts.
+
+## Hundred-and-seventy-eighth dry run — ISS-306
+
+The wait reader in the shell-span parser (landed as d5949e3 and 8b28380, released under 3.35.196).
+It framed only `while` and `until` but popped at every `done`, so any other compound a `done` closes
+ended the wait's frame early and the pause after it escaped the polling guard; now every loop a
+`done` can close is framed and only waits are reported. Forty-eight shapes measured against the real
+pre-change module, sixteen newly refused and none regressed; thirteen criteria driven through the
+released hook entry. Closed by its run. No restart owed. Folded from its handback; the twenty-one
+comments and one routed record were read back.
+
+- Seven review rounds, each answered by widening one expression, before the run built the
+  differential oracle that should have existed at round one: the old module extracted from git and
+  run beside the new over every shape. It caught a broken candidate of the run's own in seconds and
+  turned the seventh finding into a measurement. Recorded as a gap; the oracle is the cheaper round.
+- Ten corrections and no re-posted plan: the stored plan ended five revisions stale, naming an
+  identifier the code does not have and the brace rule backwards, and one correction anchored on
+  the run's local draft rather than the stored text. Re-posting costs a consult; a plan that
+  contradicts the code on four points costs every later reader. A correction is not a substitute.
+- A consult verb that swallows an unknown flag with a value, so an intent typed as a flag was
+  dropped on every consult of the run and read from an empty stdin. Routed into the issue that owns
+  that directory rather than fixed in a tree that did not hold it.
+- Verified inside the installed copy by its own path, byte-identical to the landed sha. The gate's
+  clock is the harness's; a parser proven in a test process has not yet been proven under it.
