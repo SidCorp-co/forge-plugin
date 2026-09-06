@@ -4769,3 +4769,45 @@ No restart owed. Folded from its handback; the seventeen comments were read back
   falsified them, on the way out, rather than left for a later reading to trip on.
 - A coverage check that names its files by hand cannot see a rule that moved to a third file; filed
   (ISS-553) rather than widened, because the fix wants a naming decision and not a passing edit.
+
+## Hundred-and-eighty-fifth dry run — ISS-509
+
+The batch reading of a6c93cd..d320e80 landed its eleven behaviour-identical findings (3.35.202,
+landed as 0b3ad6b) and moved the review mark to d320e80; the rest of both halves went out as
+issues — twelve from the simplify list the parent posted, six from the hand reading, five routed
+into ISS-508 whose tree owns the tracker layer for the range. Twenty-one criteria. Closed by its
+run, then corrected in the open: one criterion had been judged on a count of list items where four
+items each carried two findings, and the re-read filed three more (ISS-568 to ISS-570), one of them
+a real defect hidden by the copy that shared its line. No restart owed. Folded from its handback;
+the sixteen comments were read back.
+
+- A criterion that says *every* is judged against the wording and not against a count of the items
+  that carry them: four "and"s hid four findings from a per-item tick, and only the close-time re-read
+  against the tree found them.
+- Two byte-identical lines can differ in what they are handed: the porcelain decode is the same in
+  both modules, and only one caller passes `--no-renames`, so only the copy without the flag mangles
+  a rename — the duplication is what hid the defect (ISS-568).
+- A reading that changes no line of the project brief leaves the brief alone, and says so; its two
+  stale sources are another run's to judge.
+- The tracker has no write-side dependency route on this credential, so a body that asserts a
+  relation asserts it in prose and nothing holds it (ISS-571). The withheld verb is withheld for the
+  same reason.
+
+## Hundred-and-eighty-sixth dry run — ISS-46
+
+The cap of every capped field is on its row in the record verb's help, read off the REST layer's own
+declaration table with no network (3.35.205, landed as 0334298); before, a body over the cap was
+refused after the write had been typed. Eleven criteria, all standing at the landed head because the
+rebase moved nothing on the three judged paths. Closed by its run. No restart owed. Folded from its
+handback; the twenty-two comments were read back.
+
+- A finding routed into another issue is retracted there, in a second comment, the moment the other
+  landing makes it false; a routed finding left standing is a claim about code that no longer exists.
+- A legend's tense is a claim: "refused before anything is sent" was wrong by one lease renewal, and
+  the review caught the word, not the code.
+- The ship stopped once more at the step where the checkout follows, on the parent's own fold commit
+  even though the commit and the land were one command: the commit exists before the land takes the
+  lock. Counted on ISS-374 with the fix shape.
+- A ship launched with a trailing ampersand inside one shell call returned a completion notice for
+  the shell, not the ship, and the wrong reading crossed a compaction; the how-document on polling
+  does not tell the two apart yet.
