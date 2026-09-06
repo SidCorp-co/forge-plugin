@@ -1,15 +1,13 @@
 /* The repository's own steps around a change lived in a prompt one session wrote, so sixteen runs
    obeyed a copy nobody could see go stale (ISS-79). Every rule below is a line that prompt carried,
-   exercised on a scratch checkout rather than on this one. The `review` verb and the reading it
-   counts towards are that script's other responsibility, and `run-review.test.mjs` holds them. */
+   on a scratch checkout, and none is `start`'s or `review`'s: `run-start` and `run-review` hold those. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { BARE, brokenAnswer, committed, corrected, emptyAnswer, GATE, git, lastStep, landIn, planned, pushed, ref,
   ROOT, runIn, scratch, sized, stubbed } from "./run-fixtures.mjs";
-import { tempRoom } from "../fixtures.mjs";
 
 /* Step 7 is reached only from a tree that is not the checkout, so every fixture shipping from the
    scratch root early-returns past it (ISS-143). `pull.rebase` is set in the scratch repository
@@ -156,53 +154,6 @@ test("an argument no verb takes is refused by name before the first step", () =>
     assert.equal(elsewhere.status, 1, elsewhere.stdout);
     assert.ok(elsewhere.stderr.includes(given), `${verb} drops what it does not take:\n${elsewhere.stderr}`);
   }
-});
-
-test("start adds the worktree, links what the checkout installed, and names the wrapper to probe with", () => {
-  const { work } = scratch("start");
-  git(work, "init", "-b", "master");
-  committed(work, "one");
-  const run = runIn(work, ["start", "ISS-88", "one-line"]);
-  assert.equal(run.status, 0, run.stderr + run.stdout);
-  const tree = join(dirname(work), "wt-ISS-88");
-  assert.ok(existsSync(tree), `${tree} was not made:\n${run.stdout}${run.stderr}`);
-  assert.ok(existsSync(join(tree, "node_modules")), "the checkout's node_modules is not linked in");
-  assert.ok(run.stdout.includes(join(tree, "plugin", "bin", "forge")),
-    `the wrapper a probe must invoke is not named:\n${run.stdout}`);
-  assert.equal(git(work, "rev-parse", "--abbrev-ref", "HEAD").stdout.trim(), "master", "the checkout stays where it was");
-
-  const again = runIn(work, ["start", "ISS-88", "one-line"]);
-  assert.equal(again.status, 1, again.stdout);
-  assert.ok(again.stderr.includes(tree), `the refusal does not name the worktree already there:\n${again.stderr}`);
-  assert.ok(again.stderr.includes("worktree remove"), again.stderr);
-});
-
-/* Every agent a session dispatches inherits that session's id, so a wave of runs writes under one
-   lease holder and the lease refuses nothing between two of them (ISS-445). A worktree is what a
-   run gets of its own, so the id is minted with it — and kept beside the worktree rather than in
-   the account's config, which a wave would race. */
-test("start mints a holder id for the worktree, keeps it beside it, and hands it back on the refusal", () => {
-  const { work } = scratch("run-id");
-  git(work, "init", "-b", "master");
-  committed(work, "one");
-  const home = tempRoom("run-id-home-");
-  const env = { ...BARE, XDG_CONFIG_HOME: home };
-  const run = runIn(work, ["start", "ISS-89"], env);
-  assert.equal(run.status, 0, run.stderr + run.stdout);
-  const id = /FORGE_SESSION_ID=([^\s,]+)/u.exec(run.stdout)?.[1];
-  assert.ok(id, `no holder id was printed for the run to carry:\n${run.stdout}`);
-  assert.match(id, /^iss-89-/u, "named for the issue it works, so two worktrees are two runs");
-  const tree = join(dirname(work), "wt-ISS-89");
-  const kept = join(work, ".git", "worktrees", "wt-ISS-89", "forge-run-id");
-  assert.equal(readFileSync(kept, "utf8").trim(), id, `the id is not kept at ${kept}`);
-  assert.ok(!existsSync(join(home, "forge", "session.json")),
-    "and nowhere the account shares, which every run of a wave would race");
-
-  const again = runIn(work, ["start", "ISS-89"], env);
-  assert.equal(again.status, 1, again.stdout);
-  assert.ok(again.stderr.includes(tree), again.stderr);
-  assert.equal(/FORGE_SESSION_ID=([^\s,]+)/u.exec(again.stderr)?.[1], readFileSync(kept, "utf8").trim(),
-    `the refusal reads the id back off the record rather than handing back what it just minted:\n${again.stderr}`);
 });
 
 /* A rebase drops a bump identical to one already upstream without a conflict, and the tree then

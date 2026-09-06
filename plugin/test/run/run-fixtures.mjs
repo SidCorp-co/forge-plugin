@@ -27,7 +27,8 @@ export const GATE = "node -e \"console.log('scratch gate ran')\"";
 
 const COPIED = [SCRIPT, join("tools", "run", "args.mjs"), join("tools", "run", "land.mjs"),
   join("tools", "run", "landing.mjs"), join("tools", "run", "lock.mjs"), join("tools", "run", "review.mjs"),
-  join("tools", "run", "run-id.mjs"), join("tools", "run", "version.mjs"), join("tools", "checkout.mjs"),
+  join("tools", "run", "occupant.mjs"), join("tools", "run", "run-id.mjs"),
+  join("tools", "run", "version.mjs"), join("tools", "checkout.mjs"),
   join("tools", "gates", "timing.mjs")];
 
 export const scratch = (name, gate = GATE) => {

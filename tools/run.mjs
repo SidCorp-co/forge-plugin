@@ -15,7 +15,8 @@ import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { cleanTree, land, LANDS, PUSHES, pushing, runLanding, waitMs } from "./run/land.mjs";
 import { isRelease, onlyRelease } from "./run/landing.mjs";
 import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
-import { mintRunId, runIdAt, RUN_ID_VAR } from "./run/run-id.mjs";
+import { occupied } from "./run/occupant.mjs";
+import { mintRunId, RUN_ID_VAR } from "./run/run-id.mjs";
 import { markRefused, REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, spannedIn } from "./run/review.mjs";
 import { edgesLeft, fileIssue } from "../plugin/src/tracker/filing/route.mjs";
 import { runsMark } from "../plugin/src/stats/eval.mjs";
@@ -101,12 +102,7 @@ const start = ({ words: [given, slug] }) => {
   if (!/^ISS-\d+$/u.test(key)) stop(`start takes the issue key it works, \`ISS-nn\`, not \`${given ?? ""}\`.`);
   const root = checkoutRoot(HERE);
   const path = worktreePath(root, key);
-  if (existsSync(path)) {
-    const held = runIdAt(path);
-    stop(`${path} is already there, and start never touches a worktree it did not make. Work in it, `
-      + `or remove it: git -C ${root} worktree remove ${path}`
-      + (held ? `\nThe id that run takes the lease under: ${RUN_ID_VAR}=${held}` : ""));
-  }
+  if (existsSync(path)) stop(occupied(root, path));
   const branch = `iss-${key.slice(4).toLowerCase()}${slug ? `-${slug}` : ""}`;
   const base = defaultBranch(root);
   loud("git", ["-C", root, "worktree", "add", path, "-b", branch, base], root,
