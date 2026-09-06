@@ -4932,3 +4932,25 @@ by its run. No restart owed. Folded from its handback; the twelve comments were 
   copied the live config into an isolated home for the ship and deleted it after. The cost is on
   ISS-499, where the red already lives; a second filing of the same red (ISS-574) was marked a
   duplicate by the run that filed it.
+
+## Hundred-and-ninety-second dry run — ISS-561
+
+AC-10-2-4 claims what the read-first gate does, and the another-agent half is a clause of its own
+(3.35.209, landed as a0b6a9b): two files under the requirements tree and no code, each Proof naming
+the case that proves it whole. Fourteen criteria, judged at the reviewed head and again whole at the
+landed one after ISS-478's landing moved the digests file; the clause checker was watched firing at
+both. One filed (ISS-572). Closed by its run; the release note withheld on the fix tier. No restart
+owed. Folded from its handback; the thirteen comments were read back.
+
+- The load-bearing fact was one the issue did not carry: the CLI half of the gate is called from
+  four sites that pass no event, so it can never see a turn where the hook could, and the module's
+  own header requires the two halves to agree. The clause moved because the other reading would have
+  deleted a live case. That is a decision record with an undo line, not a code change.
+- The ship stopped at step 7 for the seventh time this day, on the journal commit that folded runs
+  189 and 190. The push had landed and a later ship installed the copy that contains the change, so
+  the run read the frozen set by hand and recorded the gap rather than resuming. ISS-374 still holds
+  the fix shape; until it lands, a fold commit is timed against `forge issues --status in_progress`,
+  not against the lock.
+- Two of four consults were spent because the criteria verb reveals its citation requirement only on
+  refusal, after the consult that cleared the previous text has been paid for. Filed by the fold as
+  the run named it and did not file it (ISS-578).
