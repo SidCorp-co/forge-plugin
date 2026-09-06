@@ -462,16 +462,20 @@ export const isSubagent = (ev) => ev.hook_event_name === "SubagentStop";
 export const transcriptOf = (ev) => (isSubagent(ev) && ev.agent_transcript_path) || ev.transcript_path || "";
 
 /** From this turn's prompt on: `turnRecords` hands back the whole tail it read. */
+const turnTail = new WeakMap();
+
 export const sinceTurn = (records) => {
-  const held = records ?? [];
-  return held.slice(Math.max(0, promptIndex(held)));
+  const held = records ?? NONE;
+  return memo(turnTail, held, () => held.slice(Math.max(0, promptIndex(held))));
 };
 
 /** The files a turn wrote through the file tools: a stop carries no tool input, so what `touched`
  *  answers for a call is answered here for a turn. A shell write has no call to be dated against. */
 const WRITES_A_FILE = ["Write", "Edit", "MultiEdit", "NotebookEdit"];
 
-export const turnWrites = (records) => {
+const writtenIn = new WeakMap();
+
+export const turnWrites = (records) => memo(writtenIn, records ?? NONE, () => {
   const out = new Set();
   for (const record of sinceTurn(records)) {
     if (record?.type !== "assistant" || !Array.isArray(record.message?.content)) continue;
@@ -482,7 +486,7 @@ export const turnWrites = (records) => {
     }
   }
   return [...out];
-};
+});
 
 /** When this call began, in epoch ms, and 0 where the transcript cannot say: the last assistant record asks for this tool and lands before the tool runs, so a stamp older than it is the checkout's and not the call's. `forge hooks --how writes`. */
 export const callAt = (records) => {

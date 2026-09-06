@@ -75,14 +75,13 @@ test("the refusal of the action gates the action alone", async () => {
    declares no route for — and judged for a row naming its own refusal and for one naming none,
    because four of the five probes name none and it was those that recorded a bad minute. */
 test("a refusal that is not one saying no gates nothing, whether the row names one or not", () => {
-  const gate = { key: "forge_project_pm.set_dependency", only: /no route|PM_REQUIRES_DEVICE/u };
-  assert.match(gatingRefusal({ refused: "set_dependency has no route\nand a second line" }, gate), /has no route/u);
-  assert.equal(gatingRefusal({ refused: "Forge did not answer POST /api/projects/x/pm: socket hang up" }, gate), null);
-  assert.equal(gatingRefusal({ refused: "BAD_REQUEST: fromIssueId is required" }, gate), null);
-  assert.equal(gatingRefusal({ nodes: [] }, gate), null, "and an answer gates nothing at all");
+  assert.match(gatingRefusal({ refused: "set_dependency has no route\nand a second line" }), /has no route/u);
+  assert.equal(gatingRefusal({ refused: "Forge did not answer POST /api/projects/x/pm: socket hang up" }), null);
+  assert.equal(gatingRefusal({ refused: "BAD_REQUEST: fromIssueId is required" }), null);
+  assert.equal(gatingRefusal({ nodes: [] }), null, "and an answer gates nothing at all");
   const dropped = { refused: "Forge did not answer GET /api/projects/x/knowledge: fetch failed" };
-  assert.equal(gatingRefusal(dropped, undefined), null, "a row naming no refusal is not gated by a fault of the moment");
-  assert.equal(gatingRefusal({ refused: "Forge answered 503 for GET /api/guides" }, undefined), null);
-  assert.match(gatingRefusal({ refused: "FORBIDDEN: knowledge is not enabled" }, undefined), /FORBIDDEN/u,
+  assert.equal(gatingRefusal(dropped), null, "a row naming no refusal is not gated by a fault of the moment");
+  assert.equal(gatingRefusal({ refused: "Forge answered 503 for GET /api/guides" }), null);
+  assert.match(gatingRefusal({ refused: "FORBIDDEN: knowledge is not enabled" }), /FORBIDDEN/u,
     "while the tracker saying no is what a capability record is for");
 });

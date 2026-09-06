@@ -138,7 +138,7 @@ export const silentSince = (lease, holder) => {
 };
 
 /** The issues this turn named that are in one of those. `said` is `readTurn`'s, handed down. */
-export const heldAndSilent = (ev, tree, said, holder = sessionKey(ev)) => {
+export const heldAndSilent = (ev, tree, said, holder) => {
   const keys = keysNamed(said);
   if (!holder || !keys.length) return [];
   const listed = forge(tree, ["call", "forge_issues",

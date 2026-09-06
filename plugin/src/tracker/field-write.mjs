@@ -34,7 +34,7 @@ const mismatch = (field, ref, back) =>
 export const lengthOf = (value) => [...String(value)].length;
 
 /* The routes refuse a bad length without naming the number, so the number is declared beside them. */
-export const capsOf = async () => declaredFor("forge_issues", "caps");
+export const capsOf = () => declaredFor("forge_issues", "caps");
 
 /* Both lengths where a rewrite moved it, the tracker measuring what it was sent (ISS-430). */
 const NOTHING_SENT = " Nothing was sent.";
@@ -73,7 +73,7 @@ export const writeField = async (documentId, field, value, { ref, next, patch, r
   if (!row) {
     refuse(`${field} is not a field this writer sets. It takes ${Object.keys(fields()).join(", ")}.`);
   }
-  const caps = await capsOf();
+  const caps = capsOf();
   if (row.shows) await mustBeShown([{ ref, documentId }]);
   if (row.renews !== false) await renew(documentId, ref, next, patch);
   const given = typeof value === "function" ? await value() : value;

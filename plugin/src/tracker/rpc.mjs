@@ -9,7 +9,7 @@ import { configDir, once, readJson } from "../resolve/config.mjs";
 import { DATA_FIELD, sseData } from "../sse.mjs";
 import { fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
-import { DECLARES, ROUTES, droppedRefusal, isMcp, keyOf, noRouteRefusal, undeclaredIn } from "./rest.mjs";
+import { DECLARES, ROUTES, answersOf, droppedRefusal, isMcp, keyOf, noRouteRefusal, undeclaredIn } from "./rest.mjs";
 
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
@@ -29,19 +29,25 @@ export const retryOf = (status, repeatable) => {
 const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000));
 const backoff = (attempt) => Math.min(FALLBACK_RETRY_SECONDS * 2 ** (attempt - 1), MAX_RETRY_SECONDS);
 
+const parsed = (text) => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+};
+
 /* Honour the server's stated wait, with a ceiling: 3600 would be an hour of sleep, four times. */
 const retryAfter = (text, headers) => {
   const capped = (seconds) => Math.min(seconds, MAX_RETRY_SECONDS);
   const header = Number(headers.get("retry-after"));
   if (Number.isFinite(header) && header > 0) return capped(header);
-  try {
-    const seconds = JSON.parse(text)?.details?.retryAfterSeconds;
-    if (Number.isFinite(seconds) && seconds > 0) return capped(seconds);
-  } catch {
-    /* Not every 429 answers as JSON. */
-  }
-  return FALLBACK_RETRY_SECONDS;
+  const seconds = parsed(text)?.details?.retryAfterSeconds;
+  return Number.isFinite(seconds) && seconds > 0 ? capped(seconds) : FALLBACK_RETRY_SECONDS;
 };
+
+/** Soft for a caller holding the refusal beside its real work, `fail()` for one that is not. */
+const refusing = (soft) => (message) => (soft ? { refused: message } : fail(message));
 
 /* The tracker's fence: one home, and where each strip has to stand — docs/cli/the-primitives.md. */
 export const FENCE_PATTERN = String.raw`⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧`;
@@ -115,14 +121,6 @@ const attempted = async (make, repeatable) => {
   return { response, text, dropped };
 };
 
-const parsed = (text) => {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
-};
-
 /* The tracker's own validation error is the diagnostic; nothing here re-derives it. Each message is
    stripped before its field name goes in front, the fence being anchored to the start of a line. */
 const said = (body, status) => {
@@ -138,7 +136,7 @@ const said = (body, status) => {
 
 export const rpc = async (method, params, soft = false) => {
   const { response, text, dropped } = await attempted(() => post(method, params), false);
-  const stop = (message) => (soft ? { refused: message } : fail(message));
+  const stop = refusing(soft);
   if (dropped) return stop(`Forge did not answer: ${dropped.message}.\n${AMBIGUOUS}`);
   if (!response.ok) return stop(`Forge answered ${response.status}: ${text.slice(0, 400)}`);
   /* The endpoint may answer either as JSON or as a single SSE frame. */
@@ -168,21 +166,23 @@ const aimedAt = async (row, args, soft) => {
   return args.projectId ? { id: args.projectId } : idOfProject(soft);
 };
 
+const refused = (message) => ({ refused: message });
+
 /* Every part of a row's answer is asked for at once: three routes cost one round trip, not three. */
-const fetchedParts = async (row, args, refuse, soft) => {
+const fetchedParts = async (row, args, soft) => {
   const project = await aimedAt(row, args, soft);
-  if (project.refused) return [["page", refuse(project.refused)]];
+  if (project.refused) return [["page", refused(project.refused)]];
   const requests = row.requests(args, project.id);
   const parts = await Promise.all(Object.entries(requests).map(async ([part, request]) => {
     const { response, text, dropped } = await attempted(() => send(request), !row.writes);
-    if (dropped) return [part, refuse(`Forge did not answer ${request.method ?? "GET"} ${request.path}: `
+    if (dropped) return [part, refused(`Forge did not answer ${request.method ?? "GET"} ${request.path}: `
       + `${dropped.message}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
-    if (!response.ok) return [part, refuse(said(parsed(text), response.status))];
+    if (!response.ok) return [part, refused(said(parsed(text), response.status))];
     const body = text ? parsed(text) : null;
     /* Refused rather than projected: an empty page built out of a gateway's HTML would read as the
        tracker saying the row is not there. */
     if (text && (body === undefined || typeof body !== "object" || body === null)) {
-      return [part, refuse(`${request.method ?? "GET"} ${request.path} answered 200 with no record: `
+      return [part, refused(`${request.method ?? "GET"} ${request.path} answered 200 with no record: `
         + `${text.slice(0, 200)}`)];
     }
     return [part, { body }];
@@ -190,19 +190,19 @@ const fetchedParts = async (row, args, refuse, soft) => {
   return parts;
 };
 
-export const callTool = async (name, args, soft = false, transport = false) => {
+export const callTool = async (name, args, soft = false) => {
   const key = keyOf(name, args);
   const row = ROUTES[key];
-  const stop = (message) => ((soft || transport) ? { refused: message } : fail(message));
+  const stop = refusing(soft);
   if (!row) return stop(noRouteRefusal(key));
-  if (isMcp(row)) return overMcp(name, args, soft || transport);
+  if (isMcp(row)) return overMcp(name, args, soft);
   const dropped = undeclaredIn(row, args);
   if (dropped.length) return stop(droppedRefusal(key, dropped, row));
-  const parts = await fetchedParts(row, args, (message) => ({ refused: message }), soft || transport);
+  const parts = await fetchedParts(row, args, soft);
   /* The tracker's words with nothing in front: a caller reading the first line frames it itself. */
   const bad = parts.find(([, held]) => held.refused);
   if (bad) return stop(bad[1].refused);
-  return unfencedIn(row.answers(Object.fromEntries(parts.map(([part, held]) => [part, held.body])), args));
+  return unfencedIn(answersOf(row)(Object.fromEntries(parts.map(([part, held]) => [part, held.body])), args));
 };
 
 /* The slug-to-id answer is cached beside the config, keyed by endpoint: an issue's project never
@@ -224,21 +224,20 @@ const writeCache = (patch) => {
   }
 };
 
-/* Soft for the caller whose call is a check beside its real work: the lookup is itself a call, and
-   `fail()` inside one exits past the caller that was holding the refusal. */
+/* The lookup is itself a call, which is why `soft` reaches it at all: `fail()` inside one exits past
+   the caller that was holding the refusal. */
 const idOfProject = async (soft) => {
   const aimed = projectTarget().value;
   if (!aimed && soft) return { refused: "no project slug is set" };
   const slug = aimed ?? projectSlug();
   const known = stored().projects?.[slug];
   if (known) return { id: known };
-  const listed = await callTool("forge_projects.list", {}, soft, soft);
+  const listed = await callTool("forge_projects.list", {}, soft);
   if (listed?.refused) return listed;
   const projects = listed?.projects ?? (Array.isArray(listed) ? listed : []);
   const found = projects.find((project) => project.slug === slug || project.key === slug);
   if (!found) {
-    const absent = `No Forge project has slug ${slug}. Seen: ${projects.map((one) => one.slug)}`;
-    return soft ? { refused: absent } : fail(absent);
+    return refusing(soft)(`No Forge project has slug ${slug}. Seen: ${projects.map((one) => one.slug)}`);
   }
   writeCache({ projects: { ...(stored().projects ?? {}), [slug]: found.id } });
   return { id: found.id };
@@ -246,9 +245,9 @@ const idOfProject = async (soft) => {
 
 export const projectId = async () => (await idOfProject(false)).id;
 
-export const scoped = async (name, args, soft = false) => callTool(name, args, soft);
+export const scoped = callTool;
 
-export const tried = async (name, args) => callTool(name, args, true, true);
+export const tried = async (name, args) => callTool(name, args, true);
 
 /** What the table declares in the tracker's stead, for a check the tracker's own refusal cannot
  *  carry. The set is this CLI's and goes stale when the tracker grows a value, which is what the

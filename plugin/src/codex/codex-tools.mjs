@@ -121,6 +121,7 @@ const checkOnce = (scope) => {
   return { text: `\`${scope.check.command}\` exited ${run.status}\n${tail.trim()}` };
 };
 
+/* Not `resolve/canonical.mjs`'s: a relative path falls inside any root it would be matched against. */
 const canonical = (path) => {
   try {
     return realpathSync(path);

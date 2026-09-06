@@ -5,7 +5,7 @@
 import { rootFor } from "./transcripts.mjs";
 import { derivedFrom, profileOf, projectFrom, readingAside, runsUnder, stamp } from "./runs.mjs";
 import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";
-import { WHEN, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
+import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
 import { RUNS, againstIn, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "./marks.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
@@ -98,18 +98,18 @@ export const evalRuns = (runs, copies, size = WINDOW, against = null) => {
   const { now, before } = twoWindows(versioned(byEnd(runs), copies), size);
   const nowHeld = windowOf(now);
   const beforeHeld = against ? against.now : before.length ? windowOf(before) : null;
-  return {
+  return comparedWindows({
     size,
     total: runs.length,
-    ...(against ? { against: against.mark } : {}),
+    against,
     now: nowHeld,
     before: beforeHeld,
     moved: beforeHeld
       ? { tiers: movedIn(nowHeld.profile.tiers, beforeHeld.profile.tiers, "tier"),
         phases: movedIn(nowHeld.profile.phases, beforeHeld.profile.phases, "name") }
       : null,
-    shifts: beforeHeld ? shiftBetween(mixOf(nowHeld), mixOf(beforeHeld)) : [],
-  };
+    separates: (a, b) => shiftBetween(mixOf(a), mixOf(b)),
+  });
 };
 
 const span = (window) => `${stamp(window.profile.from)} to ${stamp(window.profile.to)}`;

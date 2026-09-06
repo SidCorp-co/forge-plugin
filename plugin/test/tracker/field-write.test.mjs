@@ -91,7 +91,7 @@ const refusedBy = async (field, value) => {
    own declaration and a field it does not name is uncapped here — which is a call the tracker gets
    to refuse, and never a crash on the way out. */
 test("the caps are the table's declaration, and a field it does not name is not capped here", async () => {
-  const caps = await capsOf();
+  const caps = capsOf();
   assert.equal(caps.plan.self, 200_000, "the declared cap is read");
   assert.equal(caps.releaseNotes.halves.userFacing, 500, "and so is a cap on a half of an object field");
   assert.equal(caps.acceptanceCriteria.self, 100_000);
@@ -183,7 +183,7 @@ test("a note half keeps the whitespace its author wrote, and reads back with no 
 /* The half the whole cap check turns on: `onSent` is handed the copy the boundary rewrote, and the
    decision is that copy's. A check reading the caller's value instead passes every case above. */
 test("the cap is measured on what the boundary sent, not on what the author typed", async () => {
-  const caps = await capsOf();
+  const caps = capsOf();
   const under = { section: "Added", userFacing: "x".repeat(443), technical: null };
   const grew = { ...under, userFacing: "y".repeat(600) };
   assert.throws(

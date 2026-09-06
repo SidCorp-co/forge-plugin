@@ -145,9 +145,9 @@ const DEVICE_ONLY = { key: "forge_project_pm.set_dependency" };
 const SAYS_NO = /FORBIDDEN|UNAUTHORIZED|NOT_ALLOWED|no route|not enabled|not allowed|may not/u;
 
 /** Gating on a refusal of that kind and on no other, for every probe rather than one. */
-export const gatingRefusal = (answer, gate) => {
+export const gatingRefusal = (answer) => {
   const said = answer?.refused ? answer.refused.split("\n")[0] : null;
-  return said && (gate?.only ?? SAYS_NO).test(said) ? said : null;
+  return said && SAYS_NO.test(said) ? said : null;
 };
 
 /* Declared is not callable — all 67 are declared to a PAT and six then refuse. Probed, read-only. */
@@ -173,7 +173,7 @@ const probe = async (scoped, slug) => {
   const findings = {};
   let gated = 0;
   for (const [label, tool, args, why, gate] of CAPABILITIES) {
-    const refusal = gatingRefusal(await scoped(tool, args, true), gate);
+    const refusal = gatingRefusal(await scoped(tool, args, true));
     findings[gate?.key ?? tool] = refusal;
     if (refusal) {
       gated += 1;

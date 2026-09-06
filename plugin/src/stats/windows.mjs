@@ -1,11 +1,22 @@
-/* The two-window comparison both harness evals share; what a row is stays each harness's own —
-   docs/cli/stats-the-eval.md. */
+/* What a row is stays each harness's own — docs/cli/stats-the-eval.md. */
 
 export const twoWindows = (sorted, size) => {
   const both = sorted.slice(-(size * 2));
   const now = both.slice(-size);
   return { now, before: both.slice(0, both.length - now.length) };
 };
+
+/** The envelope both harness evals answer in, so a key added to one reaches the other. Any key
+ *  beyond these rides between `before` and `shifts`, where `stats eval`'s `moved` has always sat. */
+export const comparedWindows = ({ size, total, against, now, before, separates, ...rest }) => ({
+  size,
+  total,
+  ...(against ? { against: against.mark } : {}),
+  now,
+  before,
+  ...rest,
+  shifts: before ? separates(now, before) : [],
+});
 
 /** One count per value of each dimension — `{ name: { value: count } }` — kept on a window for when its rows are gone. */
 export const tallied = (rows, dimensions) => Object.fromEntries(dimensions.map(([name, of]) => {

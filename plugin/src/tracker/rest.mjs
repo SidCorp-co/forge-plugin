@@ -15,8 +15,7 @@ const rowsIn = (payload, key) => payload?.[key] ?? (Array.isArray(payload) ? pay
 const filled = (held) => Object.fromEntries(Object.entries(held).filter(([, value]) => value !== undefined));
 
 /* Only a row whose route takes a window may name what held a page back, `hasMore` there meaning the
-   window did not cover the set; one taking neither limit nor offset guesses no cap, and none writes
-   the tracker's own `notice`. Null `hasMore` is silence, which is not a whole page. */
+   window did not cover the set; one taking neither guesses no cap, and none carries `notice`. */
 const paged = (payload, key, rows, by = null) => {
   const more = payload?.hasMore ?? null;
   return {
@@ -45,6 +44,13 @@ const PROJECT_ROW = ["id", "slug", "name", "orgId", "role"];
 
 /* Only the identifiers the row carries: an `issueId: null` reads as an issue with no key. */
 const named = (row) => filled({ documentId: row?.id, issueId: row?.displayId });
+
+const writtenRow = ({ page }) => ({ ...named(page), ...page });
+
+const PAGE = ({ page }) => page;
+
+/** Read through here, never off the row: a default only the transport sees is one no capture can. */
+export const answersOf = (row) => row?.answers ?? PAGE;
 
 /* The column is null where nothing was configured and the tool answered with the empty shape, which
    is what `stagingDeploy` and `--credentials` read; a null here would be a shape they cannot walk. */
@@ -224,33 +230,31 @@ export const ROUTES = {
     project: true,
     writes: true,
     requests: (args, project) => one(`/projects/${project}/issues`, "POST", args.data),
-    answers: ({ page }) => ({ ...named(page), ...page }),
+    answers: writtenRow,
     sends: ["data"],
   },
   "forge_issues.update": {
     writes: true,
     requests: (args) => one(`/issues/${args.documentId}`, "PATCH", args.data),
-    answers: ({ page }) => ({ ...named(page), ...page }),
+    answers: writtenRow,
     sends: ["documentId", "data"],
   },
   "forge_issues.transition": {
     writes: true,
     requests: (args) => one(`/issues/${args.documentId}/transition`, "POST",
       { toStatus: args.data?.status, ...filled({ ...args.data, status: undefined }) }),
-    answers: ({ page }) => ({ ...named(page), ...page }),
+    answers: writtenRow,
     sends: ["documentId", "data"],
   },
   "forge_issues.mark_merged": {
     writes: true,
     requests: (args) => one(`/issues/${args.data?.issueId}/merge`, "POST",
       filled({ target: args.data?.target, mergedAt: args.data?.mergedAt, note: args.data?.note })),
-    answers: ({ page }) => page,
     sends: ["data"],
   },
   "forge_issues.unmark": {
     writes: true,
     requests: (args) => one(`/issues/${args.data?.issueId}/merge`, "DELETE"),
-    answers: ({ page }) => page,
     sends: ["data"],
   },
   "forge_comments.list": {
@@ -268,13 +272,11 @@ export const ROUTES = {
   "forge_knowledge.get": {
     project: true,
     requests: (args, project) => one(`/projects/${project}/knowledge/${args.slug}`),
-    answers: ({ page }) => page,
     sends: ["slug"],
   },
   "forge_knowledge.list": {
     project: true,
     requests: (args, project) => one(`/projects/${project}/knowledge${query({ kind: args.kindFilter, injection: args.injectionFilter })}`),
-    answers: ({ page }) => page,
     sends: ["kindFilter", "injectionFilter"],
   },
   "forge_knowledge.upsert": {
@@ -282,20 +284,17 @@ export const ROUTES = {
     writes: true,
     requests: (args, project) => one(`/projects/${project}/knowledge/${args.slug}`, "PUT",
       filled({ ...args, action: undefined, slug: undefined, projectId: undefined })),
-    answers: ({ page }) => page,
     sends: ["slug", "title", "body", "kind", "injection", "confidence", "authoredBy", "metadata"],
   },
   "forge_knowledge.delete": {
     project: true,
     writes: true,
     requests: (args, project) => one(`/projects/${project}/knowledge/${args.slug}`, "DELETE"),
-    answers: ({ page }) => page,
     sends: ["slug"],
   },
   "forge_memory.search": {
     project: true,
     requests: (args, project) => one(`/memory/search`, "POST", { ...args, projectId: project }),
-    answers: ({ page }) => page,
     sends: ["query", "topK", "scope", "strategy", "sourceFilter"],
   },
   "forge_config.get": {
@@ -306,12 +305,10 @@ export const ROUTES = {
   },
   "forge_guide.list": {
     requests: () => one(`/guides`),
-    answers: ({ page }) => page,
     sends: [],
   },
   "forge_guide.get": {
     requests: (args) => one(`/guides/${args.slug}`),
-    answers: ({ page }) => page,
     sends: ["slug"],
   },
   "forge_projects.list": {
@@ -328,13 +325,11 @@ export const ROUTES = {
   "forge_project_pm.snapshot": {
     project: true,
     requests: (args, project) => one(`/projects/${project}/pm/snapshot`),
-    answers: ({ page }) => page,
     sends: [],
   },
   "forge_project_pm.graph": {
     project: true,
     requests: (args, project) => one(`/projects/${project}/pm/graph${query({ issueId: args.issueId, depth: args.depth })}`),
-    answers: ({ page }) => page,
     sends: ["issueId", "depth"],
   },
   "forge_project_pm.runner_load": {
@@ -347,8 +342,7 @@ export const ROUTES = {
   "forge_step_start": { transport: MCP, writes: true, sends: ["issueId", "step"] },
 };
 
-/* Wherever a route wants an issue uuid, a raw call may carry `ISS-45` instead and the caller
-   resolves it first. Which arguments identify a record is the table's to say. */
+/* Wherever a route wants an issue uuid, a raw call may carry `ISS-45` and the caller resolves it. */
 export const REFERENCE_KEYS = new Set([
   "documentId", "dependsOnId", "blocksId", "issue", "issueId", "fromIssueId", "toIssueId",
 ]);
@@ -395,16 +389,15 @@ export const keyOf = (name, args) => {
 export const asToolCall = (name, args) => {
   const held = String(name ?? "");
   const action = DOTTED.exec(held)?.[1];
-  const head = held.slice(0, held.lastIndexOf("."));
-  return action && ACTION_ARG.has(head) ? { name: head, args: { ...args, action } } : { name, args };
+  const tool = toolOf(held);
+  return action && tool !== held ? { name: tool, args: { ...args, action } } : { name, args };
 };
 
 export const rowFor = (name, args) => ROUTES[keyOf(name, args)] ?? null;
 
 export const isMcp = (row) => row?.transport === MCP;
 
-/* Two arguments are every row's rather than any route's: `action`, which the table's key is made
-   of, and `projectId`, which aims a project-scoped route somewhere other than the resolved slug. */
+/* Every row's rather than a route's: `action` makes the key, `projectId` aims off the resolved slug. */
 const STRUCTURAL = new Set(["action", "projectId"]);
 
 /** The arguments a caller gave that the row's route does not send. */

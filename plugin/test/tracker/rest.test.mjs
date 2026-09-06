@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
-import { DECLARES, MCP, ROUTES, asToolCall, droppedRefusal, keyOf, noRouteRefusal, rowFor, undeclaredIn }
-  from "../../src/tracker/rest.mjs";
+import { DECLARES, MCP, ROUTES, answersOf, asToolCall, droppedRefusal, keyOf, noRouteRefusal, rowFor,
+  undeclaredIn } from "../../src/tracker/rest.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const captures = join(here, "..", "fixtures", "rest");
@@ -110,7 +110,7 @@ describe("the route table answers with the shape the tool answered with", () => 
   for (const [name, { key, differs, orderless }] of Object.entries(PAIRS)) {
     it(`${name}: the projection over the captured body equals what the tool sent`, () => {
       const capture = held(name);
-      const projected = sorted(ROUTES[key].answers(partsOf(capture), {}), orderless);
+      const projected = sorted(answersOf(ROUTES[key])(partsOf(capture), {}), orderless);
       const expected = sorted(capture.mcp, orderless);
       const paths = Object.keys(differs);
       for (const path of paths) {
@@ -124,7 +124,7 @@ describe("the route table answers with the shape the tool answered with", () => 
   for (const [name, { key, keys }] of Object.entries(SHAPES)) {
     it(`${name}: the projection carries the names its callers read`, () => {
       const capture = held(name);
-      const projected = ROUTES[key].answers({ page: capture.rest.answer }, {});
+      const projected = answersOf(ROUTES[key])({ page: capture.rest.answer }, {});
       for (const wanted of keys) {
         assert.ok(Object.hasOwn(projected, wanted), `${key} answered no ${wanted}`);
       }

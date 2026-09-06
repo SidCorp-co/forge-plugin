@@ -13,7 +13,7 @@ import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
-import { WHEN, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
+import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
 import { CONSULTS, againstIn, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "../stats/marks.mjs";
 
 const DEFAULT_WINDOW = 100;
@@ -126,7 +126,10 @@ export const printStats = (rest) => {
    Every number is a column one of the two readers above already computes — a second copy would
    answer differently from `stats` the day either moved. The crossing writes the comparison once and
    `--against` reads it back as the before window — docs/cli/stats-the-eval.md. */
-export const evalWindows = (entries, size = MARK) => twoWindows(windowOf(entries, { last: size * 2 }), size);
+export const evalWindows = (entries, size = MARK) => {
+  const own = answered(entries);
+  return { ...twoWindows(own, size), total: own.length };
+};
 
 /* Both dimensions in one key: it is what the issue asks the numbers per, and it is the only key
    under which `scoreOf` answers with exactly one row rather than re-splitting by effort inside. */
@@ -265,22 +268,18 @@ export const windowObject = (rows, verdicts) => ({
 });
 
 /** The comparison in the outer shape `stats eval --json` prints (`evalRuns` in stats/eval.mjs). */
-export const compared = (now, before, verdicts, total, against = null) => {
-  const nowHeld = windowObject(now, verdicts);
-  const beforeHeld = against ? against.now : before.length ? windowObject(before, verdicts) : null;
-  return {
-    size: MARK,
-    total,
-    ...(against ? { against: against.mark } : {}),
-    now: nowHeld,
-    before: beforeHeld,
-    shifts: beforeHeld ? changedBetween(nowHeld, beforeHeld) : [],
-  };
-};
+export const compared = (now, before, verdicts, total, against = null) => comparedWindows({
+  size: MARK,
+  total,
+  against,
+  now: windowObject(now, verdicts),
+  before: against ? against.now : before.length ? windowObject(before, verdicts) : null,
+  separates: changedBetween,
+});
 
 export const evalObject = (entries, against = null) => {
-  const { now, before } = evalWindows(entries);
-  return compared(now, before, entries.filter((one) => one.kind === "verdict"), answered(entries).length, against);
+  const { now, before, total } = evalWindows(entries);
+  return compared(now, before, entries.filter((one) => one.kind === "verdict"), total, against);
 };
 
 /** What the consult that crossed a mark says, having written the reading once: the log as it stood

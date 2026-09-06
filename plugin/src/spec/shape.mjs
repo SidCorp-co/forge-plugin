@@ -36,11 +36,10 @@ export const sectionsIn = (cell) => {
 };
 
 /** The table of `docs/requirements/README.md`, one entry per row that declares headings: the file
- *  pattern as written and the sections it wants, in order. `lines` is that document's own. */
-export const declaredSections = (documents, lines = null) => {
-  const rules = oneOf(documents, RULES_FILE);
+ *  pattern as written and the sections it wants, in order. Takes that document, not the set. */
+export const declaredSections = (rules) => {
   const out = [];
-  for (const line of lines ?? String(rules?.text ?? "").split("\n")) {
+  for (const line of rules?.lines ?? String(rules?.text ?? "").split("\n")) {
     const row = SECTION_TABLE.exec(line);
     const sections = row && sectionsIn(row[2]);
     if (sections) out.push({ pattern: row[1], sections });
@@ -86,8 +85,7 @@ const sectionProblems = (document, sections) => {
 };
 
 const sections = (documents) => {
-  const rules = oneOf(documents, RULES_FILE);
-  const declared = declaredSections(documents, rules?.lines);
+  const declared = declaredSections(oneOf(documents, RULES_FILE));
   return documents.flatMap((document) => {
     const want = declared.find((one) => matches(one.pattern, document.file));
     return want ? sectionProblems(document, want.sections) : [];

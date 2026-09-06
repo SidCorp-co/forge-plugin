@@ -1,5 +1,6 @@
 /* The last line of every reply that wrote: the id, read back rather than taken off the echo the
    write answered with. Why nothing here refuses, whatever it finds: docs/cli/filing.md. */
+import { cutIn } from "../comments.mjs";
 import { tried } from "../rpc.mjs";
 
 const AGAIN = "Do not send this call again before reading that id: a write the tracker took and a "
@@ -58,7 +59,7 @@ export const commentLanded = async (documentId, answer, ref) => {
   if ((back?.comments ?? []).some((one) => one?.documentId === posted)) {
     return verified(`Comment ${posted} is posted on ${ref}, read back from the tracker.`);
   }
-  if (back.hasMore !== false) {
+  if (cutIn(back)) {
     return unverified(`${said} and the page read back was cut before it, so the write is unverified.`);
   }
   return unverified(`${said} and the page of ${ref}, which the tracker called whole, does not hold it.`);
