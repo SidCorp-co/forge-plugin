@@ -1,6 +1,6 @@
 # SRS §10 — FR-08 — Irreversible commands
 
-Rev: 1 · Actors: agent · Enforces: BR-01, BR-07, BR-15 · Source: plugin/hooks/how/bash-guard.md
+Rev: 2 · Actors: agent · Enforces: BR-01, BR-07, BR-12, BR-15 · Source: plugin/hooks/how/bash-guard.md
 
 ← [Index](./README.md) · [§9 FR-07 The gate harness](./fr-07-gate-harness.md) · Next: [§11 FR-09 The learning gates](./fr-09-learning-gates.md)
 
@@ -9,10 +9,16 @@ Rev: 1 · Actors: agent · Enforces: BR-01, BR-07, BR-15 · Source: plugin/hooks
 *Why does this requirement exist?*
 
 Some shell commands take something with nothing behind it: a process that has been running for
-days, changes never committed, a checkout somebody else is using. The loss is not detectable and
-not undoable, which is exactly the test BR-15 sets for stopping. So those shapes are refused before
-they run, and the refusal names the safer form — because rewording a command until the pattern
-misses teaches that the guard is noise.
+days, changes never committed, a checkout somebody else is using. What goes is either something
+nothing can put back, or something nobody would notice in time to — which is the test BR-15 sets
+for stopping. So those shapes are refused before they run, and the refusal names the safer form —
+because rewording a command until the pattern misses teaches that the guard is noise.
+
+Not every refusal of this gate is that one, and the ground is what decides which rule answers for
+it. A command that answers a checker instead of the code takes nothing from the tree and is refused
+for the judgement it skips, which is BR-12's ground. The same gate also refuses the two shapes of a
+wait that asks again; those spend a turn rather than anything in a tree, and the quality they carry
+out is NFR-11 rather than this requirement.
 
 It refuses a *shape* and never a style, and it judges the tree the command names rather than the
 one the shell happens to be in (BR-07).
@@ -27,9 +33,9 @@ one the shell happens to be in (BR-07).
 
 *Which commands are refused, and how is a command read?*
 
-### UC-08-1 — Refuse a shape that cannot be undone
+### UC-08-1 — Refuse a shape for what running it takes
 
-Rev: 1 · Actors: agent · Enforces: BR-01, BR-15
+Rev: 2 · Actors: agent · Enforces: BR-01, BR-12, BR-15
 
 A refusal the agent believes is wrong goes to the user rather than into another attempt at the
 same command, and the gate's own document says what the message owes.
@@ -72,4 +78,5 @@ own document; the duty here is that the reading is of command position and never
 |---|---|
 | BR-01 | the refusal names the cause and the safer form, never a rephrasing |
 | BR-07 | a shape is refused and a style is not, and the tree judged is the one the command names |
-| BR-15 | the list is exactly the shapes whose loss cannot be detected and undone |
+| BR-12 | the one shape refused here for answering a checker rather than the code is refused on that ground, and is counted among no losses |
+| BR-15 | the ground for refusing a shape is a loss nothing could put back, or one nobody would notice in time to; a shape refused on any other ground answers to the rule for it |

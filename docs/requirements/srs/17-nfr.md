@@ -120,3 +120,18 @@ otherwise: an answer's quality is a person's finding, never a gate's.
 - **AC-17-10-1** · Rev: 1 · Proof: tools/diff-python.mjs
   WHEN the output for a known input changes THEN the change SHALL be shown to a person rather than
   judged by a check.
+
+### NFR-11 — A wait costs no turn
+
+Rev: 1 · Enforces: BR-18
+
+Asking again is what a wait costs: each wake-up spends a turn on a question whose answer arrives by
+itself once the work ends. Two routes wait without spending one, and `plugin/hooks/how/polling.md`
+holds the figures that settled this, the routes themselves, and what the rule leaves unjudged.
+
+- **AC-17-11-1** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "a wait that polls is refused, and a pause on its own is not"
+  IF a pause stands inside a wait for other work THEN the product SHALL refuse the command and SHALL
+  name the routes that wait without asking.
+- **AC-17-11-2** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "the same read of a log typed again is refused, and another question of it is not"
+  WHEN a read of a log is repeated with nothing done between it and the read before THEN the product
+  SHALL refuse it once, and a different question of the same log SHALL pass.
