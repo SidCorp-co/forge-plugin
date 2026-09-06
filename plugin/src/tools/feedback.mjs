@@ -9,8 +9,9 @@ import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { MAX_LIMIT, listIssues, rowsOf, shortOf } from "../tracker/issues.mjs";
 import { postComment } from "../tracker/comments.mjs";
 import { filedAs, inFlowWords, liveTitles, openTitles } from "../tracker/issue-shape.mjs";
-import { foldedInto, suggestionLines } from "../tracker/neighbours.mjs";
-import { bodyOf, fileIssue } from "../tracker/filing.mjs";
+import { foldedInto, suggestionLines } from "../tracker/filing/neighbours.mjs";
+import { bodyOf, fileIssue } from "../tracker/filing/route.mjs";
+import { commentLanded, issueLanded, sayLanded } from "../tracker/filing/landed.mjs";
 
 /** This plugin's project, read from no checkout: the caller's `.forge.json` says where a note came
  *  FROM and never where it goes. */
@@ -119,7 +120,7 @@ export const feedback = async (argv) => {
     keepOnFailure(null);
     console.log(`${held.issueId} is open on ${PROJECT} under this title, so the note is a comment on it`
       + " rather than a second issue. No lease was taken.");
-    return undefined;
+    return sayLanded(await commentLanded(held.documentId, answer, held.issueId));
   }
   /* Asked second: a note whose title is already open belongs there whatever the memory says. */
   const filed = await fileIssue({ ...asked, fresh, page: { live, read: page.read }, soft: true });
@@ -130,7 +131,8 @@ export const feedback = async (argv) => {
     keepOnFailure(null);
     console.log(`No open issue on ${PROJECT} carries this title, and ${foldedInto(filed.joined)}`);
     for (const line of suggestionLines(beside, said)) console.log(line);
-    return undefined;
+    const { documentId, issueId } = filed.joined;
+    return sayLanded(await commentLanded(documentId, filed.answer, issueId));
   }
   if (filed.answer?.refused) lost("this filing", filed.answer.refused);
   keepOnFailure(null);
@@ -138,5 +140,5 @@ export const feedback = async (argv) => {
   console.log(filedAs(filed.answer, filed.ranked.said));
   console.log(JSON.stringify(inFlowWords(filed.answer), null, 2));
   for (const line of suggestionLines(beside, said)) console.log(line);
-  return undefined;
+  return sayLanded(await issueLanded(filed.answer));
 };

@@ -1,7 +1,7 @@
 /* One place writes a create on the issues tool, and it is the filing interface: docs/cli/filing.md. */
 import { lineAt } from "../line-at.mjs";
 
-export const INTERFACE = "plugin/src/tracker/filing.mjs";
+export const INTERFACE = "plugin/src/tracker/filing/route.mjs";
 export const TOOL = "forge_issues";
 
 const CREATE = new RegExp(String.raw`["']${TOOL}["'][^;]{0,200}?action:\s*["']create["']`, "gsu");

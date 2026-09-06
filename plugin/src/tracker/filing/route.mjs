@@ -1,11 +1,11 @@
 /* The one route from a body to an issue: every verb that files calls it, and what stays a route's
    is its flags and the lines it prints. Nothing here prints and nothing here exits: docs/cli/filing.md. */
-import { fail } from "../resolve/settings.mjs";
+import { fail } from "../../resolve/settings.mjs";
 import { foldFiling, neighboursOf } from "./neighbours.mjs";
 import { filingRefusal, liveTitles, rankOf, shapeOf, shapeRefusal, trackerFields, withMark }
-  from "./issue-shape.mjs";
-import { markedIn } from "../ladder.mjs";
-import { write } from "./rpc.mjs";
+  from "../issue-shape.mjs";
+import { markedIn } from "../../ladder.mjs";
+import { write } from "../rpc.mjs";
 
 const withSections = (body, sections) => {
   const written = String(body ?? "").replace(/\s*$/u, "");

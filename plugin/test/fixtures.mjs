@@ -312,7 +312,12 @@ export const fakeTracker = async (state) => {
        `isError` and no structured content: the shape a verb's way out is reached by. */
     if (own) {
       const answered = own(args);
-      /* `{ http: n }` is the transport failing rather than the tool refusing: only one catchable. */
+      /* `{ envelope: r }`: the tool's own result, neither a refusal nor an answer. */
+      if (answered?.envelope) {
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ jsonrpc: "2.0", id: call.id ?? 1, result: answered.envelope }));
+        return;
+      }
       if (answered?.http) {
         response.writeHead(answered.http, { "Content-Type": "text/plain" });
         response.end("gateway");

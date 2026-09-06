@@ -12,7 +12,7 @@ import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 const home = tempHome("neighbours");
 process.env.XDG_CONFIG_HOME = home.path;
 const { BESIDE_HELP, FLOOR, foldFiling, foldOnto, foldedInto, suggestionLines } =
-  await import("../../src/tracker/neighbours.mjs");
+  await import("../../src/tracker/filing/neighbours.mjs");
 const { TIERS, markFor } = await import("../../src/ladder.mjs");
 const { placeIn, seedFor } = await import("../../src/tracker/issue-shape.mjs");
 

@@ -17,7 +17,7 @@ import {
   shapeOf,
   trackerFields,
 } from "../../src/tracker/issue-shape.mjs";
-import { bodyOf } from "../../src/tracker/filing.mjs";
+import { bodyOf } from "../../src/tracker/filing/route.mjs";
 
 const TITLE = "the filing is read against the shape its kind names";
 const SECTIONS = {

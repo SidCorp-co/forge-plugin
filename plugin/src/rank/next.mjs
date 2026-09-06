@@ -13,7 +13,7 @@ import { carriersOf, graphOf } from "../tools/deps.mjs";
 import { eligibilityOf, heldPaths, pathsNamed } from "./eligible.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { holdsBack } from "../flow/earned.mjs";
-import { neighboursOf } from "../tracker/neighbours.mjs";
+import { neighboursOf } from "../tracker/filing/neighbours.mjs";
 import { scoped } from "../tracker/rpc.mjs";
 import { unknownFlag } from "../suggest.mjs";
 import { usageOf } from "../resolve/visibility.mjs";

@@ -47,3 +47,30 @@ already one declaration, and the help, the refusal and the hook's shape reader a
 so the rule that a filing's sections live in one place was met where it stands. The interface reads
 a body through that same reader. Lifting the table would have bought nothing and cost an edit in the
 hook that reads it directly, which another change holds.
+
+**The last line of a reply that wrote names the id, and reading it back is what makes it a fact.**
+Three routes ended their stdout with the neighbour block, whose closing line is *"Nothing above is
+a refusal…"*, and a caller reading the tail took a filing that had landed for one that had been
+refused (ISS-449). The key still appeared in the JSON echo at the head, which is the problem: the
+tracker answers a create with the row it was sent, so the echo proves the call was accepted and not
+that anything was stored — the same reason `forge plan` reads its field back. So the id goes last,
+and it is the id a second read found, not the one the write answered with.
+
+**The read-back says what it found and refuses nothing, whatever it finds.** The two readers ask
+through the soft transport and neither can end the process, because the one thing worse than a write
+that vanished is a write that landed being reported as failed: told that, a caller sends it again
+and files the body twice. The first draft did refuse on absence, and measuring it is what settled
+the question — 34 cases red across five suites, because every fake tracker in this tree, and every
+stub a suite writes over one, answers a create by echoing the row without storing it. That is what
+the tracker's own reply looks like, which is the whole reason the read-back exists; it also means an
+id that reads back as nothing is as often the reader's answer as a dropped write. So the line
+distinguishes what it cannot tell apart from what it can — a refusal envelope, an answer of some
+other shape, a page the tracker reported cut, and an id that reads back as nothing are each said in
+their own words, all of them end with *do not send this call again*, and the exit stays zero on all
+of them. The refusals a filing route still makes are the tracker's own: a create it rejects and a
+fold whose comment write it rejects, neither of which this reader is reached from.
+
+A comment page is the weaker read of the two on purpose: `forge_comments` has no get, its list takes
+no cursor and the tracker cuts it by response size, so `hasMore` false is the only assertion of
+completeness there is — and it is read as that boolean rather than as falsy, because a page that
+asserts nothing would otherwise pass for one that asserted it was whole.

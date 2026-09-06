@@ -26,8 +26,9 @@ import {
   insteadOf,
   kindRefusal,
 } from "./tracker/issue-shape.mjs";
-import { BESIDE_HELP, foldedInto, suggestionLines } from "./tracker/neighbours.mjs";
-import { filedOrFail, rankFor } from "./tracker/filing.mjs";
+import { BESIDE_HELP, foldedInto, suggestionLines } from "./tracker/filing/neighbours.mjs";
+import { filedOrFail, rankFor } from "./tracker/filing/route.mjs";
+import { commentLanded, issueLanded, sayLanded } from "./tracker/filing/landed.mjs";
 import { TIERS } from "./ladder.mjs";
 import { targetsOfTool } from "./tracker/issue-read.mjs";
 import { actionIn, callable, helpOf, isGated, refuseIfGated, usageOf, wrappedRefusal } from "./resolve/visibility.mjs";
@@ -364,7 +365,9 @@ export const commands = {
     if (commenting) {
       const issue = await documentIdOf(into);
       await mustBeShown([{ ref: into, documentId: issue }]);
-      return show(await postComment(issue, `## ${given.title}\n\n${body}`));
+      const posted = await postComment(issue, `## ${given.title}\n\n${body}`);
+      show(posted);
+      return sayLanded(await commentLanded(issue, posted, into));
     }
     const { title, ...carried } = given;
     const filed = await filedOrFail({
@@ -383,12 +386,15 @@ export const commands = {
       show(filed.answer);
       keepOnFailure(null);
       console.log(foldedInto(filed.joined));
-      return sayBeside(filed.beside, filed.said);
+      sayBeside(filed.beside, filed.said);
+      const { documentId, issueId } = filed.joined;
+      return sayLanded(await commentLanded(documentId, filed.answer, issueId));
     }
     keepOnFailure(null);
     show(inFlowWords(filed.answer));
     console.log(filedAs(filed.answer, filed.ranked.said));
-    return sayBeside(filed.beside, filed.said);
+    sayBeside(filed.beside, filed.said);
+    return sayLanded(await issueLanded(filed.answer));
   },
   comment: async (argv) => {
     onlyFlags("comment", argv);

@@ -15,7 +15,7 @@ import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { isRelease, onlyRelease, RELEASE_FILES, versionAt } from "./run/landing.mjs";
 import { mintRunId, runIdAt, RUN_ID_VAR } from "./run/run-id.mjs";
 import { markRefused, REVIEWED, REVIEW_LINES, REVIEW_PATHS, reviewBody } from "./run/review.mjs";
-import { fileIssue } from "../plugin/src/tracker/filing.mjs";
+import { fileIssue } from "../plugin/src/tracker/filing/route.mjs";
 import { refusing } from "../plugin/src/resolve/settings.mjs";
 import { CEILINGS, overCeiling, resizeForm, tierOf } from "../plugin/src/ladder.mjs";
 

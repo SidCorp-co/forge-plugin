@@ -1,9 +1,9 @@
 /* What is already open beside a filing, asked of the tracker's own memory search from inside the
    create path. Every decision below — the two queries, the floor, why the fold answers to both of
    them and what that costs, and the cases it cannot reach — is docs/cli/beside.md's. */
-import { mustBeShown, postComment } from "./comments.mjs";
-import { belowTop, markedIn } from "../ladder.mjs";
-import { tried } from "./rpc.mjs";
+import { mustBeShown, postComment } from "../comments.mjs";
+import { belowTop, markedIn } from "../../ladder.mjs";
+import { tried } from "../rpc.mjs";
 
 const TOOL = "forge_memory.search";
 const SOURCE = ["issue"];
