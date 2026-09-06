@@ -4631,3 +4631,26 @@ comments and one routed record were read back.
   that directory rather than fixed in a tree that did not hold it.
 - Verified inside the installed copy by its own path, byte-identical to the landed sha. The gate's
   clock is the harness's; a parser proven in a test process has not yet been proven under it.
+
+## Hundred-and-seventy-ninth dry run — ISS-525
+
+R-10's recorded digest for the requirements tree (3.35.195, landed as 27ed085). A generated record
+of every clause's digest sits in the tree, the check verb compares the tree against it and names a
+clause whose words moved without its revision, and a citation of a clause that moved is called
+suspect; twelve files, thirteen criteria, two whole-set reviews. Closed by its run. No restart owed.
+Folded from its handback; the sixteen comments, two routed records and one filing were read back.
+
+- Two defects found before landing by running the check rather than reading it: an entry that kept
+  its revision and lost its digest passed coverage and was compared by nothing, and a clause whose
+  digest drifted with nothing citing it produced no finding at all. Watching a rule fire is the only
+  proof it exists, and here it was the proof that half of it did not.
+- Watching it fire also showed the other half is held nowhere: route one out of a suspect citation
+  leaves the tree citing a revision no clause carries, and no rule says so. Filed as ISS-538 rather
+  than widened into this issue, and dispatched the same hour.
+- The field cap refused one half of a two-half field at a time: six sends for one release note,
+  three on the technical half alone. Counted onto ISS-46 with the sends, the same cost run 174 met.
+- A knowledge entry amended in place because the run had read the whole of it, where run 175 left one
+  alone it had not: the same store, two right answers, and the difference is what the run had read.
+- Three issues' work declared out of scope in the plan and left there: a rule set another issue
+  shipped, a measure another issue owns, a judgement outside the tree. Scope held is a run that
+  lands.
