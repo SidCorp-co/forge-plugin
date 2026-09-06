@@ -8,7 +8,9 @@ import { tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("rewrite-");
 const { protectInline, restoreInline, segment } = await import("../../vi-natural/format/doc.mjs");
-const { assemble, landedAs, noteLandedAs, parse, render, sayStored } = await import("../../src/flow/record.mjs");
+const { assemble, parse, render, sayStored } = await import("../../src/flow/record.mjs");
+/* The comparators moved to the field writer with the write they belong to (ISS-346). */
+const { landedAs, noteLandedAs } = await import("../../src/tracker/field-write.mjs");
 const { SHAPES } = await import("../../src/flow/machine.mjs");
 const { planFlags, protectMachine } = await import("../../src/flow/machine.mjs");
 const { CHECKS, ORDER, viewFrom } = await import("../../src/flow/earned.mjs");

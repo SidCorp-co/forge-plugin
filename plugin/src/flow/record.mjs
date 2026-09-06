@@ -17,7 +17,8 @@ import { CONTRACT } from "../guides/contract.mjs";
 import { releaseLine, releasePolicy } from "../tracker/project-config.mjs";
 import { sizeFrom } from "../ladder.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
-import { scoped, write } from "../tracker/rpc.mjs";
+import { writeField } from "../tracker/field-write.mjs";
+import { scoped } from "../tracker/rpc.mjs";
 import { refuseIfGated, usageOf } from "../resolve/visibility.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { FIELD as SESSION, nextLine, renew } from "./lease.mjs";
@@ -482,32 +483,11 @@ export const noteFrom = (argv) => {
   return { section: rest.section, userFacing: rest.user, technical: rest.technical ?? null };
 };
 
-/* The read-back is owed here for the reason it is owed on `plan`, stated once beside that verb, and
-   it compares the copy the boundary sent: a project with a prose language sends a rewrite of what it
-   was handed, and comparing the source would refuse every write that landed. */
-const updateField = async (documentId, field, value, same, ref, next, patch) => {
-  await renew(documentId, ref, next, patch);
-  let sent = value;
-  await write("forge_issues", { action: "update", documentId, data: { [field]: value } }, (data) => {
-    sent = data?.[field] ?? value;
-  });
-  const back = await scoped("forge_issues", { action: "get", documentId, fields: [field] });
-  if (!same(back?.[field], sent)) refuse(`The update answered success but ${field} did not read back as written. Nothing to rely on.`);
-};
-
-/* Unfenced and trimmed, the source marker being the tracker's own wrapping of a prose field. */
-export const landedAs = (held, sent) => unwrap(held) === String(sent).trim();
-
-/* A note is an object, so it is read back half by half and normalised nowhere: those three are held
-   as sent, and a comparison loose enough to accept an empty half stops saying the write landed. */
-export const noteLandedAs = (held, sent) =>
-  ["section", "userFacing", "technical"].every((key) => (held?.[key] ?? null) === (sent?.[key] ?? null));
-
 const recordNote = async (reference, argv, { next, patch }) => {
   const releaseNotes = noteFrom(argv);
   const { documentId, body } = await issueOf(reference);
   sayStored("note");
-  await updateField(documentId, "releaseNotes", releaseNotes, noteLandedAs, reference, next, patch);
+  await writeField(documentId, "releaseNotes", releaseNotes, { ref: reference, next, patch, refuse });
   console.log(JSON.stringify(releaseNotes, null, 2));
   await sayOwed(documentId, { ...body, releaseNotes }, reference);
 };
@@ -522,7 +502,7 @@ const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
   const { documentId, body } = await issueOf(reference);
   const acceptanceCriteria = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");
   sayStored("criteria");
-  await updateField(documentId, "acceptanceCriteria", acceptanceCriteria, landedAs, reference, next, patch);
+  await writeField(documentId, "acceptanceCriteria", acceptanceCriteria, { ref: reference, next, patch, refuse });
   for (const number of joined) {
     console.error(`criterion ${number} holds a conjunction: is it two? A verdict judges one outcome.`);
   }

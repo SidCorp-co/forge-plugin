@@ -125,6 +125,12 @@ export const FIXTURE_ENUMS = {
   confidence: ["verified", "inferred"],
 };
 export const FIXTURE_FIELDS = ["plan", "sessionContext", "fixture-only"];
+/* The caps the tracker declares, so `section` carries none here because it carries none there. */
+export const FIXTURE_CAPS = {
+  plan: { maxLength: 200_000 },
+  acceptanceCriteria: { maxLength: 100_000 },
+  releaseNotes: { properties: { userFacing: { maxLength: 500 }, technical: { maxLength: 500 } } },
+};
 const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
 const ownSlug = () =>
   JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", ".forge.json"), "utf8")).slug;
@@ -136,7 +142,10 @@ const declaration = (name) => ({
     properties: {
       ...(TAKES_PROJECT.includes(name) ? { projectId: { type: "string" } } : {}),
       ...(name === "forge_issues"
-        ? { data: { properties: { priority: { enum: RANKS } } }, fields: { items: { enum: FIXTURE_FIELDS } } }
+        ? {
+          data: { properties: { priority: { enum: RANKS }, ...FIXTURE_CAPS } },
+          fields: { items: { enum: FIXTURE_FIELDS } },
+        }
         : {}),
       ...(name === "forge_knowledge"
         ? Object.fromEntries(Object.entries(FIXTURE_ENUMS).map(([field, values]) => [field, { enum: values }]))

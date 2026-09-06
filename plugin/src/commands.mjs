@@ -14,6 +14,7 @@ import {
 } from "./tracker/issues.mjs";
 import { commentPage, creditAfter, credited, cutLine, mustBeShown, postComment } from "./tracker/comments.mjs";
 import { attachmentNames, uploadRead, uploadTo, urlBearing } from "./tracker/evidence.mjs";
+import { writeField } from "./tracker/field-write.mjs";
 import {
   INSTEAD_FLAGS,
   KINDS_HELP,
@@ -415,14 +416,8 @@ export const commands = {
     if (!plan.trim()) fail("An empty plan would clear the field; pass the plan itself.");
     citationsChecked(plan, fail);
     const documentId = await documentIdOf(reference);
-    await renew(documentId, reference);
-    await write("forge_issues", { action: "update", documentId, data: { plan } });
-    const back = await scoped("forge_issues", { action: "get", documentId, fields: ["plan"] });
-    const stored = (back?.plan ?? "").trim();
-    if (!stored) {
-      fail(`The update answered success but ${reference} still has no plan. Nothing was stored.`);
-    }
-    show({ documentId, plan: stored });
+    const stored = await writeField(documentId, "plan", plan, { ref: reference, refuse: fail });
+    show({ documentId, plan: String(stored ?? "").trim() });
   },
   attach: async (argv) => {
     onlyFlags("attach", argv);
