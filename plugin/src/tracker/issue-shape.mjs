@@ -121,6 +121,9 @@ export const shapeFor = (kind) => KINDS.find((one) => one.kind === (kind || DEFA
 const listed = (names) => names.join(", ");
 const titles = (sections) => sections.map((one) => one.title);
 
+const VOWEL = /^[aeiou]/iu;
+const article = (word) => (VOWEL.test(word) ? "an" : "a");
+
 /* The route past the set, borrowed by both refusals: a kind this CLI does not define is a section
    list nobody has decided, not a filing to fix by guessing. */
 const KIND_ROUTE = "a filing needing another kind, or another section under one, files an issue"
@@ -220,7 +223,8 @@ export const KINDS_HELP = [
   "",
   "A heading is matched by family and not by that wording: `Business rules` is a rule section and",
   "`What it is now` is a today one. `forge new` refuses a filing that names no kind; a create sent",
-  `through the tracker's own tool carries no flag to refuse, so one arriving there is read as a`,
+  `through the tracker's own tool carries no flag to refuse, so one arriving there is read as`
+  + ` ${article(DEFAULT_KIND)}`,
   `${DEFAULT_KIND}. A body marked \`Size: fix.\` is read against no section and against no kind, so`,
   "nothing is read of it and nothing is said — the mark is not an exemption from the flag.",
 ].join("\n");
@@ -229,10 +233,11 @@ export const KINDS_HELP = [
 export const noticeFor = ({ kind, named, left }) => {
   if (named && !left.length) return null;
   const head = named
-    ? `Read as a ${kind}.`
-    : `Read as a ${DEFAULT_KIND}, the kind a filing naming none is read as.`;
+    ? `Read as ${article(kind)} ${kind}.`
+    : `Read as ${article(DEFAULT_KIND)} ${DEFAULT_KIND}, the kind a filing naming none is read as.`;
   const rest = left.length
-    ? ` It leaves out ${listed(titles(left))}, nice to have on a ${kind} and refused on nothing.`
+    ? ` It leaves out ${listed(titles(left))}, nice to have on ${article(kind)} ${kind}`
+      + " and refused on nothing."
     : "";
   return `${head}${rest}`;
 };
@@ -369,8 +374,6 @@ const titleGaps = (title) => {
 };
 
 const namesKind = (kind) => kind !== null && kind !== undefined;
-const VOWEL = /^[aeiou]/iu;
-const article = (word) => (VOWEL.test(word) ? "an" : "a");
 
 /* Whether the section is there, and the text under it for the line that says what was read. */
 const held = (text, section) => {

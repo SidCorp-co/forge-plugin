@@ -111,6 +111,28 @@ test("a nice-to-have section left out is said in one line, and refuses nothing",
     "and a kind that left nothing out is told nothing");
 });
 
+/* Every case here named a consonant kind, so a green suite shipped `Read as a enhancement`
+   (ISS-115). ARTICLE is restated rather than imported: a case asking the module for the answer it
+   checks passes whatever the module says. */
+const ARTICLE = (word) => (/^[aeiou]/iu.test(word) ? "an" : "a");
+
+test("every printer of a kind's name takes the article off the name, vowel or not", () => {
+  const vowel = gapsOf(body("today", "outcome", "rules", "scope"), "enhancement");
+  assert.deepEqual(vowel.gaps, [], JSON.stringify(vowel.gaps));
+  assert.match(vowel.said, /^Read as an enhancement\./u);
+  assert.match(vowel.said, /nice to have on an enhancement and refused on nothing\./u);
+  const consonant = gapsOf(body("happened", "outcome", "rules", "scope"), "bug");
+  assert.match(consonant.said, /^Read as a bug\./u);
+  assert.match(consonant.said, /nice to have on a bug and refused on nothing\./u);
+  assert.match(said(body("outcome", "rules", "scope"), "enhancement"), /required of an enhancement/u,
+    "which is what the refusal path said all along, off the same reader");
+  for (const one of KIND_NAMES) {
+    const printed = noticeFor({ kind: one, named: true, left: shapeFor(one).says });
+    assert.ok(printed.startsWith(`Read as ${ARTICLE(one)} ${one}.`), printed);
+    assert.ok(printed.includes(`nice to have on ${ARTICLE(one)} ${one} and`), printed);
+  }
+});
+
 /* The fourth is nobody's to type: a reading filed as a feature reads as work somebody owes. */
 test("a reading is a kind of its own, sharing the feature's sections and not its name", () => {
   const reading = KINDS.find((one) => one.kind === "review");
@@ -129,7 +151,10 @@ test("a reading is a kind of its own, sharing the feature's sections and not its
 test("a filing naming no kind is read as the default and told so", () => {
   const read = gapsOf(body("outcome", "rules", "scope", "why"), null);
   assert.deepEqual(read.gaps, []);
-  assert.equal(read.said, `Read as a ${DEFAULT_KIND}, the kind a filing naming none is read as.`);
+  assert.equal(read.said,
+    `Read as ${ARTICLE(DEFAULT_KIND)} ${DEFAULT_KIND}, the kind a filing naming none is read as.`);
+  assert.match(KINDS_HELP, new RegExp(`is read as ${ARTICLE(DEFAULT_KIND)}\\n${DEFAULT_KIND}\\.`, "u"),
+    "and the help says the same of the same value, so the next default reintroduces nothing");
   assert.equal(noticeFor({ kind: DEFAULT_KIND, named: true, left: [] }), null);
   assert.equal(shapeFor(null).kind, DEFAULT_KIND);
 });
