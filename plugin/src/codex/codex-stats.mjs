@@ -195,9 +195,9 @@ const evalHead = (now, before) => {
 };
 
 export const evalLines = (now, before, verdicts) => {
-  const groups = [...new Set([...byKey(now).keys(), ...byKey(before).keys()])].sort();
   const nowBy = byKey(now);
   const beforeBy = byKey(before);
+  const groups = [...new Set([...nowBy.keys(), ...beforeBy.keys()])].sort();
   return [
     ...evalHead(now, before),
     "",

@@ -12,6 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
+import { canonical } from "../resolve/canonical.mjs";
 import { CONFIG_PATH, userConfig } from "../resolve/config.mjs";
 import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
@@ -33,7 +34,6 @@ import {
   locate,
   modelBehind,
   promptMark,
-  canonical,
   withDiffs,
   openingFor,
   profile,

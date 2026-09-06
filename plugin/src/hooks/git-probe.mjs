@@ -1,7 +1,8 @@
 /* Git as a gate asks it, and what a gate may give one child it waits for. Apart from the gates because three of them had a runner of their own and each read a failure differently — nothing at all is no answer, git having not run or been killed, and a `status` is git's own, which is the difference between a tree at stake and a directory that is not a repository. `probeMs` clamps to enough to answer, never the whole of what is left, and never nothing, a probe killed at zero saying the same as one that failed; it takes what remains rather than reading it, so the clock stays the harness's, this side may not reach up for it, and each caller still spells `remaining()` where it spends it. */
 import { spawnSync } from "node:child_process";
-import { realpathSync } from "node:fs";
 import { dirname, relative } from "node:path";
+
+import { canonical } from "../resolve/canonical.mjs";
 
 export const gitProbe = (argv, { cwd = undefined, ms } = {}) => {
   try {
@@ -16,18 +17,8 @@ export const LEAST_MS = 500;
 
 export const probeMs = (left) => Math.max(LEAST_MS, Math.min(5_000, left - 1_000));
 
-/* The tree's half of what counts as a write after a call, which `forge hooks --how writes` states:
-   the mtime floor is the call's own start, so a git operation inside one stamps above it. */
-/* `--ignored` for a build output no other flag reports, `--no-renames` for one entry per path. */
+/* The tree's half of what counts as a write after a call, which `forge hooks --how writes` states: the mtime floor is the call's own start, so a git operation inside one stamps above it. `--ignored` for a build output no other flag reports, `--no-renames` for one entry per path. */
 const ASK = ["status", "--porcelain", "-z", "--untracked-files=all", "--ignored", "--no-renames", "--"];
-
-const canonical = (path) => {
-  try {
-    return realpathSync(path);
-  } catch {
-    return path;
-  }
-};
 
 const byRoot = (paths, left) => {
   const roots = new Map();

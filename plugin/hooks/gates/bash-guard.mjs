@@ -7,7 +7,7 @@ import { isAbsolute, resolve } from "node:path";
 
 import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
 import { NOTHING, logRead, logsIn } from "../../src/hooks/log-reads.mjs";
-import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, deny, gitTreeOf, note, noted, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
+import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, clearNote, deny, gitTreeOf, note, noted, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
 
 /* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. `git -C other stash` and `git -c k=v add -A` are the verb with a global before it. */
 const GIT = String.raw`^(?:\S*\/)?git\s+` + GIT_GLOBALS;
@@ -202,7 +202,7 @@ const readAgain = (ev, said) => {
 
 export const run = (ev) => {
   if (ev.tool_name !== "Bash") {
-    note(ev, POLLED, "");
+    clearNote(ev, POLLED);
     done();
   }
   /* Where each command starts, because a rule quoted in an argument is data: `echo "git stash"` prints.

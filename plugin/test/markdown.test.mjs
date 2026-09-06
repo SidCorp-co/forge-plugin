@@ -36,6 +36,8 @@ const RPC = "plugin/src/tracker/rpc.mjs";
 const HELP_WORD = "plugin/src/resolve/help-word.mjs";
 const LINE_AT = "plugin/src/line-at.mjs";
 const LOG_READS = "plugin/src/hooks/log-reads.mjs";
+const SPEC_PARSE = "plugin/src/spec/parse.mjs";
+const CANONICAL = "plugin/src/resolve/canonical.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -71,13 +73,26 @@ const LINE_AT_FORMS = [String.raw`.split("\n").length`, String.raw`.split('\n').
 /* Two modules count the lines of a whole text rather than of a prefix, which is a different question with the same tail and no home to be sent to. Named here rather than narrowed out of the needle: one cut until it matches only the copies already found catches no later one. */
 const WHOLE_TEXT = ["plugin/src/checks/claude-md.mjs", "plugin/src/codex/codex-plan.mjs"];
 
-/* One module reads a help flag anywhere in a line rather than as its first word and spells those same
-   two words to do it; no needle over text tells it from a copy, and it is not one. Named here,
-   where a run widening this scan reads it; docs/cli/the-primitives.md carries why. */
+/* One module reads a help flag anywhere in a line rather than as its first word and spells those same two words to do it; no needle over text tells it from a copy, and it is not one. Named here, where a run widening this scan reads it; docs/cli/the-primitives.md carries why. */
 const ANY_POSITION = ["plugin/src/codex/codex.mjs"];
 
 /* The extension class alone: a reader set spelled twice is a gate refusing what the profiler cannot count. */
 const LOG_FORMS = [String.raw`log|out|output|err`];
+
+/* The tree's document grammar, which the shape rules and the parser both read. Each is the pattern's own bytes: a checker re-spelling one reads a different document from the parser. */
+const SPEC_FORMS = [
+  String.raw`\*\*(AC-\d+(?:-\d+)*)\*\*`,
+  String.raw`\*\*Status: proposal\b`,
+  String.raw`/^Rev:/u`,
+  String.raw`/^\s*←/u`,
+];
+
+/* The body of the fallback, not the call: `realpathSync` opens every reader of a link, and what makes a copy is answering with the path itself where it resolves to nothing. `codex-tools.mjs` falls back to `resolve(path)` — a different answer to the same question, and not a copy. */
+const CANONICAL_FORM = new RegExp(
+  String.raw`realpathSync\([^)]*\);?\s*\}\s*catch\s*\{\s*return (?:path|root|said|full|p);`, "u");
+/* `settled` answers with the directory a name would sit in, not the name — a different question with
+   the same opening, and the second `catch` of the pair is what the needle sees. */
+const OWN_FALLBACK = ["plugin/hooks/_hook.mjs"];
 
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
@@ -94,13 +109,18 @@ const NEEDLES = [
   ["the help predicate", HELP_WORD, HELP_FORMS, ANY_POSITION],
   ["a line number from an index", LINE_AT, LINE_AT_FORMS, WHOLE_TEXT],
   ["a log's name", LOG_READS, LOG_FORMS],
+  ["the tree's document grammar", SPEC_PARSE, SPEC_FORMS],
+  ["a path's canonical form", CANONICAL, [CANONICAL_FORM], OWN_FALLBACK],
 ];
+
+/* A needle is a primitive's bytes, or a shape where the primitive is one — a fallback body is the same reading whatever its parameter is called, and no substring tells those copies apart. */
+const found = (text, needle) => (typeof needle === "string" ? text.includes(needle) : needle.test(text));
 
 const redeclared = (sources) =>
   sources.flatMap(({ rel, text }) =>
     NEEDLES
       .filter(([, home, needles, except = []]) =>
-        rel !== home && !except.includes(rel) && needles.some((one) => text.includes(one)))
+        rel !== home && !except.includes(rel) && needles.some((one) => found(text, one)))
       .map(([what, home]) => `${rel} declares ${what} of its own; ${home} holds it`));
 
 const listed = (...paths) =>
@@ -141,6 +161,9 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "n.mjs", text: 'const HELP = ["-h", "--help"];' },
     { rel: "o.mjs", text: 'const at = (text, i) => text.slice(0, i).split("\\n").length;' },
     { rel: "p.mjs", text: "const at = (text, i) => text.slice(0, i).split('\\n').length;" },
+    { rel: "q.mjs", text: String.raw`const CRITERION = /^\s*[-*]\s+\*\*(AC-\d+(?:-\d+)*)\*\*\s*(.*)$/u;` },
+    { rel: "r.mjs", text: String.raw`const FIELD_LINE = /^Rev:/u;` },
+    { rel: "s.mjs", text: "const real = (p) => { try { return realpathSync(p); } catch { return p; } };" },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
@@ -159,6 +182,9 @@ test("the guard fires on a module that re-declares one", () => {
     `n.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
     `o.mjs declares a line number from an index of its own; ${LINE_AT} holds it`,
     `p.mjs declares a line number from an index of its own; ${LINE_AT} holds it`,
+    `q.mjs declares the tree's document grammar of its own; ${SPEC_PARSE} holds it`,
+    `r.mjs declares the tree's document grammar of its own; ${SPEC_PARSE} holds it`,
+    `s.mjs declares a path's canonical form of its own; ${CANONICAL} holds it`,
   ]);
 });
 

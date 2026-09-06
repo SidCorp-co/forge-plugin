@@ -184,7 +184,7 @@ const clauseAt = (tokens, index, g) => {
 
 const halvesAt = (text, tokens, index) => ({
   first: text.slice(0, tokens[index].at).replace(/[\s,;:—]+$/u, ""),
-  second: text.slice(tokens[index + 1].at).replace(/^[\s]+/u, ""),
+  second: text.slice(tokens[index + 1].at),
 });
 
 /* Two outcomes want a verb on each side — without the left one, `the list and the export are hidden` is one predicate over two subjects — and the second has to run to the end of the line, since a clause the line goes on past is as likely a condition among several. */

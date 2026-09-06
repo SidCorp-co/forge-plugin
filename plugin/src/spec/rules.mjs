@@ -9,7 +9,8 @@ import { identifiersIn } from "./parse.mjs";
 import { lookup } from "./index.mjs";
 
 const INDEX_FILE = "srs/README.md";
-const RULES_FILE = "README.md";
+/** The tree's own index of its rules, named here because the shape checker reads the same file. */
+export const RULES_FILE = "README.md";
 const BUSINESS_RULES = "brd/04-business-rules.md";
 const OPEN_ITEMS = "brd/08-open-items.md";
 const REQUIREMENT_FILE = /(?:^|\/)fr-(\d+)-[^/]*\.md$/u;
@@ -25,7 +26,9 @@ const SEPARATOR = new RegExp(TABLE_SEPARATOR_PATTERN, "u");
 export const finding = (file, line, id, rule, fix) => ({ file, line, id, rule, fix });
 
 const endsWith = (document, tail) => document.file === tail || document.file.endsWith(`/${tail}`);
-const oneOf = (documents, tail) => documents.find((one) => endsWith(one, tail)) ?? null;
+/** The one document whose path ends in this name, or null. The tree names its documents by their
+ *  tails, so a checker that spells the match itself is a second reading of what a path is. */
+export const oneOf = (documents, tail) => documents.find((one) => endsWith(one, tail)) ?? null;
 
 /** A clause's line, found by the identifier as it is written where the clause is defined: a heading
  *  carries it bare and a row or a criterion carries it in bold. */

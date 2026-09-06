@@ -14,8 +14,8 @@ import { linting } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
 import { sessionKey } from "../../../src/tracker/comments.mjs";
 import { keysIn } from "../../../src/tracker/issues.mjs";
-import { askedAlready, block, done, how, remaining, sinceTurn, turnAt, turnRecords, turnWrites, typed }
-  from "../../_hook.mjs";
+import { askedAlready, block, done, how, isSubagent, remaining, sinceTurn, transcriptOf, turnAt,
+  turnRecords, turnWrites, typed } from "../../_hook.mjs";
 
 const MAX_ISSUES = 2;
 const SPARE_MS = 3_000;
@@ -25,20 +25,21 @@ const CLI = fileURLToPath(new URL("../../../src/cli.mjs", import.meta.url));
 
 const left = () => remaining() - SPARE_MS;
 
-/* A subagent's stop names the parent's transcript and cwd in the common fields and its own transcript
-   beside them, so the agent's is read, and the tree and the holder are read off it (ISS-530). */
-const isSubagent = (ev) => ev.hook_event_name === "SubagentStop";
-const transcriptOf = (ev) => (isSubagent(ev) && ev.agent_transcript_path) || ev.transcript_path || "";
-
-const shellCommands = (records) => {
-  const out = [];
+/** What this gate reads out of the turn, in one walk of a tail that reaches hundreds of thousands of records: `shell`, the Bash commands, for where the turn stood and whose id it exported; and `said`, every tool's command whatever the tool plus each typed prompt's content, for the keys it named. Not the same strings, and neither predicate is the other's (ISS-509). */
+const readTurn = (records) => {
+  const shell = [];
+  const said = [];
   for (const record of sinceTurn(records)) {
+    if (typeof record?.promptSource === "string") said.push(JSON.stringify(record.message?.content ?? ""));
     if (!Array.isArray(record?.message?.content)) continue;
     for (const one of record.message.content) {
-      if (one?.type === "tool_use" && one.name === "Bash" && one.input?.command) out.push(String(one.input.command));
+      if (one?.type !== "tool_use" || !one.input?.command) continue;
+      const command = String(one.input.command);
+      said.push(command);
+      if (one.name === "Bash") shell.push(command);
     }
   }
-  return out;
+  return { shell, said };
 };
 
 const value = (hit) => hit[1] ?? hit[2] ?? hit[3];
@@ -68,19 +69,18 @@ const movedTo = (commands, from) => {
 
 /** The tree a subagent's turn stood in: the repository of the newest file it wrote through the file
  *  tools, else of the directory its last shell call ended in, else the event's cwd. */
-const treeOf = (ev, records) => {
+const treeOf = (ev, records, shell) => {
   const fallback = ev.cwd || process.cwd();
   if (!isSubagent(ev)) return fallback;
   const newest = turnWrites(records).at(-1);
   const owned = newest ? repoRoot(newest) : null;
   if (owned) return owned;
-  const at = movedTo(shellCommands(records), fallback);
+  const at = movedTo(shell, fallback);
   return at && existsSync(at) ? (repoRoot(at) ?? at) : fallback;
 };
 
 /** The id the turn's own writes went under: a run exports its own (ISS-445), which no hook inherits. */
-const holderOf = (ev, records) =>
-  (isSubagent(ev) && lastExported(shellCommands(records))) || sessionKey(ev);
+const holderOf = (ev, shell) => (isSubagent(ev) && lastExported(shell)) || sessionKey(ev);
 
 /** Every `Stop`; a `SubagentStop` only where the project lists its agent type in `stop.agents` — a
  *  plugin's hooks reach every session on the machine, so no subagent is judged until a project says. */
@@ -126,17 +126,7 @@ const git = (tree, argv) => {
 
 /* Where a command or this turn's own prompt named one: a key quoted in a diff or in a tool's answer
    is a key this run read, not one it took. */
-const keysNamed = (records) => {
-  const said = [];
-  for (const record of sinceTurn(records)) {
-    if (typeof record?.promptSource === "string") said.push(JSON.stringify(record.message?.content ?? ""));
-    if (!Array.isArray(record?.message?.content)) continue;
-    for (const block of record.message.content) {
-      if (block?.type === "tool_use" && block.input?.command) said.push(String(block.input.command));
-    }
-  }
-  return [...new Set(keysIn(said.join("\n")).map((one) => one.toUpperCase()))];
-};
+const keysNamed = (said) => [...new Set(keysIn(said.join("\n")).map((one) => one.toUpperCase()))];
 
 /** A lease this session took and has written nothing against since. Every payload write renews the
  *  lease and only a claim appends to its history, so a `renewedAt` still standing on the newest
@@ -147,9 +137,9 @@ export const silentSince = (lease, holder) => {
   return String(lease.renewedAt ?? "") <= claimed;
 };
 
-/** The issues this turn named that are in one of those. */
-export const heldAndSilent = (ev, tree, records, holder = sessionKey(ev)) => {
-  const keys = keysNamed(records);
+/** The issues this turn named that are in one of those. `said` is `readTurn`'s, handed down. */
+export const heldAndSilent = (ev, tree, said, holder = sessionKey(ev)) => {
+  const keys = keysNamed(said);
   if (!holder || !keys.length) return [];
   const listed = forge(tree, ["call", "forge_issues",
     JSON.stringify({ action: "list", filters: { status: "in_progress" }, limit: 200 })]);
@@ -198,7 +188,8 @@ export const run = (ev, held = heldAndSilent) => {
   const records = turnRecords(transcriptOf(ev)) ?? [];
   /* A subagent's transcript opens on the prompt it was handed, which nobody typed: its turn is the whole of it. */
   const at = turnAt(records) || (isSubagent(ev) ? String(records[0]?.timestamp ?? "") : "");
-  const tree = treeOf(ev, records);
+  const { shell, said } = readTurn(records);
+  const tree = treeOf(ev, records, shell);
   const lines = [];
   const say = (item, line) => {
     if (!asked(ev, at, item, true)) lines.push(line);
@@ -216,7 +207,7 @@ export const run = (ev, held = heldAndSilent) => {
   }
 
   if (left() > 1000 && !asked(ev, at, "lease", false)) {
-    for (const key of held(ev, tree, records, holderOf(ev, records))) {
+    for (const key of held(ev, tree, said, holderOf(ev, shell))) {
       say("lease", `${key} is in_progress under this session's lease and nothing was written since the claim.\n`
         + `  Clear it: \`forge record park ${key} --kind paused --why "<where you left it>"\`, or advance it.`);
     }

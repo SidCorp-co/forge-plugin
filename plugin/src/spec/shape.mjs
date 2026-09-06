@@ -4,20 +4,17 @@
    keeps clauses and drops everything between them. The rules themselves are
    `docs/requirements/README.md`, and the section table there is read rather than copied. */
 import { CODE_SPAN_NONEMPTY_PATTERN, withoutMarkup } from "../markdown.mjs";
-import { finding } from "./rules.mjs";
+/* The document grammar is `parse.mjs`'s: the five lines below are the same lines the parser reads,
+   and a second declaration of one here is a selector that can drift on one side only (ISS-509). */
+import { AC_ITEM as CRITERION, FIELD_LINE, HEADING, NAV, PROPOSAL } from "./parse.mjs";
+import { RULES_FILE, finding, oneOf } from "./rules.mjs";
 
-const RULES_FILE = "README.md";
 const SECTION_TABLE = /^\|\s*`([^`]+)`\s*\|(.+)\|\s*$/u;
 const SPAN = new RegExp(`^\\s*${CODE_SPAN_NONEMPTY_PATTERN}`, "u");
 const OPTIONAL = /\bwhere\b/u;
-const HEADING = /^(#{1,6})\s+(.+)$/u;
 const SECTION = /^##\s+(.+)$/u;
 const CLAUSE_HEADING = /\b(?:FR|UC|NFR|EI)-\d+(?:-\d+)*\b/u;
-const CRITERION = /^\s*[-*]\s+\*\*(AC-\d+(?:-\d+)*)\*\*\s*(?:·\s*)?(.*)$/u;
 const LIST_ITEM = /^\s*[-*]\s/u;
-const FIELD_LINE = /^Rev:/u;
-const PROPOSAL = /^\s*\*\*Status: proposal\b/u;
-const NAV = /^\s*←/u;
 const SENTENCE_BREAK = /(?<=\.)\s+(?=\S)/u;
 const OPENERS = ["WHEN", "IF", "WHILE", "WHERE"];
 const NEEDS_THEN = ["WHEN", "IF"];
@@ -39,11 +36,11 @@ export const sectionsIn = (cell) => {
 };
 
 /** The table of `docs/requirements/README.md`, one entry per row that declares headings: the file
- *  pattern as written and the sections it wants, in order. */
-export const declaredSections = (documents) => {
-  const rules = documents.find((one) => one.file === RULES_FILE || one.file.endsWith(`/${RULES_FILE}`));
+ *  pattern as written and the sections it wants, in order. `lines` is that document's own. */
+export const declaredSections = (documents, lines = null) => {
+  const rules = oneOf(documents, RULES_FILE);
   const out = [];
-  for (const line of String(rules?.text ?? "").split("\n")) {
+  for (const line of lines ?? String(rules?.text ?? "").split("\n")) {
     const row = SECTION_TABLE.exec(line);
     const sections = row && sectionsIn(row[2]);
     if (sections) out.push({ pattern: row[1], sections });
@@ -62,15 +59,15 @@ export const matches = (pattern, file) => {
   return new RegExp(`(?:^|/)${source}$`, "u").test(file);
 };
 
-const headingsOf = (text) =>
-  text.split("\n").flatMap((line, at) => {
+const headingsOf = (lines) =>
+  lines.flatMap((line, at) => {
     const found = SECTION.exec(line);
     return found ? [{ name: withoutMarkup(found[1]).trim(), line: at + 1 }] : [];
   });
 
 const sectionProblems = (document, sections) => {
   const declared = sections.map((one) => one.name);
-  const found = headingsOf(document.text).filter((one) => declared.includes(one.name));
+  const found = headingsOf(document.lines).filter((one) => declared.includes(one.name));
   const out = [];
   let at = 0;
   for (const want of sections) {
@@ -89,7 +86,8 @@ const sectionProblems = (document, sections) => {
 };
 
 const sections = (documents) => {
-  const declared = declaredSections(documents);
+  const rules = oneOf(documents, RULES_FILE);
+  const declared = declaredSections(documents, rules?.lines);
   return documents.flatMap((document) => {
     const want = declared.find((one) => matches(one.pattern, document.file));
     return want ? sectionProblems(document, want.sections) : [];
@@ -107,29 +105,25 @@ const nextText = (lines, from) => {
 };
 
 const questions = (documents) =>
-  documents.flatMap(({ file, text }) => {
-    const lines = text.split("\n");
-    return lines.flatMap((line, at) => {
+  documents.flatMap(({ file, lines }) =>
+    lines.flatMap((line, at) => {
       const found = SECTION.exec(line);
       if (!found || withoutMarkup(nextText(lines, at + 1)).trim().endsWith("?")) return [];
       return [finding(file, at + 1, `## ${withoutMarkup(found[1]).trim()}`, "R-14",
         "is a section heading with no question under it. Write the question this section answers "
         + "on the line below it, so a reader knows what they came here for")];
-    });
-  });
+    }));
 
 const fieldLines = (documents) =>
-  documents.flatMap(({ file, text }) => {
-    const lines = text.split("\n");
-    return lines.flatMap((line, at) => {
+  documents.flatMap(({ file, lines }) =>
+    lines.flatMap((line, at) => {
       const found = HEADING.exec(line);
       if (!found || !CLAUSE_HEADING.test(found[2])) return [];
       if (FIELD_LINE.test(nextText(lines, at + 1))) return [];
       return [finding(file, at + 1, CLAUSE_HEADING.exec(found[2])[0], "R-15",
         "is a clause heading whose first non-blank line does not open with `Rev:`. A clause carries "
         + "its machinery on a line of its own beside it, and a clause with no revision cannot be cited")];
-    });
-  });
+    }));
 
 /** The lines a criterion's body holds: everything under its field line until the next list item, the
  *  next heading or the next unindented line. Blank lines are inside it, because the clause reader
@@ -182,20 +176,22 @@ const criterionProblems = (lines, at, found) => {
 };
 
 const criteria = (documents) =>
-  documents.flatMap(({ file, text }) => {
-    const lines = text.split("\n");
-    return lines.flatMap((line, at) => {
+  documents.flatMap(({ file, lines }) =>
+    lines.flatMap((line, at) => {
       const found = CRITERION.exec(line);
       if (!found) return [];
       return criterionProblems(lines, at, found)
         .map((one) => finding(file, at + 1, found[1], one.rule, one.said));
-    });
-  });
+    }));
 
-/** Every rule of the tree that reads a document's shape. `documents` is `{ file, text }`. */
-export const shapeProblems = (documents) => [
-  ...criteria(documents),
-  ...sections(documents),
-  ...questions(documents),
-  ...fieldLines(documents),
-];
+/** Every rule of the tree that reads a document's shape. `documents` is `{ file, text }`; each is
+ *  split into lines once here, since all four readings below want the same lines of the same file. */
+export const shapeProblems = (documents) => {
+  const read = documents.map((one) => ({ ...one, lines: String(one.text ?? "").split("\n") }));
+  return [
+    ...criteria(read),
+    ...sections(read),
+    ...questions(read),
+    ...fieldLines(read),
+  ];
+};

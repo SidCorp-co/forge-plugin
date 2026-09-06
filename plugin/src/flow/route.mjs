@@ -208,7 +208,7 @@ const TESTED = "tested";
 
 /* One gate, read by the line and by the fetch that feeds it: a screen change below `tested`, and not
    `tested` being next, nothing arriving there until the change has landed. */
-export const credentialOwed = (flags, status) =>
+const credentialOwed = (flags, status) =>
   (flags.screen === "yes" && !atLeast(status, TESTED));
 
 /* Said while a run can still do something about it, and not from the entry check, whose every item

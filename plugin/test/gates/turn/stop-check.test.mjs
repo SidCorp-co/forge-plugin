@@ -240,6 +240,21 @@ test("the lease a subagent is judged on is the id its own commands exported", ()
   assert.equal(plain.kind, "none", `with nothing exported the parent's key stands and holds nothing: ${plain.said}`);
 });
 
+/* The two readings of a turn are collected in one walk, and a Bash-only one would lose this: the
+   keys a turn named come off every tool's command, and where it stood off Bash alone (ISS-509). */
+test("a key named only by a tool that is not Bash is still a key this turn named", () => {
+  const named = written([prompt, used("mcp__forge__forge_issues", { command: "forge issue ISS-777" })]);
+  const asked = [];
+  const held = (...given) => {
+    asked.push(given[2]);
+    return [];
+  };
+  decided({ session_id: "s-keys", transcript_path: named, cwd: cleanRepo() }, held);
+  assert.equal(asked.length, 1, "the lease reading did not run");
+  assert.ok(asked[0].some((one) => one.includes("ISS-777")),
+    `a non-Bash tool's command reached no key search: ${JSON.stringify(asked[0])}`);
+});
+
 test("stop.agents in .forge.json decides which subagents' stops are judged", () => {
   const runner = { hook_event_name: "SubagentStop", agent_type: "forge:runner" };
   assert.equal(judgedStop(runner, []), false, "an empty list silences every subagent stop");

@@ -163,16 +163,6 @@ export const locate = (root, given) => {
   }
 };
 
-/* The canonical root, so one checkout reached by two symlinked paths is one key in the state file
-   and one history in the log rather than two. */
-export const canonical = (root) => {
-  try {
-    return realpathSync(root);
-  } catch {
-    return root;
-  }
-};
-
 export const digest = (text) => createHash("sha256").update(text).digest("hex").slice(0, HASH_CHARS);
 
 /* Clipped is stated, never silent: a reviewer told it has the whole file will reason about an

@@ -14,7 +14,7 @@ import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 import { agreedWithHead } from "../src/hooks/git-probe.mjs";
 
 export { DEADLINES };
-export { askedAlready, askedByAnyone, note, noted } from "../src/hooks/stamps.mjs";
+export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
 export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
 export { NOWHERE, spans, standsIn, unquote };
 
@@ -151,7 +151,7 @@ function touching(ev, freshMs) {
   /* Two texts: as written, and with a shell binding and a body's own assembly resolved, so a name the call computed is one to ask the disk about. Beside the raw scan and never instead — the resolved one drops a data heredoc's body. how/writes.md. */
   const resolved = shellWrites(command);
   const tokens = [...new Set([...(command.match(TOKEN) ?? []), ...(resolved.match(TOKEN) ?? [])])];
-  const since = tokens.length ? callAt(turnRecords(ev.transcript_path ?? "")) : 0;
+  const since = tokens.length ? callAt(turnRecords(transcriptOf(ev))) : 0;
   /* What the text claims answers on the stamp alone: a write putting back HEAD's bytes is one the tree cannot report. The rest are mentions, which a git operation in this same call stamps too. */
   const claims = new Set(tokens.length ? writtenPaths(resolved, cwd).map((one) => one.token) : []);
   const out = new Map();
@@ -456,6 +456,10 @@ export const promptIndex = (given) => {
 };
 
 export const turnAt = (records) => records[promptIndex(records)]?.timestamp ?? "";
+
+/** A subagent's stop names the parent's transcript in the common fields and its own beside them, so the agent's is the one to read (ISS-530). Learned here, once per event shape. */
+export const isSubagent = (ev) => ev.hook_event_name === "SubagentStop";
+export const transcriptOf = (ev) => (isSubagent(ev) && ev.agent_transcript_path) || ev.transcript_path || "";
 
 /** From this turn's prompt on: `turnRecords` hands back the whole tail it read. */
 export const sinceTurn = (records) => {

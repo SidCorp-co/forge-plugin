@@ -3,7 +3,7 @@
 
 import { dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, deny, done, how, logged, named, settled, shellWrites, turnRecords, writtenPaths } from "../_hook.mjs";
+import { askedAlready, deny, done, how, logged, named, settled, shellWrites, transcriptOf, turnRecords, writtenPaths } from "../_hook.mjs";
 import { FROZEN, copyToRun, freezesSession } from "../../src/tools/plugin-copy.mjs";
 
 /** The repository-relative name `freezesSession` reads — the set is its and nothing here narrows or widens it — or null where the write is not in a checkout of this plugin at all. A marketplace `source` is one directory below the checkout root, which is what `copyToRun` answers with and what this reads the root back off. */
@@ -34,7 +34,7 @@ const frozen = (path, here) => {
 
 /** What the agent said when it re-sent, kept so the ship can print it beside the file. A transcript this cannot read leaves the line empty rather than refusing the write it already asked about. */
 const lineGiven = (ev) => {
-  const records = turnRecords(ev.transcript_path ?? "") ?? [];
+  const records = turnRecords(transcriptOf(ev)) ?? [];
   for (let at = records.length - 1; at >= 0; at -= 1) {
     if (records[at]?.type !== "assistant") continue;
     return (records[at].message?.content ?? [])

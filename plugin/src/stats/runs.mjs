@@ -68,6 +68,8 @@ const GATE_HOW = /^How: `forge hooks --how \S+`$/u;
    a transport failure and on the next line for a tool's. These are read first, because a refusal
    opening on one goes on to quote the lines it was refused over and those look like the shape below. */
 const MARKED = /^(?:Hold — .*|Refused\. .*|\S+ refused:.*)$/u;
+/* The same three openers over the whole body, to leave it unsplit where none is in it — the corpus is whole gate runs and whole file reads. A negative prefilter and not a second matcher: `/m` sees a break at a bare CR that `split` does not, so the split still decides for whatever this admits. */
+const ANY_MARKED = /^(?:Hold — |Refused\. |\S+ refused:)/mu;
 
 /* `settings.mjs` refuses with a verb this CLI has and no marker, and so does a line an ANSWERING
    call printed — `project id: …`. Hence both the failed-call guard and the precedence a marked line
@@ -85,7 +87,9 @@ const lastOf = (lines, shape) => {
  *  Never the body's first line by default: a forge call prints its provenance banner before it
  *  refuses, and reading line one filed 187 of those banners under a row that names no rule. */
 export const refusalIn = (call) => {
-  const lines = call.body.trim().split("\n").filter((one) => one.trim());
+  const whole = call.body.trim();
+  if (!call.error && !ANY_MARKED.test(whole)) return null;
+  const lines = whole.split("\n").filter((one) => one.trim());
   if (!lines.length) return null;
   if (call.error && GATE_HOW.test(lines.at(-1))) return shortened(lines[0]);
   /* A marked line counts however the call exited: a run that pipes a refusal through `tail`, or

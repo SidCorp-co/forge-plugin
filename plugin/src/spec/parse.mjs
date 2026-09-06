@@ -40,13 +40,15 @@ const REFERENCE = `${idPattern([...PREFIXES, ...Object.keys(FOREIGN)])}(?:~(\\d+
 const ANY_ID = new RegExp(REFERENCE, "gu");
 const OPENING = new RegExp(`^\\s*${REFERENCE}\\s*:`, "u");
 
-const HEADING = /^(#{1,6})\s+(.+)$/u;
-const AC_ITEM = /^\s*[-*]\s+\*\*(AC-\d+(?:-\d+)*)\*\*\s*(?:·\s*)?(.*)$/u;
+/* The tree's document grammar, exported because the shape rules read the same five lines this parser
+   does: a pattern declared on both sides is one that can drift on one side only (ISS-509). */
+export const HEADING = /^(#{1,6})\s+(.+)$/u;
+export const AC_ITEM = /^\s*[-*]\s+\*\*(AC-\d+(?:-\d+)*)\*\*\s*(?:·\s*)?(.*)$/u;
+export const NAV = /^\s*←/u;
+export const PROPOSAL = /^\s*\*\*Status: proposal\b/u;
+export const FIELD_LINE = /^Rev:/u;
 const ROW = new RegExp(TABLE_ROW_PATTERN, "u");
 const RULE_ROW = new RegExp(TABLE_SEPARATOR_PATTERN, "u");
-const NAV = /^\s*←/u;
-const PROPOSAL = /^\s*\*\*Status: proposal\b/u;
-const FIELD_LINE = /^Rev:/u;
 const LINK = new RegExp(LINK_TEXT_PATTERN, "gu");
 const BULLET = /^\s*(?:#{1,6}\s+|[-*+]\s+)/u;
 const DIGITS = /^\d+$/u;

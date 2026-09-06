@@ -69,3 +69,8 @@ export const noted = (ev, kind) => {
 };
 
 export const note = (ev, kind, said) => put(stampRoom(), noteAt(ev, kind), said);
+
+/** Empty it, writing nothing where it is empty already: a gate registered for five tool kinds clears on four of them, and a write storing nothing over nothing is one every such call pays. */
+export const clearNote = (ev, kind) => {
+  if (noted(ev, kind)) note(ev, kind, "");
+};

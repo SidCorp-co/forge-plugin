@@ -1,7 +1,9 @@
 /* Two entry points ask one question — before a write, and after one no check could read. */
 import { spawnSync } from "node:child_process";
-import { readdirSync, realpathSync, statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
+
+import { canonical } from "../resolve/canonical.mjs";
 
 export const GUARDED = /\/memory\/|\/skills\//;
 export const FILE_TYPES = ["user", "feedback", "project", "reference"];
@@ -41,16 +43,10 @@ const guardedDirs = (ev, root) => {
   return [...new Set(out)];
 };
 
-/* Canonical, because the swept paths are, and one path of a comparison resolved while the other is not
-   puts every file outside its own repository. Git resolves the link today; this does not rely on it. */
+/* Canonical, because the swept paths are, and one path of a comparison resolved while the other is not puts every file outside its own repository. Git resolves the link today; this does not rely on it. */
 const repoRoot = (from) => {
   const said = git(from, ["rev-parse", "--show-toplevel"]).trim();
-  if (!said) return "";
-  try {
-    return realpathSync(said);
-  } catch {
-    return said;
-  }
+  return said ? canonical(said) : "";
 };
 
 const freshIn = (dir, since, depth = DEPTH) => {
@@ -87,14 +83,6 @@ const changedIn = (root, files) => {
   return files.filter((one) => seen.has(relative(root, one)));
 };
 
-const pointsAt = (path) => {
-  try {
-    return realpathSync(path);
-  } catch {
-    return path;
-  }
-};
-
 /** The guarded files written lately that no call named: a script writing one is invisible to a check
  *  reading the command, so the directories it could have written are read instead. Git answers about
  *  what a name resolves to, so the target decides inside and changed, and the name is what is said. */
@@ -102,7 +90,7 @@ export const swept = (ev, freshMs) => {
   const since = Date.now() - freshMs;
   const root = repoRoot(ev.cwd || process.cwd());
   const found = [...new Set(guardedDirs(ev, root).flatMap((dir) => freshIn(dir, since)))].sort();
-  const target = new Map(found.map((one) => [one, pointsAt(one)]));
+  const target = new Map(found.map((one) => [one, canonical(one)]));
   const inside = root ? found.filter((one) => !relative(root, target.get(one)).startsWith("..")) : [];
   const changed = new Set(inside.length ? changedIn(root, inside.map((one) => target.get(one))) : []);
   return found.filter((one) => !inside.includes(one) || changed.has(target.get(one)));
