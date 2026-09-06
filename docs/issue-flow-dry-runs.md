@@ -4811,3 +4811,25 @@ handback; the twenty-two comments were read back.
 - A ship launched with a trailing ampersand inside one shell call returned a completion notice for
   the shell, not the ship, and the wrong reading crossed a compaction; the how-document on polling
   does not tell the two apart yet.
+
+## Hundred-and-eighty-seventh dry run — ISS-508
+
+The CLI reaches core over REST: one declared table keys each tool and action to a method, a path, the
+arguments sent and the projection back, and no call site above it changed its argument form (three
+releases, the merged head 3e08db6 in 3.35.206). Thirty-two criteria; verified live through a
+recording proxy over six hundred requests from the installed copy, none of them to the old endpoint.
+Four codex majors and two defects found by the verification landed with a case each. Closed by its
+run. No restart owed. Folded from its handback; the twenty-three comments were read back.
+
+- A shared page walk that memoises only its first page lets two concurrent enumerations of one ask
+  read the same offset and both advance past it, skipping the page between and still reporting the
+  whole — measured, not reasoned, before it was fixed.
+- A route reached past a refusal is a refusal with a hole: the raw call spelled tool.action reached
+  the transport past the wrapped-verb refusal, the capability gate and the write targets, because
+  the check read the pair after normalisation and the caller spelled it before. Normalise first.
+- The merged mark's note is parsed by splitting on commas, so a parenthetical count inside its path
+  list reads as a path and is demanded as a correction — two rounds paid to a parser (a method gap
+  the run recorded; nothing filed yet).
+- A finding routed onto this issue while its tree held a directory the transport swap did not touch
+  was filed on as two issues of its own (ISS-565, ISS-566) rather than carried in a change it did not
+  belong to.
