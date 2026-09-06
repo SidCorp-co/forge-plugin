@@ -19,6 +19,7 @@ const {
 } = await import("../../src/codex/codex-plan.mjs");
 const {
   changedBetween,
+  evalObject,
   evalLines,
   evalWindows,
   printEval,
@@ -27,7 +28,7 @@ const {
   statsOf,
   windowOf,
 } = await import("../../src/codex/codex-stats.mjs");
-const { LOG_PATH } = await import("../../src/codex/codex-log.mjs");
+const { LOG_PATH, scoreOf } = await import("../../src/codex/codex-log.mjs");
 const { digest, promptMark, roleFor } = await import("../../src/codex/codex-api.mjs");
 
 const LIMITS = { base: 3, ceiling: 5, small: 40, large: 400 };
@@ -337,6 +338,50 @@ test("a short window says its real size, and a log too young says it has no wind
   assert.match(evalLines(half.now, half.before, []).join("\n"), /the 50 before them.*does not reach a full 100 further back/u);
 });
 
+/* The reader that quotes a figure exactly takes the object, and it is the screen's numbers under one
+   spelling each: a second computation would answer differently the day either moved (ISS-484). */
+test("--json is the comparison as one object, in stats eval's outer shape, and its figures are the screen's", () => {
+  const rows = Array.from({ length: 250 }, (one, n) => WINDOWED(n));
+  const verdicts = rows.map((one, n) => SCORED(n));
+  const { now, before } = evalWindows([...rows, ...verdicts]);
+  const held = evalObject(now, before, verdicts, rows.length);
+  assert.deepEqual(Object.keys(held), ["size", "total", "now", "before", "shifts"]);
+  assert.equal(held.size, 100);
+  assert.equal(held.total, 250);
+  for (const window of [held.now, held.before]) {
+    assert.deepEqual(Object.keys(window), ["consults", "stats", "groups"]);
+    assert.equal(window.consults, 100);
+    assert.equal(window.groups.reduce((sum, group) => sum + group.consults, 0), window.consults, "the groups partition the window");
+    for (const group of window.groups) {
+      assert.deepEqual(Object.keys(group), ["key", "slot", "model", "prompt", "effort", "consults", "score", "stats"]);
+    }
+  }
+  const [group] = held.now.groups;
+  assert.equal(group.model, "new-model");
+  assert.equal(group.prompt, "v2 bbb");
+  assert.equal(group.effort, "medium");
+  assert.deepEqual(group.score, scoreOf([...verdicts, ...now])[0], "the score the screen's kept share is read off");
+  assert.deepEqual(group.stats, statsOf(now), "the stats the screen's token line is read off");
+  assert.equal(group.stats.spent.input_tokens, 100_000);
+  assert.equal(held.shifts.find((one) => one.name === "model").values[0].value, "new-model");
+
+  const young = evalObject(now.slice(0, 40), [], verdicts, 40);
+  assert.equal(young.before, null, "a log too young has no earlier window, said as null");
+  assert.deepEqual(young.shifts, []);
+
+  /* An empty log is an empty object and not the screen's prose: the reader asked for JSON (codex F1). */
+  mkdirSync(dirname(LOG_PATH), { recursive: true });
+  writeFileSync(LOG_PATH, "");
+  const said = mock.method(console, "log", () => {});
+  try {
+    printEval(["--json"]);
+    const empty = JSON.parse(String(said.mock.calls[0].arguments[0]));
+    assert.deepEqual(empty, { size: 100, total: 0, now: { consults: 0, stats: statsOf([]), groups: [] }, before: null, shifts: [] });
+  } finally {
+    said.mock.restore();
+  }
+});
+
 /* The log is the only record, and an eval that appended one would be measuring itself. */
 test("the eval writes nothing and refuses a window nobody can act on", () => {
   mkdirSync(dirname(LOG_PATH), { recursive: true });
@@ -346,10 +391,15 @@ test("the eval writes nothing and refuses a window nobody can act on", () => {
   try {
     printEval([]);
     assert.match(String(said.mock.calls[0].arguments[0]), /the last 8 answered consult\(s\)/u);
+    const printed = said.mock.calls.length;
+    printEval(["--json"]);
+    assert.equal(said.mock.calls.length, printed + 1, "one object, one call");
+    const parsed = JSON.parse(String(said.mock.calls[printed].arguments[0]));
+    assert.equal(parsed.now.consults, 8, "the same window, as one object");
   } finally {
     said.mock.restore();
   }
-  assert.deepEqual(readFileSync(LOG_PATH), before, "byte for byte what it was");
+  assert.deepEqual(readFileSync(LOG_PATH), before, "byte for byte what it was, after both forms");
 
   const stopped = mock.method(process, "exit", () => {
     throw new Error("exited");
@@ -357,7 +407,9 @@ test("the eval writes nothing and refuses a window nobody can act on", () => {
   const cried = mock.method(console, "error", () => {});
   try {
     assert.throws(() => printEval(["--last", "50"]), /exited/);
-    assert.match(String(cried.mock.calls[0].arguments[0]), /eval takes no arguments/u);
+    assert.match(String(cried.mock.calls[0].arguments[0]), /eval takes no window.*forge codex stats/u);
+    assert.throws(() => printEval(["--jsn"]), /exited/);
+    assert.match(String(cried.mock.calls[1].arguments[0]), /--json/u, "a misspelt flag is refused with the one it meant");
   } finally {
     stopped.mock.restore();
     cried.mock.restore();

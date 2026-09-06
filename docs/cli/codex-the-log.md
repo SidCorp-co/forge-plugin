@@ -64,7 +64,11 @@ population the eval compares and because a failed consult exits before it could 
 mark landing on one would pass in silence and never come round. The verb puts the last hundred against
 the hundred before, per model and prompt version, through these same readers, and names what separates
 the windows — a slot, the model behind it, a prompt version, an effort — so the numbers are read
-against whatever upgrade lies between. It writes nothing; the log stays the only record.
+against whatever upgrade lies between. It writes nothing; the log stays the only record. `--json` is
+the same comparison as one object in the outer shape `forge stats eval --json` prints — `size`,
+`total`, `now`, `before`, `shifts` — each window its `consults`, its `stats` and its `groups`, one per
+model, effort and prompt with that group's `score` and `stats`, so a figure an eval quotes is the
+screen's own number and not one read off a rounded line (ISS-484).
 
 **A prompt is versioned because "it seems better" is not a comparison.** Every consult records the
 system prompt's version and the digest of the text actually sent, so an edit nobody bumped for still

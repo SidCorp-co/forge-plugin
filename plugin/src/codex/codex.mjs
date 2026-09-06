@@ -82,7 +82,7 @@ export const USAGE = [
   "  stats [--last n] [--days n] [--root p] [--here]   what the harness did over a window: calls",
   "                            against their budget, replies that could not check, rechecks that",
   "                            raised something New, tokens by kind, and the prompt versions that ran",
-  "  eval                      the last 100 answered consults on this device against the 100 before",
+  "  eval [--json]             the last 100 answered consults on this device against the 100 before",
   "                            them, per model and prompt version, with what separates the windows",
   "                            named. The consult that crosses a hundred-mark says to run it.",
   "  replay --prompt <file> [--last n] [--root p]      which of a window a candidate prompt could be",

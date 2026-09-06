@@ -10,6 +10,7 @@ import { LOG_PATH, MARK, answered, logEntries, modelKey, numbered, scoreOf } fro
 import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
+import { unknownFlag } from "../suggest.mjs";
 import { WHEN, groupBy, shiftBetween, shiftLine, twoWindows } from "../stats/windows.mjs";
 
 const DEFAULT_WINDOW = 100;
@@ -210,16 +211,63 @@ export const evalLines = (now, before, verdicts) => {
   ];
 };
 
+const EVAL_USAGE = [
+  "Usage: forge codex eval [--json]",
+  `The last ${MARK} answered consults on this device against the ${MARK} before them, over every project`,
+  "the log holds, per model, effort and prompt. Nothing is written. `forge codex stats` takes a window.",
+  "",
+  "  --json   the comparison alone, one object, in the outer shape `forge stats eval --json` prints",
+].join("\n");
+
+/* One group per key, its rows' own figures: the same numbers the screen prints, under one spelling
+   each, so a reader that parses it and a reader of the screen quote the same window (ISS-484). */
+const groupObject = (rows, verdicts) => {
+  const { score, held } = groupNumbers(rows, verdicts);
+  const [row] = rows;
+  return {
+    key: keyOf(row),
+    slot: row.slot ?? "unrecorded",
+    model: row.model ?? "unrecorded",
+    prompt: promptKey(row),
+    effort: row.effort ?? "unrecorded",
+    consults: rows.length,
+    score,
+    stats: held,
+  };
+};
+
+const windowObject = (rows, verdicts) => ({
+  consults: rows.length,
+  stats: statsOf(rows),
+  groups: [...byKey(rows).values()].map((group) => groupObject(group, verdicts)),
+});
+
+/** The comparison as `stats eval --json` shapes its own: the windows, then what separates them. */
+export const evalObject = (now, before, verdicts, total) => ({
+  size: MARK,
+  total,
+  now: windowObject(now, verdicts),
+  before: before.length ? windowObject(before, verdicts) : null,
+  shifts: before.length ? changedBetween(now, before) : [],
+});
+
+const WINDOW_FLAGS = ["--last", "--days", "--root", "--here"];
+
 export const printEval = (rest) => {
-  if (rest.length) {
-    fail(`codex: eval takes no arguments — it reads the last ${MARK} answered consults on this device `
+  if (rest.some((one) => WINDOW_FLAGS.includes(one))) {
+    fail(`codex: eval takes no window — it reads the last ${MARK} answered consults on this device `
       + `and the ${MARK} before them, over every project the log holds. \`forge codex stats\` is the one `
       + "that takes a window.");
   }
+  const wrong = unknownFlag("codex eval", rest, { usage: EVAL_USAGE });
+  if (wrong) fail(wrong);
+  const { json } = flags(rest, "codex eval", ["--json"]);
   const entries = logEntries();
   const { now, before } = evalWindows(entries);
-  if (!now.length) return console.log(`No answered consult logged yet, so there is nothing to compare. ${LOG_PATH}`);
   const verdicts = entries.filter((one) => one.kind === "verdict");
+  /* The object first: a reader parsing it gets an empty window as one, not the prose the screen gets. */
+  if (json) return console.log(JSON.stringify(evalObject(now, before, verdicts, answered(entries).length), null, 2));
+  if (!now.length) return console.log(`No answered consult logged yet, so there is nothing to compare. ${LOG_PATH}`);
   for (const line of evalLines(now, before, verdicts)) console.log(line);
 };
 
