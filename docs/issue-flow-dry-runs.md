@@ -4532,3 +4532,28 @@ its run. No restart owed. Folded from its handback; the comments were read back,
 - A recorded gap: the method types evidence as a green gate, and a change whose output no gate reads
   has to quote its own output. That is CLAUDE.md's rule, stated where the run reached for it and
   found the skill silent.
+
+## Hundred-and-seventy-fifth dry run — ISS-39
+
+The tree's agreement with HEAD as the second half of what counts as a write after a call (3.35.192,
+landed as aa50ea8). A candidate whose command text claims no write must now also be one git reports
+as disagreeing with HEAD; one the text does claim keeps the mtime alone, because a write that puts
+HEAD's bytes back is one the tree cannot report. Fifteen criteria, judged at the replayed head and
+carried by a mark that names it. Verified out of the installed copy by its own path over a two-branch
+repository. Closed by its run. No restart owed. Folded from its handback; the seventeen comments and
+three routed findings were read back.
+
+- The ship stopped at the checkout-follows step on the same unlanded fold commit run 174 met, and
+  the resume from step seven spent a second whole gate. Two runs paid for one commit that sat in the
+  shared checkout between its commit and its landing; the fold now lands in the same breath.
+- The new reader landed in an existing module rather than the file the plan named, because the
+  post-write gate refuses an eleventh file under that directory. A correction record moved the plan,
+  and the cap did what it is for: the directory did not grow to hold one function.
+- A knowledge entry left describing the module as it was: the store's write is a whole-body upsert
+  with no revision, and five runs were live. The batch reading is the route for a stale entry, and
+  this ship printed that its threshold is reached, so ISS-509 is now the wave's.
+- About ten double-sends from the read-first hold on a comment the same session had just posted.
+  Already ISS-497's; the cost is counted here so that issue's rank carries it.
+- Two consult findings accepted and both refuted on recheck, two rejected and argued in the review
+  record. A finding rejected with its reason written down is a review; one rejected in silence is a
+  verdict nobody can audit.
