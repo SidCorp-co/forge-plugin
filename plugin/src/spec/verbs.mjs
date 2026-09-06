@@ -8,7 +8,9 @@ import { LINK_TEXT_PATTERN } from "../markdown.mjs";
 import { FORMS, KIND, parseRef } from "./parse.mjs";
 import { ambiguousUnder, clauseOf, lookup, withDescendants } from "./index.mjs";
 import { lookupProblem } from "./citation.mjs";
-import { specTree } from "./tree.mjs";
+import { identifierProblems } from "./rules.mjs";
+import { shapeProblems } from "./shape.mjs";
+import { specTree, specTreeRead } from "./tree.mjs";
 
 const LINK = new RegExp(LINK_TEXT_PATTERN, "gu");
 
@@ -18,6 +20,7 @@ const readable = (text) => String(text).replace(LINK, "$1");
 const HELD_IN_A_ROW = ["BR", "G", "M", "C", "A"];
 const KNOWN = ["--json", "--where"];
 const TWO_HOMES = "two documents define this: ask for it alone, and both are named.";
+const CHECK = "check";
 
 export const USAGE = [
   usageOf("spec"),
@@ -29,9 +32,24 @@ export const USAGE = [
   "  <id>~<rev>  a citation: the clause prints, and a revision that has moved is called stale",
   "  --json      the clause and everything printed under it, one object each, for a verb to read",
   "  --where     the file and heading behind each clause, the one path this verb ever prints",
+  `  ${CHECK}       the whole tree against the rules its own index states; \`forge spec ${CHECK} -h\``,
   "",
   "An unknown identifier is refused with the nearest ones, and one that two documents define is",
   "refused as ambiguous. The rules, the notation and what a citation claims: docs/requirements/.",
+].join("\n");
+
+export const CHECK_USAGE = [
+  `Usage: forge spec ${CHECK}`,
+  "",
+  "This project's requirements tree against the rules stated in its own index, one line per",
+  "finding: the file and line, the identifier or section it is about, the rule, and what to do.",
+  "It judges presence and resolution and never fit — an identifier that exists, a citation that",
+  "resolves, a section that is there, a marker that is absent — because whether a clause is right",
+  "is a person's to say and a gate that tried would refuse honest clauses and pass dishonest ones.",
+  "",
+  "A project that keeps no requirements tree is a project this says nothing about, so it prints",
+  "nothing and exits 0 rather than refusing. A finding is an exit of 1, and the tree's own index",
+  "is where every rule it names is written.",
 ].join("\n");
 
 const headLine = (clause, pad) => {
@@ -140,8 +158,29 @@ const clauseFor = (index, ref) => {
   return clause;
 };
 
+/* Sorted by where it is rather than by which rule found it: a developer fixes a document, not a
+   rule, so the findings of one file arrive together and in the order they will be met. */
+const inOrder = (problems) =>
+  [...problems].sort((left, right) =>
+    left.file.localeCompare(right.file) || left.line - right.line || left.rule.localeCompare(right.rule));
+
+const checked = (rest) => {
+  if (rest.length) refuse(`spec ${CHECK} reads the whole tree and takes no argument, not \`${rest.join(" ")}\`.`);
+  const tree = specTreeRead();
+  if (!tree) return null;
+  const problems = inOrder([...identifierProblems(tree), ...shapeProblems(tree.documents)]);
+  for (const one of problems) console.log(`${one.file}:${one.line}  ${one.id}  ${one.rule}  ${one.fix}.`);
+  if (!problems.length) return null;
+  return `${problems.length} finding(s) in ${tree.documents.length} document(s). `
+    + "Every rule named above is stated in docs/requirements/README.md, one row each.";
+};
+
 const run = (argv) => {
-  if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
+  if (!argv.length || wantsHelp(argv)) return console.log(argv[0] === CHECK ? CHECK_USAGE : USAGE);
+  if (argv[0] === CHECK) {
+    const said = checked(argv.slice(1));
+    return said === null ? undefined : fail(said);
+  }
   const { given, token } = read(argv);
   const ref = parseRef(token);
   if (!ref) {

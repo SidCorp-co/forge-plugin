@@ -41,14 +41,14 @@ the checker and does not restate what it says.
 |---|---|---|---|
 | R-01 | One functional-requirement sequence, and one only. | `FR-` ids form one run from 01 with no gap, and each has exactly one `srs/fr-NN-<slug>.md`. | the spec gate |
 | R-02 | The index and the files agree. | The identifier set in `srs/README.md` equals the set the `srs/fr-*.md` filenames carry. | the spec gate |
-| R-03 | A clause is referenced by its identifier. A section number names a document and never a clause, and a line number names nothing. | No line number anywhere. A section number appears only in a document title, a navigation line, a contents row, or the label of a link whose target is that section's own file; every identifier cited resolves to a clause. | the spec gate |
+| R-03 | A clause is referenced by its identifier. A section number names a document and never a clause, and a line number names nothing. | No line number anywhere. A section number appears only in a document title, a navigation line, a contents row, or the label of a link whose target is that section's own file; every identifier cited resolves to a clause, or to a rule this table defines. | the spec gate, for the identifiers and the line numbers; the section numbers are a person's |
 | R-04 | A count is read from the list, never restated. | No prose gives the size of a list this tree holds. | a person |
 | R-05 | The reason sits beside the clause. | Every clause has a because-clause or a `Source:` field. | a person |
-| R-06 | A deviation names its decision or its issue. | Every deviation mark carries an issue key or a decision id, and that reference resolves. | the spec gate |
+| R-06 | A deviation names its decision or its issue. | Every deviation mark carries an issue key or a decision id on its own line. | the spec gate, which asks that the reference is there; whether it resolves is the tracker's, and no gate that runs with no network can settle it |
 | R-07 | An open question is an issue, never a marker in a clause. | No clause contains a deferral marker; every row of `brd/08-open-items.md` carries an issue key. | the spec gate |
 | R-08 | Every use case has at least one acceptance criterion. | Each `UC-` heading is followed, before the next `UC-`, by at least one `AC-` line. | the spec gate |
 | R-09 | Every business rule is enforced somewhere. | Each `BR-` in `brd/04-business-rules.md` appears in at least one clause's `Enforces:` field. | the spec gate |
-| R-10 | A citation carries the revision it was written against. | Every citation is `<id>~<rev>`; the gate hashes the clause's content, compares it with the hash recorded for that revision, and reports the citation suspect when the two differ. | the spec gate |
+| R-10 | A citation carries the revision it was written against. | Every citation is `<id>~<rev>`; the gate hashes the clause's content, compares it with the hash recorded for that revision, and reports the citation suspect when the two differ. | ISS-525, which owes the recorded hash and is the only rule here nothing checks yet |
 | R-11 | An acceptance criterion is in EARS form and names the case that proves it. | Two lines: a field line opening with the identifier and carrying `Proof:` — a path that resolves, carrying after it the case's own name in double quotes where that path is a test file, or `none yet` with an issue key — then a sentence opening with `WHEN`, `IF`, `WHILE` or `WHERE`, holding `SHALL`, and holding `THEN` when it opened with `WHEN` or `IF`. | `plugin/test/spec/proof-cases.test.mjs`, then the spec gate |
 | R-12 | An identifier is never reused and never renumbered. | A retired clause keeps its number and is marked retired; no number appears twice in the tree. | the spec gate |
 | R-13 | Each document carries the sections its kind declares. | The section list below, matched against the headings of each file. | the spec gate |
@@ -56,8 +56,8 @@ the checker and does not restate what it says.
 | R-15 | A clause heading is followed by its field line. | The first non-blank line after an `FR-`, `UC-`, `NFR-` or `EI-` heading opens with `Rev:`; where a document carries a proposal line that line comes first and the field line is the first non-blank line after it; an acceptance criterion is a list item and its own first line is its field line. | the spec gate |
 | R-16 | Machinery never sits inside the sentence a person reads. | No identifier, revision, hash or path inside a `SHALL` sentence or a business rule statement, except the system the criterion names. | a person |
 | R-17 | Every list is renderable as a table. | Each list of clauses is a table, or a sequence of clauses with identical field keys. | the page lint |
-| R-18 | A clause never restates the argument for a rule; it states the duty and cites the argument's home. | No sentence of the tree overlaps a sentence of the rules file, a skill, a gate document or another document under `docs/` at 0.55 or above by the measure in `plugin/src/checks/duplication.mjs`, over sentences of five words or more — counting prose, list items **and the text of table cells**, which that module strips and the gate therefore has to put back. | the spec gate |
-| R-19 | The tree names nothing that does not resolve. | Every path in a code span or a link exists, read from the repository root or from the document's own directory; every verb named is one the CLI has, or one declared on the document's proposal line. | `plugin/test/checks/docs/doc-claims.test.mjs`, then the spec gate |
+| R-18 | A clause never restates the argument for a rule; it states the duty and cites the argument's home. | No sentence of the tree overlaps a sentence of the rules file, a skill, a gate document or another document under `docs/` at 0.55 or above by the measure in `plugin/src/checks/duplication.mjs`, over sentences of five words or more — counting prose, list items **and the text of table cells**, which that module strips and the gate therefore has to put back. | ISS-526, which owes the measure that reaches a cell |
+| R-19 | The tree names nothing that does not resolve. | Every path in a code span or a link exists, read from the repository root or from the document's own directory; every verb named is one the CLI has, or one declared on the document's proposal line. | `plugin/test/checks/cited-paths.test.mjs` for the paths, `plugin/test/checks/docs/doc-claims.test.mjs` for the verbs |
 
 **Why a Proof names a case and not only a file (R-11).** A path that resolves cannot be told from a
 path that proves: three clauses cited a live test file for three releases after the cases moved out
@@ -79,6 +79,14 @@ revision alone cannot tell an obligation that changed from a typo that did not. 
 one integer and the tool owns the hash: a text change makes every citation of that clause suspect,
 and the author either bumps the revision — which drops the verdicts that cited the old one — or
 clears the suspicion, which moves the recorded hash and leaves the verdicts standing.
+
+**And a citation is an identifier carrying a revision.** `BR-18` is an identifier; `BR-18~1` is a
+citation. So a field line naming a rule or a clause — `Enforces: BR-18`, `Of: UC-05-3` — makes no
+citation and R-10 does not reach it, which is why every field in this tree is bare and why nothing
+has ever refused one. R-03 is the rule a bare identifier answers to: it has to resolve. This is
+stated here because a reviewer reading R-10's row alone concluded the opposite and held it (ISS-506,
+consult 4a4fa5 F2), and a checker written from that reading would refuse every field line in the
+tree.
 
 **Why 0.55 and not the threshold the documents use (R-18).** The gate over `docs/*.md` measures at
 0.25, which is right for a document that narrates alongside its sources. A specification is not that
@@ -113,7 +121,7 @@ Explanatory prose inside a clause counts, because a clause is meant to be comple
 anything inside it can change what it obliges; the `Rev` value itself does not, or bumping it would
 never settle. The hash of each clause at its current revision is a **generated file in this tree,
 committed beside the clauses**, so a spec edit and its hashes move in one commit and a citation can
-be judged with no network. The gate that writes it (ISS-27) fixes its name and format; until then a
+be judged with no network. The gate that writes it (ISS-525) fixes its name and format; until then a
 citation carries its revision and nothing compares it.
 
 **Why no machine identifier beside the human one.** StrictDoc keeps a machine id so a rename stays
@@ -125,9 +133,10 @@ more field to maintain and no reader for it until a diff tool exists.
 
 *Which of these does a machine settle?*
 
-- **The spec gate (ISS-27) checks presence and resolution.** Every rule above marked *the spec
-  gate* is a shape: an identifier that exists, a citation that resolves, a section that is there, a
-  marker that is absent. It never asks whether a clause is right.
+- **The spec gate checks presence and resolution.** It is `forge spec check`, it runs from this
+  repository's own suite, and every rule above marked *the spec gate* is a shape: an identifier that
+  exists, a citation that resolves, a section that is there, a marker that is absent. It never asks
+  whether a clause is right. A project that keeps no tree is one it says nothing about.
 - **The reader (ISS-26) is what makes the citations usable.** It is the one place the storage of
   this tree is known, so a phase can ask for `UC-05-3` without knowing there is a file.
 - **A person judges fit.** Whether a use case describes the product, whether an acceptance
@@ -142,17 +151,28 @@ more field to maintain and no reader for it until a diff tool exists.
 | Document | Sections, in order |
 |---|---|
 | `brd/01-problem.md` … `brd/08-open-items.md` | one section per file, its own heading, then the question it answers |
-| `srs/01-introduction.md` | purpose · notation · what this specification does not cover |
-| `srs/02-system-overview.md` | the parts · the actors · what holds the state |
-| `srs/fr-NN-<slug>.md` | title with its section number and identifier · purpose · actors · use cases, each with its criteria · business rules enforced · the way back, when the requirement declares schema or deploy coupling |
+| `srs/01-introduction.md` | `Purpose` · `Notation` · `What this specification does not cover` |
+| `srs/02-system-overview.md` | `The parts` · `The actors` · `What holds the state` |
+| `srs/fr-NN-<slug>.md` | `Purpose` · `Actors` · `Use cases`, each with its criteria · `The way back`, where the requirement declares schema or deploy coupling · `Business rules enforced` |
 | `srs/17-nfr.md` | one clause per `NFR-` identifier |
 | `srs/18-data.md` | the fields this CLI owns, one table per store |
 | `srs/19-external-interfaces.md` | one clause per interface crossed |
 | `srs/traceability.md` | generated; the placeholder says by what |
 
+The gate reads this table rather than carrying a second copy of it, so the rows above are the rule
+and not a description of one. A cell every one of whose `·`-separated parts opens with a code span
+declares those `##` headings in that order; a part carrying the word *where* after its span is the
+one the document may leave out. A cell written any other way declares no heading list, and the gate
+says nothing about that file's sections — which is why a row that names a clause rather than a
+heading, as `srs/17-nfr.md` does, is read as prose and not as a section called `NFR-`.
+
+A requirement's title carries its section number and its identifier, and that is R-03's and R-01's
+to hold rather than this table's: a title is not a section.
+
 The way back is a section of the requirement that needs one rather than a document of its own,
 because "when schema or deploy coupling exists" is a condition on a requirement (ISS-30) and an
-absent section is then checkable where an absent paragraph in a shared document is not.
+absent section is then checkable where an absent paragraph in a shared document is not. It sits
+before the rules the requirement enforces, because the closing table is what a requirement ends on.
 
 ## Adopting this tree in another project
 

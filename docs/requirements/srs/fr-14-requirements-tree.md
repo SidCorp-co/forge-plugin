@@ -76,13 +76,13 @@ The tree's rules become a check that runs from the repository's own suite. It ju
 resolution and never fit: an identifier that exists, a citation that resolves, a section that is
 there, a marker that is absent.
 
-- **AC-14-3-1** · Rev: 1 · Proof: none yet — ISS-27
+- **AC-14-3-1** · Rev: 1 · Proof: plugin/test/spec/rules.test.mjs "a finding is one line naming the file and line, the identifier, the rule and the fix"
   WHEN the gate runs THEN it SHALL report one finding per line, each naming the identifier, the
   file, the rule and the fix.
-- **AC-14-3-2** · Rev: 1 · Proof: none yet — ISS-27
+- **AC-14-3-2** · Rev: 1 · Proof: plugin/test/spec/rules.test.mjs "every rule this check reports has a case of its own that fails without it"
   WHEN the gate ships THEN it SHALL ship with a fixture that fails for each rule it holds, since a
   check nobody has watched refuse is a check nobody has.
-- **AC-14-3-3** · Rev: 1 · Proof: none yet — ISS-27
+- **AC-14-3-3** · Rev: 1 · Proof: none yet — ISS-525
   IF a citation names a revision whose recorded hash differs from the clause's current content THEN
   the gate SHALL report the citation suspect and SHALL name both.
 

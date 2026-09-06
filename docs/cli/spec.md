@@ -28,6 +28,35 @@ The prose that follows the last criterion of a requirement file belongs to no cl
 tree's own boundary rule it would attach to that criterion, which would move the criterion's digest
 whenever an unrelated closing section changed, so it is left where a page renderer can pick it up.
 
+## The tree read against its own rules
+
+`forge spec check` is the other direction: not one clause answered, but every rule the tree's index
+states, held over every document. Two projects here kept those rules in prose and relied on a reader
+to hold them; each drifted at least once, and one had to add a traceability column to find what it
+had missed. So the rules are stated once — in `docs/requirements/README.md`, one row each, in the
+form a checker holds — and the check names the row rather than restating it, because a rule with two
+homes is a rule nobody corrects the second copy of.
+
+Three decisions made that possible, and each is why the check is small. **The reader answers the
+clause-level questions**, so nothing here parses a clause twice; what the check needed and the index
+does not keep is the document text, for the line a finding sits on and for the table rows and
+headings no clause holds. **The section table is read, not copied**: a row whose parts each open
+with a code span declares those headings in that order, which is why a row naming a clause rather
+than a heading declares nothing rather than a section called `NFR-`. And **the placeholders in a
+document row stand for a segment of the path** — read literally, `fr-NN-<slug>.md` matches the one
+file nobody wrote, and the rule is green over every requirement in the tree.
+
+What it will not judge is whether a clause is right. That division is the tree's own and not this
+verb's: a gate that asked would refuse honest clauses and pass dishonest ones. A project keeping no
+tree gets silence and a zero rather than a refusal, since this runs in repositories it cannot see
+and a project that has not decided is one this says nothing about.
+
+Two rules of the tree are not held here and say so in their own row. A citation whose recorded
+digest disagrees with the clause's current words is *suspect*, and nothing records a digest yet
+(ISS-525) — which is why *stale* above is a different word for a different failure. And the overlap
+measure that would catch a clause restating its source's argument cannot see a table cell, where a
+restated rule in this tree would most naturally sit (ISS-526).
+
 ## A citation read at a write
 
 `forge plan` and `forge record criteria` resolve what they are handed before either sends anything. The reader is the same one the

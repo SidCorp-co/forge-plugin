@@ -54,3 +54,11 @@ export const specTreeIfAny = () => {
   const dir = treeDir();
   return dir ? clauseIndex(readFrom(dir)) : null;
 };
+
+/** The documents beside the index: a finding names a line, and a line is not in the index. */
+export const specTreeRead = () => {
+  const dir = treeDir();
+  if (!dir) return null;
+  const documents = readFrom(dir);
+  return { documents, index: clauseIndex(documents) };
+};

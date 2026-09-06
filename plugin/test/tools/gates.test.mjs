@@ -89,7 +89,8 @@ const runs = (work) => readFileSync(runsFile(work), "utf8").trim().split("\n");
 
 /* One landing under a path of every step, so a run over it fills the record whole: the questions
    below are about a tree the record already answers for, which a scoped landing never leaves. */
-const REACHES_ALL = ["plugin/skills/one.md", "packages/code-quality/claude-quality.mjs", "plugin/scripts/one.mjs"];
+const REACHES_ALL = ["plugin/skills/one.md", "packages/code-quality/claude-quality.mjs",
+  "plugin/scripts/one.mjs", "plugin/src/one.mjs"];
 
 const touchedEverywhere = (work, text) => {
   for (const one of REACHES_ALL) write(work, one, `${one}\n${text}\n`);

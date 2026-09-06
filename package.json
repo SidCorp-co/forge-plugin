@@ -14,6 +14,7 @@
     "check:vi-text": "node tools/check-vi-text.mjs",
     "check:vi-goldens": "node tools/diff-python.mjs --goldens",
     "check:vendor": "node plugin/scripts/check-vendor.mjs",
+    "check:spec": "node plugin/src/cli.mjs spec check",
     "check": "node tools/gates.mjs",
     "check:package": "npm --prefix packages/code-quality run lint && npm --prefix packages/code-quality test",
     "test": "node --test \"plugin/test/**/*.test.mjs\"",

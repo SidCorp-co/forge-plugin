@@ -23,9 +23,9 @@ a row outliving its issue sends the next reader to a key with no answer behind i
 | Whether every move can be rehearsed, a park and a drop included. | ISS-12 |
 | Whether a decision record may defer one question to a later status that then refuses until it is answered. | ISS-23 |
 | Whether the plan is a typed payload carrying a way back and a criterion per step. | ISS-20 |
-| Whether the requirements gate reads a tree the one-home gate cannot see, or whether that gate learns to recurse. | ISS-27 |
+| Whether the requirements gate reads a tree the one-home gate cannot see, or whether that gate learns to recurse. | ISS-526 |
 | Whether an identifier in a payload is read as a tracker key or as a clause citation. | ISS-36 |
-| Whether a citation's revision is checked against a recorded hash, and where that record lives. | ISS-27 |
+| Whether a citation's revision is checked against a recorded hash, and where that record lives. | ISS-525 |
 | Whether an issue must cite the clause it serves before it can be approved. | ISS-28 |
 
 ## Where the workflow's own open questions live
