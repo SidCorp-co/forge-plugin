@@ -232,6 +232,19 @@ test("a run carrying the wave's id is refused the builder's turn, and the field 
   assert.equal(held().holder, wave);
 });
 
+/* The shape the arrangement really takes: the session that lands is the one that dispatched the
+   builder, so its id is the wave's and only the builder was given one of its own. The refusal
+   above is the builder's turn alone, and this is the same id at the lander's. */
+test("the lander carrying the wave's id takes the turn at ready off the builder's live lease", async () => {
+  const wave = "the-dispatching-session";
+  field(BUILT, lease(BUILDER));
+  const run = await ran(["claim", "ISS-673", "--take"], wave, process.cwd(), asWave);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(held().holder, wave, "the lease moved to the run that will land it");
+  assert.equal(held().history.at(-1).landing, "ready", "and the history says where it was taken");
+  assert.match(run.stdout, /names a wave and not a run/u, "told, as every write under a shared id is");
+});
+
 test("the lander that already holds the lease takes its own turn again, which a re-run is", async () => {
   field(BUILT, lease(BUILDER));
   const first = await ran(["claim", "ISS-673", "--take"], LANDER);
