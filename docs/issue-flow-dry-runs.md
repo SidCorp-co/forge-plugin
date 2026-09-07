@@ -5197,3 +5197,29 @@ its handback; the ten comments were read back.
 - No route-side ask narrows to "open": status is a single-value filter and fourteen statuses count
   as open, so one page at the cap plus the honest count is the only fix the Rules admit. The body's
   "bounded by rows" was right and the number was the route's, not the CLI's.
+
+## Two-hundred-and-third dry run — ISS-20
+
+The plan is a typed payload with a way back and a criterion per step (3.35.223, landed as three
+commits, 9f2bee3, 320add6 and 565e77a, the second and third what a read of the one before found):
+sections as headings inside the plan file, each printed by the verb's help as the question it
+answers, a way-back section owed where the couplings say yes, every step naming the criterion it
+serves and a criterion no step names refused at approved. Sixteen criteria pass at the last head,
+which the landing moved nothing of; the review was one bodies pass split in two so nothing clipped.
+Two filed (ISS-619, ISS-623), one routed to ISS-411; two clauses added to the requirements. Closed by
+its run. No restart owed: the guides moved and the skill stubs did not. Folded from its handback;
+the fourteen comments were read back.
+
+- Six findings accepted across the run, every one refuted on recheck, and two of them were landings
+  of their own: the fence recognizer closing on any delimiter, and the contract row promising a
+  write-time refusal the code puts at approved. A read of the change is what found the change's
+  next defect, three times in a row.
+- The rule that a moved head owes a fresh whole-set read says nothing about scoping the read to the
+  files whose bytes moved; this run paid two whole-set passes for two files of nineteen (ISS-623).
+  A review earned by coverage of the touched set is the same proof at a fraction of the cost.
+- A file the plan did not name landed, and the run caught it with a hand comparison of the commit's
+  file list against the plan; the CLI's own refusal comes at developed, after the push (ISS-411, met
+  again). The correction was posted before the write, as the phase says, because the run looked.
+- The premise had moved before dispatch — the verb the body names to keep working was retired the
+  day before — and the triage line said so; the run decided what the sentence means now and
+  recorded it rather than building the retired route back.
