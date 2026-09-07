@@ -152,7 +152,7 @@ const REBUILDS = new Set([LANDING_CANDIDATE, "reconciled", LANDING_QA_OWED, LAND
 /** Blank rather than absent: `landingOf` drops what is falsy, so this is how a field is cleared. */
 export const landingVoided = (pinned) => ({
   state: LANDING_CANDIDATE, pinned, candidate: "", intended: "", moved: "", reconciled: "",
-  deployment: "", judge: "",
+  deployment: "", judge: "", release: "",
 });
 
 export const landingNext = (held, to) => {

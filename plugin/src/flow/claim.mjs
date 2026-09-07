@@ -34,6 +34,7 @@ import {
   sharedHolder,
   stateOf,
   takeLease,
+  takeRefusal,
 } from "./lease.mjs";
 
 const MAX_MINUTES = 24 * 60;
@@ -148,6 +149,13 @@ const handBack = async (documentId, ref, context, holder) => {
       + `\`${landing?.state ?? "nothing at all"}\`: the turn is handed back from \`${LANDING_QA_OWED}\` `
       + `and from no other state. Read where the landing is:\n  forge resume ${ref}`);
   }
+  /* The same independence `--take` is refused by one move earlier, asked of the same function so the
+     two cannot drift: ending the turn writes the judge onto the checkpoint, which a build reaching
+     here under its own id would sign as an independent judgement of its own work. */
+  const mine = sessionSourced();
+  const refused = takeRefusal(ref, landing, holder, leaseOf(context),
+    { source: mine.id === holder ? mine.source : null });
+  if (refused) fail(refused);
   const saved = await landingSaved(documentId, ref, { state: LANDING_JUDGED, judge: holder });
   console.log(`${ref}  judged: ${landingLine(saved)}`);
   return console.log(`The verdicts on the record are the judgement and the landing takes it from `

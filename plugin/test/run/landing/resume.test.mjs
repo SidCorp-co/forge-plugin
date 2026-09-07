@@ -117,7 +117,7 @@ test("a checkpoint at `judged` past its own push rebuilds nothing and releases n
   /* What the QA turn writes when it has read the release: the lander's own last state, judged. */
   issue().sessionContext.landing = { ...held, state: "judged" };
   const said = await ran([KEY], work);
-  /* The release names this as the hand-back after a promotion, so the status is all that is owed. */
+  /* The intended sha names this as the hand-back after a promotion, so the status is all that is owed. */
   assert.match(said, /step 10\/10/u, said);
   assert.doesNotMatch(said, /step 1\/10/u, `nothing was pinned or built again:\n${said}`);
   assert.equal(remote(at), release, `one release and no second one:\n${said}`);

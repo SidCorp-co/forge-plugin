@@ -12,7 +12,8 @@ process.env.XDG_CONFIG_HOME = tempHome("landing-checkpoint").path;
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
-  LANDING_READY, LANDING_STATES, claimed, landingLine, landingOf, landingTurn, leaseOf, takeRefusal,
+  LANDING_READY, LANDING_STATES, claimed, landingLine, landingOf, landingTurn, landingVoided,
+  leaseOf, takeRefusal,
 } = await import("../../../src/flow/lease.mjs");
 
 const AT = "2026-09-07T12:00:00.000Z";
@@ -188,10 +189,27 @@ test("the history row a take appends names the state it was taken at", () => {
   assert.deepEqual(landingOf(written), landingOf(at("ready")), "the checkpoint the claim was handed");
 });
 
+/* Every field a promotion's evidence rests on, blanked together: the candidate, the identity judged
+   against it, the judge who did, the sha meant for the push and the version it would have released.
+   One left standing reads later as a fact about a landing that no longer exists — the release above
+   all, which a resume could take for a push already made (ISS-673). */
+test("a void gives up every field the candidate it built was the evidence for", () => {
+  const held = landingVoided("a-fresh-pin");
+  assert.equal(held.state, "candidate", "back to the state whose turn is the lander's own");
+  assert.equal(held.pinned, "a-fresh-pin", "on the base it will build over");
+  for (const name of ["candidate", "intended", "moved", "reconciled", "deployment", "judge", "release"]) {
+    assert.equal(held[name], "", `\`${name}\` is what the void gives up, so it is blanked with the rest`);
+  }
+  assert.deepEqual(landingOf({ landing: { ...BUILT, ...held } }), landingOf({ landing: { state: "candidate", pinned: "a-fresh-pin", builder: BUILT.builder, branch: BUILT.branch, head: BUILT.head, base: BUILT.base, at: BUILT.at, files: BUILT.files } }),
+    "and read back, the checkpoint carries none of them");
+});
+
 /* The table above walks its own rows and says nothing about a row nobody writes, which is how
-   `qa-owed → judged`, `judged → …` and `marked → done` shipped green as a dead end (ISS-673). Every
-   state is asked for by name in the two files that write one, so a row added without its writer is
-   red here rather than a landing that parks for good. */
+   `qa-owed → judged`, `judged → …` and `marked → done` shipped green as a dead end (ISS-673). This
+   asks the weaker question — is the state named at all in a file that writes one — and so it catches
+   a row added with no writer anywhere. What it does not reach is whether the state's own turn holder
+   has a command that writes its successor: `builder-owed` is a builder's turn whose one successor
+   only the lander writes, red under a turn-aware reading and green here (ISS-726). */
 test("every state some step is meant to write is named in the source of the two files that write one", () => {
   const root = new URL("../../../../", import.meta.url);
   /* Below the imports: a name a file only imports is a name nothing there writes, and reading the

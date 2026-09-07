@@ -40,10 +40,10 @@ export const judgeAsk = (ref, number, landing) => (landing?.deployment
     + `--evidence ${short(landing.deployment)}`
   : `forge resume ${ref}`);
 
-/* On the same line `judgeProblems` reads, or a successor builder's verdicts — apart from the checkpoint's builder id, citing nothing nobody asked them to cite — read as void QA verdicts on a project that asked for no judge. Void against the identity the checkpoint holds now, so a redeployed candidate writes its new one before a promotion reads this. */
-export const voidedBy = (landing, verdicts, release) => (asksIndependent(release)
+/* What a void gives up, for a landing that has to name it: judged by somebody other than the checkpoint's builder, and citing the identity the landing is about to stop holding. Whether a verdict still standing cites what is running now is the same citation read per verdict, which is `judgeProblem`'s and is spent at `tested` — not a second list here, and a successor builder's verdicts are neither's on a project that asked for no judge. */
+export const judgedAt = (landing, verdicts, release) => (asksIndependent(release)
   ? numbered(verdicts)
     .filter(([, one]) => judgedApart(one.record.fields, landing))
-    .filter(([, one]) => !citesDeployment(one.record.fields, landing?.deployment))
+    .filter(([, one]) => citesDeployment(one.record.fields, landing?.deployment))
     .map(([number]) => number)
   : []);

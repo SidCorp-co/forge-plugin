@@ -259,17 +259,25 @@ memory.
 **The lease is handed over and never dropped.** The checkpoint names whose turn is next and the
 landing takes it; a run that abandons the lease instead leaves an issue nobody may write to until it
 expires. Phase 5's record and Phase 6's drafted note are written before that checkpoint, because the
-landing writes neither: it moves the statuses those records earn and nothing else.
+landing writes neither: it moves `developed` and `tested`, the statuses those records earn, and no
+status past them.
 
 **What the landing does with it is not this run's to do.** It merges the branch onto a pinned base,
 proves the merge left the change's own paths alone, gates the result, promotes it and writes the
-merged mark. Two of its outcomes come back to this run instead: a merge that touched one of those
-paths, and a base it found had moved. Either hands the branch back to be rebased, judged again at
-its new head, and readied a second time. `forge resume ISS-nn` says which happened.
+merged mark. One outcome comes back to this run: a merge that touched a path the change owns, which
+leaves the checkpoint at `builder-owed` for the run that built it to take and reconcile against the
+candidate named there. A base that moved under the pin is the landing's own to build again, and it
+voids the readings taken at the candidate given up rather than handing anything over. `forge resume
+ISS-nn` says which happened.
 
 **Where the project asks for an independent judge**, the landing stops for one and the judgement is
 another run's: this run neither writes those verdicts nor waits for them. Whether that stop sits
 before the promotion or after it is the project's landing route, which Phase 0 read.
+
+**`released` and `closed` are the landing actor's, not this run's.** Nothing this run does moves a
+status past `tested`, because the release those two answer for does not exist while this phase runs.
+So leave the Phase 6 note drafted on the issue for whoever publishes it, and let the report say the
+two statuses are owed rather than reporting them moved.
 <!-- forge:end -->
 
 **A failure anywhere along the path is condition 3**: roll back by the route Phase 0 established,

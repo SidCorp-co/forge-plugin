@@ -214,6 +214,22 @@ test("Phase 7 and the fold are served in the mode's own text, one branch of each
   assert.match(folds[1], /never the run that built the change/u, "and dispatches the judge where one is asked for");
 });
 
+/* What a fence takes with it: the `self` branch carried the note, `released` and the close, so fencing it left a `ready` reader two statuses short of the end state. Over the union served, either half may own it and neither may drop it (ISS-673). */
+test("a ready reader is told somewhere who moves released, which the mode's own half no longer does", () => {
+  const phase = shipping("ready").stdout;
+  const fold = shipping("ready", "dispatch").stdout;
+  assert.match(`${phase}\n${fold}`, /`released`/u,
+    "the status past tested is named to a reader whose own phase stops at a pushed branch");
+  assert.match(fold, /`released` and\n`closed` are moved from here/u,
+    "and the fold, whose landing it follows, is where it is owned");
+  assert.match(phase, /are the landing actor's, not this run's/u,
+    "the phase says whose it is rather than leaving the run to assume it is nobody's");
+  assert.doesNotMatch(phase, /Then close it, in this phase/u,
+    "and does not also claim the close, which under this mode it cannot make");
+  assert.match(shipping("self").stdout, /Then close it, in this phase/u,
+    "while the mode that does land its own change still closes it there");
+});
+
 /* The number is the whole address, so a phase that grew a subsection has to answer with all of it:
    `partsOf` ends a part at the next heading of any level, which would cut one silently. */
 test("a phase answers its number with every heading subordinate to it, and none of the next phase", () => {

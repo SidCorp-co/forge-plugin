@@ -25,7 +25,7 @@ import {
   LANDING_CANDIDATE, LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED, LANDING_READY,
   landingOf, landingSaved, landingVoided, takeLease,
 } from "../../plugin/src/flow/lease.mjs";
-import { INDEPENDENT, voidedBy } from "../../plugin/src/flow/qa/verdicts.mjs";
+import { INDEPENDENT, judgedAt } from "../../plugin/src/flow/qa/verdicts.mjs";
 import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/tracker/project-config.mjs";
 import { landingScope } from "../../plugin/src/resolve/settings.mjs";
 
@@ -58,9 +58,9 @@ const OWED = {
   marked: "status",
 };
 
-/* `judged` sits either side of a promotion, the release telling them apart: the-checkpoint.md. */
+/* `judged` sits either side of a promotion, told apart by the sha only `pushStep` writes and a void clears: the-checkpoint.md. */
 const owedAt = (landing) =>
-  (landing.state === LANDING_JUDGED && landing.release ? "status" : OWED[landing.state] ?? "");
+  (landing.state === LANDING_JUDGED && landing.intended ? "status" : OWED[landing.state] ?? "");
 
 /* `fail` in the CLI's own modules exits, dropping the lock and leaving a branch promoted in silence. */
 const asked = async (run) => {
@@ -183,7 +183,7 @@ const viewOf = async (documentId) => {
 const voidSaid = async (documentId, landing) => {
   if (!landing.deployment) return "";
   const view = await asked(() => viewOf(documentId));
-  const numbers = voidedBy(landing, view.verdicts, view.release);
+  const numbers = judgedAt(landing, view.verdicts, view.release);
   return numbers.length
     ? ` The QA verdict(s) on criterion ${numbers.join(", ")} judged ${shortly(landing.deployment)} and `
       + `are void with it.`
@@ -557,7 +557,7 @@ export const landReady = async ({ flags, words }, ctx) => {
       + `each candidate in a tree of its own and touches no run's: land from ${ctx.root}.`);
   }
   const ms = waitMs(flags);
-  /* Read once and carried: a project that answered neither line is said, never defaulted. */
+  /* Read once and carried: a project answering neither line is said, never defaulted. A null is not refused — it is both a failed read and a project holding no config, and the second must still land, so a failed read downgrades an independent judge to the builder (ISS-699 owns that conflation). */
   const policy = await asked(() => releasePolicy());
   const route = landingRoute(policy, landingScope()).value;
   const judgement = judgementOf(policy);

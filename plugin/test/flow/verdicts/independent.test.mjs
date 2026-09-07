@@ -12,7 +12,7 @@ import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent").path;
 const { render } = await import("../../../src/flow/record.mjs");
 const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
-const { judgeAsk, judgeProblem, voidedBy } = await import("../../../src/flow/qa/verdicts.mjs");
+const { judgeAsk, judgeProblem, judgedAt } = await import("../../../src/flow/qa/verdicts.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -137,32 +137,39 @@ test("no checkpoint means nothing names the builder or the deployment, and the c
     "and the ask is not another verdict, which cannot produce the checkpoint that is missing");
 });
 
-/* The same reading inverted, which is what a promotion spends: the identity is what moves when the
-   base or the batch does, so every verdict still citing the old one is void. */
-test("verdicts citing an identity the checkpoint no longer holds are named void", () => {
+/* What a void gives up, named to whoever judges again. Asked the other way round — which verdicts are
+   stale against the identity held now — it named none of them at the one moment the list is wanted
+   (ISS-673). That inverse had no caller once this one took the void's, and is `judgeProblem` per
+   verdict where it is spent, so it is gone rather than kept for a reader that never arrived. */
+test("the numbers a void names are the verdicts that judged the identity being given up", () => {
   const view = viewFrom("the-uuid", issueOf(), [mark(), comment(render("verdict", [verdictOf(1), verdictOf(2)]))],
     null, INDEPENDENT);
-  assert.deepEqual(voidedBy(CHECKPOINT, view.verdicts, INDEPENDENT), [], "nothing moved, so nothing is void");
-  assert.deepEqual(
-    voidedBy({ ...CHECKPOINT, deployment: MOVED, candidate: MOVED }, view.verdicts, INDEPENDENT), [1, 2],
-    "the candidate was redeployed, so both QA verdicts are void",
-  );
+  assert.deepEqual(judgedAt(CHECKPOINT, view.verdicts, INDEPENDENT), [1, 2],
+    "both cite the deployment this checkpoint holds, so a void takes both");
+  const elsewhere = viewFrom("the-uuid", issueOf(),
+    [mark(), comment(render("verdict", [verdictOf(3, { evidence: [MOVED] })]))], null, INDEPENDENT);
+  assert.deepEqual(judgedAt(CHECKPOINT, elsewhere.verdicts, INDEPENDENT), [],
+    "a verdict citing some third head judged nothing this void gives up, and was void before it");
   const builders = viewFrom("the-uuid", issueOf(),
     [mark(), comment(render("verdict", [verdictOf(1, { judge: BUILDER })]))], null, INDEPENDENT);
-  assert.deepEqual(voidedBy({ ...CHECKPOINT, deployment: MOVED }, builders.verdicts, INDEPENDENT), [],
-    "and a verdict that was never a QA verdict is not void: it never stood");
+  assert.deepEqual(judgedAt(CHECKPOINT, builders.verdicts, INDEPENDENT), [],
+    "and a verdict that was never a QA verdict is not lost with it: it never stood");
 });
 
-/* The promotion's own fence value: a successor builder's id differs from the checkpoint's, and its
-   verdicts cite no deployment because nobody asked them to — void by every reading but the one. */
-test("a project that asked for no judge has no void verdicts to name", () => {
+/* The fence value a redeployed candidate turns on: a successor builder's id differs from the
+   checkpoint's, so a reading that skipped the project's `qa` line would report a builder's own
+   verdicts lost on a project that asked for no judge at all. */
+test("a project that asked for no judge has nothing for a void to name", () => {
+  const successor = { judge: "the-successor-session", evidence: [MOVED] };
   const view = viewFrom("the-uuid", issueOf(),
-    [mark(), comment(render("verdict", [verdictOf(1, { judge: "the-successor-session" })]))],
-    null, BUILDER_JUDGES);
-  assert.deepEqual(voidedBy({ ...CHECKPOINT, deployment: MOVED, candidate: MOVED }, view.verdicts, BUILDER_JUDGES),
-    [], "or a resumed builder's verdicts would refuse a promotion on a project with no QA at all");
-  assert.deepEqual(voidedBy({ ...CHECKPOINT, deployment: MOVED }, view.verdicts, null), [],
-    "and a project whose config did not answer is judged as one that decided nothing");
+    [mark(), comment(render("verdict", [verdictOf(1, successor)]))], null, BUILDER_JUDGES);
+  const moved = { ...CHECKPOINT, deployment: MOVED, candidate: MOVED };
+  assert.deepEqual(judgedAt(moved, view.verdicts, INDEPENDENT), [1],
+    "the verdict is one an independent-judge project would count, so the guard is what decides below");
+  assert.deepEqual(judgedAt(moved, view.verdicts, BUILDER_JUDGES), [],
+    "and on a project with no QA at all a resumed builder's verdicts are not a judgement to lose");
+  assert.deepEqual(judgedAt(moved, view.verdicts, null), [],
+    "nor on one whose config did not answer, which is read as having decided nothing");
 });
 
 test("the problem a verdict has is one reading, so a caller outside the check reads the same answer", () => {
@@ -309,6 +316,22 @@ test("the judging run hands the turn back, and the lander takes the lease it lef
   assert.equal(again.status, 1, again.stdout);
   assert.match(`${again.stdout}\n${again.stderr}`, /reads `judged`/u,
     "and the hand-back is refused a second time, naming the state it read");
+});
+
+/* The independence `--take` refuses one move earlier, asked again of the move that writes the
+   judgement down: reaching `--judged` needs no take, so a builder holding its own lease signed
+   itself onto the checkpoint as judge, and before-merge reads that state alone to push (ISS-673). */
+test("the builder is refused the hand-back, on the reading the take before it is refused on", async () => {
+  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
+  judging.sessionContext.lease = {
+    ...judging.sessionContext.lease, holder: BUILDER, renewedAt: new Date().toISOString(),
+  };
+  const refused = await twice(builder, "claim", "ISS-8", "--judged");
+  assert.equal(refused.status, 1, `${refused.stdout}\n${refused.stderr}`);
+  assert.match(`${refused.stdout}\n${refused.stderr}`, /no run may judge its own work/u,
+    "the same sentence the take is refused with, because it is the same rule read once");
+  assert.equal(judging.sessionContext.landing.state, "qa-owed", "and the turn is still owed to a judge");
+  assert.ok(!judging.sessionContext.landing.judge, "with nobody named as having taken it");
 });
 
 /* The hole the take-back cuts in the live-lease guard, closed by the take that used it: a lander
