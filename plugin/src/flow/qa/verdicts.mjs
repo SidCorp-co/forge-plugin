@@ -38,7 +38,7 @@ export const judgeProblems = (view) => (asksIndependent(view.release)
   : []);
 
 export const judgeAsk = (ref, number, landing) => (landing?.deployment
-  ? `forge record verdict ${ref} --criterion ${number} --verdict pass --commit ${short(landing.head)} `
+  ? `forge record verdict ${ref} --criterion ${number} --verdict pass --commit ${short(landing.head) || "<sha>"} `
     + `--evidence ${short(landing.deployment)}`
   : `forge resume ${ref}`);
 

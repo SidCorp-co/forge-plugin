@@ -12,7 +12,7 @@ import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent").path;
 const { render } = await import("../../../src/flow/record.mjs");
 const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
-const { judgeProblem, voidedBy } = await import("../../../src/flow/qa/verdicts.mjs");
+const { judgeAsk, judgeProblem, voidedBy } = await import("../../../src/flow/qa/verdicts.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -167,6 +167,8 @@ test("a project that asked for no judge has no void verdicts to name", () => {
 test("the problem a verdict has is one reading, so a caller outside the check reads the same answer", () => {
   assert.equal(judgeProblem(verdictOf(1), CHECKPOINT), null);
   assert.match(judgeProblem(verdictOf(1, { judge: BUILDER }), CHECKPOINT), /the builder's own id/u);
+  assert.match(judgeAsk("ISS-8", 1, { deployment: DEPLOYED }), /--commit <sha> /u,
+    "a checkpoint the shape does not hold whole still prints a typeable command, not an empty flag");
 });
 
 /* Spawned from here: what a project's `qa` line changes is what `forge advance` does, and only the
