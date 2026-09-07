@@ -295,10 +295,11 @@ export const owedLine = (view, ref, held) => {
 };
 
 /* A call made only where its answer is read: a plan declaring neither line owes no person, and the
-   deploy `released` asks after is asked after only where `released` is the status being entered.
-   The step is `stepAfter`'s, which answers null for a status the flow does not hold. */
+   policy is fetched only where the status being entered reads it — `tested` asks who judges,
+   `released` what deploys. The step is `stepAfter`'s, null for a status the flow does not hold. */
+const POLICY_AT = [TESTED, RELEASED];
 export const policyFor = async (plan, status = null) =>
-  (personLooks(planFlags(unwrap(plan))) || stepAfter(status) === RELEASED ? releasePolicy() : null);
+  (personLooks(planFlags(unwrap(plan))) || POLICY_AT.includes(stepAfter(status)) ? releasePolicy() : null);
 
 /* Gated as `policyFor` is, on `credentialOwed`: the fetch is async and the line is not. */
 export const deployFor = async (plan, status = null) =>

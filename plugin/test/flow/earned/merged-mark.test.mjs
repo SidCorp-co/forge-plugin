@@ -9,7 +9,8 @@ import { tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("merged-mark").path;
 const { render } = await import("../../../src/flow/record.mjs");
-const { CHECKS, sameCommit, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { sameCommit } = await import("../../../src/tracker/evidence.mjs");
 const { judgedHead, landingMoved, landingWrote, markedCommit } = await import("../../../src/flow/machine.mjs");
 const { partFor, partsOf, readContract } = await import("../../../src/guides/contract.mjs");
 
