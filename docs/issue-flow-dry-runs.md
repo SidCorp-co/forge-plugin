@@ -5249,3 +5249,61 @@ owed. Folded from its handback; the twelve comments were read back.
 - The ship printed the runs mark at two hundred: the corpus's reading is written once at the mark
   and the evaluator role reads it; the eval's own head already shows the recent fifty dearer than
   the fifty before on minutes, calls and advances per run, which is the wave's cost to explain.
+
+## Two-hundred-and-fifth dry run — ISS-336
+
+The parts hold reads the clause, not the line (3.35.226, landed as f27dd5b): each occurrence of the
+parts phrase is asked whether a governed key list follows it, forward only, a label admitted only
+between a key and its separator, so the six false holds on the record pass and every governing form
+still holds every key it names. The clearing line changed with it: `--with` alone could never have
+cleared the hold, because the shape refusal returns before the related keys are resolved, so the
+line now says to take the claim off the line. Seven criteria pass at one head; criterion 7 re-judged
+at the landed head because a gate count rests on the tree. A correction pre-posted for two criteria
+that named the wrong test file, the tier owing no plan. Codex: 0 findings on a whole-set read, after
+seven findings over five consults. One gap record, on ISS-34. Closed by its run; the release note
+withheld on the fix tier. No restart owed. Folded from its handback; the thirteen comments were read
+back.
+
+- A hold keyed on two words sharing a line refused six paragraphs of prose in two days and was
+  cleared each time by renaming a noun; keyed on the grammar between them it refuses none of the six
+  and every listed form. A co-occurrence test is a guess about grammar, and the guess is what fires.
+- A refusal's route was never taken by the code that printed it: the fold that offered `--with`
+  ran after the refusal that stopped the command. A route is proven the way a checker is, by
+  watching it clear the case, and this one had never been.
+- Five consults for one grammar, moved three times between a key list and a pre-strip: the fixture
+  set of six real holds was assembled after the first draft, not before. The cases decide the shape;
+  a shape drafted first spends a consult per case it meets.
+- The tracker surface moved under the wave: ISS-614 landed a new argument form for listing comments
+  mid-run, and the refusal named the form, so the run lost one call and filed nothing. A wave
+  shares one surface; a landing that changes a call shape costs every live run a round.
+- Step 10 said a reading was owed and named ISS-616 as its holder without filing a second one;
+  the guard against a duplicate reading held on its first live case.
+- The dispatcher's own killed gate run left a fixture the stop-check test writes into the real
+  tree; a test that stages its case in the working tree rather than under the run's temporary
+  directory leaves debris whenever it dies, and races the sibling gating the same checkout.
+
+## Two-hundred-and-sixth dry run — ISS-614
+
+The transport the tracker's REST twins replaced is retired (3.35.225, landed as 2ce520b): the two
+routes still marked MCP go over multipart REST, the JSON-RPC module goes, and the retired names are
+refused where prose or code would bring them back. Twenty-two files. Thirty-four criteria pass at
+one head, written as five verdict records because the tracker caps a comment body and one write over
+thirty-four blocks cannot land; the refusal named the six evidence files already up, which is what
+saved the round. Proved live on the credential the CLI carries, the type pairs diffed against the
+tracker's own table rather than a local literal, both retired-names checkers watched firing. Two
+findings routed to ISS-20, one filed (ISS-652, flagged on itself as a likely duplicate of ISS-489),
+one pre-existing failure left with ISS-574, which already names its cause. Closed by its run; no
+restart owed. Folded from its handback; the comments were read back.
+
+- The one-write rule for verdicts and the tracker's body cap met for the first time on a criteria
+  set this long, after the evidence was up. The run wrote five records and filed the gap; the
+  refusal's line naming the files already up is what made the split cheap (ISS-652, ISS-489).
+- A verdict that cites a probe file for a claim about two documents holds and cites wrong: the run
+  posted the reading as a comment instead of a second verdict on a closed issue. The commit was the
+  citation; a verdict's evidence is the thing the criterion is about, not the nearest attachment.
+- A test green only on the developer's live config and red under a temporary one was reproduced
+  from an archive of the base and left with the issue that names its cause; the run re-filed nothing
+  (ISS-574). Reproducing on the base before filing is what tells a defect from a regression.
+- A landing that retires a call shape moved the surface under three live runs the same hour; each
+  lost one call to a refusal that named the new form. The cost of one landing is paid once per live
+  run, and the refusal's route is what kept it to one.
