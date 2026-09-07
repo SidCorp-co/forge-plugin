@@ -101,16 +101,109 @@ const lastReclaimAt = (lease, status) =>
 export const parkAnswers = (lease, status, parkedAt) =>
   parksAsCrashed(lease, status) && lastReclaimAt(lease, status) <= String(parkedAt ?? "");
 
+/* The other object in the field, beside the lease and the worklog: what a build ready to land
+   leaves for whoever lands it. One turn per state, and `done` is nobody's; three states offer two
+   successors because a project judges its deployment before the merge or after it, and the route
+   walked is the landing task's reading rather than this table's. docs/cli/claim.md. */
+export const LANDING = "landing";
+export const LANDING_READY = "ready";
+
+export const LANDING_STATES = {
+  ready: { turn: "lander", next: ["candidate"] },
+  candidate: { turn: "lander", next: ["reconciled", "builder-owed"] },
+  "builder-owed": { turn: "builder", next: ["reconciled"] },
+  reconciled: { turn: "lander", next: ["qa-owed", "promoting"] },
+  "qa-owed": { turn: "qa", next: ["judged"] },
+  judged: { turn: "lander", next: ["promoting", "done"] },
+  promoting: { turn: "lander", next: ["promoted"] },
+  promoted: { turn: "lander", next: ["installed"] },
+  installed: { turn: "lander", next: ["marked"] },
+  marked: { turn: "lander", next: ["qa-owed", "done"] },
+  done: { turn: null, next: [] },
+};
+
+/* Declared, as the record's fields are: the landing writes its own shas and its install state into
+   this same object, and a key nothing here names is dropped rather than read back as a fact. `files`
+   is the paths the change touched, where the worklog's `files` beside it is how many there were. */
+const CHECKPOINT = ["state", "builder", "branch", "head", "base", "at", "pinned", "intended",
+  "candidate", "release", "install", "deployment"];
+
+export const landingOf = (context) => {
+  const held = context?.[LANDING];
+  if (!held || typeof held !== "object" || typeof held.state !== "string" || !held.state) return null;
+  const files = (Array.isArray(held.files) ? held.files : []).map((one) => String(one).trim());
+  const out = { files: files.filter(Boolean) };
+  for (const name of CHECKPOINT) if (held[name]) out[name] = String(held[name]);
+  return out;
+};
+
+export const landingTurn = (landing) => LANDING_STATES[landing?.state]?.turn ?? null;
+
+export const landingLine = (landing) =>
+  `landing \`${landing.state}\`: ${landing.branch ?? "no branch"} at ${(landing.head ?? "").slice(0, 7)}, `
+  + `base ${(landing.base ?? "").slice(0, 7)}, ${landing.files.length} file(s), built by ${landing.builder}`;
+
+const READ_THE_STATE = (ref) =>
+  `Read where the landing is, and take it when the state names your turn:\n  forge resume ${ref}`;
+
+/* `--take` is the one route that may take a lease which is still live, so what licenses it is the
+   state naming the taker's turn and nothing else. A lease no longer live is anybody's by the
+   reclaim rules already, which is what makes a successor eligible where the run named has gone. */
+export const takeRefusal = (ref, landing, holder, lease, { now = Date.now(), source = null } = {}) => {
+  if (!landing) {
+    return `${ref} carries no landing checkpoint, so no turn is handed off and --take is refused. `
+      + `A build writes one where it ends:\n  forge claim ${ref} --pushed --ready`;
+  }
+  const said = `the landing checkpoint on ${ref} reads \`${landing.state}\``;
+  const row = LANDING_STATES[landing.state];
+  const live = Boolean(lease) && expiryOf(lease) > now;
+  if (!row) {
+    return `${said}, which is no state this version knows, so whose turn it is cannot be read. `
+      + `${READ_THE_STATE(ref)}`;
+  }
+  if (!row.turn) {
+    return `${said}, so the landing is over and no turn is left to take. An issue with work still `
+      + `on it takes its lease as any other does:\n  forge claim ${ref}`;
+  }
+  if (row.turn === "builder") {
+    if (holder !== landing.builder) {
+      if (!live) return null;
+      return `${said}, whose turn is the builder ${landing.builder}'s, and this session is ${holder}: `
+        + `neither it nor a successor, since a successor is eligible only once that lease is dead by `
+        + `the reclaim rules and ${describe(lease)} is on it. ${READ_THE_STATE(ref)}`;
+    }
+    /* Refused rather than told, alone among the writes a shared id makes: this one takes a live lease. */
+    if (!live || lease.holder === holder || source !== INHERITED) return null;
+    return `${said}, and the builder it names is ${landing.builder}, which is ${INHERITED_MEANS}: `
+      + `nothing here can tell this session from the run that built it, and the take would replace `
+      + `a live lease — ${describe(lease)} is on it. Give the run that reconciles an id of its own `
+      + `and write the checkpoint under it. ${OWN_ID}`;
+  }
+  if (row.turn === "lander") {
+    if (holder === landing.builder) {
+      return `${said}, whose turn is the lander's, and this session built it: the builder's turn `
+        + `comes back at \`builder-owed\` and nowhere else. ${READ_THE_STATE(ref)}`;
+    }
+    if (!live || lease.holder === holder || lease.holder === landing.builder) return null;
+    return `${said}, whose turn is the lander's, and ${describe(lease)} is already on it. `
+      + `${READ_THE_STATE(ref)}`;
+  }
+  return `${said}, whose turn is the QA run's, and no session on this version can prove it is that `
+    + `run: the QA take arrives with the role. ${READ_THE_STATE(ref)}`;
+};
+
 /* Read, not passed: a caller that could supply the writer's own identity could supply a false one.
    Silence about `next` means unchanged, or a claim would drop the note the dead run left. */
-export const claimed = (context, { holder, at, minutes, next, worklog, how = null, status = null }) => {
+export const claimed = (context, { holder, at, minutes, next, worklog, landing, how = null, status = null }) => {
   const held = leaseOf(context);
   const history = [...(held?.history ?? [])];
+  const state = landing?.state ?? landingOf(context)?.state ?? null;
   /* The outgoing line, not the incoming one: what a crash loop is asked is where each attempt died. */
-  if (how) history.push({ holder, at, how, status, next: held?.next ?? null });
+  if (how) history.push({ holder, at, how, status, next: held?.next ?? null, ...(state ? { landing: state } : {}) });
   return {
     ...(context && typeof context === "object" ? context : {}),
     ...(worklog ? { [WORKLOG]: worklog } : {}),
+    ...(landing ? { [LANDING]: landing } : {}),
     [KEY]: {
       holder,
       agent: agentOf(),
