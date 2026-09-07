@@ -5122,3 +5122,29 @@ owed. Folded from its handback; the thirteen comments were read back.
   to live: the doc cap refuses it in the topic page and the comment-density check refuses it in a
   four-line module. Recorded as a gap and deliberately not as a checker, since a check demanding
   prose on a primitive's home contradicts the density rule exactly where it would fire.
+
+## Two-hundredth dry run — ISS-305
+
+Help asked of a sub-verb answers with that sub-verb's usage (3.35.218, landed as 3f89160): the
+two-slot reading lives once in the help-word module and five dispatchers reach through it, the one
+that read every slot narrowed as the two that read one slot widened. Thirteen criteria pass, judged
+twice because ISS-364's landing moved the one-home guard file mid-run. Proved by mutation: with the
+second slot disabled, one test run named all five dispatchers red. Three filed (ISS-613, ISS-615,
+ISS-616), one routed to ISS-291. Closed by its run. No restart owed. Folded from its handback; the
+nineteen comments were read back.
+
+- The triage line was corrected three ways by the run: the hooks dispatcher takes flags only, so
+  five dispatchers and not six; codex was a third hand-rolled reading that scanned every slot, so a
+  note whose text was the help word printed usage instead of writing the verdict; knowledge carried
+  four per-sub usage lines, not three. A triage line counts what the file has today, not what the
+  body counted when it was written.
+- The ship could not file the batch reading it owed: its last step imports modules into its own
+  process after its seventh step has moved the checkout past a release that added an export
+  (ISS-615). The run filed the reading by hand as ISS-616 so the debt did not ride on the next ship.
+- A criterion that names the full gate as its proof forces the full gate on every judging; a scoped
+  path list buys the same proof. The run met its own criterion and recorded that the criterion was
+  the cost.
+- The editor tool wrote a NUL where a space was typed, inside a string, and the tests passed anyway
+  because the split behaved the same on both; what caught it was the diff reporting a source file as
+  binary. Every changed file was swept for NUL before the commit. A green test is not a check that a
+  source file is text.
