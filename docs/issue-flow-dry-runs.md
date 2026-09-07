@@ -5223,3 +5223,29 @@ the fourteen comments were read back.
 - The premise had moved before dispatch — the verb the body names to keep working was retired the
   day before — and the triage line said so; the run decided what the sentence means now and
   recorded it rather than building the retired route back.
+
+## Two-hundred-and-fourth dry run — ISS-477
+
+The credential line ends the deploy lines on a project with no staging deploy (3.35.224, landed as
+f9fc547): the wording is one helper called from both deploy branches, and a tracker that did not
+answer keeps its silence, which is the half no filing named and what makes "no credential on record"
+and "nothing said either way" print differently at all. Nine criteria pass at one head, the rebase a
+no-op; the fails-without-the-fix proof was run in a throwaway worktree and failed for the missing
+line alone. Two filed (ISS-624, ISS-625), the landing comment routed to the four duplicates
+(ISS-572, ISS-573, ISS-609, ISS-610), two of which the tracker's own neighbour reading surfaced and
+the brief had not named. Closed by its run; the release note withheld on the fix tier. No restart
+owed. Folded from its handback; the twelve comments were read back.
+
+- Five filings of one early return, from five runs over two days, and the fix was a helper and a
+  branch. The dispatcher folded three onto the original at dispatch and the run found the fourth
+  and fifth by the neighbour list; a filing that reads the list before it files is the change the
+  fold asked for (ISS-628).
+- The fix tier drops the plan, and the check the merged mark runs over a landed path reads the plan
+  it dropped: a fix pre-posts a correction for every path the body's Where omits or is refused at the
+  mark. One record per run, paid by every fix-tier run until the tier says which check it drops too.
+- A file write through the shell to stage a proof, against the standing rule, refused by nothing:
+  the run caught itself, restored the file byte-identically and filed the absence of a checker
+  (ISS-624). A rule that lives in four documents and no gate is kept by the run or not at all.
+- The ship printed the runs mark at two hundred: the corpus's reading is written once at the mark
+  and the evaluator role reads it; the eval's own head already shows the recent fifty dearer than
+  the fifty before on minutes, calls and advances per run, which is the wave's cost to explain.
