@@ -55,9 +55,9 @@ agent learns what a status wants.
 - **AC-05-1-6** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "a reopen judges again, so a verdict from before its triage earns nothing"
   WHERE a reopen's triage leaves two or more verdicts stale, the CLI SHALL report that set as a
   single owed item whose command re-judges every member of it in one write.
-- **AC-05-1-7** · Rev: 1 · Proof: plugin/test/ladder.test.mjs "each of the tracker's five sizes claims a rung, and the report says it was the field"
-  WHERE the tracker holds a size for the issue, the CLI SHALL rehearse the rung that size claims and
-  SHALL name which of that size and the body's own mark decided it.
+- **AC-05-1-7** · Rev: 2 · Proof: none yet — ISS-681
+  WHEN a rung is read THEN the CLI SHALL read it from the complexity the tracker holds and from
+  nothing in the body, and SHALL name the complexity that claimed it.
 - **AC-05-1-8** · Rev: 1 · Proof: plugin/test/flow/route/credential-ahead.test.mjs "--owed says a screen change has no login to prove it with, and refuses nothing for it"
   WHERE the plan declares a screen change and the project holds no test credential, the CLI SHALL
   say so in the rehearsal of every status below `tested`, and SHALL refuse none of them for it.
