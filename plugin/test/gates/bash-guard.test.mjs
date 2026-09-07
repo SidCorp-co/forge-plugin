@@ -15,9 +15,13 @@ const HOME = homeEnv("bash-guard");
 
 /* The git rules stand down on a clean tree, so the fixtures bring their own dirty one. */
 const DIRTY = dirtyRepo();
-/* The session travels, because one rule here is about what the call before this one in it did. */
+/* The session travels, because one rule here is about what the call before this one in it did, and
+   another is about what this one was already shown. It is handed over in the environment as well as
+   on the event: the stamps key on the event's id and the shown ledger on the id the run was handed,
+   which outranks it, so a case naming only one of the two would have the gate keyed on neither. */
 const decideIn = (session, command, tool = "Bash") => {
-  const run = callHook(HOOK, { session_id: session, tool_name: tool, tool_input: { command }, cwd: DIRTY }, HOME);
+  const env = { ...HOME, FORGE_SESSION_ID: session };
+  const run = callHook(HOOK, { session_id: session, tool_name: tool, tool_input: { command }, cwd: DIRTY }, env);
   assert.equal(run.status, 0, run.stderr);
   if (!run.stdout.trim()) return { allowed: true };
   const answer = JSON.parse(run.stdout).hookSpecificOutput;
@@ -38,6 +42,23 @@ test("the command itself is refused, and the refusal names the rule and a way ou
   assert.match(reason, /Instead: Stage the paths you changed/u);
   assert.match(reason, /forge hooks --how bash-guard/u);
   assert.equal(decide(BY_NAME).allowed, false, "selects by name, so it is not the pid you meant");
+});
+
+/* AC-10-5-2. The call is still refused, because a session shown nothing cannot tell a block from a
+   pass; what it is spared is a paragraph it has already read this session. Nothing about the command
+   is lost with it — the cause, the instead and the topic are the rule's, not the call's. */
+test("a rule this session already read in full is refused again in one line", () => {
+  const session = randomUUID();
+  const first = decideIn(session, `${STAGE_ALL} && git commit -m done`);
+  assert.equal(first.allowed, false);
+  assert.match(first.reason, /stages everything in the tree/u, "the first refusal is the whole paragraph");
+  const again = decideIn(session, `${STAGE_ALL} && git commit -m again`);
+  assert.equal(again.allowed, false, "the second call is refused just the same");
+  assert.equal(again.reason.split("\n").length, 1, "and its reason is one line");
+  assert.match(again.reason, /^Refused again/u, "which still reads as a refusal");
+  assert.match(again.reason, /forge hooks --how bash-guard/u, "and names where the reason and escape are");
+  const other = decideIn(randomUUID(), `${STAGE_ALL} && git commit -m fresh`);
+  assert.match(other.reason, /stages everything in the tree/u, "another session is owed the whole of it");
 });
 
 /* Twice in one session a heredoc was refused for holding the command in a *string literal*. */
@@ -141,8 +162,11 @@ test("a quoted flag is still the flag the rule is about", () => {
 });
 
 /* Where the tree at stake is not the shell's, the cwd is the event's rather than this suite's dirty one. */
-const from = (cwd, command) =>
-  callHook(HOOK, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command }, cwd }, HOME).stdout;
+const from = (cwd, command) => {
+  const session = randomUUID();
+  const event = { session_id: session, tool_name: "Bash", tool_input: { command }, cwd };
+  return callHook(HOOK, event, { ...HOME, FORGE_SESSION_ID: session }).stdout;
+};
 
 /* The dirty-tree check read the shell's cwd, so `git -C other stash` was judged by the wrong tree. */
 test("a git aimed at another tree is judged by that tree", () => {

@@ -16,6 +16,12 @@ const room = tempRoom("codex-turn-");
 const STATE = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json");
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 
+/* Pointed at the temp home before the first source module loads, and imported dynamically for the
+   same reason: `HOOK_LOG_PATH` and its like are read at import time, and a static import here is
+   hoisted above any assignment below it, so it would freeze them on the developer's own config. */
+process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
+const { digestOf } = await import("../../src/shown/ledger.mjs");
+
 const repo = (name) => {
   const root = join(room, name);
   mkdirSync(join(root, "docs"), { recursive: true });
@@ -75,6 +81,43 @@ test("a second session is its own turn, whatever the first one was told", () => 
   const at = "2026-09-01T11:00:00.000Z";
   assert.match(fired(ONE, "docs/D.md", at, "s2"), /docs\/D\.md/u);
   assert.equal(fired(ONE, "docs/E.md", at, "s2"), null);
+});
+
+/* AC-10-5-1: what this surface owes the ledger is the credit, and nothing here reads it back to
+   decide. It cannot: the hint names only the file, so a document consulted and then changed again
+   owes the same sentence a second time, and a session held to it once would never be told (the
+   correction of 08:35). What the credit buys is one reading of "shown" across every surface. */
+const JOURNAL = join(HOME.XDG_CONFIG_HOME, "forge", "shown.jsonl");
+const creditsFor = (session) => readFileSync(JOURNAL, "utf8").trim().split("\n")
+  .map((one) => JSON.parse(one))
+  .filter((one) => one.session === session && one.surface === "codex-turn");
+
+/* The id is the one the run was handed, which outranks the event's: a delegated run is given
+   `FORGE_SESSION_ID` and the ledger keys on whatever `sessionSourced` resolves, not on the event. */
+const firedAs = (session, root, rel, at) => {
+  const file = wrote(root, rel);
+  const run = callHook(
+    HOOK,
+    {
+      session_id: "an-event-id-that-loses",
+      tool_name: "Bash",
+      tool_input: { command: `printf x > ${file}` },
+      transcript_path: transcript(at),
+      cwd: root,
+    },
+    { ...HOME, FORGE_SESSION_ID: session },
+  );
+  assert.equal(run.status, 0, run.stderr);
+  return run.stdout.trim() ? JSON.parse(run.stdout).hookSpecificOutput.additionalContext : null;
+};
+
+test("the hint is credited under the session, the surface codex-turn and the digest of its text", () => {
+  const said = firedAs("s-credit", ONE, "docs/F.md", "2026-09-01T12:00:00.000Z");
+  assert.match(said, /forge codex consult/u, "the hint was printed");
+  const mine = creditsFor("s-credit");
+  assert.equal(mine.length, 1, "one credit for the one hint");
+  assert.ok(mine[0].items.includes(digestOf(said)), "and the item is the digest of the text shown");
+  assert.equal(creditsFor("an-event-id-that-loses").length, 0, "under the id the run was handed");
 });
 
 /* A worktree per session is this repository's shape, and `git worktree add` stamps every file in the

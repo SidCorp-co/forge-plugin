@@ -15,9 +15,16 @@ const HOME = homeEnv("bash-guard-trees");
 /* The git rules stand down on a clean tree, so the fixtures bring their own dirty one. */
 const DIRTY = dirtyRepo();
 
-/* The call with its cwd named, these rules being judged in a tree rather than in the shell's. */
-const from = (cwd, command) =>
-  callHook(HOOK, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command }, cwd }, HOME).stdout;
+/* The call with its cwd named, these rules being judged in a tree rather than in the shell's. Its
+   own session, handed over in the environment as well as on the event: an id a run was given
+   outranks the event's, so a case that named only the event would inherit whatever the shell that
+   started the suite exports — and these read as isolated on a machine that exports nothing and as
+   one long session on a machine inside a Claude Code run. */
+const from = (cwd, command) => {
+  const session = randomUUID();
+  const event = { session_id: session, tool_name: "Bash", tool_input: { command }, cwd };
+  return callHook(HOOK, event, { ...HOME, FORGE_SESSION_ID: session }).stdout;
+};
 
 /* A table of shape and the trees it may run in: the set is what the guard reads, so it is asserted
    whole rather than through a refusal that only says one of them had work at stake. */

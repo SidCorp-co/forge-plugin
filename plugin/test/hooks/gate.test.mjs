@@ -24,14 +24,16 @@ const out = (held) => (held.stdout.trim() ? JSON.parse(held.stdout) : null);
 test("before a call, the first gate to refuse is the answer and the rest are not asked", () => {
   const cwd = dirtyRepo();
   const ev = { tool_name: "Bash", tool_input: { command: "git stash" }, cwd, session_id: "g1" };
-  const held = out(run(["bash-guard", "codex-second", "learning-gate", "issue-read-first"], ev));
+  const held = out(run(["bash-guard", "codex-second", "learning-gate", "issue-read-first"], ev, { FORGE_SESSION_ID: "g1" }));
   assert.equal(held.hookSpecificOutput.permissionDecision, "deny");
   assert.match(held.hookSpecificOutput.permissionDecisionReason, /git stash silently reverts/u);
   assert.match(held.hookSpecificOutput.permissionDecisionReason, /forge hooks --how bash-guard/u, "the refusal names its own gate");
   assert.equal(out(run(["bash-guard"], { ...ev, tool_input: { command: "git stash list" } })), null, "silence is silence");
-  /* Two gates with a reason: one answer, the first's, and the second is never asked. */
+  /* Two gates with a reason: one answer, the first's, and the second is never asked. Its own
+     session, because what this asks is which gate answered and not what the answer said in full. */
   const twice = `git stash; sed -i s/a/b/ ${cwd}/.claude/projects/x/memory/note.md`;
-  const both = run(["bash-guard", "learning-gate"], { ...ev, tool_input: { command: twice } });
+  const both = run(["bash-guard", "learning-gate"], { ...ev, session_id: "g1-both", tool_input: { command: twice } },
+    { FORGE_SESSION_ID: "g1-both" });
   assert.doesNotThrow(() => JSON.parse(both.stdout), "one JSON answer, not two");
   assert.match(JSON.parse(both.stdout).hookSpecificOutput.permissionDecisionReason, /git stash/u);
 });

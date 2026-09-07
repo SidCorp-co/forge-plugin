@@ -3,10 +3,8 @@
    from hours earlier and refused a delegated run that had just read (ISS-33, ISS-57). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  existsSync, mkdirSync, readFileSync, readdirSync, rmSync, utimesSync, writeFileSync,
-} from "node:fs";
-import { spawn, spawnSync } from "node:child_process";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
 import { tempHome } from "../fixtures.mjs";
@@ -63,9 +61,10 @@ globalThis.fetch = async (address, init = {}) => {
 };
 
 const {
-  KEPT, commentPage, creditCaused, cutLine, mustBeShown, noteShown, postComment, refusalFor,
-  sessionKey, shownTo,
+  commentPage, creditCaused, cutLine, mustBeShown, postComment, refusalFor, sessionKey,
 } = await import("../../src/tracker/comments.mjs");
+/* How a credit survives is the journal's, and its cases went with it to test/shown/journal.test.mjs. */
+const { creditedTo: shownTo } = await import("../../src/shown/journal.mjs");
 
 const one = (id, text, at = "2026-09-03T05:22:18.757Z") =>
   ({ documentId: id, createdAt: at, body: fenced(text) });
@@ -208,188 +207,12 @@ test("a run's own id outranks the saved one, and the event's outranks it too", (
   }
 });
 
-const STORE = join(HOME.path, "forge", "comments-shown.json");
-const LOG = `${join(HOME.path, "forge", "comments-shown")}.jsonl`;
-const store = () => JSON.parse(readFileSync(STORE, "utf8"));
-const ids = (count, mark) => Array.from({ length: count }, (unused, at) => `${mark}-${at}`);
-const credit = (session, documentId, made) =>
-  noteShown(session, documentId, made.map((id) => ({ documentId: id })));
-
-const seed = (rows) => {
-  writeFileSync(STORE, JSON.stringify(rows));
-  rmSync(LOG, { force: true });
-  for (const one of readdirSync(join(HOME.path, "forge"))) {
-    if (one.endsWith(".folding")) rmSync(join(HOME.path, "forge", one), { force: true });
-  }
-};
-
-/* The credit is an append and the file is what the appends have been folded into, so a case that
-   reads the file rather than asking `shownTo` writes the journal up to the length that folds it. */
-const foldNow = (session, documentId) => {
-  for (let at = 0; at < KEPT.lines; at += 1) credit(session, documentId, [`fold-${at}`]);
-  return store();
-};
-
 test("the state is keyed by session and issue, and an id-less comment records nothing", () => {
   assert.ok(shownTo("session-one", ISSUE).has("c1"), "the session that was shown holds the id");
   assert.equal(shownTo("nobody-at-all", ISSUE).size, 0, "and it is one key per session");
   assert.equal(shownTo("session-one", "another-issue").size, 0, "one key per issue under it too");
   assert.equal(shownTo("session-four", ISSUE).size, 0,
     "the session shown only an id-less comment recorded nothing, so it is asked again");
-});
-
-/* The defect ISS-650 is: eight was fitted to one device, and a wave writes under nine names or more,
-   so the run in a gate wait was the coldest and lost every issue it had been shown. */
-test("no count of sessions decides which stay: nine write, and all nine keep their credit", () => {
-  seed({});
-  const nine = ids(9, "wave");
-  for (const session of nine) credit(session, "issue-A", ["c1"]);
-  for (const session of nine) {
-    assert.deepEqual([...shownTo(session, "issue-A")], ["c1"], `${session} kept its own credit`);
-  }
-});
-
-test("a session that has just written is kept whatever else the file holds", () => {
-  seed(Object.fromEntries(ids(40, "other")
-    .map((name) => [name, { at: new Date().toISOString(), issues: { "issue-A": ["c1"] } }])));
-  credit("the-forty-first", "issue-A", ["c2"]);
-  assert.deepEqual([...shownTo("the-forty-first", "issue-A")], ["c2"], "forty others evict nobody");
-  assert.deepEqual([...shownTo("other-0", "issue-A")], ["c1"], "and none of the forty is dropped");
-});
-
-/* Age is what a dead session is, and the only thing that drops one. `<` is the comparison, so a
-   session exactly at the cutoff is kept: the safe side is the one that costs no delivery. */
-test("a session silent longer than a day goes, and one inside the day stays", () => {
-  const ago = (ms) => new Date(Date.now() - ms).toISOString();
-  const day = KEPT.days * 86_400_000;
-  seed({
-    "long-gone": { at: ago(day + 5_000), issues: { "issue-A": ["c1"] } },
-    "just-inside": { at: ago(day - 5_000), issues: { "issue-A": ["c1"] } },
-  });
-  assert.equal(shownTo("long-gone", "issue-A").size, 0, "a day and more of silence is a session that ended");
-  assert.deepEqual([...shownTo("just-inside", "issue-A")], ["c1"], "and one inside it is untouched");
-  const held = foldNow("writing-now", "issue-B");
-  assert.equal(held["long-gone"], undefined, "and the fold is where it leaves the file");
-  assert.deepEqual(held["just-inside"].issues["issue-A"], ["c1"]);
-  assert.equal(held["writing-now"].issues["issue-B"].length, KEPT.lines);
-});
-
-/* The bound is on what is kept. Forty was a count, and a dispatcher passes it in a morning. */
-test("a session past forty-one issues still holds its first, being nowhere near the id budget", () => {
-  seed({});
-  for (let at = 0; at < 41; at += 1) credit("busy", `issue-${at}`, [`c${at}`]);
-  assert.deepEqual([...shownTo("busy", "issue-0")], ["c0"], "the first is still there at the forty-first");
-  assert.deepEqual([...shownTo("busy", "issue-40")], ["c40"]);
-});
-
-test("past the id budget the coldest issue goes, and never the issue being credited", () => {
-  const wide = Object.fromEntries(ids(30, "issue").map((key) => [key, ids(KEPT.ids, key)]));
-  seed({ big: { at: new Date().toISOString(), issues: wide } });
-  const held = foldNow("big", "issue-just-read").big.issues;
-  const total = Object.values(held).reduce((sum, kept) => sum + kept.length, 0);
-  assert.ok(total <= KEPT.perSession, `${total} ids kept is inside the budget of ${KEPT.perSession}`);
-  assert.equal(held["issue-just-read"].length, KEPT.lines, "the issue this write read is the one kept");
-  assert.equal(held["issue-0"], undefined, "and the coldest is the one paid with");
-  assert.deepEqual(Object.keys(held).at(-1), "issue-just-read", "which is the last key, being the newest");
-});
-
-/* Rebuilding the file left 1 of 12 credits and eleven went with no call having failed. Every child
-   parks on one wall-clock instant, so the overlap is the case rather than the machine's scheduling
-   of twelve start-ups, and the writers are processes because that is the losing shape. */
-const SOURCE = new URL("../../src/tracker/comments.mjs", import.meta.url).pathname;
-const WRITERS = 12;
-
-const allAtOnce = async (issue) => {
-  const startAt = Date.now() + 1_000;
-  const marks = ids(WRITERS, "from");
-  await Promise.all(marks.map((mark) => new Promise((settle) => {
-    spawn(process.execPath, ["--input-type=module", "-e", `
-      import { noteShown } from ${JSON.stringify(SOURCE)};
-      const gate = new Int32Array(new SharedArrayBuffer(4));
-      while (Date.now() < ${startAt}) Atomics.wait(gate, 0, 0, 1);
-      noteShown("one-session", ${JSON.stringify(issue)}, [{ documentId: ${JSON.stringify(mark)} }]);
-    `], { stdio: ["ignore", "inherit", "inherit"] }).on("exit", settle);
-  })));
-  const kept = shownTo("one-session", issue);
-  return marks.filter((mark) => !kept.has(mark));
-};
-
-test("twelve processes credit one store at one instant and none of the twelve is lost", async () => {
-  seed({});
-  assert.deepEqual(await allAtOnce("issue-B"), [], "every credit is in the store");
-});
-
-/* A fold killed between its rename and its release leaves a lock nothing else sweeps, and its own
-   lines in an aside. Neither may cost a credit: the lock is reclaimed only from the holder read
-   stale, and an aside is read exactly as the journal is until some fold puts it in the file. */
-test("twelve contenders lose no credit past a stranded lock and a stranded aside", async () => {
-  seed({});
-  const lock = `${STORE}.lock`;
-  writeFileSync(lock, "a holder that died");
-  writeFileSync(`${LOG}.a-fold-that-died.folding`,
-    `${JSON.stringify({ at: new Date().toISOString(), session: "one-session", issue: "issue-C", ids: ["stranded"] })}\n`);
-  const old = Date.now() / 1000 - 600;
-  utimesSync(lock, old, old);
-  assert.deepEqual(await allAtOnce("issue-C"), [], "no credit waited on the lock at all");
-  assert.ok(shownTo("one-session", "issue-C").has("stranded"), "and the abandoned fold's line reads");
-  const held = foldNow("one-session", "issue-C")["one-session"].issues["issue-C"];
-  assert.ok(held.includes("stranded"), "the fold takes the abandoned lines into the file");
-  assert.equal(existsSync(lock), false, "and reclaims the stranded lock, being the one thing that locks");
-});
-
-/* Two rotations by one process behind a lock it never gets. Each rename needs its own destination:
-   named once per process, the second rotation renames over the aside the first one left waiting. */
-test("a second rotation behind a lock it cannot get keeps the first rotation's lines", () => {
-  seed({});
-  const lock = `${STORE}.lock`;
-  writeFileSync(lock, "a holder that is alive");
-  for (let at = 0; at < KEPT.lines; at += 1) credit("one-session", "issue-P", [`p-${at}`]);
-  for (let at = 0; at < KEPT.lines; at += 1) credit("one-session", "issue-Q", [`q-${at}`]);
-  const asides = () => readdirSync(join(HOME.path, "forge")).filter((one) => one.endsWith(".folding"));
-  assert.equal(shownTo("one-session", "issue-P").size, KEPT.lines, "the rotation that lost the lock kept its lines");
-  assert.equal(shownTo("one-session", "issue-Q").size, KEPT.lines, "and so did the one after it");
-  assert.equal(asides().length, 2, "each rotation waits in an aside of its own");
-  rmSync(lock, { force: true });
-  for (let at = 0; at < KEPT.lines; at += 1) credit("one-session", "issue-R", [`r-${at}`]);
-  assert.equal(asides().length, 0, "and the first fold to get the lock reads them in and sweeps them");
-  assert.equal(shownTo("one-session", "issue-P").size, KEPT.lines, "keeping what was waiting in them");
-});
-
-/* One append is one call, and the rotation under it is another process's: the line can land in an
-   inode a fold has already read and unlinked, which no lock the appender takes can prevent. Each
-   writer folds every second line, because at the shipped threshold the window is too narrow to
-   watch — the same harness lost nothing against code that confirmed nothing, and 2 to 7 credits of
-   2400 once the rotations were this frequent. */
-test("a credit survives the journal being rotated and folded away under its append", async () => {
-  seed({});
-  const each = 300;
-  const marks = ids(8, "issue-W");
-  await Promise.all(marks.map((mark) => new Promise((settle) => {
-    spawn(process.execPath, ["--input-type=module", "-e", `
-      import { KEPT, noteShown } from ${JSON.stringify(SOURCE)};
-      KEPT.lines = 2;
-      for (let at = 0; at < ${each}; at += 1) {
-        noteShown("hot-session", ${JSON.stringify(mark)}, [{ documentId: "c-" + at }]);
-      }
-    `], { stdio: ["ignore", "inherit", "inherit"] }).on("exit", settle);
-  })));
-  for (const mark of marks) {
-    const kept = shownTo("hot-session", mark);
-    const missing = ids(each, "c").filter((id) => !kept.has(id));
-    assert.deepEqual(missing, [], `${mark} lost a credit to a rotation under the append`);
-  }
-});
-
-test("one issue keeps the last four hundred ids and no more", async () => {
-  const many = Array.from({ length: KEPT.ids + 5 }, (unused, at) => one(`many-${at}`, `comment ${at}`));
-  page = { comments: many, hasMore: false };
-  const target = "22222222-2222-4222-8222-222222222222";
-  seed({});
-  await refusalFor([{ ref: "ISS-58", documentId: target }], "session-wide");
-  const kept = [...shownTo("session-wide", target)];
-  assert.equal(kept.length, KEPT.ids, "no issue keeps more ids than the cap");
-  assert.equal(kept.at(-1), `many-${KEPT.ids + 4}`, "and the ones kept are the most recently credited");
-  assert.equal(kept.includes("many-0"), false);
 });
 
 /* The defect this issue is: the gate covered three verbs and not the five that write the record

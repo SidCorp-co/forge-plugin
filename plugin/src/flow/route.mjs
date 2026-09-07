@@ -2,6 +2,7 @@
    word left it at, and the one target the verb may move it to. What each status is earned by, and
    the record it is read out of, is earned.mjs. The flow: `forge guide contract the-flow`. */
 import { citedClauses } from "../spec/checked.mjs";
+import { sayIfChanged, sessionKey } from "../shown/ledger.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { TRIAGES, atMinute, criterionNumber, planFlags, unwrap } from "./machine.mjs";
 import {
@@ -305,5 +306,6 @@ export const deployFor = async (plan, status = null) =>
 
 export const owedSaid = async (documentId, issue, comments, ref, cut = null) => {
   const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan, issue.status), () => citedClauses(issue));
-  return owedLine(view, ref, owedIn(view, ref));
+  const said = owedLine(view, ref, owedIn(view, ref));
+  return sayIfChanged(sessionKey(), `owed-next ${documentId}`, said);
 };

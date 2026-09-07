@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
 import { askedAlready, askedByAnyone, deny, how, nameLike, settled, shellText, shellWrites, spans, unquote, writtenPaths, WRITES, done } from "../_hook.mjs";
+import { sayOnce, sessionKey } from "../../src/shown/ledger.mjs";
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../../src/checks/learning.mjs";
 /* The `.md` half of what the shared reading answers: this gate judges content, and a guarded path with any other extension carries none for it to judge. The class is `_hook.mjs`'s, so a name it would read is a name this reads. */
@@ -227,13 +228,12 @@ export const run = (ev) => {
               `        ${lb} already says: ${b.slice(0, 140)}`,
           )
           .join("\n");
-        deny(
-          "This repeats what the skill already says — that is a defect, not a style preference: two " +
-            "authorities for one rule diverge the first time someone corrects only the copy they " +
-            `found.\n\n${joined}\n\n` +
-            "Do this: keep it in one place and cite it from the other. If the existing wording is " +
-            "the worse one, replace it rather than adding beside it." + how(),
-        );
+        const full = "This repeats what the skill already says — that is a defect, not a style "
+          + "preference: two authorities for one rule diverge the first time someone corrects only "
+          + `the copy they found.\n\n${joined}\n\n`
+          + "Do this: keep it in one place and cite it from the other. If the existing wording is "
+          + "the worse one, replace it rather than adding beside it." + how();
+        deny(sayOnce(sessionKey(ev), "learning-gate", full, { route: "learning-gate" }));
       }
     }
     if (askedAlready(ev, settled(path), "learning-gate")) done();
