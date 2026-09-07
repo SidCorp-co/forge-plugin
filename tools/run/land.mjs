@@ -1,16 +1,20 @@
-/* What every landing on this checkout shares — the span the lock is held for, the push both verbs
-   make — and `land` itself, the verb for a commit that is no release. `run.mjs` keeps the release's
-   ten steps, so neither verb can hold the branch for a span the other does not (ISS-512). */
+/* What both landing verbs share — the locked span, the push — and `land`, for a commit that is no
+   release. The steps stay `run.mjs`'s, so neither verb holds the branch longer than the other's
+   roles say (ISS-512). */
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 import { checkoutRoot, defaultBranch, gitOut, loud, REMOTE, Stop, stop } from "../checkout.mjs";
 import { shipHolder, takeShipLock, WAIT_MS } from "./lock.mjs";
 
-/* The span one landing holds this checkout's lock for: the fetch, whose answer the rebase and the
-   version are taken against, through the push. The install steps touch no branch. */
+/* The span: the fetch the rebase and the version are taken against, through the last step that
+   moves what every worktree shares — the branch, and the registration an install reads. Dropped
+   between two of those, a release installing after a later push leaves the older copy in the cache. */
 export const LANDS = "lands";
 export const PUSHES = "pushes";
+export const INSTALLS = "installs";
+
+export const SHARED = new Set([PUSHES, INSTALLS]);
 
 export const cleanTree = (tree) => {
   const dirty = gitOut(["status", "--porcelain"], tree);
@@ -27,21 +31,21 @@ export const waitMs = (flags) => {
 };
 
 /* Not `loud`: the refusal is composed after the caller has put the tree back, so it describes what
-   is there. The lock does not reach a landing from another machine, the one race that survives it,
-   and what that leaves to undo is the caller's — hence the reason it hands in. */
+   is there. A landing from another machine is the one race the lock misses, and undoing that is the
+   caller's — hence the reason it hands in. */
 export const pushing = (tree, base, rejected) => {
   const run = spawnSync("git", ["push", REMOTE, `HEAD:${base}`], { cwd: tree, encoding: "utf8", stdio: "inherit" });
   if (run.error) stop(`git could not be run: ${run.error.message}. Check the remote is reachable.`);
   if (run.status !== 0) stop(`git push ${REMOTE} HEAD:${base} exited ${run.status}. ${rejected()}`);
 };
 
-/** The steps of one landing, in the order given, under a lock taken at the first that touches the
- *  branch and dropped at the push: the span is the steps' own roles, never the caller's to decide. */
+/** One landing's steps, in the order given: the span is the roles', never the caller's to decide. */
 export const runLanding = async (steps, order, tree, { ms, held, again }) => {
   let drop = null;
+  const last = [...order].reverse().find((at) => SHARED.has(steps[at][2]));
   try {
     for (const at of order) {
-      const [name, run, role] = steps[at];
+      const [name, run] = steps[at];
       if (!drop && held(at)) drop = await takeShipLock(tree, shipHolder(tree), { ms });
       console.log(`\nstep ${at + 1}/${steps.length}  ${name}`);
       try {
@@ -53,7 +57,7 @@ export const runLanding = async (steps, order, tree, { ms, held, again }) => {
         process.exitCode = 1;
         return false;
       }
-      if (role === PUSHES && drop) {
+      if (at === last && drop) {
         drop();
         drop = null;
       }

@@ -25,7 +25,8 @@ export const runIn = (cwd, argv, env = process.env) =>
    repository's gate, which ship spends by name — the real one needs a tree this scratch checkout is not. */
 export const GATE = "node -e \"console.log('scratch gate ran')\"";
 
-const COPIED = [SCRIPT, join("tools", "run", "args.mjs"), join("tools", "run", "land.mjs"),
+const COPIED = [SCRIPT, join("tools", "run", "args.mjs"), join("tools", "run", "install.mjs"),
+  join("tools", "run", "land.mjs"),
   join("tools", "run", "landing.mjs"), join("tools", "run", "lock.mjs"), join("tools", "run", "review.mjs"),
   join("tools", "run", "occupant.mjs"), join("tools", "run", "run-id.mjs"),
   join("tools", "run", "version.mjs"), join("tools", "checkout.mjs"),
@@ -108,11 +109,100 @@ export const landIn = (work, path, lines, message) => {
   git(work, "commit", "-m", message);
 };
 
-/* Step 8 is `claude`, which BARE does not carry, so the release runs as far as it can and the last
-   step is then reached in a process of its own — which is how a resume reaches it too. */
+/* The install step is `claude`, which BARE does not carry, so the release runs as far as it can and
+   the last step is then reached in a process of its own — which is how a resume reaches it too. */
+export const LAST_STEP = 9;
+
 export const lastStep = (work) => {
   runIn(work, ["ship"], BARE);
-  return runIn(work, ["ship", "--from", "10"], BARE);
+  return runIn(work, ["ship", "--from", String(LAST_STEP)], BARE);
+};
+
+/* The `claude` the install steps invoke: the one registration the real one keeps, a cache keyed by
+   version and the install record `pluginCopy` reads, so a case can ask which tree the install read.
+   Three files switch its failures on: an add of a named path, both updates, and an install that
+   records a version below the tree's. */
+const CLAUDE_STUB = `#!/usr/bin/env node
+import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+const room = join(dirname(fileURLToPath(import.meta.url)), "..");
+const argv = process.argv.slice(2);
+appendFileSync(join(room, "claude-calls.json"), JSON.stringify(argv) + "\\n");
+const said = (name) => (existsSync(join(room, name)) ? readFileSync(join(room, name), "utf8").trim() : null);
+const AT = join(room, "marketplace-source");
+if (argv[1] === "marketplace" && argv[2] === "add") {
+  if (said("claude-refuses-add-of") === argv[3]) {
+    process.stderr.write("this add was told to refuse\\n");
+    process.exit(1);
+  }
+  writeFileSync(AT, argv[3] + "\\n");
+  process.exit(0);
+}
+if (said("claude-update-refuses") !== null) {
+  process.stderr.write("this update was told to refuse\\n");
+  process.exit(1);
+}
+const source = said("marketplace-source");
+if (!source) {
+  process.stderr.write("no marketplace is registered here\\n");
+  process.exit(1);
+}
+if (argv[1] === "update") {
+  const [name, market] = argv[2].split("@");
+  const manifest = JSON.parse(readFileSync(join(source, "plugin", ".claude-plugin", "plugin.json"), "utf8"));
+  const version = said("claude-installs-old") ?? manifest.version;
+  const dir = join(process.env.HOME, ".claude", "plugins", "cache", market, name, version);
+  mkdirSync(dirname(dir), { recursive: true });
+  cpSync(join(source, "plugin"), dir, { recursive: true });
+  const record = join(process.env.HOME, ".claude", "plugins", "installed_plugins.json");
+  const held = existsSync(record) ? JSON.parse(readFileSync(record, "utf8")) : { version: 2, plugins: {} };
+  held.plugins[argv[2]] = [...(held.plugins[argv[2]] ?? []),
+    { scope: "user", installPath: dir, version, lastUpdated: new Date().toISOString() }];
+  writeFileSync(record, JSON.stringify(held, null, 2));
+}
+process.exit(0);
+`;
+
+/** A release shipped from a linked worktree, with a `claude` on PATH and `HOME` in the room, so what
+ *  the install read and what the cache now holds are both readable afterwards. */
+export const worktreeRoom = (name, key = "ISS-374") => {
+  const { at, work } = pushed(name);
+  const tree = join(at, `wt-${key}`);
+  git(work, "worktree", "add", tree, "-b", `iss-${key.slice(4)}`);
+  const bin = join(at, "bin");
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(join(bin, "claude"), CLAUDE_STUB, { mode: 0o755 });
+  mkdirSync(join(at, "home"), { recursive: true });
+  // Where an installed machine starts, so a release writing no registration is one that read it.
+  writeFileSync(join(at, "marketplace-source"), `${work}\n`);
+  return { at, work, tree, env: { ...BARE, HOME: join(at, "home"), PATH: `${bin}:${BARE.PATH}` } };
+};
+
+export const switched = (at, name, value = "") => writeFileSync(join(at, name), value);
+
+/** The version the plugin manifest in one tree carries, committed: `npm version` raises the
+ *  package's and this scratch checkout has no lifecycle script that follows it into the plugin's. */
+export const shipping = (tree, version) => {
+  const at = join("plugin", ".claude-plugin", "plugin.json");
+  writeFileSync(join(tree, at), JSON.stringify({ name: "scratch", version }));
+  git(tree, "add", at);
+  git(tree, "commit", "-m", `the version this tree's plugin carries`);
+};
+
+/** Which tree the marketplace names now, or nothing at all if it was never written. */
+export const registeredAt = (at) => {
+  const path = join(at, "marketplace-source");
+  return existsSync(path) ? readFileSync(path, "utf8").trim() : null;
+};
+
+export const claudeCalls = (at) => (existsSync(join(at, "claude-calls.json"))
+  ? readFileSync(join(at, "claude-calls.json"), "utf8") : "").split("\n").filter(Boolean).map((one) => JSON.parse(one));
+
+/** What the stub copied into the cache: the file's text, or nothing where no copy holds it. */
+export const cached = (at, market, name, version, path) => {
+  const file = join(at, "home", ".claude", "plugins", "cache", market, name, version, path);
+  return existsSync(file) ? readFileSync(file, "utf8") : null;
 };
 
 export const ref = (work) => git(work, "rev-parse", "--verify", "--quiet", "refs/forge/reviewed").stdout.trim();

@@ -7,7 +7,7 @@ import test from "node:test";
 import { chmodSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { BARE, called, git, lastStep, landIn, noBacklog, owedAt, pushed, ref, runIn, seen }
+import { BARE, called, git, LAST_STEP, lastStep, landIn, noBacklog, owedAt, pushed, ref, runIn, seen }
   from "./run-fixtures.mjs";
 
 /* The shape reader reaches the tracker's own settings, so it is loaded after the fixtures, whose
@@ -272,7 +272,7 @@ test("a CLI that cannot be run is this checkout's failure and not a tracker that
   lastStep(work);
   chmodSync(join(work, "plugin", "bin", "forge"), 0o000);
 
-  const run = runIn(work, ["ship", "--from", "10"], BARE);
+  const run = runIn(work, ["ship", "--from", String(LAST_STEP)], BARE);
   assert.match(run.stderr, /could not be run, so nothing is filed and the next ship asks again/u,
     `a CLI that would not start, reported as a tracker that did not answer:\n${run.stderr}`);
   assert.doesNotMatch(run.stderr, /the tracker did not answer/u,

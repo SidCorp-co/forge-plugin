@@ -10,7 +10,8 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { BARE, committed, GATE, git, landIn, pushed, ROOT, runIn, scratch, withReview } from "./run-fixtures.mjs";
+import { BARE, committed, GATE, git, landIn, LAST_STEP, pushed, ROOT, runIn, scratch, withReview }
+  from "./run-fixtures.mjs";
 
 const MODULE = join(ROOT, "tools", "run", "lock.mjs");
 const { dropShipLock, lockFile, takeShipLock, watching } = await import(MODULE);
@@ -57,7 +58,7 @@ const moveRemote = (room, nth) => {
   git(mover, "push", "-q", "origin", "HEAD:master");
 };
 
-/* `claude` is steps 8 and 9, and BARE carries none: a case that needs a whole ship past the push
+/* `claude` is the install step, and BARE carries none: a case that needs a whole ship past the push
    supplies one, and this one answers with whether the lock was there while it ran. */
 const claudeSaying = (room, marker) => {
   const bin = join(room.at, "bin");
@@ -168,7 +169,7 @@ test("a ship waiting behind a landing names it, reaches no step, and refuses rat
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stdout, /waiting behind the landing in \/run\/wt-ISS-999/u, run.stdout);
   assert.ok(run.stdout.includes(`pid ${other.pid}`), run.stdout);
-  assert.doesNotMatch(run.stdout, /step 2\/10/u, "a ship waiting for the lock took the fetch anyway");
+  assert.doesNotMatch(run.stdout, /step 2\/9/u, "a ship waiting for the lock took the fetch anyway");
   assert.match(run.stderr, /has been held by \/run\/wt-ISS-999/u, run.stderr);
   assert.ok(run.stderr.includes(`rm ${at(work, LOCK)}`), run.stderr);
   /* A landing and not a ship: the checkout lands the wave's own record through this same lock, and
@@ -195,35 +196,70 @@ test("a lock left by a ship that died is named with the command that clears it, 
   assert.ok(existsSync(at(work, LOCK)), "the ship took over a lock it was told to leave alone");
 });
 
-/* The gate is inside the span and the install steps are outside it, and both are read from inside
-   the step rather than from what is left when the run ends: a lock dropped only by the outer
-   `finally` would look exactly the same afterwards. */
-test("the lock is held through the gate and gone by the time an install step runs", () => {
+/* The gate and the install are both inside the span, and both are read from inside the step rather
+   than from what is left when the run ends: a lock dropped only by the outer `finally` would look
+   exactly the same afterwards. The install is in it because the marketplace installs from one
+   registered directory, so two releases installing at once leave the cache holding whichever
+   finished last while the remote holds whichever pushed last (ISS-374). */
+test("the lock is held through the gate and the install, and gone once the install has run", () => {
   const room = remoted("lock-span",
     "node -e \"const f=require('fs');f.writeFileSync('../gate-saw',f.existsSync('.git/forge-ship-lock')?'held':'free')\"");
   landIn(room.work, join("plugin", "src", "one.mjs"), 4, "the change this release ships");
   const env = claudeSaying(room, "claude-saw");
 
   const run = runIn(room.work, ["ship"], env);
-  assert.match(run.stdout, /step 10\/10/u, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /step 9\/9/u, `${run.stdout}${run.stderr}`);
   assert.equal(readFileSync(join(room.at, "gate-saw"), "utf8").trim(), "held",
     "the gate ran with the branch unlocked, so a sibling could move it under the run");
-  assert.equal(readFileSync(join(room.at, "claude-saw"), "utf8").trim(), "free",
-    "an install step held the landing lock, which blocks a sibling for a landing already made");
-  assert.ok(!existsSync(at(room.work, LOCK)), "the ship kept its lock past the push");
+  assert.equal(readFileSync(join(room.at, "claude-saw"), "utf8").trim(), "held",
+    "the install ran unlocked, so a sibling's release could install over it");
+  assert.ok(!existsSync(at(room.work, LOCK)), "the ship kept its lock past the install");
 });
 
-test("a resume that pushes nothing takes no lock and runs to its last step behind one", () => {
+/* Where the span ends, which no release case can read: it has no step after its last shared one.
+   These steps are nothing but their roles, so a span computed off the wrong one is what fails. */
+test("the landing drops its lock after the last shared step, and not on its way out of the run", async () => {
+  const { work } = pushed("landing-span");
+  const { INSTALLS, LANDS, PUSHES, runLanding } = await import(join(ROOT, "tools", "run", "land.mjs"));
+  const saw = [];
+  const watch = (name) => [name, () => saw.push([name, existsSync(at(work, LOCK))])];
+  const steps = [watch("before"), [...watch("fetch"), LANDS], [...watch("push"), PUSHES],
+    [...watch("install"), INSTALLS], watch("after")];
+
+  assert.equal(await runLanding(steps, [...steps.keys()], work,
+    { ms: 30_000, held: (nth) => Boolean(steps[nth][2]), again: () => "unreachable" }), true);
+  assert.deepEqual(saw, [["before", false], ["fetch", true], ["push", true], ["install", true], ["after", false]],
+    `the locked span is not the shared steps': ${JSON.stringify(saw)}`);
+  assert.ok(!existsSync(at(work, LOCK)), "the landing left its lock behind");
+});
+
+test("a resume aimed past the install takes no lock and runs to its last step behind one", () => {
   const room = remoted("lock-install-only");
   const env = claudeSaying(room, "claude-saw");
   const other = idle();
   held(room.work, { tree: "/run/wt-ISS-997", pid: other.pid, since: "2026-09-06T06:00:00.000Z" });
 
-  const run = runIn(room.work, ["ship", "--from", "8"], env);
+  const run = runIn(room.work, ["ship", "--from", String(LAST_STEP)], env);
   other.kill();
-  assert.doesNotMatch(run.stdout, /waiting behind/u, "a resume that lands nothing waited for the branch");
-  assert.match(run.stdout, /step 10\/10/u, `${run.stdout}${run.stderr}`);
+  assert.doesNotMatch(run.stdout, /waiting behind/u, "a resume that moves nothing shared waited for the branch");
+  assert.match(run.stdout, /step 9\/9/u, `${run.stdout}${run.stderr}`);
   assert.ok(existsSync(at(room.work, LOCK)), "the resume removed a lock it never took");
+});
+
+/* A resume that reaches the install moves the one registration every session on this machine reads,
+   so it waits for the lock exactly as a push does. */
+test("a resume that reaches the install waits behind a landing that holds the lock", () => {
+  const room = remoted("lock-resume-install");
+  const env = claudeSaying(room, "claude-saw");
+  const other = idle();
+  held(room.work, { tree: "/run/wt-ISS-996", pid: other.pid, since: "2026-09-06T06:00:00.000Z" });
+
+  const run = runIn(room.work, ["ship", "--from", "8", "--wait", "0.05"], env);
+  other.kill();
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stdout, /waiting behind the landing in \/run\/wt-ISS-996/u,
+    `a resume that installs did not wait for the lock:\n${run.stdout}${run.stderr}`);
+  assert.ok(!existsSync(join(room.at, "claude-saw")), "the install ran while another landing held the lock");
 });
 
 test("a ship that stops inside the span leaves no lock behind", () => {
@@ -256,7 +292,7 @@ test("a rejected push undoes the version commit it made, and the resume lands th
 
   const env = claudeSaying(room, "claude-saw");
   const again = runIn(room.work, ["ship", "--from", "2"], env);
-  assert.match(again.stdout, /step 10\/10/u, `${again.stdout}${again.stderr}`);
+  assert.match(again.stdout, /step 9\/9/u, `${again.stdout}${again.stderr}`);
 
   const subjects = git(room.work, "log", "--format=%s", "origin/master").stdout;
   assert.match(subjects, /the change this release ships \(ISS-333\)/u, subjects);
@@ -465,7 +501,7 @@ test("a ship waits behind the lock record a land from the checkout leaves, on th
   assert.equal(shipped.stdout.match(sentence)[0], landed.stdout.match(sentence)?.[0],
     "the two landing verbs print two different contention messages for one lock");
   assert.ok(shipped.stdout.includes(room.work), `the tree the record names is not printed:\n${shipped.stdout}`);
-  assert.doesNotMatch(shipped.stdout, /step 2\/10/u, "a ship behind a land took the fetch anyway");
+  assert.doesNotMatch(shipped.stdout, /step 2\/9/u, "a ship behind a land took the fetch anyway");
 });
 
 /* Every guard case runs against a lock somebody else is holding, and that is what makes them about

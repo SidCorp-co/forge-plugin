@@ -6,44 +6,8 @@ import test from "node:test";
 import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { BARE, brokenAnswer, committed, corrected, emptyAnswer, GATE, git, lastStep, landIn, planned, pushed, ref,
-  ROOT, runIn, scratch, sized, stubbed } from "./run-fixtures.mjs";
-
-/* Step 7 is reached only from a tree that is not the checkout, so every fixture shipping from the
-   scratch root early-returns past it (ISS-143). `pull.rebase` is set in the scratch repository
-   rather than left to the developer's: off it, this case turns on a setting the test does not hold. */
-test("step 7 follows to the pushed head over a dirty checkout, and stops where a fast-forward cannot", () => {
-  const { at, work } = pushed("follows");
-  git(work, "config", "pull.rebase", "true");
-  landIn(work, join("docs", "another-run.md"), 1, "a fold another run keeps open");
-  git(work, "push", "origin", "HEAD:master");
-  const tree = join(at, "wt-ISS-143");
-  git(work, "worktree", "add", tree, "-b", "iss-143");
-  landIn(tree, join("plugin", "src", "one.mjs"), 4, "the change this release ships");
-  const theirs = join(work, "docs", "another-run.md");
-  writeFileSync(theirs, "the fold, as that run has it now\n");
-
-  const run = runIn(tree, ["ship"], BARE);
-  assert.match(run.stdout, /step 7\/10  the checkout follows/u, run.stdout);
-  assert.match(run.stderr, /stopped at step 8 \(marketplace scratch-local\)/u,
-    `step 7 stopped on a checkout it had only to fast-forward:\n${run.stdout}${run.stderr}`);
-  assert.equal(git(work, "rev-parse", "HEAD").stdout.trim(), git(tree, "rev-parse", "HEAD").stdout.trim(),
-    "the marketplace installs from the checkout's working tree, so it has to reach the pushed head");
-  assert.equal(readFileSync(theirs, "utf8"), "the fold, as that run has it now\n",
-    "a dirty path the release does not move is another run's work, and losing it is worse than the stop");
-
-  /* A checkout holding a commit of its own is the case that genuinely cannot fast-forward, and the
-     stop has to name a route: the two a run reaches for unaided are both worse than the failure. */
-  landIn(work, join("docs", "local.md"), 1, "a commit the checkout has and the remote does not");
-  landIn(tree, join("plugin", "src", "two.mjs"), 4, "another change");
-  const stopped = runIn(tree, ["ship"], BARE);
-  assert.match(stopped.stderr, /stopped at step 7 \(the checkout follows\)/u, stopped.stderr);
-  assert.match(stopped.stderr, /status --short/u, `no read for the path in the way:\n${stopped.stderr}`);
-  assert.match(stopped.stderr, /log --oneline origin\/master\.\.HEAD/u,
-    `no read for the commits that are not upstream:\n${stopped.stderr}`);
-  assert.match(stopped.stderr, /git stash/u, "the route a run must not take is named, being the one it reaches for");
-});
-
+import { BARE, brokenAnswer, committed, corrected, emptyAnswer, GATE, git, LAST_STEP, lastStep, landIn,
+  planned, pushed, ref, ROOT, runIn, scratch, sized, stubbed } from "./run-fixtures.mjs";
 
 /* The threshold and the mark are typed here rather than imported: nothing imports an entry point,
    and a second party that has to agree with the constants is what pins them to the help at all. */
@@ -55,7 +19,9 @@ test("-h names all four steps, the resume flag and the threshold it counts again
     "The release count is printed beside it and decides nothing",
     "the sha the change landed as", "not the pushed head the push printed",
     "--done <the range's end>", "land a commit that is not a release", "It spends no",
-    "gate and raises no version"]) {
+    "gate and raises no version",
+    "The install reads the tree that shipped", "past the push and through the install",
+    "the source is the checkout and no registration is written"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
   assert.ok(!run.stdout.includes("3 release(s)"), `a release count is no part of the trigger:\n${run.stdout}`);
@@ -176,7 +142,7 @@ test("ship takes a version above the remote head, pushes, and stops at the first
   assert.equal(git(at, "-C", join(at, "origin.git"), "rev-parse", "master").stdout.trim(),
     git(work, "rev-parse", "HEAD").stdout.trim(), "the push did not land the bump it made");
   assert.ok(run.stdout.includes("scratch gate ran"), `the gate step did not spend the tree's own gate:\n${run.stdout}`);
-  assert.match(run.stderr, /stopped at step 8 \(marketplace scratch-local\)/u, run.stderr);
+  assert.match(run.stderr, /stopped at step 8 \(install scratch@scratch-local from the tree that shipped\)/u, run.stderr);
   assert.match(run.stderr, /Resume from there: node \S+ ship --from 8/u, run.stderr);
   assert.ok(!run.stdout.includes("Released."), "nothing may claim a release it did not finish");
 });
@@ -227,10 +193,10 @@ test("a resumed ship commits a bump left on disk, and never says nothing moved w
   runIn(work, ["ship", "--from", "5"], BARE);
   assert.equal(headVersion(), "1.0.2", "a version raised on disk and left uncommitted is committed by the resume");
 
-  const told = runIn(work, ["ship", "--from", "10"], BARE);
+  const told = runIn(work, ["ship", "--from", String(LAST_STEP)], BARE);
   assert.match(told.stdout, /moved since [0-9a-f]{7}/u, told.stdout + told.stderr);
   rmSync(join(work, ".git", "forge-ship-from"));
-  const blind = runIn(work, ["ship", "--from", "10"], BARE);
+  const blind = runIn(work, ["ship", "--from", String(LAST_STEP)], BARE);
   assert.match(blind.stderr, /no forge-ship-from in this tree's git directory/u, blind.stderr);
   assert.doesNotMatch(blind.stdout, /moved since/u, "a run that cannot compare may not tell a session it is safe");
   assert.match(blind.stderr, /the sha this change landed as cannot be named/u,
@@ -358,7 +324,7 @@ test("the restart line carries the reason the gate recorded, and names the files
   })}\n`);
 
   runIn(work, ["ship"], { ...BARE, XDG_CONFIG_HOME: home });
-  const out = runIn(work, ["ship", "--from", "10"], { ...BARE, XDG_CONFIG_HOME: home }).stdout;
+  const out = runIn(work, ["ship", "--from", String(LAST_STEP)], { ...BARE, XDG_CONFIG_HOME: home }).stdout;
   assert.match(out, /plugin\/hooks\/hooks\.json — the registration is read once at session start/u, out);
   assert.match(out, /plugin\/skills\/issue-flow\/SKILL\.md — no reason recorded at the write/u, out);
 });

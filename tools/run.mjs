@@ -12,7 +12,8 @@ import { freezesSession, FROZEN, pluginCopy } from "../plugin/src/tools/plugin-c
 import { checkoutRoot, defaultBranch, git, gitOut, loud, parsed, read, REMOTE, Stop, stop } from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
-import { cleanTree, land, LANDS, PUSHES, pushing, runLanding, waitMs } from "./run/land.mjs";
+import { follows, installs } from "./run/install.mjs";
+import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./run/land.mjs";
 import { isRelease, onlyRelease } from "./run/landing.mjs";
 import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
 import { occupied } from "./run/occupant.mjs";
@@ -44,9 +45,10 @@ const usage = () => [
   "                          print the wrapper a probe of the change must invoke",
   `  ${sig("ship")}`,
   "                          clean tree, fetch, rebase, `npm run check`, a version above the remote",
-  "                          head, push, the checkout pulled, the marketplace and the plugin",
-  "                          updated, then the installed copy named, the sha the change landed as,",
-  "                          and every file of it a session cannot pick up without restarting",
+  "                          head, push, the checkout offered that head, the marketplace and the",
+  "                          plugin installed from the tree that shipped, then the installed copy",
+  "                          named, the sha the change landed as, and every file of it a session",
+  "                          cannot pick up without restarting",
   `  ${sig("land")}         land a commit that is not a release: clean tree, fetch, rebase, push,`,
   "                          under the same lock the ship takes and nothing else of it. It spends no",
   "                          gate and raises no version, so what it pushes is the caller's judgement",
@@ -63,6 +65,19 @@ const usage = () => [
   "says beside that what the gate run a step earlier took and how that compares with the run before",
   "it, so a release that made the gate slower is visible where a release that wrote a lot of unread",
   "code already is.",
+  "",
+  "The install reads the tree that shipped. The marketplace installs from one registered directory,",
+  "so a release used to have to move the shared checkout to the pushed head before it could install,",
+  "and any commit a session left unpushed there stopped every other worktree's ship — after its push,",
+  "leaving the remote a version ahead of the cache. So the step that offers the checkout that head",
+  "reports rather than stops, naming each commit in the way, whose it is, what it touches, the",
+  "uncommitted paths and the head the checkout stays at, none of which the blocked run may move. The",
+  "install step then points the marketplace at this worktree for the length of the install, prints",
+  "the one command that puts the registration back before it moves it, and puts it back itself. Where",
+  "the checkout is already at the pushed head with nothing uncommitted under plugin or",
+  ".claude-plugin, the source is the checkout and no registration is written at all. Either way the",
+  "step ends by reading the install record, and refuses with both numbers where the cache does not",
+  "hold the version the tree that shipped carries.",
   "",
   "It names beside those the sha the change landed as, which is not the pushed head the push printed:",
   "the rebase rewrote the commit the run reviewed and the version commit sits above it, so a mark that",
@@ -81,10 +96,13 @@ const usage = () => [
   "all. A mark left unmoved keeps the count growing, which is how a skipped reading stays visible",
   "at the next ship; a mark planted too far forward grows nothing, which is why it is refused here.",
   "",
-  "One landing at a time: from the fetch to the push a landing holds a lock every worktree of this",
-  "checkout shares, so a sibling's landing cannot move the branch under a gate run and the rebase is",
-  "taken once, against a head nobody else is moving. It says whose landing it waits behind, waits on a",
-  "notification rather than a poll, and holds nothing after the push — the install steps run unlocked.",
+  "One landing at a time: from the fetch to the last step that moves what the checkout shares, a",
+  "landing holds a lock every worktree of this checkout shares, so a sibling's landing cannot move the",
+  "branch under a gate run and the rebase is taken once, against a head nobody else is moving. It says",
+  "whose landing it waits behind, waits on a notification rather than a poll, and for a ship holds it",
+  "past the push and through the install: two releases installing at once would leave the cache holding",
+  "whichever finished last while the remote holds whichever pushed last. A `land` makes no install and",
+  "drops it at its push.",
   "It is one lock and both landing verbs take it, so a `land` from the checkout waits behind a ship in",
   "a worktree and a ship waits behind it: a push that took no lock is what put a rejected push in the",
   "middle of a run's release. A lock a killed landing left is named with the one command that removes",
@@ -473,31 +491,11 @@ const shipSteps = (tree, root, base, note) => {
         + `moved${unwound(tree)}: rebase, re-run the review of the rebased head, then ${SELF} ship --from 2`);
       forgetBump(tree);
     }, PUSHES],
-    ["the checkout follows", () => {
-      if (resolve(tree) === resolve(root)) return console.log("  this tree is the checkout");
-      /* The marketplace installs from the checkout's working tree, so a checkout parked on another
-         branch would ship that branch under this release's version. */
-      const on = gitOut(["rev-parse", "--abbrev-ref", "HEAD"], root);
-      if (on !== base) {
-        stop(`the checkout at ${root} is on ${on}, and the marketplace installs from its working tree. `
-          + `Put it on ${base} — git -C ${root} checkout ${base} — then resume.`);
-      }
-      /* The fast-forward itself, never `pull`: a pull under `pull.rebase` is a rebase, which refuses a
-         dirty worktree even for a no-op, and runs share this checkout. Its refs are already this
-         repository's own, moved by the push a step ago, so there is nothing to fetch (ISS-143). */
-      loud("git", ["-C", root, "merge", "--ff-only", `${REMOTE}/${base}`], root,
-        `${root} cannot fast-forward to the pushed head, and the marketplace installs from its working `
-        + `tree. Read what is in the way: git -C ${root} status --short for a path the fast-forward `
-        + `needs, git -C ${root} log --oneline ${REMOTE}/${base}..HEAD for a commit it holds that is not `
-        + `upstream. Land that commit, or move that one path. Not \`git stash\` and not a commit of a `
-        + `file this run did not write: other runs' work is open in that tree.`);
-    }],
-    [`marketplace ${market}`, () => loud("claude", ["plugin", "marketplace", "update", market], root,
-      "The cache is keyed by version, so an update at an installed version is a no-op.")],
-    [`plugin ${plugin}@${market}`, () => loud("claude", ["plugin", "update", `${plugin}@${market}`], root,
-      "Install it by hand if the marketplace has it and this does not.")],
+    ["the checkout follows", () => follows(root, base, tree)],
+    [`install ${plugin}@${market} from the tree that shipped`, () =>
+      installs({ tree, root, base, market, plugin, self: SELF }), INSTALLS],
     ["the copy the next session loads", async () => {
-      const copy = pluginCopy(join(root, "plugin"));
+      const copy = pluginCopy(join(tree, "plugin"));
       console.log(copy
         ? `  ${copy.name} ${copy.running} running, ${copy.installed} installed${copy.stale ? " — this version is in no install record" : ""}`
         : "  no install record answers for this plugin");
@@ -530,10 +528,10 @@ const ship = async ({ flags }) => {
   const gateAt = steps.findIndex(([name]) => name === GATE);
   const order = [...steps.keys()].filter((at) => at >= from - 1);
   if (from - 1 > gateAt) order.unshift(gateAt);
-  /* Taken only where this run will push: a resume aimed at the install steps spends the gate again,
-     and holding the branch through that would block every sibling for a landing nobody makes. */
-  const pushAt = steps.findIndex(([, , role]) => role === PUSHES);
-  const lands = order.includes(pushAt) ? (at) => Boolean(steps[at][2]) : () => false;
+  /* Taken only where this run will move what the checkout shares — its branch, or the registration
+     an install reads. A resume aimed past both spends the gate again, and holding the branch through
+     that would block every sibling for a landing nobody makes. */
+  const lands = order.some((at) => SHARED.has(steps[at][2])) ? (at) => Boolean(steps[at][2]) : () => false;
   const whole = await runLanding(steps, order, tree, {
     ms,
     held: lands,
