@@ -17,9 +17,7 @@ export const rootFor = (directory) => join(transcriptBase(), slugFor(directory.r
 
 const OUTPUT = /^a\S*\.output$/u;
 
-/* The brief, never the whole file: over the raw text a transcript that had only GREPPED for the words
-   was admitted as a run and its search argument read as its claim. The rung below is read off a
-   record and not off the words either, for the reasons docs/cli/stats.md carries. */
+/* The brief, never the whole file: over raw text a transcript that had only GREPPED the words was admitted as a run, and the rung below is off a record for the same reason — docs/cli/stats.md. */
 export const FLOW_BRIEF = /issue-flow/u;
 
 const CONFIRMS = "forge record confirmation";
@@ -92,6 +90,12 @@ export const guidePartOf = (shell) => {
   if (!found) return null;
   return [found.slug, found.part].filter(Boolean).join(" ") || GUIDE_INDEX;
 };
+
+/* Off the line the part ends with, never this copy's pin — which for a transcript older than the pin
+   would be this machine's configuration passed off as that run's fact (ISS-673). */
+const SERVED_VERSION = /^Method version (\d+), which this project runs;/mu;
+
+export const guideVersionOf = (body) => SERVED_VERSION.exec(String(body ?? ""))?.[1] ?? null;
 
 /* A heredoc carries a document, not shell: read as commands, the criteria files a run writes named
    `npm run check` 423 times, each counted as a gate run that never happened. */

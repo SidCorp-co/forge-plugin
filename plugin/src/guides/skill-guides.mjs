@@ -35,7 +35,7 @@ const servedFrom = (slug, root, version) => {
 const homeOf = (slug, root, version) => servedFrom(slug, root, version).dir;
 
 /* Asked of the versions this copy stands behind, never of the pin: docs/cli/the-parts.md. */
-const isVersioned = (slug, root) =>
+export const isVersioned = (slug, root = HERE) =>
   SHIPPED.some((one) => existsSync(join(root, "guides", versionDir(one), "skills", slug)));
 
 const pinProblem = (slug, root) => (isVersioned(slug, root) ? pinRefusal() : null);

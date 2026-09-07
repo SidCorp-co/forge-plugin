@@ -11,6 +11,7 @@ import {
   WHOLE_SET_CLASS,
   callsIn,
   guidePartOf,
+  guideVersionOf,
   markerOf,
   readTranscript,
   rootFor,
@@ -20,6 +21,7 @@ import {
 import { median } from "./median.mjs";
 import { TIERS } from "../ladder.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
+import { isVersioned } from "../guides/skill-guides.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
@@ -225,7 +227,7 @@ export const runFrom = (path, session, text) => {
     byClass.set(call.class, { calls: was.calls + 1, wait: was.wait + call.wait });
     if (!call.answered) unanswered += 1;
     if (call.name === "Bash") add(repeats, said(call.command));
-    if (call.class === "forge guide") add(guideParts, guidePartOf(call.shell) ?? GUIDE_INDEX);
+    if (call.class === "forge guide") add(guideParts, partRead(call));
     const refusal = refusalIn(call);
     if (refusal) add(refusals, refusal);
     else if (call.error) add(errors, call.class);
@@ -331,6 +333,17 @@ const mergedCounts = (runs, pick) => {
   const merged = new Map();
   for (const run of runs) for (const [key, many] of pick(run)) add(merged, key, many);
   return [...merged].sort((left, right) => right[1] - left[1]);
+};
+
+/* A versioned part differs per version, so the key carries which: read again after a pin moved is a
+   run that changed method, not one that went back. The version is the one that call was served, off
+   the part's own last line, and a call refused or unanswered says so rather than borrow this pin. */
+const partRead = (call) => {
+  const part = guidePartOf(call.shell) ?? GUIDE_INDEX;
+  const [slug] = part.split(" ");
+  if (!isVersioned(slug)) return part;
+  const version = guideVersionOf(call.body);
+  return `${part} (${version ? `v${version}` : "version unread"})`;
 };
 
 /* `again` is runs that read the part more than once, not the extra reads: a run that read a part
@@ -495,7 +508,8 @@ export const profileLines = (held, all = false) => [
     `${"guide parts read".padEnd(36)}${"calls".padStart(7)}${"runs".padStart(6)}${"read again".padStart(12)}`,
     held.guideParts,
     ([part, one]) =>
-      `${part.padEnd(36)}${String(one.calls).padStart(7)}${String(one.runs).padStart(6)}${String(one.again).padStart(12)}`,
+      `${part.padEnd(36)}${String(one.calls).padStart(7)}`
+      + `${String(one.runs).padStart(6)}${String(one.again).padStart(12)}`,
     all,
   ),
   ...listing(`single waits of ${LONG_WAIT_MINUTES} minutes or more`, held.longest,
