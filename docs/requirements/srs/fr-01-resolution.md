@@ -85,6 +85,58 @@ rather than behaving as though the verb never existed.
 - **AC-01-4-2** · Rev: 1 · Proof: none yet — ISS-8
   WHEN a tool refuses this credential THEN the CLI SHALL record which tool, for which project, and
   when, and SHALL offer a way to list past that record.
+- **AC-01-4-3** · Rev: 1 · Proof: none yet — ISS-673
+  WHERE the project withholds the channel to this product's own backlog, the usage list SHALL not
+  advertise the filing verb for it.
+- **AC-01-4-4** · Rev: 1 · Proof: none yet — ISS-673
+  WHERE the project withholds that channel, the filing verb typed SHALL refuse in one line naming the
+  project's key.
+- **AC-01-4-5** · Rev: 1 · Proof: none yet — ISS-673
+  WHERE the project withholds that channel, a body aimed at this product filed on the project's own
+  backlog SHALL be held with the report route in the reply, except in this product's own repository,
+  where a defect in the product is the project's issue and nothing is held.
+- **AC-01-4-6** · Rev: 1 · Proof: none yet — ISS-673
+  WHERE the project allows only defects on that channel, an enhancement filing SHALL be refused by
+  its kind, and WHERE it allows all, the filing SHALL be read against the enhancement shape.
+- **AC-01-4-7** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a run's report is assembled THEN it SHALL tell nothing filed from filing withheld by the
+  project, as two distinct lines.
+- **AC-01-4-8** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the product's own method text is read THEN it SHALL name no destination verb for a finding.
+- **AC-01-4-9** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the filing verb's help is printed THEN it SHALL render the destination of a finding off the
+  project's key, naming the channel's verb where the key allows it and no verb where it does not.
+
+### UC-01-5 — The project's keys, and the machine's one option
+
+Rev: 1 · Actors: developer, agent · Enforces: BR-07, BR-08
+
+A project decides how this product behaves inside its checkout — what a run may report about the
+product, which version of the method it runs, how its changes land — and it decides in its own
+project file, because a decision held anywhere else is a plugin default wearing the project's name
+(BR-07). One choice is the machine's rather than the project's: whether a release on this machine
+lands itself or stops ready to land, since the landing runs on this machine's checkout. Each key is
+read from one place and reported with its source (BR-08).
+
+- **AC-01-5-1** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the resolution report is printed THEN the CLI SHALL list each project key with its value and
+  where it was read from.
+- **AC-01-5-2** · Rev: 1 · Proof: none yet — ISS-673
+  IF the project file does not set a key that has a product default THEN the CLI SHALL take that
+  default and SHALL name the default as the source.
+- **AC-01-5-3** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the developer sets the landing mode through the report verb THEN the CLI SHALL write it to
+  the account's configuration and to nothing of the project's.
+- **AC-01-5-4** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the project's release policy is read THEN the CLI SHALL derive the landing route from the
+  staging branch, the production branch and whether production deploys on its own, SHALL say `not
+  stated` where they do not answer, and SHALL let the project file's own key override the derivation.
+- **AC-01-5-5** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the project's release policy is read THEN the CLI SHALL print whether an independent judgement
+  is asked for, read from the tracker's project record and from nowhere else.
+- **AC-01-5-6** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the resolution report is printed THEN it SHALL print the landing mode the account's
+  configuration holds.
 
 ## The way back
 

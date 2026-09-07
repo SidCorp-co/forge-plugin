@@ -115,6 +115,36 @@ It reads only, and needs no lease of its own.
   IF the issues read do not fit one page THEN the view SHALL say so with the same notice a browse
   gives.
 
+### UC-03-6 — The lease follows the work
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-05
+
+When the run that built a change ends before the change lands, the landing and the judgement are
+other actors' work on the same issue, and each writes under a lease of its own rather than under
+the builder's (BR-05). What says whose turn it is cannot be the lease's own next line, which a
+transition clears; it is a landing checkpoint on the issue that transitions leave alone, whose state
+names one turn at a time — the landing's, the builder's when a landing moved its files, the judge's
+when a deployment is to be judged — and a takeover is allowed by that state and refused naming it
+(BR-01).
+
+- **AC-03-6-1** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a run declares its change ready to land THEN the CLI SHALL write a landing checkpoint on the
+  issue holding the run's identity, the branch, the judged head, the base and the files touched.
+- **AC-03-6-2** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a transition moves the issue THEN it SHALL leave the landing checkpoint intact.
+- **AC-03-6-3** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a lease is taken over THEN the CLI SHALL allow it only while the checkpoint's state names the
+  taker's turn.
+- **AC-03-6-4** · Rev: 1 · Proof: none yet — ISS-673
+  IF the checkpoint is absent or its state names another turn THEN the takeover SHALL be refused
+  naming the state.
+- **AC-03-6-5** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a takeover is allowed THEN the CLI SHALL append the transfer and the state it was taken at to
+  the claim history.
+- **AC-03-6-6** · Rev: 1 · Proof: none yet — ISS-673
+  WHILE the checkpoint names the builder's turn and the builder holds the lease, a reconciliation
+  write under that lease SHALL be accepted.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*

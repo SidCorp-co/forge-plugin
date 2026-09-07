@@ -148,6 +148,39 @@ issue scored, what left it out, and what one landing would free.
   IF a project sets a weight the table does not carry THEN the CLI SHALL refuse the ranking and
   SHALL name the weights it does carry.
 
+### UC-02-8 — The method arrives with the verb that acts, rendered and versioned
+
+Rev: 1 · Actors: agent · Enforces: BR-07, BR-09
+
+A method served as a static file is read by the agent choosing which part to read, and a part
+chosen can be the wrong one, one the issue's tier does not owe, or one read too early to be held when
+needed; a static part also cannot say what this project, this band and this status make true. The
+verbs that perform the acts know all three. So a part is rendered at the call from one source text
+per part (BR-09), for the project's keys and the version it pins (BR-07), and the verb that acts
+carries the part for its act.
+
+- **AC-02-8-1** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a part of the method is served THEN the CLI SHALL render it for the project's keys, the issue's
+  band and status and the version the project pins, removing marked lines and adding none.
+- **AC-02-8-2** · Rev: 1 · Proof: none yet — ISS-673
+  IF the project pins a version this copy does not ship THEN the CLI SHALL refuse in one line naming
+  the versions it ships.
+- **AC-02-8-3** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a part is served THEN its last line SHALL name the version it was read from.
+- **AC-02-8-4** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the method's index is cut for one issue THEN it SHALL list only the phases that issue's band,
+  status and project keys leave it owing.
+- **AC-02-8-5** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a verb first acts on an issue in a session THEN its reply SHALL carry the phase part for that
+  act, identical to what the guide verb prints for it, and a later act of the same kind in that
+  session SHALL carry none.
+- **AC-02-8-6** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a refusal is written THEN it SHALL end with the filing line only where the project's key
+  allows that channel.
+- **AC-02-8-7** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN one issue's whole context is re-minted THEN it SHALL carry the index cut for that issue
+  beside the record and the brief.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*

@@ -89,6 +89,30 @@ no evidence would make the product unusable in a session it cannot read.
 - **AC-10-4-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "a tracker that will not answer leaves the write alone and says why"
   IF the session's history cannot be read THEN the gate SHALL stand down.
 
+### UC-10-5 — A session is told a thing once
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-02
+
+The store that says which comments a session has seen is one instance of a general need: every
+surface that puts text into a session — a gate's hold, a hint after an edit, a verb's reply, a part
+of the method — repeats that text on every firing, and the repeats are paid for in the session's
+context. One ledger, keyed on the session, the surface and a digest of the text, tells a session a
+thing once; a refusal keeps its one line because every hold owes the command that clears it (BR-01).
+
+- **AC-10-5-1** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN text reaches a session for the first time THEN the ledger SHALL show it whole and SHALL
+  credit it to the session, the surface and the text's digest.
+- **AC-10-5-2** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a refusal repeats unchanged in one session THEN it SHALL print one line naming the command
+  that clears it, and never nothing.
+- **AC-10-5-3** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN advice repeats unchanged in one session THEN it SHALL print nothing.
+- **AC-10-5-4** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN text changed since it was shown THEN only the change SHALL print.
+- **AC-10-5-5** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a subagent is told a thing THEN the credit SHALL be that subagent's alone and never its
+  dispatcher's.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*

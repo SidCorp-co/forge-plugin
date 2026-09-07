@@ -60,6 +60,11 @@ time (C-01). How a gate's answer becomes that protocol is `docs/HOOKS.md`'s.
 - **AC-19-3-2** · Rev: 1 · Proof: plugin/test/hooks/gate-entry.test.mjs "an empty bin gets both"
   WHEN a session starts THEN the product SHALL put its binaries on the path from the copy that is
   running.
+- **AC-19-3-3** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the roles this copy ships are reported THEN the judging role SHALL resolve beside the others.
+- **AC-19-3-4** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the judging role's text is read THEN it SHALL name the deployment identity as an input the
+  role is refused without.
 
 ### EI-04 — The project's linter
 
@@ -160,3 +165,9 @@ it. Reading is all this product does there.
   WHEN a profile is printed THEN the CLI SHALL list each guide part the window's runs read with its
   calls, the runs that read it and the runs that read it more than once, read off the call's own
   words by the reading the class uses, and SHALL keep the class table's one row for the verb.
+- **AC-19-8-11** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a profile is printed THEN the CLI SHALL list per wave the time from ready to landed, from
+  landed to judged and in total, the batch size, the gate time and lock wait, the reviews and
+  verdicts written twice, and the minutes and calls of every actor in the wave.
+- **AC-19-8-12** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the guide parts are listed THEN each SHALL carry the method version it was read from.

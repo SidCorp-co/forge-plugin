@@ -268,6 +268,79 @@ cites one the issue holds.
   IF a step of the plan cites no criterion, or cites only numbers the issue does not hold, THEN the
   CLI SHALL refuse `approved` and SHALL name that step and what it cites.
 
+### UC-05-10 — One actor lands, and recovers off the checkpoint
+
+Rev: 1 · Actors: agent · Enforces: BR-02, BR-04
+
+Four runs shipping four changes are four actors on one branch and one version file, and every one
+of them meets the others: a second review after a sibling's landing moved the head, a gate re-paid
+behind the lock, a conflict resolved by a stranger. One landing actor takes the ready changes in
+order and never edits one. Because the builder is gone, the landing's own progress is on the issue
+as the checkpoint, and every external write is preceded by a save of what is about to be written,
+so a death between the two is recovered by reading back rather than by doing again (BR-02, BR-04).
+
+- **AC-05-10-1** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a ready change is landed THEN the landing SHALL pin the base at the server, build the
+  candidate, and compare the judged head with the candidate over the change's own paths, and SHALL
+  promote, deploy or install nothing of it until the comparison moved nothing or the checkpoint
+  records a fresh review at that candidate.
+- **AC-05-10-2** · Rev: 1 · Proof: none yet — ISS-673
+  IF the candidate's merge conflicts THEN the landing SHALL park the issue with the conflict list
+  attached, SHALL edit nothing, and SHALL go on to the next ready change.
+- **AC-05-10-3** · Rev: 1 · Proof: none yet — ISS-673
+  IF the base at the server has moved from the pin THEN the landing SHALL refuse to promote, SHALL
+  rebuild from a fresh pin, and SHALL void the review and judgement evidence held for the old
+  candidate.
+- **AC-05-10-4** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a landing is resumed after a death THEN it SHALL finish only the steps the checkpoint, the
+  server and the record say are still owed, and SHALL write no mark twice and no second release.
+- **AC-05-10-5** · Rev: 1 · Proof: none yet — ISS-673
+  WHILE a landing holds the lock, a journal landing or a self-landing release SHALL wait until the
+  landing's install has completed.
+- **AC-05-10-10** · Rev: 1 · Proof: none yet — ISS-673
+  IF an install of an older release is still in flight when a newer one completes THEN the older
+  SHALL never overwrite the newer installed copy.
+- **AC-05-10-6** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a landing writes THEN it SHALL write only the checkpoint, the merged mark, the release
+  verification, the park it owes and the status moves the flow table allows on the builder's records.
+- **AC-05-10-7** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN two ready changes each pass alone and fail together THEN the landing SHALL land a passing
+  compatible subset, SHALL refuse the rest against the new base naming the failing step, and SHALL
+  blame neither alone.
+- **AC-05-10-8** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the candidate is promoted THEN the landing SHALL install from the tree that shipped.
+- **AC-05-10-9** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN the install has completed THEN the landing SHALL write the merged mark naming the judged head,
+  the landed head and whether the landing moved the change's own paths.
+
+### UC-05-11 — An independent judge earns `tested`
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-02, BR-04
+
+A builder judging its own criteria proves the code matches what the builder thought the criteria
+meant. Where a project asks for it, the judgement between `developed` and `tested` is another
+actor's, exercising the deployed change as a user would; for the check to hold, who judged must be
+on the record as the CLI captured it, never as the writer claims it (BR-02), and the judgement is
+of one deployment, so a candidate that changed after it is judged again (BR-04).
+
+- **AC-05-11-1** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN a verdict is written THEN the record SHALL carry the writer's identity as the CLI captured it.
+- **AC-05-11-5** · Rev: 1 · Proof: none yet — ISS-673
+  IF a caller offers the judge's identity as an argument THEN the write SHALL be refused naming the
+  argument.
+- **AC-05-11-6** · Rev: 1 · Proof: none yet — ISS-673
+  WHEN an issue's verdicts are assembled THEN the view SHALL keep the judge's identity on each.
+- **AC-05-11-2** · Rev: 1 · Proof: none yet — ISS-673
+  WHERE the project's record asks for an independent judgement, the CLI SHALL refuse `tested` while
+  any standing verdict carries the builder's identity or none, and SHALL earn it once every standing
+  verdict carries another judge and cites the deployment the checkpoint recorded.
+- **AC-05-11-3** · Rev: 1 · Proof: none yet — ISS-673
+  WHERE the project's record does not ask for it, the builder's verdicts SHALL earn `tested` as
+  they did before.
+- **AC-05-11-4** · Rev: 1 · Proof: none yet — ISS-673
+  WHERE the route verifies before the merge, a candidate whose base or batch changed after its
+  judgement SHALL be refused promotion naming the judgement as void.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*
