@@ -21,6 +21,10 @@ const BODY = [
   "",
   "`forge record confirmation -h` answered with a refusal naming one flag instead of the usage.",
   "",
+  "## Why it happens",
+  "",
+  "The help branch of `forge record` is read after the flags, so a missing one refuses first.",
+  "",
   "## Outcome",
   "",
   "Asking for help on a record kind prints what to type and the values each flag takes.",
@@ -89,7 +93,7 @@ test("a body missing a section the bug shape needs is refused, and nothing is wr
 });
 
 /* `forge new` short-circuits on both of these, offering a route a note does not have; read against
-   the shortcut, a note missing two of its four sections filed clean (F2). */
+   the shortcut, a note missing two of its five sections filed clean (F2). */
 test("a body that would earn forge new a route offer is read against every section", async () => {
   const named = "`forge record` answered a help request with a refusal naming one missing flag.";
   const run = await send(["feedback", note(`## What happened\n\n${named}\n`), "--title", TITLE]);

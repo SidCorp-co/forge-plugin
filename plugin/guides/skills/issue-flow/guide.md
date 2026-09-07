@@ -21,7 +21,11 @@ the authority on writing to the tracker, and nothing about their arguments is re
    decided. Follow the project, and say which default you overrode.
 5. **Learn selectively, and encode rather than write.** Most rounds record nothing. One thing is
    always filed, the moment it happens: a defect in this plugin goes to its backlog through
-   `forge feedback`, from any project, no lease, before the workaround. Its key goes in the report.
+   `forge feedback`, from any project, no lease, before the workaround. It names the cause and not
+   the symptom, the neighbour list is read before the body is sent, an open issue already naming
+   that cause's place takes a `forge comment` instead of a second key, and the workaround goes on
+   that issue as the cost it charged. What each of those owes: `forge guide issue-flow learning`.
+   Its key goes in the report.
 
 ## Autonomy, and the three things that stop it
 

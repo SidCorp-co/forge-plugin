@@ -62,6 +62,10 @@ const BUG = [
   "",
   "`forge new` answered success and stored a description with no section in it.",
   "",
+  "## Why it happens",
+  "",
+  "`plugin/src/tracker/issue-shape.mjs` reads the sections only where a kind was named.",
+  "",
   "## Outcome",
   "",
   "A filing is read against the shape the kind it names asks for.",
@@ -252,7 +256,14 @@ test("`forge new -h` lists every kind with the sections it requires", async () =
   const run = await ranAsync(FORGE, ["new", "-h"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
   for (const kind of ["bug", "enhancement", "feature", "review"]) assert.match(run.stdout, new RegExp(`\\n  ${kind} `, "u"));
-  assert.match(run.stdout, /required {3}What happened, Outcome, Rules, Out of scope/u);
+  /* Criterion 5: the cause is on the bug's required row and on no other kind's. */
+  assert.match(run.stdout, /required {3}What happened, Why it happens, Outcome, Rules, Out of scope/u);
   assert.match(run.stdout, /nice {7}Where/u);
+  assert.match(run.stdout, /required {3}What happens today, Outcome, Rules, Out of scope/u);
   assert.match(run.stdout, /Usage: forge new/u, "and what to type is still the first line of it");
+  /* Criterion 13: the sentence a filer meets at the moment of filing, from the one string both
+     verbs print, and the reference it cites rather than restating. */
+  assert.match(run.stdout, /names where the defect comes from/u);
+  assert.match(run.stdout, /a neighbour already naming that place takes\n`forge comment`/u);
+  assert.match(run.stdout, /`forge guide issue-flow learning` is the whole of the rule/u);
 });

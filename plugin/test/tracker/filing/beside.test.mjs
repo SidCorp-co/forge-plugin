@@ -1,7 +1,8 @@
-/* What is open beside a filing, and what a fix-size filing joins. The fold is a comment nothing
-   here can take back, so every case that keeps it from firing is worth as much as the one that
-   makes it: a same-place hit the semantic query never ranked, an issue the projection says is
-   closed, a search that could not run at all. */
+/* The fold acted on, spawned against a tracker. It is a comment nothing here can take back, so
+   every case that keeps it from firing is worth as much as the one that makes it: a same-place hit
+   the semantic query never ranked, an issue the projection says is closed, a kind whose body names
+   no cause, a search that could not run at all. What the fold decides before it acts, and what each
+   reply says of it, is fold.test.mjs; the reasoning is docs/cli/the-fold.md's. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
@@ -12,140 +13,7 @@ import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 
 const home = tempHome("neighbours");
 process.env.XDG_CONFIG_HOME = home.path;
-const { BESIDE_HELP, FLOOR, foldFiling, foldOnto, foldedInto, suggestionLines } =
-  await import("../../../src/tracker/filing/neighbours.mjs");
-const { TIERS, markFor } = await import("../../../src/ladder.mjs");
-const { placeIn, seedFor } = await import("../../../src/tracker/issue-shape.mjs");
 
-const suggestion = (issueId, score, samePlace) =>
-  ({ issueId, documentId: `uuid-${issueId}`, title: `${issueId}'s title`, score, samePlace });
-
-/* Both signals on one issue, because the place query ranks nothing: every hit it returns comes back
-   at one score, so on its own it would name whichever issue the tracker happened to list first. */
-test("the fold takes the nearest open neighbour that also names the place, and nothing else", () => {
-  const near = suggestion("ISS-2", 0.81, true);
-  assert.equal(foldOnto([suggestion("ISS-1", 0.9, false), near, suggestion("ISS-3", 0.7, true)]), near,
-    "the higher-scoring ISS-1 names another place, and ISS-3 is the same place further away");
-  assert.equal(foldOnto([suggestion("ISS-1", 0.9, false)]), null, "a neighbour elsewhere is no fold");
-  assert.equal(foldOnto([suggestion("ISS-1", null, true)]), null,
-    "and one the place query alone found is a place match nothing ranked");
-  assert.equal(foldOnto([]), null);
-});
-
-test("the floor is one constant, and it is the one the measurement names", () => {
-  assert.equal(FLOOR, 0.7);
-});
-
-test("the block prints the key, how near it reads and whether the place matched", () => {
-  const lines = suggestionLines({
-    suggestions: [suggestion("ISS-2", 0.83, true), suggestion("ISS-9", null, true)],
-    notes: [],
-    place: "plugin/src/commands.mjs",
-  }).join("\n");
-  assert.match(lines, /^ {2}ISS-2 {4}0\.83 {2}same place {2}ISS-2's title$/mu);
-  assert.match(lines, /^ {2}ISS-9 {4} {2}— {2} {2}same place {2}ISS-9's title$/mu,
-    "a place match the semantic query never ranked shows no score rather than a made-up one");
-  assert.match(lines, /a duplicate filed anyway is one the filer was shown/u);
-});
-
-/* A filing told nothing cannot tell a backlog with nothing like it from a check that never ran, and
-   the second is the one worth knowing. */
-test("a filing that found nothing is told so, and one whose search failed is told which", () => {
-  const empty = suggestionLines({ suggestions: [], notes: [], place: "forge dep" }).join("\n");
-  assert.match(empty, /Nothing open reads like this filing or names `forge dep` — the check ran and found none/u);
-  const broken = suggestionLines({
-    suggestions: [],
-    notes: ["the semantic query could not run: Forge answered 400: no"],
-    place: null,
-  }).join("\n");
-  assert.match(broken, /the semantic query could not run: Forge answered 400/u);
-  assert.match(broken, /this filing was made as it would have been without it/u);
-  assert.doesNotMatch(broken, /or names/u, "and a filing with no place is not told about one");
-  /* The two are what this exists to tell apart, so they cannot both be said of one filing. */
-  assert.doesNotMatch(broken, /the check ran and found none/u);
-  assert.match(broken, /the check did not run whole/u);
-});
-
-/* Qualifying and being foldable are two questions: a neighbour that would have taken a marked
-   filing takes nothing from an unmarked one, and one line for both states a backlog nobody read. */
-test("--new tells a fold it declined from one it was never going to make, and from neither", () => {
-  const nearest = suggestion("ISS-2", 0.83, true);
-  const block = { suggestions: [nearest], notes: [], place: "p" };
-  const said = (options) => suggestionLines(block, { fresh: true, ...options }).join("\n");
-  assert.match(said({ nearest, foldable: true }),
-    /--new declined the fold: this filing is marked and ISS-2 is the nearest of the neighbours naming its place/u);
-  assert.match(said({ nearest, foldable: false }),
-    /--new declined nothing to decline: ISS-2 would have qualified, and only a filing marked/u);
-  assert.match(said({ nearest: null, foldable: true }),
-    /--new declined nothing: no open issue both reads like this filing at 0\.78/u);
-  /* Without the flag none of the three is owed: what is open is said and no more. */
-  assert.doesNotMatch(suggestionLines(block, { nearest, foldable: true }).join("\n"), /--new/u);
-});
-
-/* Criterion 22: the fold is the light path's and not one rung's, so a body marked at the rung below
-   `fix` joins a neighbour rather than filing a second issue. Asked with no neighbour, so the answer
-   is the decision and nothing is posted. */
-test("a body marked at any rung below the top is foldable, and one at the top is not", async () => {
-  const decided = async (body) =>
-    (await foldFiling({ suggestions: [] }, { title: "the edge a token can write", body })).said.foldable;
-  for (const rung of TIERS) {
-    assert.equal(await decided(`a body.\n\n${markFor(rung)}\n`), rung !== TIERS.at(-1), rung);
-  }
-  assert.equal(await decided("a body with no mark at all"), false);
-  assert.equal(
-    (await foldFiling({ suggestions: [] }, { title: "t", body: `a body.\n\n${markFor("fix")}\n`, routed: true }))
-      .said.foldable,
-    false,
-    "while a filing riding another issue's branch has that issue's flow and folds onto nothing",
-  );
-});
-
-test("the fold's reply names the issue and why it won, and claims no nearness it does not have", () => {
-  const said = foldedInto(suggestion("ISS-2", 0.83, true));
-  assert.match(said, /^ISS-2 is open, names the same place and is the nearest of the neighbours that do, at 0\.83/u);
-  /* A neighbour reading closer under another place is not the nearest of all, and a reply saying
-     so would be false on exactly the filings the fold is least sure about. */
-  assert.doesNotMatch(said, /nearest to this filing/u);
-  assert.match(said, /marked at a rung below `feature`, so it lands there as a finding under its own title/u);
-  assert.match(said, /No issue was filed and no lease was taken/u);
-  assert.match(said, /the block below is everything it was measured against/u);
-});
-
-test("the help says what the two queries are, the floor, and what the fold needs", () => {
-  assert.match(BESIDE_HELP, /what reads like this filing, and what names the same place/u);
-  assert.match(BESIDE_HELP, /at or above 0\.70/u);
-  assert.match(BESIDE_HELP, /--new {7}file it even where the mark would have folded it/u);
-  assert.match(BESIDE_HELP, /Both signals\s+are needed/u);
-});
-
-/* The two seeds, read off the body the shape reader already scanned. */
-test("the place is the Where section's first path or verb, and the body's own where there is none", () => {
-  assert.equal(placeIn("## Where\n\n`plugin/src/commands.mjs`, the attach verb\n"), "plugin/src/commands.mjs");
-  assert.equal(placeIn("`forge dep` takes `--json`, and `plugin/src/x.mjs` holds it"), "forge dep",
-    "with no Where section the body's first names it");
-  /* The Where section wins even where the body named something earlier: the place is where the
-     defect is, and the prose above it names whatever it is being compared against. */
-  assert.equal(placeIn("`forge record` already does it.\n\n## Where\n\n`forge attach`, the bare verb\n"),
-    "forge attach");
-  assert.equal(placeIn("nothing in here names a thing at all"), null);
-  /* A *Where* whose prose names nothing does not suppress the body: an empty section is no place,
-     and the filing that carries one would otherwise send no place query at all. */
-  assert.equal(placeIn("`forge dep` writes it.\n\n## Where\n\nwherever the edge is written.\n"), "forge dep");
-});
-
-test("the semantic seed is the title and the first section the kind requires", () => {
-  const body = "## What happened\n\nthe verb refuses a name it should take\n\n## Outcome\n\nit takes it\n";
-  assert.equal(seedFor({ title: "the verb takes the name", body, kind: "bug" }),
-    "the verb takes the name\n\nthe verb refuses a name it should take");
-  /* A feature has no past-tense section, so the same body seeds from the outcome instead. */
-  assert.equal(seedFor({ title: "t", body, kind: "feature" }), "t\n\nit takes it");
-  /* A marked body is read against no section and may carry no heading at all. */
-  assert.equal(seedFor({ title: "t", body: "one line, no heading, marked\n\nSize: fix.\n" }),
-    "t\n\none line, no heading, marked");
-});
-
-/* End to end. What a hit carries and what the projection carries are different things, and only a
-   verb spawned against a tracker measures which one the block read. */
 const OPEN = { issueId: "ISS-45", documentId: "uuid-45", status: "open", title: "the attach verb refuses a name already on the issue" };
 const SETTLED = { issueId: "ISS-70", documentId: "uuid-70", status: "closed", title: "the browse projection answers with a cursor" };
 const ELSEWHERE = { issueId: "ISS-52", documentId: "uuid-52", status: "in_progress", title: "the consult log records the effort it asked for" };
@@ -166,6 +34,10 @@ const BODY = [
   "## What happened",
   "",
   "`forge attach issue ISS-45 ./gate.txt` puts a second document of that name beside the first.",
+  "",
+  "## Why it happens",
+  "",
+  "`plugin/src/commands.mjs` uploads under the name it was handed, reading nothing already there.",
   "",
   "## Where",
   "",
@@ -212,10 +84,11 @@ const before = () => {
   state.memory = {};
 };
 
+/* `--new` so the filing lands rather than folding: what is measured here is the block's own rows. */
 test("a filing is told what is open beside it, on a filing that was refused nothing", async () => {
   before();
   state.memory = { semantic: [[OPEN.issueId, 0.83], [ELSEWHERE.issueId, 0.71]], keyword: [[OPEN.issueId, 0.06]] };
-  const run = await filed();
+  const run = await filed("--new");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "the filing was made");
   assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place {2}the attach verb refuses a name already on the issue$/mu);
@@ -272,7 +145,7 @@ test("--new declines the fold, files the issue and names what it would have join
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "the filing was made after all");
   assert.equal(commented(), undefined);
-  assert.match(run.stdout, /--new declined the fold: this filing is marked and ISS-45/u);
+  assert.match(run.stdout, /--new declined the fold: ISS-45 is the nearest of the neighbours/u);
   /* And the flag reaches neither the payload nor the flags a --into refusal lists as a filing's. */
   assert.equal("new" in created().args.data, false);
 });
@@ -324,13 +197,45 @@ test("a marked filing routed onto another issue's branch is filed and never fold
   assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu, "the block still prints");
 });
 
-test("a filing that is not marked is never folded, however near the neighbour reads", async () => {
+/* Criterion 6: the consequential case of dropping the rung. This body carries no mark at all, so it
+   is read as a `feature` by the tier the flow costs most for, and it folds all the same. */
+test("a filing that names its cause folds whatever size it is marked at, this one at none", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.99);
   const run = await filed();
   assert.equal(run.status, 0, run.stderr);
-  assert.ok(created());
-  assert.equal(commented(), undefined);
+  assert.equal(created(), undefined, "the mark is no longer what buys the fold");
+  assert.equal(commented().args.data.issue, OPEN.documentId);
+  assert.doesNotMatch(commented().args.data.body, /Size:/u, "and no mark was invented to justify it");
+});
+
+test("and the same body marked `Size: feature.` folds too", async () => {
+  before();
+  state.memory = both(OPEN.issueId, 0.99);
+  const run = await filed("--size", "feature");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(created(), undefined);
+  assert.equal(commented().args.data.issue, OPEN.documentId);
+  assert.match(commented().args.data.body, /Size: feature\./u, "the mark travels with it and decides nothing");
+});
+
+/* Criterion 21, and the case the predicate exists for: `tools/run.mjs` files the ship's own batch
+   reading as a `review` with no mark, and consecutive readings differ only in two abbreviated shas.
+   Without the predicate the reading of a new range would land on the previous range's issue and no
+   issue would exist for the new one — which is the whole of what that step's accounting rests on. */
+test("a kind whose body names no cause folds onto nothing, however near the neighbour reads", async () => {
+  for (const kind of ["review", "feature"]) {
+    before();
+    state.memory = both(OPEN.issueId, 0.99);
+    const path = join(room, "body.md");
+    writeFileSync(path, `## Outcome\n\nthe range is read once as a whole\n\n## Rules\n\n`
+      + `- \`plugin/src/commands.mjs\` is inside the range.\n\n## Out of scope\n\nthe rest of the tree.\n`);
+    const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--kind", kind], tracker.env);
+    assert.equal(run.status, 0, run.stderr);
+    assert.ok(created(), `a ${kind} was folded away instead of filed`);
+    assert.equal(commented(), undefined, `a ${kind} became a comment on ${OPEN.issueId}`);
+    assert.match(run.stdout, /^ {2}ISS-45 {3}0\.99 {2}same place/mu, "and it is still shown the neighbour");
+  }
 });
 
 test("a search the tracker refuses files the issue and says the check could not run", async () => {
@@ -420,7 +325,7 @@ test("a note naming an issue with --with relates it and declines the fold", asyn
   assert.deepEqual(created().args.data.relations, [{ kind: "relates", blocksId: ELSEWHERE.documentId }]);
 });
 
-test("a note declines the fold with --new, and prints the block under what it filed", async () => {
+test("a note declines the fold with --new, and prints the block above what it filed", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
   const run = await noted("--new");
@@ -428,6 +333,10 @@ test("a note declines the fold with --new, and prints the block under what it fi
   assert.ok(created());
   assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu);
   assert.match(run.stdout, /--new declined the fold/u);
+  /* Criterion 13, on the outcome with the most to print: once, and before the line about the body. */
+  assert.equal(run.stdout.match(/Open beside this filing/gu).length, 1);
+  assert.ok(run.stdout.indexOf("Open beside this filing") < run.stdout.indexOf("The note is a new bug"),
+    "the filer reads what was open and then what became of their body, not the other way round");
 });
 
 test("the note verb still refuses a flag that is neither of its two", async () => {
@@ -460,6 +369,10 @@ test("the fold reads the target's thread once before it writes to it", async () 
   assert.match(held.stderr, /Hold — this writes to ISS-45/u);
   assert.match(held.stderr, /already reported here/u, "the thread is delivered rather than described");
   assert.equal(commented(), undefined, "and nothing was written while it was unread");
+  /* Criterion 12: that hold exits the process, so a block printed after the fold would be a block
+     this filer never saw at all — the one filing whose neighbours most want reading. */
+  assert.match(held.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu,
+    "the block goes out before the fold acts, so a held fold has already printed it");
 });
 
 test("and folds on the re-send, the thread having been shown to that session", async () => {
@@ -478,14 +391,20 @@ test("and folds on the re-send, the thread having been shown to that session", a
   assert.equal(commented().args.data.issue, OPEN.documentId);
 });
 
-/* The same two questions, spawned rather than in process: the verb has to pass them separately. */
-test("--new on an unmarked filing names the neighbour that would have qualified", async () => {
+/* The same two questions, spawned rather than in process: the verb has to pass them separately.
+   Criterion 21's other half — the filing that could never have folded is told which of the two
+   reasons it was, so nobody goes looking for a mark or a flag that was never the condition. */
+test("--new on a kind that owes no cause names the neighbour and says the kind is why", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
-  const run = await filed("--new");
+  const path = join(room, "body.md");
+  writeFileSync(path, "## Outcome\n\nthe verb takes the name it is handed\n\n## Rules\n\n"
+    + "- `plugin/src/commands.mjs` is where the name is read.\n\n## Out of scope\n\nthe rest of it.\n");
+  const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--kind", "feature", "--new"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created());
   assert.match(run.stdout, /--new declined nothing to decline: ISS-45 would have qualified/u);
+  assert.match(run.stdout, /this filing is of a kind whose body names no cause/u);
   assert.doesNotMatch(run.stdout, /no open issue both reads like this filing/u);
 });
 

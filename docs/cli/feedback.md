@@ -27,20 +27,22 @@ switch in three of the four places files under one project's header into another
 sentence of a body and refuses on a hit, leaving the caller to decide. That refusal is the one thing
 this verb cannot afford: a note refused is a finding lost, and the run that met the defect has
 already spent the turn writing it. So the shape read is the body-only one, and the neighbour block
-under the reply is what shows the filer what the refusal would have said.
+above the reply is what shows the filer what the refusal would have said.
 
 That read asks for every section, which is not the default: `forge new` short-circuits two ways — a
 body marked at a rung below `feature` is read against no section, and one naming a code token with
 neither rules nor an out-of-scope is offered the three routes a small change takes instead of being
 refused. Both are routes a note does not have. A note is one shape, always the bug's, so the
 shortcuts are switched off for it and every section is read; without that a note missing two of its
-four sections filed clean.
+five sections filed clean.
 
 **A note is measured the way a filing is, and folds the way one does.** Both routes that file ask
-the tracker's own memory what is open beside what they are about to write, print it under the
-result, and land a marked note on the neighbour that shares its place rather than filing a second
-issue. The rules, the floor and the reason the fold answers to two signals instead of one are
-[`beside`](beside.md)'s.
+the tracker's own memory what is open beside what they are about to write, print it above the
+result, and land the note on the neighbour that shares the place its cause names rather than filing
+a second issue. Every note takes that fold: the kind is always the one that owes a cause, so the
+predicate the fold reads is satisfied here by construction and no note is exempt for its size. The
+rules and the floor are [`beside`](beside.md)'s; the order the block is printed in and the reason
+the fold answers to two signals instead of one are [`the-fold`](the-fold.md)'s.
 
 **There is no second fold on the title.** This verb used to route a note onto any open issue whose
 title matched after case and spacing were normalised, before the fold above ran, on the argument
@@ -77,9 +79,11 @@ landed, and the transport is the one that knows which, so it keeps the note and 
 two writes are soft on top of that, which is only about the message being the tracker's own words
 rather than a stack.
 
-**No lease, and no comment-read hold either.** The lease is not taken because nothing about a note
-is work on the issue it lands under. The read-before-write check every other write to an issue
-passes is exempted, named in that check with its reason: a note is an observation rather than an
-answer to a thread, so the thread decides nothing about it; a second run meeting the same defect
-adding a comment under the same title is frequency worth having and not duplication to prevent;
-and a hold delivering the thread would refuse a body that arrived on stdin, which is the body gone.
+**No lease, and the fold's hold is survived rather than waived.** The lease is not taken because
+nothing about a note is work on the issue it lands under. The read-before-write check is not waived
+either: the fold reads the thread of the issue it is about to land on, and a note aimed at one whose
+comments this session has not been shown waits a round like every other write. The waiver this
+paragraph used to claim was the exact-title route's, and went when that route did (ISS-334). What
+makes the hold affordable on the one verb that must not lose a finding is the paragraph above: the
+body is registered before the first read and printed back by every refusal after it, so a held note
+is delayed and not gone.

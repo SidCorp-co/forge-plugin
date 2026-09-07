@@ -43,7 +43,7 @@ call at all.
 
 **One thing stays a route's own, on purpose.** The duplicate check is off for `forge feedback`: a
 note refused as a near-duplicate is a finding lost, which is the one failure that verb exists to
-prevent, and the neighbour block under its reply shows the filer everything the refusal would have
+prevent, and the neighbour block above its reply shows the filer everything the refusal would have
 said. Its own title fold went with ISS-334, so the reading it buys is now the filing's own and the
 route pays for one.
 

@@ -17,7 +17,7 @@ const refused = (what, said) => fail(`the tracker refused ${what}: ${said}`);
 
 /** `withKeys` are what `--with` named, offered back rather than written; `intro` is the one line a route speaks for itself; `lost` is what a route soft enough to see the tracker's own refusal does with it. */
 export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = refused } = {}) => {
-  const filed = await fileIssue(asked);
+  const filed = await fileIssue({ ...asked, onBeside: sayBeside });
   if (filed.refusal) fail(filed.refusal.text);
   if (filed.shape.said) console.error(filed.shape.said);
   if (filed.joined) {
@@ -25,7 +25,6 @@ export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = re
     keepOnFailure(null);
     echo(filed.answer);
     console.log(foldedInto(filed.joined));
-    sayBeside(filed.beside, filed.said);
     const { documentId, issueId } = filed.joined;
     return sayLanded(await commentLanded(documentId, filed.answer, issueId));
   }
@@ -36,6 +35,5 @@ export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = re
   console.log(filedAs(filed.answer, filed.ranked.said));
   const offered = keysOffered(filed.shape.keys, withKeys);
   if (offered) console.log(offered);
-  sayBeside(filed.beside, filed.said);
   return sayLanded(await issueLanded(filed.answer));
 };

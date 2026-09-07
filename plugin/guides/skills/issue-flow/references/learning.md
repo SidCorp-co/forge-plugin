@@ -2,6 +2,25 @@
 
 **Most rounds record nothing.** The default at the end of a round is silence.
 
+## The one filing that is never optional, and the four things it carries
+
+A defect in the tooling is filed the moment it is met, and what makes that filing worth its round is
+where the defect comes from rather than where it showed.
+
+- **The cause, at its line.** A verb, a clause, a condition — something a reader can open. Where the
+  search found none, that is the answer and it says what was looked at: a cause nobody hunted for
+  and a cause nobody could find read identically on the page, and only the second tells the next
+  reader where not to go again.
+- **The list of what is already open, read before the body goes.** It arrives whether or not anyone
+  asks for it, so the only question is whether it is read while the decision is still open. Read
+  after the write it is a second key somebody now has to merge.
+- **A comment, where an open issue already names that place.** The finding belongs on the issue that
+  will fix it. Two keys for one cause is a cause counted twice, weighed twice and fixed once, and
+  the second key is the one closed as a duplicate by whoever notices.
+- **The workaround, on that same issue, as a cost.** What the round spent getting past the defect is
+  what prices fixing it. Filed as an issue of its own it reads as a request to build the workaround,
+  which is the one outcome nobody wants.
+
 ## What the gate asks
 
 The conditions a record has to meet, the categories a skill edit is typed by, and how to write

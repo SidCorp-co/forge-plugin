@@ -7,7 +7,7 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { agentOf } from "../flow/lease.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { documentIdOf, shortOf } from "../tracker/issues.mjs";
-import { liveTitles } from "../tracker/issue-shape.mjs";
+import { CAUSE_HELP, liveTitles } from "../tracker/issue-shape.mjs";
 import { briefGoals } from "../tracker/project-config.mjs";
 import { goalBlock, servesIn, servesRefusal } from "../goals.mjs";
 import { bodyOf, keysFrom } from "../tracker/filing/route.mjs";
@@ -28,22 +28,24 @@ export const USAGE = [
   "  --title T   what is true once it is fixed, one line",
   "  --with ISS-45   file it with a `relates` edge to that issue, or to each of several separated",
   "              by commas; the keys the note's own body names are listed under the reply instead",
-  "  --new       file it even where the mark would have folded it onto a neighbour, and say which",
+  "  --new       file it even where it would have folded onto a neighbour, and say which",
+  "",
+  CAUSE_HELP,
   "",
   "Every note is measured against what is already open on that project the way a filing is:",
   "`forge new -h` carries the two questions, the floor and the fold, and this verb prints the same",
-  "block under its result. A note marked `Size: fix.` lands on the nearest of the neighbours that",
-  "name its place, as a finding rather than as an issue of its own. That fold is the only one: a",
+  "block above its result. A note lands on the nearest of the neighbours that name the place its",
+  "cause names, as a finding rather than as an issue of its own. That fold is the only one: a",
   "title already open on that project is a neighbour like any other and routes nothing by itself.",
   "",
-  `The body is read against the ${KIND} shape: What happened, Outcome, Rules and Out of scope are`,
-  "required, and `forge new -h` prints what each wants. Where is filled in for you — the plugin",
+  `The body is read against the ${KIND} shape: What happened, Why it happens, Outcome, Rules and Out`,
+  "of scope are required, and `forge new -h` prints what each wants. Where is filled in for you — the plugin",
   "version, the copy that answered, the project you called from and the agent — so none of it is",
   "typed, and a body carrying its own Where heading gets this one after it.",
   "",
   "No lease is taken and none is renewed, and nothing here ranks the note: it is filed unranked and",
-  "says so, because whoever maintains this plugin raises it and not whoever met it. A finding on an",
-  "issue already open is `forge comment`, which renews a lease only where the lease is yours.",
+  "says so, because whoever maintains this plugin raises it and not whoever met it. `forge comment`,",
+  "the verb the block names, renews a lease only where the lease is yours.",
 ].join("\n");
 
 /* Typed by no caller: which version was running, which copy of it, whose project, and who met it. */

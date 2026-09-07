@@ -27,6 +27,18 @@ and *Reproduce* in none at all. So a defect's *expected* is the outcome heading 
 write it under, and *Where* is asked for and not required: a section no filing has ever carried
 would be a refusal nobody could learn the habit from.
 
+**A bug's *Why it happens* is the one section required against that rule, and this is the reason.**
+The count above prices the habit a backlog already had, which is the right measure for a section
+whose absence costs a reader a search. It is the wrong measure for this one, because what a missing
+cause costs is not paid by the reader of that body at all: over two days of filings, twenty of fifty
+were a second, third or ninth report of a cause an open issue already named, and each was priced,
+planned and worked as new. A section nobody writes yet is exactly what has to be asked for when the
+cost of its absence falls on the next filing rather than on this one. Presence is still all that is
+checked — a heading with one substantial line under it, so `not found` alone does not clear it and
+what was looked at has to be said — and whether the line named is really the cause is the reviewer's
+question, as it is for every other section. It is [`the-fold`](the-fold.md) that spends the answer,
+which is why the section is required of the kind that reports a defect and of no other.
+
 The fourth is `review`, and it was measured off nothing because no person writes one: it is what the
 ship step files when the volume since the last batch reading crosses its line, and the body is
 generated. Its sections are a feature's, and it is a row of its own rather than a synonym for one

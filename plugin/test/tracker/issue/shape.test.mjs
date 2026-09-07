@@ -291,11 +291,15 @@ test("the verb refuses a fix with the two flags, the comment route and the open 
   assert.match(run.stderr, /it needs no --kind/u,
     "the comment route says what a filing owes that it does not");
   /* The mark stopped meaning "files it": where an open issue both reads like the filing and names
-     its place, the mark lands it there instead, and the route that promised a filing would be a
-     refusal telling a filer the wrong thing (ISS-139). */
+     the place its cause names, it lands there instead, and the route that promised a filing would
+     be a refusal telling a filer the wrong thing (ISS-139). The mark is not what buys that any
+     more, so the routes no longer offer it as one — a filer sent to `--size` for a fold would take
+     the rung to get the landing, which is the rung deciding the flow off the wrong question. */
   assert.match(run.stderr, /--size trivial\|fix\|feature\s+mark it at a rung/u);
   assert.doesNotMatch(run.stderr, /--size fix\s+file it marked/u);
-  assert.match(run.stderr, /the mark lands it there as a finding/u);
+  assert.doesNotMatch(run.stderr, /the mark lands it there as a finding/u);
+  assert.match(run.stderr, /Whichever of those you take, an open issue that both reads like this filing/u);
+  assert.match(run.stderr, /takes it as a finding rather than a second issue; `--new` declines that/u);
   assert.match(run.stderr, /ISS-45/u, "the candidate is searched on the token the body names");
   assert.doesNotMatch(run.stderr, /ISS-70/u, "and a closed issue is no candidate");
   assert.match(run.stderr, /Name a route:/u, "and what it says is the whole of what to do");

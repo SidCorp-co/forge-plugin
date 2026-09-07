@@ -61,6 +61,14 @@ const HAPPENED = section({
   wants: `a heading saying what happened, ${LINE} naming the failure a reader has to reproduce`,
   heading: /\bwhat happened\b|\bwhat went wrong\b|\bwhat broke\b/iu,
 });
+const CAUSE = section({
+  title: "Why it happens",
+  reads: "why it happens",
+  bare: "cause",
+  wants: `a heading naming the cause, ${LINE} giving the line, verb or clause the symptom comes from`
+    + `, or saying none was found and what was looked at`,
+  heading: /\bwhy (?:it|this) happens\b|\b(?:root )?causes?\b|\bwhere it comes from\b/iu,
+});
 const TODAY = section({
   title: "What happens today",
   reads: "what happens today",
@@ -90,7 +98,7 @@ export const KINDS = [
   {
     kind: "bug",
     is: "something that worked, or was meant to, and does not",
-    needs: [HAPPENED, OUTCOME, RULES, SCOPE],
+    needs: [HAPPENED, CAUSE, OUTCOME, RULES, SCOPE],
     says: [WHERE],
   },
   {
@@ -117,6 +125,9 @@ export const DEFAULT_KIND = "feature";
 export const KIND_NAMES = KINDS.map((one) => one.kind);
 
 export const shapeFor = (kind) => KINDS.find((one) => one.kind === (kind || DEFAULT_KIND)) ?? null;
+
+/** Whether this kind's body says where its subject comes from, read off the table above and never named here: what the fold does with the answer, and why a kind without one lands nowhere, are docs/cli/the-fold.md's. */
+export const owesCause = (kind) => Boolean(shapeFor(kind)?.needs.includes(CAUSE));
 
 const listed = (names) => names.join(", ");
 const titles = (sections) => sections.map((one) => one.title);
@@ -229,6 +240,15 @@ export const KINDS_HELP = [
   "nothing is read of it and nothing is said — the mark is not an exemption from the flag.",
 ].join("\n");
 
+/** One string, printed by both verbs that file, so the sentence a filer meets at the moment of filing is one sentence; `forge guide issue-flow learning` is the rule's home and this cites it. */
+export const CAUSE_HELP = [
+  `A ${KINDS[0].kind} names where the defect comes from — the line, verb or clause the symptom comes`,
+  `from, or that none was found and what was looked at. That is the *${CAUSE.title}* section, and it`,
+  "is what the neighbour block is measured on: a neighbour already naming that place takes",
+  "`forge comment`, and the workaround the run paid goes there as the cost it was, not into a second",
+  "issue. `forge guide issue-flow learning` is the whole of the rule.",
+].join("\n");
+
 /** One line or nothing: what the body was read as, and what it left out. Neither is a refusal. */
 export const noticeFor = ({ kind, named, left }) => {
   if (named && !left.length) return null;
@@ -292,12 +312,15 @@ export const tokensNamed = (body, most = TOKENS) => {
 };
 
 /* The two queries the memory search is asked, off the same scan as the shape, and how much of a
-   section seeds the semantic one. Both, and the fold they feed: docs/cli/beside.md. */
+   section seeds the semantic one. Both: docs/cli/beside.md; the fold they feed: docs/cli/the-fold.md. */
 const SEED = 1000;
 
+/** The cause first and *Where* second: a symptom shows in one place and comes from another, and it is the cause a second report shares. A body naming no cause is measured where it always was. */
 export const placeIn = (body) => {
+  const cause = sectionUnder(body, CAUSE.heading);
   const where = sectionUnder(body, WHERE.heading);
-  return tokensNamed(where ?? "", 1)[0] ?? tokensNamed(body, 1)[0] ?? null;
+  return tokensNamed(cause ?? "", 1)[0] ?? tokensNamed(where ?? "", 1)[0]
+    ?? tokensNamed(body, 1)[0] ?? null;
 };
 
 export const seedFor = ({ title, body, kind = null }) => {
@@ -532,9 +555,9 @@ const fixRoutes = (tokens, { open, whole }) => [
   `                  a comment being read against no shape, and renews a lease only where it is yours`,
   `  --with ISS-nn   file it and relate it, so one branch, one review and one release carry both`,
   `  --size ${TIERS.join("|")}`,
-  `                  mark it at a rung: the two below the top carry it on the light path, and where`,
-  `                  an open issue both reads like it and names the same place,`,
-  `                  the mark lands it there as a finding`,
+  `                  mark it at a rung: the two below the top carry it on the light path`,
+  "Whichever of those you take, an open issue that both reads like this filing and names the place its",
+  "cause names takes it as a finding rather than a second issue; `--new` declines that.",
   open.length
     ? `Naming ${tokens[0]}, still open: ${open.map((one) => `${one.issueId} ${one.title}`).join("; ")}`
     : whole

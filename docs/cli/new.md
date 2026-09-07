@@ -29,12 +29,11 @@ nothing, and renews a lease only where the lease is yours. `--with ISS-45`, or s
 separated by commas, files it and writes a relates edge to each in the same create, so one branch,
 one review and one release carry both; it writes no
 mark, because the flow such a filing is carried by is the related issue's. `--size` takes one of the
-contract's three rungs and marks it at that one,
-and a marked filing no longer always becomes an issue: where one already open both reads like it and
-names the same place, the mark lands it there as a finding instead, and `--new` is how a filer
-declines that. What is asked of the tracker to know, and why the fold needs two answers rather than
-one: [`beside`](beside.md). The refusal lists both flags and the comment route, and, from a search
-on the token the body names, the open issues that are candidates for the first two.
+contract's three rungs and marks it at that one, and that is the whole of what it does: which
+filings become a finding on an issue already open, on what measure, and how a filer declines it are
+[`the-fold`](the-fold.md)'s, and the mark is not among the answers. The refusal lists both flags and the
+comment route, and, from a search on the token the body names, the open issues that are candidates
+for the first two.
 
 An empty body is refused before any heading is looked for, and the payload `-` refuses a stdin that
 is a terminal or that closed with nothing on it: reading to EOF on one nobody fed waited two minutes

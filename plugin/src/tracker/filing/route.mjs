@@ -89,7 +89,7 @@ const readFiling = async (filing, read,
 /** One filing, from what a route knows to an issue or a reason there is none. `routed` rides another
  *  issue's branch and owes no fold, `fresh` is `--new` declining one, `everySection` is a route with
  *  no lighter path, `duplicates` off the finder's route, where a refusal loses the finding.
- *  `relations` are edges the caller resolved itself and `relateKeys` ones this resolves softly. */
+ *  `relations` are edges the caller resolved itself and `relateKeys` ones this resolves softly, and `onBeside` is the caller's own printer, handed the neighbours before the fold acts on them. */
 export const fileIssue = async ({
   title,
   body,
@@ -107,6 +107,7 @@ export const fileIssue = async ({
   page = null,
   ranked: asked = null,
   soft = false,
+  onBeside = null,
 }) => {
   const ranked = asked ?? await rankOf(priority);
   if (ranked.refusal) return { refusal: refusalOf(ranked.refusal), description: null, shape: null };
@@ -115,9 +116,9 @@ export const fileIssue = async ({
   const { refusal, shape, beside } = await readFiling({ title, body: description, kind }, seen,
     { routed, everySection, duplicates, shape: known });
   if (refusal) return { refusal, description, shape };
-  const { joined, answer: comment, said } =
-    await foldFiling(beside, { title, body: description, routed, fresh, soft });
-  if (joined) return { refusal: null, description, shape, beside, said, joined, answer: comment, ranked };
+  const { joined, answer: comment } =
+    await foldFiling(beside, { title, body: description, kind, routed, fresh, soft, onBeside });
+  if (joined) return { refusal: null, description, shape, joined, answer: comment, ranked };
   const found = relateKeys.length ? relatedTo(relateKeys, seen.read.rows) : { relations: [], unknown: [] };
   const wanted = [...(relations ?? []), ...found.relations];
   const edges = wanted.slice(0, RELATIONS_MAX);
@@ -133,5 +134,5 @@ export const fileIssue = async ({
     ...(edges.length ? { relations: edges } : {}),
   };
   const answer = await write("forge_issues", { action: "create", data }, undefined, soft);
-  return { refusal: null, description, shape, beside, said, joined: null, answer, ranked, related };
+  return { refusal: null, description, shape, joined: null, answer, ranked, related };
 };

@@ -23,6 +23,7 @@ import { bodyOf } from "../../../src/tracker/filing/route.mjs";
 const TITLE = "the filing is read against the shape its kind names";
 const SECTIONS = {
   happened: "## What happened\n\nThe verb answered success and stored nothing at all.",
+  cause: "## Why it happens\n\n`plugin/src/tracker/rpc.mjs` reads the status and never the body.",
   today: "## What happens today\n\nEvery filing is read against the one same shape.",
   outcome: "## Outcome\n\nA filing is read against the shape its kind names.",
   rules: "## Rules\n\n- The refusal names the section and the kind it is required for.",
@@ -59,10 +60,22 @@ test("the sections the help lists for a kind are the sections the lint asks that
 });
 
 test("the kind decides which section opens the body, and the refusal names the kind", () => {
-  assert.deepEqual(gapsOf(body("happened", "outcome", "rules", "scope", "where"), "bug").gaps, []);
+  assert.deepEqual(gapsOf(body("happened", "cause", "outcome", "rules", "scope", "where"), "bug").gaps, []);
   assert.match(said(body("outcome", "rules", "scope"), "bug"), /what happened/u);
   assert.match(said(body("outcome", "rules", "scope"), "bug"), /required of a bug/u);
   assert.match(said(body("outcome", "rules", "scope"), "bug"), /add `## What happened`/u);
+  /* A cause nobody could find is an answer and says what was looked at, so a heading with nothing
+     substantial under it does not clear the section any more than an absent one. */
+  const missing = said(body("happened", "outcome", "rules", "scope"), "bug");
+  assert.match(missing, /no heading naming why it happens/u);
+  assert.match(missing, /add `## Why it happens` and re-send the same command/u);
+  assert.match(said(body("happened", "cause", "outcome", "rules", "scope"), "enhancement"),
+    /what happens today/u);
+  assert.equal(said(body("today", "outcome", "rules", "scope", "why"), "enhancement").includes("Why it happens"),
+    false, "and of no other kind: an enhancement is refused nothing for naming no cause");
+  const thin = said(`${body("happened", "outcome", "rules", "scope")}\n\n## Why it happens\n\nnot found`, "bug");
+  assert.match(thin, /a cause heading with nothing under it of 4 words or more/u);
+  assert.match(thin, /write one line of 4 words or more under the cause heading already there/u);
   assert.deepEqual(gapsOf(body("today", "outcome", "rules", "scope", "why"), "enhancement").gaps, []);
   assert.match(said(body("outcome", "rules", "scope"), "enhancement"), /what happens today/u);
   assert.match(said(body("outcome", "rules", "scope"), "enhancement"), /required of an enhancement/u);
@@ -76,9 +89,15 @@ test("a heading is matched by family, so the backlog's own wordings are the same
   const today = body("outcome", "rules", "scope").replace("## Outcome",
     "## What it is now\n\nOne shape is read of every filing.\n\n## Outcome");
   assert.deepEqual(gapsOf(today, "enhancement").gaps, []);
-  const broke = body("outcome", "rules", "scope").replace("## Outcome",
+  const broke = body("cause", "outcome", "rules", "scope").replace("## Outcome",
     "## What went wrong\n\nThe verb answered success and stored nothing.\n\n## Outcome");
   assert.deepEqual(gapsOf(broke, "bug").gaps, []);
+  /* And the cause's own family, the four wordings a backlog writes it under. */
+  for (const heading of ["Why it happens", "Why this happens", "Root cause", "Where it comes from"]) {
+    const named = body("happened", "outcome", "rules", "scope")
+      .replace("## Outcome", `## ${heading}\n\n\`plugin/src/tracker/rpc.mjs\` reads only the status.\n\n## Outcome`);
+    assert.deepEqual(gapsOf(named, "bug").gaps, [], heading);
+  }
 });
 
 /* Criterion 1 on the route the flag cannot reach: the tracker takes any string of a hundred
@@ -101,13 +120,13 @@ test("a kind this CLI does not define is refused with the set and the route past
 });
 
 test("a nice-to-have section left out is said in one line, and refuses nothing", () => {
-  const whole = body("happened", "outcome", "rules", "scope");
+  const whole = body("happened", "cause", "outcome", "rules", "scope");
   const read = gapsOf(whole, "bug");
   assert.deepEqual(read.gaps, [], "it is filed");
   assert.match(read.said, /^Read as a bug\./u);
   assert.match(read.said, /leaves out Where/u);
   assert.equal(read.said.split("\n").length, 1, "one line");
-  assert.equal(gapsOf(body("happened", "outcome", "rules", "scope", "where"), "bug").said, null,
+  assert.equal(gapsOf(body("happened", "cause", "outcome", "rules", "scope", "where"), "bug").said, null,
     "and a kind that left nothing out is told nothing");
 });
 

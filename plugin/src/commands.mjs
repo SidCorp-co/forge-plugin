@@ -15,6 +15,7 @@ import {
 import { commentPage, creditAfter, credited, cutIn, mustBeShown, postComment } from "./tracker/comments.mjs";
 import { attachmentNames, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
 import {
+  CAUSE_HELP,
   INSTEAD_FLAGS,
   KINDS_HELP,
   KIND_NAMES,
@@ -144,7 +145,7 @@ const ATTACH_TARGETS = ["issue", "comment"];
 
 /* Longer than the row it comes from, because what a body is read against depends on the kind it
    names, and the table of that is the kinds' own. */
-const newUsage = (goals) => [helpOf("new"), BESIDE_HELP, PRIORITY_HELP,
+const newUsage = (goals) => [helpOf("new"), CAUSE_HELP, BESIDE_HELP, PRIORITY_HELP,
   goalBlock(goals, "A body filed here").join("\n"), KINDS_HELP].join("\n\n");
 
 /* Its own, rather than the row's, for the reason `new` keeps one: the dozen lines below are what a
