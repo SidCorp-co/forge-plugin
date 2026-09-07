@@ -5,9 +5,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-  CONFIG_PATH,
   INHERITED,
   configDir,
+  configPath,
   readJson,
   saveConfig,
   sessionPath,
@@ -30,14 +30,14 @@ import { cloudflareAccounts } from "./cloudflare.mjs";
 import { modelBehind, profile } from "../codex/codex-api.mjs";
 import { copyToRun, FROZEN, pluginCopy } from "./plugin-copy.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
-import { LOG_PATH, consults, logEntries } from "../codex/codex-log.mjs";
+import { consults, logEntries, logPath } from "../codex/codex-log.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { contractPath, contractProblems, readContract, statesContract } from "../guides/contract.mjs";
 
-const VI_CONFIG = join(configDir("vi-natural"), "config.json");
+const viConfig = () => join(configDir("vi-natural"), "config.json");
 
 const OK = "  ok  ";
 /* Counted in `line`, so the level and the exit code cannot disagree (ISS-102). */
@@ -106,13 +106,13 @@ const checkVi = (waited) => {
   }
   line(OK, "vi-natural", BUNDLED);
   const login = waited ? BAD : NOTE;
-  const saved = readJson(VI_CONFIG) ?? {};
+  const saved = readJson(viConfig()) ?? {};
   const held = (field) => Boolean(saved[field]);
-  if (held("base_url")) line(OK, "vi-natural gateway", VI_CONFIG);
+  if (held("base_url")) line(OK, "vi-natural gateway", viConfig());
   else line(login, "vi-natural gateway", "run `vi-natural login --base-url <url>` — there is no default host");
-  if (held("api_key")) line(OK, "vi-natural key", VI_CONFIG);
+  if (held("api_key")) line(OK, "vi-natural key", viConfig());
   else line(login, "vi-natural key", "run `vi-natural login --key <key>` — no issue can be posted");
-  if (held("model")) line(OK, "vi-natural model", VI_CONFIG);
+  if (held("model")) line(OK, "vi-natural model", viConfig());
   else line(login, "vi-natural model", "run `vi-natural login --model <id>` — `vi-natural models` lists them");
 };
 
@@ -135,7 +135,7 @@ const checkCodex = () => {
   if (problem) return line(NOTE, "codex", `${problem} — \`forge codex\` cannot consult`);
   const model = modelBehind(values);
   if (!model) return line(NOTE, "codex", "the profile maps that model slot to nothing");
-  line(OK, "codex", `${model}  ${consults(logEntries()).length} consult(s) logged at ${LOG_PATH}`);
+  line(OK, "codex", `${model}  ${consults(logEntries()).length} consult(s) logged at ${logPath()}`);
 };
 
 const DEVICE_ONLY = { key: "forge_project_pm.set_dependency" };
@@ -539,6 +539,6 @@ export const doctor = async (rest) => {
     process.exit(1);
   }
   await checkEndpoint(full);
-  if (full) console.log(`\nConfig file: ${CONFIG_PATH}`);
+  if (full) console.log(`\nConfig file: ${configPath()}`);
   if (missed) process.exit(1);
 };

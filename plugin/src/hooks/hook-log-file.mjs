@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 
 import { configDir } from "../resolve/config.mjs";
 
-export const HOOK_LOG_PATH = join(configDir("forge"), "hook-log.jsonl");
+export const hookLogPath = () => join(configDir("forge"), "hook-log.jsonl");
 
 /** One line appended to a JSONL store, the file created at `0o600` while it is still empty because `appendFileSync` alone would leave it `0644`; it raises rather than answering, so each store keeps its own catch, its own return and its own sentence about the loss, and `dir` is the directory the caller means to make rather than always the file's own. */
 export const appendJsonl = (path, record, dir = dirname(path)) => {
@@ -17,7 +17,7 @@ export const appendJsonl = (path, record, dir = dirname(path)) => {
 
 export const logHook = (record) => {
   try {
-    appendJsonl(HOOK_LOG_PATH, record, configDir("forge"));
+    appendJsonl(hookLogPath(), record, configDir("forge"));
     return true;
   } catch {
     return false;
@@ -39,7 +39,7 @@ export const jsonLines = (text) =>
 
 export const hookEntries = () => {
   try {
-    return jsonLines(readFileSync(HOOK_LOG_PATH, "utf8"));
+    return jsonLines(readFileSync(hookLogPath(), "utf8"));
   } catch {
     return [];
   }

@@ -3,15 +3,15 @@
    because the verb is bookkeeping and this is the part that spends money. docs/cli/codex-the-consult.md. */
 import { askApi } from "./codex-api.mjs";
 import { toolsFor, runTool } from "./codex-tools.mjs";
-import { BUDGET_MS } from "./codex-log.mjs";
+import { budgetMs } from "./codex-log.mjs";
 import { incompleteIn, keepsTools, plannedLimits } from "./codex-plan.mjs";
-import { CONFIG_PATH } from "../resolve/config.mjs";
+import { configPath } from "../resolve/config.mjs";
 
 /* A round exists so the reviewer can SEE what it was not given, and seeing has a fixed point. */
 export const rounds = async (values, model, opening, scope, onDelta, ask = askApi, held = {}) => {
   const { effort, cap, system } = held;
   /* One clock for the consult, not one per attempt, whatever the ladder does. */
-  const signal = held.signal ?? AbortSignal.timeout(BUDGET_MS);
+  const signal = held.signal ?? AbortSignal.timeout(budgetMs());
   const calls = cap ?? plannedLimits().base;
   const messages = [{ role: "user", content: opening }];
   const used = [];
@@ -37,7 +37,7 @@ export const rounds = async (values, model, opening, scope, onDelta, ask = askAp
     /* A capped reply of only tool calls answered nothing: it fails rather than logging as a review. */
     if (last) {
       if (!held.text.trim()) {
-        const unanswered = new Error(`spent all ${calls} call(s) reading and never answered. Raise \`codex.roundsMax\` in ${CONFIG_PATH}.`);
+        const unanswered = new Error(`spent all ${calls} call(s) reading and never answered. Raise \`codex.roundsMax\` in ${configPath()}.`);
         /* Carried, or the ladder under-reports the exhaustion the stats exist to count. */
         unanswered.spent = { usage: spent, thought, tools: used, refused };
         throw unanswered;
@@ -88,7 +88,7 @@ const totalled = (first, again) => {
  *  "before it is shown" and a stream to stdout cannot both hold. docs/cli/codex-the-consult.md. */
 export const reviewed = async (values, model, opening, scope, onDelta, ask = askApi, held = {}) => {
   const { budget, ceiling } = held;
-  held = { ...held, signal: held.signal ?? AbortSignal.timeout(BUDGET_MS) };
+  held = { ...held, signal: held.signal ?? AbortSignal.timeout(budgetMs()) };
   const again = budget < ceiling;
   const quiet = () => {};
   const climb = async (spent) => {

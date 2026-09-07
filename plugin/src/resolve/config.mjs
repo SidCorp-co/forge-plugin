@@ -20,7 +20,7 @@ import { idGrantedBy } from "./granted-id.mjs";
 export const configDir = (name) =>
   join(process.env.XDG_CONFIG_HOME || join(homedir(), ".config"), name);
 
-export const CONFIG_PATH = join(configDir("forge"), "config.json");
+export const configPath = () => join(configDir("forge"), "config.json");
 
 /* Remembers THAT it ran, not what it returned: a truthiness memo re-runs on a valid null. */
 export const once = (produce) => {
@@ -43,7 +43,7 @@ export const readJson = (path) => {
   }
 };
 
-export const userConfig = once(() => readJson(CONFIG_PATH) ?? {});
+export const userConfig = once(() => readJson(configPath()) ?? {});
 
 /* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. */
 /* The temporary name carries the writer's pid: two processes sharing one would interleave a file
@@ -82,9 +82,9 @@ export const writeJsonPrivate = (path, value) => {
 export const saveConfig = (values) => {
   mkdirSync(configDir("forge"), { recursive: true });
   const merged = { ...userConfig(), ...values };
-  writeJsonPrivate(CONFIG_PATH, merged);
+  writeJsonPrivate(configPath(), merged);
   Object.assign(userConfig(), merged);
-  return CONFIG_PATH;
+  return configPath();
 };
 
 /* Which run this is: the lease's holder and what a session has been shown are both keyed by it. */

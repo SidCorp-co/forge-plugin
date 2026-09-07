@@ -4,7 +4,7 @@
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 
-import { CONFIG_PATH, once, readJson, userConfig } from "./config.mjs";
+import { configPath, once, readJson, userConfig } from "./config.mjs";
 
 /* Registered by a caller holding something no exit may lose — a body that arrived on stdin. */
 let kept = null;
@@ -93,8 +93,8 @@ const sourced = (from, value) => (value ? { value, from } : { value: null, from:
 export const accountCredentials = once(() => {
   const saved = userConfig();
   return {
-    url: sourced(CONFIG_PATH, saved.url),
-    token: sourced(CONFIG_PATH, saved.token),
+    url: sourced(configPath(), saved.url),
+    token: sourced(configPath(), saved.token),
   };
 });
 

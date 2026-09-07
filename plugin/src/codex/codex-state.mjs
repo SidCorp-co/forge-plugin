@@ -8,9 +8,9 @@ import { basename, join } from "node:path";
 import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
 import { logHook } from "../hooks/hook-log.mjs";
 
-export const STATE_PATH = join(configDir("forge"), "codex.json");
+export const statePath = () => join(configDir("forge"), "codex.json");
 
-export const readState = () => readJson(STATE_PATH) ?? {};
+export const readState = () => readJson(statePath()) ?? {};
 
 /* A list with no age reads as this turn's work however old it is. */
 export const ageOf = (at, now = Date.now()) => {
@@ -22,7 +22,7 @@ export const ageOf = (at, now = Date.now()) => {
   return hours < 48 ? `${hours} hour(s) ago` : `${Math.round(hours / 24)} day(s) ago`;
 };
 
-const LOCK_PATH = `${STATE_PATH}.lock`;
+const lockPath = () => `${statePath()}.lock`;
 const STALE_MS = 5_000;
 const WAIT_MS = 20;
 const TRIES = 50;
@@ -43,17 +43,17 @@ const underLock = (fn) => {
   }
   for (let tries = 0; tries < TRIES && held === null; tries += 1) {
     try {
-      held = openSync(LOCK_PATH, "wx");
+      held = openSync(lockPath(), "wx");
       writeFileSync(held, MINE);
     } catch (error) {
       if (error.code !== "EEXIST") break;
       let since = 0;
       try {
-        since = statSync(LOCK_PATH).mtimeMs;
+        since = statSync(lockPath()).mtimeMs;
       } catch {
         since = 0;
       }
-      if (since && Date.now() - since > STALE_MS) rmSync(LOCK_PATH, { force: true });
+      if (since && Date.now() - since > STALE_MS) rmSync(lockPath(), { force: true });
       else pause(WAIT_MS);
     }
   }
@@ -65,7 +65,7 @@ const underLock = (fn) => {
       decision: "note",
       tool: "",
       session: "",
-      target: LOCK_PATH,
+      target: lockPath(),
       reason: `the lock held for ${(TRIES * WAIT_MS) / 1000}s, so the state was written without it`,
     });
   }
@@ -75,7 +75,7 @@ const underLock = (fn) => {
     if (held !== null) {
       closeSync(held);
       try {
-        if (readFileSync(LOCK_PATH, "utf8") === MINE) rmSync(LOCK_PATH, { force: true });
+        if (readFileSync(lockPath(), "utf8") === MINE) rmSync(lockPath(), { force: true });
       } catch {
         held = null;
       }
@@ -93,7 +93,7 @@ export const updateState = (change) =>
     if (after === before) return before;
     try {
       mkdirSync(configDir("forge"), { recursive: true });
-      writeJsonPrivate(STATE_PATH, after);
+      writeJsonPrivate(statePath(), after);
     } catch {
       return before;
     }

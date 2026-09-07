@@ -4,7 +4,7 @@
 
    Zones aggregate across every configured account, and a caller names a zone by id and never an
    account: which account holds that zone is asked rather than typed. */
-import { CONFIG_PATH, saveConfig, userConfig } from "../resolve/config.mjs";
+import { configPath, saveConfig, userConfig } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
@@ -38,7 +38,7 @@ export const USAGE = [
    `forge doctor` reports where each came from and never what it is. */
 export const cloudflareAccounts = () => {
   const held = (userConfig().cloudflare?.accounts ?? []).filter((one) => one.apiToken && one.accountId);
-  return { from: held.length ? CONFIG_PATH : null, accounts: held };
+  return { from: held.length ? configPath() : null, accounts: held };
 };
 
 const NO_ACCOUNT =
@@ -237,7 +237,7 @@ const saveAccount = (rest) => {
     const kept = held.filter((one) => one.name !== forget);
     if (kept.length === held.length) fail(didYouMean("account", forget, held.map((one) => one.name)));
     saveConfig({ cloudflare: { accounts: kept } });
-    console.log(`Dropped ${forget}; ${kept.length} account(s) left in ${CONFIG_PATH}`);
+    console.log(`Dropped ${forget}; ${kept.length} account(s) left in ${configPath()}`);
     return;
   }
   if (!name || !accountId || !token) {
@@ -245,7 +245,7 @@ const saveAccount = (rest) => {
   }
   const kept = held.filter((one) => one.name !== name);
   saveConfig({ cloudflare: { accounts: [...kept, { name, accountId, apiToken: token }] } });
-  console.log(`Saved ${name} to ${CONFIG_PATH} (0600); ${kept.length + 1} account(s) configured.`);
+  console.log(`Saved ${name} to ${configPath()} (0600); ${kept.length + 1} account(s) configured.`);
 };
 
 const listAccounts = (rest) => {

@@ -4,7 +4,7 @@
    Four pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and
    its eval set (codex-log.mjs), the turn's bookkeeping (codex-state.mjs), and this — the verb and
    the hook halves. */
-export { STATE_PATH, afterTouch, ageOf, demandIn, holding, pendingIn, pendingState, stagedIn } from "./codex-state.mjs";
+export { afterTouch, ageOf, demandIn, holding, pendingIn, pendingState, stagedIn, statePath } from "./codex-state.mjs";
 export { reviewed, rounds } from "./codex-rounds.mjs";
 export { plannedFor } from "./codex-plan.mjs";
 import { spawnSync } from "node:child_process";
@@ -13,7 +13,7 @@ import { randomBytes } from "node:crypto";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
 import { canonical } from "../resolve/canonical.mjs";
-import { CONFIG_PATH, userConfig } from "../resolve/config.mjs";
+import { configPath, userConfig } from "../resolve/config.mjs";
 import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
@@ -24,7 +24,7 @@ import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, defaultEffort, incompleteIn, newFindingsIn, plannedFor, plannedLimits } from "./codex-plan.mjs";
 import {
   ANGLES,
-  MODEL,
+  modelSlot,
   askApi,
   bundle,
   changedAgainst,
@@ -42,7 +42,7 @@ import {
 } from "./codex-api.mjs";
 import { crossingSaid, printEval, printMarks, printReplay, printStats } from "./codex-stats.mjs";
 import {
-  LOG_PATH,
+  logPath,
   consults,
   numbered,
   historyFor,
@@ -177,7 +177,7 @@ const compiles = (source) => {
 };
 
 export const recordPattern = () => {
-  const asked = [projectRecordPattern(), { value: userConfig().codex?.pathRe, from: CONFIG_PATH }];
+  const asked = [projectRecordPattern(), { value: userConfig().codex?.pathRe, from: configPath() }];
   const held = asked.find((one) => one.value && compiles(one.value));
   return held ?? { value: DEFAULT_PATH_RE, from: "the built-in default" };
 };
@@ -333,11 +333,11 @@ const consult = async (given) => {
   if (parted) console.error(`codex: ${anchor} has moved under this branch, so the diff is from ${parted.slice(0, 7)}, where they parted.`);
 
   const model = modelBehind(values);
-  if (!model) fail(`codex: ${path} maps the ${MODEL} slot to no model.`);
+  if (!model) fail(`codex: ${path} maps the ${modelSlot()} slot to no model.`);
   /* The premise is a decorrelated reviewer. Refused rather than warned about, because a warning on
      stderr is read after the tokens are spent. */
   if (sameFamily(model) && !allowEcho) {
-    fail(`codex: the ${MODEL} slot resolves to ${model}, this model's own family — that echoes rather `
+    fail(`codex: the ${modelSlot()} slot resolves to ${model}, this model's own family — that echoes rather `
       + "than reviews. Point `codex.model` at another slot, or pass --allow-echo.");
   }
   /* Said before the read, so a stall says where it is, and the read waits on the first byte alone:
@@ -378,7 +378,7 @@ const consult = async (given) => {
     id,
     at: new Date().toISOString(),
     root,
-    slot: MODEL,
+    slot: modelSlot(),
     model,
     files: rels,
     sent: sentFrom(parts),
@@ -470,7 +470,7 @@ const show = () => {
   const model = modelBehind(values);
   console.log(`profile   : ${path}${problem ? `  (${problem})` : ""}`);
   console.log(`endpoint  : ${values?.ANTHROPIC_BASE_URL ?? "<unresolved>"}/v1/messages  (streamed)`);
-  console.log(`model     : ${MODEL} -> ${model ?? "<unset>"}`);
+  console.log(`model     : ${modelSlot()} -> ${model ?? "<unset>"}`);
   if (sameFamily(model)) {
     console.log("            ^ this model's own family: consult refuses it without --allow-echo.");
   }
@@ -485,7 +485,7 @@ const show = () => {
   console.log(`angles    : ${chosenAngles(undefined).join(", ")}`);
   console.log(`check     : ${projectCheck()?.command ?? "none — codex.check in .forge.json names one"}`);
   console.log(`pending   : ${waiting.length ? waiting.join(", ") : "nothing"}`);
-  console.log(`log       : ${LOG_PATH}  (${consults(entries).length} consult(s))`);
+  console.log(`log       : ${logPath()}  (${consults(entries).length} consult(s))`);
 };
 
 /* The hook records; it never reviews. What it asks for is one consult at the end of the turn, with

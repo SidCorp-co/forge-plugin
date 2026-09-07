@@ -29,7 +29,7 @@ const {
   markOf,
   markedAt,
   logLine,
-  LOG_PATH,
+  logPath,
   pairedLog,
   recheckOwed,
   recheckPlan,
@@ -434,7 +434,7 @@ test("a credential in a consult record is masked before the line is written", ()
     reply: `CODEX: 1 findings\n- **F1 — major:** \`a.mjs:3\` — hardcodes COOLIFY_TOKEN=${FAKE}. ${long}`,
   };
   logConsult(record);
-  assert.ok(!readFileSync(LOG_PATH, "utf8").includes("notarealtoken"), "no part of the value is on disk");
+  assert.ok(!readFileSync(logPath(), "utf8").includes("notarealtoken"), "no part of the value is on disk");
   const entry = logEntries().at(-1);
   assert.equal(entry.intent, "check the header we send with --token ***");
   assert.deepEqual(entry.risks, ["Your earlier finding F1 still stands — COOLIFY_TOKEN=*** is committed."]);
@@ -459,7 +459,7 @@ test("a credential two levels into a record is masked, and the ids around it are
     kept: ["F1"],
     dropped: { F2: `not ours: the fixture logs in with ${FAKE}` },
   });
-  assert.ok(!readFileSync(LOG_PATH, "utf8").includes("notarealtoken"), "a rejection reason is caller prose");
+  assert.ok(!readFileSync(logPath(), "utf8").includes("notarealtoken"), "a rejection reason is caller prose");
   const entry = logEntries().at(-1);
   assert.equal(entry.dropped.F2, "not ours: the fixture logs in with ***");
   assert.deepEqual([entry.of, entry.kept, entry.accepted], ["mask-1", ["F1"], 1], "the record is otherwise itself");
@@ -531,8 +531,8 @@ const PLANTED = (n) => ({
 });
 
 test("the consult that takes the log onto a hundred-mark names the eval; the one before it says nothing", () => {
-  const kept = readFileSync(LOG_PATH, "utf8");
-  const plant = (many) => writeFileSync(LOG_PATH, `${Array.from({ length: many }, (one, n) => JSON.stringify(PLANTED(n))).join("\n")}\n`);
+  const kept = readFileSync(logPath(), "utf8");
+  const plant = (many) => writeFileSync(logPath(), `${Array.from({ length: many }, (one, n) => JSON.stringify(PLANTED(n))).join("\n")}\n`);
   try {
     plant(199);
     assert.equal(answered(logEntries()).length, 199, "planted as answered consults, which is what the counter counts");
@@ -562,20 +562,20 @@ test("the consult that takes the log onto a hundred-mark names the eval; the one
     assert.equal(loggedWithMark({ ...PLANTED(199), ok: false, reply: undefined, error: "gateway" }), null,
       "a failed consult is not in the population the eval compares, so it crosses nothing");
   } finally {
-    writeFileSync(LOG_PATH, kept);
+    writeFileSync(logPath(), kept);
   }
 });
 
 /* Counted around the write, two consults finishing together both read 199 before and 201 after, and
    both announced 200 (codex F1, this change). The mark belongs to the record that landed on it. */
 test("two consults finishing together, only the one that landed on the mark says so", () => {
-  const kept = readFileSync(LOG_PATH, "utf8");
+  const kept = readFileSync(logPath(), "utf8");
   try {
-    writeFileSync(LOG_PATH, `${Array.from({ length: 199 }, (one, n) => JSON.stringify(PLANTED(n))).join("\n")}\n`);
+    writeFileSync(logPath(), `${Array.from({ length: 199 }, (one, n) => JSON.stringify(PLANTED(n))).join("\n")}\n`);
     assert.match(loggedWithMark(PLANTED(199)).said, /200 answered consults/u, "the 200th");
     assert.equal(loggedWithMark(PLANTED(200)), null, "and the one right behind it announces nothing");
   } finally {
-    writeFileSync(LOG_PATH, kept);
+    writeFileSync(logPath(), kept);
   }
 });
 

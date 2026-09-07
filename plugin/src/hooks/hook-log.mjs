@@ -3,14 +3,14 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { HOOK_LOG_PATH, hookEntries, jsonLines, logHook } from "./hook-log-file.mjs";
+import { hookLogPath, hookEntries, jsonLines, logHook } from "./hook-log-file.mjs";
 import { readAction } from "../tracker/issue-read.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, setHook } from "./hook-switch.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 
-export { HOOK_LOG_PATH, hookEntries, jsonLines, logHook };
+export { hookLogPath, hookEntries, jsonLines, logHook };
 
 const KEPT = 220;
 const TAIL = 20;
@@ -135,7 +135,7 @@ const roundsLine = (one) =>
 
 const rounds = (entries) => {
   const by = roundsBy(entries);
-  if (!by.length) return console.log(`No refusals logged, so no rounds to count. ${HOOK_LOG_PATH} holds the record.`);
+  if (!by.length) return console.log(`No refusals logged, so no rounds to count. ${hookLogPath()} holds the record.`);
   for (const one of by.sort((a, b) => b.per - a.per)) console.log(roundsLine(one));
   console.log("\nRefusals per refused write, not per write: only refusals are logged, so the writes "
     + "that passed are not in the denominator. One is the rule working; two or more is a loop. Two "
@@ -170,8 +170,8 @@ export const hooks = (argv) => {
     const what = held.notes ? "notes" : "hook refusals";
     /* A filter matching nothing is not an empty log: the path is news only when none is there. */
     const where = logged
-      ? `${logged} entr${logged === 1 ? "y" : "ies"} in ${HOOK_LOG_PATH} match nothing asked for`
-      : `${HOOK_LOG_PATH} appears on the first one`;
+      ? `${logged} entr${logged === 1 ? "y" : "ies"} in ${hookLogPath()} match nothing asked for`
+      : `${hookLogPath()} appears on the first one`;
     return console.log(`No ${what} logged. ${where}.${also}`);
   }
   const last = Number(held.last || TAIL);

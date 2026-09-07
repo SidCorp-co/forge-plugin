@@ -30,7 +30,7 @@ const {
   windowOf,
   windowObject,
 } = await import("../../src/codex/codex-stats.mjs");
-const { KEPT_CHARS, KEPT_TOTAL, LOG_PATH, scoreOf, sentFrom } = await import("../../src/codex/codex-log.mjs");
+const { KEPT_CHARS, KEPT_TOTAL, logPath, scoreOf, sentFrom } = await import("../../src/codex/codex-log.mjs");
 const { marksPath, writeMark } = await import("../../src/stats/marks.mjs");
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const { digest, promptMark, roleFor } = await import("../../src/codex/codex-api.mjs");
@@ -511,8 +511,8 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
   assert.deepEqual(young.shifts, []);
 
   /* An empty log is an empty object and not the screen's prose: the reader asked for JSON (codex F1). */
-  mkdirSync(dirname(LOG_PATH), { recursive: true });
-  writeFileSync(LOG_PATH, "");
+  mkdirSync(dirname(logPath()), { recursive: true });
+  writeFileSync(logPath(), "");
   const said = mock.method(console, "log", () => {});
   try {
     printEval(["--json"]);
@@ -527,9 +527,9 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
 
 /* The log is the only record, and an eval that appended one would be measuring itself. */
 test("the eval writes nothing and refuses a window nobody can act on", () => {
-  mkdirSync(dirname(LOG_PATH), { recursive: true });
-  writeFileSync(LOG_PATH, `${Array.from({ length: 8 }, (one, n) => JSON.stringify(WINDOWED(n))).join("\n")}\n`);
-  const before = readFileSync(LOG_PATH);
+  mkdirSync(dirname(logPath()), { recursive: true });
+  writeFileSync(logPath(), `${Array.from({ length: 8 }, (one, n) => JSON.stringify(WINDOWED(n))).join("\n")}\n`);
+  const before = readFileSync(logPath());
   const said = mock.method(console, "log", () => {});
   try {
     printEval([]);
@@ -542,7 +542,7 @@ test("the eval writes nothing and refuses a window nobody can act on", () => {
   } finally {
     said.mock.restore();
   }
-  assert.deepEqual(readFileSync(LOG_PATH), before, "byte for byte what it was, after both forms");
+  assert.deepEqual(readFileSync(logPath()), before, "byte for byte what it was, after both forms");
 
   const stopped = mock.method(process, "exit", () => {
     throw new Error("exited");
@@ -564,8 +564,8 @@ test("the eval writes nothing and refuses a window nobody can act on", () => {
 test("a stored consult reading is the before window, scored as it was at the mark, on every checkout", () => {
   const rows = Array.from({ length: 250 }, (one, n) => WINDOWED(n));
   const verdicts = rows.map((one, n) => SCORED(n));
-  mkdirSync(dirname(LOG_PATH), { recursive: true });
-  writeFileSync(LOG_PATH, `${[...rows, ...verdicts].map((one) => JSON.stringify(one)).join("\n")}\n`);
+  mkdirSync(dirname(logPath()), { recursive: true });
+  writeFileSync(logPath(), `${[...rows, ...verdicts].map((one) => JSON.stringify(one)).join("\n")}\n`);
   const env = { ...process.env };
   const ask = (...argv) => spawnSync(FORGE, ["codex", ...argv], { encoding: "utf8", env });
 

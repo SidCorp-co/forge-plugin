@@ -12,7 +12,7 @@ const sandbox = tempRoom("forge-codex-record-");
 process.env.XDG_CONFIG_HOME = sandbox;
 delete process.env.FORGE_CODEX_DISABLE;
 
-const { STATE_PATH, afterTouch, hookRecord, pendingIn } = await import("../../src/codex/codex.mjs");
+const { afterTouch, hookRecord, pendingIn, statePath } = await import("../../src/codex/codex.mjs");
 const { digest } = await import("../../src/codex/codex-api.mjs");
 
 /* A `.git` that is a file is what a worktree has, and repoRoot only asks whether it exists. */
@@ -25,8 +25,8 @@ for (const path of ["docs/PLAN.md", "docs/TWO.md", "src/codex.mjs"]) {
 }
 writeFileSync(join(sandbox, "outside.md"), "under no repository at all");
 
-const state = () => JSON.parse(readFileSync(STATE_PATH, "utf8"));
-const clearState = () => rmSync(STATE_PATH, { force: true });
+const state = () => JSON.parse(readFileSync(statePath(), "utf8"));
+const clearState = () => rmSync(statePath(), { force: true });
 
 /* `first` and `added` are different questions: the second new file of a turn is recorded but must
    not repeat the instruction the first one carried. */
@@ -106,7 +106,7 @@ test("a document the latest answered consult read at this content is not recorde
   };
 
   assert.equal(hookRecord({}, [file], told("t1"), log([consult(true)])), null, "same content, already read");
-  assert.ok(!existsSync(STATE_PATH) || !pendingIn(state(), REPO).length, "nothing pending");
+  assert.ok(!existsSync(statePath()) || !pendingIn(state(), REPO).length, "nothing pending");
   assert.equal(opened, 1, "the log was read once, for the file that would be added");
 
   assert.match(hookRecord({}, [file], told("t2"), log([consult(false)])), /docs\/READ\.md/, "an unanswered consult read nothing");
@@ -180,7 +180,7 @@ test("a path the filter does not cover, or no repository at all, is not recorded
   clearState();
   assert.equal(hookRecord({}, [join(REPO, "src", "codex.mjs")]), null);
   assert.equal(hookRecord({}, [join(sandbox, "outside.md")]), null);
-  assert.equal(existsSync(STATE_PATH), false);
+  assert.equal(existsSync(statePath()), false);
 });
 
 test("the disable switch silences the record", (t) => {

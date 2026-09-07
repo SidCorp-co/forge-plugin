@@ -16,7 +16,7 @@ process.env.XDG_CONFIG_HOME = sandbox;
 delete process.env.FORGE_CODEX_DISABLE;
 
 const { digest, locate } = await import("../../src/codex/codex-api.mjs");
-const { LOG_PATH, logConsult } = await import("../../src/codex/codex-log.mjs");
+const { logConsult, logPath } = await import("../../src/codex/codex-log.mjs");
 const { repoRoot } = await import("../../src/codex/codex.mjs");
 const { readOrRefuse } = await import("../../src/codex/codex-read.mjs");
 
@@ -195,7 +195,7 @@ test("a symlink out of the checkout is keyed by its real path", () => {
 });
 
 test("the log this suite wrote is the sandbox's, never the developer's", () => {
-  assert.ok(LOG_PATH.startsWith(sandbox), `${LOG_PATH} is outside ${sandbox}`);
+  assert.ok(logPath().startsWith(sandbox), `${logPath()} is outside ${sandbox}`);
 });
 
 /* The caller posts these bytes and never reads again: between a second read and the first sits a

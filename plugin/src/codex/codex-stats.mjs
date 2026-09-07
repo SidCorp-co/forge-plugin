@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute } from "node:path";
 
 import { DIFF_CHARS, digest } from "./codex-api.mjs";
-import { LOG_PATH, MARK, answered, logEntries, modelKey, numbered, scoreOf } from "./codex-log.mjs";
+import { MARK, answered, logEntries, logPath, modelKey, numbered, scoreOf } from "./codex-log.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -112,7 +112,7 @@ export const printStats = (rest) => {
     root: here ? process.cwd() : root,
   };
   const rows = windowOf(logEntries(), asked);
-  if (!rows.length) return console.log(`No answered consult in that window. ${LOG_PATH}`);
+  if (!rows.length) return console.log(`No answered consult in that window. ${logPath()}`);
   const named = asked.days ? `the last ${asked.days} day(s)` : `the last ${asked.last ?? DEFAULT_WINDOW} consult(s)`;
   console.log(`${named}${asked.root ? ` in ${asked.root}` : ""}, ${rows[0].at} to ${rows.at(-1).at}\n`);
   for (const line of statLines(statsOf(rows))) console.log(line);
@@ -305,7 +305,7 @@ export const printEval = (argv) => {
     : resolveAgainst(CONSULTS, against, { verb: "codex eval", list: "forge codex marks", writes: WRITES });
   const held = evalObject(logEntries(), stored);
   if (json) return console.log(JSON.stringify(held, null, 2));
-  if (!held.now.consults) return console.log(`No answered consult logged yet, so there is nothing to compare. ${LOG_PATH}`);
+  if (!held.now.consults) return console.log(`No answered consult logged yet, so there is nothing to compare. ${logPath()}`);
   for (const line of evalLines(held)) console.log(line);
 };
 

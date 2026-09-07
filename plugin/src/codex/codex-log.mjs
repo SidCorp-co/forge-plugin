@@ -12,8 +12,8 @@ import { fail } from "../resolve/settings.mjs";
 import { flags, pullRepeated } from "../resolve/flags.mjs";
 import { median } from "../stats/median.mjs";
 
-export const LOG_PATH = join(configDir("forge"), "codex-log.jsonl");
-export const BUDGET_MS = Number(userConfig().codex?.budgetMs || 900_000);
+export const logPath = () => join(configDir("forge"), "codex-log.jsonl");
+export const budgetMs = () => Number(userConfig().codex?.budgetMs || 900_000);
 
 const HISTORY_PAIRS = 3;
 const HISTORY_CHARS = 6000;
@@ -34,17 +34,17 @@ const maskedDeep = (value) => {
 /* It warns and carries on: failing closed would mean a full disk costs the review itself. */
 export const logConsult = (record) => {
   try {
-    appendJsonl(LOG_PATH, maskedDeep(record), configDir("forge"));
+    appendJsonl(logPath(), maskedDeep(record), configDir("forge"));
     return true;
   } catch (error) {
-    console.error(`codex: could not write ${LOG_PATH} (${error.message}); this consult is unlogged.`);
+    console.error(`codex: could not write ${logPath()} (${error.message}); this consult is unlogged.`);
     return false;
   }
 };
 
 export const logEntries = () => {
   try {
-    return jsonLines(readFileSync(LOG_PATH, "utf8"));
+    return jsonLines(readFileSync(logPath(), "utf8"));
   } catch {
     return [];
   }
@@ -423,7 +423,7 @@ export const unverdicted = (entries, root) => {
    is how a log stops being believed. */
 export const startedState = (entry, now = Date.now()) => {
   const age = now - Date.parse(entry.at);
-  return age <= BUDGET_MS ? `running for ${Math.round(age / 1000)}s` : "started and never reported back";
+  return age <= budgetMs() ? `running for ${Math.round(age / 1000)}s` : "started and never reported back";
 };
 
 const countFrom = (raw, floor = 1, fallback = LOG_TAIL) => {
@@ -499,7 +499,7 @@ const scoreLine = (row) =>
 export const printLog = (rest) => {
   const { last, id, full, score } = flags(rest, "codex log", ["--full", "--score"]);
   const entries = pairedLog(logEntries());
-  if (!entries.length) return console.log(`No consults logged yet. ${LOG_PATH} appears on the first.`);
+  if (!entries.length) return console.log(`No consults logged yet. ${logPath()} appears on the first.`);
   if (score) {
     for (const row of scoreOf(entries)) console.log(scoreLine(row));
     return;
@@ -511,7 +511,7 @@ export const printLog = (rest) => {
     return;
   }
   for (const entry of entries.slice(-countFrom(last))) console.log(logLine(entry, full));
-  console.log(`\n${entries.length} logged; ${LOG_PATH}`);
+  console.log(`\n${entries.length} logged; ${logPath()}`);
 };
 
 /* The reply is half an eval set. Which findings survived contact with the work is the other half,

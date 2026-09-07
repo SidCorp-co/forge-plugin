@@ -14,8 +14,8 @@ import { userConfig } from "../resolve/config.mjs";
 import { sseData } from "../sse.mjs";
 
 const PROFILE_PATH = process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
-export const MODEL = userConfig().codex?.model || "fable";
-const MAX_TOKENS = Number(userConfig().codex?.maxTokens || 32_000);
+export const modelSlot = () => userConfig().codex?.model || "fable";
+const maxTokens = () => Number(userConfig().codex?.maxTokens || 32_000);
 /* Accepted by the gateway and not observable from here: the same puzzle answers the same at high and
    at minimal, in the same seconds. Sent because the slot is the account's to configure. */
 
@@ -122,7 +122,7 @@ export const profile = () => {
 
 /* The slot is what gets asked for; the profile decides which model that is, and that mapping is the
    whole reason this verb is a second opinion rather than an echo. */
-export const modelBehind = (values, slot = MODEL) =>
+export const modelBehind = (values, slot = modelSlot()) =>
   values?.[`ANTHROPIC_DEFAULT_${slot.toUpperCase()}_MODEL`] ?? null;
 
 export const sameFamily = (model) => Boolean(model) && /claude/i.test(model);
@@ -435,7 +435,7 @@ export const askApi = async (values, model, messages, { onDelta = () => {}, sign
     },
     body: JSON.stringify({
       model,
-      max_tokens: MAX_TOKENS,
+      max_tokens: maxTokens(),
       system: [cached(system ?? roleFor())],
       stream: true,
       messages,

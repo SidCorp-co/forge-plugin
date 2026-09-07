@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 const room = tempRoom("hook-log-");
 process.env.XDG_CONFIG_HOME = room;
-const { HOOK_LOG_PATH, hookEntries, roundsBy, scrubbed } = await import("../../src/hooks/hook-log.mjs");
+const { hookEntries, hookLogPath, roundsBy, scrubbed } = await import("../../src/hooks/hook-log.mjs");
 const CLI = new URL("../../src/cli.mjs", import.meta.url).pathname;
 test.after(() => rmSync(room, { recursive: true, force: true }));
 
@@ -93,7 +93,7 @@ test("a refusal from a live hook lands in the log, redacted", () => {
   assert.match(entry.target, /--token \*\*\* && git add -A/u);
   assert.ok(!entry.target.includes("secretsecret"), "the log is a file on disk, so it never holds one");
   assert.match(entry.reason, /stages everything in the tree/u);
-  assert.equal(readFileSync(HOOK_LOG_PATH, "utf8").trim().split("\n").length, hookEntries().length);
+  assert.equal(readFileSync(hookLogPath(), "utf8").trim().split("\n").length, hookEntries().length);
 });
 
 /* A filter nobody checked answered "no refusals logged", which is a wrong answer to a mistyped
@@ -120,7 +120,7 @@ test("naming both refusals asks for either, and an empty answer is not an empty 
     });
   for (const [decision, hook] of [["deny", "bash-guard"], ["block", "claude-md"], ["note", "codex-turn"]]) {
     appendFileSync(
-      HOOK_LOG_PATH,
+      hookLogPath(),
       `${JSON.stringify({ at: new Date().toISOString(), hook, decision, tool: "Bash", target: "x", reason: "r", session: "s" })}\n`,
     );
   }
@@ -200,7 +200,7 @@ test("the count is offered by the verb, and reads the log the gates write", () =
       env: { PATH: process.env.PATH, HOME: room, XDG_CONFIG_HOME: room },
     });
   appendFileSync(
-    HOOK_LOG_PATH,
+    hookLogPath(),
     `${JSON.stringify({ at: new Date().toISOString(), hook: "issue-read-first", decision: "deny", tool: "Bash", target: "forge claim ISS-65", reason: "r", session: "a-session" })}\n`,
   );
   const said = forge("--rounds");
