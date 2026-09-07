@@ -596,3 +596,12 @@ test("the two-key threshold is untouched, so one part named alone is still no sp
   assert.equal(partsIn("Parts: ISS-48 is the half of it."), null,
     "relaxing this would newly refuse a filing, which no issue asked for");
 });
+
+test("the parts refusal clears by the edge, the keys it read being issues already", () => {
+  const clear = clears(`${WHOLE}\n\nParts: iss-48 and ISS-58.`);
+  assert.match(clear, /take the claim off the line and re-send with `--with ISS-48,ISS-58`/u,
+    "a filer told only to file each part is told to file issues that exist");
+  assert.doesNotMatch(clear, /file each part on its own/u);
+  assert.match(clears(`${WHOLE}\n\nSplit into ISS-48 (the parser, as ISS-99 asked) and ISS-58.`),
+    /`--with ISS-48,ISS-58`/u, "a key cited inside a label is no part, so no edge is offered for it");
+});

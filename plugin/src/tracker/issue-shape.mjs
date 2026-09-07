@@ -329,15 +329,25 @@ export const twoChangesIn = (body) => {
   return null;
 };
 
-const PARTS_LINE = /\b(?:parts?|children|sub-?issues?|split into|consists of|made up of)\b/iu;
+const PARTS_PHRASE = /\b(?:parts?|children|sub-?issues?|split into|consists of|made up of)\b/giu;
+const BARE = /^parts?$/iu;
+const LABEL = /\([^()]*\)/gu;
+/* Forward only, a bare "part" through a connective or not at all, and a label only between a key
+   and its separator: without those the arm catches "ISS-a and ISS-b split into the halves", "a
+   guide part ISS-a (the lesson) and ISS-b", and a citation inside a label read as a part. */
+const GOVERNED =
+  /^(?<link>(?:[\s`*_]*[:=]|\s+(?:are|is|both|these|the following)\b)*)[\s`*_]*(?<keys>ISS-\d+\b(?:[\s`*_]*(?:\([^()]{0,40}\))?[\s`*_]*(?:,\s*and|,|;|and|&)[\s`*_]*ISS-\d+\b)+)/iu;
 
-/** Naming others as its parts is the split rule, not a filing, and it takes two keys: one may be a
- *  citation of the issue this body sits beside. A clause of the requirements tree is not one of
- *  them, the shape being the tracker's, so a parts line citing one names a part fewer. */
+/** Two keys the phrase governs, never a line that merely holds both — that is a cross-reference
+ *  (ISS-336); two because one may cite the issue this body sits beside. Every occurrence is tried. */
 export const partsIn = (body) => {
   for (const line of String(body).split("\n")) {
-    const keys = [...new Set(keysIn(line))];
-    if (PARTS_LINE.test(line) && keys.length >= 2) return { line: line.trim(), keys };
+    for (const phrase of line.matchAll(PARTS_PHRASE)) {
+      const found = GOVERNED.exec(line.slice(phrase.index + phrase[0].length));
+      if (!found || (BARE.test(phrase[0]) && !found.groups.link)) continue;
+      const keys = [...new Set(keysIn(found.groups.keys.replace(LABEL, " ")))];
+      if (keys.length >= 2) return { line: line.trim(), keys };
+    }
   }
   return null;
 };
@@ -442,8 +452,10 @@ export const shapeOf = ({ title, body, kind = null }, { everySection = false } =
     ));
   }
   if (parts) {
+    const related = parts.keys.map((one) => one.toUpperCase()).join(",");
     gaps.push(need(`a line naming ${parts.keys.join(" and ")} as this issue's parts`,
-      "the parts themselves as issues, each naming the others", "file each part on its own, and confirm this one as the first of them"));
+      "the parts themselves as issues, held on an edge rather than claimed in this body's prose",
+      `take the claim off the line and re-send with \`--with ${related}\`, which relates them in the same create`));
   }
   const tokens = tokensNamed(text);
   /* Before the mark, which exempts the sections and not the set: a kind nobody has decided the
