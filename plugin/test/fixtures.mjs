@@ -398,11 +398,12 @@ export const fakeTracker = async (state) => {
       if (method === "POST") return asComment(answered("forge_comments", { action: "create", data: { issue: id, ...sent } }));
       const held = answered("forge_comments", { action: "list", filters: { issue: id } });
       const rows = (held.comments ?? []).map(asComment);
-      /* Not coerced: a handler answering `hasMore: null` is modelling an envelope that said nothing
-         about its own completeness, which is a page no reader may call whole. */
+      /* Neither coerced nor derived: `hasMore: null` is an envelope saying nothing of its own
+         completeness, and a `total` above the rows sent is one no reader may take off those rows. */
       const says = Object.hasOwn(held ?? {}, "hasMore") ? held.hasMore : false;
       const failing = held.refused || held.notARecord;
-      return { ...asPage(rows, 0, rows.length, says), ...(failing ? held : {}) };
+      const counted = Object.hasOwn(held ?? {}, "total") ? { total: held.total } : {};
+      return { ...asPage(rows, 0, rows.length, says), ...counted, ...(failing ? held : {}) };
     }],
     [/^\/api\/issues\/([^/]+)\/transition$/u, (q, sent, method, [id]) => {
       const { toStatus, ...rest } = sent;

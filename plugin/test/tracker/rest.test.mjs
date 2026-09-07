@@ -69,8 +69,10 @@ const PAIRS = {
   "comments-list": {
     key: "forge_comments.list",
     differs: {
-      limit: "the comments route takes no limit and serves the whole thread, so what comes back is "
-        + "the count it served and not an ask this CLI could have made",
+      limit: "the comments route pages on a window of its own and never one this CLI asked for, so "
+        + "what comes back is the count it served",
+      total: "the route counts the thread behind the page and the tool did not, which is what a "
+        + "reader walking it to the end has to reach",
     },
   },
   "knowledge-get": { key: "forge_knowledge.get", differs: {} },

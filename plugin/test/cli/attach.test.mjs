@@ -99,10 +99,10 @@ test("a base name on none of the issue's documents is sent as before", async () 
   assert.ok(sunk().includes("gate-at-27f1f70.txt"), `sent ${sunk().join(", ")}`);
 });
 
-/* The list takes no cursor, so past its cut the names cannot be read whole — and unlike `record
+/* Where the walk cannot reach the end the names cannot be read whole — and unlike `record
    --evidence`, which can cite a URL and send nothing, a refusal here is one nothing the caller could
    type would clear. So it is said, in the count the tracker returned (ISS-131), and sent. */
-test("a comment page the tracker cut is said on stderr, and the file still goes up", async () => {
+test("a thread the walk could not finish is said on stderr, and the file still goes up", async () => {
   state.answer.forge_comments = (args) =>
     (args.action === "list"
       ? { comments: [{ documentId: COMMENT, body: "one of many", attachments: [] }], returned: 1, hasMore: true }
@@ -113,7 +113,7 @@ test("a comment page the tracker cut is said on stderr, and the file still goes 
   delete state.answer.forge_comments;
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /^The names already on ISS-1 cannot be read whole\./mu);
-  assert.match(run.stderr, /returned 1 comment\(s\) and reported more behind them, for a reason it did not name/u,
+  assert.match(run.stderr, /stopped after 1 comment\(s\) of 1 without the tracker ever calling the read complete/u,
     "the count the tracker returned, and no cap of ours (ISS-131)");
   assert.match(run.stderr, /resolves to two documents/u, "what the unread names could cost");
   assert.ok(sunk().includes("cut-page.txt"), `sent ${sunk().join(", ")}`);

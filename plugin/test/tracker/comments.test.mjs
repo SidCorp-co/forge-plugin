@@ -30,6 +30,17 @@ let posted = 0;
 const sent = [];
 const urls = [];
 
+/* The tracker's own page, which no case here lowers: a thread proved against a limit of two proves
+   nothing about the fifty that shipped. A cursor is the offset it stands for, this stub having no
+   reason to hide what the deployed one encodes. */
+const PAGE_ROWS = 50;
+const cursorAt = (at) => `at-${at}`;
+const offsetOf = (cursor) => (cursor ? Number(String(cursor).replace("at-", "")) : 0);
+
+/* A case naming one owns the whole envelope, which is how the walk's four ways of ending early and
+   the cursor it sends are exercised without a thread that can produce them. */
+let feed = null;
+
 const served = (comment) => ({ ...comment, id: comment.documentId });
 
 const PROJECT = { id: "p-1", slug: "forge-plugin", name: "forge-plugin" };
@@ -48,20 +59,26 @@ globalThis.fetch = async (address, init = {}) => {
     page = { ...page, comments: [...page.comments, made] };
     return answered(served(made));
   }
+  const cursor = url.searchParams.get("cursor");
+  if (feed) return answered(feed(cursor, urls.length));
   const rows = page.comments.map(served);
+  const at = offsetOf(cursor);
+  const window = rows.slice(at, at + PAGE_ROWS);
+  const behind = at + window.length < rows.length;
   const body = {
-    items: rows,
-    returned: rows.length,
+    items: window,
+    returned: window.length,
     total: rows.length + (page.hasMore ? 1 : 0),
-    limit: rows.length,
-    offset: 0,
-    hasMore: Boolean(page.hasMore),
+    limit: window.length,
+    offset: at,
+    hasMore: behind || Boolean(page.hasMore),
+    ...(behind ? { nextCursor: cursorAt(at + window.length) } : {}),
   };
   return answered(body);
 };
 
 const {
-  commentPage, creditCaused, cutLine, mustBeShown, postComment, refusalFor, sessionKey,
+  commentPage, creditCaused, cutIn, cutLine, mustBeShown, postComment, refusalFor, sessionKey,
 } = await import("../../src/tracker/comments.mjs");
 /* How a credit survives is the journal's, and its cases went with it to test/shown/journal.test.mjs. */
 const { creditedTo: shownTo } = await import("../../src/shown/journal.mjs");
@@ -162,25 +179,28 @@ test("what one session was shown, another was not", async () => {
   assert.equal((await asked("session-one")).refusal, null, "and the first session is unaffected");
 });
 
-/* A page that stops short must still clear, or the gate is unclearable on a busy issue — worse
+/* A read that stops short must still clear, or the gate is unclearable on a busy issue — worse
    than the uuid bypass it replaces. The count is said; it decides nothing. */
-test("a page the tracker has more behind still clears, and says what cut it", async () => {
+test("a thread the walk could not finish still clears, and says how far it got", async () => {
   page = { comments: [one("d1", "the first of many")], hasMore: true };
   const { refusal } = await asked("session-three");
-  assert.match(refusal, /returned 1 comment\(s\) and reported more behind them, for a reason it did not name/u, refusal);
+  assert.match(refusal, /stopped after 1 comment\(s\) of 2/u, refusal);
+  assert.match(refusal, /cannot be accounted for to this write/u, "and the hold says why it holds");
   assert.doesNotMatch(refusal, /200/u, "no number this CLI chose is in it, there being none to choose");
   assert.equal((await asked("session-three")).refusal, null);
 });
 
 /* Eight sightings on ISS-17, every one the same sentence: a message named 200 — the number the
    request asked for — on threads of 29 to 42 rows. The count a message may name is the count the
-   tracker returned, and this route names no cap at all, so there is nothing else it may say. */
-test("the cut is described by what the tracker reported, and by nothing measured here", () => {
-  const said = cutLine({ returned: 41 });
-  assert.match(said, /returned 41 comment\(s\) and reported more behind them/u);
-  assert.match(said, /for a reason it did not name/u,
-    "an envelope that said only hasMore is not a reason to invent one");
-  assert.match(said, /takes neither a limit nor a cursor/u, "and it says what nothing here can do about it");
+   tracker returned, and the end it kept is a thing the envelope never says (ISS-697). */
+test("a short read is described by what the tracker reported, and by nothing measured here", () => {
+  const said = cutLine({ returned: 41, total: 80 });
+  assert.match(said, /stopped after 41 comment\(s\) of 80/u);
+  assert.match(said, /Which comments are missing it does not say/u,
+    "an envelope that named no end is not an end to invent");
+  assert.doesNotMatch(said, /most recent|oldest|newest/u, "and no end is named");
+  assert.match(cutLine({ returned: 41 }), /stopped after 41 comment\(s\) without the tracker/u,
+    "an envelope that counted nothing buys no count");
   assert.doesNotMatch(cutLine({ returned: 41, by: "response-size", notice: "cut to 41" }), /response size|cut to 41/u,
     "a caller handing it the tool's old fields buys no sentence with them");
 });
@@ -330,15 +350,202 @@ test("every tracker write in the source is behind the check, or named as exempt"
 });
 
 /* Naming the limit the request asked for as though it were a cap that fired is the defect ISS-131
-   was filed on, at three call sites of one reader. The route takes no limit, so the guard is that
-   none is sent: a reintroduced one is refused by the transport before it can be named anywhere. */
-test("the comment read asks for no window, so no message can name one", async () => {
+   was filed on, at three call sites of one reader. The cursor is the route's one window and the
+   tracker names it, so the guard is that nothing else is sent and the first call sends none. */
+test("the comment read asks for no window of its own, so no message can name one", async () => {
   page = { comments: [one("w1", "the whole thread")], hasMore: false };
   urls.length = 0;
   const held = await commentPage(ISSUE);
   assert.deepEqual(urls, [`/api/issues/${ISSUE}/comments`],
     "a limit or an offset on this path is an argument the route drops in silence");
   assert.equal(held.returned, 1, "and what a message may name is the count that came back");
+});
+
+/* ISS-673 passed fifty comments and every record written after it read back as none: the readable
+   window was the oldest page and nothing above this reader ever asked for the rest (ISS-697). */
+test("a thread longer than the tracker's page is walked to its end", async () => {
+  const long = Array.from({ length: 80 }, (_, at) => one(`p${at}`, `comment number ${at}`));
+  page = { comments: long, hasMore: false };
+  urls.length = 0;
+  const held = await commentPage(ISSUE);
+  assert.equal(held.returned, 80, "the whole thread, not the page the tracker served first");
+  assert.equal(held.hasMore, false, "and the envelope of the last page is what says so");
+  assert.equal(held.total, 80);
+  assert.equal(held.comments.at(-1).documentId, "p79", "including the end nobody could reach");
+  assert.deepEqual(urls, [
+    `/api/issues/${ISSUE}/comments`,
+    `/api/issues/${ISSUE}/comments?cursor=${cursorAt(50)}`,
+  ], "the second call carries the cursor the first page named, and no other window");
+});
+
+test("a run shown the whole of a long thread writes without a refusal", async () => {
+  const long = Array.from({ length: 80 }, (_, at) => one(`q${at}`, `comment number ${at}`));
+  page = { comments: long, hasMore: false };
+  const first = await refusalFor(target, "session-long");
+  assert.match(first.refusal, /80 of 80 comment\(s\) are new to this session/u);
+  assert.ok(first.refusal.includes("comment number 79"), "the far end is delivered, not summarised");
+  assert.equal((await refusalFor(target, "session-long")).refusal, null);
+});
+
+/* Only the first fifty credited is the state ISS-673 was in: the hold had passed every write while
+   two comments it had never shown sat past the page it read. */
+test("the hold fires for an unshown comment past the fiftieth, and delivers that one alone", async () => {
+  const long = Array.from({ length: 80 }, (_, at) => one(`r${at}`, `comment number ${at}`));
+  page = { comments: long, hasMore: false };
+  await refusalFor(target, "session-fifty");
+  page = { comments: long, hasMore: false };
+  const grown = [...long, one("r80", "the eighty-first, which nobody here has seen")];
+  page = { comments: grown, hasMore: false };
+  const { refusal } = await refusalFor(target, "session-fifty");
+  assert.match(refusal, /1 of 81 comment\(s\) are new to this session/u, refusal);
+  assert.ok(refusal.includes("the eighty-first, which nobody here has seen"));
+  assert.ok(!refusal.includes("comment number 3"), "and what was shown is not shown twice");
+});
+
+const shortRead = (envelope) => {
+  page = { comments: [], hasMore: false };
+  feed = envelope;
+  urls.length = 0;
+};
+
+const rowsFor = (at) => [served({ documentId: `f${at}`, createdAt: "2026-09-03T05:22:18.757Z", body: fenced("a row") })];
+
+test("a page reporting more behind it and naming no cursor ends the read short", async () => {
+  shortRead(() => ({ items: rowsFor(0), returned: 1, total: 9, hasMore: true }));
+  const held = await commentPage(ISSUE);
+  feed = null;
+  assert.equal(held.hasMore, true, "so nothing downstream can read it as whole");
+  assert.equal(urls.length, 1, "and no second call is made on a cursor nobody named");
+  assert.match(cutIn(held), /stopped after 1 comment\(s\) of 9/u);
+});
+
+test("a cursor the tracker hands back a second time ends the read short", async () => {
+  const cycle = ["a", "b", "a"];
+  shortRead((cursor, index) => ({
+    items: rowsFor(index), returned: 1, total: 99, hasMore: true, nextCursor: cycle[index] ?? "a",
+  }));
+  const held = await commentPage(ISSUE);
+  feed = null;
+  assert.equal(held.hasMore, true);
+  assert.equal(urls.length, 3, "a is asked for once, b once, and the second a is where it stops");
+});
+
+test("a tracker naming a fresh cursor for ever is stopped by the request budget", async () => {
+  shortRead((cursor, index) => ({
+    items: rowsFor(index), returned: 1, total: 999_999, hasMore: true, nextCursor: `fresh-${index}`,
+  }));
+  const held = await commentPage(ISSUE);
+  feed = null;
+  assert.equal(held.hasMore, true, "a budget spent is a short read like any other");
+  assert.equal(urls.length, 100, "and the budget is what bounds it");
+  assert.equal(held.returned, 100);
+});
+
+test("a page with no rows behind a page that reported more ends the read short", async () => {
+  shortRead((cursor) => (cursor
+    ? { items: [], returned: 0, total: 9, hasMore: true, nextCursor: "on" }
+    : { items: rowsFor(0), returned: 1, total: 9, hasMore: true, nextCursor: "next" }));
+  const held = await commentPage(ISSUE);
+  feed = null;
+  assert.equal(held.hasMore, true);
+  assert.equal(urls.length, 2, "the empty page is read once and followed no further");
+});
+
+/* The refusal is the delivery of the fact, so it is credited like a comment: refusing every write
+   would stop `forge comment` and every field write on the issue with no escape this CLI offers. */
+test("a short read holds one write and is said on every write after it", async () => {
+  shortRead(() => ({ items: rowsFor(0), returned: 1, total: 9, hasMore: true }));
+  const first = await refusalFor(target, "session-short");
+  assert.match(first.refusal, /cannot be accounted for to this write/u, first.refusal);
+  assert.match(first.refusal, /stopped after 1 comment\(s\) of 9/u);
+  assert.ok(first.refusal.includes("a row"), "and the rows the walk did reach are delivered with it");
+  const again = await refusalFor(target, "session-short");
+  feed = null;
+  assert.equal(again.refusal, null, "the write goes through, the fact having been delivered");
+  assert.match(again.short[0].said, /stopped after 1 comment\(s\) of 9/u,
+    "and the sentence is there for every write to say");
+});
+
+/* Said where a write reads it: the sentence a passing check prints, `refusalFor`'s field being what
+   nothing but this reads. The hold is spent first because `fail()` ends the process, not this case. */
+test("the write that follows the hold prints the sentence on stderr", async () => {
+  shortRead(() => ({ items: rowsFor(0), returned: 1, total: 9, hasMore: true }));
+  await refusalFor(target, sessionKey());
+  const said = [];
+  const held = console.error;
+  console.error = (line) => said.push(line);
+  try {
+    await mustBeShown(target);
+  } finally {
+    console.error = held;
+    feed = null;
+  }
+  assert.equal(said.length, 1, said.join(" | "));
+  assert.match(said[0], /^ISS-57: The thread was walked and stopped after 1 comment\(s\) of 9/u, said[0]);
+});
+
+/* The one length at which a marker sharing the comments' surface would cost a comment its credit,
+   and that comment would cost the marker its own on the write after: a hold that never clears. */
+test("a thread of exactly the kept 400 that cannot be read whole still stops refusing", async () => {
+  const rows = Array.from({ length: 400 }, (_, at) => served(one(`k${at}`, "one of four hundred")));
+  shortRead(() => ({ items: rows, returned: rows.length, total: 500, hasMore: true }));
+  const held = await refusalFor(target, "session-four-hundred");
+  assert.match(held.refusal, /400 of 400 comment\(s\) are new to this session/u, held.refusal);
+  assert.match(held.refusal, /cannot be accounted for to this write/u, "and the hold the short read owes");
+  for (const again of [1, 2]) {
+    const passed = await refusalFor(target, "session-four-hundred");
+    assert.equal(passed.refusal, null, `write ${again} after the delivery is refused nothing`);
+  }
+  feed = null;
+  assert.equal(shownTo("session-four-hundred", ISSUE).size, 400, "every comment still credited");
+  assert.equal(shownTo("session-four-hundred", ISSUE).has("thread:not-read-whole"), false,
+    "the marker is on no comment's surface, which is what keeps all 400 of them");
+  assert.ok(shownTo("session-four-hundred", `${ISSUE}:thread`).has("thread:not-read-whole"),
+    "and on one of its own, credited where the hold was delivered");
+});
+
+/* One comment past what a surface keeps, and every credit for the set evicts one of its own: the
+   walk made that length reachable, so the hold is spent on the count and never on the comments. */
+test("a thread past the credits one issue keeps is said, not delivered, and stops refusing", async () => {
+  const rows = Array.from({ length: 401 }, (_, at) => served(one(`p${at}`, "one of four hundred and one")));
+  shortRead(() => ({ items: rows, returned: rows.length, total: rows.length, hasMore: false }));
+  const held = await refusalFor(target, "session-past-keep");
+  assert.match(held.refusal, /holds 401 comment\(s\) of 401, past the 400 one issue's credits keep/u, held.refusal);
+  assert.doesNotMatch(held.refusal, /are new to this session/u, "no delivery of four hundred bodies");
+  assert.doesNotMatch(held.refusal, /one of four hundred and one/u, "and no body in it at all");
+  for (const again of [1, 2]) {
+    const passed = await refusalFor(target, "session-past-keep");
+    assert.equal(passed.refusal, null, `write ${again} after the hold is refused nothing`);
+  }
+  feed = null;
+  assert.equal(shownTo("session-past-keep", ISSUE).size, 0, "no comment is credited, none having been shown");
+  assert.ok(shownTo("session-past-keep", `${ISSUE}:thread`).has("thread:beyond-credit"),
+    "and the hold is credited where it was delivered");
+});
+
+test("two pages holding one comment between them deliver it once", async () => {
+  const rows = [served(one("o1", "the first")), served(one("o2", "the shared one")), served(one("o3", "the last"))];
+  shortRead((cursor) => (cursor
+    ? { items: rows.slice(1), returned: 2, total: 3, hasMore: false }
+    : { items: rows.slice(0, 2), returned: 2, total: 3, hasMore: true, nextCursor: "second" }));
+  const held = await commentPage(ISSUE);
+  feed = null;
+  assert.deepEqual(held.comments.map((row) => row.documentId), ["o1", "o2", "o3"], "the overlap is one row");
+  assert.equal(held.returned, 3, "and the count is of what it holds, not of what was sent");
+});
+
+/* `hasMore: false` is the tracker's own word and this reader answers to it, so a total it cannot
+   account for is said and never held: a check on that column would refuse every write to an issue
+   nobody could clear, and its meaning has been read on one tracker. */
+test("a thread the tracker calls whole but counts higher is said and holds nothing", async () => {
+  shortRead(() => ({ items: rowsFor(0), returned: 1, total: 9, hasMore: false }));
+  await refusalFor(target, "session-counted-short");
+  const asked = await refusalFor(target, "session-counted-short");
+  feed = null;
+  assert.equal(asked.refusal, null, "no hold, whatever the count says");
+  assert.match(asked.short[0].said, /called this thread whole at 1 comment\(s\) and counted 9 on it/u);
+  assert.equal(asked.short[0].holds, false);
+  assert.equal(cutIn({ hasMore: false }), null, "and nothing downstream reads it as a short read");
 });
 
 test("one check is one comments list, and no read of the issue at all", async () => {

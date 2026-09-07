@@ -81,17 +81,17 @@ that returns fewer rows than were asked for makes a short page compare unequal t
 as complete. So truncation is read from what the envelope stated, and a length equal to the limit is
 kept only as the fallback for a route that states nothing at all.
 
-Which cap bit is a thing only a route taking a window can say, so only those rows say it. A route
-taking neither a limit nor an offset reports rows behind the page and no reason for them, and the
-message says exactly that rather than picking a cap to blame — writing one here would put this CLI's
-words in the tracker's mouth. Silence is the third case and it is not the whole page: an envelope
-that did not state completeness at all is carried through as having stated nothing, because every
-reader of it would otherwise pass a page it could not read.
+Which cap bit is a thing only a route taking a window can say, so only those rows say it. The
+comments route's window is a cursor the envelope names, and the reader passes it back until nothing
+is behind the page, which is how a thread of any length is read to its end. Silence is the third
+case and it is not the whole page: an envelope that did not state completeness at all is carried
+through as having stated nothing, because every reader of it would otherwise pass a page it could
+not read.
 
-An incomplete reading is said out loud rather than folded into a pass, and it states the count it
-measured and never the limit it asked for. Where a check's correctness depends on having read
-everything, silence is a claim: a duplicate check that saw half the issues and reports nothing has
-reported a clean result.
+An incomplete reading is said out loud rather than folded into a pass, and it states how many rows
+of how many it read, never a limit it asked for and never which end it missed. Where a check's
+correctness depends on having read everything, silence is a claim: a duplicate check that saw half
+the issues and reports nothing has reported a clean result.
 
 ## A key is resolved by arithmetic, not by a page
 
