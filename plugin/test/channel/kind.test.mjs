@@ -61,6 +61,12 @@ test("under bugs, a kind the project did not allow is refused by name", async ()
   assert.match(run.stderr, /enhancement/u, "the kind that was asked for");
   assert.match(run.stderr, /feedback\.plugin/u, "and the key that allows only the one");
   assert.equal(run.filed, undefined, "nothing was filed");
+  /* A withheld route may not be replaced by another: this refusal once sent a plugin enhancement to
+     the client's own backlog, where `forge new` would have filed it and nobody who owns the code
+     reads it. What is withheld goes in the report, which is the whole of the rule (ISS-108). */
+  assert.match(run.stderr, /report/u, "the withheld finding is routed to the run's report");
+  assert.doesNotMatch(run.stderr, /forge new/u, "and to no verb that would file it somewhere else");
+  assert.doesNotMatch(run.stderr, /this project's own backlog/u, "least of all the wrong backlog");
 });
 
 test("under all, an enhancement missing a section its own shape needs is refused by that section", async () => {
