@@ -178,3 +178,56 @@ export const rankConvention = once(() => sourced(".forge.json", forgeJson().pars
 
 export const projectReview = () => forgeJson().parsed?.review ?? {};
 export const projectStop = () => forgeJson().parsed?.stop ?? {};
+
+const FROM_PROJECT = ".forge.json";
+export const PLUGIN_DEFAULT = "the plugin's default";
+
+const chosen = (given, allowed, fallback) => {
+  if (given === undefined || given === null) return { value: fallback, from: PLUGIN_DEFAULT };
+  const held = String(given);
+  return allowed.includes(held)
+    ? { value: held, from: FROM_PROJECT }
+    : { value: fallback, from: PLUGIN_DEFAULT, unknown: held };
+};
+
+export const FEEDBACK_CHANNELS = ["off", "bugs", "all"];
+const FEEDBACK_DEFAULTS = { plugin: "bugs", project: "all" };
+
+/** Each channel defaults on its own: a project naming one says nothing about the other. */
+export const feedbackScope = once(() => Object.fromEntries(
+  Object.entries(FEEDBACK_DEFAULTS).map(([which, fallback]) =>
+    [which, chosen(forgeJson().parsed?.feedback?.[which], FEEDBACK_CHANNELS, fallback)]),
+));
+
+/** The key as written, or none: the versions are the plugin's, so `methodPinned` applies the default. */
+export const methodScope = once(() => {
+  const given = forgeJson().parsed?.method;
+  if (given === undefined || given === null) return { value: null, from: PLUGIN_DEFAULT };
+  const held = Number(given);
+  return Number.isInteger(held) && held > 0
+    ? { value: held, from: FROM_PROJECT }
+    : { value: null, from: PLUGIN_DEFAULT, unknown: String(given) };
+});
+
+export const LANDING_ROUTES = ["after-merge", "before-merge"];
+
+export const landingScope = once(() => {
+  const given = forgeJson().parsed?.landing;
+  if (given === undefined || given === null) return { value: null, from: null };
+  const held = String(given);
+  return LANDING_ROUTES.includes(held)
+    ? { value: held, from: FROM_PROJECT }
+    : { value: null, from: null, unknown: held };
+});
+
+export const SHIP_MODES = ["self", "ready"];
+
+/** Unmemoised: `forge doctor --ship` writes the option and reports it in the same process. */
+export const shipMode = () => {
+  const held = userConfig().ship;
+  if (SHIP_MODES.includes(held)) return { value: held, from: CONFIG_PATH };
+  const [fallback] = SHIP_MODES;
+  return held === undefined || held === null
+    ? { value: fallback, from: PLUGIN_DEFAULT }
+    : { value: fallback, from: PLUGIN_DEFAULT, unknown: String(held) };
+};

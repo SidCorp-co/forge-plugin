@@ -29,6 +29,24 @@ a hostname, so trimming past the path has no stopping point short of printing no
 round this verb exists to remove. A secret placed inside a path or a hostname is indistinguishable
 from an address and prints.
 
+## Two lines Phase 0 reads before it plans a landing
+
+**Where the merge sits is derived, not asked for.** The project already told the tracker whether its
+default branch deploys production on its own, and that is the fact that decides it: one branch
+deploying production means a push *is* the deploy, so a candidate is deployed and judged before it is
+pushed; distinct branches mean the merge lands on staging and is judged there. A record answering
+neither branch prints *not stated* rather than the safer-looking route, because a run told
+*after-merge* by a default would deploy production without knowing it. The `landing` key in a
+checkout overrides the derivation and prints its own source, so a project that disagrees with what
+its record implies says so once, where a reader can see both.
+
+**Whether an independent agent judges between `developed` and `tested` is the record's alone.** A
+project has one tracker record and many checkouts, and QA belongs with the deploy facts rather than
+beside them; read from a checkout instead, two clones of one project would judge the same change
+differently. So a `qa` key placed in a `.forge.json` moves nothing this verb prints, and the line
+reads *not stated* until the record answers — which is a shortfall a run can still act on, and the
+reason the line is here rather than at the transition that would have refused.
+
 ## What the guard covers, and the edge it states
 
 *Where does a credential stop being this CLI's problem?*

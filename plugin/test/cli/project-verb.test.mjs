@@ -61,6 +61,28 @@ test("the verb answers where a change lands and what it can be walked against", 
   assert.match(run.stdout, /^ {2}notes: A test account reaches the storefront only\.$/mu);
 });
 
+/* Both lines Phase 0 reads before it decides how a change lands, off the one record that answers
+   them: the fixture's branches are distinct and its config names no judge. */
+test("the verb answers where the merge sits and whether a judge is independent", async () => {
+  const run = await ask("project");
+  assert.match(run.stdout, /^where the merge sits: after-merge {2}← the tracker's project config$/mu, run.stdout);
+  assert.match(run.stdout,
+    /^independent judgement between developed and tested: not stated {2}← the tracker's project config$/mu,
+    "unanswered is discovered and recorded, never read as either value");
+});
+
+/* The judge is the tracker record's because a project has one record and many checkouts, so a key in
+   a checkout is not a second place to answer it — read as one, two clones would judge differently. */
+test("a qa key in the checkout moves nothing the verb prints", async () => {
+  const room = tempHome("project-qa");
+  writeFileSync(join(room.path, ".forge.json"), JSON.stringify({ slug: "forge-plugin", qa: "independent" }));
+  const run = await ranAsync(FORGE, ["project"], tracker.env, room.path);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout,
+    /^independent judgement between developed and tested: not stated {2}← the tracker's project config$/mu,
+    "the checkout said independent and the record said nothing, and the record is what answers");
+});
+
 test("the credential is named and not printed until the flag asks for it", async () => {
   const held = await ask("project");
   assert.match(held.stdout, /^ {2}test credentials: present, forge project --credentials$/mu);

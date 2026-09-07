@@ -5,18 +5,24 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  NOT_STATED,
   briefLines,
   briefSources,
   credentialLeak,
   deployFrom,
   deployed,
   digestsFor,
+  judgementOf,
+  landingRoute,
   leakRefusal,
   projectLines,
   releaseFrom,
   staleIn,
   unhashable,
 } from "../../src/tracker/project-config.mjs";
+
+/* No key in the checkout, which is what every derivation case reads: the override is passed in. */
+const NONE = { value: null, from: null };
 
 const HELD = {
   stagingUrl: "https://beta.example.test",
@@ -297,6 +303,37 @@ test("a store that would not answer is not printed as an absence", () => {
   assert.doesNotMatch(said, /none stored/u,
     "a run that took a refusal for an absence would write over a brief it never saw");
   assert.deepEqual(briefLines(null), [], "and a checkout with no project says nothing at all");
+});
+
+/* Where the merge sits is derived and not asked for again: the project already told the tracker
+   whether its default branch deploys production on its own, which is the fact that decides it. */
+test("the landing route comes off the branch pair and the auto-deploy flag, and a key overrides it", () => {
+  const both = (over) => releaseFrom({ baseBranch: "master", productionBranch: "master", ...over });
+  assert.equal(landingRoute(both({ pipelineConfig: { autoProdDeploy: true } }), NONE).value, "before-merge",
+    "one branch deploying production means the push is the deploy, so the candidate is judged before it");
+  assert.equal(landingRoute(both({ pipelineConfig: { autoProdDeploy: false } }), NONE).value, "after-merge",
+    "one branch that does not deploy production is landed and then judged");
+  assert.equal(landingRoute(POLICY, NONE).value, "after-merge", "distinct branches land on staging and judge there");
+  assert.equal(landingRoute(releaseFrom({}), NONE).value, NOT_STATED,
+    "a record answering neither branch is discovered, never defaulted to a route it did not choose");
+  const key = { value: "before-merge", from: ".forge.json" };
+  assert.deepEqual(landingRoute(POLICY, key), key, "the project's own key outranks what is derived, and says so");
+});
+
+test("the independent-judgement line is the tracker record's, and no checkout key moves it", () => {
+  const qa = (held) => judgementOf(releaseFrom({ pipelineConfig: { qa: held } }));
+  assert.equal(qa("independent"), "independent");
+  assert.equal(qa("builder"), "builder");
+  assert.equal(qa(undefined), NOT_STATED, "unanswered is discovered and recorded, not read as either");
+  assert.equal(qa("yes"), NOT_STATED, "and a value the field does not take is unanswered, never the stricter one");
+});
+
+test("forge project prints both lines, the route with the source it was read from", () => {
+  const out = said({ landing: NONE });
+  assert.match(out, /^where the merge sits: after-merge {2}← the tracker's project config$/mu);
+  assert.match(out, /^independent judgement between developed and tested: not stated {2}← the tracker's project config$/mu);
+  assert.match(said({ landing: { value: "before-merge", from: ".forge.json" } }),
+    /^where the merge sits: before-merge {2}← \.forge\.json$/mu);
 });
 
 /* The hole a review confirmed and this closes: the path reader's grammar wants an extension it

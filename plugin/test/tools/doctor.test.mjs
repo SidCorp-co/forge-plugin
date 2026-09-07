@@ -297,6 +297,56 @@ test("the label doctor prints comes off the source row and not a table keyed on 
   Object.assign(process.env, env);
 });
 
+/* The four keys one flow reads. This is the only surface allowed to say what a project or a machine
+   turned off, so each is printed with where it was read: a value and no source reads back as a value
+   somebody chose, and the run that acts on it cannot tell a default from a decision. */
+const KEYS = { feedback: { plugin: "off", project: "bugs" }, method: 1, landing: "before-merge" };
+
+test("every key the project set is printed with .forge.json as its source", () => {
+  const out = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", ...KEYS }) });
+  assert.match(out, /\[ {2}ok {2}\] feedback\.plugin\s+off {2}← \.forge\.json/u, out);
+  assert.match(out, /\[ {2}ok {2}\] feedback\.project\s+bugs {2}← \.forge\.json/u);
+  assert.match(out, /\[ {2}ok {2}\] method\s+1 {2}← \.forge\.json/u);
+  assert.match(out, /\[ {2}ok {2}\] landing\s+before-merge {2}← \.forge\.json/u);
+});
+
+test("a key the project left out is printed at the plugin's default, with the default as its source", () => {
+  const out = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo" }) });
+  assert.match(out, /\[ {2}ok {2}\] feedback\.plugin\s+bugs {2}← the plugin's default/u, out);
+  assert.match(out, /\[ {2}ok {2}\] feedback\.project\s+all {2}← the plugin's default/u,
+    "the two channels default apart, so a project naming one says nothing about the other");
+  assert.match(out, /\[ {2}ok {2}\] method\s+1 {2}← the plugin's default/u,
+    "the version in force is the one this copy ships, and it says that is where it came from");
+  assert.match(out, /\[ {2}ok {2}\] landing\s+unset, so `forge project` derives/u,
+    "the route alone has no default: unanswered is derived from the record, never invented here");
+});
+
+/* Read back off the file rather than off the report, because what a later `ship` reads is the file:
+   a report that agreed with itself and wrote nothing would leave the mode a fiction of one process. */
+const shipped = (home, mode) => {
+  const cwd = tempRoom("doctor-ship-cwd-");
+  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "demo" }));
+  const run = spawnSync(process.execPath, [CLI, "doctor", "--ship", mode], {
+    encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+  });
+  return { out: run.stdout, cwd, saved: join(home, "forge", "config.json") };
+};
+
+test("the landing mode is the machine's: it is written to the user config and the project's file is untouched", () => {
+  const home = tempRoom("doctor-ship-home-");
+  const { cwd, saved } = shipped(home, "ready");
+  assert.equal(JSON.parse(readFileSync(saved, "utf8")).ship, "ready", "the mode is in the user config");
+  assert.deepEqual(JSON.parse(readFileSync(join(cwd, ".forge.json"), "utf8")), { slug: "demo" },
+    "and the project's own file is exactly as it was: the machine decided, not the project");
+});
+
+test("the mode the report prints is the mode last written, either way", () => {
+  const home = tempRoom("doctor-mode-home-");
+  assert.match(shipped(home, "ready").out, /\[ {2}ok {2}\] ship\s+ready {2}← \S+config\.json/u);
+  assert.match(shipped(home, "self").out, /\[ {2}ok {2}\] ship\s+self {2}← \S+config\.json/u,
+    "and self is written rather than cleared, so the report never has to guess which way a silence means");
+});
+
 /* A diagnostic that minted an id would be answering its own question, and a wave would race one file. */
 test("the report mints no session id to have one to report", () => {
   const home = tempRoom("doctor-session-");

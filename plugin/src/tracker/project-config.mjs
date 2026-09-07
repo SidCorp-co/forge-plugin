@@ -7,8 +7,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { once } from "../resolve/config.mjs";
-import { accountCredentials, fail, keepOnFailure, projectRoot, slugIfAny }
+import { accountCredentials, fail, keepOnFailure, landingScope, projectRoot, slugIfAny }
   from "../resolve/settings.mjs";
+
 import { didYouMean } from "../suggest.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { citedIn } from "../checks/cited-paths.mjs";
@@ -25,10 +26,30 @@ export const releaseFrom = (config) => ({
   staging: config?.baseBranch ?? null,
   production: config?.productionBranch ?? null,
   autoProd: config?.pipelineConfig?.autoProdDeploy === true,
+  qa: config?.pipelineConfig?.qa ?? null,
   from: CONFIG_SOURCE,
 });
 
 const readable = (policy) => Boolean(policy?.staging && policy?.production);
+
+export const NOT_STATED = "not stated";
+export const QA_MODES = ["independent", "builder"];
+
+/* Derived, never asked for again: one branch deploying production means a push IS the deploy, so the
+   candidate is judged before it. docs/cli/the-project.md. */
+const routeFrom = (policy) => {
+  if (!readable(policy)) return null;
+  return policy.staging === policy.production && policy.autoProd ? "before-merge" : "after-merge";
+};
+
+export const landingRoute = (policy, override) => {
+  if (override?.value) return { value: override.value, from: override.from };
+  const derived = routeFrom(policy);
+  return { value: derived ?? NOT_STATED, from: policy?.from ?? CONFIG_SOURCE };
+};
+
+export const judgementOf = (policy) =>
+  (QA_MODES.includes(policy?.qa) ? policy.qa : NOT_STATED);
 
 export const waitsForPerson = (policy) => {
   if (!readable(policy)) return true;
@@ -162,7 +183,7 @@ const credentialLines = (held, asked) => {
 };
 
 /** The project's answer in this CLI's words, one line each with where it was read. */
-export const projectLines = ({ id, policy, deploy, credentials }) => {
+export const projectLines = ({ id, policy, deploy, credentials, landing = landingScope() }) => {
   const out = [`project id: ${id}  ← the slug in .forge.json`];
   if (policy) {
     const said = (held) => `${held ?? "unset on the project"}  ← ${policy.from}`;
@@ -170,6 +191,9 @@ export const projectLines = ({ id, policy, deploy, credentials }) => {
     out.push(`production branch: ${said(policy.production)}`);
     out.push(`production ships without a person's look: ${policy.autoProd ? "yes" : "no"}  ← ${policy.from}`);
     if (policy.autoProd) out.push(`  ${NOTHING_DEPLOYS}`);
+    const route = landingRoute(policy, landing);
+    out.push(`where the merge sits: ${route.value}  ← ${route.from}`);
+    out.push(`independent judgement between developed and tested: ${judgementOf(policy)}  ← ${policy.from}`);
   } else out.push("release policy: the project config did not answer");
   if (!deploy) return [...out, NO_DEPLOY];
   const held = deploy.withheld;

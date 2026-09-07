@@ -53,7 +53,8 @@ export const VERBS = [
   /* No `needs`, though it writes: the gates below are the CALLER's project's — docs/cli/feedback.md. */
   ["feedback", "<file.md|@file|-> --title T [--with ISS-45,ISS-46] [--new]",
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout", null],
-  ["doctor", "[--token t] [--url u] [--hide v|--show v] [--full]", "what resolves, and from where"],
+  ["doctor", "[--token t] [--url u] [--hide v|--show v] [--ship ready|self] [--full]",
+    "what resolves, and from where"],
   ["stats", "runs [--since 3d] [--project <dir>] [--json]",
     "where an issue-flow run's time and rounds go, read off the transcripts the harness keeps", null],
   ["tools", "[--all]", "the reachable surface"],
