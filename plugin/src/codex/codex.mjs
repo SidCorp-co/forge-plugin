@@ -16,7 +16,7 @@ import { canonical } from "../resolve/canonical.mjs";
 import { CONFIG_PATH, userConfig } from "../resolve/config.mjs";
 import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
-import { flags, partition, pullRepeated } from "../resolve/flags.mjs";
+import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { afterTouch, ageOf, clearConsulted, demandOf, pendingIn, readState, turnsOf, updateState } from "./codex-state.mjs";
 import { TOOLS, scopeFor } from "./codex-tools.mjs";
@@ -568,12 +568,16 @@ const SUBS = {
 };
 
 export const codex = async ([sub, ...rest]) => {
-  /* `-h` after an action read as a filename, and one usage documents every action anyway. */
-  const asked = [sub, ...rest].some((one) => one === "-h" || one === "--help");
-  if (asked || !sub || !Object.hasOwn(SUBS, sub)) {
-    if (sub && !asked) console.error(didYouMean("codex action", sub, Object.keys(SUBS)));
+  /* One usage documents every action, so every action's help is this text; ISS-305's decision record says why the per-action lines stay in codex-log.mjs and codex-stats.mjs. The slots are the shared predicate's now: reading every slot made a `--note` of the help word a help ask. */
+  const help = helpAskedOf([sub, ...rest], Object.keys(SUBS));
+  if (help) {
+    console.log(USAGE);
+    process.exit(0);
+  }
+  if (!sub || !Object.hasOwn(SUBS, sub)) {
+    if (sub) console.error(didYouMean("codex action", sub, Object.keys(SUBS)));
     console.error(USAGE);
-    process.exit(asked ? 0 : 1);
+    process.exit(1);
   }
   await SUBS[sub](rest);
 };

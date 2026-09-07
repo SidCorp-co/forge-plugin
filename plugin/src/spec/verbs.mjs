@@ -1,7 +1,7 @@
 /* A clause of the requirements tree, asked for by identifier and printed as the phase implementing
    it needs it. What the identifiers mean and what a citation claims: docs/requirements/. */
 import { fail } from "../resolve/settings.mjs";
-import { wantsHelp } from "../resolve/flags.mjs";
+import { helpAskedOf } from "../resolve/flags.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { LINK_TEXT_PATTERN } from "../markdown.mjs";
@@ -202,11 +202,11 @@ const checked = (rest) => {
 };
 
 const run = (argv) => {
-  if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
+  /* `check` is the only subject this verb has; every other word in that slot is an identifier, so a help word after one is the stray argument `read` already refuses rather than a question. */
+  const help = helpAskedOf(argv, [CHECK]);
+  if (help || !argv.length) return console.log(help?.subject === CHECK ? CHECK_USAGE : USAGE);
   if (argv[0] === CHECK) {
-    const rest = argv.slice(1);
-    if (wantsHelp(rest)) return console.log(CHECK_USAGE);
-    const said = checked(rest);
+    const said = checked(argv.slice(1));
     return said === null ? undefined : fail(said);
   }
   const { given, token } = read(argv);

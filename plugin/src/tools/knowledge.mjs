@@ -3,7 +3,7 @@
 import { fail, keepOnFailure } from "../resolve/settings.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { declaredFor, refuseCredential, scoped, write } from "../tracker/rpc.mjs";
-import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
+import { flags, helpAskedOf, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean, unknownFlag } from "../suggest.mjs";
 
 const SLUG_WIDTH = 28;
@@ -118,10 +118,12 @@ const list = async (argv) => {
 
 const FIELDS = ["slug", "kind", "injection", "confidence", "authoredBy", "updatedAt"];
 
+const GET_USAGE = "Usage: forge knowledge get <slug>";
+
 /* The body as markdown and not escaped inside json, for the reason `guide` prints its own that way:
    every `\n` of a body a reader is meant to read tokenizes worse than the character. */
 const get = async ([slug, ...rest]) => {
-  if (!slug) fail(`Usage: forge knowledge get <slug>\n${USAGE}`);
+  if (!slug) fail(`${GET_USAGE}\n${USAGE}`);
   asked("knowledge get", rest, USAGE);
   const entry = await entryAt(slug);
   if (!entry) await noSuchEntry(slug);
@@ -245,8 +247,10 @@ const limitFrom = (raw) => {
   return value;
 };
 
+const SEARCH_USAGE = "Usage: forge knowledge search <query> [--limit n]";
+
 const search = async ([query, ...rest]) => {
-  if (!query) fail(`Usage: forge knowledge search <query> [--limit n]\n${USAGE}`);
+  if (!query) fail(`${SEARCH_USAGE}\n${USAGE}`);
   asked("knowledge search", rest, USAGE);
   const { limit } = flags(rest, "knowledge search");
   const answer = await scoped("forge_knowledge", { action: "search", query, topK: limitFrom(limit) });
@@ -258,10 +262,12 @@ const search = async ([query, ...rest]) => {
   console.log(`\n${hits.length} hit(s) for \`${query}\``);
 };
 
+const DELETE_USAGE = "Usage: forge knowledge delete <slug>";
+
 /* The tracker's delete is idempotent and says which it was, so the caller hears that rather than a
    success that reads the same whether an entry was there or not. */
 const remove = async ([slug, ...rest]) => {
-  if (!slug) fail(`Usage: forge knowledge delete <slug>\n${USAGE}`);
+  if (!slug) fail(`${DELETE_USAGE}\n${USAGE}`);
   asked("knowledge delete", rest, USAGE);
   await refuseCredential({ slug }, "The slug this delete was about to send");
   const answer = await write("forge_knowledge", { action: "delete", slug });
@@ -272,8 +278,12 @@ const remove = async ([slug, ...rest]) => {
 
 const SUBS = { list, get, write: written, search, delete: remove };
 
+/* The one string each action's own refusal already spells, so neither can move without the other. `list` refuses with the verb's and appears here as nothing. */
+export const SAYS = { get: GET_USAGE, write: WRITE_USAGE, search: SEARCH_USAGE, delete: DELETE_USAGE };
+
 export const knowledge = async ([sub, ...rest]) => {
-  if (wantsHelp([sub]) || !sub) return console.log(USAGE);
+  const help = helpAskedOf([sub, ...rest], Object.keys(SUBS));
+  if (help || !sub) return console.log(SAYS[help?.subject] ?? USAGE);
   if (!Object.hasOwn(SUBS, sub)) {
     fail(`${didYouMean("knowledge action", sub, Object.keys(SUBS))}\n\n${USAGE}`);
   }

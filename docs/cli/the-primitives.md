@@ -83,7 +83,7 @@ parsed and never on the wire text, where a fence line is escaped inside one stri
 all; and inside the refusal reader, which puts each message behind its path prefix, after which the
 opener is no longer a line of its own.
 
-## The help predicate, and the two readings that are not it
+## The help predicate, and the reading that is not it
 
 `wantsHelp` had been exported from `plugin/src/resolve/flags.mjs` and imported by four modules while
 seven others wrote the same comparison by hand — the CLI's own entry sharpest of them, importing it
@@ -96,24 +96,24 @@ entry answers `-h` itself for any verb that does not set `answersHelp`, and the 
 each verb's own export rather than in one table — so reading the table alone says three verbs carry
 it and the tree says ten. Six of the seven sites are live on that count, and the eight commands the
 issue named do judge them. The seventh, `cloudflare`, is unmarked: `helpOf` answers for it, and its
-own `USAGE` — the fuller of the two, listing subcommands the verb row omits — is text nothing
-reaches. That is a defect of its own and is filed as ISS-291, not answered here; what this change
-owed it was conversion, since a verb given the mark later makes its own test live again.
+own fuller `USAGE` was text nothing reached until ISS-305 gave its actions a help path. Which of the
+two the verb's own slot prints is ISS-291's and is not answered here.
 
 The lesson is the guard's, not the verb's: a predicate whose answer is spelled in ten places is one
 a reader will summarise from whichever place they found. Each site was proven neutral by reverting
 that one file alone and re-running both the eight commands and a direct invocation of every exported
 verb — seven reverts, no difference anywhere, and the guard naming the reverted file each time.
 
-**The guard's exclusions are two paths, not a cleverer needle.** The codex verb reads a help flag in
-*any* position, because the CLI hands a verb its tail and `forge codex consult -h` puts the flag
-second; the gate that orders a consult reads one out of a shell command line somebody else typed.
-Both spell the same two words as the seven did, so no needle over text distinguishes either from a
-copy — and both ask a different question, so neither is one. Both readings have a name now, in
-`resolve/help-word.mjs`, which imports nothing so the second CLI can spend them: `wantsHelp` reads
-first-or-not-at-all, `isHelpWord` the word wherever a caller looked. The distinction moved into the
-name a site spends. The two gates keep their exclusion — one is a hook, and at the
-time moving any hook owed the session a restart — so ISS-299 carries it.
+**The guard's one exclusion was not another question after all.** The codex verb read the flag in
+*any* position — the CLI hands a verb its tail, so `forge codex consult -h` puts it second — and the
+row excused it. That was this question read loosely: a verb taking a subject is asked in two slots,
+before the subject and after one it *has*, and the third slot codex also read made a `--note` of the
+help word print the usage rather than write the verdict. Five dispatchers had each decided it alone,
+giving four answers, three a tracker read. ISS-305 sent the reading home as `helpAskedOf` — a third
+name beside the two, not a slot added to `wantsHelp`, since a reference followed by `-h` names a
+file to post and the suite pins that. The row excludes nothing now, and a case that the verb it
+excused is watched stands there. The consult-order gate keeps its own: a flag read out of a shell
+command line somebody else typed *is* another question, it is a hook, and ISS-299 carries it.
 
 The needles are the comparison, `=== "-h"`, and the word pair a copy declaring a list would write
 instead. Anything looser — the word `--help` alone — refuses the doctor spawning another program

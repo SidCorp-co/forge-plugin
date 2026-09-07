@@ -5,7 +5,12 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 
 import { VERB_NAMES, helpOf, takesATrackerField, usageOf } from "../../src/resolve/visibility.mjs";
-import { wantsHelp } from "../../src/resolve/flags.mjs";
+import { helpAskedOf, wantsHelp } from "../../src/resolve/flags.mjs";
+import { USAGE as KNOWLEDGE, SAYS as KNOWLEDGE_SAYS } from "../../src/tools/knowledge.mjs";
+import { USAGE as CLOUDFLARE, SAYS as CLOUDFLARE_SAYS } from "../../src/tools/cloudflare.mjs";
+import { USAGE as STATS, SAYS as STATS_SAYS } from "../../src/stats/stats.mjs";
+import { USAGE as CODEX } from "../../src/codex/codex.mjs";
+import { CHECK_USAGE, USAGE as SPEC } from "../../src/spec/verbs.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -68,6 +73,64 @@ test("an argument is not a question", () => {
   assert.ok(!wantsHelp(["ISS-45", "-h"]), "a file to post");
   assert.ok(!wantsHelp(["x.md", "--title", "-h"]), "an issue may be titled -h");
   assert.ok(!wantsHelp(["forge_issues", '{"note":"-h"}']), "and a json field may hold it");
+});
+
+/* Which is why a verb that takes a subject spends a second name rather than widening the first:
+   `wantsHelp` above cannot grow a slot without making that file-to-post a question again. */
+test("a subject's help stands in two slots and no more", () => {
+  const subs = ["get", "search"];
+  assert.deepEqual(helpAskedOf(["-h"], subs), { subject: null }, "the verb itself is the question");
+  assert.deepEqual(helpAskedOf(["--help"], subs), { subject: null });
+  assert.deepEqual(helpAskedOf(["get", "-h"], subs), { subject: "get" }, "and here the subject is");
+  assert.equal(helpAskedOf(["get", "some-slug", "-h"], subs), null, "past the second slot it is a value");
+  assert.equal(helpAskedOf(["search", "--limit", "-h"], subs), null, "and a flag's value may be it");
+  assert.equal(helpAskedOf(["frobnicate", "-h"], subs), null, "a name the verb has not got is a typo");
+  assert.equal(helpAskedOf([], subs), null, "and nothing typed is not a question either");
+});
+
+/* One row per action of every dispatcher that takes a subject. `-h` after the action ran the action:
+   `knowledge search -h` searched the store by meaning for that word and `delete -h` resolved an
+   endpoint to delete a slug named it, twelve of these twenty exited 1 and eight answered on stderr.
+   The loop is the point: dispatcher six cannot ship without a row, and each row is judged against
+   the module's own constant rather than a second copy of the prose here (ISS-305). */
+const SUBJECT_HELP = [
+  ["knowledge", KNOWLEDGE, KNOWLEDGE_SAYS, ["list", "get", "write", "search", "delete"]],
+  ["cloudflare", CLOUDFLARE, CLOUDFLARE_SAYS,
+    ["zones", "zone", "dns", "purge", "search", "login", "accounts"]],
+  ["stats", STATS, STATS_SAYS, ["runs", "eval", "marks"]],
+  ["codex", CODEX, {},
+    ["consult", "verdict", "pending", "show", "log", "stats", "eval", "marks", "replay"]],
+  ["spec", SPEC, { check: CHECK_USAGE }, ["check"]],
+];
+
+const asking = ({ subs }) => [...subs.map((one) => [one, "-h"]), [subs[0], "--help"]];
+
+/* Collected and asserted once: a loop throwing on its first row could not show that narrowing the predicate back to one slot takes all five dispatchers with it, which is how these were proven. */
+test("an action asked what to type answers with its own usage, and reaches nothing to do it", () => {
+  const wrong = [];
+  for (const [verb, whole, says, subs] of SUBJECT_HELP) {
+    for (const [named, word] of asking({ subs })) {
+      const run = ask(verb, named, word);
+      const said = `forge ${verb} ${named} ${word}`;
+      if (run.status !== 0) wrong.push(`${said} exited ${run.status}: ${run.stdout}${run.stderr}`);
+      if (run.stderr !== "") wrong.push(`${said} said this on stderr: ${run.stderr}`);
+      if (!run.stdout.includes(says[named] ?? whole)) {
+        wrong.push(`${said} answered something else: ${run.stdout}`);
+      }
+    }
+  }
+  assert.deepEqual(wrong, []);
+});
+
+/* The half a help path is easiest to buy at the price of: a name the verb has not got is still refused with the nearest ones, and a value is still a value. */
+test("an action the verb has not got is a refusal, and a later help word is a value", () => {
+  const missing = ask("knowledge", "frobnicate", "-h");
+  assert.equal(missing.status, 1, `${missing.stdout}${missing.stderr}`);
+  assert.match(missing.stderr, /No knowledge action named frobnicate/u);
+  assert.equal(missing.stdout, "", "and a failure says nothing on stdout");
+  const noted = ask("codex", "verdict", "--accepted", "F1", "--note", "-h");
+  assert.doesNotMatch(`${noted.stdout}${noted.stderr}`, /Usage: forge codex </u,
+    "a note reading -h reached the verdict writer, which answered about the consult it has none of");
 });
 
 /* The whole table rather than two examples: `<file>...` keeps its brackets and its ellipsis, and

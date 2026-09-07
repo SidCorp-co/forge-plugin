@@ -6,7 +6,7 @@
    account: which account holds that zone is asked rather than typed. */
 import { CONFIG_PATH, saveConfig, userConfig } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
-import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
+import { flags, helpAskedOf, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 
 const CF_BASE = "https://api.cloudflare.com/client/v4";
@@ -319,8 +319,10 @@ const dnsRemove = async ([record, ...rest]) => {
   console.log(`deleted  ${record}`);
 };
 
+const DNS_USAGE = "Usage: forge cloudflare dns <zone-id> [--type A] [--name www]";
+
 const dnsList = async ([zone, ...rest]) => {
-  if (!zone) fail("Usage: forge cloudflare dns <zone-id> [--type A] [--name www]");
+  if (!zone) fail(DNS_USAGE);
   const { type, name } = flags(rest, "cloudflare dns");
   const account = await accountForZone(configured(), zone);
   const { result } = await cfFetch(
@@ -339,8 +341,10 @@ const dns = (rest) => {
 
 const SCOPES = ["all", "zones", "dns"];
 
+const SEARCH_USAGE = "Usage: forge cloudflare search <query> [--scope all|zones|dns] [--type T]";
+
 const search = async ([query, ...rest]) => {
-  if (!query) fail("Usage: forge cloudflare search <query> [--scope all|zones|dns] [--type T]");
+  if (!query) fail(SEARCH_USAGE);
   const { scope = "all", type } = flags(rest, "cloudflare search");
   if (!SCOPES.includes(scope)) fail(didYouMean("scope", scope, SCOPES));
   const zones = await gathered(configured());
@@ -363,16 +367,20 @@ const zones = async (rest) => {
 
 const ZONE_FIELDS = ["id", "name", "status", "paused", "name_servers", "original_name_servers"];
 
+const ZONE_USAGE = "Usage: forge cloudflare zone <zone-id>";
+
 const zone = async ([wanted]) => {
-  if (!wanted) fail("Usage: forge cloudflare zone <zone-id>");
+  if (!wanted) fail(ZONE_USAGE);
   const account = await accountForZone(configured(), wanted);
   const { result } = await cfFetch(account.apiToken, `/zones/${wanted}`);
   const detail = Object.fromEntries(ZONE_FIELDS.map((key) => [key, result[key]]));
   console.log(JSON.stringify({ ...detail, plan: result.plan?.name }, null, 2));
 };
 
+const PURGE_USAGE = "Usage: forge cloudflare purge <zone-id> [--file <url>]...";
+
 const purge = async ([wanted, ...rest]) => {
-  if (!wanted) fail("Usage: forge cloudflare purge <zone-id> [--file <url>]...");
+  if (!wanted) fail(PURGE_USAGE);
   const { values: files, rest: others } = pullRepeated(rest, "--file", "cloudflare purge");
   flags(others, "cloudflare purge");
   const account = await accountForZone(configured(), wanted);
@@ -384,8 +392,17 @@ const purge = async ([wanted, ...rest]) => {
 
 const SUBS = { zones, zone, dns, purge, search, login: saveAccount, accounts: listAccounts };
 
+/* Four of the seven; `zones`, `login` and `accounts` take flags and refuse with the verb's text, which is what a help ask on those gets. */
+export const SAYS = { zone: ZONE_USAGE, dns: DNS_USAGE, purge: PURGE_USAGE, search: SEARCH_USAGE };
+
 export const cloudflare = async ([sub, ...rest]) => {
-  const asked = wantsHelp([sub]);
+  const help = helpAskedOf([sub, ...rest], Object.keys(SUBS));
+  /* The slot after a subject, and only that one: `cloudflare` sets no `answersHelp`, so `cli.mjs` answers the verb's own slot off the verb table, and which of the two texts prints there is ISS-291's. */
+  if (help?.subject) {
+    console.log(SAYS[help.subject] ?? USAGE);
+    process.exit(0);
+  }
+  const asked = Boolean(help);
   if (asked || !sub || !Object.hasOwn(SUBS, sub)) {
     if (sub && !asked) console.error(didYouMean("cloudflare action", sub, Object.keys(SUBS)));
     console.error(USAGE);

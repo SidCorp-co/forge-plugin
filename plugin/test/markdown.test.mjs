@@ -74,9 +74,6 @@ const LINE_AT_FORMS = [String.raw`.split("\n").length`, String.raw`.split('\n').
 /* Two modules count the lines of a whole text rather than of a prefix, which is a different question with the same tail and no home to be sent to. Named here rather than narrowed out of the needle: one cut until it matches only the copies already found catches no later one. */
 const WHOLE_TEXT = ["plugin/src/checks/claude-md.mjs", "plugin/src/codex/codex-plan.mjs"];
 
-/* One module reads a help flag anywhere in a line rather than as its first word and spells those same two words to do it; no needle over text tells it from a copy, and it is not one. Named here, where a run widening this scan reads it; docs/cli/the-primitives.md carries why. */
-const ANY_POSITION = ["plugin/src/codex/codex.mjs"];
-
 /* The extension class alone: a reader set spelled twice is a gate refusing what the profiler cannot count. */
 const LOG_FORMS = [String.raw`log|out|output|err`];
 
@@ -114,7 +111,7 @@ const NEEDLES = [
   ["a shell word", SHELL, [String.raw`[\w./@+][\w./@+-]*`, SHELL_ESCAPE]],
   ["an SSE frame reader", SSE, SSE_NEEDLES],
   ["the untrusted-data fence", RPC, [FENCE_WORD]],
-  ["the help predicate", HELP_WORD, HELP_FORMS, ANY_POSITION],
+  ["the help predicate", HELP_WORD, HELP_FORMS],
   ["a line number from an index", LINE_AT, LINE_AT_FORMS, WHOLE_TEXT],
   ["a log's name", LOG_READS, LOG_FORMS],
   ["the tree's document grammar", SPEC_PARSE, SPEC_FORMS],
@@ -218,15 +215,16 @@ test("a module that sorts numbers and takes no middle is not re-declaring the me
   assert.deepEqual(redeclared(sorters), []);
 });
 
-/* A rename would leave the exclusion excusing nothing and still reading as though it did. */
-test("the two any-position readers are excluded by name, and both are still in the scan", () => {
+/* The row carried one exclusion, for a verb that read the word in any position — held to be another question and so not a copy. It was this question, over two slots the predicate now names, and the third slot it also read made a `--note` of the word a help ask (ISS-305). So the row excludes nothing, and what stands in its place is that the codex verb is watched like every other module. */
+test("the any-position reading was this one, and no module is excused from the row", () => {
   const own = 'const asked = [sub, ...rest].some((one) => one === "-h" || one === "--help");';
-  for (const rel of ANY_POSITION) assert.deepEqual(redeclared([{ rel, text: own }]), []);
-  const found = modules().map(({ rel }) => rel);
-  for (const rel of ANY_POSITION) assert.ok(found.includes(rel), `${rel} is no longer a module the scan reads`);
-  assert.deepEqual(redeclared([{ rel: "o.mjs", text: own }]),
-    [`o.mjs declares the help predicate of its own; ${HELP_WORD} holds it`],
+  const said = `declares the help predicate of its own; ${HELP_WORD} holds it`;
+  assert.deepEqual(redeclared([{ rel: "plugin/src/codex/codex.mjs", text: own }]),
+    [`plugin/src/codex/codex.mjs ${said}`], "the verb that carried the exclusion is now watched");
+  assert.deepEqual(redeclared([{ rel: "o.mjs", text: own }]), [`o.mjs ${said}`],
     "and the same text anywhere else is still a copy");
+  assert.ok(modules().map(({ rel }) => rel).includes("plugin/src/codex/codex.mjs"),
+    "which is worth nothing if that module is out of the scan");
 });
 
 test("spawning a program with --help, and a pattern reading -h out of prose, are not the predicate", () => {
