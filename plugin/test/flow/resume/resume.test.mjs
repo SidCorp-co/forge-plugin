@@ -79,6 +79,25 @@ test("an issue past open opens on the phase owed and the line saying the rest ar
     "and each phase behind it names the record that carried it, which is the rung above's own");
 });
 
+/* Written by one run and readable by none: the checkpoint sat in the field beside the lease and no
+   verb printed it, so a lander was told to `forge resume` to find whose turn it was and resume
+   showed the lease alone. Through the same two readers the take refusals use (ISS-673). */
+test("the landing checkpoint is printed beside the lease it sits next to, with whose turn it is", async () => {
+  const { landingLine, landingTurn } = await import("../../../src/flow/lease.mjs");
+  const landing = {
+    state: "ready", builder: "iss-1-aaa", branch: "iss-1", head: "1".repeat(40), base: "2".repeat(40),
+    files: ["plugin/src/one.mjs", "plugin/src/two.mjs"],
+  };
+  const one = brief({ sessionContext: { lease: LEASE, worklog: WORKLOG, landing } });
+  assert.deepEqual(one.landing?.files, landing.files, "the brief carries it, so --json carries it too");
+  assert.equal(one.landing.state, "ready");
+  const line = landingLine(one.landing);
+  assert.match(line, /landing `ready`: iss-1 at 1111111, base 2222222, 2 file\(s\), built by iss-1-aaa/u);
+  assert.equal(landingTurn(one.landing), "lander", "and the turn is the table's answer, not a second one");
+  const bare = brief();
+  assert.equal(bare.landing, null, "an issue nobody readied carries none, and no line is printed");
+});
+
 /* The method is served by the verb, so what the table names has to be a reference this copy serves;
    a null names the body, which carries the phase itself. */
 test("every reference the table names is one forge guide issue-flow answers", async () => {

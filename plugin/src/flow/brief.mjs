@@ -2,7 +2,7 @@
    the printer is resume.mjs and `--json` is this object, so the screen and a tool's reading cannot
    disagree. Under earned.mjs's rule about what it may touch, for the same reason (ISS-44). */
 import { sessionSourced } from "../resolve/config.mjs";
-import { FIELD, leaseOf, sharedHolder, stateOf } from "./lease.mjs";
+import { FIELD, landingOf, leaseOf, sharedHolder, stateOf } from "./lease.mjs";
 import { atMinute, unwrap } from "./machine.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, methodOf, parkRecord } from "./earned.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
@@ -96,6 +96,9 @@ export const briefOf = (view, ref) => {
     next: held?.next ?? null,
     worklog: worklogOf(view.issue?.[FIELD]),
     lease: held,
+    /* Beside the lease because that is where it lives, and read here because nothing else printed
+       it: a checkpoint naming whose turn it is was written by one run and readable by none. */
+    landing: landingOf(view.issue?.[FIELD]),
     /* The park the route resumes from, chosen the way the route chooses it: the newest park may
        land in another side status, and a brief showing that one would disagree with its own owed. */
     park: SIDE.includes(status) ? headlineOf(parkRecord(view, (one) => PARK_STATUS[one] === status), "park") : null,

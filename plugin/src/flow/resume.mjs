@@ -15,7 +15,7 @@ import { shortfall } from "./advance.mjs";
 import { owedLine, policyFor } from "./route.mjs";
 import { worklogLines } from "./worklog.mjs";
 import { briefOf } from "./brief.mjs";
-import { SHARED_HOLDER } from "./lease.mjs";
+import { SHARED_HOLDER, landingLine, landingTurn } from "./lease.mjs";
 import { atMinute } from "./machine.mjs";
 
 export const USAGE = [
@@ -58,13 +58,15 @@ const held = (brief) => {
     `${one.state}: session ${one.holder} (${one.agent}, pid ${one.pid}), renewed `
     + `${atMinute(one.renewedAt)} for ${one.minutes} minute(s), ${one.claims} claim(s) on the record`,
     ...(one.holderShared ? [SHARED_HOLDER] : []),
+    /* Through the readers the refusals use, so this and `--take` cannot say different things. */
+    ...(brief.landing
+      ? [landingLine(brief.landing), `  whose turn: ${landingTurn(brief.landing) ?? "nobody's — the state names none"}`]
+      : []),
   ];
 };
 
-/* Two answers assembled with the record, never worked out here: whether the edge holds the status
-   back, which is the answer the shortfall below acted on, and whether its blocker is far enough
-   along. A line that inferred either from the edge's kind would contradict that shortfall the first
-   time the tracker gated an edge it had called something else. */
+/* Both answers come with the record: inferring either from the edge's kind would contradict the
+   shortfall below the first time the tracker gated an edge it had called something else. */
 export const edgeSaid = (one) => {
   if (one.gates) return "holding this issue back now";
   return one.satisfied ? "satisfied" : "not an edge the tracker gates dispatch on";
