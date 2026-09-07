@@ -3,29 +3,29 @@
 import { bodyFrom } from "../resolve/payload.mjs";
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { fail, keepOnFailure, projectScope, translateScope, useProject } from "../resolve/settings.mjs";
-import { usageOf } from "../resolve/visibility.mjs";
+import { pluginChannel, usageOf } from "../resolve/visibility.mjs";
 import { agentOf } from "../flow/lease.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { documentIdOf, shortOf } from "../tracker/issues.mjs";
-import { CAUSE_HELP, liveTitles } from "../tracker/issue-shape.mjs";
+import { CAUSE_HELP, KIND_NAMES, kindRefusal, liveTitles } from "../tracker/issue-shape.mjs";
 import { briefGoals } from "../tracker/project-config.mjs";
 import { goalBlock, servesIn, servesRefusal } from "../goals.mjs";
 import { bodyOf, keysFrom } from "../tracker/filing/route.mjs";
 import { fileAndSay } from "../tracker/filing/say.mjs";
+import { PROJECT, allowedKinds, onThisRepository, routingBlock } from "../tracker/filing/plugin-defect.mjs";
 
-/** This plugin's project, read from no checkout: the caller's `.forge.json` says where a note came
- *  FROM and never where it goes. */
-export const PROJECT = "forge-plugin";
-const KIND = "bug";
+const kinds = () => allowedKinds();
 
-export const USAGE = [
+const USAGE = () => [
   usageOf("feedback"),
-  "A defect in this plugin, filed as a bug on the plugin's own project — from any checkout, on the",
+  "A defect in this plugin, filed on the plugin's own project — from any checkout, on the",
   `credential in ~/.config/forge/config.json. The destination is ${PROJECT}, fixed here, so the slug`,
   "of the project you are standing in is recorded as a fact and decides nothing. Nothing goes to disk,",
   "and once the body has been read, whatever refuses it prints it back.",
   "",
   "  --title T   what is true once it is fixed, one line",
+  `  --kind K    ${kinds().join(", ")} — what this project allows on the channel; the default is`,
+  `              ${kinds()[0]}, and a body is read against the shape the kind it names needs`,
   "  --with ISS-45   file it with a `relates` edge to that issue, or to each of several separated",
   "              by commas; the keys the note's own body names are listed under the reply instead",
   "  --new       file it even where it would have folded onto a neighbour, and say which",
@@ -38,8 +38,8 @@ export const USAGE = [
   "cause names, as a finding rather than as an issue of its own. That fold is the only one: a",
   "title already open on that project is a neighbour like any other and routes nothing by itself.",
   "",
-  `The body is read against the ${KIND} shape: What happened, Why it happens, Outcome, Rules and Out`,
-  "of scope are required, and `forge new -h` prints what each wants. Where is filled in for you — the plugin",
+  "The body is read against the shape the kind needs, every section of it, and `forge new -h` prints",
+  "what each section wants. Where is filled in for you — the plugin",
   "version, the copy that answered, the project you called from and the agent — so none of it is",
   "typed, and a body carrying its own Where heading gets this one after it.",
   "",
@@ -69,26 +69,35 @@ const lost = (what, refused) => fail(`${PROJECT} refused ${what}: ${refused}`);
 /* Aimed in both routes: the goal list a note answers to is the destination's, not the caller's. */
 const aimed = () => useProject({ slug: PROJECT, from: "the CLI, for feedback on this plugin" });
 
-/* The tree here is the caller's rows and a note goes elsewhere: it answers only where both are one. */
-const asksTree = () => projectScope().value === PROJECT;
+/** One of the kinds this project allows on the channel, or a refusal naming what was asked for. */
+const kindAsked = (given) => {
+  if (given === undefined) return kinds()[0];
+  if (!KIND_NAMES.includes(given)) fail(kindRefusal(given));
+  if (!kinds().includes(given)) {
+    fail(`This project allows ${kinds().join(", ")} on the channel to ${PROJECT}, and --kind`
+      + ` ${given} names another: feedback.plugin says which, in ${pluginChannel().from}. A note of`
+      + ` another kind belongs on this project's own backlog, where \`forge new\` files it.`);
+  }
+  return given;
+};
 
-/** `forge feedback <file.md|@file|-> --title T`. */
+/** `forge feedback <file.md|@file|-> --title T [--kind K]`. */
 export const feedback = async (argv) => {
   if (wantsHelp(argv)) {
     aimed();
-    const said = goalBlock(await briefGoals(), "A note filed here", asksTree());
-    return console.log([USAGE, said.join("\n")].join("\n\n"));
+    const said = goalBlock(await briefGoals(), "A note filed here", onThisRepository());
+    return console.log([USAGE(), routingBlock(), said.join("\n")].join("\n\n"));
   }
   const [path, ...rest] = argv;
   if (!path) fail(usageOf("feedback"));
-  const { title, new: fresh, with: rides, ...extra } = flags(rest, "feedback", ["--new"]);
+  const { title, new: fresh, with: rides, kind: asksKind, ...extra } = flags(rest, "feedback", ["--new"]);
   if (!title) fail("A note needs --title: one line saying what is true once it is fixed.");
   const unknown = Object.keys(extra);
   if (unknown.length) {
-    fail(`feedback takes --title, --with and --new and nothing else; ${unknown.map((one) => `--${one}`).join(", ")}`
-      + ` names no flag of it. The kind is always ${KIND}, the project is always ${PROJECT}, and Where is`
-      + " filled in.");
+    fail(`feedback takes --title, --kind, --with and --new and nothing else; ${unknown.map((one) => `--${one}`).join(", ")}`
+      + ` names no flag of it. The project is always ${PROJECT}, and Where is filled in.`);
   }
+  const kind = kindAsked(asksKind);
   const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
   if (badKeys) fail(badKeys);
   /* Registered the instant there is one to lose, a body from stdin being held nowhere else. What it claims, and the one refusal above this line it cannot reach: docs/cli/feedback.md. */
@@ -96,7 +105,7 @@ export const feedback = async (argv) => {
   const keep = (text) => keepOnFailure(`Your note, so that nothing here loses it:\n\n${text}`);
   keep(written);
   /* Read before the project is aimed, so a note the shape will not carry costs no call; `routed` where the note names its issue, a fold otherwise putting its body on some third one. */
-  const asked = { title, body: written, kind: KIND, sections: [whereSection()], everySection: true,
+  const asked = { title, body: written, kind, sections: [whereSection()], everySection: true,
     duplicates: false, routed: withKeys.length > 0 };
   const read = bodyOf(asked);
   if (read.refusal) fail(read.refusal.text);
@@ -104,7 +113,7 @@ export const feedback = async (argv) => {
   /* Before the first call: everything below reaches the plugin's project, in its language. */
   aimed();
   const unnamed = servesRefusal(servesIn(read.description), await briefGoals(),
-    "This note's `Serves:` line", asksTree());
+    "This note's `Serves:` line", onThisRepository());
   if (unnamed) fail(unnamed);
   /* After the project is aimed, and not before: a key names an issue of the plugin's backlog, and
      the same key resolved against the caller's project would relate somebody else's issue. */
@@ -121,5 +130,5 @@ export const feedback = async (argv) => {
       + " note and is not folded onto, so the note is filed as a second issue rather than a finding.");
   }
   return fileAndSay({ ...asked, fresh, relations, page, soft: true },
-    { withKeys, intro: `The note is a new ${KIND} on ${PROJECT}.`, lost });
+    { withKeys, intro: `The note is a new ${kind} on ${PROJECT}.`, lost });
 };

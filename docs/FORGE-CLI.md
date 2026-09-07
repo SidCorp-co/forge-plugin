@@ -39,7 +39,7 @@ needs that topic and by nobody else.
 | [codex — the replay](cli/codex-the-replay.md) | What proves a past consult's payload can be rebuilt, which two cases refuse a row rather than replay it approximately, the one text the log keeps and the caps on it, and what a share of a window is worth before a prompt ships. |
 | [`beside`](cli/beside.md) | The two questions the create path asks before it files, and the floor. |
 | [`the fold`](cli/the-fold.md) | Which filings land on a neighbour as a finding rather than a second issue, and what declines it. |
-| [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue and not a file, where the destination project is held, and why nothing on this route refuses a note. |
+| [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue and not a file, where its destination is held, which kinds the project lets through, and what no refusal loses. |
 | [the filing](cli/filing.md) | Why every route that files an issue calls one interface, why that interface neither prints nor exits, why a route contributes a section rather than joining text on first, and the two decisions each route still makes for itself. |
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, and what a call that never returned counts as. |

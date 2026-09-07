@@ -22,8 +22,8 @@ description: >-
   you hand it.
 - Never pass a project id, a slug or a token on the command line.
 - A verb you expected and cannot see is withheld on purpose: `forge doctor` says by what.
-- When this plugin is the problem, file it before working around it: `forge feedback`, from any
-  project, no lease.
+- When this plugin is the problem, report it before working around it. Where it goes is the
+  project's answer: `forge new -h` gives it, or says there is none.
 
 ## Route
 
