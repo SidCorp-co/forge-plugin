@@ -38,7 +38,7 @@ const MOVING = {
   issueId: "ISS-98",
   status: "confirmed",
   title: "the fix that walks the flow",
-  description: "`forge dep` should take the `data.relations` route.\n\nSize: fix.\n",
+  description: "`forge issue` should take the `data.relations` route.\n\nSize: fix.\n",
 };
 /* The tracker as it really answers, because the pairing this file is about is a sequence and a
    fixture that acknowledges a move without making one cannot produce the sequence: an update is

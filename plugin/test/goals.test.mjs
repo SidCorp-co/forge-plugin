@@ -141,20 +141,27 @@ test("either source answers, and neither answering is what a refusal is for", ()
     "and that tree answers for nothing where the write is going to a project it is not");
 });
 
-test("forge project prints the identifiers the brief's own section holds", async () => {
+test("forge doctor prints the identifiers the brief's own section holds", async () => {
   brief(BRIEF);
-  const run = await ask("project");
-  assert.equal(run.status, 0, run.stderr);
+  const run = await ask("doctor");
+  /* Doctor's status is its own verdict on the machine — a fixture endpoint misses several probes —
+     and this test's subject is the goal line, which the report prints either way. */
+  assert.ok([0, 1].includes(run.status), `${run.status}: ${run.stderr}`);
   assert.match(run.stdout, new RegExp(`^ {2}goals: G-01, G-02, G-03 — read from the brief's \\*${SECTION}\\*`, "mu"));
 });
 
 test("a brief with no section prints the line as not stated, and names what writes one", async () => {
   brief("# a map\n\nBuild: none.  ← `CLAUDE.md`\n");
-  const run = await ask("project");
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, new RegExp(`^ {2}goals: ${NOT_STATED} — .*no \\*${SECTION}\\* section`, "mu"));
-  assert.match(run.stdout, /forge project --refresh <brief\.md>/u);
-  brief(BRIEF);
+  try {
+    const run = await ask("doctor");
+    assert.ok([0, 1].includes(run.status), `${run.status}: ${run.stderr}`);
+    assert.match(run.stdout, new RegExp(`^ {2}goals: ${NOT_STATED} — .*no \\*${SECTION}\\* section`, "mu"));
+    assert.match(run.stdout, /forge doctor --refresh <brief\.md>/u);
+  } finally {
+    /* Restored whatever this asserted: every test below reads the brief, and one of them failing
+       for the brief this one left behind is a failure naming the wrong test. */
+    brief(BRIEF);
+  }
 });
 
 test("a Serves: no source answers for is refused with the brief's list, and nothing is posted", async () => {

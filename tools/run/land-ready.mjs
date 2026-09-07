@@ -565,7 +565,7 @@ export const landReady = async ({ flags, words }, ctx) => {
     stop(`this project asks for an independent judge between developed and tested and says nothing `
       + `about where the merge sits, so nothing here knows whether the judgement comes before the `
       + `push or after it. Set the branches on the project's record, or the \`landing\` key in `
-      + `.forge.json, and land again: forge project`);
+      + `.forge.json, and land again: forge doctor`);
   }
   console.log(`\nlanding ${route}, judgement ${judgement}`);
   for (const key of words) {

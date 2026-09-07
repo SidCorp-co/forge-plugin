@@ -20,7 +20,7 @@ const { render } = await import("../src/flow/record.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 
-const body = (tier) => `\`forge dep\` should take the \`data.relations\` route.\n\nSize: ${tier}.\n`;
+const body = (tier) => `\`forge issue\` should take the \`data.relations\` route.\n\nSize: ${tier}.\n`;
 
 /* `tierIn` retired with its last caller (ISS-394): the reading it named is `sizeFrom` given a body and no size field, and every case it held is asked of that here. */
 const rungOf = (description) => sizeFrom({ description }).rung;
@@ -35,7 +35,7 @@ const issue = (tier, extra = {}) => ({
 
 /* The tracker's five sizes on bodies claiming none, so the report is the field's doing alone. */
 const BANDS = ["xs", "s", "m", "l", "xl"];
-const UNMARKED = "`forge dep` should take the `data.relations` route.";
+const UNMARKED = "`forge issue` should take the `data.relations` route.";
 const sized = (band, at, extra = {}) => ({
   documentId: `${band}-uuid`,
   issueId: `ISS-${at}`,

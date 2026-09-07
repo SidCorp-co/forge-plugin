@@ -35,7 +35,7 @@ import { modelBehind, profile } from "../codex/codex-api.mjs";
 import { copyToRun, FROZEN, pluginCopy } from "./plugin-copy.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { consults, logEntries, logPath } from "../codex/codex-log.mjs";
-import { flags } from "../resolve/flags.mjs";
+import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { VERB_NAMES, usageOf } from "../resolve/visibility.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
@@ -143,8 +143,6 @@ const checkCodex = () => {
   line(OK, "codex", `${model}  ${consults(logEntries()).length} consult(s) logged at ${logPath()}`);
 };
 
-const DEVICE_ONLY = { key: "forge_project_pm.set_dependency" };
-
 /* Something saying no, against a fault of the moment: a dropped socket or a 5xx is one bad minute,
    and recorded as a gate it hides the verb from every run after it (codex F4). */
 const SAYS_NO = /FORBIDDEN|UNAUTHORIZED|NOT_ALLOWED|no route|not enabled|not allowed|may not/u;
@@ -159,7 +157,6 @@ export const gatingRefusal = (answer) => {
 const CAPABILITIES = [
   ["guides", "forge_guide", { action: "list" }, "the tracker's own lifecycle rules"],
   ["dependency graph", "forge_project_pm", { action: "graph" }, "reading blocks/relates edges"],
-  ["dependency edge", "forge_project_pm", { action: "set_dependency" }, "writing one", DEVICE_ONLY],
   ["knowledge", "forge_knowledge", { action: "list" }, "codebase context"],
   ["memory", "forge_memory.search", { query: "forge", topK: 1 }, "recall across sessions"],
 ];
@@ -301,8 +298,6 @@ const RESTATES = "\nA rule with a checker is documented by the checker's own mes
   "developer reads at the moment it fails. Delete the prose, or keep one line stating the invariant\n" +
   "behind it and no more — an explanation in two places diverges at the first correction.";
 
-/* Reads the tree and nothing else, so it runs before the endpoint: a project with no Forge slug,
-   or none at all, still gets its CLAUDE.md checked. */
 /* The comment is named first for the same reason the guide is: it is the authority, being what a
    developer reads at the moment the checker fires. */
 const reportRestated = (hits) => {
@@ -388,42 +383,22 @@ const checkRoles = (dispatched) => {
   line(NOTE, "roles", `${parts.join("; ")} — \`claude plugin update\` then restart`);
 };
 
-/* The project's own release policy and the deploy the flow walks a change against, printed under
-   the names its owner uses rather than the tracker's columns — `forge project` is the verb that
-   answers this and doctor is the second view of it. Where the two branches differ, `released` is
-   staging and promotion is a step of its own. */
-const checkRelease = async () => {
-  const { deployed, releaseConflict, releasePolicy, stagingDeploy, waitsForPerson } =
-    await import("../tracker/project-config.mjs");
-  const policy = await releasePolicy();
-  const deploy = await stagingDeploy();
-  if (!policy) {
-    line(NOTE, "release policy", "the project config did not answer — the park before released stands");
-    return;
-  }
-  const branch = (label, held) => {
-    if (held) return line(OK, label, `${held}  ← ${policy.from}`);
-    return line(NOTE, label, `unset on the project — a release has no named ${label}, and the park`
-      + " before released stands until it is set");
-  };
-  branch("staging branch", policy.staging);
-  branch("production branch", policy.production);
-  line(OK, "production deploy", `${policy.autoProd ? "automatic" : "a person's"} — a user-facing change`
-    + `${waitsForPerson(policy) ? " waits for" : " ships without"} a person's look  ← ${policy.from}`);
-  if (deployed(deploy)) {
-    line(OK, "staging deploy", `${deploy.urls.length} host(s) on record`
-      + `${deploy.withheld.length ? ", test credentials too — `forge project --credentials`" : ""}`
-      + `  ← ${deploy.from}`);
-  } else if (policy.staging) {
-    line(NOTE, "staging deploy", "none on record while the staging branch is named, so the"
-      + " verification `released` owes cites the branch and no running host — `forge project`");
-  }
-  const said = releaseConflict(policy);
-  if (said) line(BAD, "release policy", said);
+const LEVELS = { note: NOTE, miss: BAD };
+
+/* The project's own record, under the names its owner uses rather than the tracker's columns, and
+   in this report rather than under a verb named for the project: one surface reports every level of
+   configuration with its source, and the project is a level of it. */
+const checkProject = async (credentials) => {
+  const { projectReport } = await import("./project-settings.mjs");
+  const { rows, brief } = await projectReport({ credentials });
+  for (const row of rows) line(LEVELS[row.level] ?? OK, row.label, row.detail);
+  if (!brief.length) return;
+  console.log("");
+  for (const said of brief) console.log(said);
 };
 
 /* Lazy: the transport exits the process when credentials have not resolved. */
-const checkEndpoint = async (full) => {
+const checkEndpoint = async (full, credentials) => {
   const { forgetProjects, projectId, restBase, scoped } = await import("../tracker/rpc.mjs");
   const { served } = await import("../tracker/rest.mjs");
   forgetProjects();
@@ -438,7 +413,6 @@ const checkEndpoint = async (full) => {
   const id = await projectId();
   line(OK, "project id", full ? id : `resolved from the slug (--full to print it)`);
   const findings = await probe(scoped, slug);
-  await checkRelease();
   if (!findings.forge_guide) await checkAgainstGuides(scoped);
   if (findings.gated) {
     console.log(
@@ -446,6 +420,7 @@ const checkEndpoint = async (full) => {
         "recorded, so `forge tools`, `forge schema` and the usage list now withhold them.",
     );
   }
+  await checkProject(credentials);
 };
 
 const install = (values) => {
@@ -486,7 +461,7 @@ const checkFlowKeys = () => {
   const landing = landingScope();
   if (landing.unknown) line(BAD, "landing", held({ ...landing, value: "the derived route" }, LANDING_ROUTES));
   else if (landing.value) line(OK, "landing", `${landing.value}  ← ${landing.from}`);
-  else line(OK, "landing", "unset, so `forge project` derives where the merge sits from the tracker's record");
+  else line(OK, "landing", "unset, so the branches on the tracker's record derive where the merge sits");
   const ship = shipMode();
   line(ship.unknown ? BAD : OK, "ship", held(ship, SHIP_MODES));
   const given = userConfig().retrySeconds;
@@ -499,13 +474,50 @@ const checkFlowKeys = () => {
   line(retry.unknown ? BAD : OK, "retry", held(retry, ["a non-negative number of seconds"]));
 };
 
-export const doctor = async (rest) => {
-  const { full, hide, show: reveal, ship, ...values } = flags(rest, "doctor", ["--full"],
-    { usage: usageOf("doctor") });
+const BOOLEAN = ["--full", "--credentials"];
+/* The machine's, the checkout's and the project's, in one surface: `--set` and the brief's three
+   are the project's half, and the account keys below them this machine's. */
+const SAVED = ["token", "url"];
+const PROJECT_FLAGS = ["set", "refresh", "confirm", "line", "title", "confidence"];
+
+/** One write per call, then the report, because a run that asked to write is not asking to be
+ *  diagnosed: the project's own writes print their lines and stop there. */
+const wroteProject = async (asked, pairs, positionals) => {
+  const { briefAsked, briefRoute, writeSetting } = await import("./project-settings.mjs");
+  if (asked.set !== undefined && briefAsked(asked)) {
+    fail("doctor: --set writes a key of the project's configuration and the brief's flags write the "
+      + "brief, which are two resources and two calls. Send one of them.");
+  }
+  if (asked.set !== undefined) return writeSetting(asked.set);
+  return briefAsked(asked) ? briefRoute(asked, pairs, positionals) : null;
+};
+
+export const doctor = async (argv) => {
+  const { PROJECT_USAGE } = await import("./project-settings.mjs");
+  const usage = usageOf("doctor");
+  if (wantsHelp(argv)) return console.log(`${usage}\nwhat resolves, and from where.\n${PROJECT_USAGE}`);
+  const { values: pairs, rest } = pullRepeated(argv, "--meta", "doctor", { usage });
+  const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "doctor", usage });
+  const asked = flags(flagArgv, "doctor", BOOLEAN, { usage });
+  const { full, credentials, hide, show: reveal, ship, ...values } = asked;
+  if (positionals.length && asked.line === undefined) {
+    fail(`doctor: \`${positionals[0]}\` names no flag, and the prose of a line is --line's: `
+      + "forge doctor --line <n> <text>");
+  }
+  /* Two stores: the project write returns before the report, dropping the machine's half silently. */
+  const machine = [...SAVED, "hide", "show", "ship"].filter((key) => asked[key] !== undefined);
+  const project = PROJECT_FLAGS.filter((key) => asked[key] !== undefined);
+  if (project.length && machine.length) {
+    fail(`doctor: \`--${project[0]}\` writes the project's own record and \`--${machine[0]}\` writes this `
+      + "machine's, which are two stores and two calls. Nothing was sent: send one of them.");
+  }
+  const wrote = await wroteProject(asked, pairs, positionals);
+  if (wrote) return wrote.forEach((said) => console.log(said));
   if (hide) setVisibility(hide, true);
   if (reveal) setVisibility(reveal, false);
   if (ship) setShip(ship);
-  if (Object.keys(values).length) install(values);
+  const saved = Object.fromEntries(SAVED.filter((key) => values[key] !== undefined).map((key) => [key, values[key]]));
+  if (Object.keys(saved).length) install(saved);
 
   const { url, token } = accountCredentials();
   if (url.value) line(OK, "endpoint url", `${url.value}  ← ${url.from}`);
@@ -580,7 +592,10 @@ export const doctor = async (rest) => {
     console.log("\nNot reaching the endpoint: the account half is incomplete.");
     process.exit(1);
   }
-  await checkEndpoint(full);
+  await checkEndpoint(full, credentials);
   if (full) console.log(`\nConfig file: ${configPath()}`);
   if (missed) process.exit(1);
 };
+
+/* Its own `-h`: what a stale line means and which resource holds a key are read nowhere else. */
+doctor.answersHelp = true;

@@ -217,9 +217,9 @@ const written = async (argv) => {
   const [slug, path, ...flagArgv] = rest;
   if (!slug || !path) fail(`${WRITE_USAGE}\n${USAGE}`);
   if (slug === BRIEF_SLUG) {
-    fail(`${BRIEF_SLUG} is the project verb's: a write here would replace the body and keep the `
-      + `digests of the body it replaced, so the next run reads a brief nothing says has moved.\n`
-      + `  forge project --refresh ${path}`);
+    fail(`${BRIEF_SLUG} is the configuration report's: a write here would replace the body and keep `
+      + `the digests of the body it replaced, so the next run reads a brief nothing says has moved.\n`
+      + `  forge doctor --refresh ${path}`);
   }
   const given = flags(flagArgv, "knowledge write", [], { usage: WRITE_USAGE });
   const kind = checked(given.kind, "kind");

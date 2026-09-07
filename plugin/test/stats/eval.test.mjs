@@ -53,7 +53,7 @@ const askStats = (room, argv, home = tempRoom("stats-eval-home-")) =>
     encoding: "utf8",
     env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room, HOME: tempRoom("stats-eval-user-") },
   });
-const ask = (room, ...argv) => askStats(room, ["eval", "--project", PROJECT, ...argv]);
+const ask = (room, ...argv) => askStats(room, ["eval", "--checkout", PROJECT, ...argv]);
 
 const runsOf = (many) => runsUnder(join(corpusOf(many), `claude-${process.getuid()}`, slugFor(PROJECT)), null).runs;
 
@@ -185,11 +185,11 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
     assert.equal(refused.status, 1);
     assert.match(refused.stderr, new RegExp(`stats eval: --size takes an integer of 1 or more, not \`${bad.replace(".", "\\.")}\``, "u"));
   }
-  const relative = spawnSync(FORGE, ["stats", "eval", "--project", "../elsewhere"], {
+  const relative = spawnSync(FORGE, ["stats", "eval", "--checkout", "../elsewhere"], {
     encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-eval-home-"), TMPDIR: room },
   });
   assert.equal(relative.status, 1);
-  assert.match(relative.stderr, /stats eval: --project takes an absolute project directory, not `\.\.\/elsewhere`/u);
+  assert.match(relative.stderr, /stats eval: --checkout takes an absolute directory, not `\.\.\/elsewhere`/u);
   const wrong = ask(room, "--sizee", "3");
   assert.equal(wrong.status, 1);
   assert.match(wrong.stderr, /No stats eval flag named --sizee/u);
@@ -246,7 +246,7 @@ test("a stored reading is the before window, and the screen says where the windo
   try {
     const room = corpusOf(50);
     process.env.TMPDIR = room;
-    const empty = askStats(room, ["marks", "--project", PROJECT], home);
+    const empty = askStats(room, ["marks", "--checkout", PROJECT], home);
     assert.equal(empty.status, 0, empty.stderr);
     assert.match(empty.stdout, /^No reading is held for this project yet; the release step writes one at every multiple of fifty runs/u);
     const none = ask(room, "--against");
@@ -256,42 +256,42 @@ test("a stored reading is the before window, and the screen says where the windo
     assert.match(runsMark(PROJECT), /held as mark 50/u);
     const [record] = marksOf("runs");
     corpusOf(75, room);
-    const pinned = askStats(room, ["eval", "--project", PROJECT, "--against", "50"], home);
+    const pinned = askStats(room, ["eval", "--checkout", PROJECT, "--against", "50"], home);
     assert.equal(pinned.status, 0, pinned.stderr);
     assert.match(pinned.stdout, /^the last 50 issue-flow run\(s\)/u);
     assert.match(pinned.stdout, /^the 50 held at mark 50 {2}.* — overlapping the recent window, which begins before this one ends$/mu);
     assert.match(pinned.stdout, /moved most, in median minutes before → now/u, "the rest of the screen is the sliding one's");
 
-    const json = JSON.parse(askStats(room, ["eval", "--project", PROJECT, "--against", "50", "--json"], home).stdout);
+    const json = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--against", "50", "--json"], home).stdout);
     assert.equal(json.against, 50, "criterion 7");
     assert.deepEqual(json.before, record.now, "the stored recent window, byte for byte, as the before");
     assert.equal(json.now.runs, 50);
     assert.deepEqual(Object.keys(json).slice(5, 8), ["size", "total", "against"]);
 
-    const newest = JSON.parse(askStats(room, ["eval", "--project", PROJECT, "--against", "--json"], home).stdout);
+    const newest = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--against", "--json"], home).stdout);
     assert.equal(newest.against, 50, "criterion 8: bare --against is the newest held");
-    const sliding = JSON.parse(askStats(room, ["eval", "--project", PROJECT, "--json"], home).stdout);
+    const sliding = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--json"], home).stdout);
     assert.equal(sliding.against, undefined, "and without it nothing is pinned");
     assert.equal(sliding.before.runs, 25);
 
-    const missing = askStats(room, ["eval", "--project", PROJECT, "--against", "999"], home);
+    const missing = askStats(room, ["eval", "--checkout", PROJECT, "--against", "999"], home);
     assert.equal(missing.status, 1);
     assert.match(missing.stderr, /stats eval: no runs reading at mark 999 for this project\. `forge stats marks` lists what is held\./u);
     /* Over an empty corpus too: the mark asked for is judged before the corpus is (codex F1, this change). */
-    const bare = askStats(tempRoom("stats-eval-empty-"), ["eval", "--project", PROJECT, "--against", "999"], home);
+    const bare = askStats(tempRoom("stats-eval-empty-"), ["eval", "--checkout", PROJECT, "--against", "999"], home);
     assert.equal(bare.status, 1);
     assert.match(bare.stderr, /no runs reading at mark 999 for this project/u);
-    const unheld = askStats(tempRoom("stats-eval-empty-"), ["eval", "--project", PROJECT, "--against"], tempRoom("stats-eval-home-"));
+    const unheld = askStats(tempRoom("stats-eval-empty-"), ["eval", "--checkout", PROJECT, "--against"], tempRoom("stats-eval-home-"));
     assert.equal(unheld.status, 1);
     assert.match(unheld.stderr, /--against names no reading — none is held for this project yet/u);
-    const bad = askStats(room, ["eval", "--project", PROJECT, "--against", "x"], home);
+    const bad = askStats(room, ["eval", "--checkout", PROJECT, "--against", "x"], home);
     assert.equal(bad.status, 1);
     assert.match(bad.stderr, /--against takes a mark — the count the mark line printed — not `x`/u);
 
-    const listed = askStats(room, ["marks", "--project", PROJECT], home);
+    const listed = askStats(room, ["marks", "--checkout", PROJECT], home);
     assert.equal(listed.status, 0, listed.stderr);
     assert.match(listed.stdout, /^mark {4}50 {2}\d{4}-\d\d-\d\d \d\d:\d\d {3}50 run\(s\) {2}\d{4}-\d\d-\d\d \d\d:\d\d to \d{4}-\d\d-\d\d \d\d:\d\d$/mu, listed.stdout);
-    const elsewhere = askStats(room, ["marks", "--project", "/fixture/elsewhere"], home);
+    const elsewhere = askStats(room, ["marks", "--checkout", "/fixture/elsewhere"], home);
     assert.match(elsewhere.stdout, /^No reading is held for this project yet/u, "a runs reading is its project's");
     /* The store's own once: the same kind, mark and root twice is one record; and a write that fails
        is said as failed, never as held (codex F3). */

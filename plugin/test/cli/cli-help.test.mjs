@@ -5,7 +5,7 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 
-import { GROUPS, VERB_NAMES, helpOf, takesATrackerField, usageOf } from "../../src/resolve/visibility.mjs";
+import { GROUPS, VERBS, VERB_NAMES, helpOf, takesATrackerField, usageOf } from "../../src/resolve/visibility.mjs";
 import { flagsNamed, helpAskedOf, unknownFlag, wantsHelp } from "../../src/resolve/flags.mjs";
 import { USAGE as KNOWLEDGE, SAYS as KNOWLEDGE_SAYS } from "../../src/tools/knowledge.mjs";
 import { USAGE as CLOUDFLARE, SAYS as CLOUDFLARE_SAYS } from "../../src/tools/cloudflare.mjs";
@@ -154,11 +154,9 @@ const POINTS_AT = {
   advance: "forge_issues",
   spec: null,
   attach: null,
-  deps: "forge_issues",
   next: null,
-  dep: "forge_project_pm",
   guide: null,
-  project: null,
+  project: "forge_projects.list",
   knowledge: "forge_knowledge",
   cloudflare: null,
   codex: null,
@@ -173,8 +171,7 @@ const POINTS_AT = {
 
 /* The table is where an agent learns the surface, so one write has one row in it: a name a landing
    retired leaves the table with the flag it was reached through, and the row that took the write
-   over says what it takes now. `plan` is judged by the deepEqual above; these are its two halves
-   the table still has rows for (ISS-348). */
+   over says what it takes now. `plan` is judged above; these are the two halves with rows (ISS-348). */
 test("a retired name is in no row, and the row that took its write over says what it takes", () => {
   const brief = ask("-h").stdout;
   const rowOf = (verb) => brief.split("\n").find((line) => line.trim().startsWith(`${verb} `));
@@ -196,6 +193,16 @@ test("the schema pointer goes to the rows whose every value the tracker names", 
       `forge ${verb} -h: ${helpOf(verb)}`,
     );
   }
+});
+
+/* One scope, one verb: two places to answer *which project* is a precedence rule nobody wrote. */
+const NAMES_A_PROJECT = /--project\b|--slug\b|<slug>|projectRef|project[- ]id/iu;
+
+test("no row of the table but project names a project, its slug or its identifier", () => {
+  const found = VERBS.filter((row) => NAMES_A_PROJECT.test(row[1] ?? "")).map((row) => row[0]);
+  assert.deepEqual(found, ["project"],
+    "a verb naming a project takes one from the caller, which the checkout already answered");
+  assert.ok(NAMES_A_PROJECT.test(usageOf("project")), "and the one that does still says so");
 });
 
 /* A usage line no verb has: what the derivation reads is the line, so a list of the verbs that
@@ -314,7 +321,6 @@ const ARGS = {
   claim: ["ISS-1"],
   resume: ["ISS-1"],
   advance: ["ISS-1"],
-  dep: ["ISS-1", "ISS-2"],
   comment: ["ISS-1", "body.md"],
   attach: ["issue", "ISS-1", "body.md"],
   new: ["body.md"],
@@ -333,13 +339,9 @@ const ARGS = {
   ...Object.fromEntries(KINDS.map((kind) => [`record ${kind}`, ["ISS-1"]])),
 };
 
-/* `deps` reaches the endpoint before it parses anything and has no flag check at all; the verb is
-   ISS-702's, which is folding it into `forge next --graph`, and the line is that issue's to write. */
-const NO_PARSE = ["deps"];
-
 test("every verb and every action hands the parser its text before it reads or asks", () => {
   const wrong = [];
-  for (const argv of EVERY_HELP.filter((one) => !NO_PARSE.includes(one.join(" ")))) {
+  for (const argv of EVERY_HELP) {
     const name = argv.join(" ");
     const run = ask(...argv, ...(ARGS[name] ?? []), "--zzz", "x");
     const said = `${run.stdout}${run.stderr}`;
@@ -387,7 +389,7 @@ test("forge -h prints the verbs in groups, each under its heading", () => {
 
 /* One home, `forge doctor`; the exceptions carry the key of the issue that owns those lines. */
 const FILE_HOMES = ["plugin/src/resolve/settings.mjs", "plugin/src/tools/doctor.mjs"];
-const ROUTED = { "plugin/src/tools/deps.mjs": "ISS-702", "plugin/src/tracker/project-config.mjs": "ISS-702" };
+const ROUTED = { "plugin/src/tracker/project-config.mjs": "ISS-702" };
 
 test("the project file is named by doctor and by no other verb's help", () => {
   const named = [];

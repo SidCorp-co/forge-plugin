@@ -256,6 +256,14 @@ const edgesOf = (issue) => ({
   incoming: (issue?.relations?.blockedBy ?? []).map((edge) => sided(edge, "from")),
 });
 
+/* Which resource each configuration action reads or merges: two routes, two keys, one answer. */
+const SETTINGS = {
+  pipeline: "pipelineConfig",
+  set_pipeline: "pipelineConfig",
+  facts: "projectFacts",
+  set_facts: "projectFacts",
+};
+
 /** A tracker a verb can be spawned against, answering out of `state` at request time so a case that
  *  changes the state changes the answer; a handler in `state.answer` keyed by tool wins over the
  *  defaults, and `state.calls` collects every call for a case to assert on. */
@@ -338,9 +346,25 @@ export const fakeTracker = async (state) => {
     return held;
   };
 
+  /* Merged per key, as the tracker's own PATCH is. `state.stripped` models a key its schema does not
+     declare: the write is taken and the key is not there after, the only signal a caller gets. */
+  const settings = (which, args) => {
+    const held = (state.settings ??= {
+      pipelineConfig: { ...(state.config?.pipelineConfig ?? {}) },
+      projectFacts: { ...(state.config?.projectFacts ?? {}) },
+    });
+    const patch = which === "projectFacts" ? (args.data?.projectFacts ?? {}) : (args.data ?? {});
+    for (const [key, value] of Object.entries(patch)) {
+      if (!(state.stripped ?? []).includes(key)) held[which][key] = value;
+    }
+    return which === "projectFacts"
+      ? { projectFacts: held.projectFacts, projectFactsConfig: state.factsConfig ?? {} }
+      : { pipelineConfig: held.pipelineConfig };
+  };
   const builtIn = (name, args) => {
     const own = (state.answer ?? {})[name];
     if (own) return own(args);
+    if (name === "forge_config" && SETTINGS[args.action]) return settings(SETTINGS[args.action], args);
     if (name === "forge_memory.search") return { hits: memory(args) };
     if (name === "forge_issues") return issues(args);
     if (name === "forge_comments") return comments(args);
@@ -386,8 +410,11 @@ export const fakeTracker = async (state) => {
       return windowOn(q, answered("forge_issues",
         { action: "list", ...(Object.keys(narrowed).length ? { filters: narrowed } : {}) }), q.get("sort"));
     }],
-    [/^\/api\/issues\/([^/]+)\/dependencies$/u, (q, sent, method, [id]) =>
-      edgesOf(answered("forge_issues", { action: "get", documentId: id }))],
+    [/^\/api\/issues\/([^/]+)\/dependencies\/([^/]+)$/u, (q, sent, method, [id, edgeId]) =>
+      answered("forge_issues", { action: "unlink_edge", documentId: id, edgeId })],
+    [/^\/api\/issues\/([^/]+)\/dependencies$/u, (q, sent, method, [id]) => (method === "POST"
+      ? answered("forge_issues", { action: "link", documentId: id, data: sent })
+      : edgesOf(answered("forge_issues", { action: "get", documentId: id })))],
     [/^\/api\/issues\/([^/]+)\/attachments$/u, (q, sent, method, [id]) => {
       if (method !== "POST") return answered("forge_issues", { action: "get", documentId: id })?.attachments ?? [];
       return asAttachment(answered("forge_uploads", uploadAsk("issue", id, sent)), sent.multipart);
@@ -425,11 +452,27 @@ export const fakeTracker = async (state) => {
     [/^\/api\/guides$/u, () => answered("forge_guide", { action: "list" })],
     [/^\/api\/projects\/[^/]+\/pm\/([a-z-]+)$/u, (q, sent, method, [what]) =>
       answered("forge_project_pm", { action: what === "runner-load" ? "runner_load" : what })],
-    [/^\/api\/projects\/([^/]+)$/u, () => projectRow({
-      ...answered("forge_config", { action: "get" }),
-      ...(state.answer?.["forge_projects.get"] ? answered("forge_projects.get", {}) : {}),
-    })],
-    [/^\/api\/projects$/u, () => rowsFrom(answered("forge_projects.list", {}), "projects").map((one) => ({ ...one }))],
+    [/^\/api\/projects\/[^/]+\/pipeline-config$/u, (q, sent, method) => answered("forge_config",
+      method === "PATCH" ? { action: "set_pipeline", data: sent } : { action: "pipeline" })],
+    [/^\/api\/projects\/[^/]+\/project-facts$/u, (q, sent, method) => answered("forge_config",
+      method === "PATCH" ? { action: "set_facts", data: sent } : { action: "facts" })],
+    [/^\/api\/projects\/([^/]+)\/(archive|unarchive)$/u, (q, sent, method, [id, act]) =>
+      answered(`forge_projects.${act}`, { projectRef: id })],
+    /* One route, two readers: a case answering a project the caller NAMED registers
+       `forge_projects.read`; without one the route answers the row the checkout's slug resolves to. */
+    [/^\/api\/projects\/([^/]+)$/u, (q, sent, method, [id]) => {
+      if (method === "PATCH") return answered("forge_projects.update", { projectRef: id, data: sent });
+      if (state.answer?.["forge_projects.read"]) return answered("forge_projects.read", { projectRef: id });
+      return projectRow({
+        ...answered("forge_config", { action: "get" }),
+        ...(state.answer?.["forge_projects.get"] ? answered("forge_projects.get", {}) : {}),
+      });
+    }],
+    [/^\/api\/projects$/u, (q, sent, method) => (method === "POST"
+      ? answered("forge_projects.create", { data: sent })
+      : rowsFrom(answered("forge_projects.list",
+        { ...(q.get("archived") ? { archived: q.get("archived") } : {}) }), "projects")
+        .map((one) => ({ ...one })))],
   ];
 
   const served = createServer(async (request, response) => {

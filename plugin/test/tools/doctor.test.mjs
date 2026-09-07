@@ -207,7 +207,9 @@ test("a staging branch with no deploy behind it is a note, not a failure", async
     baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false },
   });
   assert.match(out, /\[ note \] staging deploy\s+none on record while the staging branch is named/u);
-  assert.match(out, /cites the branch and no running host — `forge project`/u, "and names the verb that answers");
+  /* Not a verb of this CLI: no declared route writes the deploy, so the note names the screen. */
+  assert.match(out, /A host is added on the tracker's own project settings screen/u,
+    "and names where the value is set");
 });
 
 test("a deploy on record is reported by count, and its credential is not printed", async () => {
@@ -215,8 +217,9 @@ test("a deploy on record is reported by count, and its credential is not printed
     { baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
     { stagingUrl: "https://beta.example.test", testCredentials: [{ password: "correct-horse-battery" }] },
   );
-  assert.match(out, /\[ {2}ok {2}\] staging deploy\s+1 host\(s\) on record, test credentials too/u);
-  assert.match(out, /forge project --credentials/u, "the report says where the value is read, never the value");
+  assert.match(out, /\[ {2}ok {2}\] staging deploy\s+1 host\(s\) {2}← the tracker's project detail/u);
+  assert.match(out, /\[ {2}ok {2}\] test credentials\s+present, forge doctor --credentials/u,
+    "the report says where the value is read, never the value");
   assert.doesNotMatch(out, /correct-horse-battery/u);
   assert.doesNotMatch(out, /previewDeploy/u, "and the tracker's own field name is not what a reader is shown");
 });
@@ -337,7 +340,7 @@ test("a key the project left out is printed at the plugin's default, with the de
     "the two channels default apart, so a project naming one says nothing about the other");
   assert.match(out, /\[ {2}ok {2}\] method\s+1 {2}← the plugin's default/u,
     "the version in force is the one this copy ships, and it says that is where it came from");
-  assert.match(out, /\[ {2}ok {2}\] landing\s+unset, so `forge project` derives/u,
+  assert.match(out, /\[ {2}ok {2}\] landing\s+unset, so the branches on the tracker's record derive/u,
     "the route alone has no default: unanswered is derived from the record, never invented here");
 });
 

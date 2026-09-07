@@ -131,7 +131,7 @@ read from one place and reported with its source (BR-08).
   WHEN the project's release policy is read THEN the CLI SHALL derive the landing route from the
   staging branch, the production branch and whether production deploys on its own, SHALL say `not
   stated` where they do not answer, and SHALL let the project file's own key override the derivation.
-- **AC-01-5-5** · Rev: 1 · Proof: plugin/test/cli/project-verb.test.mjs "a qa key in the checkout moves nothing the verb prints"
+- **AC-01-5-5** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a qa key in the checkout moves nothing the report prints"
   WHEN the project's release policy is read THEN the CLI SHALL print whether an independent judgement
   is asked for, read from the tracker's project record and from nowhere else.
 - **AC-01-5-6** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the mode the report prints is the mode last written, either way"

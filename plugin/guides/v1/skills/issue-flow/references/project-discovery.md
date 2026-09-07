@@ -1,4 +1,4 @@
-# Project discovery — the half `forge project` cannot answer
+# Project discovery — the half `forge doctor` cannot answer
 
 The workflow is global; everything it needs to act is local. This file says **where to look**, never
 what is there.

@@ -40,32 +40,7 @@ filled at all, so the first has always held here and the second has not.
 and in a field of the machine-readable one both — an order a budget cut is not one whatever
 dispatches on it may treat as bounded, and a notice only the human form carries hides exactly that.
 
-## What a landing frees, and what it only reaches
-
-`unblocks ISS-a (eligible after this lands)` is a claim, so it is made only about an issue this one
-blocks and that nothing else still holding blocks. An issue with a second blocker is named with it;
-an issue further down the chain waits for the wave in front of it and is printed behind them rather
-than promised. Claiming eligibility for everything the chain reaches is false in both of those
-cases.
-
-What ends a blocker is not this verb's to decide. `forge advance` already refuses a move past a
-blocker below `developed`, and the flow exports that answer, so a blocker here is exactly one the
-transition would refuse on — a rank that invented a stricter floor would name a wall no verb
-enforces, and one that invented a looser floor would send a run at an issue it cannot advance. That
-also settles what a chain walks through: an issue being worked or waiting on a person still holds up
-what waits on it, and reading the *dispatch* set as the blocker set instead loses the whole chain
-through anything in flight — the issues most likely to be mid-chain being exactly the ones being
-worked. Both the score that orders the reading and the score that prints read that same set, because
-a candidate the first undercounts is one the bound then keeps from ever being read.
-
-The tracker answers the ordering on the edge itself: `relations.blockedBy` carries mentions beside
-orderings, and the flow reads `gatesDispatch` with `kind` behind it. Reading a key off the wrong
-field of that edge loses every relation silently — the dependency vanishes, the candidate stays
-eligible, and the count of relations seen stays zero, so nothing even discloses it.
-
-A dependency phrase that matched no title is evidence that failed to resolve, not an absence. It
-leaves its own issue out with the phrase quoted, and the tail line counts them; `forge deps` is
-where all of them, in both directions, are printed.
+## What the edges cost, and where they are read
 
 The measured cost of the whole verb against this backlog is about twenty-eight seconds: four for the
 two walks it issues together, three for the past-run corpus on disk, and the rest for the bodies and
@@ -116,7 +91,7 @@ start, not the directory a file sits in.
 
 The minutes come from the transcripts the harness keeps, folded by `forge stats runs`'s own corpus
 and its own is-this-a-flow-run predicate; only the issue key is read again, off each run's `forge
-claim` call. The root is derived from `--project`, defaulting to the working directory exactly as
+claim` call. The root is derived from `--checkout`, defaulting to the working directory exactly as
 `forge stats runs` does, and nothing is inferred from the git common directory: a run from a worktree
 sees no corpus and prints a dash, which is honest, where reaching for the checkout above would be a
 guess about which tree the runs were worked in.

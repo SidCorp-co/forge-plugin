@@ -2,9 +2,8 @@
 
 Four homes, and each fact has one. `forge -h` and every verb's is the **surface**; the skills are
 **how to spend a call**; the code is the **mechanism**. This holds what none of them can — the
-failure that was hit, the measurement that settled an argument — so a line that could go in one of
-the other three does. Dates stay: a measurement was true once, not forever. One row per topic, read
-by whoever needs it and nobody else.
+failure that was hit, the measurement that settled an argument. Dates stay: a measurement was true
+once, not forever. One row per topic, read by whoever needs it and nobody else.
 
 | Topic | The decision it holds |
 |---|---|
@@ -26,7 +25,7 @@ by whoever needs it and nobody else.
 | [the primitives](cli/the-primitives.md) | What two verbs' own copies of the paging primitives cost, why one list serves a process, the measurements behind the markdown set the checkers share, and where the SSE frame reader's home stops. |
 | [one primitive, or two](cli/one-primitive-or-two.md) | Why the capturing span and the stripping one are two readers rather than a copy, which of the two link targets a verifier spends and which a parser does, and what an exclusion row owes the issue that clears it. |
 | [`next`](cli/next.md) | The call budget a 503 set, why the size band has two sources and which decides, where the module reading stops rather than inferring a repository's layout, and what the cost column is silent about. |
-| [`deps`](cli/deps.md) | What the marker sentence has to be for an edge to count, and why the graph is one ASCII line per blocker. |
+| [`next` — the edges](cli/next-the-edges.md) | Why an edge lives in two stores and neither proves the other, and what a landing frees against what it only reaches. |
 | [`knowledge`](cli/knowledge.md) | What the store held after forty-three runs, why a write carries forward what the caller did not name, and who refuses an entry that restates a rules file. |
 | [the shown ledger](cli/the-shown-ledger.md) | What a repeat costs a refusal and what it costs advice, the two readings of "already shown", and why the journal is appended. |
 | [cloudflare](cli/cloudflare.md) | Why this is a second API rather than a route through the first, and how the account holding a zone is found. |
@@ -44,12 +43,12 @@ by whoever needs it and nobody else.
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, and what a call that never returned counts as. |
 | [stats — the rows](cli/stats-rows.md) | The three rows a hand profile got wrong, why a phase boundary is read off the class a call already carries, and why a run that claimed no rung keeps a row of its own. |
 | [stats — the eval](cli/stats-the-eval.md) | Why the eval adds no figure of its own, why a window is fifty runs by the run's last record, what the copy installed at a run's start does not fix, what a pinned comparison is for, and why the strongest model reads the result. |
-| [doctor](cli/doctor.md) | Why every missing piece is reported together, what is withheld by default, and how the CLAUDE.md claims were calibrated. |
+| [doctor](cli/doctor.md) | Why every missing piece is reported together, and why one verb reports every level of configuration and reads a key back before reporting it set. |
 | [which gates run](cli/which-gates-run.md) | Why the switch is derived from the hooks directory, and why exactly one place answers whether a gate is off. |
-| [the project](cli/the-project.md) | Why a host is told from a secret by the shape of the value, where the trim stops, and the edge the credential guard states rather than claims. |
+| [the test credentials](cli/test-credentials.md) | Why a host is told from a secret by the shape of the value, and where the trim stops. |
 | [the project's brief](cli/the-brief.md) | Why `--refresh` takes the answer it is meant to produce, which files a digest covers and which it deliberately does not, and why a store that will not answer is never printed as a store with no brief. |
 | [settings](cli/settings.md) | Why provenance is the shape of every answer, which six environment variables remain, and where a credential is allowed to sit. |
 | [withholding a verb](cli/withholding-a-verb.md) | The difference between a tool the server gates and a verb a human hid, and why `forge doctor` is the only surface allowed to say so. |
-| [one transport](cli/one-transport.md) | Why the route each capability takes is a declared table, which two keep the other endpoint, what a capability with no route does instead, and why a write announces itself here. |
+| [one transport](cli/one-transport.md) | Why the route each capability takes is a declared table, what a capability with no route does instead, why a write announces itself here, and the edge the credential guard states rather than claims. |
 | ["did you mean"](cli/did-you-mean.md) | Why matching is on the separator-stripped form: an agent recalls a name from the wrong shape rather than fat-fingering a key. |
 | [vietnamese](cli/vietnamese.md) | Why `vi-natural review` cannot be the gate, and which copy of the binary is spawned. |

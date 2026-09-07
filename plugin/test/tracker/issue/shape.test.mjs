@@ -115,12 +115,12 @@ test("a line naming other issues as this one's parts is a split, and a citation 
 });
 
 test("a body with no rule and no out-of-scope that names one thing reads as a fix", () => {
-  const body = "`forge dep` calls `forge_project_pm`, which refuses a personal access token. It should "
+  const body = "`forge issue` calls `forge_project_pm`, which refuses a personal access token. It should "
     + "take the `data.relations` route instead.";
-  const { gaps, fix, tokens } = shapeOf({ title: "forge dep writes the edge a token can write", body });
+  const { gaps, fix, tokens } = shapeOf({ title: "forge issue writes the edge a token can write", body });
   assert.equal(fix, true);
   assert.deepEqual(gaps, [], "a fix owes no section: what it owes is a route");
-  assert.equal(tokens[0], "forge dep", "and the route's candidates are searched on what it names");
+  assert.equal(tokens[0], "forge issue", "and the route's candidates are searched on what it names");
   assert.deepEqual(tokensNamed("no span here, and `a prose span` and `path` name nothing"), []);
 });
 
@@ -132,7 +132,7 @@ test("a body naming nothing is missing its outcome rather than reading as a fix"
 
 /* The exemption is the light path's and not one rung's, and the reading is the ladder's. */
 test("the mark clears the fix route on every route, because the CLI writes it into the body", () => {
-  const body = "`forge dep` should take the `data.relations` route.";
+  const body = "`forge issue` should take the `data.relations` route.";
   assert.equal(markedIn(body), null);
   const marked = withMark(body);
   assert.ok(marked.includes(SIZE_LINE));
@@ -235,7 +235,7 @@ test("the filed line names the key, and degrades to what the reply did carry", (
    verb's, and only spawning it against a tracker measures them. */
 const state = {
   issues: [
-    { issueId: "ISS-45", documentId: "uuid-45", status: "open", title: "three refusals carry the way out, forge dep under a token among them" },
+    { issueId: "ISS-45", documentId: "uuid-45", status: "open", title: "three refusals carry the way out, forge issue under a token among them" },
     { issueId: "ISS-70", documentId: "uuid-70", status: "closed", title: "the browse projection answers with a cursor for the rows past the page" },
   ],
   comments: {},
@@ -284,7 +284,7 @@ test("one pass over a filing reads its body twice, and the line it says costs no
 });
 
 test("the verb refuses a fix with the two flags, the comment route and the open issues naming what it names", async () => {
-  const run = await filed("`forge dep` should take the `data.relations` route.", "--title", "forge dep writes an edge a token can write");
+  const run = await filed("`forge issue` should take the `data.relations` route.", "--title", "forge issue writes an edge a token can write");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /forge comment ISS-nn <body>/u);
   assert.match(run.stderr, /--with ISS-nn/u);
@@ -318,7 +318,7 @@ test("a size the contract has no path for is refused rather than kept", async ()
 
 test("forge comment posts the body where it belongs and files nothing, lint or no lint", async () => {
   state.calls = [];
-  const run = await posted("`forge dep` should take the `data.relations` route.", "--title", "the edge a token can write");
+  const run = await posted("`forge issue` should take the `data.relations` route.", "--title", "the edge a token can write");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(state.calls.some((one) => one.args.action === "create" && one.name === "forge_issues"), false);
   const wrote = state.calls.find((one) => one.name === "forge_comments" && one.args.action === "create");
@@ -328,7 +328,7 @@ test("forge comment posts the body where it belongs and files nothing, lint or n
 
 test("--with files it and relates it in the same create, so one branch carries both", async () => {
   state.calls = [];
-  const run = await filed("`forge dep` should take the `data.relations` route.", "--title", "the edge a token can write", "--with", "ISS-45");
+  const run = await filed("`forge issue` should take the `data.relations` route.", "--title", "the edge a token can write", "--with", "ISS-45");
   assert.equal(run.status, 0, run.stderr);
   const create = state.calls.find((one) => one.args.action === "create");
   assert.deepEqual(create.args.data.relations, [{ kind: "relates", blocksId: "uuid-45" }]);
@@ -447,16 +447,16 @@ const SETTLED_SIX = Array.from({ length: 6 }, (one, at) => ({
   issueId: `ISS-6${at}`,
   documentId: `uuid-6${at}`,
   status: "closed",
-  title: `forge dep under a token, settled ${at}`,
+  title: `forge issue under a token, settled ${at}`,
 }));
 const OPEN_BEHIND = {
   issueId: "ISS-88",
   documentId: "uuid-88",
   status: "in_progress",
-  title: "forge dep writes its edge through the relations route",
+  title: "forge issue writes its edge through the relations route",
 };
-const FIX_BODY = "`forge dep` should take the `data.relations` route.";
-const FIX_TITLE = "forge dep writes an edge a token can write";
+const FIX_BODY = "`forge issue` should take the `data.relations` route.";
+const FIX_TITLE = "forge issue writes an edge a token can write";
 
 const routed = async (search) => {
   state.answer = {
@@ -504,8 +504,8 @@ test("a search that failed reaches the caller, rather than an empty backlog it n
   const page = { live: [], read: { rows: [], whole: true, pages: 1 } };
   state.calls = [];
   assert.match(await refusing(() => refusalFrom(filing, shape, { page })),
-    /Naming forge dep, still open: ISS-45/u, "the search reached its answer and the route says what it named");
-  assert.ok(state.calls.some((one) => one.args?.filters?.search === "forge dep"),
+    /Naming forge issue, still open: ISS-45/u, "the search reached its answer and the route says what it named");
+  assert.ok(state.calls.some((one) => one.args?.filters?.search === "forge issue"),
     "and that one request was the search, the page handed in buying no walk");
   state.status = 403;
   try {
@@ -521,7 +521,7 @@ test("settled rows ahead of an open one no longer hide it, the ask being a count
   const rows = [...SETTLED_SIX, OPEN_BEHIND];
   const run = await routed(() => ({ issues: rows }));
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /Naming forge dep, still open: ISS-88/u,
+  assert.match(run.stderr, /Naming forge issue, still open: ISS-88/u,
     "the seventh row is inside the page the route reads, and openTitles keeps it");
   assert.doesNotMatch(run.stderr, /No open issue names/u);
 });
@@ -529,17 +529,17 @@ test("settled rows ahead of an open one no longer hide it, the ask being a count
 test("a page with rows behind it and no open row among them says the reading did not settle it", async () => {
   const run = await routed(() => ({ issues: SETTLED_SIX, beyond: 4 }));
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /Whether an open issue names forge dep is unread/u);
+  assert.match(run.stderr, /Whether an open issue names forge issue is unread/u);
   assert.doesNotMatch(run.stderr, /No open issue names/u,
     "four rows the route counted and would not serve is silence, not absence");
-  assert.match(run.stderr, /forge issues --search forge dep/u,
+  assert.match(run.stderr, /forge issues --search forge issue/u,
     "and the one command that finishes the reading, the sentence sitting under `Name a route:`");
 });
 
 test("a page the route served whole with no open row on it still says no open issue names it", async () => {
   const run = await routed(() => ({ issues: SETTLED_SIX }));
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No open issue names forge dep, so --size fix is the route unless you know one\./u);
+  assert.match(run.stderr, /No open issue names forge issue, so --size fix is the route unless you know one\./u);
   assert.doesNotMatch(run.stderr, /is unread/u, "the reading reached its answer, and the answer is none");
 });
 

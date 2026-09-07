@@ -131,7 +131,7 @@ test("a value the flag does not take fails, and the printed route is that case",
 
 test("a value against a placeholder is not judged, and the surfaces spell their placeholders", () => {
   assert.deepEqual(routeProblems("forge claim ISS-118 --next start-here", held), []);
-  assert.deepEqual(routeProblems("forge stats runs --project /tmp/x --since 3d", held), []);
+  assert.deepEqual(routeProblems("forge stats runs --checkout /tmp/x --since 3d", held), []);
   const padded = { ...held,
     usageOf: () => "Usage: forge record <kind> <uuid|ISS-45>\n  --pushed        the branch and its head, read from git" };
   assert.deepEqual(routeProblems("forge record note ISS-1 --pushed now", padded), [],

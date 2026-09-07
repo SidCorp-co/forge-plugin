@@ -16,8 +16,10 @@ export const GROUPS = [BACKLOG, FLOW, METHOD, HARNESS];
 export const VERBS = [
   ["issues", "[--status s] [--search q] [--limit n]", "every matching issue, walked; --limit is how many print",
     "forge_issues", { group: BACKLOG, wraps: { list: "`forge issues`" } }],
-  ["issue", "<uuid|ISS-45> [--fields a,b] [--full]", "one body, or named parts of it",
-    "forge_issues", { group: BACKLOG, wraps: { get: "`forge issue`" } }],
+  ["issue", "<uuid|ISS-45> [--fields a,b] [--full] [--blocks ISS-46|--relates ISS-46|--unlink ISS-46]",
+    "one body, or named parts of it, and the edges on it",
+    "forge_issues", { group: BACKLOG, wraps: { get: "`forge issue`", link: "`forge issue --blocks`",
+      unlink_edge: "`forge issue --unlink`" } }],
   ["new", "<file.md|@file|-> --title T --kind K [--status S] [--priority P] [--size fix] [--with ISS-45,ISS-46] [--new]",
     "file one, read against the shape its kind needs",
     "forge_issues", { group: BACKLOG, wraps: { create: "`forge new`" } }],
@@ -36,23 +38,17 @@ export const VERBS = [
     null, { group: METHOD }],
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context",
     "forge_uploads", { group: BACKLOG, wraps: { request: "`forge attach`" } }],
-  ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues", { group: BACKLOG }],
-  ["next", "[--count n] [--why] [--json] [--holding ISS-45] [--project <dir>]",
+  ["next", "[--count n] [--why] [--json] [--graph [ISS-45]] [--holding ISS-45] [--checkout <dir>]",
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues",
     { group: BACKLOG }],
-  ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm",
-    { group: BACKLOG,
-      action: "set_dependency",
-      refusal: "forge dep needs forge_project_pm set_dependency, which this CLI has no route to on "
-        + "the tracker's data plane and may not call: no edge is written from here, and no other "
-        + "verb needs one. `forge doctor` measured that." }],
   /* `--tracker` unnamed, a maintainer's alone (docs/cli/withholding-a-verb.md); `--for` every run's. */
   ["guide", "[contract [part]|<skill> [reference]|slug] [--for ISS-nn]",
     "this plugin's contract and each skill's method, one part per call, and the tracker's guides this flow stands behind",
     null, { group: METHOD }],
-  ["project", "[--credentials] [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text>] [--title T] [--confidence C] [--meta k=v]...",
-    "the id, the branches a change lands on, the staging deploy, and the project's own brief",
-    "forge_projects.list", { group: METHOD }],
+  /* The tracker spells this action in the tool's own name, so the gate is that name whole. */
+  ["project", "[new --name N --slug S | <slug> [--set k=v|--archive|--unarchive]]",
+    "the projects themselves, this CLI's one verb outside any project's scope",
+    "forge_projects.list", { group: HARNESS }],
   ["knowledge", "<list|get|write|search|delete>",
     "what a run learned of this codebase, stored where the next one reads it", "forge_knowledge",
     { group: METHOD,
@@ -72,8 +68,11 @@ export const VERBS = [
   ["feedback", "<file.md|@file|-> --title T [--kind K] [--with ISS-45,ISS-46] [--new]",
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout",
     null, { group: HARNESS }],
-  ["doctor", "[--token t] [--url u] [--hide v|--show v] [--ship ready|self] [--full]",
-    "what resolves, and from where", null, { group: HARNESS }],
+  ["doctor", "[--token t] [--url u] [--hide v|--show v] [--ship ready|self] [--set k=v] [--credentials]"
+    + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text>] [--title T]"
+    + " [--confidence C] [--meta k=v]... [--full]",
+    "what resolves and from where, this project's own record included, and the keys of it that are written here",
+    null, { group: HARNESS }],
   ["stats", "<runs|eval|marks>",
     "where an issue-flow run's time and rounds go, read off the transcripts the harness keeps", null,
     { group: HARNESS }],
@@ -164,8 +163,7 @@ export const channelRefusal = (verb) =>
     : null);
 
 /* A row naming one action is gated on it, and `row[3]` stays the schema pointer either way. Off
-   `action` and never off the column existing, or a routing row composes a key nothing records —
-   docs/cli/deps.md. */
+   `action` and never off the column existing, or a routing row composes a key nothing records. */
 export const gateKey = (row) => (row?.[4]?.action ? `${row[3]}.${row[4].action}` : row?.[3]);
 
 /* The actions this verb is the ROUTE for — not every action it spends. A gated row routes the one

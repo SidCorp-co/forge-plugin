@@ -25,8 +25,8 @@ project` prints them under the names their owner uses — the tracker's `baseBra
 branch everywhere but in the one reader that fetches it, and doctor's release lines are a second
 view of the same answer. An automatic production deploy onto a branch the tracker
 holds as null is the incoherence its own schema warns of, and it is reported: until the branch is
-set, the person's look stands. What the same verb does with the deploy behind that branch is
-[the project](the-project.md).
+set, the person's look stands. What the same report does with the deploy behind that branch is
+[doctor](doctor.md).
 
 **One flow reads four settings, and each names the level that owns it** — which level, and why:
 [two levels](../two-levels.md). Three are the project's, in its own `.forge.json`: `feedback`, two

@@ -286,7 +286,7 @@ export const renewedLapsed = (ref, lease) =>
   + `before it still named ${lease.holder}, so no other run had taken the issue by then. A reclaim is `
   + `a handoff and this was none, so the claim history is unchanged.`;
 
-/** What a finder's write says about the lease it did not take, here rather than at its one call site because every other lease sentence is here; `renew`'s `{ finder: true }` answer is the argument. */
+/** What a finder's write says about the lease it did not take, here rather than at either of its call sites because every other lease sentence is here; `renew`'s `{ finder: true }` answer is the argument. */
 export const finderSaid = (ref, renewed) => (renewed
   ? `The lease on ${ref} is yours and this post renewed it.`
   : `No lease on ${ref} is yours, so this post is a finder's and renewed none.`);
@@ -324,7 +324,7 @@ export const notAnothers = async (documentId, ref) => {
   if (stateOf(lease, sessionOf()) === "live") fail(writeRefusal("live", ref, lease));
 };
 
-/* Every payload write renews the lease; another run's is refused, a read needs none, and `finder` is the one conditional renewal, answered by the return: asked for by `forge comment` alone and inherited by nobody, because the field writer awaits this and reads none of it, and a `false` handed back unasked would license a write on another run's issue. The lapsed reread below is outside the option — a handoff mid-write is a handoff whoever is writing. */
+/* Every payload write renews the lease; another run's is refused, a read needs none, and `finder` is the one conditional renewal, answered by the return: asked for by the two writes a finder may make, a comment and an edge, and inherited by nobody, because the field writer awaits this and reads none of it, and a `false` handed back unasked would license a write on another run's issue. What it answers nothing about is whether a LIVE lease may be written past: a comment is additive and is posted anyway, an edge moves what a dispatch may take and is not, so the caller that cares reads `notAnothers` for itself — after this call, so that nothing is written having read another run's lease. The lapsed reread below is outside the option — a handoff mid-write is a handoff whoever is writing. */
 export const renew = async (documentId, ref, next = undefined, patch = null, { finder = false } = {}) => {
   const holder = sessionOf();
   const context = await readContext(documentId);

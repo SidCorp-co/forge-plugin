@@ -62,12 +62,18 @@ const unquoted = (word) => {
 const WORDS = /(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|\S)+/gu;
 const CUT = /(?<!\\)\\$/u;
 
-/* Which argument is the issue — `dep` renews the second's lease. */
+const EDGE_FLAGS = ["--blocks", "--relates", "--unlink"];
+
+/* Which argument is the issue, as a list of positions or as a reading of the words themselves. */
 const VERBS = {
   comment: { at: [0] },
   claim: { at: [0] },
   attach: { at: [1], when: (args) => args[0] === "issue" },
-  dep: { at: [1] },
+  /* An edge write is taken against the end whose order moves, so that end is the read owed. */
+  issue: {
+    when: (args) => args.some((one) => EDGE_FLAGS.includes(one)),
+    at: (args) => (args.includes("--blocks") ? [args.indexOf("--blocks") + 1] : [0]),
+  },
   record: { at: [1], when: (args) => args[0] !== "report" },
   advance: { at: [0], when: (args) => !args.includes("--owed") },
 };
@@ -86,7 +92,8 @@ const spokenTargets = (one) => {
   if (!verb) return [];
   const args = (one.match(WORDS) ?? []).slice(2).map((word) => (CUT.test(word) ? "" : unquoted(word)));
   if (verb.when && !verb.when(args)) return [];
-  return verb.at.map((index) => args[index]).filter(isReference);
+  const at = typeof verb.at === "function" ? verb.at(args) : verb.at;
+  return at.map((index) => args[index]).filter(isReference);
 };
 
 /** The physical lines a shell joins before it reads a word: the shared grammar cuts at a newline,

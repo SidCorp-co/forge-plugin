@@ -477,7 +477,7 @@ const OPEN = {
   issueId: "ISS-90",
   status: "open",
   title: "the fix that rides the light path",
-  description: "`forge dep` should take the `data.relations` route.\n\nSize: fix.\n",
+  description: "`forge issue` should take the `data.relations` route.\n\nSize: fix.\n",
 };
 const EARNS = { ...OPEN, documentId: "earning-uuid", issueId: "ISS-92", description: "no mark here" };
 /* Shipped but for the person: what the project's own config decides is whether that person is owed,

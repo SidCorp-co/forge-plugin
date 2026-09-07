@@ -33,7 +33,7 @@ description: >-
 | file, comment, attach | `forge new -h`, `forge comment -h`, `forge attach -h` |
 | a plan, a lease, a record, a status move | `forge record -h`, `forge claim -h`, `forge advance -h` |
 | the next issue to work | `forge next -h` |
-| what blocks what | `forge deps -h`; reading the graph: `forge guide forge dependencies` |
+| what blocks what | `forge next --graph`; the two stores of an edge: `forge guide forge dependencies` |
 | Cloudflare zones, DNS, purges | `forge cloudflare -h`; the method: `forge guide forge cloudflare` |
 | a second opinion on this turn | `forge codex -h`; asking and reading one: `forge guide forge codex` |
 | a first call in a project, a missing verb | `forge doctor`; then `forge guide forge configuration` |

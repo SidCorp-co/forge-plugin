@@ -32,13 +32,13 @@ const WINDOW = /^(?<many>\d+)(?<unit>[dhm])$/u;
 const UNITS = { d: 86_400_000, h: 3_600_000, m: 60_000 };
 
 export const RUNS_USAGE = [
-  "Usage: forge stats runs [--since 3d] [--project <dir>] [--json]",
+  "Usage: forge stats runs [--since 3d] [--checkout <dir>] [--json]",
   "Where an issue-flow run's time and rounds go, read off the transcripts the harness keeps for a",
-  "project. Nothing is written and nothing the tracker holds is read: this measures the flow, not",
+  "checkout. Nothing is written and nothing the tracker holds is read: this measures the flow, not",
   "the backlog. A transcript with no issue-flow marker in it is skipped and counted as skipped.",
   "",
   "  --since 3d     the window, in d, h or m; the whole corpus unless you say otherwise",
-  "  --project <dir>  an absolute project directory, whose transcript root is derived from its path;",
+  "  --checkout <dir>  an absolute directory, whose transcript root is derived from its path;",
   "                 the working directory unless you say otherwise, so a run from a worktree names",
   "                 the checkout the runs were worked in",
   "  --json         the whole table rather than the top rows, for a diff between two weeks",
@@ -532,14 +532,14 @@ export const readingAside = ({ skipped, outsideWindow = 0, unreadable = 0 }) =>
   + `${unreadable ? `, ${unreadable} this reading could not parse` : ""}`;
 
 /** Where the root came from, said once: a reader who sees an empty corpus is looking at a path
- *  derived from a directory rather than named, and `--project` is the whole of the way out. */
+ *  derived from a directory rather than named, and `--checkout` is the whole of the way out. */
 export const derivedFrom = (directory) =>
-  `\nThat root is derived from ${directory}; name the checkout the runs were worked in with --project.`;
+  `\nThat root is derived from ${directory}; name the checkout the runs were worked in with --checkout.`;
 
-export const projectFrom = (given, verb) => {
+export const checkoutFrom = (given, verb) => {
   if (given === undefined) return process.cwd();
   if (!given.startsWith("/")) {
-    fail(`${verb}: --project takes an absolute project directory, not \`${given}\`. `
+    fail(`${verb}: --checkout takes an absolute directory, not \`${given}\`. `
       + "The transcript root is derived from that path; no transcript is opened by name.");
   }
   return given.replace(/\/+$/u, "") || "/";
@@ -548,9 +548,9 @@ export const projectFrom = (given, verb) => {
 export const printRuns = (rest) => {
   /* `--sincee 1d` profiled the whole corpus and said nothing before the parser read this text: a
      filter silently dropped is a measurement that is materially false. */
-  const { since, project, json } = flags(rest, "stats runs", ["--json"], { usage: RUNS_USAGE });
+  const { since, checkout, json } = flags(rest, "stats runs", ["--json"], { usage: RUNS_USAGE });
   const from = windowFrom(since);
-  const directory = projectFrom(project, "stats runs");
+  const directory = checkoutFrom(checkout, "stats runs");
   const root = rootFor(directory);
   const { runs, skipped, outsideWindow, unreadable } = runsUnder(root, from);
   const aside = readingAside({ skipped, outsideWindow, unreadable });

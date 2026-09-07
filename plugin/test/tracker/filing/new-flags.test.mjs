@@ -12,7 +12,7 @@ const home = tempHome("new-flags");
 process.env.XDG_CONFIG_HOME = home.path;
 const { markFor } = await import("../../../src/ladder.mjs");
 
-const SHORT = "`forge dep` should take the `data.relations` route.";
+const SHORT = "`forge issue` should take the `data.relations` route.";
 const TITLE = "the filing is read against the shape before the tracker sees it";
 const WHOLE = [
   "## Outcome",
@@ -30,7 +30,7 @@ const WHOLE = [
 
 const state = {
   issues: [
-    { issueId: "ISS-45", documentId: "uuid-45", status: "open", title: "three refusals carry the way out, forge dep under a token among them" },
+    { issueId: "ISS-45", documentId: "uuid-45", status: "open", title: "three refusals carry the way out, forge issue under a token among them" },
     { issueId: "ISS-70", documentId: "uuid-70", status: "closed", title: "the browse projection answers with a cursor for the rows past the page" },
   ],
   comments: {},
@@ -103,7 +103,7 @@ test("a filing naming no kind is refused with the set, and files nothing", async
 test("the comment verb needs no kind, and no shape either", async () => {
   state.calls = [];
   const run = await ranAsync(FORGE,
-    ["comment", "ISS-45", bodyAt("`forge dep` writes the edge."), "--title", TITLE], tracker.env);
+    ["comment", "ISS-45", bodyAt("`forge issue` writes the edge."), "--title", TITLE], tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(state.calls.some((one) => one.name === "forge_comments" && one.args.action === "create"));
 });
@@ -194,7 +194,7 @@ test("--size marks the description and writes the tracker's field from that mark
   /* The top rung buys no exemption, so its body still owes every section the shape asks for. */
   const created = async (body, ...argv) => {
     state.calls = [];
-    const run = await filed(body, "--title", `forge dep writes an edge a token can write ${argv}`, ...argv);
+    const run = await filed(body, "--title", `forge issue writes an edge a token can write ${argv}`, ...argv);
     assert.equal(run.status, 0, run.stderr);
     return state.calls.find((one) => one.args.action === "create");
   };

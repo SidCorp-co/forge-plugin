@@ -181,7 +181,7 @@ test("a filing naming no kind is read as the default and told so", () => {
 /* Criterion 11: the mark says the flow is not worth spending on this, and a section list is the
    flow's cost in another form. */
 test("a body marked `Size: fix.` is read against no section, whatever kind it names", () => {
-  const marked = "`forge dep` should take the `data.relations` route.\n\nSize: fix.";
+  const marked = "`forge issue` should take the `data.relations` route.\n\nSize: fix.";
   for (const kind of [...KIND_NAMES, null]) {
     const read = gapsOf(marked, kind);
     assert.deepEqual(read.gaps, [], String(kind));

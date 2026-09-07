@@ -18,7 +18,7 @@ owns the arithmetic that says whether the files it was read from have moved.
 
 **What stamping the digests beside the body does and does not buy.** `--refresh` takes the body and
 stamps the digests in the same call, and the first reading of that coupling claimed too much: it
-does not prove the body was *corrected*. A caller can save what `forge project` just printed and
+does not prove the body was *corrected*. A caller can save what `forge doctor` just printed and
 hand the same bytes back, and the digests go fresh over prose nothing changed. Nothing here can tell
 those bytes from corrected ones, and a mechanism that could would have to diff prose against files
 it cannot read the meaning of. What the coupling buys is narrower and still worth having: a

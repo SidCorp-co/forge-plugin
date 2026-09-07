@@ -27,7 +27,7 @@ const UNDER = {
   stats: STATS,
 };
 
-/* A word no table knows is a positional, not a sub-verb: `forge dep ISS-1 ISS-2 blocks` is judged by the verb's surface, where an empty one would turn every flag on it into a finding. */
+/* A word no table knows is a positional, not a sub-verb: `forge attach issue ISS-1 body.md` is judged by the verb's surface, where an empty one would turn every flag on it into a finding. */
 export const surfaceOf = (verb, sub = null) => {
   const row = usageOf(verb);
   const under = sub ? UNDER[verb]?.[sub] : null;

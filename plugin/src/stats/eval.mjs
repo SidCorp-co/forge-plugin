@@ -3,7 +3,7 @@
    the window, and the reading it writes there once, which `--against` reads back as the before
    window — docs/cli/stats-the-eval.md. */
 import { rootFor } from "./transcripts.mjs";
-import { derivedFrom, profileOf, projectFrom, readingAside, runsUnder, stamp } from "./runs.mjs";
+import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder, stamp } from "./runs.mjs";
 import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
 import { RUNS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "./marks.mjs";
@@ -13,19 +13,19 @@ import { flags } from "../resolve/flags.mjs";
 export const WINDOW = 50;
 
 export const MARKS_USAGE = [
-  "Usage: forge stats marks [--project <dir>]",
+  "Usage: forge stats marks [--checkout <dir>]",
   "The readings held for this project, one line each, newest first.",
 ].join("\n");
 
 export const EVAL_USAGE = [
-  "Usage: forge stats eval [--project <dir>] [--size 50] [--against [<mark>]] [--json]",
+  "Usage: forge stats eval [--checkout <dir>] [--size 50] [--against [<mark>]] [--json]",
   "The last fifty issue-flow runs against the fifty before them, on the figures `stats runs` computes,",
   "each window grouped by the copy installed when its runs began, and what separates the two named.",
   "The ship says when to run it: at every multiple of the window in the project's own corpus, the way",
   "the consult that crosses a hundred-mark names `forge codex eval` — and writes the reading there,",
   "once per mark, which `--against` puts in the before window's place.",
   "",
-  "  --project <dir>    as for runs",
+  "  --checkout <dir>   as for runs",
   "  --size n           runs per window; fifty unless you say otherwise",
   "  --against [<mark>] the reading held at that mark as the before window, or the newest held",
   "  --json             the comparison alone, one object",
@@ -233,9 +233,9 @@ export const runsMark = (directory, size = WINDOW) => {
 
 export const printEval = (argv) => {
   const { against, rest } = againstIn(argv, "stats eval");
-  const { project, size, json } = flags(rest, "stats eval", ["--json"], { usage: EVAL_USAGE });
+  const { checkout, size, json } = flags(rest, "stats eval", ["--json"], { usage: EVAL_USAGE });
   const window = sized(size);
-  const directory = projectFrom(project, "stats eval");
+  const directory = checkoutFrom(checkout, "stats eval");
   const corpus = corpusOf(directory);
   /* The reading asked for is resolved before the corpus is judged: a mark nobody wrote is refused by
      name whatever the corpus holds, rather than answered with the empty corpus's sentence. */
@@ -252,8 +252,8 @@ export const printEval = (argv) => {
 
 /** `forge stats marks` — the readings held for the project, newest first. */
 export const printMarks = (rest) => {
-  const { project } = flags(rest, "stats marks", [], { usage: MARKS_USAGE });
-  const directory = projectFrom(project, "stats marks");
+  const { checkout } = flags(rest, "stats marks", [], { usage: MARKS_USAGE });
+  const directory = checkoutFrom(checkout, "stats marks");
   const held = marksOf(RUNS, rootFor(directory));
   if (!held.length) return console.log(`No reading is held for this project yet; ${WRITES}.`);
   const lines = markLines(held, (one) =>

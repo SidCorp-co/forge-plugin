@@ -147,7 +147,7 @@ const corpus = () => {
 };
 
 const ask = (room, ...argv) =>
-  spawnSync(FORGE, ["stats", "runs", "--project", PROJECT, ...argv], {
+  spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, ...argv], {
     encoding: "utf8",
     env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-home-"), TMPDIR: room },
   });
@@ -212,15 +212,23 @@ test("a window is read off the run's own clock, not the file's", () => {
   assert.equal(empty.status, 0, empty.stderr);
   assert.match(empty.stdout, /No issue-flow run under .*-fixture-project in the last 1d/u);
   assert.match(empty.stdout, /1 outside the window/u, empty.stdout);
-  assert.match(empty.stdout, /name the checkout the runs were worked in with --project/u);
+  assert.match(empty.stdout, /name the checkout the runs were worked in with --checkout/u);
 });
 
 test("nothing a caller writes is opened", () => {
   const room = corpus();
-  const relative = ask(room, "--project", "../elsewhere");
+  const relative = ask(room, "--checkout", "../elsewhere");
   assert.equal(relative.status, 1);
-  assert.match(relative.stderr, /--project takes an absolute project directory, not `\.\.\/elsewhere`/u);
+  assert.match(relative.stderr, /--checkout takes an absolute directory, not `\.\.\/elsewhere`/u);
   assert.match(relative.stderr, /no transcript is opened by name/u);
+
+  /* The name this argument had before one verb answered which project: a stranger, answered by the
+     set the verb does take, because nothing but this repository's own history ever typed it. */
+  const gone = ask(room, "--project", PROJECT);
+  assert.equal(gone.status, 1);
+  assert.match(gone.stderr, /No stats runs flag named --project\./u, gone.stderr);
+  assert.match(gone.stderr, /--checkout/u, gone.stderr);
+  assert.doesNotMatch(gone.stderr, /retired/u, "and no line that knows the old name");
 
   const window = ask(room, "--since", "last week");
   assert.equal(window.status, 1);

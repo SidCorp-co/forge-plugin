@@ -174,8 +174,15 @@ const gatesDispatch = (edge) =>
   edge.gatesDispatch === undefined ? edge.kind === "blocks" : edge.gatesDispatch === true;
 
 /* The tracker gates on a merged mark and this contract's floor is `developed`, so the status is a
-   second and independent test. One exported answer, so no screen can derive a different one. */
-export const holdsBack = (edge) => gatesDispatch(edge) && !atLeast(edge.otherStatus, "developed");
+   second and independent test — the *blocker's*, which a caller reading the blocker's own row names. */
+export const holdsBackFrom = (edge, blocker) => gatesDispatch(edge) && !atLeast(blocker, "developed");
+export const holdsBack = (edge) => holdsBackFrom(edge, edge.otherStatus);
+
+export const ordersSaid = (edge, blocker) => {
+  if (edge.expired) return "the edge expired";
+  if (!gatesDispatch(edge)) return `a ${edge.kind ?? "kindless"} edge orders none`;
+  return `the blocker is ${blocker ?? "unread"}`;
+};
 
 /* Named in the refusal: an ordering constraint and a mention read alike on a line of their own. */
 const edgeKind = (edge) => (edge.kind ? `a ${edge.kind} edge` : "an edge whose kind the tracker did not name");
@@ -270,13 +277,9 @@ const verdictsOwed = (view, ref) => {
   const moved = judged ? landingMoved(view.comments) : null;
   const stands = Boolean(judged) && moved?.length === 0;
   const ask = (number) => askOne(ref, number, merged ?? "<sha>");
-  const out = foldVerdicts(
-    ref,
-    view.owed,
-    merged ?? "<sha>",
+  const out = foldVerdicts(ref, view.owed, merged ?? "<sha>",
     (number) => `criterion ${number} has no verdict`,
-    (listed) => `criteria ${listed} have no verdict`,
-  );
+    (listed) => `criteria ${listed} have no verdict`);
   const atJudged = [];
   for (const [number, { record }] of numbered(view.verdicts)) {
     const held = record.fields;

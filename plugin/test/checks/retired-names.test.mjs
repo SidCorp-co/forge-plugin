@@ -43,6 +43,20 @@ test("no surface under plugin/ or docs/ names something that was retired", () =>
   assert.ok(RETIRED.length > 0, "and the registry holds something, so the walk above judged a name");
 });
 
+/* Watched firing on a real entry and not only on a synthetic one: the two edge verbs went with the
+   route they wrapped, and a sentence that still names either is the shape this refuses (ISS-702). */
+test("a sentence naming a retired edge verb is a finding, and the read that replaced it is not", () => {
+  for (const name of ["deps", "dep"]) {
+    const row = RETIRED.find((one) => one.kind === "verb" && one.name === name);
+    assert.ok(row, `the registry holds no entry for the retired verb ${name}`);
+    const said = (text) => problems([{ rel: "one.md", text }], [row], LIVE);
+    assert.equal(said(`read the graph with \`forge ${name}\`\n`).length, 1, name);
+    assert.match(said(`\`forge ${name} ISS-45\`\n`)[0], new RegExp(`names the verb ${name}, retired in `, "u"));
+    assert.deepEqual(said("read it with `forge next --graph`\n"), [],
+      "and the reading that took the write over is a live name");
+  }
+});
+
 /* The registry was built for this name and could not take it: `tool` matched the bare word, so the
    live verb and the English noun both became findings, and the last test below refused any entry
    sharing a live verb's name whatever kind it had (ISS-145). */

@@ -53,10 +53,10 @@ by asking whether to continue is a stop, and the only stops are the three above.
 
 ## Phase 0 — Learn the project
 
-`forge project` first: the branches, the deploy, and the project's own brief, one line per thing
-this phase establishes with where it was read. A line reading *not stated*, or a source the
-`stale:` line says has moved, is discovered by hand: `forge guide issue-flow project-discovery`,
-which is the whole of this phase where a project has no brief yet.
+`forge doctor` first: one report, every level of configuration with its source — the branches, the
+deploy, the project's own keys and its brief, beside this machine's. A line reading *not stated*, or
+a source the `stale:` line says has moved, is discovered by hand: `forge guide issue-flow
+project-discovery`, which is the whole of this phase where a project has no brief yet.
 
 **The brief's goal line is read here too**, and it is what *cause or surface* is later judged
 against: a run deciding how far to fix something has the project's own goals to answer to rather
@@ -66,8 +66,9 @@ it is the list a `Serves:` names.
 
 **Three lines say how far Phase 7 goes**, and they are read here because the plan written at Phase 3
 is written against them: where the merge sits, whether the judgement between `developed` and `tested`
-is an independent run's, and the ship mode this machine is set to. The first two are the project's,
-off `forge project`; the third is the machine's, off `forge doctor`. A run that finds the merge point
+is an independent run's, and the ship mode this machine is set to. The first two are the project's
+and the third is the machine's, and one report carries all three with the level each came from. A
+run that finds the merge point
 *not stated* on a project asking for an independent judge has no way to know whether the judging
 comes before the push or after it, and discovers it by hand rather than assuming either.
 

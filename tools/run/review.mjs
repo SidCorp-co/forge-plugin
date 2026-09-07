@@ -74,7 +74,7 @@ export const reviewBody = ({ tree, from, to, volume, self }) => {
     "  reference`, saying what the module owns, which of its helpers are the shared ones, its traps,",
     "  and the issues that shaped it. An entry says what is and cites where it was read; a convention",
     "  two runs each half-followed is an entry of kind `rule` with the two places in its body. The",
-    "  project brief is refreshed through `forge project --refresh`, which stamps the digests of the",
+    "  project brief is refreshed through `forge doctor --refresh`, which stamps the digests of the",
     "  files it was read from in the same call, where this reading changed what it says.",
     "  `forge knowledge -h` carries the shape, and the run's verification cites the entries written.",
     `- Issues whose releases this range spans: ${keys.join(", ") || "none, so the range is unreleased work"}.`,

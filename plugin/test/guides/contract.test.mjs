@@ -389,8 +389,8 @@ test("doctor names the missing file, and a file from another build, in the copy 
 let clock = 0;
 const recorded = (kind, fields) =>
   ({ createdAt: `2026-09-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`, body: render(kind, fields) });
-const marked = (tier) => `\`forge dep\` should take the \`data.relations\` route.\n\nSize: ${tier}.\n`;
-const UNMARKED = "`forge dep` should take the `data.relations` route.";
+const marked = (tier) => `\`forge issue\` should take the \`data.relations\` route.\n\nSize: ${tier}.\n`;
+const UNMARKED = "`forge issue` should take the `data.relations` route.";
 const VERIFIED = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] })];
 const reSized = (moved) => [recorded("correction", { moved, why: "what the work turned out to be" })];
 const sized = (description, extra = {}) =>

@@ -43,6 +43,19 @@ const sorted = (held, orderless) => {
 
 /* Every place the projected answer may differ from what the tool sent, and why. A path here that
    turns out not to differ fails: a declaration nobody re-reads is how a difference gets forgotten. */
+const ARCHIVED = "the projection carries whether the row is archived and the tool's answer did not";
+
+/* Five rows, one projection: each answers the project row the tracker serves, which is the body
+   `projects-get` captured, so they are judged against it rather than each owing a capture of a
+   project this suite would have to create to take one. */
+const PROJECT_ROWS = ["forge_projects.create", "forge_projects.read", "forge_projects.update",
+  "forge_projects.archive", "forge_projects.unarchive"];
+
+/* The rows that answer the page as it came. A write whose answer nothing reads declares no
+   projection at all, so there is no shape here to judge and the absence is what is asserted. */
+const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config.pipeline",
+  "forge_config.set_pipeline", "forge_config.facts", "forge_config.set_facts"];
+
 const PAIRS = {
   "issues-get": {
     key: "forge_issues.get",
@@ -52,6 +65,10 @@ const PAIRS = {
       detectorKey: "the route carries the key a detector files under and the tool did not, and the "
         + "full read is the row whole",
       waitingKind: "the route carries the kind a park lands in and the tool did not",
+      "relations.blocks": "the tool answered a relates edge among the blockers, and this projection "
+        + "keeps that key for the edges that order a dispatch",
+      "relations.relates": "a key the tool never answered at all: an edge ordering nothing was read "
+        + "back under one of the two that do, where a caller counting blockers counted it",
     },
   },
   "issues-list": {
@@ -87,8 +104,11 @@ const PAIRS = {
   },
   "guides-list": { key: "forge_guide.list", differs: {} },
   "guides-get": { key: "forge_guide.get", differs: {} },
-  "projects-get": { key: "forge_projects.get", differs: {} },
-  "projects-list": { key: "forge_projects.list", differs: {}, orderless: { path: "projects", by: "id" } },
+  /* The archive is reversible and the verb that reverses it needs to be told which rows are in it,
+     so both projections carry the column the tool's answer never had. */
+  "projects-get": { key: "forge_projects.get", differs: { "project.archivedAt": ARCHIVED } },
+  "projects-list": { key: "forge_projects.list", differs: { projects: ARCHIVED },
+    orderless: { path: "projects", by: "id" } },
   "pm-snapshot": { key: "forge_project_pm.snapshot", differs: {} },
   "pm-runner-load": { key: "forge_project_pm.runner_load", differs: {} },
 };
@@ -153,9 +173,26 @@ describe("the offset lookup's two reads", () => {
 describe("every row of the table is judged", () => {
   it("each row is paired against the tool or shape-checked", () => {
     const judged = new Set([...Object.values(PAIRS), ...Object.values(SHAPES)].map((one) => one.key));
-    const unjudged = Object.keys(ROUTES).filter((key) => !judged.has(key));
+    const unjudged = Object.keys(ROUTES)
+      .filter((key) => !judged.has(key) && !PROJECT_ROWS.includes(key) && !RAW_ROWS.includes(key));
     assert.deepEqual(unjudged, ["forge_memory.search", "forge_project_pm.graph"],
       "a row with no verdict here is one whose projection nothing reads");
+  });
+
+  it("the rows answering a project row project the captured one into the same shape", () => {
+    const page = held("projects-get").rest.project;
+    for (const key of PROJECT_ROWS) {
+      const { project } = ROUTES[key].answers({ page }, {});
+      assert.equal(project.slug, "forge-plugin", key);
+      assert.equal(project.archivedAt, null, `${key} drops the column the archive is read from`);
+    }
+  });
+
+  it("the rows that answer the page as it came declare no projection to read it with", () => {
+    for (const key of RAW_ROWS) {
+      assert.equal(ROUTES[key].answers, undefined,
+        `${key} projects an answer, so it owes a capture and a verdict like every other row`);
+    }
   });
 
   /* The case AC-19-1-1's Proof names. A second endpoint is a fallback, and a fallback keeps a verb

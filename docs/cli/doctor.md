@@ -33,11 +33,12 @@ file against a project's guides.
 
 **A rule a checker already states is noted where CLAUDE.md explains it too.** Only backticked
 hyphenated names count, against names a checker declares as a literal, so a rule that derives its name
-from its filename is missed and a stray string cannot invent one. **And the guides are the authority**, the project file the copy: a rule stated in
-both diverges the first time someone corrects only the one they found, silently, because each still
-reads as correct alone. The overlap measure is the one the duplicate-comment rule uses, at 0.25 over a
-floor of 3 rather than 0.34 over 5 — two documents state one rule in their own vocabularies, and over
-those 28 files 0.34/5 finds nothing while 0.25/3 finds seven pairs, every one a real restatement.
+from its filename is missed and a stray string cannot invent one. **And the guides are the authority**,
+the project file the copy: a rule stated in both diverges the first time someone corrects only the one
+they found, silently, because each still reads as correct alone. The overlap measure is the one the
+duplicate-comment rule uses, at 0.25 over a floor of 3 rather than 0.34 over 5 — two documents state
+one rule in their own vocabularies, and over those 28 files 0.34/5 finds nothing while 0.25/3 finds
+seven pairs, every one a real restatement.
 
 A pair is reported, never classified: negation is a stop word, so a restatement and a flat contradiction
 score alike. That is why an overlap is a note and cannot fail doctor — a check that stays red until
@@ -56,17 +57,49 @@ Writes translate before they post, so a missing `vi-natural` key is a miss exact
 declares the language that waits on it. The gateway url and model are read beside the key, because a
 saved key alone is configuration that looks complete and dies at the first call.
 
-**And it names the copy a call from here would run, and the copy the gates come from.** `~/.local/bin/forge` is one symlink for the
-machine, written from whichever plugin root a session started with, so for two days every project on
-this machine ran this checkout: one of them died on a `SyntaxError` from a refactor half-finished
-here, and another silently ran an unreleased build. A call that arrived through that link now picks
-its copy per call — the checkout the working directory sits in, else the newest installed copy the
-record resolves to — and the report has to answer for a directory rather than for the machine,
-because the answer changes with `cd`. A call that names a copy by its own path still runs that copy:
-the probe of a worktree, the suite's own spawns and the bundled `vi-natural` all mean the copy they
-name, and a caller who typed a path was not asking.
+**And it names the copy a call from here would run, and the copy the gates come from** — two lines
+rather than one, because the case that matters is when they disagree: [the way in](the-way-in.md).
 
-The gates ask the same chooser for a different file, so they get their own line rather than sharing
-that one. The answers are usually the same and the case that matters is when they are not: an install
-holding one entry and not the other picks a different copy for each, and nothing else on this report
-would show it.
+## One verb reports every level, so the project is a level of it
+
+There were two verbs where there is now one, and each carried a partial view of what the other
+already answered, under its own wording. A reader holding two answers
+to *what is configured here* has a precedence question nobody wrote down, and the second view drifted
+from the first twice. So the project's own record is a level of this report, under the names its owner
+uses rather than the tracker's columns, and the name `project` went to the thing that had no verb at
+all — the projects themselves, which are the one resource no checkout scopes.
+
+**A key is written through the route of the resource that holds it, and read back off that route
+before it reports set.** The two resources merge per key; the whole-`agentConfig` patch beside them
+replaces the document, so two writers to different keys of it lose each other's. And the pipeline
+schema *strips a key it does not declare*, silently, on the way in — so a write that answered 200 and
+kept nothing would print as a setting that took. The read-back is what turns that into a refusal
+naming the key, which is the only place an operator can learn it.
+
+A bare key belongs to whichever resource already answered with it, and a key neither holds is refused
+with both key sets rather than guessed at: a typo landing in the facts as a new guide is a write
+nobody asked for and there is no delete for it. `pipeline.<k>` and `fact.<k>` name one outright, which
+is how a key the project has not got yet is created.
+
+## Two lines Phase 0 reads before it plans a landing
+
+**Where the merge sits is derived, not asked for.** The project already told the tracker whether its
+default branch deploys production on its own, and that is the fact that decides it: one branch
+deploying production means a push *is* the deploy, so a candidate is deployed and judged before it is
+pushed; distinct branches mean the merge lands on staging and is judged there. A record answering
+neither branch prints *not stated* rather than the safer-looking route, because a run told
+*after-merge* by a default would deploy production without knowing it. The `landing` key in a
+checkout overrides the derivation and prints its own source, so a project that disagrees with what
+its record implies says so once, where a reader can see both.
+
+**Whether an independent agent judges between `developed` and `tested` is the record's alone.** A
+project has one tracker record and many checkouts, and QA belongs with the deploy facts rather than
+beside them; read from a checkout instead, two clones of one project would judge the same change
+differently. So a `qa` key in a `.forge.json` has no effect on this line, which prints
+*not stated* until the record itself answers. This report says so at the point where there is still
+time to change the record, and not at the transition that would later turn it down.
+
+The test credentials the deploy lines withhold, and the guard that keeps them out of every payload:
+[the test credentials](test-credentials.md). The brief this report also writes — why `--refresh` takes
+the answer it is meant to produce, which files a digest covers, and what a store that will not answer
+is not: [the brief](the-brief.md).

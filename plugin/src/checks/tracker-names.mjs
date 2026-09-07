@@ -1,5 +1,5 @@
 /* The tracker's own column names, which this CLI reads and never shows: a name an agent has to
-   translate costs a round — docs/cli/the-project.md. Stated as patterns, and read by property access, so
+   translate costs a round — docs/cli/doctor.md. Stated as patterns, and read by property access, so
    neither the rule nor its reader is a quoted span and neither needs an exemption. */
 import { lineAt } from "../markdown.mjs";
 

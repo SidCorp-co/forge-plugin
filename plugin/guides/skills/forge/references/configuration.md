@@ -24,8 +24,8 @@ An agent is offered what it can use and nothing else. A verb disappears for one 
 
 - **The capability behind it refuses.** `forge doctor` probes and records that; the verb then
   leaves the usage list, `forge tools` stops listing the tool, and `forge schema` refuses to print
-  its arguments. On this deployment `forge_project_pm set_dependency` reaches no route at all, so
-  `dep` is normally absent — nothing here writes an edge.
+  its arguments. A record is keyed by project and dated, so a refusal that was true once is not read
+  as true forever.
 - **A human ran `forge doctor --hide <verb>`.** That one is unlisted but still runs;
   `forge doctor --show <verb>` puts it back.
 

@@ -15,7 +15,7 @@ import {
   judgementOf,
   landingRoute,
   leakRefusal,
-  projectLines,
+  projectRows,
   releaseFrom,
   staleIn,
   unhashable,
@@ -38,7 +38,11 @@ const POLICY = releaseFrom({
   pipelineConfig: { autoProdDeploy: false },
 });
 
-const said = (over) => projectLines({ id: "an-id", policy: POLICY, deploy: deployFrom(HELD), ...over }).join("\n");
+/* Judged as rows and not as text: the one report owns the marks and the columns, so what this file
+   answers for is which rows there are, what each says and which level it carries. */
+const rowsFor = (over) => projectRows({ policy: POLICY, deploy: deployFrom(HELD), ...over });
+const lines = (found) => found.map((row) => `${row.label}: ${row.detail}`).join("\n");
+const said = (over) => lines(rowsFor(over));
 
 test("a host is every http value the deploy holds, however deeply", () => {
   const found = deployFrom(HELD).urls.map((one) => one.url);
@@ -112,60 +116,60 @@ test("a deploy with nothing on it is not one", () => {
   assert.equal(deployed(deployFrom(HELD)), true);
 });
 
-test("the report names the branches, the deploy decision and the id, each with its source", () => {
+test("the rows name the branches and the deploy decision, each with its source", () => {
   const out = said({});
-  assert.match(out, /^project id: an-id {2}← the slug in \.forge\.json$/mu);
   assert.match(out, /^staging branch: staging {2}← the tracker's project config$/mu);
   assert.match(out, /^production branch: master {2}← the tracker's project config$/mu);
-  assert.match(out, /^production ships without a person's look: no {2}← the tracker's project config$/mu);
+  assert.match(out, /^production deploy: a person's — /mu);
   assert.doesNotMatch(out, /deploys on push/u, "a project that waits for a person is told nothing more");
+  assert.doesNotMatch(out, /project id/u, "the id is the endpoint block's, one report having one row for it");
 });
 
 /* The wording is the finding, not decoration: read as the host deploying on push, this line sent
    three runs to verify a build that predated their own landing (ISS-393). */
 test("the flag is reported as what it decides, and where it is set the line says what it does not", () => {
-  const out = projectLines({
-    id: "an-id",
-    policy: { ...POLICY, autoProd: true },
-    deploy: deployFrom(HELD),
-  }).join("\n");
-  assert.match(out, /^production ships without a person's look: yes {2}← the tracker's project config$/mu);
-  assert.match(out, /^ {2}and nothing here says the host deploys on push: /mu);
+  const out = said({ policy: { ...POLICY, autoProd: true } });
+  assert.match(out, /^production deploy: automatic — /mu);
+  assert.match(out, /^: and nothing here says the host deploys on push: /mu,
+    "on a row of its own with no label, which is how the one report prints a continuation");
   assert.match(out, /`released` asks the verification to name the deployment that built the commit/u);
   assert.doesNotMatch(out, /deploys on its own/u, "the sentence the reading came from is gone");
 });
 
 test("the report withholds a credential and names the one command that prints it", () => {
   const out = said({});
-  assert.match(out, /^ {2}test credentials: present, forge project --credentials$/mu);
-  assert.match(out, /^ {2}held, not printed: testing urls · label, test credentials · username, test credentials · password$/mu);
+  assert.match(out, /^test credentials: present, forge doctor --credentials$/mu);
+  assert.match(out, /^held, not printed: testing urls · label, test credentials · username, test credentials · password$/mu);
   assert.doesNotMatch(out, /correct-horse-battery/u, "the value is the thing the flag is for");
   assert.doesNotMatch(out, /qa@example\.test/u);
-  assert.match(out, /^ {2}notes: A test account reaches the storefront only\.$/mu);
+  assert.match(out, /^notes: A test account reaches the storefront only\.$/mu);
 });
 
 test("the flag prints the values, and nothing else moves", () => {
   const out = said({ credentials: true });
-  assert.match(out, /^ {2}test credentials · password: correct-horse-battery$/mu);
-  assert.match(out, /^ {2}test credentials · username: qa@example\.test$/mu);
+  assert.match(out, /^test credentials · password: correct-horse-battery$/mu);
+  assert.match(out, /^test credentials · username: qa@example\.test$/mu);
   assert.doesNotMatch(out, /held, not printed/u);
-  assert.match(out, /^ {2}test credentials: below, printed once$/mu,
+  assert.match(out, /^test credentials: below, printed once$/mu,
     "and the summary stops pointing at the flag the caller just used");
-  assert.match(out, /^ {2}staging url: https:\/\/beta\.example\.test$/mu);
+  assert.match(out, /^staging url: https:\/\/beta\.example\.test$/mu);
 });
 
 /* Phase 0 is told to read *present* or *none*, so a project with no deploy owes the line too: with
    it absent this state and one the tracker never answered for read alike (ISS-477). */
 test("a project with no deploy is told so, ends on the credential line, and invents no host", () => {
-  const out = projectLines({ id: "an-id", policy: POLICY, deploy: deployFrom(null) }).join("\n");
-  assert.match(out, /^staging deploy: none configured\n {2}test credentials: none$/mu,
-    "the credential line ends the deploy lines here as it does where a deploy is configured");
+  const out = said({ deploy: deployFrom(null) });
+  assert.match(out, /^staging deploy: none on record while the staging branch is named, /mu);
+  assert.match(out, /no route that writes one\ntest credentials: none$/mu,
+    "the credential row ends the deploy rows here as it does where a deploy is configured");
+  assert.equal(rowsFor({ deploy: deployFrom(null) })
+    .find((row) => row.label === "staging deploy").level, "note", "and a deploy nobody set is no failure");
   assert.doesNotMatch(out, /https?:\/\//u);
 });
 
 test("a config that did not answer is said rather than defaulted", () => {
-  const out = projectLines({ id: "an-id", policy: null, deploy: null }).join("\n");
-  assert.match(out, /^release policy: the project config did not answer$/mu);
+  const out = lines(projectRows({ policy: null, deploy: null }));
+  assert.match(out, /^release policy: the project config did not answer — the park before released stands$/mu);
   assert.doesNotMatch(out, /staging branch/u);
   assert.doesNotMatch(out, /test credentials/u,
     "an unanswered call is not a decision, so *none* is not said on its behalf: that silence is "
@@ -176,7 +180,7 @@ test("a payload carrying a credential names the field it sits in and the credent
   const deploy = deployFrom(HELD);
   const found = credentialLeak({ body: `logged in with correct-horse-battery` }, deploy);
   assert.deepEqual(found, { field: "body", credential: "test credentials · password" });
-  assert.match(leakRefusal(found, "The payload"), /forge project --credentials/u);
+  assert.match(leakRefusal(found, "The payload"), /forge doctor --credentials/u);
 });
 
 /* The edge of the guarantee, asserted rather than described: below the length it is whole-field
@@ -274,8 +278,8 @@ test("a moved source is named, with the two writes that close one line rather th
   const said = briefLines(entry({ metadata: { digests: { "CLAUDE.md": "0000000000000000" } } }));
   const stale = said.filter((one) => /stale:/u.test(one)).join("\n");
   assert.match(stale, /^ {2}stale: CLAUDE\.md — moved since the brief was read\./mu);
-  assert.match(stale, /forge project --confirm <source>/u);
-  assert.match(stale, /forge project --line <n> <text>/u);
+  assert.match(stale, /forge doctor --confirm <source>/u);
+  assert.match(stale, /forge doctor --line <n> <text>/u);
   assert.doesNotMatch(stale, /--refresh/u, "the stale line's own route, and no other line's");
 });
 
@@ -294,7 +298,7 @@ test("a brief carrying no digests says so rather than reading as one nothing has
 test("an absent brief names the command that writes one", () => {
   const said = briefLines({ entry: null }).join("\n");
   assert.match(said, /^project brief: none stored/mu);
-  assert.match(said, /forge project --refresh <brief\.md>/u);
+  assert.match(said, /forge doctor --refresh <brief\.md>/u);
 });
 
 test("a store that would not answer is not printed as an absence", () => {
@@ -328,10 +332,10 @@ test("the independent-judgement line is the tracker record's, and no checkout ke
   assert.equal(qa("yes"), NOT_STATED, "and a value the field does not take is unanswered, never the stricter one");
 });
 
-test("forge project prints both lines, the route with the source it was read from", () => {
+test("the report prints both lines, the route with the source it was read from", () => {
   const out = said({ landing: NONE });
   assert.match(out, /^where the merge sits: after-merge {2}← the tracker's project config$/mu);
-  assert.match(out, /^independent judgement between developed and tested: not stated {2}← the tracker's project config$/mu);
+  assert.match(out, /^independent judgement: not stated between developed and tested {2}← the tracker's project config$/mu);
   assert.match(said({ landing: { value: "before-merge", from: ".forge.json" } }),
     /^where the merge sits: before-merge {2}← \.forge\.json$/mu);
 });

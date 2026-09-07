@@ -1,6 +1,6 @@
 import { fail, keepOnFailure } from "./resolve/settings.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
-import { declaredFor, projectId, scoped, write } from "./tracker/rpc.mjs";
+import { declaredFor, scoped, write } from "./tracker/rpc.mjs";
 import { REFERENCE_KEYS, asToolCall, keyOf, noRouteRefusal, rowFor, served } from "./tracker/rest.mjs";
 import {
   DEFAULT_LIMIT,
@@ -31,13 +31,12 @@ import { TIERS } from "./ladder.mjs";
 import { targetsOfTool } from "./tracker/issue-read.mjs";
 import { actionIn, callable, helpOf, isGated, refuseIfGated, usageOf, wrappedRefusal } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { flags, partition, pullRepeated, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
+import { flags, partition, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
 import { LOCAL_ROWS, LOCAL_SLUGS, dispositionOf, localGuide, trackerHeader, visibleGuides } from "./guides/guides.mjs";
-import { briefGoals, briefLines, confirmSource, projectLines, readBrief, refreshBrief, releasePolicy,
-  replaceBriefLine, stagingDeploy } from "./tracker/project-config.mjs";
+import { briefGoals } from "./tracker/project-config.mjs";
 import { goalBlock, servesIn, servesRefusal } from "./goals.mjs";
 import { doctor } from "./tools/doctor.mjs";
-import { deps } from "./tools/deps.mjs";
+import { project } from "./tools/project.mjs";
 import { next } from "./rank/next.mjs";
 import { cloudflare } from "./tools/cloudflare.mjs";
 import { knowledge } from "./tools/knowledge.mjs";
@@ -150,70 +149,49 @@ const newUsage = (goals) =>
   [helpOf("new"), NEW_FLAGS, routingBlock(), goalBlock(goals, "A body filed here").join("\n"), KINDS_HELP]
     .join("\n\n");
 
-/* Its own, rather than the row's, for the reason `new` keeps one: the dozen lines below are what a
-   row cannot hold. A row's blurb is one line, and a reader who has to be told what a `stale:` line
-   means before they can act on one is a reader the row has already lost. */
-const PROJECT_USAGE = [
-  usageOf("project"),
-  "the id, the branches a change lands on, the staging deploy to walk it against, and the",
-  "project's brief — the one entry Phase 0 reads instead of learning the repository by hand.",
-  "",
-  "The brief prints with a `stale:` line naming which of the files it was read from have moved",
-  "since. Nothing here writes the brief's prose, because no program reads a repository's dangers",
-  "out of its README — so a stale line is judged by a run and closed by whichever of these it is:",
-  "",
-  "  --confirm <source>   the lines naming that source were read against the file as it now is",
-  "                       and their prose still holds, so the digest alone is re-stamped and the",
-  "                       body goes back byte for byte. The lines it covered are printed.",
-  "  --line <n> <text>    one line's prose, replaced. A digest is a path's and not a line's, so a",
-  "                       source another line also reads is left stale and that line is named.",
-  "  --refresh <body>     the whole brief, for one being rewritten on purpose. Its digests are",
-  "                       stamped from that same body in the same call.",
-  "",
-  "The entry is `forge knowledge`'s in every other respect — one slug, `project-brief`, kind",
-  "`overview`, injection `always` — and --title, --confidence and --meta mean there what they mean",
-  "here. Injection is not a flag: a brief a session has to ask for is the call this entry removes.",
-].join("\n");
+/* One flag per kind of edge, and one for its removal. Which end the tracker stores as `from`, and
+   which route the write takes: tracker/rest.mjs's link row. */
+const EDGE_FLAGS = { blocks: "blocks", relates: "relates" };
 
-/* Three ways to write one entry, and a call takes one: silently preferring a route would leave the
-   caller reading a success about the write they did not ask for. The body's fields are refused
-   beside a narrow write rather than ignored, since the narrow writes carry them forward untouched. */
-const WRITES = ["refresh", "confirm", "line"];
-const WITH_BODY = ["title", "confidence"];
+const edgeSaid = (edge) =>
+  `${edge?.otherDisplayId ?? edge?.otherIssueId ?? "the other end"} by ${edge?.kind ?? "an unnamed kind"}`;
 
-const briefRoute = async (asked, pairs, positionals) => {
-  const asks = WRITES.filter((one) => asked[one] !== undefined);
-  if (asks.length > 1) {
-    fail(`project: ${asks.map((one) => `--${one}`).join(" and ")} each write the brief a different `
-      + "way and one call takes one — --refresh the whole body, --confirm one source's digest, "
-      + "--line one line's prose.");
+/* The edge id is the tracker's and no caller holds one, so the removal reads the pair's edges. */
+const edgeBetween = async (subjectId, subject, otherId, other) => {
+  const held = await scoped("forge_issues", { action: "get", documentId: subjectId, fields: ["relations"] });
+  const every = Object.values(held?.relations ?? {}).flat();
+  const found = every.find((edge) => edge.otherIssueId === otherId);
+  if (!found) {
+    fail(`issue: ${subject} and ${other} have no edge between them, so there is none to remove and `
+      + `nothing was sent. \`forge issue ${subject} --fields relations\` prints what it does have.`);
   }
-  const carried = [...WITH_BODY.filter((one) => asked[one] !== undefined), ...(pairs.length ? ["meta"] : [])];
-  if (carried.length && asks.length && asks[0] !== "refresh") {
-    fail(`project: ${carried.map((one) => `--${one}`).join(" and ")} are written with a body, so `
-      + `they belong to --refresh. --${asks[0]} carries the stored entry's forward untouched.`);
+  return found;
+};
+
+const wroteEdge = async (subject, asked) => {
+  const kind = Object.keys(EDGE_FLAGS).find((one) => asked[one] !== undefined);
+  const other = kind ? asked[kind] : asked.unlink;
+  const [subjectId, otherId] = await Promise.all([documentIdOf(subject), documentIdOf(other)]);
+  if (subjectId === otherId) {
+    fail(`issue: ${subject} and ${other} are one issue, and an issue neither blocks nor relates to `
+      + "itself. Nothing was sent.");
   }
-  if (positionals.length && asked.line === undefined) {
-    fail(`project: \`${positionals[0]}\` names no flag, and this verb takes no argument of its own. `
-      + "The prose of a line is --line's: forge project --line <n> <text>");
+  /* The blocked end's order moves, so it is the end the route is taken against. Neither end is
+     claimed for an edge, and the live check is the last read before the write. */
+  const blocked = kind === "blocks" ? otherId : subjectId;
+  const blockedRef = kind === "blocks" ? other : subject;
+  const renewed = await renew(blocked, blockedRef, undefined, null, { finder: true });
+  await Promise.all([notAnothers(subjectId, subject), notAnothers(otherId, other)]);
+  console.log(finderSaid(blockedRef, renewed));
+  if (!kind) {
+    const found = await edgeBetween(subjectId, subject, otherId, other);
+    await write("forge_issues", { action: "unlink_edge", documentId: subjectId, edgeId: found.edgeId });
+    return `${subject} —/— ${other}: removed the edge to ${edgeSaid(found)}.`;
   }
-  if (asked.line !== undefined && positionals.length !== 1) {
-    fail("project: --line takes the line's number and the one line of prose replacing it, so quote "
-      + `that prose as a single argument: forge project --line <n> <text>${positionals.length
-        ? ` — ${positionals.length} arrived after it` : ""}`);
-  }
-  if (asked.confirm !== undefined) return confirmSource(asked.confirm);
-  if (asked.line !== undefined) return replaceBriefLine(asked.line, positionals[0]);
-  if (asked.refresh !== undefined) return refreshBrief(asked.refresh, { ...asked, pairs });
-  return [
-    ...projectLines({
-      id: await projectId(),
-      policy: await releasePolicy(),
-      deploy: await stagingDeploy(),
-      credentials: Boolean(asked.credentials),
-    }),
-    ...briefLines(await readBrief()),
-  ];
+  await write("forge_issues", { action: "link", documentId: blocked,
+    data: { dependsOnId: kind === "blocks" ? subjectId : otherId, kind: EDGE_FLAGS[kind] } });
+  return `${subject} ${kind} ${other}: written on the ${kind === "blocks" ? other : subject} `
+    + `dependency route, and reads back under ${kind === "blocks" ? "blockedBy" : "relates"} there.`;
 };
 
 export const commands = {
@@ -223,7 +201,7 @@ export const commands = {
   record,
   advance,
   spec,
-  deps,
+  project,
   next,
   knowledge,
   cloudflare,
@@ -295,7 +273,13 @@ export const commands = {
   /* Three tiers, and the payload is what costs. Fetch narrow, then fetch again. */
   issue: async ([reference, ...rest]) => {
     if (!reference) fail(usageOf("issue"));
-    const { fields, full } = flags(rest, "issue", ["--full"], { usage: usageOf("issue") });
+    const { fields, full, ...asked } = flags(rest, "issue", ["--full"], { usage: usageOf("issue") });
+    const edges = [...Object.keys(EDGE_FLAGS), "unlink"].filter((one) => asked[one] !== undefined);
+    if (edges.length > 1) {
+      fail(`issue: ${edges.map((one) => `--${one}`).join(" and ")} are separate edges and a call `
+        + "writes one. Nothing was sent.");
+    }
+    if (edges.length) return console.log(await wroteEdge(reference, asked));
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
     const documentId = await documentIdOf(reference);
     /* The names ride along so the read skips the routes nothing asked for; the answer is the row
@@ -397,17 +381,6 @@ export const commands = {
       renewing: target === "issue" ? () => renew(targetId, targetRef) : undefined,
     });
   },
-  /* An edge changes the order the blocked issue is worked in, so its lease is the one that covers
-     the write: a new issue filed to block the one in hand renews the one in hand. */
-  dep: async (argv) => {
-    const { positionals } = partition(argv, [], { verb: "dep", usage: usageOf("dep") });
-    const [from, to, kind = "blocks"] = positionals;
-    if (!from || !to) fail(usageOf("dep"));
-    const [fromIssueId, toIssueId] = await Promise.all([documentIdOf(from), documentIdOf(to)]);
-    await notAnothers(fromIssueId, from);
-    await renew(toIssueId, to);
-    show(await write("forge_project_pm", { action: "set_dependency", fromIssueId, toIssueId, kind }));
-  },
   /* Read through this plugin's disposition of them, which guides/guides.mjs holds and explains. A
      held slug is answered as one the tracker never served, through that refusal's own call site so
      the two cannot drift, and its body is never fetched: a line saying a page exists and is stale
@@ -461,19 +434,7 @@ export const commands = {
     /* Markdown, not Markdown escaped inside JSON: every `\n` tokenizes worse than the character. */
     show(answer?.guide?.body ?? answer);
   },
-  project: async (argv) => {
-    if (wantsHelp(argv)) return console.log(PROJECT_USAGE);
-    const usage = PROJECT_USAGE;
-    const { values: pairs, rest } = pullRepeated(argv, "--meta", "project", { usage });
-    /* `--line <n> <text>` is two words, and partition is what already reads a value beside a
-       positional: a fourth parse shape in resolve/flags.mjs for one verb is the drift it warns of. */
-    const { positionals, flagArgv } = partition(rest, ["--credentials"], { verb: "project", usage });
-    const asked = flags(flagArgv, "project", ["--credentials"], { usage });
-    for (const line of await briefRoute(asked, pairs, positionals)) console.log(line);
-  },
 };
-
-commands.project.answersHelp = true;
 
 commands.new.answersHelp = true;
 commands.feedback.answersHelp = true;

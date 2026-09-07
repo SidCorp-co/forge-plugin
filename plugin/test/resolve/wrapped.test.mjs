@@ -36,8 +36,14 @@ test("a pair a verb claims answers with that verb, and one no row claims answers
   assert.equal(verbFor("forge_issues", "constructor"), null);
 });
 
+/* Built here rather than borrowed from the table: the last live row of this shape went with the
+   gated edge write it wrapped (ISS-702). The two readings stay, because the shape is one row away
+   whenever a credential's gate is an action rather than a tool, and no live row proves them now. */
+const GATED_ROW = ["gated-verb", "[--x]", "a row gated on one action of its tool", "forge_example",
+  { action: "spend" }];
+
 test("the action a row spends is read out of whichever key of its gate object carries it", () => {
-  assert.deepEqual(wrapsOf(rowFor("dep")), { set_dependency: "`forge dep`" },
+  assert.deepEqual(wrapsOf(GATED_ROW), { spend: "`forge gated-verb`" },
     "a gated row is the route to the action it names, and spelling it twice is how the two go out of step");
   assert.equal(wrapsOf(rowFor("plan")), null, "a verb that is no action's route claims none");
   assert.equal(wrapsOf(rowFor("call")), null);
@@ -52,7 +58,7 @@ test("routing an action leaves every capability key exactly where it was", () =>
   assert.equal(gateKey(rowFor("issues")), "forge_issues");
   assert.equal(gateKey(rowFor("attach")), "forge_uploads");
   assert.equal(gateKey(rowFor("project")), "forge_projects.list");
-  assert.equal(gateKey(rowFor("dep")), "forge_project_pm.set_dependency");
+  assert.equal(gateKey(GATED_ROW), "forge_example.spend");
   for (const row of VERBS) {
     if (!row[4]?.wraps) continue;
     assert.equal(row[4].action, undefined, `${row[0]} names an action beside its routing entry`);
@@ -126,9 +132,9 @@ test("a key typed where a tool name goes is refused by the verb that wraps the p
   }
 });
 
-/* ISS-335's second rule. `dep` is gated because the route table declares nothing for the edge
-   write, so no handler here is asked for one, and the raw action is not what is left when the verb
-   goes: the withholding is the decision, so the refusal names it. */
+/* ISS-335's second rule, on the tool whose action nothing wraps any more: the edge write moved to
+   `forge_issues.link` and `forge_project_pm.set_dependency` is a pair the table serves no route for,
+   so the raw call is refused as unserved rather than pointed at the verb that went with it. */
 const gated = async () => {
   const tracker = await fakeTracker({
     declared: ["forge_project_pm", "forge_issues"],
@@ -165,13 +171,29 @@ const gatedKnowledge = async () => {
   };
 };
 
-test("a gated verb's action is refused with the verb and the withholding, not let through", async () => {
+test("an action no row claims and no route serves is refused as unserved, not handed a gone verb", async () => {
   const { ran, close } = await gated();
   try {
     const run = await ran("call", "forge_project_pm", '{"action":"set_dependency","data":{"from":"ISS-1"}}');
     assert.equal(run.status, 1);
-    assert.match(run.stderr, /forge_project_pm set_dependency is what `forge dep` wraps/u);
-    assert.match(run.stderr, /has no route to on the tracker's data plane and may not call/u);
+    assert.match(run.stderr, /forge_project_pm\.set_dependency/u, "and names the pair it was asked for");
+    assert.doesNotMatch(run.stderr, /type it instead/u, "and offers no verb, there being none to type");
+  } finally {
+    await close();
+  }
+});
+
+/* The class the row above proved while it existed, on the arm of the reading that still has a live
+   case: a verb this machine withheld is a verb the raw call is not the way round either. */
+test("a withheld verb's action is refused with the verb and the withholding, not let through", async () => {
+  const { ran, close } = await gatedKnowledge();
+  try {
+    const hidden = await ran("doctor", "--hide", "knowledge");
+    assert.match(hidden.stdout, /knowledge is now withheld from the usage list/u, hidden.stderr);
+    const run = await ran("call", "forge_knowledge", '{"action":"upsert","data":{"slug":"s"}}');
+    assert.equal(run.status, 1);
+    assert.match(run.stderr, /forge_knowledge upsert is what `forge knowledge write` wraps/u);
+    assert.match(run.stderr, /is withheld on this machine/u);
     assert.match(run.stderr, /not the way round/u);
   } finally {
     await close();

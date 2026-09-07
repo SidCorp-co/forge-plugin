@@ -10,17 +10,72 @@ import { rootFor } from "../stats/transcripts.mjs";
 import { markedIn } from "../ladder.mjs";
 import { servesIn } from "../goals.mjs";
 import { batchesOf } from "./batch.mjs";
-import { candidateLines, droppedLine, HEAD } from "./print.mjs";
-import { carriersOf, graphOf } from "../tools/deps.mjs";
+import { candidateLines, droppedLine, graphLines, HEAD } from "./print.mjs";
+import { carriersOf, graphOf, PROSE_FROM, PROSE_MARKER } from "./prose-edges.mjs";
 import { eligibilityOf, heldPaths, pathsNamed } from "./eligible.mjs";
 import { fail } from "../resolve/settings.mjs";
-import { holdsBack } from "../flow/earned.mjs";
+import { RELATES } from "../tracker/rest.mjs";
+import { holdsBack, holdsBackFrom, ordersSaid } from "../flow/earned.mjs";
 import { neighboursOf } from "../tracker/filing/neighbours.mjs";
 import { scoped } from "../tracker/rpc.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 
 const DEFAULT_COUNT = 5;
-const BOOLEAN = ["--json", "--why"];
+const BOOLEAN = ["--json", "--why", "--graph"];
+
+/* Every edge on one issue, kind and all, told apart by whether it still orders: a graph printing
+   only what holds back would answer a narrower question than the one the flag asks. One edge is
+   read from both its ends, and each end's row carries the status of the other, so the blocker's
+   status is named from whichever row is in hand — the two readings agree or the same edge orders on
+   one line and not on the other. */
+const edgesOn = (key, body, status) =>
+  Object.entries(body?.relations ?? {}).flatMap(([which, held]) => (held ?? []).map((edge) => {
+    const upstream = which === "blockedBy";
+    const blocker = upstream ? edge.otherStatus : status;
+    return {
+      edgeId: edge.edgeId ?? null,
+      from: upstream ? edge.otherDisplayId ?? edge.otherIssueId : key,
+      to: upstream ? key : edge.otherDisplayId ?? edge.otherIssueId,
+      kind: edge.kind ?? "unnamed",
+      orders: holdsBackFrom(edge, blocker),
+      said: ordersSaid(edge, blocker),
+    };
+  }));
+
+/* One edge read from both its ends is one edge, and the tracker's own id is what says so. Where it
+   named none, the kind decides: `relates` is the one kind with no direction of its own, arriving in
+   one list from either end, so its pair is sorted rather than counted twice. A directed pair keeps
+   the ends as read — whether it orders anything today is the blockers' status and not the edge. */
+const edgeKey = (edge) => edge.edgeId
+  ?? `${(edge.kind === RELATES ? [edge.from, edge.to].sort() : [edge.from, edge.to]).join(" ")} ${edge.kind}`;
+
+/* One reading, the takeable set first and bounded by the same cap the ranking reads under, and in
+   the same passes: every body at once is the shape that answered 503 after three backoffs, which
+   docs/cli/next.md records. */
+const graphRead = async (focus, rows, weights) => {
+  const open = takeableKeys(rows);
+  const window = focus
+    ? rows.filter((one) => String(one.issueId).toUpperCase() === focus)
+    : rows.filter((one) => open.has(one.issueId)).slice(0, weights.readCap);
+  if (focus && !window.length) {
+    fail(`next: --graph names ${focus}, which is not on this project's tracker.`);
+  }
+  const seen = new Set();
+  const edges = [];
+  for (let at = 0; at < window.length; at += weights.windowCap) {
+    const take = window.slice(at, at + weights.windowCap).map((row) => ({ issueId: row.issueId, row }));
+    const status = new Map(take.map((one) => [one.issueId, one.row.status]));
+    for (const [key, body] of await bodiesFor(take)) {
+      for (const edge of edgesOn(key, body, status.get(key))) {
+        const held = edgeKey(edge);
+        if (seen.has(held)) continue;
+        seen.add(held);
+        edges.push(edge);
+      }
+    }
+  }
+  return { edges, read: window.length };
+};
 
 const usageLines = (weights) => [
   usageOf("next"),
@@ -30,8 +85,13 @@ const usageLines = (weights) => [
   "  --count n        how many candidates print; 5 unless you say otherwise",
   "  --why            the breakdown per issue: weights, signals, and the goal its body serves",
   "  --json           the whole table, for whatever dispatches on it",
-  "  --holding ISS-nn an issue a run already holds, whose plan's files set a candidate aside",
-  "  --project dir    the checkout whose past runs the cost column is read off",
+  "  --graph [ISS-nn] the edges this ranking reads instead of the ranking: every edge the tracker",
+  "                   holds on the issues read here, and under a heading of its own the claims only",
+  "                   a body makes, which gate nothing. One issue, or the takeable set",
+  "  --holding ISS-nn an issue a run already holds; a candidate naming a file its plan names is set",
+  "                   aside, and the line says which file and which issue",
+  "  --checkout dir   the tree whose past runs the cost column is read off; the working",
+  "                   directory unless you say otherwise",
   "",
   ...weightLines(weights),
 ];
@@ -183,18 +243,52 @@ const jsonOf = (batches, dropped, weights, from, read) => ({
   dropped: dropped.map((one) => ({ issueId: one.issueId, soft: one.soft, reason: one.reason })),
 });
 
+/* The claims a body makes that the tracker does not hold: the pair is compared here rather than
+   printed twice, because the whole point of the second heading is what is only in one of them. */
+const onlyInProse = (claims, edges) => {
+  const held = new Set(edges.map((edge) => `${edge.from} ${edge.to}`));
+  return claims.filter((claim) => !held.has(`${claim.from} ${claim.to}`));
+};
+
+const printedGraph = async (focus, read, carried, weights) => {
+  const { edges, read: covered } = await graphRead(focus, read.rows, weights);
+  const prose = graphOf(carried.issues, read.rows);
+  const claims = focus
+    ? onlyInProse(prose.claims, edges).filter((one) => one.from === focus || one.to === focus)
+    : onlyInProse(prose.claims, edges);
+  const unresolved = focus ? prose.unresolved.filter((one) => one.from === focus) : prose.unresolved;
+  const said = focus
+    ? `${focus} read whole; ${prose.carriers} issue(s) on the backlog carry the sentence`
+      + ` "${PROSE_MARKER}" (${PROSE_FROM}).`
+    : `${covered} of ${read.rows.length} issue(s) read whole, takeable first and capped at`
+      + ` readCap ${weights.readCap}; an edge on an issue outside that reading is not here.`;
+  return console.log(graphLines({ edges, claims, unresolved, said, focus }).join("\n"));
+};
+
+/** What the caller typed, checked before the first call: this verb's one positional is legal only
+ *  beside `--graph`. */
+const askedIn = (argv, usage) => {
+  const { values: holding, rest } = pullRepeated(argv, "--holding", "next", { usage });
+  const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "next", usage });
+  const asked = flags(flagArgv, "next", BOOLEAN, { usage });
+  if (positionals.length && !asked.graph) {
+    fail(`next: \`${positionals[0]}\` names no flag, and this verb takes no argument of its own`
+      + " except the one issue --graph may be narrowed to.");
+  }
+  if (positionals.length > 1) fail(`next: --graph narrows to one issue, not \`${positionals.join(" ")}\`.`);
+  return { asked, holding, focus: positionals[0]?.toUpperCase() ?? null };
+};
+
 /* One walk, one prose-edge read, one body per candidate in the window, two searches per head. */
 export const next = async (argv) => {
   const { value: weights, from, refusal } = weightsFrom();
   if (refusal) fail(`next: ${refusal}`);
   const usage = usageLines(weights).join("\n");
   if (wantsHelp(argv)) return console.log(usage);
-  const { values: holding, rest } = pullRepeated(argv, "--holding", "next", { usage });
-  const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "next", usage });
-  if (positionals.length) fail(`next: \`${positionals[0]}\` names no flag, and this verb takes no argument of its own.`);
-  const asked = flags(flagArgv, "next", BOOLEAN, { usage });
+  const { asked, holding, focus } = askedIn(argv, usage);
   const count = countFrom(asked.count);
   const [read, carried] = await Promise.all([everyIssue(), carriersOf()]);
+  if (asked.graph) return printedGraph(focus, read, carried, weights);
   const said = shortOf(read, "The set this rank is computed over");
   if (said) console.error(`warning: ${said}\nSo an issue outside it is neither ranked nor named as dropped.`);
   /* Cut independently of the walk above: an edge it did not reach is a candidate called eligible on
@@ -217,7 +311,7 @@ export const next = async (argv) => {
     score: scoreOf(row, { weights, chain: chainOf(row.issueId, blocks, alive) }),
   })));
   const held = await heldFrom(holding.flatMap((one) => keysIn(one)), rows);
-  const runs = measuredRuns(rootFor(asked.project ?? process.cwd()));
+  const runs = measuredRuns(rootFor(asked.checkout ?? process.cwd()));
   const bands = bandsOf(rows);
   const landed = lastLanded(rows);
   const warmPaths = landed ? pathsNamed((await scoped("forge_issues", {
@@ -330,7 +424,8 @@ export const next = async (argv) => {
   }
   if (unresolved.length) {
     console.log(`\n${unresolved.length} dependency phrase(s) in a body matched no title. A phrase`
-      + " naming this issue's own blocker leaves it out and says so above; `forge deps` prints them all.");
+      + " naming this issue's own blocker leaves it out and says so above; `forge next --graph` prints"
+      + " them all, apart from the edges the tracker holds.");
   }
   if (unread.length && holds) {
     console.log(`\nRead whole: the top ${cursor} of ${preScored.length} takeable. The rest scored on the`

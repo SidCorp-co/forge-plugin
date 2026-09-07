@@ -41,8 +41,8 @@ test("the block prints the key, how near it reads and whether the place matched"
 });
 
 test("a filing that found nothing is told so, and one whose search failed is told which", () => {
-  const empty = suggestionLines({ suggestions: [], notes: [], place: "forge dep" }).join("\n");
-  assert.match(empty, /Nothing open reads like this filing or names `forge dep` — the check ran and found none/u);
+  const empty = suggestionLines({ suggestions: [], notes: [], place: "forge issue" }).join("\n");
+  assert.match(empty, /Nothing open reads like this filing or names `forge issue` — the check ran and found none/u);
   const broken = suggestionLines({
     suggestions: [],
     notes: ["the semantic query could not run: Forge answered 400: no"],
@@ -123,7 +123,7 @@ test("the fold's reply names the issue and why it won, and claims no nearness it
 /* The two seeds, read off the body the shape reader already scanned. */
 test("the place is the cause section's first path or verb, then Where's, then the body's own", () => {
   assert.equal(placeIn("## Where\n\n`plugin/src/commands.mjs`, the attach verb\n"), "plugin/src/commands.mjs");
-  assert.equal(placeIn("`forge dep` takes `--json`, and `plugin/src/x.mjs` holds it"), "forge dep",
+  assert.equal(placeIn("`forge issue` takes `--json`, and `plugin/src/x.mjs` holds it"), "forge issue",
     "with no Where section the body's first names it");
   /* The Where section wins even where the body named something earlier: the place is where the
      defect is, and the prose above it names whatever it is being compared against. */
@@ -132,7 +132,7 @@ test("the place is the cause section's first path or verb, then Where's, then th
   assert.equal(placeIn("nothing in here names a thing at all"), null);
   /* A *Where* whose prose names nothing does not suppress the body: an empty section is no place,
      and the filing that carries one would otherwise send no place query at all. */
-  assert.equal(placeIn("`forge dep` writes it.\n\n## Where\n\nwherever the edge is written.\n"), "forge dep");
+  assert.equal(placeIn("`forge issue` writes it.\n\n## Where\n\nwherever the edge is written.\n"), "forge issue");
   /* A symptom shows in one file and comes from another, and it is the cause a second report of it
      shares. So where the two sections disagree the cause is what the fold aims at. */
   assert.equal(

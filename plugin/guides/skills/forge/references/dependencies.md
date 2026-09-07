@@ -1,31 +1,25 @@
-# `forge deps` reads prose, not the edge store
+# An edge lives in two stores, and only one of them orders anything
 
-Read this before answering what blocks what, and before trusting anything called a dependency here.
+Read this before answering what blocks what, and before trusting anything called a dependency.
 
-The tracker does record edges and this credential reaches them: `forge_issues` takes
-`data.relations` on a write and returns `relations.blocks` and `relations.blockedBy` on a `get`, an
-entry naming the issue at its far end. Which actions this credential may call is `forge doctor`'s to
-report; `forge schema forge_issues` owns what a call may send. One
-field is worth knowing before the list is read: `expired`, because an edge whose `validUntil` has
-passed comes back with the live ones, so a count of relations is not a count of blockers.
+**The tracker's own store is the one that orders.** `forge issue ISS-nn --blocks ISS-mm` writes an
+edge there, `--relates ISS-mm` writes one that orders nothing, and `--unlink ISS-mm` removes whatever
+edge the two have. `forge issue ISS-mm --fields relations` reads them back, under `blockedBy` for the
+edges holding that issue up, `blocks` for the ones it holds up, and `relates` for the ones that order
+nothing. One field is worth knowing before the list is read: `expired`, because an edge whose
+`validUntil` has passed comes back with the live ones, so a count of relations is not a count of
+blockers.
 
-`forge deps [ISS-45] [--long]` reads none of that. It reads the sentence a migrated issue carries
-about its own edges and prints one ASCII line per blocker:
-
-```
-ISS-7  -> ISS-8 ISS-9 ISS-10? ISS-11
-ISS-8  -> ISS-9 ISS-11
-```
-
-**A `?` suffix means only one of the two issues claims that edge** — the finding, never reconciled
-away. A phrase matching no title, or tying two, prints unresolved rather than guessed, and the run
-reports how many issues carry no such prose, because that is silence and not an absence of
-dependencies. The sentence it looks for defaults to English and is configurable per tracker with
-`deps: { marker, blockedBy, blocks }` in the project file, which `forge doctor` names.
+**A body's prose is the other store, and it gates nothing.** Some issues carry a sentence about their
+own edges. `forge next --graph [ISS-nn]` prints the tracker's edges and then, under a heading of its
+own, the claims found only in prose — one-sided claims marked as one-sided, and a phrase matching no
+title, or tying two, printed unresolved rather than guessed. The sentence it looks for defaults to
+English and is configurable per tracker with `deps: { marker, blockedBy, blocks }` in the project
+file, which `forge doctor` names.
 
 A body and the store can diverge either way — a sentence claiming an edge the store never got, an
-edge no sentence mentions — so reading one proves nothing about the other. Whether the verb should
-read the store instead is ISS-69's, still open.
+edge no sentence mentions — so reading one proves nothing about the other. Where they disagree, the
+store is what `forge advance` and `forge next` act on, and the prose is a claim somebody wrote.
 
-**Only the edge gates dispatch**, which `forge -h --full` carries as a rule of its own. Treat
-`forge deps` as a reading of what the bodies claim, never as dispatch truth.
+**Which actions a credential may call is `forge doctor`'s to report**, and `forge schema forge_issues`
+owns what a call may send.

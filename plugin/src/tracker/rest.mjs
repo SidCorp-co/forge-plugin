@@ -35,7 +35,7 @@ const columns = (row) =>
 const COMMENT = ["issueId", "authorId", "authorDeviceId", "body", "format", "template", "slots",
   "text", "parentId", "createdAt", "updatedAt", "attachments"];
 
-const PROJECT_ROW = ["id", "slug", "name", "orgId", "role"];
+const PROJECT_ROW = ["id", "slug", "name", "orgId", "role", "archivedAt"];
 
 const ATTACHMENT = ["name", "mime", "size", "url", "createdAt"];
 
@@ -55,9 +55,9 @@ const NO_DEPLOY = { notes: null, stagingApiUrl: null, stagingUrl: null, testCred
 
 const projectOf = (row) => {
   const { id, slug, name, description, orgId, createdBy, role, repoPath, workspaceSetup, baseBranch,
-    productionBranch, defaultDeviceId, previewDeploy, createdAt } = row ?? {};
+    productionBranch, defaultDeviceId, previewDeploy, createdAt, archivedAt } = row ?? {};
   return { id, slug, name, description, orgId, createdBy, role, repoPath, workspaceSetup, baseBranch,
-    productionBranch, defaultDeviceId, previewDeploy: previewDeploy ?? NO_DEPLOY, createdAt };
+    productionBranch, defaultDeviceId, previewDeploy: previewDeploy ?? NO_DEPLOY, createdAt, archivedAt };
 };
 
 const expired = (until) => Boolean(until) && Date.parse(until) < Date.now();
@@ -79,10 +79,19 @@ const edgeOf = (edge, side) => ({
   expired: expired(edge?.validUntil),
 });
 
-export const relationsOf = (deps) => ({
-  blocks: (deps?.outgoing ?? []).map((edge) => edgeOf(edge, "to")),
-  blockedBy: (deps?.incoming ?? []).map((edge) => edgeOf(edge, "from")),
-});
+/* Three lists: a `relates` edge orders nothing, and sat in `blockedBy` under a key no read answered. */
+export const RELATES = "relates";
+const ORDERS = (edge) => edge.kind !== RELATES;
+
+export const relationsOf = (deps) => {
+  const out = (deps?.outgoing ?? []).map((edge) => edgeOf(edge, "to"));
+  const held = (deps?.incoming ?? []).map((edge) => edgeOf(edge, "from"));
+  return {
+    blocks: out.filter(ORDERS),
+    blockedBy: held.filter(ORDERS),
+    relates: [...out, ...held].filter((edge) => edge.kind === RELATES),
+  };
+};
 
 /* Two of the three parts are separate requests, so a reader that named neither is not made to pay
    for them — and the key is left off rather than answered empty, an empty relation set being a
@@ -96,7 +105,7 @@ export const issueOf = ({ issue, dependencies, attachments }) => ({
 });
 
 /* A column the tracker owns is read as a property and never written as a span, so nothing in this
-   file can print one — docs/cli/the-project.md says what a name an agent has to translate costs. */
+   file can print one — docs/cli/doctor.md says what a name an agent has to translate costs. */
 export const browseOf = (row) => {
   const { title, status, priority, category, complexity, assigneeId, reopenCount, mergedAt,
     createdAt, updatedAt } = row ?? {};
@@ -304,6 +313,19 @@ export const ROUTES = {
     requests: (args) => one(`/issues/${args.data?.issueId}/merge`, "DELETE"),
     sends: ["data"],
   },
+  /* The edge store, on the issue's own route: `documentId` is the issue that DEPENDS and
+     `data.dependsOnId` the one it depends on, so the edge lands as `(from = dependsOnId, to =
+     documentId)` and reads back on `documentId` as `blockedBy`. */
+  "forge_issues.link": {
+    writes: true,
+    requests: (args) => one(`/issues/${args.documentId}/dependencies`, "POST", args.data),
+    sends: ["documentId", "data"],
+  },
+  "forge_issues.unlink_edge": {
+    writes: true,
+    requests: (args) => one(`/issues/${args.documentId}/dependencies/${args.edgeId}`, "DELETE"),
+    sends: ["documentId", "edgeId"],
+  },
   "forge_comments.list": {
     requests: (args) => one(`/issues/${args.filters?.issue}/comments${query({ cursor: args.filters?.cursor })}`),
     answers: ({ page }) => threadOf(page),
@@ -350,6 +372,31 @@ export const ROUTES = {
     answers: ({ page }) => configOf(page),
     sends: [],
   },
+  /* The two typed resources a project's own settings live in, rather than the whole-`agentConfig`
+     patch on `/projects/:id`: that one replaces the document, so two writers to different keys of it
+     clobber each other. These merge per key. */
+  "forge_config.pipeline": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/pipeline-config`),
+    sends: [],
+  },
+  "forge_config.set_pipeline": {
+    project: true,
+    writes: true,
+    requests: (args, project) => one(`/projects/${project}/pipeline-config`, "PATCH", args.data),
+    sends: ["data"],
+  },
+  "forge_config.facts": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/project-facts`),
+    sends: [],
+  },
+  "forge_config.set_facts": {
+    project: true,
+    writes: true,
+    requests: (args, project) => one(`/projects/${project}/project-facts`, "PATCH", args.data),
+    sends: ["data"],
+  },
   "forge_guide.list": {
     requests: () => one(`/guides`),
     sends: [],
@@ -358,16 +405,50 @@ export const ROUTES = {
     requests: (args) => one(`/guides/${args.slug}`),
     sends: ["slug"],
   },
+  /* The archived are excluded unless asked for, which is the tracker's default and not this CLI's:
+     a project the caller wants to unarchive is one the plain list cannot name. */
   "forge_projects.list": {
-    requests: () => one(`/projects`),
+    requests: (args) => one(`/projects${query({ archived: args.archived })}`),
     answers: ({ page }) => ({ projects: rowsIn(page, "items").map((row) => pick(row, PROJECT_ROW)) }),
-    sends: [],
+    sends: ["archived"],
   },
   "forge_projects.get": {
     project: true,
     requests: (args, project) => one(`/projects/${project}`),
     answers: ({ page }) => ({ project: projectOf(page) }),
     sends: [],
+  },
+  /* `projectRef` and not `documentId`: the reference keys below are resolved as issue keys on a raw
+     call, and a project id resolved as an issue answers about the wrong record. Nothing declares the
+     tracker's own DELETE — a route the table does not name is one nothing can send. */
+  "forge_projects.create": {
+    writes: true,
+    requests: (args) => one(`/projects`, "POST", args.data),
+    answers: ({ page }) => ({ project: projectOf(page) }),
+    sends: ["data"],
+  },
+  "forge_projects.read": {
+    requests: (args) => one(`/projects/${args.projectRef}`),
+    answers: ({ page }) => ({ project: projectOf(page) }),
+    sends: ["projectRef"],
+  },
+  "forge_projects.update": {
+    writes: true,
+    requests: (args) => one(`/projects/${args.projectRef}`, "PATCH", args.data),
+    answers: ({ page }) => ({ project: projectOf(page) }),
+    sends: ["projectRef", "data"],
+  },
+  "forge_projects.archive": {
+    writes: true,
+    requests: (args) => one(`/projects/${args.projectRef}/archive`, "POST"),
+    answers: ({ page }) => ({ project: projectOf(page) }),
+    sends: ["projectRef"],
+  },
+  "forge_projects.unarchive": {
+    writes: true,
+    requests: (args) => one(`/projects/${args.projectRef}/unarchive`, "POST"),
+    answers: ({ page }) => ({ project: projectOf(page) }),
+    sends: ["projectRef"],
   },
   "forge_project_pm.snapshot": {
     project: true,
@@ -424,6 +505,8 @@ export const toolOf = (key) => {
    themselves: a template written out beside it would be a second copy of the same string. */
 const SAMPLE = {
   documentId: ":documentId",
+  projectRef: ":projectRef",
+  edgeId: ":edgeId",
   slug: ":slug",
   offset: ":offset",
   filters: { issue: ":issue" },
@@ -478,9 +561,6 @@ export const NO_ROUTE = {
     wanted: "POST /api/projects/:id/knowledge/search",
     instead: "`forge knowledge list` and `forge knowledge get <slug>` are what still reach the store.",
   },
-  /* No route out, deliberately: the verb this served is withheld, and a refusal that named its
-     replacement is the redirect docs/cli/withholding-a-verb.md forbids. */
-  "forge_project_pm.set_dependency": { wanted: "POST /api/projects/:id/pm" },
 };
 
 export const noRouteRefusal = (key) => {

@@ -14,3 +14,19 @@ command that says what to type was the one a caller could not run. It is interce
 now, and a verb documenting actions of its own says so rather than being overridden. Help is an
 answer, so it goes to stdout: on stderr, `forge -h | head` printed nothing and every caller learned
 to write `2>&1` first.
+
+## Which copy the call reaches
+
+`~/.local/bin/forge` is one symlink for the machine, written from whichever plugin root a session
+started with, so for two days every project on this machine ran one checkout: one of them died on a
+`SyntaxError` from a refactor half-finished there, and another silently ran an unreleased build. A
+call that arrives through that link picks its copy per call — the checkout the working directory sits
+in, else the newest installed copy the record resolves to — so the answer changes with `cd` and the
+report has to answer for a directory rather than for the machine. A call that names a copy by its own
+path still runs that copy: the probe of a worktree, the suite's own spawns and the bundled
+`vi-natural` all mean the copy they name, and a caller who typed a path was not asking.
+
+The gates ask the same chooser for a different file, so `forge doctor` gives them their own line
+rather than sharing one. The answers are usually the same and the case that matters is when they are
+not: an install holding one entry and not the other picks a different copy for each, and nothing else
+on that report would show it.

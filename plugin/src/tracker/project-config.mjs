@@ -1,7 +1,7 @@
 /* What the project says about where a change goes and what it can be walked against, from the
    tracker and never re-declared in a checkout. Unread keeps today's behaviour, since no decision
    is not a decision to ship without a person. The tracker's own column names are reached by
-   property access and printed nowhere — src/checks/tracker-names.mjs. docs/cli/the-project.md. */
+   property access and printed nowhere — src/checks/tracker-names.mjs. docs/cli/doctor.md. */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -36,7 +36,7 @@ export const NOT_STATED = "not stated";
 export const QA_MODES = ["independent", "builder"];
 
 /* Derived, never asked for again: one branch deploying production means a push IS the deploy, so the
-   candidate is judged before it. docs/cli/the-project.md. */
+   candidate is judged before it. docs/cli/doctor.md. */
 const routeFrom = (policy) => {
   if (!readable(policy)) return null;
   return policy.staging === policy.production && policy.autoProd ? "before-merge" : "after-merge";
@@ -145,7 +145,7 @@ export const stagingDeploy = once(async () => {
 });
 
 /* Above the length, refused wherever a payload holds it; below it, only where a field is it,
-   quoting aside — a field can hold `admin`. docs/cli/the-project.md states that edge rather than more. */
+   quoting aside — a field can hold `admin`. docs/cli/doctor.md states that edge rather than more. */
 const SECRET = 12;
 const bare = (text) => text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
 
@@ -170,39 +170,66 @@ export const credentialLeak = (data, deploy) => {
 const NOTHING_DEPLOYS = "and nothing here says the host deploys on push: `released` asks the "
   + "verification to name the deployment that built the commit this change landed at";
 
-const NO_DEPLOY = "staging deploy: none configured";
+const NO_DEPLOY = "none configured";
+
+const UNSET = "unset on the project";
 
 /** One reading of `withheld`: the branches cannot disagree, and *none* is said rather than inferred
  *  from an absent line (ISS-477). */
-const credentialLines = (held, asked) => {
-  const out = [`  test credentials: ${held.length
-    ? (asked ? "below, printed once" : "present, forge project --credentials") : "none"}`];
-  if (asked) return [...out, ...held.map((one) => `  ${one.label}: ${one.value}`)];
-  if (held.length) out.push(`  held, not printed: ${held.map((one) => one.label).join(", ")}`);
+const credentialRows = (held, asked) => {
+  const out = [{ level: "ok", label: "test credentials", detail: held.length
+    ? (asked ? "below, printed once" : "present, forge doctor --credentials") : "none" }];
+  if (asked) return [...out, ...held.map((one) => ({ level: "ok", label: one.label, detail: one.value }))];
+  if (held.length) {
+    out.push({ level: "ok", label: "held, not printed", detail: held.map((one) => one.label).join(", ") });
+  }
   return out;
 };
 
-/** The project's answer in this CLI's words, one line each with where it was read. */
-export const projectLines = ({ id, policy, deploy, credentials, landing = landingScope() }) => {
-  const out = [`project id: ${id}  ← the slug in .forge.json`];
-  if (policy) {
-    const said = (held) => `${held ?? "unset on the project"}  ← ${policy.from}`;
-    out.push(`staging branch: ${said(policy.staging)}`);
-    out.push(`production branch: ${said(policy.production)}`);
-    out.push(`production ships without a person's look: ${policy.autoProd ? "yes" : "no"}  ← ${policy.from}`);
-    if (policy.autoProd) out.push(`  ${NOTHING_DEPLOYS}`);
-    const route = landingRoute(policy, landing);
-    out.push(`where the merge sits: ${route.value}  ← ${route.from}`);
-    out.push(`independent judgement between developed and tested: ${judgementOf(policy)}  ← ${policy.from}`);
-  } else out.push("release policy: the project config did not answer");
-  if (!deploy) return [...out, NO_DEPLOY];
+const branchRow = (label, held, from) => (held
+  ? { level: "ok", label, detail: `${held}  ← ${from}` }
+  : { level: "note", label, detail: `${UNSET} — a release has no named ${label}, and the park before`
+    + " released stands until it is set" });
+
+const policyRows = (policy, landing) => {
+  if (!policy) {
+    return [{ level: "note", label: "release policy",
+      detail: "the project config did not answer — the park before released stands" }];
+  }
+  const route = landingRoute(policy, landing);
+  const out = [
+    branchRow("staging branch", policy.staging, policy.from),
+    branchRow("production branch", policy.production, policy.from),
+    { level: "ok", label: "production deploy", detail: `${policy.autoProd ? "automatic" : "a person's"}`
+      + ` — a user-facing change ${waitsForPerson(policy) ? "waits for" : "ships without"} a person's`
+      + ` look  ← ${policy.from}` },
+    { level: "ok", label: "where the merge sits", detail: `${route.value}  ← ${route.from}` },
+    { level: "ok", label: "independent judgement", detail: `${judgementOf(policy)} between developed`
+      + ` and tested  ← ${policy.from}` },
+  ];
+  if (policy.autoProd) out.push({ level: "ok", label: "", detail: NOTHING_DEPLOYS });
+  const said = releaseConflict(policy);
+  return said ? [...out, { level: "miss", label: "release policy", detail: said }] : out;
+};
+
+/** The project's answer in this CLI's words, one row each with where it was read, in the shape the
+ *  one verb reporting every level of configuration prints its own keys in. */
+export const projectRows = ({ policy, deploy, credentials, landing = landingScope() }) => {
+  const out = policyRows(policy, landing);
+  if (!deploy) return [...out, { level: "ok", label: "staging deploy", detail: NO_DEPLOY }];
   const held = deploy.withheld;
   const asked = Boolean(credentials && held.length);
-  const ending = credentialLines(held, asked);
-  if (!deployed(deploy)) return [...out, NO_DEPLOY, ...ending];
-  out.push(`staging deploy  ← ${deploy.from}`);
-  for (const one of deploy.urls) out.push(`  ${one.label}: ${one.url}`);
-  for (const one of deploy.notes) out.push(`  notes: ${one}`);
+  const ending = credentialRows(held, asked);
+  if (!deployed(deploy)) {
+    return [...out, { level: "note", label: "staging deploy", detail: policy?.staging
+      ? "none on record while the staging branch is named, so the verification `released` owes cites"
+        + " the branch and no running host. A host is added on the tracker's own project settings"
+        + " screen: this CLI declares no route that writes one"
+      : NO_DEPLOY }, ...ending];
+  }
+  out.push({ level: "ok", label: "staging deploy", detail: `${deploy.urls.length} host(s)  ← ${deploy.from}` });
+  for (const one of deploy.urls) out.push({ level: "ok", label: one.label, detail: one.url });
+  for (const one of deploy.notes) out.push({ level: "ok", label: "notes", detail: one });
   return [...out, ...ending];
 };
 
@@ -211,7 +238,7 @@ export const leakRefusal = (found, what) =>
   + `${found.field ? `, at ${found.field}` : ""}. A test credential is read `
   + "at the authentication step and echoed nowhere after it — the tracker's own project-settings "
   + "guide, rule 2, and there is no delete for what the tracker has taken. Take the value out and "
-  + "say where it is read instead:\n  forge project --credentials";
+  + "say where it is read instead:\n  forge doctor --credentials";
 
 /* The project's brief: the one entry Phase 0 reads instead of learning the repository by hand. Its
    prose is a run's — no program reads a repository's dangers out of its README — and what the CLI
@@ -287,7 +314,7 @@ export const staleIn = (digests) => {
 
 const NONE_STORED = [
   "project brief: none stored, so Phase 0 has this project's files and nothing else",
-  "  write one: forge project --refresh <brief.md> --title <one line> --meta written-by=ISS-nn",
+  "  write one: forge doctor --refresh <brief.md> --title <one line> --meta written-by=ISS-nn",
 ];
 
 const NO_SOURCES = "  no line of this brief names a source, so nothing was hashed and no later run "
@@ -308,8 +335,8 @@ export const briefLines = (read) => {
   if (!Object.keys(digests).length) out.push(NO_SOURCES);
   if (moved.length) {
     out.push(`  stale: ${moved.join(", ")} — moved since the brief was read. Judge the lines naming `
-      + "each against the file it names: where the prose still holds, forge project --confirm "
-      + "<source>; where it does not, forge project --line <n> <text>");
+      + "each against the file it names: where the prose still holds, forge doctor --confirm "
+      + "<source>; where it does not, forge doctor --line <n> <text>");
   }
   if (gone.length) {
     out.push(`  gone: ${gone.join(", ")} — named as a source and not in this checkout`);
@@ -367,7 +394,7 @@ export const refreshBrief = async (path, { pairs, ...meta }) => {
 /* The two narrow writes. Re-handing fifty lines to fix the one whose source moved is the shape that
    made two runs leave a stale brief alone rather than race a Phase 0 reading it. the-brief.md. */
 const NO_BRIEF = "there is no brief stored, so no line of one can be confirmed or replaced.\n"
-  + "  write one: forge project --refresh <brief.md> --title <one line> --meta written-by=ISS-nn";
+  + "  write one: forge doctor --refresh <brief.md> --title <one line> --meta written-by=ISS-nn";
 
 /* Held against the same rule the whole-file write answers to: a store that would not answer is not
    a store with no brief, and a write on that reading would replace what this call never saw. */
@@ -392,7 +419,7 @@ const wroteBrief = async (was, body, digests) => {
   if (!same(heldPart(now), heldPart(was))) {
     fail("the brief moved between this call's read and its write, so the body this call is holding "
       + "would put back prose another session has already replaced. Nothing was written — read it "
-      + "again and judge the line as it now stands: forge project");
+      + "again and judge the line as it now stands: forge doctor");
   }
   return upsertEntry({
     slug: BRIEF_SLUG,
@@ -417,7 +444,7 @@ export const confirmSource = async (source) => {
   const digests = entry.metadata?.[DIGESTS] ?? {};
   if (!Object.hasOwn(digests, source)) {
     fail(didYouMean("source of this brief", source, Object.keys(digests).sort(),
-      "`forge project` prints the brief and the source each line was read from."));
+      "`forge doctor` prints the brief and the source each line was read from."));
   }
   const now = hashOf(source);
   if (now === null) {
@@ -446,12 +473,12 @@ export const replaceBriefLine = async (given, text) => {
   const lines = (entry.body ?? "").split("\n");
   if (!/^[1-9]\d*$/u.test(given) || Number(given) > lines.length) {
     fail(`--line takes a line of the stored brief, 1 to ${lines.length}, and \`${given}\` is not `
-      + "one. `forge project` prints the body those numbers count, the lines above it aside.");
+      + "one. `forge doctor` prints the body those numbers count, the lines above it aside.");
   }
   const at = Number(given);
   if (text.includes("\n")) {
     fail("--line replaces one line and this text holds a newline. A brief whose prose has to move "
-      + "across lines is a brief being rewritten: forge project --refresh <brief.md>");
+      + "across lines is a brief being rewritten: forge doctor --refresh <brief.md>");
   }
   if (lines[at - 1] === text) return [`line ${at} already reads that, so nothing was written.`];
   const body = [...lines.slice(0, at - 1), text, ...lines.slice(at)].join("\n");
@@ -485,7 +512,7 @@ export const replaceBriefLine = async (given, text) => {
     ...shared.map(({ path, also }) =>
       `  left stale: ${path} is also read by ${atLines(also)}, so its digest is not stamped here — `
       + `stamping it would clear ${also.length > 1 ? "those lines" : "that line"} over prose nobody `
-      + `looked at. Once ${also.length > 1 ? "they hold" : "it holds"} too: forge project --confirm ${path}`),
+      + `looked at. Once ${also.length > 1 ? "they hold" : "it holds"} too: forge doctor --confirm ${path}`),
     ...(dropped.length
       ? [`  dropped: ${dropped.join(", ")} — no line of the brief names ${dropped.length > 1 ? "them" : "it"} now`]
       : []),

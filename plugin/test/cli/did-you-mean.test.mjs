@@ -301,9 +301,15 @@ test("an unserved action on a served tool is not offered the tool it already nam
    verbs gets one release of the line, in front of the did-you-mean, so an agent that learned the
    losing name types the winning one next rather than reading a near miss (ISS-348). The window and
    what closes it: docs/cli/withholding-a-verb.md. */
+const RETIRED_CALL = {
+  plan: ["plan", "ISS-1", "plan.md"],
+  "new --into": ["new", "body.md", "--into", "ISS-1"],
+};
+
 test("a retiring name is refused with the verb to type, and nothing else", async () => {
   for (const { typed, instead } of RETIRING) {
-    const argv = typed === "plan" ? ["plan", "ISS-1", "plan.md"] : ["new", "body.md", "--into", "ISS-1"];
+    const argv = RETIRED_CALL[typed];
+    assert.ok(argv, `${typed} is a retiring row nothing here types, so its refusal is unproven`);
     const run = await ran(...argv);
     assert.equal(run.status, 1, `forge ${typed}: ${run.stdout}`);
     assert.match(run.stderr, new RegExp(`^\`forge ${typed}\` is retired`, "mu"));

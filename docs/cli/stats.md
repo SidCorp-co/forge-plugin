@@ -16,7 +16,7 @@ the surface faster than a subject per verb; `forge codex` had already settled th
 The transcripts are the harness's, in its own scratch directory, and the directory is derived from
 the project's absolute path rather than named by the caller: a flag that could name that directory
 could name any directory, and this verb reads files a session wrote about work it did. So
-`--project` takes a project directory and nothing else, and the only files opened are the ones a
+`--checkout` takes a directory and nothing else, and the only files opened are the ones a
 fixed pattern one level under the derived root returns.
 
 The obvious second guard — resolve each entry and refuse one that leaves the root — is the one thing

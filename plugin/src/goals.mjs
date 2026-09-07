@@ -104,13 +104,13 @@ export const servesRefusal = (values, read, what, asksTree = true) => {
 const HOW = {
   [WHY.endpoint]: "Save one: forge doctor --token <pat> --url <endpoint>",
   [WHY.aimed]: "Aim one: a project slug in this checkout, which `forge doctor` names the file for",
-  [WHY.unread]: "Read it again: forge project",
-  [WHY.stored]: "Write one: forge project --refresh <brief.md> --title <one line>",
-  [WHY.section]: `Add the section: forge project --refresh <brief.md>, one line per goal under \`## ${SECTION}\``,
-  [WHY.none]: "Write the goals Phase 0 discovered: forge project --line <n> <text>",
+  [WHY.unread]: "Read it again: forge doctor",
+  [WHY.stored]: "Write one: forge doctor --refresh <brief.md> --title <one line>",
+  [WHY.section]: `Add the section: forge doctor --refresh <brief.md>, one line per goal under \`## ${SECTION}\``,
+  [WHY.none]: "Write the goals Phase 0 discovered: forge doctor --line <n> <text>",
 };
 
-/** The line `forge project` prints and the block a verb's `-h` carries, each naming the way out of
+/** The line `forge doctor` prints and the block a verb's `-h` carries, each naming the way out of
  *  the reason there is no list: *not stated* on its own is a line a run cannot act on. */
 export const goalLine = (read) => (read.why
   ? `  goals: ${NOT_STATED} — ${read.why}. ${HOW[read.why]}`

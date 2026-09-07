@@ -54,7 +54,7 @@ const corpus = () => {
 };
 
 const ask = (room, ...argv) =>
-  spawnSync(FORGE, ["stats", "runs", "--project", PROJECT, ...argv], {
+  spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, ...argv], {
     encoding: "utf8",
     env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-guide-home-"), TMPDIR: room },
   });
@@ -115,7 +115,7 @@ test("the version is the one that call was served, so a reading does not move wh
     writeFileSync(join(home, "forge", "config.json"),
       JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token" }));
     writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "served-fixture", method: pin }));
-    const said = spawnSync(FORGE, ["stats", "runs", "--project", PROJECT, "--json"],
+    const said = spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, "--json"],
       { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room }, cwd: room });
     assert.equal(said.status, 0, said.stderr);
     return JSON.parse(said.stdout).guideParts;
