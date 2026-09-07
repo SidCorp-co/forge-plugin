@@ -161,6 +161,10 @@ export const DECLARES = {
     confidence: ["verified", "inferred", "deprecated"],
     authoredBy: ["human", "agent", "imported"],
   },
+  /* Read off the tracker by minting, whose own refusal names only the mime it guessed (ISS-134). */
+  forge_uploads: {
+    extensions: [".txt", ".md", ".csv", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".mp4"],
+  },
 };
 
 export const WIRE_FILTERS = Object.keys(FILTERS).filter((name) => FILTERS[name] === "wire");

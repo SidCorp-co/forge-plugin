@@ -2,10 +2,11 @@
    twenty times over one verdict loop (the twelfth dry run). Each rule here fails without its check. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { attachPlan, localFile, uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
+import { attachPlan, localFile, mintRefusal, uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const DIR = tempRoom("evidence-");
@@ -97,6 +98,59 @@ test("a readable file whose name reads as a commit goes up as a file, and says s
   const nowhere = attachPlan(["deadbee"], [], held([]));
   assert.deepEqual(nowhere.upload, [], "and the same value with no file behind it is cited as the commit");
   assert.deepEqual(nowhere.cite, ["deadbee"]);
+});
+
+/* The tracker's own line says which mime it guessed and nothing about the file, the extension or
+   the set, so four runs in one week renamed a `.log` to `.txt` by guessing (ISS-134). */
+test("a refusal on the name says which file, what it read off it, and what the tracker takes", () => {
+  const said = mintRefusal(join(DIR, "iss134-gate-final.log"), "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
+  assert.match(said, /^iss134-gate-final\.log is a name the tracker would not take/u);
+  assert.match(said, /the extension \.log/u);
+  assert.match(said, /It takes \.txt \.md \.csv \.png \.jpg \.jpeg \.gif \.webp \.pdf \.mp4 —/u);
+  assert.match(said, /this CLI's reading of the tracker's set rather than the tracker's own answer/u);
+  assert.match(said, /MIME_NOT_ALLOWED/u, "the tracker's own words stay in it");
+  const log = join(DIR, "iss134-gate-final.log");
+  assert.match(said, new RegExp(`ln -- '${log}' '${log}\\.txt'$`, "u"), "the same name plus .txt collides with nothing");
+});
+
+test("a name carrying no extension is told that, and a name a shell would read is quoted", () => {
+  const bare = mintRefusal("/tmp/gate-run", "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
+  assert.match(bare, /a name carrying no extension\./u);
+  assert.match(bare, /ln -- '\/tmp\/gate-run' '\/tmp\/gate-run\.txt'$/u);
+  const hostile = mintRefusal("/tmp/$(touch PWNED) it's.log", "Error: MIME_NOT_ALLOWED: mime not allowed: x");
+  assert.match(hostile, /ln -- '\/tmp\/\$\(touch PWNED\) it'\\''s\.log' '\/tmp\/\$\(touch PWNED\) it'\\''s\.log\.txt'$/u);
+});
+
+/* A 401 or a credential refusal is no fact about the name, so the set is not offered against it:
+   naming what the tracker takes would read as the answer to a question it never asked. */
+test("a refusal that is not about the name names the file and offers no set", () => {
+  const said = mintRefusal(join(DIR, "iss134-gate-final.log"), "Forge answered 401: token expired");
+  assert.match(said, /^iss134-gate-final\.log is a name the tracker would not take/u);
+  assert.match(said, /token expired/u);
+  assert.doesNotMatch(said, /It takes/u, "no extension is named where the name is not what refused");
+  assert.doesNotMatch(said, /\.txt/u);
+});
+
+/* The one action a refusal prints is only an action if running it does what it says, so it is run:
+   a name a shell would read, a name `ln` would read as a flag, and a destination already there. */
+const ranTail = (path, cwd) => {
+  const said = mintRefusal(path, "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
+  return spawnSync("sh", ["-c", said.split("\n").pop().trim()], { cwd, encoding: "utf8" });
+};
+
+test("the command the refusal prints runs, and refuses a destination rather than overwriting it", () => {
+  const room = tempRoom("mint-command-");
+  writeFileSync(join(room, "$(touch PWNED) it's.log"), "gate output\n");
+  assert.equal(ranTail("$(touch PWNED) it's.log", room).status, 0, "a name a shell would read is one path");
+  assert.equal(readFileSync(join(room, "$(touch PWNED) it's.log.txt"), "utf8"), "gate output\n");
+  assert.equal(existsSync(join(room, "PWNED")), false, "and nothing in it ran");
+  writeFileSync(join(room, "-f.log"), "flag-shaped\n");
+  assert.equal(ranTail("-f.log", room).status, 0, "a leading hyphen is an operand");
+  assert.equal(readFileSync(join(room, "-f.log.txt"), "utf8"), "flag-shaped\n");
+  writeFileSync(join(room, "held.log"), "new\n");
+  writeFileSync(join(room, "held.log.txt"), "already here\n");
+  assert.notEqual(ranTail("held.log", room).status, 0, "a destination already there is refused");
+  assert.equal(readFileSync(join(room, "held.log.txt"), "utf8"), "already here\n", "and its bytes stand");
 });
 
 test("the upload answer is read for its url, and an unexpected body is printed whole", () => {

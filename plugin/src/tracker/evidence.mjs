@@ -1,10 +1,10 @@
 /* What a verdict cites and how it gets onto the issue: the upload, and the reading of an --evidence
    value that is a file on disk. Attach then re-send the record was a round of the agent's (ISS-65). */
 import { readFileSync, statSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { basename, extname, resolve } from "node:path";
 
 import { fail, settings } from "../resolve/settings.mjs";
-import { refuseCredential, write } from "./rpc.mjs";
+import { declaredFor, refuseCredential, write } from "./rpc.mjs";
 
 export const urlBearing = (item) => Boolean(item) && typeof item === "object" && typeof item.url === "string";
 
@@ -17,13 +17,32 @@ export const uploaded = (answer) => {
   }
 };
 
+/* A shell parses what a caller types, and `ln` refuses a destination `cp` would overwrite. */
+const shellArg = (value) => `'${String(value).replaceAll("'", `'\\''`)}'`;
+
+/** What the refusal leaves out: the file, the extension, and the set — offered, never enforced. */
+export const mintRefusal = (path, said) => {
+  const name = basename(path);
+  const head = `${name} is a name the tracker would not take, and nothing was sent.\n  it said: ${said}`;
+  if (!said.includes("MIME_NOT_ALLOWED")) return head;
+  const ext = extname(name);
+  return `${head}\n  The type is read off the name and never the bytes, so what it refused is `
+    + `${ext ? `the extension ${ext}` : "a name carrying no extension"}.`
+    + `\n  It takes ${declaredFor("forge_uploads", "extensions").join(" ")} — this CLI's reading of `
+    + `the tracker's set rather than the tracker's own answer, so one missing here may work too.`
+    + `\n\nDo this: send the same bytes under a name it can type, and cite that name:`
+    + `\n  ln -- ${shellArg(path)} ${shellArg(`${path}.txt`)}`;
+};
+
 /* Bytes go to the presigned URL, never base64 through context, and the callback fires the line
    before the PUT: from there the file may be up, so the guard judges before the slot is minted. */
 export const uploadTo = async (target, targetId, path, sending = () => {}) => {
   const name = basename(path);
   const body = readFileSync(path);
   await refuseCredential(body.toString("utf8"), name);
-  const minted = await write("forge_uploads", { action: "request", data: { target, targetId, name } });
+  const asked = { action: "request", data: { target, targetId, name } };
+  const minted = await write("forge_uploads", asked, undefined, true);
+  if (minted?.refused) fail(mintRefusal(path, minted.refused));
   const url = new URL(minted.uploadUrl ?? `${new URL(settings().url).origin}${minted.uploadPath}`);
   if (!["http:", "https:"].includes(url.protocol)) fail(`The upload URL for ${name} is ${url.protocol}, not http.`);
   sending(name);
