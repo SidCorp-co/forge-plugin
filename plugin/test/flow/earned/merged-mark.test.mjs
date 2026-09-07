@@ -11,6 +11,7 @@ process.env.XDG_CONFIG_HOME = tempHome("merged-mark").path;
 const { render } = await import("../../../src/flow/record.mjs");
 const { CHECKS, sameCommit, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { judgedHead, landingMoved, landingWrote, markedCommit } = await import("../../../src/flow/machine.mjs");
+const { partFor, partsOf, readContract } = await import("../../../src/guides/contract.mjs");
 
 let clock = 0;
 const at = () => `2026-09-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
@@ -150,6 +151,47 @@ test("the mark's note answers for the judged head and what the landing moved", (
   assert.equal(landingMoved(note("landing moved ,")), null);
   assert.equal(landingMoved(note("landing moved , ,")), null);
 });
+/* A rung no actor may reach is a rung the flow does not have (ISS-607): four runs on one real state
+   recorded four statuses, because this repository earned `developed` by a merge the run itself had to
+   make and a run a project binds not to merge cannot write that truthfully. The note's two heads are
+   what the stage may read and the writer is what it may not, and the text is what this case reads —
+   no check can refuse a field the view has no key for, and the writer is exactly that field. */
+test("the mark's writer decides nothing: `developed` is earned by the note, whichever actor landed", () => {
+  const parts = partsOf(readContract());
+  const developed = partFor(parts, "developed").text;
+  assert.match(developed, /Whichever actor landed the change writes the mark/u,
+    "the developed stage does not say the landing may be another actor's, so a builder bound not to "
+    + "merge reads a rung it cannot earn and picks some other status instead");
+  assert.match(developed, /Nothing in this stage reads who wrote the mark, and nothing may/u,
+    "and it does not say the writer goes unread, which is the half a second actor needs to write the mark");
+  assert.match(partFor(parts, "in_progress").text, /the merged mark[^|]*written by whichever actor landed/u,
+    "the row that writes the mark still reads as the building run's own act");
+  /* The heads are what the writer owes in its place, so the sentence that drops the actor may not
+     drop them: a note naming neither leaves every verdict owed at the merged commit. */
+  for (const head of ["judged head", "landed head"]) {
+    assert.ok(developed.includes(head),
+      `the stage stops naming the ${head}, and the note is what binds the verdicts once the writer does not`);
+  }
+});
+
+/* The claim above, read off the code: the mark and the verdicts carry different authors and every
+   check earns alike, because no reader keys on one. Regression coverage — it holds before the clause. */
+test("a mark one actor wrote earns developed for verdicts another wrote", () => {
+  const note = "merged to master at 9a4d36d; judged head 9a4d36d; landing moved nothing";
+  const by = (who, body) => ({ ...comment(body), authorId: who });
+  const landed = by("the-lander", `mark_merged target=base — ${note}`);
+  const review = { ...recorded("review", { reviewer: "codex", commit: "9a4d36d", outcome: "approved",
+    finding: ["F1 accepted"] }), authorId: "the-builder" };
+  const issue = { mergedAt: "2026-09-02T13:49:51.777Z", acceptanceCriteria: CRITERIA,
+    plan: "", attachments: ATTACHED };
+  assert.deepEqual(missing("developed", view(issue, [landed, review])), [],
+    "the lander wrote the mark and the builder the review, and developed reads neither author");
+  const verdicts = [1, 2].map((number) => ({ ...recorded("verdict", { criterion: `${number}. one`,
+    verdict: "pass", commit: "9a4d36d", evidence: ["run.txt"] }), authorId: "the-builder" }));
+  assert.deepEqual(missing("tested", view(issue, [landed, review, ...verdicts])), [],
+    "and tested judges the verdicts at the head the note names, not against whoever marked the merge");
+});
+
 /* Two clauses, two questions: what other commits moved under this change, and what this change
    itself wrote. A note carrying both is read as both, and neither answer comes off the other. */
 test("the note says what this change wrote beside what the landing moved under it", () => {
