@@ -38,7 +38,7 @@ import { flags } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
-import { methodPinned } from "../guides/version.mjs";
+import { methodPinned, pinRefusal } from "../guides/version.mjs";
 import { contractPath, contractProblems, readContract, statesContract } from "../guides/contract.mjs";
 
 const viConfig = () => join(configDir("vi-natural"), "config.json");
@@ -349,6 +349,8 @@ const reportGuideTable = (served) => {
 /* The rules that are not code travel inside the plugin, so a copy without them is a copy whose every
    route to them is a dead end — which is what an installed copy was before ISS-78. */
 const checkContract = () => {
+  const pinned = pinRefusal();
+  if (pinned) return line(BAD, "contract", pinned);
   const path = contractPath();
   const text = readContract();
   const wrong = contractProblems({ text, path });

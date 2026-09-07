@@ -5,19 +5,33 @@
    nothing. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../fixtures.mjs";
+import { homeEnv, tempRoom } from "../fixtures.mjs";
 
 const {
   BODY, bodyPathsOf, guideBodyPath, guideRoots, referencesOf, skillGuideAnswer, skillGuideSlugs,
   skillListingRow, unresolvedCitations,
 } = await import("../../src/guides/skill-guides.mjs");
 const { SHIPPED, versionDir } = await import("../../src/guides/version.mjs");
+const { phasesOf } = await import("../../src/guides/render.mjs");
 
 const PLUGIN = new URL("../../", import.meta.url).pathname;
 const STUBS = join(PLUGIN, "skills");
+const FORGE = join(PLUGIN, "bin", "forge");
+
+/* A pin is read off a `.forge.json` by a resolver that answers once per process, so a case varying
+   one runs the verb: two pins in one process would both read whichever was resolved first. */
+const pinned = (method) => {
+  const dir = tempRoom("pin-");
+  writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: "pin-fixture", method }));
+  return dir;
+};
+
+const asked = (room, ...argv) =>
+  spawnSync(FORGE, argv, { encoding: "utf8", env: homeEnv("pin"), cwd: room });
 
 const planted = () => {
   const root = tempRoom("skill-guides-");
@@ -32,7 +46,8 @@ const planted = () => {
   for (const version of ["v2", "v10"]) {
     const versioned = join(root, "guides", version, "skills", "alpha");
     mkdirSync(join(versioned, "references"), { recursive: true });
-    writeFileSync(join(versioned, BODY), `# Skill: alpha, ${version}\n\nRead \`forge guide alpha one\` first.\n`);
+    writeFileSync(join(versioned, BODY),
+      `# Skill: alpha, ${version}\n\nRead \`forge guide alpha one\` first.\n\n## Phase 3 — ${version}\n\nThe third phase, ${version}.\n`);
     writeFileSync(join(versioned, "references", "one.md"), `# One, ${version}\n`);
     writeFileSync(join(versioned, "references", `only-${version}.md`), `# Only ${version}\n`);
   }
@@ -86,6 +101,55 @@ test("the versioned method is listed beside the unversioned skills, and served f
   assert.equal(referencesOf("alpha", root, 1).join(), "one,two", "and an unpinned version falls to the plain root");
   assert.deepEqual(bodyPathsOf("alpha", root).map((one) => one.split("/").at(-4)), ["v10", "v2", "guides"],
     "what the tree ships is every one of them, newest first by number and answering to no pin");
+  const cut = (version) => phasesOf(readFileSync(guideBodyPath("alpha", root, version), "utf8"))
+    .map((one) => `${one.number}:${one.text.split("\n").at(-1)}`);
+  assert.deepEqual(cut(2), ["3:The third phase, v2."], "a numbered part is cut from the body the pin selected");
+  assert.deepEqual(cut(10), ["3:The third phase, v10."], "and never from the newest version's");
+});
+
+/* AC-02-8-2. The refusal is one line because the pin is the whole finding: before it, a version this
+   copy has no directory for fell to the plain root, where `issue-flow` is nobody's, and the verb
+   answered that the method was inline in the SKILL.md and had no references — two false sentences,
+   both confident. What the contract said was worse, because a missing file reads as a broken
+   install: the copy is whole and the number is the project's. Both surfaces answer the same line. */
+test("a pinned version this copy does not ship is refused by every surface that would have served it", () => {
+  const room = pinned(7);
+  const one = asked(room, "guide", "issue-flow");
+  assert.equal(one.status, 1, one.stdout);
+  const refusal = one.stderr.trimEnd();
+  assert.equal(refusal.split("\n").length, 1, `the refusal is one line, not:\n${refusal}`);
+  assert.match(refusal, /pins method 7/u, "naming the pin");
+  assert.match(refusal, new RegExp(`this copy ships ${SHIPPED.join(", ")}`, "u"), "and the versions shipped");
+  assert.match(refusal, /Set `method` to one of those, or take the key out/u, "and what clears it");
+  assert.ok(!one.stdout.includes("SKILL.md"), "and never that the method is loaded with the skill");
+  assert.equal(asked(room, "guide", "contract").stderr.trimEnd(), refusal,
+    "the contract is pinned by the same number, so a bad pin is the same line there, not a missing file");
+  const listing = asked(room, "guide");
+  assert.match(listing.stdout, new RegExp(`issue-flow\\n {2}${refusal.replace(/^guide: /u, "")}`, "u"),
+    "and the listing says it too rather than counting 0 references of a text it cannot reach");
+});
+
+/* AC-02-8-3. Served from the pinned directory, and saying so: a part read out of a version nobody
+   can name is a part a reader cannot compare against the version their project runs. */
+test("a phase of the pinned method is served from that version's directory and ends by naming it", () => {
+  const [newest] = SHIPPED;
+  const run = asked(pinned(newest), "guide", "issue-flow", "5");
+  assert.equal(run.status, 0, run.stderr);
+  const lines = run.stdout.trimEnd().split("\n");
+  assert.equal(lines.at(-1), `Method version ${newest}, which this project runs; \`forge doctor\` names its source.`,
+    "the last line names the version this project runs");
+  const phase = phasesOf(readFileSync(guideBodyPath("issue-flow", PLUGIN, newest), "utf8"))
+    .find((one) => one.number === "5");
+  assert.equal(lines[0], phase.text.split("\n")[0], "and the part opens on that version's own Phase 5 heading");
+  assert.match(guideBodyPath("issue-flow", PLUGIN, newest), new RegExp(`guides/${versionDir(newest)}/`, "u"));
+  const wrong = asked(pinned(newest), "guide", "issue-flow", "99");
+  assert.equal(wrong.status, 1);
+  assert.match(wrong.stderr, /named 99\. Did you mean: 0, 1, 2/u, "a number no phase has is offered the ones that exist");
+  assert.match(asked(pinned(newest), "guide", "issue-flow", "zzzzzz").stderr,
+    /lists every reference, and each phase of the method is its number/u,
+    "and a miss near nothing is told both ways a part is addressed");
+  assert.equal(asked(pinned(newest), "guide", "issue-flow", "verification").status, 0,
+    "and a reference is still addressed by its name, which the flow's own text cites");
 });
 
 /* A SKILL.md sits in context for the rest of the run, so it is capped: 2,000 bytes of body is roughly

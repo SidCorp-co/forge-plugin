@@ -205,6 +205,11 @@ leave the branch named, park the issue.
 Something you found that belongs to another issue goes there with `forge comment`, which is the one
 verb for the one write whoever is typing it: `forge comment -h`.
 
+<!-- forge:when feedback.plugin bugs all -->
+A defect in this plugin that proving this change met is filed against this plugin's own backlog
+here, with the evidence this phase captured cited on it rather than described in the report.
+<!-- forge:end -->
+
 ## Phase 6 — Draft the release note
 
 For whoever filed the issue: what they will now see, in their vocabulary. No paths, hashes,
