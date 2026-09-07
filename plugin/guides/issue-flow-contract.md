@@ -229,7 +229,7 @@ out has to be inferred is a refusal nobody can act on.
 | the change is ready | the replay onto the default branch's head, then the one read of the whole set of files the change touched, taken at that head, which is the pass the review is earned by; a review record: who reviewed, the head judged, each finding by id either accepted or rejected with the reason, the outcome | unchanged, until the merge |
 | the reviewer requests changes | the fixes; a new head earns a new review | unchanged |
 | the project asks a person to review | the head and the diff to look at | `waiting`, kind code review; their comment resumes |
-| reviewed, and on the default branch | the merged mark with its commit and the base it landed on; where a squash changed the hash, the note names the reviewed head. The replay is the earning read's own first step, so no landing owes a round of its own: one that moves a path this change touched leaves a head nobody has read, and that head owes a fresh whole-set read and its verdicts again — never a recheck, which answers findings, and a clean pass leaves none | `developed` |
+| reviewed, and on the default branch | the merged mark with its commit and the base it landed on, written by whichever actor landed the change; where a squash changed the hash, the note names the reviewed head. The replay is the earning read's own first step, so no landing owes a round of its own: one that moves a path this change touched leaves a head nobody has read, and that head owes a fresh whole-set read and its verdicts again — never a recheck, which answers findings, and a clean pass leaves none | `developed` |
 | scope grows | a plan correction before the edit | unchanged |
 | the landing wrote a file the plan does not name | a correction naming it | unchanged; the mark's note says what this change itself wrote, beside what the landing moved under it, and a path in that clause appearing in neither the plan nor a correction refuses `developed` — which is where *do not silently expand scope* is enforced rather than asked |
 | a destructive migration | the classification, attached | `waiting`, kind destructive migration; a reviewer's comment resumes |
@@ -249,6 +249,16 @@ cannot take, a call that exits rather than answers — is read against every cri
 verdict, and a criterion the review proved impossible is corrected in the open, by a correction naming
 the file that settles it, and judged as corrected; a verdict on the old wording passes a claim the code
 cannot make.
+
+**Whichever actor landed the change writes the mark, and the note is what binds the verdicts.** A
+run that lands its own change writes it at its ship; where the project puts the landing in another
+actor's hands, that actor writes it, and the status still moves on the records the run that built the
+change wrote. Nothing in this stage reads who wrote the mark, and nothing may: a builder a project
+binds not to merge would otherwise be bound out of `developed` by a step it is forbidden to take, and
+a rung no actor may reach is a rung the flow does not have. What the writer owes is the note — the
+judged head, the landed head, and which of this change's paths the landing moved — because those are
+what every verdict is measured against, and a mark whose note names neither head leaves the verdicts
+owed at the merged commit, which is the row above (ISS-607).
 
 **A verdict cites the commit it judged, and a landing that did not touch this change does not move
 it.** Where a repository's landing *is* the merge — a rebase onto the default branch, a version
