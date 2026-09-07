@@ -24,7 +24,7 @@ import { scoped } from "../tracker/rpc.mjs";
 import { refuseIfGated } from "../resolve/visibility.mjs";
 import { pluginFilingLine } from "../tracker/filing/plugin-defect.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { FIELD as SESSION, nextLine, renew } from "./lease.mjs";
+import { FIELD as SESSION, nextLine, renew, writtenBy } from "./lease.mjs";
 import { patchFrom, worklogLines, worklogOf } from "./worklog.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
@@ -147,11 +147,11 @@ const gather = (kind, argv, defer = []) => {
     rest = pulled.rest;
   }
   const single = flags(rest, `record ${kind}`);
-  const known = new Set(shape.fields.filter((one) => !one.derived).map((one) => one.flag));
+  const known = new Set(shape.fields.filter((one) => !one.derived && !one.written).map((one) => one.flag));
   for (const given of Object.keys(single)) {
     if (!known.has(given)) refuse(`record ${kind} takes no --${given}. Fields: ${[...known].map((one) => `--${one}`).join(" ")}`);
   }
-  Object.assign(got, single);
+  Object.assign(got, single, writtenBy(shape));
   for (const field of shape.fields) {
     const value = got[field.flag];
     if (field.many) {
