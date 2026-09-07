@@ -37,11 +37,15 @@ export const judgeProblems = (view) => (asksIndependent(view.release)
   })
   : []);
 
-export const judgeAsk = (ref, number, landing) =>
-  `forge record verdict ${ref} --criterion ${number} --verdict pass --commit ${short(landing?.head) || "<sha>"} `
-  + `--evidence ${short(landing?.deployment) || "<the deployment identity>"}    (under the QA run's own lease)`;
+export const judgeAsk = (ref, number, landing) => (landing?.deployment
+  ? `forge record verdict ${ref} --criterion ${number} --verdict pass --commit ${short(landing.head)} `
+    + `--evidence ${short(landing.deployment)}`
+  : `forge resume ${ref}`);
 
-export const voidedBy = (landing, verdicts) => numbered(verdicts)
-  .filter(([, one]) => judgedApart(one.record.fields, landing))
-  .filter(([, one]) => !citesDeployment(one.record.fields, landing?.deployment))
-  .map(([number]) => number);
+/* On the same line `judgeProblems` reads, or a successor builder's verdicts — apart from the checkpoint's builder id, citing nothing nobody asked them to cite — read as void QA verdicts on a project that asked for no judge. Void against the identity the checkpoint holds now, so a redeployed candidate writes its new one before a promotion reads this. */
+export const voidedBy = (landing, verdicts, release) => (asksIndependent(release)
+  ? numbered(verdicts)
+    .filter(([, one]) => judgedApart(one.record.fields, landing))
+    .filter(([, one]) => !citesDeployment(one.record.fields, landing?.deployment))
+    .map(([number]) => number)
+  : []);

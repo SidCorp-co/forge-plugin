@@ -57,11 +57,12 @@ const issueOf = (over = {}) => ({
   sessionContext: { landing: CHECKPOINT },
   ...over,
 });
-const owed = (verdicts, { release = INDEPENDENT, issue = {} } = {}) =>
+const items = (verdicts, { release = INDEPENDENT, issue = {} } = {}) =>
   CHECKS.tested(
     viewFrom("the-uuid", issueOf(issue), [mark(), comment(render("verdict", verdicts))], null, release),
     "ISS-8",
-  ).map((one) => one.what);
+  );
+const owed = (...args) => items(...args).map((one) => one.what);
 
 test("a verdict carrying the builder's own id earns nothing where the project asks for a second judge", () => {
   const said = owed([verdictOf(1, { judge: BUILDER }), verdictOf(2, { judge: BUILDER })]);
@@ -130,6 +131,9 @@ test("no checkpoint means nothing names the builder or the deployment, and the c
   const half = owed([verdictOf(1), verdictOf(2)],
     { issue: { sessionContext: { landing: { ...CHECKPOINT, deployment: undefined } } } });
   assert.equal(half.length, 2, "a checkpoint with no deployment identity is no checkpoint for this reading");
+  const asked = items([verdictOf(1), verdictOf(2)], { issue: { sessionContext: null } });
+  assert.deepEqual([...new Set(asked.map((one) => one.command))], ["forge resume ISS-8"],
+    "and the ask is not another verdict, which cannot produce the checkpoint that is missing");
 });
 
 /* The same reading inverted, which is what a promotion spends: the identity is what moves when the
@@ -137,13 +141,27 @@ test("no checkpoint means nothing names the builder or the deployment, and the c
 test("verdicts citing an identity the checkpoint no longer holds are named void", () => {
   const view = viewFrom("the-uuid", issueOf(), [mark(), comment(render("verdict", [verdictOf(1), verdictOf(2)]))],
     null, INDEPENDENT);
-  assert.deepEqual(voidedBy(CHECKPOINT, view.verdicts), [], "nothing moved, so nothing is void");
-  assert.deepEqual(voidedBy({ ...CHECKPOINT, deployment: MOVED, candidate: MOVED }, view.verdicts), [1, 2],
-    "the candidate was redeployed, so both QA verdicts are void");
+  assert.deepEqual(voidedBy(CHECKPOINT, view.verdicts, INDEPENDENT), [], "nothing moved, so nothing is void");
+  assert.deepEqual(
+    voidedBy({ ...CHECKPOINT, deployment: MOVED, candidate: MOVED }, view.verdicts, INDEPENDENT), [1, 2],
+    "the candidate was redeployed, so both QA verdicts are void",
+  );
   const builders = viewFrom("the-uuid", issueOf(),
     [mark(), comment(render("verdict", [verdictOf(1, { judge: BUILDER })]))], null, INDEPENDENT);
-  assert.deepEqual(voidedBy({ ...CHECKPOINT, deployment: MOVED }, builders.verdicts), [],
+  assert.deepEqual(voidedBy({ ...CHECKPOINT, deployment: MOVED }, builders.verdicts, INDEPENDENT), [],
     "and a verdict that was never a QA verdict is not void: it never stood");
+});
+
+/* The promotion's own fence value: a successor builder's id differs from the checkpoint's, and its
+   verdicts cite no deployment because nobody asked them to — void by every reading but the one. */
+test("a project that asked for no judge has no void verdicts to name", () => {
+  const view = viewFrom("the-uuid", issueOf(),
+    [mark(), comment(render("verdict", [verdictOf(1, { judge: "the-successor-session" })]))],
+    null, BUILDER_JUDGES);
+  assert.deepEqual(voidedBy({ ...CHECKPOINT, deployment: MOVED, candidate: MOVED }, view.verdicts, BUILDER_JUDGES),
+    [], "or a resumed builder's verdicts would refuse a promotion on a project with no QA at all");
+  assert.deepEqual(voidedBy({ ...CHECKPOINT, deployment: MOVED }, view.verdicts, null), [],
+    "and a project whose config did not answer is judged as one that decided nothing");
 });
 
 test("the problem a verdict has is one reading, so a caller outside the check reads the same answer", () => {
