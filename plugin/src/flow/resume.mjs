@@ -9,7 +9,8 @@ import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { Refused } from "../refusal.mjs";
 import { issueOf } from "./record.mjs";
-import { viewFrom } from "./earned.mjs";
+import { sizeOf, viewFrom } from "./earned.mjs";
+import { READ_OFF_THE_RECORD, indexLines, phaseIndex } from "../guides/phases.mjs";
 import { shortfall } from "./advance.mjs";
 import { owedLine, policyFor } from "./route.mjs";
 import { worklogLines } from "./worklog.mjs";
@@ -88,9 +89,23 @@ const owed = (brief, view, ref) => {
   if (brief.ahead) console.log(`\n${brief.ahead}`);
 };
 
+/* Ahead of the body, the brief and every other block, because a run handed an issue past `open`
+   redoes the phases behind it otherwise — this issue's own run replayed two of them (ISS-673). */
+const opening = (brief, view) => {
+  const index = phaseIndex({ status: brief.status, size: sizeOf(view) });
+  /* Silent where none is owed: the header carries the phase, this says what to do with the rest. */
+  if (!index.first) return;
+  console.log(READ_OFF_THE_RECORD);
+  /* One per line, because a phase's own name carries commas and a joined list reads as more. */
+  for (const one of index.passed.filter((row) => row.cites)) {
+    console.log(`  passed: ${one.phase}  —  ${one.cites}`);
+  }
+};
+
 const print = (brief, view, ref) => {
   console.log(`${ref}  ${brief.status}${brief.phase ? `  —  phase owed: ${brief.phase}` : ""}`
     + `${brief.reopens ? `  —  reopened ${brief.reopens} time(s)` : ""}`);
+  opening(brief, view);
   block("Lease", held(brief));
   block("Plan", planLines(brief, ref));
   block("Criteria", brief.criteria.map((one) => `${one.mark.padEnd(10)} ${one.number}. ${one.text}`));
@@ -102,6 +117,15 @@ const print = (brief, view, ref) => {
   console.log(`\nRead: ${brief.comments.length} comment(s) on this issue`
     + `${brief.comments.length ? `, latest ${brief.comments.at(-1).at}` : ""}.`);
   if (view.cut) console.log(`${view.cut} This brief was minted from those rows and from no others.`);
+};
+
+/* Here because the guide registry answers off disk and stays offline, and `flow/` is at its
+   ten-file ceiling; this verb already assembles the view a cut is read from. */
+export const indexFor = async (slug, ref) => {
+  const { documentId, body } = await issueOf(ref);
+  const page = await commentPage(documentId);
+  const view = viewFrom(documentId, body, page.comments, cutIn(page));
+  return indexLines(slug, ref, phaseIndex({ status: body.status, size: sizeOf(view) }));
 };
 
 const run = async (argv) => {

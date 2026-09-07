@@ -198,11 +198,14 @@ test("the slug this verb answers off disk is among the candidates", async () => 
   assert.match(run.stderr, /Did you mean: contract/u);
 });
 
+/* The route is the short set where the verb has one to name and the usage line otherwise, which is
+   `didYouMean`'s rule and not this verb's. Either way the refusal leaves somewhere to go, and
+   `--tracker` is in neither: a flag the help text withholds is withheld from a refusal too. */
 test("a flag the verb does not take is refused rather than kept", async () => {
   const run = await asked("deploy-safety", "--verbose", "yes");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No guide flag named --verbose\./u);
-  assert.match(run.stderr, /Usage: forge guide/u);
+  assert.match(run.stderr, /The set is --for\.|Usage: forge guide/u, "the refusal names a way on");
   assert.doesNotMatch(run.stderr, /--tracker/u, "and the flag no help text names is named in none");
 });
 

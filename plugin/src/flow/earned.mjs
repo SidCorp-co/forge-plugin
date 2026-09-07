@@ -148,7 +148,7 @@ const correctionsIn = (view) => (view.moved ??= view.comments
   .filter((one) => one?.kind === "correction" && !shapeGaps("correction", one, view.names).length)
   .map((one) => one.fields.moved));
 
-const sizeOf = (view) => (view.size ??= {
+export const sizeOf = (view) => (view.size ??= {
   description: unwrap(view.issue.description),
   plan: unwrap(view.issue.plan),
   moved: correctionsIn(view),

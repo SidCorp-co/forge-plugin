@@ -32,8 +32,8 @@ them out is the user's, 2026-09-04, and [*Withholding a verb*](withholding-a-ver
 
 A maintainer reviewing the table still has to read what it hides, and that read belongs under
 `forge doctor`, which is the surface for everything this copy or this credential cannot use. It is
-not there yet: `forge guide <slug> --tracker` is the escape in the meantime, documented here and
-nowhere the CLI prints, and ISS-71 holds `src/tools/doctor.mjs` — the need is filed against it.
+not there yet: the `--tracker` flag on `forge guide` is the escape in the meantime, documented here
+and nowhere the CLI prints, and ISS-71 holds `src/tools/doctor.mjs` — the need is filed against it.
 
 What is decidable by code is the slug and nothing more. `forge doctor` reports a row the tracker has
 stopped serving, and notes a guide it has started serving that no row has been read against; whether

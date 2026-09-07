@@ -27,8 +27,8 @@ because a person debugging the copy is the one reader who should carry it.
 A refusal answers what the caller named and volunteers nothing past it. Typing a gated verb still
 says which tool it needs and that this credential may not call it, because the caller has already
 spent the turn and a silent refusal costs a second one; what the refusal must not do is *describe*
-the thing — `forge guide --tracker` echoes the flag and refuses the shape, and says nowhere what
-the flag would have printed.
+the thing — asking `forge guide` for a withheld page with the `--tracker` flag echoes the flag and
+refuses the shape, and says nowhere what the flag would have printed.
 
 **A project's key and this machine's withholding are two answers to two questions, and the narrower
 one is what a caller gets.** `feedback.plugin` is the project's: whether a run working here may file
