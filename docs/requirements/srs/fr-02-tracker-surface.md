@@ -55,6 +55,8 @@ says only that the field exists.
 - **AC-02-1-7** · Rev: 2 · Proof: plugin/test/tracker/issue/fields.test.mjs "a read naming fields skips the routes those fields are not on"
   WHEN a read names fields THEN the CLI SHALL read the issue exactly once and SHALL ask only for the
   parts of it those fields are served by.
+- **AC-02-1-8** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN issues are read THEN one verb SHALL answer for many and for one, by whether a key is given.
 
 ### UC-02-2 — A read is never mistaken for complete
 
@@ -82,6 +84,12 @@ than encoded into the call, because bytes through a context window are paid for 
 - **AC-02-3-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "the tracker's own tool is judged by its action, with its arguments already parsed"
   WHEN the tracker's own tool is called THEN the CLI SHALL judge the call by the action it names
   rather than by the tool's name.
+- **AC-02-3-3** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN a field or a status is written with no entry check read THEN the CLI SHALL say so in its
+  reply and SHALL leave a correction on the record naming what was set and why.
+- **AC-02-3-4** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN an edge between two issues is written or removed THEN the CLI SHALL do it through the issue's
+  own dependency route, and the ranking SHALL read the edge it wrote.
 
 ### UC-02-4 — Everything the tracker returns is untrusted input
 
@@ -107,20 +115,25 @@ comment, and moves no status.
   IF a response status is in the retry table THEN the CLI SHALL retry to the limit, and one that is
   not SHALL cost exactly one request.
 
-### UC-02-6 — Anything not wrapped is still reachable, up to a declared edge
+### UC-02-6 — Every capability has a verb, and a verb says what it takes
 
-Rev: 2 · Actors: agent, developer · Enforces: BR-01, BR-14
+Rev: 3 · Actors: agent, developer · Enforces: BR-01, BR-14
 
-A capability the CLI does not wrap in a verb is still callable with its own payload, as far as the
-set the CLI declares it can reach; one command prints that set and another prints what a capability
-takes. A surface that hid its own edge would make every gap look like a mistake by the caller.
+Every capability of the tracker a run can need is reached through a verb, and no raw route stands
+beside the verbs: a surface an agent drives is one where a wrong form gets the verb's own answer, and
+a raw route is where a wrong form gets no answer at all. What a verb takes is asked of the verb. The
+user's decision of 2026-09-07 reversed the earlier reading, under which anything unwrapped stayed
+reachable up to a declared edge; the cost accepted is that a capability the tracker adds later needs
+a release of this product before a run can use it.
 
 - **AC-02-6-1** · Rev: 1 · Proof: plugin/test/cli/cli-help.test.mjs "every verb says what to type"
   WHEN a verb is asked what it takes THEN it SHALL answer on its own, and asking SHALL never be
   read as a failure or as the verb's argument.
-- **AC-02-6-2** · Rev: 1 · Proof: plugin/test/tracker/rest.test.mjs "is named and refused, rather than dropped between here and the tracker"
+- **AC-02-6-2** · Rev: 1 · Status: retired (ISS-681)
   IF a call carries an argument the CLI's declaration for that capability does not put on the
   request THEN the CLI SHALL send nothing at all and SHALL name that argument.
+- **AC-02-6-3** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN the surface is listed THEN no verb SHALL offer a capability by its raw name and payload.
 
 ### UC-02-7 — Which issue to work next, ranked off the record
 
@@ -138,7 +151,7 @@ issue scored, what left it out, and what one landing would free.
   the run holding it where a claim is what did.
 - **AC-02-7-3** · Rev: 1 · Proof: plugin/test/rank/score.test.mjs "every weight in the table moves the order on its own"
   WHERE two issues differ in one weighted field alone, the CLI SHALL order them by that field.
-- **AC-02-7-4** · Rev: 1 · Proof: plugin/test/rank/score.test.mjs "the band's own weight moves it, from the size mark as from the field"
+- **AC-02-7-4** · Rev: 1 · Status: retired (ISS-681)
   IF the tracker reports no size for an issue THEN the CLI SHALL take the size the body declares
   instead, and SHALL report which of the two it read.
 - **AC-02-7-5** · Rev: 1 · Proof: plugin/test/rank/next.test.mjs "a blocker prints the wave it frees, a two-deep chain as a chain"
@@ -187,14 +200,52 @@ method text and not a feature to keep.
   WHEN a run's statistics are printed THEN each form the handler read SHALL be listed with how often
   it fired.
 - **AC-02-9-8** · Rev: 1 · Proof: none yet — ISS-681
-  IF a raw call names an action a verb of the table claims THEN the CLI SHALL refuse it naming that
-  verb, for every action a row claims and not only the listing.
+  WHEN the merged mark or its undo is asked for THEN one verb SHALL be the only route to each, and no
+  other form of the surface SHALL reach either.
 - **AC-02-9-9** · Rev: 1 · Proof: none yet — ISS-681
   IF the consult verb is given a dash where it takes a path THEN it SHALL refuse in one line saying
   that its intent is read from standard input.
 - **AC-02-9-10** · Rev: 1 · Proof: none yet — ISS-681
   IF a word is neither a verb nor a form the handler reads THEN the CLI SHALL answer as it answers an
   unknown verb.
+- **AC-02-9-11** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN the usage list is printed THEN it SHALL group the verbs by what they act on, each group under
+  a heading of its own.
+- **AC-02-9-12** · Rev: 1 · Proof: none yet — ISS-681
+  WHERE a flag names a field of the tracker, it SHALL carry the tracker's own name for that field and
+  SHALL take the tracker's own values, and the CLI SHALL keep no second vocabulary for them.
+- **AC-02-9-13** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN the project's configuration is asked for THEN the verb that answers SHALL be named for
+  configuration and not for the project.
+- **AC-02-9-14** · Rev: 1 · Proof: none yet — ISS-681
+  IF a form the handler reads names a read THEN the CLI SHALL perform that read, since a read has no
+  entry check to fail.
+
+### UC-02-10 — The projects, at the plugin's own scope
+
+Rev: 1 · Actors: developer, agent · Enforces: BR-01, BR-08, BR-15
+
+Every other verb acts inside the project the checkout names, so the one verb that acts on projects
+themselves is the plugin's only global one: it lists them, makes one, reads one, changes one and
+archives one, each through the tracker's own route. Deleting a project is the one act here with
+nothing behind it, so it is not offered and the refusal names archiving (BR-15). What a project
+decides about itself — its pipeline, its facts — is written by the configuration verb, inside the
+project's scope, and each key is reported with its source (BR-08).
+
+- **AC-02-10-1** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN projects are asked for THEN one verb SHALL list them, create one, read one, update one and
+  archive one, each through the tracker's own route for that act.
+- **AC-02-10-2** · Rev: 1 · Proof: none yet — ISS-681
+  IF a project's deletion is asked for THEN the CLI SHALL refuse it and SHALL name archiving as the
+  route.
+- **AC-02-10-3** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN a key of the project's own configuration is written THEN the configuration verb SHALL write
+  it through the route of the resource that key belongs to, the pipeline configuration or the
+  project facts, and SHALL name the key it set.
+- **AC-02-10-4** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN a verb other than the projects verb reaches a resource the tracker keeps per project THEN it
+  SHALL act in the project the checkout's settings name, resolved behind the verb, and SHALL take no
+  project as an argument; a verb reaching no such resource SHALL need no project.
 
 ## Business rules enforced
 

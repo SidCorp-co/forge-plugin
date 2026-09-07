@@ -206,8 +206,8 @@ field is named and the write is where it is refused.
   IF a verdict that does not pass carries no reason THEN the CLI SHALL refuse the write naming that
   field.
 - **AC-04-8-6** · Rev: 1 · Proof: none yet — ISS-681
-  IF a body declares a size the ladder does not have THEN every route that reads the size SHALL refuse
-  the body naming the rungs.
+  IF a filing names a complexity or a category the tracker does not take THEN the CLI SHALL refuse it
+  naming the values the tracker takes.
 
 ## The way back
 
