@@ -75,8 +75,9 @@ const kindAsked = (given) => {
   if (!KIND_NAMES.includes(given)) fail(kindRefusal(given));
   if (!kinds().includes(given)) {
     fail(`This project allows ${kinds().join(", ")} on the channel to ${PROJECT}, and --kind`
-      + ` ${given} names another: feedback.plugin says which, in ${pluginChannel().from}. A note of`
-      + ` another kind belongs on this project's own backlog, where \`forge new\` files it.`);
+      + ` ${given} names another: feedback.plugin says which, in ${pluginChannel().from}. What is`
+      + ` withheld goes in this run's report, and nowhere else: a finding about ${PROJECT} is not`
+      + ` this project's issue, so filing it here would put it where nobody who owns it reads.`);
   }
   return given;
 };
