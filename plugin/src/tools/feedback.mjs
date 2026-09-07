@@ -1,5 +1,5 @@
-/* A defect in this plugin is an issue on the plugin's own project from the moment it is met, and
-   nothing goes to disk. What that replaced and why each rule below: docs/cli/feedback.md. */
+/* A defect in this plugin is an issue on the plugin's own project rather than a file, where the
+   caller's project allows the channel. What that replaced and why: docs/cli/feedback.md. */
 import { bodyFrom } from "../resolve/payload.mjs";
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { fail, keepOnFailure, projectScope, translateScope, useProject } from "../resolve/settings.mjs";
@@ -75,9 +75,8 @@ const kindAsked = (given) => {
   if (!KIND_NAMES.includes(given)) fail(kindRefusal(given));
   if (!kinds().includes(given)) {
     fail(`This project allows ${kinds().join(", ")} on the channel to ${PROJECT}, and --kind`
-      + ` ${given} names another: feedback.plugin says which, in ${pluginChannel().from}. What is`
-      + ` withheld goes in this run's report, and nowhere else: a finding about ${PROJECT} is not`
-      + ` this project's issue, so filing it here would put it where nobody who owns it reads.`);
+      + ` ${given} names another: feedback.plugin says which, in ${pluginChannel().from}.`
+      + ` What is withheld goes in this run's report.`);
   }
   return given;
 };

@@ -6,7 +6,7 @@ and no way to tell the run that wrote one what became of it. In a per-issue work
 a directory the cleanup deleted — ISS-111's note went that way on 2026-09-04, and only the run's
 hand-back saved the finding. Runs in other projects wrote into this checkout's copy, and the parent
 session spent part of every fold reading the folder and routing each note onto the issue that owned
-it by hand. So the note is an issue from the moment it is met, and nothing is written to disk.
+it by hand. So a note is an issue rather than a file, and nothing is written to disk.
 
 **The destination is held in the CLI, not read from the caller.** A note met in another repository
 has to reach this plugin's backlog, so the caller's `.forge.json` says where the note came *from*
@@ -59,8 +59,9 @@ title matched after case and spacing were normalised, before the fold above ran,
 that an exact match is a thing a caller can predict where an overlap score is not. What that bought
 was a rule with no reader: a title is one line of a note and the fold measures the whole of it
 against the whole of a neighbour, and two runs meeting one defect write the title two ways more
-often than they write it one. What it cost was a second route to remember, on the one verb whose
-whole promise is that a finding reaches the backlog whatever else is true. Title equality is now a
+often than they write it one. What it cost was a second route to remember, on the one verb that
+exists so a finding the caller's project lets through reaches a backlog rather than a
+folder. Title equality is now a
 neighbour like any other, scored with the rest (ISS-334).
 
 **A note names the issue it belongs to with `--with`.** The keys a note's own body mentions are
