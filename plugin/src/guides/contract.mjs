@@ -7,7 +7,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { bare, didYouMean } from "../suggest.mjs";
-import { methodPinned, versionDir } from "./version.mjs";
+import { methodPinned, pinRefusal, versionDir } from "./version.mjs";
 
 /** The contract this build reads and stamps on every record; another number is two versions in one. */
 export const CONTRACT = 1;
@@ -120,6 +120,9 @@ export const contractAnswer = ({ part = null, tracker = false, extra = [], root 
     return { refusal: `${SLUG} takes one part, not \`${[part, ...extra].join(" ")}\`.`
       + ` \`forge guide ${SLUG}\` lists them.` };
   }
+  /* The pin before the file: an absent `v7/` is a chosen number, not a copy that lost its rules. */
+  const pinned = pinRefusal();
+  if (pinned) return { refusal: pinned };
   const text = readContract(root);
   const wrong = contractProblems({ text, path: contractPath(root) });
   if (wrong.length) return { refusal: `${wrong[0]}. \`forge doctor\` reports which copy is running.` };

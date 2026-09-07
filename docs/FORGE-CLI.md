@@ -13,6 +13,7 @@ needs that topic and by nobody else.
 | [the way in](cli/the-way-in.md) | Why `-h` is intercepted before the verb, answers on stdout, and carries the tracker's write-time rules in the binary. |
 | [what the projections leave out](cli/the-projections.md) | Which fields the browse and issue projections drop, and why no local copy of a name the server publishes is kept. |
 | [the guides](cli/the-guides.md) | Why seven of the twelve guides the tracker serves are withheld, and what the disposition table still decides. |
+| [the parts](cli/the-parts.md) | Which version a call is served, how a block one project loses is fenced once, and why a phase is a number. |
 | [`new`](cli/new.md) | What a title and a body are read against before the tracker sees them, the value a filing nobody ranked carries, the keys a body names and the three flags that take a filing the shape refuses. |
 | [`the-kinds`](cli/the-kinds.md) | Why a filing has to name a kind, what the four are, which sections each one's body owes and how the set was measured. |
 | [`record`](cli/record.md) | Why the CLI owns every payload's shape, which two flags are read off the record, and what a record cannot undo. |

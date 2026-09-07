@@ -5,9 +5,11 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { feedbackScope } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { SLUG as CONTRACT_SLUG, partFor, partsOf, readContract } from "./contract.mjs";
-import { methodPinned, versionDir } from "./version.mjs";
+import { phasesOf, render } from "./render.mjs";
+import { SHIPPED, methodPinned, pinRefusal, versionDir } from "./version.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const WITHIN = join("guides", "skills");
@@ -25,9 +27,18 @@ const namesIn = (dir) => (existsSync(dir)
 /* Two roots, because one number pins the method and nothing else: the versioned root holds what a
    project's `method` chooses between, the plain one every skill no version judges. A slug in both is
    served versioned; `bodyPathsOf` reads the tree whole, for a check owed to it rather than to a pin. */
-const homeOf = (slug, root, version) =>
-  [join(root, "guides", versionDir(version), "skills"), join(root, WITHIN)]
-    .find((one) => existsSync(join(one, slug))) ?? join(root, WITHIN);
+const servedFrom = (slug, root, version) => {
+  const dir = join(root, "guides", versionDir(version), "skills");
+  return existsSync(join(dir, slug)) ? { dir, version } : { dir: join(root, WITHIN), version: null };
+};
+
+const homeOf = (slug, root, version) => servedFrom(slug, root, version).dir;
+
+/* Asked of the versions this copy stands behind, never of the pin: docs/cli/the-parts.md. */
+const isVersioned = (slug, root) =>
+  SHIPPED.some((one) => existsSync(join(root, "guides", versionDir(one), "skills", slug)));
+
+const pinProblem = (slug, root) => (isVersioned(slug, root) ? pinRefusal() : null);
 
 /* Every shipped version's root and the plain one, so the listing is one set whatever a project pins;
    exported because two scripts walk skill text and would each carry this shape. Newest version
@@ -64,6 +75,8 @@ const INLINE = (slug) => `The ${slug} skill's method is its SKILL.md, loaded wit
 
 /** The line `forge guide` prints for a skill: what it is, and the command that reads it. */
 export const skillListingRow = (slug, root = HERE) => {
+  const held = pinProblem(slug, root);
+  if (held) return `${slug}\n  ${held}`;
   const count = `${referencesOf(slug, root).length} reference(s)`;
   if (!hasBody(slug, root)) {
     return `${slug}\n  the ${slug} skill's references, this copy's own: \`forge guide ${slug} <reference>\` prints one of its ${count}`;
@@ -81,7 +94,22 @@ const referenceLines = (slug, root) => {
     `  ${one.padEnd(width)}  ${String(sizeOf(join(dir, `${one}.md`))).padStart(6)}`)];
 };
 
-/** The answer shape `contractAnswer` gives, for one skill: the body, one reference, or a refusal. */
+const read = (path) => readFileSync(path, "utf8").replace(/\s+$/u, "");
+
+const versionLine = (version) =>
+  `Method version ${version}, which this project runs; \`forge doctor\` names its source.`;
+
+/* One entry per answer this CLI can give about the project it stands in. */
+const conditions = () => ({ "feedback.plugin": feedbackScope().plugin.value });
+
+const served = (slug, text, tail) => {
+  const { text: out, problems } = render(text, conditions());
+  if (problems.length) return { refusal: `${slug}'s served text is marked wrong — ${problems[0]}` };
+  return { lines: [out, ...tail] };
+};
+
+/** The answer shape `contractAnswer` gives, for one skill: the body, one reference, one numbered
+ *  phase of the method, or a refusal. A part served out of a version directory ends by naming it. */
 export const skillGuideAnswer = (slug, root = HERE) => ({ part = null, tracker = false, extra = [] } = {}) => {
   if (tracker) {
     return { refusal: `--tracker does not apply to ${slug}, which is this plugin's own, not the tracker's.`
@@ -91,16 +119,22 @@ export const skillGuideAnswer = (slug, root = HERE) => ({ part = null, tracker =
     return { refusal: `${slug} takes one reference, not \`${[part, ...extra].join(" ")}\`.`
       + ` \`forge guide ${slug}\` lists them.` };
   }
-  const dir = join(homeOf(slug, root, methodPinned().value), slug);
-  if (!part) {
-    const body = hasBody(slug, root) ? readFileSync(join(dir, BODY), "utf8").replace(/\s+$/u, "") : INLINE(slug);
-    return { lines: [body, ...referenceLines(slug, root)] };
-  }
-  if (referencesOf(slug, root).includes(part)) {
-    return { lines: [readFileSync(join(dir, REFERENCES, `${part}.md`), "utf8").replace(/\s+$/u, "")] };
-  }
-  return { refusal: didYouMean(`guide ${slug}`, part, referencesOf(slug, root),
-    `\`forge guide ${slug}\` lists every reference.`) };
+  const held = pinProblem(slug, root);
+  if (held) return { refusal: held };
+  const { dir: home, version } = servedFrom(slug, root, methodPinned().value);
+  const dir = join(home, slug);
+  const tail = version === null ? [] : ["", versionLine(version)];
+  const body = hasBody(slug, root) ? read(join(dir, BODY)) : null;
+  if (!part) return served(slug, body ?? INLINE(slug), [...referenceLines(slug, root), ...tail]);
+  const names = referencesOf(slug, root);
+  if (names.includes(part)) return served(slug, read(join(dir, REFERENCES, `${part}.md`)), tail);
+  const phases = body === null ? [] : phasesOf(body);
+  const phase = phases.find((one) => one.number === String(part));
+  if (phase) return served(slug, phase.text, tail);
+  return { refusal: didYouMean(`guide ${slug}`, part, [...names, ...phases.map((one) => one.number)],
+    phases.length
+      ? `\`forge guide ${slug}\` lists every reference, and each phase of the method is its number.`
+      : `\`forge guide ${slug}\` lists every reference.`) };
 };
 
 const CITATION = /`forge guide ([a-z][a-z0-9-]*) ([a-z][a-z0-9-]*)`/gu;
