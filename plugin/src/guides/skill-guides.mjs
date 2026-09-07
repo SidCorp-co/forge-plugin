@@ -5,7 +5,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { feedbackScope } from "../resolve/settings.mjs";
+import { FEEDBACK_CHANNELS, feedbackScope } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { SLUG as CONTRACT_SLUG, partFor, partsOf, readContract } from "./contract.mjs";
 import { phasesOf, render } from "./render.mjs";
@@ -99,8 +99,10 @@ const read = (path) => readFileSync(path, "utf8").replace(/\s+$/u, "");
 const versionLine = (version) =>
   `Method version ${version}, which this project runs; \`forge doctor\` names its source.`;
 
-/* One entry per answer this CLI can give about the project it stands in. */
-const conditions = () => ({ "feedback.plugin": feedbackScope().plugin.value });
+/* One entry per answer this CLI can give here, each declaring the domain off that key's own list. */
+const conditions = () => ({
+  "feedback.plugin": { value: feedbackScope().plugin.value, allowed: FEEDBACK_CHANNELS },
+});
 
 const served = (slug, text, tail) => {
   const { text: out, problems } = render(text, conditions());
