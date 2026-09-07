@@ -34,8 +34,9 @@ import { actionIn, callable, helpOf, isGated, refuseIfGated, usageOf, wrappedRef
 import { didYouMean, unknownFlag } from "./suggest.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "./resolve/flags.mjs";
 import { LOCAL_ROWS, LOCAL_SLUGS, dispositionOf, localGuide, trackerHeader, visibleGuides } from "./guides/guides.mjs";
-import { briefLines, confirmSource, projectLines, readBrief, refreshBrief, releasePolicy,
+import { briefGoals, briefLines, confirmSource, projectLines, readBrief, refreshBrief, releasePolicy,
   replaceBriefLine, stagingDeploy } from "./tracker/project-config.mjs";
+import { goalBlock, servesIn, servesRefusal } from "./goals.mjs";
 import { doctor } from "./tools/doctor.mjs";
 import { deps } from "./tools/deps.mjs";
 import { next } from "./rank/next.mjs";
@@ -143,7 +144,8 @@ const ATTACH_TARGETS = ["issue", "comment"];
 
 /* Longer than the row it comes from, because what a body is read against depends on the kind it
    names, and the table of that is the kinds' own. */
-const NEW_USAGE = `${helpOf("new")}\n\n${BESIDE_HELP}\n\n${PRIORITY_HELP}\n\n${KINDS_HELP}`;
+const newUsage = (goals) => [helpOf("new"), BESIDE_HELP, PRIORITY_HELP,
+  goalBlock(goals, "A body filed here").join("\n"), KINDS_HELP].join("\n\n");
 
 /* Its own, rather than the row's, for the reason `new` keeps one: the dozen lines below are what a
    row cannot hold. A row's blurb is one line, and a reader who has to be told what a `stale:` line
@@ -310,7 +312,7 @@ export const commands = {
   /* `open` marks the active set; `draft` never dispatches. A filing is read before it is made,
      because the flow costs the same for one line as for a feature: how/issue-shape.md. */
   new: async (argv) => {
-    if (wantsHelp(argv)) return console.log(NEW_USAGE);
+    if (wantsHelp(argv)) return console.log(newUsage(await briefGoals()));
     const [path, ...rest] = argv;
     if (!path) fail(usageOf("new"));
     const row = { usage: usageOf("new"), hidden: INSTEAD_FLAGS };
@@ -341,6 +343,8 @@ export const commands = {
     /* Registered the moment there is something to lose, and only then: a body from a file is on
        disk, and one from stdin cannot be sent a second time. */
     if (path === "-") keepOnFailure(`Your body, so that nothing here loses it:\n\n${body}`);
+    const unnamed = servesRefusal(servesIn(body), await briefGoals(), "This body's `Serves:` line");
+    if (unnamed) fail(unnamed);
     const { title, ...carried } = given;
     return fileAndSay({
       title,

@@ -1,6 +1,6 @@
 /* The retired names, held once so a sentence naming a verb that no longer runs fails something. An
    entry names no replacement: pointing at what took over is the redirect docs/cli/withholding-a-verb.md forbids. */
-import { lineAt } from "../line-at.mjs";
+import { lineAt } from "../markdown.mjs";
 import { RECORDS_RATHER_THAN_INSTRUCTS } from "./doc-shape.mjs";
 import { RETIRING } from "../resolve/retiring.mjs";
 

@@ -4,8 +4,7 @@
    real path — a file named from further up, which this tree writes in a dozen places. */
 import { posix } from "node:path";
 
-import { lineAt } from "../line-at.mjs";
-import { LINK_TARGET_PATTERN } from "../markdown.mjs";
+import { LINK_TARGET_PATTERN, lineAt } from "../markdown.mjs";
 
 const SOURCE = "(?:mjs|cjs|js|[jt]sx?|json|md|sql|ya?ml|sh|py|toml)";
 const SEGMENT = "[\\w.@-]+";

@@ -42,9 +42,11 @@ posted with its evidence before the wave moves on. The kinds, what each is earne
 disposition takes without a lease: `forge guide dispatch dispositions`.
 
 A candidate that survives triage gets one line recorded on it: the head it was judged against, the
-issue's own last-modified stamp, and the dependency state at that moment. Those three are what the
-executor re-triages on — any of them moving means the recommendation was made against a tree that no
-longer exists.
+issue's own last-modified stamp, the dependency state at that moment, and the goal the filing says
+it serves. The first three are what the executor re-triages on — any of them moving means the
+recommendation was made against a tree that no longer exists. The fourth is read off the filing and
+never invented here, so the fold can say what the wave served and how much of it served nothing
+stated.
 
 A candidate too big for one run is split before it is dispatched.
 

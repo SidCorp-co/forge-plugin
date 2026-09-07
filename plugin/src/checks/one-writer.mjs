@@ -1,6 +1,6 @@
 /* One place writes each shape on the issues tool: the filing interface creates (docs/cli/filing.md)
    and the field writer updates. One module because this directory is at the folder-width limit. */
-import { lineAt } from "../line-at.mjs";
+import { lineAt } from "../markdown.mjs";
 
 export const TOOL = "forge_issues";
 

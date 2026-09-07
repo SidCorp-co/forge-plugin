@@ -8,6 +8,8 @@ import { agentOf } from "../flow/lease.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { documentIdOf, shortOf } from "../tracker/issues.mjs";
 import { liveTitles } from "../tracker/issue-shape.mjs";
+import { briefGoals } from "../tracker/project-config.mjs";
+import { goalBlock, servesIn, servesRefusal } from "../goals.mjs";
 import { bodyOf, keysFrom } from "../tracker/filing/route.mjs";
 import { fileAndSay } from "../tracker/filing/say.mjs";
 
@@ -62,9 +64,19 @@ const whereSection = () => {
 
 const lost = (what, refused) => fail(`${PROJECT} refused ${what}: ${refused}`);
 
+/* Aimed in both routes: the goal list a note answers to is the destination's, not the caller's. */
+const aimed = () => useProject({ slug: PROJECT, from: "the CLI, for feedback on this plugin" });
+
+/* The tree here is the caller's rows and a note goes elsewhere: it answers only where both are one. */
+const asksTree = () => projectScope().value === PROJECT;
+
 /** `forge feedback <file.md|@file|-> --title T`. */
 export const feedback = async (argv) => {
-  if (wantsHelp(argv)) return console.log(USAGE);
+  if (wantsHelp(argv)) {
+    aimed();
+    const said = goalBlock(await briefGoals(), "A note filed here", asksTree());
+    return console.log([USAGE, said.join("\n")].join("\n\n"));
+  }
   const [path, ...rest] = argv;
   if (!path) fail(usageOf("feedback"));
   const { title, new: fresh, with: rides, ...extra } = flags(rest, "feedback", ["--new"]);
@@ -88,7 +100,10 @@ export const feedback = async (argv) => {
   if (read.refusal) fail(read.refusal.text);
   keep(read.description);
   /* Before the first call: everything below reaches the plugin's project, in its language. */
-  useProject({ slug: PROJECT, from: "the CLI, for feedback on this plugin" });
+  aimed();
+  const unnamed = servesRefusal(servesIn(read.description), await briefGoals(),
+    "This note's `Serves:` line", asksTree());
+  if (unnamed) fail(unnamed);
   /* After the project is aimed, and not before: a key names an issue of the plugin's backlog, and
      the same key resolved against the caller's project would relate somebody else's issue. */
   const relations = withKeys.length

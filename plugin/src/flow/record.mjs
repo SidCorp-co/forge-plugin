@@ -15,7 +15,8 @@ import {
   TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadAll,
 } from "../tracker/evidence.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
-import { releaseLine, releasePolicy } from "../tracker/project-config.mjs";
+import { briefGoals, releaseLine, releasePolicy } from "../tracker/project-config.mjs";
+import { NONE_STATED, servesRefusal } from "../goals.mjs";
 import { sizeFrom } from "../ladder.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { capsOf, writeField } from "../tracker/field-write.mjs";
@@ -290,6 +291,20 @@ const derive = async (kind, blocks, body) => {
   if (held) for (const got of blocks) Object.assign(got, held);
 };
 
+const SERVES = "serves";
+
+/* Absent, it is written *none stated*: a goal nobody asked for and none named read alike without. */
+const servesChecked = async (kind, blocks) => {
+  if (!SHAPES[kind].fields.some((one) => one.flag === SERVES)) return;
+  const given = [...new Set(blocks.map((one) => one[SERVES]).filter((one) => one !== undefined))];
+  if (!given.length) {
+    for (const got of blocks) got[SERVES] = NONE_STATED;
+    return;
+  }
+  const bad = servesRefusal(given, await briefGoals(), `This ${kind} record`);
+  if (bad) refuse(bad);
+};
+
 /* Split by the rule `groupsIn` splits the payload by, so one call writes what the reader hands back
    as several records: one commit and one evidence set over fourteen criteria. */
 export const blocksIn = (argv, per) => {
@@ -377,6 +392,7 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
     if (bad) refuse(bad);
   }
   await derive(kind, blocks, body);
+  await servesChecked(kind, blocks);
   quoteCriteria(kind, blocks, body, reference);
   const stamp = shape.stamp ? String(body[shape.stamp.from ?? "status"] ?? "") : null;
   /* Asked here as well as in `post`, because a record that cannot be posted must not leave its
@@ -572,11 +588,11 @@ const pullRun = (argv) => {
 };
 
 const run = async ([kind, reference, ...argv]) => {
-  if (!kind || wantsHelp([kind])) return console.log(usage(await capsOf()));
+  if (!kind || wantsHelp([kind])) return console.log(usage(await capsOf(), await briefGoals()));
   if (!KINDS.includes(kind)) refuse(`record knows no kind \`${kind}\`. Kinds: ${KINDS.join(", ")}.`);
   /* `record` answers its own help, so cli.mjs hands the whole tail over and `-h` in the reference
      position was spent as an issue key — the one flag its own refusal could not answer for. */
-  if (wantsHelp([reference])) return console.log(kindHelp(kind, await capsOf()));
+  if (wantsHelp([reference])) return console.log(kindHelp(kind, await capsOf(), await briefGoals()));
   if (!reference) refuse(USAGE.split("\n")[0]);
   const { next, patch, asked, rest } = pullRun(argv);
   const run = { next, patch };

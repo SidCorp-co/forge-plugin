@@ -7,11 +7,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { once } from "../resolve/config.mjs";
-import { fail, keepOnFailure, projectRoot, slugIfAny } from "../resolve/settings.mjs";
+import { accountCredentials, fail, keepOnFailure, projectRoot, slugIfAny }
+  from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { citedIn } from "../checks/cited-paths.mjs";
 import { CODE_SPAN_PATTERN } from "../markdown.mjs";
+import { SOURCE_MARK, WHY, goalLine, goalsIn } from "../goals.mjs";
 import { BRIEF_SLUG, metaFrom, same, softEntryAt, upsertEntry, wroteLines }
   from "../tools/knowledge.mjs";
 import { scoped } from "./rpc.mjs";
@@ -193,7 +195,6 @@ export const leakRefusal = (found, what) =>
 const BRIEF_KIND = "overview";
 /* Not a flag: a brief nobody injects is one a run still has to ask for, the call it exists to remove. */
 const BRIEF_INJECTION = "always";
-const SOURCE_MARK = "←";
 const DIGESTS = "digests";
 const DIGEST_WIDTH = 16;
 const SPANNED = new RegExp(CODE_SPAN_PATTERN, "gu");
@@ -279,7 +280,7 @@ export const briefLines = (read) => {
   const digests = read.entry.metadata?.[DIGESTS] ?? {};
   const { gone, moved } = staleIn(digests);
   const out = [`project brief  ← the knowledge store, slug ${BRIEF_SLUG}, `
-    + `written ${(read.entry.updatedAt ?? "").slice(0, 10)}`];
+    + `written ${(read.entry.updatedAt ?? "").slice(0, 10)}`, goalLine(goalsIn(read.entry.body))];
   if (!Object.keys(digests).length) out.push(NO_SOURCES);
   if (moved.length) {
     out.push(`  stale: ${moved.join(", ")} — moved since the brief was read. Judge the lines naming `
@@ -293,6 +294,16 @@ export const briefLines = (read) => {
 };
 
 export const readBrief = async () => (slugIfAny() ? softEntryAt(BRIEF_SLUG) : null);
+
+/** Not memoised: the store's answer is one project's, and `forge feedback` re-aims the scope. */
+export const briefGoals = async () => {
+  const { url, token } = accountCredentials();
+  if (!url.value || !token.value) return { goals: [], why: WHY.endpoint };
+  const read = await readBrief();
+  if (!read) return { goals: [], why: WHY.aimed };
+  if (read.refused) return { goals: [], why: WHY.unread };
+  return read.entry ? goalsIn(read.entry.body) : { goals: [], why: WHY.stored };
+};
 
 /** One call, so no hash is freshened without a body passing through the caller's hands — which is
  *  not proof it was corrected. docs/cli/the-brief.md states that edge. */

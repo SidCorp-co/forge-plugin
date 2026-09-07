@@ -34,7 +34,6 @@ const SHELL = "plugin/src/hooks/shell-spans.mjs";
 const SSE = "plugin/src/sse.mjs";
 const RPC = "plugin/src/tracker/rpc.mjs";
 const HELP_WORD = "plugin/src/resolve/help-word.mjs";
-const LINE_AT = "plugin/src/line-at.mjs";
 const LOG_READS = "plugin/src/hooks/log-reads.mjs";
 const SPEC_PARSE = "plugin/src/spec/parse.mjs";
 const CANONICAL = "plugin/src/resolve/canonical.mjs";
@@ -121,7 +120,7 @@ const NEEDLES = [
   ["an SSE frame reader", SSE, SSE_NEEDLES],
   ["the untrusted-data fence", RPC, [FENCE_WORD]],
   ["the help predicate", HELP_WORD, HELP_FORMS],
-  ["a line number from an index", LINE_AT, LINE_AT_FORMS, WHOLE_TEXT],
+  ["a line number from an index", MARKDOWN, LINE_AT_FORMS, WHOLE_TEXT],
   ["a log's name", LOG_READS, LOG_FORMS],
   ["the tree's document grammar", SPEC_PARSE, SPEC_FORMS],
   ["a path's canonical form", CANONICAL, [CANONICAL_FORM], OWN_FALLBACK],
@@ -154,7 +153,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [SHELL, SSE, RPC, HELP_WORD, LINE_AT, LOG_READS, MEDIAN, JSONL, DOC_SHAPE]) {
+  for (const home of [MARKDOWN, SHELL, SSE, RPC, HELP_WORD, LOG_READS, MEDIAN, JSONL, DOC_SHAPE]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -204,8 +203,8 @@ test("the guard fires on a module that re-declares one", () => {
     `j.mjs declares the untrusted-data fence of its own; ${RPC} holds it`,
     `m.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
     `n.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
-    `o.mjs declares a line number from an index of its own; ${LINE_AT} holds it`,
-    `p.mjs declares a line number from an index of its own; ${LINE_AT} holds it`,
+    `o.mjs declares a line number from an index of its own; ${MARKDOWN} holds it`,
+    `p.mjs declares a line number from an index of its own; ${MARKDOWN} holds it`,
     `q.mjs declares the tree's document grammar of its own; ${SPEC_PARSE} holds it`,
     `r.mjs declares the tree's document grammar of its own; ${SPEC_PARSE} holds it`,
     `s.mjs declares a path's canonical form of its own; ${CANONICAL} holds it`,

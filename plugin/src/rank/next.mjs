@@ -8,6 +8,7 @@ import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs"
 import { asksOf } from "../tracker/issue-shape.mjs";
 import { rootFor } from "../stats/transcripts.mjs";
 import { markedIn } from "../ladder.mjs";
+import { servesIn } from "../goals.mjs";
 import { batchesOf } from "./batch.mjs";
 import { candidateLines, droppedLine, HEAD } from "./print.mjs";
 import { carriersOf, graphOf } from "../tools/deps.mjs";
@@ -28,7 +29,8 @@ const usageLines = (weights) => [
   "nothing written. Eligibility first, then the score, then the batches that ride together.",
   "",
   "  --count n        how many candidates print; 5 unless you say otherwise",
-  "  --why            the breakdown per issue, one line of weights and one of signals",
+  "  --why            the breakdown per issue: one line of weights, one of signals, and the goal its",
+  "                   body says it serves, which is read and printed and weighs nothing",
   "  --json           the whole table, for whatever dispatches on it",
   "  --holding ISS-nn an issue a run already holds; a candidate naming a file its plan names is set",
   "                   aside, and the line says which file and which issue",
@@ -258,6 +260,7 @@ export const next = async (argv) => {
       read,
       relates: (body?.relations?.relates ?? []).flatMap((other) => keysIn(other?.issueId ?? other)),
       cost: costFor(score.band, runs, bands),
+      serves: body?.serves ?? [],
       restart: owesRestart(text),
       warm: isWarm(text, warmPaths) ? (pathsNamed(text)[0] ?? "the tree") : null,
       ...verdict,
@@ -277,7 +280,8 @@ export const next = async (argv) => {
     const take = unread.slice(0, Math.min(weights.windowCap, weights.readCap - cursor));
     if (!take.length) break;
     for (const [key, body] of await bodiesFor(take)) {
-      bodies.set(key, { ...body, marked: markedIn(body?.description ?? "") });
+      bodies.set(key, { ...body, marked: markedIn(body?.description ?? ""),
+        serves: servesIn(body?.description ?? "") });
     }
     for (const one of take) {
       edges += withRelations(blocks, blockedBy, { ...bodies.get(one.issueId), issueId: one.issueId });

@@ -1,5 +1,7 @@
 /* What the rank looks like on a terminal: one row per candidate, its batch under it, the wave it
    frees, and the issues a filter dropped with the filter that did it. */
+import { servesSaid } from "../goals.mjs";
+
 const KEY = 8;
 const TITLE = 96;
 
@@ -45,6 +47,13 @@ const signalLine = (candidate) => {
   return `  signal ${said.join(" · ")}`;
 };
 
+/* Its own line, under both: a `Serves:` is neither a weight nor a signal, and this issue moved no
+   weight, so a goal printed inside either line would read as a number the score used. */
+const servesLine = (candidate) =>
+  `  serves ${candidate.read
+    ? servesSaid(candidate.serves)
+    : "unknown — this candidate's body was not read at this depth"}`;
+
 const memberLine = (member) =>
   `  + ${member.issueId.padEnd(KEY)} ${member.said.padEnd(44)} ${cut(member.row.title, TITLE)}`;
 
@@ -71,7 +80,7 @@ export const droppedLine = (one) =>
 /** Every line of one candidate, so the caller composes the answer out of whole candidates. */
 export const candidateLines = (batch, { why = false } = {}) => [
   headRow(batch.head),
-  ...(why ? [whyLine(batch.head), signalLine(batch.head)] : []),
+  ...(why ? [whyLine(batch.head), signalLine(batch.head), servesLine(batch.head)] : []),
   ...batch.members.map(memberLine),
   ...batch.aside.map(asideLine),
   ...(hasWave(batch.wave) ? [unblocksLine(batch.wave)] : []),

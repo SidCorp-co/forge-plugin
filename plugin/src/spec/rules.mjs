@@ -3,8 +3,7 @@
    `docs/requirements/README.md` and named by its number here, so the finding a developer reads
    sends them to the one place the rule is written. Nothing here opens a file — `tree.mjs` is the
    one module that touches the checkout — which is why a fixture proves each of these. */
-import { lineAt } from "../line-at.mjs";
-import { TABLE_ROW_PATTERN, TABLE_SEPARATOR_PATTERN, withoutSpans } from "../markdown.mjs";
+import { TABLE_ROW_PATTERN, TABLE_SEPARATOR_PATTERN, lineAt, withoutSpans } from "../markdown.mjs";
 import { identifiersIn } from "./parse.mjs";
 import { lookup } from "./index.mjs";
 

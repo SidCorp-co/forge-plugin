@@ -18,6 +18,10 @@ command list.
 
 One line per item, carrying where it was read:
 
+- **What the project is for**, one identifier per goal. Where it keeps a requirements tree the line
+  cites the clause that states the goal; where it keeps none the identifier is the brief's own. This
+  is the line a decision and a filing name, so a run that finds it unstated writes back what it
+  found rather than deciding cause-or-surface on its own taste.
 - How to build, test and lint, and which of those the project treats as the gate.
 - How to run something locally, and whether the project provides that.
 - **How a change reaches the default branch, and how it reaches production**: review, gates, merge

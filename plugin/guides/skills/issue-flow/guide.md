@@ -53,6 +53,12 @@ this phase establishes with where it was read. A line reading *not stated*, or a
 `stale:` line says has moved, is discovered by hand: `forge guide issue-flow project-discovery`,
 which is the whole of this phase where a project has no brief yet.
 
+**The brief's goal line is read here too**, and it is what *cause or surface* is later judged
+against: a run deciding how far to fix something has the project's own goals to answer to rather
+than its own taste. One identifier per goal, from the brief's *What this project is for* section,
+and *not stated* is a line to discover by hand like any other. Every project's list is its own, and
+it is the list a `Serves:` names.
+
 **The deploy lines end with the credential one**, *test credentials: present* or *none*, and it is
 read here rather than at Phase 7. A screen is proved by a rendered state and a login is what reaches
 one on a deployed host, so a *none* found now is a shortfall a run can still do something about,
@@ -103,6 +109,13 @@ one member is one change wearing several keys.
 Take the reading that is cheaper to reverse, write the assumption into the decision record with the
 line that would undo it, and carry on. Ask only when reversing would mean unpicking work rather than
 changing a value: a package boundary, a wire format, a decision others are made against.
+
+**The decision record names the goal it serves**, one of the identifiers Phase 0 read off the brief
+or a clause this project's tree resolves, the way `Size:` names a tier. It is what separates a fix
+of the cause from a fix of the surface at the moment the choice is made rather than in a review of
+fifty issues afterwards, and *none stated* is legal and visible: nothing here is refused for serving
+no goal, and a run that keeps writing *none stated* is telling whoever reads the backlog something
+about the brief.
 
 When you must ask, enumerate the readings as concrete cases with the outcome each produces, so the
 person chooses between visible results: `forge record question -h`. Then park it with kind

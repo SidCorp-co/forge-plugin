@@ -1,7 +1,7 @@
 /* R-10's record and the findings over it: what the tree owes the file, what its absence costs, and
    which citation is stale and which suspect. The rule is `docs/requirements/README.md`'s, the digest
    `parse.mjs`'s, and no file is opened here, so a fixture proves each of these. */
-import { lineAt } from "../line-at.mjs";
+import { lineAt } from "../markdown.mjs";
 import { KIND, identifiersIn } from "./parse.mjs";
 import { revisionFix } from "./citation.mjs";
 import { finding } from "./rules.mjs";

@@ -4,6 +4,7 @@
    is at its file limit. */
 import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES } from "../flow/machine.mjs";
 import { DECLARES } from "../tracker/rest.mjs";
+import { goalBlock } from "../goals.mjs";
 import { OPEN_KEPT } from "../flow/worklog.mjs";
 import { usageOf } from "./visibility.mjs";
 
@@ -23,7 +24,7 @@ const VALUES = 19;
 
 export const kindRows = (caps) => [
   "  confirmation --where W... --is I --finding F [--detail D]   F: " + FINDINGS.join("|"),
-  "  decision     --decision \"reading | assumption | undo\"... | --none <why>",
+  "  decision     --decision \"reading | assumption | undo\"... | --none <why>  [--serves G]",
   "  question     --reading \"reading -> outcome\" (two or more) [--to who]",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W                                a plan or criteria change after approval",
@@ -69,7 +70,15 @@ const CRITERION_BLOCKS = [
   "back as the record a single write makes, so nothing downstream can tell one write from three.",
 ];
 
-export const usage = (caps = {}) => {
+const SERVES_KINDS = Object.entries(SHAPES)
+  .filter(([, shape]) => shape.fields.some((one) => one.flag === "serves"))
+  .map(([kind]) => kind);
+
+const servesBlocks = (goals) => (goals
+  ? goalBlock(goals, `A \`${SERVES_KINDS.join("` or a `")}\` record`)
+  : []);
+
+export const usage = (caps = {}, goals = null) => {
   const rows = kindRows(caps);
   return [
     usageOf("record"),
@@ -81,6 +90,7 @@ export const usage = (caps = {}) => {
     ...(rows.some((row) => HAS_CAP.test(row)) ? [...CAP_LEGEND, ""] : []),
     ...CRITERION_BLOCKS,
     "",
+    ...(goals ? [...servesBlocks(goals), ""] : []),
     "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
     "  --pushed        the branch, head, base and files touched, read from git at this moment",
     "  --review        the last codex consult, its findings and what it owes, read from the log now",
@@ -109,7 +119,7 @@ export const USAGE = usage();
 
 const rowFor = (kind, caps) => kindRows(caps).find((row) => new RegExp(`^ {2}${kind}\\b`, "u").test(row));
 
-export const kindHelp = (kind, caps = {}) => {
+export const kindHelp = (kind, caps = {}, goals = null) => {
   const row = rowFor(kind, caps) ?? `  ${kind}`;
   return [
     usageOf("record").replace("<kind>", kind),
@@ -117,6 +127,7 @@ export const kindHelp = (kind, caps = {}) => {
     row,
     ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
     ...(kind === "plan" ? ["", ...PLAN_BLOCKS] : []),
+    ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
     ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
     "",
     "The flags every writing kind also takes, what counts as evidence, and the other "

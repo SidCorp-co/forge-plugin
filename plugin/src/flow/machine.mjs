@@ -483,7 +483,8 @@ export const SHAPES = {
   },
   decision: {
     heading: "Decision record",
-    fields: [FIELD("decision", "Decision", { many: true, least: 0 }), FIELD("none", "None found", { optional: true })],
+    fields: [FIELD("decision", "Decision", { many: true, least: 0 }),
+      FIELD("none", "None found", { optional: true }), FIELD("serves", "Serves", { optional: true })],
     check: (got) => {
       if (!got.decision.length && !got.none) return "--decision (repeatable) or --none <why>";
       return null;

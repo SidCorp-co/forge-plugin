@@ -4,6 +4,7 @@
    each rung is for and what it may not buy: `forge guide contract`. Why a doubtful reading resolves
    upward, here and in every function below: docs/cli/the-ladder.md. */
 import { looksTo, planFlags } from "./flow/machine.mjs";
+import { withoutExamples } from "./markdown.mjs";
 
 export const TIERS = ["trivial", "fix", "feature"];
 const [TRIVIAL, FIX] = TIERS;
@@ -16,12 +17,6 @@ const ASKS = /size:/iu;
 
 export const MARK_LINE = new RegExp(String.raw`^[ \t]*size:[ \t]*(?:${TIERS.join("|")})\.?[ \t]*$`, "gimu");
 
-/* A mark inside an example is not a mark, and not a doubt either: docs/cli/the-ladder.md. */
-const EXAMPLE = new RegExp([
-  String.raw`^[ \t]*(?<wall>(?<bar>\x60|~)\k<bar>{2,})[^\n]*\n[\s\S]*?(?:^[ \t]*\k<wall>\k<bar>*[ \t]*$|$(?![\s\S]))`,
-  String.raw`^(?: {4}|\t)[^\n]*$`,
-].join("|"), "gmu");
-const prose = (text) => String(text ?? "").replaceAll(EXAMPLE, "");
 
 /* `highest` is the heaviest of a list, the rule wherever two sources or two issues each claim a rung; the empty list is the caller's answer to give, since *no rung* is `null` to a body and a word of its own to a run. And null, not the top rung, is what a body carrying `Size: feature.` is told apart from by one carrying no mark. */
 export const highest = (rungs) => TIERS[Math.max(...rungs.map(heightOf))];
@@ -29,7 +24,7 @@ export const highest = (rungs) => TIERS[Math.max(...rungs.map(heightOf))];
 export const markedIn = (description) => {
   const text = String(description ?? "");
   if (!ASKS.test(text)) return null;
-  const found = [...prose(text).matchAll(MARKED)].map((one) => one[1].toLowerCase());
+  const found = [...withoutExamples(text).matchAll(MARKED)].map((one) => one[1].toLowerCase());
   return found.length ? highest(found) : null;
 };
 
