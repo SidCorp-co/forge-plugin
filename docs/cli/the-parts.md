@@ -37,17 +37,37 @@ the method text every time somebody maintains it in exchange for a rendering no 
 the opener carries the condition: a fence naming it at both ends can disagree with itself, and the
 closer has nothing to add.
 
-Two silences are refused rather than tolerated, each with a case that watches it fire. A fence
+Every silence this mechanism can produce is refused rather than tolerated, each with a case that
+watches it fire, because they share one shape: a rendering that looks well-formed and is missing
+instructions nobody was told about. A fence
 written wrong — an opener nothing closes, a closer nothing opened, an opener inside another — is
 answered by naming the line and the shape to write instead, because a renderer that treats a broken
 opener as the end of the file drops the rest of the method and looks exactly like one that had
 nothing to drop. `forge:` inside a comment is reserved for that reason: the two forms are matched
 strictly, so a line reaching for a fence and missing by a space or a letter would otherwise be taken
-for prose and served with the text it meant to condition, which is the worst of the three because
-nothing about it looks wrong. And a condition the CLI cannot resolve is a problem rather than a false: a block
-dropped for a key nobody answered is method text gone with nothing to say so, so the block stays and
-the answer is a refusal naming the condition. Adding a condition to a text therefore means adding it
-where the answers are assembled, and forgetting to is loud.
+for prose and served with the text it meant to condition. And a condition the CLI cannot resolve is a
+problem rather than a false: a block dropped for a key nobody answered is method text gone with
+nothing to say so, so the block stays and the answer is a refusal naming the condition. Adding a
+condition to a text therefore means adding it where the answers are assembled, and forgetting to is
+loud.
+
+**A fence's values are checked against what its key takes, not merely against what this project
+answered.** They are the same test only when the fence is right. `feedback.plugin bug` names a
+condition that exists and a channel that does not, so it matches no project's answer and the block
+disappears for *everyone* — the one failure here with no wrong-looking output at all, since a
+rendering short an instruction reads exactly like a rendering that never had it. So each answer
+carries the domain its key takes, read off that key's own declared list rather than a second copy
+kept beside it, and a value outside it is refused with both the value and the domain named. A block
+under any refusal is kept rather than dropped, for the same reason throughout: what a reader gets is
+an error they can act on, never a part with a hole in it.
+
+**Ordinary Markdown does not change what a project is shown.** Two directions, and both were live.
+A marker quoted as an example — inside a code fence, or in an indented code block — is the subject
+of a sentence rather than an instruction, so it is served whole and raises nothing; a page
+documenting the syntax would otherwise have its own example executed. And a real marker indented by
+a space or two is still an instruction, so it is still matched: read as prose, it left a project
+that closed a channel receiving the very text the channel closes. Four spaces or more is where
+Markdown itself says code, and that is the line drawn.
 
 ## A phase is addressed by its number
 
