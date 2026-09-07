@@ -126,11 +126,17 @@ test("a wave's shared id is refused the builder's turn where the take would repl
     "as is the lease this session already holds");
 });
 
-test("the QA turn is refused to every session, and says what the refusal is waiting for", () => {
-  const said = refused("qa-owed", "the-lander");
+/* Nothing here can prove a session is the QA run, and the checkpoint names no lander to spare, so a
+   live-lease guard could not tell a spent one from a judge's. Not the builder is the whole rule. */
+test("the QA turn is any session's but the builder's, whose own work it would be judging", () => {
+  assert.equal(refused("qa-owed", "the-lander"), null,
+    "the handoff is to a judge, and a lander lease still live is what --take is for");
+  assert.equal(refused("qa-owed", "another-judge", DEAD), null, "as is a turn nobody is holding");
+  const said = refused("qa-owed", "the-builder");
   assert.match(said, /reads `qa-owed`/u, said);
-  assert.match(said, /the QA take arrives with the role/u, "the state is here and its claimant is not");
-  assert.match(refused("qa-owed", "the-builder"), /reads `qa-owed`/u);
+  assert.match(said, /judge its own work/u, "the one session the state cannot mean");
+  assert.match(refused("qa-owed", "the-builder", DEAD), /judge its own work/u,
+    "and a lease going dead does not make the builder independent of itself");
 });
 
 /* The checkpoint sits beside the lease in one field, and every lease write rebuilds that field:

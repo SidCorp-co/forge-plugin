@@ -214,8 +214,17 @@ export const takeRefusal = (ref, landing, holder, lease, { now = Date.now(), sou
     return `${said}, whose turn is the lander's, and ${describe(lease)} is already on it. `
       + `${READ_THE_STATE(ref)}`;
   }
-  return `${said}, whose turn is the QA run's, and no session on this version can prove it is that `
-    + `run: the QA take arrives with the role. ${READ_THE_STATE(ref)}`;
+  if (row.turn === "qa") {
+    /* No lander is named here to spare its live lease, and a take at a state naming the judge is
+       what `--take` is for, so being other than the builder is the whole of the independence. */
+    if (holder !== landing.builder) return null;
+    return `${said}, whose turn is an independent judge's, and this session is the builder `
+      + `${landing.builder} it names: no run may judge its own work, and an id a run inherited is the `
+      + `builder's however it arrived. Give the judging run an id of its own and take the turn `
+      + `under it. ${OWN_ID}`;
+  }
+  return `${said}, whose turn is one this version cannot read, so nothing here may take it. `
+    + `${READ_THE_STATE(ref)}`;
 };
 
 /* Read, not passed: a caller that could supply the writer's own identity could supply a false one.
