@@ -31,8 +31,8 @@ export const VERBS = [
       refusal: "forge dep needs forge_project_pm set_dependency, which this CLI has no route to on "
         + "the tracker's data plane and may not call: no edge is written from here, and no other "
         + "verb needs one. `forge doctor` measured that." }],
-  /* No flag of this verb is named here, deliberately — docs/cli/withholding-a-verb.md. */
-  ["guide", "[contract [part]|<skill> [reference]|slug]",
+  /* `--tracker` unnamed, a maintainer's alone (docs/cli/withholding-a-verb.md); `--for` every run's. */
+  ["guide", "[contract [part]|<skill> [reference]|slug] [--for ISS-nn]",
     "this plugin's contract and each skill's method, one part per call, and the tracker's guides this flow stands behind",
     null],
   ["project", "[--credentials] [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text>] [--title T] [--confidence C] [--meta k=v]...",

@@ -50,3 +50,34 @@ made the brief fit a screen at all. And the comments it reads are not shown as t
 kinds are, one line each, so a plain comment a person left reaches nobody through this verb. It
 therefore credits nothing to the read-before-write rule, which delivers the bodies in its own
 refusal instead — a digest of the record is not the record.
+
+## The phase owed leads it, and the index behind it
+
+A run handed an issue past `open` used to read a method that opens at Phase 0 and replay what the
+record already held — this issue's own run did exactly that, replaying Phases 0 and 1 on an
+`approved` issue. So the block above the body now opens with the phase owed and one line saying the
+phases before it are read off the record rather than run again, each one naming the record that
+discharged it. The header carries which phase; the line under it carries what to do with the rest.
+
+`forge guide issue-flow --for ISS-nn` prints the same cut whole, and it is where the shape lives:
+every phase, every drop and every citation is read off a table some other reader already answers
+to — the flow table's phase column, the entry checks beside it, the ladder's lightening rows. An
+index holding a phase list of its own would say a phase is owed where `forge advance` says it is
+not, and the two would drift the first time a row moved.
+
+Two shifts in it are worth stating, because both were wrong first and a reader will otherwise
+reintroduce them. A phase is the work owed *at* a status while an entry check guards the way *into*
+one, so a phase is discharged by the rung above it: citing its own status names the evidence for the
+step before, and sends a successor to the wrong record. And a tier's lightening is a waiver on a
+transition, never on a phase — the ladder drops the plan on the way into `approved`, which does not
+drop the implementing. An index reading the second as the first tells a fix-tier run its work is
+done, so a waiver is printed against the phase that pays it, in the ladder's own words, and the
+phase stays owed. The one table added is which record discharges which status, held to the entry
+checks by a case that reads their refusals: a status with a check and no record named against it
+would print a phase discharged by nothing, and a row naming the wrong kind is the same defect
+wearing a value.
+
+`--for` is the only part of a guide's answer that is not on this disk. So it is answered where the
+tracker is already reached and not by the guide registry, which stays offline: asking for a slug's
+text still costs no call at all, and the cut costs the issue and its comments — the same reads this
+verb already makes, which is why it is assembled here rather than twice.

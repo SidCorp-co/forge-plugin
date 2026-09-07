@@ -51,7 +51,7 @@ import { record } from "./flow/record.mjs";
 import { advance } from "./flow/advance.mjs";
 import { spec } from "./spec/verbs.mjs";
 import { claim } from "./flow/claim.mjs";
-import { resume } from "./flow/resume.mjs";
+import { indexFor, resume } from "./flow/resume.mjs";
 import { finderSaid, notAnothers, renew } from "./flow/lease.mjs";
 import { retiredFlagIn } from "./resolve/retiring.mjs";
 
@@ -420,9 +420,14 @@ export const commands = {
      one. The contract is on disk, so it is answered before the transport is touched. */
   guide: async (argv) => {
     const { positionals, flagArgv } = partition(argv, ["--tracker"]);
-    onlyFlags("guide", flagArgv, ["--tracker"]);
+    onlyFlags("guide", flagArgv, ["--tracker", "--for"]);
     const asked = flags(flagArgv, "guide", ["--tracker"]);
     const [slug, ...extra] = positionals;
+    /* Which phases an issue still owes is the tracker's to say, so the offline registry stays so. */
+    if (asked.for) {
+      if (extra.length) fail(`guide: --for takes the slug alone, not \`${positionals.join(" ")}\`. ${usageOf("guide")}`);
+      return console.log((await indexFor(slug, asked.for)).join("\n"));
+    }
     /* This copy's own guides — the contract and each skill's method — answer off disk through one
        registry, so the verb compares no slug against a constant of its own. */
     const local = localGuide(slug);

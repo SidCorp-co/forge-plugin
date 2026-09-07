@@ -65,6 +65,20 @@ test("the brief carries the status, the phase it owes and the reference that hol
   }
 });
 
+/* The opening block a run handed an issue past `open` reads first. This issue's own run replayed
+   Phases 0 and 1 on an `approved` issue, so the line saying not to is the fix and it is checked
+   where the brief is, the print path composing exactly these two facts (ISS-673). */
+test("an issue past open opens on the phase owed and the line saying the rest are on the record", async () => {
+  const { READ_OFF_THE_RECORD, phaseIndex } = await import("../../../src/guides/phases.mjs");
+  const { sizeOf } = await import("../../../src/flow/earned.mjs");
+  const view = viewFrom("the-uuid", issue({ status: "approved" }), []);
+  const index = phaseIndex({ status: "approved", size: sizeOf(view) });
+  assert.match(index.first, /^4 /u, "an approved issue implements next, which is criterion 57's case");
+  assert.match(READ_OFF_THE_RECORD, /read off the record and not run again/u);
+  assert.deepEqual(index.passed.map((one) => one.cites), ["confirmation", "decision", "plan"],
+    "and each phase behind it names the record that carried it, which is the rung above's own");
+});
+
 /* The method is served by the verb, so what the table names has to be a reference this copy serves;
    a null names the body, which carries the phase itself. */
 test("every reference the table names is one forge guide issue-flow answers", async () => {
