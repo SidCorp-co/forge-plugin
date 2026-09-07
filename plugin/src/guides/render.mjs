@@ -4,20 +4,40 @@
    unresolved condition is not a silence: docs/cli/the-parts.md. */
 import { partsOf } from "./contract.mjs";
 
-const OPEN = /^<!--\s+forge:when\s+([a-z][a-z0-9.]*)\s+([a-z][a-z0-9\s]*?)\s+-->$/u;
-const CLOSE = /^<!--\s+forge:end\s+-->$/u;
-const RESERVED = /^<!--\s*forge:/u;
+const OPEN = /^ {0,3}<!--\s+forge:when\s+([a-z][a-z0-9.]*)\s+([a-z][a-z0-9\s]*?)\s+-->$/u;
+const CLOSE = /^ {0,3}<!--\s+forge:end\s+-->$/u;
+const RESERVED = /^ {0,3}<!--\s*forge:/u;
+const GUARD = /^ {0,3}(?:```|~~~)/u;
+const QUOTED = /^ {4,}\S/u;
 
 const ROUTE = "The fence is `<!-- forge:when <condition> <value>… -->` to `<!-- forge:end -->`,"
   + " and docs/cli/the-parts.md carries it.";
+
+/* Whether this block's own values are the key's, so a value the key never takes cannot read as a
+   project that simply does not match it. Every answer declares its domain or resolves nothing. */
+const strayIn = (block, held) => {
+  const on = `marks a block on \`${block.condition}\``;
+  if (!Array.isArray(held?.allowed)) return `${on}, whose values nothing here declares`;
+  const stray = block.values.filter((one) => !held.allowed.includes(one));
+  return stray.length
+    ? `${on} for ${stray.join(", ")}, which that key does not take — it takes ${held.allowed.join(", ")}`
+    : null;
+};
 
 const walk = (text, known) => {
   const kept = [];
   const blocks = [];
   const problems = [];
   let open = null;
+  let guarded = false;
   for (const [index, line] of String(text ?? "").split("\n").entries()) {
     const at = index + 1;
+    const into = () => (open ? open.body : kept);
+    if (GUARD.test(line)) guarded = !guarded;
+    if (guarded || GUARD.test(line) || QUOTED.test(line)) {
+      into().push(line);
+      continue;
+    }
     const opened = OPEN.exec(line);
     if (opened) {
       if (open) problems.push(`line ${at} opens a marked block inside the one line ${open.at} opened`);
@@ -29,7 +49,7 @@ const walk = (text, known) => {
         problems.push(`line ${at} reaches for a fence and is neither an opener nor a closer`);
         continue;
       }
-      (open ? open.body : kept).push(line);
+      into().push(line);
       continue;
     }
     if (!open) {
@@ -37,9 +57,12 @@ const walk = (text, known) => {
       continue;
     }
     blocks.push(open);
-    const resolved = Object.hasOwn(known, open.condition);
-    if (!resolved) problems.push(`line ${open.at} marks a block on \`${open.condition}\`, which nothing here resolves`);
-    if (!resolved || open.values.includes(String(known[open.condition]))) kept.push(...open.body);
+    const held = Object.hasOwn(known, open.condition) ? known[open.condition] : null;
+    const wrong = held === null
+      ? `marks a block on \`${open.condition}\`, a condition nothing here resolves`
+      : strayIn(open, held);
+    if (wrong) problems.push(`line ${open.at} ${wrong}`);
+    if (wrong || open.values.includes(String(held.value))) kept.push(...open.body);
     open = null;
   }
   if (open) problems.push(`line ${open.at} opens a marked block nothing closes`);
