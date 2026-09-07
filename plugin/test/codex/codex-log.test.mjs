@@ -239,9 +239,11 @@ test("the log scores itself per model", () => {
   assert.equal(row.zero, 1);
   assert.equal(row.accepted, 1);
   assert.equal(row.rejected, 1);
-  assert.equal(row.median, 60);
+  assert.equal(row.median, 40, "two timed consults at 60s and 20s: the mean of the two middles, not the upper of them (ISS-364)");
   const untimed = scoreOf([...entries, { kind: "consult", id: "4", ok: true, root: "/a", at: "4", model: "m", reply: "CODEX: 0 findings" }]);
-  assert.equal(untimed[0].median, 60, "a consult that recorded no duration is left out of the median, not counted as nought");
+  assert.equal(untimed[0].median, 40, "a consult that recorded no duration is left out of the median, not counted as nought");
+  const [none] = scoreOf([{ kind: "consult", id: "5", ok: true, root: "/a", at: "5", model: "n", reply: "CODEX: 0 findings" }]);
+  assert.equal(none.median, 0, "and a row no consult of which was timed pads a number into the column, never the word null");
   assert.equal(row.cached, 50);
   assert.equal(row.input, 150, "every input token, cached ones included");
 });

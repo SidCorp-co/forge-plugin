@@ -15,6 +15,7 @@ import {
   tierRun,
   transcriptsUnder,
 } from "./transcripts.mjs";
+import { median } from "./median.mjs";
 import { TIERS } from "../ladder.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -40,12 +41,7 @@ export const RUNS_USAGE = [
   "  --json         the whole table rather than the top rows, for a diff between two weeks",
 ].join("\n");
 
-const median = (values) => {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((left, right) => left - right);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-};
+const medianOrZero = (values) => median(values) ?? 0;
 
 const minutes = (seconds) => Math.round((seconds / 60) * 10) / 10;
 const share = (part, whole) => (whole ? `${Math.round((part / whole) * 100)}%` : "—");
@@ -345,19 +341,19 @@ export const profileOf = (runs) => {
     return {
       name,
       runs: entered.length,
-      medianMinutes: minutes(median(entered.map((run) => run.phases[at].seconds))),
+      medianMinutes: minutes(medianOrZero(entered.map((run) => run.phases[at].seconds))),
       totalMinutes: minutes(runs.reduce((sum, run) => sum + run.phases[at].seconds, 0)),
-      medianCalls: median(entered.map((run) => run.phases[at].calls)),
+      medianCalls: medianOrZero(entered.map((run) => run.phases[at].calls)),
       byClass: mergedClasses(entered, (run) => run.phases[at].byClass).slice(0, 4),
     };
   });
-  const per = (pick) => median(runs.map(pick));
+  const per = (pick) => medianOrZero(runs.map(pick));
   return {
     runs: runs.length,
     from: runs.length ? runs[0].startedAt : null,
     to: runs.length ? Math.max(...runs.map((run) => run.endedAt)) : null,
     totalMinutes: minutes(whole),
-    medianMinutes: minutes(median(seconds)),
+    medianMinutes: minutes(medianOrZero(seconds)),
     longestMinutes: minutes(Math.max(0, ...seconds)),
     waitMinutes: minutes(waited),
     toolMinutes: minutes(toolSeconds),
@@ -368,7 +364,7 @@ export const profileOf = (runs) => {
     medianCalls: per((run) => run.calls),
     unanswered: runs.reduce((sum, run) => sum + run.unanswered, 0),
     timeouts: runs.reduce((sum, run) => sum + run.timeouts, 0),
-    toFirstClaim: minutes(median(runs.map((run) => run.toFirstClaim).filter((one) => one !== null))),
+    toFirstClaim: minutes(medianOrZero(runs.map((run) => run.toFirstClaim).filter((one) => one !== null))),
     perRun: {
       gate: per((run) => run.gates),
       test: per((run) => run.tests),
@@ -381,7 +377,7 @@ export const profileOf = (runs) => {
     edits: EDIT_ROUTES.map((route) => ({
       route,
       perRun: per((run) => run.edits.get(route).calls),
-      medianChars: median(runs.flatMap((run) => run.edits.get(route).sizes)),
+      medianChars: medianOrZero(runs.flatMap((run) => run.edits.get(route).sizes)),
     })),
     editCharsPerRun: per((run) => [...run.edits.values()].reduce((sum, one) => sum + one.sizes.reduce((a, b) => a + b, 0), 0)),
     ships: {
@@ -410,11 +406,11 @@ export const perTier = (runs) => [...TIERS, UNTIERED].map((tier) => {
   return {
     tier,
     runs: held.length,
-    medianMinutes: minutes(median(seconds)),
+    medianMinutes: minutes(medianOrZero(seconds)),
     totalMinutes: minutes(seconds.reduce((sum, one) => sum + one, 0)),
-    medianCalls: median(held.map((run) => run.calls)),
-    medianConsults: median(held.map((run) => run.consults)),
-    medianGates: median(held.map((run) => run.gates)),
+    medianCalls: medianOrZero(held.map((run) => run.calls)),
+    medianConsults: medianOrZero(held.map((run) => run.consults)),
+    medianGates: medianOrZero(held.map((run) => run.gates)),
   };
 });
 

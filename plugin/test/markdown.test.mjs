@@ -38,6 +38,7 @@ const LINE_AT = "plugin/src/line-at.mjs";
 const LOG_READS = "plugin/src/hooks/log-reads.mjs";
 const SPEC_PARSE = "plugin/src/spec/parse.mjs";
 const CANONICAL = "plugin/src/resolve/canonical.mjs";
+const MEDIAN = "plugin/src/stats/median.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -94,6 +95,13 @@ const CANONICAL_FORM = new RegExp(
    the same opening, and the second `catch` of the pair is what the needle sees. */
 const OWN_FALLBACK = ["plugin/hooks/_hook.mjs"];
 
+/* The idiom, not the sort: the ascending comparator alone fires on four modules that order numbers and compute no middle, and a median is nowhere to send them. The backreference is why both spellings the finding named — `(a, b) => a - b` and `(left, right) => left - right` — are one needle, along with a third nobody has written. Two of the three are one shape in both orderings, the sort before the middle and the middle before it, because the second was a copy the first let through (ISS-364 F1). What none of them catches, and none has a spelling in this tree: a median whose sort and whose middle sit more than 160 characters apart, and one over an array a caller has already sorted, which has no comparator to match. */
+const MEDIAN_FORMS = [
+  new RegExp(String.raw`\.sort\(\((\w+),\s*(\w+)\) => \1 - \2\)[\s\S]{0,160}\.length\s*\/\s*2`, "u"),
+  new RegExp(String.raw`\.length\s*\/\s*2\)[\s\S]{0,160}\.sort\(\((\w+),\s*(\w+)\) => \1 - \2\)`, "u"),
+  new RegExp(String.raw`\[(\w+) - 1\]\s*\+\s*\w+\[\1\]\)\s*\/\s*2`, "u"),
+];
+
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
   ["a non-empty inline code span", MARKDOWN, [CODE_SPAN_NONEMPTY_PATTERN]],
@@ -111,6 +119,7 @@ const NEEDLES = [
   ["a log's name", LOG_READS, LOG_FORMS],
   ["the tree's document grammar", SPEC_PARSE, SPEC_FORMS],
   ["a path's canonical form", CANONICAL, [CANONICAL_FORM], OWN_FALLBACK],
+  ["a median over numbers", MEDIAN, MEDIAN_FORMS],
 ];
 
 /* A needle is a primitive's bytes, or a shape where the primitive is one — a fallback body is the same reading whatever its parameter is called, and no substring tells those copies apart. */
@@ -137,7 +146,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [SHELL, SSE, RPC, HELP_WORD, LINE_AT, LOG_READS]) {
+  for (const home of [SHELL, SSE, RPC, HELP_WORD, LINE_AT, LOG_READS, MEDIAN]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -164,6 +173,10 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "q.mjs", text: String.raw`const CRITERION = /^\s*[-*]\s+\*\*(AC-\d+(?:-\d+)*)\*\*\s*(.*)$/u;` },
     { rel: "r.mjs", text: String.raw`const FIELD_LINE = /^Rev:/u;` },
     { rel: "s.mjs", text: "const real = (p) => { try { return realpathSync(p); } catch { return p; } };" },
+    /* Neither spelling is any of the three the finding removed: a third pair of parameter names with no space after the comma, and an even-length mean over an array a caller sorted. */
+    { rel: "t.mjs", text: "const mid = (rows) => { const s = [...rows].sort((x,y) => x - y); return s[Math.floor(s.length/2)]; };" },
+    { rel: "u.mjs", text: "const mid = (ranked, at) => (ranked[at - 1] + ranked[at]) / 2;" },
+    { rel: "v.mjs", text: "const mid = (values) => { const middle = Math.floor(values.length / 2); const sorted = [...values].sort((left, right) => left - right); return sorted[middle]; };" },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
@@ -185,7 +198,24 @@ test("the guard fires on a module that re-declares one", () => {
     `q.mjs declares the tree's document grammar of its own; ${SPEC_PARSE} holds it`,
     `r.mjs declares the tree's document grammar of its own; ${SPEC_PARSE} holds it`,
     `s.mjs declares a path's canonical form of its own; ${CANONICAL} holds it`,
+    `t.mjs declares a median over numbers of its own; ${MEDIAN} holds it`,
+    `u.mjs declares a median over numbers of its own; ${MEDIAN} holds it`,
+    `v.mjs declares a median over numbers of its own; ${MEDIAN} holds it`,
   ]);
+});
+
+/* Why the median row needs no exclusion list, held to the four real modules rather than to invented ones: the argument is beside the needle, and this is what turns red if the row loses it. */
+test("a module that sorts numbers and takes no middle is not re-declaring the median", () => {
+  const sorters = [
+    "plugin/src/checks/retired-names.mjs",
+    "plugin/src/flow/earned.mjs",
+    "plugin/src/flow/record.mjs",
+    "plugin/src/spec/rules.mjs",
+  ].map(read);
+  for (const { rel, text } of sorters) {
+    assert.match(text, /\.sort\(\((\w+), (\w+)\) => \1 - \2\)/u, `${rel}: the comparator is there, so only the middle tells a copy apart`);
+  }
+  assert.deepEqual(redeclared(sorters), []);
 });
 
 /* A rename would leave the exclusion excusing nothing and still reading as though it did. */

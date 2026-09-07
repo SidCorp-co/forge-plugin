@@ -5,6 +5,7 @@ import { meets, pathsNamed } from "./eligible.mjs";
 import { bandOf } from "./score.mjs";
 import { freezesSession } from "../tools/plugin-copy.mjs";
 import { runsUnder } from "../stats/runs.mjs";
+import { median } from "../stats/median.mjs";
 
 const claimedIn = (text) => {
   const claim = callsIn(text).calls.find((call) => call.class === "forge claim");
@@ -17,13 +18,6 @@ export const measuredRuns = (root, since = null) =>
     .map((run) => ({ key: claimedIn(readTranscript(run.path) ?? ""), minutes: run.seconds / 60 }))
     .filter((one) => one.key);
 
-const median = (values) => {
-  const sorted = [...values].sort((left, right) => left - right);
-  const middle = Math.floor(sorted.length / 2);
-  if (!sorted.length) return null;
-  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-};
-
 /** A band no past run landed in falls back to every run and says so: a dash reads as no corpus. */
 export const costFor = (band, runs, bands) => {
   const own = runs.filter((one) => bands.get(one.key) === band);
@@ -33,13 +27,12 @@ export const costFor = (band, runs, bands) => {
   return { minutes: Math.round(minutes), over: pool.length, band: own.length ? band : null };
 };
 
-/* Off the browse projection alone: a body per past run is the fan-out this verb exists without. */
+/* This and `lastLanded` below read the browse projection and the backlog the verb already holds, and never a checkout it may not be standing in: a body per past run is the fan-out this verb exists without. */
 export const bandsOf = (rows) =>
   new Map(rows.map((row) => [row.issueId, bandOf(row).band]));
 
 export const owesRestart = (body) => pathsNamed(body).some(freezesSession);
 
-/* Off the backlog rather than off a checkout this verb may not be standing in. */
 export const lastLanded = (rows) =>
   rows
     .filter((row) => row?.mergedAt)

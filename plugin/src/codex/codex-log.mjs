@@ -9,6 +9,7 @@ import { masked } from "../hooks/hook-log.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags, pullRepeated } from "../resolve/flags.mjs";
+import { median } from "../stats/median.mjs";
 
 export const LOG_PATH = join(configDir("forge"), "codex-log.jsonl");
 export const BUDGET_MS = Number(userConfig().codex?.budgetMs || 900_000);
@@ -471,11 +472,6 @@ export const logLine = (stored, full) => {
 };
 
 /* The eval the log exists for: what each model found, what the caller kept, cached over every input token. */
-const median = (values) => {
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
-};
-
 export const modelKey = (one) => `${one.model ?? one.slot ?? "?"}${one.effort ? ` @${one.effort}` : ""}`;
 
 export const scoreOf = (entries) => {
@@ -501,7 +497,7 @@ export const scoreOf = (entries) => {
     row.input += (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);
     rows.set(key, row);
   }
-  return [...rows.values()].map((row) => ({ ...row, median: median(row.seconds), seconds: undefined }));
+  return [...rows.values()].map((row) => ({ ...row, median: median(row.seconds) ?? 0, seconds: undefined }));
 };
 
 const scoreLine = (row) =>
