@@ -148,17 +148,22 @@ test("the flag prints the values, and nothing else moves", () => {
   assert.match(out, /^ {2}staging url: https:\/\/beta\.example\.test$/mu);
 });
 
-test("a project with no deploy is told so, and no host is invented", () => {
+/* Phase 0 is told to read *present* or *none*, so a project with no deploy owes the line too: with
+   it absent this state and one the tracker never answered for read alike (ISS-477). */
+test("a project with no deploy is told so, ends on the credential line, and invents no host", () => {
   const out = projectLines({ id: "an-id", policy: POLICY, deploy: deployFrom(null) }).join("\n");
-  assert.match(out, /^staging deploy: none configured$/mu);
+  assert.match(out, /^staging deploy: none configured\n {2}test credentials: none$/mu,
+    "the credential line ends the deploy lines here as it does where a deploy is configured");
   assert.doesNotMatch(out, /https?:\/\//u);
-  assert.doesNotMatch(out, /test credentials/u);
 });
 
 test("a config that did not answer is said rather than defaulted", () => {
   const out = projectLines({ id: "an-id", policy: null, deploy: null }).join("\n");
   assert.match(out, /^release policy: the project config did not answer$/mu);
   assert.doesNotMatch(out, /staging branch/u);
+  assert.doesNotMatch(out, /test credentials/u,
+    "an unanswered call is not a decision, so *none* is not said on its behalf: that silence is "
+    + "what a run tells apart from the `none` the case above earns");
 });
 
 test("a payload carrying a credential names the field it sits in and the credential it is", () => {

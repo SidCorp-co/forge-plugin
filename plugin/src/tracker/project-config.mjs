@@ -147,6 +147,18 @@ export const credentialLeak = (data, deploy) => {
 const NOTHING_DEPLOYS = "and nothing here says the host deploys on push: `released` asks the "
   + "verification to name the deployment that built the commit this change landed at";
 
+const NO_DEPLOY = "staging deploy: none configured";
+
+/** One reading of `withheld`: the branches cannot disagree, and *none* is said rather than inferred
+ *  from an absent line (ISS-477). */
+const credentialLines = (held, asked) => {
+  const out = [`  test credentials: ${held.length
+    ? (asked ? "below, printed once" : "present, forge project --credentials") : "none"}`];
+  if (asked) return [...out, ...held.map((one) => `  ${one.label}: ${one.value}`)];
+  if (held.length) out.push(`  held, not printed: ${held.map((one) => one.label).join(", ")}`);
+  return out;
+};
+
 /** The project's answer in this CLI's words, one line each with where it was read. */
 export const projectLines = ({ id, policy, deploy, credentials }) => {
   const out = [`project id: ${id}  ← the slug in .forge.json`];
@@ -157,20 +169,15 @@ export const projectLines = ({ id, policy, deploy, credentials }) => {
     out.push(`production ships without a person's look: ${policy.autoProd ? "yes" : "no"}  ← ${policy.from}`);
     if (policy.autoProd) out.push(`  ${NOTHING_DEPLOYS}`);
   } else out.push("release policy: the project config did not answer");
-  if (!deployed(deploy)) return [...out, "staging deploy: none configured"];
+  if (!deploy) return [...out, NO_DEPLOY];
+  const held = deploy.withheld;
+  const asked = Boolean(credentials && held.length);
+  const ending = credentialLines(held, asked);
+  if (!deployed(deploy)) return [...out, NO_DEPLOY, ...ending];
   out.push(`staging deploy  ← ${deploy.from}`);
   for (const one of deploy.urls) out.push(`  ${one.label}: ${one.url}`);
   for (const one of deploy.notes) out.push(`  notes: ${one}`);
-  const held = deploy.withheld;
-  const asked = credentials && held.length;
-  /* The without-flag wording is the issue's, and pointing at a flag the caller just used is not. */
-  out.push(`  test credentials: ${held.length
-    ? (asked ? "below, printed once" : "present, forge project --credentials") : "none"}`);
-  if (!asked) {
-    if (held.length) out.push(`  held, not printed: ${held.map((one) => one.label).join(", ")}`);
-    return out;
-  }
-  return [...out, ...held.map((one) => `  ${one.label}: ${one.value}`)];
+  return [...out, ...ending];
 };
 
 export const leakRefusal = (found, what) =>
