@@ -4,11 +4,13 @@
 import {
   FLOW_BRIEF,
   EDIT_ROUTES,
+  GUIDE_INDEX,
   PHASES,
   POLL,
   UNTIERED,
   WHOLE_SET_CLASS,
   callsIn,
+  guidePartOf,
   markerOf,
   readTranscript,
   rootFor,
@@ -212,6 +214,7 @@ export const runFrom = (path, session, text) => {
   const refusals = new Map();
   const errors = new Map();
   const repeats = new Map();
+  const guideParts = new Map();
   const longest = [];
   let toolSeconds = 0;
   let timeouts = 0;
@@ -222,6 +225,7 @@ export const runFrom = (path, session, text) => {
     byClass.set(call.class, { calls: was.calls + 1, wait: was.wait + call.wait });
     if (!call.answered) unanswered += 1;
     if (call.name === "Bash") add(repeats, said(call.command));
+    if (call.class === "forge guide") add(guideParts, guidePartOf(call.shell) ?? GUIDE_INDEX);
     const refusal = refusalIn(call);
     if (refusal) add(refusals, refusal);
     else if (call.error) add(errors, call.class);
@@ -260,6 +264,7 @@ export const runFrom = (path, session, text) => {
     refusals,
     errors,
     repeats: new Map([...repeats].filter(([, many]) => many >= REPEATED)),
+    guideParts,
     longest,
     phases: foldPhases(calls, startedAt),
   };
@@ -328,6 +333,19 @@ const mergedCounts = (runs, pick) => {
   return [...merged].sort((left, right) => right[1] - left[1]);
 };
 
+/* `again` is runs that read the part more than once, not the extra reads: a run that read a part
+   three times is one run that had to go back, whatever it did the third time. */
+const mergedParts = (runs) => {
+  const merged = new Map();
+  for (const run of runs) {
+    for (const [part, many] of run.guideParts) {
+      const was = merged.get(part) ?? { calls: 0, runs: 0, again: 0 };
+      merged.set(part, { calls: was.calls + many, runs: was.runs + 1, again: was.again + (many > 1 ? 1 : 0) });
+    }
+  }
+  return [...merged].sort((left, right) => right[1].calls - left[1].calls);
+};
+
 export const profileOf = (runs) => {
   const seconds = runs.map((run) => run.seconds);
   const waited = runs.reduce((sum, run) => sum + run.waited, 0);
@@ -392,6 +410,7 @@ export const profileOf = (runs) => {
     refusals: mergedCounts(runs, (run) => run.refusals),
     errors: mergedCounts(runs, (run) => run.errors),
     repeats: mergedCounts(runs, (run) => run.repeats),
+    guideParts: mergedParts(runs),
     longest: runs.flatMap((run) => run.longest).sort((left, right) => right.minutes - left.minutes),
   };
 };
@@ -472,6 +491,13 @@ export const profileLines = (held, all = false) => [
     ([line, many]) => `  ${String(many).padStart(4)}  ${line}`, all),
   ...listing(`commands repeated ${REPEATED}+ times inside one run`, held.repeats,
     ([line, many]) => `  ${String(many).padStart(4)}  ${line.slice(0, 108)}`, all),
+  ...listing(
+    `${"guide parts read".padEnd(36)}${"calls".padStart(7)}${"runs".padStart(6)}${"read again".padStart(12)}`,
+    held.guideParts,
+    ([part, one]) =>
+      `${part.padEnd(36)}${String(one.calls).padStart(7)}${String(one.runs).padStart(6)}${String(one.again).padStart(12)}`,
+    all,
+  ),
   ...listing(`single waits of ${LONG_WAIT_MINUTES} minutes or more`, held.longest,
     (one) => `  ${one.minutes.toFixed(1).padStart(6)} min  ${one.what}`, all),
 ];

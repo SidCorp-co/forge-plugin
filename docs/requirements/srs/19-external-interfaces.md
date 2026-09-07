@@ -156,3 +156,7 @@ it. Reading is all this product does there.
   WHERE a stored reading is named as the before window the CLI SHALL compare the current window with
   the recent window that reading holds, through the reader the sliding comparison uses, and SHALL say
   that the two overlap where they do.
+- **AC-19-8-10** · Rev: 1 · Proof: plugin/test/stats/guide-parts.test.mjs "guide parts are a table of their own — calls, runs, runs that read again — and the class table keeps one row"
+  WHEN a profile is printed THEN the CLI SHALL list each guide part the window's runs read with its
+  calls, the runs that read it and the runs that read it more than once, read off the call's own
+  words by the reading the class uses, and SHALL keep the class table's one row for the verb.

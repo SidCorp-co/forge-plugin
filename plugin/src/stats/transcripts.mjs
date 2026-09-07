@@ -82,6 +82,17 @@ const forgeClass = (shell) => {
   return SUBBED.has(found.verb) && found.sub ? `forge ${found.verb} ${found.sub}` : `forge ${found.verb}`;
 };
 
+/* The class table keeps `forge guide` one row; which part a run read is a table of its own. */
+const GUIDE = at(String.raw`(?:\S*/)?forge[ \t]+guide(?:[ \t]+(?<slug>[a-z][\w-]*))?(?:[ \t]+(?<part>[a-z][\w-]*))?`);
+
+export const GUIDE_INDEX = "(index)";
+
+export const guidePartOf = (shell) => {
+  const found = GUIDE.exec(shell)?.groups;
+  if (!found) return null;
+  return [found.slug, found.part].filter(Boolean).join(" ") || GUIDE_INDEX;
+};
+
 /* A heredoc carries a document, not shell: read as commands, the criteria files a run writes named
    `npm run check` 423 times, each counted as a gate run that never happened. */
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1(?:[\s\S]*?^[ \t]*\2[ \t]*$|[\s\S]*)/gmu;
