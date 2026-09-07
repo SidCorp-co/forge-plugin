@@ -100,6 +100,14 @@ const URL_REF = /^https?:\/\//u;
 
 export const isCommit = (value) => COMMIT.test(String(value ?? ""));
 
+/* A verdict may name seven digits where a mark's note names forty, so the shorter one decides. */
+export const sameCommit = (one, two) => {
+  const [left, right] = [one, two].map((held) => String(held ?? "").trim().toLowerCase());
+  if (left.length < 7 || right.length < 7) return false;
+  const width = Math.min(left.length, right.length);
+  return left.slice(0, width) === right.slice(0, width);
+};
+
 export const attachmentNames = (body, comments) => [
   ...(body.attachments ?? []).map((one) => one.name),
   ...comments.flatMap((one) => (one.attachments ?? []).map((two) => two.name)),

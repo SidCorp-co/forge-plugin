@@ -9,9 +9,11 @@ import {
 import { FORMS } from "../spec/parse.mjs";
 import { lightens } from "../ladder.mjs";
 import { sizeReport } from "../ladder-report.mjs";
-import { attachmentNames, evidenceHeld, isCommit } from "../tracker/evidence.mjs";
+import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/evidence.mjs";
 
 import { Refused } from "../refusal.mjs";
+import { FIELD as SESSION, landingOf } from "./lease.mjs";
+import { judgeAsk, judgeProblems } from "./qa/verdicts.mjs";
 import { assemble, criteriaLines, parse } from "./record.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
 import { waitsForPerson } from "../tracker/project-config.mjs";
@@ -65,14 +67,6 @@ export const SIDE = ["needs_info", "waiting", "on_hold"];
 
 export const atLeast = (status, floor) =>
   ORDER.indexOf(status) >= 0 && ORDER.indexOf(status) >= ORDER.indexOf(floor);
-
-/* A verdict may name seven digits where a mark's note names forty, so the shorter one decides. */
-export const sameCommit = (one, two) => {
-  const [left, right] = [one, two].map((held) => String(held ?? "").trim().toLowerCase());
-  if (left.length < 7 || right.length < 7) return false;
-  const width = Math.min(left.length, right.length);
-  return left.slice(0, width) === right.slice(0, width);
-};
 
 /* `parse` resolves the keys and applies none of the shape's rules, so a comment carrying the tag and
    little else — by hand, or through a client no gate sits before — is measured against the write's
@@ -373,6 +367,9 @@ const shownOwed = (view, ref) => {
   )];
 };
 
+const judgeOwed = (view, ref) => judgeProblems(view)
+  .map(({ number, why }) => need(`the verdict on criterion ${number} ${why}`, judgeAsk(ref, number, view.landing)));
+
 export const verificationForm = (ref, commit, evidence, tail = "") =>
   `forge record verification ${ref} --where "<where it runs>" --commit ${commit} `
   + `--evidence ${evidence}${tail}`;
@@ -531,7 +528,7 @@ export const CHECKS = {
     if (!view.criteria.length) {
       return [need("the criteria field holds no numbered line, so there is nothing to judge", `forge record criteria ${ref} <criteria.md>`)];
     }
-    const out = [...verdictsOwed(view, ref), ...judgedSince(view, ref), ...shownOwed(view, ref)];
+    const out = [...verdictsOwed(view, ref), ...judgedSince(view, ref), ...shownOwed(view, ref), ...judgeOwed(view, ref)];
     if (view.flags.schema === "yes" && !view.names.length) {
       out.push(need(
         "the plan declares schema coupling, and no attachment carries the migration risk classification",
@@ -570,7 +567,7 @@ export const viewFrom = (documentId, issue, comments, cut = null, release = null
   const names = attachmentNames(issue, comments);
   /* Parsed once: six readers here and in route.mjs each ran it over the same plan for the same answer. */
   const flags = planFlags(unwrap(issue.plan));
-  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, ...assemble(comments, criteria) };
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, landing: landingOf(issue?.[SESSION]), ...assemble(comments, criteria) };
 };
 export const parkRecord = (view, wanted = () => true, since = null, until = null) => {
   const found = view.comments

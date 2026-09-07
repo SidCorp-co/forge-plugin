@@ -1,11 +1,12 @@
-# The four checks a plugin can make in a project it has never seen
+# The five checks a plugin can make in a project it has never seen
 
 Three obligations were prose in the issue-flow guide until 2026-09-05, and a sentence is what a run
 reads past. ISS-318 folded them in as sentences to replace; two of the three could not be built where
 it put them, because they reached for this repository's own furniture — a gate ledger, a `plugin/hooks/`
 how page — and a hook or a check written here fires in whatever project has the plugin installed.
 ISS-359 rebuilt all three as refusals that read the record and nothing else. The fourth arrived the
-day after, from a project that had shipped five landings nobody deployed.
+day after, from a project that had shipped five landings nobody deployed. The fifth is the only one
+a project asks for rather than owes.
 
 That is the shape, and it is the same division `advance` is already held to: what git or a gate knows
 is written onto a payload at the step that knew it, and the check reads what the run said of itself.
@@ -87,6 +88,33 @@ Neither clause can tell a deployed build from a described one; that is the line 
 record is read on. What they buy is that the run has to have looked, and that the two shas on the
 record are the same code.
 
+
+## A verdict names its judge
+
+`pipelineConfig.qa` takes `independent`: the run that wrote the change may not be the run that says
+it works. Nothing here tells two agents apart by watching them, so the claim goes on the record.
+`forge record verdict` writes the writer's session id as a `judge:` line, off the session the CLI
+resolved and never off a flag — `--judge` is refused, for the reason the lease's holder is read
+rather than passed. Declared on the shape so the read keeps it, and `newer` for the reason `--scope`
+is below.
+
+`tested` reads each standing verdict against the landing checkpoint, the only thing on the record
+naming both the builder and what the deployment reported running. The builder's own id is the case
+the project asked about. *No* judge is refused too, and is not read as the builder's: `judge` is
+excused at the read-back, so a verdict without one is a whole payload by every other reading and a
+check comparing only ids would pass it in silence. Two runs sharing a session id compare equal and
+it refuses — the answer, not a miss: nothing there tells those runs apart either.
+
+The third way is the one worth the argument. A verdict cites the deployment identity off its
+evidence, never off its commit: under route after-merge that identity *is* the merged head, which
+every verdict already carries in the commit slot, so a commit read would pass an ordinary builder
+verdict by accident. The same sha in the slot that means something else is a coincidence.
+
+Inverted, the reading is what a promotion spends: a candidate whose base or batch moved is deployed
+again under a new identity, so verdicts citing the old one judged what is no longer there and are
+void — named rather than counted, a count saying nothing about which. Which of the two moved it
+cannot say, the checkpoint keeping current values and not their predecessors. A project setting no
+`qa` line is judged as before, the silence this plugin owes one that has decided nothing.
 
 ## Why `--scope` is asked for and excused at once
 
