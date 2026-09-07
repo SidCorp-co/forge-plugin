@@ -18,7 +18,7 @@ writeFileSync(
 );
 process.env.XDG_CONFIG_HOME = HOME.path;
 
-const { KEPT, credit, creditedTo } = await import("../../src/shown/journal.mjs");
+const { KEPT, credit, creditedTo, shedable } = await import("../../src/shown/journal.mjs");
 
 const STORE = join(HOME.path, "forge", "shown.json");
 const LOG = join(HOME.path, "forge", "shown.jsonl");
@@ -138,6 +138,19 @@ const allAtOnce = async (surface) => {
 test("twelve processes credit one store at one instant and none of the twelve is lost", async () => {
   seed({});
   assert.deepEqual(await allAtOnce("surface-B"), [], "every credit is in the store");
+});
+
+/* An absent lock read as age zero was stale, and its removal fell on a live holder's (ISS-673). */
+test("a lock that is not there is not a stale one, and only a stale one is taken", () => {
+  const mine = "this-fold";
+  const fresh = Date.now();
+  assert.equal(shedable(undefined, null, mine), false, "no lock was read, so there is none to shed");
+  assert.equal(shedable(undefined, "another-fold", mine), false,
+    "a holder read a moment ago and a lock gone now is a lock this one must not remove");
+  assert.equal(shedable(fresh, null, mine), false, "nor one whose holder it could not read");
+  assert.equal(shedable(fresh, "another-fold", mine), false, "a live holder keeps its lock");
+  assert.equal(shedable(fresh - 10_000, "another-fold", mine), true, "a stale one is reclaimed");
+  assert.equal(shedable(fresh, mine, mine), true, "and a fold releases its own however fresh");
 });
 
 /* A fold killed between its rename and its release leaves a lock nothing else sweeps, and its own

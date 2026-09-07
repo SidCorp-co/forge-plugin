@@ -97,10 +97,12 @@ const owner = (lock) => {
   }
 };
 
-/* Only while still stale and still that holder, or two waiters each delete the other's fresh lock. */
+/** Still that holder, still stale, and there at all: a missing lock is not an old one (ISS-673). */
+export const shedable = (since, whose, mine) => since !== undefined && whose !== null
+  && (whose === mine || Date.now() - since > LOCK.staleMs);
+
 const shed = (lock, whose) => {
-  const since = statSync(lock, { throwIfNoEntry: false })?.mtimeMs ?? 0;
-  if (whose !== MINE && Date.now() - since <= LOCK.staleMs) return;
+  if (!shedable(statSync(lock, { throwIfNoEntry: false })?.mtimeMs, whose, MINE)) return;
   if (owner(lock) === whose) rmSync(lock, { force: true });
 };
 
@@ -134,10 +136,12 @@ const fold = () => {
   const lock = `${STATE()}.lock`;
   if (!heldLock(lock)) return;
   try {
-    /* The set read is the set deleted, so nothing unread is dropped. No time cutoff stands in for
-       that: a rename carries the journal's own mtime, so an aside put here since looks older. */
+    /* No time cutoff stands in for reading the set: a rename carries the journal's own mtime. */
     const read = journals();
-    writeJsonPrivate(STATE(), foldedFrom(read));
+    const built = foldedFrom(read);
+    /* Lost mid-fold: another is folding from a later base, and these asides are its to sweep. */
+    if (owner(lock) !== MINE) return;
+    writeJsonPrivate(STATE(), built);
     for (const one of read.slice(1)) rmSync(one, { force: true });
   } catch { /* the file is as it was and the aside still reads, so the fold is simply owed again */ }
   shed(lock, MINE);
