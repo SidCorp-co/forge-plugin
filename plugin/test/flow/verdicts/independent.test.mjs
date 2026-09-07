@@ -18,6 +18,7 @@ const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const BUILDER = "the-builder-session";
 const QA = "the-qa-session";
+const LANDER = "the-lander-session";
 const MERGED = "c8c35500000000000000000000000000000000ab";
 const DEPLOYED = "9e24c2af00000000000000000000000000000cde";
 const MOVED = "3cd76450000000000000000000000000000000ef";
@@ -262,4 +263,21 @@ test("once the QA session has judged every criterion against the deployment, adv
   const run = await qa("advance", "ISS-8");
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
   assert.equal(judging.status, "tested", "the record earned it, so the verb moved it");
+});
+
+/* The third move of the handoff these criteria name — builder readies, lander takes, QA takes,
+   lander takes back — which no session could make while the QA turn was refused to everybody. The
+   two cases above reach the judge's lease by letting the lander's lapse; this one takes it. */
+test("at qa-owed the judging run takes a live lander lease, and the builder is refused its own work", async () => {
+  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
+  judging.sessionContext.lease = { ...judging.sessionContext.lease, holder: LANDER, renewedAt: at() };
+  const first = await qa("claim", "ISS-8", "--take");
+  const taken = first.status === 0 ? first : await qa("claim", "ISS-8", "--take");
+  assert.equal(taken.status, 0, `${taken.stdout}\n${taken.stderr}`);
+  assert.equal(judging.sessionContext.lease.holder, QA,
+    "the turn the state hands the judge is taken while the lander's lease is still live");
+  const refused = await builder("claim", "ISS-8", "--take");
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.match(`${refused.stdout}\n${refused.stderr}`, /no run may judge its own work/u,
+    "and the one session qa-owed cannot mean is the one that built the change");
 });

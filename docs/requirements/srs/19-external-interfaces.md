@@ -60,9 +60,9 @@ time (C-01). How a gate's answer becomes that protocol is `docs/HOOKS.md`'s.
 - **AC-19-3-2** · Rev: 1 · Proof: plugin/test/hooks/gate-entry.test.mjs "an empty bin gets both"
   WHEN a session starts THEN the product SHALL put its binaries on the path from the copy that is
   running.
-- **AC-19-3-3** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-19-3-3** · Rev: 1 · Proof: plugin/test/tools/roles.test.mjs "the qa role ships beside the other four, and doctor names it where the loaded copy predates it"
   WHEN the roles this copy ships are reported THEN the judging role SHALL resolve beside the others.
-- **AC-19-3-4** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-19-3-4** · Rev: 1 · Proof: plugin/test/tools/roles.test.mjs "the qa role's text names the deployment identity as an input it is refused without"
   WHEN the judging role's text is read THEN it SHALL name the deployment identity as an input the
   role is refused without.
 
