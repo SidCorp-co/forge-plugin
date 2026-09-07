@@ -6,7 +6,8 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, tempHome, tempRoom, typedPlan } from "../fixtures.mjs";
+import { PLAN_SECTIONS } from "../../src/flow/machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-plan").path;
 const room = tempRoom("record-plan-");
@@ -75,6 +76,70 @@ test("the file's text is what the plan field holds", async () => {
   assert.equal(run.status, 0, run.stderr);
   assert.equal(state.issues[0].plan, `${PLAN}\n`, "byte for byte, the declarations with it");
   assert.match(run.stdout, /Screen change: no/u, "and what was stored is printed back");
+  assert.match(run.stderr, /carries none of the sections `forge record plan -h` prints/u,
+    "a plan with no section is the free text this verb has always stored, and it says so");
+  assert.match(run.stderr, /`forge advance` will refuse `approved` while it stays untyped/u);
+});
+
+/* Presence is the whole of the check, and it is made before the tracker is touched: a plan the
+   write refuses is one nothing was spent on, which is the same rule `record criteria` follows. */
+test("a typed plan missing a section is refused, with each one named", async () => {
+  heldBy(MINE);
+  const run = await wrote(MINE, planAt(typedPlan({ Before: null, "Verified in code": null })));
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /The plan carries no 2 of the sections below, so nothing was written:/u);
+  assert.match(run.stderr, /^ {2}## Before$/mu);
+  assert.match(run.stderr, /^ {2}## Verified in code$/mu);
+  assert.match(run.stderr, /a heading whose text is the name and nothing else/u, "and how to supply one");
+  assert.equal(state.issues[0].plan, undefined, "the field is untouched");
+});
+
+test("the way back is refused only where a coupling declaration asks for it", async () => {
+  heldBy(MINE);
+  for (const which of ["Schema", "Deploy"]) {
+    const declared = `Screen change: no\nSchema coupling: no\n${which} coupling: yes`;
+    const run = await wrote(MINE, planAt(typedPlan({ Declarations: declared })));
+    assert.equal(run.status, 1, which);
+    assert.match(run.stderr, new RegExp(`## The way back — the plan declares ${which.toLowerCase()} coupling`, "u"),
+      "the refusal names the declaration that owes it");
+  }
+  const answered = typedPlan({ Declarations: "Screen change: no\nSchema coupling: yes", "The way back": "Revert and ship again." });
+  const held = await wrote(MINE, planAt(answered));
+  assert.equal(held.status, 0, held.stderr);
+});
+
+test("a step naming no criterion is refused, and the step is quoted", async () => {
+  heldBy(MINE);
+  const run = await wrote(MINE, planAt(typedPlan({ Steps: "1. The one step — criteria 1\n2. The one that serves nothing" })));
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^One step names no criterion, and a step serving none is one no verdict reaches, so nothing was written:$/mu);
+  assert.match(run.stderr, /^ {2}2\. The one that serves nothing$/mu);
+  assert.match(run.stderr, /as `criteria: 3` or `criteria: 3, 4`/u, "and the spelling that clears it");
+  const both = await wrote(MINE, planAt(typedPlan({ Steps: "1. Colonless — criteria 1\n2. With one, criteria: 2" })));
+  assert.equal(both.status, 0, both.stderr);
+});
+
+/* The file's own bytes reach the check, and a plan written on Windows carries a `\r` the reader kept
+   until it split on both: unsplit, every heading of a complete plan was one nothing matched. */
+test("a plan whose lines end in CRLF is judged by the same reading as one that does not", async () => {
+  heldBy(MINE);
+  const crlf = (text) => text.replace(/\n/gu, "\r\n");
+  const run = await wrote(MINE, planAt(crlf(typedPlan())));
+  assert.equal(run.status, 0, run.stderr);
+  assert.doesNotMatch(run.stderr, /carries none of the sections/u, "typed, and not the free text an unsectioned plan is");
+  const short = await wrote(MINE, planAt(crlf(typedPlan({ Steps: null }))));
+  assert.equal(short.status, 1, "and a section it lacks is refused, as it is on the copy ending its lines with one byte");
+  assert.match(short.stderr, /^ {2}## Steps$/mu);
+});
+
+test("`record plan -h` prints every section a typed plan owes, as the question it answers", async () => {
+  const run = await ranAsync(FORGE, ["record", "plan", "-h"], env());
+  assert.equal(run.status, 0, run.stderr);
+  for (const one of PLAN_SECTIONS) {
+    assert.match(run.stdout, new RegExp(`^ {2}## ${one.name} +${one.asks.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}$`, "mu"), one.name);
+  }
+  assert.match(run.stdout, /The way back is owed only where the plan declares schema coupling or deploy coupling\./u);
+  assert.match(run.stdout, /naming none is refused here\. At `approved`, where the criteria field is read, so is a step whose\nnumbers name no criterion the issue holds, and a criterion no step names\./u);
 });
 
 /* A field accepted and dropped answers 200 exactly like one that was stored, which is why the write

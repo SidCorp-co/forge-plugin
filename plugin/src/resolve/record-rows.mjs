@@ -2,7 +2,7 @@
    each capped field's cap on the row of the field it caps, so a note is drafted against the number
    rather than learning it from the refusal (ISS-46). Beside the verb table, not in `flow/`, which
    is at its file limit. */
-import { PARKS, FINDINGS, SECTIONS, SHAPES, TRIAGES } from "../flow/machine.mjs";
+import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES } from "../flow/machine.mjs";
 import { DECLARES } from "../tracker/rest.mjs";
 import { OPEN_KEPT } from "../flow/worklog.mjs";
 import { usageOf } from "./visibility.mjs";
@@ -43,6 +43,19 @@ export const kindRows = (caps) => [
   `  criteria     ${withCap("<file.md>", caps.acceptanceCriteria?.self).padEnd(VALUES)}`
     + "numbered lines, from a file a consult has read",
   "  report       the latest record of each kind, the latest verdict per criterion, and what is owed",
+];
+
+/* The sections a typed plan owes, each as the question it answers, so a plan is written against the
+   list rather than against the refusal. The heading is the section's whole name and nothing else on
+   its line; a plan carrying none of them writes as the free text it is and `approved` says so. */
+const PLAN_BLOCKS = [
+  "The plan file is markdown, and a typed one carries these sections, each opened by a heading whose",
+  "text is the name:",
+  ...PLAN_SECTIONS.map((one) => `  ## ${one.name.padEnd(23)}${one.asks}`),
+  "The way back is owed only where the plan declares schema coupling or deploy coupling. Every",
+  "numbered step under Steps names what it serves as `criteria: 3` or `criteria: 3, 4`, and a step",
+  "naming none is refused here. At `approved`, where the criteria field is read, so is a step whose",
+  "numbers name no criterion the issue holds, and a criterion no step names.",
 ];
 
 const CRITERION_BLOCKS = [
@@ -103,6 +116,7 @@ export const kindHelp = (kind, caps = {}) => {
     "",
     row,
     ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
+    ...(kind === "plan" ? ["", ...PLAN_BLOCKS] : []),
     ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
     "",
     "The flags every writing kind also takes, what counts as evidence, and the other "

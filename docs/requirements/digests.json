@@ -693,6 +693,38 @@
       "rev": 1,
       "digest": "904fd0709cd860350318a19720a94213b63c4c9e0567fbdad1589a0ed2707100"
     },
+    "AC-04-6-3": {
+      "rev": 1,
+      "digest": "3ff0b56660b3f436a3a6f89e295d973755ff4efc12d93cf213a28829310e2514"
+    },
+    "UC-04-7": {
+      "rev": 1,
+      "digest": "bfeafce8d68335d38f972904d1b164328beb918d7d769ee4d7d31ae32d4ac24a"
+    },
+    "AC-04-7-1": {
+      "rev": 1,
+      "digest": "02dc334d2f095f33f73acac7ba4fdd3faadcc53e0bcf9e3a545fde14c642b21d"
+    },
+    "AC-04-7-2": {
+      "rev": 1,
+      "digest": "2f955e17ce417e042ffa509421725be10d1aff2789660fef4a4233b6e2b6f7b4"
+    },
+    "AC-04-7-3": {
+      "rev": 1,
+      "digest": "741f64262168caec04ada40032a2f2dded95d390bbbecf069415584f5f66d208"
+    },
+    "AC-04-7-4": {
+      "rev": 1,
+      "digest": "9f707dcc3ddede13b124b9148881f86e57e80b756039718030e9fd64f45c8226"
+    },
+    "AC-04-7-5": {
+      "rev": 1,
+      "digest": "ee6702c9e590c6209be80fceb888082bf5fb6610b51e9034bab23480f7ff554a"
+    },
+    "AC-04-7-6": {
+      "rev": 1,
+      "digest": "f330a9d5ed187fe4eeed83c01d9946b38b7ceea523cea48592dbb7cf6feb27c2"
+    },
     "FR-05": {
       "rev": 1,
       "digest": "950b20698898c9ec4a1f234cd4bd599a359841045635c93307e5c5001578c438"
@@ -892,6 +924,30 @@
     "AC-05-8-2": {
       "rev": 1,
       "digest": "60a633200a9d7974927f20ff5de44db00caaea7beb53f0f5fe0c20342169159f"
+    },
+    "UC-05-9": {
+      "rev": 1,
+      "digest": "83085b9440a63511fe83a21cf09095368b4b805a60560b4b4bf51088c870da4c"
+    },
+    "AC-05-9-1": {
+      "rev": 1,
+      "digest": "fda6654e746b3903e2aac44d0cf7e787422f91c41104de7c49e60d2752391817"
+    },
+    "AC-05-9-2": {
+      "rev": 1,
+      "digest": "c0a5f98c424cb9e43bf7a45905e7d41ca4feaa54ae2aade2b9d9f20110dff79a"
+    },
+    "AC-05-9-3": {
+      "rev": 1,
+      "digest": "6740af2fd6f12cce37b6f0467da91fc5e73610039a3fa5ae2b4fb9b62faf4d13"
+    },
+    "AC-05-9-4": {
+      "rev": 1,
+      "digest": "f7f14f1d9a63c588101c3b90d3e744068b8e3bf96c0939d544dd178ede03e83a"
+    },
+    "AC-05-9-5": {
+      "rev": 1,
+      "digest": "d28fa282f757e3cd43ac5b6f7a8a40b161a937ac7dd1e558ca719bc5e4369e3a"
     },
     "FR-06": {
       "rev": 1,

@@ -6,6 +6,24 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
+
+const PLAN_BODY = {
+  Declarations: "Screen change: no\nSchema coupling: no",
+  Steps: "1. The one step — criteria 1, 2",
+};
+
+/** A typed plan, built off the table so it cannot drift: every section but the way back, both
+ *  declarations, one step citing two criteria. `null` drops a section, a string replaces its body. */
+export const typedPlan = (over = {}) => {
+  const held = { ...PLAN_BODY, ...over };
+  return PLAN_SECTIONS
+    .filter((one) => held[one.name] !== null)
+    .filter((one) => one.name !== "The way back" || held[one.name] !== undefined)
+    .map((one) => `## ${one.name}\n\n${held[one.name] ?? `What ${one.asks}.`}`)
+    .join("\n\n");
+};
+
 export const callHook = (hook, event, env = process.env) =>
   spawnSync(process.execPath, [hook], { input: JSON.stringify(event), encoding: "utf8", env });
 

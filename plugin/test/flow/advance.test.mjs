@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, tempHome, typedPlan } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance").path;
 const { parse, render } = await import("../../src/flow/record.mjs");
@@ -83,7 +83,7 @@ test("confirmed needs a confirmation, and clarified a decision record", () => {
   assert.deepEqual(missing("clarified", view({}, [recorded("decision", { decision: [], none: "none found" })])), []);
 });
 
-const PLAN = "Screen change: no. Schema coupling: no.\n\nThe plan itself.";
+const PLAN = typedPlan();
 
 test("approved needs the plan with both its declarations, and numbered criteria", () => {
   assert.deepEqual(missing("approved", view({})), [
@@ -92,16 +92,17 @@ test("approved needs the plan with both its declarations, and numbered criteria"
   ]);
   assert.deepEqual(missing("approved", view({ plan: PLAN, acceptanceCriteria: CRITERIA })), []);
   assert.deepEqual(missing("approved", view({ plan: "   " })).length, 2, "whitespace is an empty field");
-  assert.deepEqual(missing("approved", view({ plan: "the plan", acceptanceCriteria: CRITERIA })), [
-    "the plan declares neither `Screen change: yes|no` nor `Schema coupling: yes|no`, and the "
-      + "two decide what the ship steps owe",
-  ]);
-  assert.deepEqual(planFlags(PLAN), { screen: "no", schema: "no", look: null });
-  assert.deepEqual(planFlags("Screen change: YES\nSchema coupling: yes"), { screen: "yes", schema: "yes", look: null });
-  assert.deepEqual(planFlags("this is a screen change, and the schema is untouched"), { screen: null, schema: null, look: null },
+  const bare = missing("approved", view({ plan: "the plan", acceptanceCriteria: CRITERIA }));
+  assert.equal(bare[0], "the plan declares neither `Screen change: yes|no` nor `Schema coupling: yes|no`, and the "
+    + "two decide what the ship steps owe");
+  assert.match(bare[1], /^the plan is untyped/u, "and the sections are owed apart from the declarations");
+  assert.equal(bare.length, 2);
+  assert.deepEqual(planFlags(PLAN), { screen: "no", schema: "no", deploy: null, look: null });
+  assert.deepEqual(planFlags("Screen change: YES\nSchema coupling: yes"), { screen: "yes", schema: "yes", deploy: null, look: null });
+  assert.deepEqual(planFlags("this is a screen change, and the schema is untouched"), { screen: null, schema: null, deploy: null, look: null },
     "prose about the two is not the two declared");
   assert.equal(planFlags("User-facing outcome: yes.").look, "yes", "and the third line is read the same way");
-  assert.deepEqual(missing("approved", view({ plan: "User-facing outcome: yes.", acceptanceCriteria: CRITERIA })).length, 1,
+  assert.deepEqual(missing("approved", view({ plan: "User-facing outcome: yes.", acceptanceCriteria: CRITERIA })).length, 2,
     "which is optional: its absence is no, and only the two required lines are owed here");
 });
 

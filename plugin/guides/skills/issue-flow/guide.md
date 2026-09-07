@@ -116,12 +116,13 @@ while the answer is outstanding, so nothing is set down waiting on it. What stan
 
 ## Phase 3 — Plan and acceptance criteria, in the issue's own fields
 
-Both land in fields of the issue, one each, never a comment and never a local file. The plan names
-the files it touches, the behaviour before and after, what it deliberately does **not** change, the
-one thing verified in code that makes it possible, and any documented convention it reverses, which
-the same change rewrites. It carries the declaration lines `forge guide contract approved` prints.
-Declaring a screen change is what turns the credential ask from worth making into owed, because the
-declaration is what makes a rendered state this issue's evidence.
+Both land in fields of the issue, one each, never a comment and never a local file. The plan is a
+typed payload: a section per question `forge record plan -h` prints, each opened by a heading whose
+text is the section's name, and the write names every section a plan is missing rather than leaving
+it to be discovered at `approved`. It carries the declaration lines `forge guide contract approved`
+prints, and its steps name the criteria they serve, so the two files are written together rather
+than one and then the other. Declaring a screen change is what turns the credential ask from worth
+making into owed, because the declaration is what makes a rendered state this issue's evidence.
 
 Criteria are numbered, one outcome per line a reader could check without opening the diff: a line
 carrying two outcomes is two criteria, and the write refuses the ones it can prove, naming each half

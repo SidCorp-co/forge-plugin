@@ -181,7 +181,9 @@ hid — so a page that came back short is judged as a feature's.
 
 | Scenario | Writes | Goes to |
 |---|---|---|
-| the plan is possible | the plan in its field; numbered criteria in theirs; the screen and schema flags, and the user-facing outcome where a person judges the result | `approved` |
+| the plan is possible | the plan in its field, a section per question `forge record plan -h` prints; numbered criteria in theirs; the screen and schema flags, and the user-facing outcome where a person judges the result | `approved` |
+| the plan declares schema coupling or deploy coupling | the way back in the plan's own section: what triggers it, the steps taken, who is told | `approved` |
+| a step of the plan serves no criterion, or a criterion no step | refused at the write and again at `approved`, each one named — a step no verdict reaches and an outcome nothing does are one gap read from either end | unchanged until the plan says what serves what |
 | **trivial** — the plan is possible | numbered criteria alone, as the row below; writing a plan that declares a screen change or a user-facing outcome moves it one rung to `fix` | `approved` |
 | **fix** — the plan is possible | numbered criteria alone, being the one check that fails without the change; no plan field, and its absent declarations read *no* — writing one that declares a screen change or a user-facing outcome is how a fix moves up a rung | `approved` |
 | a criterion carrying two outcomes | refused at the write, each half named | unchanged until the author splits it into two numbered lines |
@@ -190,15 +192,24 @@ hid — so a page that came back short is judged as a feature's.
 
 ### `approved` — reads the plan, the criteria and the blocking relations
 
-The plan carries three declarations, each written `<name>: yes` or `<name>: no` in any case and
-anywhere in its text outside a code span: `Screen change`, `Schema coupling` and `User-facing
-outcome`. The first two decide what the ship steps owe, and a plan without them does not earn
-`in_progress`; the third, with the first, decides whether a person reviews the rendered change
-before it ships. The reader takes the name, the colon and the next word, so a label closed in
-emphasis before its colon, as `**Screen change:** no`, is a declaration it does not find; and a
-value the plan spans is one it quotes, so a plan may cite the rule and name the value it is not.
+The plan is a typed payload and not free prose: it carries a section per question `forge record plan
+-h` prints, each opened by a heading whose text is the section's name and nothing else, and each
+answered rather than merely present — presence is all this contract checks, and whether an answer is
+any good is the reviewer's to say. A plan carrying none of those headings is the free text this field
+held before them, so the write stores it and says what it stored, and `approved` is what refuses it
+as untyped: a plan already on the tracker stays writable, and nothing earns a status on it.
 
-Neither tier below `feature` owes a plan field, so each declares nothing and all three read *no*.
+The plan carries four declarations, each written `<name>: yes` or `<name>: no` in any case and
+anywhere in its text outside a code span: `Screen change`, `Schema coupling`, `Deploy coupling` and
+`User-facing outcome`. The first two decide what the ship steps owe, and a plan without them does not
+earn `in_progress`; `Deploy coupling`, with `Schema coupling`, decides whether the plan owes its way
+back, and is the one of the four a plan may leave unwritten; `User-facing outcome`, with `Screen
+change`, decides whether a person reviews the rendered change before it ships. The reader takes the
+name, the colon and the next word, so a label closed in emphasis before its colon, as `**Screen
+change:** no`, is a declaration it does not find; and a value the plan spans is one it quotes, so a
+plan may cite the rule and name the value it is not.
+
+Neither tier below `feature` owes a plan field, so each declares nothing and all four read *no*.
 That is the reading, not an oversight: a change nobody sees is what the mark claims, and one that is
 a screen change says so by writing the plan, which is the same act that moves it up a rung.
 `forge advance --owed` prints the tier, what it drops and both routes up, because a rule whose way
@@ -623,8 +634,8 @@ ISS-77 owes the harness half).
 ### Evidence — the shapes a payload takes and the checks that stand in for one
 
 **Evidence is typed at the write.** Every payload above is a write of a shape the CLI owns — a
-confirmation, a decision record, a question, a review, a verdict, a verification, a person's finding
-and the triage of it — and a report is
+confirmation, a decision record, a question, a review, a verdict, a verification, a person's finding,
+the triage of it, and the plan in the field of its own — and a report is
 assembled from the record rather than written from memory: the latest of each kind that can only
 be current, and every instance of a kind that repeats, so a report shows four corrections when
 four were written (owed by ISS-11; today only verdicts, findings and triages are kept per instance). A separator between
@@ -770,8 +781,6 @@ that ran; ISS-36 owes the budget and the line.
 
 - Whether the tracker's task records fit the per-criterion verdict better than a shaped comment.
 - What a project with no deploy step writes for `released`.
-- Where the way back from each ship step is recorded — the plan, for a change with deploy
-  coupling, or the project's settings once. Today it is checked nowhere.
 - How a use case is marked as one a person judges. Today the plan declares it in a line of its own,
   because a status may not be decided by reading the repository and the plan is where a declaration
   about this change already lives; a field on the clause would let the criteria that cite it decide

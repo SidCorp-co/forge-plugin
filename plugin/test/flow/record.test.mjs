@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, tempRoom, typedPlan } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-");
 const {
@@ -445,6 +445,7 @@ const closing = {
   title: "the change a run has released",
   description: "no mark here",
   acceptanceCriteria: "1. The first outcome.",
+  plan: typedPlan({ Steps: "1. The one step — criteria 1" }),
   releaseNotes: { section: "Fixed", userFacing: "it works" },
 };
 /* And one nothing advances from, where the reading a write ends with refuses rather than answers. */
@@ -527,8 +528,11 @@ test("the report says the close is owed on an issue a run has released", async (
   assert.match(run.stdout, /^Every criterion has a verdict\.$/mu, "the criteria are judged");
   assert.match(run.stdout, /^Owed: the close\. A run ends at closed, not at released:$/mu, run.stdout);
   assert.match(run.stdout, /^ {2}forge advance ISS-4$/mu, "with the one command that makes it");
+  assert.match(run.stdout, /^Plan {2}\(typed\)$/mu, "the plan is on the report, as every other payload is");
+  assert.match(run.stdout, /^## Files touched$/mu, "and whole: it is what every later phase was built against");
   const quiet = await ranAsync(FORGE, ["record", "report", "ISS-3"], tracker.env);
   assert.doesNotMatch(quiet.stdout, /the close/u, "and an issue not yet released is owed no close");
+  assert.doesNotMatch(quiet.stdout, /^Plan {2}\(/mu, "an issue with an empty plan field prints no plan line");
 });
 
 /* A run that has just written a record already knows what the write earned, and spent six to twenty

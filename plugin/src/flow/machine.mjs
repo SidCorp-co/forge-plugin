@@ -245,7 +245,9 @@ export const landingMoved = (comments) => pathsIn(MOVED.exec(lastMark(comments) 
 export const landingWrote = (comments) => pathsIn(WROTE.exec(lastMark(comments) ?? "")?.[1]?.trim());
 
 /* Machine data in prose; every occurrence outside a code span decides, not the first (docs/cli/the-ladder.md). */
-const DECLARED = { screen: "screen change", schema: "schema coupling", look: "user-facing outcome" };
+export const DECLARED = {
+  screen: "screen change", schema: "schema coupling", deploy: "deploy coupling", look: "user-facing outcome",
+};
 const DECLARED_VALUE = ":\\s*(yes|no)\\b";
 const lineFor = (name) => new RegExp(`${name}${DECLARED_VALUE}`, "giu");
 
@@ -261,8 +263,101 @@ export const planFlags = (plan) => {
 export const looksTo = ({ screen, look }) =>
   (look === "yes" ? "a user-facing outcome" : (screen === "yes" ? "a screen change" : null));
 
+/* What a typed plan answers, one section per question: the name is the whole text of the heading that
+   opens it, `owed` the declarations behind which the tree puts a way back. Presence is the whole of the
+   check; whether a section answers well is the reviewer's. */
+export const PLAN_SECTIONS = [
+  { name: "Files touched", asks: "which files this change opens" },
+  { name: "Before", asks: "what the code does today" },
+  { name: "After", asks: "what it does once this lands" },
+  { name: "Deliberately unchanged", asks: "what this change leaves alone on purpose" },
+  { name: "Verified in code", asks: "the one thing read in the source that makes this possible" },
+  { name: "Conventions reversed", asks: "which documented convention this reverses, and where the same change rewrites it" },
+  { name: "Declarations", asks: `each of ${Object.values(DECLARED).join(", ")}, written \`yes\` or \`no\`` },
+  { name: "Steps", asks: "the ordered steps, each naming the criterion number it serves" },
+  { name: "The way back", asks: "what triggers it, the steps, who is told", owed: ["schema", "deploy"] },
+];
+
+const PLAN_NAMES = PLAN_SECTIONS.map((one) => one.name).join("|");
+const CANONICAL = new Map(PLAN_SECTIONS.map((one) => [one.name.toLowerCase(), one.name]));
+/* One separator rule across the three, or the protector holds a line the section reader dropped. */
+const HEADING = `^#{1,6}[ \\t]+(?:${PLAN_NAMES})[ \\t]*$`;
+const ANY_HEADING = /^#{1,6}(?:[ \t]|$)/u;
+const NAMED_HEADING = /^#{1,6}[ \t]+(.*?)[ \t]*$/u;
+/* A step's criterion, over the raw plan and over a step whose wrapped lines are joined: a break the reader turned into a space is one the protector must hold. */
+const CITED = "criteri(?:on|a)[ \\t]*:?[ \\t\\r\\n]*\\d+(?:[ \\t]*,[ \\t\\r\\n]*\\d+)*";
+const CITES = new RegExp(CITED, "giu");
+const NUMBERED_STEP = /^\s*(\d+)\.\s+(.*)$/u;
+
+const sectionAt = (line) => {
+  const found = NAMED_HEADING.exec(line);
+  return found ? CANONICAL.get(found[1].toLowerCase()) ?? null : null;
+};
+
+/** The sections a plan carries by canonical name; a heading the table does not name closes the one above and opens none. */
+export const planSections = (plan) => {
+  const open = new Map();
+  let held = null;
+  for (const line of String(plan ?? "").split(/\r?\n/u)) {
+    if (ANY_HEADING.test(line)) {
+      held = sectionAt(line);
+      if (held) open.set(held, []);
+      continue;
+    }
+    if (held) open.get(held).push(line);
+  }
+  return new Map([...open].map(([name, lines]) => [name, lines.join("\n").trim()]));
+};
+
+/** Typed once it carries one section; carrying none it is the free text `approved` calls untyped. */
+export const planTyped = (plan) => planSections(plan).size > 0;
+
+/** The `Steps` section's steps, each with the criterion numbers its lines cite. */
+export const planSteps = (plan) => {
+  const body = planSections(plan).get("Steps");
+  if (body === undefined) return [];
+  const out = [];
+  for (const line of body.split("\n")) {
+    const found = NUMBERED_STEP.exec(line);
+    if (found) out.push({ number: Number(found[1]), text: found[2].trim() });
+    else if (out.length && line.trim()) out.at(-1).text += ` ${line.trim()}`;
+  }
+  const numbers = (text) => [...text.matchAll(CITES)].flatMap((one) => (one[0].match(/\d+/gu) ?? []).map(Number));
+  return out.map((one) => ({ ...one, cites: [...new Set(numbers(one.text))].sort((a, b) => a - b) }));
+};
+
+/** The sections a typed plan is missing, the way back among them where a declaration owes one. */
+export const sectionsOwed = (plan, flags = {}) => {
+  const held = planSections(plan);
+  return PLAN_SECTIONS
+    .filter((one) => !one.owed || one.owed.some((key) => flags[key] === "yes"))
+    .filter((one) => !held.has(one.name))
+    .map((one) => one.name);
+};
+
+export const sectionOwedBy = (name, flags = {}) =>
+  (PLAN_SECTIONS.find((one) => one.name === name)?.owed ?? [])
+    .filter((key) => flags[key] === "yes")
+    .map((key) => DECLARED[key]);
+
+/** The steps that serve nothing: citing none, or none the given criteria hold — with none given, presence is the whole of it. */
+export const stepsUncited = (plan, criteria) => {
+  const held = criteria?.length ? new Set(criteria.map((one) => one.number)) : null;
+  return planSteps(plan).filter((one) => (held
+    ? !one.cites.some((number) => held.has(number))
+    : !one.cites.length));
+};
+
+export const criteriaUncovered = (plan, criteria) => {
+  const cited = new Set(planSteps(plan).flatMap((one) => one.cites));
+  return criteria.map((one) => one.number).filter((number) => !cited.has(number));
+};
+
 const MACHINE = {
-  plan: new RegExp(`(?:${Object.values(DECLARED).join("|")})${DECLARED_VALUE}`, "giu"),
+  plan: new RegExp(
+    `${HEADING}|(?:${Object.values(DECLARED).join("|")})${DECLARED_VALUE}|${CITED}`,
+    "gimu",
+  ),
 };
 /* What a declaration stands as while the prose pass runs. It cannot itself be a code span — the
    reader refuses those — and an identifier inside one is carried whole by a pass that keeps spans byte for byte. */

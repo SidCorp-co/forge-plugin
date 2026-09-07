@@ -13,7 +13,7 @@ a field.
 | Field | What this product puts there | Shape |
 |---|---|---|
 | status | the promise the issue is making | one of the tracker's states; the ones this product enters are the flow's, and the side statuses a park lands in |
-| plan | the change, its boundary, and the two declarations the ship steps read | free text carrying a screen declaration and a schema-coupling declaration, each on a line the verb reads |
+| plan | the change, its boundary, the steps it takes and the declarations the ship steps read | markdown carrying a section per question the plan write's help prints, each opened by a heading whose text is the section's name; the declarations each on a line the verb reads, and every numbered step naming the criterion it serves |
 | criteria | what the work will be judged by | numbered lines, one outcome each, the number being what a verdict names |
 | comments | every typed payload | one record per comment, rendered for a person, closing with a line naming its kind and the contract version |
 | the lease field | who holds the issue and who held it before | a holder, a renew time, a duration and the claim history, written and read as one value |

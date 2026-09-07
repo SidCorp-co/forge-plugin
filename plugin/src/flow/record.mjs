@@ -5,7 +5,7 @@ import { Refused, refuse } from "../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../spec/checked.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "../resolve/record-rows.mjs";
-import { CLOSES_FROM, SECTIONS, SHAPES, atMinute, blockOf, compoundCriteria, criterionNumber, markedCommit, readRecords, tagFor, unwrap } from "./machine.mjs";
+import { CLOSES_FROM, SECTIONS, SHAPES, atMinute, blockOf, compoundCriteria, criterionNumber, markedCommit, planFlags, planTyped, readRecords, sectionOwedBy, sectionsOwed, stepsUncited, tagFor, unwrap } from "./machine.mjs";
 import { KINDS, USAGE, kindHelp, usage } from "../resolve/record-rows.mjs";
 import { readOrRefuse } from "../codex/codex-read.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
@@ -456,6 +456,39 @@ const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
   await sayOwed(documentId, { ...body, acceptanceCriteria }, reference);
 };
 
+/* Every shape rule of a typed plan, before the field is written. A plan carrying no section at all
+   is the free text this verb has always stored, so its shape is nobody's here to judge and what it
+   owes is `approved`'s to say — which is what keeps a plan already on the tracker writable. */
+const planChecked = (plan) => {
+  if (!planTyped(plan)) {
+    return console.error("The plan carries none of the sections `forge record plan -h` prints, so nothing"
+      + " here judged its shape: it is stored as the free text it is, and `forge advance` will refuse"
+      + " `approved` while it stays untyped.");
+  }
+  const flags = planFlags(plan);
+  const owed = sectionsOwed(plan, flags);
+  if (owed.length) {
+    refuse([
+      `The plan carries no ${owed.length === 1 ? "section" : `${owed.length} of the sections`} below, so nothing was written:`,
+      ...owed.map((name) => {
+        const by = sectionOwedBy(name, flags);
+        return `  ## ${name}${by.length ? ` — the plan declares ${by.join(" and ")}` : ""}`;
+      }),
+      "Each opens on a heading whose text is the name and nothing else. What each answers: `forge record plan -h`.",
+    ].join("\n"));
+  }
+  const bare = stepsUncited(plan);
+  if (bare.length) {
+    refuse([
+      `${bare.length === 1 ? "One step names" : `${bare.length} steps name`} no criterion, and a step`
+        + " serving none is one no verdict reaches, so nothing was written:",
+      ...bare.map((one) => `  ${one.number}. ${one.text}`),
+      "Name what each serves on its own line, as `criteria: 3` or `criteria: 3, 4`.",
+    ].join("\n"));
+  }
+  return null;
+};
+
 /* A kind rather than the top-level verb it replaced: the plan and the criteria are one payload by the contract's reckoning, and one write has one verb. */
 const recordPlan = async (reference, [path, ...extra], { next, patch }) => {
   if (!path) refuse(PLAN_BODY);
@@ -466,6 +499,7 @@ const recordPlan = async (reference, [path, ...extra], { next, patch }) => {
   const plan = text ?? await bodyFrom(path);
   if (!plan.trim()) refuse("An empty plan would clear the field; pass the plan itself.");
   citationsChecked(plan, refuse);
+  planChecked(plan);
   if (refusal) refuse(refusal);
   const { documentId, body } = await issueOf(reference);
   sayStored("plan");
@@ -493,6 +527,10 @@ const recordReport = async (reference) => {
   }
   for (const number of [...verdicts.keys()].sort((a, b) => a - b)) printRecord(verdicts.get(number));
   for (const one of unreadable) printRecord(one);
+  /* Whole rather than summarised: the plan is what every later phase was built against, and a
+     report that names it without carrying it sends its reader back to the issue. */
+  const held = unwrap(body.plan);
+  if (held) console.log(`Plan  (${planTyped(held) ? "typed" : "untyped"})\n${held}`);
   if (body.releaseNotes?.section) console.log(`Release note  ${body.releaseNotes.section}: ${body.releaseNotes.userFacing}`);
   /* The run's own captures: no payload, and all of what a fold asks for beyond the payloads. */
   const lines = worklogLines(worklogOf(body[SESSION]));

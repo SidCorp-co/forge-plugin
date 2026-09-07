@@ -140,6 +140,40 @@ counts, and nobody writes a report from memory.
 - **AC-04-6-2** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "three criteria are judged in one write, and the report prints each one"
   WHEN a report holds a record carrying several blocks THEN it SHALL print each block as it prints a
   record written on its own.
+- **AC-04-6-3** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "the report keeps the latest of each kind, the latest verdict per criterion, and names what is owed"
+  WHEN a report is asked for on an issue whose plan field is set THEN it SHALL print that plan whole,
+  under a heading of its own.
+
+### UC-04-7 — The plan is a typed payload, and its shape is checked at the write
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-14
+
+The plan carries a section per question the write's own help prints, each opened by a heading whose
+text is the section's name. The shape is markdown and not a fenced block because the plan is a field
+an author writes as a file, a review reads whole and a reader reads back, and a decoder in front of
+all three buys nothing. Presence is the whole of the check: whether a section answers its question
+is the reviewer's judgement, and a check that tried for it would refuse prose nobody could fix. A
+plan carrying none of the sections is stored as the free text this field held before them, so a plan
+already on a tracker stays writable and no status is earned on it.
+
+- **AC-04-7-1** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "`record plan -h` prints every section a typed plan owes, as the question it answers"
+  WHEN the plan write's help is asked for THEN it SHALL print every section a typed plan carries, each
+  as the question that section answers.
+- **AC-04-7-2** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "a typed plan missing a section is refused, with each one named"
+  IF a plan carries a section and lacks another THEN the CLI SHALL refuse the write, SHALL name each
+  section that is missing, and SHALL leave the field as it was.
+- **AC-04-7-3** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "the way back is refused only where a coupling declaration asks for it"
+  WHERE a plan declares schema coupling or deploy coupling, the CLI SHALL refuse a plan carrying no
+  way back, and SHALL name the declaration that owes it.
+- **AC-04-7-4** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "a step naming no criterion is refused, and the step is quoted"
+  IF a numbered step of a plan names no criterion THEN the CLI SHALL refuse the write and SHALL quote
+  that step.
+- **AC-04-7-5** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "the file's text is what the plan field holds"
+  WHERE a plan carries none of the sections, the CLI SHALL write it as the free text it is and SHALL
+  say that nothing judged its shape.
+- **AC-04-7-6** · Rev: 1 · Proof: plugin/test/vi/rewrite.test.mjs "a plan's sections and its steps' criteria cross the boundary byte for byte"
+  WHILE a project's prose language rewrites what is sent, the plan's section headings and each step's
+  criterion SHALL cross byte for byte, so the stored plan reads back with its sections.
 
 ## The way back
 

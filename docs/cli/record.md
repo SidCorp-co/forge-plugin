@@ -66,7 +66,7 @@ read from the page when the page carries one — the cut keeps the most recent r
 citation found there is the latest — and asked for by name only where the page carries none, since
 then the one that would answer may be exactly a comment behind the cut. The refusal says which cap
 the tracker named and how many rows it returned: for a year it said 200, the number the request asked
-for, on threads of half that (ISS-131). The release note and the criteria go
+for, on threads of half that (ISS-131). The release note, the plan and the criteria go
 to their fields, which the tracker already types; everything else is a comment. `report` assembles
 the latest record of each kind and the latest verdict per criterion, and names the criteria no verdict
 covers. Nothing is stored twice. The contract this serves: `forge guide contract`.

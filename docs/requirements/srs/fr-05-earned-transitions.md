@@ -241,6 +241,33 @@ follows carries an obligation of its own to deliver a thread nobody has been sho
   WHERE the entry criterion of the next status is the issue's present status and no payload, the CLI
   SHALL judge that transition on the status alone and SHALL fetch no comment page to judge it.
 
+### UC-05-9 — A plan whose shape is unfinished earns no approval
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-02
+
+The write judges the file it is handed and this judges the plan the issue holds, so a plan that
+arrived by any route answers to the same shape. What only the issue can decide is decided here rather
+than at the write: that a plan carrying no section at all is untyped, which is what keeps a plan
+written before this shape existed writable, and — because the criteria are a field of their own,
+which the write does not read — both that every criterion is served by a step and that every step
+cites one the issue holds.
+
+- **AC-05-9-1** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved refuses an untyped plan, and a criterion no plan step names"
+  IF the plan carries none of the sections a typed plan owes THEN the CLI SHALL refuse `approved` and
+  SHALL name those sections beside the write that supplies them.
+- **AC-05-9-2** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved refuses an untyped plan, and a criterion no plan step names"
+  IF a criterion of the issue is named by no step of the plan THEN the CLI SHALL refuse `approved` and
+  SHALL name that criterion by its number.
+- **AC-05-9-3** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "schema coupling and deploy coupling each owe the way back at the write and here"
+  WHERE a plan declares schema coupling or deploy coupling and carries no way back, the CLI SHALL
+  refuse `approved`.
+- **AC-05-9-4** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved refuses an untyped plan, and a criterion no plan step names"
+  WHEN a plan carries every section it owes, both required declarations and a step for every
+  criterion THEN the CLI SHALL earn `approved` from it with nothing owed of the plan.
+- **AC-05-9-5** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved refuses an untyped plan, and a criterion no plan step names"
+  IF a step of the plan cites no criterion, or cites only numbers the issue does not hold, THEN the
+  CLI SHALL refuse `approved` and SHALL name that step and what it cites.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*
