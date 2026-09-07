@@ -5335,3 +5335,34 @@ its run; no restart owed. Folded from its handback; the twenty-one comments were
 - Twenty filings from one reading is the reading working as specified; what the fold checks is
   that each names the line it comes from and none re-files a cause an open issue holds. The run
   related ISS-442 rather than re-filing it, which is that check passing once.
+
+## Two-hundred-and-eighth dry run — ISS-374
+
+The install reads the tree that shipped, and the lock holds through it (3.35.228, landed as
+18e9553): the shared checkout is offered the pushed head and the release carries on either way,
+naming every commit in the way with its author and files where the fast-forward fails; the install
+is one step later and chooses its own source, the checkout where that already is the shipped tree
+and the worktree otherwise, re-pointing the marketplace registration and restoring it on every exit.
+Fifteen criteria pass at one head, the last re-judged at the landed head on a full gate. Five review
+findings over three whole-set reads, each accepted with a case watched failing. Two filed (ISS-655, a
+latent copy of the porcelain-column read; ISS-663, filed before its neighbour list was read, marked a
+duplicate of ISS-34 by the run itself), five routed, one gap record. The three fix-size neighbours
+were not batched, because a batch would have put unreviewed work inside the one commit whose whole
+risk is the release path. Closed by its run; no restart owed. Folded from its handback; the
+twenty-four comments were read back.
+
+- The release that landed this change ran the old runner: the dispatcher's ship line names the
+  shared checkout's script, and ESM resolves imports against the script, so the tool under test was
+  not the tool that shipped it. The run posted a plan correction and judged the two criteria on the
+  sandbox suite instead of on its own ship; the new path's first live run is the next release.
+- A neighbour list read after the filing cost a duplicate (ISS-663 onto ISS-34, at 0.91). The run
+  marked it itself the same minute, which is the rule ISS-628 is writing landing by hand: the list
+  is read first, and a neighbour that owns the place takes the comment.
+- A lock read from inside a step after the last shared one is a case no release can see, because
+  the outer release drops the lock too; the run wrote a direct case on the landing loop for it. A
+  claim about when a lock is held is proven at the boundary, not by a run that happened to pass.
+- Three fix-size issues shared the place and none rode along: the change rewrote the release's tail
+  under the landing lock, and the batching rule yields to the risk of the commit it would join.
+- The step-7 class is closed at its cause after seventeen resumes in fifty runs; what remains of
+  the ship's contention is the gate every waiter re-pays and the head a sibling's landing moves,
+  which are ISS-654 and ISS-653, both held as ideas until the next mark's figures.
