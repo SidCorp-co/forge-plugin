@@ -3,6 +3,7 @@
    state reachable, every state one turn — and each refusal is read for the state it names rather
    than for its exit code (ISS-673). */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { tempHome } from "../../fixtures.mjs";
@@ -111,6 +112,27 @@ test("at the lander's states the builder is refused, and so is a second lander o
   }
 });
 
+/* The judge writes its hand-back under a lease still live, so the lander's way back in is a hole cut
+   in the live-lease guard — and one cut a state too wide would hand a third run any lander's lease,
+   the judge that went on to land holding one under the same id. At `judged` and spent there. */
+test("the judge's spent lease is taken back from at judged alone, and its own landing lease is not", () => {
+  const judged = (state, holder, lease) =>
+    takeRefusal("ISS-673", landingOf(at(state, { judge: "the-judge" })), holder, lease, { now: NOW });
+  const JUDGES = { ...LIVE, holder: "the-judge" };
+  assert.equal(judged("judged", "the-lander", JUDGES), null,
+    "the hand-back leaves the judge's lease live, and the lander takes the turn the state names");
+  for (const state of ["promoting", "promoted", "installed", "marked"]) {
+    const said = judged(state, "another-lander", JUDGES);
+    assert.match(said, /is already on it/u,
+      `${state}: the judge that went on to land holds an ordinary lander's lease, not a spent one`);
+    assert.match(said, new RegExp(`reads \`${state}\``, "u"), said);
+  }
+  assert.match(judged("judged", "another-lander", { ...LIVE, holder: "a-live-lander" }), /is already on it/u,
+    "and a lander that is not the named judge is no more takeable at judged than anywhere else");
+  assert.equal(landingOf(at("judged", { judge: "the-judge" })).judge, "the-judge",
+    "the name is a declared field, so the checkpoint carries it rather than dropping it");
+});
+
 /* Every agent of a dispatched wave inherits one id (ISS-445), so builder equality is no proof for
    the one write that replaces another run's live lease. Told, everywhere else; refused here. */
 test("a wave's shared id is refused the builder's turn where the take would replace a live lease", () => {
@@ -164,4 +186,25 @@ test("the history row a take appends names the state it was taken at", () => {
   });
   assert.equal(leaseOf(written).history.at(-1).landing, "ready", "and the write that makes one names it too");
   assert.deepEqual(landingOf(written), landingOf(at("ready")), "the checkpoint the claim was handed");
+});
+
+/* The table above walks its own rows and says nothing about a row nobody writes, which is how
+   `qa-owed → judged`, `judged → …` and `marked → done` shipped green as a dead end (ISS-673). Every
+   state is asked for by name in the two files that write one, so a row added without its writer is
+   red here rather than a landing that parks for good. */
+test("every state some step is meant to write is named in the source of the two files that write one", () => {
+  const root = new URL("../../../../", import.meta.url);
+  /* Below the imports: a name a file only imports is a name nothing there writes, and reading the
+     whole file would let the import that survived a deleted write answer for it. */
+  const src = ["plugin/src/flow/claim.mjs", "tools/run/land-ready.mjs"]
+    .map((one) => readFileSync(new URL(one, root), "utf8").split("\n")
+      .filter((line) => !/^(?:import\b|\s*[\w{},]+\s*(?:,|\}\s*from))/u.test(line)).join("\n"))
+    .join("\n");
+  const named = (state) =>
+    src.includes(`"${state}"`) || src.includes(`LANDING_${state.toUpperCase().replaceAll("-", "_")}`);
+  for (const state of Object.keys(LANDING_STATES)) {
+    assert.ok(named(state), `nothing under plugin/src/flow/claim.mjs or tools/run/land-ready.mjs asks `
+      + `for \`${state}\`, so the table offers a state no step writes and a landing reaching the row `
+      + `above it parks there for good`);
+  }
 });

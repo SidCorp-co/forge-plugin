@@ -61,7 +61,12 @@ test("a ready branch is pinned, merged, proved to have moved nothing and promote
   assert.equal(held.pinned, base, said);
   assert.equal(held.intended, landed, said);
   assert.equal(held.reconciled, git(work, "rev-parse", `${landed}^`).stdout.trim(), said);
-  assert.equal(held.state, "qa-owed", `the QA turn is where it ends:\n${said}`);
+  /* This project asks for no independent judge, so no QA turn is written at all; and its record
+     earns neither status, so the checkpoint rests at `marked` for the landing to be run again
+     rather than closing at `done` over a `tested` nothing earned. */
+  assert.equal(held.state, "marked", `no judge is asked for and neither status is earned:\n${said}`);
+  assert.match(said, /no judge's turn sits here: this project lands after-merge/u, said);
+  assert.match(said, /the checkpoint stays `marked`/u, said);
 });
 
 test("the install after that promotion holds the version the release commit carries", async () => {
@@ -116,7 +121,7 @@ test("a base that moved a line of the change's own file hands the branch back, r
      promotes the same candidate, and the mark's judged head is the candidate it judged. */
   issue().sessionContext.landing = { ...held, state: "reconciled", reconciled: held.candidate };
   const after = await ran([KEY], work);
-  assert.equal(landing().state, "qa-owed", after);
+  assert.equal(landing().state, "marked", after);
   assert.notEqual(remote(at), pinned, `the reconciled candidate lands:\n${after}`);
   assert.match(marks()[0].body, new RegExp(`judged head ${held.candidate}\\b`, "u"), marks()[0].body);
   assert.match(marks()[0].body, new RegExp(`landing moved ${OWNED};`, "u"), marks()[0].body);
@@ -150,7 +155,7 @@ test("a branch that conflicts with the pinned base is parked with the list, and 
   assert.ok(!held.includes("<<<<"), `the conflict was not resolved into the tree:\n${held}`);
   assert.match(held, /line 2, as the base moved it/u, "the tree holds the base's own text, not the branch's");
   /* The branch after it is somebody else's release, so the park is not the end of the run. */
-  assert.equal(landing(NEXT_UUID).state, "qa-owed", said);
+  assert.equal(landing(NEXT_UUID).state, "marked", said);
   assert.equal(marks(NEXT_UUID).length, 1, said);
   assert.notEqual(remote(at), pinned, `the second branch landed:\n${said}`);
   assert.match(fileAt(work, remote(at), NEXT_OWNED), /the second change/u, said);

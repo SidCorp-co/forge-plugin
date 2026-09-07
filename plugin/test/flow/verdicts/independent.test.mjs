@@ -217,6 +217,13 @@ after(() => tracker.close());
 const asks = (holder) => (...argv) => ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: holder });
 const builder = asks(BUILDER);
 const qa = asks(QA);
+/* A write's first send is held to deliver the comments the session has not read, and the same
+   command sent again lands: what a test asserts is the second, the hold being another rule's. */
+const twice = async (who, ...argv) => {
+  const first = await who(...argv);
+  return first.status === 0 ? first : who(...argv);
+};
+
 /* The lease is the only thing between two sessions here: a lapsed one is the next run's to reclaim,
    which is what the handoff at `qa-owed` does once a session can prove it is the QA run. */
 const lapse = () => {
@@ -280,4 +287,84 @@ test("at qa-owed the judging run takes a live lander lease, and the builder is r
   assert.equal(refused.status, 1, refused.stdout);
   assert.match(`${refused.stdout}\n${refused.stderr}`, /no run may judge its own work/u,
     "and the one session qa-owed cannot mean is the one that built the change");
+});
+
+/* The fourth move, and the one the state had no writer for: `qa-owed` was where a landing went to
+   die, its only successor unreachable and the taker at it holding no command to discharge the turn.
+   The state written, the judge named, and the lander's way back in are one reading. */
+test("the judging run hands the turn back, and the lander takes the lease it left live", async () => {
+  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
+  judging.sessionContext.lease = { ...judging.sessionContext.lease, holder: QA, renewedAt: at() };
+  const back = await twice(qa, "claim", "ISS-8", "--judged");
+  assert.equal(back.status, 0, `${back.stdout}\n${back.stderr}`);
+  assert.equal(judging.sessionContext.landing.state, "judged", back.stdout);
+  assert.equal(judging.sessionContext.landing.judge, QA, "the checkpoint names who judged it");
+  assert.match(back.stdout, /landing `judged`/u, back.stdout);
+  const lander = asks(LANDER);
+  const took = await twice(lander, "claim", "ISS-8", "--take");
+  assert.equal(took.status, 0, `${took.stdout}\n${took.stderr}`);
+  assert.equal(judging.sessionContext.lease.holder, LANDER,
+    "the judge's own live lease is taken back from, as the builder's is at the handoff before it");
+  const again = await qa("claim", "ISS-8", "--judged");
+  assert.equal(again.status, 1, again.stdout);
+  assert.match(`${again.stdout}\n${again.stderr}`, /reads `judged`/u,
+    "and the hand-back is refused a second time, naming the state it read");
+});
+
+/* The hole the take-back cuts in the live-lease guard, closed by the take that used it: a lander
+   inheriting the judge's id, or the judge landing under its own lease, would otherwise be takeable
+   by any third run for the rest of the landing. */
+test("the take at judged spends the judge's name, so the lease the taker holds is nobody else's", async () => {
+  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
+  judging.sessionContext.lease = { ...judging.sessionContext.lease, holder: QA, renewedAt: at() };
+  assert.equal((await twice(qa, "claim", "ISS-8", "--judged")).status, 0);
+  assert.equal(judging.sessionContext.landing.judge, QA);
+  const lander = asks(LANDER);
+  assert.equal((await twice(lander, "claim", "ISS-8", "--take")).status, 0);
+  assert.equal(judging.sessionContext.landing.judge, "",
+    "the name licensed one hand-back, and the take that used it blanked the field `landingOf` drops");
+  /* Real time and not the fixture's clock: the CLI reads liveness against `Date.now()`, and a stamp
+     from the counter above is already lapsed there — which is any run's, proving nothing. */
+  judging.sessionContext.lease = {
+    ...judging.sessionContext.lease, holder: QA, renewedAt: new Date().toISOString(),
+  };
+  const asking = asks("a-third-lander");
+  await asking("claim", "ISS-8", "--take");
+  const third = await asking("claim", "ISS-8", "--take");
+  assert.equal(third.status, 1, third.stdout);
+  assert.match(`${third.stdout}\n${third.stderr}`, /is already on it/u,
+    "so a judge that went on to land holds a lander's live lease, which no third run may take");
+});
+
+/* The same hole, entered by the judge itself: J hands back and then lands its own change, which the
+   state permits because J is not the builder. Its take is licensed by the lease it already holds, so
+   the marker has to go there too — left set, the lander lease J now holds would be any run's. */
+test("the judge that lands its own hand-back spends the marker too, before any state moves", async () => {
+  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
+  judging.sessionContext.lease = { ...judging.sessionContext.lease, holder: QA, renewedAt: at() };
+  assert.equal((await twice(qa, "claim", "ISS-8", "--judged")).status, 0);
+  judging.sessionContext.lease = {
+    ...judging.sessionContext.lease, holder: QA, renewedAt: new Date().toISOString(),
+  };
+  assert.equal((await twice(qa, "claim", "ISS-8", "--take")).status, 0, "the judge takes the lander's turn");
+  assert.equal(judging.sessionContext.landing.judge, "",
+    "and its own take spent the marker, the lease it holds now being an ordinary lander's");
+  assert.equal(judging.sessionContext.landing.state, "judged", "with no state moved yet");
+  const third = asks("a-fourth-lander");
+  await third("claim", "ISS-8", "--take");
+  const refused = await third("claim", "ISS-8", "--take");
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.match(`${refused.stdout}\n${refused.stderr}`, /is already on it/u,
+    "so the interval between the judge's take and the next transition is not a window either");
+});
+
+test("the hand-back is refused where no QA turn is owed, and refused beside a turn's own flag", async () => {
+  judging.sessionContext.landing = { ...CHECKPOINT, state: "reconciled" };
+  const early = await qa("claim", "ISS-8", "--judged");
+  assert.equal(early.status, 1, early.stdout);
+  assert.match(`${early.stdout}\n${early.stderr}`, /reads `reconciled`/u, early.stdout);
+  const both = await qa("claim", "ISS-8", "--judged", "--take");
+  assert.equal(both.status, 1, both.stdout);
+  assert.match(`${both.stdout}\n${both.stderr}`, /--take and --judged/u,
+    "each flag is a different turn's move, so two of them name no turn at all");
 });

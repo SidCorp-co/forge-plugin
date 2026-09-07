@@ -83,7 +83,7 @@ for (const row of DEATHS) {
     const { at, work, head, base } = world({ base: "other" });
     seeded({ landing: ready(head, base) });
     const first = await ran([KEY], work);
-    assert.equal(landing().state, "qa-owed", `the landing this row rewinds:\n${first}`);
+    assert.equal(landing().state, "marked", `the landing this row rewinds:\n${first}`);
     const release = remote(at);
     const held = landing();
     /* The world as the death left it: the checkpoint back at that state, and where the death was
@@ -96,7 +96,7 @@ for (const row of DEATHS) {
     assert.match(said, row.says, said);
     assert.equal(remote(at), release, `one release and no second one:\n${said}`);
     assert.equal(marks().length, 1, `one mark and no second one:\n${said}`);
-    assert.equal(landing().state, "qa-owed", `and the landing is over:\n${said}`);
+    assert.equal(landing().state, "marked", `and the landing is where it was:\n${said}`);
     assert.equal(landing().intended, held.intended, `against the release it already made:\n${said}`);
     assert.equal(claudeCalls().length > before.calls, row.installs, `the install was ${row.installs ? "" : "not "}owed:\n${said}`);
     if (row.status) assert.equal(transitions(), before.moves, `and no status moved again:\n${said}`);
@@ -104,24 +104,28 @@ for (const row of DEATHS) {
   });
 }
 
-/* `marked -> qa-owed -> judged` is the table's own route, so `judged` names the QA turn's hand-back
-   both before a promotion and after one. Resumed at the pin, the second reading of a landed release
-   is a moved base — and voiding there would build another release of a change already out. */
+/* `judged` names the QA turn's hand-back either side of a promotion, so a checkpoint at it may be
+   past its own push. Resumed at the pin, the second reading of a landed release is a moved base —
+   and voiding there would build another release of a change already out. */
 test("a checkpoint at `judged` past its own push rebuilds nothing and releases nothing twice", async () => {
   const { at, work, head, base } = world({ base: "other" });
   seeded({ landing: ready(head, base) });
   const first = await ran([KEY], work);
-  assert.equal(landing().state, "qa-owed", first);
+  assert.equal(landing().state, "marked", first);
   const release = remote(at);
   const held = landing();
   /* What the QA turn writes when it has read the release: the lander's own last state, judged. */
   issue().sessionContext.landing = { ...held, state: "judged" };
   const said = await ran([KEY], work);
-  assert.match(said, /is past its own push/u, said);
+  /* The release names this as the hand-back after a promotion, so the status is all that is owed. */
+  assert.match(said, /step 10\/10/u, said);
+  assert.doesNotMatch(said, /step 1\/10/u, `nothing was pinned or built again:\n${said}`);
   assert.equal(remote(at), release, `one release and no second one:\n${said}`);
   assert.equal(marks().length, 1, `and one mark:\n${said}`);
   const after = landing();
-  assert.equal(after.state, "judged", `the checkpoint is left where the QA turn put it:\n${said}`);
+  /* Neither status is earned here, so the checkpoint is not closed over one; earned, it reads `done`. */
+  assert.equal(after.state, "judged", `left where the record leaves it:\n${said}`);
+  assert.match(said, /the checkpoint stays `judged`/u, said);
   assert.equal(after.intended, held.intended, `with the release it names intact:\n${said}`);
   assert.equal(after.candidate, held.candidate, `and its candidate not voided:\n${said}`);
 });
@@ -148,7 +152,7 @@ test("a branch past this release with nothing newer installed refuses rather tha
   const { at, work, head, base } = world({ base: "other" });
   seeded({ landing: ready(head, base) });
   const first = await ran([KEY], work);
-  assert.equal(landing().state, "qa-owed", first);
+  assert.equal(landing().state, "marked", first);
   const release = landing().intended;
   /* The death is before the install; then somebody else moves the branch and installs nothing —
      a plain `land` does exactly that. */
@@ -167,7 +171,7 @@ test("a branch past this release with nothing newer installed refuses rather tha
   assert.match(after, new RegExp(`past this release at ${release.slice(0, 7)}`, "u"), after);
   assert.equal(claudeCalls().length, before, `nothing was installed over the newer copy:\n${after}`);
   assert.equal(marks().length, 1, `and the mark it owed is up:\n${after}`);
-  assert.equal(landing().state, "qa-owed", after);
+  assert.equal(landing().state, "marked", after);
   assert.equal(remote(at), later, `the branch is still where the other landing left it:\n${after}`);
 });
 
@@ -232,6 +236,6 @@ test("an issue with no checkpoint at all is refused naming the command that writ
   assert.match(said, /forge claim ISS-673 --pushed --ready/u, said);
   assert.equal(git(work, "status", "--porcelain").stdout, "", "and nothing was edited");
   /* And the key after it still lands: a checkpoint this task cannot carry ends one branch's landing. */
-  assert.equal(landing(NEXT_UUID).state, "qa-owed", said);
+  assert.equal(landing(NEXT_UUID).state, "marked", said);
   assert.notEqual(remote(at), pinned, `the branch after it was promoted:\n${said}`);
 });

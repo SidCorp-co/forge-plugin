@@ -23,10 +23,19 @@ import { advance, parkAs } from "../../plugin/src/flow/advance.mjs";
 import { atLeast, viewFrom } from "../../plugin/src/flow/earned.mjs";
 import { markedCommit } from "../../plugin/src/flow/machine.mjs";
 import {
-  LANDING_CANDIDATE, LANDING_READY, landingOf, landingSaved, landingVoided, takeLease,
+  LANDING_CANDIDATE, LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED, LANDING_READY,
+  landingOf, landingSaved, landingVoided, takeLease,
 } from "../../plugin/src/flow/lease.mjs";
+import { INDEPENDENT, voidedBy } from "../../plugin/src/flow/qa/verdicts.mjs";
+import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/tracker/project-config.mjs";
+import { landingScope } from "../../plugin/src/resolve/settings.mjs";
 
 const DEVELOPED = "developed";
+const TESTED = "tested";
+
+/* The one line of the project's record this task branches on. docs/cli/claim.md. */
+const BEFORE_MERGE = "before-merge";
+const AFTER_MERGE = "after-merge";
 
 /* A landing that rebuilt twice and found the base moved again is a fold racing something else, and
    a third pass would spend another whole gate to say so. */
@@ -34,12 +43,12 @@ const TRIES = 2;
 
 /* The steps by name rather than by number, because the resume table below points at them and a
    reordering that shifted an index would resume into the wrong step and say nothing. */
-const ORDER = ["pin", "merge", "candidate", "gate", "version", "push", "install", "mark", "status"];
+const ORDER = ["pin", "merge", "candidate", "gate", "version", "judge", "push", "install", "mark", "status"];
 
 /* Where a second run picks up, per state, the step it starts at reading whether the write it guards
    already landed: `push` asks the remote for the intended sha, `install` asks the install record,
-   `mark` asks the issue for its mark, `status` asks the status. A state whose turn is not the
-   lander's never reaches here — the take refuses it by name. */
+   `mark` asks the issue for its mark, `status` asks the status. `owedAt` reads the one state this
+   table cannot answer alone; a state whose turn is not the lander's never reaches here. */
 const OWED = {
   ready: "pin",
   candidate: "pin",
@@ -50,6 +59,10 @@ const OWED = {
   installed: "mark",
   marked: "status",
 };
+
+/* `judged` sits either side of a promotion and the release tells them apart: docs/cli/claim.md. */
+const owedAt = (landing) =>
+  (landing.state === LANDING_JUDGED && landing.release ? "status" : OWED[landing.state] ?? "");
 
 /* `fail` inside the CLI's own modules ends the process, and an exit mid-landing would drop the
    lock's release and leave a branch promoted with nothing said about it. */
@@ -161,12 +174,24 @@ const markNote = (landing, { branch, landed, judged, moved }) =>
   + `judged head ${judged}; landing moved ${moved.length ? moved.join(", ") : "nothing"}; `
   + `landing wrote ${landing.files.length ? landing.files.join(", ") : "nothing"}`;
 
-/* The whole record, for the one step that parks: the others read a field or the comments alone. */
+/* The whole record, policy and all, for the steps that need one rather than a field or the page. */
 const viewOf = async (documentId) => {
-  const [issue, page] = await Promise.all([
-    scoped("forge_issues", { action: "get", documentId }), commentPage(documentId),
+  const [issue, page, release] = await Promise.all([
+    scoped("forge_issues", { action: "get", documentId }), commentPage(documentId), releasePolicy(),
   ]);
-  return viewFrom(documentId, issue, page.comments ?? []);
+  return viewFrom(documentId, issue, page.comments ?? [], null, release);
+};
+
+/* The verdicts a moved base or head takes away, named rather than described. Empty where the project
+   asks for no independent judge: a builder's verdicts are the review at the landed head's business. */
+const voidSaid = async (documentId, landing) => {
+  if (!landing.deployment) return "";
+  const view = await asked(() => viewOf(documentId));
+  const numbers = voidedBy(landing, view.verdicts, view.release);
+  return numbers.length
+    ? ` The QA verdict(s) on criterion ${numbers.join(", ")} judged ${shortly(landing.deployment)} and `
+      + `are void with it.`
+    : "";
 };
 
 const statusOf = async (documentId) =>
@@ -201,7 +226,7 @@ const pinStep = async (one) => {
     console.log("  the pin this landing held is still the branch head");
     return;
   }
-  /* A state the table offers before a promotion is reachable after one too — `judged` is the QA turn's hand-back either way, and only the release the checkpoint names tells the two apart — so the release is asked about before anything is voided: rebuilt from a fresh pin, a checkpoint past its push would land the same change a second time. */
+  /* A state the table offers before a promotion is reachable after one too, on the reading `owedAt` makes, so the release is asked about before anything is voided: rebuilt from a fresh pin, a checkpoint past its push would land the same change a second time. */
   const on = at.landing.intended ? landedAlready(root, base, at.landing.intended) : null;
   if (on && !on.known) stop(NOT_KNOWN(key, base, on.now, at.landing.intended));
   if (on?.landed) {
@@ -210,8 +235,9 @@ const pinStep = async (one) => {
       + `there is no candidate to rebuild and nothing here to land again. What is left of it is the `
       + `reading of that release:\n    forge resume ${key}`);
   }
+  const said = await voidSaid(documentId, at.landing);
   console.log(`  the pin this landing held was ${shortly(at.landing.pinned)} and ${base} is now `
-    + `${shortly(at.pin)}, so the candidate and every reading taken at it are void`);
+    + `${shortly(at.pin)}, so the candidate and every reading taken at it are void.${said}`);
   at.landing = await asked(() => landingSaved(documentId, key, landingVoided(at.pin)));
 };
 
@@ -261,6 +287,38 @@ const candidateStep = async (one) => {
       { state: "reconciled", candidate: at.candidate, reconciled: at.candidate }));
   }
   if (at.landing.reconciled !== at.candidate) stop(notReconciled(key, at.landing, at.candidate));
+};
+
+/* A commit on both routes, and the one a verdict cites: `judgeProblem` reads it again at `tested`. */
+const OWED_TO_QA = (key, landing, what) =>
+  `the checkpoint on ${key} reads \`${LANDING_QA_OWED}\`: ${what} at ${shortly(landing.deployment)} is `
+  + `what an independent judge is owed, and nothing of ${key} moves until the turn comes back.\n`
+  + `    forge claim ${key} --take\n`
+  + `    ... the verdicts, then: forge claim ${key} --judged`;
+
+/* Held back rather than refused: the candidate the steps above built, gated and versioned is the
+   commit that would land, and what waits on the judgement is only the push. */
+const judgeStep = async (one) => {
+  const { key, documentId, at, ctx: { route, judgement } } = one;
+  if (judgement !== INDEPENDENT || route !== BEFORE_MERGE) {
+    return console.log(`  no judge's turn sits here: this project lands ${route} and its judgement `
+      + `between developed and tested is ${judgement}`);
+  }
+  if (at.landing.state === LANDING_JUDGED) {
+    if (at.landing.deployment === at.candidate) {
+      return console.log(`  judged at ${shortly(at.candidate)}, the candidate this landing built`);
+    }
+    const said = await voidSaid(documentId, at.landing);
+    const held = at.landing;
+    at.landing = await asked(() => landingSaved(documentId, key, landingVoided(at.pin)));
+    at.rebuild = true;
+    return stop(`the turn came back judged at ${shortly(held.deployment)} and this landing built `
+      + `${shortly(at.candidate)}, so what was judged is not what would be promoted.${said} The `
+      + `candidate is rebuilt and the judgement asked for again.`);
+  }
+  at.landing = await asked(() => landingSaved(documentId, key,
+    { state: LANDING_QA_OWED, deployment: at.candidate }));
+  return stop(OWED_TO_QA(key, at.landing, "the candidate"));
 };
 
 const pushStep = async (one) => {
@@ -369,21 +427,41 @@ const markStep = async (one) => {
 
 /* Driven through `advance`, so the flow table and the entry criteria stay where they live: a move
    the records have not earned is said and moves nothing, which is what this task owes it. */
-const statusStep = async (one) => {
-  const { key, documentId, at } = one;
+/* Whether the status is there, never whether the move was tried: an advance refused says so and
+   moves nothing, and `done` written over that would certify a status nothing earned. */
+const moveTo = async (key, to, documentId) => {
   const status = await asked(() => statusOf(documentId));
-  if (atLeast(status, DEVELOPED)) {
+  if (atLeast(status, to)) {
     console.log(`  ${key} is ${status} already`);
-  } else {
-    try {
-      await refusing(() => advance([key, "--to", DEVELOPED]));
-    } catch (error) {
-      if (!(error instanceof Refusal || error instanceof Refused)) throw error;
-      console.error(`  ${key} stays ${status}: ${error.message}`);
-    }
+    return true;
   }
-  at.landing = await asked(() => landingSaved(documentId, key, { state: "qa-owed" }));
-  console.log("  the checkpoint reads `qa-owed`: the deployment's reading is the QA turn's");
+  try {
+    await refusing(() => advance([key, "--to", to]));
+  } catch (error) {
+    if (!(error instanceof Refusal || error instanceof Refused)) throw error;
+    console.error(`  ${key} stays ${status}: ${error.message}`);
+    return false;
+  }
+  return atLeast(await asked(() => statusOf(documentId)), to);
+};
+
+const statusStep = async (one) => {
+  const { key, documentId, at, ctx: { route, judgement } } = one;
+  await moveTo(key, DEVELOPED, documentId);
+  /* The other place the route puts that turn; the release is what says what is running. */
+  if (judgement === INDEPENDENT && route !== BEFORE_MERGE && at.landing.state !== LANDING_JUDGED) {
+    at.landing = await asked(() => landingSaved(documentId, key,
+      { state: LANDING_QA_OWED, deployment: at.landing.intended }));
+    return stop(OWED_TO_QA(key, at.landing, "the release"));
+  }
+  /* `done` is refused to every turn, so it waits on the status: closed over a record that did not
+     earn `tested`, the issue would be reachable by no route at all. */
+  if (!await moveTo(key, TESTED, documentId)) {
+    return console.log(`  the checkpoint stays \`${at.landing.state}\`: what \`${TESTED}\` is owed is `
+      + `above, and the landing is run again once the record carries it`);
+  }
+  at.landing = await asked(() => landingSaved(documentId, key, { state: LANDING_DONE }));
+  return console.log(`  the checkpoint reads \`${LANDING_DONE}\`: no turn of this landing is left`);
 };
 
 /* The table the resume points into, one row per name in ORDER. */
@@ -403,6 +481,7 @@ const landingSteps = (one) => {
       one.at.release = versionAt(one.at.room, "HEAD");
       one.at.intended = gitOut(["rev-parse", "HEAD"], one.at.room);
     }],
+    ["the judge's turn, where the project judges before the merge", () => judgeStep(one)],
     [`push to ${REMOTE}/${base}, the pin its expected old value`, () => pushStep(one), PUSHES],
     [`install ${plugin}@${market} from the tree that shipped`, () => installStep(one), INSTALLS],
     ["the merged mark", () => markStep(one)],
@@ -424,7 +503,7 @@ const taken = async (key) => {
   /* Before the take, not after it: a take is a write, and a state this task cannot carry is one it
      has no business holding the lease for — least of all `builder-owed`, whose turn is a run this
      task is not and whose live lease the take may replace. */
-  const from = ORDER.indexOf(OWED[landing.state] ?? "");
+  const from = ORDER.indexOf(owedAt(landing));
   if (from < 0) {
     stop(`the landing checkpoint on ${key} reads \`${landing.state}\`, which is not a step this task `
       + `owes: read where it is, and land it when the state names the lander's turn.\n`
@@ -482,6 +561,17 @@ export const landReady = async ({ flags, words }, ctx) => {
       + `each candidate in a tree of its own and touches no run's: land from ${ctx.root}.`);
   }
   const ms = waitMs(flags);
+  /* Read once and carried: a project that answered neither line is said, never defaulted. */
+  const policy = await asked(() => releasePolicy());
+  const route = landingRoute(policy, landingScope()).value;
+  const judgement = judgementOf(policy);
+  if (judgement === INDEPENDENT && route !== BEFORE_MERGE && route !== AFTER_MERGE) {
+    stop(`this project asks for an independent judge between developed and tested and says nothing `
+      + `about where the merge sits, so nothing here knows whether the judgement comes before the `
+      + `push or after it. Set the branches on the project's record, or the \`landing\` key in `
+      + `.forge.json, and land again: forge project`);
+  }
+  console.log(`\nlanding ${route}, judgement ${judgement}`);
   for (const key of words) {
     console.log(`\n=== ${key}`);
     let start = null;
@@ -493,6 +583,6 @@ export const landReady = async ({ flags, words }, ctx) => {
       process.exitCode = 1;
       continue;
     }
-    await landOne(key, { ...ctx, ms }, start);
+    await landOne(key, { ...ctx, ms, route, judgement }, start);
   }
 };

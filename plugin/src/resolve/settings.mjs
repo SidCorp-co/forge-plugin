@@ -218,4 +218,4 @@ export const landingScope = once(() =>
 export const SHIP_MODES = ["self", "ready"];
 
 /** Unmemoised: `forge doctor --ship` writes the option and reports it in the same process. */
-export const shipMode = () => chosen(userConfig().ship, SHIP_MODES, SHIP_MODES[0], { source: CONFIG_PATH });
+export const shipMode = () => chosen(userConfig().ship, SHIP_MODES, SHIP_MODES[0], { source: configPath() });

@@ -12,6 +12,8 @@ import { parkAs, transitionTo } from "./advance.mjs";
 import { OPEN_KEPT, patchFrom, worklogFor } from "./worklog.mjs";
 import {
   ADVISORY,
+  LANDING_JUDGED,
+  LANDING_QA_OWED,
   LANDING_READY,
   MINUTES,
   RECLAIMS_BEFORE_PARK,
@@ -22,6 +24,7 @@ import {
   historyLine,
   landingLine,
   landingOf,
+  landingSaved,
   leaseOf,
   nextLine,
   parkAnswers,
@@ -49,6 +52,7 @@ export const USAGE = [
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
   "  --ready         with --pushed: the landing checkpoint, in state `ready`, from that capture",
   "  --take          the lease at whatever state the checkpoint names your turn",
+  "  --judged        the QA turn handed back: the checkpoint moves from `qa-owed` to `judged`",
   "",
   "Those three write the worklog beside the lease, which is what `forge resume` reads first. Neither",
   "capture is automatic: a write made from another checkout would name that one as this issue's.",
@@ -58,7 +62,9 @@ export const USAGE = [
   "turn it is. `--take` is the only route that may take a lease which is still live, and only where",
   "the state names the taker: the lander at `ready` and at every state of the landing itself, the",
   "named builder or a successor at `builder-owed`, the QA run at `qa-owed`. Any other take is",
-  "refused naming the state it read.",
+  "refused naming the state it read. `--judged` is how the QA run ends that turn once its verdicts",
+  "are on the record, and it is the one route out of `qa-owed`: the landing then reads `judged` and",
+  "goes on, either to the promotion it held back or to the status the record now earns.",
   "",
   "The lease names the agent type and the process id beside the session, so a refusal says what",
   "held the issue and not only which uuid. A claim that takes over prints the line the last holder",
@@ -131,6 +137,23 @@ export const readyCheckpoint = (ref, holder, patch, landing) => {
   };
 };
 
+/* The one route out of `qa-owed`, and the reason the state is not a dead end: the judge writes its
+   verdicts as any run does and then says the turn is over, which is all this writes. What those
+   verdicts have to carry is the contract's at `tested` and not this claim's to re-judge — a judge
+   refused here could neither hand back nor be replaced. docs/cli/claim.md. */
+const handBack = async (documentId, ref, context, holder) => {
+  const landing = landingOf(context);
+  if (landing?.state !== LANDING_QA_OWED) {
+    fail(`claim --judged ends the QA turn, and the landing checkpoint on ${ref} reads `
+      + `\`${landing?.state ?? "nothing at all"}\`: the turn is handed back from \`${LANDING_QA_OWED}\` `
+      + `and from no other state. Read where the landing is:\n  forge resume ${ref}`);
+  }
+  const saved = await landingSaved(documentId, ref, { state: LANDING_JUDGED, judge: holder });
+  console.log(`${ref}  judged: ${landingLine(saved)}`);
+  return console.log(`The verdicts on the record are the judgement and the landing takes it from `
+    + `here, so nothing more of ${ref} is this run's.`);
+};
+
 /* The turn is read before anything is written, because this is the one claim that may take a live
    lease: a take the state does not name is refused and no field is touched. */
 const takeTurn = async (documentId, ref, issue, context, { holder, minutes, line, patch }) => {
@@ -177,14 +200,16 @@ export const claim = async (argv) => {
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
   const pulled = pullRepeated(rest, "--open", "claim");
-  const given = flags(pulled.rest, "claim", ["--pushed", "--review", "--ready", "--take"]);
-  const takes = ["minutes", "next", "pushed", "review", "ready", "take"];
+  const given = flags(pulled.rest, "claim", ["--pushed", "--review", "--ready", "--take", "--judged"]);
+  const takes = ["minutes", "next", "pushed", "review", "ready", "take", "judged"];
   for (const one of Object.keys(given)) {
     if (!takes.includes(one)) fail(`claim takes no --${one}. Flags: ${takes.map((two) => `--${two}`).join(" ")} --open`);
   }
-  if (given.ready && given.take) {
-    fail(`claim takes --ready or --take and not both: one ends a build and the other picks up the `
-      + `turn a checkpoint names. To end this build:\n  forge claim ${ref} --pushed --ready`);
+  const turns = ["ready", "take", "judged"].filter((one) => given[one]);
+  if (turns.length > 1) {
+    fail(`claim takes one of --ready, --take and --judged and this one takes `
+      + `${turns.map((one) => `--${one}`).join(" and ")}: each is a different turn's own move. To end `
+      + `this build:\n  forge claim ${ref} --pushed --ready`);
   }
   if (given.ready && !given.pushed) {
     fail(`claim --ready writes the checkpoint off the capture --pushed makes, so the two are typed `
@@ -204,6 +229,10 @@ export const claim = async (argv) => {
   if (given.take) {
     const took = await takeTurn(documentId, ref, issue, context, { holder, minutes, line, patch });
     if (sharedHolder(took, mine)) console.log(SHARED_HOLDER);
+    return console.log(ADVISORY);
+  }
+  if (given.judged) {
+    await handBack(documentId, ref, context, holder);
     return console.log(ADVISORY);
   }
   if (state === "live") fail(claimRefusal(ref, lease));

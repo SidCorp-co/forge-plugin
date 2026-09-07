@@ -1,6 +1,5 @@
-/* The issue's session field, read as a lease: who holds it, until when, the one line naming the
-   step they are on, and the claims before this one. The tracker has no conditional write (ISS-7),
-   so a write here is a read-back compare and the claim says so out loud. docs/cli/claim.md. */
+/* The issue's session field read as a lease, and what a build ready to land leaves beside it. The
+   tracker has no conditional write (ISS-7), so a write is a read-back compare. docs/cli/claim.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID, sessionOf, sessionSourced } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
@@ -68,9 +67,8 @@ export const expiryOf = (lease) => {
 
 const stamp = (ms) => (ms ? new Date(ms).toISOString().slice(0, 16) : "an unreadable time");
 
-/* A lease past its duration is another run's to take. The holder's own lapsed lease is a state of
-   its own because the field still naming this session is the proof no other run took the issue: a
-   reclaim would read as live or expired. A reclaim is a handoff, so retaking one's own appends none. */
+/* A lease past its duration is another run's. The holder's own lapsed one is its own state because
+   the field still naming this session proves nobody took the issue; a reclaim is a handoff. */
 export const stateOf = (lease, holder, now = Date.now()) => {
   if (!lease) return "free";
   const live = expiryOf(lease) > now;
@@ -106,12 +104,14 @@ const lastReclaimAt = (lease, status) =>
 export const parkAnswers = (lease, status, parkedAt) =>
   parksAsCrashed(lease, status) && lastReclaimAt(lease, status) <= String(parkedAt ?? "");
 
-/* The other object in the field, beside the lease and the worklog: what a build ready to land
-   leaves for whoever lands it. One turn per state, and `done` is nobody's; three states offer two
-   successors because a project judges its deployment before the merge or after it, and the route
-   walked is the landing task's reading rather than this table's. docs/cli/claim.md. */
+/* The other object in the field, beside the lease and the worklog: what a build ready to land leaves
+   for whoever lands it. One turn per state, `done` is nobody's, and which of the two successors a
+   state offers is the landing task's reading of the project. docs/cli/claim.md. */
 export const LANDING = "landing";
 export const LANDING_READY = "ready";
+export const LANDING_QA_OWED = "qa-owed";
+export const LANDING_JUDGED = "judged";
+export const LANDING_DONE = "done";
 
 export const LANDING_STATES = {
   ready: { turn: "lander", next: ["candidate"] },
@@ -131,7 +131,7 @@ export const LANDING_STATES = {
    this same object, and a key nothing here names is dropped rather than read back as a fact. `files`
    is the paths the change touched, where the worklog's `files` beside it is how many there were. */
 const CHECKPOINT = ["state", "builder", "branch", "head", "base", "at", "pinned", "intended",
-  "candidate", "release", "install", "deployment", "moved", "reconciled"];
+  "candidate", "release", "install", "deployment", "moved", "reconciled", "judge"];
 
 export const landingOf = (context) => {
   const held = context?.[LANDING];
@@ -147,11 +147,12 @@ export const landingTurn = (landing) => LANDING_STATES[landing?.state]?.turn ?? 
 /* A base that moved under a pin is built again from a fresh one — the one move the table above
    cannot carry, being backwards. Never past the push: that would void evidence for a landed release. */
 export const LANDING_CANDIDATE = "candidate";
-const REBUILDS = new Set([LANDING_CANDIDATE, "reconciled", "qa-owed", "judged", "promoting"]);
+const REBUILDS = new Set([LANDING_CANDIDATE, "reconciled", LANDING_QA_OWED, LANDING_JUDGED, "promoting"]);
 
 /** Blank rather than absent: `landingOf` drops what is falsy, so this is how a field is cleared. */
 export const landingVoided = (pinned) => ({
-  state: LANDING_CANDIDATE, pinned, candidate: "", intended: "", moved: "", reconciled: "", deployment: "",
+  state: LANDING_CANDIDATE, pinned, candidate: "", intended: "", moved: "", reconciled: "",
+  deployment: "", judge: "",
 });
 
 export const landingNext = (held, to) => {
@@ -211,7 +212,10 @@ export const takeRefusal = (ref, landing, holder, lease, { now = Date.now(), sou
       return `${said}, whose turn is the lander's, and this session built it: the builder's turn `
         + `comes back at \`builder-owed\` and nowhere else. ${READ_THE_STATE(ref)}`;
     }
+    /* At `judged` alone and spent by the take: a judge that went on to land under that same lease
+       holds an ordinary lander's, which a third run may not take. docs/cli/claim.md. */
     if (!live || lease.holder === holder || lease.holder === landing.builder) return null;
+    if (landing.state === LANDING_JUDGED && landing.judge && lease.holder === landing.judge) return null;
     return `${said}, whose turn is the lander's, and ${describe(lease)} is already on it. `
       + `${READ_THE_STATE(ref)}`;
   }
@@ -361,11 +365,15 @@ export const takeLease = async (documentId, ref, context,
   /* Where the id came from is this session's to say only where the holder is this session. */
   const mine = sessionSourced();
   const source = mine.id === holder ? mine.source : null;
-  const refused = takeRefusal(ref, landingOf(context), holder, leaseOf(context), { source });
+  const held = landingOf(context);
+  const refused = takeRefusal(ref, held, holder, leaseOf(context), { source });
   if (refused) fail(refused);
+  /* Spent by every take at that state, the judge's own included: a marker the judge's own take left
+     behind would make the lander lease it goes on to hold a third run's to take. */
+  const landing = held?.state === LANDING_JUDGED && held.judge ? { ...held, judge: "" } : undefined;
   const next = claimed(context, {
     holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch),
-    how: "take", status,
+    how: "take", status, landing,
   });
   await setLease(documentId, next, ref);
   return leaseOf(next);

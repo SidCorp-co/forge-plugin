@@ -84,6 +84,25 @@ so the round was run again to find out. The verbs that write something other tha
 comment, an upload, a dependency edge — renew the lease and leave the line alone; the plan is a
 record kind now and carries it.
 
+**The checkpoint's table carries both routes a project can take, and the route decides which.** A
+default branch that deploys production on its own is judged before the push, because the push is the
+deploy: the landing builds the candidate, gates it, versions it and then stops at `qa-owed` with the
+candidate's own sha as the deployment identity, and the promotion waits. Every other project is
+judged after the merge, on the release the branch now carries, so the same state sits below `marked`
+instead. That is why three rows of the table offer two successors and why `judged` is reachable from
+either side of a promotion; what tells the two apart on a resume is the release the checkpoint
+names, a checkpoint carrying one being past its own push, and reading the route again there would
+resume into the other route's step for a project that changed its policy mid-landing. Where the
+project asks for no independent judge the state is not written at all and the landing ends at `done`.
+
+**`--judged` is the one route out of `qa-owed`**, and without it the state is where a landing goes to
+die: the judge takes the turn with `--take`, writes its verdicts as any run does, and says the turn
+is over. What those verdicts have to carry — a judge that is not the builder, and a citation of the
+deployment identity the checkpoint holds — is the contract's at `tested` and is not re-judged here,
+because a judge this claim refused could neither hand back nor be replaced. A base or a branch head
+that moved after those verdicts voids them, and the landing names the numbers rather than describing
+the loss: whoever judges again is owed the list.
+
 **Every write to an issue lists that issue's comments first**, because the read that looks complete
 returns none of them. The renew that precedes each payload write is where the list is made, and the
 one route that renews nothing, `forge call`, makes it from its own payload. An empty list costs one

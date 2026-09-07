@@ -265,5 +265,13 @@ test("claim refuses a flag it does not take, and names the ones it does", async 
   assert.match(run.stderr, /--ready/u, "and the flags it does take are on the line");
   const both = await ran(["claim", "ISS-673", "--ready", "--take"], LANDER);
   assert.equal(both.status, 1, both.stdout);
-  assert.match(both.stderr, /--ready or --take and not both/u, both.stderr);
+  assert.match(both.stderr, /--ready and --take/u, both.stderr);
+  assert.match(both.stderr, /each is a different turn's own move/u, "and why two of them name no turn");
+  /* Every pair, not the one the first version knew: three turns now write through this verb, and a
+     refusal listing only two of them would let the third pair through unread. */
+  const three = await ran(["claim", "ISS-673", "--ready", "--take", "--judged"], LANDER);
+  assert.match(three.stderr, /--ready and --take and --judged/u, three.stderr);
+  const judging = await ran(["claim", "ISS-673", "--take", "--judged"], LANDER);
+  assert.equal(judging.status, 1, judging.stdout);
+  assert.match(judging.stderr, /--take and --judged/u, judging.stderr);
 });

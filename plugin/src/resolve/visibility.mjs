@@ -15,7 +15,7 @@ export const VERBS = [
   ["comment", "<uuid|ISS-45> <file.md|@file|-> [--title T]",
     "post a comment; the lease on the record decides whether it renews one",
     "forge_comments", { wraps: { create: "`forge comment`" } }],
-  ["claim", "<uuid|ISS-45> [--minutes n] [--next <line>] [--pushed] [--review] [--open <line>] [--ready] [--take]",
+  ["claim", "<uuid|ISS-45> [--minutes n] [--next <line>] [--pushed] [--review] [--open <line>] [--ready] [--take] [--judged]",
     "take the issue's lease, or reclaim one a dead run left", "forge_issues"],
   ["resume", "<uuid|ISS-45> [...]", "one issue's whole context, re-minted from the record and the worklog", "forge_issues"],
   ["record", "<kind> <uuid|ISS-45> [...]", "a contract payload in the one shape the CLI owns; read back by kind", "forge_issues"],
