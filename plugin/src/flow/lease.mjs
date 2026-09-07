@@ -126,7 +126,7 @@ export const LANDING_STATES = {
    this same object, and a key nothing here names is dropped rather than read back as a fact. `files`
    is the paths the change touched, where the worklog's `files` beside it is how many there were. */
 const CHECKPOINT = ["state", "builder", "branch", "head", "base", "at", "pinned", "intended",
-  "candidate", "release", "install", "deployment"];
+  "candidate", "release", "install", "deployment", "moved", "reconciled"];
 
 export const landingOf = (context) => {
   const held = context?.[LANDING];
@@ -138,6 +138,28 @@ export const landingOf = (context) => {
 };
 
 export const landingTurn = (landing) => LANDING_STATES[landing?.state]?.turn ?? null;
+
+/* A base that moved under a pin is built again from a fresh one — the one move the table above
+   cannot carry, being backwards. Never past the push: that would void evidence for a landed release. */
+export const LANDING_CANDIDATE = "candidate";
+const REBUILDS = new Set([LANDING_CANDIDATE, "reconciled", "qa-owed", "judged", "promoting"]);
+
+/** Blank rather than absent: `landingOf` drops what is falsy, so this is how a field is cleared. */
+export const landingVoided = (pinned) => ({
+  state: LANDING_CANDIDATE, pinned, candidate: "", intended: "", moved: "", reconciled: "", deployment: "",
+});
+
+export const landingNext = (held, to) => {
+  if (!held) return `no landing checkpoint is on it, so there is no state for \`${to}\` to follow`;
+  if (!LANDING_STATES[to]) return `\`${to}\` is no landing state this version knows`;
+  const row = LANDING_STATES[held.state];
+  if (!row) return `it reads \`${held.state}\`, which is no state this version knows`;
+  if (to === LANDING_CANDIDATE && REBUILDS.has(held.state)) return null;
+  if (!row.next.includes(to)) {
+    return `it reads \`${held.state}\`, whose next is ${row.next.join(" or ") || "nothing at all"}`;
+  }
+  return null;
+};
 
 export const landingLine = (landing) =>
   `landing \`${landing.state}\`: ${landing.branch ?? "no branch"} at ${(landing.head ?? "").slice(0, 7)}, `
@@ -317,4 +339,39 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
   }, ref);
   if (renewed) console.error(renewedLapsed(ref, renewed));
   return true;
+};
+
+/** The take itself, apart from the verb that prints it, so the landing task and `forge claim --take` cannot come to disagree about what licenses one. */
+export const takeLease = async (documentId, ref, context,
+  { holder, minutes = MINUTES, line = undefined, patch = null, source = null, status = null }) => {
+  const refused = takeRefusal(ref, landingOf(context), holder, leaseOf(context), { source });
+  if (refused) fail(refused);
+  const next = claimed(context, {
+    holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch),
+    how: "take", status,
+  });
+  await setLease(documentId, next, ref);
+  return leaseOf(next);
+};
+
+/* Every landing state is written here and nowhere else, which is what makes the landing's own writes one function's business to hold to (ISS-673): the state it moves from is the one the field holds at the moment of the write, not the one the caller last read, and a move the table refuses is refused before the field is touched. The lease is checked and renewed here rather than by the field writer, whose `sessionContext` row renews nothing — that row is how a claim writes a lease without recursing, and a landing step is a payload write like any other: a gate outlasting the lease must not push under another run's. */
+export const landingSaved = async (documentId, ref, patch) => {
+  const holder = sessionOf();
+  let saved = null;
+  await setLease(documentId, async () => {
+    const context = await readContext(documentId);
+    const lease = leaseOf(context);
+    const state = stateOf(lease, holder);
+    if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
+    const held = landingOf(context);
+    const refused = landingNext(held, patch.state);
+    if (refused) {
+      fail(`the landing on ${ref} cannot move to \`${patch.state}\`: ${refused}. ${READ_THE_STATE(ref)}`);
+    }
+    saved = { ...held, ...patch };
+    return claimed(context, {
+      holder, at: new Date().toISOString(), minutes: lease.minutes, landing: saved,
+    });
+  }, ref);
+  return landingOf({ [LANDING]: saved });
 };

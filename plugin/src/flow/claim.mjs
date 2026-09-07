@@ -30,7 +30,7 @@ import {
   setLease,
   sharedHolder,
   stateOf,
-  takeRefusal,
+  takeLease,
 } from "./lease.mjs";
 
 const MAX_MINUTES = 24 * 60;
@@ -135,15 +135,9 @@ export const readyCheckpoint = (ref, holder, patch, landing) => {
    lease: a take the state does not name is refused and no field is touched. */
 const takeTurn = async (documentId, ref, issue, context, { holder, minutes, line, patch, source }) => {
   const landing = landingOf(context);
-  const refused = takeRefusal(ref, landing, holder, leaseOf(context), { source });
-  if (refused) fail(refused);
   const left = leaseOf(context)?.next ?? null;
-  const next = claimed(context, {
-    holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch),
-    how: "take", status: issue.status,
-  });
-  await setLease(documentId, next, ref);
-  const taken = leaseOf(next);
+  const taken = await takeLease(documentId, ref, context,
+    { holder, minutes, line, patch, source, status: issue.status });
   console.log(`${ref}  take: ${describe(taken)}`);
   console.log(landingLine(landing));
   for (const one of nextLines("take", left, taken.next)) console.log(one);

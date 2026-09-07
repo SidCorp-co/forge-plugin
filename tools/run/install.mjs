@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 
 import { pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
 import { git, gitOut, lines, loud, REMOTE, stop } from "../checkout.mjs";
+import { above } from "./version.mjs";
 
 const READ_BY_INSTALL = ["plugin", ".claude-plugin"];
 
@@ -104,7 +105,20 @@ const cacheHolds = (from) => {
   return console.log(`  ${copy.name} ${copy.installed} is installed, from ${from}`);
 };
 
+/* Read here rather than at the step's start, because the window this closes is inside the step: the branch check a moment ago passed against a branch another release has pushed to since, and the record is the one thing that says so. Versions rather than the record's own order, which is the order two racing installs finished in (ISS-673 AC-05-10-10). */
+const overwritesNewer = (from) => {
+  const copy = pluginCopy(join(from, "plugin"));
+  if (!copy?.installed || !copy?.running || !above(copy.installed, copy.running)) return null;
+  return `the install record holds ${copy.name} ${copy.installed} and this tree carries ${copy.running}, `
+    + `a version below it: a newer release installed while this one was on its way here, and this `
+    + `install would put the older copy in the cache. Nothing has been installed and the newer copy `
+    + `stands. This release is behind the branch — take it again from the fetch, which raises a `
+    + `version above what landed`;
+};
+
 const updating = (from, market, plugin) => {
+  const older = overwritesNewer(from);
+  if (older) stop(older);
   loud(CLAUDE, ["plugin", "marketplace", "update", market], from,
     "The cache is keyed by version, so an update at an installed version is a no-op.");
   loud(CLAUDE, ["plugin", "update", `${plugin}@${market}`], from,

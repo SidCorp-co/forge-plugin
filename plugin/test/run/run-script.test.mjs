@@ -444,13 +444,14 @@ test("a plan declaring a person climbs the rung the ceiling is read at", () => {
 test("the last step prints what this change wrote, and leaves the release commit's own files out of it", () => {
   const { work } = pushed("landing-wrote");
   stubbed(work);
-  landIn(work, join("plugin", "src", "flow", "earned.mjs"), 1, "the entry check");
+  /* A module path nothing resolves, as every other case here uses: the scratch checkout's `plugin/src` is what the script under test loads, so this text on a real module's path would replace it and the script would not start. */
+  landIn(work, join("plugin", "src", "flow", "entered.mjs"), 1, "the entry check");
   landIn(work, join("docs", "cli", "record.md"), 1, "and its page");
   const out = lastStep(work).stdout;
   const said = /^ {4}landing wrote (.+)$/mu.exec(out);
   assert.ok(said, `no clause for the mark's note:\n${out}`);
   const wrote = said[1].split(", ");
-  for (const one of ["docs/cli/record.md", "plugin/src/flow/earned.mjs"]) {
+  for (const one of ["docs/cli/record.md", "plugin/src/flow/entered.mjs"]) {
     assert.ok(wrote.includes(one), `${one} landed and the clause does not name it:\n${out}`);
   }
   for (const one of ["package.json", "package-lock.json", "plugin.json"]) {
