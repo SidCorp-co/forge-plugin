@@ -22,16 +22,14 @@ base name the issue already carries is refused there rather than attached twice,
 attached twice resolves to two documents (ISS-55) — and `forge attach` refuses on the same read,
 because the ambiguity belongs to the name and not to the route that sent it; where the comment page
 is cut at its cap that verb says so and sends anyway, having no citation to make instead of the
-upload the way this one has (ISS-137). Every slot is minted before any bytes go, and
-the upload comes after every refusal the record's own shape can earn, so neither a fixable shape nor
-a name the tracker will not type costs an attachment. What is left cannot be undone,
-because the tracker publishes no delete for an upload — a lease lost mid-command, a PUT that fails
-behind one that landed, or a comment gate that refuses the record after the first file went up. In
-each of those the
-command names what it sent and the `--evidence` line that cites it, since sending the path again
-would collide with the name already there. Named from before each PUT rather than after it: the
-tracker can take a file and lose the answer, and a file nobody was told about is the one nobody
-cites.
+upload the way this one has (ISS-137). Every file is scanned before the first request goes, and the
+upload comes after every refusal the record's shape can earn, so a fixable shape costs no attachment;
+a name the tracker will not type costs that one file's request, there being no way to ask first. What
+is up cannot be undone, there being no delete for an upload — a lease lost mid-command, a request
+failing behind one that landed, a comment gate refusing the record after the first file up. Each
+names what it sent and the `--evidence` line that cites it, sending the path again colliding with the
+name already there. Named from before the request, not after: the tracker can take a file and lose
+the answer, and a file nobody was told about is the one nobody cites.
 
 Two flags are read off the record when they are absent, and each prints where its value came from: a
 commit from the merged mark's note, and evidence from the latest record of the same kind. The twelfth

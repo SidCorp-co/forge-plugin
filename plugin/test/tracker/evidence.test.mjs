@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { attachPlan, localFile, mintRefusal, uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
+import { attachPlan, localFile, uploadRefusal, uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const DIR = tempRoom("evidence-");
@@ -103,38 +103,51 @@ test("a readable file whose name reads as a commit goes up as a file, and says s
 /* The tracker's own line says which mime it guessed and nothing about the file, the extension or
    the set, so four runs in one week renamed a `.log` to `.txt` by guessing (ISS-134). */
 test("a refusal on the name says which file, what it read off it, and what the tracker takes", () => {
-  const said = mintRefusal(join(DIR, "iss134-gate-final.log"), "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
+  const said = uploadRefusal(join(DIR, "iss134-gate-final.log"), "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
   assert.match(said, /^iss134-gate-final\.log is a name the tracker would not take/u);
   assert.match(said, /the extension \.log/u);
-  assert.match(said, /It takes \.txt \.md \.csv \.png \.jpg \.jpeg \.gif \.webp \.pdf \.mp4 —/u);
-  assert.match(said, /this CLI's reading of the tracker's set rather than the tracker's own answer/u);
+  assert.match(said, /This CLI types \.png \.jpg [.\w ]*\.xlsx —/u);
+  assert.match(said, /its reading of the tracker's set rather than the tracker's own answer/u);
   assert.match(said, /MIME_NOT_ALLOWED/u, "the tracker's own words stay in it");
   const log = join(DIR, "iss134-gate-final.log");
   assert.match(said, new RegExp(`ln -- '${log}' '${log}\\.txt'$`, "u"), "the same name plus .txt collides with nothing");
 });
 
+/* The mint bought the tracker's verdict before any byte went, and one request cannot: what the
+   refusal owes instead is the names already up, there being no delete for an upload (ISS-614). */
+test("a refusal mid-write names what is already up, and how to cite it", () => {
+  const said = uploadRefusal(join(DIR, "iss134-gate-final.log"),
+    "MIME_NOT_ALLOWED: mime not allowed: application/octet-stream", ["first.txt", "second.txt"]);
+  assert.match(said, /2 file\(s\) of this write are up and cannot be deleted: first\.txt, second\.txt\./u);
+  assert.match(said, /Cite those by name rather than by path/u);
+  assert.match(said, /--evidence first\.txt --evidence second\.txt/u);
+  const alone = uploadRefusal(join(DIR, "iss134-gate-final.log"), "Forge answered 401: token expired");
+  assert.match(alone, /It was the first of the write, so nothing else went up\./u,
+    "and where it was the first, that it was: an empty list reads as an unanswered question");
+});
+
 test("a name carrying no extension is told that, and a name a shell would read is quoted", () => {
-  const bare = mintRefusal("/tmp/gate-run", "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
+  const bare = uploadRefusal("/tmp/gate-run", "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
   assert.match(bare, /a name carrying no extension\./u);
   assert.match(bare, /ln -- '\/tmp\/gate-run' '\/tmp\/gate-run\.txt'$/u);
-  const hostile = mintRefusal("/tmp/$(touch PWNED) it's.log", "Error: MIME_NOT_ALLOWED: mime not allowed: x");
+  const hostile = uploadRefusal("/tmp/$(touch PWNED) it's.log", "Error: MIME_NOT_ALLOWED: mime not allowed: x");
   assert.match(hostile, /ln -- '\/tmp\/\$\(touch PWNED\) it'\\''s\.log' '\/tmp\/\$\(touch PWNED\) it'\\''s\.log\.txt'$/u);
 });
 
 /* A 401 or a credential refusal is no fact about the name, so the set is not offered against it:
    naming what the tracker takes would read as the answer to a question it never asked. */
 test("a refusal that is not about the name names the file and offers no set", () => {
-  const said = mintRefusal(join(DIR, "iss134-gate-final.log"), "Forge answered 401: token expired");
+  const said = uploadRefusal(join(DIR, "iss134-gate-final.log"), "Forge answered 401: token expired");
   assert.match(said, /^iss134-gate-final\.log is a name the tracker would not take/u);
   assert.match(said, /token expired/u);
-  assert.doesNotMatch(said, /It takes/u, "no extension is named where the name is not what refused");
+  assert.doesNotMatch(said, /This CLI types/u, "no extension is named where the name is not what refused");
   assert.doesNotMatch(said, /\.txt/u);
 });
 
 /* The one action a refusal prints is only an action if running it does what it says, so it is run:
    a name a shell would read, a name `ln` would read as a flag, and a destination already there. */
 const ranTail = (path, cwd) => {
-  const said = mintRefusal(path, "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
+  const said = uploadRefusal(path, "Error: MIME_NOT_ALLOWED: mime not allowed: application/octet-stream");
   return spawnSync("sh", ["-c", said.split("\n").pop().trim()], { cwd, encoding: "utf8" });
 };
 

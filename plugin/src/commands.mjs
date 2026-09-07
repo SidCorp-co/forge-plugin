@@ -381,9 +381,9 @@ export const commands = {
     if (!target || !targetRef || !paths.length) fail(usageOf("attach"));
     if (!ATTACH_TARGETS.includes(target)) fail(didYouMean("attach target", target, ATTACH_TARGETS));
     const targetId = target === "issue" ? await documentIdOf(targetRef) : targetRef;
-    /* One name on one issue names one document (ISS-137), and the read comes before the first PUT:
-       what is up can be neither deleted nor replaced, so a collision seen afterwards is one nobody
-       can clear. A comment id names no issue, so that route reads no names and refuses on none. */
+    /* One name on one issue names one document (ISS-137), and the read comes before the first
+       request: what is up can be neither deleted nor replaced, so a collision seen afterwards is one
+       nobody can clear. A comment id names no issue, so that route reads no names and refuses none. */
     if (target === "issue") {
       const [page, body] = await Promise.all([
         commentPage(targetId),
@@ -394,7 +394,7 @@ export const commands = {
       if (read.refusal) fail(read.refusal);
       if (read.said) console.error(read.said);
     }
-    /* The renewal rides the pass that mints; a comment id names no issue to read a lease from. */
+    /* The renewal rides the sending pass; a comment id names no issue to read a lease from. */
     await uploadAll(target, targetId, paths, {
       renewing: target === "issue" ? () => renew(targetId, targetRef) : undefined,
     });

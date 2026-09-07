@@ -2,11 +2,6 @@
    caller above it reads. Pure — it builds requests and reads bodies and makes none, which is what
    lets the captured pairs under plugin/test/fixtures/rest judge it. docs/cli/one-transport.md. */
 
-/* The two capabilities a shell process cannot serve over REST, by their own nature rather than by
-   any gap: an upload answers a multimodal model with an image block, and step_start opens the
-   session everything else reports into. */
-export const MCP = "mcp";
-
 const pick = (row, names) =>
   Object.fromEntries(names.map((name) => [name, Object.hasOwn(row ?? {}, name) ? row[name] : null]));
 
@@ -41,6 +36,8 @@ const COMMENT = ["issueId", "authorId", "authorDeviceId", "body", "format", "tem
   "text", "parentId", "createdAt", "updatedAt", "attachments"];
 
 const PROJECT_ROW = ["id", "slug", "name", "orgId", "role"];
+
+const ATTACHMENT = ["name", "mime", "size", "url", "createdAt"];
 
 /* Only the identifiers the row carries: an `issueId: null` reads as an issue with no key. */
 const named = (row) => filled({ documentId: row?.id, issueId: row?.displayId });
@@ -109,6 +106,8 @@ export const browseOf = (row) => {
 
 export const commentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row, COMMENT) });
 
+export const attachmentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row, ATTACHMENT) });
+
 /* The config is the project row plus what it keeps under `agentConfig`; three fields the tool
    answered with are on no route this credential reaches, and are left out rather than invented. */
 export const configOf = (project) => {
@@ -131,6 +130,42 @@ const FILTERS = {
   createdAfter: "here",
   createdBefore: "here",
   updatedAfter: "here",
+};
+
+/* Strict: a target outside this map builds no path, and its one caller refuses one before asking. */
+const COLLECTIONS = { issue: "issues", comment: "comments" };
+
+/* An upload is judged on the type its multipart part carries, so this CLI is what puts one there;
+   the pairs are the tracker's own at 29977155, and the argument docs/cli/one-transport.md's. */
+const UPLOAD_MIMES = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".pdf": "application/pdf",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+  ".qt": "video/quicktime",
+  ".txt": "text/plain",
+  ".md": "text/markdown",
+  ".markdown": "text/markdown",
+  ".csv": "text/csv",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+};
+
+/** What a name outside the map is sent as; the tracker's allowlist holds it, so its answer is the
+ *  refusal and nothing here anticipates one. */
+export const UNTYPED = "application/octet-stream";
+
+/** Read the way the tracker reads it: the last dot onwards, lowercased, a bare extension included. */
+export const mimeForName = (name) => {
+  const held = String(name ?? "");
+  const at = held.lastIndexOf(".");
+  return (at < 0 ? null : UPLOAD_MIMES[held.slice(at).toLowerCase()]) ?? UNTYPED;
 };
 
 /* Only what the route serves is declared. A name on neither list is refused rather than ignored. */
@@ -161,9 +196,12 @@ export const DECLARES = {
     confidence: ["verified", "inferred", "deprecated"],
     authoredBy: ["human", "agent", "imported"],
   },
-  /* Read off the tracker by minting, whose own refusal names only the mime it guessed (ISS-134). */
+  /* The names this CLI can type, which is the map's own key set: the tracker allows types and not
+     names, so a name missing here may go up under one that is in it (ISS-134). */
   forge_uploads: {
-    extensions: [".txt", ".md", ".csv", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".mp4"],
+    extensions: Object.keys(UPLOAD_MIMES),
+    mimes: UPLOAD_MIMES,
+    targets: Object.keys(COLLECTIONS),
   },
 };
 
@@ -342,8 +380,24 @@ export const ROUTES = {
     answers: ({ page }) => ({ runners: rowsIn(page, "runners") }),
     sends: [],
   },
-  "forge_uploads.request": { transport: MCP, writes: true, sends: ["data"] },
-  "forge_step_start": { transport: MCP, writes: true, sends: ["issueId", "step"] },
+  "forge_uploads.request": {
+    writes: true,
+    /* Given a target, the route it takes; given none, which is `served()` printing the row, every
+       route it may take. The bytes ride beside `data`, the credential seat reading `data` alone. */
+    requests: (args) => {
+      const part = (target) => ({
+        path: `/${COLLECTIONS[target]}/${args.data?.targetId}/attachments`,
+        method: "POST",
+        form: { file: { name: args.data?.name, mime: mimeForName(args.data?.name), bytes: args.bytes } },
+      });
+      const aimed = args.data?.target;
+      return aimed
+        ? { page: part(aimed) }
+        : Object.fromEntries(Object.keys(COLLECTIONS).map((one) => [one, part(one)]));
+    },
+    answers: ({ page }) => attachmentOf(page),
+    sends: ["data", "bytes"],
+  },
 };
 
 /* Wherever a route wants an issue uuid, a raw call may carry `ISS-45` and the caller resolves it. */
@@ -368,14 +422,12 @@ const SAMPLE = {
   slug: ":slug",
   offset: ":offset",
   filters: { issue: ":issue" },
-  data: { issueId: ":issueId", issue: ":issue" },
+  data: { issueId: ":issueId", issue: ":issue", targetId: ":targetId", name: ":name" },
 };
 
 export const served = () => Object.entries(ROUTES).map(([key, row]) => {
   const of = (request) => `${request.method ?? "GET"} ${decodeURIComponent(request.path)}`;
-  const requests = row.transport === MCP
-    ? ["POST /mcp"]
-    : Object.values(row.requests(SAMPLE, ":project")).map(of);
+  const requests = Object.values(row.requests(SAMPLE, ":project")).map(of);
   return { key, tool: toolOf(key), requests, sends: row.sends ?? [] };
 });
 
@@ -398,8 +450,6 @@ export const asToolCall = (name, args) => {
 };
 
 export const rowFor = (name, args) => ROUTES[keyOf(name, args)] ?? null;
-
-export const isMcp = (row) => row?.transport === MCP;
 
 /* Every row's rather than a route's: `action` makes the key, `projectId` aims off the resolved slug. */
 const STRUCTURAL = new Set(["action", "projectId"]);
@@ -432,8 +482,8 @@ export const noRouteRefusal = (key) => {
   const held = NO_ROUTE[key];
   if (held) {
     return `${key} has no route on this tracker's REST API. It wanted \`${held.wanted}\`, which this `
-      + "credential does not reach, so nothing was sent and no call fell back to the JSON-RPC "
-      + `endpoint.${held.instead ? `\n${held.instead}` : ""}`;
+      + "credential does not reach, so nothing was sent and there is no second endpoint anything "
+      + `could have fallen back to.${held.instead ? `\n${held.instead}` : ""}`;
   }
   return `${key} is not a capability this CLI declares a route for, so nothing was sent.\n`
     + "`forge tools` prints every tool and action it does serve, with the method and path of each.";

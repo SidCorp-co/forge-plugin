@@ -205,6 +205,25 @@ const asComment = (comment) => {
   return { id: documentId, ...rest };
 };
 
+/* The arguments the tool took, so a handler keyed by tool reads the shape it always read. */
+const uploadAsk = (target, targetId, sent) =>
+  ({ action: "request", data: { target, targetId, name: sent.multipart?.name ?? null } });
+
+/* The inverse of the attachment projection, so a handler answering the tool's own shape needs no
+   rewriting: what it leaves out is filled from the part that arrived. */
+const asAttachment = (held, part = {}) => {
+  const id = held?.id ?? "attachment-uuid";
+  return {
+    id,
+    name: held?.name ?? part.name ?? null,
+    mime: held?.mime ?? part.mime ?? null,
+    size: held?.size ?? part.bytes?.length ?? 0,
+    createdAt: held?.createdAt ?? "2026-09-07T00:00:00.000Z",
+    url: held?.url ?? `/api/attachments/${id}/download`,
+    ...(held?.refused ? { refused: held.refused, code: held.code } : {}),
+  };
+};
+
 const seqOf = (row) => Number(String(row?.displayId ?? "").replace(/\D+/gu, "")) || 0;
 
 /* The route the key lookup searches is the set oldest first, so the fixture orders by the number in
@@ -241,14 +260,33 @@ const edgesOf = (issue) => ({
  *  changes the state changes the answer; a handler in `state.answer` keyed by tool wins over the
  *  defaults, and `state.calls` collects every call for a case to assert on. */
 export const fakeTracker = async (state) => {
-  const body = (request) =>
+  const raw = (request) =>
     new Promise((done) => {
-      let text = "";
-      request.on("data", (chunk) => {
-        text += chunk;
-      });
-      request.on("end", () => done(text ? JSON.parse(text) : {}));
+      const chunks = [];
+      request.on("data", (chunk) => chunks.push(chunk));
+      request.on("end", () => done(Buffer.concat(chunks)));
     });
+  /* The one part an upload sends, read off the wire rather than off the caller's intent: the name
+     and the type the tracker judges are the part's own, so a case can assert on what arrived. */
+  const parted = (held, boundary) => {
+    const text = held.toString("latin1");
+    const open = text.indexOf(`--${boundary}\r\n`) + boundary.length + 4;
+    const head = text.slice(open, text.indexOf("\r\n\r\n", open));
+    const bytes = held.subarray(text.indexOf("\r\n\r\n", open) + 4, text.lastIndexOf(`\r\n--${boundary}--`));
+    return {
+      field: /name="([^"]*)"/u.exec(head)?.[1] ?? null,
+      name: /filename="([^"]*)"/u.exec(head)?.[1] ?? null,
+      mime: /content-type:\s*(\S+)/iu.exec(head)?.[1] ?? null,
+      bytes,
+    };
+  };
+  const body = async (request) => {
+    const held = await raw(request);
+    const boundary = /boundary=([^;]+)/u.exec(request.headers["content-type"] ?? "")?.[1];
+    if (boundary) return { multipart: parted(held, boundary) };
+    const text = held.toString("utf8");
+    return text ? JSON.parse(text) : {};
+  };
   /* `state.hidden` is what the list route does not carry and the search route, a different index,
      reaches: the seam a duplicate check answers for. A reading the walk cannot finish is `shortPage`
      and nothing else, since a route that counts what it will not serve is the only shape with one. */
@@ -350,8 +388,12 @@ export const fakeTracker = async (state) => {
     }],
     [/^\/api\/issues\/([^/]+)\/dependencies$/u, (q, sent, method, [id]) =>
       edgesOf(answered("forge_issues", { action: "get", documentId: id }))],
-    [/^\/api\/issues\/([^/]+)\/attachments$/u, (q, sent, method, [id]) =>
-      answered("forge_issues", { action: "get", documentId: id })?.attachments ?? []],
+    [/^\/api\/issues\/([^/]+)\/attachments$/u, (q, sent, method, [id]) => {
+      if (method !== "POST") return answered("forge_issues", { action: "get", documentId: id })?.attachments ?? [];
+      return asAttachment(answered("forge_uploads", uploadAsk("issue", id, sent)), sent.multipart);
+    }],
+    [/^\/api\/comments\/([^/]+)\/attachments$/u, (q, sent, method, [id]) =>
+      asAttachment(answered("forge_uploads", uploadAsk("comment", id, sent)), sent.multipart)],
     [/^\/api\/issues\/([^/]+)\/comments$/u, (q, sent, method, [id]) => {
       if (method === "POST") return asComment(answered("forge_comments", { action: "create", data: { issue: id, ...sent } }));
       const held = answered("forge_comments", { action: "list", filters: { issue: id } });
@@ -397,15 +439,6 @@ export const fakeTracker = async (state) => {
     }
     const url = new URL(request.url, "http://x");
     const sent = request.method === "GET" || request.method === "DELETE" ? {} : await body(request);
-    /* The two capabilities that keep this endpoint reach it here, and their handlers are authored
-       the same way as every other: by tool name, against the arguments the tool takes. */
-    if (url.pathname === "/mcp") {
-      pending = { path: url.pathname, method: request.method, slug: request.headers["x-forge-project-slug"] };
-      const held = answered(sent.params?.name, sent.params?.arguments ?? {});
-      response.writeHead(200, { "Content-Type": "application/json" });
-      response.end(JSON.stringify({ jsonrpc: "2.0", id: sent.id ?? 1, result: { structuredContent: held ?? {} } }));
-      return;
-    }
     pending = {
       path: url.pathname,
       method: request.method,
@@ -425,7 +458,8 @@ export const fakeTracker = async (state) => {
     if (!pending.stood) (state.calls ??= []).push(pending);
     if (answer?.refused) {
       response.writeHead(400, { "Content-Type": "application/json" });
-      response.end(JSON.stringify({ code: "BAD_REQUEST", message: answer.refused }));
+      /* The tracker's own code where a handler names one: what an upload's refusal is read by. */
+      response.end(JSON.stringify({ code: answer.code ?? "BAD_REQUEST", message: answer.refused }));
       return;
     }
     if (answer?.http) {

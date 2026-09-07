@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
-import { DECLARES, MCP, ROUTES, answersOf, asToolCall, droppedRefusal, keyOf, noRouteRefusal, rowFor,
-  undeclaredIn } from "../../src/tracker/rest.mjs";
+import { DECLARES, ROUTES, UNTYPED, answersOf, asToolCall, droppedRefusal, keyOf, mimeForName,
+  noRouteRefusal, rowFor, served, undeclaredIn } from "../../src/tracker/rest.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const captures = join(here, "..", "fixtures", "rest");
@@ -102,6 +102,10 @@ const SHAPES = {
   "issues-merge": { key: "forge_issues.mark_merged", keys: ["id", "action"] },
   "issues-unmark": { key: "forge_issues.unmark", keys: ["id", "action"] },
   "comments-create": { key: "forge_comments.create", keys: ["documentId", "issueId", "body"] },
+  /* One projection over two routes that answer different columns: the issue's row carries the
+     uploader and the comment's does not, and both collapse to the five a citation reads. */
+  "issues-attach": { key: "forge_uploads.request", keys: ["documentId", "name", "mime", "size", "url"] },
+  "comments-attach": { key: "forge_uploads.request", keys: ["documentId", "name", "mime", "size", "url"] },
   "knowledge-upsert": { key: "forge_knowledge.upsert", keys: ["id", "slug"] },
   "knowledge-delete": { key: "forge_knowledge.delete", keys: ["deleted"] },
 };
@@ -145,18 +149,23 @@ describe("the offset lookup's two reads", () => {
 });
 
 describe("every row of the table is judged", () => {
-  it("each row is paired against the tool, shape-checked, or declared as staying on the other transport", () => {
+  it("each row is paired against the tool or shape-checked", () => {
     const judged = new Set([...Object.values(PAIRS), ...Object.values(SHAPES)].map((one) => one.key));
-    const unjudged = Object.entries(ROUTES)
-      .filter(([key, row]) => row.transport !== MCP && !judged.has(key))
-      .map(([key]) => key);
+    const unjudged = Object.keys(ROUTES).filter((key) => !judged.has(key));
     assert.deepEqual(unjudged, ["forge_memory.search", "forge_project_pm.graph"],
       "a row with no verdict here is one whose projection nothing reads");
   });
 
-  it("the two rows that keep the other transport are the two the issue names", () => {
-    const stays = Object.entries(ROUTES).filter(([, row]) => row.transport === MCP).map(([key]) => key);
-    assert.deepEqual(stays, ["forge_uploads.request", "forge_step_start"]);
+  /* The case AC-19-1-1's Proof names. A second endpoint is a fallback, and a fallback keeps a verb
+     working while it hides the gap — so the table declaring one is the shape that fails here. */
+  it("no row of the table declares a transport, every one of them being a request", () => {
+    const declared = Object.entries(ROUTES)
+      .filter(([, row]) => row.transport !== undefined)
+      .map(([key]) => key);
+    assert.deepEqual(declared, []);
+    for (const row of Object.values(ROUTES)) {
+      assert.equal(typeof row.requests, "function", "a row with no request builder reaches nothing");
+    }
   });
 
   it("every capture says which route and which day it came from", () => {
@@ -258,5 +267,70 @@ describe("what the table declares in the tracker's stead", () => {
     for (const name of ["search", "status", "priority", "category", "statusNot", "complexity"]) {
       assert.ok(DECLARES.forge_issues.filters.includes(name), `${name} is on no list`);
     }
+  });
+});
+
+/* Written out here rather than read back off the table, which would be the table judging itself:
+   these are the tracker's own upload tool's pairs, read off `EXT_MIME` in
+   packages/core/src/mcp/tools/forge-uploads.ts at 29977155 in the sibling checkout. A name this map
+   types differently is a name that went up before and is refused now, and nothing else says so. */
+const TRACKER_TYPES = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".pdf": "application/pdf",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+  ".qt": "video/quicktime",
+  ".txt": "text/plain",
+  ".md": "text/markdown",
+  ".markdown": "text/markdown",
+  ".csv": "text/csv",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+};
+
+describe("the type an upload's part carries", () => {
+  it("is the one the tracker's own tool derives from the name, for every extension it maps", () => {
+    for (const [ext, mime] of Object.entries(TRACKER_TYPES)) {
+      assert.equal(mimeForName(`shot${ext}`), mime, ext);
+      assert.equal(mimeForName(`SHOT${ext.toUpperCase()}`), mime, `${ext} upper-cased`);
+    }
+    assert.deepEqual(DECLARES.forge_uploads.extensions.slice().sort(),
+      Object.keys(TRACKER_TYPES).sort(), "the printed set is the map's own keys and no other");
+  });
+
+  it("is the untyped default for a name outside that set, which the tracker refuses rather than this", () => {
+    for (const name of ["gate-run.log", "archive.tar.gz", "noextension", "shot.svg", "page.html"]) {
+      assert.equal(mimeForName(name), UNTYPED, name);
+    }
+    assert.equal(mimeForName(".txt"), "text/plain", "a name that is all extension is typed too");
+  });
+});
+
+describe("the request an upload makes", () => {
+  const row = ROUTES["forge_uploads.request"];
+  const bytes = Buffer.from("two lines\nof it\n");
+
+  it("is one POST to the target's own attachment route, carrying the file as a part", () => {
+    const asked = { data: { target: "issue", targetId: "u-1", name: "gate.txt" }, bytes };
+    const requests = row.requests(asked);
+    assert.deepEqual(Object.keys(requests), ["page"], "one request and no round trip before it");
+    assert.equal(requests.page.method, "POST");
+    assert.equal(requests.page.path, "/issues/u-1/attachments");
+    assert.deepEqual(requests.page.form.file, { name: "gate.txt", mime: "text/plain", bytes });
+    const other = row.requests({ data: { target: "comment", targetId: "c-1", name: "gate.txt" }, bytes });
+    assert.equal(other.page.path, "/comments/c-1/attachments");
+  });
+
+  it("is listed as both the routes it may take, a row with no target being the listing's read", () => {
+    const printed = served().find((one) => one.key === "forge_uploads.request");
+    assert.deepEqual(printed.requests,
+      ["POST /issues/:targetId/attachments", "POST /comments/:targetId/attachments"]);
+    assert.deepEqual(printed.sends, ["data", "bytes"]);
   });
 });

@@ -35,9 +35,9 @@ from an address and prints.
 
 One seat rather than a list of the payload kinds that may carry a secret, because that list goes
 stale the next time a verb learns to write: the guard sits at the write boundary, so every payload
-with a `data` object passes it. The attachment holds the second seat on its own — bytes go to a
-presigned URL and never reach the boundary — and they are judged before the upload slot is minted,
-since there is no delete for an upload.
+with a `data` object passes it. The attachment holds the second seat on its own — bytes ride beside
+the payload and never reach the boundary — and every file of a write is judged before the first
+request of it goes, since there is no delete for an upload.
 
 **The guarantee has a stated edge, and the edge is the point.** A value long enough to be a secret is
 refused wherever a payload holds it. A shorter one is refused only where a field *is* it, quoting and

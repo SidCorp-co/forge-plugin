@@ -9,9 +9,26 @@ routes refuse *without saying what they wanted* — the enums and the length cap
 from one says it is this CLI's own word and where it is kept, because a value the tracker has grown
 since is otherwise a defect with no route out of it.
 
-**Two capabilities keep the JSON-RPC endpoint, by their own nature and not by any gap.** An upload
-answers a multimodal model with an image block, and the step call opens the session everything else
-reports into. Neither is a row a shell process could make out of a request.
+**One endpoint, so there is no fallback to hide a gap behind.** Every row of the table is a request
+under the API base, which is the one configured value with its trailing endpoint segment stripped —
+so a host saved in either form keeps working and `forge doctor` prints both, the value it read and
+the base derived from it.
+
+**An upload is one authenticated request with the bytes in it, and its two targets are two routes.**
+The presigned dance — mint a ticket, then PUT the bytes to it unauthenticated — exists for a caller
+that cannot hold bytes, and a shell process can. What that move costs is the pre-flight it bought
+for nothing: the ticket carried the tracker's verdict on the name before a byte went, and one
+request cannot ask before it sends. So a name the tracker will not take now costs that file's own
+request and leaves the files before it up, undeletable, which is what the refusal has to say and
+what to cite instead of the path.
+
+**The type an upload is judged on travels on the part, so this CLI is what puts one there.** The
+tracker reads the type off the multipart part rather than off the file name and accepts an allowlist
+of types, so a client sending none has every upload refused as untyped. The extension-to-type map
+here is a copy of the guess the tracker's own upload tool makes: narrower and a name that goes up
+today is refused, wider and this CLI invents a type the tracker never guessed. It is a guess and not
+a verdict — what accepts or refuses is still the tracker's allowlist, and the refusal that arrives is
+its own 400 body.
 
 **A capability with no route fails where it is asked for, naming the route it wanted.** A fallback to
 the other endpoint would keep the verb working and hide the gap for as long as both endpoints exist,

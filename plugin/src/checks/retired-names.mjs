@@ -6,6 +6,7 @@ import { RETIRING } from "../resolve/retiring.mjs";
 export const RETIRED = [
   { name: "feedback", kind: "directory", release: "3.35.45" },
   { name: "codex-order", kind: "tool", release: "3.35.134" },
+  { name: "forge_step_start", kind: "tool", release: "3.35.225" },
 ];
 
 const KINDS = ["verb", "flag", "tool", "directory"];

@@ -11,19 +11,20 @@ and what it does when the assumption fails.
 
 ### EI-01 — The tracker
 
-Rev: 2 · Enforces: BR-02, BR-14
+Rev: 3 · Enforces: BR-02, BR-14
 
 Calls go over the tracker's REST API, with the credential as a bearer token and the project carried
 as a path segment naming its identifier rather than as a header naming its slug. One capability may
 compose more than one request, because the shape this product answers with is sometimes assembled
 from routes the tracker keeps apart. The tracker owns its state machine, its fields and its data
 fence; this product owns none of them. Its errors are the network's fault rather than the work's,
-and are retried and never recorded (UC-02-5). Two capabilities have no twin a shell process can
-reach — an upload answering with an image content block, and the call that opens a session — and
-go over the tracker's JSON-RPC endpoint instead; which those are is something this product declares
-rather than discovers, since the declaration it used to read is the surface being withdrawn.
+and are retried and never recorded (UC-02-5). Every capability this product has takes that API and
+no second endpoint stands behind any of them, so one the declaration leaves without a route is
+refused where it was asked for. Where such a route reads off the request what the tracker used to
+read off a payload — the type of a file being uploaded — this product supplies that value and the
+tracker keeps the verdict on it.
 
-- **AC-19-1-1** · Rev: 2 · Proof: plugin/test/tracker/rest.test.mjs "the one capability REST does not serve names the route it wanted"
+- **AC-19-1-1** · Rev: 2 · Proof: plugin/test/tracker/rest.test.mjs "no row of the table declares a transport, every one of them being a request"
   WHEN the CLI calls a tracker capability THEN it SHALL send the request its own declaration for
   that capability names, and SHALL refuse a capability its declaration leaves without one rather
   than reaching the tracker by another transport.

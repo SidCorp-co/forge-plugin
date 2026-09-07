@@ -150,8 +150,8 @@ test("marker text inside a line of prose is the author's and survives as sent", 
   assert.equal(unfencedIn(said), said);
 });
 
-/* Every shape a response arrives in, since `callTool` picks between them: structured content, a
-   JSON body in a text part, and a bare text part that parses as nothing. */
+/* Every shape a decoded body arrives in, the strip being over the value and not over the route: a
+   row of them, a page nesting one, and a string that is the whole body. */
 test("a marker is off each decoded string value, whichever path the payload came back on", () => {
   assert.deepEqual(unfencedIn([{ body: fenced("comment.body", "one") }, { body: fenced("comment.body", "two") }]),
     [{ body: "one" }, { body: "two" }]);

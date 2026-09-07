@@ -1,0 +1,18 @@
+{
+  "taken": "2026-09-07",
+  "routes": {
+    "answer": "POST /issues/:targetId/attachments"
+  },
+  "rest": {
+    "answer": {
+      "id": "dd4347bc-13b5-41d7-b9ba-48c0086a9ac5",
+      "issueId": "dd54fcfd-4281-463c-a9ea-cc6c972deb84",
+      "uploaderId": "0a3bb457-c689-4773-bf87-f3aba7198539",
+      "name": "iss614-issue-route-mtqlgybg.txt",
+      "mime": "text/plain",
+      "size": 47,
+      "createdAt": "2026-09-07T02:01:22.022Z",
+      "url": "/api/attachments/dd4347bc-13b5-41d7-b9ba-48c0086a9ac5/download"
+    }
+  }
+}

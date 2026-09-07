@@ -1,0 +1,17 @@
+{
+  "taken": "2026-09-07",
+  "routes": {
+    "answer": "POST /comments/:targetId/attachments"
+  },
+  "rest": {
+    "answer": {
+      "id": "770d367b-b046-4b36-b935-ca6a4697a80d",
+      "commentId": "be0773ba-51a5-46e9-b41d-f2041189a980",
+      "name": "iss614-comment-route-mtqlgybg.txt",
+      "mime": "text/plain",
+      "size": 31,
+      "createdAt": "2026-09-07T02:01:22.287Z",
+      "url": "/api/comments/attachments/770d367b-b046-4b36-b935-ca6a4697a80d"
+    }
+  }
+}

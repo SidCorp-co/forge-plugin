@@ -19,10 +19,12 @@ export default [
       globals: {
         AbortController: "readonly",
         AbortSignal: "readonly",
+        Blob: "readonly",
         Buffer: "readonly",
         clearTimeout: "readonly",
         console: "readonly",
         fetch: "readonly",
+        FormData: "readonly",
         globalThis: "readonly",
         performance: "readonly",
         process: "readonly",

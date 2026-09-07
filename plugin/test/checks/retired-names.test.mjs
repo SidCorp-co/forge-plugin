@@ -129,6 +129,21 @@ test("a retired gate is refused wherever it is readable, and its retirement note
   assert.deepEqual(said("plugin/hooks/how/codex-order.md", "# codex-order — retired\n"), []);
 });
 
+/* A tool retired from the route table has its name held here and nowhere else, so the case that
+   proves the row is gone is here too: naming it in the transport's own suite would be a mention the
+   walk above is right to refuse, and the row's absence is the whole of the retirement (ISS-614). */
+test("a tool retired from the route table has no row, no listing and no route", async () => {
+  const { ROUTES, noRouteRefusal, rowFor, served } = await import("../../src/tracker/rest.mjs");
+  const gone = RETIRED.find(({ kind, name }) => kind === "tool" && name.startsWith("forge_"));
+  assert.ok(gone, "the registry holds the tool the route table dropped");
+  assert.equal(Object.hasOwn(ROUTES, gone.name), false, "a row would serve a name nothing calls");
+  assert.equal(rowFor(gone.name, {}), null);
+  assert.equal(served().some((one) => one.key === gone.name || one.tool === gone.name), false);
+  assert.match(noRouteRefusal(gone.name), /forge tools/u);
+  assert.doesNotMatch(noRouteRefusal(gone.name), /\/api\//u,
+    "and no route it wanted: a name outside the table wanted none");
+});
+
 test("history and the one place the name is held are exempt", () => {
   const found = problems(files, [AS_IF]);
   assert.deepEqual(found.filter((one) => /^docs\/(?:issue-flow-dry-runs\.md|requirements\/)/u.test(one)), []);

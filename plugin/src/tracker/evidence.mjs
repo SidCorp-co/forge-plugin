@@ -4,12 +4,13 @@ import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 
-import { fail, settings } from "../resolve/settings.mjs";
+import { fail } from "../resolve/settings.mjs";
 import { declaredFor, refuseCredential, write } from "./rpc.mjs";
 
 export const urlBearing = (item) => Boolean(item) && typeof item === "object" && typeof item.url === "string";
 
 export const uploaded = (answer) => {
+  if (urlBearing(answer)) return answer.url;
   try {
     const parsed = JSON.parse(answer);
     return urlBearing(parsed) ? parsed.url : answer;
@@ -21,44 +22,54 @@ export const uploaded = (answer) => {
 /* A shell parses what a caller types, and `ln` refuses a destination `cp` would overwrite. */
 const shellArg = (value) => `'${String(value).replaceAll("'", `'\\''`)}'`;
 
-/** What the refusal leaves out: the file, the extension, and the set — offered, never enforced. */
-export const mintRefusal = (path, said) => {
+/** A target with no route this credential reaches, named rather than left to the tracker's 401. */
+export const targetRefusal = (target) =>
+  `${target} is not a target this CLI uploads to, and nothing was sent. It uploads to `
+  + `${declaredFor("forge_uploads", "targets").join(" and ")}. A session's attachment route takes a `
+  + `browser session or a device token, neither of which is the credential here.`;
+
+/* No verdict precedes the bytes, so a refusal owes which of the write are up (ISS-55). */
+const behindIt = (sent) =>
+  (sent.length
+    ? `\n  ${sent.length} file(s) of this write are up and cannot be deleted: ${sent.join(", ")}.`
+      + `\n  Cite those by name rather than by path, which would collide:`
+      + `\n  --evidence ${sent.join(" --evidence ")}`
+    : `\n  It was the first of the write, so nothing else went up.`);
+
+/** What the refusal leaves out: the file, the extension, the set — offered, never enforced. */
+export const uploadRefusal = (path, said, sent = []) => {
   const name = basename(path);
-  const head = `${name} is a name the tracker would not take, and nothing was sent.\n  it said: ${said}`;
-  if (!said.includes("MIME_NOT_ALLOWED")) return head;
+  const head = `${name} is a name the tracker would not take.\n  it said: ${said}`;
+  if (!said.includes("MIME_NOT_ALLOWED")) return `${head}${behindIt(sent)}`;
   const ext = extname(name);
-  return `${head}\n  The type is read off the name and never the bytes, so what it refused is `
-    + `${ext ? `the extension ${ext}` : "a name carrying no extension"}.`
-    + `\n  It takes ${declaredFor("forge_uploads", "extensions").join(" ")} — this CLI's reading of `
+  return `${head}\n  The type goes up off the name and never off the bytes, and this one was typed `
+    + `off ${ext ? `the extension ${ext}` : "a name carrying no extension"}.`
+    + `\n  This CLI types ${declaredFor("forge_uploads", "extensions").join(" ")} — its reading of `
     + `the tracker's set rather than the tracker's own answer, so one missing here may work too.`
+    + `${behindIt(sent)}`
     + `\n\nDo this: send the same bytes under a name it can type, and cite that name:`
     + `\n  ln -- ${shellArg(path)} ${shellArg(`${path}.txt`)}`;
 };
 
 const digestOf = (body) => createHash("sha256").update(body).digest("hex");
 
-/* Never base64 through context, and the callback fires before the PUT: from there it may be up. */
-const putBytes = async ({ path, name, slot, digest }, sending) => {
+/* The callback fires the line before the request: from there the file may be up, the answer lost. */
+const sendFile = async (target, targetId, { path, name, digest }, sending) => {
   const body = readFileSync(path);
   if (digestOf(body) !== digest) {
     fail(`${name} changed on disk between the scan that cleared it and its upload, so nothing was `
       + `sent for it. What a write puts up is what it read and judged. Send the command again.`);
   }
-  const url = new URL(slot.uploadUrl ?? `${new URL(settings().url).origin}${slot.uploadPath}`);
-  if (!["http:", "https:"].includes(url.protocol)) fail(`The upload URL for ${name} is ${url.protocol}, not http.`);
   sending(name);
-  const put = await fetch(url, { method: "PUT", body });
-  const answer = await put.text();
-  if (!put.ok) fail(`Upload of ${name} answered ${put.status}: ${answer.slice(0, 300)}`);
-  console.log(`${name}  ${uploaded(answer)}`);
-  return name;
+  const asked = { action: "request", data: { target, targetId, name }, bytes: body };
+  return write("forge_uploads", asked, undefined, true);
 };
 
-/** Three passes over the whole set rather than a round trip per file, so a name the tracker will
- *  not type is refused before the first byte goes, a slot with no PUT behind it being no
- *  attachment; and each body is dropped once scanned, so the peak stays one file however many the
- *  write carries, its digest standing in for it until the PUT reads it again (ISS-577). */
+/** Two passes: the credential scan whole and ahead, so a secret in the last of ten costs no
+ *  attachment (ISS-577), then one authenticated request per file carrying its own bytes. A body is
+ *  dropped once scanned, so the peak stays one file, its digest standing in for it. */
 export const uploadAll = async (target, targetId, paths, { renewing, sending = () => {} } = {}) => {
+  if (!declaredFor("forge_uploads", "targets").includes(target)) fail(targetRefusal(target));
   const files = [];
   for (const path of paths) {
     const name = basename(path);
@@ -66,16 +77,20 @@ export const uploadAll = async (target, targetId, paths, { renewing, sending = (
     await refuseCredential(body.toString("utf8"), name);
     files.push({ path, name, digest: digestOf(body) });
   }
-  const minted = [];
+  const sent = [];
   for (const file of files) {
     await renewing?.();
-    const asked = { action: "request", data: { target, targetId, name: file.name } };
-    const slot = await write("forge_uploads", asked, undefined, true);
-    if (slot?.refused) fail(mintRefusal(file.path, slot.refused));
-    minted.push({ ...file, slot });
+    const row = await sendFile(target, targetId, file, sending);
+    if (row?.refused) fail(uploadRefusal(file.path, row.refused, sent));
+    /* The tracker's name: it sanitises, and a verdict cites what a read of the issue holds. */
+    const named = row?.name ?? file.name;
+    if (named !== file.name) {
+      console.error(`${file.name} is up as ${named}, which the tracker made of the name sent; cite `
+        + `that one — ${file.name} is no document on this issue.`);
+    }
+    console.log(`${named}  ${uploaded(row)}`);
+    sent.push(named);
   }
-  const sent = [];
-  for (const one of minted) sent.push(await putBytes(one, sending));
   return sent;
 };
 

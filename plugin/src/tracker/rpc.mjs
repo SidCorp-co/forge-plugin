@@ -6,17 +6,15 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { configDir, once, readJson } from "../resolve/config.mjs";
-import { DATA_FIELD, sseData } from "../sse.mjs";
 import { fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
-import { DECLARES, ROUTES, answersOf, droppedRefusal, isMcp, keyOf, noRouteRefusal, undeclaredIn } from "./rest.mjs";
+import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, undeclaredIn } from "./rest.mjs";
 
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
 const MAX_RETRY_SECONDS = 60;
 const RATE_LIMITED = 429;
-/* Only a read is sent again, and which a row is, is the row's own declaration; 429 is the tracker
-   saying it did not process the call, which is safe whatever the call was. */
+/* Only a read is sent again, off the row's own declaration; 429 says the call was not processed. */
 const TRANSIENT = [408, 425, 500, 502, 503, 504];
 const AMBIGUOUS = "This call may have been processed and is not sent again: idempotence is "
   + "documented for the merged mark alone, so a repeat could write twice. Read the record first.";
@@ -69,34 +67,31 @@ export const unfencedIn = (value) => {
   return Object.fromEntries(Object.entries(value).map(([key, held]) => [key, unfencedIn(held)]));
 };
 
-export const mcpUrl = () => settings().url;
-export const restBase = () => mcpUrl().replace(/\/mcp\/?$/u, "") + "/api";
+/** One configured value, whatever form it names, with the endpoint segment off the end of it. */
+export const restBase = () => settings().url.replace(/\/mcp\/?$/u, "") + "/api";
 
-const authorized = () => {
+/* No declared content type where a part carries the body: the boundary is the runtime's to name. */
+const authorized = (multipart = false) => {
   const { token } = settings();
-  return { Authorization: token, "Content-Type": "application/json" };
+  return { Authorization: token, ...(multipart ? {} : { "Content-Type": "application/json" }) };
 };
 
-const post = (method, params) => {
-  const slug = projectTarget().value;
-  return fetch(mcpUrl(), {
-    method: "POST",
-    headers: {
-      ...authorized(),
-      ...(slug ? { "X-Forge-Project-Slug": slug } : {}),
-      Accept: "application/json, text/event-stream",
-    },
-    body: JSON.stringify({ jsonrpc: "2.0", id: Date.now(), method, params }),
-  });
+/* Per attempt and never kept: a rate limit is sent again whatever the row declares. */
+const bodied = (form) => {
+  const held = new FormData();
+  for (const [field, part] of Object.entries(form)) {
+    held.append(field, new Blob([part.bytes], { type: part.mime }), part.name);
+  }
+  return held;
 };
 
-const send = ({ path, method = "GET", body }) => fetch(`${restBase()}${path}`, {
+const send = ({ path, method = "GET", form, body }) => fetch(`${restBase()}${path}`, {
   method,
-  headers: authorized(),
-  ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  headers: authorized(Boolean(form)),
+  ...(form ? { body: bodied(form) } : {}),
+  ...(form || body === undefined ? {} : { body: JSON.stringify(body) }),
 });
 
-/** The retry loop both transports share; what a failure means is the caller's, the two differing. */
 const attempted = async (make, repeatable) => {
   let text = "";
   let response = null;
@@ -134,33 +129,6 @@ const said = (body, status) => {
   return lines.length ? `${head}\n${lines.join("\n")}` : head;
 };
 
-export const rpc = async (method, params, soft = false) => {
-  const { response, text, dropped } = await attempted(() => post(method, params), false);
-  const stop = refusing(soft);
-  if (dropped) return stop(`Forge did not answer: ${dropped.message}.\n${AMBIGUOUS}`);
-  if (!response.ok) return stop(`Forge answered ${response.status}: ${text.slice(0, 400)}`);
-  /* The endpoint may answer either as JSON or as a single SSE frame. */
-  const frame = text.startsWith("event:") || text.startsWith(DATA_FIELD) ? sseData(text) : text;
-  const held = parsed(frame);
-  if (held === undefined) return stop(`Forge answered unparseable body: ${text.slice(0, 400)}`);
-  if (held.error) return stop(`Forge refused: ${JSON.stringify(held.error)}`);
-  return held.result;
-};
-
-/* A row that keeps the JSON-RPC endpoint by its own nature reaches it here and nowhere else. */
-const overMcp = async (name, args, soft) => {
-  const result = await rpc("tools/call", { name, arguments: args }, soft);
-  if (result?.refused) return result;
-  const text = (result?.content ?? []).filter((part) => part.type === "text").map((part) => part.text).join("\n");
-  if (result?.isError) {
-    const rendered = unfenced(text) || JSON.stringify(result);
-    return soft ? { refused: rendered } : fail(`${name} refused:\n${rendered}`);
-  }
-  if (result?.structuredContent) return unfencedIn(result.structuredContent);
-  const held = parsed(text);
-  return held === undefined ? unfenced(text) : unfencedIn(held);
-};
-
 const aimedAt = async (row, args, soft) => {
   if (!row.project) return { id: null };
   return args.projectId ? { id: args.projectId } : idOfProject(soft);
@@ -195,7 +163,6 @@ export const callTool = async (name, args, soft = false) => {
   const row = ROUTES[key];
   const stop = refusing(soft);
   if (!row) return stop(noRouteRefusal(key));
-  if (isMcp(row)) return overMcp(name, args, soft);
   const dropped = undeclaredIn(row, args);
   if (dropped.length) return stop(droppedRefusal(key, dropped, row));
   const parts = await fetchedParts(row, args, soft);
@@ -205,8 +172,7 @@ export const callTool = async (name, args, soft = false) => {
   return unfencedIn(answersOf(row)(Object.fromEntries(parts.map(([part, held]) => [part, held.body])), args));
 };
 
-/* The slug-to-id answer is cached beside the config, keyed by endpoint: an issue's project never
-   changes, and every project-scoped path carries the id rather than the slug. */
+/* Cached beside the config and keyed by endpoint: an issue's project never changes. */
 const cachePath = () => {
   const key = createHash("sha256").update(settings().url).digest("hex").slice(0, 12);
   return join(configDir("forge"), `tools-${key}.json`);
@@ -249,14 +215,12 @@ export const scoped = callTool;
 
 export const tried = async (name, args) => callTool(name, args, true);
 
-/** What the table declares in the tracker's stead, for a check the tracker's own refusal cannot
- *  carry. The set is this CLI's and goes stale when the tracker grows a value, which is what the
- *  refusal citing it has to say. */
+/** What the table declares in the tracker's stead. The set is this CLI's and goes stale when the
+ *  tracker grows a value, which is what a refusal citing it has to say. */
 export const declaredFor = (tool, field) => DECLARES[tool]?.[field] ?? [];
 
 /* One seat rather than a list of the payload kinds that may carry a secret, which goes stale the
-   next time a verb learns to write. `uploadTo` holds the other seat: an attachment's bytes never
-   pass here. */
+   next time a verb learns to write. `uploadAll` holds the other: bytes never pass here. */
 export const refuseCredential = async (value, what) => {
   if (!value) return;
   const held = await import("./project-config.mjs");

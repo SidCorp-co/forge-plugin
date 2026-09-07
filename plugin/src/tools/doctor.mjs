@@ -421,7 +421,7 @@ const checkEndpoint = async (full) => {
   const { served } = await import("../tracker/rest.mjs");
   forgetProjects();
   const declared = served().map((row) => ({ name: row.tool }));
-  line(OK, "rest base", restBase());
+  line(OK, "rest base", `${restBase()}  ← derived from the endpoint url above, its trailing /mcp off`);
   line(OK, "route table", `${declared.length} route(s) over ${groups(declared)} tool(s)`);
   const { value: slug } = projectScope();
   if (!slug) {
