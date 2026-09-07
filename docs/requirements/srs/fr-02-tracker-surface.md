@@ -215,8 +215,8 @@ method text and not a feature to keep.
   WHERE a flag names a field of the tracker, it SHALL carry the tracker's own name for that field and
   SHALL take the tracker's own values, and the CLI SHALL keep no second vocabulary for them.
 - **AC-02-9-13** · Rev: 1 · Proof: none yet — ISS-681
-  WHEN the project's configuration is asked for THEN the verb that answers SHALL be named for
-  configuration and not for the project.
+  WHEN the project's configuration is asked for THEN the one verb that reports every level of
+  configuration with its source SHALL answer, and no verb named for the project SHALL.
 - **AC-02-9-14** · Rev: 1 · Proof: none yet — ISS-681
   IF a form the handler reads names a read THEN the CLI SHALL perform that read, since a read has no
   entry check to fail.
