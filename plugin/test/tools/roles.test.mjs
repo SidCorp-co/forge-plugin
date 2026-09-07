@@ -84,6 +84,29 @@ test("doctor's roles line speaks only where the two copies differ", () => {
   assert.deepEqual(rolesDiffer(["runner"], ["runner", "old"]), { missing: [], extra: ["old"] });
 });
 
+/* Doctor's line reads the copy a session registered, so the checkout is where a new role shows first. */
+test("the qa role ships beside the other four, and doctor names it where the loaded copy predates it", () => {
+  assert.deepEqual(rolesIn(), ["evaluator", "qa", "reviewer", "runner", "triage"],
+    "the set a dispatch can name; a role gained or lost without this line moving is a silent change");
+  assert.deepEqual(rolesDiffer(rolesIn(), ["evaluator", "reviewer", "runner", "triage"]),
+    { missing: ["qa"], extra: [] }, "a copy predating it must be told, or a dispatch naming qa refuses");
+});
+
+/* The definition is the only text a run reads before it works, so its one refusing input is stated there. */
+test("the qa role's text names the deployment identity as an input it is refused without", () => {
+  const text = roleText("qa");
+  const paragraph = text.split(/\n\s*\n/u).find((one) => /deployment identity/u.test(one));
+  assert.ok(paragraph, "the role does not name the deployment identity at all");
+  assert.match(paragraph, /\brefused\b/u,
+    "the input is named in one place and the refusal stated in another, so neither reads as the other's");
+  assert.match(paragraph, /exit code/u, "nothing says a deploy command's exit code is not the identity");
+});
+
+/* The plan's boundary: judging what a declaration asks a person for answers a question nobody asked. */
+test("the qa role does not stand in for a review a plan declares a person's", () => {
+  assert.match(roleText("qa"), /person's review/u, "nothing in the role marks that boundary");
+});
+
 test("the roles ship inside the plugin directory, where a copy of it travels alone", () => {
   for (const name of rolesIn()) {
     assert.ok(readFileSync(join(PLUGIN, WITHIN, `${name}.md`), "utf8").length > 0);
