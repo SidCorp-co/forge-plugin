@@ -178,6 +178,37 @@ already on a tracker stays writable and no status is earned on it.
   WHERE a plan quotes a heading or a numbered step inside a fenced block, the CLI SHALL read it as
   text the plan shows and SHALL open no section and count no step from it.
 
+### UC-04-8 — The merged mark is a record, and a field is shaped as well as present
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-02, BR-14
+
+The mark that earns `developed` carries five clauses the entry checks parse out of one sentence, and
+until now no verb wrote that sentence: a run composed it by hand from a template in a refusal, and a
+sha in the wrong slot was refused two statuses later by a message about the verdicts. A record kind
+with one flag per clause writes the sentence in the one form the checks read, refuses once with
+everything it lacks, and is what a landing step calls. The other kinds check each field for form and
+none for content, so a confirmation that looked nowhere, a decision with no undo and a failing
+verdict with no reason all pass the write and cost a review round instead; the write is where the
+field is named and the write is where it is refused.
+
+- **AC-04-8-1** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN the merged mark is written THEN the CLI SHALL take each clause the entry checks read as its own
+  flag and SHALL write the note in the one form those checks parse.
+- **AC-04-8-2** · Rev: 1 · Proof: none yet — ISS-681
+  IF the mark is asked for without one of its clauses THEN the CLI SHALL refuse once, naming every
+  flag it lacks.
+- **AC-04-8-3** · Rev: 1 · Proof: none yet — ISS-681
+  IF a confirmation's where names neither a path nor an identifier THEN the CLI SHALL refuse the write
+  naming that field.
+- **AC-04-8-4** · Rev: 1 · Proof: none yet — ISS-681
+  IF a decision carries no undo THEN the CLI SHALL refuse the write naming the part it lacks.
+- **AC-04-8-5** · Rev: 1 · Proof: none yet — ISS-681
+  IF a verdict that does not pass carries no reason THEN the CLI SHALL refuse the write naming that
+  field.
+- **AC-04-8-6** · Rev: 1 · Proof: none yet — ISS-681
+  IF a body declares a size the ladder does not have THEN every route that reads the size SHALL refuse
+  the body naming the rungs.
+
 ## The way back
 
 *What undoes a change here?*

@@ -54,6 +54,9 @@ here rather than an implementation detail.
 - **AC-11-1-4** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
   WHEN a finding is reported THEN the report SHALL name the rules that fired, and a clean file SHALL
   produce nothing.
+- **AC-11-1-6** · Rev: 1 · Proof: none yet — ISS-681
+  WHERE a line is the waiver one rule asks for, the density rule SHALL not count that line as a
+  comment.
 
 ### UC-11-2 — A rules file's claims about its own repository
 

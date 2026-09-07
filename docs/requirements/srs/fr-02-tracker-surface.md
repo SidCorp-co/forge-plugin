@@ -147,6 +147,54 @@ issue scored, what left it out, and what one landing would free.
 - **AC-02-7-6** · Rev: 1 · Proof: plugin/test/rank/weights.test.mjs "a weight the table does not hold is refused, not dropped"
   IF a project sets a weight the table does not carry THEN the CLI SHALL refuse the ranking and
   SHALL name the weights it does carry.
+- **AC-02-7-7** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN the dependency graph is printed THEN the CLI SHALL read the edges the ranking reads, and a
+  claim found only in an issue's prose SHALL be listed apart as one the tracker does not hold.
+
+### UC-02-9 — A verb's flags are its usage row's, and a wrong form gets the verb's own answer
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-09, BR-14
+
+Every verb reads its flags through one parser, and the parser knows the verb's row, so a flag the
+row does not name is refused in one place with one sentence, before any credential is spent. Help is
+the row, a line per flag and a sentence to choose the verb by; anything longer has a home elsewhere
+and is one more copy to drift (BR-09). An agent's wrong form varies by agent, so a form the surface
+does not list is not pointed at the right one, which spends a turn, but handled behind the parser:
+where the form names one act and that act's own check passes, the act is performed and the reply
+says which verb ran; where it does not, the reply is that verb's own refusal. No such form appears
+in help, and every one that fires is counted, because a form that fires often is a defect in the
+method text and not a feature to keep.
+
+- **AC-02-9-1** · Rev: 1 · Proof: none yet — ISS-681
+  IF a verb is given a flag its usage row does not name THEN the CLI SHALL refuse before any call is
+  made, naming the flag and the set the verb takes.
+- **AC-02-9-2** · Rev: 1 · Proof: none yet — ISS-681
+  IF a flag the verb takes is given no value THEN the CLI SHALL name that flag, and SHALL not read
+  the word after it as an unknown flag.
+- **AC-02-9-3** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN a verb's help is printed THEN it SHALL hold the usage row, one line per flag and one sentence
+  to choose the verb by, and SHALL fit under the size the suite states.
+- **AC-02-9-4** · Rev: 1 · Proof: none yet — ISS-681
+  IF a status of the flow is typed as a verb and the record earns that status as the next one THEN
+  the CLI SHALL move the issue to it and SHALL print the line the advance verb prints, naming the
+  verb it ran as.
+- **AC-02-9-5** · Rev: 1 · Proof: none yet — ISS-681
+  IF a status of the flow is typed as a verb and the record does not earn it THEN the CLI SHALL
+  print what is owed with the advance line, and SHALL move nothing.
+- **AC-02-9-6** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN the usage list or a verb's help is printed THEN no form the handler reads SHALL appear in it.
+- **AC-02-9-7** · Rev: 1 · Proof: none yet — ISS-681
+  WHEN a run's statistics are printed THEN each form the handler read SHALL be listed with how often
+  it fired.
+- **AC-02-9-8** · Rev: 1 · Proof: none yet — ISS-681
+  IF a raw call names an action a verb of the table claims THEN the CLI SHALL refuse it naming that
+  verb, for every action a row claims and not only the listing.
+- **AC-02-9-9** · Rev: 1 · Proof: none yet — ISS-681
+  IF the consult verb is given a dash where it takes a path THEN it SHALL refuse in one line saying
+  that its intent is read from standard input.
+- **AC-02-9-10** · Rev: 1 · Proof: none yet — ISS-681
+  IF a word is neither a verb nor a form the handler reads THEN the CLI SHALL answer as it answers an
+  unknown verb.
 
 ### UC-02-8 — The method arrives with the verb that acts, rendered and versioned
 
