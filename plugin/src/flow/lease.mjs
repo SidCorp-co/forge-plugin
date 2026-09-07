@@ -31,6 +31,10 @@ const UNKNOWN = "unknown";
 export const agentOf = () => process.env.AI_AGENT || UNKNOWN;
 export const pidOf = () => process.env.CLAUDE_PID || UNKNOWN;
 
+/* A shape's `written` field is filled from the session here and refused as a flag where the payload is gathered, for the reason `claimed` below states. Here, beside the other two the environment answers for. */
+export const writtenBy = (shape) =>
+  Object.fromEntries(shape.fields.filter((one) => one.written).map((one) => [one.flag, sessionOf()]));
+
 export const nextLine = (given, flag = "--next") => {
   if (given === undefined) return undefined;
   if (given === null) return null;

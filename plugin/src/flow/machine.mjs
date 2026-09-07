@@ -530,6 +530,7 @@ export const SHAPES = {
       FIELD("commit", "Commit", { commit: true }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
       FIELD("why", "Why", { optional: true }),
+      FIELD("judge", "Judge", { written: true, newer: true }),
     ],
     check: (got) => {
       if (got.verdict === "skipped" && !got.why) return "--why, for a skipped check";
