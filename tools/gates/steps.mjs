@@ -48,8 +48,8 @@ export const STEPS = [
   },
   { label: "check:spec", reads: ["docs/requirements", "plugin/src"] },
   { label: "check:skill-paths", reads: ["plugin"] },
-  { label: "check:skill-boundaries", reads: ["plugin/scripts/skill-boundaries.mjs", "plugin/skills", "plugin/guides/skills"] },
-  { label: "check:skill-figures", reads: ["plugin/scripts/skill-figures.mjs", "plugin/skills", "plugin/guides/skills"] },
+  { label: "check:skill-boundaries", reads: ["plugin/scripts/skill-boundaries.mjs", "plugin/skills", "plugin/guides", "plugin/src/guides"] },
+  { label: "check:skill-figures", reads: ["plugin/scripts/skill-figures.mjs", "plugin/skills", "plugin/guides", "plugin/src/guides"] },
   { label: "check:dup", reads: ["plugin"] },
   {
     label: "sync:skills:check",

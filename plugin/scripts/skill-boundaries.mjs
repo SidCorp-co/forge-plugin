@@ -21,9 +21,11 @@ an instruction to invoke something that will never load.
 
 Exit 0 when clean, 1 on a finding, 2 on a usage error.`;
 
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { bodyPathsOf } from "../src/guides/skill-guides.mjs";
 
 const args = process.argv.slice(2);
 if (args.includes("-h") || args.includes("--help")) {
@@ -116,9 +118,9 @@ const skills = readdirSync(skillsRoot, { withFileTypes: true })
   .map((entry) => {
     const text = readFileSync(join(skillsRoot, entry.name, "SKILL.md"), "utf8");
     const held = frontmatter(text);
-    /* Read with the frontmatter: whatever a guide directory of the same name holds, when one exists. */
-    const served = join(skillsRoot, "..", "guides", "skills", entry.name, "guide.md");
-    const body = existsSync(served) ? `${text}\n${readFileSync(served, "utf8")}` : text;
+    /* Read with the frontmatter: every guide body of this name the tree ships, whatever is pinned. */
+    const served = bodyPathsOf(entry.name, join(skillsRoot, ".."));
+    const body = [text, ...served.map((one) => readFileSync(one, "utf8"))].join("\n");
     return { name: entry.name, description: held.description ?? "", body, words: meaningful(held.description ?? "") };
   });
 

@@ -2,9 +2,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { guideRoots } from "../../../src/guides/skill-guides.mjs";
 import { compare, sentences } from "../../../src/checks/duplication.mjs";
 import { NARRATES } from "../../../src/checks/doc-shape.mjs";
 import { VERBS } from "../../../src/resolve/visibility.mjs";
@@ -12,9 +13,8 @@ import { VERBS } from "../../../src/resolve/visibility.mjs";
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
 const DOCS = join(ROOT, "docs");
 /* Walked, not listed: the topics moved under docs/cli/ and a flat read would have taken sixty-seven
-   thousand characters out of this gate with nothing failing (ISS-87). The root's requirements tree is
-   out, and only the root's — it states its own threshold from its own measurement and answers to its
-   own gate, while a skip at every depth is a bypass nobody declared. */
+   thousand characters out of this gate with nothing failing (ISS-87). Only the root's requirements
+   tree is out — its own threshold, its own measurement, its own gate; a skip at depth declares none. */
 const walk = (dir, prefix = "") =>
   readdirSync(dir, { withFileTypes: true }).flatMap((one) => {
     if (!prefix && one.name === "requirements") return [];
@@ -70,7 +70,9 @@ const refused = () => {
   return [...pages, ...help];
 };
 
-const SKILL_ROOTS = ["plugin/skills", "plugin/guides/skills"];
+/* Listed roots drop a moved skill's text in silence; the floor is met without it. */
+const SKILL_ROOTS = ["plugin/skills",
+  ...guideRoots(join(ROOT, "plugin")).map((dir) => relative(ROOT, dir))];
 const skillDocs = () => {
   const out = [];
   for (const rel of SKILL_ROOTS) {
@@ -95,6 +97,8 @@ test("no skill restates a refusal or a usage line it could point at", () => {
   assert.ok(elsewhere.length >= 100, `${elsewhere.length} refusal sentence(s); the selector is broken`);
   const files = skillDocs();
   assert.ok(files.length >= 6, `${files.length} skill document(s); the selector is broken`);
+  assert.ok(files.some(([rel]) => /issue-flow\/(guide\.md|references\/)/u.test(rel)),
+    "the served method's own text is in the population, whichever version directory holds it");
   /* The corpus and the comparison are live, so the green below is a clean tree and not an empty read. */
   const longest = elsewhere.reduce((one, next) => (next[1].length > one[1].length ? next : one));
   const [planted] = compare([["planted", longest[1]]], elsewhere, 0.25, 5);

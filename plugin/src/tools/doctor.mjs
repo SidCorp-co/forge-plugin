@@ -37,7 +37,8 @@ import { consults, logEntries, logPath } from "../codex/codex-log.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
-import { GUIDE_TABLE, REVIEWED_AT, methodPinned, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
+import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
+import { methodPinned } from "../guides/version.mjs";
 import { contractPath, contractProblems, readContract, statesContract } from "../guides/contract.mjs";
 
 const viConfig = () => join(configDir("vi-natural"), "config.json");

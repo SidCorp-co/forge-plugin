@@ -7,6 +7,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { bare, didYouMean } from "../suggest.mjs";
+import { methodPinned, versionDir } from "./version.mjs";
 
 /** The contract this build reads and stamps on every record; another number is two versions in one. */
 export const CONTRACT = 1;
@@ -15,9 +16,10 @@ export const SLUG = "contract";
 export const LISTING_ROW = `${SLUG}\n  this plugin's own, not the tracker's: `
   + `\`forge guide ${SLUG}\` is the issue-flow contract's table of contents, one part per call`;
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const WITHIN = join("guides", "issue-flow-contract.md");
+const FILE = "issue-flow-contract.md";
 
-export const contractPath = (root = HERE) => join(root, WITHIN);
+export const contractPath = (root = HERE, version = methodPinned().value) =>
+  join(root, "guides", versionDir(version), FILE);
 
 export const readContract = (root = HERE) => {
   try {
