@@ -5099,3 +5099,26 @@ person. No restart owed. Folded from its handback; the twenty-two comments were 
 - Two writes went through the shell where the brief required the editor; the run caught itself and
   said so. The learning gate that would have held them judges skill and memory files only, so a rule a
   brief carries and no gate reaches is kept by the run or not at all.
+
+## Hundred-and-ninety-ninth dry run — ISS-364
+
+One median for the three reports that print one (3.35.217, landed as eaa6d7e): a home that imports
+nothing, answering null on empty and the mean of the two middles on an even count, spent by the run
+profile, the ranking's cost column and the consult log. One figure moved and it was named: the
+consult log's per-model median on an even count, measured on this device's real log as one row of
+seven. Thirteen criteria pass; the one-home guard was proved firing on a planted module. Nothing
+filed, nothing routed. Closed by its run; the release note re-recorded once after review. No restart
+owed. Folded from its handback; the thirteen comments were read back.
+
+- A behaviour change measured on a live corpus has a confound the corpus supplies: the log grew under
+  the run. Old and new were run against one corpus at one moment, then old, new, old again, so the
+  residual delta was the corpus's and not the code's. A before-and-after taken minutes apart on a
+  store that is being written proves nothing on its own.
+- The dispatcher's triage said Size: fix in a comment, and the ladder reads the size off the issue's
+  field and body, not off a comment. The run was owed the feature tier for a three-line helper and
+  wrote the plan rather than argue. A size the body lacks is set on the field at dispatch, with the
+  verb that sets it, or the run pays the tax; two runs dispatched today carry the same gap.
+- The consolidation's own argument — which answer on empty, which on even, and why — had nowhere
+  to live: the doc cap refuses it in the topic page and the comment-density check refuses it in a
+  four-line module. Recorded as a gap and deliberately not as a checker, since a check demanding
+  prose on a primitive's home contradicts the density rule exactly where it would fire.
