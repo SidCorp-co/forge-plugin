@@ -22,10 +22,12 @@ base name the issue already carries is refused there rather than attached twice,
 attached twice resolves to two documents (ISS-55) — and `forge attach` refuses on the same read,
 because the ambiguity belongs to the name and not to the route that sent it; where the comment page
 is cut at its cap that verb says so and sends anyway, having no citation to make instead of the
-upload the way this one has (ISS-137). The upload comes after every refusal the record's
-own shape can earn, so a shape a reader can fix costs no attachment; what is left cannot be undone,
-because the tracker publishes no delete for an upload — a lease lost mid-command, a second file that
-fails, or a comment gate that refuses the record after the first file went up. In each of those the
+upload the way this one has (ISS-137). Every slot is minted before any bytes go, and
+the upload comes after every refusal the record's own shape can earn, so neither a fixable shape nor
+a name the tracker will not type costs an attachment. What is left cannot be undone,
+because the tracker publishes no delete for an upload — a lease lost mid-command, a PUT that fails
+behind one that landed, or a comment gate that refuses the record after the first file went up. In
+each of those the
 command names what it sent and the `--evidence` line that cites it, since sending the path again
 would collide with the name already there. Named from before each PUT rather than after it: the
 tracker can take a file and lose the answer, and a file nobody was told about is the one nobody

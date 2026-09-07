@@ -3,6 +3,7 @@
    rather than learning it from the refusal (ISS-46). Beside the verb table, not in `flow/`, which
    is at its file limit. */
 import { PARKS, FINDINGS, SECTIONS, SHAPES, TRIAGES } from "../flow/machine.mjs";
+import { DECLARES } from "../tracker/rest.mjs";
 import { OPEN_KEPT } from "../flow/worklog.mjs";
 import { usageOf } from "./visibility.mjs";
 
@@ -78,6 +79,11 @@ export const usage = (caps = {}) => {
     "Evidence is an attachment name on the issue, a URL, a commit of 7 to 40 hex digits, or a path to",
     "a readable file, which goes up under its base name and is cited by it. A name already attached is",
     "refused rather than attached twice.",
+    "",
+    `The tracker types a file by its name and takes ${DECLARES.forge_uploads.extensions.join(" ")}.`,
+    "That set is this CLI's reading of the tracker's rather than the tracker's own answer, so one",
+    "missing from it may work too — and every path on a write is minted before any bytes go, so a",
+    "name it will not take costs no upload.",
     "",
     "--commit and --evidence are read off the record where the flag is absent: the commit from the",
     "merged mark's note, the evidence from what the latest record of this kind cited. Each is printed.",

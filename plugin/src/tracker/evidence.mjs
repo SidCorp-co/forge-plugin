@@ -1,5 +1,6 @@
 /* What a verdict cites and how it gets onto the issue: the upload, and the reading of an --evidence
    value that is a file on disk. Attach then re-send the record was a round of the agent's (ISS-65). */
+import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 
@@ -34,16 +35,16 @@ export const mintRefusal = (path, said) => {
     + `\n  ln -- ${shellArg(path)} ${shellArg(`${path}.txt`)}`;
 };
 
-/* Bytes go to the presigned URL, never base64 through context, and the callback fires the line
-   before the PUT: from there the file may be up, so the guard judges before the slot is minted. */
-export const uploadTo = async (target, targetId, path, sending = () => {}) => {
-  const name = basename(path);
+const digestOf = (body) => createHash("sha256").update(body).digest("hex");
+
+/* Never base64 through context, and the callback fires before the PUT: from there it may be up. */
+const putBytes = async ({ path, name, slot, digest }, sending) => {
   const body = readFileSync(path);
-  await refuseCredential(body.toString("utf8"), name);
-  const asked = { action: "request", data: { target, targetId, name } };
-  const minted = await write("forge_uploads", asked, undefined, true);
-  if (minted?.refused) fail(mintRefusal(path, minted.refused));
-  const url = new URL(minted.uploadUrl ?? `${new URL(settings().url).origin}${minted.uploadPath}`);
+  if (digestOf(body) !== digest) {
+    fail(`${name} changed on disk between the scan that cleared it and its upload, so nothing was `
+      + `sent for it. What a write puts up is what it read and judged. Send the command again.`);
+  }
+  const url = new URL(slot.uploadUrl ?? `${new URL(settings().url).origin}${slot.uploadPath}`);
   if (!["http:", "https:"].includes(url.protocol)) fail(`The upload URL for ${name} is ${url.protocol}, not http.`);
   sending(name);
   const put = await fetch(url, { method: "PUT", body });
@@ -51,6 +52,31 @@ export const uploadTo = async (target, targetId, path, sending = () => {}) => {
   if (!put.ok) fail(`Upload of ${name} answered ${put.status}: ${answer.slice(0, 300)}`);
   console.log(`${name}  ${uploaded(answer)}`);
   return name;
+};
+
+/** Three passes over the whole set rather than a round trip per file, so a name the tracker will
+ *  not type is refused before the first byte goes, a slot with no PUT behind it being no
+ *  attachment; and each body is dropped once scanned, so the peak stays one file however many the
+ *  write carries, its digest standing in for it until the PUT reads it again (ISS-577). */
+export const uploadAll = async (target, targetId, paths, { renewing, sending = () => {} } = {}) => {
+  const files = [];
+  for (const path of paths) {
+    const name = basename(path);
+    const body = readFileSync(path);
+    await refuseCredential(body.toString("utf8"), name);
+    files.push({ path, name, digest: digestOf(body) });
+  }
+  const minted = [];
+  for (const file of files) {
+    await renewing?.();
+    const asked = { action: "request", data: { target, targetId, name: file.name } };
+    const slot = await write("forge_uploads", asked, undefined, true);
+    if (slot?.refused) fail(mintRefusal(file.path, slot.refused));
+    minted.push({ ...file, slot });
+  }
+  const sent = [];
+  for (const one of minted) sent.push(await putBytes(one, sending));
+  return sent;
 };
 
 /* The three shapes a citation may take: an attachment's name, a URL, a commit, and nothing else. */

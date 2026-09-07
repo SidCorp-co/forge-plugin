@@ -13,7 +13,7 @@ import {
   shortOf,
 } from "./tracker/issues.mjs";
 import { commentPage, creditAfter, credited, cutIn, mustBeShown, postComment } from "./tracker/comments.mjs";
-import { attachmentNames, uploadRead, uploadTo, urlBearing } from "./tracker/evidence.mjs";
+import { attachmentNames, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
 import {
   INSTEAD_FLAGS,
   KINDS_HELP,
@@ -394,12 +394,10 @@ export const commands = {
       if (read.refusal) fail(read.refusal);
       if (read.said) console.error(read.said);
     }
-    for (const path of paths) {
-      /* Every payload write renews, uploads included; a comment id names no issue to read a lease
-         from, and the tracker offers no route from one to the other. */
-      if (target === "issue") await renew(targetId, targetRef);
-      await uploadTo(target, targetId, path);
-    }
+    /* The renewal rides the pass that mints; a comment id names no issue to read a lease from. */
+    await uploadAll(target, targetId, paths, {
+      renewing: target === "issue" ? () => renew(targetId, targetRef) : undefined,
+    });
   },
   /* An edge changes the order the blocked issue is worked in, so its lease is the one that covers
      the write: a new issue filed to block the one in hand renews the one in hand. */

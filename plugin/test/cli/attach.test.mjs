@@ -40,8 +40,11 @@ after(() => tracker.close());
 /* The bytes have to land somewhere for the sending half to be judged: the tracker stub reads every
    request as json, and a PUT of a text file is not one. */
 const sunk = [];
+/* Mints and PUTs in one list, because which came before which is the whole of ISS-577. */
+const order = [];
 const sink = createServer((request, response) => {
   sunk.push(request.url);
+  order.push(`put ${request.url}`);
   request.resume();
   request.on("end", () => {
     response.writeHead(200, { "Content-Type": "application/json" });
@@ -50,8 +53,10 @@ const sink = createServer((request, response) => {
 });
 await new Promise((ready) => sink.listen(0, "127.0.0.1", ready));
 after(() => sink.close());
-state.answer.forge_uploads = (args) =>
-  ({ uploadUrl: `http://127.0.0.1:${sink.address().port}/put/${args?.data?.name ?? "unnamed"}` });
+state.answer.forge_uploads = (args) => {
+  order.push(`mint ${args?.data?.name ?? "unnamed"}`);
+  return { uploadUrl: `http://127.0.0.1:${sink.address().port}/put/${args?.data?.name ?? "unnamed"}` };
+};
 
 const room = tempHome("attach-verb");
 mkdirSync(join(room.path, "sub"), { recursive: true });
@@ -132,4 +137,49 @@ test("a comment target reads no names and is refused for no collision", async ()
   const run = await ask("attach", "comment", COMMENT, wrote("gate-at-merge.txt", "sub"));
   assert.equal(run.status, 0, run.stderr);
   assert.ok(sunk.some((one) => one.endsWith("/put/gate-at-merge.txt")), `sank ${sunk.join(", ")}`);
+});
+
+/* The tracker refuses a name it cannot type at the mint, so every slot is taken before any bytes
+   go and a refusal costs no attachment (ISS-577). */
+test("every slot on a write is minted before any of the bytes go", async () => {
+  order.length = 0;
+  const run = await ask("attach", "issue", "ISS-1", wrote("first-of-two.txt"), wrote("second-of-two.txt"));
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(order, [
+    "mint first-of-two.txt",
+    "mint second-of-two.txt",
+    "put /put/first-of-two.txt",
+    "put /put/second-of-two.txt",
+  ], "both mints, then both PUTs");
+});
+
+/* What a write puts up is what it scanned, and between the two passes the digest is what says so. */
+test("a file rewritten between the scan and its upload is refused, and no bytes follow", async () => {
+  const path = wrote("swapped-after-scan.txt");
+  order.length = 0;
+  const own = state.answer.forge_uploads;
+  state.answer.forge_uploads = (args) => {
+    if (args?.data?.name === "swapped-after-scan.txt") writeFileSync(path, "credential-bearing bytes\n");
+    return own(args);
+  };
+  const run = await ask("attach", "issue", "ISS-1", path);
+  state.answer.forge_uploads = own;
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /changed on disk between the scan that cleared it and its upload/u);
+  assert.deepEqual(order, ["mint swapped-after-scan.txt"], "the slot was taken and nothing followed it");
+});
+
+/* The scan is the write's other refusal, and its ordering is ISS-577's where the refusal is not. */
+test("a credential in the last file is refused before the first of them is minted", async () => {
+  const secret = "staging-password-nobody-should-attach";
+  state.answer["forge_projects.get"] = () => ({ project: { previewDeploy: { url: "https://staging.test", password: secret } } });
+  order.length = 0;
+  const clean = wrote("scan-first.txt");
+  const leaky = join(room.path, "scan-second.txt");
+  writeFileSync(leaky, `the deploy takes ${secret}\n`);
+  const run = await ask("attach", "issue", "ISS-1", clean, leaky);
+  delete state.answer["forge_projects.get"];
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /carries this project's/u, "the leak is named");
+  assert.deepEqual(order, [], "and the file before it was never minted, let alone sent");
 });

@@ -12,7 +12,7 @@ import { bodyFrom } from "../resolve/payload.mjs";
 import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
 import { commentPage, cutIn, cutLine, postComment } from "../tracker/comments.mjs";
 import {
-  TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadTo,
+  TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadAll,
 } from "../tracker/evidence.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
 import { releaseLine, releasePolicy } from "../tracker/project-config.mjs";
@@ -387,10 +387,10 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
   const sent = [];
   const stranded = (code) => code && sent.length && console.error(strandedLine(sent, reference));
   process.once("exit", stranded);
-  for (const one of plan?.upload ?? []) {
-    await renew(documentId, reference);
-    await uploadTo("issue", documentId, one.path, (name) => sent.push(name));
-  }
+  await uploadAll("issue", documentId, (plan?.upload ?? []).map((one) => one.path), {
+    renewing: () => renew(documentId, reference),
+    sending: sent.push.bind(sent),
+  });
   const rendered = render(kind, blocks, stamp);
   const written = await post(documentId, rendered, reference, next, patch);
   /* Dropped on the way out and never in a `finally`: a thrown failure unwinds through one before the
