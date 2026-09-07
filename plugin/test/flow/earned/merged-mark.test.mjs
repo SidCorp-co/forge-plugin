@@ -8,10 +8,10 @@ import test from "node:test";
 import { tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("merged-mark").path;
-const { render } = await import("../../../src/flow/record.mjs");
+const { render } = await import("../../../src/flow/record/record.mjs");
 const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { sameCommit } = await import("../../../src/tracker/evidence.mjs");
-const { judgedHead, landingMoved, landingWrote, markedCommit } = await import("../../../src/flow/machine.mjs");
+const { judgedHead, landingMoved, landingWrote, markedCommit } = await import("../../../src/flow/record/merged.mjs");
 const { partFor, partsOf, readContract } = await import("../../../src/guides/contract.mjs");
 
 let clock = 0;
@@ -53,7 +53,8 @@ test("developed needs the mark, its commit, and an approving review of that comm
     "no merged mark, so nothing says the change landed",
     "no code review of the head that landed",
   ]);
-  assert.match(commands("developed", view({}))[0], /"action":"mark_merged"/u, "no wrapped verb marks a merge");
+  assert.match(commands("developed", view({}))[0], /^forge record merged ISS-3 --at /u,
+    "the verb that marks a merge, with a flag per clause of the note it writes");
   const stamped = { mergedAt: "2026-09-02T13:49:51.777Z" };
   assert.deepEqual(missing("developed", view(stamped, [mark("merged to master")]))[0],
     "the merged mark names no commit; its note carries it as `at <sha>`");
@@ -81,8 +82,12 @@ test("tested needs one verdict per criterion, passing, at the merged commit", ()
   assert.deepEqual(missing("tested", one), ["criterion 2 has no verdict"]);
   assert.match(commands("tested", one)[0], /--criterion 2 --verdict pass --commit c8c3550/u);
   assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "pass"), verdict(2, "pass")])), []);
-  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "fail"), verdict(2, "pass")])),
+  const failed = verdict(1, "fail", "c8c3550", { why: "the column stayed empty" });
+  assert.deepEqual(missing("tested", view(issue, [landed, failed, verdict(2, "pass")])),
     ["criterion 1 failed its verdict"]);
+  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "fail"), verdict(2, "pass")])),
+    ["the verdict on criterion 1 lacks --why, naming what the criterion did instead: a `fail` is what another run acts on"],
+    "a fail is what the next run acts on, so what the criterion did instead is asked for at the write");
   assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "pass", "43b811e"), verdict(2, "pass")])),
     ["the verdict on criterion 1 judged 43b811e, and the merged commit is c8c3550"]);
   assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "skipped", "c8c3550", { why: "no screen" }), verdict(2, "pass")])),
@@ -113,7 +118,8 @@ test("a verdict at the judged head stands where the landing moved none of the ch
     ["the verdicts on criterion 1, 2 judged bc40edc, which the mark names as the judged head, and "
       + "the mark says nothing about what the landing moved, so nothing says those verdicts survived it"]);
   assert.match(commands("tested", view(issue, [at("judged head bc40edc"), ...verdicts]))[0],
-    /"action":"mark_merged".*landing moved/su, "a second mark is the route, and mark_merged is idempotent");
+    /^forge record merged ISS-3 .*--moved <the paths of this change the landing moved>/su,
+    "a second mark is the route, and the clause it is owed for is one of the verb's own flags");
 
   /* Every mark on the tracker today names no judged head, so the old refusal is what they must get. */
   assert.deepEqual(owed("reviewed head 37a0ffb"), [

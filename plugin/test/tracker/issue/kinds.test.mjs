@@ -9,9 +9,9 @@ import {
   KINDS,
   KINDS_HELP,
   KIND_NAMES,
-  inFlowWords,
+  complexityRefusal,
   keysOffered,
-  insteadOf,
+  kindNeeded,
   kindRefusal,
   noticeFor,
   shapeFor,
@@ -19,6 +19,8 @@ import {
   trackerFields,
 } from "../../../src/tracker/issue-shape.mjs";
 import { bodyOf } from "../../../src/tracker/filing/route.mjs";
+import { usageOf } from "../../../src/resolve/visibility.mjs";
+import { unknownFlag } from "../../../src/suggest.mjs";
 
 const TITLE = "the filing is read against the shape its kind names";
 const SECTIONS = {
@@ -162,7 +164,7 @@ test("a reading is a kind of its own, sharing the feature's sections and not its
   const missing = gapsOf(body("outcome", "rules", "why"), "review");
   assert.equal(missing.gaps.length, 1, JSON.stringify(missing.gaps));
   assert.match(missing.gaps[0].wants, /out-of-scope heading.*required of a review/u);
-  assert.deepEqual(trackerFields({ kind: "review" }), { category: "review" },
+  assert.deepEqual(trackerFields({ category: "review" }), { category: "review" },
     "the value is what a reader filters a reading off, so it has to reach the field");
 });
 
@@ -180,20 +182,28 @@ test("a filing naming no kind is read as the default and told so", () => {
 
 /* Criterion 11: the mark says the flow is not worth spending on this, and a section list is the
    flow's cost in another form. */
-test("a body marked `Size: fix.` is read against no section, whatever kind it names", () => {
-  const marked = "`forge dep` should take the `data.relations` route.\n\nSize: fix.";
+/* Criterion 16: the light path is the complexity's now, so the same body reads against every
+   section where the field claims the top rung and against none where it claims a lower one. */
+test("a filing whose complexity claims a rung below the top is read against no section", () => {
+  const thin = { title: TITLE, body: "`forge dep` should take the `data.relations` route.\n\nSize: fix." };
   for (const kind of [...KIND_NAMES, null]) {
-    const read = gapsOf(marked, kind);
+    const read = shapeOf({ ...thin, kind, complexity: "s" });
     assert.deepEqual(read.gaps, [], String(kind));
+    assert.equal(read.fix, false, "the light path is taken, so no route past a refusal is offered");
     assert.equal(read.said, null, "and nothing is said about a reading that did not happen");
   }
-  assert.match(KINDS_HELP, /no section and against no kind, so\nnothing is read of it and nothing is said/u,
-    "which is what the help says, so the two cannot drift into promising a line the mark suppresses");
-  assert.match(KINDS_HELP, /the mark is not an exemption from the flag/u,
-    "the sections are what the mark drops, and the set is not among them");
-  /* The mark exempts the sections and not the set, and the tracker's own tool is the route that
+  const unread = shapeOf({ ...thin, kind: "bug", complexity: null });
+  assert.equal(unread.fix, true,
+    "while the same body with no complexity is read on — the `Size:` line in it claims nothing");
+  assert.equal(shapeOf({ ...thin, kind: "bug", complexity: "xl" }).fix, unread.fix,
+    "and a top-rung value reads exactly as none does");
+  assert.match(KINDS_HELP, /no\nsection and against no category, so nothing is read of it and nothing is said/u,
+    "which is what the help says, so the two cannot drift into promising a line the value suppresses");
+  assert.match(KINDS_HELP, /the value is not\nan exemption from the flag/u,
+    "the sections are what it drops, and the set is not among them");
+  /* The value exempts the sections and not the set, and the tracker's own tool is the route that
      can carry both at once. */
-  const outside = gapsOf(marked, "chore");
+  const outside = shapeOf({ ...thin, kind: "chore", complexity: "s" });
   assert.equal(outside.gaps.length, 1);
   assert.match(outside.gaps[0].read, /a kind of `chore`/u);
 });
@@ -210,16 +220,19 @@ test("a heading already there is told to grow a line, not to be added a second t
     /write one line under the out-of-scope heading already there/u);
 });
 
-/* The flags are the way in, and `forge new` spreads the ones it does not read straight into the
-   payload: under the tracker's own name a value would reach the field with nothing read against it. */
-test("a flag naming the tracker's field is refused with the word this CLI reads", () => {
-  for (const [given, word] of [["category", "--kind"], ["complexity", "--size"]]) {
-    const said = insteadOf({ [given]: "x" });
-    assert.match(said, new RegExp(`--${given} is the tracker's own name`, "u"));
-    assert.ok(said.includes(word), `${word} is the way out named`);
+/* Criterion 14: the two flags this CLI had words of its own for are strangers now, so they fall to
+   the unknown-flag route and it names the set the row does carry rather than a translation. */
+test("the CLI's old words for the two fields are answered as unknown flags naming the set", () => {
+  const row = { usage: usageOf("new") };
+  for (const gone of ["--kind", "--size"]) {
+    const said = unknownFlag("new", ["body.md", gone, "bug"], row);
+    assert.match(said, new RegExp(`No new flag named ${gone}\\.`, "u"), said);
+    for (const one of ["--category", "--complexity", "--priority", "--title"]) {
+      assert.ok(said.includes(one), `${one} is in the set the refusal names: ${said}`);
+    }
   }
-  assert.equal(insteadOf({ priority: "high", status: "open" }), null, "and the fields it does pass through");
-  assert.equal(insteadOf({}), null);
+  assert.equal(unknownFlag("new", ["body.md", "--category", "bug"], row), null,
+    "and the flag that replaced it is a flag of the row");
 });
 
 /* Offered, never written: no verb here retracts an edge, and nothing lexical tells a key cited as
@@ -234,48 +247,33 @@ test("the keys a body names come back with the read, and the line offers them wi
   assert.deepEqual(gapsOf(body("outcome", "rules", "scope"), "feature").keys, []);
 });
 
-test("the writer sends the kind the filing named, and nothing where it named none", () => {
-  assert.deepEqual(trackerFields({ kind: "bug" }), { category: "bug" });
+/* Criterion 15: nothing is translated on the way to the tracker, so the writer's own keys are the
+   tracker's, and a filing writes no line into the body about either of them. */
+test("the writer sends the tracker's own two fields, and nothing where the filing named none", () => {
+  assert.deepEqual(trackerFields({ category: "bug" }), { category: "bug" });
   assert.deepEqual(trackerFields({}), {}, "a default written into the field would read later as a choice");
-  assert.deepEqual(trackerFields({ kind: null }), {});
-  /* Criteria 15, 16 and 17: the rung the body claims reaches the tracker as its own value. */
-  assert.deepEqual(trackerFields({ kind: null, rung: "trivial" }), { complexity: "xs" });
-  assert.deepEqual(trackerFields({ kind: null, rung: "fix" }), { complexity: "s" });
-  assert.deepEqual(trackerFields({ kind: "bug", rung: "feature" }), { category: "bug", complexity: "m" });
-  /* And the rung handed to it is the completed body's reading, never the flag the caller passed: an example nothing closes runs to the end of the text and swallows the mark `withMark` appended (ISS-399, F1). */
-  assert.equal(bodyOf({ title: TITLE, body: "prose\n\n```text\nunclosed", size: "fix" }).rung, null,
-    "a filing whose appended mark landed inside an example claims no size at all");
+  assert.deepEqual(trackerFields({ category: null, complexity: null }), {});
+  assert.deepEqual(trackerFields({ complexity: "xs" }), { complexity: "xs" });
+  assert.deepEqual(trackerFields({ category: "bug", complexity: "xl" }), { category: "bug", complexity: "xl" },
+    "the value the filer gave, not a rung it was translated through and back");
+  const read = bodyOf({ title: TITLE, body: body("outcome", "rules", "scope"), complexity: "s" });
+  assert.equal(read.description, body("outcome", "rules", "scope"),
+    "and the description reaches the tracker as the filer wrote it, with no Size: line appended");
 });
 
-/* Criteria 1 to 5: every one of the tracker's five values reads back as the rung it claims, and the
-   table it reads through is the ladder's, which is where the flow reads the same values. */
-test("the flow's size word and the tracker's value for it are one statement", () => {
-  assert.deepEqual(inFlowWords({ complexity: "xs" }), { size: "trivial" });
-  assert.deepEqual(inFlowWords({ complexity: "s" }), { size: "fix" });
-  for (const held of ["m", "l", "xl"]) assert.deepEqual(inFlowWords({ complexity: held }), { size: "feature" });
-  assert.deepEqual(inFlowWords({ complexity: "xxl" }), { size: "xxl" },
-    "a value the ladder has no rung for is handed back as the tracker gave it");
-});
-
-test("the payload a call hands back is in the CLI's words, and the rest of it is untouched", () => {
-  assert.deepEqual(inFlowWords({ issueId: "ISS-98", category: "bug", complexity: "xs", status: "open" }),
-    { issueId: "ISS-98", kind: "bug", size: "trivial", status: "open" });
-  assert.deepEqual(inFlowWords(null), null);
-  assert.deepEqual(inFlowWords([{ category: "bug" }]), [{ category: "bug" }], "a list is not an issue");
-});
-
-/* A name a reader has to translate back costs a round, and this is the surface where both of the
-   tracker's names would otherwise appear. `plugin/test/checks/tracker-names.test.mjs` holds the
-   rule over the whole source; this holds it over the text these two fields are printed by. */
-test("nothing the kinds surface prints names the tracker's field for either of them", () => {
+/* Criterion 14: the tracker's names are the CLI's, so there is nothing left to translate back and
+   the surface below prints `category` and `complexity` where it names either at all. */
+test("the kinds surface speaks the tracker's own word for the category", () => {
   const printed = [
     KINDS_HELP,
     kindRefusal("chore"),
-    noticeFor({ kind: "bug", named: false, left: KINDS[0].says }),
-    ...KINDS.flatMap((one) => [...one.needs, ...one.says]).flatMap((one) => [one.reads, one.bare, one.wants, one.add]),
-    said(body("outcome"), "bug"),
+    kindNeeded(),
+    complexityRefusal("huge"),
   ];
-  for (const text of printed) assert.doesNotMatch(text, /category|complexity/iu, text);
-  assert.deepEqual(Object.keys(inFlowWords({ category: "bug", complexity: "xs" })), ["kind", "size"],
-    "while the mapping to those two names is what the reader above goes through");
+  for (const text of printed) assert.doesNotMatch(text, /--kind\b|--size\b|Size:/u, text);
+  assert.match(kindNeeded(), /--category/u, "the refusal names the flag a filer types");
+  assert.match(complexityRefusal("huge"), /xs.*\bxl\b/su, "and the complexity's names the five it takes");
+  for (const one of ["xs", "s", "m", "l", "xl"]) {
+    assert.ok(complexityRefusal("huge").includes(one), `${one} is in the set the refusal names`);
+  }
 });

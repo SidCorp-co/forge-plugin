@@ -16,12 +16,10 @@ import { commentPage, creditAfter, credited, cutIn, mustBeShown, postComment } f
 import { attachmentNames, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
 import {
   CAUSE_HELP,
-  INSTEAD_FLAGS,
   KINDS_HELP,
   KIND_NAMES,
   PRIORITY_HELP,
-  inFlowWords,
-  insteadOf,
+  complexityRefusal,
   kindNeeded,
   kindRefusal,
 } from "./tracker/issue-shape.mjs";
@@ -30,7 +28,7 @@ import { keysFrom, rankFor } from "./tracker/filing/route.mjs";
 import { fileAndSay } from "./tracker/filing/say.mjs";
 import { routingBlock } from "./tracker/filing/plugin-defect.mjs";
 import { commentLanded, sayLanded } from "./tracker/filing/landed.mjs";
-import { TIERS } from "./ladder.mjs";
+import { BAND_NAMES } from "./ladder.mjs";
 import { targetsOfTool } from "./tracker/issue-read.mjs";
 import { actionIn, callable, helpOf, isGated, refuseIfGated, usageOf, wrappedRefusal } from "./resolve/visibility.mjs";
 import { didYouMean, unknownFlag } from "./suggest.mjs";
@@ -48,8 +46,9 @@ import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
 import { stats } from "./stats/stats.mjs";
 import { hooks } from "./hooks/hook-log.mjs";
-import { record } from "./flow/record.mjs";
+import { record } from "./flow/record/record.mjs";
 import { advance } from "./flow/advance.mjs";
+import { overrideField } from "./flow/override.mjs";
 import { spec } from "./spec/verbs.mjs";
 import { claim } from "./flow/claim.mjs";
 import { indexFor, resume } from "./flow/resume.mjs";
@@ -301,15 +300,17 @@ export const commands = {
   issue: async ([reference, ...rest]) => {
     if (!reference) fail(usageOf("issue"));
     onlyFlags("issue", rest);
-    const { fields, full } = flags(rest, "issue", ["--full"]);
+    const { fields, full, set, why } = flags(rest, "issue", ["--full"]);
+    if (set !== undefined) return overrideField(reference, set, why);
+    if (why !== undefined) fail("--why belongs to --set; a read takes no reason.");
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
     const documentId = await documentIdOf(reference);
     /* The names ride along so the read skips the routes nothing asked for; the answer is the row
        whole either way, and the projection is taken from it. */
     const held = await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: names } : {}) });
-    const answer = inFlowWords(held);
-    const body = filled(names ? projectedTo(answer, names) : answer);
+    const body = filled(names ? projectedTo(held, names) : held);
     show(full ? body : terse(body));
+    return null;
   },
   /* `open` marks the active set; `draft` never dispatches. A filing is read before it is made,
      because the flow costs the same for one line as for a feature: how/issue-shape.md. */
@@ -317,25 +318,20 @@ export const commands = {
     if (wantsHelp(argv)) return console.log(newUsage(await briefGoals()));
     const [path, ...rest] = argv;
     if (!path) fail(usageOf("new"));
-    const row = { usage: usageOf("new"), hidden: INSTEAD_FLAGS };
+    const row = { usage: usageOf("new") };
     if (path.startsWith("--")) fail(unknownFlag("new", [path], row) ?? notABody(path));
     /* Before the unknown-flag route, whose nearest live name answers a question nobody asked. */
     const retired = retiredFlagIn("new", rest);
     if (retired) fail(retired);
-    onlyFlags("new", rest, INSTEAD_FLAGS);
-    const { with: rides, size, kind, priority, new: fresh, ...given } = flags(rest, "new", ["--new"]);
+    onlyFlags("new", rest);
+    const { with: rides, complexity, category, priority, new: fresh, ...given } = flags(rest, "new", ["--new"]);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
-    if (size !== undefined && !TIERS.includes(size)) {
-      fail(`${didYouMean("size", size, TIERS)} They are the contract's three rungs, smallest first,`
-        + " and the two below the top are the ones it gives a light path.");
-    }
-    if (kind !== undefined && !KIND_NAMES.includes(kind)) fail(kindRefusal(kind));
-    const instead = insteadOf(given);
-    if (instead) fail(instead);
+    if (complexity !== undefined && !BAND_NAMES.includes(complexity)) fail(complexityRefusal(complexity));
+    if (category !== undefined && !KIND_NAMES.includes(category)) fail(kindRefusal(category));
     const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
     if (badKeys) fail(badKeys);
     const relating = withKeys.length > 0;
-    if (kind === undefined) fail(kindNeeded());
+    if (category === undefined) fail(kindNeeded());
     /* Every refusal a call could not change is above this line, and this is the one call a filing
        makes before the body: a rank outside the tracker's own set is knowable without one, and the
        filing takes this answer rather than asking again. */
@@ -351,9 +347,9 @@ export const commands = {
     return fileAndSay({
       title,
       body,
-      kind,
+      kind: category,
       ranked: rank.ranked,
-      size,
+      complexity,
       fields: carried,
       routed: relating,
       fresh,

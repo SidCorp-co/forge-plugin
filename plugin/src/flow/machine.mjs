@@ -1,5 +1,6 @@
 /* A project whose `.forge.json` names a prose language has every body and prose field rewritten on
-   the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. Nothing imports here, so both sides can. */
+   the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. `content.mjs` is the one thing imported here and imports nothing itself, so both sides can still import this. */
+import { decisionProblem, whereProblem } from "./record/content.mjs";
 
 /** An ISO stamp to the minute, as every screen in this tree shows one; apart from `lease.mjs`'s and `stats/runs.mjs`'s, which take milliseconds. */
 export const atMinute = (at) => String(at ?? "").slice(0, 16);
@@ -108,13 +109,12 @@ export const criterionNumber = (value) => {
   return found ? Number(found[1]) : null;
 };
 
-/* The criteria grammar the issue-flow guide states — one outcome per numbered line — read as far as
-   a lexical pass can prove it, so `forge record criteria` refuses a line carrying two rather than
-   warning about a word (ISS-483). Every shape below wants a subject and a verb after the
-   coordinator, which is why the `and` inside a hyphenated slug and the `and` between two nouns are
-   not among them (ISS-73). A miss costs the consult round the guide already spends and a wrong refusal
-   costs the write, so the reading errs towards writing: no verb this table carries, no subject it can
-   see, and the line stands. The shapes are English clauses, so a prose language with no table refuses nothing. */
+/* The criteria grammar the issue-flow guide states — one outcome per numbered line — read as far as a
+   lexical pass can prove it, so `forge record criteria` refuses a line carrying two rather than warning
+   about a word (ISS-483). Every shape below wants a subject and a verb after the coordinator, which is why
+   the `and` inside a hyphenated slug and the `and` between two nouns are not among them (ISS-73). A miss
+   costs the consult round the guide already spends and a wrong refusal costs the write, so the reading errs
+   towards writing: no verb this table carries, no subject it can see, and the line stands. */
 const GRAMMAR = {
   en: {
     coordinators: ["and", "or"],
@@ -214,35 +214,6 @@ export const compoundCriteria = (criteria, language) => {
 
 /* A trim: the fence is off before a field reaches here, so this goes with its callers (ISS-470). */
 export const unwrap = (text) => String(text ?? "").trim();
-
-const MARK = /^mark_merged\b/u;
-const AT_SHA = /\bat ([0-9a-f]{7,40})\b/iu;
-const HEAD_SHA = /\breviewed head ([0-9a-f]{7,40})\b/iu;
-const JUDGED_SHA = /\bjudged head ([0-9a-f]{7,40})\b/iu;
-const MOVED = /\blanding moved ([^;\n]+)/iu;
-const WROTE = /\blanding wrote ([^;\n]+)/iu;
-/* Enumerated, because matching it stands every verdict: `nothingness` and `nothing generated` are
-   paths, and a clause that parses to no path at all says nothing rather than none. */
-const NONE = /^nothing(?: of this change| this change touched)?\.?$/iu;
-
-const lastMark = (comments) => {
-  const marks = comments.map((one) => unwrap(one.body)).filter((body) => MARK.test(body));
-  return marks.length ? marks.at(-1) : null;
-};
-
-export const markedCommit = (comments) => AT_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
-export const reviewedHead = (comments) => HEAD_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
-export const judgedHead = (comments) => JUDGED_SHA.exec(lastMark(comments) ?? "")?.[1] ?? null;
-
-const pathsIn = (said) => {
-  if (!said) return null;
-  if (NONE.test(said)) return [];
-  const paths = said.split(",").map((one) => one.trim()).filter(Boolean);
-  return paths.length ? paths : null;
-};
-
-export const landingMoved = (comments) => pathsIn(MOVED.exec(lastMark(comments) ?? "")?.[1]?.trim());
-export const landingWrote = (comments) => pathsIn(WROTE.exec(lastMark(comments) ?? "")?.[1]?.trim());
 
 /* Machine data in prose; every occurrence outside a code span decides, not the first (docs/cli/the-ladder.md). */
 export const DECLARED = {
@@ -474,7 +445,7 @@ export const SHAPES = {
   confirmation: {
     heading: "Confirmation",
     fields: [
-      FIELD("where", "Where looked", { many: true }),
+      FIELD("where", "Where looked", { many: true, each: whereProblem }),
       FIELD("is", "What it is"),
       FIELD("finding", "Finding", { oneOf: FINDINGS }),
       FIELD("detail", "Detail", { optional: true }),
@@ -483,7 +454,7 @@ export const SHAPES = {
   },
   decision: {
     heading: "Decision record",
-    fields: [FIELD("decision", "Decision", { many: true, least: 0 }),
+    fields: [FIELD("decision", "Decision", { many: true, least: 0, each: decisionProblem }),
       FIELD("none", "None found", { optional: true }), FIELD("serves", "Serves", { optional: true })],
     check: (got) => {
       if (!got.decision.length && !got.none) return "--decision (repeatable) or --none <why>";
@@ -534,6 +505,8 @@ export const SHAPES = {
     ],
     check: (got) => {
       if (got.verdict === "skipped" && !got.why) return "--why, for a skipped check";
+      /* A failing verdict is the one another run acts on, and one saying only `fail` sends them back to run it again to find out what. */
+      if (got.verdict === VERDICTS[1] && !got.why) return `--why, naming what the criterion did instead: a \`${VERDICTS[1]}\` is what another run acts on`;
       if (OWES.verdict(got) && !got.evidence.length) return "--evidence (repeatable): a verdict with none is refused";
       return null;
     },

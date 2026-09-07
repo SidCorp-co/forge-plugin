@@ -22,9 +22,9 @@ import {
   parkRecord,
   parkThatSet,
   personLooks,
+  setForm,
   shapeGaps,
   stepAfter,
-  transitionCall,
   viewFrom,
 } from "./earned.mjs";
 import { releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
@@ -43,7 +43,7 @@ const resumeOwed = (view, held, ref) => {
   if (view.issue.status === "on_hold") {
     if (kind !== "blocked") {
       return [need(`the hold is kind ${kind}, which a person lifts, and lifting it writes a status no `
-        + "entry check read", transitionCall(view.documentId, left))];
+        + "entry check read", setForm(ref, left))];
     }
     return blockersOwed(view);
   }
@@ -73,7 +73,7 @@ const landedOn = (view, ref) => {
       + `drop — but no park record of kind dropped on the page names the status it left, so nothing `
       + `says where it goes back to. ${view.cut ? `${view.cut} The record that would say may be behind `
       + `the cut. ` : ""}Whoever knows where it belongs sets it, and this writes a status no entry `
-      + `check read:\n  ${transitionCall(view.documentId, "<status>")}`);
+      + `check read:\n  ${setForm(ref, "<status>")}`);
   }
   return left;
 };
@@ -111,14 +111,13 @@ const reopenOwed = (view, ref) =>
 
 /* A triage that puts the expectation outside the specification says another issue owes it, and only
    an edge says which: prose gates nothing, so the park is refused until one gates this issue. */
-const blockingOwed = (view) =>
+const blockingOwed = (view, ref) =>
   (view.issue.relations?.blockedBy ?? []).some(holdsBack)
     ? []
     : [need(
       "the triage puts the expectation outside the specification, and no edge that gates dispatch "
         + "blocks this issue: the spec change or the new issue that owes it is the blocker",
-      `forge call forge_issues '{"action":"update","documentId":"${view.documentId}",`
-        + `"data":{"relations":[{"kind":"blocks","dependsOnId":"<the issue that owes it>"}]}}'`,
+      `forge dep <the issue that owes it> ${ref} blocks`,
     )];
 
 /* The outcome says how far back the work goes and never how far forward, so the status the reopen
@@ -189,7 +188,7 @@ const reopenTarget = (view, ref) => {
   }
   return {
     next: PARK_STATUS.blocked,
-    missing: blockingOwed(view),
+    missing: blockingOwed(view, ref),
     resumed: false,
     park: { kind: "blocked", left: landed, why: `the triage rules the expectation not in the specification: ${held["would-have-caught"]}` },
   };
@@ -254,12 +253,12 @@ export const targetOf = (view, ref) => {
         + `${view.cut ? `${view.cut} The record that would say may be behind the cut. ` : ""}`
         + `A park written now would name ${status} as the status it left, which is no step of the `
         + `flow, so nothing here earns the way back. Whoever knows where it belongs sets it, and `
-        + `this writes a status no entry check read:\n  ${transitionCall(view.documentId, "<status>")}`);
+        + `this writes a status no entry check read:\n  ${setForm(ref, "<status>")}`);
     }
     const left = held.record.fields.left;
     if (!ORDER.includes(left)) {
       refuse(`the park record on ${ref} names \`${left}\` as the status it left, which is no step of the flow. `
-        + `Whoever knows where it belongs sets it, and this writes a status no entry check read:\n  ${transitionCall(view.documentId, "<status>")}`);
+        + `Whoever knows where it belongs sets it, and this writes a status no entry check read:\n  ${setForm(ref, "<status>")}`);
     }
     return { next: left, missing: resumeOwed(view, held, ref), resumed: true };
   }
@@ -267,7 +266,7 @@ export const targetOf = (view, ref) => {
   const next = nextOf(status, view);
   if (!next) {
     refuse(`${ref} is ${status}; nothing advances from it. A reopen is a person's word, and this verb `
-      + `routes what follows it — a finding, then a triage:\n  ${transitionCall(view.documentId, REOPEN)}`);
+      + `routes what follows it — a finding, then a triage:\n  ${setForm(ref, REOPEN)}`);
   }
   return { next, missing: CHECKS[next](view, ref), resumed: false };
 };

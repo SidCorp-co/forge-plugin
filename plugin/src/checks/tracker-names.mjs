@@ -1,9 +1,7 @@
-/* The tracker's own column names, which this CLI reads and never shows: a name an agent has to
-   translate costs a round — docs/cli/the-project.md. Stated as patterns, and read by property access, so
-   neither the rule nor its reader is a quoted span and neither needs an exemption. */
+/* The tracker's column names this CLI reads and never shows, because it has a word of its own for each and two words for one thing costs a reader the translation — docs/cli/the-project.md. A column this CLI has no second word for is not here: `complexity` is spoken as the tracker spells it, which is docs/cli/the-kinds.md's decision. Stated as patterns, and read by property access, so neither the rule nor its reader is a quoted span and neither needs an exemption. */
 import { lineAt } from "../markdown.mjs";
 
-export const COLUMNS = [/baseBranch/u, /previewDeploy/u, /complexity/u];
+export const COLUMNS = [/baseBranch/u, /previewDeploy/u];
 
 /** Every quoted span, comments dropped: a pattern over the file cannot tell a read from a print. */
 export const quoted = (text) => {

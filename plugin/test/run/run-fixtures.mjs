@@ -10,6 +10,8 @@ import { tempRoom } from "../fixtures.mjs";
    the developer's config directory would run on their credential. */
 process.env.XDG_CONFIG_HOME = tempRoom("run-script-home-");
 
+const { bandFor } = await import("../../src/ladder.mjs");
+
 export const ROOT = new URL("../../..", import.meta.url).pathname;
 const OWN_SLUG = JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")).slug;
 export const SCRIPT = join("tools", "run.mjs");
@@ -241,8 +243,8 @@ if (argv[0] === "issue") {
   const row = (existsSync(rows) ? readFileSync(rows, "utf8") : "").split("\\n")
     .find((line) => line.startsWith(argv[1]));
   const status = row ? row.trim().split(/\\s+/)[STATUS_AT] : "open";
-  const marked = join(room, "forge-size");
-  const description = existsSync(marked) ? readFileSync(marked, "utf8") : "no mark here";
+  const sizedAt = join(room, "forge-size");
+  const complexity = existsSync(sizedAt) ? readFileSync(sizedAt, "utf8").trim() : null;
   const planned = join(room, "forge-plan");
   const plan = existsSync(planned) ? readFileSync(planned, "utf8") : "";
   if (existsSync(join(room, "forge-broken"))) {
@@ -251,7 +253,7 @@ if (argv[0] === "issue") {
   }
   const shape = existsSync(join(room, "forge-null"))
     ? null
-    : { issueId: argv[1], status, description, plan };
+    : { issueId: argv[1], status, complexity, plan };
   process.stdout.write(JSON.stringify(shape, null, 2));
   process.exit(0);
 }
@@ -288,9 +290,8 @@ export const stubbed = (work) => {
   git(work, "commit", "-m", "the tracker this checkout files through");
 };
 
-/** What the stubbed tracker answers a ship whose branch names an issue: the mark in the body, the
- *  two things that climb from it, and `null`, which parses and has no field to read. */
-export const sized = (at, tier) => writeFileSync(join(at, "forge-size"), `a body.\n\nSize: ${tier}.\n`);
+/** What the stubbed tracker answers a ship whose branch names an issue: the complexity on the issue, the two things that climb from it, and `null`, which parses and has no field to read. Named by rung and written as the field's own value, which is what the ship reads it back as. */
+export const sized = (at, tier) => writeFileSync(join(at, "forge-size"), bandFor(tier));
 export const planned = (at, text) => writeFileSync(join(at, "forge-plan"), text);
 /** Two answers the ceiling cannot measure: `null`, which parses and has no field, and neither. */
 export const emptyAnswer = (at) => writeFileSync(join(at, "forge-null"), "");

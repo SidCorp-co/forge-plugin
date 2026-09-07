@@ -22,7 +22,7 @@ state.config = {
 const { landReady } = await import("../../../../tools/run/land-ready.mjs");
 const { Stop } = await import("../../../../tools/checkout.mjs");
 const { landingOf } = await import("../../../src/flow/lease.mjs");
-const { render } = await import("../../../src/flow/record.mjs");
+const { render } = await import("../../../src/flow/record/record.mjs");
 
 test.after(() => tracker.close());
 

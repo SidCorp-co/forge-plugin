@@ -9,7 +9,7 @@ import test from "node:test";
 import { tempHome, typedPlan } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("entry-checks").path;
-const { parse, render } = await import("../../../src/flow/record.mjs");
+const { parse, render } = await import("../../../src/flow/record/record.mjs");
 const { CHECKS, shapeGaps, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { planFlags, planSections, planSteps } = await import("../../../src/flow/machine.mjs");
 const { targetOf } = await import("../../../src/flow/route.mjs");
@@ -70,8 +70,8 @@ test("a file the landing wrote and the plan does not name owes a correction", ()
   const planned = { plan: "It touches plugin/src/flow/earned.mjs and nothing else.", acceptanceCriteria: CRITERIA, mergedAt: at() };
   const wrote = (clause) => [mark(`${NOTE}${clause}`), recorded("review", { reviewer: "codex", commit: "43b811e", outcome: "approved", finding: [] })];
   const owed = (issue, comments) => CHECKS.developed(view(issue, comments), "ISS-3");
-  /* The template is where a run learns the clause exists, there being no other place it is typed. */
-  assert.match(owed({ acceptanceCriteria: CRITERIA }, [])[0].command, /landing wrote <the paths this change itself landed/u);
+  /* The verb's own flag is where a run learns the clause exists, there being no other place it is typed. */
+  assert.match(owed({ acceptanceCriteria: CRITERIA }, [])[0].command, /--wrote <the paths this change itself landed>/u);
   assert.deepEqual(owed(planned, wrote("")).map((one) => one.what), [],
     "a note with no such clause says nothing about what was written");
   assert.deepEqual(owed(planned, wrote("; landing wrote nothing")).map((one) => one.what), []);
@@ -164,7 +164,7 @@ test("approved is refused where the project keeps a tree and the issue names no 
   assert.match(commands("approved", cited(APPROVABLE, []))[0], /^forge record criteria ISS-3 <criteria\.md>, with a criterion opening/u);
   assert.deepEqual(missing("approved", cited(APPROVABLE, ["UC-14-4"])), [], "one clause named is what it asks for");
   assert.deepEqual(missing("approved", cited(APPROVABLE, null)), [], "and a project with no tree is never asked");
-  assert.deepEqual(missing("approved", cited({ description: "Size: fix.", acceptanceCriteria: CRITERIA }, [])),
+  assert.deepEqual(missing("approved", cited({ complexity: "s", acceptanceCriteria: CRITERIA }, [])),
     [CITES_NOTHING], "the light path drops the plan field and never the clause");
   assert.deepEqual(missing("approved", cited({}, [])).length, 3, "and it is owed beside what was already owed");
 });

@@ -3,9 +3,13 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  FINDINGS, SHAPES, TRIAGES, criteriaUncovered, judgedHead, landingMoved, landingWrote, looksTo,
-  markedCommit, planFlags, planTyped, reviewedHead, sectionsOwed, stepsUncited, unwrap,
+  FINDINGS, SHAPES, TRIAGES, criteriaUncovered, looksTo, planFlags, planTyped, sectionsOwed,
+  stepsUncited, unwrap,
 } from "./machine.mjs";
+import {
+  judgedHead, landingMoved, landingWrote, markedCommit, mergedForm, reviewedHead,
+} from "./record/merged.mjs";
+import { eachProblem } from "./record/content.mjs";
 import { FORMS } from "../spec/parse.mjs";
 import { lightens } from "../ladder.mjs";
 import { sizeReport } from "../ladder-report.mjs";
@@ -14,7 +18,7 @@ import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/
 import { Refused } from "../refusal.mjs";
 import { FIELD as SESSION, landingOf } from "./lease.mjs";
 import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
-import { assemble, criteriaLines, parse } from "./record.mjs";
+import { assemble, criteriaLines, parse } from "./record/record.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
 import { waitsForPerson } from "../tracker/project-config.mjs";
 
@@ -84,6 +88,12 @@ export const shapeGaps = (kind, record, names = []) => {
       return Boolean(field.oneOf) && !field.oneOf.includes(held);
     })
     .map((field) => `--${field.flag}`);
+  /* The write's content rules again: a record typed past this route by hand is measured by the same
+     ones, so a where that named nothing is owed here rather than passing for being present. */
+  for (const field of shape.fields.filter((one) => one.many && one.each)) {
+    const said = eachProblem(field, got[field.flag]);
+    if (said) gaps.push(`--${field.flag}, which ${said}`);
+  }
   for (const field of shape.fields.filter((one) => !one.many)) {
     const held = got[field.flag];
     if (held === undefined) continue;
@@ -143,7 +153,6 @@ const correctionsIn = (view) => (view.moved ??= view.comments
   .map((one) => one.fields.moved));
 
 export const sizeOf = (view) => (view.size ??= {
-  description: unwrap(view.issue.description),
   plan: unwrap(view.issue.plan),
   moved: correctionsIn(view),
   whole: view.whole !== false,
@@ -153,13 +162,8 @@ export const sizeOf = (view) => (view.size ??= {
 export const lightPath = (view, status) => lightens(status, sizeOf(view));
 export const fixReport = (view, ref) => sizeReport(sizeOf(view), ref);
 
-const markCall = (documentId) =>
-  `forge call forge_issues '{"action":"mark_merged","data":{"issueId":"${documentId}",`
-  + `"target":"base","note":"merged to <branch> at <sha>; reviewed head <sha>; judged head <sha>; `
-  + `landing moved <the paths of this change the landing moved, or the word nothing>; `
-  + `landing wrote <the paths this change itself landed, or the word nothing>"}}'`;
-export const transitionCall = (documentId, status) =>
-  `forge call forge_issues '{"action":"transition","documentId":"${documentId}","data":{"status":"${status}"}}'`;
+export const setForm = (ref, status) =>
+  `forge advance ${ref} --set ${status} --why "<why this status is set with nothing earning it>"`;
 
 /* The tracker answers this on the edge itself, so the check reads the edge rather than inferring an
    order from the list it arrived in: `relations.blockedBy` carries mentions beside orderings. `kind`
@@ -244,7 +248,7 @@ const equivalenceOwed = (view, ref, judged, moved, numbers) => {
     return need(
       `${at} judged ${judged}, which the mark names as the judged head, and the mark says nothing `
         + `about what the landing moved, so nothing says those verdicts survived it`,
-      markCall(view.documentId),
+      mergedForm(ref),
     );
   }
   return need(
@@ -517,9 +521,9 @@ export const CHECKS = {
   },
   developed: (view, ref) => {
     const out = [];
-    if (!view.issue.mergedAt) out.push(need("no merged mark, so nothing says the change landed", markCall(view.documentId)));
+    if (!view.issue.mergedAt) out.push(need("no merged mark, so nothing says the change landed", mergedForm(ref)));
     else if (!markedCommit(view.comments)) {
-      out.push(need("the merged mark names no commit; its note carries it as `at <sha>`", markCall(view.documentId)));
+      out.push(need("the merged mark names no commit; its note carries it as `at <sha>`", mergedForm(ref)));
     }
     return [...out, ...scopeOwed(view, ref), ...reviewOwed(view, ref)];
   },

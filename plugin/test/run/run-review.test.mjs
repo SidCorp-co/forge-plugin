@@ -322,8 +322,8 @@ test("a tracker that does not answer files nothing, prints the route, and leaves
   assert.match(blind.stdout, /a review of [0-9a-f]{7}\.\.HEAD is owed: 1 release\(s\), 1 file\(s\), 1501 changed line\(s\)/u, blind.stdout);
   assert.match(blind.stderr, /the tracker did not answer the lookup, so nothing is filed and the next ship asks again/u,
     `a silence names which call it was, so a refusal is not read as one:\n${blind.stderr}`);
-  assert.match(blind.stdout, /forge new - --title "review [0-9a-f]{7}\.\.HEAD" --kind review/u,
-    `the route it prints has to run as printed, and --size takes only \`fix\` (ISS-118):\n${blind.stdout}`);
+  assert.match(blind.stdout, /forge new - --title "review [0-9a-f]{7}\.\.HEAD" --category review/u,
+    `the route it prints has to run as printed, the flag being the tracker's own field (ISS-118):\n${blind.stdout}`);
   assert.match(blind.stdout, /start <that ISS-nn>/u, blind.stdout);
   assert.equal(seen("create").length, 0, "a refused list may not file");
 

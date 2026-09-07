@@ -10,7 +10,7 @@ import { routeProblems } from "../../src/checks/doc-shape.mjs";
 import { VERB_NAMES, usageOf } from "../../src/resolve/visibility.mjs";
 import { USAGE as CLAIM } from "../../src/flow/claim.mjs";
 import { USAGE as ADVANCE } from "../../src/flow/advance.mjs";
-import { USAGE as RECORD } from "../../src/flow/record.mjs";
+import { USAGE as RECORD } from "../../src/flow/record/record.mjs";
 import { USAGE as RESUME } from "../../src/flow/resume.mjs";
 import { USAGE as SPEC } from "../../src/spec/verbs.mjs";
 import { USAGE as CODEX } from "../../src/codex/codex.mjs";
@@ -113,15 +113,25 @@ test("the three worklog flags are on claim's own line, which is what the tree la
     "which is the row as it stood before this issue, and the finding this checker was written for");
 });
 
-/* The printed route answered `[]` and the CLI refused it: the value past `--size` went unread (ISS-118). */
+/* The printed route answered `[]` and the CLI refused it: the value past the flag went unread (ISS-118). */
 test("a value the flag does not take fails, and the printed route is that case", () => {
-  const printed = 'console.log(`  file its issue:  forge new - --title "review ${range}" --size feature`);';
-  assert.deepEqual(routeProblems(printed, held), ["`forge new --size feature` is no value it takes: fix"]);
-  assert.deepEqual(routeProblems(printed.replace("--size", "--kind"), held), [],
-    "and `--kind feature`, which is what that line meant, is what the step prints now");
+  const printed = "console.log(`  the baseline:  forge record baseline ISS-1 --scope partial`);";
+  assert.deepEqual(routeProblems(printed, held),
+    ["`forge record --scope partial` is no value it takes: whole or part"]);
+  assert.deepEqual(routeProblems(printed.replace("partial", "whole"), held), [],
+    "and the value the usage does spell passes");
   assert.deepEqual(routeProblems("forge record verdict ISS-1 --verdict maybe", held),
     ["`forge record --verdict maybe` is no value it takes: pass or fail or skipped"],
     "and a set the usage spells as alternatives is read the same way");
+});
+
+/* A set whose alternatives are one letter long reads as a placeholder here, so `forge new
+   --complexity` has its values judged by the verb and by nothing in a printed route (ISS-700). */
+test("a one-letter alternative is not read as a spelled value, so those values go unjudged", () => {
+  assert.deepEqual(routeProblems("console.log(`forge new - --complexity feature`);", held), [],
+    "the row spells xs|s|m|l|xl and this checker reads none of them");
+  assert.deepEqual(routeProblems("forge next --count 3", held), [],
+    "which is the same reading that keeps `--count n` a placeholder rather than the value `n`");
 });
 
 test("a value against a placeholder is not judged, and the surfaces spell their placeholders", () => {

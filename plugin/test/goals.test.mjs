@@ -205,7 +205,7 @@ test("a store that will not answer for the brief leaves every help route printin
 
 test("a filing whose Serves: no source answers for is refused with the list, and files nothing", async () => {
   state.calls = [];
-  const run = await ask("new", bodyAt(bug("NOPE-99")), "--title", "a filing says which goal it serves", "--kind", "bug");
+  const run = await ask("new", bodyAt(bug("NOPE-99")), "--title", "a filing says which goal it serves", "--category", "bug");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, new RegExp(`its brief's \\*${SECTION}\\* section: G-01, G-02, G-03`, "u"));
   assert.equal(state.calls.filter((one) => one.args?.action === "create").length, 0);
@@ -214,7 +214,7 @@ test("a filing whose Serves: no source answers for is refused with the list, and
 test("a goal the brief holds, the legal none-stated line, and no line at all each file unrefused", async () => {
   for (const serves of ["G-02", NONE_STATED, null]) {
     const run = await ask("new", bodyAt(bug(serves)), "--title", `filed with ${serves ?? "no line"}`,
-      "--kind", "bug", "--new");
+      "--category", "bug", "--new");
     assert.equal(run.status, 0, `${serves ?? "no line"}: ${run.stderr}`);
   }
 });

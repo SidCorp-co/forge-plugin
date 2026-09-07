@@ -21,11 +21,11 @@ const row = (issueId, held = {}) => ({
   ...held,
 });
 
-const rank = (rows, { chains = {}, marks = {} } = {}) =>
+const rank = (rows, { chains = {} } = {}) =>
   ordered(rows.map((one) => ({
     issueId: one.issueId,
     row: one,
-    score: scoreOf(one, { weights: DEFAULTS, chain: chains[one.issueId] ?? [], read: true, marked: marks[one.issueId] ?? null, now: NOW }),
+    score: scoreOf(one, { weights: DEFAULTS, chain: chains[one.issueId] ?? [], now: NOW }),
   }))).map((one) => one.issueId);
 
 /* One field at a time: the pair is identical but for the field named, so the order it comes back in
@@ -46,43 +46,28 @@ test("every weight in the table moves the order on its own", () => {
   assert.deepEqual(blocked, ["ISS-1", "ISS-2"], "blocks did not move the order");
 });
 
-/* The rung the mark claims decides the value, so the three rungs rank apart rather than as one. */
-test("the band's own weight moves it, from the size mark as from the field", () => {
-  const bySize = rank([row("ISS-2"), row("ISS-1")], { marks: { "ISS-1": "fix" } });
-  assert.deepEqual(bySize, ["ISS-1", "ISS-2"], "a fix-size body outranks an unset one");
-  const byRung = rank([row("ISS-2"), row("ISS-1")], { marks: { "ISS-1": "trivial", "ISS-2": "fix" } });
-  assert.deepEqual(byRung, ["ISS-1", "ISS-2"], "and the shortest rung outranks the one above it");
-  assert.equal(bandOf(row("ISS-1", { complexity: "l" }), { marked: "fix" }).from, "the tracker's size",
-    "the field decides where its own rung outranks the body's, and the word for it is this CLI's");
-  assert.deepEqual([bandOf(row("ISS-1"), { marked: "trivial" }).band, bandOf(row("ISS-1"), { marked: "fix" }).band,
-    bandOf(row("ISS-1"), { marked: "feature" }).band], ["xs", "s", "m"]);
-  assert.equal(bandOf(row("ISS-1"), { marked: "fix" }).from, "the size mark in the body");
-  assert.equal(bandOf(row("ISS-1"), { read: true }).from, "neither source");
-  assert.equal(bandOf(row("ISS-1")).from, "the body unread");
+/* Five values and five weights: a rung is three names over them, and the score weighs none of it. */
+test("the band's own weight moves the order, the five values ranking apart", () => {
+  const BANDS = ["xs", "s", "m", "l", "xl"];
+  /* Handed in the opposite order to the one asserted: rows tie-break on arrival, so five already in rank order would pass this with two bands weighing the same. */
+  const rows = BANDS.map((band, at) => row(`ISS-${at + 1}`, { complexity: band })).reverse();
+  assert.deepEqual(rank(rows), ["ISS-1", "ISS-2", "ISS-3", "ISS-4", "ISS-5"],
+    "the cheapest band first, and no two of the five sharing a weight");
+  assert.equal(bandOf(row("ISS-1", { complexity: "l" })).from, "the tracker's complexity",
+    "and what the report names as having decided is the field, in the words the CLI says it in");
 });
 
-/* Both sources answered the same question two ways until ISS-394: `forge next` let the field win
-   outright, so an issue sized `xs` on the tracker and marked `Size: fix.` in its body scored as the
-   cheapest band on the ladder while `forge advance --owed` held the run to a fix. */
-test("the band takes the ladder's rule, so a body claiming the higher rung decides the band", () => {
-  const outranked = bandOf(row("ISS-1", { complexity: "xs" }), { marked: "fix" });
-  assert.deepEqual([outranked.band, outranked.from], ["s", "the size mark in the body"],
-    "a body outranking the field is banded from the body, at the canonical band for the rung it won");
-  const tied = bandOf(row("ISS-1", { complexity: "xl" }), { marked: "feature" });
-  assert.deepEqual([tied.band, tied.from], ["xl", "the tracker's size"],
-    "an equal claim leaves the field's own band standing, so xl still scores apart from m");
-  assert.deepEqual([bandOf(row("ISS-1", { complexity: "l" }), { marked: "trivial" }).band,
-    bandOf(row("ISS-1", { complexity: "s" }), { marked: "trivial" }).band], ["l", "s"],
-    "and a field the body cannot outrank keeps every one of the five values");
-  assert.deepEqual([bandOf(row("ISS-1", { complexity: "m" })).band, bandOf(row("ISS-1", { complexity: "m" })).from],
-    ["m", "the tracker's size"],
-    "the caller that reads no body at all — rank/cost.mjs's bandsOf — still bands off the field alone");
-  /* The point of the alignment, read off the order rather than off the band: the same pair, one
-     scored on the field's `xs` and one on the rung its body claims. */
-  const promoted = rank([row("ISS-2", { complexity: "s" }), row("ISS-1", { complexity: "xs" })],
-    { marks: { "ISS-1": "fix" } });
-  assert.deepEqual(promoted, ["ISS-2", "ISS-1"],
-    "an xs field under a fix-marked body no longer outranks a genuine s, the two now scoring alike on band and ISS-2 filed first");
+/* One source, so a `Size:` line is prose the score cannot read: the defect it closes is an issue
+   sized `xs` on the tracker and marked `Size: fix.` in its body, which scored as the cheapest band
+   on the ladder while `forge advance --owed` held the run to a fix (ISS-394). */
+test("the field is the whole of the band, and a size named in a body moves nothing", () => {
+  const marked = { description: "## Why\n\nA small thing.\n\nSize: fix.\n" };
+  assert.deepEqual([bandOf(row("ISS-1", marked)).band, bandOf(row("ISS-1", marked)).from],
+    ["unset", "no complexity on the tracker"], "a body naming a size is banded as an issue holding none");
+  assert.deepEqual(["xs", "s", "m", "l", "xl"].map((one) => bandOf(row("ISS-1", { complexity: one })).band),
+    ["xs", "s", "m", "l", "xl"], "and every one of the five is its own value, three rungs or not");
+  const order = rank([row("ISS-2", { complexity: "s" }), row("ISS-1", { ...marked, complexity: "xs" })]);
+  assert.deepEqual(order, ["ISS-1", "ISS-2"], "so an xs outranks an s whatever the body beside it claims");
 });
 
 test("two issues equal on every weight break on the filing date, oldest first", () => {
@@ -151,8 +136,8 @@ test("a cycle in the graph terminates rather than recursing", () => {
 });
 
 test("the parts add up to the total, so --why accounts for the number beside it", () => {
-  const held = scoreOf(row("ISS-1", { priority: "high", category: "bug", reopenCount: 1 }),
-    { weights: DEFAULTS, chain: ["ISS-2"], read: true, marked: "trivial", now: NOW });
+  const held = scoreOf(row("ISS-1", { priority: "high", category: "bug", reopenCount: 1, complexity: "xs" }),
+    { weights: DEFAULTS, chain: ["ISS-2"], now: NOW });
   assert.equal(held.total, held.parts.reduce((sum, one) => sum + one[2], 0));
   assert.equal(held.total, 30 + 8 + 8 + 0 + 5 + 3);
 });

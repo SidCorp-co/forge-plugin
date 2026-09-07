@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { render } from "../../src/flow/record.mjs";
+import { render } from "../../src/flow/record/record.mjs";
 import {
   MARKERS, UNTIERED, WHOLE_SET_CLASS, callsIn, classOf, markerOf, shellOf, slugFor, tierRun,
 } from "../../src/stats/transcripts.mjs";

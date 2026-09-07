@@ -3,12 +3,15 @@
    rather than learning it from the refusal (ISS-46). Beside the verb table, not in `flow/`, which
    is at its file limit. */
 import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES } from "../flow/machine.mjs";
+import { CLAUSES, NOTHING } from "../flow/record/merged.mjs";
 import { DECLARES } from "../tracker/rest.mjs";
 import { goalBlock } from "../goals.mjs";
 import { OPEN_KEPT } from "../flow/worklog.mjs";
 import { usageOf } from "./visibility.mjs";
 
-export const KINDS = [...Object.keys(SHAPES), "note", "criteria", "plan", "report"];
+/* The shapes, then the kinds whose payload is a field or the tracker's own mark rather than a
+   comment: each of those four has a route of its own in `record.mjs`. */
+export const KINDS = [...Object.keys(SHAPES), "merged", "note", "criteria", "plan", "report"];
 
 const withCap = (value, cap) => (typeof cap === "number" ? `${value}(${cap})` : value);
 
@@ -36,6 +39,7 @@ export const kindRows = (caps) => [
   "  verification --where W --commit C --evidence E...",
   "  finding      --expected E --seen S --evidence E... --quoted Q [--criterion N | --uc UC-nn-m]",
   "  triage       --outcome O --would-have-caught W [--detail D]  O: " + TRIAGES.join("|"),
+  "  merged       " + CLAUSES.map((one) => `--${one.flag} V`).join(" ") + " [--to B] | --undo",
   "  note         --section S --user " + withCap("T", caps.releaseNotes?.halves?.userFacing)
     + " [--technical " + withCap("T", caps.releaseNotes?.halves?.technical)
     + "] | --skip --why W   S: " + SECTIONS.join("|"),
@@ -57,6 +61,18 @@ const PLAN_BLOCKS = [
   "numbered step under Steps names what it serves as `criteria: 3` or `criteria: 3, 4`, and a step",
   "naming none is refused here. At `approved`, where the criteria field is read, so is a step whose",
   "numbers name no criterion the issue holds, and a criterion no step names.",
+];
+
+/* The one place the note's clauses are described, from the same table that writes and reads them:
+   a template a run copied by hand is how a sha reached the slot another clause is read from. */
+const MERGED_BLOCKS = [
+  "The mark's note is one sentence and each flag writes one clause of it. Every clause is owed, and",
+  "a write missing any names all of them at once rather than one per round:",
+  ...CLAUSES.map((one) => `  --${one.flag.padEnd(10)}${one.label}`),
+  `A path clause takes paths separated by commas, or the word \`${NOTHING}\`, which reads back as`,
+  "none rather than as silence. --to is the branch the change landed on, read from this project's",
+  "base branch where it is not given. --undo removes the mark whole, prints the note it removed and",
+  "takes no clause beside it: a clause is written by the mark and not by its removal.",
 ];
 
 const CRITERION_BLOCKS = [
@@ -127,6 +143,7 @@ export const kindHelp = (kind, caps = {}, goals = null) => {
     row,
     ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
     ...(kind === "plan" ? ["", ...PLAN_BLOCKS] : []),
+    ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
     ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
     "",

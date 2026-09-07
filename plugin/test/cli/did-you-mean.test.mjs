@@ -213,7 +213,7 @@ test("a verb taking one flag names the set rather than its usage", async () => {
 test("a flag standing in the body slot is this verb's own unknown flag", async () => {
   const run = await ran("new", "--read", "--title", "T");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No new flag named --read\. The set is --title, --kind,/u);
+  assert.match(run.stderr, /No new flag named --read\. The set is --title, --category,/u);
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
   assert.doesNotMatch(run.stderr, /No Forge endpoint/u, "nor after a credential was looked for");
 });

@@ -7,7 +7,7 @@
    plugin/hooks/how/issue-shape.md. */
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
-import { FIX, MARK_LINE, TIERS, bandFor, belowTop, markFor, markedIn, rungFrom } from "../ladder.mjs";
+import { BAND_NAMES, FIX, MARK_LINE, bandFor, belowTop, rungFrom } from "../ladder.mjs";
 import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
@@ -17,11 +17,6 @@ const SETTLED = ["closed", "dropped"];
 const CANDIDATES = 4;
 const TOKENS = 3;
 const SEARCHED = MAX_LIMIT;
-
-/* The ladder reads the mark, stripping examples first and knowing every rung, so a body answers the
-   same rung here and on the flow path (ISS-389). A flag supplies one only where the body made none. */
-export const withMark = (body, rung = FIX) =>
-  (markedIn(body) ? String(body) : `${String(body).replace(/\s*$/u, "")}\n\n${markFor(rung)}\n`);
 
 const SUBSTANTIAL = 4;
 
@@ -137,45 +132,32 @@ export const article = (word) => (VOWEL.test(word) ? "an" : "a");
 
 /* The route past the set, borrowed by both refusals: a kind this CLI does not define is a section
    list nobody has decided, not a filing to fix by guessing. */
-const KIND_ROUTE = "a filing needing another kind, or another section under one, files an issue"
+const KIND_ROUTE = "a filing needing another category, or another section under one, files an issue"
   + " against this plugin rather than inventing the value";
 const KIND_WANTS = `one of ${listed(KIND_NAMES)} — ${KIND_ROUTE}`;
 
 export const kindRefusal = (given) =>
-  `${didYouMean("kind", given, KIND_NAMES)}\nIt names no shape to read the body against, and`
+  `${didYouMean("category", given, KIND_NAMES)}\nIt names no shape to read the body against, and`
   + ` ${KIND_ROUTE}.`;
 
 /** A filing that named none at all: prose decides neither the sections nor the field, the same
  *  headings carrying a bug and a feature. */
 export const kindNeeded = () =>
-  `A filing needs --kind. It decides which sections the body is read against and it is what the`
-  + ` tracker's own field for a kind carries, so a filing without one is read against a guess and`
+  `A filing needs --category. It decides which sections the body is read against and it is the`
+  + ` tracker's own field for it, so a filing without one is read against a guess and`
   + ` stored against nothing.\nName one of ${listed(KIND_NAMES)} — ${KIND_ROUTE}. \`forge new -h\``
   + ` is the table of what each one's body owes.`;
 
-/* Each name a key, never a string a developer is shown: one to translate back costs a round. */
-const FLOW = {
-  category: { word: "kind" },
-  complexity: { word: "size", said: (held) => rungFrom(held) ?? held },
-};
+/** A complexity outside the tracker's five, refused by naming them: the field is the one source of
+ *  the rung, so a value nothing maps reads later as an issue nobody sized. */
+export const complexityRefusal = (given) =>
+  `${didYouMean("complexity", given, BAND_NAMES)} They are the tracker's own five, smallest first,`
+  + ` and the rung each claims is \`forge guide contract\`'s: ${BAND_NAMES.map((one) => `${one} a ${rungFrom(one)}`).join(", ")}.`;
 
-/** A flag naming the tracker's field instead of the CLI's word: taken, it would reach the tracker
- *  around the shape the kind decides, so it is refused with the word that reads the body. */
-export const insteadOf = (given) => {
-  const [key] = Object.keys(FLOW).filter((one) => Object.hasOwn(given, one));
-  return key
-    ? `--${key} is the tracker's own name for it, and a value passed under that name is read against`
-      + ` nothing. This CLI's flag is --${FLOW[key].word}, and \`forge new -h\` names what it reads.`
-    : null;
-};
-
-export const INSTEAD_FLAGS = Object.keys(FLOW).map((one) => `--${one}`);
-
-/** The one writer, and nothing where nothing was named: a default reads later as one somebody chose.
- *  The rung is the body's own mark, so both sources of a size agree from the create. */
-export const trackerFields = ({ kind, rung = null }) => ({
-  ...(kind ? { category: kind } : {}),
-  ...(rung ? { complexity: bandFor(rung) } : {}),
+/** The one writer, and nothing where nothing was named: a default reads later as one somebody chose. */
+export const trackerFields = ({ category = null, complexity = null }) => ({
+  ...(category ? { category } : {}),
+  ...(complexity ? { complexity } : {}),
 });
 
 /* What a filing is ranked, in one place. The kind's field above is left empty and this one cannot
@@ -211,14 +193,6 @@ export const PRIORITY_HELP = [
   "bottom of the browse verb, and what is left there is what nobody has weighed yet.",
 ].join("\n");
 
-export const inFlowWords = (record) => {
-  if (!record || typeof record !== "object" || Array.isArray(record)) return record;
-  return Object.fromEntries(Object.entries(record).map(([key, held]) => {
-    const found = Object.hasOwn(FLOW, key) ? FLOW[key] : null;
-    return found ? [found.word, found.said ? found.said(held) : held] : [key, held];
-  }));
-};
-
 const ROW = 15;
 const kindRows = (one) => [
   `  ${one.kind.padEnd(ROW)}${one.is}`,
@@ -233,11 +207,12 @@ export const KINDS_HELP = [
   ...KINDS.flatMap(kindRows),
   "",
   "A heading is matched by family and not by that wording: `Business rules` is a rule section and",
-  "`What it is now` is a today one. `forge new` refuses a filing that names no kind; a create sent",
+  "`What it is now` is a today one. `forge new` refuses a filing that names no category; a create sent",
   `through the tracker's own tool carries no flag to refuse, so one arriving there is read as`
   + ` ${article(DEFAULT_KIND)}`,
-  `${DEFAULT_KIND}. A body marked \`Size: fix.\` is read against no section and against no kind, so`,
-  "nothing is read of it and nothing is said — the mark is not an exemption from the flag.",
+  `${DEFAULT_KIND}. A filing whose \`complexity\` claims a rung below the top is read against no`,
+  "section and against no category, so nothing is read of it and nothing is said — the value is not",
+  "an exemption from the flag.",
 ].join("\n");
 
 /** One string, printed by both verbs that file, so the sentence a filer meets at the moment of filing is one sentence; `forge guide issue-flow learning` is the rule's home and this cites it. */
@@ -458,7 +433,7 @@ export const keysOf = (body) => [...new Set(keysIn(String(body ?? "")).map((one)
 /** Every gap the body decides with no tracker read, and the one line a shortfall no gap refuses
  *  earns. `fix` is returned rather than refused: what clears it is the route the caller named.
  *  `everySection` is for a filing with no such route and no light path — docs/cli/feedback.md. */
-export const shapeOf = ({ title, body, kind = null }, { everySection = false } = {}) => {
+export const shapeOf = ({ title, body, kind = null, complexity = null }, { everySection = false } = {}) => {
   const text = String(body ?? "");
   const written = text.replace(MARK_LINE, "").trim();
   const asks = { ...asksOf({ title, body: text, kind }), keys: keysOf(text) };
@@ -484,8 +459,8 @@ export const shapeOf = ({ title, body, kind = null }, { everySection = false } =
       `take the claim off the line and re-send with \`--with ${related}\`, which relates them in the same create`));
   }
   const tokens = tokensNamed(text);
-  /* Before the mark, which exempts the sections and not the set: a kind nobody has decided the
-     sections of is not made one by the filing calling itself small. Presence, never truth — a
+  /* Before the complexity, which exempts the sections and not the set: a category nobody has decided
+     the sections of is not made one by the filing calling itself small. Presence, never truth — a
      payload may carry the field as `""`, which is a value nobody defined and not an absence. */
   if (namesKind(kind) && !KIND_NAMES.includes(kind)) {
     gaps.push(need(`a kind of \`${kind}\`, which this CLI does not define`, KIND_WANTS,
@@ -493,7 +468,7 @@ export const shapeOf = ({ title, body, kind = null }, { everySection = false } =
     return { ...asks, gaps, fix: false, tokens, said: null };
   }
   if (!everySection) {
-    if (belowTop(markedIn(text))) return { ...asks, gaps, fix: false, tokens, said: null };
+    if (belowTop(rungFrom(complexity))) return { ...asks, gaps, fix: false, tokens, said: null };
     if (tokens.length && !held(text, SCOPE).ok && !sectionUnder(text, RULES.heading)) {
       return { ...asks, gaps, fix: true, tokens, said: null };
     }
@@ -548,23 +523,26 @@ const alsoNamed = async (tokens, live) => {
   return out;
 };
 
+/* The value a filing takes to reach the light path, read off the ladder rather than spelt here. */
+const LIGHT = bandFor(FIX);
+
 const unread = (token) =>
   `Whether an open issue names ${token} is unread: the search for it did not come back whole, so no `
   + `candidate here is this reading's silence rather than the backlog's. \`forge issues `
-  + `--search ${token}\` finishes it; --size ${FIX} is the route either way.`;
+  + `--search ${token}\` finishes it; --complexity ${LIGHT} is the route either way.`;
 
 const fixRoutes = (tokens, { open, whole }) => [
-  `  forge comment ISS-nn <body>   post this body there and file nothing; it needs no --kind,`,
+  `  forge comment ISS-nn <body>   post this body there and file nothing; it needs no --category,`,
   `                  a comment being read against no shape, and renews a lease only where it is yours`,
   `  --with ISS-nn   file it and relate it, so one branch, one review and one release carry both`,
-  `  --size ${TIERS.join("|")}`,
-  `                  mark it at a rung: the two below the top carry it on the light path`,
+  `  --complexity ${BAND_NAMES.join("|")}`,
+  `                  the tracker's own value: the two claiming a rung below the top carry it on the light path`,
   "Whichever of those you take, an open issue that both reads like this filing and names the place its",
   "cause names takes it as a finding rather than a second issue; `--new` declines that.",
   open.length
     ? `Naming ${tokens[0]}, still open: ${open.map((one) => `${one.issueId} ${one.title}`).join("; ")}`
     : whole
-      ? `No open issue names ${tokens[0]}, so --size ${FIX} is the route unless you know one.`
+      ? `No open issue names ${tokens[0]}, so --complexity ${LIGHT} is the route unless you know one.`
       : unread(tokens[0]),
 ].join("\n");
 

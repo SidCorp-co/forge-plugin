@@ -91,7 +91,7 @@ each paid, off the listings above. A proposal with no count is an opinion.
 ## Phase 4 — File, and report
 
 A figure read as *worse* becomes a filing on the issue whose change it is attributed to, through
-`forge comment`, marked `Size: fix.`, carrying the two values, the counts and the attribution. A
+`forge comment`, carrying the two values, the counts and the attribution. A
 figure read as *better* is reported and not filed. Nothing goes to the knowledge store: what was
 learned about a change belongs on that change's issue.
 

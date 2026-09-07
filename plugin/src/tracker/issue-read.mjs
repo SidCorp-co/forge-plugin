@@ -118,13 +118,14 @@ export const writeTargets = ({ name, input }, spoken = []) => {
   return [...new Set(found)];
 };
 
-/* The kind travels with the body: what a description is read against is the kind's own shape. */
+/* The kind and the complexity travel with the body: what a description is read against is the kind's own shape, and which rung it claims is what decides the light path. */
 const filingOf = (args) =>
   (args?.action === "create" && args?.data && typeof args.data === "object"
     ? [{
       title: String(args.data.title ?? ""),
       body: String(args.data.description ?? ""),
       kind: args.data.category ?? null,
+      complexity: args.data.complexity ?? null,
     }]
     : []);
 

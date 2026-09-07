@@ -332,7 +332,7 @@ test("a comment made through the tool is named its own verb, not the filing's", 
   assert.match(because(run), /forge_comments create is what `forge comment/u);
 });
 
-test("an update no verb claims is refused by nothing this table says", async () => {
+test("an update is claimed by the verb that writes a field no check earned, and named as its", async () => {
   endpoint(live());
   const run = await callHookAsync(HOOK, {
     tool_name: "mcp__forge__forge_issues",
@@ -340,10 +340,8 @@ test("an update no verb claims is refused by nothing this table says", async () 
     cwd: process.cwd(),
   }, { ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: "probe-filing" });
   const said = run.stdout.trim() ? JSON.parse(run.stdout) : null;
-  if (said) {
-    assert.doesNotMatch(said.hookSpecificOutput.permissionDecisionReason, /is what `forge \w+/u,
-      "an update is several verbs' and no verb's, so the route says nothing about it");
-  }
+  assert.match(said?.hookSpecificOutput?.permissionDecisionReason ?? "", /is what `forge issue --set` wraps/u,
+    "one verb writes a field the record does not earn, so a raw update has a route to be sent to");
 });
 
 test("with no endpoint saved a filing is not judged either", async () => {

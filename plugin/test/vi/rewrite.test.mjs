@@ -8,7 +8,7 @@ import { tempRoom, typedPlan } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("rewrite-");
 const { protectInline, restoreInline, segment } = await import("../../vi-natural/format/doc.mjs");
-const { assemble, parse, render, sayStored } = await import("../../src/flow/record.mjs");
+const { assemble, parse, render, sayStored } = await import("../../src/flow/record/record.mjs");
 /* The comparators moved to the field writer with the write they belong to (ISS-346). */
 const { landedAs, noteLandedAs } = await import("../../src/tracker/field-write.mjs");
 const { SHAPES } = await import("../../src/flow/machine.mjs");
@@ -56,7 +56,7 @@ const posted = (kind, fields, status = null) =>
   ({ createdAt: at(), authorId: "agent", body: rewritten(render(kind, fields, status)) });
 
 const FIELDS = {
-  confirmation: { where: ["plugin/src/flow/record.mjs:246", "plugin/src/flow/earned.mjs:96"], is: "the reader keys on a label", finding: "holds", detail: "one detail" },
+  confirmation: { where: ["plugin/src/flow/record/record.mjs:246", "plugin/src/flow/earned.mjs:96"], is: "the reader keys on a label", finding: "holds", detail: "one detail" },
   decision: { decision: ["a reading | an assumption | the undo"], none: undefined },
   question: { reading: ["one reading -> one outcome", "another -> another"], to: "the reporter" },
   park: { kind: "blocked", why: "ISS-9 first", evidence: [] },
@@ -122,7 +122,7 @@ test("a status is earned from records that came back through the rewrite, with n
 /* The whole of the defect in one body: this is what the tracker returned for a confirmation the
    verb had just written, and the labels the reader keyed on are gone. */
 const REWRITTEN_RECORD = "## Xác nhận\n\n"
-  + "- **Đã kiểm tra tại:** plugin/src/flow/record.mjs:246\n"
+  + "- **Đã kiểm tra tại:** plugin/src/flow/record/record.mjs:246\n"
   + "- **Cách hoạt động:** reader dùng nhãn đã render làm khóa\n"
   + "- **Kết luận:** đúng\n\n"
   + "`forge-record: confirmation · contract 1`";

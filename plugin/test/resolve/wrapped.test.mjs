@@ -24,11 +24,12 @@ test("a pair a verb claims answers with that verb, and one no row claims answers
   assert.equal(verbFor("forge_knowledge", "upsert").line, "`forge knowledge write`");
   assert.equal(verbFor("forge_uploads", "request").verb, "attach");
 
-  /* The whole of the decision to let a raw call through: `update` is spent by four verbs and is no
-     one verb's route, and a transition the flow does not own is what the flow's own escapes type. */
-  assert.equal(verbFor("forge_issues", "update"), null);
-  assert.equal(verbFor("forge_issues", "transition"), null);
-  assert.equal(verbFor("forge_issues", "mark_merged"), null);
+  /* No action of the record is left for a raw call to make: the override route is a verb, so is the
+     status a check did not earn, and so are both directions of the merged mark. */
+  assert.equal(verbFor("forge_issues", "update").line, "`forge issue --set`");
+  assert.equal(verbFor("forge_issues", "transition").line, "`forge advance`");
+  assert.equal(verbFor("forge_issues", "mark_merged").line, "`forge record merged`");
+  assert.equal(verbFor("forge_issues", "unmark").line, "`forge record merged --undo`");
   assert.equal(verbFor("forge_comments", "list"), null);
   assert.equal(verbFor("forge_memory_write", "create"), null, "a tool no row names claims nothing");
   /* An action read off the prototype is claimed by nobody and would name a function as the command. */

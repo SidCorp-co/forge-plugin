@@ -12,28 +12,29 @@ import { fakeTracker, ranAsync, tempHome } from "./fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("ladder").path;
 const {
-  BAND_NAMES, CEILINGS, LIGHTER, SPARES, TIERS, bandFor, belowTop, climbsIn, escalatedBy, heightOf,
-  lightens, markedIn, overCeiling, resizeForm, rungBetween, rungFrom, sizeFrom, splits, tierOf,
+  BAND_NAMES, CEILINGS, FIELD_SAID, LIGHTER, SPARES, TIERS, bandFor, belowTop, climbsIn, escalatedBy,
+  heightOf, lightens, markedIn, overCeiling, resizeForm, rungFrom, sizeFrom, splits, tierOf,
 } = await import("../src/ladder.mjs");
 const { planFlags } = await import("../src/flow/machine.mjs");
-const { render } = await import("../src/flow/record.mjs");
+const { render } = await import("../src/flow/record/record.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 
 const body = (tier) => `\`forge dep\` should take the \`data.relations\` route.\n\nSize: ${tier}.\n`;
 
-/* `tierIn` retired with its last caller (ISS-394): the reading it named is `sizeFrom` given a body and no size field, and every case it held is asked of that here. */
-const rungOf = (description) => sizeFrom({ description }).rung;
+/* Every issue carries its rung as the tracker's own complexity; the line in the body is the prose a
+   tracker full of issues filed under the two-source ladder still holds, and nothing reads it. */
 const issue = (tier, extra = {}) => ({
   documentId: `${tier}-uuid`,
   issueId: `ISS-${TIERS.indexOf(tier) + 70}`,
   status: "open",
   title: `the change that rides the ${tier} rung`,
   description: body(tier),
+  complexity: bandFor(tier),
   ...extra,
 });
 
-/* The tracker's five sizes on bodies claiming none, so the report is the field's doing alone. */
+/* The tracker's five complexities, each on a body claiming nothing at all. */
 const BANDS = ["xs", "s", "m", "l", "xl"];
 const UNMARKED = "`forge dep` should take the `data.relations` route.";
 const sized = (band, at, extra = {}) => ({
@@ -50,8 +51,11 @@ const state = {
   calls: [],
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
   issues: [
-    issue("trivial"), issue("fix"), { ...issue("feature"), description: "no mark here" },
-    { ...issue("feature"), documentId: "claimed-uuid", issueId: "ISS-73" },
+    issue("trivial"), issue("fix"),
+    /* The two holding no complexity: one whose body says nothing about its size and one whose body
+       names the top rung in full, which is the pair a report speaking of the body would tell apart. */
+    { ...issue("feature"), description: "no mark here", complexity: null },
+    { ...issue("feature"), documentId: "claimed-uuid", issueId: "ISS-73", complexity: null },
     ...BANDS.map((band, at) => sized(band, 80 + at)),
     sized("xs", 90, { documentId: "disagree-uuid", description: body("feature") }),
   ],
@@ -72,15 +76,17 @@ const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);
 
-test("a description names its rung, and one that names none is the top", () => {
-  for (const tier of TIERS.filter((one) => one !== "feature")) {
-    assert.equal(rungOf(body(tier)), tier, `\`Size: ${tier}.\` is the mark for ${tier}`);
-    assert.equal(rungOf(`SIZE:${tier}`), tier, "the spacing and the full stop are the author's");
+test("the complexity names the rung, and an issue holding none is at the top", () => {
+  for (const tier of TIERS) {
+    assert.deepEqual(sizeFrom({ band: bandFor(tier) }), { rung: tier, band: bandFor(tier), claimed: FIELD_SAID },
+      `\`${bandFor(tier)}\` on the tracker is the ${tier} rung, and the field is what claimed it`);
   }
-  assert.equal(rungOf("a body with no mark at all"), "feature",
-    "every issue filed before this ladder existed reads as the tier that owes everything");
-  for (const near of ["Size: fix later", "the size: trivial matters", "Size: trivialities"]) {
-    assert.equal(rungOf(near), "feature", `\`${near}\` is not the mark, and a body it appears in claims nothing`);
+  assert.deepEqual(sizeFrom({}), { rung: "feature", band: null, claimed: null },
+    "an issue holding no complexity reads as the tier that owes everything, claimed by nothing");
+  assert.equal(sizeFrom({ band: "huge" }).rung, "feature", "as does one sized a word the ladder has no rung for");
+  for (const said of [body("trivial"), "Size: fix.", "no mark here"]) {
+    assert.equal(sizeFrom({ description: said }).rung, "feature",
+      `\`${said.trim()}\` is prose: what a body says about its size is read by nothing`);
   }
 });
 
@@ -91,21 +97,21 @@ test("a description names its rung, and one that names none is the top", () => {
 test("a doubtful reading answers with the rung that owes more, never the one that owes less", () => {
   const [lowest, middle] = TIERS;
   for (const order of [`Size: ${lowest}.\nSize: ${middle}.`, `Size: ${middle}.\nSize: ${lowest}.`]) {
-    assert.equal(rungOf(order), middle,
-      "a body claiming two rungs is unsettled, and whichever the reader met first must not decide it");
+    assert.equal(markedIn(order), middle,
+      "a body naming two rungs is unsettled, and whichever the reader met first must not decide it");
   }
-  /* The top rung is the default, so writing it changes nothing alone and everything beside a lower
-     mark. This repository's own issues write it in full, which is how the hole was found. */
+  /* The top rung is the default, so a line naming it says nothing alone and everything beside a
+     lower one. This repository's own issues write it in full, which is how the hole was found. */
   const top = TIERS.at(-1);
-  assert.equal(rungOf(`Size: ${top}.`), top, "the top rung is a mark like any other, not an absence");
-  assert.equal(rungOf(`Size: ${top}.\nSize: ${lowest}.`), top,
-    "so a body claiming it beside a lower one has claimed it, and does not read as the lower");
+  assert.equal(markedIn(`Size: ${top}.`), top, "the top rung is a line like any other, not an absence");
+  assert.equal(markedIn(`Size: ${top}.\nSize: ${lowest}.`), top,
+    "so a body naming it beside a lower one has named it, and does not read as the lower");
   assert.deepEqual(climbsIn(`Size: ${TIERS.at(-1)} -> ${lowest}`), [],
     "a pair pointing down is no climb: read by its destination alone it would raise a trivial to a fix");
   assert.deepEqual(climbsIn(`Size: ${lowest} -> ${middle}\nSize: ${middle} -> ${TIERS.at(-1)}`),
     [middle, TIERS.at(-1)],
     "and every climb a page states, so the newest correction cannot erase the re-size before it");
-  assert.equal(tierOf({ description: `Size: ${lowest}.`, plan: "", moved: [`Size: ${TIERS.at(-1)} -> ${middle}`], whole: true }),
+  assert.equal(tierOf({ band: bandFor(lowest), plan: "", moved: [`Size: ${TIERS.at(-1)} -> ${middle}`], whole: true }),
     lowest, "so a downward correction moves nothing at all");
 });
 
@@ -134,22 +140,22 @@ test("what a rung stops owing is the row's, and a rung absent from a row owes th
   const top = TIERS.at(-1);
   for (const row of LIGHTER) {
     for (const tier of TIERS) {
-      const said = lightens(row.status, { description: body(tier), plan: "", moved: [], whole: true });
+      const said = lightens(row.status, { band: bandFor(tier), plan: "", moved: [], whole: true });
       assert.equal(said, row.tiers.includes(tier),
         `at ${row.status} a \`${tier}\` ${row.tiers.includes(tier) ? "stops owing" : "owes"} ${row.drops}`);
     }
-    assert.equal(lightens(row.status, { description: body(top), plan: "", moved: [], whole: true }), false,
+    assert.equal(lightens(row.status, { band: bandFor(top), plan: "", moved: [], whole: true }), false,
       `${row.status} drops ${row.drops} for the top rung`);
   }
   for (const tier of TIERS) {
-    assert.equal(lightens("in_progress", { description: body(tier), plan: "", moved: [], whole: true }), false,
+    assert.equal(lightens("in_progress", { band: bandFor(tier), plan: "", moved: [], whole: true }), false,
       `${tier} is exempted from the baseline, which no rung buys`);
   }
 });
 
-/* The contract's own guide prints the mark inside a fence, so a reading that took one would leave
-   every body quoting it claiming that rung. Why not the higher of two readings: the-ladder.md. */
-test("a mark inside an example claims nothing, and does not move a mark the body really carries", () => {
+/* The contract's own guide prints the line inside a fence, so a reading that took one would find it
+   in every body quoting the guide. The same strip serves `goals.mjs`, which reads a live claim. */
+test("a line inside an example is read as none, and does not move one the body really carries", () => {
   const [lowest] = TIERS;
   const top = TIERS.at(-1);
   /* A line before the mark in each: a pattern stopping at the first line end passed without it. */
@@ -163,17 +169,15 @@ test("a mark inside an example claims nothing, and does not move a mark the body
     `no mark here\n\n\`\`\`text\nExample:\n\`\`\`not-a-closing-wall\nSize: ${lowest}.\n\`\`\`\n`,
     `no mark here\n\n~~~\nExample:\n\`\`\`\nSize: ${lowest}.\n~~~\n`,
   ]) {
-    assert.equal(rungOf(shown), top, "an example is the only apparent mark, and the body claims nothing");
+    assert.equal(markedIn(shown), null, "an example holds the only apparent line, and the body carries none");
   }
-  assert.equal(rungOf(`no mark\n\n\`\`\`\na\n\`\`\`\n\nSize: ${lowest}.\n\n\`\`\`\nb\n\`\`\`\n`), lowest,
-    "while a mark standing between two examples is prose, so stripping cannot run past a closing wall");
-  assert.equal(rungOf(`Size: ${lowest}.\n\n\`\`\`\nSize: ${top}.\n\`\`\`\n`), lowest,
-    "and an example beside a real mark leaves the real one standing, rather than being read beside it");
-  assert.equal(rungOf(`\`\`\`\nSize: ${top}.\n\`\`\`\`\n\nSize: ${lowest}.\n`), lowest,
-    "a longer wall closes too, so a body writing one does not lose the mark standing after it");
-  assert.equal(markedIn("a body with no mark at all"), null,
-    "no mark is told from the top rung, so a report cannot say a body carrying one carries none");
-  assert.equal(markedIn(`Size: ${top}.`), top, "and the top rung claimed in full reads as claimed");
+  assert.equal(markedIn(`no mark\n\n\`\`\`\na\n\`\`\`\n\nSize: ${lowest}.\n\n\`\`\`\nb\n\`\`\`\n`), lowest,
+    "while a line standing between two examples is the body's, so stripping cannot run past a closing wall");
+  assert.equal(markedIn(`Size: ${lowest}.\n\n\`\`\`\nSize: ${top}.\n\`\`\`\n`), lowest,
+    "and an example beside a real line leaves the real one standing, rather than being read beside it");
+  assert.equal(markedIn(`\`\`\`\nSize: ${top}.\n\`\`\`\`\n\nSize: ${lowest}.\n`), lowest,
+    "a longer wall closes too, so a body writing one does not lose the line standing after it");
+  assert.equal(markedIn("a body with no mark at all"), null, "and a body with none reads as none");
 });
 
 /* Read every declaration, not the first: a plan naming one twice is doubtful, and the order two
@@ -186,7 +190,7 @@ test("a plan declaring a name twice is at the answer that owes more, whichever o
   }
   assert.equal(planFlags("Schema coupling: no\nSchema coupling: yes").schema, "yes",
     "and the migration classification is owed by the same reading, which no rung drops");
-  assert.equal(tierOf({ description: body(middle), plan: "User-facing outcome: no\nUser-facing outcome: yes", moved: [], whole: true }),
+  assert.equal(tierOf({ band: bandFor(middle), plan: "User-facing outcome: no\nUser-facing outcome: yes", moved: [], whole: true }),
     top, "so a plan that names an outcome anywhere in it has named one");
   assert.equal(escalatedBy("Screen change: no\nUser-facing outcome: no"), 0,
     "while a plan declaring neither still climbs nothing");
@@ -196,21 +200,21 @@ test("a declaration climbs one rung and a correction climbs to what it names, an
   assert.equal(escalatedBy("Screen change: yes"), 1, "a screen change is one rung, not a jump to the top");
   assert.equal(escalatedBy("User-facing outcome: yes"), 1);
   assert.equal(escalatedBy("Screen change: no\nUser-facing outcome: no"), 0);
-  const climbed = (description, plan, moved = []) => tierOf({ description, plan, moved, whole: true });
-  assert.equal(climbed(body("trivial"), "Screen change: yes"), "fix", "one rung up from the shortest");
-  assert.equal(climbed(body("fix"), "User-facing outcome: yes"), "feature");
-  assert.equal(climbed(body("trivial"), "", ["Size: trivial -> feature"]), "feature",
-    "a correction names the rung it climbed to, and the mark it left decides nothing");
-  assert.equal(climbed(body("fix"), "", ["Size: feature -> trivial"]), "fix",
+  const climbed = (tier, plan, moved = []) => tierOf({ band: bandFor(tier), plan, moved, whole: true });
+  assert.equal(climbed("trivial", "Screen change: yes"), "fix", "one rung up from the shortest");
+  assert.equal(climbed("fix", "User-facing outcome: yes"), "feature");
+  assert.equal(climbed("trivial", "", ["Size: trivial -> feature"]), "feature",
+    "a correction names the rung it climbed to, and the complexity it left decides nothing");
+  assert.equal(climbed("fix", "", ["Size: feature -> trivial"]), "fix",
     "a downward pair would unearn statuses already held, so it is read as no climb at all");
-  assert.equal(climbed(body("fix"), "", ["Size: fix -> full"]), "feature", "and the older word still reads");
-  assert.equal(climbed(body("trivial"), "Screen change: yes", ["Size: trivial -> feature"]), "feature",
+  assert.equal(climbed("fix", "", ["Size: fix -> full"]), "feature", "and the older word still reads");
+  assert.equal(climbed("trivial", "Screen change: yes", ["Size: trivial -> feature"]), "feature",
     "the highest of the two, so a plan declaration cannot walk a re-size back down");
 });
 
-test("a page the tracker cut is judged at the top rung, whatever its mark says", () => {
+test("a page the tracker cut is judged at the top rung, whatever its complexity says", () => {
   for (const tier of TIERS) {
-    assert.equal(tierOf({ description: body(tier), plan: "", moved: [], whole: false }), "feature",
+    assert.equal(tierOf({ band: bandFor(tier), plan: "", moved: [], whole: false }), "feature",
       "a cut cannot show the correction that re-sized it, and losing one would shrink a shortfall");
   }
 });
@@ -228,10 +232,9 @@ test("the ceiling names which of the two a landing is past, and the route up nam
   assert.equal(heightOf("a word this ladder has not got"), 0, "an unknown rung is the shortest, never negative");
 });
 
-/* The stamp `forge stats runs` reads. Filled at the write off the `get` the write already made, both
-   sources of the rung going to the ladder's one reading, so it proves the rung rather than proving
-   somebody typed a word; refused as a flag, and a record that arrived without it is refused nothing,
-   every entry check reading the issue itself. */
+/* The stamp `forge stats runs` reads. Filled at the write off the `get` the write already made, so
+   it proves the rung rather than proving somebody typed a word; refused as a flag, and a record that
+   arrived without it is refused nothing, every entry check reading the issue itself. */
 test("a confirmation a write posts carries the rung, and one handed in without it is not refused", async () => {
   const [trivial] = TIERS;
   await ranAsync(FORGE, ["claim", "ISS-70"], tracker.env);
@@ -242,8 +245,8 @@ test("a confirmation a write posts carries the rung, and one handed in without i
   const posted = state.calls.filter((one) => one.args.action === "create").at(-1)?.args.data?.body ?? "";
   assert.match(posted, new RegExp(`^tier: ${trivial}$`, "mu"),
     "the rung is stamped at the write, off the issue, rather than asked of whoever is writing");
-  /* ISS-81 carries the field alone: sized `s` on the tracker with nothing in its body. Stamped off
-     the description it read `feature` and `--owed` held the run to a fix, which is ISS-394. */
+  /* ISS-81 is sized `s` on the tracker with nothing in its body: the stamp and the checks read the
+     one field, so a run cannot be stamped one rung and held to another (ISS-394). */
   await ranAsync(FORGE, ["claim", "ISS-81"], tracker.env);
   const field = await ranAsync(FORGE,
     ["record", "confirmation", "ISS-81", "--where", "src/rank/score.mjs", "--is", "a rung", "--finding", "holds"],
@@ -271,7 +274,7 @@ test("a confirmation a write posts carries the rung, and one handed in without i
 test("--owed reports the rung the checks run, what it drops and every route up from it", async () => {
   const run = await owed("ISS-71");
   assert.equal(run.status, 0, "asked what is owed, the shortfall is the answer and not a refusal");
-  assert.match(run.stdout, /is a `fix`: its body is marked `Size: fix\.`\. The entry checks run that tier/u);
+  assert.match(run.stdout, /is a `fix`: the tracker's complexity is `s`\. The entry checks run that tier/u);
   const reported = (row) => [`at ${row.status}`, row.drops, row.because].every((one) => run.stdout.includes(one));
   for (const row of LIGHTER) assert.ok(reported(row), `${row.status} is lightened and the report omits ${row.drops}`);
   assert.match(run.stdout, /forge record plan ISS-71 <plan\.md>/u, "one route up, in the form it wants");
@@ -285,7 +288,7 @@ test("--owed reports the rung the checks run, what it drops and every route up f
    drops and nothing else has been told the two rungs are the same thing. */
 test("the shortest rung drops what the one above drops, and is told what else it may spend fewer of", async () => {
   const [trivial, fix, feature] = [await owed("ISS-70"), await owed("ISS-71"), await owed("ISS-72")];
-  assert.match(trivial.stdout, /is a `trivial`: its body is marked `Size: trivial\.`/u);
+  assert.match(trivial.stdout, /is a `trivial`: the tracker's complexity is `xs`/u);
   for (const row of LIGHTER) {
     assert.ok(trivial.stdout.includes(row.drops), `the shortest rung is reported to owe ${row.drops}`);
   }
@@ -295,38 +298,36 @@ test("the shortest rung drops what the one above drops, and is told what else it
   assert.ok(SPARES.trivial.some((one) => !above.includes(one)),
     "and one of them is not the rung above's, or the two differ in nothing a reader can act on");
   assert.match(trivial.stdout, /--moved "Size: trivial -> fix"/u, "the route up names the next rung, not the top");
-  assert.match(feature.stdout, /claims no size on either source, so it is a `feature`/u);
+  assert.match(feature.stdout, /holds no complexity on the tracker, so it is a `feature`/u);
   assert.match(feature.stdout, /a feature owes the whole set/u, "the top rung says so rather than saying nothing");
   assert.doesNotMatch(feature.stdout, /Two routes up/u, "and has none to offer");
 });
 
-/* The top rung is both a mark and the default, and a report reading only the answer cannot tell the
-   two apart — so it told a body carrying `Size: feature.` in full that it carried no mark, which is
-   the tool stating something false about text the reporter wrote. This repository's own issues are
-   marked that way, which is how it was found. */
-test("a body claiming the top rung in full is not told it carries no mark", async () => {
+/* A body naming a rung is the shape of this repository's own older issues, and the report speaks of
+   the field alone: what it must not do is read that line back as a claim, because a rung nothing set
+   would be one no filing established and no `forge new --complexity` can be held to. */
+test("a body naming the top rung in full is reported off the field, which holds none", async () => {
   const claimed = await owed("ISS-73");
-  assert.match(claimed.stdout, /is a `feature`: its body is marked `Size: feature\.`/u,
-    "the mark the body carries is read back to whoever wrote it");
-  assert.doesNotMatch(claimed.stdout, /claims no size on either source/u,
-    "and is not reported as an absence, which would send a reporter to add a line already there");
-  assert.match(claimed.stdout, /a feature owes the whole set/u, "while it owes exactly what an unmarked body owes");
+  assert.match(claimed.stdout, /holds no complexity on the tracker, so it is a `feature`/u,
+    "the field is what the report speaks of, and this issue holds nothing in it");
+  assert.doesNotMatch(claimed.stdout, /Size: feature/u,
+    "and the line in the body is not read back as a claim, the two sources being one now");
+  assert.match(claimed.stdout, /a feature owes the whole set/u, "while it owes what the top rung owes");
   assert.doesNotMatch(claimed.stdout, /Two routes up/u, "and has nowhere to climb either");
 });
 
 
-/* Every size claims a rung, the report says which source decided, and neither is named on screen the
-   way the tracker names it — a name a reader has to translate back costs a round. */
-test("each of the tracker's five sizes claims a rung, and the report says it was the field", async () => {
+/* Every complexity claims a rung, and the report names the field and its value in the tracker's own
+   word: a reader who has to translate the CLI's word back to the field they set spends a round. */
+test("each of the tracker's five complexities claims a rung, named as the field that set it", async () => {
   const wanted = ["trivial", "fix", "feature", "feature", "feature"];
   for (const [at, band] of BANDS.entries()) {
     assert.equal(rungFrom(band), wanted[at], band);
     const run = await owed(`ISS-${80 + at}`);
     assert.equal(run.status, 0, run.stderr);
-    assert.match(run.stdout, new RegExp(`is a \`${wanted[at]}\`: its size on the tracker is a \`${wanted[at]}\``, "u"),
-      `${band} is reported at ${wanted[at]}, and the source that decided it is named`);
-    assert.doesNotMatch(run.stdout, /complexity/iu, "and never by the name only the tracker uses");
-    assert.doesNotMatch(run.stdout, /claims no size on either source/u, "a set field is not an absence");
+    assert.match(run.stdout, new RegExp(`is a \`${wanted[at]}\`: the tracker's complexity is \`${band}\``, "u"),
+      `${band} is reported at ${wanted[at]}, in the field's own name and the value as it stands`);
+    assert.doesNotMatch(run.stdout, /holds no complexity/u, "a field that is set is not an absence");
   }
   assert.equal(rungFrom("xxl"), null, "a value the ladder has no rung for claims none");
   assert.deepEqual(TIERS.map((one) => bandFor(one)), ["xs", "s", "m"],
@@ -352,31 +353,23 @@ test("the two largest sizes ask whether the issue is one change, and the three b
   }
 });
 
-/* A rung lowered after the plan would make a later status demand less than an earlier one established. */
-test("where the two sources disagree the higher rung decides, and the outranked one is said", async () => {
-  assert.equal(sizeFrom({ band: "xs", description: body("feature") }).rung, "feature");
+/* The reading a second source bought: an issue sized `xs` whose body named the top rung had two answers, and whichever won, the other had to be printed for the losing claim to be actionable. One source, so the body is prose and the field is the answer at every reader (ISS-701). */
+test("a body naming another rung changes nothing, the field being the only claim there is", async () => {
+  assert.equal(sizeFrom({ band: "xs", description: body("feature") }).rung, "trivial");
   assert.equal(sizeFrom({ band: "xl", description: body("trivial") }).rung, "feature");
-  assert.equal(sizeFrom({ band: "xs" }).rung, "trivial", "an unmarked body is lifted off the top rung");
-  assert.equal(sizeFrom({ description: body("fix") }).rung, "fix", "and an unset field falls back to the mark");
-  assert.equal(sizeFrom({}).rung, "feature", "with neither source, the rung that owes everything");
-  /* Both claims survive an equal reading: `--owed` names both sources, and the rank path reads the same array to decide that a tie leaves the tracker's own band standing (ISS-394). */
-  const tied = rungBetween({ field: "fix", line: "fix" });
-  assert.deepEqual(tied.decided.map((one) => one.rung), ["fix", "fix"],
-    "an equal claim is decided by both sources, so neither can be dropped from the report");
-  assert.deepEqual(tied.outranked, [], "and nothing lost a reading it did not lose");
-  assert.deepEqual(rungBetween({}), { rung: "feature", decided: [], outranked: [] },
-    "while two rungs claimed by nobody is the rung that owes everything, claimed by neither source");
+  assert.equal(sizeFrom({ description: body("fix") }).rung, "feature",
+    "and a body naming a rung with the field unset claims nothing, so it owes what a feature owes");
   const run = await owed("ISS-90");
-  assert.match(run.stdout, /is a `feature`: its body is marked `Size: feature\.`/u);
-  assert.match(run.stdout, /its size on the tracker is a `trivial`, which does not lower a rung the other claimed/u,
-    "the source that lost is said, so a reader is not left to guess why the field did not decide");
+  assert.match(run.stdout, /is a `trivial`: the tracker's complexity is `xs`/u);
+  assert.doesNotMatch(run.stdout, /Size: feature|does not lower a rung/u,
+    "with nothing said about a second claim, there being no second source to have made one");
 });
 
-/* The contract's existing rule, now read over a size as well as over a mark. */
-test("a correction re-sizing upward outranks a tracker size naming a lower rung", () => {
+/* The contract's existing rule, read over the one source. */
+test("a correction re-sizing upward outranks a complexity naming a lower rung", () => {
   const moved = ["Size: trivial -> feature"];
-  assert.equal(tierOf({ description: UNMARKED, plan: "", moved, band: "xs" }), "feature");
-  assert.equal(tierOf({ description: UNMARKED, plan: "", moved: ["Size: feature -> fix"], band: "xs" }), "trivial",
+  assert.equal(tierOf({ plan: "", moved, band: "xs" }), "feature");
+  assert.equal(tierOf({ plan: "", moved: ["Size: feature -> fix"], band: "xs" }), "trivial",
     "while a correction pointing downward moves nothing, as it moves nothing off a mark");
   assert.equal(tierOf({ description: UNMARKED, plan: "", moved: [], band: "xs", whole: false }), "feature",
     "and a cut page is a feature whatever the field says: it cannot show the correction it hid");

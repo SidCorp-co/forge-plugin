@@ -222,7 +222,7 @@ test("a module that sorts numbers and takes no middle is not re-declaring the me
   const sorters = [
     "plugin/src/checks/retired-names.mjs",
     "plugin/src/flow/earned.mjs",
-    "plugin/src/flow/record.mjs",
+    "plugin/src/flow/record/record.mjs",
     "plugin/src/spec/rules.mjs",
   ].map(read);
   for (const { rel, text } of sorters) {

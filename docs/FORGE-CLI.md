@@ -3,8 +3,8 @@
 Four homes, and each fact has one. `forge -h` and every verb's is the **surface**; the skills are
 **how to spend a call**; the code is the **mechanism**. This holds what none of them can — the
 failure that was hit, the measurement that settled an argument — so a line that could go in one of
-the other three does. Dates stay: a measurement was true once, not forever. One row per topic, read
-by whoever needs it and nobody else.
+the other three does. Dates stay: a measurement was true once, not forever. One terse row per topic:
+this file is under the cap a topic is.
 
 | Topic | The decision it holds |
 |---|---|
@@ -12,20 +12,22 @@ by whoever needs it and nobody else.
 | [what the projections leave out](cli/the-projections.md) | Which fields the browse and issue projections drop, and why no local copy of a name the server publishes is kept. |
 | [the guides](cli/the-guides.md) | Why seven of the twelve guides the tracker serves are withheld, and what the disposition table still decides. |
 | [the parts](cli/the-parts.md) | Which version a call is served, how a block one project loses is fenced once, and why a phase is a number. |
-| [`new`](cli/new.md) | What a title and a body are read against before the tracker sees them, the value a filing nobody ranked carries, the keys a body names and the three flags that take a filing the shape refuses. |
-| [`the-kinds`](cli/the-kinds.md) | Why a filing has to name a kind, what the four are, which sections each one's body owes and how the set was measured. |
-| [`record`](cli/record.md) | Why the CLI owns every payload's shape, which two flags are read off the record, and what a record cannot undo. |
-| [`advance`](cli/advance.md) | What the entry criteria are read from, why git is never asked at the transition while the requirements tree is, and how a reopen is routed. |
+| [`new`](cli/new.md) | What a body is read against before the tracker sees it, the value a filing nobody ranked carries, and why the rung is the `complexity` field alone. |
+| [`the-kinds`](cli/the-kinds.md) | Why a filing names a category, what the four are, which sections each owes, and why both words are the tracker's. |
+| [`record`](cli/record.md) | Why the CLI owns a payload's shape, which two flags are read off the record, and what it cannot undo. |
+| [`record merged`](cli/record-merged.md) | The mark's five clauses, one flag each, and what `--undo` removes. |
+| [the field rules](cli/the-field-rules.md) | The three fields judged on what they say, and the two overrides round a check. |
+| [`advance`](cli/advance.md) | What the entry criteria read, why git is never asked at a transition while the requirements tree is, and how a reopen routes. |
 | [`claim`](cli/claim.md) | How far a lease can be promised without a conditional write, what the step line is for, and why every write lists the issue's comments first. |
 | [`the checkpoint`](cli/the-checkpoint.md) | What a build ready to land leaves for whoever lands it, why both merge routes are one table, and how the judge's turn is handed back rather than abandoned. |
 | [`resume`](cli/resume.md) | What the worklog holds beside the lease, why no capture of it is automatic, and what the brief prints. |
 | [`spec`](cli/spec.md) | Why a clause is answered by its identifier, and the three readings of the notation that were narrowed rather than guessed. |
 | [two writes that lie about themselves](cli/two-writes-that-lie.md) | Why a field is reported written only after the server shows it, and why the read-back compares the copy the boundary sent. |
-| [the entry checks](cli/the-entry-checks.md) | The five obligations a plugin can hold a project to without reading its tree: the baseline's gate run, the screen's verdict, the mark's note, the verification, the judge. |
-| [the ladder](cli/the-ladder.md) | The one rule running through every reading of an issue's rung: where the reading is doubtful the answer is the rung that owes more, the six places that bites, and the two things the rule is not. |
+| [the entry checks](cli/the-entry-checks.md) | The five obligations a plugin holds a project to without reading its tree, and why `--scope` is both asked for and excused. |
+| [the ladder](cli/the-ladder.md) | Why a doubtful reading of a rung answers with the rung that owes more, why the complexity field is its one source, and what the rule is not. |
 | [the primitives](cli/the-primitives.md) | What two verbs' own copies of the paging primitives cost, why one list serves a process, the measurements behind the markdown set the checkers share, and where the SSE frame reader's home stops. |
 | [one primitive, or two](cli/one-primitive-or-two.md) | Why the capturing span and the stripping one are two readers rather than a copy, which of the two link targets a verifier spends and which a parser does, and what an exclusion row owes the issue that clears it. |
-| [`next`](cli/next.md) | The call budget a 503 set, why the size band has two sources and which decides, where the module reading stops rather than inferring a repository's layout, and what the cost column is silent about. |
+| [`next`](cli/next.md) | The call budget a 503 set, why the band is the complexity field alone, and where the module reading stops rather than inferring a layout. |
 | [`deps`](cli/deps.md) | What the marker sentence has to be for an edge to count, and why the graph is one ASCII line per blocker. |
 | [`knowledge`](cli/knowledge.md) | What the store held after forty-three runs, why a write carries forward what the caller did not name, and who refuses an entry that restates a rules file. |
 | [the shown ledger](cli/the-shown-ledger.md) | What a repeat costs a refusal and what it costs advice, the two readings of "already shown", and why the journal is appended. |
@@ -39,7 +41,7 @@ by whoever needs it and nobody else.
 | [`beside`](cli/beside.md) | The two questions the create path asks before it files, and the floor. |
 | [`the fold`](cli/the-fold.md) | Which filings land on a neighbour as a finding rather than a second issue, and what declines it. |
 | [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue, not a file, where its destination is held, which kinds the project allows, what no refusal loses. |
-| [the filing](cli/filing.md) | Why every route that files an issue calls one interface, why that interface neither prints nor exits, why a route contributes a section rather than joining text on first, and the two decisions each route still makes for itself. |
+| [the filing](cli/filing.md) | Why every route that files an issue calls one interface, why that interface neither prints nor exits, why a route adds a section rather than joining text, and the two decisions each route still makes itself. |
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, and what a call that never returned counts as. |
 | [stats — the rows](cli/stats-rows.md) | The three rows a hand profile got wrong, why a phase boundary is read off the class a call already carries, and why a run that claimed no rung keeps a row of its own. |

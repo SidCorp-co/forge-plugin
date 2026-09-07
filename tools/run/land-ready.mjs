@@ -15,12 +15,12 @@ import { Refusal, refusing } from "../../plugin/src/resolve/settings.mjs";
 import { Refused } from "../../plugin/src/refusal.mjs";
 import { sessionOf } from "../../plugin/src/resolve/config.mjs";
 import { documentIdOf } from "../../plugin/src/tracker/issues.mjs";
-import { commentPage, creditAfter } from "../../plugin/src/tracker/comments.mjs";
-import { scoped, write } from "../../plugin/src/tracker/rpc.mjs";
+import { commentPage } from "../../plugin/src/tracker/comments.mjs";
+import { scoped } from "../../plugin/src/tracker/rpc.mjs";
 import { pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
 import { advance, parkAs } from "../../plugin/src/flow/advance.mjs";
 import { atLeast, viewFrom } from "../../plugin/src/flow/earned.mjs";
-import { markedCommit } from "../../plugin/src/flow/machine.mjs";
+import { markMerged, markNote, markedCommit } from "../../plugin/src/flow/record/merged.mjs";
 import {
   LANDING_CANDIDATE, LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED, LANDING_READY,
   landingOf, landingSaved, landingVoided, takeLease,
@@ -164,11 +164,6 @@ const pushed = (tree, base, pin, what) => {
   if (run.error) stop(`git could not be run: ${run.error.message}. Check the remote is reachable.`);
   return run.status === 0;
 };
-
-const markNote = (landing, { branch, landed, judged, moved }) =>
-  `merged to ${branch} at ${landed}; reviewed head ${judged}; `
-  + `judged head ${judged}; landing moved ${moved.length ? moved.join(", ") : "nothing"}; `
-  + `landing wrote ${landing.files.length ? landing.files.join(", ") : "nothing"}`;
 
 /* The whole record, policy and all, for the steps that need one rather than a field or the page. */
 const viewOf = async (documentId) => {
@@ -405,17 +400,16 @@ const markStep = async (one) => {
   if (markedCommit(comments ?? []) === landed) {
     console.log(`  the mark at ${shortly(landed)} is up already`);
   } else {
-    const note = markNote(at.landing, {
+    const judged = at.landing.moved ? at.landing.candidate : at.landing.head;
+    const note = markNote({
       branch: base,
-      landed,
-      judged: at.landing.moved ? at.landing.candidate : at.landing.head,
+      at: landed,
+      reviewed: judged,
+      judged,
       moved: at.landing.moved ? at.landing.moved.split(", ") : [],
+      wrote: at.landing.files,
     });
-    await asked(() => write("forge_issues",
-      { action: "mark_merged", data: { issueId: documentId, target: "base", note } }));
-    /* The mark's audit line is a comment nobody has read, and the next write to this issue is
-       refused for it: credited here, as every write that causes one does. */
-    await asked(() => creditAfter("the merged mark", [{ ref: key, documentId }]));
+    await asked(() => markMerged(documentId, key, note));
     console.log(`  ${key} is marked merged at ${shortly(landed)}`);
   }
   at.landing = await asked(() => landingSaved(documentId, key, { state: "marked" }));

@@ -352,14 +352,14 @@ const tierCeiling = (tree, was) => {
     const key = BRANCH_KEY.exec(gitOut(["rev-parse", "--abbrev-ref", "HEAD"], tree) ?? "")?.[1];
     if (!key) return undefined;
     const ref = `ISS-${key}`;
-    const said = forgeSays(tree, ["issue", ref, "--fields", "description,plan"]);
+    const said = forgeSays(tree, ["issue", ref, "--fields", "complexity,plan"]);
     if (said.why) return undefined;
     /* Parsed, never matched: JSON escapes newlines. `null` parses; anything worse takes the catch. */
     const body = JSON.parse(said.out);
     if (!body || typeof body !== "object") return undefined;
     /* One string: every climb on it is a climb, whichever record carried it, and only the latest. */
     const page = forgeSays(tree, ["record", "report", ref]);
-    const size = { description: body.description, plan: body.plan, whole: true, moved: page.why ? [] : [page.out] };
+    const size = { band: body.complexity, plan: body.plan, whole: true, moved: page.why ? [] : [page.out] };
     const tier = tierOf(size), ceiling = CEILINGS[tier];
     if (!ceiling) return undefined;
     const rows = (gitOut(["diff", "--numstat", `${was}..HEAD`], tree) ?? "").split("\n").filter(Boolean);
@@ -417,7 +417,7 @@ const reviewOwed = async (tree) => {
   }
   if (asked.why) {
     console.error(`  ${asked.whose}, so nothing is filed and the next ship asks again: ${asked.why}`);
-    console.log(`    file its issue:  forge new - --title "review ${range}" --kind review`);
+    console.log(`    file its issue:  forge new - --title "review ${range}" --category review`);
     console.log(`    give it a tree:  ${SELF} start <that ISS-nn>`);
     console.log(`    it ends by moving the mark, finding or none: ${SELF} review --done <the range's end>`);
     return;

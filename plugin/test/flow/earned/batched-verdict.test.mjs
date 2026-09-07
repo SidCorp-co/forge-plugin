@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { fakeTracker, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("batched-verdict").path;
-const { blocksIn, parse, parseAll, render } = await import("../../../src/flow/record.mjs");
+const { blocksIn, parse, parseAll, render } = await import("../../../src/flow/record/record.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
 const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { CONTRACT } = await import("../../../src/guides/contract.mjs");

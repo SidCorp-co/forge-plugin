@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { fakeTracker, ranAsync, tempHome, typedPlan } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance").path;
-const { parse, render } = await import("../../src/flow/record.mjs");
+const { parse, render } = await import("../../src/flow/record/record.mjs");
 const { PARKS } = await import("../../src/flow/machine.mjs");
 const {
   CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, holdsBack,
@@ -564,9 +564,9 @@ test("--owed ends by naming the contract's part for the status it would enter, o
   }
 });
 
-test("--owed on an issue with no mark reports it as the top rung, dropping nothing", async () => {
+test("--owed on an issue holding no complexity reports it as the top rung, dropping nothing", async () => {
   const run = await owed("ISS-91");
-  assert.match(run.stdout, /claims no size on either source, so it is a `feature`/u);
+  assert.match(run.stdout, /holds no complexity on the tracker, so it is a `feature`/u);
   assert.match(run.stdout, /a feature owes the whole set/u, "and says so, rather than saying nothing");
   assert.doesNotMatch(run.stdout, /Two routes up/u, "the top rung has none, so none is offered");
   assert.match(run.stdout, /no confirmation/u);
@@ -586,7 +586,7 @@ test("a drop is refused once the merged mark is set, and it is the mark that ref
   const refused = await drop("ISS-95");
   assert.equal(refused.status, 1, `${refused.stdout}${refused.stderr}`);
   assert.match(refused.stderr, /was marked merged at 2026-09-03T09:00:00\.000Z/u, "the mark's refusal, not the status one");
-  assert.match(refused.stderr, /"action":"unmark"/u, "and it carries the call that clears the mark");
+  assert.match(refused.stderr, /forge record merged ISS-95 --undo/u, "and it carries the verb that clears the mark");
   assert.equal(moves(), before, "a refused drop moves nothing");
   swap({ mergedAt: null });
   const unmarked = await drop("ISS-95");

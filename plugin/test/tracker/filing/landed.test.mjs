@@ -253,7 +253,7 @@ test("a filing that lands ends its stdout with the key, read back, and not with 
   before();
   stores();
   state.memory = both(NEAR.issueId, 0.72);
-  const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--kind", "bug"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--category", "bug"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, new RegExp(TRAILER.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"),
     "the block still prints; what moved is what comes after it");
@@ -265,7 +265,7 @@ test("a filing the tracker refuses exits non-zero", async () => {
   state.answer = { forge_issues: (args) => (args.action === "list"
     ? { issues: state.issues, returned: state.issues.length, hasMore: false }
     : (args.action === "create" ? { refused: "title already taken" } : {})) };
-  const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--kind", "bug"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--category", "bug"], tracker.env);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /title already taken/u);
 });
@@ -278,7 +278,7 @@ test("a filing whose id reads back as nothing stays at exit zero, and says so on
       return args.action === "create" ? { documentId: "uuid-811", issueId: "ISS-811" } : {};
     },
   };
-  const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--kind", "bug"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--category", "bug"], tracker.env);
   assert.equal(run.status, 0, "the tracker took the create; only the read-back came back empty");
   assert.match(lastOf(run.stdout), /uuid-811 and a read of that id came back with no issue/u);
 });
@@ -291,7 +291,7 @@ test("a filing whose read-back could not run stays at exit zero", async () => {
       return args.action === "create" ? { documentId: "uuid-812", issueId: "ISS-812" } : { http: 503 };
     },
   };
-  const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--kind", "bug"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--category", "bug"], tracker.env);
   assert.equal(run.status, 0, "a write that landed must not answer like one that did not");
   assert.match(lastOf(run.stdout), /Do not send this call again/u);
 });
@@ -305,7 +305,7 @@ test("a filing whose read-back throws stays at exit zero, and the last line stil
       return args.action === "create" ? { documentId: "uuid-814", issueId: "ISS-814" } : { envelope: { content: {} } };
     },
   };
-  const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--kind", "bug"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--category", "bug"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.match(lastOf(run.stdout), /uuid-814/u);
 });
@@ -316,7 +316,7 @@ test("a fold ends its stdout with the comment id it posted", async () => {
   before();
   const posted = stores();
   state.memory = both(NEAR.issueId, 0.83);
-  const run = await ranAsync(FORGE, ["new", marked(), "--title", TITLE, "--kind", "bug"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", marked(), "--title", TITLE, "--category", "bug"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.equal(posted.length, 1, "the fold posted, and no issue was filed");
   assert.equal(lastOf(run.stdout), `Comment ${posted[0].documentId} is posted on ${NEAR.issueId}, read back from the tracker.`);
@@ -326,7 +326,7 @@ test("a fold whose comment write the tracker refuses exits non-zero", async () =
   before();
   state.memory = both(NEAR.issueId, 0.83);
   state.answer = { forge_comments: (args) => (args.action === "list" ? page([], false) : { refused: "comment too long" }) };
-  const run = await ranAsync(FORGE, ["new", marked(), "--title", TITLE, "--kind", "bug"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", marked(), "--title", TITLE, "--category", "bug"], tracker.env);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /comment too long/u);
 });

@@ -27,7 +27,7 @@ const fields = () => (rows ??= {
 });
 
 const mismatch = (field, ref, back) =>
-  fields()[field].said?.(ref, back)
+  fields()[field]?.said?.(ref, back)
   ?? `The update answered success but ${field} did not read back as written. Nothing to rely on.`;
 
 /* Code points, and never above the code-unit count: it can only miss a refusal. */
@@ -54,8 +54,8 @@ export const capRefusal = (where, cap, sent, given) => capClause(where, cap, sen
 
 /* Synchronous on purpose: `write` does not await this, so a promise would let the send go ahead.
    Every over-cap half at once, too — refusing inside the loop cost a round per half (ISS-325). */
-export const capChecked = (field, caps, sent, given, refuse) => {
-  const row = fields()[field];
+export const capChecked = (field, caps, sent, given, refuse, under = null) => {
+  const row = under ?? fields()[field];
   const held = caps[field] ?? { self: null, halves: {} };
   if (!row.halves) {
     if (held.self !== null && lengthOf(sent) > held.self) refuse(capRefusal(field, held.self, sent, given));
@@ -68,8 +68,13 @@ export const capChecked = (field, caps, sent, given, refuse) => {
   if (over.length) refuse(over.join(" ") + NOTHING_SENT);
 };
 
-export const writeField = async (documentId, field, value, { ref, next, patch, refuse }) => {
-  const row = fields()[field];
+export const ownsField = (field) => Boolean(fields()[field]);
+
+/* The row a recorded override writes under: the tracker judges a field this CLI declares no cap and no comparator of, so what came back is compared with what was sent and nothing else. */
+export const OVERRIDE = { same: landedAs };
+
+export const writeField = async (documentId, field, value, { ref, next, patch, refuse, row: under = null }) => {
+  const row = under ?? fields()[field];
   if (!row) {
     refuse(`${field} is not a field this writer sets. It takes ${Object.keys(fields()).join(", ")}.`);
   }
@@ -80,7 +85,7 @@ export const writeField = async (documentId, field, value, { ref, next, patch, r
   let sent = given;
   await write("forge_issues", { action: "update", documentId, data: { [field]: given } }, (data) => {
     sent = data?.[field] ?? given;
-    capChecked(field, caps, sent, given, refuse);
+    capChecked(field, caps, sent, given, refuse, row);
   });
   const back = await scoped("forge_issues", { action: "get", documentId, fields: [field] });
   if (!row.same(back?.[field], sent)) refuse(mismatch(field, ref, back?.[field]));

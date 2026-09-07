@@ -16,7 +16,7 @@ const MAX_RETRY_SECONDS = 60;
 const RATE_LIMITED = 429;
 /* Only a read is sent again, off the row's own declaration; 429 says the call was not processed. */
 const TRANSIENT = [408, 425, 500, 502, 503, 504];
-const AMBIGUOUS = "This call may have been processed and is not sent again: idempotence is "
+export const AMBIGUOUS = "This call may have been processed and is not sent again: idempotence is "
   + "documented for the merged mark alone, so a repeat could write twice. Read the record first.";
 
 export const retryOf = (status, repeatable) => {

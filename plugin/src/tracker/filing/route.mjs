@@ -1,9 +1,8 @@
 /* The one route from a body to an issue: every verb that files calls it, and what stays a route's
    is its flags and the lines it prints. Nothing here prints and nothing here exits: docs/cli/filing.md. */
 import { foldFiling, neighboursOf } from "./neighbours.mjs";
-import { filingRefusal, liveTitles, rankOf, shapeOf, shapeRefusal, trackerFields, withMark }
+import { filingRefusal, liveTitles, rankOf, shapeOf, shapeRefusal, trackerFields }
   from "../issue-shape.mjs";
-import { markedIn } from "../../ladder.mjs";
 import { write } from "../rpc.mjs";
 import { notAReference } from "../issues.mjs";
 import { PROJECT, pluginDefectHold } from "./plugin-defect.mjs";
@@ -30,11 +29,10 @@ export const rankFor = async (priority) => {
   return ranked.refusal ? { refusal: refusalOf(ranked.refusal) } : { ranked };
 };
 
-export const bodyOf = ({ title, body, kind = null, sections = [], size = undefined, everySection = false }) => {
-  const written = withSections(body, sections);
-  const description = size ? withMark(written, size) : written;
-  const shape = shapeOf({ title, body: description, kind }, { everySection });
-  return { description, shape, rung: markedIn(description), refusal: refusalOf(shapeRefusal(shape)) };
+export const bodyOf = ({ title, body, kind = null, sections = [], complexity = undefined, everySection = false }) => {
+  const description = withSections(body, sections);
+  const shape = shapeOf({ title, body: description, kind, complexity }, { everySection });
+  return { description, shape, refusal: refusalOf(shapeRefusal(shape)) };
 };
 
 export const RELATIONS_MAX = 20;
@@ -98,7 +96,7 @@ export const fileIssue = async ({
   kind = null,
   priority = undefined,
   sections = [],
-  size = undefined,
+  complexity = undefined,
   routed = false,
   fresh = false,
   everySection = false,
@@ -113,7 +111,7 @@ export const fileIssue = async ({
 }) => {
   const ranked = asked ?? await rankOf(priority);
   if (ranked.refusal) return { refusal: refusalOf(ranked.refusal), description: null, shape: null };
-  const { description, shape: known, rung } = bodyOf({ title, body, kind, sections, size, everySection });
+  const { description, shape: known } = bodyOf({ title, body, kind, sections, complexity, everySection });
   /* Only where the filing is aimed at the caller's own project: the verb carrying a plugin defect aims at the plugin's before it files, and holding that one would lose the finding. */
   const held = projectTarget().value === PROJECT ? null : pluginDefectHold(description);
   if (held) return { refusal: refusalOf(held), description, shape: known };
@@ -135,7 +133,7 @@ export const fileIssue = async ({
     status: "open",
     ...fields,
     priority: ranked.value,
-    ...trackerFields({ kind, rung }),
+    ...trackerFields({ category: kind, complexity }),
     ...(edges.length ? { relations: edges } : {}),
   };
   const answer = await write("forge_issues", { action: "create", data }, undefined, soft);
