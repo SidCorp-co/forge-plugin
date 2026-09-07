@@ -1,11 +1,10 @@
 # The forge CLI — the failures and numbers behind its shape
 
 Four homes, and each fact has one. `forge -h` and every verb's `-h` are the **surface**. The skills
-(the forge skill's `SKILL.md`, and the references under `plugin/guides/skills/forge/` that `forge guide forge <reference>` serves) are **how to spend a call** — payload forms, fetching
-narrow, what a missing verb means, how to ask codex and how to read it. The code is the
-**mechanism**. This holds only what none of them can: the failure that was hit, or the measurement
-that settled an argument. If a line here could go in one of the other three, it belongs there.
-Dates stay, because a measurement was true once and not forever.
+are **how to spend a call** — payload forms, fetching narrow, what a missing verb means, how to ask
+codex and how to read it. The code is the **mechanism**. This holds only what none of them can: the
+failure that was hit, or the measurement that settled an argument. If a line here could go in one of
+the other three, it belongs there. Dates stay: a measurement was true once and not forever.
 One row per topic: the decision it holds, and the file that holds it. The file is read by whoever
 needs that topic and by nobody else.
 
