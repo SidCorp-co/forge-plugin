@@ -3,6 +3,7 @@
    so a write here is a read-back compare and the claim says so out loud. docs/cli/claim.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID, sessionOf, sessionSourced } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
+import { shortSha } from "../tracker/evidence.mjs";
 import { writeField } from "../tracker/field-write.mjs";
 import { scoped } from "../tracker/rpc.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
@@ -166,8 +167,8 @@ export const landingNext = (held, to) => {
 };
 
 export const landingLine = (landing) =>
-  `landing \`${landing.state}\`: ${landing.branch ?? "no branch"} at ${(landing.head ?? "").slice(0, 7)}, `
-  + `base ${(landing.base ?? "").slice(0, 7)}, ${landing.files.length} file(s), built by ${landing.builder}`;
+  `landing \`${landing.state}\`: ${landing.branch ?? "no branch"} at ${shortSha(landing.head)}, `
+  + `base ${shortSha(landing.base)}, ${landing.files.length} file(s), built by ${landing.builder}`;
 
 const READ_THE_STATE = (ref) =>
   `Read where the landing is, and take it when the state names your turn:\n  forge resume ${ref}`;
@@ -356,7 +357,10 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
 
 /** The take itself, apart from the verb that prints it, so the landing task and `forge claim --take` cannot come to disagree about what licenses one. */
 export const takeLease = async (documentId, ref, context,
-  { holder, minutes = MINUTES, line = undefined, patch = null, source = null, status = null }) => {
+  { holder, minutes = MINUTES, line = undefined, patch = null, status = null }) => {
+  /* Where the id came from is this session's to say only where the holder is this session. */
+  const mine = sessionSourced();
+  const source = mine.id === holder ? mine.source : null;
   const refused = takeRefusal(ref, landingOf(context), holder, leaseOf(context), { source });
   if (refused) fail(refused);
   const next = claimed(context, {

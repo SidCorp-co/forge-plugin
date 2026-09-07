@@ -1,13 +1,11 @@
 /* Whether an issue's verdicts were judged by somebody other than the run that built the change.
    `earned.mjs` spends the first reading at `tested`, a promotion the second; why each is the shape it is: docs/cli/the-entry-checks.md. */
 import { judgementOf } from "../../tracker/project-config.mjs";
-import { isCommit, sameCommit } from "../../tracker/evidence.mjs";
+import { isCommit, sameCommit, shortSha as short } from "../../tracker/evidence.mjs";
 
 export const INDEPENDENT = "independent";
 
 export const asksIndependent = (release) => judgementOf(release) === INDEPENDENT;
-
-const short = (sha) => String(sha ?? "").slice(0, 7);
 
 /* Off the evidence and never off the commit: after a merge the deployment identity is the merged head every verdict already carries, so a commit read passes an ordinary builder verdict by accident. Commit-shaped first, or a forty-digit attachment name prefixes its way past the comparison. */
 const citesDeployment = (held, deployment) =>
@@ -28,7 +26,7 @@ export const judgeProblem = (held, landing) => {
   return null;
 };
 
-const numbered = (verdicts) => [...verdicts].sort((one, two) => one[0] - two[0]);
+export const numbered = (verdicts) => [...verdicts].sort((one, two) => one[0] - two[0]);
 
 export const judgeProblems = (view) => (asksIndependent(view.release)
   ? numbered(view.verdicts).flatMap(([number, { record }]) => {

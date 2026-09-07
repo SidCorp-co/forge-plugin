@@ -1,7 +1,7 @@
 /* The spine cut to one issue, off the tables other readers answer to. The shift this file turns on:
    a phase is the work owed *at* a status and an entry check guards the way *into* one, so the phase
    at a rung answers to the rung above. docs/cli/resume.md. */
-import { ORDER, PHASE } from "../flow/earned.mjs";
+import { ORDER, PHASE, stepAfter } from "../flow/earned.mjs";
 import { LIGHTER, tierOf } from "../ladder.mjs";
 
 const NUMBERED = /^(\d+)/u;
@@ -10,7 +10,7 @@ const NUMBERED = /^(\d+)/u;
 export const phaseNumber = (status) => Number(NUMBERED.exec(PHASE[status]?.[0] ?? "")?.[1] ?? NaN);
 
 /* What each entry check refuses without, held to their own refusals by a case. */
-const CITES = {
+export const CITED = {
   confirmed: "confirmation",
   clarified: "decision",
   approved: "plan",
@@ -20,19 +20,11 @@ const CITES = {
   released: "verification",
 };
 
-export const CITED = CITES;
-
-/** The rung above, on the shift the header states. */
-const above = (status) => {
-  const at = ORDER.indexOf(status);
-  return at < 0 || at + 1 >= ORDER.length ? null : ORDER[at + 1];
-};
-
-export const dischargedBy = (status) => CITES[above(status)] ?? null;
+export const dischargedBy = (status) => CITED[stepAfter(status)] ?? null;
 
 /** The waiver a tier grants on the way out of a status, named by what it drops and why. */
 export const waivedFor = (status, size) => {
-  const next = above(status);
+  const next = stepAfter(status);
   const tier = tierOf(size);
   const row = next && LIGHTER.find((one) => one.status === next && one.tiers.includes(tier));
   return row ? { drops: row.drops, because: row.because } : null;

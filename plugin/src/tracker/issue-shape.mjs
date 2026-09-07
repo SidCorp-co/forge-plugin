@@ -133,7 +133,7 @@ const listed = (names) => names.join(", ");
 const titles = (sections) => sections.map((one) => one.title);
 
 const VOWEL = /^[aeiou]/iu;
-const article = (word) => (VOWEL.test(word) ? "an" : "a");
+export const article = (word) => (VOWEL.test(word) ? "an" : "a");
 
 /* The route past the set, borrowed by both refusals: a kind this CLI does not define is a section
    list nobody has decided, not a filing to fix by guessing. */

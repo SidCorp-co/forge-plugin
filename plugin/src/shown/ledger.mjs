@@ -4,7 +4,7 @@
 import { createHash } from "node:crypto";
 
 import { sessionSourced } from "../resolve/config.mjs";
-import { credit, creditedTo } from "./journal.mjs";
+import { credit, creditedTo, lastCredited } from "./journal.mjs";
 
 export const sessionKey = (ev = null) => sessionSourced(ev).id || "";
 
@@ -29,13 +29,12 @@ export const noteShown = (session, surface, text) => credit(session, surface, it
 export const held = (route) =>
   `Refused again, for the reason this session was already shown in full: \`forge hooks --how ${route}\``;
 
-export const lastShown = (session, surface) =>
-  [...creditedTo(session, surface)].at(-1) ?? null;
+export { lastCredited as lastShown } from "./journal.mjs";
 
 export const sayIfChanged = (session, surface, text) => {
   if (!session || !surface || !String(text).trim()) return String(text ?? "");
   const whole = digestOf(text);
-  if (lastShown(session, surface) === whole) return "";
+  if (lastCredited(session, surface) === whole) return "";
   credit(session, surface, [whole]);
   return String(text);
 };

@@ -9,12 +9,12 @@ import { join, resolve } from "node:path";
 
 import { git, gitOut, lines, loud, REMOTE, stop, Stop } from "../checkout.mjs";
 import { INSTALLS, LANDS, PUSHES, runLanding, waitMs } from "./land.mjs";
-import { follows, installs } from "./install.mjs";
+import { follows, installs, LINKED, remoteHeadOf, shortly } from "./install.mjs";
 import { above, forgetBump, versionAbove } from "./version.mjs";
 import { versionAt } from "./landing.mjs";
 import { Refusal, refusing } from "../../plugin/src/resolve/settings.mjs";
 import { Refused } from "../../plugin/src/refusal.mjs";
-import { sessionOf, sessionSourced } from "../../plugin/src/resolve/config.mjs";
+import { sessionOf } from "../../plugin/src/resolve/config.mjs";
 import { documentIdOf } from "../../plugin/src/tracker/issues.mjs";
 import { commentPage, creditAfter } from "../../plugin/src/tracker/comments.mjs";
 import { scoped, write } from "../../plugin/src/tracker/rpc.mjs";
@@ -23,15 +23,10 @@ import { advance, parkAs } from "../../plugin/src/flow/advance.mjs";
 import { atLeast, viewFrom } from "../../plugin/src/flow/earned.mjs";
 import { markedCommit } from "../../plugin/src/flow/machine.mjs";
 import {
-  LANDING_CANDIDATE, landingOf, landingSaved, landingVoided, readContext, takeLease,
+  LANDING_CANDIDATE, LANDING_READY, landingOf, landingSaved, landingVoided, takeLease,
 } from "../../plugin/src/flow/lease.mjs";
 
-/** The two directories a worktree borrows from the checkout, so a gate run in one resolves its own
- *  linter. `start` links them for a run's tree and a landing links them for the tree it gates in. */
-export const LINKED = ["node_modules", join("packages", "code-quality", "node_modules")];
-
 const DEVELOPED = "developed";
-const shortly = (sha) => String(sha ?? "").slice(0, 7);
 
 /* A landing that rebuilt twice and found the base moved again is a fold racing something else, and
    a third pass would spend another whole gate to say so. */
@@ -68,8 +63,7 @@ const asked = async (run) => {
 };
 
 const remoteHead = (tree, base) => {
-  const said = gitOut(["ls-remote", REMOTE, `refs/heads/${base}`], tree);
-  const held = (said ?? "").split(/\s+/u)[0];
+  const held = remoteHeadOf(tree, base);
   if (!held) {
     stop(`${REMOTE} named nothing for ${base}. A landing pins the base head before it builds `
       + `anything, and an unreachable remote and a branch that is gone read alike here.`);
@@ -95,9 +89,7 @@ const mergedTree = (tree, pin, head) => {
    changed sha between two runs would void the reading the builder just wrote. The encoding is fixed
    for the same reason — configured otherwise, git writes a header into the object and the sha moves. */
 const candidateOf = (tree, treeSha, pin, head) => {
-  const when = gitOut(["show", "--no-patch", "--format=%cI", head], tree);
-  const who = gitOut(["show", "--no-patch", "--format=%cn <%ce>", head], tree);
-  const [name, mail] = [who?.replace(/\s*<.*$/u, ""), who?.replace(/^.*<|>$/gu, "")];
+  const [when, name, mail] = (gitOut(["show", "--no-patch", "--format=%cI%n%cn%n%ce", head], tree) ?? "").split("\n");
   const run = spawnSync("git", ["-c", "i18n.commitEncoding=UTF-8",
     "commit-tree", treeSha, "-p", pin, "-p", head,
     "-m", `candidate: ${shortly(head)} onto ${shortly(pin)}`], {
@@ -169,61 +161,74 @@ const markNote = (landing, { branch, landed, judged, moved }) =>
   + `judged head ${judged}; landing moved ${moved.length ? moved.join(", ") : "nothing"}; `
   + `landing wrote ${landing.files.length ? landing.files.join(", ") : "nothing"}`;
 
+/* The whole record, for the one step that parks: the others read a field or the comments alone. */
 const viewOf = async (documentId) => {
-  const issue = await scoped("forge_issues", { action: "get", documentId });
-  const page = await commentPage(documentId);
+  const [issue, page] = await Promise.all([
+    scoped("forge_issues", { action: "get", documentId }), commentPage(documentId),
+  ]);
   return viewFrom(documentId, issue, page.comments ?? []);
 };
+
+const statusOf = async (documentId) =>
+  (await scoped("forge_issues", { action: "get", documentId, fields: ["status"] }))?.status ?? null;
+
+const notReconciled = (key, landing, candidate, moved = []) =>
+  `the checkpoint on ${key} reads \`${landing.state}\` and its reconciliation names `
+  + `${shortly(landing.reconciled) || "no candidate"}, not the candidate this landing built at `
+  + `${shortly(candidate)}${moved.length ? `, which moved ${moved.join(", ")}` : ""}. Nothing is `
+  + `promoted against a reading of another candidate${moved.length
+    ? `: the branch is the builder's again.\n    forge claim ${key} --take` : "."}`;
 
 /* Every step reads where it is off the checkpoint rather than trusting what the step before it left
    in memory, because a second process resumes into four of them. `one` is that reading: the issue,
    the checkpoint as last written, and what this attempt has built so far. */
 const pinStep = async (one) => {
   const { key, documentId, at, ctx: { base, root } } = one;
-  const held = () => at.landing;
-  const branch = held().branch;
+  const branch = at.landing.branch;
   if (!branch) stop(`the checkpoint on ${key} names no branch, so there is nothing to land.`);
   loud("git", ["fetch", REMOTE, branch, base], root, "Check the remote is reachable.");
   at.pin = remoteHead(root, base);
-  if (!gitOut(["rev-parse", "--verify", `${held().head}^{commit}`], root)) {
-    stop(`${key} was judged at ${shortly(held().head)}, a commit this checkout cannot read even after `
+  if (!gitOut(["rev-parse", "--verify", `${at.landing.head}^{commit}`], root)) {
+    stop(`${key} was judged at ${shortly(at.landing.head)}, a commit this checkout cannot read even after `
       + `fetching ${branch}. The build's own tree holds it — push that branch again.`);
   }
-  console.log(`  ${base} is pinned at ${shortly(at.pin)}; ${branch} was judged at ${shortly(held().head)}`);
-  if (held().state === "ready") {
-    at.landing = await asked(() => landingSaved(documentId, key, { state: "candidate", pinned: at.pin }));
+  console.log(`  ${base} is pinned at ${shortly(at.pin)}; ${branch} was judged at ${shortly(at.landing.head)}`);
+  if (at.landing.state === LANDING_READY) {
+    at.landing = await asked(() => landingSaved(documentId, key, { state: LANDING_CANDIDATE, pinned: at.pin }));
     return;
   }
-  if (held().pinned === at.pin) {
+  if (at.landing.pinned === at.pin) {
     console.log("  the pin this landing held is still the branch head");
     return;
   }
   /* A state the table offers before a promotion is reachable after one too — `judged` is the QA turn's hand-back either way, and only the release the checkpoint names tells the two apart — so the release is asked about before anything is voided: rebuilt from a fresh pin, a checkpoint past its push would land the same change a second time. */
-  const on = held().intended ? landedAlready(root, base, held().intended) : null;
-  if (on && !on.known) stop(NOT_KNOWN(key, base, on.now, held().intended));
+  const on = at.landing.intended ? landedAlready(root, base, at.landing.intended) : null;
+  if (on && !on.known) stop(NOT_KNOWN(key, base, on.now, at.landing.intended));
   if (on?.landed) {
-    stop(`${key} holds the release ${shortly(held().intended)}, which ${base} carries at `
-      + `${shortly(on.now)}: this checkpoint reads \`${held().state}\` and is past its own push, so `
+    stop(`${key} holds the release ${shortly(at.landing.intended)}, which ${base} carries at `
+      + `${shortly(on.now)}: this checkpoint reads \`${at.landing.state}\` and is past its own push, so `
       + `there is no candidate to rebuild and nothing here to land again. What is left of it is the `
       + `reading of that release:\n    forge resume ${key}`);
   }
-  console.log(`  the pin this landing held was ${shortly(held().pinned)} and ${base} is now `
+  console.log(`  the pin this landing held was ${shortly(at.landing.pinned)} and ${base} is now `
     + `${shortly(at.pin)}, so the candidate and every reading taken at it are void`);
   at.landing = await asked(() => landingSaved(documentId, key, landingVoided(at.pin)));
 };
 
 const mergeStep = async (one) => {
   const { key, documentId, at, ctx: { base, root } } = one;
-  const merged = mergedTree(root, at.pin, at.landing.head);
-  if (!merged.conflicts.length) {
+  /* Kept on the attempt: the candidate step reads the same merge rather than writing it twice. */
+  at.merged = mergedTree(root, at.pin, at.landing.head);
+  const { conflicts } = at.merged;
+  if (!conflicts.length) {
     console.log(`  merges clean onto ${shortly(at.pin)}`);
     return;
   }
   const why = `${at.landing.branch} does not merge onto ${base} at ${shortly(at.pin)}: `
-    + `${merged.conflicts.join(", ")} conflict. The landing repairs no conflict — the run that built `
+    + `${conflicts.join(", ")} conflict. The landing repairs no conflict — the run that built `
     + `the branch rebases it, re-reviews the rebased head and writes the checkpoint again.`;
   const view = await asked(() => viewOf(documentId));
-  await asked(() => parkAs(view, key, "blocked", why, merged.conflicts));
+  await asked(() => parkAs(view, key, "blocked", why, conflicts));
   stop(`${key} is parked as blocked and nothing of it was edited, pushed or installed.`);
 };
 
@@ -231,24 +236,18 @@ const mergeStep = async (one) => {
    change's own paths alone is reconciled here, and one that moved any of them is the builder's. */
 const candidateStep = async (one) => {
   const { key, documentId, at, ctx: { root } } = one;
-  const held = () => at.landing;
-  const merged = mergedTree(root, at.pin, held().head);
-  at.candidate = candidateOf(root, merged.tree, at.pin, held().head);
-  const moved = movedBy(root, held().head, at.candidate, held().files);
-  console.log(`  candidate ${shortly(at.candidate)} over ${held().files.length} file(s) of the change`);
+  const merged = at.merged ?? mergedTree(root, at.pin, at.landing.head);
+  at.candidate = candidateOf(root, merged.tree, at.pin, at.landing.head);
+  const moved = movedBy(root, at.landing.head, at.candidate, at.landing.files);
+  console.log(`  candidate ${shortly(at.candidate)} over ${at.landing.files.length} file(s) of the change`);
   if (moved.length) {
-    if (held().reconciled === at.candidate) {
+    if (at.landing.reconciled === at.candidate) {
       console.log(`  the landing moved ${moved.join(", ")}, reconciled at ${shortly(at.candidate)}`);
       return;
     }
     /* Past `candidate` already, and reconciled against something else: the handoff has happened
        once and what came back does not answer for this candidate, so nothing here writes over it. */
-    if (held().state !== LANDING_CANDIDATE) {
-      stop(`the checkpoint on ${key} reads \`${held().state}\` and its reconciliation names `
-        + `${shortly(held().reconciled) || "no candidate"}, not the candidate this landing built at `
-        + `${shortly(at.candidate)}, which moved ${moved.join(", ")}. Nothing is promoted against a `
-        + `reading of another candidate: the branch is the builder's again.\n    forge claim ${key} --take`);
-    }
+    if (at.landing.state !== LANDING_CANDIDATE) stop(notReconciled(key, at.landing, at.candidate, moved));
     at.landing = await asked(() => landingSaved(documentId, key,
       { state: "builder-owed", candidate: at.candidate, moved: moved.join(", ") }));
     stop(`the landing moved ${moved.join(", ")}, so this change's own paths are not what was judged `
@@ -257,88 +256,83 @@ const candidateStep = async (one) => {
       + `    forge claim ${key} --take`);
   }
   console.log("  landing moved nothing of the change");
-  if (held().state === "candidate") {
+  if (at.landing.state === LANDING_CANDIDATE) {
     at.landing = await asked(() => landingSaved(documentId, key,
       { state: "reconciled", candidate: at.candidate, reconciled: at.candidate }));
   }
-  if (held().reconciled !== at.candidate) {
-    stop(`the checkpoint on ${key} reads \`${held().state}\` and its reconciliation names `
-      + `${shortly(held().reconciled) || "no candidate"}, not the candidate this landing built at `
-      + `${shortly(at.candidate)}. Nothing is promoted against a reading of another candidate.`);
-  }
+  if (at.landing.reconciled !== at.candidate) stop(notReconciled(key, at.landing, at.candidate));
 };
 
 const pushStep = async (one) => {
   const { key, documentId, at, ctx: { base, root } } = one;
-  const held = () => at.landing;
-  if (held().state !== "promoting") {
+  if (at.landing.state !== "promoting") {
     at.landing = await asked(() => landingSaved(documentId, key,
       { state: "promoting", intended: at.intended, release: at.release }));
   }
   /* Asked of the remote, never of the tracking ref: a resume aimed at this step fetched nothing,
      and the ref it would read can name a head another landing pushed past. */
-  const pin = at.pin ?? held().pinned;
-  const first = landedAlready(root, base, held().intended);
-  if (!first.known) stop(NOT_KNOWN(key, base, first.now, held().intended));
+  const pin = at.pin ?? at.landing.pinned;
+  const rebuilt = async (now, why) => {
+    at.landing = await asked(() => landingSaved(documentId, key, landingVoided(now)));
+    at.rebuild = true;
+    stop(why);
+  };
+  const first = landedAlready(root, base, at.landing.intended);
+  if (!first.known) stop(NOT_KNOWN(key, base, first.now, at.landing.intended));
   if (first.landed) {
-    console.log(`  ${base} is at ${shortly(first.now)} and carries ${shortly(held().intended)}: this `
+    console.log(`  ${base} is at ${shortly(first.now)} and carries ${shortly(at.landing.intended)}: this `
       + `release landed and the save after it did not`);
   } else if (first.now !== pin) {
-    at.landing = await asked(() => landingSaved(documentId, key, landingVoided(first.now)));
-    at.rebuild = true;
-    stop(`${base} is at ${shortly(first.now)} and this landing pinned ${shortly(pin)}: another `
-      + `landing pushed while this one built. The candidate is rebuilt from the new head, and the `
-      + `review and QA readings taken at the old one are void.`);
-  } else if (!pushed(root, base, pin, held().intended)) {
+    await rebuilt(first.now, `${base} is at ${shortly(first.now)} and this landing pinned ${shortly(pin)}: `
+      + `another landing pushed while this one built. The candidate is rebuilt from the new head, and `
+      + `the review and QA readings taken at the old one are void.`);
+  } else if (!pushed(root, base, pin, at.landing.intended)) {
     /* Asked again rather than assumed: a push the remote took and the client did not hear about
        reads as a rejection here, and voiding then would release the same change twice. */
-    const again = landedAlready(root, base, held().intended);
-    if (!again.known) stop(NOT_KNOWN(key, base, again.now, held().intended));
+    const again = landedAlready(root, base, at.landing.intended);
+    if (!again.known) stop(NOT_KNOWN(key, base, again.now, at.landing.intended));
     if (!again.landed) {
-      at.landing = await asked(() => landingSaved(documentId, key, landingVoided(again.now)));
-      at.rebuild = true;
-      stop(`the push was rejected against the pin ${shortly(pin)}, so ${base} moved between the read `
-        + `a moment ago and the push itself. The candidate is rebuilt from the new head.`);
+      await rebuilt(again.now, `the push was rejected against the pin ${shortly(pin)}, so ${base} moved `
+        + `between the read a moment ago and the push itself. The candidate is rebuilt from the new head.`);
     }
-    console.log(`  the push reported a failure and ${base} carries ${shortly(held().intended)} anyway, `
+    console.log(`  the push reported a failure and ${base} carries ${shortly(at.landing.intended)} anyway, `
       + `so it landed and nothing is pushed again`);
   }
   if (at.room) forgetBump(at.room);
   at.landing = await asked(() => landingSaved(documentId, key, { state: "promoted" }));
-  console.log(`  ${base} is at ${shortly(held().intended)}, release ${held().release}`);
+  console.log(`  ${base} is at ${shortly(at.landing.intended)}, release ${at.landing.release}`);
 };
 
 const installStep = async (one) => {
   const { key, documentId, at, ctx: { base, root, self, market, plugin } } = one;
-  const held = () => at.landing;
-  const on = landedAlready(root, base, held().intended);
-  if (!on.known) stop(NOT_KNOWN(key, base, on.now, held().intended));
+  const on = landedAlready(root, base, at.landing.intended);
+  if (!on.known) stop(NOT_KNOWN(key, base, on.now, at.landing.intended));
   if (!on.landed) {
     stop(`${key} is past its push and ${base} is at ${shortly(on.now)}, which does not carry `
-      + `${shortly(held().intended)}. This release is not on the branch, so nothing of it is `
+      + `${shortly(at.landing.intended)}. This release is not on the branch, so nothing of it is `
       + `installed: read what moved that branch before anything here runs again.`);
   }
   /* The branch is past this release, so installing this tree would put a copy in the cache below the
      branch — the one thing an install may not do. That is a reason to skip it and no reason to call
      it done: the record is what says a copy carrying this release is installed, and the branch's own
      ancestry says nothing about it. A plain `land` moves that branch and installs nothing. */
-  if (on.now !== held().intended) {
+  if (on.now !== at.landing.intended) {
     const copy = pluginCopy(join(root, "plugin"));
-    if (!copy?.installed || above(held().release, copy.installed)) {
-      stop(`${base} is at ${shortly(on.now)}, past this release at ${shortly(held().intended)}, and `
+    if (!copy?.installed || above(at.landing.release, copy.installed)) {
+      stop(`${base} is at ${shortly(on.now)}, past this release at ${shortly(at.landing.intended)}, and `
         + `the newest install record holds ${copy?.installed ?? "nothing for this plugin"} — below `
-        + `the ${held().release} this landing made. Installing this tree would put an older copy in `
+        + `the ${at.landing.release} this landing made. Installing this tree would put an older copy in `
         + `the cache and saying it is installed would certify a copy nobody has. Install the branch `
         + `head, then run this landing again for the mark and the statuses it still owes.`);
     }
-    console.log(`  ${base} is at ${shortly(on.now)}, past this release at ${shortly(held().intended)}, `
+    console.log(`  ${base} is at ${shortly(on.now)}, past this release at ${shortly(at.landing.intended)}, `
       + `and ${copy.name} ${copy.installed} is installed over it: the install is not owed and what is `
       + `left of this landing is`);
   } else {
-    at.room ??= roomFor(root, held().intended);
+    at.room ??= roomFor(root, at.landing.intended);
     follows(root, base, at.room);
     const copy = pluginCopy(join(at.room, "plugin"));
-    if (copy && copy.installed === held().release && !copy.stale) {
+    if (copy && copy.installed === at.landing.release && !copy.stale) {
       console.log(`  ${copy.name} ${copy.installed} is installed already, so this install is owed nothing`);
     } else {
       /* One cache is what every release on this machine installs into, and this span moves the marketplace registration through the candidate's own worktree, so where it is entered and not left the branch after this one is not landed: the refusal says what to put back, and a landing that shipped over it would bury the reading of it. */
@@ -352,17 +346,16 @@ const installStep = async (one) => {
 
 const markStep = async (one) => {
   const { key, documentId, at, ctx: { base } } = one;
-  const held = () => at.landing;
-  const view = await asked(() => viewOf(documentId));
-  const landed = held().intended;
-  if (markedCommit(view.comments) === landed) {
+  const { comments } = await asked(() => commentPage(documentId));
+  const landed = at.landing.intended;
+  if (markedCommit(comments ?? []) === landed) {
     console.log(`  the mark at ${shortly(landed)} is up already`);
   } else {
-    const note = markNote(held(), {
+    const note = markNote(at.landing, {
       branch: base,
       landed,
-      judged: held().moved ? held().candidate : held().head,
-      moved: held().moved ? held().moved.split(", ") : [],
+      judged: at.landing.moved ? at.landing.candidate : at.landing.head,
+      moved: at.landing.moved ? at.landing.moved.split(", ") : [],
     });
     await asked(() => write("forge_issues",
       { action: "mark_merged", data: { issueId: documentId, target: "base", note } }));
@@ -378,15 +371,15 @@ const markStep = async (one) => {
    the records have not earned is said and moves nothing, which is what this task owes it. */
 const statusStep = async (one) => {
   const { key, documentId, at } = one;
-  const view = await asked(() => viewOf(documentId));
-  if (atLeast(view.issue.status, DEVELOPED)) {
-    console.log(`  ${key} is ${view.issue.status} already`);
+  const status = await asked(() => statusOf(documentId));
+  if (atLeast(status, DEVELOPED)) {
+    console.log(`  ${key} is ${status} already`);
   } else {
     try {
       await refusing(() => advance([key, "--to", DEVELOPED]));
     } catch (error) {
       if (!(error instanceof Refusal || error instanceof Refused)) throw error;
-      console.error(`  ${key} stays ${view.issue.status}: ${error.message}`);
+      console.error(`  ${key} stays ${status}: ${error.message}`);
     }
   }
   at.landing = await asked(() => landingSaved(documentId, key, { state: "qa-owed" }));
@@ -420,7 +413,9 @@ const landingSteps = (one) => {
 /* The reads and the take, before any step and outside the lock: every refusal here is one branch's own, nothing of the machine or the tree having moved yet, which is what lets the run go on to the key after it. From the first step onwards a refusal may be the whole run's. */
 const taken = async (key) => {
   const documentId = await asked(() => documentIdOf(key));
-  const context = await asked(() => readContext(documentId));
+  const issue = await asked(() => scoped("forge_issues",
+    { action: "get", documentId, fields: ["sessionContext", "status"] }));
+  const context = issue?.sessionContext ?? null;
   const landing = landingOf(context);
   if (!landing) {
     stop(`${key} carries no landing checkpoint, so there is no ready branch to land. A build writes `
@@ -435,14 +430,10 @@ const taken = async (key) => {
       + `owes: read where it is, and land it when the state names the lander's turn.\n`
       + `    forge resume ${key}`);
   }
-  const issue = await asked(() => scoped("forge_issues", { action: "get", documentId, fields: ["status"] }));
-  const mine = sessionSourced();
-  const holder = sessionOf();
   await asked(() => takeLease(documentId, key, context, {
-    holder,
+    holder: sessionOf(),
     line: `landing ${landing.branch}`,
     status: issue?.status ?? null,
-    source: mine.id === holder ? mine.source : null,
   }));
   return { documentId, landing, from };
 };
@@ -481,8 +472,7 @@ const landOne = async (key, ctx, { documentId, landing, from }) => {
 /** The verb: one finite task, the branches in the order they were named. A parked or handed-back
  *  branch is not the end of the run, because the branch after it is somebody else's release. */
 export const landReady = async ({ flags, words }, ctx) => {
-  const keys = [...words];
-  if (!keys.length) {
+  if (!words.length) {
     stop(`land-ready takes the issues whose branches are ready, in the order they land:\n`
       + `    ${ctx.self} land-ready ISS-45`);
   }
@@ -492,7 +482,7 @@ export const landReady = async ({ flags, words }, ctx) => {
       + `each candidate in a tree of its own and touches no run's: land from ${ctx.root}.`);
   }
   const ms = waitMs(flags);
-  for (const key of keys) {
+  for (const key of words) {
     console.log(`\n=== ${key}`);
     let start = null;
     try {

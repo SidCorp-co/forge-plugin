@@ -10,12 +10,19 @@ import { above } from "./version.mjs";
 
 const READ_BY_INSTALL = ["plugin", ".claude-plugin"];
 
+/** What a worktree borrows from the checkout, so a gate run in it resolves its own linter. */
+export const LINKED = ["node_modules", join("packages", "code-quality", "node_modules")];
+
 const CLAUDE = "claude";
 const ADD = (at) => `${CLAUDE} plugin marketplace add ${at}`;
 
-const shortly = (sha) => (sha ?? "unreadable").slice(0, 7);
+export const shortly = (sha) => String(sha ?? "").slice(0, 7);
 
-const headOf = (root) => shortly(gitOut(["rev-parse", "HEAD"], root));
+const headOf = (root) => shortly(gitOut(["rev-parse", "HEAD"], root)) || "an unreadable HEAD";
+
+/** What the remote holds for a branch, or null; an unreachable remote and a gone branch read alike. */
+export const remoteHeadOf = (tree, base) =>
+  (gitOut(["ls-remote", REMOTE, `refs/heads/${base}`], tree) ?? "").split(/\s+/u)[0] || null;
 
 // Name-only: `status --porcelain`'s column is one `gitOut` has trimmed the first character off.
 const uncommitted = (root, paths) => [...new Set([
@@ -128,8 +135,7 @@ const updating = (from, market, plugin) => {
 /* Asked of the remote, never of a tracking ref a resume aimed at this step never fetched: that ref
    can name a release another clone pushed past, and installing then caches a copy below the branch. */
 const notTheBranch = (tree, base) => {
-  const said = gitOut(["ls-remote", REMOTE, `refs/heads/${base}`], tree);
-  const held = (said ?? "").split(/\s+/u)[0];
+  const held = remoteHeadOf(tree, base);
   const mine = gitOut(["rev-parse", "HEAD"], tree);
   if (!held || !mine) {
     return `${REMOTE}/${base} and this tree could not be compared: ${REMOTE} named `

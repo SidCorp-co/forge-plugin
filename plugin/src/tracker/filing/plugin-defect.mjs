@@ -1,6 +1,6 @@
 /* Where a defect in this plugin goes from a checkout that is not this plugin's, rendered off the
    project's key so a closed channel takes its sentence with it: docs/cli/withholding-a-verb.md. */
-import { KIND_NAMES, originIn } from "../issue-shape.mjs";
+import { KIND_NAMES, article, originIn } from "../issue-shape.mjs";
 import { pluginChannel, verbForPluginDefect } from "../../resolve/visibility.mjs";
 import { projectScope } from "../../resolve/settings.mjs";
 
@@ -16,8 +16,7 @@ const IN_THE_PLUGIN = "A defect in this plugin itself — one of its verbs, its 
 /** `bugs` is the one kind the channel carried before the key existed; `all` is every kind. */
 export const allowedKinds = () => (pluginChannel().value === "all" ? KIND_NAMES : [KIND_NAMES[0]]);
 
-const VOWEL = /^[aeiou]/iu;
-const one = (name) => `${VOWEL.test(name) ? "an" : "a"} ${name}`;
+const one = (name) => `${article(name)} ${name}`;
 
 const listed = (names) => (names.length > 1
   ? `${names.slice(0, -1).map(one).join(", ")} or ${one(names.at(-1))}`

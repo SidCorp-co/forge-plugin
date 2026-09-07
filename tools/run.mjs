@@ -12,9 +12,9 @@ import { freezesSession, FROZEN, pluginCopy } from "../plugin/src/tools/plugin-c
 import { checkoutRoot, defaultBranch, git, gitOut, loud, parsed, read, REMOTE, Stop, stop } from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
-import { follows, installs } from "./run/install.mjs";
+import { follows, installs, LINKED } from "./run/install.mjs";
 import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./run/land.mjs";
-import { landReady, LINKED } from "./run/land-ready.mjs";
+import { landReady } from "./run/land-ready.mjs";
 import { isRelease, onlyRelease } from "./run/landing.mjs";
 import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
 import { occupied } from "./run/occupant.mjs";

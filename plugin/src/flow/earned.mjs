@@ -13,7 +13,7 @@ import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/
 
 import { Refused } from "../refusal.mjs";
 import { FIELD as SESSION, landingOf } from "./lease.mjs";
-import { judgeAsk, judgeProblems } from "./qa/verdicts.mjs";
+import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
 import { assemble, criteriaLines, parse } from "./record.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
 import { waitsForPerson } from "../tracker/project-config.mjs";
@@ -272,7 +272,7 @@ const verdictsOwed = (view, ref) => {
     (listed) => `criteria ${listed} have no verdict`,
   );
   const atJudged = [];
-  for (const [number, { record }] of [...view.verdicts].sort((a, b) => a[0] - b[0])) {
+  for (const [number, { record }] of numbered(view.verdicts)) {
     const held = record.fields;
     const gaps = shapeGaps("verdict", record, view.names);
     if (gaps.length) out.push(need(`the verdict on criterion ${number} lacks ${gaps.join(", ")}`, ask(number)));
@@ -317,9 +317,8 @@ const judgedSince = (view, ref) => {
      that was wrong, and a verdict asked for on a number the field no longer holds is refused at the
      write, which would leave the issue unable to reach `tested` at all. */
   const current = new Set(view.criteria.map((one) => one.number));
-  const stale = [...view.verdicts]
+  const stale = numbered(view.verdicts)
     .filter(([number, one]) => current.has(number) && one.at <= held.at)
-    .sort((a, b) => a[0] - b[0])
     .map(([number]) => number);
   /* No commit to read: whatever answers the finding has no sha on the record yet. */
   return foldVerdicts(

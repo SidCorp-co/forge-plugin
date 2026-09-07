@@ -133,11 +133,10 @@ export const readyCheckpoint = (ref, holder, patch, landing) => {
 
 /* The turn is read before anything is written, because this is the one claim that may take a live
    lease: a take the state does not name is refused and no field is touched. */
-const takeTurn = async (documentId, ref, issue, context, { holder, minutes, line, patch, source }) => {
+const takeTurn = async (documentId, ref, issue, context, { holder, minutes, line, patch }) => {
   const landing = landingOf(context);
   const left = leaseOf(context)?.next ?? null;
-  const taken = await takeLease(documentId, ref, context,
-    { holder, minutes, line, patch, source, status: issue.status });
+  const taken = await takeLease(documentId, ref, context, { holder, minutes, line, patch, status: issue.status });
   console.log(`${ref}  take: ${describe(taken)}`);
   console.log(landingLine(landing));
   for (const one of nextLines("take", left, taken.next)) console.log(one);
@@ -203,8 +202,7 @@ export const claim = async (argv) => {
   const state = stateOf(lease, holder);
   const minutes = asked ?? (lease && lease.holder === holder ? lease.minutes : MINUTES);
   if (given.take) {
-    const took = await takeTurn(documentId, ref, issue, context,
-      { holder, minutes, line, patch, source: mine.id === holder ? mine.source : null });
+    const took = await takeTurn(documentId, ref, issue, context, { holder, minutes, line, patch });
     if (sharedHolder(took, mine)) console.log(SHARED_HOLDER);
     return console.log(ADVISORY);
   }

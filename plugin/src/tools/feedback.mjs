@@ -14,8 +14,6 @@ import { bodyOf, keysFrom } from "../tracker/filing/route.mjs";
 import { fileAndSay } from "../tracker/filing/say.mjs";
 import { PROJECT, allowedKinds, onThisRepository, routingBlock } from "../tracker/filing/plugin-defect.mjs";
 
-const kinds = () => allowedKinds();
-
 const USAGE = () => [
   usageOf("feedback"),
   "A defect in this plugin, filed on the plugin's own project — from any checkout, on the",
@@ -24,8 +22,8 @@ const USAGE = () => [
   "and once the body has been read, whatever refuses it prints it back.",
   "",
   "  --title T   what is true once it is fixed, one line",
-  `  --kind K    ${kinds().join(", ")} — what this project allows on the channel; the default is`,
-  `              ${kinds()[0]}, and a body is read against the shape the kind it names needs`,
+  `  --kind K    ${allowedKinds().join(", ")} — what this project allows on the channel; the default is`,
+  `              ${allowedKinds()[0]}, and a body is read against the shape the kind it names needs`,
   "  --with ISS-45   file it with a `relates` edge to that issue, or to each of several separated",
   "              by commas; the keys the note's own body names are listed under the reply instead",
   "  --new       file it even where it would have folded onto a neighbour, and say which",
@@ -71,10 +69,11 @@ const aimed = () => useProject({ slug: PROJECT, from: "the CLI, for feedback on 
 
 /** One of the kinds this project allows on the channel, or a refusal naming what was asked for. */
 const kindAsked = (given) => {
-  if (given === undefined) return kinds()[0];
+  const allowed = allowedKinds();
+  if (given === undefined) return allowed[0];
   if (!KIND_NAMES.includes(given)) fail(kindRefusal(given));
-  if (!kinds().includes(given)) {
-    fail(`This project allows ${kinds().join(", ")} on the channel to ${PROJECT}, and --kind`
+  if (!allowed.includes(given)) {
+    fail(`This project allows ${allowed.join(", ")} on the channel to ${PROJECT}, and --kind`
       + ` ${given} names another: feedback.plugin says which, in ${pluginChannel().from}.`
       + ` What is withheld goes in this run's report.`);
   }

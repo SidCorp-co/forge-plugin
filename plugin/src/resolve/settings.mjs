@@ -182,12 +182,13 @@ export const projectStop = () => forgeJson().parsed?.stop ?? {};
 const FROM_PROJECT = ".forge.json";
 export const PLUGIN_DEFAULT = "the plugin's default";
 
-const chosen = (given, allowed, fallback) => {
-  if (given === undefined || given === null) return { value: fallback, from: PLUGIN_DEFAULT };
+/* One shape for every keyed choice, so doctor and the guides' conditions read them all the same way. */
+const chosen = (given, allowed, fallback, { source = FROM_PROJECT, absent = PLUGIN_DEFAULT } = {}) => {
+  if (given === undefined || given === null) return { value: fallback, from: absent };
   const held = String(given);
   return allowed.includes(held)
-    ? { value: held, from: FROM_PROJECT }
-    : { value: fallback, from: PLUGIN_DEFAULT, unknown: held };
+    ? { value: held, from: source }
+    : { value: fallback, from: absent, unknown: held };
 };
 
 export const FEEDBACK_CHANNELS = ["off", "bugs", "all"];
@@ -211,23 +212,10 @@ export const methodScope = once(() => {
 
 export const LANDING_ROUTES = ["after-merge", "before-merge"];
 
-export const landingScope = once(() => {
-  const given = forgeJson().parsed?.landing;
-  if (given === undefined || given === null) return { value: null, from: null };
-  const held = String(given);
-  return LANDING_ROUTES.includes(held)
-    ? { value: held, from: FROM_PROJECT }
-    : { value: null, from: null, unknown: held };
-});
+export const landingScope = once(() =>
+  chosen(forgeJson().parsed?.landing, LANDING_ROUTES, null, { absent: null }));
 
 export const SHIP_MODES = ["self", "ready"];
 
 /** Unmemoised: `forge doctor --ship` writes the option and reports it in the same process. */
-export const shipMode = () => {
-  const held = userConfig().ship;
-  if (SHIP_MODES.includes(held)) return { value: held, from: CONFIG_PATH };
-  const [fallback] = SHIP_MODES;
-  return held === undefined || held === null
-    ? { value: fallback, from: PLUGIN_DEFAULT }
-    : { value: fallback, from: PLUGIN_DEFAULT, unknown: String(held) };
-};
+export const shipMode = () => chosen(userConfig().ship, SHIP_MODES, SHIP_MODES[0], { source: CONFIG_PATH });

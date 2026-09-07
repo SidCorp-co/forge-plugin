@@ -85,13 +85,12 @@ export const skillListingRow = (slug, root = HERE) => {
     + ` \`forge guide ${slug}\` prints it, and \`forge guide ${slug} <reference>\` one of its ${count}`;
 };
 
-const referenceLines = (slug, root) => {
-  const dir = join(homeOf(slug, root, methodPinned().value), slug, REFERENCES);
-  const names = referencesOf(slug, root);
+const referenceLines = (slug, dir) => {
+  const names = namesIn(join(dir, REFERENCES));
   if (!names.length) return [];
   const width = names.reduce((wide, one) => Math.max(wide, one.length), 0);
   return ["", `References, each \`forge guide ${slug} <reference>\`:`, ...names.map((one) =>
-    `  ${one.padEnd(width)}  ${String(sizeOf(join(dir, `${one}.md`))).padStart(6)}`)];
+    `  ${one.padEnd(width)}  ${String(sizeOf(join(dir, REFERENCES, `${one}.md`))).padStart(6)}`)];
 };
 
 const read = (path) => readFileSync(path, "utf8").replace(/\s+$/u, "");
@@ -126,9 +125,9 @@ export const skillGuideAnswer = (slug, root = HERE) => ({ part = null, tracker =
   const { dir: home, version } = servedFrom(slug, root, methodPinned().value);
   const dir = join(home, slug);
   const tail = version === null ? [] : ["", versionLine(version)];
-  const body = hasBody(slug, root) ? read(join(dir, BODY)) : null;
-  if (!part) return served(slug, body ?? INLINE(slug), [...referenceLines(slug, root), ...tail]);
-  const names = referencesOf(slug, root);
+  const body = existsSync(join(dir, BODY)) ? read(join(dir, BODY)) : null;
+  if (!part) return served(slug, body ?? INLINE(slug), [...referenceLines(slug, dir), ...tail]);
+  const names = namesIn(join(dir, REFERENCES));
   if (names.includes(part)) return served(slug, read(join(dir, REFERENCES, `${part}.md`)), tail);
   const phases = body === null ? [] : phasesOf(body);
   const phase = phases.find((one) => one.number === String(part));

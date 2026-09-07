@@ -100,6 +100,8 @@ const URL_REF = /^https?:\/\//u;
 
 export const isCommit = (value) => COMMIT.test(String(value ?? ""));
 
+export const shortSha = (sha) => String(sha ?? "").slice(0, 7);
+
 /* A verdict may name seven digits where a mark's note names forty, so the shorter one decides. */
 export const sameCommit = (one, two) => {
   const [left, right] = [one, two].map((held) => String(held ?? "").trim().toLowerCase());

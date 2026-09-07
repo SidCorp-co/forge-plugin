@@ -80,8 +80,12 @@ const foldedFrom = (paths) => living(creditsIn(paths).reduce(added, base()));
 export const folded = () => foldedFrom(journals());
 
 /* Never memoised: two processes of one session share these files, and a stale read drops a delivery. */
-export const creditedTo = (session, surface) =>
-  new Set(folded()[session]?.surfaces?.[surface] ?? []);
+const creditsOf = (session, surface) => folded()[session]?.surfaces?.[surface] ?? [];
+
+export const creditedTo = (session, surface) => new Set(creditsOf(session, surface));
+
+/** The newest item on a surface, or null: the list is kept in the order it was credited. */
+export const lastCredited = (session, surface) => creditsOf(session, surface).at(-1) ?? null;
 
 /* A token for the reason `codex-state.mjs` gives its own, ISS-661; here it guards the fold alone. */
 const MINE = `${process.pid}-${randomBytes(4).toString("hex")}`;
