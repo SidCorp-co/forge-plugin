@@ -71,6 +71,7 @@ test("`forge new -h` names the verb for a plugin defect only where the key allow
   const on = await ask(["new", "-h"], open);
   assert.equal(on.status, 0, on.stderr);
   assert.match(on.stdout, /`forge feedback <note\.md> --title/u, on.stdout);
+  assert.match(on.stdout, /standing in, as a bug\.$/mu, "and which kinds the key lets it carry");
   const off = await ask(["new", "-h"], closed);
   assert.equal(off.status, 0, off.stderr);
   assert.doesNotMatch(off.stdout, /forge feedback/u, off.stdout);

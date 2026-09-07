@@ -11,13 +11,17 @@ export const onThisRepository = () => projectScope().value === PROJECT;
 
 const PLUGIN_PATH = /\bplugin\/(?:bin|guides|hooks|scripts|skills|src|test)\//u;
 const PLUGIN_SLUG = new RegExp(`\\b${PROJECT}\\b`, "u");
-const IN_THE_PLUGIN = "A defect in this plugin itself — one of its verbs, its hooks or its gates —";
+const IN_THE_PLUGIN = "A defect in this plugin itself — one of its verbs, its hooks or its gates —\nis not this project's issue";
 
 /** `bugs` is the one kind the channel carried before the key existed; `all` is every kind. */
 export const allowedKinds = () => (pluginChannel().value === "all" ? KIND_NAMES : [KIND_NAMES[0]]);
 
-const listed = (names) =>
-  (names.length > 1 ? `${names.slice(0, -1).join(", ")} or ${names.at(-1)}` : names[0]);
+const VOWEL = /^[aeiou]/iu;
+const one = (name) => `${VOWEL.test(name) ? "an" : "a"} ${name}`;
+
+const listed = (names) => (names.length > 1
+  ? `${names.slice(0, -1).map(one).join(", ")} or ${one(names.at(-1))}`
+  : one(names[0]));
 
 export const routingBlock = () => {
   if (onThisRepository()) {
@@ -26,19 +30,19 @@ export const routingBlock = () => {
   }
   const verb = verbForPluginDefect();
   if (!verb && pluginChannel().value === "off") {
-    return `${IN_THE_PLUGIN} is not this project's issue, and this project files none: one met here\n`
-      + "goes in the run's report, under the line saying it was withheld by the project, and nothing\n"
-      + "about it is written to a backlog. A body whose cause or *Where* names this plugin's own\n"
-      + "paths is held rather than filed here.";
+    return `${IN_THE_PLUGIN}, and this project files none:\n`
+      + "one met here goes in the run's report, under the line saying it was withheld by the\n"
+      + "project, and nothing about it is written to a backlog. A body whose cause or *Where*\n"
+      + "names this plugin's own paths is held rather than filed here.";
   }
   if (!verb) {
-    return `${IN_THE_PLUGIN} is not this project's issue, and no route to its backlog is offered\n`
-      + "here: one met along the way goes in the run's report.";
+    return `${IN_THE_PLUGIN}, and no route to its backlog is offered here:\n`
+      + "one met along the way goes in the run's report.";
   }
-  return `${IN_THE_PLUGIN} is not this project's issue:\n`
+  return `${IN_THE_PLUGIN}:\n`
     + `\`forge ${verb} <note.md> --title "<one line>"\` files it on the plugin's own backlog from\n`
-    + `whichever project you are standing in, as ${listed(allowedKinds())}. A round that met none\n`
-    + "says so in its report.";
+    + `whichever project you are standing in, as ${listed(allowedKinds())}.\n`
+    + "A round that met none says so in its report.";
 };
 
 /** The write under the block, only under `off`: a rule with no verb is satisfied with `forge new`. */
