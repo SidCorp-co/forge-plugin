@@ -8,7 +8,7 @@ import test, { after, before } from "node:test";
 import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-judge").path;
-const { assemble, parseAll, render } = await import("../../../src/flow/record.mjs");
+const { assemble, parseAll, render } = await import("../../../src/flow/record/record.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;

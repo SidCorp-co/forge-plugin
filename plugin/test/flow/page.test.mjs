@@ -7,7 +7,7 @@ import test from "node:test";
 import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("page").path;
-const { render } = await import("../../src/flow/record.mjs");
+const { render } = await import("../../src/flow/record/record.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const fenced = (text) =>

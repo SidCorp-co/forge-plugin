@@ -72,7 +72,7 @@ const posted = (...argv) => {
 
 /* The body carries a *Where*, which is the bug shape's, so the kind is named on every filing but
    the one that redirects, `--size fix`, which reads no shape at all. */
-const filed = (...argv) => wrote("--kind", "bug", ...argv);
+const filed = (...argv) => wrote("--category", "bug", ...argv);
 
 const both = (key, score) => ({ semantic: [[key, score]], keyword: [[key, 0.0608]] });
 
@@ -110,7 +110,7 @@ test("a hit under the floor and a hit the projection calls closed are not sugges
 test("the two queries and the resolve cost the filing one issue-list call", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
-  const run = await filed("--size", "fix", "--new");
+  const run = await filed("--complexity", "s", "--new");
   assert.equal(run.status, 0, run.stderr);
   const listed = state.calls.filter((one) => one.name === "forge_issues" && one.args.action === "list");
   assert.equal(listed.filter((one) => !one.args.filters).length, 1,
@@ -121,17 +121,19 @@ test("the two queries and the resolve cost the filing one issue-list call", asyn
   assert.ok(searches.every((one) => one.args.projectId), "the tool requires the project id");
 });
 
-test("a marked filing whose nearest open neighbour names its place lands there as a finding", async () => {
+test("a sized filing whose nearest open neighbour names its place lands there as a finding", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
-  const run = await filed("--size", "fix");
+  const run = await filed("--complexity", "s");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(created(), undefined, "no second issue was filed");
   const said = commented();
   assert.equal(said.args.data.issue, OPEN.documentId);
   assert.match(said.args.data.body, new RegExp(`^## ${TITLE.slice(0, 8)}`, "u"),
     "the filing's own title is the comment's first line, so the run sees each defect as one item");
-  assert.match(said.args.data.body, /Size: fix\./u, "and the mark travels with it");
+  assert.doesNotMatch(said.args.data.body, /Size:/u, "and nothing writes the size the filer named into it");
+  assert.equal(state.calls.some((one) => one.args.action === "update"), false,
+    "nor onto the issue it joined: a filing that folded sized nothing, the issue it joined being sized already");
   assert.match(run.stdout, /^ISS-45 is open, names the same place and is the nearest of the neighbours that do, at 0\.83/mu);
   /* The block prints on every filing, this one included: the reply names the destination and the
      block is what says what else was open, with the titles and the scores. */
@@ -141,7 +143,7 @@ test("a marked filing whose nearest open neighbour names its place lands there a
 test("--new declines the fold, files the issue and names what it would have joined", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
-  const run = await filed("--size", "fix", "--new");
+  const run = await filed("--complexity", "s", "--new");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "the filing was made after all");
   assert.equal(commented(), undefined);
@@ -176,7 +178,7 @@ test("forge comment redirects as --into did, and asks the tracker nothing about 
 test("a same-place hit the semantic query never ranked is printed and not folded onto", async () => {
   before();
   state.memory = { semantic: [], keyword: [[OPEN.issueId, 0.0608]] };
-  const run = await filed("--size", "fix");
+  const run = await filed("--complexity", "s");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "it was filed rather than folded");
   assert.equal(commented(), undefined);
@@ -186,10 +188,10 @@ test("a same-place hit the semantic query never ranked is printed and not folded
 /* A filing riding another issue's branch owes no fold: it is already answered somewhere, and the
    comment would land on a third issue that is neither. The one condition the two routes never
    shared, so nothing but this case keeps it from being dropped as a copy. */
-test("a marked filing routed onto another issue's branch is filed and never folded", async () => {
+test("a sized filing routed onto another issue's branch is filed and never folded", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
-  const run = await filed("--size", "fix", "--with", ELSEWHERE.issueId);
+  const run = await filed("--complexity", "s", "--with", ELSEWHERE.issueId);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "it was filed rather than folded");
   assert.equal(commented(), undefined, "and nothing was posted onto the neighbour it reads like");
@@ -197,26 +199,27 @@ test("a marked filing routed onto another issue's branch is filed and never fold
   assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu, "the block still prints");
 });
 
-/* Criterion 6: the consequential case of dropping the rung. This body carries no mark at all, so it
-   is read as a `feature` by the tier the flow costs most for, and it folds all the same. */
-test("a filing that names its cause folds whatever size it is marked at, this one at none", async () => {
+/* The consequential case of the fold not reading a size: this filing names none at all, so it is a
+   `feature` by the tier the flow costs most for, and it folds all the same. */
+test("a filing that names its cause folds whatever size it claims, this one none", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.99);
   const run = await filed();
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(created(), undefined, "the mark is no longer what buys the fold");
+  assert.equal(created(), undefined, "a size is not what buys the fold");
   assert.equal(commented().args.data.issue, OPEN.documentId);
-  assert.doesNotMatch(commented().args.data.body, /Size:/u, "and no mark was invented to justify it");
+  assert.doesNotMatch(commented().args.data.body, /Size:/u, "and no size was invented to justify it");
 });
 
-test("and the same body marked `Size: feature.` folds too", async () => {
+test("and the same body at the largest of the five folds too", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.99);
-  const run = await filed("--size", "feature");
+  const run = await filed("--complexity", "xl");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(created(), undefined);
   assert.equal(commented().args.data.issue, OPEN.documentId);
-  assert.match(commented().args.data.body, /Size: feature\./u, "the mark travels with it and decides nothing");
+  assert.doesNotMatch(commented().args.data.body, /Size:|xl/u,
+    "the value the filer named decides nothing here and is written nowhere, the fold making no issue to hold it");
 });
 
 /* Criterion 21, and the case the predicate exists for: `tools/run.mjs` files the ship's own batch
@@ -230,7 +233,7 @@ test("a kind whose body names no cause folds onto nothing, however near the neig
     const path = join(room, "body.md");
     writeFileSync(path, `## Outcome\n\nthe range is read once as a whole\n\n## Rules\n\n`
       + `- \`plugin/src/commands.mjs\` is inside the range.\n\n## Out of scope\n\nthe rest of the tree.\n`);
-    const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--kind", kind], tracker.env);
+    const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--category", kind], tracker.env);
     assert.equal(run.status, 0, run.stderr);
     assert.ok(created(), `a ${kind} was folded away instead of filed`);
     assert.equal(commented(), undefined, `a ${kind} became a comment on ${OPEN.issueId}`);
@@ -241,7 +244,7 @@ test("a kind whose body names no cause folds onto nothing, however near the neig
 test("a search the tracker refuses files the issue and says the check could not run", async () => {
   before();
   state.answer = { "forge_memory.search": () => ({ refused: "forge_memory.search is not available to this credential" }) };
-  const run = await filed("--size", "fix");
+  const run = await filed("--complexity", "s");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "the filing lands whatever the check did");
   assert.match(run.stdout, /the semantic query could not run: .*forge_memory.search is not available/u,
@@ -256,7 +259,7 @@ test("a search the tracker refuses files the issue and says the check could not 
 test("a search the transport loses files the issue too, and does not exit before the write", async () => {
   before();
   state.answer = { "forge_memory.search": () => ({ http: 400 }) };
-  const run = await filed("--size", "fix");
+  const run = await filed("--complexity", "s");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "the write happened, so nothing exited on the read beside it");
   assert.match(run.stdout, /the semantic query could not run: Forge answered 400/u);
@@ -354,7 +357,7 @@ test("the note verb still refuses a flag that is none of its four", async () => 
 test("a same-place neighbour inside the printed band is shown and not folded onto", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.72);
-  const run = await filed("--size", "fix");
+  const run = await filed("--complexity", "s");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "0.72 is over the printing floor and under the fold's");
   assert.equal(commented(), undefined);
@@ -366,7 +369,7 @@ test("the fold reads the target's thread once before it writes to it", async () 
   before();
   state.memory = both(OPEN.issueId, 0.83);
   state.comments = { [OPEN.documentId]: [{ documentId: "c-1", body: "already reported here", createdAt: "2026-09-04T00:00:00Z" }] };
-  const held = await filed("--size", "fix");
+  const held = await filed("--complexity", "s");
   state.comments = {};
   assert.equal(held.status, 1, held.stdout);
   assert.match(held.stderr, /Hold — this writes to ISS-45/u);
@@ -385,7 +388,7 @@ test("and folds on the re-send, the thread having been shown to that session", a
   const env = { ...tracker.env, FORGE_SESSION_ID: "beside-fold" };
   const path = join(room, "body.md");
   writeFileSync(path, `${BODY}\n`);
-  const argv = ["new", path, "--title", TITLE, "--kind", "bug", "--size", "fix"];
+  const argv = ["new", path, "--title", TITLE, "--category", "bug", "--complexity", "s"];
   assert.equal((await ranAsync(FORGE, argv, env)).status, 1, "held once");
   const again = await ranAsync(FORGE, argv, env);
   state.comments = {};
@@ -403,7 +406,7 @@ test("--new on a kind that owes no cause names the neighbour and says the kind i
   const path = join(room, "body.md");
   writeFileSync(path, "## Outcome\n\nthe verb takes the name it is handed\n\n## Rules\n\n"
     + "- `plugin/src/commands.mjs` is where the name is read.\n\n## Out of scope\n\nthe rest of it.\n");
-  const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--kind", "feature", "--new"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--category", "feature", "--new"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created());
   assert.match(run.stdout, /--new declined nothing to decline: ISS-45 would have qualified/u);
@@ -417,7 +420,7 @@ test("--new on a kind that owes no cause names the neighbour and says the kind i
 test("a body piped in is printed back by a refusal that comes after the read", async () => {
   before();
   const body = "## Outcome\n\nthe piped body reaches the refusal and comes back out of it\n";
-  const argv = ["new", "-", "--title", "the piped body survives what refuses it", "--kind", "feature"];
+  const argv = ["new", "-", "--title", "the piped body survives what refuses it", "--category", "feature"];
   const run = await ranAsync(FORGE, argv, tracker.env, process.cwd(), body);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /Your body, so that nothing here loses it:/u);
@@ -433,7 +436,7 @@ test("a filing with no kind is refused without reading the stdin it was piped", 
   const argv = ["new", "-", "--title", "the kind is asked for before the body is taken"];
   const run = await ranAsync(FORGE, argv, tracker.env, process.cwd(), body);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /A filing needs --kind/u);
+  assert.match(run.stderr, /A filing needs --category/u);
   assert.match(run.stderr, /bug, enhancement, feature, review/u);
   assert.doesNotMatch(run.stderr, /Your body, so that nothing here loses it:/u,
     "nothing was read, so there is nothing to print back and nothing was lost");
@@ -463,7 +466,7 @@ test("that refusal answers on a stdin nothing ever closes", async () => {
   });
   child.stdin.destroy();
   assert.equal(said.code, 1, `the refusal never came; the body was being waited for:\n${said.err}`);
-  assert.match(said.err, /A filing needs --kind/u);
+  assert.match(said.err, /A filing needs --category/u);
   assert.equal(created(), undefined);
 });
 
@@ -478,7 +481,7 @@ test("the two filing routes fold with the same words, so neither can be correcte
   };
   before();
   state.memory = both(OPEN.issueId, 0.83);
-  const verb = await filed("--size", "fix");
+  const verb = await filed("--complexity", "s");
   assert.equal(verb.status, 0, verb.stderr);
   assert.equal(commented().args.data.issue, OPEN.documentId);
   before();

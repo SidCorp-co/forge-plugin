@@ -7,7 +7,7 @@ import test from "node:test";
 import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("park").path;
-const { render } = await import("../../src/flow/record.mjs");
+const { render } = await import("../../src/flow/record/record.mjs");
 const { PARKS } = await import("../../src/flow/machine.mjs");
 const { PARK_STATUS, answered, viewFrom } = await import("../../src/flow/earned.mjs");
 
@@ -38,7 +38,8 @@ const MOVING = {
   issueId: "ISS-98",
   status: "confirmed",
   title: "the fix that walks the flow",
-  description: "`forge issue` should take the `data.relations` route.\n\nSize: fix.\n",
+  description: "`forge issue` should take the `data.relations` route.\n",
+  complexity: "s",
 };
 /* The tracker as it really answers, because the pairing this file is about is a sequence and a
    fixture that acknowledges a move without making one cannot produce the sequence: an update is

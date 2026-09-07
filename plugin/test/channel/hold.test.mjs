@@ -55,7 +55,7 @@ test.after(() => tracker.close());
 
 const file = async (room) => {
   state.calls = [];
-  const run = await ranAsync(FORGE, ["new", body(room), "--title", TITLE, "--kind", "bug"],
+  const run = await ranAsync(FORGE, ["new", body(room), "--title", TITLE, "--category", "bug"],
     tracker.env, room);
   return { ...run, filed: state.calls.filter((one) => one.name === "forge_issues" && one.args.action === "create")[0] };
 };
@@ -84,7 +84,7 @@ test("every directory this copy ships is a path the hold reads as inside the plu
     const path = join(elsewhere, `cause-${dir}.md`);
     writeFileSync(path, `${named}\n`);
     state.calls = [];
-    const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--kind", "bug"],
+    const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--category", "bug"],
       tracker.env, elsewhere);
     assert.equal(run.status, 1, `plugin/${dir}/ read as another project's issue:\n${run.stdout}`);
     assert.match(run.stderr, /cause is inside this plugin/u, `plugin/${dir}/: ${run.stderr}`);

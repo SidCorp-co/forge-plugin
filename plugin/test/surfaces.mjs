@@ -1,7 +1,7 @@
 /* What a caller reads before typing a flag, for the two checks that hold every printed `forge` form to it. Help is per sub-verb and per record kind, so `--criterion` is on `record verdict -h` and `--send` on `codex consult -h`: a check that stops at the verb's row judges neither, and one that took every kind's text at once would judge nothing. One table, because the doc walk and the source walk drifting apart is the same defect twice (ISS-700). */
 import { USAGE as ADVANCE } from "../src/flow/advance.mjs";
 import { USAGE as CLAIM } from "../src/flow/claim.mjs";
-import { USAGE as RECORD } from "../src/flow/record.mjs";
+import { USAGE as RECORD } from "../src/flow/record/record.mjs";
 import { USAGE as RESUME } from "../src/flow/resume.mjs";
 import { SAYS as CLOUDFLARE, USAGE as CLOUDFLARE_USAGE } from "../src/tools/cloudflare.mjs";
 import { SAYS as CODEX, USAGE as CODEX_USAGE } from "../src/codex/codex.mjs";

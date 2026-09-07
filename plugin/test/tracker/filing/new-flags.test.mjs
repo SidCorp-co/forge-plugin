@@ -10,7 +10,6 @@ import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 
 const home = tempHome("new-flags");
 process.env.XDG_CONFIG_HOME = home.path;
-const { markFor } = await import("../../../src/ladder.mjs");
 
 const SHORT = "`forge issue` should take the `data.relations` route.";
 const TITLE = "the filing is read against the shape before the tracker sees it";
@@ -48,14 +47,14 @@ const bodyAt = (body) => {
   writeFileSync(path, body);
   return path;
 };
-/* A filing names its kind or is refused, and that is not what most of the cases below are about,
-   so the helper names one where the argv did not. */
+/* A filing names its category or is refused, and that is not what most of the cases below are
+   about, so the helper names one where the argv did not. */
 const filed = (body, ...argv) => {
-  const kind = argv.includes("--kind") ? [] : ["--kind", "feature"];
-  return ranAsync(FORGE, ["new", bodyAt(body), ...argv, ...kind], tracker.env);
+  const category = argv.includes("--category") ? [] : ["--category", "feature"];
+  return ranAsync(FORGE, ["new", bodyAt(body), ...argv, ...category], tracker.env);
 };
 
-/* The kinds end to end: what the verb refuses before it reads anything, what it sends the tracker
+/* The categories end to end: what the verb refuses before it reads anything, what it sends the tracker
    for the kind it was given, and what it says about a shortfall it files anyway. */
 const BUG = [
   "## What happened",
@@ -79,21 +78,21 @@ const BUG = [
   "Any change to the tracker.",
 ].join("\n");
 
-test("a kind outside the set is refused with the set, before a single tracker call", async () => {
+test("a category outside the set is refused with the set, before a single tracker call", async () => {
   state.calls = [];
-  const run = await filed(BUG, "--title", TITLE, "--kind", "chore");
+  const run = await filed(BUG, "--title", TITLE, "--category", "chore");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No kind named chore\. The set is bug, enhancement, feature, review\./u);
+  assert.match(run.stderr, /No category named chore\. The set is bug, enhancement, feature, review\./u);
   assert.deepEqual(state.calls, [], "nothing was asked of the tracker to find that out");
 });
 
 /* The flag decides both the sections the body is read against and the tracker's own field, and
    prose decides neither: the same headings carry a bug and a feature (ISS-334). */
-test("a filing naming no kind is refused with the set, and files nothing", async () => {
+test("a filing naming no category is refused with the set, and files nothing", async () => {
   state.calls = [];
   const run = await ranAsync(FORGE, ["new", bodyAt(WHOLE), "--title", TITLE], tracker.env);
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /A filing needs --kind/u);
+  assert.match(run.stderr, /A filing needs --category/u);
   assert.match(run.stderr, /Name one of bug, enhancement, feature, review/u);
   assert.deepEqual(state.calls, [], "nothing was asked of the tracker to find that out");
 });
@@ -108,29 +107,30 @@ test("the comment verb needs no kind, and no shape either", async () => {
   assert.ok(state.calls.some((one) => one.name === "forge_comments" && one.args.action === "create"));
 });
 
-test("the kind the filing names is what the body is read against, and what the tracker is sent", async () => {
+test("the category the filing names is what the body is read against, and what the tracker is sent", async () => {
   state.calls = [];
-  const refused = await filed(WHOLE, "--title", TITLE, "--kind", "bug");
+  const refused = await filed(WHOLE, "--title", TITLE, "--category", "bug");
   assert.equal(refused.status, 1);
   assert.match(refused.stderr, /no heading naming what happened/u);
   assert.match(refused.stderr, /required of a bug/u);
   state.calls = [];
-  const run = await filed(BUG, "--title", TITLE, "--kind", "bug");
+  const run = await filed(BUG, "--title", TITLE, "--category", "bug");
   assert.equal(run.status, 0, run.stderr);
   const create = state.calls.find((one) => one.args.action === "create");
   assert.equal(create.args.data.category, "bug");
-  assert.match(run.stdout, /"kind": "bug"/u, "and the answer is read back in the CLI's own word");
-  assert.doesNotMatch(run.stdout, /category/u);
+  assert.match(run.stdout, /"category": "bug"/u,
+    "and the answer is read back in the field's own name, which is the one the flag took");
+  assert.doesNotMatch(run.stdout, /"kind"/u, "with no second word for it anywhere in the reply");
 });
 
 /* The ship step's own kind, filed by nobody: the body it generates is a feature's shape and the
    value it is stored under is what a reader filters a reading off a backlog by. */
 test("a reading is filed under its own kind, against the sections a feature owes", async () => {
   state.calls = [];
-  const run = await filed(WHOLE, "--title", TITLE, "--kind", "review");
+  const run = await filed(WHOLE, "--title", TITLE, "--category", "review");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(state.calls.find((one) => one.args.action === "create").args.data.category, "review");
-  const short = await filed(WHOLE.slice(0, WHOLE.indexOf("## Out of scope")), "--title", TITLE, "--kind", "review");
+  const short = await filed(WHOLE.slice(0, WHOLE.indexOf("## Out of scope")), "--title", TITLE, "--category", "review");
   assert.equal(short.status, 1);
   assert.match(short.stderr, /out-of-scope heading.*required of a review/u);
 });
@@ -183,14 +183,15 @@ test("a --with key of the wrong shape is refused before any call, the rank read 
 
 test("a nice-to-have section left out is said on the way past, and the issue is filed", async () => {
   state.calls = [];
-  const run = await filed(BUG, "--title", TITLE, "--kind", "bug");
+  const run = await filed(BUG, "--title", TITLE, "--category", "bug");
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /leaves out Where, nice to have on a bug/u);
   assert.ok(state.calls.some((one) => one.args.action === "create"), "said, not refused");
 });
 
-/* The mark reaches the tracker's field, flag-written or typed, so both sources agree from the create. */
-test("--size marks the description and writes the tracker's field from that mark", async () => {
+/* The value goes to the tracker's field as the filer named it and the body carries no copy of it:
+   one place it is written is what keeps a re-size from having to be made twice. */
+test("--complexity writes the tracker's field, and nothing writes a size into the body", async () => {
   /* The top rung buys no exemption, so its body still owes every section the shape asks for. */
   const created = async (body, ...argv) => {
     state.calls = [];
@@ -198,14 +199,27 @@ test("--size marks the description and writes the tracker's field from that mark
     assert.equal(run.status, 0, run.stderr);
     return state.calls.find((one) => one.args.action === "create");
   };
-  for (const [rung, held, body] of [["trivial", "xs", SHORT], ["fix", "s", SHORT], ["feature", "m", WHOLE]]) {
-    const create = await created(body, "--size", rung);
-    assert.match(create.args.data.description, new RegExp(markFor(rung), "u"));
-    assert.equal(create.args.data.complexity, held, rung);
-    assert.equal(create.args.data.status, "open", "and the same body is filed either way");
+  for (const [band, body] of [["xs", SHORT], ["s", SHORT], ["m", WHOLE], ["l", WHOLE], ["xl", WHOLE]]) {
+    const create = await created(body, "--complexity", band);
+    assert.equal(create.args.data.complexity, band, band);
+    assert.doesNotMatch(create.args.data.description, /^Size:/mu, `${band} was written into the body as well`);
+    assert.equal(create.args.data.status, "open", "and the same body is filed at every value");
   }
-  const typed = await created(`${SHORT}\n\n${markFor("trivial")}`);
-  assert.equal(typed.args.data.complexity, "xs", "the line the filer typed writes the field too");
+  const typed = await created(`${WHOLE}\n\nSize: trivial.`);
+  assert.equal(typed.args.data.complexity, undefined,
+    "a line the filer typed is prose: the field is sent where the flag named a value and not otherwise");
+  assert.match(typed.args.data.description, /^Size: trivial\.$/mu, "and the line they wrote is left as they wrote it");
+});
+
+test("a complexity outside the tracker's five is refused with them, and files nothing", async () => {
+  state.calls = [];
+  const run = await filed(WHOLE, "--title", TITLE, "--complexity", "huge");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No complexity named huge\. The set is xs, s, m, l, xl\./u);
+  assert.match(run.stderr, /the tracker's own five, smallest first/u);
+  assert.match(run.stderr, /xs a trivial, s a fix, m a feature, l a feature, xl a feature/u,
+    "and the rung each claims, so a filer sizing an issue knows what it will owe");
+  assert.deepEqual(state.calls, [], "nothing was asked of the tracker to find that out");
 });
 
 test("a filing that named no rank is filed at the bottom, and the reply says which line ranked it", async () => {

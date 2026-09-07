@@ -5,23 +5,20 @@
 the one rule that runs through every function there and would otherwise be six comments saying it
 six ways.
 
-## The two sources, and which of them decides
+## One source, and why it is the field
 
-A rung is claimed twice over. The tracker holds a size per issue, five values wide, and each claims
-one rung: the smallest a `trivial`, the next a `fix`, the top three a `feature`, since a feature is
-everything else. The body holds a `Size:` line, which is what carries every issue filed before that
-field could be read back, and what a person types on a screen with no CLI to hand. `forge new`
-writes both at once from whichever the filer gave, so anything filed through this CLI leaves them
-agreeing; a hand edit to either is the only way they come apart.
+A rung is claimed once: by the `complexity` the tracker holds for the issue, five values wide, each
+claiming one rung — the smallest a `trivial`, the next a `fix`, the top three a `feature`, since a
+feature is everything else. An issue holding none is a `feature`, the top rung being what an
+unclaimed issue falls to, and `forge advance --owed` names the value that claimed it.
 
-Where they do, **the higher rung wins, and the report says which source lost.** Not a precedence
-rule — the same arithmetic that already reads a correction, applied to one more input, so an unset
-size falls back to the mark and a set one lifts an unmarked issue off the top rung. The argument for
-the direction is the one below, spent on a different input: three statuses ask less of the rungs
-under `feature`, and they are asked at different points of the run. A rung lowered after the plan
-would make a later status demand less than an earlier one already established — a status claiming
-what nobody checked, which is the cost this whole file exists to avoid. An upward correction still
-outranks both, and a cut comment page is still a `feature` whatever either source says.
+The body used to claim one too, on a `Size:` line, and two sources for one switch is a precedence
+rule, a report about which of them lost, and an undo that only half works: the field said `xs`, the
+body said `feature`, and neither a run nor a reader could say which the checks would run. So the
+line is read by nothing. Bodies already carrying one are not edited — the line is prose now, claiming
+nothing — and `forge issue ISS-nn --set complexity=<value> --why <w>` is how one that was only ever
+marked in its body gets the field. An upward correction still outranks the field, and a cut comment
+page is still a `feature` whatever the field says.
 
 The two largest of the five values also earn a question rather than a payload: one change, or
 several? What a rung owes is the contract's, and a report that grew a demand of its own would be a
@@ -38,13 +35,12 @@ Where it applies, and what each case would have done read the other way:
 
 | The doubt | Resolved | Read downward it would have |
 |---|---|---|
-| a description carrying two marks | the highest of them | let whichever the reader found first decide, so `Size: fix.` above `Size: trivial.` is a trivial and the same body reordered is a fix |
-| a description marking the top rung | that rung, which is writable like any other | read `Size: feature.` as no mark at all, so a body claiming it beside a lower one reads as the lower — and this repository's own issues write it in full |
-| a comment page the tracker cut | `feature`, whatever the mark says | lose a re-size the cut hid, shrinking a shortfall every other check can only grow |
+| an issue holding no complexity | `feature`, the rung that owes most | read an unset field as the rung that owes least, so an issue nobody sized is the cheapest one on the backlog |
+| a comment page the tracker cut | `feature`, whatever the field says | lose a re-size the cut hid, shrinking a shortfall every other check can only grow |
 | a correction naming a pair | only where the pair climbs | let `feature -> fix` raise a trivial to a fix, reading where it points and never where it came from |
 | several climbs on one page | the highest | take the newest, so a plan correction written after a re-size erases it (ISS-161) |
 | a word the ladder has not got | the height of the lowest rung, never negative | index off the end of the table and answer with nothing |
-| a size value the table has not got | no claim from that source, so the mark decides alone | invent a rung for a value nobody mapped, and read it as the one that owes least |
+| a complexity the table has not got | no claim at all, so the rung is a `feature` | invent a rung for a value nobody mapped, and read it as the one that owes least |
 | a run's transcript naming several rungs | the largest among them | file a batch under its cheapest member, so every rung looks better the more work is batched onto it |
 | a plan declaring one name twice | `yes`, wherever outside a code span it stands | read the first, so `no` above `yes` waives a payload the plan explicitly declared, and the same two lines reordered do not |
 | a ceiling read from a projection that lost a correction | printed all the same | the loss only ever lowers the rung, so it tightens a print that refuses nothing: it nags where nothing was owed and never falls silent where something was |
@@ -63,15 +59,6 @@ a print that refuses nothing, so it nags where nothing was owed and never falls 
 something was.
 
 ## Two readings the rule does not govern
-
-**A mark inside an example is not a doubtful mark — it is not a mark.** A fenced or indented block
-is stripped before the mark is looked for, because the contract's own guide prints the syntax and a
-body quoting it would otherwise claim whatever rung it quoted. Answering with the higher of the
-stripped and unstripped readings would be worse than either: an example naming `feature` would then
-raise a rung the body genuinely claimed, and no trivial issue could ever quote the mark. A wall
-closes on its own character, at least as long as the one that opened it and alone on its line:
-anything looser ends the block at a line of content and reads the mark under it as the body's. A
-block nothing closes runs to the end of the text, so what that loses, it loses upward.
 
 **A declaration a plan quotes is not a doubtful declaration — it is not a declaration.** An inline
 code span is blanked before the three names are looked for, because a plan is written under the rule

@@ -8,7 +8,7 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { Refused } from "../refusal.mjs";
-import { issueOf } from "./record.mjs";
+import { issueOf } from "./record/record.mjs";
 import { sizeOf, viewFrom } from "./earned.mjs";
 import { READ_OFF_THE_RECORD, indexLines, phaseIndex } from "../guides/phases.mjs";
 import { shortfall } from "./advance.mjs";

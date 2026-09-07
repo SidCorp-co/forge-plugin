@@ -1,4 +1,4 @@
-# `forge next` — the call budget, the two sources of a band, and where the module reading stops
+# `forge next` — the call budget, the one source of a band, and where the module reading stops
 
 The order this verb prints is arithmetic over what the tracker already holds, and `forge next -h`
 prints the table it is arithmetic over. What follows is what neither the table nor the code can
@@ -12,15 +12,15 @@ available server` after three backoffs. The walk that lists them costs five page
 seconds; the bodies cost the tracker.
 
 So the score is computed on the browse projection alone, which carries the priority, the category,
-the size, the reopen count and the filing date — every weight but one. Bodies are read a pass
-at a time, and what stops the reading is not a count but a bound: a body decides the size band and
-nothing else about the score, so an unread row can climb by the band's own spread and no further.
-The reading stops when the best an unread row could reach cannot beat the last candidate asked for.
+the size, the reopen count and the filing date — every weight there is. The bodies are read for the
+eligibility no projection carries: which paths a plan claims, and who holds them. They are read a
+pass at a time, and what stops the reading is not a count but a bound: an unread row can climb by
+the slack the weights leave it and no further, which is more slack than it needs now the band is a
+field. The reading stops when the best unread row cannot beat the last candidate asked for.
 
-A fixed window is wrong two ways. It truncates the row a body would have promoted — twenty-five
-tied issues and a twenty-sixth declaring a fix size, and the winner is never read. And a window
-every filter drops reports nothing eligible while eligible issues sit below it, because eligibility
-is judged over what was read. Reading in
+A fixed window is wrong two ways. It truncates the row the pass after it would have promoted, and a
+window every filter drops reports nothing eligible while eligible issues sit below it, because
+eligibility is judged over what was read. Reading in
 passes and re-judging the whole read set answers both.
 
 The bound is over the candidates the *printing* can need rather than the batches asked for: a batch
@@ -52,18 +52,17 @@ the search can see goes unfound. That would make every search a round of its own
 fifty-nine seconds, so the heads a batch does not move are asked for together and only a head a
 batch promoted costs a round — the rare case paying for itself instead of every case paying for it.
 
-## The band has two sources, and the row says which decided
+## The band is the `complexity` field, and a row holding none says so
 
-The listing carries the size field on every row, and the body's `Size:` line is the other source. The
-row names which decided, because a band the body claimed and a band the tracker gave score the same
-and mean different things.
+The listing carries the field on every row and that is the whole of the band: five values wide, so
+`l` and `xl` score apart where a rung would fold them together. A row holding none bands as `unset`
+and takes the weight declared for that, which is a value of its own rather than the rung an unsized
+issue would fall to at `forge advance --owed` — what to work next is a question about what somebody
+weighed, and reading an unweighed issue as a feature would score it as though they had.
 
-**Which decides is the ladder's, not this verb's.** `plugin/src/ladder.mjs` resolves both upward —
-the higher rung wins, neither source lowering a rung the other claimed — so a body marked
-`Size: feature.` under a field saying `xs` bands as a feature here, as `forge advance --owed` holds
-the run to one (ISS-394). The width survives: a rung is three values and a band five, so an unbeaten
-field keeps its own band and `l` and `xl` score apart; a body that outranked it takes the band to the
-canonical one for the rung it won.
+The body's `Size:` line was the other source until ISS-701. Two sources meant a band the body claimed
+and one the tracker gave scoring alike and meaning differently, and it meant reading a body per
+candidate to find out. [`the-ladder`](the-ladder.md) holds why the field is the one source.
 
 ## Where the module reading stops, and why it is not the repository
 

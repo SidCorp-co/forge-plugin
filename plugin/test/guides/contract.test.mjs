@@ -25,8 +25,8 @@ const {
   statesContract,
 } = await import("../../src/guides/contract.mjs");
 const { CHECKS, ORDER, PHASE, viewFrom } = await import("../../src/flow/earned.mjs");
-const { LIGHTER, SPARES, TIERS } = await import("../../src/ladder.mjs");
-const { render } = await import("../../src/flow/record.mjs");
+const { LIGHTER, SPARES, TIERS, bandFor } = await import("../../src/ladder.mjs");
+const { render } = await import("../../src/flow/record/record.mjs");
 
 const ROOT = new URL("../../../", import.meta.url).pathname;
 const PLUGIN = join(ROOT, "plugin");
@@ -389,12 +389,18 @@ test("doctor names the missing file, and a file from another build, in the copy 
 let clock = 0;
 const recorded = (kind, fields) =>
   ({ createdAt: `2026-09-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`, body: render(kind, fields) });
-const marked = (tier) => `\`forge issue\` should take the \`data.relations\` route.\n\nSize: ${tier}.\n`;
 const UNMARKED = "`forge issue` should take the `data.relations` route.";
 const VERIFIED = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] })];
 const reSized = (moved) => [recorded("correction", { moved, why: "what the work turned out to be" })];
-const sized = (description, extra = {}) =>
-  ({ description, plan: "", acceptanceCriteria: "1. The one check that fails without the change.", ...extra });
+/* A rung is the tracker's complexity and nothing else, so a case at a rung sets the field the entry
+   checks read; `null` is the issue that holds none, which is the top rung by the upward rule. */
+const sized = (tier, extra = {}) => ({
+  description: UNMARKED,
+  plan: "",
+  acceptanceCriteria: "1. The one check that fails without the change.",
+  ...(tier ? { complexity: bandFor(tier) } : {}),
+  ...extra,
+});
 const missing = (status, issue, comments = []) =>
   CHECKS[status](viewFrom("the-uuid", issue, comments), "ISS-3").map((one) => one.what);
 /* One case per row, keyed by the status, so a row added with no case fails rather than going unasked. */
@@ -420,12 +426,12 @@ test("every status a tier lightens says so in its own part, and drops it in its 
     assert.ok(row.because, `${row.status} drops ${row.drops} and says why nowhere`);
     const held = CASES[row.status].comments ?? [];
     for (const tier of row.tiers) {
-      assert.deepEqual(missing(row.status, sized(marked(tier)), held), [],
+      assert.deepEqual(missing(row.status, sized(tier), held), [],
         `${row.status} is reported to drop ${row.drops} for a ${tier} and the check still asks for it`);
     }
-    const heavy = missing(row.status, sized(UNMARKED), held);
+    const heavy = missing(row.status, sized(null), held);
     assert.ok(heavy.some((one) => CASES[row.status].owed.test(one)),
-      `and the mark is the whole difference at ${row.status}: ${heavy.join("; ") || "nothing owed"}`);
+      `and the complexity is the whole difference at ${row.status}: ${heavy.join("; ") || "nothing owed"}`);
   }
 });
 
@@ -455,7 +461,7 @@ test("every tier the ladder has is a row of the contract's own table, with what 
    the one whole run would hand later scoped runs a green nothing established. */
 test("no rung buys a judgement: the baseline and the migration classification cost every rung alike", () => {
   for (const tier of TIERS) {
-    const held = sized(marked(tier), { plan: "Schema coupling: yes" });
+    const held = sized(tier, { plan: "Schema coupling: yes" });
     assert.ok(missing("in_progress", held).some((one) => /^no baseline/u.test(one)),
       `a ${tier} is asked for no baseline, and the one whole gate run of the work is what it skipped`);
     assert.ok(missing("tested", { ...held, acceptanceCriteria: "" }).length,
@@ -466,21 +472,21 @@ test("no rung buys a judgement: the baseline and the migration classification co
 });
 
 test("the size drops nothing the contract keeps, and a declared person takes a fix off the path", () => {
-  assert.equal(missing("confirmed", sized(marked("fix"))).length, 1, "the confirmation with its where");
-  assert.deepEqual(missing("approved", sized(marked("fix"), { acceptanceCriteria: "" })),
+  assert.equal(missing("confirmed", sized("fix")).length, 1, "the confirmation with its where");
+  assert.deepEqual(missing("approved", sized("fix", { acceptanceCriteria: "" })),
     ["the criteria field holds no numbered line `N. outcome`"], "the criteria, being the whole of a fix's plan");
-  assert.deepEqual(missing("released", sized(marked("fix"))).map((one) => one.slice(0, 16)), ["no verification:"]);
-  const seen = missing("released", sized(marked("fix"), { plan: "User-facing outcome: yes" }), VERIFIED);
+  assert.deepEqual(missing("released", sized("fix")).map((one) => one.slice(0, 16)), ["no verification:"]);
+  const seen = missing("released", sized("fix", { plan: "User-facing outcome: yes" }), VERIFIED);
   assert.ok(seen.includes("no release note and no withholding either"), "declaring a person owes the note again");
   assert.ok(seen.some((one) => /no person has answered/u.test(one)), "and the park with it");
 });
 
 test("a re-size outlives the corrections written after it, and a shortened page never lightens", () => {
   const both = [...reSized("Size: fix -> feature"), ...reSized("criterion 2 | the review proved it impossible")];
-  assert.equal(missing("clarified", sized(marked("fix")), both).length, 1,
+  assert.equal(missing("clarified", sized("fix"), both).length, 1,
     "the newest correction is the plan's, and `assemble` keeps that one alone (ISS-161): the re-size is "
     + "read off every comment, or the correction `approved` asks for would put the issue back on the light path");
-  const cut = CHECKS.clarified(viewFrom("the-uuid", sized(marked("fix")), [], "2 of 40 comments read"), "ISS-3");
+  const cut = CHECKS.clarified(viewFrom("the-uuid", sized("fix"), [], "2 of 40 comments read"), "ISS-3");
   assert.equal(cut.length, 1,
     "and a cut cannot show a re-size, so losing one would shrink a shortfall every other check only grows");
   /* Read like every other record and not by its tag alone: a comment carrying `moved` and no `why`
@@ -490,20 +496,20 @@ moved: Size: fix -> feature
 \`\`\`
 
 \`forge-record: correction · contract 1\`` }];
-  assert.deepEqual(missing("clarified", sized(marked("fix")), half), [],
+  assert.deepEqual(missing("clarified", sized("fix"), half), [],
     "a correction missing its why is not the re-size, and the light path stands");
 });
 
 test("a correction re-sizes a fix back onto the full path, and reads one direction only", () => {
-  const back = (status) => missing(status, sized(marked("fix")), [...reSized("Size: fix -> feature"), ...VERIFIED]);
+  const back = (status) => missing(status, sized("fix"), [...reSized("Size: fix -> feature"), ...VERIFIED]);
   assert.equal(back("clarified").length, 1, "the decision record is owed again");
   assert.deepEqual(back("approved"), ["the plan field is empty"]);
   assert.ok(back("released").includes("no release note and no withholding either"));
   for (const moved of ["Size: feature -> fix", "Size: fix later"]) {
-    assert.deepEqual(missing("clarified", sized(marked("fix")), reSized(moved)), [],
+    assert.deepEqual(missing("clarified", sized("fix"), reSized(moved)), [],
       `\`${moved}\` is not the re-size, and reading it as one unearns a status the issue holds`);
   }
-  assert.equal(missing("clarified", sized(marked("fix")), reSized("Size: fix to feature")).length, 1,
+  assert.equal(missing("clarified", sized("fix"), reSized("Size: fix to feature")).length, 1,
     "while the word and the arrow are both the author's");
 });
 

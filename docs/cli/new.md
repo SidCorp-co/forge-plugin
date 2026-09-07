@@ -27,11 +27,11 @@ than its shape, and two flags take such a filing instead of the tracker — with
 beside them for a finding that belongs on an issue already open, which posts the body there and files
 nothing, and renews a lease only where the lease is yours. `--with ISS-45`, or several keys
 separated by commas, files it and writes a relates edge to each in the same create, so one branch,
-one review and one release carry both; it writes no
-mark, because the flow such a filing is carried by is the related issue's. `--size` takes one of the
-contract's three rungs and marks it at that one, and that is the whole of what it does: which
+one review and one release carry both; it sets no
+complexity, because the flow such a filing is carried by is the related issue's. `--complexity` takes
+one of the tracker's five values and writes that field, and that is the whole of what it does: which
 filings become a finding on an issue already open, on what measure, and how a filer declines it are
-[`the-fold`](the-fold.md)'s, and the mark is not among the answers. The refusal lists both flags and the
+[`the-fold`](the-fold.md)'s, and the value is not among the answers. The refusal lists both flags and the
 comment route, and, from a search on the token the body names, the open issues that are candidates
 for the first two.
 
@@ -58,11 +58,14 @@ check uses. The tracker takes twenty edges on a create and the count of a range 
 first twenty are written and the body's own Rules line goes on naming the whole span: a filing
 refused for its edges is a release step that files nothing, and the next ship would fail the same way.
 
-The mark is a line in the description — `Size: trivial.`, `Size: fix.` or `Size: feature.` — and the
-filing writes the tracker's own size field from it in the same create. Two sources, not two truths:
-`forge advance --owed` reads whichever of them claims the higher rung and says which one did, so the
-line carries every issue filed before the field was readable and the field carries one nobody marked.
-The undo is an update that rewrites the description without the line and clears the field.
+## The rung is the `complexity` field, and this verb writes nothing into the body about it
+
+`--complexity` takes one of the tracker's own five values and writes the field. It writes no line into
+the description: a body claiming a rung and a field claiming another was two sources for one switch,
+and the run that had to spend the rung could not say which of them the checks would run. Which rung
+each of the five claims is [`the-ladder`](the-ladder.md)'s, and `forge advance --owed` names the value
+that claimed it. The undo is `forge issue ISS-nn --set complexity=<value> --why <w>`, which is also
+how an issue that was only ever marked in its body gets the field.
 
 ## A rank is written for every filing, and the value it is written with says nobody judged
 

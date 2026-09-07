@@ -36,12 +36,12 @@ are the workflow's: what was found, what was decided, what was asked, what alrea
 reviewed, what each criterion was judged to be, where the change now runs, what a release says, and
 a correction beside any of them.
 
-- **AC-04-1-1** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a record renders for a person and its payload is a fenced block keyed by flag"
+- **AC-04-1-1** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "a record renders for a person and its payload is a fenced block keyed by flag"
   WHEN a record is written THEN the CLI SHALL refuse each missing field by name and SHALL name the
   kind and the contract version on the record's last line.
-- **AC-04-1-2** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a park records the status it left, and free text is no record"
+- **AC-04-1-2** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "a park records the status it left, and free text is no record"
   IF free text is written where a record is expected THEN the reader SHALL treat it as no record.
-- **AC-04-1-3** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a repeated value carrying the separator, a newline and a fence marker reads back byte for byte"
+- **AC-04-1-3** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "a repeated value carrying the separator, a newline and a fence marker reads back byte for byte"
   WHEN a field holds several values THEN the record SHALL read back with exactly the values it was
   written with, whatever those values contain.
 - **AC-04-1-4** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "one write carries a block per criterion, and each block reads back as its own record"
@@ -61,7 +61,7 @@ issue, a URL, or a commit — has to exist at the moment the record is written, 
 again when the record is read back, because a comment may have been written by a hand or by a
 client no check sits in front of.
 
-- **AC-04-2-1** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a record with no mark and no earlier citation is refused by the flag, and says what is there"
+- **AC-04-2-1** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "a record with no mark and no earlier citation is refused by the flag, and says what is there"
   IF a record cites an attachment that is not on the issue THEN the CLI SHALL refuse the record and
   SHALL say what the reference has to be.
 - **AC-04-2-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "released needs a verification and a release note, and closed needs only released"
@@ -78,7 +78,7 @@ Two voices share one record: the outcome belongs to the reviewer and covers one 
 finding lines belong to the author. What each may say, and why one can never be derived from the
 other, is the contract's "A review is two voices in one record".
 
-- **AC-04-3-1** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a review names its reviewer, head and outcome, and each finding is an id with a verdict"
+- **AC-04-3-1** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "a review names its reviewer, head and outcome, and each finding is an id with a verdict"
   WHEN a review is recorded THEN it SHALL name the reviewer, the head judged and the outcome, and
   each finding SHALL be an identifier with a disposition.
 - **AC-04-3-2** · Rev: 1 · Proof: none yet — ISS-16
@@ -95,7 +95,7 @@ A record that can be quietly deleted and reposted is a record that can be made t
 correction says what moved and why, and it stands beside what it corrects; a plan or criteria change
 after approval is refused without one, so criteria cannot be relaxed to fit what got built.
 
-- **AC-04-4-1** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a correction says what moved and why, both required"
+- **AC-04-4-1** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "a correction says what moved and why, both required"
   WHEN a correction is written THEN it SHALL carry what moved and why, and SHALL refuse without
   either.
 - **AC-04-4-2** · Rev: 1 · Proof: none yet — ISS-11
@@ -115,7 +115,7 @@ consult the write asks for, or the round it saves is the round it spends.
 
 - **AC-04-5-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "the criteria field is read off its numbered lines, and unnumbered prose is no criteria"
   WHEN the criteria field is read THEN prose without numbered lines SHALL be read as no criteria.
-- **AC-04-5-2** · Rev: 2 · Proof: plugin/test/flow/record.test.mjs "criteria are numbered lines, and a line carrying two outcomes is refused with the halves"
+- **AC-04-5-2** · Rev: 2 · Proof: plugin/test/flow/record/record.test.mjs "criteria are numbered lines, and a line carrying two outcomes is refused with the halves"
   IF a criterion carries two outcomes THEN the CLI SHALL refuse the write and SHALL name each half it read.
 - **AC-04-5-3** · Rev: 1 · Proof: plugin/test/flow/criteria.test.mjs "the compound reading refuses a second clause and lets a second noun phrase write"
   WHERE a coordinator joins two noun phrases, joins two subjects under one verb, joins conditions to one outcome, sits inside a word, or sits inside a code span, the CLI SHALL write the criterion.
@@ -140,7 +140,7 @@ counts, and nobody writes a report from memory.
 - **AC-04-6-2** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "three criteria are judged in one write, and the report prints each one"
   WHEN a report holds a record carrying several blocks THEN it SHALL print each block as it prints a
   record written on its own.
-- **AC-04-6-3** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "the report keeps the latest of each kind, the latest verdict per criterion, and names what is owed"
+- **AC-04-6-3** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "the report keeps the latest of each kind, the latest verdict per criterion, and names what is owed"
   WHEN a report is asked for on an issue whose plan field is set THEN it SHALL print that plan whole,
   under a heading of its own.
 
@@ -156,25 +156,25 @@ is the reviewer's judgement, and a check that tried for it would refuse prose no
 plan carrying none of the sections is stored as the free text this field held before them, so a plan
 already on a tracker stays writable and no status is earned on it.
 
-- **AC-04-7-1** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "`record plan -h` prints every section a typed plan owes, as the question it answers"
+- **AC-04-7-1** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "`record plan -h` prints every section a typed plan owes, as the question it answers"
   WHEN the plan write's help is asked for THEN it SHALL print every section a typed plan carries, each
   as the question that section answers.
-- **AC-04-7-2** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "a typed plan missing a section is refused, with each one named"
+- **AC-04-7-2** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "a typed plan missing a section is refused, with each one named"
   IF a plan carries a section and lacks another THEN the CLI SHALL refuse the write, SHALL name each
   section that is missing, and SHALL leave the field as it was.
-- **AC-04-7-3** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "the way back is refused only where a coupling declaration asks for it"
+- **AC-04-7-3** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "the way back is refused only where a coupling declaration asks for it"
   WHERE a plan declares schema coupling or deploy coupling, the CLI SHALL refuse a plan carrying no
   way back, and SHALL name the declaration that owes it.
-- **AC-04-7-4** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "a step naming no criterion is refused, and the step is quoted"
+- **AC-04-7-4** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "a step naming no criterion is refused, and the step is quoted"
   IF a numbered step of a plan names no criterion THEN the CLI SHALL refuse the write and SHALL quote
   that step.
-- **AC-04-7-5** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "the file's text is what the plan field holds"
+- **AC-04-7-5** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "the file's text is what the plan field holds"
   WHERE a plan carries none of the sections, the CLI SHALL write it as the free text it is and SHALL
   say that nothing judged its shape.
 - **AC-04-7-6** · Rev: 1 · Proof: plugin/test/vi/rewrite.test.mjs "a plan's sections and its steps' criteria cross the boundary byte for byte"
   WHILE a project's prose language rewrites what is sent, the plan's section headings and each step's
   criterion SHALL cross byte for byte, so the stored plan reads back with its sections.
-- **AC-04-7-7** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "a section a plan quotes inside a fence is text it shows and not one it carries"
+- **AC-04-7-7** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "a section a plan quotes inside a fence is text it shows and not one it carries"
   WHERE a plan quotes a heading or a numbered step inside a fenced block, the CLI SHALL read it as
   text the plan shows and SHALL open no section and count no step from it.
 

@@ -1,31 +1,34 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
    back by kind: docs/cli/record.md. The verb owns the shape; the tracker owns the fields. */
-import { fail, translateTo } from "../resolve/settings.mjs";
-import { Refused, refuse } from "../refusal.mjs";
-import { citationsChecked, criteriaChecked } from "../spec/checked.mjs";
+import { fail, translateTo } from "../../resolve/settings.mjs";
+import { Refused, refuse } from "../../refusal.mjs";
+import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
 
-export { KINDS, USAGE, kindHelp, usage } from "../resolve/record-rows.mjs";
-import { CLOSES_FROM, SECTIONS, SHAPES, atMinute, blockOf, compoundCriteria, criterionNumber, markedCommit, planFlags, planTyped, readRecords, sectionOwedBy, sectionsOwed, stepsUncited, tagFor, unwrap } from "./machine.mjs";
-import { KINDS, USAGE, kindHelp, kindUsage, usage } from "../resolve/record-rows.mjs";
-import { readOrRefuse } from "../codex/codex-read.mjs";
-import { bodyFrom } from "../resolve/payload.mjs";
-import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
-import { commentPage, cutIn, cutLine, postComment } from "../tracker/comments.mjs";
+export { KINDS, USAGE, kindHelp, usage } from "../../resolve/record-rows.mjs";
+import { CLOSES_FROM, SECTIONS, SHAPES, compoundCriteria, criterionNumber, planFlags, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, unwrap } from "../machine.mjs";
+export { assemble, parse, parseAll, render } from "./page.mjs";
+import { assemble, parseAll, printRecord, render } from "./page.mjs";
+import { markedCommit, recordMerged } from "./merged.mjs";
+import { eachProblem } from "./content.mjs";
+import { KINDS, USAGE, kindHelp, kindUsage, usage } from "../../resolve/record-rows.mjs";
+import { readOrRefuse } from "../../codex/codex-read.mjs";
+import { bodyFrom } from "../../resolve/payload.mjs";
+import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../../resolve/flags.mjs";
+import { commentPage, cutIn, cutLine, postComment } from "../../tracker/comments.mjs";
 import {
   TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadAll,
-} from "../tracker/evidence.mjs";
-import { CONTRACT } from "../guides/contract.mjs";
-import { briefGoals, releaseLine, releasePolicy } from "../tracker/project-config.mjs";
-import { NONE_STATED, servesRefusal } from "../goals.mjs";
-import { sizeFrom } from "../ladder.mjs";
-import { documentIdOf } from "../tracker/issues.mjs";
-import { capsOf, writeField } from "../tracker/field-write.mjs";
-import { scoped } from "../tracker/rpc.mjs";
-import { refuseIfGated } from "../resolve/visibility.mjs";
-import { pluginFilingLine } from "../tracker/filing/plugin-defect.mjs";
-import { didYouMean } from "../suggest.mjs";
-import { FIELD as SESSION, nextLine, renew, writtenBy } from "./lease.mjs";
-import { patchFrom, worklogLines, worklogOf } from "./worklog.mjs";
+} from "../../tracker/evidence.mjs";
+import { briefGoals, releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
+import { NONE_STATED, servesRefusal } from "../../goals.mjs";
+import { FEATURE, rungFrom } from "../../ladder.mjs";
+import { documentIdOf } from "../../tracker/issues.mjs";
+import { capsOf, writeField } from "../../tracker/field-write.mjs";
+import { scoped } from "../../tracker/rpc.mjs";
+import { refuseIfGated } from "../../resolve/visibility.mjs";
+import { pluginFilingLine } from "../../tracker/filing/plugin-defect.mjs";
+import { didYouMean } from "../../suggest.mjs";
+import { FIELD as SESSION, nextLine, renew, writtenBy } from "../lease.mjs";
+import { patchFrom, worklogLines, worklogOf } from "../worklog.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
@@ -67,64 +70,6 @@ export const compoundRefused = (criteria, language = translateTo()) => {
   ].join("\n"));
 };
 
-/* A heading for a person, the payload fenced and the tag in a code span so the prose rewrite copies
-   both byte for byte. The stamp is read off the issue at the write and is no flag: a value the
-   author could type is one they could get wrong about what the record is matched by. */
-export const render = (kind, blocks, status = null) => {
-  const shape = SHAPES[kind];
-  /* Each block whole, so one of them is byte for byte the record a single write makes. */
-  const entries = (Array.isArray(blocks) ? blocks : [blocks]).flatMap((fields) => shape.fields
-    .map((field) => [field.flag, fields[field.flag]])
-    .filter(([, value]) => !(value === undefined || value === null || (Array.isArray(value) && !value.length))));
-  if (shape.stamp && status) entries.push([shape.stamp.flag, status]);
-  return [`## ${shape.heading}`, "", blockOf(entries), "", tagFor(kind, CONTRACT)].join("\n");
-};
-
-export const parseAll = (body) => readRecords(unwrap(body), (kind) => SHAPES[kind]);
-
-/* The first block: for readers asking about the comment rather than about a criterion. */
-export const parse = (body) => parseAll(body)[0] ?? null;
-
-const criterionOf = (record) => criterionNumber(record.fields.criterion);
-
-/* Latest of each kind, latest verdict per criterion, and the criteria no verdict names. */
-export const assemble = (comments, criteria) => {
-  const records = comments
-    .flatMap((one) => parseAll(one.body ?? "").map((record) => ({ at: one.createdAt ?? "", record })))
-    .sort((a, b) => a.at.localeCompare(b.at));
-  const latest = {};
-  const verdicts = new Map();
-  const repeated = {};
-  /* A verdict whose criterion this build cannot read is kept apart rather than keyed by what the
-     read produced: keying by that is how an owed list came to name a criterion `NaN`. */
-  const unreadable = [];
-  for (const { at, record } of records) {
-    if (record.kind === "verdict") {
-      const number = criterionOf(record);
-      if (number === null) unreadable.push({ at, record });
-      else verdicts.set(number, { at, record });
-      continue;
-    }
-    latest[record.kind] = { at, record };
-    if (SHAPES[record.kind].repeats) (repeated[record.kind] ??= []).push({ at, record });
-  }
-  const owed = criteria.filter((one) => !verdicts.has(one.number)).map((one) => one.number);
-  return { latest, verdicts, owed, repeated, unreadable };
-};
-
-/* The label is the shape's, never the record's: a record carries keys, and two forms of one record
-   read back under one heading. A rewritten one carries no key and says so instead of nothing. */
-const printRecord = ({ at, record }) => {
-  const shape = SHAPES[record.kind];
-  console.log(`${shape.heading}  (${atMinute(at)}, contract ${record.contract})`);
-  if (record.rewritten) return console.log("  rewritten by the prose pipeline: no field of this shape reads back");
-  for (const field of [...shape.fields, ...(shape.stamp ? [shape.stamp] : [])]) {
-    const value = record.fields[field.flag];
-    if (value === undefined || (Array.isArray(value) && !value.length)) continue;
-    for (const one of Array.isArray(value) ? value : [value]) console.log(`  ${field.label}: ${one}`);
-  }
-};
-
 export const issueOf = async (reference) => {
   const documentId = await documentIdOf(reference);
   const body = await scoped("forge_issues", { action: "get", documentId });
@@ -156,6 +101,8 @@ const gather = (kind, argv, defer = []) => {
       if (value.length < least && !defer.includes(field.flag)) {
         refuse(`record ${kind} needs --${field.flag}${least > 1 ? ` ${least} or more times` : ""}.`);
       }
+      const bad = eachProblem(field, value);
+      if (bad) refuse(`record ${kind}'s --${field.flag} ${bad}`);
       continue;
     }
     if (value === undefined) {
@@ -201,7 +148,7 @@ const stampedLast = (comments, written) => String(written?.createdAt
   ?? [new Date().toISOString(), ...comments.map((one) => String(one.createdAt ?? ""))].sort().at(-1));
 const sayOwed = async (documentId, issue, ref, held = null) => {
   try {
-    const { owedSaid } = await import("./route.mjs");
+    const { owedSaid } = await import("../route.mjs");
     const page = held ?? await commentPage(documentId);
     const said = await owedSaid(documentId, issue, page.comments, ref, held ? held.cut : cutIn(page));
     if (said) console.error(said);
@@ -210,11 +157,14 @@ const sayOwed = async (documentId, issue, ref, held = null) => {
   }
 };
 
-export const post = async (documentId, body, ref = documentId, next = undefined, patch = null) => {
+export const post = async (documentId, body, ref = documentId, next = undefined, patch = null, soft = false) => {
   refuseIfGated("forge_comments");
   sayStored("record");
   await renew(documentId, ref, next, patch);
-  const answer = await postComment(documentId, body);
+  const answer = await postComment(documentId, body, null, soft);
+  /* Asked softly by a caller that has something to say about the failure: the tracker's own refusal
+     exits the process, and the body would be lost with it. */
+  if (answer?.refused) return answer;
   console.log(body);
   return answer;
 };
@@ -272,16 +222,15 @@ export const fromRecord = (kind, got, { comments, names, cut = null }, say = con
   say(`--evidence ${before.join(", ")}, as the latest ${kind} on this issue cites it.`);
 };
 
-/* Read off what the write already knows, a line an author could type proving only that they typed it: the release policy from the config, the tier off the `get` this write has already made. Both of the rung's sources go to the ladder's one reading, so the stamp is not a second answer to the question the entry checks ask.
-   It is not the checks' answer either: the stamp reads the band and the description, where `tierOf` climbs from there for a plan's declarations and for a correction that re-sized the issue, and answers the top rung outright on a cut page (ISS-428).
+/* Read off what the write already knows, a line an author could type proving only that they typed it: the release policy from the config, the tier off the `get` this write has already made.
+   It is not the entry checks' answer either: the stamp reads the complexity field, where `tierOf` climbs from there for a plan's declarations and for a correction that re-sized the issue, and answers the top rung outright on a cut page (ISS-428).
    It stays a copy for a reader outside the flow, so a hand-written record lacking it is refused nothing. */
 const DERIVED = {
   verification: async () => {
     const held = releaseLine(await releasePolicy());
     return held ? { [held[0]]: held[1] } : null;
   },
-  confirmation: async (body) =>
-    ({ tier: sizeFrom({ band: body?.complexity ?? null, description: unwrap(body?.description) }).rung }),
+  confirmation: async (body) => ({ tier: rungFrom(body?.complexity) ?? FEATURE }),
 };
 
 const derive = async (kind, blocks, body) => {
@@ -565,8 +514,8 @@ const pullOne = (argv, flag) => {
 
 /* Pulled before the kind is dispatched, so no shape gains a field: these say what the run is doing
    and not what the payload holds, and `criteria` takes a bare path where a shape takes flags. */
-const pullRun = (argv, kind) => {
-  const lines = pullRepeated(argv, OPEN, `record ${kind}`, { usage: kindUsage(kind) });
+const pullRun = (argv, kind, usage) => {
+  const lines = pullRepeated(argv, OPEN, `record ${kind}`, { usage });
   const line = pullOne(lines.rest, NEXT);
   let rest = line.rest;
   const took = {};
@@ -591,11 +540,11 @@ const run = async ([kind, reference, ...argv]) => {
      position was spent as an issue key — the one flag its own refusal could not answer for. */
   if (wantsHelp([reference])) return console.log(kindHelp(kind, await capsOf(), await briefGoals()));
   if (!reference) refuse(firstLine(USAGE));
-  const { next, patch, asked, rest } = pullRun(argv, kind);
-  const run = { next, patch };
-  if (kind === "note") return recordNote(reference, rest, run);
-  if (kind === "criteria") return recordCriteria(reference, rest, run);
-  if (kind === "plan") return recordPlan(reference, rest, run);
+  const own = kindUsage(kind);
+  const { next, patch, asked, rest } = pullRun(argv, kind, own);
+  const run = { next, patch, usage: own };
+  const routed = { note: recordNote, criteria: recordCriteria, plan: recordPlan, merged: recordMerged };
+  if (routed[kind]) return routed[kind](reference, rest, run);
   if (kind === "report") {
     if (asked) {
       refuse("record report writes nothing, so it renews no lease and carries no --next, --pushed, --review or --open.");

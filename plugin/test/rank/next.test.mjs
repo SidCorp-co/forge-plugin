@@ -139,9 +139,8 @@ test("a live lease drops the issue and names the session holding it", async () =
 /* The near-duplicate search of the filing route, asked with the candidate rather than with a
    filing: the fold's own threshold is the floor a hit is read back as related at. */
 test("a batch of three rides together and the fourth prints as related", async () => {
-  const fix = "## Why\n\nA small thing.\n\n## Outcome\n\nFixed.\n\n## Out of scope\n\nNothing.\n\nSize: fix.\n";
   load(
-    ["ISS-1", "ISS-2", "ISS-3", "ISS-4"].map((key) => issue(key, { description: fix, priority: "high" })),
+    ["ISS-1", "ISS-2", "ISS-3", "ISS-4"].map((key) => issue(key, { complexity: "s", priority: "high" })),
     { semantic: [["ISS-2", 0.91], ["ISS-3", 0.9], ["ISS-4", 0.89]] },
   );
   const run = await ran(["next", "--count", "1"]);
@@ -155,9 +154,8 @@ test("a batch of three rides together and the fourth prints as related", async (
 });
 
 test("a related issue that is not fix-size is named rather than batched", async () => {
-  const fix = "## Why\n\nA small thing.\n\n## Outcome\n\nFixed.\n\n## Out of scope\n\nNothing.\n\nSize: fix.\n";
   load(
-    [issue("ISS-1", { description: fix, priority: "high" }), issue("ISS-2", { priority: "high" })],
+    [issue("ISS-1", { complexity: "s", priority: "high" }), issue("ISS-2", { complexity: "xl", priority: "high" })],
     { semantic: [["ISS-2", 0.9]] },
   );
   const run = await ran(["next", "--count", "1"]);
@@ -186,7 +184,7 @@ test("--json carries the score, its parts and every signal as its own column", a
   assert.equal(first.parts.band.points, 3);
   assert.equal(first.parts.kind.points, 0);
   assert.equal(first.restart, true, "its body names a file no open session picks up");
-  assert.equal(first.bandFrom, "neither source");
+  assert.equal(first.bandFrom, "no complexity on the tracker");
   assert.deepEqual(Object.keys(first.cost).sort(), ["band", "minutes", "over"]);
   assert.equal(held.weightsFrom, "the built-in table");
   assert.equal(held.weights.priority.critical, 40);
@@ -195,7 +193,7 @@ test("--json carries the score, its parts and every signal as its own column", a
 /* A fixed window truncated the candidate a body would have promoted, and one whose whole width a
    filter dropped reported nothing eligible while eligible issues sat below it (consult 2026-09-05). */
 test("the read goes on until the bodies settle the order, not for a fixed number of them", async () => {
-  const fix = "## Why\n\nA small thing.\n\n## Outcome\n\nFixed.\n\n## Out of scope\n\nNothing.\n\nSize: fix.\n";
+  const fix = "## Why\n\nA small thing.\n\n## Outcome\n\nFixed.\n\n## Out of scope\n\nNothing.\n";
   const lease = { lease: { holder: "another-run", agent: "an agent", pid: "9",
     renewedAt: new Date().toISOString(), minutes: 60, history: [] } };
   /* Fifteen ahead of it by age, every one of them held, and the sixteenth is the only answer. A
@@ -211,15 +209,17 @@ test("the read goes on until the bodies settle the order, not for a fixed number
     "so the read went past its first pass rather than reporting nothing eligible");
 });
 
-test("a candidate a body would promote is read even where it sits below the first pass", async () => {
-  const fix = "## Why\n\nA small thing.\n\n## Outcome\n\nFixed.\n\n## Out of scope\n\nNothing.\n\nSize: fix.\n";
+/* The band rides on the list row, so a candidate the score promotes is promoted in the first pass:
+   what a body once had to be opened for is a column of the list the rank already read. */
+test("the complexity field promotes a candidate, no body of it having been read", async () => {
   const plain = Array.from({ length: 14 }, (_, at) =>
     issue(`ISS-${at + 20}`, { priority: "critical", createdAt: "2026-09-01T00:00:00.000Z" }));
-  load([...plain, issue("ISS-91", { priority: "critical", createdAt: "2026-09-01T00:00:00.000Z", description: fix })]);
+  load([...plain, issue("ISS-91", { priority: "critical", createdAt: "2026-09-01T00:00:00.000Z", complexity: "xs" })]);
   const run = await ran(["next", "--count", "1"]);
   assert.equal(run.status, 0, run.stderr);
   const [head] = run.stdout.split("\n").filter((line) => line.startsWith("ISS-"));
-  assert.match(head, /^ISS-91\b/u, "its Size line is worth five points and nothing else separates them");
+  assert.match(head, /^ISS-91\b/u, "xs is worth five points over unset and nothing else separates them");
+  assert.match(head, /\bxs\b/u, "and the band it was scored at is the field's own value, printed as it stands");
 });
 
 /* The budget is the one thing that can leave the order wrong, so it is disclosed in both forms:

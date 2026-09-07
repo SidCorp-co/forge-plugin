@@ -1,6 +1,6 @@
 /* One filing's reply, for both verbs that file: a route contributes its opening line and what it does with a soft refusal, and every other line is the same on both. Why `route.mjs` under this neither prints nor exits, and why the id goes last: docs/cli/filing.md. */
 import { fail, keepOnFailure } from "../../resolve/settings.mjs";
-import { filedAs, inFlowWords, keysOffered } from "../issue-shape.mjs";
+import { filedAs, keysOffered } from "../issue-shape.mjs";
 import { commentLanded, issueLanded, sayLanded } from "./landed.mjs";
 import { foldedInto, suggestionLines } from "./neighbours.mjs";
 import { fileIssue } from "./route.mjs";
@@ -9,7 +9,7 @@ const sayBeside = (beside, said) => {
   for (const line of suggestionLines(beside, said)) console.log(line);
 };
 
-const echo = (answer) => console.log(JSON.stringify(inFlowWords(answer), null, 2));
+const echo = (answer) => console.log(JSON.stringify(answer, null, 2));
 
 /* A route that names no `lost` is one whose filing the tracker does not soft-refuse, and a route
    wrong about that would read a refusal as a filing. So the default says it rather than crashing. */

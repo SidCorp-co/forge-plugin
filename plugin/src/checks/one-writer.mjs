@@ -15,6 +15,16 @@ export const WRITERS = {
     instead: "Call `writeField` there with the field's name, rather than sending an update whose cap,"
       + " renewal, comment delivery and read-back are this caller's to remember.",
   },
+  /* The mark's note is prose the entry checks parse back, so a second composer of it lands a sha in the slot another clause is read from. */
+  mark_merged: {
+    interface: "plugin/src/flow/record/merged.mjs",
+    instead: "Call `markMerged` there with a note `markNote` composed, rather than spelling the"
+      + " mark's five clauses a second time.",
+  },
+  unmark: {
+    interface: "plugin/src/flow/record/merged.mjs",
+    instead: "Call `unmarkMerged` there, which is what `forge record merged --undo` spends.",
+  },
 };
 
 /* And one place says what a filing did: the route returns a value and prints nothing, so a second verb wanting the same reply copied the three lines rather than the call, and the copies drifted a fold apart (ISS-348). Named by what each formats, so a route printing one by hand is the failure and not a route that files, and the module defining a line is no caller of it. docs/cli/filing.md. */

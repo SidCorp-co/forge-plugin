@@ -1,22 +1,17 @@
 /* The score and its parts. Nothing here calls anything; why each weight: docs/cli/next.md. */
 import { TAKEABLE } from "./weights.mjs";
 import { holdsBack } from "../flow/earned.mjs";
-import { FIELD_SAID, LINE_SAID, bandFor, rungBetween, rungFrom } from "../ladder.mjs";
+import { FIELD_SAID } from "../ladder.mjs";
 
 const DAY = 86_400_000;
 
-/** Which source decided, under the ladder's one rule and not a precedence of this verb's: the field's own band stands where its rung was not outranked, so `l` and `xl` still score apart on a three-wide rung, and where the body won the band is the canonical one for the rung it won. */
-export const bandOf = (row, { read = false, marked = null } = {}) => {
+/** The band the score weighs, off the complexity field and nothing else: the field's own value, so `l` and `xl` still score apart on a three-wide rung, and an issue holding none is scored as unset rather than as the rung it would fall to. */
+export const bandOf = (row) => {
   const band = row?.complexity ? String(row.complexity) : null;
-  const { decided } = rungBetween({ field: rungFrom(band), line: marked });
-  const stands = !decided.length || decided.some((one) => one.from === FIELD_SAID);
-  if (band && stands) return { band, from: FIELD_SAID };
-  if (marked) return { band: bandFor(marked), from: LINE_SAID };
-  return { band: "unset", from: read ? "neither source" : "the body unread" };
+  return band ? { band, from: FIELD_SAID } : { band: "unset", from: "no complexity on the tracker" };
 };
 
-/** Every issue this one holds up: blocking one that blocks three counts four, a cycle terminates on
- *  the visited set, and the walk stops at one that landed — what waited on it is free already. */
+/** Every issue this one holds up: blocking one that blocks three counts four, a cycle terminates on the visited set, and the walk stops at one that landed — what waited on it is free already. */
 export const chainOf = (key, blocks, alive) => {
   const held = new Set();
   const queue = [...(blocks.get(key) ?? [])];
@@ -34,8 +29,8 @@ const points = (table, name, fallback = 0) =>
 
 /** The total and its parts, `now` passed rather than read: age is the one weight a clock moves, and
  *  a case that could not fix the clock could not pin the order. */
-export const scoreOf = (row, { weights, chain = [], read = false, marked = null, now = Date.now() }) => {
-  const { band, from } = bandOf(row, { read, marked });
+export const scoreOf = (row, { weights, chain = [], now = Date.now() }) => {
+  const { band, from } = bandOf(row);
   const filed = Date.parse(row?.createdAt ?? "");
   const days = Number.isFinite(filed) ? Math.max(0, Math.floor((now - filed) / DAY)) : 0;
   const reopened = Number(row?.reopenCount ?? 0) || 0;

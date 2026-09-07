@@ -92,16 +92,16 @@ test("a read naming no field at all reads the whole issue, edges and attachments
   ].sort());
 });
 
-test("a field comes back under the word this verb prints it under", async () => {
-  const run = await asked("--fields", "kind");
+test("a field comes back under the tracker's own name for it", async () => {
+  const run = await asked("--fields", "category");
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(run.body.kind, "bug");
+  assert.equal(run.body.category, "bug");
 });
 
-test("the tracker's own name for that field is refused", async () => {
-  const run = await asked("--fields", "category");
+test("a word of this CLI's own for that field is refused, there being one name for it now", async () => {
+  const run = await asked("--fields", "kind");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No field named category\./u);
+  assert.match(run.stderr, /No field named kind\./u);
 });
 
 test("a name nothing carries is refused with the command that prints the names", async () => {

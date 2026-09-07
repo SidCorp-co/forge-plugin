@@ -124,7 +124,7 @@ line that would undo it, and carry on. Ask only when reversing would mean unpick
 changing a value: a package boundary, a wire format, a decision others are made against.
 
 **The decision record names the goal it serves**, one of the identifiers Phase 0 read off the brief
-or a clause this project's tree resolves, the way `Size:` names a tier. It is what separates a fix
+or a clause this project's tree resolves, the way `complexity` names a tier. It is what separates a fix
 of the cause from a fix of the surface at the moment the choice is made rather than in a review of
 fifty issues afterwards, and *none stated* is legal and visible: nothing here is refused for serving
 no goal, and a run that keeps writing *none stated* is telling whoever reads the backlog something

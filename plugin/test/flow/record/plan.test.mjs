@@ -6,12 +6,12 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom, typedPlan } from "../fixtures.mjs";
-import { PLAN_SECTIONS } from "../../src/flow/machine.mjs";
+import { fakeTracker, ranAsync, tempHome, tempRoom, typedPlan } from "../../fixtures.mjs";
+import { PLAN_SECTIONS } from "../../../src/flow/machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-plan").path;
 const room = tempRoom("record-plan-");
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const MINE = "this-run";
 const PLAN = "# The plan\n\nScreen change: no\nSchema coupling: no\nUser-facing outcome: no\n\nOne field, one verb.";
 

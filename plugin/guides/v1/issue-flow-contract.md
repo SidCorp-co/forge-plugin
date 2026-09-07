@@ -73,10 +73,12 @@ reads the finding and the triage it leaves behind and routes what follows, below
 left, and `advance` resumes there. The other half is who lifts it: a reply from any author but the
 one who parked lifts `needs_info` and `waiting`, so another agent's answer counts; a person's word
 lifts `on_hold` and reopens `dropped`, and a person is a comment the tracker did not mark as an
-agent's. A park that was a mistake is lifted on the record too: a correction naming the park and
-the status resumed, written before the transition back, so a reader of the record sees the retraction
-beside the park rather than a status that quietly disagrees with the last typed write. Owed by
-ISS-13; today the lift is a raw transition the report never shows.
+agent's. A park that was a mistake is lifted on the record too: `forge advance <ref>
+--set <status> --why <w>` moves it, says on the line that it was set rather than earned, and leaves a
+correction naming the status it came from and the reason — so a reader of the record sees the
+retraction rather than a status that quietly disagrees with the last typed write. What ISS-13 still
+owes is the correction naming the park it retracts, and the record written before the move as
+`needs_info` already has it.
 
 - `needs_info` speaks to the reporter, from `open` or `confirmed`: two or more readings, each
   with the outcome it produces. Fewer is not a question. It resumes on a reply from another author.
@@ -88,8 +90,8 @@ ISS-13; today the lift is a raw transition the report never shows.
 - `dropped` speaks to everyone: the reason — a disposition the triage reference admits, or one of
   the project's own. Reachable only before `developed`, so it always means no code landed, and it
   is never marked merged. Terminal unless reopened. Abandoning code that did land is a revert: the
-  commit goes, the mark is cleared with `unmark`, the issue falls back to `approved`, and only then
-  may it drop.
+  commit goes, the mark is removed with `forge record merged <ref> --undo`, the issue falls back to
+  `approved`, and only then may it drop.
 
 **Who moves a status.** The agent, by advancing, and every move, a park and a drop included, can
 be asked before it is made: `--owed` prints what the move would write and where it would go and
@@ -104,22 +106,18 @@ moving. The default is autonomous, which is what the skill already says.
 What each status reads, and for every scenario it can meet, the payload owed and where the issue
 goes. The scenario is the person's or the agent's to decide; the contract checks the payload.
 
-**The size decides the ladder, and the ladder has three rungs.** Every tier runs the same statuses
-in the same order; what differs is what three of those statuses ask for, and how many rounds the
-work between them is expected to take.
+**The complexity decides the ladder, and the ladder has three rungs.** Every tier runs the same
+statuses in the same order; what differs is what three of those statuses ask for, and how many
+rounds the work between them is expected to take.
 
-**Two sources say the size, and the higher of them decides.** The first is the issue's own
-`complexity` field on the tracker, whose five values claim a rung each: `xs` a trivial, `s` a fix,
-and `m`, `l` and `xl` a feature, the top two of those also worth a question about splitting. The
-second is a line in the body — `Size: trivial.`, `Size: fix.` or `Size: feature.` — which is what
-carries an issue nobody set the field on, and every open issue filed before this rule was one. A
-body claiming two rungs is at the higher, and a mark inside a fenced or indented example is not a
-mark, so a body quoting this paragraph claims nothing. Where both sources speak and disagree, the
-higher rung wins: the rung is spent at three statuses, so one lowered after the plan would make a
-later status demand less than an earlier one already established. An issue with neither is a
-**feature**, the top rung being what an unclaimed issue falls to. `forge new --size <rung>` writes
-both at once, so the two agree on anything filed through this CLI; the line retires from every
-surface the day no open issue carries one.
+**One source says it: the issue's own `complexity` field on the tracker**, whose five values claim a
+rung each — `xs` a trivial, `s` a fix, and `m`, `l` and `xl` a feature, the top two of those also
+worth a question about splitting. An issue holding none is a **feature**, the top rung being what an
+unclaimed issue falls to, and the rehearsal names the value that claimed the rung. `forge new
+--complexity <value>` writes the field at the filing; `forge issue ISS-nn --set complexity=<value>
+--why <w>` sets it afterwards and leaves a correction saying so. Nothing writes or reads a line in
+the body: the rung is spent at three statuses, and two sources for it was a precedence rule, a
+report about which of them lost, and a run that could not say which the checks would run.
 
 | Tier | What it claims | Payloads it stops owing | Rounds it may spend fewer of |
 |---|---|---|---|
@@ -143,14 +141,14 @@ say something nobody established.
 **Escalation is by meaning, before the plan, and one rung at a time.** A plan declaring a screen
 change or a user-facing outcome moves the issue up one rung, because the change a person will look
 at is not the change nobody sees. Work that turns out larger moves it by a correction naming the
-re-size — the mark is a line in the reporter's own description, which this flow does not rewrite, so
-the retraction is a record. Only the upward direction is read: a correction re-sizing an issue *down*
+re-size, which is a record and not a field write: the complexity is the reporter's own claim about
+the work, and what the work turned out to be is this run's. Only the upward direction is read: a correction re-sizing an issue *down*
 would unearn statuses it already holds, and a rung is not something to claim back after the plan.
 The ship's own measurement of what landed is the backstop and never the decision: it prints the
 tier's ceiling beside the count and the correction command past it, after the judging, where a
 refusal would have nothing left to protect.
 
-Two things no tier touches, whatever the mark says. A plan declaring schema coupling owes its
+Two things no tier touches, whatever the complexity says. A plan declaring schema coupling owes its
 migration classification, because a destructive migration is not smaller for being small. And a
 shortened comment page does not lighten anything: a cut cannot show a correction that re-sized the
 issue, and losing one would *shrink* a shortfall where every other check can only grow one the cut
@@ -258,7 +256,8 @@ binds not to merge would otherwise be bound out of `developed` by a step it is f
 a rung no actor may reach is a rung the flow does not have. What the writer owes is the note — the
 judged head, the landed head, and which of this change's paths the landing moved — because those are
 what every verdict is measured against, and a mark whose note names neither head leaves the verdicts
-owed at the merged commit, which is the row above (ISS-607).
+owed at the merged commit, which is the row above (ISS-607). `forge record merged` writes it with one
+flag per clause, so the note is never composed by hand, and `--undo` is the one route back.
 
 **A verdict cites the commit it judged, and a landing that did not touch this change does not move
 it.** Where a repository's landing *is* the merge — a rebase onto the default branch, a version
@@ -685,18 +684,13 @@ verdict naming the commit. The suite is the one that catches a path that stopped
 the one behaviour a move has, and the ninth dry run broke four of them. A verification for such a change
 names the identity check as its place, not a screen.
 
-**A fix is marked, and the mark is spent by the entry checks.** A change whose body carries no rule
-and states one behaviour and its replacement is a fix, and the filing refuses it unless it is marked
-or routed onto an issue already open. The mark is a line in the description rather than a label,
-because the tracker creates no label it was not given and offers no route to read one back. What it
-buys is three payloads of the ten a status is earned by — no decision record, no plan field, and the
-release note withheld by rule — which the stages above state per status and `forge advance --owed`
-prints beside what the record still lacks. It buys nothing else, and deliberately: the confirmation,
-the baseline, the review of the head that landed, a verdict per criterion, the verification and a
-schema-coupled plan's classification are a fix's exactly as they are a feature's. The size is the
-tracker's the day it has a field for one, and the line goes the same day; until then the line is the
-only source, read wherever it appears, since a mark that survives the tracker's own screens is one
-anyone can type. Built (ISS-141).
+**A fix-shaped filing claims its rung or goes onto an issue already open.** A body that carries no
+rule and states one behaviour and its replacement is read as a fix, and the filing refuses it unless
+`--complexity` names one of the two values below the top, or the finding goes onto an issue already
+open — `forge comment` there, or `--with` in the same create. The refusal names both routes and the
+open issues that already name the place its cause names, because a second issue for one cause is
+what this check exists to stop. What the rung buys once claimed is the ladder's above and nothing
+more. Built (ISS-141).
 
 **A criterion a program can decide ships as a check.** When the evidence a criterion asks for is a
 comparison a program can make — a gate exits zero, a count did not fall, every named path resolves —

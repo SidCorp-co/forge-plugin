@@ -1,8 +1,6 @@
 /* Which rung of the ladder an issue is at and what it stops owing; the report about it is
    ladder-report.mjs. Out of `flow/` because three trees read it and a primitive each could declare
-   drifts on one side (docs/cli/the-primitives.md). Smallest first, so an index is a height. What
-   each rung is for and what it may not buy: `forge guide contract`. Why a doubtful reading resolves
-   upward, here and in every function below: docs/cli/the-ladder.md. */
+   drifts on one side (docs/cli/the-primitives.md). Smallest first, so an index is a height. What each rung is for and what it may not buy: `forge guide contract`; why a doubtful reading resolves upward, here and in every function below: docs/cli/the-ladder.md. */
 import { looksTo, planFlags } from "./flow/machine.mjs";
 import { withoutExamples } from "./markdown.mjs";
 
@@ -28,11 +26,9 @@ export const markedIn = (description) => {
   return found.length ? highest(found) : null;
 };
 
-export const markFor = (tier) => `Size: ${tier}.`;
-
 export const heightOf = (tier) => Math.max(0, TIERS.indexOf(tier));
 
-/* The tracker's five sizes, smallest first, against the rung each claims: the second source of a size. Keys and never a shown string — that field's own name costs a reader a round. `BAND_NAMES` is exported for the check that keeps this table's only copy in this file, which asks about the sizes the table holds rather than about a second spelling of them (ISS-403). */
+/* The tracker's five complexities, smallest first, against the rung each claims: the one source of a rung. Keys and never a shown string — that field's own name costs a reader a round. `BAND_NAMES` is exported for the check that keeps this table's only copy in this file, which asks about the values the table holds rather than about a second spelling of them (ISS-403). */
 const BANDS = { xs: TRIVIAL, s: FIX, m: FEATURE, l: FEATURE, xl: FEATURE };
 export const BAND_NAMES = Object.keys(BANDS);
 const SPLIT_FROM = 3;
@@ -51,26 +47,13 @@ export const belowTop = (rung) => Boolean(rung) && rung !== FEATURE;
 
 const BELOW_TOP = TIERS.filter((one) => belowTop(one));
 
-export const FIELD_SAID = "the tracker's size";
-export const LINE_SAID = "the size mark in the body";
+export const FIELD_SAID = "the tracker's complexity";
 
-/** The rung two sources claim and which claimed it: both read upward and the higher wins, so neither can lower a rung the other claimed, and an equal claim leaves both on `decided` (docs/cli/the-ladder.md). Two rungs rather than the two sources, `rank/score.mjs` reading each body's mark once on its walk and spending that reading here. */
-export const rungBetween = ({ field = null, line = null } = {}) => {
-  const claimed = [
-    { rung: field, from: FIELD_SAID },
-    { rung: line, from: LINE_SAID },
-  ].filter((one) => one.rung);
-  if (!claimed.length) return { rung: FEATURE, decided: [], outranked: [] };
-  const top = Math.max(...claimed.map((one) => heightOf(one.rung)));
-  return {
-    rung: TIERS[top],
-    decided: claimed.filter((one) => heightOf(one.rung) === top),
-    outranked: claimed.filter((one) => heightOf(one.rung) < top),
-  };
+/** The rung the complexity field claims, and the field named as what claimed it: one source, so a body carrying `Size: fix.` and no field reads as a `feature` by the upward rule rather than as a fix. `band` is the field's own value, kept beside the rung because three of the five share a rung and the rank scores them apart. */
+export const sizeFrom = ({ band = null } = {}) => {
+  const rung = rungFrom(band);
+  return rung ? { rung, band, claimed: FIELD_SAID } : { rung: FEATURE, band: null, claimed: null };
 };
-
-export const sizeFrom = ({ band = null, description = null } = {}) =>
-  rungBetween({ field: rungFrom(band), line: markedIn(description) });
 
 /* Judged on the pair: where it points alone would let `feature -> fix` raise a trivial. */
 const RESIZE = new RegExp(String.raw`\bsize:\s*(${TIERS.join("|")})\s*(?:->|\u2192|to)\s*(${TIERS.join("|")}|full)\b`, "giu");
@@ -138,9 +121,9 @@ export const overCeiling = (tier, { files, lines }) => {
 /* One rung, not a jump to the top: a person will look at this is one reason among several. */
 export const escalatedBy = (plan) => (looksTo(planFlags(plan)) ? 1 : 0);
 
-export const tierOf = ({ description, plan, moved, whole, band = null }) => {
+export const tierOf = ({ plan, moved, whole, band = null }) => {
   if (whole === false) return FEATURE;
-  const claimed = sizeFrom({ band, description }).rung;
+  const claimed = sizeFrom({ band }).rung;
   const climbed = Math.min(heightOf(claimed) + escalatedBy(plan), TIERS.length - 1);
   return TIERS[Math.max(climbed, ...resizedTo(moved).map(heightOf))];
 };

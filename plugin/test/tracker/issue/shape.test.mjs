@@ -9,9 +9,10 @@ import { fakeTracker, ranAsync, shortPage, tempHome } from "../../fixtures.mjs";
 const home = tempHome("issue-shape");
 process.env.XDG_CONFIG_HOME = home.path;
 const { UNRANKED, duplicateOf, filedAs, partsIn, priorityFor, refusalFrom,
-  shapeOf, tokensNamed, twoChangesIn, withMark } = await import("../../../src/tracker/issue-shape.mjs");
-const { FIX, TIERS, belowTop, markFor, markedIn } = await import("../../../src/ladder.mjs");
-const SIZE_LINE = markFor(FIX);
+  shapeOf, tokensNamed, twoChangesIn } = await import("../../../src/tracker/issue-shape.mjs");
+const { BAND_NAMES, belowTop, rungFrom } = await import("../../../src/ladder.mjs");
+/* Prose now: `markFor` went with the second source (ISS-701), and a body already on the tracker still carries the line the emptiness strip reads. */
+const SIZE_LINE = "Size: fix.";
 const { filingsOf } = await import("../../../src/tracker/issue-read.mjs");
 const { refusing } = await import("../../../src/resolve/settings.mjs");
 
@@ -130,27 +131,20 @@ test("a body naming nothing is missing its outcome rather than reading as a fix"
   assert.match(gaps.map((one) => one.wants).join(" "), /a heading naming the outcome/u);
 });
 
-/* The exemption is the light path's and not one rung's, and the reading is the ladder's. */
-test("the mark clears the fix route on every route, because the CLI writes it into the body", () => {
+/* Criterion 16: the exemption is the light path's and the claim is the complexity field's, so the same body reads two ways off the field and one way whatever line it carries. */
+test("the complexity clears the fix route, and a line in the body clears nothing", () => {
   const body = "`forge issue` should take the `data.relations` route.";
-  assert.equal(markedIn(body), null);
-  const marked = withMark(body);
-  assert.ok(marked.includes(SIZE_LINE));
-  assert.equal(markedIn(marked), FIX);
-  assert.equal(belowTop(markedIn(marked)), true, "and a fix is a rung below the top");
-  assert.equal(shapeOf({ title: TITLE, body: marked }).fix, false, "a marked fix is refused nothing");
-  assert.equal(withMark(marked), marked, "and marking twice writes one line");
-  for (const rung of TIERS) {
-    assert.equal(shapeOf({ title: TITLE, body: withMark(body, rung) }).fix, rung === TIERS.at(-1),
-      "the two rungs below the top are exempt from the sections, and the top one is not");
+  const read = (complexity, text = body) => shapeOf({ title: TITLE, body: text, complexity }).fix;
+  assert.equal(read("s"), false, "a fix by the field is refused nothing");
+  assert.equal(belowTop(rungFrom("s")), true, "and `s` is a rung below the top");
+  assert.equal(read(null), true, "with no field the body owes its route");
+  assert.equal(read(null, `${body}\n\n${SIZE_LINE}`), true,
+    "and the line in the body claims nothing, so the same body still owes it");
+  for (const band of BAND_NAMES) {
+    assert.equal(read(band), !belowTop(rungFrom(band)),
+      `${band}: the two values below the top are exempt from the sections, the three at it are not`);
   }
-  assert.equal(markedIn(`## Where\n\nplugin/src/tracker/rpc.mjs\n\n${SIZE_LINE}`), FIX,
-    "the mark is read a line at a time, wherever in the body its line stands");
-  for (const near of ["Size: fix later", "Size: fix-me", "Size: fix!", "the Size: fix. it wants"]) {
-    assert.equal(markedIn(near), null, `${near} is not the mark, and a body it appears in owes its route`);
-  }
-  assert.equal(markedIn("size:fix"), FIX, "while the spacing and the full stop are the author's");
-  assert.equal(markedIn(`\`\`\`\n${SIZE_LINE}\n\`\`\``), null, "and a mark inside an example is not one");
+  assert.equal(read("huge"), true, "a value the ladder maps to no rung claims none");
 });
 
 
@@ -169,15 +163,16 @@ test("a filing that overlaps an open issue's title is a duplicate, and a settled
 
 test("a create is found on the tracker's own tool and on a raw call, and nothing else is", () => {
   const mcp = (action, data) => filingsOf({ name: "mcp__forge__forge_issues", input: { action, data } }, []);
-  assert.deepEqual(mcp("create", { title: "t", description: "b" }), [{ title: "t", body: "b", kind: null }]);
+  assert.deepEqual(mcp("create", { title: "t", description: "b" }),
+    [{ title: "t", body: "b", kind: null, complexity: null }]);
   assert.deepEqual(mcp("update", { title: "t" }), [], "an update files nothing");
   assert.deepEqual(filingsOf({ name: "mcp__forge__forge_comments", input: { action: "create", data: {} } }, []), []);
   const said = filingsOf({ name: "Bash", input: {} },
     [`forge call forge_issues '{"action":"create","data":{"title":"t","description":"b"}}'`]);
-  assert.deepEqual(said, [{ title: "t", body: "b", kind: null }]);
-  /* The kind travels with the body, so the gate on this route reads the same shape the verb does. */
-  assert.deepEqual(mcp("create", { title: "t", description: "b", category: "bug" }),
-    [{ title: "t", body: "b", kind: "bug" }]);
+  assert.deepEqual(said, [{ title: "t", body: "b", kind: null, complexity: null }]);
+  /* Both tracker fields travel with the body, so the gate on this route reads the shape the verb does. */
+  assert.deepEqual(mcp("create", { title: "t", description: "b", category: "bug", complexity: "s" }),
+    [{ title: "t", body: "b", kind: "bug", complexity: "s" }]);
   assert.deepEqual(filingsOf({ name: "Bash", input: {} }, ["forge new body.md --title t"]), [],
     "and the verb reads its own file, so this does not guess at one");
 });
@@ -264,8 +259,8 @@ const bodyAt = (body) => {
   return path;
 };
 const filed = (body, ...argv) => {
-  const kind = argv.includes("--kind") ? [] : ["--kind", "feature"];
-  return ranAsync(FORGE, ["new", bodyAt(body), ...argv, ...kind], tracker.env);
+  const category = argv.includes("--category") ? [] : ["--category", "feature"];
+  return ranAsync(FORGE, ["new", bodyAt(body), ...argv, ...category], tracker.env);
 };
 
 const posted = (body, ...argv) => ranAsync(FORGE, ["comment", "ISS-45", bodyAt(body), ...argv], tracker.env);
@@ -288,32 +283,32 @@ test("the verb refuses a fix with the two flags, the comment route and the open 
   assert.equal(run.status, 1);
   assert.match(run.stderr, /forge comment ISS-nn <body>/u);
   assert.match(run.stderr, /--with ISS-nn/u);
-  assert.match(run.stderr, /it needs no --kind/u,
+  assert.match(run.stderr, /it needs no --category/u,
     "the comment route says what a filing owes that it does not");
-  /* The mark stopped meaning "files it": where an open issue both reads like the filing and names
-     the place its cause names, it lands there instead, and the route that promised a filing would
-     be a refusal telling a filer the wrong thing (ISS-139). The mark is not what buys that any
-     more, so the routes no longer offer it as one — a filer sent to `--size` for a fold would take
-     the rung to get the landing, which is the rung deciding the flow off the wrong question. */
-  assert.match(run.stderr, /--size trivial\|fix\|feature\s+mark it at a rung/u);
-  assert.doesNotMatch(run.stderr, /--size fix\s+file it marked/u);
+  /* The value stopped meaning "files it": where an open issue both reads like the filing and names
+     the place its cause names, it lands there instead, so a route promising a filing would tell a
+     filer the wrong thing (ISS-139). The routes no longer offer it as one — a filer sent to
+     `--complexity` for a fold would take a rung to get a landing, deciding the flow off that. */
+  assert.match(run.stderr, /--complexity xs\|s\|m\|l\|xl\s+the tracker's own value/u);
+  assert.doesNotMatch(run.stderr, /--complexity s\s+file it marked/u);
   assert.doesNotMatch(run.stderr, /the mark lands it there as a finding/u);
   assert.match(run.stderr, /Whichever of those you take, an open issue that both reads like this filing/u);
   assert.match(run.stderr, /takes it as a finding rather than a second issue; `--new` declines that/u);
   assert.match(run.stderr, /ISS-45/u, "the candidate is searched on the token the body names");
   assert.doesNotMatch(run.stderr, /ISS-70/u, "and a closed issue is no candidate");
   assert.match(run.stderr, /Name a route:/u, "and what it says is the whole of what to do");
-  /* The light path left this module; what this nudge justified itself by is what changed (ISS-141). */
   assert.doesNotMatch(run.stderr, /whatever the size/u,
-    "which the mark made false: it is what drops the decision, the plan and the note");
+    "the light path left this module, and what this nudge justified itself by changed (ISS-141)");
   assert.match(run.stderr, /the mark is what drops the decision, the plan and the note/u);
 });
 
-test("a size the contract has no path for is refused rather than kept", async () => {
-  const run = await filed(WHOLE, "--title", TITLE, "--size", "small");
+/* Criterion 11: refused by naming the tracker's five and the rung each claims, so a filer reaching for a rung name learns which value to type. */
+test("a complexity the tracker has no value for is refused rather than kept", async () => {
+  const run = await filed(WHOLE, "--title", TITLE, "--complexity", "huge");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No size named small\. The set is trivial, fix, feature\./u);
-  assert.match(run.stderr, /the contract's three rungs, smallest first/u);
+  assert.match(run.stderr, /No complexity named huge\. The set is xs, s, m, l, xl\./u);
+  assert.match(run.stderr, /the tracker's own five, smallest first/u);
+  assert.match(run.stderr, /xs a trivial, s a fix, m a feature, l a feature, xl a feature/u);
 });
 
 test("forge comment posts the body where it belongs and files nothing, lint or no lint", async () => {
@@ -341,8 +336,8 @@ test("--with files it and relates it in the same create, so one branch carries b
    the flags a filing takes are refused on the comment verb by the verb's own unknown-flag route,
    which is what having two verbs removes — there is no route left to drop one on. */
 test("a flag that belongs to a filing is refused on the comment verb, not silently dropped", async () => {
-  for (const argv of [["--size", "fix"], ["--priority", "high"], ["--status", "draft"],
-    ["--kind", "feature"]]) {
+  for (const argv of [["--complexity", "s"], ["--priority", "high"], ["--status", "draft"],
+    ["--category", "feature"]]) {
     const run = await posted(WHOLE, ...argv);
     assert.equal(run.status, 1, argv.join(" "));
     assert.match(run.stderr, new RegExp(`No comment flag named ${argv[0]}`, "u"));
@@ -396,7 +391,7 @@ test("a raw call filing is refused with the verb that reads it, from a file as f
 /* Reading to EOF on a stdin nobody fed waited two minutes and then filed. */
 test("`-` with nothing on stdin is refused, and never read as an empty body", async () => {
   state.calls = [];
-  const run = await ranAsync(FORGE, ["new", "-", "--title", TITLE, "--kind", "feature"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", "-", "--title", TITLE, "--category", "feature"], tracker.env);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /read nothing from stdin/u);
   assert.equal(state.calls.some((one) => one.args.action === "create"), false);
@@ -486,7 +481,7 @@ test("a search the route refused leaves the verb saying what failed, not what is
     const run = await filed(FIX_BODY, "--title", FIX_TITLE);
     assert.equal(run.status, 1);
     assert.doesNotMatch(run.stderr, /No open issue names/u,
-      "a search that failed said nothing about what is open, and that sentence routes a filer to --size fix");
+      "a search that failed said nothing about what is open, and that sentence routes a filer to --complexity s");
     assert.match(run.stderr, /Forge answered 403/u, "what the tracker answered is what the verb exits on");
   } finally {
     state.answer = undefined;
@@ -539,7 +534,7 @@ test("a page with rows behind it and no open row among them says the reading did
 test("a page the route served whole with no open row on it still says no open issue names it", async () => {
   const run = await routed(() => ({ issues: SETTLED_SIX }));
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No open issue names forge issue, so --size fix is the route unless you know one\./u);
+  assert.match(run.stderr, /No open issue names forge issue, so --complexity s is the route unless you know one\./u);
   assert.doesNotMatch(run.stderr, /is unread/u, "the reading reached its answer, and the answer is none");
 });
 

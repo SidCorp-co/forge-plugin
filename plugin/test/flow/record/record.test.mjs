@@ -7,18 +7,18 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync, tempRoom, typedPlan } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, tempRoom, typedPlan } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-");
 const {
   KINDS, USAGE, assemble, checked, compoundRefused, criteriaLines, fromRecord, kindHelp, noteFrom,
   parse, render, usage,
-} = await import("../../src/flow/record.mjs");
-const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../src/flow/machine.mjs");
-const { CONTRACT } = await import("../../src/guides/contract.mjs");
-const { TWICE } = await import("../../src/tracker/evidence.mjs");
+} = await import("../../../src/flow/record/record.mjs");
+const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../../src/flow/machine.mjs");
+const { CONTRACT } = await import("../../../src/guides/contract.mjs");
+const { TWICE } = await import("../../../src/tracker/evidence.mjs");
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
 
 test("every kind is on the usage line, and -h prints it without touching the tracker", () => {

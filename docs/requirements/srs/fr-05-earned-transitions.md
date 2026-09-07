@@ -48,7 +48,7 @@ agent learns what a status wants.
 - **AC-05-1-4** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "several criteria with no verdict are one owed item carrying one write"
   WHERE more than one criterion has no verdict, the CLI SHALL name them in one item and the command
   beside it SHALL be the single write that supplies all of them.
-- **AC-05-1-5** · Rev: 1 · Proof: plugin/test/flow/record.test.mjs "a record write ends with the line advance --owed would print, and never fails on it"
+- **AC-05-1-5** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "a record write ends with the line advance --owed would print, and never fails on it"
   WHEN a record is written THEN the CLI SHALL close that write with the same sentence this rehearsal
   opens with, counting the record just written, and SHALL exit zero where that sentence cannot be
   worked out at all.
@@ -203,7 +203,7 @@ for.
 - **AC-05-7-4** · Rev: 2 · Proof: plugin/test/flow/advance.test.mjs "the project's release policy decides whether a user-facing outcome parks"
   WHERE the project's configuration releases without a person, the CLI SHALL earn `released` from
   the verification and the release note with no person's answer owed.
-- **AC-05-7-5** · Rev: 2 · Proof: plugin/test/flow/record.test.mjs "the verification says who released it, in the project's own words and never the author's"
+- **AC-05-7-5** · Rev: 2 · Proof: plugin/test/flow/record/record.test.mjs "the verification says who released it, in the project's own words and never the author's"
   WHEN a release verification is written THEN the CLI SHALL carry the project's own answer about who
   releases on that record, from a value no author supplies.
 - **AC-05-7-6** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a screen change owes an attachment on every verdict that is not skipped"

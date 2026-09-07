@@ -15,11 +15,9 @@ import {
 import { commentPage, creditAfter, credited, cutIn, mustBeShown, postComment } from "./tracker/comments.mjs";
 import { attachmentNames, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
 import {
-  INSTEAD_FLAGS,
   KINDS_HELP,
   KIND_NAMES,
-  inFlowWords,
-  insteadOf,
+  complexityRefusal,
   kindNeeded,
   kindRefusal,
 } from "./tracker/issue-shape.mjs";
@@ -27,7 +25,7 @@ import { keysFrom, rankFor } from "./tracker/filing/route.mjs";
 import { fileAndSay } from "./tracker/filing/say.mjs";
 import { routingBlock } from "./tracker/filing/plugin-defect.mjs";
 import { commentLanded, sayLanded } from "./tracker/filing/landed.mjs";
-import { TIERS } from "./ladder.mjs";
+import { BAND_NAMES } from "./ladder.mjs";
 import { targetsOfTool } from "./tracker/issue-read.mjs";
 import { actionIn, callable, helpOf, isGated, refuseIfGated, usageOf, wrappedRefusal } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
@@ -44,8 +42,9 @@ import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
 import { stats } from "./stats/stats.mjs";
 import { hooks } from "./hooks/hook-log.mjs";
-import { record } from "./flow/record.mjs";
+import { record } from "./flow/record/record.mjs";
 import { advance } from "./flow/advance.mjs";
+import { overrideField } from "./flow/override.mjs";
 import { spec } from "./spec/verbs.mjs";
 import { claim } from "./flow/claim.mjs";
 import { indexFor, resume } from "./flow/resume.mjs";
@@ -136,10 +135,10 @@ const ATTACH_TARGETS = ["issue", "comment"];
 /* One line per flag, then the one table a row cannot hold: what a body is read against depends on the kind it names. What is open beside a filing prints on the filing, and which rank it took is in the reply — the reasoning behind both is docs/cli/beside.md and docs/cli/new.md, whose second copy this help was. */
 const NEW_FLAGS = [
   "  --title T      what is true once this is fixed, one line",
-  `  --kind K       ${KIND_NAMES.join(" | ")} — the shape the body is read against`,
+  `  --category C   ${KIND_NAMES.join(" | ")} — the shape the body is read against`,
   "  --status S     the status to file at; the tracker's own default absent one",
   "  --priority P   the tracker's own set; absent, the filing is unranked and the reply says so",
-  `  --size fix     the contract's rung: ${TIERS.join(" | ")}`,
+  `  --complexity C ${BAND_NAMES.join(" | ")} — the tracker's field, and the one source of the rung`,
   "  --with ISS-45  file it with a `relates` edge to that issue, or to several separated by commas",
   "  --new          file it even where it would have folded onto a neighbour, and say which",
 ].join("\n");
@@ -271,17 +270,19 @@ export const commands = {
   /* Three tiers, and the payload is what costs. Fetch narrow, then fetch again. */
   issue: async ([reference, ...rest]) => {
     if (!reference) fail(usageOf("issue"));
-    const { fields, full, ...asked } = flags(rest, "issue", ["--full"], { usage: usageOf("issue") });
-    const edges = exclusive(asked, [...EDGE_KINDS, "unlink"], "issue", "edges and a call writes one");
-    if (edges.length) return console.log(await wroteEdge(reference, asked));
+    const { fields, full, why, ...asked } = flags(rest, "issue", ["--full"], { usage: usageOf("issue") });
+    const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set"], "issue", "writes and a call makes one");
+    if (wrote === "set") return overrideField(reference, asked.set, why);
+    if (wrote !== undefined) return console.log(await wroteEdge(reference, asked));
+    if (why !== undefined) fail("--why belongs to --set; a read takes no reason.");
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
     const documentId = await documentIdOf(reference);
     /* The names ride along so the read skips the routes nothing asked for; the answer is the row
        whole either way, and the projection is taken from it. */
     const held = await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: names } : {}) });
-    const answer = inFlowWords(held);
-    const body = filled(names ? projectedTo(answer, names) : answer);
+    const body = filled(names ? projectedTo(held, names) : held);
     show(full ? body : terse(body));
+    return null;
   },
   /* `open` marks the active set; `draft` never dispatches. A filing is read before it is made,
      because the flow costs the same for one line as for a feature: how/issue-shape.md. */
@@ -289,24 +290,19 @@ export const commands = {
     if (wantsHelp(argv)) return console.log(newUsage(await briefGoals()));
     const [path, ...rest] = argv;
     if (!path) fail(usageOf("new"));
-    const row = { usage: usageOf("new"), hidden: INSTEAD_FLAGS };
+    const row = { usage: usageOf("new") };
     if (path.startsWith("--")) fail(unknownFlag("new", [path], row) ?? notABody(path));
     /* Before the unknown-flag route, whose nearest live name answers a question nobody asked. */
     const retired = retiredFlagIn("new", rest);
     if (retired) fail(retired);
-    const { with: rides, size, kind, priority, new: fresh, ...given } = flags(rest, "new", ["--new"], row);
+    const { with: rides, complexity, category, priority, new: fresh, ...given } = flags(rest, "new", ["--new"], row);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
-    if (size !== undefined && !TIERS.includes(size)) {
-      fail(`${didYouMean("size", size, TIERS)} They are the contract's three rungs, smallest first,`
-        + " and the two below the top are the ones it gives a light path.");
-    }
-    if (kind !== undefined && !KIND_NAMES.includes(kind)) fail(kindRefusal(kind));
-    const instead = insteadOf(given);
-    if (instead) fail(instead);
+    if (complexity !== undefined && !BAND_NAMES.includes(complexity)) fail(complexityRefusal(complexity));
+    if (category !== undefined && !KIND_NAMES.includes(category)) fail(kindRefusal(category));
     const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
     if (badKeys) fail(badKeys);
     const relating = withKeys.length > 0;
-    if (kind === undefined) fail(kindNeeded());
+    if (category === undefined) fail(kindNeeded());
     /* Every refusal a call could not change is above this line, and this is the one call a filing
        makes before the body: a rank outside the tracker's own set is knowable without one, and the
        filing takes this answer rather than asking again. */
@@ -322,9 +318,9 @@ export const commands = {
     return fileAndSay({
       title,
       body,
-      kind,
+      kind: category,
       ranked: rank.ranked,
-      size,
+      complexity,
       fields: carried,
       routed: relating,
       fresh,

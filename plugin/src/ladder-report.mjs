@@ -2,8 +2,7 @@
    which rung and this answers how to say it, and a report is where prose accumulates. Printed at
    every rung, a route nobody is shown being one they infer. */
 import {
-  FEATURE, FIELD_SAID, LIGHTER, LINE_SAID, SPARES, TIERS, heightOf, resizeForm, sizeFrom, splits,
-  tierOf,
+  FEATURE, LIGHTER, SPARES, TIERS, heightOf, resizeForm, sizeFrom, splits, tierOf,
 } from "./ladder.mjs";
 import { looksTo, planFlags } from "./flow/machine.mjs";
 
@@ -15,19 +14,11 @@ const lighterLines = (tier) => LIGHTER.filter((one) => one.tiers.includes(tier))
 const spareLines = (tier) => SPARES[tier].map((one, at) =>
   `  ${(at ? "" : "and fewer rounds").padEnd(WIDTH)}${one}`);
 
-/* One sentence per source, so which of the two decided is read rather than inferred. */
-const SOURCE_SAID = {
-  [FIELD_SAID]: (rung) => `its size on the tracker is a \`${rung}\``,
-  [LINE_SAID]: (rung) => `its body is marked \`Size: ${rung}.\``,
-};
-
-const said = (one) => SOURCE_SAID[one.from](one.rung);
-
-const markSaid = ({ rung, decided, outranked }) => {
-  if (!decided.length) return `This issue claims no size on either source, so it is a \`${FEATURE}\``;
-  const under = outranked.map((one) => `${said(one)}, which does not lower a rung the other claimed`);
-  return [`This issue is a \`${rung}\`: ${decided.map(said).join(", and ")}`, ...under].join("; ");
-};
+/* Two sentences and no third: a rung something claimed, and an absence. A reader told it holds none learns what to set; one told a value learns which value the tier was read off, and neither has to be read as the other. */
+const markSaid = ({ rung, band, claimed }) =>
+  (claimed
+    ? `This issue is a \`${rung}\`: ${claimed} is \`${band}\``
+    : `This issue holds no complexity on the tracker, so it is a \`${FEATURE}\``);
 
 /* Advice and no demand: what a rung owes is the contract's, and asking is what the two largest
    values are worth. */
