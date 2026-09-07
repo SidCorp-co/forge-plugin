@@ -16,7 +16,10 @@ import {
 } from "../resolve/config.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { BUNDLED } from "./vi.mjs";
-import { accountCredentials, fail, mcpForgeIgnored, projectRoot, projectScope, translateScope } from "../resolve/settings.mjs";
+import {
+  FEEDBACK_CHANNELS, LANDING_ROUTES, SHIP_MODES, accountCredentials, fail, feedbackScope,
+  landingScope, mcpForgeIgnored, projectRoot, projectScope, shipMode, translateScope,
+} from "../resolve/settings.mjs";
 import {
   MAX_CLAUDE_MD_LINES,
   checkClaims,
@@ -34,7 +37,7 @@ import { consults, logEntries, logPath } from "../codex/codex-log.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
-import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
+import { GUIDE_TABLE, REVIEWED_AT, methodPinned, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { contractPath, contractProblems, readContract, statesContract } from "../guides/contract.mjs";
 
 const viConfig = () => join(configDir("vi-natural"), "config.json");
@@ -455,15 +458,46 @@ const setVisibility = (verb, hide) => {
   console.log(`${verb} is now ${hide ? "withheld from" : "offered in"} the usage list.\n`);
 };
 
+/* Whose the option is, and why: `shipMode` in resolve/settings.mjs. */
+const setShip = (mode) => {
+  if (!SHIP_MODES.includes(mode)) fail(didYouMean("--ship mode", mode, SHIP_MODES));
+  saveConfig({ ship: mode });
+  console.log(mode === "ready"
+    ? "A run on this machine now ends at a pushed branch and a landing checkpoint; the landing is another actor's.\n"
+    : "A run on this machine now lands its own change, as it did before the option existed.\n");
+};
+
+/* This is the surface allowed to say what a project or a machine turned off, so each key prints its
+   value and where it was read; a value the key does not take is named here and nowhere else. */
+const held = (one, allowed) =>
+  (one.unknown ? `${one.unknown} is no value of this key — it takes ${allowed.join(", ")}; reading ${one.value}  ← ${one.from}`
+    : `${one.value}  ← ${one.from}`);
+
+const checkFlowKeys = () => {
+  for (const [which, one] of Object.entries(feedbackScope())) {
+    line(one.unknown ? BAD : OK, `feedback.${which}`, held(one, FEEDBACK_CHANNELS));
+  }
+  const method = methodPinned();
+  line(method.unknown ? BAD : OK, "method", held(method, ["a whole number above 0"]));
+  const landing = landingScope();
+  if (landing.unknown) line(BAD, "landing", held({ ...landing, value: "the derived route" }, LANDING_ROUTES));
+  else if (landing.value) line(OK, "landing", `${landing.value}  ← ${landing.from}`);
+  else line(OK, "landing", "unset, so `forge project` derives where the merge sits from the tracker's record");
+  const ship = shipMode();
+  line(ship.unknown ? BAD : OK, "ship", held(ship, SHIP_MODES));
+};
+
 export const doctor = async (rest) => {
-  const { full, hide, show: reveal, ...values } = flags(rest, "doctor", ["--full"]);
+  const { full, hide, show: reveal, ship, ...values } = flags(rest, "doctor", ["--full"]);
   for (const key of Object.keys(values)) {
     if (!["token", "url"].includes(key)) {
-      fail("Usage: forge doctor [--token <pat>] [--url <endpoint>] [--hide <verb>|--show <verb>] [--full]");
+      fail("Usage: forge doctor [--token <pat>] [--url <endpoint>] [--hide <verb>|--show <verb>]"
+        + " [--ship ready|self] [--full]");
     }
   }
   if (hide) setVisibility(hide, true);
   if (reveal) setVisibility(reveal, false);
+  if (ship) setShip(ship);
   if (Object.keys(values).length) install(values);
 
   const { url, token } = accountCredentials();
@@ -486,6 +520,7 @@ export const doctor = async (rest) => {
   }
   const chosen = userConfig().withheld ?? [];
   if (chosen.length) line(OK, "withheld verbs", `${chosen.join(", ")} — \`forge doctor --show <verb>\``);
+  checkFlowKeys();
   for (const { name, event } of offNow()) {
     line(OK, "hooks off", `${name} (${event}) — \`forge hooks --on ${name}\``);
   }

@@ -30,6 +30,24 @@ spent the turn and a silent refusal costs a second one; what the refusal must no
 the thing — `forge guide --tracker` echoes the flag and refuses the shape, and says nowhere what
 the flag would have printed.
 
+**A project's key and this machine's withholding are two answers to two questions, and the narrower
+one is what a caller gets.** `feedback.plugin` is the project's: whether a run working here may file
+about this plugin at all. `forge doctor --hide feedback` is this machine's: whether this machine
+offers the verb. They are not a precedence puzzle, because neither can grant what the other
+withholds — a channel the project turned off is not reopened by a machine that offers the verb, and a
+verb this machine withheld is not offered by a project that allows the channel. So the routing names
+the verb only where both allow it, and `doctor` prints each with its own source, which is how a person
+debugging the copy learns which of the two spoke. What neither may do is leave a sentence behind: the
+destination is rendered by the CLI off the key at the moment a filing is intended, so a channel that
+closes takes its sentence with it, which is this page's rule applied to a setting rather than to a
+release.
+
+The machine's other option sits in the same file for the same reason. `forge doctor --ship
+ready|self` says whether a run on this machine lands its own change or ends ready for another actor
+to land it: the actor that lands runs on this checkout, so the level that owns the landing owns the
+switch. Absent, it is `self`, which is what every run did before the option existed — a silence here
+is the old behaviour and never a refusal to land.
+
 **A replaced verb is retired, not redirected.** When a new verb or tool takes over what an old one
 did, the old name leaves every surface at once — the dispatcher, `-h`, the CLI document, the skills,
 the contract — and typing it afterwards gets exactly what a name that never existed gets: the

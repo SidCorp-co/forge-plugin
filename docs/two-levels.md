@@ -35,6 +35,30 @@ covered is the plugin's. Neither holds a copy of the other's job.
 A project without that dependency gets silence. Silence is the correct answer: it did not opt
 in.
 
+## The keys one flow reads, and whose each is
+
+The flow's own settings obey the division above rather than sitting outside it. Three are the
+project's, in its own `.forge.json`, because none of them can be stated without naming the project:
+
+- **`feedback`** — whether a run working in this project may file about this plugin, and about the
+  project itself. A project that does not want a contractor's plugin reporting on itself from inside
+  their checkout can say so, and one that wants the run to do the job and nothing else can say that.
+  What it gives up by turning the plugin channel off is real and is the project's to choose: six
+  causes reached this plugin's backlog through that channel over one review window, and a project set
+  to `off` meets those defects and records them only in a run's report.
+- **`method`** — which version of the served text this project runs. Projects are independent: two on
+  one machine may run two versions, a run reads the version of the checkout it stands in, and a
+  method change rolls out when the project chooses rather than when the plugin releases.
+- **`landing`** — where the merge sits, as an override of what the tracker's own record already
+  implies. The route itself is derived and not asked for twice.
+
+One is the **machine's**, in the user config beside the withheld verbs: **`ship`**, whether a run
+lands its own change or ends ready for another actor to land it. It is neither level's above, and the
+reason is that the actor which lands runs on this checkout — the level that owns the landing owns the
+switch, and a project cannot know how many runs a machine gives it.
+[Withholding a verb](cli/withholding-a-verb.md) owns that level, and says what happens where a
+machine's withholding and a project's key disagree.
+
 ## The conflict rule
 
 **Where both could speak, the project wins.** The global level is written to cover what is

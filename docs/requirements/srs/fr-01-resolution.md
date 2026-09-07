@@ -118,23 +118,23 @@ project file, because a decision held anywhere else is a plugin default wearing 
 lands itself or stops ready to land, since the landing runs on this machine's checkout. Each key is
 read from one place and reported with its source (BR-08).
 
-- **AC-01-5-1** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-5-1** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "every key the project set is printed with .forge.json as its source"
   WHEN the resolution report is printed THEN the CLI SHALL list each project key with its value and
   where it was read from.
-- **AC-01-5-2** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-5-2** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "a key the project left out is printed at the plugin's default, with the default as its source"
   IF the project file does not set a key that has a product default THEN the CLI SHALL take that
   default and SHALL name the default as the source.
-- **AC-01-5-3** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-5-3** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the landing mode is the machine's: it is written to the user config and the project's file is untouched"
   WHEN the developer sets the landing mode through the report verb THEN the CLI SHALL write it to
   the account's configuration and to nothing of the project's.
-- **AC-01-5-4** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-5-4** · Rev: 1 · Proof: plugin/test/tracker/project-config.test.mjs "the landing route comes off the branch pair and the auto-deploy flag, and a key overrides it"
   WHEN the project's release policy is read THEN the CLI SHALL derive the landing route from the
   staging branch, the production branch and whether production deploys on its own, SHALL say `not
   stated` where they do not answer, and SHALL let the project file's own key override the derivation.
-- **AC-01-5-5** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-5-5** · Rev: 1 · Proof: plugin/test/cli/project-verb.test.mjs "a qa key in the checkout moves nothing the verb prints"
   WHEN the project's release policy is read THEN the CLI SHALL print whether an independent judgement
   is asked for, read from the tracker's project record and from nowhere else.
-- **AC-01-5-6** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-5-6** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the mode the report prints is the mode last written, either way"
   WHEN the resolution report is printed THEN it SHALL print the landing mode the account's
   configuration holds.
 
