@@ -22,6 +22,7 @@ import { documentIdOf } from "../tracker/issues.mjs";
 import { capsOf, writeField } from "../tracker/field-write.mjs";
 import { scoped } from "../tracker/rpc.mjs";
 import { refuseIfGated } from "../resolve/visibility.mjs";
+import { pluginFilingLine } from "../tracker/filing/plugin-defect.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { FIELD as SESSION, nextLine, renew } from "./lease.mjs";
 import { patchFrom, worklogLines, worklogOf } from "./worklog.mjs";
@@ -529,9 +530,7 @@ const recordReport = async (reference) => {
   let criteria = [];
   try {
     criteria = criteriaLines(unwrap(body.acceptanceCriteria));
-  } catch {
-    criteria = [];
-  }
+  } catch { criteria = []; }
   const page = await commentPage(documentId);
   const { comments } = page;
   if (cutIn(page)) console.error(`${cutLine(page)} This report was assembled from those rows and `
@@ -551,6 +550,7 @@ const recordReport = async (reference) => {
   /* The run's own captures: no payload, and all of what a fold asks for beyond the payloads. */
   const lines = worklogLines(worklogOf(body[SESSION]));
   if (lines.length) console.log(["", "The run, from its own captures:", ...lines.map((one) => `  ${one}`)].join("\n"));
+  console.log(pluginFilingLine((repeated.routed ?? []).map((one) => one.record.fields.to)));
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
   /* A run's end is measured by `closed`, and five of one day's runs stopped short of it (ISS-105). */
   if (body.status === CLOSES_FROM) {
