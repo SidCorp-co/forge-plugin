@@ -183,7 +183,7 @@ hid — so a page that came back short is judged as a feature's.
 |---|---|---|
 | the plan is possible | the plan in its field, a section per question `forge record plan -h` prints; numbered criteria in theirs; the screen and schema flags, and the user-facing outcome where a person judges the result | `approved` |
 | the plan declares schema coupling or deploy coupling | the way back in the plan's own section: what triggers it, the steps taken, who is told | `approved` |
-| a step of the plan serves no criterion, or a criterion no step | refused at the write and again at `approved`, each one named — a step no verdict reaches and an outcome nothing does are one gap read from either end | unchanged until the plan says what serves what |
+| a step of the plan serves no criterion, or a criterion no step | a step citing nothing is refused at the write; a step citing a number this issue does not hold, and a criterion no step names, at `approved`, which is where the criteria are read — each one named, a step no verdict reaches and an outcome nothing does being one gap read from either end | unchanged until the plan says what serves what |
 | **trivial** — the plan is possible | numbered criteria alone, as the row below; writing a plan that declares a screen change or a user-facing outcome moves it one rung to `fix` | `approved` |
 | **fix** — the plan is possible | numbered criteria alone, being the one check that fails without the change; no plan field, and its absent declarations read *no* — writing one that declares a screen change or a user-facing outcome is how a fix moves up a rung | `approved` |
 | a criterion carrying two outcomes | refused at the write, each half named | unchanged until the author splits it into two numbered lines |
