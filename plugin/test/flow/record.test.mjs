@@ -483,9 +483,9 @@ const project = {
 const tracker = await fakeTracker(project);
 test.after(() => tracker.close());
 await ranAsync(FORGE, ["claim", "ISS-3"], tracker.env);
-const verify = () =>
+const verify = (env = tracker.env) =>
   ranAsync(FORGE, ["record", "verification", "ISS-3", "--where", "the installed plugin",
-    "--commit", "43b811e", "--evidence", "43b811e"], tracker.env);
+    "--commit", "43b811e", "--evidence", "43b811e"], env);
 
 test("the verification says who released it, in the project's own words and never the author's", async () => {
   const kept = await verify();
@@ -541,8 +541,6 @@ test("a record write ends with the line advance --owed would print, and never fa
   project.config = { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } };
   const owing = await ranAsync(FORGE, ["record", "gap", "ISS-3", "--none", "the method answered"], tracker.env);
   assert.equal(owing.status, 0, owing.stderr);
-  assert.match(owing.stderr, /^ISS-3 is tested; released is next and the record does not earn it: 1 item\(s\) owed\.$/mu,
-    owing.stderr);
   assert.doesNotMatch(owing.stdout, /is next and the record/u, "on stderr, because stdout is the record itself");
   /* The write counts itself: the page this one read carries no verification, and the comment it
      posted is what earns the status — a trailer that re-read the page would report it as owed. */

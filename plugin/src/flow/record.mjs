@@ -205,8 +205,8 @@ const sayOwed = async (documentId, issue, ref, held = null) => {
   try {
     const { owedSaid } = await import("./route.mjs");
     const page = held ?? await commentPage(documentId);
-    const cut = held ? held.cut : cutIn(page);
-    console.error(await owedSaid(documentId, issue, page.comments, ref, cut));
+    const said = await owedSaid(documentId, issue, page.comments, ref, held ? held.cut : cutIn(page));
+    if (said) console.error(said);
   } catch (error) {
     console.error(`what this write now owes could not be read: ${error.message}`);
   }

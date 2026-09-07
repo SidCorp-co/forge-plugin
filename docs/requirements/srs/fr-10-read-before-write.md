@@ -99,17 +99,17 @@ of the method — repeats that text on every firing, and the repeats are paid fo
 context. One ledger, keyed on the session, the surface and a digest of the text, tells a session a
 thing once; a refusal keeps its one line because every hold owes the command that clears it (BR-01).
 
-- **AC-10-5-1** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-10-5-1** · Rev: 1 · Proof: plugin/test/gates/codex-turn.test.mjs "the hint is credited under the session, the surface codex-turn and the digest of its text"
   WHEN text reaches a session for the first time THEN the ledger SHALL show it whole and SHALL
   credit it to the session, the surface and the text's digest.
-- **AC-10-5-2** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-10-5-2** · Rev: 1 · Proof: plugin/test/shown/ledger.test.mjs "an unchanged repeat costs a refusal one line, and that line names the route to the reason"
   WHEN a refusal repeats unchanged in one session THEN it SHALL print one line naming the command
   that clears it, and never nothing.
-- **AC-10-5-3** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-10-5-3** · Rev: 1 · Proof: plugin/test/shown/ledger.test.mjs "an unchanged repeat costs advice nothing at all"
   WHEN advice repeats unchanged in one session THEN it SHALL print nothing.
-- **AC-10-5-4** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-10-5-4** · Rev: 1 · Proof: plugin/test/shown/ledger.test.mjs "a text that grew since it was shown owes the lines it grew by and not the rest"
   WHEN text changed since it was shown THEN only the change SHALL print.
-- **AC-10-5-5** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-10-5-5** · Rev: 1 · Proof: plugin/test/shown/ledger.test.mjs "the subagent's credit is written under its own id and not its dispatcher's"
   WHEN a subagent is told a thing THEN the credit SHALL be that subagent's alone and never its
   dispatcher's.
 

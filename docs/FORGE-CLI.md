@@ -22,16 +22,17 @@ needs that topic and by nobody else.
 | [`resume`](cli/resume.md) | What the worklog holds beside the lease, why no capture of it is automatic, and what the brief prints. |
 | [`spec`](cli/spec.md) | Why a clause is answered by its identifier, and the three readings of the notation that were narrowed rather than guessed. |
 | [two writes that lie about themselves](cli/two-writes-that-lie.md) | Why a field is reported written only after the server shows it, and why the read-back compares the copy the boundary sent. |
-| [the entry checks](cli/the-entry-checks.md) | The four obligations a plugin can hold a project to without reading its tree: what a baseline says about its own gate run, what a screen's verdict has to cite, what the mark's note says a landing wrote, and what a verification says a deploy did. |
+| [the entry checks](cli/the-entry-checks.md) | The four obligations a plugin can hold a project to without reading its tree: the baseline's own gate run, the screen's verdict, the mark's note, the verification. |
 | [the ladder](cli/the-ladder.md) | The one rule running through every reading of an issue's rung: where the reading is doubtful the answer is the rung that owes more, the six places that bites, and the two things the rule is not. |
 | [the primitives](cli/the-primitives.md) | What two verbs' own copies of the paging primitives cost, why one list serves a process, the measurements behind the markdown set the checkers share, and where the SSE frame reader's home stops. |
 | [one primitive, or two](cli/one-primitive-or-two.md) | Why the capturing span and the stripping one are two readers rather than a copy, which of the two link targets a verifier spends and which a parser does, and what an exclusion row owes the issue that clears it. |
 | [`next`](cli/next.md) | The call budget a 503 set, why the size band has two sources and which decides, where the module reading stops rather than inferring a repository's layout, and what the cost column is silent about. |
 | [`deps`](cli/deps.md) | What the marker sentence has to be for an edge to count, and why the graph is one ASCII line per blocker. |
 | [`knowledge`](cli/knowledge.md) | What the store held after forty-three runs, why a write carries forward what the caller did not name, and who refuses an entry that restates a rules file. |
+| [the shown ledger](cli/the-shown-ledger.md) | What a repeat costs a refusal and what it costs advice, the two readings of "already shown", and why the journal is appended. |
 | [cloudflare](cli/cloudflare.md) | Why this is a second API rather than a route through the first, and how the account holding a zone is found. |
 | [codex — the consult](cli/codex-the-consult.md) | Why no local agent is spawned, what travels instead of the bodies, which single pass earns a review, and where a base is read from. |
-| [codex — the finding](cli/codex-the-finding.md) | What one finding has to carry before it is worth its round, which clause a recheck still owes, where the issue's own boundary and the project's checks come from, and what the replay does and does not settle before a prompt ships. |
+| [codex — the finding](cli/codex-the-finding.md) | What one finding has to carry before it is worth its round, which clause a recheck still owes, where the issue's boundary and the project's checks come from, and what the replay settles before a prompt ships. |
 | [codex — the round](cli/codex-the-round.md) | Why calls are the only lever on wall time, what moves the effort a round is asked at, what a review that could not check is owed, and what a recheck is anchored to. |
 | [codex — the request](cli/codex-the-request.md) | Which cache the request is written for, what a consult replays, what a path may reach, and what the reviewer's own tools mean by no argument. |
 | [codex — the log](cli/codex-the-log.md) | What the log makes a session out of, what the stats window answers, what makes anyone run it, and what the commit gate demands before a commit. |
@@ -43,7 +44,7 @@ needs that topic and by nobody else.
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, and what a call that never returned counts as. |
 | [stats — the rows](cli/stats-rows.md) | The three rows a hand profile got wrong, why a phase boundary is read off the class a call already carries, and why a run that claimed no rung keeps a row of its own. |
-| [stats — the eval](cli/stats-the-eval.md) | Why the eval adds no figure of its own, why a window is fifty runs by the run's last record, what the copy installed at a run's start does and does not fix, why the mark writes its reading once and what a pinned comparison is for, and why a role on the strongest model reads the result. |
+| [stats — the eval](cli/stats-the-eval.md) | Why the eval adds no figure of its own, why a window is fifty runs by the run's last record, what the copy installed at a run's start does not fix, what a pinned comparison is for, and why the strongest model reads the result. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, what is withheld by default, and how the CLAUDE.md claims were calibrated. |
 | [which gates run](cli/which-gates-run.md) | Why the switch is derived from the hooks directory, and why exactly one place answers whether a gate is off. |
 | [the project](cli/the-project.md) | Why a host is told from a secret by the shape of the value, where the trim stops, and the edge the credential guard states rather than claims. |

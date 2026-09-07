@@ -8,6 +8,7 @@ import { isAbsolute, resolve } from "node:path";
 import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
 import { NOTHING, logRead, logsIn } from "../../src/hooks/log-reads.mjs";
 import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, clearNote, deny, gitTreeOf, note, noted, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
+import { sayOnce, sessionKey } from "../../src/shown/ledger.mjs";
 
 /* Seven refusals in three days were `git add -A <paths>`, told they staged the whole tree: a pathspec bounds `-A` to what is under it, and only `.` is everything. A redirect is not a path. `git -C other stash` and `git -c k=v add -A` are the verb with a global before it. */
 const GIT = String.raw`^(?:\S*\/)?git\s+` + GIT_GLOBALS;
@@ -246,7 +247,8 @@ export const run = (ev) => {
     if (asks && !found) continue;
     const doubt = atStake === "dirty" ? found : [];
     const unsure = doubt.includes(NOWHERE) ? UNNAMED : (doubt.length > 1 ? UNSURE : "");
-    deny(`Refused. ${cause}\n\nInstead: ${instead}${unsure}${topic ? how(topic) : how()}`);
+    const full = `Refused. ${cause}\n\nInstead: ${instead}${unsure}${topic ? how(topic) : how()}`;
+    deny(sayOnce(sessionKey(ev), "bash-guard", full, { route: topic || "bash-guard" }));
   }
 
   const again = readAgain(ev, (ev.tool_input ?? {}).command ?? "");

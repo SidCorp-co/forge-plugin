@@ -545,23 +545,46 @@ test("the refusal names the categories and does not reprint the test", () => {
 
 /* A duplicate is refused before the once-per-file stamp, so this route has its own fixture: the
    skill already says the sentence being written into a second file. */
-const skillDuplicate = () => {
+const dupRoom = () => {
   const room = join(tempRoom("skill-dup-gate-"), "skills", "demo");
   const line = "A refusal names the shape it refused and the one action that clears it.";
   mkdirSync(join(room, "references"), { recursive: true });
   writeFileSync(join(room, "SKILL.md"), `# demo\n\n${line}\n`);
+  return { room, line };
+};
+
+/* The session on the event and in the environment both, the id a run was handed outranking the
+   event's: keyed on one of the two only, this would read whatever the shell exports. */
+const dupWrite = (session, { room, line }, name = "shape.md") => {
   const run = callHook(
     HOOK,
     {
-      session_id: randomUUID(),
+      session_id: session,
       tool_name: "Write",
-      tool_input: { file_path: join(room, "references", "shape.md"), content: `${line}\n` },
+      tool_input: { file_path: join(room, "references", name), content: `${line}\n` },
     },
-    HOME,
+    { ...HOME, FORGE_SESSION_ID: session },
   );
   assert.equal(run.status, 0, run.stderr);
   return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
 };
+
+const skillDuplicate = () => dupWrite(randomUUID(), dupRoom());
+
+/* AC-10-5-2, the learning gate's half. The write is still refused — the duplicate must not land —
+   and what the session is spared is a paragraph it has already read. */
+test("a duplicate this session already read in full is refused again in one line", () => {
+  const fixture = dupRoom();
+  const session = randomUUID();
+  const first = dupWrite(session, fixture);
+  assert.match(first, /repeats what the skill already says/u, "the first refusal is the whole of it");
+  const again = dupWrite(session, fixture, "shape-two.md");
+  assert.equal(again.split("\n").length, 1, "the second is one line");
+  assert.match(again, /^Refused again/u, "which still reads as a refusal");
+  assert.match(again, /forge hooks --how learning-gate/u, "and names where the reason and escape are");
+  assert.match(dupWrite(randomUUID(), fixture, "shape-three.md"), /repeats what the skill already says/u,
+    "while another session is owed the whole of it");
+});
 
 /* Every route, not the one that was easiest to reach: the memory write fires most and shipped
    without the pointer, and the duplicate refusal named a repository script — a path the project a
