@@ -19,20 +19,55 @@ const NAME_WIDTH = 30;
 
 export const USAGE = [
   "Usage: forge cloudflare <zones|zone|dns|purge|search|login|accounts> [args]",
-  "Zones and DNS against api.cloudflare.com. Credentials are the accounts `login` saved",
-  "under ~/.config/forge, and nothing else: the environment is not a source.",
+  "Zones and DNS against api.cloudflare.com, on the accounts `login` saved locally and nothing",
+  "else: the environment is not a source. Each action's own flags: `forge cloudflare <action> -h`.",
   "",
-  "  zones [--search q]                     one line per zone, across every account",
-  "  zone <zone-id>                         one zone's detail",
-  "  dns <zone-id> [--type A] [--name www]  the zone's records",
-  "  dns add <zone-id> --type T --name N --content C [--ttl n] [--proxied true|false] [--priority n]",
-  "  dns set <record-id> --zone <zone-id> [--type T] [--name N] [--content C] [--ttl n]",
-  "  dns rm <record-id> --zone <zone-id>    delete a record",
-  "  purge <zone-id> [--file <url>]...      purge everything, or only the named files",
-  "  search <query> [--scope all|zones|dns] [--type T]   zones and records together",
-  "  login --name N --account-id A --token T | --forget N",
-  "  accounts [--full]                      what resolved, and from where",
+  "  zones      one line per zone, across every account",
+  "  zone       one zone's detail",
+  "  dns        the zone's records, and the routes that add, change and delete one",
+  "  purge      purge everything, or only the named files",
+  "  search     zones and records together",
+  "  login      save an account, or forget one",
+  "  accounts   what resolved, and from where",
 ].join("\n");
+
+const ZONES_USAGE = [
+  "Usage: forge cloudflare zones [--search q]",
+  "One line per zone, across every account.",
+  "",
+  "  --search q     only the zones whose name holds that text",
+].join("\n");
+
+const LOGIN_USAGE = [
+  "Usage: forge cloudflare login --name N --account-id A --token T | --forget N",
+  "Save an account's credentials locally, at 0600, or drop one by name.",
+  "",
+  "  --name N       what to call the account here",
+  "  --account-id A the account id Cloudflare gave it",
+  "  --token T      an API token for that account",
+  "  --forget N     drop the account of that name and keep the rest",
+].join("\n");
+
+const ACCOUNTS_USAGE = [
+  "Usage: forge cloudflare accounts [--full]",
+  "What resolved, and from where; a token is masked unless you ask.",
+  "",
+  "  --full         the ends of each id and token rather than its length alone",
+].join("\n");
+
+const DNS_ADD_USAGE = [
+  "Usage: forge cloudflare dns add <zone-id> --type T --name N --content C [--ttl n]",
+  "                               [--proxied true|false] [--priority n]",
+  "One record created in that zone.",
+].join("\n");
+
+const DNS_SET_USAGE = [
+  "Usage: forge cloudflare dns set <record-id> --zone <zone-id> [--type T] [--name N]",
+  "                               [--content C] [--ttl n] [--proxied true|false] [--priority n]",
+  "One record changed: a field you do not name keeps its value.",
+].join("\n");
+
+const DNS_RM_USAGE = "Usage: forge cloudflare dns rm <record-id> --zone <zone-id>";
 
 /* Every account the config holds, and only the config: provenance travels with them because
    `forge doctor` reports where each came from and never what it is. */
@@ -231,7 +266,7 @@ const masked = (token, full) => {
 };
 
 const saveAccount = (rest) => {
-  const { name, "account-id": accountId, token, forget } = flags(rest, "cloudflare login");
+  const { name, "account-id": accountId, token, forget } = flags(rest, "cloudflare login", [], { usage: LOGIN_USAGE });
   const held = userConfig().cloudflare?.accounts ?? [];
   if (forget) {
     const kept = held.filter((one) => one.name !== forget);
@@ -249,7 +284,7 @@ const saveAccount = (rest) => {
 };
 
 const listAccounts = (rest) => {
-  const { full } = flags(rest, "cloudflare accounts", ["--full"]);
+  const { full } = flags(rest, "cloudflare accounts", ["--full"], { usage: ACCOUNTS_USAGE });
   const { accounts, from } = cloudflareAccounts();
   if (!accounts.length) {
     console.log(NO_ACCOUNT);
@@ -264,8 +299,8 @@ const listAccounts = (rest) => {
 };
 
 const dnsAdd = async ([zone, ...rest]) => {
-  if (!zone) fail("Usage: forge cloudflare dns add <zone-id> --type T --name N --content C");
-  const given = flags(rest, "cloudflare dns add");
+  if (!zone) fail(DNS_ADD_USAGE);
+  const given = flags(rest, "cloudflare dns add", [], { usage: DNS_ADD_USAGE });
   if (!given.type || !given.name || !given.content) {
     fail("cloudflare dns add needs --type, --name and --content.");
   }
@@ -286,8 +321,8 @@ const dnsAdd = async ([zone, ...rest]) => {
 
 /* A PATCH, so an unnamed field keeps its value: the whole record is not retyped to move one. */
 const dnsSet = async ([record, ...rest]) => {
-  if (!record) fail("Usage: forge cloudflare dns set <record-id> --zone <zone-id> [--content C] …");
-  const given = flags(rest, "cloudflare dns set");
+  if (!record) fail(DNS_SET_USAGE);
+  const given = flags(rest, "cloudflare dns set", [], { usage: DNS_SET_USAGE });
   if (!given.zone) fail("cloudflare dns set needs --zone <zone-id>; a record id alone names no zone.");
   const body = {};
   for (const key of ["type", "name", "content"]) if (given[key]) body[key] = given[key];
@@ -310,8 +345,8 @@ const dnsSet = async ([record, ...rest]) => {
 };
 
 const dnsRemove = async ([record, ...rest]) => {
-  if (!record) fail("Usage: forge cloudflare dns rm <record-id> --zone <zone-id>");
-  const { zone } = flags(rest, "cloudflare dns rm");
+  if (!record) fail(DNS_RM_USAGE);
+  const { zone } = flags(rest, "cloudflare dns rm", [], { usage: DNS_RM_USAGE });
   if (!zone) fail("cloudflare dns rm needs --zone <zone-id>; a record id alone names no zone.");
   const account = await accountForZone(configured(), zone);
   announce("dns rm", zone, account);
@@ -319,11 +354,17 @@ const dnsRemove = async ([record, ...rest]) => {
   console.log(`deleted  ${record}`);
 };
 
-const DNS_USAGE = "Usage: forge cloudflare dns <zone-id> [--type A] [--name www]";
+const DNS_USAGE = [
+  "Usage: forge cloudflare dns <zone-id> [--type A] [--name www]",
+  "The zone's records, and the three routes that change one — each with its own `-h`:",
+  `  ${DNS_ADD_USAGE.split("\n")[0]}`,
+  `  ${DNS_SET_USAGE.split("\n")[0]}`,
+  `  ${DNS_RM_USAGE}`,
+].join("\n");
 
 const dnsList = async ([zone, ...rest]) => {
   if (!zone) fail(DNS_USAGE);
-  const { type, name } = flags(rest, "cloudflare dns");
+  const { type, name } = flags(rest, "cloudflare dns", [], { usage: DNS_USAGE });
   const account = await accountForZone(configured(), zone);
   const { result } = await cfFetch(
     account.apiToken,
@@ -345,7 +386,7 @@ const SEARCH_USAGE = "Usage: forge cloudflare search <query> [--scope all|zones|
 
 const search = async ([query, ...rest]) => {
   if (!query) fail(SEARCH_USAGE);
-  const { scope = "all", type } = flags(rest, "cloudflare search");
+  const { scope = "all", type } = flags(rest, "cloudflare search", [], { usage: SEARCH_USAGE });
   if (!SCOPES.includes(scope)) fail(didYouMean("scope", scope, SCOPES));
   const zones = await gathered(configured());
   if (scope !== "dns") {
@@ -359,7 +400,7 @@ const search = async ([query, ...rest]) => {
 };
 
 const zones = async (rest) => {
-  const { search: needle } = flags(rest, "cloudflare zones");
+  const { search: needle } = flags(rest, "cloudflare zones", [], { usage: ZONES_USAGE });
   const found = await gathered(configured());
   const wanted = needle ? found.filter((zone) => zone.name.toLowerCase().includes(needle.toLowerCase())) : found;
   printZones(wanted);
@@ -369,8 +410,9 @@ const ZONE_FIELDS = ["id", "name", "status", "paused", "name_servers", "original
 
 const ZONE_USAGE = "Usage: forge cloudflare zone <zone-id>";
 
-const zone = async ([wanted]) => {
+const zone = async ([wanted, ...rest]) => {
   if (!wanted) fail(ZONE_USAGE);
+  flags(rest, "cloudflare zone", [], { usage: ZONE_USAGE });
   const account = await accountForZone(configured(), wanted);
   const { result } = await cfFetch(account.apiToken, `/zones/${wanted}`);
   const detail = Object.fromEntries(ZONE_FIELDS.map((key) => [key, result[key]]));
@@ -381,8 +423,8 @@ const PURGE_USAGE = "Usage: forge cloudflare purge <zone-id> [--file <url>]...";
 
 const purge = async ([wanted, ...rest]) => {
   if (!wanted) fail(PURGE_USAGE);
-  const { values: files, rest: others } = pullRepeated(rest, "--file", "cloudflare purge");
-  flags(others, "cloudflare purge");
+  const { values: files, rest: others } = pullRepeated(rest, "--file", "cloudflare purge", { usage: PURGE_USAGE });
+  flags(others, "cloudflare purge", [], { usage: PURGE_USAGE });
   const account = await accountForZone(configured(), wanted);
   const body = files.length ? { files } : { purge_everything: true };
   announce("purge", wanted, account);
@@ -393,7 +435,15 @@ const purge = async ([wanted, ...rest]) => {
 const SUBS = { zones, zone, dns, purge, search, login: saveAccount, accounts: listAccounts };
 
 /* Four of the seven; `zones`, `login` and `accounts` take flags and refuse with the verb's text, which is what a help ask on those gets. */
-export const SAYS = { zone: ZONE_USAGE, dns: DNS_USAGE, purge: PURGE_USAGE, search: SEARCH_USAGE };
+export const SAYS = {
+  zones: ZONES_USAGE,
+  zone: ZONE_USAGE,
+  dns: DNS_USAGE,
+  purge: PURGE_USAGE,
+  search: SEARCH_USAGE,
+  login: LOGIN_USAGE,
+  accounts: ACCOUNTS_USAGE,
+};
 
 export const cloudflare = async ([sub, ...rest]) => {
   const help = helpAskedOf([sub, ...rest], Object.keys(SUBS));

@@ -1,8 +1,7 @@
-/* Parsing `--name value` pairs, once. Two of the three hand-rolled copies dropped a valueless
-   flag silently, which reads as an unfiltered answer. */
+/* Parsing `--name value` pairs, once, and refusing a name the verb does not take: a flag is one word with no `=` in it, and the set a verb takes is read off the usage text its own `-h` prints, so a flag added there is taken with no second edit — docs/cli/did-you-mean.md. */
+import { didYouMean } from "../suggest.mjs";
 import { fail } from "./settings.mjs";
 
-/* A flag is one word with no `=` in it; a value slot refuses that alone — docs/cli/did-you-mean.md. */
 export const FLAG_WORD = /^--[^\s=]*$/u;
 
 export const noValue = (verb, flag, value) =>
@@ -12,7 +11,52 @@ export const noValue = (verb, flag, value) =>
       + "flag is one word and that is one. A value saying more than the one word is taken as the "
       + `value, so write the sentence \`${value}\` belongs to.`);
 
-export const flags = (argv, verb, boolean = []) => {
+/* A flag inside a quoted command belongs to that command: `record -h` points at `forge advance --owed`, and read as a declaration that line put --owed in the set `record` refuses against (ISS-700). */
+const QUOTED_COMMAND = /`forge [^`]*`/gu;
+/* And so does a flag on a second usage line: `cloudflare dns -h` prints the three routes that change a record under its own row, which put --content and --ttl in the set the listing takes and then ignores. The first line is the only one this name declares with. */
+const ANOTHER_USAGE = /^[ \t]*Usage:/u;
+
+export const flagsNamed = (usage) => {
+  const [first, ...rest] = usage.split("\n");
+  const mine = [first, ...rest.filter((line) => !ANOTHER_USAGE.test(line))].join("\n");
+  return [...new Set(mine.replaceAll(QUOTED_COMMAND, " ").match(/--[a-z][\w-]*/gu) ?? [])];
+};
+
+/* What a refused caller can type from. A record kind's first line is `forge record verdict <ISS-45> [...]`, whose fields are the rows under it, so printing the first line alone answered a refusal with a line naming no flag at all (ISS-700). A row is indented and names a flag of its own: the paragraph under `record -h` citing `forge advance --owed` is neither. */
+const isRow = (line) => /^\s+\S/u.test(line) && flagsNamed(line).length > 0;
+
+const rowsOf = (usage) => {
+  const [first, ...rest] = usage.split("\n");
+  if (flagsNamed(first).length) return first;
+  return [first, ...rest.filter(isRow)].join("\n");
+};
+
+/** Only a flag SHAPE is turned away, and the usage rows close every one: the nearest name alone leaves a caller who was nowhere near a live flag nothing to type — docs/cli/did-you-mean.md. */
+export const unknownFlag = (verb, argv, { usage, hidden = [], boolean = [] }) => {
+  const named = flagsNamed(usage);
+  const known = [...named, ...hidden, ...boolean];
+  /* A flag word where a value goes is that value: the parse refuses the flag whose value is missing, which is the sentence that says how to write one starting `--`. */
+  const spends = (token) => token !== undefined && known.includes(token) && !boolean.includes(token);
+  const given = argv.find((token, at) => FLAG_WORD.test(token) && !known.includes(token) && !spends(argv[at - 1]));
+  if (given === undefined) return null;
+  const row = rowsOf(usage);
+  /* No name at all, so no near miss answers it, and this is the one place that sentence lives. */
+  if (given === "--") return `${verb}: \`--\` names no flag, and read as one it would take the next word as its value.\n${row}`;
+  return `${didYouMean(`${verb} flag`, given, named)}\n${row}`;
+};
+
+/* Before a value is read and before an endpoint is resolved; no usage text is this CLI's defect. */
+const strangerIn = (argv, verb, { usage, hidden = [], boolean = [] }) => {
+  if (!usage) {
+    fail(`${verb ?? "forge"}: this verb gave the parser no usage text, so no flag of it could be `
+      + "judged. That is a defect in this CLI, not in what you typed: `forge feedback`.");
+  }
+  const said = unknownFlag(verb, argv, { usage, hidden, boolean });
+  if (said) fail(said);
+};
+
+export const flags = (argv, verb, boolean = [], row = {}) => {
+  strangerIn(argv, verb, { ...row, boolean });
   const found = {};
   for (const flag of boolean) if (argv.includes(flag)) found[flag.slice(2)] = true;
   const pairs = argv.filter((argument) => !boolean.includes(argument));
@@ -20,7 +64,6 @@ export const flags = (argv, verb, boolean = []) => {
     const key = pairs[index];
     if (!key.startsWith("--")) fail(`${verb}: expected a --flag, got \`${key}\`.`);
     if (key.includes("=")) fail(`${verb}: write \`${key.split("=")[0]} <value>\`; --flag=value is not read.`);
-    if (key === "--") fail(`${verb}: \`--\` names no flag, and read as one it would take the next word as its value.`);
     const value = pairs[index + 1];
     if (value === undefined || FLAG_WORD.test(value)) fail(noValue(verb, key, value));
     found[key.slice(2)] = value;
@@ -34,7 +77,8 @@ export { helpAskedOf, isHelpWord, wantsHelp } from "./help-word.mjs";
 
 /* `flags` keeps only the last value of a repeated flag, which reads as a filtered answer rather
    than a dropped one. A caller that means "all of these" pulls them out first. */
-export const pullRepeated = (argv, flag, verb) => {
+export const pullRepeated = (argv, flag, verb, row = {}) => {
+  strangerIn(argv, verb, { ...row, hidden: [...(row.hidden ?? []), flag] });
   const values = [];
   const rest = [];
   for (let index = 0; index < argv.length; index += 1) {
@@ -52,7 +96,8 @@ export const pullRepeated = (argv, flag, verb) => {
 
 /* Positionals and flags interleave (`consult a.mjs --diff --only major b.mjs`), and splitting on
    "starts with --" read a VALUE as a positional: so booleans are declared, and the rest consume. */
-export const partition = (argv, booleans = []) => {
+export const partition = (argv, booleans = [], row = {}) => {
+  strangerIn(argv, row.verb, { ...row, boolean: booleans });
   const positionals = [];
   const flagArgv = [];
   for (let index = 0; index < argv.length; index += 1) {

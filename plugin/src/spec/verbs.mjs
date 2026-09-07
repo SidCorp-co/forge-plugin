@@ -1,7 +1,7 @@
 /* A clause of the requirements tree, asked for by identifier and printed as the phase implementing
    it needs it. What the identifiers mean and what a citation claims: docs/requirements/. */
 import { fail } from "../resolve/settings.mjs";
-import { helpAskedOf } from "../resolve/flags.mjs";
+import { flags, helpAskedOf, partition } from "../resolve/flags.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { LINK_TEXT_PATTERN } from "../markdown.mjs";
@@ -148,16 +148,11 @@ const printed = (index, clause, ref, given) => {
 };
 
 const read = (argv) => {
-  const given = { json: false, where: false };
-  const rest = [];
-  for (const token of argv) {
-    if (!token.startsWith("--")) rest.push(token);
-    else if (KNOWN.includes(token)) given[token.slice(2)] = true;
-    else refuse(`spec takes no ${token}. Flags: ${KNOWN.join(" ")}`);
-  }
-  if (!rest.length) refuse(`${usageOf("spec")} — an identifier, not a path. One of ${FORMS}.`);
-  if (rest.length > 1) refuse(`spec reads one clause at a time, not \`${rest.join(" ")}\`.`);
-  return { given, token: rest[0] };
+  const { positionals, flagArgv } = partition(argv, KNOWN, { verb: "spec", usage: USAGE });
+  const given = { json: false, where: false, ...flags(flagArgv, "spec", KNOWN, { usage: USAGE }) };
+  if (!positionals.length) refuse(`${usageOf("spec")} — an identifier, not a path. One of ${FORMS}.`);
+  if (positionals.length > 1) refuse(`spec reads one clause at a time, not \`${positionals.join(" ")}\`.`);
+  return { given, token: positionals[0] };
 };
 
 const clauseFor = (index, ref) => {
@@ -184,10 +179,10 @@ const recorded = (tree) => {
 };
 
 const checked = (rest) => {
+  const { positionals } = partition(rest, [RECORDING], { verb: `spec ${CHECK}`, usage: CHECK_USAGE });
   const writing = rest.includes(RECORDING);
-  const extra = rest.filter((one) => one !== RECORDING);
-  if (extra.length) {
-    refuse(`spec ${CHECK} reads the whole tree and takes no argument but ${RECORDING}, not \`${extra.join(" ")}\`.`);
+  if (positionals.length) {
+    refuse(`spec ${CHECK} reads the whole tree and takes no argument but ${RECORDING}, not \`${positionals.join(" ")}\`.`);
   }
   const tree = specTreeRead();
   if (!tree) return null;

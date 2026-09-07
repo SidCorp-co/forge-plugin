@@ -341,7 +341,7 @@ test("the identifier is the whole input, and the data shape is one object per cl
   assert.equal(unknown.status, 1);
   assert.match(unknown.stderr, /No clause named FR-99. Did you mean: FR-09/u);
   assert.equal(ask("spec", "--json").status, 1, "an identifier is not optional");
-  assert.match(ask("spec", "FR-14", "--nope").stderr, /spec takes no --nope/u);
+  assert.match(ask("spec", "FR-14", "--nope").stderr, /No spec flag named --nope\. The set is --json, --where, --record\./u);
   assert.match(ask("spec", "FR-14", "UC-14-2").stderr, /one clause at a time/u);
   const first = JSON.parse(ask("spec", "UC-14-2", "--json").stdout);
   assert.equal(first.clauses[0].id, "UC-14-2");

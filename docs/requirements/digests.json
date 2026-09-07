@@ -1830,12 +1830,12 @@
       "digest": "87dbaa2adccbeded6b4ee3addf0993fd3c0f547f17842b2db8829da6fa2778ba"
     },
     "UC-12-1": {
-      "rev": 1,
-      "digest": "dbfc10aad30b66cd60cdd5a72b7b7527664857e7235e0ad294924abe56cfd355"
+      "rev": 2,
+      "digest": "52fe71a14e965b14dc8cdaef5403f5cbd4a50a3330d55f1edeebecc7a868ab7e"
     },
     "AC-12-1-1": {
-      "rev": 1,
-      "digest": "4dc3a07fcf6410f399465b1b75df650ac062f39baba8ce707de199b1231ca68b"
+      "rev": 2,
+      "digest": "ba826055646a0b92d91050a0c8adffa36f413f70b8297ff3acf08d712acf0635"
     },
     "AC-12-1-2": {
       "rev": 1,

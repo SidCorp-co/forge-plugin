@@ -5,7 +5,6 @@ import {
   FLOW_BRIEF,
   EDIT_ROUTES,
   GUIDE_INDEX,
-  PHASES,
   POLL,
   UNTIERED,
   WHOLE_SET_CLASS,
@@ -19,12 +18,12 @@ import {
   transcriptsUnder,
 } from "./transcripts.mjs";
 import { median } from "./median.mjs";
+import { PHASES } from "../flow/earned.mjs";
 import { TIERS } from "../ladder.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { isVersioned } from "../guides/skill-guides.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
-import { unknownFlag } from "../suggest.mjs";
 
 const ROWS = 10;
 const REPEATED = 3;
@@ -547,11 +546,9 @@ export const projectFrom = (given, verb) => {
 };
 
 export const printRuns = (rest) => {
-  /* The generic parser keeps any valued flag it is handed, so `--sincee 1d` profiled the whole
-     corpus and said nothing: a filter silently dropped is a measurement that is materially false. */
-  const wrong = unknownFlag("stats runs", rest, { usage: RUNS_USAGE });
-  if (wrong) fail(wrong);
-  const { since, project, json } = flags(rest, "stats runs", ["--json"]);
+  /* `--sincee 1d` profiled the whole corpus and said nothing before the parser read this text: a
+     filter silently dropped is a measurement that is materially false. */
+  const { since, project, json } = flags(rest, "stats runs", ["--json"], { usage: RUNS_USAGE });
   const from = windowFrom(since);
   const directory = projectFrom(project, "stats runs");
   const root = rootFor(directory);

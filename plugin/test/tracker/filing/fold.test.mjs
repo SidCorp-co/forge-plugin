@@ -1,6 +1,4 @@
-/* What the fold decides before it acts, and what the reply says of each outcome: which neighbour it
-   would join, which filings can join one at all, and the block handed back on every one of them.
-   The act itself, spawned against a tracker, is beside.test.mjs; the reasoning docs/cli/the-fold.md's. */
+/* What the fold decides before it acts, and what the reply says of each outcome: which neighbour it would join, which filings can join one at all, and the block handed back on every one of them. The act itself, spawned against a tracker, is beside.test.mjs; the reasoning docs/cli/the-fold.md's. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -8,7 +6,7 @@ import { tempHome } from "../../fixtures.mjs";
 
 const home = tempHome("fold");
 process.env.XDG_CONFIG_HOME = home.path;
-const { BESIDE_HELP, FLOOR, foldFiling, foldOnto, foldedInto, suggestionLines } =
+const { FLOOR, foldFiling, foldOnto, foldedInto, suggestionLines } =
   await import("../../../src/tracker/filing/neighbours.mjs");
 const { TIERS, markFor } = await import("../../../src/ladder.mjs");
 const { placeIn, seedFor } = await import("../../../src/tracker/issue-shape.mjs");
@@ -120,16 +118,6 @@ test("the fold's reply names the issue and why it won, and claims no nearness it
   assert.match(said, /No issue was filed and no lease was taken/u);
   assert.match(said, /the block above is everything it was measured against/u);
   assert.doesNotMatch(said, /marked|Size:/u, "the size it is marked at decides nothing here any more");
-});
-
-test("the help says what the two queries are, the floor, and what the fold needs", () => {
-  assert.match(BESIDE_HELP, /what reads like this filing, and what names the same place/u);
-  assert.match(BESIDE_HELP, /at or above\s+0\.70/u);
-  assert.match(BESIDE_HELP, /--new {7}file it even where it would have folded/u);
-  assert.match(BESIDE_HELP, /Both signals\s+are needed/u);
-  assert.match(BESIDE_HELP, /body says where its subject comes from lands on the nearest/u);
-  assert.match(BESIDE_HELP, /at any\s+size/u, "so nobody goes looking for the mark that used to decide");
-  assert.match(BESIDE_HELP, /riding another issue's branch, and one of a kind that names no\s+cause/u);
 });
 
 /* The two seeds, read off the body the shape reader already scanned. */

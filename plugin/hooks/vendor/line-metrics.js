@@ -1,4 +1,4 @@
-// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.13.0, commit 87d35f2,
+// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.15.0, commit 3ef0811,
 //   src/line-metrics.js
 //
 // A copy of packages/code-quality/src/line-metrics.js, for its waiver vocabulary: skill-dup.mjs
@@ -96,6 +96,9 @@ export function getLineMetrics(sourceCode) {
         (comment) =>
           comment.type !== "Shebang" &&
           !isIgnoredComment(comment) &&
+          // A waiver is the answer to a rule, not prose about the code: charging it to the density
+          // budget makes the escape cost a comment line and pushes a file at the budget over it.
+          !isWaiver(comment) &&
           commentHasContentOnLine(comment, line, lineNumber),
       )
     ) {

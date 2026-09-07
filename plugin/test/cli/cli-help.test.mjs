@@ -4,16 +4,20 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { VERB_NAMES, helpOf, takesATrackerField, usageOf } from "../../src/resolve/visibility.mjs";
-import { helpAskedOf, wantsHelp } from "../../src/resolve/flags.mjs";
+import { GROUPS, VERB_NAMES, helpOf, takesATrackerField, usageOf } from "../../src/resolve/visibility.mjs";
+import { flagsNamed, helpAskedOf, unknownFlag, wantsHelp } from "../../src/resolve/flags.mjs";
 import { USAGE as KNOWLEDGE, SAYS as KNOWLEDGE_SAYS } from "../../src/tools/knowledge.mjs";
 import { USAGE as CLOUDFLARE, SAYS as CLOUDFLARE_SAYS } from "../../src/tools/cloudflare.mjs";
 import { USAGE as STATS, SAYS as STATS_SAYS } from "../../src/stats/stats.mjs";
-import { USAGE as CODEX } from "../../src/codex/codex.mjs";
+import { SAYS as CODEX_SAYS, USAGE as CODEX } from "../../src/codex/codex.mjs";
 import { CHECK_USAGE, USAGE as SPEC } from "../../src/spec/verbs.mjs";
+import { KINDS, USAGE as RECORD, kindUsage } from "../../src/resolve/record-rows.mjs";
+import { WHY, goalBlock } from "../../src/goals.mjs";
+import { SHAPES } from "../../src/flow/machine.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const ROOT = new URL("../../../", import.meta.url).pathname;
 const ask = (...argv) =>
   spawnSync(FORGE, argv, {
     encoding: "utf8",
@@ -59,12 +63,17 @@ test("no run of anything else is advertised", () => {
   assert.match(ask("-h", "--full").stdout, /replace-not-merge/u);
 });
 
-/* One usage line documents every action, and the actions are what a caller needs: a generic
-   `Usage: forge codex <...>` would satisfy the old assertion while deleting all of it. */
-test("a verb with actions of its own keeps its own help", () => {
+/* The verb's own text lists the actions and an action's flags are its own: a generic `Usage: forge
+   codex <...>` would satisfy the old assertion while deleting all of it (ISS-700). */
+test("a verb with actions of its own lists them, and each action's flags are its own", () => {
   const out = ask("codex", "-h");
   assert.equal(out.status, 0);
-  assert.match(`${out.stdout}${out.stderr}`, /--verify <risk>/u);
+  const said = `${out.stdout}${out.stderr}`;
+  for (const action of ["consult", "verdict", "pending", "show", "log", "stats", "eval", "marks", "replay"]) {
+    assert.match(said, new RegExp(`^\\s{2}${action}\\b`, "mu"), `codex -h lists no ${action}: ${said}`);
+  }
+  assert.doesNotMatch(said, /--verify <risk>/u, "and consult's own flags are not on it");
+  assert.match(`${ask("codex", "consult", "-h").stdout}`, /--verify <risk>/u);
 });
 
 /* A reference followed by `-h` names a file to post, and help there is a write that never ran. */
@@ -88,20 +97,26 @@ test("a subject's help stands in two slots and no more", () => {
   assert.equal(helpAskedOf([], subs), null, "and nothing typed is not a question either");
 });
 
-/* One row per action of every dispatcher that takes a subject. `-h` after the action ran the action:
-   `knowledge search -h` searched the store by meaning for that word and `delete -h` resolved an
-   endpoint to delete a slug named it, twelve of these twenty exited 1 and eight answered on stderr.
-   The loop is the point: dispatcher six cannot ship without a row, and each row is judged against
-   the module's own constant rather than a second copy of the prose here (ISS-305). */
+/* One row per action of every dispatcher that takes a subject. `-h` after the action ran the action: `knowledge search -h` searched the store by meaning for that word and `delete -h` resolved an endpoint to delete a slug named it, twelve of these twenty exited 1 and eight answered on stderr. The loop is the point: dispatcher six cannot ship without a row, and each row is judged against the module's own constant rather than a second copy of the prose here (ISS-305). */
 const SUBJECT_HELP = [
   ["knowledge", KNOWLEDGE, KNOWLEDGE_SAYS, ["list", "get", "write", "search", "delete"]],
   ["cloudflare", CLOUDFLARE, CLOUDFLARE_SAYS,
     ["zones", "zone", "dns", "purge", "search", "login", "accounts"]],
   ["stats", STATS, STATS_SAYS, ["runs", "eval", "marks"]],
-  ["codex", CODEX, {},
+  ["codex", CODEX, CODEX_SAYS,
     ["consult", "verdict", "pending", "show", "log", "stats", "eval", "marks", "replay"]],
   ["spec", SPEC, { check: CHECK_USAGE }, ["check"]],
+  ["record", RECORD, Object.fromEntries(KINDS.map((kind) => [kind, kindUsage(kind).split("\n")[0]])), KINDS],
 ];
+
+/* The table above is what the cap and the stranger walk below measure, so a subject with a text of
+   its own and no row here is a sub-verb neither reaches: each module's `SAYS` is compared with it. */
+test("every subject a module answers help for has a row in the table", () => {
+  for (const [verb, , says, subs] of SUBJECT_HELP) {
+    if (verb === "spec") continue;
+    assert.deepEqual(Object.keys(says).sort(), [...subs].sort(), `forge ${verb}: the rows and its SAYS differ`);
+  }
+});
 
 const asking = ({ subs }) => [...subs.map((one) => [one, "-h"]), [subs[0], "--help"]];
 
@@ -241,4 +256,221 @@ test("the preamble carries this CLI's rules and not the runner's", () => {
   assert.match(full, /`forge new` refuses/u, "what a filing is refused without");
   assert.match(full, /A status is earned, not set/u, "and that a status is earned");
   assert.match(full, /`forge record plan` and\n\s+`forge record criteria`/u, "by the agent, through these");
+});
+
+/** Every name that answers `-h`: the verbs, and each subject of the table above. */
+const EVERY_HELP = [
+  ...VERB_NAMES.map((verb) => [verb]),
+  ...SUBJECT_HELP.flatMap(([verb, , , subs]) => subs.map((sub) => [verb, sub])),
+];
+
+/* One screen — eighty by thirty — with room for the widest state a project can put a verb in: `new -h`
+   prints a reason its project's own state chooses, so the number sits above the longest of those and not
+   at what a fresh home happens to print. `codex -h` was 6.5 KB of guide prose no run looking for a flag
+   reads. `forge -h` is exempt and only it: a list of verbs is a different question (ISS-700). */
+const CAP = 2500;
+
+/* Measured whole: nothing is stripped before the count, because a cap over a subset of the text a
+   caller reads is a smaller claim than the one this case makes. The fresh home reads the shortest
+   reason there can be for having no goals, so the widest one is added back to what it measured: a
+   cap proven at one project's state is proven for no other. */
+test("every verb's help and every action's is under the cap, at the widest state a project can make", () => {
+  const blocks = Object.values(WHY).map((why) => goalBlock({ why, goals: [] }, "").join("\n\n").length);
+  const widest = Math.max(...blocks) - goalBlock({ why: WHY.endpoint, goals: [] }, "").join("\n\n").length;
+  const over = [];
+  for (const argv of EVERY_HELP) {
+    const run = ask(...argv, "-h");
+    const said = `${run.stdout}${run.stderr}`;
+    const size = said.includes("`Serves:") ? said.length + widest : said.length;
+    if (size > CAP) over.push(`forge ${argv.join(" ")} -h is ${size} bytes, over ${CAP}`);
+  }
+  assert.deepEqual(over, []);
+  assert.ok(widest > 0, "and the reasons differ in length, or this case measures one of them twice");
+});
+
+/* The set is read off the text the name's own `-h` prints, for a verb as for an action: the text is
+   taken by running it, so a flag added there is taken with no second edit and nothing here is a
+   second copy of a flag list. Under the message are rows the help printed, and where the help names
+   a flag at all one of them names one — the half a nearest name lacks. */
+test("the set every name refuses against is the one its own help prints", () => {
+  const wrong = [];
+  for (const argv of EVERY_HELP) {
+    const name = argv.join(" ");
+    const usage = `${ask(...argv, "-h").stdout}`;
+    const said = unknownFlag(name, ["--zzz"], { usage });
+    const rows = said ? said.split("\n").slice(1) : [];
+    const printed = usage.split("\n").map((line) => line.trimEnd());
+    if (!said) wrong.push(`forge ${name} takes --zzz, which its help does not name`);
+    else if (!said.includes("--zzz")) wrong.push(`forge ${name}: ${said}`);
+    else if (!rows.length || !rows.every((row) => printed.includes(row))) {
+      wrong.push(`forge ${name} ends on a line its help does not print: ${said}`);
+    } else if (flagsNamed(usage).length && !flagsNamed(rows.join("\n")).length) {
+      wrong.push(`forge ${name} refuses without naming one flag it does take: ${said}`);
+    }
+    for (const flag of flagsNamed(usage)) {
+      if (unknownFlag(name, [flag], { usage })) wrong.push(`forge ${name} refuses ${flag}, which it names`);
+    }
+  }
+  assert.deepEqual(wrong, []);
+});
+
+/* And the wiring, which the derivation above cannot show. One invocation per name, with whatever
+   positional it needs first, because a stranger in the positional slot is a different refusal. */
+const ARGS = {
+  issue: ["ISS-1"],
+  claim: ["ISS-1"],
+  resume: ["ISS-1"],
+  advance: ["ISS-1"],
+  dep: ["ISS-1", "ISS-2"],
+  comment: ["ISS-1", "body.md"],
+  attach: ["issue", "ISS-1", "body.md"],
+  new: ["body.md"],
+  feedback: ["body.md"],
+  schema: ["forge_issues"],
+  call: ["forge_issues"],
+  spec: ["BR-01"],
+  "knowledge get": ["slug"],
+  "knowledge write": ["slug", "body.md"],
+  "knowledge search": ["query"],
+  "knowledge delete": ["slug"],
+  "cloudflare zone": ["zone-id"],
+  "cloudflare dns": ["zone-id"],
+  "cloudflare purge": ["zone-id"],
+  "cloudflare search": ["query"],
+  ...Object.fromEntries(KINDS.map((kind) => [`record ${kind}`, ["ISS-1"]])),
+};
+
+/* `deps` reaches the endpoint before it parses anything and has no flag check at all; the verb is
+   ISS-702's, which is folding it into `forge next --graph`, and the line is that issue's to write. */
+const NO_PARSE = ["deps"];
+
+test("every verb and every action hands the parser its text before it reads or asks", () => {
+  const wrong = [];
+  for (const argv of EVERY_HELP.filter((one) => !NO_PARSE.includes(one.join(" ")))) {
+    const name = argv.join(" ");
+    const run = ask(...argv, ...(ARGS[name] ?? []), "--zzz", "x");
+    const said = `${run.stdout}${run.stderr}`;
+    if (run.status !== 1) wrong.push(`forge ${name} --zzz x exited ${run.status}: ${said}`);
+    else if (!said.includes("--zzz")) wrong.push(`forge ${name} --zzz x named nothing: ${said}`);
+  }
+  assert.deepEqual(wrong, []);
+});
+
+/* So the check is not a blanket refusal, and a known flag with no value keeps its own line. */
+test("a flag the text names is taken, and one with no value says so", () => {
+  const known = ask("issues", "--status", "open");
+  assert.doesNotMatch(`${known.stdout}${known.stderr}`, /No issues flag named/u);
+  const empty = ask("claim", "ISS-1", "--minutes");
+  assert.match(empty.stderr, /--minutes was given no value/u);
+  assert.doesNotMatch(empty.stderr, /No claim flag named/u);
+});
+
+/* `onlyFlags` had ten calls in one file and four more verbs spelled the check themselves. */
+test("no verb spells the flag-name check itself", () => {
+  const held = spawnSync("grep", ["-rn", "onlyFlags", "plugin/src", "plugin/hooks"],
+    { cwd: ROOT, encoding: "utf8" });
+  assert.equal(held.stdout, "", `the preflight is back:\n${held.stdout}`);
+  const named = spawnSync("grep", ["-rln", "unknownFlag", "plugin/src"], { cwd: ROOT, encoding: "utf8" });
+  assert.deepEqual(named.stdout.split("\n").filter(Boolean).sort(),
+    ["plugin/src/commands.mjs", "plugin/src/resolve/flags.mjs"],
+    "the check lives in the parser; commands.mjs asks it the one other question, a flag in the body slot");
+});
+
+/* Twenty-five rows flat is a list nobody reads for one of them, so `forge -h` prints groups. Every
+   verb sits under exactly one heading, which is the row's own field and not a second list here. */
+test("forge -h prints the verbs in groups, each under its heading", () => {
+  const said = ask("-h").stdout;
+  const headings = GROUPS.filter((group) => said.includes(`\n${group}\n`));
+  assert.deepEqual(headings, GROUPS, `a heading is missing: ${said}`);
+  const under = {};
+  let group = null;
+  for (const line of said.split("\n")) {
+    if (GROUPS.includes(line)) group = line;
+    else if (group && /^ {2}\S/u.test(line)) (under[group] ??= []).push(line.trim().split(" ")[0]);
+  }
+  assert.deepEqual(Object.values(under).flat().sort(), [...VERB_NAMES].sort(),
+    "every verb is under exactly one heading");
+});
+
+/* One home, `forge doctor`; the exceptions carry the key of the issue that owns those lines. */
+const FILE_HOMES = ["plugin/src/resolve/settings.mjs", "plugin/src/tools/doctor.mjs"];
+const ROUTED = { "plugin/src/tools/deps.mjs": "ISS-702", "plugin/src/tracker/project-config.mjs": "ISS-702" };
+
+test("the project file is named by doctor and by no other verb's help", () => {
+  const named = [];
+  for (const argv of EVERY_HELP) {
+    const run = ask(...argv, "-h");
+    if (`${run.stdout}${run.stderr}`.includes(".forge.json")) named.push(`forge ${argv.join(" ")} -h`);
+  }
+  assert.deepEqual(named, []);
+  const held = spawnSync("grep", ["-rn", "--include=*.mjs", "\\.forge\\.json", "plugin/src"],
+    { cwd: ROOT, encoding: "utf8" });
+  const stray = held.stdout.split("\n").filter(Boolean)
+    /* A comment names it for a reader of the code; a print, for a reader of the answer. */
+    .filter((line) => !/^\S+:\d+:\s*(?:\/\*|\*|\/\/)/u.test(line))
+    .filter((line) => !FILE_HOMES.some((home) => line.startsWith(`${home}:`)))
+    .filter((line) => !Object.keys(ROUTED).some((home) => line.startsWith(`${home}:`)));
+  assert.deepEqual(stray, [], "a new mention, with its file and line");
+});
+
+test("the guides and the contract name the project file nowhere", () => {
+  const held = spawnSync("grep", ["-rn", ".forge.json", "plugin/guides"], { cwd: ROOT, encoding: "utf8" });
+  assert.equal(held.stdout, "", `a guide names the file rather than \`forge doctor\`:\n${held.stdout}`);
+});
+
+/* The handler's table is part 4's and not in this tree, so this walk matches nothing today and says
+   so: the rule is that no form of it ever appears in a help text (ISS-681 part 4). */
+test("no help text names a form of the handler's table", async () => {
+  const forms = await import("../../src/resolve/handler.mjs")
+    .then((held) => Object.keys(held.FORMS ?? {}))
+    .catch(() => []);
+  if (!forms.length) {
+    assert.deepEqual(forms, [], "the handler has not landed, so this walk has nothing to match");
+    return;
+  }
+  const named = [];
+  for (const argv of [["-h"], ["-h", "--full"], ...EVERY_HELP.map((one) => [...one, "-h"])]) {
+    const said = `${ask(...argv).stdout}${ask(...argv).stderr}`;
+    for (const form of forms) {
+      if (new RegExp(`\\b${form}\\b`, "u").test(said)) named.push(`forge ${argv.join(" ")}: ${form}`);
+    }
+  }
+  assert.deepEqual(named, []);
+});
+
+/* The kinds are the list `record -h` is for; a kind's flags are that kind's own call. */
+test("record -h lists the kinds one per line, and each kind's flags are under its own help", () => {
+  const said = ask("record", "-h").stdout;
+  for (const kind of KINDS) {
+    const row = said.split("\n").find((line) => line.startsWith(`  ${kind} `));
+    assert.ok(row, `record -h lists no ${kind}: ${said}`);
+    assert.ok(row.trim().split(/\s+/u).length > 2, `the ${kind} row carries no phrase: ${row}`);
+    assert.ok(!row.includes("--"), `the ${kind} row still carries its flags: ${row}`);
+  }
+  assert.match(ask("record", "verdict", "-h").stdout, /--criterion N --verdict pass\|fail\|skipped/u);
+  assert.match(ask("record", "baseline", "-h").stdout, /--gate G --result R --commit C/u);
+});
+
+/* Now that the set is the text's, a field the row leaves out is a field the parse refuses: the verification's `--contains` was offered by `earned.mjs` as the way out of a build past the merge and named on no row, so the one command that cleared it was turned away. */
+test("every field a kind's shape takes is named on the row its help prints", () => {
+  const missing = [];
+  for (const kind of KINDS) {
+    const named = flagsNamed(kindUsage(kind));
+    for (const field of SHAPES[kind]?.fields ?? []) {
+      if (field.derived || field.written || named.includes(`--${field.flag}`)) continue;
+      missing.push(`record ${kind} takes --${field.flag}, which its help does not name`);
+    }
+  }
+  assert.deepEqual(missing, []);
+  assert.ok(SHAPES.verification.fields.some((one) => one.flag === "contains"), "the case has a field to find");
+});
+
+/* A configuration key on a verb's help is a second copy of what resolved, and the values it names
+   go stale silently: what is in effect is `forge codex show`'s to print. */
+test("codex -h names no configuration key", () => {
+  const said = ask("codex", "-h").stdout;
+  for (const key of ["pathRe", "budgetMs", "maxTokens", "roundsMax", "effortLines", "toolChoiceNone"]) {
+    assert.ok(!said.includes(key), `codex -h names ${key}: ${said}`);
+  }
+  assert.match(said, /forge codex show/u, "and it says where what is in effect is printed");
 });

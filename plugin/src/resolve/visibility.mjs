@@ -4,65 +4,94 @@
 import { userConfig } from "./config.mjs";
 import { fail, feedbackScope, projectScope } from "./settings.mjs";
 
+/* A row names its group; `forge -h`'s headings are folded off that, so a verb reaching the table
+   without one appears under no heading and `cli-help.test.mjs` refuses it rather than a reader. */
+const BACKLOG = "The backlog";
+const FLOW = "An issue's flow";
+const METHOD = "The method";
+const HARNESS = "The harness";
+
+export const GROUPS = [BACKLOG, FLOW, METHOD, HARNESS];
+
 export const VERBS = [
   ["issues", "[--status s] [--search q] [--limit n]", "every matching issue, walked; --limit is how many print",
-    "forge_issues", { wraps: { list: "`forge issues`" } }],
+    "forge_issues", { group: BACKLOG, wraps: { list: "`forge issues`" } }],
   ["issue", "<uuid|ISS-45> [--fields a,b] [--full]", "one body, or named parts of it",
-    "forge_issues", { wraps: { get: "`forge issue`" } }],
+    "forge_issues", { group: BACKLOG, wraps: { get: "`forge issue`" } }],
   ["new", "<file.md|@file|-> --title T --kind K [--status S] [--priority P] [--size fix] [--with ISS-45,ISS-46] [--new]",
     "file one, read against the shape its kind needs",
-    "forge_issues", { wraps: { create: "`forge new`" } }],
+    "forge_issues", { group: BACKLOG, wraps: { create: "`forge new`" } }],
   ["comment", "<uuid|ISS-45> <file.md|@file|-> [--title T]",
     "post a comment; the lease on the record decides whether it renews one",
-    "forge_comments", { wraps: { create: "`forge comment`" } }],
+    "forge_comments", { group: BACKLOG, wraps: { create: "`forge comment`" } }],
   ["claim", "<uuid|ISS-45> [--minutes n] [--next <line>] [--pushed] [--review] [--open <line>] [--ready] [--take] [--judged]",
-    "take the issue's lease, or reclaim one a dead run left", "forge_issues"],
-  ["resume", "<uuid|ISS-45> [...]", "one issue's whole context, re-minted from the record and the worklog", "forge_issues"],
-  ["record", "<kind> <uuid|ISS-45> [...]", "a contract payload in the one shape the CLI owns; read back by kind", "forge_issues"],
-  ["advance", "<uuid|ISS-45> [...]", "the next status, earned by the record or refused with what it owes", "forge_issues"],
-  ["spec", "<id>[~<rev>]", "one clause of the requirements tree, read by its identifier"],
+    "take the issue's lease, or reclaim one a dead run left", "forge_issues", { group: FLOW }],
+  ["resume", "<uuid|ISS-45> [...]", "one issue's whole context, re-minted from the record and the worklog",
+    "forge_issues", { group: FLOW }],
+  ["record", "<kind> <uuid|ISS-45> [...]", "a contract payload in the one shape the CLI owns; read back by kind",
+    "forge_issues", { group: FLOW }],
+  ["advance", "<uuid|ISS-45> [...]", "the next status, earned by the record or refused with what it owes",
+    "forge_issues", { group: FLOW }],
+  ["spec", "<id>[~<rev>]", "one clause of the requirements tree, read by its identifier",
+    null, { group: METHOD }],
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context",
-    "forge_uploads", { wraps: { request: "`forge attach`" } }],
-  ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues"],
+    "forge_uploads", { group: BACKLOG, wraps: { request: "`forge attach`" } }],
+  ["deps", "[ISS-45] [--long]", "the graph the issue bodies claim", "forge_issues", { group: BACKLOG }],
   ["next", "[--count n] [--why] [--json] [--holding ISS-45] [--project <dir>]",
-    "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues"],
+    "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues",
+    { group: BACKLOG }],
   ["dep", "<blocker> <blocked> [blocks|relates]", "record a dependency edge", "forge_project_pm",
-    { action: "set_dependency",
+    { group: BACKLOG,
+      action: "set_dependency",
       refusal: "forge dep needs forge_project_pm set_dependency, which this CLI has no route to on "
         + "the tracker's data plane and may not call: no edge is written from here, and no other "
         + "verb needs one. `forge doctor` measured that." }],
   /* `--tracker` unnamed, a maintainer's alone (docs/cli/withholding-a-verb.md); `--for` every run's. */
   ["guide", "[contract [part]|<skill> [reference]|slug] [--for ISS-nn]",
     "this plugin's contract and each skill's method, one part per call, and the tracker's guides this flow stands behind",
-    null],
+    null, { group: METHOD }],
   ["project", "[--credentials] [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text>] [--title T] [--confidence C] [--meta k=v]...",
     "the id, the branches a change lands on, the staging deploy, and the project's own brief",
-    "forge_projects.list"],
+    "forge_projects.list", { group: METHOD }],
   ["knowledge", "<list|get|write|search|delete>",
     "what a run learned of this codebase, stored where the next one reads it", "forge_knowledge",
-    { wraps: {
-      list: "`forge knowledge list`",
-      get: "`forge knowledge get`",
-      upsert: "`forge knowledge write`",
-      search: "`forge knowledge search`",
-      delete: "`forge knowledge delete`" } }],
-  ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials"],
-  ["codex", "<consult|verdict|pending|show|log|stats|eval|marks|replay>", "a second model reviews what this turn changed"],
+    { group: METHOD,
+      wraps: {
+        list: "`forge knowledge list`",
+        get: "`forge knowledge get`",
+        upsert: "`forge knowledge write`",
+        search: "`forge knowledge search`",
+        delete: "`forge knowledge delete`" } }],
+  ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials",
+    null, { group: HARNESS }],
+  ["codex", "<consult|verdict|pending|show|log|stats|eval|marks|replay>",
+    "a second model reviews what this turn changed", null, { group: HARNESS }],
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
-    "what the gates refused, why one does, which are off", null],
+    "what the gates refused, why one does, which are off", null, { group: HARNESS }],
   /* No `needs`, though it writes: the gates below are the CALLER's project's — docs/cli/feedback.md. */
   ["feedback", "<file.md|@file|-> --title T [--kind K] [--with ISS-45,ISS-46] [--new]",
-    "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout", null],
+    "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout",
+    null, { group: HARNESS }],
   ["doctor", "[--token t] [--url u] [--hide v|--show v] [--ship ready|self] [--full]",
-    "what resolves, and from where"],
-  ["stats", "runs [--since 3d] [--project <dir>] [--json]",
-    "where an issue-flow run's time and rounds go, read off the transcripts the harness keeps", null],
-  ["tools", "[--all]", "the reachable surface"],
-  ["schema", "<tool>", "one tool's arguments"],
-  ["call", "<tool> <'json'|@file|->", "anything no verb wraps; an action one does is refused with the verb to type"],
+    "what resolves, and from where", null, { group: HARNESS }],
+  ["stats", "<runs|eval|marks>",
+    "where an issue-flow run's time and rounds go, read off the transcripts the harness keeps", null,
+    { group: HARNESS }],
+  ["tools", "[--all]", "the reachable surface", null, { group: HARNESS }],
+  ["schema", "<tool>", "one tool's arguments", null, { group: HARNESS }],
+  ["call", "<tool> <'json'|@file|->",
+    "anything no verb wraps; an action one does is refused with the verb to type", null,
+    { group: HARNESS }],
 ];
 
 export const VERB_NAMES = VERBS.map(([verb]) => verb);
+
+export const groupOf = (row) => row?.[4]?.group ?? null;
+
+/** The offered rows under their heading, in `GROUPS`'s order; an empty group prints no heading. */
+export const grouped = (rows) =>
+  GROUPS.map((group) => [group, rows.filter((row) => groupOf(row) === group)])
+    .filter(([, held]) => held.length);
 
 const rowFor = (verb) => VERBS.find(([name]) => name === verb);
 

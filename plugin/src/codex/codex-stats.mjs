@@ -12,7 +12,6 @@ import { gitRootOf } from "./codex-tools.mjs";
 import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
-import { unknownFlag } from "../suggest.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
 import { CONSULTS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "../stats/marks.mjs";
 
@@ -105,7 +104,7 @@ const statLines = (held) => {
 };
 
 export const printStats = (rest) => {
-  const { last, days, root, here } = flags(rest, "codex stats", ["--here"]);
+  const { last, days, root, here } = flags(rest, "codex stats", ["--here"], { usage: STATS_USAGE });
   const asked = {
     last: last === undefined ? undefined : counted(last, "--last"),
     days: days === undefined ? undefined : counted(days, "--days"),
@@ -224,7 +223,33 @@ export const evalLines = (held) => {
   ];
 };
 
-const EVAL_USAGE = [
+export const MARKS_USAGE = [
+  "Usage: forge codex marks",
+  "The readings held on this device, one line each, newest first.",
+].join("\n");
+
+export const STATS_USAGE = [
+  "Usage: forge codex stats [--last n] [--days n] [--root p] [--here]",
+  "What the harness did over a window: calls against their budget, replies that could not check,",
+  "rechecks that raised something New, tokens by kind, and the prompt versions that ran.",
+  "",
+  "  --last n       consults back from the newest",
+  "  --days n       consults inside that many days instead",
+  "  --root p       the checkout whose consults are read; every one the log holds unless you say",
+  "  --here         the working directory as that checkout",
+].join("\n");
+
+export const REPLAY_USAGE = [
+  "Usage: forge codex replay --prompt <file> [--last n] [--root p]",
+  "Which of a window a candidate prompt could be scored against: the bytes wherever a commit or the",
+  "record still proves them, and a row refused with its reason where nothing does.",
+  "",
+  "  --prompt <file>  the candidate prompt to score",
+  "  --last n         consults back from the newest",
+  "  --root p         the checkout whose consults are read",
+].join("\n");
+
+export const EVAL_USAGE = [
   "Usage: forge codex eval [--against [<mark>]] [--json]",
   `The last ${MARK} answered consults on this device against the ${MARK} before them, over every project`,
   "the log holds, per model, effort and prompt. The consult that crosses a hundred-mark writes the",
@@ -233,9 +258,6 @@ const EVAL_USAGE = [
   "",
   "  --against [<mark>]  the reading held at that mark as the before window, or the newest held",
   "  --json              the comparison alone, one object, in the outer shape `forge stats eval --json` prints",
-  "",
-  "Usage: forge codex marks",
-  "The readings held on this device, one line each, newest first.",
 ].join("\n");
 
 /* One group per key, its rows' own figures: the same numbers the screen prints, under one spelling
@@ -298,9 +320,7 @@ export const printEval = (argv) => {
       + `and the ${MARK} before them, over every project the log holds. \`forge codex stats\` is the one `
       + "that takes a window.");
   }
-  const wrong = unknownFlag("codex eval", rest, { usage: EVAL_USAGE });
-  if (wrong) fail(wrong);
-  const { json } = flags(rest, "codex eval", ["--json"]);
+  const { json } = flags(rest, "codex eval", ["--json"], { usage: EVAL_USAGE });
   const stored = against === undefined ? null
     : resolveAgainst(CONSULTS, against, { verb: "codex eval", list: "forge codex marks", writes: WRITES });
   const held = evalObject(logEntries(), stored);
@@ -311,9 +331,7 @@ export const printEval = (argv) => {
 
 /** `forge codex marks`: the device's consult readings, as `stats marks` lists a project's runs. */
 export const printMarks = (rest) => {
-  const wrong = unknownFlag("codex marks", rest, { usage: EVAL_USAGE });
-  if (wrong) fail(wrong);
-  flags(rest, "codex marks");
+  flags(rest, "codex marks", [], { usage: MARKS_USAGE });
   const held = marksOf(CONSULTS);
   if (!held.length) return console.log(`No reading is held on this device yet; ${WRITES}.`);
   for (const line of markLines(held, (one) => `${String(one.now.consults).padStart(3)} consult(s)  ${one.now.from} to ${one.now.to}`)) console.log(line);
@@ -418,8 +436,8 @@ const sourceOf = (parts, row, from) => {
 };
 
 export const printReplay = (rest) => {
-  const { prompt, last, root } = flags(rest, "codex replay");
-  if (!prompt) fail("Usage: forge codex replay --prompt <file> [--last n] [--root path]");
+  const { prompt, last, root } = flags(rest, "codex replay", [], { usage: REPLAY_USAGE });
+  if (!prompt) fail(REPLAY_USAGE);
   const candidate = (() => {
     try {
       return readFileSync(prompt, "utf8");

@@ -7,7 +7,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { RECORDS_RATHER_THAN_INSTRUCTS, claimProblems, docClaims } from "../../../src/checks/doc-shape.mjs";
-import { VERB_NAMES, usageOf } from "../../../src/resolve/visibility.mjs";
+import { VERB_NAMES } from "../../../src/resolve/visibility.mjs";
+import { surfaceOf } from "../../surfaces.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
 const HOW = join(ROOT, "plugin", "hooks", "how");
@@ -30,7 +31,7 @@ const sources = () => {
 
 const held = {
   verbs: VERB_NAMES,
-  usageOf,
+  usageOf: surfaceOf,
   documented: readdirSync(HOW).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3)),
   sources: sources(),
 };
@@ -88,8 +89,15 @@ test("a proposal may name the verb it opens with, and nothing else the CLI lacks
   assert.deepEqual(claimProblems(`${body}\n\n${marker}`, held), ["`forge reopen` is no verb", ...rest]);
 });
 
-/* The flags of a verb that takes a sub-verb live with the sub-verb, so checking them here would fail
-   on every true document. `forge codex consult --diff` is real and its usage line cannot say so. */
-test("a sub-verb's own flags are not held against the verb's usage line", () => {
+/* The flags of a verb that takes a sub-verb live with the sub-verb, and holding them to the verb's
+   own row would have failed every true document — so they went unjudged, and a document naming a
+   flag no action takes read as clean. The word after the verb says which surface answers (ISS-700). */
+test("a sub-verb's flags are judged against the sub-verb's own usage", () => {
   assert.deepEqual(claimProblems("`forge codex consult --diff --only blocker`", held), []);
+  assert.deepEqual(claimProblems("`forge codex consult --nonsense x`", held),
+    ["`forge codex consult --nonsense` is in no usage line"]);
+  assert.deepEqual(claimProblems("`forge record verdict ISS-1 --criterion 2 --verdict pass`", held), []);
+  assert.deepEqual(claimProblems("`forge record confirmation ISS-1 --criterion 2`", held),
+    ["`forge record confirmation --criterion` is in no usage line"],
+    "and a kind is a surface too: `--criterion` is verdict's, and the kinds' union would pass this");
 });

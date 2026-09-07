@@ -15,17 +15,14 @@ import {
 import { commentPage, creditAfter, credited, cutIn, mustBeShown, postComment } from "./tracker/comments.mjs";
 import { attachmentNames, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
 import {
-  CAUSE_HELP,
   INSTEAD_FLAGS,
   KINDS_HELP,
   KIND_NAMES,
-  PRIORITY_HELP,
   inFlowWords,
   insteadOf,
   kindNeeded,
   kindRefusal,
 } from "./tracker/issue-shape.mjs";
-import { BESIDE_HELP } from "./tracker/filing/neighbours.mjs";
 import { keysFrom, rankFor } from "./tracker/filing/route.mjs";
 import { fileAndSay } from "./tracker/filing/say.mjs";
 import { routingBlock } from "./tracker/filing/plugin-defect.mjs";
@@ -33,8 +30,8 @@ import { commentLanded, sayLanded } from "./tracker/filing/landed.mjs";
 import { TIERS } from "./ladder.mjs";
 import { targetsOfTool } from "./tracker/issue-read.mjs";
 import { actionIn, callable, helpOf, isGated, refuseIfGated, usageOf, wrappedRefusal } from "./resolve/visibility.mjs";
-import { didYouMean, unknownFlag } from "./suggest.mjs";
-import { flags, partition, pullRepeated, wantsHelp } from "./resolve/flags.mjs";
+import { didYouMean } from "./suggest.mjs";
+import { flags, partition, pullRepeated, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
 import { LOCAL_ROWS, LOCAL_SLUGS, dispositionOf, localGuide, trackerHeader, visibleGuides } from "./guides/guides.mjs";
 import { briefGoals, briefLines, confirmSource, projectLines, readBrief, refreshBrief, releasePolicy,
   replaceBriefLine, stagingDeploy } from "./tracker/project-config.mjs";
@@ -128,13 +125,6 @@ const resolveReferences = async (value, key) => {
   return value;
 };
 
-/* Asked before the parser reads a value, and before an endpoint is resolved: a token no verb takes
-   is a local mistake, and answering it costs no credential and no call. */
-const onlyFlags = (verb, argv, hidden = []) => {
-  const said = unknownFlag(verb, argv, { usage: usageOf(verb), hidden });
-  if (said) fail(said);
-};
-
 const toolNames = () => [...new Set(served().map((row) => row.tool))];
 
 const suggestTool = (name) =>
@@ -144,10 +134,21 @@ const suggestTool = (name) =>
 /* Two names, and the one place they are stated: `attach` reads its target from them. */
 const ATTACH_TARGETS = ["issue", "comment"];
 
-/* Longer than the row it comes from, because what a body is read against depends on the kind it
-   names, and the table of that is the kinds' own. */
-const newUsage = (goals) => [helpOf("new"), CAUSE_HELP, routingBlock(), BESIDE_HELP, PRIORITY_HELP,
-  goalBlock(goals, "A body filed here").join("\n"), KINDS_HELP].join("\n\n");
+/* One line per flag, then the one table a row cannot hold: what a body is read against depends on the kind it names. What is open beside a filing prints on the filing, and which rank it took is in the reply — the reasoning behind both is docs/cli/beside.md and docs/cli/new.md, whose second copy this help was. */
+const NEW_FLAGS = [
+  "  --title T      what is true once this is fixed, one line",
+  `  --kind K       ${KIND_NAMES.join(" | ")} — the shape the body is read against`,
+  "  --status S     the status to file at; the tracker's own default absent one",
+  "  --priority P   the tracker's own set; absent, the filing is unranked and the reply says so",
+  `  --size fix     the contract's rung: ${TIERS.join(" | ")}`,
+  "  --with ISS-45  file it with a `relates` edge to that issue, or to several separated by commas",
+  "  --new          file it even where it would have folded onto a neighbour, and say which",
+].join("\n");
+
+/* The goals are the project's own lines, read here rather than named: a caller who has to ask which goals there are has spent a round to write the `Serves:` line a filing carries. */
+const newUsage = (goals) =>
+  [helpOf("new"), NEW_FLAGS, routingBlock(), goalBlock(goals, "A body filed here").join("\n"), KINDS_HELP]
+    .join("\n\n");
 
 /* Its own, rather than the row's, for the reason `new` keeps one: the dozen lines below are what a
    row cannot hold. A row's blurb is one line, and a reader who has to be told what a `stale:` line
@@ -231,25 +232,23 @@ export const commands = {
   hooks,
   stats,
   tools: (rest) => {
-    onlyFlags("tools", rest);
-    const { all } = flags(rest, "tools", ["--all"]);
+    const { all } = flags(rest, "tools", ["--all"], { usage: usageOf("tools") });
     for (const row of served()) {
       if (all || !isGated(row.tool)) console.log(`${row.key.padEnd(30)} ${row.requests.join("  +  ")}`);
     }
   },
   schema: ([name, ...rest]) => {
     if (!name) fail(usageOf("schema"));
-    onlyFlags("schema", rest, ["--all"]);
-    const { all } = flags(rest, "schema", ["--all"]);
+    const { all } = flags(rest, "schema", ["--all"], { usage: usageOf("schema") });
     const rows = served().filter((row) => row.tool === name || row.key === name);
     if (!rows.length) fail(suggestTool(name));
     refuseIfGated(name, all);
     show(Object.fromEntries(rows.map((row) => [row.key, { requests: row.requests, sends: row.sends }])));
   },
   call: async (argv) => {
-    const [given, json] = argv;
+    const { positionals } = partition(argv, [], { verb: "call", usage: usageOf("call") });
+    const [given, json] = positionals;
     if (!given) fail(usageOf("call"));
-    onlyFlags("call", argv);
     const raw = json === undefined || json === "-" || json.startsWith("@") ? await bodyFrom(json ?? "-") : json;
     if (json === undefined || json === "-") keepOnFailure(`Your payload, so that nothing loses it:\n\n${raw}`);
     if (!raw.trim()) fail(`No arguments given for ${given}. Pass json as an argument or on stdin.`);
@@ -286,22 +285,17 @@ export const commands = {
        read once more after the write and what it brought is delivered here (ISS-65). */
     if (wrote && targets.length) await creditAfter(name, targets);
   },
+  /* The tracker's own filter names are the hidden set; `forge schema forge_issues` names them. */
   issues: async (rest) => {
-    const { limit: raw, ...filters } = flags(rest, "issues");
-    const limit = limitFrom(raw);
-    const allowed = declaredFor("forge_issues", "filters");
-    for (const given of Object.keys(filters)) {
-      if (allowed.length && !allowed.includes(given)) {
-        fail(didYouMean("filter", `--${given}`, [...allowed.map((one) => `--${one}`), "--limit"]));
-      }
-    }
-    printIssues(await everyIssue(filters), limit, declaredFor("forge_issues", "priority"));
+    const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
+    const { limit: raw, ...filters } = flags(rest, "issues", [],
+      { usage: usageOf("issues"), hidden: declared });
+    printIssues(await everyIssue(filters), limitFrom(raw), declaredFor("forge_issues", "priority"));
   },
   /* Three tiers, and the payload is what costs. Fetch narrow, then fetch again. */
   issue: async ([reference, ...rest]) => {
     if (!reference) fail(usageOf("issue"));
-    onlyFlags("issue", rest);
-    const { fields, full } = flags(rest, "issue", ["--full"]);
+    const { fields, full } = flags(rest, "issue", ["--full"], { usage: usageOf("issue") });
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
     const documentId = await documentIdOf(reference);
     /* The names ride along so the read skips the routes nothing asked for; the answer is the row
@@ -322,8 +316,7 @@ export const commands = {
     /* Before the unknown-flag route, whose nearest live name answers a question nobody asked. */
     const retired = retiredFlagIn("new", rest);
     if (retired) fail(retired);
-    onlyFlags("new", rest, INSTEAD_FLAGS);
-    const { with: rides, size, kind, priority, new: fresh, ...given } = flags(rest, "new", ["--new"]);
+    const { with: rides, size, kind, priority, new: fresh, ...given } = flags(rest, "new", ["--new"], row);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
     if (size !== undefined && !TIERS.includes(size)) {
       fail(`${didYouMean("size", size, TIERS)} They are the contract's three rungs, smallest first,`
@@ -366,10 +359,11 @@ export const commands = {
   /* One verb for one write: the holder's post renews the lease and a finder's takes nothing, read
      off the record rather than asked for, and said in the reply — a caller who thought they held the issue learns it here or not at all. `--title` frames a heading over the body. */
   comment: async (argv) => {
-    onlyFlags("comment", argv);
-    const [reference, path, ...rest] = argv;
-    if (!reference || !path) fail(usageOf("comment"));
-    const { title } = flags(rest, "comment");
+    const usage = usageOf("comment");
+    const { positionals, flagArgv } = partition(argv, [], { verb: "comment", usage });
+    const [reference, path] = positionals;
+    if (!reference || !path) fail(usage);
+    const { title } = flags(flagArgv, "comment", [], { usage });
     const issue = await documentIdOf(reference);
     await mustBeShown([{ ref: reference, documentId: issue }]);
     const body = await bodyFrom(path);
@@ -380,8 +374,8 @@ export const commands = {
     return sayLanded(await commentLanded(issue, posted, reference));
   },
   attach: async (argv) => {
-    onlyFlags("attach", argv);
-    const [target, targetRef, ...paths] = argv;
+    const { positionals } = partition(argv, [], { verb: "attach", usage: usageOf("attach") });
+    const [target, targetRef, ...paths] = positionals;
     if (!target || !targetRef || !paths.length) fail(usageOf("attach"));
     if (!ATTACH_TARGETS.includes(target)) fail(didYouMean("attach target", target, ATTACH_TARGETS));
     const targetId = target === "issue" ? await documentIdOf(targetRef) : targetRef;
@@ -406,8 +400,8 @@ export const commands = {
   /* An edge changes the order the blocked issue is worked in, so its lease is the one that covers
      the write: a new issue filed to block the one in hand renews the one in hand. */
   dep: async (argv) => {
-    onlyFlags("dep", argv);
-    const [from, to, kind = "blocks"] = argv;
+    const { positionals } = partition(argv, [], { verb: "dep", usage: usageOf("dep") });
+    const [from, to, kind = "blocks"] = positionals;
     if (!from || !to) fail(usageOf("dep"));
     const [fromIssueId, toIssueId] = await Promise.all([documentIdOf(from), documentIdOf(to)]);
     await notAnothers(fromIssueId, from);
@@ -417,12 +411,11 @@ export const commands = {
   /* Read through this plugin's disposition of them, which guides/guides.mjs holds and explains. A
      held slug is answered as one the tracker never served, through that refusal's own call site so
      the two cannot drift, and its body is never fetched: a line saying a page exists and is stale
-     is what sends an agent to read it. --tracker is the maintainer's way past that, and the only
-     one. The contract is on disk, so it is answered before the transport is touched. */
+     is what sends an agent to read it. --tracker is the maintainer's way past that, and the only one. The contract is on disk, so it is answered before the transport is touched. */
   guide: async (argv) => {
-    const { positionals, flagArgv } = partition(argv, ["--tracker"]);
-    onlyFlags("guide", flagArgv, ["--tracker", "--for"]);
-    const asked = flags(flagArgv, "guide", ["--tracker"]);
+    const usage = usageOf("guide");
+    const { positionals, flagArgv } = partition(argv, ["--tracker"], { verb: "guide", usage });
+    const asked = flags(flagArgv, "guide", ["--tracker"], { usage });
     const [slug, ...extra] = positionals;
     /* Which phases an issue still owes is the tracker's to say, so the offline registry stays so. */
     if (asked.for) {
@@ -470,12 +463,12 @@ export const commands = {
   },
   project: async (argv) => {
     if (wantsHelp(argv)) return console.log(PROJECT_USAGE);
-    onlyFlags("project", argv);
-    const { values: pairs, rest } = pullRepeated(argv, "--meta", "project");
+    const usage = PROJECT_USAGE;
+    const { values: pairs, rest } = pullRepeated(argv, "--meta", "project", { usage });
     /* `--line <n> <text>` is two words, and partition is what already reads a value beside a
        positional: a fourth parse shape in resolve/flags.mjs for one verb is the drift it warns of. */
-    const { positionals, flagArgv } = partition(rest, ["--credentials"]);
-    const asked = flags(flagArgv, "project", ["--credentials"]);
+    const { positionals, flagArgv } = partition(rest, ["--credentials"], { verb: "project", usage });
+    const asked = flags(flagArgv, "project", ["--credentials"], { usage });
     for (const line of await briefRoute(asked, pairs, positionals)) console.log(line);
   },
 };

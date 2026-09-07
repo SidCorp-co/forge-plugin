@@ -33,7 +33,7 @@ export const kindRows = (caps) => [
   "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding \"F1 accepted\"]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
-  "  verification --where W --commit C --evidence E...",
+  "  verification --where W --commit C --evidence E... [--contains C]",
   "  finding      --expected E --seen S --evidence E... --quoted Q [--criterion N | --uc UC-nn-m]",
   "  triage       --outcome O --would-have-caught W [--detail D]  O: " + TRIAGES.join("|"),
   "  note         --section S --user " + withCap("T", caps.releaseNotes?.halves?.userFacing)
@@ -45,6 +45,32 @@ export const kindRows = (caps) => [
     + "numbered lines, from a file a consult has read",
   "  report       the latest record of each kind, the latest verdict per criterion, and what is owed",
 ];
+
+/* What each kind is for, one phrase each, because `forge record -h` is the list of kinds and a
+   kind's own flags are `forge record <kind> -h`'s: a table of eighteen rows carrying every flag of
+   every kind is read by nobody looking for one of them. */
+const KIND_PHRASE = {
+  confirmation: "where you looked, what the issue is, and the finding",
+  decision: "the reading taken, its assumption and the line that undoes it",
+  question: "the readings a person is to choose between, as outcomes",
+  park: "the issue set down, with the kind saying who it waits on",
+  correction: "what moved in the plan or the criteria after approval, and why",
+  baseline: "the gate, what it already reports, and the commit it ran at",
+  verdict: "one criterion judged, at a commit, citing its own evidence",
+  review: "who read which head, each finding answered, and the outcome",
+  routed: "a finding this run sent to the issue that owns it",
+  gap: "where the method did not answer, and what the run did instead",
+  verification: "the change read where it now runs, with the evidence",
+  finding: "what was expected, what was seen, and what it was quoted from",
+  triage: "a reopen judged: which of the three it was, and what would have caught it",
+  note: "the release note, in the words of whoever filed the issue",
+  plan: "the plan itself, from a file a consult has read",
+  criteria: "the numbered criteria, from a file a consult has read",
+  report: "the latest record of each kind, the latest verdict per criterion, and what is owed",
+};
+
+export const phraseRows = () =>
+  KINDS.map((kind) => `  ${kind.padEnd(13)}${KIND_PHRASE[kind] ?? ""}`);
 
 /* The sections a typed plan owes, each as the question it answers, so a plan is written against the
    list rather than against the refusal. The heading is the section's whole name and nothing else on
@@ -78,40 +104,41 @@ const servesBlocks = (goals) => (goals
   ? goalBlock(goals, `A \`${SERVES_KINDS.join("` or a `")}\` record`)
   : []);
 
-export const usage = (caps = {}, goals = null) => {
-  const rows = kindRows(caps);
-  return [
-    usageOf("record"),
-    "A contract payload, written in the one shape the CLI owns and read back by kind. A missing field",
-    "is refused by name; the last line of every record names its kind and the contract version.",
-    "",
-    ...rows,
-    "",
-    ...(rows.some((row) => HAS_CAP.test(row)) ? [...CAP_LEGEND, ""] : []),
-    ...CRITERION_BLOCKS,
-    "",
-    ...(goals ? [...servesBlocks(goals), ""] : []),
-    "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
-    "  --pushed        the branch, head, base and files touched, read from git at this moment",
-    "  --review        the last codex consult, its findings and what it owes, read from the log now",
-    `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
-    "",
-    "Every write ends on stderr with the line `forge advance --owed` would print for the issue at that",
-    "moment: the next status and how much it is owed, or the status the record earns.",
-    "",
-    "Evidence is an attachment name on the issue, a URL, a commit of 7 to 40 hex digits, or a path to",
-    "a readable file, which goes up under its base name and is cited by it. A name already attached is",
-    "refused rather than attached twice.",
-    "",
-    `The tracker types a file by its name and takes ${DECLARES.forge_uploads.extensions.join(" ")}.`,
-    "That set is this CLI's reading of the tracker's rather than the tracker's own answer, so one",
-    "missing from it may work too — and every path on a write is minted before any bytes go, so a",
-    "name it will not take costs no upload.",
-    "",
-    "--commit and --evidence are read off the record where the flag is absent: the commit from the",
-    "merged mark's note, the evidence from what the latest record of this kind cited. Each is printed.",
-  ].join("\n");
-};
+/* The evidence vocabulary sits under the kinds that cite evidence rather than over the whole list:
+   a caller writing a verdict is the one who needs it, and `forge record -h` is not that call. */
+const EVIDENCE_BLOCKS = [
+  "Evidence is an attachment name on the issue, a URL, a commit of 7 to 40 hex digits, or a path to",
+  "a readable file, which goes up under its base name and is cited by it. A name already attached is",
+  `refused rather than attached twice. The tracker types a file by its name and takes`,
+  `${DECLARES.forge_uploads.extensions.join(" ")} — this CLI's reading of the tracker's set rather`,
+  "than its answer, so one missing may work too, and no path costs an upload before it is minted.",
+  "",
+  "--commit and --evidence are read off the record where the flag is absent: the commit from the",
+  "merged mark's note, the evidence from what the latest record of this kind cited. Each is printed.",
+];
+
+const CITES_EVIDENCE = (kind) =>
+  Boolean(SHAPES[kind]?.fields.some((one) => one.evidence || one.flag === "commit"));
+
+const SHARED_FLAGS = [
+  "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
+  "  --pushed        the branch, head, base and files touched, read from git at this moment",
+  "  --review        the last codex consult, its findings and what it owes, read from the log now",
+  `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
+];
+
+export const usage = () => [
+  usageOf("record"),
+  "A contract payload, written in the one shape the CLI owns and read back by kind. A missing field",
+  "is refused by name, and one kind's own flags are `forge record <kind> -h`.",
+  "",
+  ...phraseRows(),
+  "",
+  ...SHARED_FLAGS,
+  "",
+  "Every write ends on stderr with the line `forge advance --owed` would print for the issue at that",
+  "moment: the next status and how much it is owed, or the status the record earns.",
+].join("\n");
 
 /* The rows with no cap on them, for the readers asking which flags exist rather than what a field
    takes: the route check `forge -h` answers to, and the kind table's own test. */
@@ -119,18 +146,23 @@ export const USAGE = usage();
 
 const rowFor = (kind, caps) => kindRows(caps).find((row) => new RegExp(`^ {2}${kind}\\b`, "u").test(row));
 
+/** What a kind's own `-h` opens with, which is the set its parse refuses a stranger against. */
+export const kindUsage = (kind) =>
+  [usageOf("record").replace("<kind>", kind), rowFor(kind, {}) ?? "", ...SHARED_FLAGS].join("\n");
+
 export const kindHelp = (kind, caps = {}, goals = null) => {
   const row = rowFor(kind, caps) ?? `  ${kind}`;
   return [
     usageOf("record").replace("<kind>", kind),
+    KIND_PHRASE[kind] ? `${KIND_PHRASE[kind][0].toUpperCase()}${KIND_PHRASE[kind].slice(1)}.` : "",
     "",
     row,
     ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
     ...(kind === "plan" ? ["", ...PLAN_BLOCKS] : []),
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
     ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
+    ...(CITES_EVIDENCE(kind) ? ["", ...EVIDENCE_BLOCKS] : []),
     "",
-    "The flags every writing kind also takes, what counts as evidence, and the other "
-      + `${KINDS.length - 1} kinds: \`forge record -h\`.`,
+    `The flags every writing kind also takes, and the other ${KINDS.length - 1} kinds: \`forge record -h\`.`,
   ].join("\n");
 };

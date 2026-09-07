@@ -23,21 +23,27 @@ export const ORDER = [
   "open", "confirmed", "clarified", "approved", "in_progress", "developed", "tested", "released", "closed",
 ];
 
+/* The method's phases, numbered as the guide numbers them and indexed by that number. The one table: the flow table below builds its phrases from it and the transcript miner counts a run's calls against it, so phase 5 is one phase rather than two that shared a number and meant "prove" in one reading and "ship" in the other (ISS-700, BR-09). */
+export const PHASES = [
+  "0 Project", "1 Triage", "2 Clarify", "3 Plan", "4 Implement", "5 Prove", "6 Note", "7 Ship", "8 Learn",
+];
+
 /* The flow table's last column: which phase a status owes, and where its method lives — the
    reference the phase cites, or null where the body itself carries the phase. ISS-18 owns typing
    it; a pointer beats a number nobody can look up. */
 export const PHASE = {
-  open: ["1 Triage", null],
-  confirmed: ["2 Clarify", null],
-  clarified: ["3 Plan", null],
-  approved: ["4 Implement, to the branch", "verification"],
-  in_progress: ["4 Implement, to the review; 5 Prove; then 7's landing", "verification"],
-  developed: ["5 Prove", "verification"],
-  tested: ["6, 7 Ship", null],
-  released: ["7 Ship, the close", null],
+  open: [PHASES[1], null],
+  confirmed: [PHASES[2], null],
+  clarified: [PHASES[3], null],
+  approved: [`${PHASES[4]}, to the branch`, "verification"],
+  in_progress: [`${PHASES[4]}, to the review; ${PHASES[5]}; then 7's landing`, "verification"],
+  developed: [PHASES[5], "verification"],
+  /* The contract's cell abbreviates the note's phase to its number, and this table mirrors that cell for cell: `forge guide contract tested` is what a reader is held to. */
+  tested: [`6, ${PHASES[7]}`, null],
+  released: [`${PHASES[7]}, the close`, null],
   closed: ["none", "learning"],
   dropped: ["none", "learning"],
-  reopen: ["1 Triage, of the person's finding", null],
+  reopen: [`${PHASES[1]}, of the person's finding`, null],
 };
 
 export const methodOf = (status) => {

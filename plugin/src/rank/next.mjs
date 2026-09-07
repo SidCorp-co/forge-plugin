@@ -17,7 +17,6 @@ import { fail } from "../resolve/settings.mjs";
 import { holdsBack } from "../flow/earned.mjs";
 import { neighboursOf } from "../tracker/filing/neighbours.mjs";
 import { scoped } from "../tracker/rpc.mjs";
-import { unknownFlag } from "../suggest.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 
 const DEFAULT_COUNT = 5;
@@ -26,21 +25,15 @@ const BOOLEAN = ["--json", "--why"];
 const usageLines = (weights) => [
   usageOf("next"),
   "The open issues this project should work next, ranked off what the tracker already holds, and",
-  "nothing written. Eligibility first, then the score, then the batches that ride together.",
+  "nothing written. The rank is advice: docs/cli/next.md.",
   "",
   "  --count n        how many candidates print; 5 unless you say otherwise",
-  "  --why            the breakdown per issue: one line of weights, one of signals, and the goal its",
-  "                   body says it serves, which is read and printed and weighs nothing",
+  "  --why            the breakdown per issue: weights, signals, and the goal its body serves",
   "  --json           the whole table, for whatever dispatches on it",
-  "  --holding ISS-nn an issue a run already holds; a candidate naming a file its plan names is set",
-  "                   aside, and the line says which file and which issue",
-  "  --project dir    the checkout whose past runs the cost column is read off; the working",
-  "                   directory unless you say otherwise",
+  "  --holding ISS-nn an issue a run already holds, whose plan's files set a candidate aside",
+  "  --project dir    the checkout whose past runs the cost column is read off",
   "",
   ...weightLines(weights),
-  "",
-  "The rank is advice. Whoever dispatches reads the breakdown and may take a lower-ranked issue for",
-  "a reason the metadata cannot carry; that choice, and the rank it overrode, belong on the record.",
 ];
 
 const countFrom = (raw) => {
@@ -194,13 +187,12 @@ const jsonOf = (batches, dropped, weights, from, read) => ({
 export const next = async (argv) => {
   const { value: weights, from, refusal } = weightsFrom();
   if (refusal) fail(`next: ${refusal}`);
-  if (wantsHelp(argv)) return console.log(usageLines(weights).join("\n"));
-  const { values: holding, rest } = pullRepeated(argv, "--holding", "next");
-  const { positionals, flagArgv } = partition(rest, BOOLEAN);
+  const usage = usageLines(weights).join("\n");
+  if (wantsHelp(argv)) return console.log(usage);
+  const { values: holding, rest } = pullRepeated(argv, "--holding", "next", { usage });
+  const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "next", usage });
   if (positionals.length) fail(`next: \`${positionals[0]}\` names no flag, and this verb takes no argument of its own.`);
-  const wrong = unknownFlag("next", flagArgv, { usage: usageOf("next"), hidden: ["--holding"] });
-  if (wrong) fail(wrong);
-  const asked = flags(flagArgv, "next", BOOLEAN);
+  const asked = flags(flagArgv, "next", BOOLEAN, { usage });
   const count = countFrom(asked.count);
   const [read, carried] = await Promise.all([everyIssue(), carriersOf()]);
   const said = shortOf(read, "The set this rank is computed over");
@@ -323,7 +315,7 @@ export const next = async (argv) => {
         ? `, and ${edges} of them declared a blocking relation, which no bound over the unread ones`
           + " survives: an issue further down could be holding up work nothing here counted"
         : ", and the read stopped at readCap before the rest could be ruled out"}. Raise \`rank.readCap\``
-      + " in .forge.json, or narrow the ask.");
+      + " in this project's own settings, which `forge doctor` names, or narrow the ask.");
   }
   if (asked.json) return console.log(JSON.stringify(jsonOf(batches, dropped, weights, from, readSaid), null, 2));
   if (!batches.length) {

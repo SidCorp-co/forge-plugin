@@ -26,7 +26,10 @@ test("every kind is on the usage line, and -h prints it without touching the tra
   const run = ask("record", "-h");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(run.stdout.includes("Usage: forge record"), run.stdout);
-  assert.match(run.stdout, /--user T\(500\)/u, "the cap among them, with no endpoint saved to ask");
+  assert.doesNotMatch(run.stdout, /\(\d+\)/u, "the fields are each kind's own, so no cap is on this text");
+  const note = ask("record", "note", "-h");
+  assert.equal(note.status, 0, note.stderr);
+  assert.match(note.stdout, /--user T\(500\)/u, "the cap on the kind's own row, with no endpoint saved to ask");
 });
 
 /* A note was drafted against a cap nobody had, refused, and rewritten — six sends for one note on
@@ -37,15 +40,15 @@ test("the cap of a capped field is on its row, and a row with no cap read prints
     releaseNotes: { self: null, halves: { userFacing: 40, technical: 41 } },
     acceptanceCriteria: { self: 42, halves: {} },
   };
-  const shown = usage(caps);
+  const shown = kindHelp("note", caps);
   assert.match(shown, /^ {2}note {9}--section S --user T\(40\) \[--technical T\(41\)\]/mu, "both halves of the note");
-  assert.match(shown, /^ {2}criteria {5}<file\.md>\(42\) +numbered lines/mu, "and the criteria file");
+  assert.match(kindHelp("criteria", caps), /^ {2}criteria {5}<file\.md>\(42\) +numbered lines/mu, "and the criteria file");
   assert.match(shown, /^A number in parentheses after a value is that field's cap in code points/mu, "notation said once");
-  assert.match(USAGE, /^ {2}note {9}--section S --user T \[--technical T\]/mu, "no cap read, and the row is untouched");
-  assert.match(USAGE, /^ {2}criteria {5}<file\.md> +numbered lines/mu, "the description column holding where it was");
-  assert.doesNotMatch(USAGE, /A number in parentheses/u, "and no notation to explain, so none is printed");
-  assert.match(kindHelp("note", caps), /--user T\(40\) \[--technical T\(41\)\][\s\S]*A number in parentheses/u,
-    "the kind's own help carries the caps and the notation");
+  assert.match(kindHelp("note"), /^ {2}note {9}--section S --user T \[--technical T\]/mu, "no cap read, and the row is untouched");
+  assert.match(kindHelp("criteria"), /^ {2}criteria {5}<file\.md> +numbered lines/mu, "the description column holding where it was");
+  assert.doesNotMatch(kindHelp("note"), /A number in parentheses/u, "and no notation to explain, so none is printed");
+  assert.doesNotMatch(usage(caps), /\(4[01]\)|A number in parentheses/u,
+    "and the text that lists the kinds carries no field of theirs, capped or not");
   assert.doesNotMatch(kindHelp("note"), /\(\d+\)|A number in parentheses/u, "and neither where none was read");
 });
 
@@ -215,8 +218,9 @@ test("a flag where the criteria file goes is refused as a flag, and the four it 
   const run = ask("record", "criteria", "ISS-1", "--read");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No record criteria flag named --read\./u);
-  assert.match(run.stderr, /The set is --open, --next, --pushed, --review\./u);
-  assert.match(run.stderr, /takes the file holding the numbered lines, which a consult reads/u);
+  assert.match(run.stderr, /The set is --next, --pushed, --review, --open\./u,
+    "read off the text `forge record criteria -h` prints, which is where the file it does take is spelled");
+  assert.match(run.stderr, /^Usage: forge record criteria /mu);
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u);
 });
 
@@ -508,9 +512,12 @@ test("no flag puts the project's answer on a record", () => {
   const run = ask("record", "verification", "ISS-3", "--where", "here", "--commit", "43b811e",
     "--evidence", "43b811e", "--promotion", "whatever an author would like it to say");
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /record verification takes no --promotion/u, "refused before any call");
-  const offered = /Fields: ([^\n]*)/u.exec(run.stderr)[1];
-  for (const flag of derived) assert.doesNotMatch(offered, new RegExp(`--${flag}\b`, "u"), flag);
+  assert.match(run.stderr, /No record verification flag named --promotion\./u, "refused before any call");
+  /* `--review` is the run flag of that name, on every writing kind, and never this field: the rows
+     the refusal offers back name the one flag a caller could mistake for the project's answer. */
+  const offered = run.stderr.split("\n").slice(1).join("\n");
+  assert.match(offered, /--where W --commit C --evidence E\.\.\. \[--contains C\]/u);
+  assert.doesNotMatch(offered, /--promotion\b/u, "and it is on no row the kind offers");
   /* Nor by hand: a comment carrying the key, through a client no gate sits before, reads back
      without it, because the value is the CLI's answer about the project and a body is no source. */
   const typed = render("verification", { where: "here", commit: "43b811e", evidence: ["43b811e"] })

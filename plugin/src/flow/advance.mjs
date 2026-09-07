@@ -34,41 +34,9 @@ export const USAGE = [
   "  --park <kind> --why W [--evidence E]...  a park record, then the side status the kind implies",
   "  --drop --why W          park as dropped; refused once the merged mark is set",
   "",
-  "Earned by, from the contract's flow table, with what the two rungs below `feature` owe instead.",
-  "Two sources claim the rung and the higher of them decides: the size the tracker holds for the",
-  "issue, and a line in the body — `Size: trivial.`, `Size: fix.` or `Size: feature.` — with a body",
-  "claiming neither being a `feature`. `--owed` names the rung, which source decided it, and every",
-  "route off it:",
-  "  confirmed     a confirmation: where you looked, what it is, and the finding",
-  "  clarified     a decision record, or an explicit none found",
-  "                  trivial and fix: nothing at all",
-  "  approved      the plan field with its screen and schema lines, and numbered criteria",
-  "                  trivial and fix: the numbered criteria alone, absent declarations reading `no`",
-  "  in_progress   every blocker at least developed, and a baseline",
-  "  developed     an approving review of the commit the merged mark names, and the mark",
-  "  tested        a pass or a reasoned skip on every criterion, at the merged commit",
-  "  released      a verification, and a release note or a withholding",
-  "                  trivial and fix: the verification, the note withheld by rule",
-  "  closed        released",
-  "  dropped       a confirmation whose finding is a disposition, or --drop --why",
-  "",
-  "A fix declaring a screen change or a user-facing outcome, one re-sized by a correction, and one",
-  "whose comment page came back short are all on the full path; --owed on a marked issue says which.",
-  "",
-  "`closed` is the one entry criterion that is a status, so a close reads no comment at all. Every",
-  "other move is judged on the page the tracker returns, and where it shortened one the shortfall",
-  "says so: what a page earns it earns, and what it says is owed may be a record behind the cut.",
-  "",
-  "A reopen is a person's word and the tracker's own status. From it the verb reads the person's",
-  "finding and the agent's triage of it, and routes: the criterion was the wrong test, back to",
-  "developed; it was not met, back to in_progress; the expectation is not in the specification, a",
-  "park behind the issue that owes it. Never above the status the reopen landed on.",
-  "",
-  "A transition clears the line the status it left had set, because that step is over. --owed",
-  "prints the line when one is set and moves nothing.",
-  "",
   `A park kind: ${PARKS.join("|")}.`,
-  "A parked issue resumes where its park record says it left, once a reply or its blocker clears it.",
+  "What each status is earned by, rung by rung: `forge advance <ref> --owed` for this issue, and",
+  "`forge guide contract <status>` for the rule.",
 ].join("\n");
 
 /* A plain advance from `released`, whose whole entry criterion is that status, so the page is not
@@ -107,11 +75,9 @@ export const transitionTo = async (view, status, ref, note = "", next = null, sa
 const WAITING = "waiting";
 const waitsFor = (kind) => (PARK_STATUS[kind] === WAITING ? { waitingKind: "needs_decision" } : {});
 
-/* The two writes of one park: the tracker refuses a move into a side status carrying no reason, so
-   the typed `why` travels with it (ISS-157). The status goes first, and a refused move then leaves
-   no record behind to disagree with it — except for `needs_info`, where any comment is read as the
-   answer and puts the issue back to `open` (ISS-429), so the record goes first and a refused move
-   there does leave it behind. The crashed park lands here too. */
+/* The two writes of one park: the typed `why` travels with the move, which the tracker refuses
+   without one (ISS-157), and the status goes first so a refused move leaves no record to disagree
+   with it — except at `needs_info`, where any comment is read as the answer (ISS-429). */
 const RECORD_FIRST = "needs_info";
 
 export const parkAs = async (view, ref, kind, why, evidence = [], left = null) => {
@@ -194,12 +160,9 @@ const sayAhead = (view, ref, next) => {
   console.log(`\n${stageLine(next, partsOf(readContract()))}`);
 };
 
-/* The page is the whole read this tool has, and the tracker shortens a long one to its most recent
-   rows. Every entry criterion is a presence check, and every rule that unearns a status fires on the
-   newer record — the end the cut keeps — so a shortfall computed from a shortened page can only be
-   longer than the true one, never shorter: what a page earns, it earns. That asymmetry is why the
-   move is judged rather than refused, and why the route out of a shortfall is the write that
-   supplies the item and never a transition no entry check saw (ISS-131). */
+/* Every entry criterion is a presence check and every rule that unearns a status fires on the newer
+   record, which is the end a shortened page keeps: so a shortfall off one can only be longer than
+   the true one, and the move is judged rather than refused (ISS-131). */
 const cutSays = (view) =>
   `${view.cut} The cut keeps the most recent rows, so what the page earns it earns, and anything it `
   + "says is owed may be a record written behind the cut: write it again for this status, or read "
@@ -210,16 +173,11 @@ export const shortfall = (ref, view, held) => {
   for (const one of held.missing) console.log(`\n  ${one.what}\n    ${one.command}`);
 };
 
-const KNOWN = ["owed", "park", "drop", "why", "to", "next"];
-
 export const nextHeld = (view) => leaseOf(view.issue?.[FIELD])?.next ?? null;
 
 const readFlags = (rest) => {
-  const pulled = pullRepeated(rest, "--evidence", "advance");
-  const given = flags(pulled.rest, "advance", ["--owed", "--drop"]);
-  for (const one of Object.keys(given)) {
-    if (!KNOWN.includes(one)) refuse(`advance takes no --${one}. Flags: ${KNOWN.map((two) => `--${two}`).join(" ")} --evidence`);
-  }
+  const pulled = pullRepeated(rest, "--evidence", "advance", { usage: USAGE });
+  const given = flags(pulled.rest, "advance", ["--owed", "--drop"], { usage: USAGE });
   const evidence = pulled.values;
   const writes = Boolean(given.park) || Boolean(given.drop);
   if (given.park && given.drop) refuse("--park and --drop are two forms; a drop is the park kind `dropped`.");

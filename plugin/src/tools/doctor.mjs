@@ -36,7 +36,7 @@ import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { consults, logEntries, logPath } from "../codex/codex-log.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
-import { VERB_NAMES } from "../resolve/visibility.mjs";
+import { VERB_NAMES, usageOf } from "../resolve/visibility.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { methodPinned, pinRefusal } from "../guides/version.mjs";
 import { contractPath, contractProblems, readContract, statesContract } from "../guides/contract.mjs";
@@ -491,13 +491,8 @@ const checkFlowKeys = () => {
 };
 
 export const doctor = async (rest) => {
-  const { full, hide, show: reveal, ship, ...values } = flags(rest, "doctor", ["--full"]);
-  for (const key of Object.keys(values)) {
-    if (!["token", "url"].includes(key)) {
-      fail("Usage: forge doctor [--token <pat>] [--url <endpoint>] [--hide <verb>|--show <verb>]"
-        + " [--ship ready|self] [--full]");
-    }
-  }
+  const { full, hide, show: reveal, ship, ...values } = flags(rest, "doctor", ["--full"],
+    { usage: usageOf("doctor") });
   if (hide) setVisibility(hide, true);
   if (reveal) setVisibility(reveal, false);
   if (ship) setShip(ship);

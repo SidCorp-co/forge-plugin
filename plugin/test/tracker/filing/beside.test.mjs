@@ -343,7 +343,10 @@ test("the note verb still refuses a flag that is none of its four", async () => 
   before();
   const run = await noted("--size", "fix");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /feedback takes --title, --kind, --with and --new and nothing else; --size names no flag/u);
+  /* The one parser's refusal, not a sentence of this verb's own: the stranger by name, the set it was
+     held to, and the usage row under it — which is what a filer needs to write the call again. */
+  assert.match(run.stderr, /No feedback flag named --size\. The set is --title, --kind, --with, --new\./u);
+  assert.match(run.stderr, /^Usage: forge feedback /mu);
 });
 
 /* The band the block prints from is the band the measurement calls machinery rather than subject,

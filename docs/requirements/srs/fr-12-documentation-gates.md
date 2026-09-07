@@ -30,19 +30,20 @@ each exists because the failure it catches happened.
 
 ### UC-12-1 — Every command a document names is one the CLI has
 
-Rev: 1 · Actors: agent · Enforces: BR-09, BR-13
+Rev: 2 · Actors: agent · Enforces: BR-09, BR-13
 
 The CLI's own tables are the authority, so a verb or a flag renamed there fails here. A flag is held
 to a word boundary, because a truncation reads exactly like a flag that works and truncation is how
-a flag drifts. A verb whose flags belong to its sub-verbs is exempt from the flag half, since its
-own usage line cannot name them and holding it there would fail on every true document. A document
+a flag drifts. Which usage answers is decided by the word after the verb, since a verb that takes a
+sub-verb or a record kind keeps its flags there: holding those against the verb's own line would
+fail every true document, and exempting them left a flag no action takes unjudged. A document
 specifying something not yet built declares that on its first line and may then name only the verbs
 it declares.
 
-- **AC-12-1-1** · Rev: 1 · Proof: plugin/test/checks/docs/doc-claims.test.mjs "a sub-verb's own flags are not held against the verb's usage line"
+- **AC-12-1-1** · Rev: 2 · Proof: plugin/test/checks/docs/doc-claims.test.mjs "a sub-verb's flags are judged against the sub-verb's own usage"
   WHEN a document names a command in a code span THEN the check SHALL hold the verb against the
-  CLI's own verb table, and SHALL hold a flag against the verb's own usage line only where that
-  verb carries its flags itself rather than under a sub-verb.
+  CLI's own verb table, and SHALL hold each flag against the usage the sub-verb or record kind that
+  command names prints, or against the verb's own usage line where the command names neither.
 - **AC-12-1-2** · Rev: 1 · Proof: plugin/test/checks/docs/doc-claims.test.mjs "a proposal may name the verb it opens with, and nothing else the CLI lacks"
   IF a document opens by declaring itself a proposal for named verbs THEN those verbs SHALL be
   allowed and no others the CLI lacks.

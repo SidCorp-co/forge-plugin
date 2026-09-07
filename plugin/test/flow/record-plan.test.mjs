@@ -206,13 +206,15 @@ test("another run's lease refuses the write, and neither field moves", async () 
   assert.equal(state.issues[0].sessionContext.lease.renewedAt, before.lease, "and so is the lease");
 });
 
-test("the kind is on the table `forge record -h` prints, with the plan field's own cap", async () => {
+test("the kind is on the table `forge record -h` prints, with the plan field's own cap on its own help", async () => {
   const run = await ranAsync(FORGE, ["record", "-h"], env());
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^ {2}plan {9}<file\.md>\(\d+\) {2}the plan itself, from a file a consult has read$/mu);
+  assert.match(run.stdout, /^ {2}plan {9}the plan itself, from a file a consult has read$/mu);
   const one = await ranAsync(FORGE, ["record", "plan", "-h"], env());
   assert.equal(one.status, 0, one.stderr);
   assert.match(one.stdout, /Usage: forge record plan <uuid\|ISS-45>/u);
+  assert.match(one.stdout, /^ {2}plan {9}<file\.md>\(\d+\) {2}the plan itself, from a file a consult has read$/mu,
+    "the cap is the kind's own, where the parse that reads it against is");
 });
 
 /* The rule this shares with `record criteria`, which is what makes the two one payload: the file a

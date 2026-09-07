@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { PHASES, methodOf } from "../../src/flow/earned.mjs";
 import { render } from "../../src/flow/record.mjs";
 import {
   MARKERS, UNTIERED, WHOLE_SET_CLASS, callsIn, classOf, markerOf, shellOf, slugFor, tierRun,
@@ -170,11 +171,14 @@ test("every row of a fixture run is what the transcript adds up to", () => {
   has("ships           1 pass(es), median 1/run, 0 resumed with --from, a push rejected in 0 run(s)");
 
   /* The ship call is the last of its own phase; the `pgrep` line that waits for one is a poll and
-     leaves the run where it was, which is what moved every real run into `6 close` before. */
-  has("0 discover      1      0.2        0        1.0  read 1 0m");
-  has("3 review        1     22.8       23        2.0  forge codex whole-set 1 15m · forge codex recheck 1 5m");
-  has("5 ship          1      4.8        5        1.0  ship 1 4m");
-  has("6 close         1      6.0        6        6.0  poll 1 0m · forge issue 3 0m · forge advance 1 0m · git 1 0m");
+     leaves the run where it was, which is what moved every real run into the closing phase before.
+     The rows are the method's phases, so a figure here names a phase a brief can name (ISS-700). */
+  has("0 Project       1      0.2        0        1.0  read 1 0m");
+  has("4 Implement     1      4.9        5        3.0  gate 1 2m · test 1 1m · forge record plan 1 0m");
+  has("5 Prove         1     25.4       25        4.0  forge codex whole-set 1 15m · forge codex recheck 1 5m"
+    + " · forge record verdict 1 0m · forge advance 1 0m");
+  has("7 Ship          1      4.8        5        1.0  ship 1 4m");
+  has("8 Learn         1      6.0        6        6.0  poll 1 0m · forge issue 3 0m · forge advance 1 0m · git 1 0m");
 
   has("forge codex whole-set           15.0    54%      1");
   has("gate                             2.0     7%      1");
@@ -229,7 +233,7 @@ test("the subject is named, and a wrong one says which there is", () => {
     env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-home-") },
   });
   assert.equal(asked.status, 0);
-  assert.match(asked.stdout, /Usage: forge stats runs/u);
+  assert.match(asked.stdout, /Usage: forge stats <runs\|eval\|marks>/u);
 
   const wrong = spawnSync(FORGE, ["stats", "consults"], {
     encoding: "utf8",
@@ -277,12 +281,14 @@ test("one class per shape of work, whatever way it was typed", () => {
 test("a phase opens on the call that makes it, not on a line that names it", () => {
   for (const [command, expected] of [
     ["forge claim ISS-99", 1],
-    ["forge record baseline ISS-99 --gate 'npm run check' --result green", 2],
-    ["cd /w && ./plugin/bin/forge record verdict ISS-99 --criterion 1", 4],
-    ["forge codex consult --send bodies plugin/src/cli.mjs", 3],
+    ["forge record confirmation ISS-99 --where cli.mjs --is 'a' --finding holds", 2],
+    ["forge record decision ISS-99 --goal fr-02", 3],
+    ["forge record baseline ISS-99 --gate 'npm run check' --result green", 4],
+    ["forge codex consult --send bodies plugin/src/cli.mjs", 5],
+    ["cd /w && ./plugin/bin/forge record note ISS-99 --section Fixed --user 'it works'", 6],
     ["forge codex consult --diff", null],
     ["forge codex consult --recheck", null],
-    ["node /w/tools/run.mjs ship", 5],
+    ["node /w/tools/run.mjs ship", 7],
     ['until ! pgrep -f "tools/run.mjs ship"; do sleep 10; done', null],
     ['echo "next: forge record verdict ISS-99" >> /tmp/notes', null],
     ["grep -rn 'forge claim' docs/", null],
@@ -291,6 +297,19 @@ test("a phase opens on the call that makes it, not on a line that names it", () 
   ]) {
     assert.equal(markerOf(classOf("Bash", shellOf(command)))?.phase ?? null, expected, command);
   }
+  assert.equal(markerOf("forge record verdict"), null,
+    "the verdicts are the proving phase's own writes, so they open nothing: the note past them is that boundary");
+});
+
+/* One table for the method and the miner, or a brief that says "start at phase 5" and a row that
+   says phase 5 cost eleven minutes are two numbers that look like one (ISS-700). */
+test("the phases the miner counts are the phases the method names", () => {
+  assert.equal(PHASES.length, 9, "0 through 8, indexed by the number the guide prints");
+  for (const { phase } of MARKERS) {
+    assert.match(PHASES[phase] ?? "", new RegExp(`^${phase} `, "u"), `phase ${phase} has a row of its own`);
+  }
+  assert.equal(methodOf("developed").phase, PHASES[5], "which is the phase the resume header owes");
+  assert.ok(methodOf("in_progress").phase.includes(PHASES[4]), methodOf("in_progress").phase);
 });
 
 /* A phase number copied into the cutter is invisible until a phase is renumbered, so this case
@@ -300,19 +319,19 @@ test("a phase opens on the call that makes it, not on a line that names it", () 
 test("the cutter reads its phase numbers off the rows that declare them", () => {
   const calls = ["forge claim", WHOLE_SET_CLASS, "forge record plan", WHOLE_SET_CLASS]
     .map((klass) => ({ class: klass }));
-  assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 2, 3],
-    "a whole-set read before the plan is the plan's, and the one after it opens the review");
+  assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 4, 5],
+    "a whole-set read before the plan is the plan's, and the one after it opens the proving");
 
   const review = MARKERS.find((row) => row.after !== undefined);
   const held = { ...review };
   try {
-    Object.assign(review, { phase: 4, after: 3 });
-    assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 2, 2],
+    Object.assign(review, { phase: 6, after: 5 });
+    assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 4, 4],
       "renumbered to open after a phase this run never reached, the cut follows the row rather than a copy of the old number");
   } finally {
     Object.assign(review, held);
   }
-  assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 2, 3], "and the table is left as it was found");
+  assert.deepEqual(segmented(calls).map((one) => one.phase), [1, 1, 4, 5], "and the table is left as it was found");
 });
 
 /* Two consults a build takes and one it does not. The plan's comes before the plan is written and
@@ -342,9 +361,9 @@ test("a consult before the plan write is the plan's, and the review opens on the
   const run = ask(room);
   assert.equal(run.status, 0, run.stderr);
   const has = (line) => assert.ok(run.stdout.includes(line), `${line}\n--- printed ---\n${run.stdout}`);
-  has("1 plan          1     11.0       11        2.0  forge codex whole-set 1 10m · forge claim 1 0m");
-  has("2 build         1      9.9       10        5.0  forge codex consult 1 5m · test 1 1m · git 2 0m · forge record plan 1 0m");
-  has("3 review        1      4.8        5        1.0  forge codex whole-set 1 4m");
+  has("1 Triage        1     11.0       11        2.0  forge codex whole-set 1 10m · forge claim 1 0m");
+  has("4 Implement     1      9.9       10        5.0  forge codex consult 1 5m · test 1 1m · git 2 0m · forge record plan 1 0m");
+  has("5 Prove         1      5.8        6        2.0  forge codex whole-set 1 4m · forge record verdict 1 0m");
 });
 
 /* One call per route a run writes files through, with what each carried, and a landing that took two

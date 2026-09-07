@@ -127,8 +127,12 @@ test("a query naming a host reaches the zone that host sits in", async (t) => {
   assert.ok(asked.every((url) => url.includes("/zones/z1/dns_records")));
 });
 
+/* A fixture usage rather than purge's own: the case is the collector's, and the flag it has to
+   leave in `rest` must be one the text declares or the parser turns it away first (ISS-700). */
 test("--file is collected, not overwritten by the last one given", () => {
-  const { values, rest } = pullRepeated(["--file", "a", "--file", "b", "--other", "x"], "--file", "cloudflare purge");
+  const usage = "Usage: forge cloudflare purge <zone-id> [--file <url>]... [--other <x>]";
+  const { values, rest } = pullRepeated(["--file", "a", "--file", "b", "--other", "x"], "--file",
+    "cloudflare purge", { usage });
   assert.deepEqual(values, ["a", "b"]);
   assert.deepEqual(rest, ["--other", "x"]);
 });

@@ -495,9 +495,19 @@ const scoreLine = (row) =>
   + `(${row.zero} none)  ${String(row.accepted).padStart(4)} accepted  ${String(row.rejected).padStart(3)} rejected  `
   + `${String(row.median).padStart(4)}s median  ${row.input ? Math.round((row.cached / row.input) * 100) : 0}% cached`;
 
+export const LOG_USAGE = [
+  "Usage: forge codex log [--last n] [--id i] [--full] [--score]",
+  "Past consults, for scoring the advice later.",
+  "",
+  "  --last n       how many print; the newest of them",
+  "  --id i         one consult and its recheck, by the id the reply printed",
+  "  --full         each entry whole rather than a line",
+  "  --score        per model instead: consults, findings, what was kept, time, cache",
+].join("\n");
+
 /* `--id` and not `--last 1`: two consults in flight make "the last one" a race. */
 export const printLog = (rest) => {
-  const { last, id, full, score } = flags(rest, "codex log", ["--full", "--score"]);
+  const { last, id, full, score } = flags(rest, "codex log", ["--full", "--score"], { usage: LOG_USAGE });
   const entries = pairedLog(logEntries());
   if (!entries.length) return console.log(`No consults logged yet. ${logPath()} appears on the first.`);
   if (score) {
@@ -514,15 +524,25 @@ export const printLog = (rest) => {
   console.log(`\n${entries.length} logged; ${logPath()}`);
 };
 
+export const VERDICT_USAGE = [
+  'Usage: forge codex verdict --accepted F1,F3 --rejected F2=why [--note "why"] [--of <id>]',
+  "What became of each finding, which is the half of an eval set only the caller holds. A recheck",
+  "records one for what it refuted, and a commit waits for one.",
+  "",
+  "  --accepted F1,F3   the findings taken; repeatable",
+  "  --rejected F2=why  the findings turned down, each with its reason; repeatable",
+  "  --note t           one line about the consult as a whole",
+  "  --of <id>          the consult this verdict is about, where it is not the open one",
+].join("\n");
+
 /* The reply is half an eval set. Which findings survived contact with the work is the other half,
    and only the caller knows it — so it is recorded, not inferred. */
 export const verdict = (rest, root) => {
-  const { values: accepted, rest: r1 } = pullRepeated(rest, "--accepted", "codex verdict");
-  const { values: rejected, rest: r2 } = pullRepeated(r1, "--rejected", "codex verdict");
-  const { note, of } = flags(r2, "codex verdict");
-  if (!accepted.length && !rejected.length && !note) {
-    fail('Usage: forge codex verdict --accepted F1,F3 --rejected F2=why [--note "why"] [--of <id>]');
-  }
+  const usage = VERDICT_USAGE;
+  const { values: accepted, rest: r1 } = pullRepeated(rest, "--accepted", "codex verdict", { usage });
+  const { values: rejected, rest: r2 } = pullRepeated(r1, "--rejected", "codex verdict", { usage });
+  const { note, of } = flags(r2, "codex verdict", [], { usage });
+  if (!accepted.length && !rejected.length && !note) fail(VERDICT_USAGE);
   /* This repository's last consult that made findings and heard nothing back, not the last answer:
      after a converged recheck the last answer found nothing, and a verdict landed on it twice. */
   const entries = logEntries();

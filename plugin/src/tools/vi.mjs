@@ -78,7 +78,8 @@ export const translated = (payload) => {
   if (language !== "vi") {
     fail(
       `The prose language is \`${language}\` and vi is the only one this CLI writes.\n` +
-        "Nothing was posted. Set translate to vi or off in .forge.json.",
+        "Nothing was posted. Set translate to vi or off in the project's own settings, which\n" +
+        "`forge doctor` names beside the language it resolved.",
     );
   }
   let done = { ...payload };

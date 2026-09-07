@@ -10,8 +10,9 @@ The **endpoint and token are the account's** — one Forge instance, one PAT —
 `~/.config/forge/config.json` and nowhere else. Not the environment, and not a `.mcp.json`: doctor
 reports one of those naming a `forge` server, with the command that saves the same values.
 
-The **slug is the project's**, from a `.forge.json` holding `{ "slug": "<project>" }`, and only from
-there. A git worktree with no config of its own inherits its main checkout's.
+The **slug is the project's**, from the project file at the root of the checkout, holding
+`{ "slug": "<project>" }`, and only from there — `forge doctor` names that file beside every other
+source. A git worktree with no config of its own inherits its main checkout's.
 
 The slug is demanded **only by a call that needs a project id**, so `tools` and `schema` answer in
 a directory that belongs to no project. The project id is looked up from the slug and is never
@@ -44,7 +45,7 @@ capabilities refuse.
 Then every `title`, `description` and `body` is rewritten by the bundled `vi-natural` before it is
 posted and the CLI prints what went out — **write the source in English**, because a source that
 stays English is the source to fix. If `vi-natural` fails or leaves a block untranslated, nothing
-is posted at all. `translate` in `.forge.json` is what decides it, and the only thing that does.
+is posted at all. `translate` in the project file is what decides it, and the only thing that does.
 
 Which is why SKILL.md sends you to `forge doctor` before a first filing: it prints the language and
 its source, and the spine states what a wrong one costs.

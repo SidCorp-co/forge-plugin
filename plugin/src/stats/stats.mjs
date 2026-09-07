@@ -1,14 +1,22 @@
 /* `forge stats <subject>` — one verb, a subject per thing profiled: docs/cli/stats.md. */
-import { EVAL_USAGE, printEval, printMarks } from "./eval.mjs";
+import { EVAL_USAGE, MARKS_USAGE, printEval, printMarks } from "./eval.mjs";
 import { RUNS_USAGE, printRuns } from "./runs.mjs";
 import { helpAskedOf } from "../resolve/flags.mjs";
 
 const SUBJECTS = { runs: printRuns, eval: printEval, marks: printMarks };
 
-export const USAGE = [RUNS_USAGE, "", EVAL_USAGE].join("\n");
+export const USAGE = [
+  "Usage: forge stats <runs|eval|marks>",
+  "Where an issue-flow run's time and rounds go, and how the last window compares with the one",
+  "before it. Each subject's own flags: `forge stats <subject> -h`.",
+  "",
+  "  runs      the profile of the runs in a window: time, rounds and calls by phase",
+  "  eval      the last fifty runs against the fifty before them, with what separates them named",
+  "  marks     the readings held for this project, newest first",
+].join("\n");
 
-/* What each subject takes: `eval` and `marks` are documented by the one text, which is where their two usage lines are spelled. */
-export const SAYS = { runs: RUNS_USAGE, eval: EVAL_USAGE, marks: EVAL_USAGE };
+/* One text per subject, which is the set its own parse refuses against, so neither can move alone. */
+export const SAYS = { runs: RUNS_USAGE, eval: EVAL_USAGE, marks: MARKS_USAGE };
 
 export const stats = (argv) => {
   const [subject, ...rest] = argv;

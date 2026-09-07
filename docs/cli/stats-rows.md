@@ -37,12 +37,13 @@ other verb is one row.
 
 ## The phase table
 
-Phase boundaries are read off the first call of each kind, because no run writes a phase into its own
-transcript — and off the **class** the call already carries rather than a second set of patterns, so
-the two cannot disagree about what a call was. A phase already passed cannot pull a run backwards,
+**The rows are the method's phases, as `forge guide issue-flow` numbers them, and that table is the
+only one.** Phase boundaries are read off the first call of each kind, because no run writes a phase into its own
+transcript — and off the **class** the call already carries, so two readings of one call cannot
+disagree about what it was. A phase already passed cannot pull a run backwards,
 the review does not open before the build has — the plan is consulted before it is written, and that
 consult is the plan's — and the ship call is the last call of its own phase rather than the first of
-the next.
+the next. A boundary is the write that discharges the phase before it, so a row holds its own work.
 
 **The review opens on the read that earns it and on no other consult.** A build commits several
 times and each commit is gated by a consult over what that commit stages, so a boundary drawn at the
@@ -52,8 +53,7 @@ build's tail moving, not the review's cost.
 
 Each of those last two rules is declared on the marker row it constrains rather than beside the cut
 it makes, so a phase number is written once. Renumbering a phase then moves the cut with it; a
-second copy of the number would go on matching a phase that had moved, and two places that agree by
-coincidence look exactly like two places that agree.
+second copy of the number would go on matching a phase that had moved.
 
 Each phase's minutes and calls are medians **over the runs that entered that phase**, with the count
 of those runs beside them. A median over the whole window reports a phase most of it never reached as

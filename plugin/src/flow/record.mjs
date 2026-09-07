@@ -6,7 +6,7 @@ import { citationsChecked, criteriaChecked } from "../spec/checked.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "../resolve/record-rows.mjs";
 import { CLOSES_FROM, SECTIONS, SHAPES, atMinute, blockOf, compoundCriteria, criterionNumber, markedCommit, planFlags, planTyped, readRecords, sectionOwedBy, sectionsOwed, stepsUncited, tagFor, unwrap } from "./machine.mjs";
-import { KINDS, USAGE, kindHelp, usage } from "../resolve/record-rows.mjs";
+import { KINDS, USAGE, kindHelp, kindUsage, usage } from "../resolve/record-rows.mjs";
 import { readOrRefuse } from "../codex/codex-read.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
@@ -141,16 +141,13 @@ const gather = (kind, argv, defer = []) => {
   const shape = SHAPES[kind];
   let rest = argv;
   const got = {};
+  const usage = kindUsage(kind);
   for (const field of shape.fields.filter((one) => one.many)) {
-    const pulled = pullRepeated(rest, `--${field.flag}`, `record ${kind}`);
+    const pulled = pullRepeated(rest, `--${field.flag}`, `record ${kind}`, { usage });
     got[field.flag] = pulled.values;
     rest = pulled.rest;
   }
-  const single = flags(rest, `record ${kind}`);
-  const known = new Set(shape.fields.filter((one) => !one.derived && !one.written).map((one) => one.flag));
-  for (const given of Object.keys(single)) {
-    if (!known.has(given)) refuse(`record ${kind} takes no --${given}. Fields: ${[...known].map((one) => `--${one}`).join(" ")}`);
-  }
+  const single = flags(rest, `record ${kind}`, [], { usage });
   Object.assign(got, single, writtenBy(shape));
   for (const field of shape.fields) {
     const value = got[field.flag];
@@ -428,7 +425,7 @@ const criteriaCount = (body) => {
 
 /* Two forms, and a flag from the other one is refused rather than dropped. */
 export const noteFrom = (argv) => {
-  const { skip, ...rest } = flags(argv, "record note", ["--skip"]);
+  const { skip, ...rest } = flags(argv, "record note", ["--skip"], { usage: kindUsage("note") });
   const allowed = skip ? ["why", "technical"] : ["section", "user", "technical"];
   for (const given of Object.keys(rest)) {
     if (!allowed.includes(given)) {
@@ -568,8 +565,8 @@ const pullOne = (argv, flag) => {
 
 /* Pulled before the kind is dispatched, so no shape gains a field: these say what the run is doing
    and not what the payload holds, and `criteria` takes a bare path where a shape takes flags. */
-const pullRun = (argv) => {
-  const lines = pullRepeated(argv, OPEN, "record");
+const pullRun = (argv, kind) => {
+  const lines = pullRepeated(argv, OPEN, `record ${kind}`, { usage: kindUsage(kind) });
   const line = pullOne(lines.rest, NEXT);
   let rest = line.rest;
   const took = {};
@@ -588,13 +585,13 @@ const pullRun = (argv) => {
 };
 
 const run = async ([kind, reference, ...argv]) => {
-  if (!kind || wantsHelp([kind])) return console.log(usage(await capsOf(), await briefGoals()));
+  if (!kind || wantsHelp([kind])) return console.log(usage());
   if (!KINDS.includes(kind)) refuse(`record knows no kind \`${kind}\`. Kinds: ${KINDS.join(", ")}.`);
   /* `record` answers its own help, so cli.mjs hands the whole tail over and `-h` in the reference
      position was spent as an issue key — the one flag its own refusal could not answer for. */
   if (wantsHelp([reference])) return console.log(kindHelp(kind, await capsOf(), await briefGoals()));
   if (!reference) refuse(USAGE.split("\n")[0]);
-  const { next, patch, asked, rest } = pullRun(argv);
+  const { next, patch, asked, rest } = pullRun(argv, kind);
   const run = { next, patch };
   if (kind === "note") return recordNote(reference, rest, run);
   if (kind === "criteria") return recordCriteria(reference, rest, run);

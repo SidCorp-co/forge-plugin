@@ -438,12 +438,15 @@ test("every command an entry check prints can be pasted into a shell as it stand
   }
 });
 
-test("`-h` answers what each status is earned by, and asks the tracker nothing", () => {
+/* A row per status was in this text and in the contract both, and the copy here was what a caller
+   read: the help now names the flags it takes and sends the rule to its one home (ISS-700). */
+test("`-h` names its flags and sends each status's rule to the contract, asking the tracker nothing", () => {
   const run = ask("advance", "-h");
   assert.equal(run.status, 0, run.stderr);
   assert.ok(run.stdout.includes("Usage: forge advance"), run.stdout);
+  assert.match(USAGE, /`forge guide contract <status>`/u, "where what a status is earned by is written");
   for (const status of [...ORDER.slice(1), "dropped"]) {
-    assert.match(USAGE, new RegExp(`^  ${status}\\s`, "mu"), status);
+    assert.doesNotMatch(USAGE, new RegExp(`^  ${status}\\s`, "mu"), `${status} has no second row here`);
   }
   assert.match(USAGE, /^  --next <line>/mu, "the line the status it enters starts on is a flag");
   assert.equal(run.stderr, "", "and nothing is fetched to answer it");

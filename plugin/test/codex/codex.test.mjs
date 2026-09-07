@@ -10,7 +10,7 @@ const sandbox = tempRoom("forge-codex-");
 process.env.XDG_CONFIG_HOME = sandbox;
 delete process.env.FORGE_CODEX_DISABLE;
 
-const { ageOf, consultArgs, rounds, unchangedAll } = await import("../../src/codex/codex.mjs");
+const { SAYS, ageOf, consultArgs, rounds, unchangedAll } = await import("../../src/codex/codex.mjs");
 const {
   ANGLES,
   bundle,
@@ -400,10 +400,11 @@ test("an unchanged file is offered as context and excluded from review", () => {
 /* Found by running it: splitting on "starts with --" read a flag's value as a file path and hid it
    from the parser, so `--diff --only major` reported that --diff had no value. */
 test("a flag's value is never mistaken for a file", () => {
-  const held = partition(["a.mjs", "--diff", "--only", "blocker,major", "b.mjs", "--allow-echo"], BOOLEANS);
+  const row = { verb: "codex consult", usage: SAYS.consult };
+  const held = partition(["a.mjs", "--diff", "--only", "blocker,major", "b.mjs", "--allow-echo"], BOOLEANS, row);
   assert.deepEqual(held.positionals, ["a.mjs", "b.mjs"]);
   assert.deepEqual(held.flagArgv, ["--diff", "--only", "blocker,major", "--allow-echo"]);
-  const bare = partition(["--allow-echo", "x.mjs"], BOOLEANS);
+  const bare = partition(["--allow-echo", "x.mjs"], BOOLEANS, row);
   assert.deepEqual(bare.positionals, ["x.mjs"]);
   assert.deepEqual(bare.flagArgv, ["--allow-echo"]);
 });
@@ -460,13 +461,25 @@ test.after(() => rmSync(sandbox, { recursive: true, force: true }));
 
 /* Refused in sid-erp twice over: the CLI read `-h` as a filename, and the order gate refused the line
    as a consult — so the one command that says what to type was the one that could not be run. */
-test("asking an action what to type prints the usage", () => {
+/* Nine actions' flags in one text was 6.5 KB, so an agent asking `codex consult` what it takes read
+   eight other actions to find out. Each action answers for itself and the verb lists them. */
+test("asking an action what to type prints that action's own usage", () => {
   const forge = new URL("../../bin/forge", import.meta.url).pathname;
-  for (const argv of [["codex", "consult", "-h"], ["codex", "verdict", "--help"], ["codex", "-h"]]) {
+  const asked = (...argv) => {
     const run = spawnSync(forge, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: tempRoom("codex-help-") } });
     assert.equal(run.status, 0, `${argv.join(" ")}: ${run.stderr}`);
-    /* The usage line alone is what a generic handler would print while deleting the actions. */
-    assert.match(`${run.stdout}${run.stderr}`, /Usage: forge codex <consult\|verdict\|pending\|show\|log\|stats\|eval\|marks\|replay>/u);
-    assert.match(`${run.stdout}${run.stderr}`, /--verify <risk>/u, "with the actions still documented");
+    return `${run.stdout}${run.stderr}`;
+  };
+  /* The verb's own text names every action, which is the list a caller reads before choosing one. */
+  const verb = asked("codex", "-h");
+  assert.match(verb, /Usage: forge codex <consult\|verdict\|pending\|show\|log\|stats\|eval\|marks\|replay>/u);
+  assert.doesNotMatch(verb, /--verify <risk>/u, "and no action's flags, which is what the cap buys");
+  for (const [action, argv, spelled] of [
+    ["consult", ["codex", "consult", "-h"], /--verify <risk>/u],
+    ["verdict", ["codex", "verdict", "--help"], /--accepted F1,F3/u],
+  ]) {
+    const said = asked(...argv);
+    assert.match(said, new RegExp(`^Usage: forge codex ${action}\\b`, "mu"), action);
+    assert.match(said, spelled, `${action}'s own flags, on its own text`);
   }
 });

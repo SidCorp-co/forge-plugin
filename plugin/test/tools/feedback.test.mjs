@@ -177,7 +177,7 @@ test("a body the shape refuses is printed back too, having arrived on stdin", as
 test("the verb takes --title and refuses a flag that would aim it somewhere else", async () => {
   const run = await send(["feedback", note(), "--title", TITLE, "--project", "somewhere-else"]);
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /--project names no flag of it/u);
+  assert.match(run.stderr, /No feedback flag named --project\. The set is --title, --kind, --with, --new\./u);
   assert.equal(run.filed, undefined);
   /* And a kind outside what this project allows on the channel, which by default is the one. */
   const wide = await send(["feedback", note(), "--title", TITLE, "--kind", "feature"]);
@@ -210,8 +210,8 @@ test("its help says what to type and where the note goes", async () => {
   const run = await send(["feedback", "-h"]);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^Usage: forge feedback <file\.md\|@file\|-> --title T \[--kind K\] \[--with ISS-45,ISS-46\] \[--new\]$/mu);
-  assert.match(run.stdout, /The destination is forge-plugin, fixed here/u);
-  assert.match(run.stdout, /No lease is taken/u);
+  assert.match(run.stdout, /forge-plugin is the\ndestination, fixed here/u, "where the note goes");
+  assert.match(run.stdout, /no lease is taken/u, "and what it does not do to the issue it names");
 });
 
 /* ISS-203's fourth reader, and the one that was silent by omission rather than by a false test: the

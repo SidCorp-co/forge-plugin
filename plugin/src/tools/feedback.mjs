@@ -16,10 +16,9 @@ import { PROJECT, allowedKinds, onThisRepository, routingBlock } from "../tracke
 
 const USAGE = () => [
   usageOf("feedback"),
-  "A defect in this plugin, filed on the plugin's own project — from any checkout, on the",
-  `credential in ~/.config/forge/config.json. The destination is ${PROJECT}, fixed here, so the slug`,
-  "of the project you are standing in is recorded as a fact and decides nothing. Nothing goes to disk,",
-  "and once the body has been read, whatever refuses it prints it back.",
+  `A defect in this plugin, filed on the plugin's own project from any checkout. ${PROJECT} is the`,
+  "destination, fixed here, so the project you are standing in is recorded as a fact and decides",
+  "nothing. Nothing goes to disk, and whatever refuses a body that was read prints it back.",
   "",
   "  --title T   what is true once it is fixed, one line",
   `  --kind K    ${allowedKinds().join(", ")} — what this project allows on the channel; the default is`,
@@ -30,20 +29,8 @@ const USAGE = () => [
   "",
   CAUSE_HELP,
   "",
-  "Every note is measured against what is already open on that project the way a filing is:",
-  "`forge new -h` carries the two questions, the floor and the fold, and this verb prints the same",
-  "block above its result. A note lands on the nearest of the neighbours that name the place its",
-  "cause names, as a finding rather than as an issue of its own. That fold is the only one: a",
-  "title already open on that project is a neighbour like any other and routes nothing by itself.",
-  "",
-  "The body is read against the shape the kind needs, every section of it, and `forge new -h` prints",
-  "what each section wants. Where is filled in for you — the plugin",
-  "version, the copy that answered, the project you called from and the agent — so none of it is",
-  "typed, and a body carrying its own Where heading gets this one after it.",
-  "",
-  "No lease is taken and none is renewed, and nothing here ranks the note: it is filed unranked and",
-  "says so, because whoever maintains this plugin raises it and not whoever met it. `forge comment`,",
-  "the verb the block names, renews a lease only where the lease is yours.",
+  "The body is read against the shape the kind needs, which `forge new -h` prints, and Where is",
+  "filled in for you. Nothing here ranks the note and no lease is taken: docs/cli/feedback.md.",
 ].join("\n");
 
 /* Typed by no caller: which version was running, which copy of it, whose project, and who met it. */
@@ -89,13 +76,9 @@ export const feedback = async (argv) => {
   }
   const [path, ...rest] = argv;
   if (!path) fail(usageOf("feedback"));
-  const { title, new: fresh, with: rides, kind: asksKind, ...extra } = flags(rest, "feedback", ["--new"]);
+  const { title, new: fresh, with: rides, kind: asksKind } = flags(rest, "feedback", ["--new"],
+    { usage: usageOf("feedback") });
   if (!title) fail("A note needs --title: one line saying what is true once it is fixed.");
-  const unknown = Object.keys(extra);
-  if (unknown.length) {
-    fail(`feedback takes --title, --kind, --with and --new and nothing else; ${unknown.map((one) => `--${one}`).join(", ")}`
-      + ` names no flag of it. The project is always ${PROJECT}, and Where is filled in.`);
-  }
   const kind = kindAsked(asksKind);
   const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
   if (badKeys) fail(badKeys);

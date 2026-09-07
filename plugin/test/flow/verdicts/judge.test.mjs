@@ -107,8 +107,11 @@ test("--judge is refused rather than dropped, so no writer names another run as 
   const run = await ask("record", "verdict", "ISS-7", "--evidence", COMMIT, "--verdict", "pass",
     "--criterion", "1", "--judge", "somebody-else");
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /takes no --judge/u, run.stderr);
-  const offered = /Fields: (.*)$/mu.exec(run.stderr)[1].split(" ");
-  assert.deepEqual(offered, ["--criterion", "--verdict", "--commit", "--evidence", "--why"],
-    "and the fields it offers back leave the written one out, so nothing invites a second try");
+  assert.match(run.stderr, /No record verdict flag named --judge\./u, run.stderr);
+  /* The kind's own row is what the refusal offers back, and the written field is not on it, so
+     nothing invites a second try. The row is under the usage line rather than on it, which is why
+     the refusal carries the rows that name a flag and not the first line alone. */
+  const offered = /^ {2}verdict\s+(.*)$/mu.exec(run.stderr)[1].match(/--[a-z]+/gu);
+  assert.deepEqual(offered, ["--criterion", "--verdict", "--commit", "--evidence", "--why"]);
+  assert.doesNotMatch(run.stderr, /--judge\b(?!\.)/u, "and the flag it refused is not offered back");
 });

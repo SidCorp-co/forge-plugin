@@ -21,7 +21,8 @@ import { didYouMean } from "../suggest.mjs";
 import { afterTouch, ageOf, clearConsulted, demandOf, pendingIn, readState, turnsOf, updateState } from "./codex-state.mjs";
 import { TOOLS, scopeFor } from "./codex-tools.mjs";
 import { reviewed } from "./codex-rounds.mjs";
-import { EFFORTS, defaultEffort, incompleteIn, newFindingsIn, plannedFor, plannedLimits } from "./codex-plan.mjs";
+import { EFFORTS, defaultEffort, incompleteIn, keepsTools, newFindingsIn, plannedFor, plannedLimits }
+  from "./codex-plan.mjs";
 import {
   ANGLES,
   modelSlot,
@@ -40,8 +41,12 @@ import {
   roleFor,
   sameFamily,
 } from "./codex-api.mjs";
-import { crossingSaid, printEval, printMarks, printReplay, printStats } from "./codex-stats.mjs";
+import { EVAL_USAGE, MARKS_USAGE, REPLAY_USAGE, STATS_USAGE, crossingSaid, printEval, printMarks,
+  printReplay, printStats } from "./codex-stats.mjs";
 import {
+  LOG_USAGE,
+  VERDICT_USAGE,
+  budgetMs,
   logPath,
   consults,
   numbered,
@@ -64,83 +69,58 @@ const DEFAULT_PATH_RE = "^docs/.*\\.md$";
 
 export const USAGE = [
   "Usage: forge codex <consult|verdict|pending|show|log|stats|eval|marks|replay> [args]",
-  "GPT-5 Codex reviews the files you name, streamed over the gateway's own API. The files travel",
-  "with the prompt; beyond them it reads for itself — read_file, list_dir, grep and git_diff, over",
-  "this checkout and any other you name a file in, and nothing else on the machine. The log is what",
-  "gives it a memory of this repository. A named file may be an absolute path in another project.",
-  "The hook records what `codex.pathRe` matches, documents by default; any path can be named too.",
+  "A second model reviews what this turn changed, streamed over the gateway's own API. The files you",
+  "name travel with the prompt; beyond them it reads for itself, over this checkout and any other",
+  "you name a file in. Each action's own flags: `forge codex <action> -h`.",
   "",
-  "  consult [file...] [--diff [--base <ref>]] [--verify <risk>]... [--only s,s] [--recheck]",
-  "                            review; pipe your intent on stdin",
-  "                            [--angles a,a] [--effort e] [--rounds n] [--send m] [--allow-echo]",
-  "                            [--out-of-scope <text>] [--checks <text>]",
-  "  verdict --accepted F1,F3 --rejected F2=why [--note t] [--of <id>]   what became of each finding;",
-  "                            a recheck records one for what it refuted, and a commit waits for one",
-  "  pending [--drop]          what this turn touched and has not been consulted on",
-  "  show                      profile, model, history and pending, in effect here",
-  "  log [--last n] [--id i] [--full]   past consults, for scoring the advice later",
-  "  log --score               per model: consults, findings, what was kept, time, cache",
-  "  stats [--last n] [--days n] [--root p] [--here]   what the harness did over a window: calls",
-  "                            against their budget, replies that could not check, rechecks that",
-  "                            raised something New, tokens by kind, and the prompt versions that ran",
-  "  eval [--against [<mark>]] [--json]   the last 100 answered consults on this device against the",
-  "                            100 before them, per model and prompt version, with what separates the",
-  "                            windows named. The consult that crosses a hundred-mark says to run it and",
-  "                            writes the reading once; --against puts a held reading in the before's place",
-  "  marks                     the readings held on this device, one line each, newest first",
-  "  replay --prompt <file> [--last n] [--root p]      which of a window a candidate prompt could be",
-  "                            scored against: the bytes wherever a commit or the record still proves",
-  "                            them, and a row refused with its reason where nothing does",
+  "  consult   review the files you name, or what this turn touched; intent on stdin",
+  "  verdict   what became of each finding, which is the half of an eval set only you hold",
+  "  pending   what this turn touched and has not been consulted on",
+  "  show      what is in effect here — model, records, rounds, effort, angles — and from where",
+  "  log       past consults, for scoring the advice later",
+  "  stats     what the harness did over a window: calls, budget, rechecks, tokens, versions",
+  "  eval      the last 100 answered consults on this device against the 100 before them",
+  "  marks     the readings held on this device, one line each, newest first",
+  "  replay    which of a window a candidate prompt could be scored against",
   "",
-  "A `codex` object in ~/.config/forge/config.json, every key optional",
-  "  model                     model slot to ask for (default fable)",
-  "  pathRe                    repo-relative paths the hook records (default ^docs/.*\\.md$);",
-  "                            a `codex.pathRe` in the checkout's .forge.json wins over this",
-  "  budgetMs                  how long one consult may take (default 900000)",
-  "  maxTokens                 reply ceiling, thinking included (default 32000)",
-  "  rounds                    model calls a consult starts with; the payload moves it (3)",
-  "  roundsMax                 what a review that could not finish is retried at (5)",
-  "  effortLines               { small, large } changed lines: under the first the effort steps down,",
-  "                            over the second it steps up (40, 400)",
-  "  toolChoiceNone            keep the tool list on the last call and ask for none (true)",
-  "  send                      diffs | bodies — what travels with the prompt (diffs)",
-  "  effort                    reasoning effort asked of the slot (default medium)",
-  "  angles                    which of tech | ba | user | ux review (default all four);",
-  "                            a `codex.angles` in the checkout's .forge.json wins over this",
-  "  check                     .forge.json only: one command the reviewer may run once per consult,",
-  "                            such as `npm test`; `checkMs` its clock (default 300000). Off unless set.",
+  "Every key of the `codex` object is optional and `forge codex show` prints what each resolved to",
+  "and from where; `forge doctor` names the files. FORGE_CODEX_DISABLE=1 is the one variable: a",
+  "kill switch has to work when the config is what is broken.",
+].join("\n");
+
+const CONSULT_USAGE = [
+  "Usage: forge codex consult [file...] [--diff [--base <ref>]] [--send m] [--only s,s]",
+  "                           [--verify <risk>]... [--recheck] [--angles a,a] [--effort e]",
+  "                           [--rounds n] [--out-of-scope <text>] [--checks <text>] [--allow-echo]",
+  "The files you name, or what this turn touched; pipe your intent on stdin.",
   "",
-  "  --diff         send each file's diff and refuse findings that are only about code this turn",
-  "                 did not touch. Raises precision more than anything else.",
-  "  --base <ref>   what to diff against; implies --diff. HEAD unless you say otherwise. A ref is",
-  "                 read from where the branch left it, so a base that moved under the run shows",
-  "                 none of its own commits; the working tree is still the other side.",
-  "  --effort e     minimal | low | medium | high, for this consult only. Derived from the round",
-  "                 and the change's size unless you say otherwise.",
-  "  --rounds n     model calls this consult may make, used as given. Wall time is calls times 45s.",
-  "  --send m       diffs (default) sends each file's change and its size, and the reviewer reads",
-  "                 what it needs; bodies sends every file whole. One bodies pass over the whole",
-  "                 touched set, at the commit, is what earns an approving review; diffs are the",
-  "                 rounds between edits, and a file outside any checkout has nothing else.",
-  "  --verify <risk>  a named risk to rule on rather than an open review; repeatable. A reviewer",
-  "                 verifying is reliable where a reviewer discovering invents.",
-  "  --only s,s     report only these severities: blocker, major, minor.",
-  "  --recheck      verify the last consult's findings on these files instead of roaming for new",
-  "                 ones: each becomes a --verify <risk>. The round after a fix, not the first. What",
-  "                 it REFUTES is recorded as that consult's verdict; CONFIRMED stays open. It",
-  "                 follows a finding and nothing else, so where the last pass found none it",
-  "                 refuses and names `--send bodies`, which is the pass a review is earned by.",
-  "                 Name no file and it reads the range that consult recorded, never a wider one;",
-  "                 a path you type is your range and is sent as typed.",
-  "  --out-of-scope <text>  what the issue put out of scope, in the issue's own words. A real",
-  "                 finding falling in it comes back under one closing OUT OF SCOPE heading,",
-  "                 unnumbered, instead of costing a verdict round and a filing.",
-  "  --checks <text>  the checks this project runs before the change lands, so a finding one of",
-  "                 them already refuses is left out. The `codex.check` command in .forge.json",
-  "                 unless you say otherwise.",
-  "  --angles a,a   which angles review this consult: tech, ba, user, ux.",
+  "  --diff         send each file's diff and refuse findings about code this turn did not touch",
+  "  --base <ref>   what to diff against; implies --diff. HEAD unless you say otherwise",
+  "  --send m       diffs (default) sends each change, bodies sends every file whole; one bodies",
+  "                 pass over the whole touched set is what earns an approving review",
+  "  --only s,s     report only these severities: blocker, major, minor",
+  "  --verify <risk>  a named risk to rule on rather than an open review; repeatable",
+  "  --recheck      verify the last consult's findings on these files instead of roaming for new ones",
+  "  --angles a,a   which angles review this consult: tech, ba, user, ux",
+  "  --effort e     minimal | low | medium | high, for this consult only",
+  "  --rounds n     model calls this consult may make, used as given; wall time is calls times 45s",
+  "  --out-of-scope <text>  what the issue put out of scope, in the issue's own words",
+  "  --checks <text>  the checks this project runs before the change lands",
+  "  --allow-echo   review by a model of this one's own family, which is refused without it",
   "",
-  "  FORGE_CODEX_DISABLE=1     the one variable: a kill switch has to work when config is broken",
+  "What a round buys and what a recheck may not do: docs/cli/codex-the-round.md.",
+].join("\n");
+
+const PENDING_USAGE = [
+  "Usage: forge codex pending [--drop]",
+  "What this turn touched and has not been consulted on, which is what a commit is asked for.",
+  "",
+  "  --drop         clear the unconsulted files a commit made now would be asked for",
+].join("\n");
+
+const SHOW_USAGE = [
+  "Usage: forge codex show",
+  "Profile, model, records, rounds, effort, angles, check, pending and log, in effect here.",
 ].join("\n");
 
 /* Canonical, because the root is the key the state file and the log are grouped by: one checkout
@@ -155,15 +135,13 @@ export const repoRoot = (start) => {
   }
 };
 
-/* A path named on the command line takes the same containment as one the reviewer asks for, and
-   refuses loudly rather than quietly: a caller who typed the path wants to know it was dropped. */
-/* Absolute, when the file is somebody else's checkout: one account configures one reviewer, so a
-   consult may reach a sibling project. Relative to `root` otherwise, which is what the log keys on. */
-const contained = (root, given) => {
-  const held = locate(root, given);
-  if (!held) fail(`codex: ${given} is not a readable file, from ${root}.`);
+/** The files a caller named, as the log keys them: absolute in somebody else's checkout, relative
+ *  to `root` here, and an unreadable one refused loudly rather than dropped. */
+const relsOf = (root, named) => named.map((one) => {
+  const held = locate(root, one);
+  if (!held) fail(`codex: ${one} is not a readable file, from ${root}.`);
   return held.rel;
-};
+});
 
 /* A pattern that does not compile is worse than no pattern: the gate would throw on every write of
    whatever repository carries it. It is skipped for the next source, and `show` names what resolved. */
@@ -222,9 +200,10 @@ const askedRounds = (raw) => {
    because a flag can carry a value and a file cannot. */
 export const consultArgs = (given) => {
   if (given.includes("--bg")) fail("codex: --bg is gone; a consult runs inline, like the advisor.");
-  const { values: risks, rest: without } = pullRepeated(given, "--verify", "codex consult");
-  const { positionals, flagArgv } = partition(without, BOOLEAN);
-  const held = flags(flagArgv, "codex consult", BOOLEAN);
+  const usage = CONSULT_USAGE;
+  const { values: risks, rest: without } = pullRepeated(given, "--verify", "codex consult", { usage });
+  const { positionals, flagArgv } = partition(without, BOOLEAN, { verb: "codex consult", usage });
+  const held = flags(flagArgv, "codex consult", BOOLEAN, { usage });
   return {
     named: positionals,
     risks,
@@ -238,9 +217,8 @@ export const consultArgs = (given) => {
     namedBase: held.base ?? null,
     effort: chosenEffort(held.effort),
     cap: askedRounds(held.rounds),
-    /* Bodies off by default when the reviewer has tools: it reads what it needs and the payload
-       stops paying twice. `--send bodies` is the old shape, for a consult with no repository to
-       read from. */
+    /* Bodies off by default when the reviewer has tools: it reads what it needs, and the payload
+       stops paying twice. `--send bodies` is for a consult with no repository to read from. */
     bodies: chosenSend(held.send),
     recheck: Boolean(held.recheck),
     angles: chosenAngles(held.angles),
@@ -289,10 +267,10 @@ const consult = async (given) => {
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
   const { named, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, bodies, recheck, angles, scope, checks } = consultArgs(given);
-  let rels = [...new Set(named.length ? named.map((one) => contained(root, one)) : pendingIn(readState(), root))];
+  let rels = [...new Set(named.length ? relsOf(root, named) : pendingIn(readState(), root))];
   let offered = (many) => `${many} this turn touched`;
-  /* Asked for a diff and given nothing to diff, the tree answers: the round it replaces was reading
-     `git diff --name-only` and typing the list back (ISS-65). */
+  /* Asked for a diff and given nothing to diff, the tree answers: the round it replaces read
+     `git diff --name-only` and typed the list back (ISS-65). */
   if (!rels.length && base) {
     const changed = changedAgainst(root, base, base === namedBase);
     if (!changed) fail(`codex: --base ${base} is no ref this checkout can read, so what changed against it is unknown. Name the base, or name the files.`);
@@ -462,7 +440,8 @@ const consult = async (given) => {
   }
 };
 
-const show = () => {
+const show = (rest = []) => {
+  flags(rest, "codex show", [], { usage: SHOW_USAGE });
   const { problem, values, path } = profile();
   const root = repoRoot(process.cwd());
   const waiting = root ? pendingIn(readState(), root) : [];
@@ -483,14 +462,15 @@ const show = () => {
   console.log(`effort    : ${defaultEffort()}, a step down on a recheck or under ${limits.small} `
     + `changed line(s), a step up over ${limits.large}`);
   console.log(`angles    : ${chosenAngles(undefined).join(", ")}`);
-  console.log(`check     : ${projectCheck()?.command ?? "none — codex.check in .forge.json names one"}`);
+  console.log(`check     : ${projectCheck()?.command ?? "none — a codex.check in the project's own settings names one"}`);
+  console.log(`per call  : ${Math.round(budgetMs() / 1000)}s of budget, and the tool list is `
+    + `${keepsTools() ? "kept on the last call with none asked for" : "dropped for the last call"}`);
   console.log(`pending   : ${waiting.length ? waiting.join(", ") : "nothing"}`);
   console.log(`log       : ${logPath()}  (${consults(entries).length} consult(s))`);
 };
 
-/* The hook records; it never reviews. What it asks for is one consult at the end of the turn, with
-   the intent attached — a review that knows what you were trying to do is a different review. The
-   caller decides what a turn is: a pending list spans sessions, so it cannot answer for the silence. */
+/* The hook records; it never reviews. It asks for one consult at the end of the turn with the intent
+   attached, and the caller decides what a turn is: a pending list spans sessions. */
 /* Content codex has read is not owed a second reading, whatever the mtime says. */
 const readByCodex = (root, rel, log) => {
   let text;
@@ -529,8 +509,8 @@ export const hookRecord = (event, paths, told = () => false, log = logEntries) =
   return announce
     ? `You changed a document this turn (${announce}). Before you finish, once over everything changed: `
       + `\`echo "<what you were doing, and what the advisor said>" | forge codex consult --diff --only `
-      + `blocker,major --out-of-scope "<the issue's Out of scope text>" --checks "<codex.check in `
-      + `.forge.json, else the gate command>"\`, then \`forge codex verdict\`. `
+      + `blocker,major --out-of-scope "<the issue's Out of scope text>" --checks "<the codex.check `
+      + `\`forge codex show\` prints, else the gate command>"\`, then \`forge codex verdict\`. `
       + "Why: `forge hooks --how codex-turn`."
     : null;
 };
@@ -541,7 +521,7 @@ const SUBS = {
   /* What the commit gate will compare, not the record it is drawn from: a list that named 726 paths
      the gate never looked at cost five consults and cleared nothing (ISS-70). */
   pending: (rest) => {
-    const { drop } = flags(rest, "codex pending", ["--drop"]);
+    const { drop } = flags(rest, "codex pending", ["--drop"], { usage: PENDING_USAGE });
     const root = repoRoot(process.cwd());
     const held = readState();
     const waiting = root ? pendingIn(held, root) : [];
@@ -572,11 +552,25 @@ const SUBS = {
   replay: printReplay,
 };
 
+/* One text per action, which is the set its own parse refuses against: the two cannot drift, and
+   the verb's own text is the list of actions and no flag of any of them (ISS-305, ISS-700). */
+export const SAYS = {
+  consult: CONSULT_USAGE,
+  verdict: VERDICT_USAGE,
+  pending: PENDING_USAGE,
+  show: SHOW_USAGE,
+  log: LOG_USAGE,
+  stats: STATS_USAGE,
+  eval: EVAL_USAGE,
+  marks: MARKS_USAGE,
+  replay: REPLAY_USAGE,
+};
+
 export const codex = async ([sub, ...rest]) => {
-  /* One usage documents every action, so every action's help is this text; ISS-305's decision record says why the per-action lines stay in codex-log.mjs and codex-stats.mjs. The slots are the shared predicate's now: reading every slot made a `--note` of the help word a help ask. */
+  /* The slots are the shared predicate's: reading every slot made a `--note` of the word a help ask. */
   const help = helpAskedOf([sub, ...rest], Object.keys(SUBS));
   if (help) {
-    console.log(USAGE);
+    console.log(SAYS[help.subject] ?? USAGE);
     process.exit(0);
   }
   if (!sub || !Object.hasOwn(SUBS, sub)) {

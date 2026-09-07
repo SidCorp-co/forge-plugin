@@ -1,6 +1,4 @@
-/* What is already open beside a filing, asked of the tracker's own memory search from inside the
-   create path. Every decision below is docs/cli/beside.md's for the reading — the two queries, the
-   floor, the term each is asked on — and docs/cli/the-fold.md's for the act. */
+/* What is already open beside a filing, asked of the tracker's own memory search from inside the create path. Every decision below is docs/cli/beside.md's for the reading — the two queries, both floors, the term each is asked on — and docs/cli/the-fold.md's for the act. */
 import { mustBeShown, postComment } from "../comments.mjs";
 import { owesCause } from "../issue-shape.mjs";
 import { tried } from "../rpc.mjs";
@@ -12,31 +10,9 @@ const QUERY_MAX = 4000;
 const NO_SCORE = "  —  ";
 const KEY = 8;
 
-/** Measured, 2026-09-04: two thresholds, not one, showing costing a glance and folding costing a
- *  comment nothing can take back. docs/cli/beside.md holds the numbers behind both. */
+/** Measured, 2026-09-04: two thresholds, because showing costs a glance and folding costs a comment nothing can take back. */
 export const FLOOR = 0.7;
 export const FOLD_FLOOR = 0.78;
-
-export const BESIDE_HELP = [
-  "Every filing is measured against what is already open. Two questions go to the tracker's own",
-  "memory: what reads like this filing, and what names the same place — the first path or verb the",
-  "cause section gives, else the *Where* section's, else the body's own first. Neighbours at or above",
-  `${FLOOR.toFixed(2)} print with their key, that score and whether the place matched, on every filing`,
-  "and including the one that found nothing. None of it refuses anything.",
-  "",
-  `A filing folds onto one only at ${FOLD_FLOOR.toFixed(2)}, above the band where a neighbour shares`,
-  "the machinery and not the subject: what is worth a glance is not worth a comment.",
-  "",
-  "  --new       file it even where it would have folded, and say what it would have joined",
-  "",
-  "A filing whose body says where its subject comes from lands on the nearest of the neighbours",
-  "naming that place, as a finding under its own title instead of becoming a second issue, at any",
-  "size. Two filings never fold: one riding another issue's branch, and one of a kind that names no",
-  "cause — a reading, or work that does not exist yet, is a finding on nothing. A fold takes no lease",
-  "and it does read the thread first, once, the way a named target does. Both signals are needed: the",
-  "place query ranks nothing — every hit comes back at one score — so a fold on it alone would post a",
-  "comment, which nothing here can take back, onto an arbitrary issue.",
-].join("\n");
 
 const hitsOf = (answer) => (Array.isArray(answer?.hits) ? answer.hits : []);
 const first = (text) => String(text ?? "").split("\n")[0];

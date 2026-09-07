@@ -8,30 +8,10 @@ import { join } from "node:path";
 
 import { routeProblems } from "../../src/checks/doc-shape.mjs";
 import { VERB_NAMES, usageOf } from "../../src/resolve/visibility.mjs";
-import { USAGE as CLAIM } from "../../src/flow/claim.mjs";
-import { USAGE as ADVANCE } from "../../src/flow/advance.mjs";
-import { USAGE as RECORD } from "../../src/flow/record.mjs";
-import { USAGE as RESUME } from "../../src/flow/resume.mjs";
-import { USAGE as SPEC } from "../../src/spec/verbs.mjs";
-import { USAGE as CODEX } from "../../src/codex/codex.mjs";
-import { USAGE as CLOUDFLARE } from "../../src/tools/cloudflare.mjs";
-import { USAGE as KNOWLEDGE } from "../../src/tools/knowledge.mjs";
+import { surfaceOf } from "../surfaces.mjs";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 const HOW = join(ROOT, "plugin", "hooks", "how");
-
-const OWN = {
-  claim: CLAIM, advance: ADVANCE, record: RECORD, resume: RESUME, spec: SPEC, codex: CODEX,
-  cloudflare: CLOUDFLARE, knowledge: KNOWLEDGE,
-};
-
-/* The row `forge -h` prints, where it names flags at all: that list is what an agent reads before
-   it reads anything else, so a flag missing from it is missing. A verb whose row delegates keeps
-   them in its own `-h` text, which is the same surface reached one call further in. */
-const surfaceOf = (verb) => {
-  const row = usageOf(verb);
-  return row.includes("--") ? row : `${row}\n${OWN[verb] ?? ""}`;
-};
 
 const held = {
   verbs: VERB_NAMES,
@@ -82,7 +62,7 @@ test("a flag no verb takes, a verb the CLI lacks and a dead document each fail",
   assert.deepEqual(said, [
     "`forge nonsense` is no verb",
     "`forge claim --nope` is in no usage line",
-    "`forge record --nonsense` is in no usage line",
+    "`forge record verdict --nonsense` is in no usage line",
     "`--how ghost` names no document",
   ]);
 });
@@ -90,14 +70,39 @@ test("a flag no verb takes, a verb the CLI lacks and a dead document each fail",
 /* The scan stopped at the first quote, so a flag after a quoted value went unread (F4). */
 test("a flag after a quoted value is read too", () => {
   const said = routeProblems('fail(`forge record confirmation ${ref} --where "a b c" --nope x`);', held);
-  assert.deepEqual(said, ["`forge record --nope` is in no usage line"]);
+  assert.deepEqual(said, ["`forge record confirmation --nope` is in no usage line"]);
   assert.deepEqual(routeProblems('fail(`forge record confirmation ${ref} --where "a b c" --finding f`);', held), []);
   assert.deepEqual(routeProblems('fail(`forge record note ${ref} --user "say --nonsense here"`);', held), [],
     "and a flag-like run inside a quoted value is data, not a route");
   const escaped = 'fail("forge record note ISS-1 --user \\"a b\\" --nope x");';
-  assert.deepEqual(routeProblems(escaped, held), ["`forge record --nope` is in no usage line"],
+  assert.deepEqual(routeProblems(escaped, held), ["`forge record note --nope` is in no usage line"],
     "a double-quoted source string escapes its own quotes, and the flag after one is still read");
   assert.deepEqual(routeProblems('fail("forge record note ISS-1 --user \\"say --nonsense here\\"");', held), []);
+});
+
+/* Help is per kind and per action, so the word after the verb picks the surface: the same flag is
+   a route under one and a finding under another, which is what "its usage" now means (ISS-700). */
+test("a flag is held to the sub-verb's surface and not the verb's", () => {
+  assert.deepEqual(routeProblems("forge record verdict ISS-1 --criterion 2", held), []);
+  assert.deepEqual(routeProblems("forge record confirmation ISS-1 --criterion 2", held),
+    ["`forge record confirmation --criterion` is in no usage line"],
+    "`--criterion` is verdict's field, and the union of every kind would have passed this");
+  assert.deepEqual(routeProblems("forge codex consult --send bodies", held), []);
+  assert.deepEqual(routeProblems("forge codex show --send bodies", held),
+    ["`forge codex show --send` is in no usage line"]);
+});
+
+/* One command written over two lines of one expression: the flags past the `+` were read by nothing,
+   which is indistinguishable from a form that has none. The forms in earned.mjs are that shape. */
+test("a form continued onto a second template line carries its flags", () => {
+  const form = (tail) => [
+    "  `forge record verdict ${ref} --criterion ${number} --verdict pass --commit ${commit} `",
+    `    + \`${tail}\`,`,
+  ].join("\n");
+  assert.deepEqual(routeProblems(form("--evidence <attachment|url|sha>"), held), []);
+  assert.deepEqual(routeProblems(form("--nonsense x"), held),
+    ["`forge record verdict --nonsense` is in no usage line"],
+    "and the continuation is judged rather than skipped, which is the whole of the case");
 });
 
 /* The flags the worklog added to `claim` were in a refusal's own text and in neither table for two
@@ -120,7 +125,7 @@ test("a value the flag does not take fails, and the printed route is that case",
   assert.deepEqual(routeProblems(printed.replace("--size", "--kind"), held), [],
     "and `--kind feature`, which is what that line meant, is what the step prints now");
   assert.deepEqual(routeProblems("forge record verdict ISS-1 --verdict maybe", held),
-    ["`forge record --verdict maybe` is no value it takes: pass or fail or skipped"],
+    ["`forge record verdict --verdict maybe` is no value it takes: pass or fail or skipped"],
     "and a set the usage spells as alternatives is read the same way");
 });
 

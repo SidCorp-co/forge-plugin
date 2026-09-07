@@ -3,7 +3,7 @@
    credential may not call is not listed and does not run — docs/cli/withholding-a-verb.md. */
 import { commands } from "./commands.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { blockedBy, channelRefusal, helpLine, helpOf, offeredVerbs, verbForPluginDefect }
+import { blockedBy, channelRefusal, grouped, helpLine, helpOf, offeredVerbs, verbForPluginDefect }
   from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
 import { retiredRefusal } from "./resolve/retiring.mjs";
@@ -14,10 +14,9 @@ const offered = offeredVerbs();
 const VERB_LIST = [
   `Usage: forge <${offered.map(([verb]) => verb).join("|")}> [args]`,
   "The issue tracker is the backlog; this is the way in that needs no MCP client.",
-  "Credentials come from ~/.config/forge/config.json, the project slug from .forge.json, and",
-  "from nowhere else. The project id is looked up from the slug, never passed.",
-  "",
-  ...offered.map(helpLine),
+  "What resolves for this call and from where — the credential, the project, this machine's",
+  "settings: `forge doctor`.",
+  ...grouped(offered).flatMap(([group, rows]) => ["", `${group}`, ...rows.map(helpLine)]),
 ].join("\n");
 
 /* The write-time rules this CLI itself refuses without, carried rather than fetched: ten lines

@@ -103,7 +103,7 @@ export const servesRefusal = (values, read, what, asksTree = true) => {
 
 const HOW = {
   [WHY.endpoint]: "Save one: forge doctor --token <pat> --url <endpoint>",
-  [WHY.aimed]: "Aim one: a `.forge.json` naming the project's slug",
+  [WHY.aimed]: "Aim one: a project slug in this checkout, which `forge doctor` names the file for",
   [WHY.unread]: "Read it again: forge project",
   [WHY.stored]: "Write one: forge project --refresh <brief.md> --title <one line>",
   [WHY.section]: `Add the section: forge project --refresh <brief.md>, one line per goal under \`## ${SECTION}\``,
@@ -117,14 +117,11 @@ export const goalLine = (read) => (read.why
   : `  goals: ${listed(read).join(", ")} — read from the brief's *${SECTION}* section, `
     + "and what a `Serves:` may name beside a clause of this project's tree");
 
+/* No list, one sentence: `servesRefusal` says what is legal at the moment a value is typed, and three paragraphs saying it here cost `forge new -h` a fifth of its length to report there is nothing to name (ISS-700). */
 export const goalBlock = (read, what, asksTree = true) => {
   const besides = asksTree ? "or a clause of its requirements tree" : "which is its only source here";
   return read.why
-    ? [`${what} may carry a \`Serves:\` line, and this project states no goal one could name:`,
-      `${read.why}. ${HOW[read.why]}.`,
-      `Until then the line reads \`Serves: ${NONE_STATED}\`${asksTree
-        ? " or names a clause of this project's requirements tree"
-        : ""}, and nothing is refused for serving no goal. ${NAMES}`]
+    ? [`${what} may carry a \`Serves:\` line, and this project states no goal to name: ${read.why}. ${HOW[read.why]}.`]
     : [`${what} may carry one \`Serves:\` line naming a goal of this project ${besides}.`,
       `\`Serves: ${NONE_STATED}\` is legal and nothing is refused for serving no goal. ${NAMES}`,
       "This project's goals, from its brief:",

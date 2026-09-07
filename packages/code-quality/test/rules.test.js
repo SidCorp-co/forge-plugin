@@ -46,6 +46,16 @@ test("comment-density defaults and options", () => {
   });
 });
 
+/* A file exactly at its budget takes its waiver and stays valid: the same source with one more
+   comment line is the finding, so the case shows the waiver and not the slack (ISS-700). */
+test("a file at the budget takes a waiver line and is still valid", () => {
+  const AT_BUDGET = source(1, 7);
+  tester.run("comment-density", commentDensity, {
+    valid: [`// pass-through: keep — the wrapper is the seam a test needs\n${AT_BUDGET}`],
+    invalid: [{ code: `// one more reason\n${AT_BUDGET}`, errors: [{ messageId: "excessiveDensity" }] }],
+  });
+});
+
 test("comment-density reports on the densest block, not the whole program", () => {
   tester.run("comment-density", commentDensity, {
     valid: [],

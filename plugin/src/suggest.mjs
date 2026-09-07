@@ -1,7 +1,5 @@
-/* "Did you mean" for every name this CLI accepts. An agent recalls a name from the wrong SHAPE,
-   not the wrong keys, so the match is on the separator-stripped form. */
-
-import { FLAG_WORD } from "./resolve/flags.mjs";
+/* "Did you mean" for every name this CLI accepts, importing nothing because the parser asks it for
+   the parser's own refusal. An agent recalls a name from the wrong SHAPE, not the wrong keys. */
 
 export const bare = (name) => name.replace(/[._\- ]/gu, "").toLowerCase();
 
@@ -65,12 +63,3 @@ export const didYouMean = (kind, given, candidates, hint) => {
   return `No ${kind} named ${given}.${nearest}${set}${route}`;
 };
 
-export const flagsNamed = (usage) => [...new Set(usage.match(/--[a-z][\w-]*/gu) ?? [])];
-
-/** Only a flag SHAPE is turned away; a flag no row names is offered to nobody — did-you-mean.md. */
-export const unknownFlag = (verb, argv, { usage, hidden = [] }) => {
-  const named = flagsNamed(usage);
-  const known = [...named, ...hidden];
-  const given = argv.find((token) => FLAG_WORD.test(token) && !known.includes(token));
-  return given ? didYouMean(`${verb} flag`, given, named, usage) : null;
-};

@@ -73,7 +73,10 @@ const nearest = (name) =>
     return { parsed: null, from: null, root: null };
   });
 
-const forgeJson = nearest(".forge.json");
+/** The project file, spelled here alone: `forge doctor` reports it, other lines name the project. */
+export const FROM_PROJECT = ".forge.json";
+
+const forgeJson = nearest(FROM_PROJECT);
 const mcpJson = nearest(".mcp.json");
 
 /* Reported, never resolved: doctor names a `forge` server in a `.mcp.json` rather than leaving its
@@ -111,7 +114,7 @@ export const settings = once(() => {
   return { url: url.value, token: bearer };
 });
 
-export const projectScope = once(() => sourced(".forge.json", forgeJson().parsed?.slug));
+export const projectScope = once(() => sourced(FROM_PROJECT, forgeJson().parsed?.slug));
 
 /* Where a project-scoped call GOES and in whose prose — the target's, not the caller's: docs/cli/feedback.md. */
 let aimed = null;
@@ -123,12 +126,11 @@ export const useProject = ({ slug, from }) => {
 export const projectTarget = () => aimed ?? projectScope();
 
 /* Which paths, and which angles, are the checkout's answer: the account's covers every one. */
-export const projectRecordPattern = () => sourced(".forge.json", forgeJson().parsed?.codex?.pathRe);
+export const projectRecordPattern = () => sourced(FROM_PROJECT, forgeJson().parsed?.codex?.pathRe);
 export const projectCodex = () => forgeJson().parsed?.codex ?? {};
 
-/* The directory `.forge.json` sits in, else the checkout's. A caller reading a project file needs
-   this and not the cwd: doctor runs anywhere, and walking up from a subdirectory eventually leaves
-   the project. */
+/* The directory the project file sits in, else the checkout's, because a caller reading a project
+   file needs that and not the cwd: walking up from a subdirectory eventually leaves the project. */
 export const projectRoot = once(() => forgeJson().root ?? checkoutRoot());
 
 /* The slug is a header when there is one, and an error only for a call needing a project id. */
@@ -139,8 +141,8 @@ export const projectSlug = () => {
   if (!value) {
     fail(
       'This call is project-scoped and no project slug is set. Put `{ "slug": "<project>" }`\n' +
-        "in a `.forge.json` at the root of the project, the one place it is read from — not\n" +
-        "the environment, and not a `.mcp.json` header.",
+        "in the project file at the root of this checkout, the one place it is read from, which\n" +
+        "`forge doctor` names — not the environment, and not a `.mcp.json` header.",
     );
   }
   return value;
@@ -149,7 +151,7 @@ export const projectSlug = () => {
 /* A property of the tracker, not the CLI. Off by default: a wrong-language issue cannot be
    deleted, and a missing translation is an edit. */
 export const translateScope = once(() => {
-  const chosen = sourced(".forge.json", forgeJson().parsed?.translate);
+  const chosen = sourced(FROM_PROJECT, forgeJson().parsed?.translate);
   const off = !chosen.value || chosen.value === "off" || chosen.value === "false";
   return { value: off ? null : String(chosen.value), from: chosen.from };
 });
@@ -170,16 +172,15 @@ export const depsConvention = once(() => {
   const given = forgeJson().parsed?.deps;
   return {
     value: { ...DEFAULT_PROSE, ...(given ?? {}) },
-    from: given ? ".forge.json" : "the built-in English default",
+    from: given ? FROM_PROJECT : "the built-in English default",
   };
 });
 
-export const rankConvention = once(() => sourced(".forge.json", forgeJson().parsed?.rank));
+export const rankConvention = once(() => sourced(FROM_PROJECT, forgeJson().parsed?.rank));
 
 export const projectReview = () => forgeJson().parsed?.review ?? {};
 export const projectStop = () => forgeJson().parsed?.stop ?? {};
 
-const FROM_PROJECT = ".forge.json";
 export const PLUGIN_DEFAULT = "the plugin's default";
 
 /* One shape for every keyed choice, so doctor and the guides' conditions read them all the same way. */

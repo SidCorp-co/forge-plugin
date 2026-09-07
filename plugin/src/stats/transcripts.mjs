@@ -159,16 +159,15 @@ const polled = (calls) => {
   return calls;
 };
 
-export const PHASES = ["0 discover", "1 plan", "2 build", "3 review", "4 judge", "5 ship", "6 close"];
-
-/* Off the class the call already has, so the two cannot disagree: no run writes a phase into its
-   transcript. `after` is the phase that must have opened first; `last` closes its own phase. */
+/* Off the class the call already has, so the two cannot disagree: no run writes a phase into its transcript. `after` is the phase that must have opened first; `last` closes its own phase. The numbers are the method's, read off `PHASES`: this table said 5 for the ship where the contract says 5 for the proving, and a figure is only worth a phase both readings can name (ISS-700). */
 export const MARKERS = [
-  { phase: 1, classes: ["forge claim", "forge record confirmation"] },
-  { phase: 2, classes: ["forge record plan", "forge record baseline"] },
-  { phase: 3, classes: [WHOLE_SET_CLASS], after: 2 },
-  { phase: 4, classes: ["forge record verdict"] },
-  { phase: 5, classes: ["ship"], last: true },
+  { phase: 1, classes: ["forge claim"] },
+  { phase: 2, classes: ["forge record confirmation"] },
+  { phase: 3, classes: ["forge record decision"] },
+  { phase: 4, classes: ["forge record plan", "forge record criteria", "forge record baseline"] },
+  { phase: 5, classes: [WHOLE_SET_CLASS], after: 4 },
+  { phase: 6, classes: ["forge record note"] },
+  { phase: 7, classes: ["ship"], last: true },
 ];
 
 export const markerOf = (label) => MARKERS.find((row) => row.classes.includes(label)) ?? null;

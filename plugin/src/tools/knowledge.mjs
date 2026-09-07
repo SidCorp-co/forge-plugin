@@ -4,7 +4,7 @@ import { fail, keepOnFailure } from "../resolve/settings.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { declaredFor, refuseCredential, scoped, write } from "../tracker/rpc.mjs";
 import { flags, helpAskedOf, pullRepeated } from "../resolve/flags.mjs";
-import { didYouMean, unknownFlag } from "../suggest.mjs";
+import { didYouMean } from "../suggest.mjs";
 
 const SLUG_WIDTH = 28;
 const KIND_WIDTH = 10;
@@ -38,11 +38,6 @@ export const USAGE = [
 const NO_KIND = "a new entry needs --kind: forge_knowledge labels one that names no kind `guide`, "
   + "and a reference filed as a guide reads as somebody's choice. `forge schema forge_knowledge` "
   + "prints the set.";
-
-const asked = (verb, argv, usage) => {
-  const said = unknownFlag(verb, argv, { usage });
-  if (said) fail(said);
-};
 
 /* The route refuses a value outside the set without naming the set, so the check stands here and
    the set is `declaredFor`'s, whose own comment says what a refusal citing it owes its reader. */
@@ -94,11 +89,12 @@ export const entryLine = (row) =>
   + `${(row.injection ?? "").padEnd(10)} ${(row.confidence ?? "").padEnd(10)} `
   + `${(row.updatedAt ?? "").slice(0, 10)}  ${row.title ?? ""}`;
 
+const LIST_USAGE = "Usage: forge knowledge list [--kind K] [--injection I]";
+
 /* An empty store printed as nothing reads as a call that failed, and until the first reading writes
    to it that is the answer every run gets — so the empty case says which verb fills it. */
 const list = async (argv) => {
-  asked("knowledge list", argv, USAGE);
-  const given = flags(argv, "knowledge list");
+  const given = flags(argv, "knowledge list", [], { usage: LIST_USAGE });
   const kindFilter = checked(given.kind, "kind");
   const injectionFilter = checked(given.injection, "injection");
   const filtered = Boolean(kindFilter || injectionFilter);
@@ -124,7 +120,7 @@ const GET_USAGE = "Usage: forge knowledge get <slug>";
    every `\n` of a body a reader is meant to read tokenizes worse than the character. */
 const get = async ([slug, ...rest]) => {
   if (!slug) fail(`${GET_USAGE}\n${USAGE}`);
-  asked("knowledge get", rest, USAGE);
+  flags(rest, "knowledge get", [], { usage: GET_USAGE });
   const entry = await entryAt(slug);
   if (!entry) await noSuchEntry(slug);
   for (const field of FIELDS) console.log(`${field}: ${entry[field] ?? ""}`);
@@ -217,7 +213,7 @@ export const wroteLines = ({ back, kept, replaced }) => [
 ];
 
 const written = async (argv) => {
-  const { values: pairs, rest } = pullRepeated(argv, "--meta", "knowledge write");
+  const { values: pairs, rest } = pullRepeated(argv, "--meta", "knowledge write", { usage: WRITE_USAGE });
   const [slug, path, ...flagArgv] = rest;
   if (!slug || !path) fail(`${WRITE_USAGE}\n${USAGE}`);
   if (slug === BRIEF_SLUG) {
@@ -225,8 +221,7 @@ const written = async (argv) => {
       + `digests of the body it replaced, so the next run reads a brief nothing says has moved.\n`
       + `  forge project --refresh ${path}`);
   }
-  asked("knowledge write", flagArgv, WRITE_USAGE);
-  const given = flags(flagArgv, "knowledge write");
+  const given = flags(flagArgv, "knowledge write", [], { usage: WRITE_USAGE });
   const kind = checked(given.kind, "kind");
   const injection = checked(given.injection, "injection");
   const confidence = checked(given.confidence, "confidence");
@@ -251,8 +246,7 @@ const SEARCH_USAGE = "Usage: forge knowledge search <query> [--limit n]";
 
 const search = async ([query, ...rest]) => {
   if (!query) fail(`${SEARCH_USAGE}\n${USAGE}`);
-  asked("knowledge search", rest, USAGE);
-  const { limit } = flags(rest, "knowledge search");
+  const { limit } = flags(rest, "knowledge search", [], { usage: SEARCH_USAGE });
   const answer = await scoped("forge_knowledge", { action: "search", query, topK: limitFrom(limit) });
   const hits = answer?.knowledge ?? [];
   for (const hit of hits) {
@@ -268,7 +262,7 @@ const DELETE_USAGE = "Usage: forge knowledge delete <slug>";
    success that reads the same whether an entry was there or not. */
 const remove = async ([slug, ...rest]) => {
   if (!slug) fail(`${DELETE_USAGE}\n${USAGE}`);
-  asked("knowledge delete", rest, USAGE);
+  flags(rest, "knowledge delete", [], { usage: DELETE_USAGE });
   await refuseCredential({ slug }, "The slug this delete was about to send");
   const answer = await write("forge_knowledge", { action: "delete", slug });
   console.log(answer?.deleted
@@ -278,8 +272,10 @@ const remove = async ([slug, ...rest]) => {
 
 const SUBS = { list, get, write: written, search, delete: remove };
 
-/* The one string each action's own refusal already spells, so neither can move without the other. `list` refuses with the verb's and appears here as nothing. */
-export const SAYS = { get: GET_USAGE, write: WRITE_USAGE, search: SEARCH_USAGE, delete: DELETE_USAGE };
+/* The one string each action's own refusal already spells, so neither can move without the other. */
+export const SAYS = {
+  list: LIST_USAGE, get: GET_USAGE, write: WRITE_USAGE, search: SEARCH_USAGE, delete: DELETE_USAGE,
+};
 
 export const knowledge = async ([sub, ...rest]) => {
   const help = helpAskedOf([sub, ...rest], Object.keys(SUBS));

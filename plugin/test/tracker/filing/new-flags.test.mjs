@@ -245,11 +245,16 @@ test("a rank is a filing flag, and the comment verb takes none of it", async () 
   assert.equal(state.calls.some((one) => one.name === "forge_comments"), false);
 });
 
-test("`forge new -h` says what a filing with no rank gets", async () => {
+/* The four paragraphs on what an unranked filing means are docs/cli/new.md's, and the help was a
+   second copy of them. What a filer needs while the command is in their hand is on the flag line
+   and in the reply, which says which of the two ranks was written; the value itself is refused
+   against the tracker's own set, and that refusal carries the rest. */
+test("`forge new -h` says what a filing with no rank gets, in the one line a flag row has", async () => {
   const run = await ranAsync(FORGE, ["new", "-h"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /absent it a filing is none/u);
-  assert.match(run.stdout, /`none` is the tracker's own value for nobody\nhaving judged/u);
+  assert.match(run.stdout, /^ {2}--priority P {3}.*unranked and the reply says so$/mu);
+  assert.doesNotMatch(run.stdout, /sorts to the\nbottom of the browse verb/u,
+    "and the paragraph the document owns is not printed beside it");
 });
 
 test("`forge new -h` lists every kind with the sections it requires", async () => {
@@ -261,9 +266,12 @@ test("`forge new -h` lists every kind with the sections it requires", async () =
   assert.match(run.stdout, /nice {7}Where/u);
   assert.match(run.stdout, /required {3}What happens today, Outcome, Rules, Out of scope/u);
   assert.match(run.stdout, /Usage: forge new/u, "and what to type is still the first line of it");
-  /* Criterion 13: the sentence a filer meets at the moment of filing, from the one string both
-     verbs print, and the reference it cites rather than restating. */
-  assert.match(run.stdout, /names where the defect comes from/u);
-  assert.match(run.stdout, /a neighbour already naming that place takes\n`forge comment`/u);
-  assert.match(run.stdout, /`forge guide issue-flow learning` is the whole of the rule/u);
+  /* The cause a bug owes is on its required row here and named by the gap a body missing it is
+     refused with, so a filer meets it at the moment of filing either way. The paragraph about it
+     stays on `forge feedback -h`, whose caller is standing in a checkout that holds none of these
+     documents; docs/cli/the-kinds.md is where the rule itself lives. */
+  assert.doesNotMatch(run.stdout, /names where the defect comes from/u);
+  const said = await ranAsync(FORGE, ["feedback", "-h"], tracker.env);
+  assert.match(said.stdout, /names where the defect comes from/u,
+    "the defect route keeps it, because nothing else it can read says so");
 });

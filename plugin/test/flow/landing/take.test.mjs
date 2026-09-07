@@ -261,7 +261,7 @@ test("claim refuses a flag it does not take, and names the ones it does", async 
   field(BUILT, lease(BUILDER));
   const run = await ran(["claim", "ISS-673", "--judge", "codex"], LANDER);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /claim takes no --judge/u, run.stderr);
+  assert.match(run.stderr, /No claim flag named --judge\./u, run.stderr);
   assert.match(run.stderr, /--ready/u, "and the flags it does take are on the line");
   const both = await ran(["claim", "ISS-673", "--ready", "--take"], LANDER);
   assert.equal(both.status, 1, both.stdout);

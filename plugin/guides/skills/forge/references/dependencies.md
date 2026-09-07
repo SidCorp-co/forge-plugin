@@ -21,7 +21,7 @@ ISS-8  -> ISS-9 ISS-11
 away. A phrase matching no title, or tying two, prints unresolved rather than guessed, and the run
 reports how many issues carry no such prose, because that is silence and not an absence of
 dependencies. The sentence it looks for defaults to English and is configurable per tracker with
-`deps: { marker, blockedBy, blocks }` in `.forge.json`.
+`deps: { marker, blockedBy, blocks }` in the project file, which `forge doctor` names.
 
 A body and the store can diverge either way — a sentence claiming an edge the store never got, an
 edge no sentence mentions — so reading one proves nothing about the other. Whether the verb should

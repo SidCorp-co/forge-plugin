@@ -282,13 +282,15 @@ test("`-h` names --json and asks the tracker nothing", () => {
   assert.match(run.stdout, /^ {2}--json/mu, "the one flag it takes is on the line");
   assert.equal(run.stderr, "", "and nothing is fetched to answer it");
   assert.match(USAGE, /writes nothing and needs no lease/u, "which is the whole of what it promises");
-  assert.match(USAGE, /--pushed --review --open/u, "and it says where a missing fact goes instead");
+  /* Where the fact goes, and not the flags that write it: a flag name in prose here would be read
+     as one this verb takes, since the set it refuses against is derived from this text (ISS-700). */
+  assert.match(USAGE, /belongs on the record or in the worklog/u, "and it says where a missing fact goes");
 });
 
 test("a flag with no form to belong to is refused, and the issue comes first", () => {
   for (const [argv, said] of [
     [["resume", "--json"], /resume takes the issue first/u],
-    [["resume", "ISS-44", "--nope", "x"], /resume takes no --nope/u],
+    [["resume", "ISS-44", "--nope", "x"], /No resume flag named --nope\. The set is --json\./u],
   ]) {
     const run = ask(...argv);
     assert.equal(run.status, 1, argv.join(" "));

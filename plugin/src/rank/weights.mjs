@@ -1,7 +1,7 @@
 /* The one table `forge next` scores against, and the one place a project overrides a weight. Every
    number here was set by the issue that asked for the verb; what each is FOR, and why the reading
    stops where it does, is docs/cli/next.md's. */
-import { rankConvention } from "../resolve/settings.mjs";
+import { FROM_PROJECT, rankConvention } from "../resolve/settings.mjs";
 
 export const TAKEABLE = ["open", "confirmed", "clarified", "approved", "reopen"];
 
@@ -55,7 +55,7 @@ export const foldWeights = (given) => {
   if (refusal) return { value: DEFAULTS, from: null, refusal };
   const value = { ...DEFAULTS, ...Object.fromEntries(NUMBERS.map((key) => [key, given[key] ?? DEFAULTS[key]])) };
   for (const key of TABLES) value[key] = { ...DEFAULTS[key], ...(given[key] ?? {}) };
-  return { value, from: ".forge.json", refusal: null };
+  return { value, from: FROM_PROJECT, refusal: null };
 };
 
 export const weightsFrom = () => foldWeights(rankConvention().value);
@@ -73,8 +73,8 @@ const table = (held) => Object.entries(held).map(([name, points]) => `${name} ${
 
 /** The table as `forge next -h` prints it, off the same constant the score reads. */
 export const weightLines = (weights) => [
-  "The weight table, which a `rank` object in this checkout's .forge.json overrides one weight at a",
-  "time. A weight it names that is not below is refused rather than dropped.",
+  "The weight table, which a `rank` object in this project's own settings overrides one weight at a",
+  "time — `forge doctor` names the file. A weight it names that is not below is refused, not dropped.",
   "",
   row("priority", table(weights.priority)),
   row("kind", `${table(weights.kind)} — a defect in the tool the flow runs on is paid by every later run`),

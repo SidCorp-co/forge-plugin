@@ -55,26 +55,9 @@ export const USAGE = [
   "  --take          the lease at whatever state the checkpoint names your turn",
   "  --judged        the QA turn handed back: the checkpoint moves from `qa-owed` to `judged`",
   "",
-  "Those three write the worklog beside the lease, which is what `forge resume` reads first. Neither",
-  "capture is automatic: a write made from another checkout would name that one as this issue's.",
-  "",
-  "The checkpoint is what a build that stops at ready-to-land leaves for whoever lands it: the",
-  "builder's session, the branch, the judged head, the base and the files, and a state naming whose",
-  "turn it is. `--take` is the only route that may take a lease which is still live, and only where",
-  "the state names the taker: the lander at `ready` and at every state of the landing itself, the",
-  "named builder or a successor at `builder-owed`, the QA run at `qa-owed`. Any other take is",
-  "refused naming the state it read. `--judged` is how the QA run ends that turn once its verdicts",
-  "are on the record, and it is the one route out of `qa-owed`: the landing then reads `judged` and",
-  "goes on, either to the promotion it held back or to the status the record now earns.",
-  "",
-  "The lease names the agent type and the process id beside the session, so a refusal says what",
-  "held the issue and not only which uuid. A claim that takes over prints the line the last holder",
-  "left, and passes nothing of its own on unless --next says so.",
-  "",
-  "A live lease held by another run refuses the claim, naming that run and its renew time. One past",
-  "its duration is reclaimable by any run, and the run that held it is refused as stale when it",
-  `writes again. The reclaim after ${RECLAIMS_BEFORE_PARK} of one status parks the issue for a person instead, kind`,
-  "crashed, with the claim history as its reason.",
+  "--pushed, --review and --open write the worklog beside the lease, which `forge resume` reads",
+  "first; neither capture is automatic, since a write from another checkout would name that one.",
+  "What the checkpoint holds and which state names whose turn: docs/cli/the-checkpoint.md.",
   "",
   ADVISORY,
 ].join("\n");
@@ -207,12 +190,9 @@ export const claim = async (argv) => {
   if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
-  const pulled = pullRepeated(rest, "--open", "claim");
-  const given = flags(pulled.rest, "claim", ["--pushed", "--review", "--ready", "--take", "--judged"]);
-  const takes = ["minutes", "next", "pushed", "review", "ready", "take", "judged"];
-  for (const one of Object.keys(given)) {
-    if (!takes.includes(one)) fail(`claim takes no --${one}. Flags: ${takes.map((two) => `--${two}`).join(" ")} --open`);
-  }
+  const pulled = pullRepeated(rest, "--open", "claim", { usage: USAGE });
+  const given = flags(pulled.rest, "claim", ["--pushed", "--review", "--ready", "--take", "--judged"],
+    { usage: USAGE });
   const turns = ["ready", "take", "judged"].filter((one) => given[one]);
   if (turns.length > 1) {
     fail(`claim takes one of --ready, --take and --judged and this one takes `

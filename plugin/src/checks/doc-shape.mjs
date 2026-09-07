@@ -9,32 +9,42 @@ const FLAG_VALUE = flagThen(String.raw`[ \t]+`);
 const FLAG_OFFERS = flagThen(String.raw`[ \t]`);
 const PROPOSAL = /^(?:#[^\n]*\n\s*)?\*\*Status: proposal for ((?:`forge [a-z]+`(?:,\s*)?)+)\.\*\*/u;
 
-/* The same claim in the source, printed or in a comment: either sends the next reader to a command,
-   and one the CLI lacks costs a round (ISS-65). A `${…}` is checked as nothing. */
+/* The same claim in source: a command the CLI lacks costs a round, and a `${…}` is checked as nothing (ISS-65). */
 const ARG = String.raw`(?:--?[\w-]+|<[^>\n]*>|\$\{[^}]*\}|\\?"[^"\n]*\\?"|'[^'\n]*'|[\w.@/=,'-]+)`;
-const SOURCE_FORM = new RegExp(String.raw`forge ([a-z]+)((?:[ \t]+${ARG})*)`, "gu");
+/* One command over two lines of one expression: stopping at the closing quote left the flags past the join judged by nothing, which reads exactly like a form that has none (ISS-700). */
+const JOIN = String.raw`(?:[ \t]*[\x60"'][ \t]*\r?\n?\s*\+\s*[\x60"'][ \t]*)`;
+const SOURCE_FORM = new RegExp(String.raw`forge ([a-z]+)((?:(?:[ \t]+|${JOIN})${ARG})*)`, "gu");
+const JOINED = new RegExp(JOIN, "gu");
 const QUOTED = /\\?"[^"\n]*\\?"|'[^'\n]*'/gu;
 
+/* Help split per sub-verb and per kind puts a flag one level in from the verb — `--criterion` is
+   verdict's, not record's. The first bare word only: past it, a bare word is a value (ISS-700). */
+const SUB_WORD = /^[a-z][a-z-]+$/u;
+const rested = (verb, rest) => {
+  const first = rest.trim().split(/\s+/u)[0] ?? "";
+  return { verb, sub: SUB_WORD.test(first) ? first : null, rest };
+};
+
 export const routeClaims = (text) => {
-  /* A quoted value is data: read to find where the command ends, dropped before flags are counted. */
+  /* The join goes first, or its own quote is read as one of theirs; a quoted value is data. */
   const calls = [...String(text).matchAll(SOURCE_FORM)]
-    .map(([, verb, rest]) => ({ verb, rest: (rest ?? "").replace(QUOTED, " ") }));
+    .map(([, verb, rest]) => rested(verb, (rest ?? "").replace(JOINED, " ").replace(QUOTED, " ")));
   return {
     calls,
-    flags: calls.flatMap(({ verb, rest }) => flagsIn(verb, rest)),
+    flags: calls.flatMap(({ verb, sub, rest }) => flagsIn(verb, sub, rest)),
     hows: calls.flatMap(({ rest }) => [...rest.matchAll(/--how\s+([a-z][\w-]*)/gu)].map((one) => one[1])),
     envs: [],
   };
 };
 
-const flagsIn = (verb, rest) =>
-  [...rest.matchAll(FLAG_VALUE)].map(([, flag, value]) => ({ verb, flag, value: value ?? null }));
+const flagsIn = (verb, sub, rest) =>
+  [...rest.matchAll(FLAG_VALUE)].map(([, flag, value]) => ({ verb, sub, flag, value: value ?? null }));
 
 export const docClaims = (text) => {
-  const calls = [...text.matchAll(FORGE_CALL)].map(([, verb, rest]) => ({ verb, rest: rest ?? "" }));
+  const calls = [...text.matchAll(FORGE_CALL)].map(([, verb, rest]) => rested(verb, rest ?? ""));
   return {
     calls,
-    flags: calls.flatMap(({ verb, rest }) => flagsIn(verb, rest)),
+    flags: calls.flatMap(({ verb, sub, rest }) => flagsIn(verb, sub, rest)),
     hows: calls.flatMap(({ rest }) => [...rest.matchAll(/--how\s+([a-z][\w-]*)/gu)].map((one) => one[1])),
     envs: [...new Set(text.match(ENV_VAR) ?? [])],
   };
@@ -54,9 +64,8 @@ export const routeProblems = (text, held) => problemsIn(routeClaims(text), { ...
 const proposedIn = (text) =>
   [...(PROPOSAL.exec(text)?.[1] ?? "").matchAll(/`forge ([a-z]+)`/gu)].map((one) => one[1]);
 
-/* A usage line writes a value it accepts verbatim and one the caller fills as `<word>`, so a bare
-   lowercase word one space past a flag is a value that flag takes; padding is a detail line's prose,
-   and one placeholder spelling means none is read off it. Unbracketed refuses a real route (ISS-118). */
+/* A bare lowercase word one space past a flag is a value that flag takes, because a usage line
+   writes what it accepts verbatim and what the caller fills as `<word>` (ISS-118). */
 const NAMES_A_VALUE = /^[a-z][a-z-]+$/u;
 
 const valuesOffered = (usage, flag) => {
@@ -80,17 +89,18 @@ const problemsIn = ({ calls, flags, hows, envs, proposed = [] }, { verbs, usageO
   for (const { verb } of calls) {
     if (!verbs.includes(verb) && !proposed.includes(verb)) out.push(`\`forge ${verb}\` is no verb`);
   }
-  for (const { verb, flag, value } of flags.filter((one) => verbs.includes(one.verb))) {
-    const usage = usageOf(verb);
-    /* Held to a boundary: `--den` is in `--deny` by substring, and a truncated flag is the drift. */
+  for (const { verb, sub, flag, value } of flags.filter((one) => verbs.includes(one.verb))) {
+    const usage = usageOf(verb, sub);
+    const under = [verb, sub].filter(Boolean).join(" ");
+    /* Named with its sub-verb, which is the surface it was held to, and held to a boundary: `--den` is in `--deny` by substring, and a truncated flag is the drift. */
     const has = new RegExp(`${flag}(?![\\w-])`, "u").test(usage);
     if ((strict || usage.includes("--")) && !has) {
-      out.push(`\`forge ${verb} ${flag}\` is in no usage line`);
+      out.push(`\`forge ${under} ${flag}\` is in no usage line`);
       continue;
     }
     const offered = has && typedOut(value) ? valuesOffered(usage, flag) : null;
     if (offered && !offered.includes(value)) {
-      out.push(`\`forge ${verb} ${flag} ${value}\` is no value it takes: ${offered.join(" or ")}`);
+      out.push(`\`forge ${under} ${flag} ${value}\` is no value it takes: ${offered.join(" or ")}`);
     }
   }
   for (const name of hows) if (!documented.includes(name)) out.push(`\`--how ${name}\` names no document`);

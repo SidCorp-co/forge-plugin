@@ -6,7 +6,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { configDir, once, readJson } from "../resolve/config.mjs";
-import { fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
+import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
 import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, undeclaredIn } from "./rest.mjs";
 
@@ -228,16 +228,16 @@ export const refuseCredential = async (value, what) => {
   if (found) fail(held.leakRefusal(found, what));
 };
 
-/* Every write announces its target, and hands the payload it sent back to a caller that asks: on a
-   project with a prose language that copy and the one the caller wrote are different documents, and
-   only the first can be read back and compared. */
+/* Every write announces its target, and hands the payload it sent back to a caller that asks: on a project with a prose language that copy and the one the caller wrote are different documents, and only the first can be read back and compared. */
 export const write = async (name, args, onSent, soft = false) => {
   await refuseCredential(args.data, `The payload ${name} was about to send`);
   const project = projectTarget();
   const language = translateTarget();
+  /* The source in a reader's words: the project file is `forge doctor`'s to name, and dropping the source took with it the line saying the CLI itself re-aimed this write (ISS-700). */
+  const from = project.from === FROM_PROJECT ? "the project file" : project.from ?? "nowhere";
   console.error(
-    `${name} -> project ${project.value ?? "(none)"} (from ${project.from ?? "nowhere"}), ` +
-      `prose ${language.value ?? "as written"}`,
+    `${name} -> project ${project.value ?? "(none)"} (from ${from}), `
+      + `prose ${language.value ?? "as written"}`,
   );
   const data = args.data ? translated(args.data) : null;
   onSent?.(data);

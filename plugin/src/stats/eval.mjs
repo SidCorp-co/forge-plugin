@@ -9,9 +9,13 @@ import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } f
 import { RUNS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "./marks.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
-import { unknownFlag } from "../suggest.mjs";
 
 export const WINDOW = 50;
+
+export const MARKS_USAGE = [
+  "Usage: forge stats marks [--project <dir>]",
+  "The readings held for this project, one line each, newest first.",
+].join("\n");
 
 export const EVAL_USAGE = [
   "Usage: forge stats eval [--project <dir>] [--size 50] [--against [<mark>]] [--json]",
@@ -25,9 +29,6 @@ export const EVAL_USAGE = [
   "  --size n           runs per window; fifty unless you say otherwise",
   "  --against [<mark>] the reading held at that mark as the before window, or the newest held",
   "  --json             the comparison alone, one object",
-  "",
-  "Usage: forge stats marks [--project <dir>]",
-  "The readings held for this project, one line each, newest first.",
 ].join("\n");
 
 const sized = (raw) => {
@@ -232,9 +233,7 @@ export const runsMark = (directory, size = WINDOW) => {
 
 export const printEval = (argv) => {
   const { against, rest } = againstIn(argv, "stats eval");
-  const wrong = unknownFlag("stats eval", rest, { usage: EVAL_USAGE });
-  if (wrong) fail(wrong);
-  const { project, size, json } = flags(rest, "stats eval", ["--json"]);
+  const { project, size, json } = flags(rest, "stats eval", ["--json"], { usage: EVAL_USAGE });
   const window = sized(size);
   const directory = projectFrom(project, "stats eval");
   const corpus = corpusOf(directory);
@@ -253,9 +252,7 @@ export const printEval = (argv) => {
 
 /** `forge stats marks` — the readings held for the project, newest first. */
 export const printMarks = (rest) => {
-  const wrong = unknownFlag("stats marks", rest, { usage: EVAL_USAGE });
-  if (wrong) fail(wrong);
-  const { project } = flags(rest, "stats marks");
+  const { project } = flags(rest, "stats marks", [], { usage: MARKS_USAGE });
   const directory = projectFrom(project, "stats marks");
   const held = marksOf(RUNS, rootFor(directory));
   if (!held.length) return console.log(`No reading is held for this project yet; ${WRITES}.`);

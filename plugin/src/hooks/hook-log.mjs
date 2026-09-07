@@ -9,6 +9,7 @@ import { didYouMean } from "../suggest.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, setHook } from "./hook-switch.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
+import { helpOf } from "../resolve/visibility.mjs";
 
 export { hookLogPath, hookEntries, jsonLines, logHook };
 
@@ -144,7 +145,8 @@ const rounds = (entries) => {
 };
 
 export const hooks = (argv) => {
-  const held = flags(argv, "hooks", ["--deny", "--block", "--notes", "--rounds"]);
+  const held = flags(argv, "hooks", ["--deny", "--block", "--notes", "--rounds"],
+    { usage: helpOf("hooks") });
   if (held.how) return reasoning(held.how);
   if (held.rounds) return rounds(hookEntries());
   /* Switching answers with the new state and stops: the refusal log is a different question. */

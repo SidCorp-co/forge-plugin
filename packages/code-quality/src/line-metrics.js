@@ -87,6 +87,9 @@ export function getLineMetrics(sourceCode) {
         (comment) =>
           comment.type !== "Shebang" &&
           !isIgnoredComment(comment) &&
+          // A waiver is the answer to a rule, not prose about the code: charging it to the density
+          // budget makes the escape cost a comment line and pushes a file at the budget over it.
+          !isWaiver(comment) &&
           commentHasContentOnLine(comment, line, lineNumber),
       )
     ) {

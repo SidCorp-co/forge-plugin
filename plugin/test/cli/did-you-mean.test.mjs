@@ -7,11 +7,14 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ALIASES, didYouMean, flagsNamed, suggest, unknownFlag } from "../../src/suggest.mjs";
+import { ALIASES, didYouMean, suggest } from "../../src/suggest.mjs";
 import { RETIRED } from "../../src/checks/retired-names.mjs";
+import { USAGE as CLAIM } from "../../src/flow/claim.mjs";
+import { SAYS as CODEX } from "../../src/codex/codex.mjs";
+import { kindUsage } from "../../src/resolve/record-rows.mjs";
 import { RETIRING } from "../../src/resolve/retiring.mjs";
 import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
-import { FLAG_WORD, flags, partition, pullRepeated } from "../../src/resolve/flags.mjs";
+import { FLAG_WORD, flags, flagsNamed, partition, pullRepeated, unknownFlag } from "../../src/resolve/flags.mjs";
 import { bodyFrom, notABody } from "../../src/resolve/payload.mjs";
 import { homeEnv, ranAsync, tempRoom } from "../fixtures.mjs";
 
@@ -46,6 +49,16 @@ test("a verb's flags are the ones its own row names, and nothing else on the lin
   assert.deepEqual(flagsNamed("Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full]"),
     ["--fields", "--full"]);
   assert.deepEqual(flagsNamed("Usage: forge comment <uuid|ISS-45> <file.md|@file|->"), []);
+  /* A help text that points at another verb was declaring that verb's flags as its own, and the
+     parser then took one: `record -h` names `forge advance --owed`, and --owed is no record flag. */
+  assert.deepEqual(flagsNamed("Usage: forge record <kind> [--next <line>]\nEnds with what `forge advance --owed` prints."),
+    ["--next"]);
+  /* And a second usage line is a second command: `cloudflare dns -h` prints the three routes that change a record, whose --content and --ttl the listing route was taking and then ignoring. */
+  assert.deepEqual(
+    flagsNamed("Usage: forge cloudflare dns <zone-id> [--type A]\nThe routes that change one:\n"
+      + "  Usage: forge cloudflare dns add <zone-id> --content C [--ttl n]"),
+    ["--type"],
+  );
 });
 
 test("a flag no row names is accepted where the call site declares it, and offered to nobody", () => {
@@ -67,14 +80,16 @@ test("a flag is one word, so a value saying more than that word is not one", () 
 
 test("a value the shell bound to its flag is that flag's value, whatever it opens with", () => {
   const said = "--limit becomes the count of rows printed | a limit is about rows | one line";
-  assert.deepEqual(flags(["--decision", said], "record decision"), { decision: said });
-  assert.deepEqual(pullRepeated(["--open", said], "--open", "claim").values, [said]);
+  assert.deepEqual(flags(["--decision", said], "record decision", [], { usage: kindUsage("decision") }),
+    { decision: said });
+  assert.deepEqual(pullRepeated(["--open", said], "--open", "claim", { usage: CLAIM }).values, [said]);
 });
 
 /* The third site: it decides value from positional, so a value left unread lands in the flag argv
    as a key and the parser then refuses a flag nobody typed. */
 test("the partitioner reads a value opening with two dashes as the value, not as a positional", () => {
-  const held = partition(["a.mjs", "--only", "--limit and its friends", "b.mjs"], []);
+  const held = partition(["a.mjs", "--only", "--limit and its friends", "b.mjs"], [],
+    { verb: "codex consult", usage: CODEX.consult });
   assert.deepEqual(held.positionals, ["a.mjs", "b.mjs"]);
   assert.deepEqual(held.flagArgv, ["--only", "--limit and its friends"]);
 });
@@ -201,12 +216,14 @@ test("a verb taking no flag at all says what it does take", async () => {
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
 });
 
-/* A verb that takes one: a set that short beats the route to it, so the usage is what is left out. */
-test("a verb taking one flag names the set rather than its usage", async () => {
+/* One shape for every verb: the set, then the row. A verb taking one flag once left the row out,
+   and the caller who typed a flag in the body slot was told the set and not where the body goes. */
+test("a verb taking one flag names the set and the row it read the set off", async () => {
   const run = await ran("comment", "ISS-1", "--body", "a finding");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No comment flag named --body\. The set is --title\./u);
-  assert.doesNotMatch(run.stderr, /Usage: forge comment/u);
+  assert.match(run.stderr, /^Usage: forge comment <uuid\|ISS-45> <file\.md\|@file\|-> \[--title T\]$/mu,
+    "the row, which is where the body slot the caller wanted is spelled");
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
 });
 
@@ -218,16 +235,15 @@ test("a flag standing in the body slot is this verb's own unknown flag", async (
   assert.doesNotMatch(run.stderr, /No Forge endpoint/u, "nor after a credential was looked for");
 });
 
-/* `onlyFlags` turns away what it does not know, so a flag the row DOES name went straight past it
-   and the parser then refused the title as a key it could not read. */
-/* It names no flag, so read as one it would silently take the next word as its value and the verb
-   would answer with the filter nobody asked for. */
-test("two dashes and nothing after them is refused by name, never read as a field", async () => {
+/* Two dashes name nothing, so no near miss answers them, and read as a flag one would silently take
+   the next word as its value: one sentence for the shape, and every verb prints it. */
+test("two dashes and nothing after them is refused by the same sentence everywhere", async () => {
   const run = await ran("issue", "ISS-1", "--", "status");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No issue flag named --\./u);
+  assert.match(run.stderr, /^issue: `--` names no flag, and read as one it would take the next word as its value\.$/mu);
+  assert.doesNotMatch(run.stderr, /Did you mean/u, "and it is no misspelling of a flag there is");
   const bare = await ran("codex", "consult", "--", "x");
-  assert.match(bare.stderr, /`--` names no flag/u, bare.stderr);
+  assert.match(bare.stderr, /^codex consult: `--` names no flag/mu, bare.stderr);
 });
 
 test("a flag the verb declares is refused in the body slot too, by what the slot takes", async () => {

@@ -2,6 +2,16 @@
 
 All notable changes to this package are documented here.
 
+## 0.15.0 - 2026-09-07
+
+### Fixed
+
+- A waiver no longer counts against the comment-density budget. `pass-through: keep — <reason>`,
+  `primitive: none — <reason>` and `restated: deliberate — <reason>` are answers to a rule rather
+  than prose about the code, and charging them to the budget made the escape cost a comment line: a
+  file already at its budget could not take one without going over, so the rule refused the fix for
+  its own escape. A marker written without its reason is still prose, and still counted.
+
 ## 0.14.1 - 2026-09-06
 
 ### Fixed

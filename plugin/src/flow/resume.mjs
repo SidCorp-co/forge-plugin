@@ -27,12 +27,8 @@ export const USAGE = [
   "",
   "  --json    the same assembled object, for a tool rather than a reader",
   "",
-  "It writes nothing and needs no lease, so anyone may read any issue. It reads the comments to",
-  "assemble the record, and shows the typed kinds rather than the bodies, so it is no delivery of",
-  "them: a write held for want of one is cleared by the write's own refusal, which carries them.",
-  "",
-  "A fact a successor needed and did not find here belongs on the record or in the worklog, never in",
-  "this verb: `forge claim <ref> --pushed --review --open \"<line>\"` and `--next` are where it goes.",
+  "It writes nothing and needs no lease, so anyone may read any issue. A fact a successor needed and",
+  "did not find here belongs on the record or in the worklog: docs/cli/resume.md.",
 ].join("\n");
 
 const PLAN_LINES = 12;
@@ -134,8 +130,7 @@ const run = async (argv) => {
   if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) fail(`resume takes the issue first. ${usageOf("resume")}`);
-  const given = flags(rest, "resume", ["--json"]);
-  for (const one of Object.keys(given)) if (one !== "json") fail(`resume takes no --${one}. Flags: --json`);
+  const given = flags(rest, "resume", ["--json"], { usage: USAGE });
   const { documentId, body } = await issueOf(ref);
   const page = await commentPage(documentId);
   const view = viewFrom(documentId, body, page.comments, cutIn(page), await policyFor(body.plan, body.status), () => citedClauses(body));
