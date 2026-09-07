@@ -2,7 +2,7 @@
    tool, a human WITHHELD a verb. They differ in authority and consequence.
    docs/cli/withholding-a-verb.md. */
 import { userConfig } from "./config.mjs";
-import { fail, projectScope } from "./settings.mjs";
+import { fail, feedbackScope, projectScope } from "./settings.mjs";
 
 export const VERBS = [
   ["issues", "[--status s] [--search q] [--limit n]", "every matching issue, walked; --limit is how many print",
@@ -51,7 +51,7 @@ export const VERBS = [
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
     "what the gates refused, why one does, which are off", null],
   /* No `needs`, though it writes: the gates below are the CALLER's project's — docs/cli/feedback.md. */
-  ["feedback", "<file.md|@file|-> --title T [--with ISS-45,ISS-46] [--new]",
+  ["feedback", "<file.md|@file|-> --title T [--kind K] [--with ISS-45,ISS-46] [--new]",
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout", null],
   ["doctor", "[--token t] [--url u] [--hide v|--show v] [--ship ready|self] [--full]",
     "what resolves, and from where"],
@@ -117,6 +117,23 @@ export const isGated = (tool) => Boolean(recorded().gates[tool]);
 export const gatedTools = () => new Set(Object.keys(recorded().gates).filter(isGated));
 export const withheldVerbs = () => new Set(userConfig().withheld ?? []);
 
+export const FEEDBACK_VERB = "feedback";
+
+/** The project's say over the channel to this plugin's backlog, beside this machine's over the verb:
+ *  neither grants what the other withholds, and a closed one is refused in a line naming the key. */
+export const pluginChannel = () => feedbackScope().plugin;
+
+export const closedByProject = (verb) => verb === FEEDBACK_VERB && pluginChannel().value === "off";
+
+export const verbForPluginDefect = () =>
+  (closedByProject(FEEDBACK_VERB) || withheldVerbs().has(FEEDBACK_VERB) ? null : FEEDBACK_VERB);
+
+export const channelRefusal = (verb) =>
+  (closedByProject(verb)
+    ? `\`forge ${verb}\` is withheld here: this project sets feedback.plugin to off in`
+      + ` ${pluginChannel().from}, so a defect in this plugin goes in the run's report and is filed nowhere.`
+    : null);
+
 /* A row naming one action is gated on it, and `row[3]` stays the schema pointer either way. Off
    `action` and never off the column existing, or a routing row composes a key nothing records —
    docs/cli/deps.md. */
@@ -173,7 +190,7 @@ export const offeredVerbs = () => {
   const withheld = withheldVerbs();
   return VERBS.filter((row) => {
     const key = gateKey(row);
-    return !withheld.has(row[0]) && !(key && isGated(key));
+    return !withheld.has(row[0]) && !closedByProject(row[0]) && !(key && isGated(key));
   });
 };
 

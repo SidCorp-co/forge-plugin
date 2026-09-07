@@ -32,15 +32,25 @@ above the reply is what shows the filer what the refusal would have said.
 That read asks for every section, which is not the default: `forge new` short-circuits two ways — a
 body marked at a rung below `feature` is read against no section, and one naming a code token with
 neither rules nor an out-of-scope is offered the three routes a small change takes instead of being
-refused. Both are routes a note does not have. A note is one shape, always the bug's, so the
-shortcuts are switched off for it and every section is read; without that a note missing two of its
-five sections filed clean.
+refused. Both are routes a note does not have. Whichever shape a note's kind names, the shortcuts
+are switched off for it and every section is read; without that a note missing two of its five
+sections filed clean.
+
+**Which kinds the channel carries is the caller's project's answer, not this verb's constant.** It
+was `bug` alone, hard-coded, and that was the right default and the wrong permanence: a project
+paying for the run has a say in what a run working inside its checkout reports about the tooling,
+and the two answers a project can want are *defects only* and *anything*. So `feedback.plugin` names
+both, `--kind` picks one of what it names, and a kind outside them is refused naming the key rather
+than silently filed as a bug — the one outcome that would put an enhancement on this backlog under a
+heading nobody wrote it against. The kinds are the filing shapes', so nothing here holds a second
+list. Whether the verb may be typed at all is the same key's, and its rule with this machine's
+withholding beside it is [`withholding-a-verb`](withholding-a-verb.md)'s.
 
 **A note is measured the way a filing is, and folds the way one does.** Both routes that file ask
 the tracker's own memory what is open beside what they are about to write, print it above the
 result, and land the note on the neighbour that shares the place its cause names rather than filing
-a second issue. Every note takes that fold: the kind is always the one that owes a cause, so the
-predicate the fold reads is satisfied here by construction and no note is exempt for its size. The
+a second issue. A note whose kind owes a cause takes that fold and is exempt for no size of its
+own; one whose shape names no cause gives the fold nothing to measure and files as an issue. The
 rules and the floor are [`beside`](beside.md)'s; the order the block is printed in and the reason
 the fold answers to two signals instead of one are [`the-fold`](the-fold.md)'s.
 

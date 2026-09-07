@@ -6,6 +6,8 @@ import { filingRefusal, liveTitles, rankOf, shapeOf, shapeRefusal, trackerFields
 import { markedIn } from "../../ladder.mjs";
 import { write } from "../rpc.mjs";
 import { notAReference } from "../issues.mjs";
+import { PROJECT, pluginDefectHold } from "./plugin-defect.mjs";
+import { projectTarget } from "../../resolve/settings.mjs";
 
 const withSections = (body, sections) => {
   const written = String(body ?? "").replace(/\s*$/u, "");
@@ -112,6 +114,9 @@ export const fileIssue = async ({
   const ranked = asked ?? await rankOf(priority);
   if (ranked.refusal) return { refusal: refusalOf(ranked.refusal), description: null, shape: null };
   const { description, shape: known, rung } = bodyOf({ title, body, kind, sections, size, everySection });
+  /* Only where the filing is aimed at the caller's own project: the verb carrying a plugin defect aims at the plugin's before it files, and holding that one would lose the finding. */
+  const held = projectTarget().value === PROJECT ? null : pluginDefectHold(description);
+  if (held) return { refusal: refusalOf(held), description, shape: known };
   const seen = page ?? await liveTitles();
   const { refusal, shape, beside } = await readFiling({ title, body: description, kind }, seen,
     { routed, everySection, duplicates, shape: known });

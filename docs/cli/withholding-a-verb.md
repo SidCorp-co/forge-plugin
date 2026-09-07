@@ -42,6 +42,16 @@ destination is rendered by the CLI off the key at the moment a filing is intende
 closes takes its sentence with it, which is this page's rule applied to a setting rather than to a
 release.
 
+**And the write is the backstop under the rendering.** An agent holding a rule with no verb satisfies
+it with the nearest verb that works, and `forge new` on the client's own backlog is one — where the
+plugin's defect lands as one of their issues, which is the outcome the key was set to prevent. So a
+filing aimed at the caller's own project whose cause or *Where* names this plugin's own paths is
+held, under `off` alone, with the run's report named as where the finding goes instead. Not on this
+repository: here a defect in the plugin and an issue of the project are the same thing, so there is
+nothing to route and nothing to hold. And never on the verb that carries a note to the plugin's
+backlog on purpose, which aims at that project before it files — a hold there would lose the
+finding, which is the one thing that route promises not to do.
+
 The machine's other option sits in the same file for the same reason. `forge doctor --ship
 ready|self` says whether a run on this machine lands its own change or ends ready for another actor
 to land it: the actor that lands runs on this checkout, so the level that owns the landing owns the

@@ -323,6 +323,9 @@ export const placeIn = (body) => {
     ?? tokensNamed(body, 1)[0] ?? null;
 };
 
+export const originIn = (body) =>
+  [sectionUnder(body, CAUSE.heading), sectionUnder(body, WHERE.heading)].filter(Boolean).join("\n");
+
 export const seedFor = ({ title, body, kind = null }) => {
   const text = String(body ?? "").replace(MARK_LINE, "");
   const under = shapeFor(kind)?.needs.map((one) => sectionUnder(text, one.heading))

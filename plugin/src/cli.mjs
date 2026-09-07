@@ -3,7 +3,8 @@
    credential may not call is not listed and does not run — docs/cli/withholding-a-verb.md. */
 import { commands } from "./commands.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { blockedBy, helpLine, helpOf, offeredVerbs } from "./resolve/visibility.mjs";
+import { blockedBy, channelRefusal, helpLine, helpOf, offeredVerbs, verbForPluginDefect }
+  from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
 import { retiredRefusal } from "./resolve/retiring.mjs";
 import { fail } from "./resolve/settings.mjs";
@@ -45,9 +46,13 @@ const MORE = "\nWhat to type for one verb: `forge <verb> -h`, with the schema be
   + " fields it\ntakes, where it takes any. The write-time rules a first issue gets wrong:"
   + " `forge -h --full`.";
 
-const FEEDBACK = "\nFeedback on this CLI, from any project: `forge feedback <note.md> --title \"<one"
-  + ' line>"`, which files it as a bug on this plugin\'s own project wherever you are standing. A wrong'
-  + " refusal, a missing way out, a verb that surprised you: send it there, before the workaround.";
+/* Silent where the project withholds the channel: the footer is the sentence that outlives a verb. */
+const named = verbForPluginDefect();
+const FEEDBACK = named
+  ? `\nFeedback on this CLI, from any project: \`forge ${named} <note.md> --title "<one`
+    + ' line>"`, which files it on this plugin\'s own project wherever you are standing. A wrong'
+    + " refusal, a missing way out, a verb that surprised you: send it there, before the workaround."
+  : "";
 
 const [command, ...rest] = process.argv.slice(2);
 const asked = wantsHelp([command]);
@@ -57,6 +62,13 @@ const retired = command ? retiredRefusal(command) : null;
 
 if (retired) {
   console.error(retired);
+  process.exit(1);
+}
+
+const closed = command ? channelRefusal(command) : null;
+
+if (closed) {
+  console.error(closed);
   process.exit(1);
 }
 

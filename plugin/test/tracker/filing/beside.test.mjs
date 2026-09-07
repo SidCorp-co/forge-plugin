@@ -339,11 +339,11 @@ test("a note declines the fold with --new, and prints the block above what it fi
     "the filer reads what was open and then what became of their body, not the other way round");
 });
 
-test("the note verb still refuses a flag that is neither of its two", async () => {
+test("the note verb still refuses a flag that is none of its four", async () => {
   before();
-  const run = await noted("--kind", "bug");
+  const run = await noted("--size", "fix");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /feedback takes --title, --with and --new and nothing else; --kind names no flag/u);
+  assert.match(run.stderr, /feedback takes --title, --kind, --with and --new and nothing else; --size names no flag/u);
 });
 
 /* The band the block prints from is the band the measurement calls machinery rather than subject,
