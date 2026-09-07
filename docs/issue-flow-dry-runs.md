@@ -5307,3 +5307,31 @@ restart owed. Folded from its handback; the comments were read back.
 - A landing that retires a call shape moved the surface under three live runs the same hour; each
   lost one call to a refusal that named the new form. The cost of one landing is paid once per live
   run, and the refusal's route is what kept it to one.
+
+## Two-hundred-and-seventh dry run — ISS-616
+
+The batch reading of 3cd7645..77f9d16 lands what only simplifies (3.35.227, landed as 4d59ef1) and
+moves the reviewed mark to the range's end. Forty-six criteria pass at one head; one was recorded
+fail first and superseded by a pass once the wording was re-read against the knowledge entries it
+judged, nine of which were refreshed, each metadata written as a union after the first write dropped
+historical keys. Twenty issues filed off the reading, two of them plugin defects met on the way
+(ISS-633, a heading matcher that takes the first match; ISS-651, a finding counter with no sense of
+negation), four findings routed to ISS-20. Two ship refusals, both right: a Proof that named a case
+the split had moved, and a push rejected behind a sibling's release, taken again from step 2 with the
+whole set re-consulted. Full gate green at the landed head under a temporary config home. Closed by
+its run; no restart owed. Folded from its handback; the twenty-one comments were read back.
+
+- A verdict argued against a criterion's wording can be honest and wrong: the fail's premise was
+  that the module entries were accurate, and re-reading the wording is what turned a withheld write
+  into a real refresh. The wording is read off the issue, not remembered.
+- A metadata write that replaces where it should merge erased keys the first time; caught by
+  reading the entry back, which is the rule for every write and the only reason this one was seen.
+- Two counts derived from one reply disagreed: the consult printed zero findings and the log counted
+  a bullet that said none were found as one. The gate trusts the count the operator cannot see,
+  which is why the defect is a filing and not a note (ISS-651).
+- A run that reads a range behind live siblings lands into a moved head twice: a Proof pointing at a
+  file the change relocated read green until the spec gate refused it, and the push met a sibling's
+  version. Both are the cost ISS-653 names, met by the run whose landing was largest.
+- Twenty filings from one reading is the reading working as specified; what the fold checks is
+  that each names the line it comes from and none re-files a cause an open issue holds. The run
+  related ISS-442 rather than re-filing it, which is that check passing once.
