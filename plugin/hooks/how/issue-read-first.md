@@ -12,7 +12,7 @@ in silence until a comment nobody here has seen appears — a person's, or the a
 mark leaves. No count of runs writing at once costs it, and it is not kept forever: your own comment
 budget sheds what you touched longest ago, and a run that stops writing for a day is forgotten. A record
 through this CLI never refuses you. A run that names itself owes its own delivery, not yours: the
-name is read off the command judged, an export at its head or a prefix on the forge call.
+name is read off the command judged, an export or a prefix on the forge call, anywhere in it.
 
 Not judged: what you write once you have read, whether you read it, or a mention of a write verb —
 the target is the argument the verb takes, so one in a heredoc, a path or prose is not one.

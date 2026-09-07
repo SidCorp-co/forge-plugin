@@ -43,10 +43,10 @@ by whatever creates it.
 
 **Write it where the gate can read it.** The read-before-write gate runs in the harness's process,
 handed no `FORGE_SESSION_ID`, so the only place it learns which run this is is the command it
-judges: `export FORGE_SESSION_ID=<id>` at the head of that command, or `FORGE_SESSION_ID=<id>`
-prefixing a `forge` call. Spell the id out; this reader has the text, not the shell that will run
-it, so `"$RUN_ID"` names nothing. Given any other way it reads none, and the run pays the round it
-would with no reader at all rather than a wrong one.
+judges: `export FORGE_SESSION_ID=<id>` or `FORGE_SESSION_ID=<id>` prefixing a `forge` call, at any
+command of that text (ISS-672). Spell the id out; this reader has the text, not the shell that will
+run it, so `"$RUN_ID"` names nothing. Given a way it cannot read, the run pays the round it would
+with no reader at all rather than a wrong one.
 
 Where it was not, the CLI **says so and does not refuse**. A run whose own id came from the
 dispatching session is told, where it claims and where it reads the lease, that the holder it

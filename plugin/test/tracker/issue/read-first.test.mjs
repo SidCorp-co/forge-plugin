@@ -224,6 +224,26 @@ test("a command granting an id nobody credited is denied, whatever the harness w
     "which satisfies nothing for a run that has not");
 });
 
+/* The shape a run in a worktree writes all day: the assignment stands behind the `cd` that reaches
+   the tree, and it was read only where it led the whole text — so the CLI credited the exported name,
+   this hook asked under the harness's uuid, and every write was held on the one before it (ISS-672). */
+test("a run whose assignment stands behind a cd is one run across its writes", async () => {
+  state.comments = { [UUID]: [comment("c3", "the record this run wrote a minute ago")] };
+  const exported = "cd /tmp && export FORGE_SESSION_ID=behind-a-cd && forge advance ISS-29";
+  const held = await gate(exported, { harness: "harness-four" });
+  assert.equal(held.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
+  assert.equal((await gate(exported, { harness: "harness-five" })).out, null,
+    "and the second write is the same run, whatever session the harness names");
+  const prefixed = "cd /tmp && FORGE_SESSION_ID=on-the-writer /usr/bin/forge advance ISS-29";
+  const alone = await gate(prefixed, { harness: "harness-six" });
+  assert.equal(alone.out.hookSpecificOutput.permissionDecision, "deny", "the prefix names a run of its own");
+  assert.equal((await gate(prefixed, { harness: "harness-seven" })).out, null, "and its own second write passes");
+  const other = "cd /tmp && export FORGE_SESSION_ID=another-worktree-run && forge advance ISS-29";
+  const stranger = await gate(other, { harness: "harness-four" });
+  assert.equal(stranger.out.hookSpecificOutput.permissionDecision, "deny",
+    "while a third run is shown nothing by either of them having looked");
+});
+
 test("the uuid form is denied where the reference form is", async () => {
   const run = await gate(`forge comment ${UUID} @note.md`);
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");

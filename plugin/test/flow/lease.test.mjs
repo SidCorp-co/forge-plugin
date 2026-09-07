@@ -305,7 +305,7 @@ test("the id a command grants the writer is a source, and every shape that does 
     "export FORGE_SESSION_ID=a-run && cd /elsewhere && ./plugin/bin/forge advance ISS-29",
     "export FORGE_SESSION_ID=a-run; forge advance ISS-29",
     `export FORGE_SESSION_ID='a-run'; forge advance ISS-29`,
-    `  export FORGE_SESSION_ID="a-run"`,
+    `  cd /elsewhere && export FORGE_SESSION_ID="a-run" && forge advance ISS-29`,
     "FORGE_SESSION_ID=a-run forge advance ISS-29",
     "env FORGE_SESSION_ID=a-run ./plugin/bin/forge advance ISS-29",
   ]) assert.deepEqual(named(command), grants, command);
@@ -329,6 +329,7 @@ test("the id a command grants the writer is a source, and every shape that does 
     ["export FORGE_SESSION_ID=a-run; { unset FORGE_SESSION_ID; forge advance ISS-29; }",
       "a brace group running in this very shell most of all"],
     ["forge advance ISS-29", "and a command granting nothing grants nothing"],
+    [`  export FORGE_SESSION_ID="a-run"`, "an export this CLI is nowhere behind reaches no writer of ours"],
     [`export FORGE_SESSION_ID='run#1'; forge advance ISS-29`,
       "an id outside the class this reads costs the round it would have cost unread, never a wrong key"],
   ]) assert.deepEqual(named(command), falls, why);
