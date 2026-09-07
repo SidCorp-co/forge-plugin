@@ -12,6 +12,7 @@ import { parkAs, transitionTo } from "./advance.mjs";
 import { OPEN_KEPT, patchFrom, worklogFor } from "./worklog.mjs";
 import {
   ADVISORY,
+  LANDING_READY,
   MINUTES,
   RECLAIMS_BEFORE_PARK,
   SHARED_HOLDER,
@@ -19,6 +20,8 @@ import {
   claimed,
   describe,
   historyLine,
+  landingLine,
+  landingOf,
   leaseOf,
   nextLine,
   parkAnswers,
@@ -27,6 +30,7 @@ import {
   setLease,
   sharedHolder,
   stateOf,
+  takeRefusal,
 } from "./lease.mjs";
 
 const MAX_MINUTES = 24 * 60;
@@ -43,9 +47,18 @@ export const USAGE = [
   "  --pushed        the branch, head, base and files touched, read from git at this moment",
   "  --review        the last codex consult, its findings and what it owes, read from the log now",
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
+  "  --ready         with --pushed: the landing checkpoint, in state `ready`, from that capture",
+  "  --take          the lease at whatever state the checkpoint names your turn",
   "",
   "Those three write the worklog beside the lease, which is what `forge resume` reads first. Neither",
   "capture is automatic: a write made from another checkout would name that one as this issue's.",
+  "",
+  "The checkpoint is what a build that stops at ready-to-land leaves for whoever lands it: the",
+  "builder's session, the branch, the judged head, the base and the files, and a state naming whose",
+  "turn it is. `--take` is the only route that may take a lease which is still live, and only where",
+  "the state names the taker: the lander at `ready` and at every state of the landing itself, the",
+  "named builder or a successor at `builder-owed`, the QA run at `qa-owed`. Any other take is",
+  "refused naming the state it read.",
   "",
   "The lease names the agent type and the process id beside the session, so a refusal says what",
   "held the issue and not only which uuid. A claim that takes over prints the line the last holder",
@@ -86,11 +99,56 @@ export const parkWrite = (lease, next = null) =>
   ({ holder: lease.holder, at: new Date().toISOString(), minutes: lease.minutes, next: next ?? null });
 
 /* The line taken over from is not the line taken on: printing the incoming one as the last
-   holder's would say the dead run left a note its successor wrote. */
+   holder's would say the dead run left a note its successor wrote. A take is a handoff too. */
+const HANDOFF = new Set(["reclaim", "take"]);
+
 export const nextLines = (how, left, taken) => [
-  how === "reclaim" && left ? `Next, left by the run before: ${left}` : null,
+  HANDOFF.has(how) && left ? `Next, left by the run before: ${left}` : null,
   taken && taken !== left ? `Next: ${taken}` : null,
 ].filter(Boolean);
+
+/* Off the same capture the worklog took, so the head the checkpoint calls judged is the head the
+   review was taken at. The paths and not the count: what the lander compares with what the landing
+   moved is a list, and a capture that read no diff is a checkpoint nobody can land. */
+export const readyCheckpoint = (ref, holder, patch, landing) => {
+  if (!patch?.head || !patch.base) {
+    fail(`claim --ready writes the checkpoint off the capture --pushed makes, and this one captured `
+      + `nothing — the line above says why. Capture at the push, before the merge:\n`
+      + `  forge claim ${ref} --pushed --ready`);
+  }
+  if (landing && landing.state !== LANDING_READY) {
+    fail(`the landing checkpoint on ${ref} reads \`${landing.state}\`, which is past the build, so `
+      + `--ready would write the landing's own reading away. Read where it is:\n  forge resume ${ref}`);
+  }
+  return {
+    state: LANDING_READY,
+    builder: holder,
+    branch: patch.branch,
+    head: patch.head,
+    base: patch.base,
+    files: String(patch.touched ?? "").split(", ").filter(Boolean),
+    at: patch.at,
+  };
+};
+
+/* The turn is read before anything is written, because this is the one claim that may take a live
+   lease: a take the state does not name is refused and no field is touched. */
+const takeTurn = async (documentId, ref, issue, context, { holder, minutes, line, patch, source }) => {
+  const landing = landingOf(context);
+  const refused = takeRefusal(ref, landing, holder, leaseOf(context), { source });
+  if (refused) fail(refused);
+  const left = leaseOf(context)?.next ?? null;
+  const next = claimed(context, {
+    holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch),
+    how: "take", status: issue.status,
+  });
+  await setLease(documentId, next, ref);
+  const taken = leaseOf(next);
+  console.log(`${ref}  take: ${describe(taken)}`);
+  console.log(landingLine(landing));
+  for (const one of nextLines("take", left, taken.next)) console.log(one);
+  return taken;
+};
 
 /* The acknowledgement is the third write, and a run can die before it: on an issue already parked,
    the record names the status it left and the history it answered is answered from there. */
@@ -126,10 +184,18 @@ export const claim = async (argv) => {
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
   const pulled = pullRepeated(rest, "--open", "claim");
-  const given = flags(pulled.rest, "claim", ["--pushed", "--review"]);
-  const takes = ["minutes", "next", "pushed", "review"];
+  const given = flags(pulled.rest, "claim", ["--pushed", "--review", "--ready", "--take"]);
+  const takes = ["minutes", "next", "pushed", "review", "ready", "take"];
   for (const one of Object.keys(given)) {
     if (!takes.includes(one)) fail(`claim takes no --${one}. Flags: ${takes.map((two) => `--${two}`).join(" ")} --open`);
+  }
+  if (given.ready && given.take) {
+    fail(`claim takes --ready or --take and not both: one ends a build and the other picks up the `
+      + `turn a checkpoint names. To end this build:\n  forge claim ${ref} --pushed --ready`);
+  }
+  if (given.ready && !given.pushed) {
+    fail(`claim --ready writes the checkpoint off the capture --pushed makes, so the two are typed `
+      + `together:\n  forge claim ${ref} --pushed --ready`);
   }
   const asked = minutesFrom(given.minutes);
   const line = nextLine(given.next);
@@ -141,16 +207,25 @@ export const claim = async (argv) => {
   const mine = sessionSourced();
   const holder = sessionOf();
   const state = stateOf(lease, holder);
+  const minutes = asked ?? (lease && lease.holder === holder ? lease.minutes : MINUTES);
+  if (given.take) {
+    const took = await takeTurn(documentId, ref, issue, context,
+      { holder, minutes, line, patch, source: mine.id === holder ? mine.source : null });
+    if (sharedHolder(took, mine)) console.log(SHARED_HOLDER);
+    return console.log(ADVISORY);
+  }
   if (state === "live") fail(claimRefusal(ref, lease));
   const left = lease?.next ?? null;
   const how = { free: "claim", expired: "reclaim", mine: null, lapsed: null }[state];
-  const minutes = asked ?? (lease && lease.holder === holder ? lease.minutes : MINUTES);
+  const checkpoint = given.ready ? readyCheckpoint(ref, holder, patch, landingOf(context)) : null;
   const next = claimed(context, {
     holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,
+    landing: checkpoint ?? undefined,
   });
   await setLease(documentId, next, ref);
   const taken = leaseOf(next);
   console.log(`${ref}  ${how ?? "renewed"}: ${describe(taken)}`);
+  if (checkpoint) console.log(`${landingLine(checkpoint)} — taken from here by \`forge claim ${ref} --take\`.`);
   for (const one of nextLines(how, left, taken.next)) console.log(one);
   /* Beside the lease it is about, and above every route out of here: a claim that answers a park
      returns below, and the run would take the lease without being told what it matched on. */
