@@ -3,7 +3,7 @@
 
 const HELP = `Find skill lines carrying a figure of three digits or more outside a code span.
 
-  skill-figures.mjs               check plugin/skills and plugin/guides/skills
+  skill-figures.mjs               check plugin/skills and every guide root under plugin/guides
   skill-figures.mjs <dir>...      check other directories
   skill-figures.mjs --json        the findings, for a report
 
@@ -18,6 +18,8 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { guideRoots } from "../src/guides/skill-guides.mjs";
+
 const args = process.argv.slice(2);
 if (args.includes("-h") || args.includes("--help")) {
   process.stdout.write(`${HELP}\n`);
@@ -31,7 +33,7 @@ if (unknown.length) {
 
 const plugin = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const named = args.filter((arg) => !arg.startsWith("-")).map((one) => resolve(one));
-const roots = named.length ? named : [join(plugin, "skills"), join(plugin, "guides", "skills")];
+const roots = named.length ? named : [join(plugin, "skills"), ...guideRoots(plugin)];
 
 const walk = (dir) => {
   let out = [];

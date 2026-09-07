@@ -11,8 +11,10 @@ import { join } from "node:path";
 import { tempRoom } from "../fixtures.mjs";
 
 const {
-  BODY, referencesOf, skillGuideAnswer, skillGuideSlugs, skillListingRow, unresolvedCitations,
+  BODY, bodyPathsOf, guideBodyPath, guideRoots, referencesOf, skillGuideAnswer, skillGuideSlugs,
+  skillListingRow, unresolvedCitations,
 } = await import("../../src/guides/skill-guides.mjs");
+const { SHIPPED, versionDir } = await import("../../src/guides/version.mjs");
 
 const PLUGIN = new URL("../../", import.meta.url).pathname;
 const STUBS = join(PLUGIN, "skills");
@@ -27,6 +29,13 @@ const planted = () => {
   mkdirSync(join(root, "guides", "skills", "notaskill"), { recursive: true });
   mkdirSync(join(root, "guides", "skills", "beta", "references"), { recursive: true });
   writeFileSync(join(root, "guides", "skills", "beta", "references", "one.md"), "# Beta one\n");
+  for (const version of ["v2", "v10"]) {
+    const versioned = join(root, "guides", version, "skills", "alpha");
+    mkdirSync(join(versioned, "references"), { recursive: true });
+    writeFileSync(join(versioned, BODY), `# Skill: alpha, ${version}\n\nRead \`forge guide alpha one\` first.\n`);
+    writeFileSync(join(versioned, "references", "one.md"), `# One, ${version}\n`);
+    writeFileSync(join(versioned, "references", `only-${version}.md`), `# Only ${version}\n`);
+  }
   mkdirSync(join(root, "skills", "beta"), { recursive: true });
   writeFileSync(join(root, "skills", "beta", "SKILL.md"), "---\nname: beta\n---\n\nRules inline; `forge guide beta one` and `forge guide beta zero`.\n");
   return root;
@@ -61,6 +70,24 @@ test("a citation the served text makes resolves to a reference this copy serves,
   assert.ok(skillGuideSlugs().length >= 4, `${skillGuideSlugs().length} skill guide(s) shipped; the selector is broken`);
 });
 
+/* One number pins the method, so its texts sit under a version directory and the others' do not. The
+   listing reads every root at once: a slug offered under one pin and not another looks unwritten. */
+test("the versioned method is listed beside the unversioned skills, and served from its version", () => {
+  assert.ok(skillGuideSlugs().includes("issue-flow"), "a slug under a version directory is still offered");
+  assert.deepEqual(SHIPPED.map(versionDir), guideRoots(PLUGIN).slice(0, -1).map((one) => one.split("/").at(-2)),
+    "SHIPPED is the list a refusal reads, so a version directory added without it is refused by name");
+  assert.match(guideBodyPath("issue-flow", PLUGIN), /guides\/v1\/skills\/issue-flow\/guide\.md$/u);
+  assert.match(guideBodyPath("dispatch", PLUGIN), /guides\/skills\/dispatch\/guide\.md$/u,
+    "and a skill no version has an opinion about is served from the plain root");
+  const root = planted();
+  assert.deepEqual(skillGuideSlugs(root), ["alpha", "beta"], "a slug in two roots is one row, not two");
+  assert.equal(referencesOf("alpha", root, 2).join(), "one,only-v2", "a pin picks its own version's references");
+  assert.equal(referencesOf("alpha", root, 10).join(), "one,only-v10", "each version's and not the newest one's");
+  assert.equal(referencesOf("alpha", root, 1).join(), "one,two", "and an unpinned version falls to the plain root");
+  assert.deepEqual(bodyPathsOf("alpha", root).map((one) => one.split("/").at(-4)), ["v10", "v2", "guides"],
+    "what the tree ships is every one of them, newest first by number and answering to no pin");
+});
+
 /* A SKILL.md sits in context for the rest of the run, so it is capped: 2,000 bytes of body is roughly
    500 to 650 tokens for a route table, read off the inline skills of 3.35.129. A served body earns a
    stub naming the verb; the code-quality plugin's two skills are its, held by the sync check. */
@@ -77,7 +104,7 @@ test("a SKILL.md is under the ceiling, and names the verb only where a body is s
     assert.ok(bytes <= CEILING, `${name}/SKILL.md body is ${bytes} bytes; the ceiling is ${CEILING}`);
     assert.equal(existsSync(join(STUBS, name, "references")), false, `${name}'s references are served, not loaded`);
     assert.doesNotMatch(body, /references\//u, "a skill cites no file it does not carry");
-    const served = existsSync(join(PLUGIN, "guides", "skills", name, BODY));
+    const served = bodyPathsOf(name, PLUGIN).length > 0;
     if (served) {
       assert.match(body, new RegExp(`\`forge guide ${name}\``, "u"), `${name}'s stub names the verb that serves it`);
     } else {

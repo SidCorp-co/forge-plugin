@@ -1,6 +1,6 @@
 # The issue-flow contract
 
-Its text is `plugin/guides/issue-flow-contract.md`, and `forge guide contract` prints its table of
+Its text is `plugin/guides/v1/issue-flow-contract.md`, and `forge guide contract` prints its table of
 contents — one part per line, with the command that prints that part.
 
 It lives inside the plugin because installing copies `plugin/` and nothing beside it, so a rule kept

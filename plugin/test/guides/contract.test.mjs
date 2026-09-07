@@ -35,13 +35,13 @@ const PARTS = partsOf(TEXT);
 const STAGED = [...ORDER, "dropped"];
 
 test("the contract is inside the plugin, at one path, and nothing else in the tree holds it", () => {
-  assert.equal(contractPath(), join(PLUGIN, "guides", "issue-flow-contract.md"));
+  assert.equal(contractPath(), join(PLUGIN, "guides", "v1", "issue-flow-contract.md"));
   assert.ok(existsSync(contractPath()), `${contractPath()} is what every route now names`);
   const tracked = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
     .trim().split("\n").filter(Boolean);
   const holding = tracked.filter((rel) =>
     readFileSync(join(ROOT, rel), "utf8").includes("## The stages, scenario by scenario"));
-  assert.deepEqual(holding, ["plugin/guides/issue-flow-contract.md"], "one source, and docs/ points at it");
+  assert.deepEqual(holding, ["plugin/guides/v1/issue-flow-contract.md"], "one source, and docs/ points at it");
 });
 
 test("every status of the flow has a part, and the sections are the file's own headings", () => {
@@ -205,8 +205,8 @@ test("every rule the contract states has the figure's row, and every row states 
 });
 
 /* The body `forge guide issue-flow` serves, not the stub Claude Code loads (ISS-353). */
-const SKILL = join(PLUGIN, "guides", "skills", "issue-flow", "guide.md");
-const VERIFICATION = join(PLUGIN, "guides", "skills", "issue-flow", "references", "verification.md");
+const SKILL = join(PLUGIN, "guides", "v1", "skills", "issue-flow", "guide.md");
+const VERIFICATION = join(PLUGIN, "guides", "v1", "skills", "issue-flow", "references", "verification.md");
 const CONTRACT_REL = contractPath();
 /* Split rather than matched to a lookahead: a lazy body against a multiline `$` ends at the first
    line break, and every phase then reads as empty. */
@@ -316,7 +316,7 @@ test("the number the file states is its own line, and the prose about versions i
 });
 
 test("a copy with no contract, one with no number and one from another build are each a finding", () => {
-  const path = "/somewhere/guides/issue-flow-contract.md";
+  const path = "/somewhere/guides/v1/issue-flow-contract.md";
   assert.deepEqual(contractProblems({ text: TEXT, path }), []);
   assert.match(contractProblems({ text: null, path })[0], /no contract at \/somewhere\//u);
   assert.match(contractProblems({ text: "# No number here", path })[0], /states no contract number/u);
@@ -369,8 +369,8 @@ const copyOfCode = (contract) => {
     cpSync(join(PLUGIN, held), join(room, held), { recursive: true });
   }
   if (contract !== null) {
-    mkdirSync(join(room, "guides"));
-    writeFileSync(join(room, "guides", "issue-flow-contract.md"), contract);
+    mkdirSync(join(room, "guides", "v1"), { recursive: true });
+    writeFileSync(join(room, "guides", "v1", "issue-flow-contract.md"), contract);
   }
   const home = tempRoom("contract-home-");
   const run = spawnSync(process.execPath, [join(room, "src", "cli.mjs"), "doctor"], {
@@ -381,7 +381,7 @@ const copyOfCode = (contract) => {
 };
 
 test("doctor names the missing file, and a file from another build, in the copy that is running", () => {
-  assert.match(copyOfCode(null), /\[ miss \] contract\s+no contract at \S+guides\/issue-flow-contract\.md/u);
+  assert.match(copyOfCode(null), /\[ miss \] contract\s+no contract at \S+guides\/v1\/issue-flow-contract\.md/u);
   assert.match(copyOfCode("**Contract 9.**\n"), /\[ miss \] contract\s+\S+ states contract 9/u);
   assert.match(copyOfCode(TEXT), /\[ {2}ok {2}\] contract\s+\S+ states contract 1/u);
 });
@@ -543,7 +543,7 @@ test("the checks point back from the guides, and the evidence table keeps the ki
   for (const kind of ["An API", "A CLI", "A library", "A batch or data job", "Generated output", "Infrastructure"]) {
     assert.ok(held.includes(`| ${kind} |`), `the evidence table no longer names ${kind}, which no check replaced`);
   }
-  const guide = flat(readFileSync(join(PLUGIN, "guides", "skills", "issue-flow", "guide.md"), "utf8"));
+  const guide = flat(readFileSync(join(PLUGIN, "guides", "v1", "skills", "issue-flow", "guide.md"), "utf8"));
   assert.ok(guide.includes("`developed` refuses a path in it that neither the plan nor a correction"),
     "Phase 4 no longer names the check that refuses a file the plan does not name");
 });

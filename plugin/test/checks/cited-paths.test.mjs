@@ -43,8 +43,10 @@ const ANOTHER_TREE = {
   "plugin/agents": "role definitions read from wherever they are installed, held by the same check",
   "plugin/test": "a fixture path is invented on purpose, and every case below is one",
 };
-const out = (rel) =>
-  Object.keys(ANOTHER_TREE).some((claim) => rel === claim || rel.startsWith(`${claim}/`));
+/* A version directory is not a part of the tree, so the claim naming `skills` covers `v1/skills`. */
+const unversioned = (rel) => rel.replace(/^plugin\/guides\/v\d+\//u, "plugin/guides/");
+const out = (rel) => Object.keys(ANOTHER_TREE).some((claim) =>
+  [rel, unversioned(rel)].some((one) => one === claim || one.startsWith(`${claim}/`)));
 const POPULATION = list(...DESCRIBES_THIS_TREE).filter((one) => !out(one));
 const files = POPULATION.map((rel) => ({ rel, text: readFileSync(join(ROOT, rel), "utf8") }));
 

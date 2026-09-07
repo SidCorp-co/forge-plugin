@@ -1,38 +1,62 @@
 /* What a skill reads on a minority of its invocations is served from the running copy rather than
-   loaded with the session: a long method as a body plus references, a short one as references
-   alone beside an inline SKILL.md. The directory is the contract's for the reason contract.mjs
-   gives; docs/cli/the-guides.md carries the decision. */
+   loaded with the session: a long method as a body plus references, a short one as references alone
+   beside an inline SKILL.md. The directory and the decision: docs/cli/the-guides.md. */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { didYouMean } from "../suggest.mjs";
 import { SLUG as CONTRACT_SLUG, partFor, partsOf, readContract } from "./contract.mjs";
+import { methodPinned, versionDir } from "./version.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const WITHIN = join("guides", "skills");
 export const BODY = "guide.md";
 const REFERENCES = "references";
 
-const skillGuidesRoot = (root = HERE) => join(root, WITHIN);
+const folders = (dir) => (existsSync(dir)
+  ? readdirSync(dir, { withFileTypes: true }).filter((one) => one.isDirectory()).map((one) => one.name)
+  : []);
 
-export const referencesOf = (slug, root = HERE) => {
-  const dir = join(skillGuidesRoot(root), slug, REFERENCES);
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3)).sort();
-};
+const namesIn = (dir) => (existsSync(dir)
+  ? readdirSync(dir).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3)).sort()
+  : []);
 
-const hasBody = (slug, root) => existsSync(join(skillGuidesRoot(root), slug, BODY));
+/* Two roots, because one number pins the method and nothing else: the versioned root holds what a
+   project's `method` chooses between, the plain one every skill no version judges. A slug in both is
+   served versioned; `bodyPathsOf` reads the tree whole, for a check owed to it rather than to a pin. */
+const homeOf = (slug, root, version) =>
+  [join(root, "guides", versionDir(version), "skills"), join(root, WITHIN)]
+    .find((one) => existsSync(join(one, slug))) ?? join(root, WITHIN);
 
-/** Read off the directory rather than listed. */
-export const skillGuideSlugs = (root = HERE) => {
-  const dir = skillGuidesRoot(root);
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true })
-    .filter((one) => one.isDirectory() && (hasBody(one.name, root) || referencesOf(one.name, root).length))
-    .map((one) => one.name)
-    .sort();
-};
+/* Every shipped version's root and the plain one, so the listing is one set whatever a project pins;
+   exported because two scripts walk skill text and would each carry this shape. Newest version
+   first, and by number: `readdirSync` promises no order and a lexical one puts v10 under v2. */
+export const guideRoots = (root = HERE) => [
+  ...folders(join(root, "guides")).filter((one) => /^v\d+$/u.test(one))
+    .sort((one, next) => Number(next.slice(1)) - Number(one.slice(1)))
+    .map((one) => join(root, "guides", one, "skills")),
+  join(root, WITHIN),
+];
+
+export const referencesOf = (slug, root = HERE, version = methodPinned().value) =>
+  namesIn(join(homeOf(slug, root, version), slug, REFERENCES));
+
+export const guideBodyPath = (slug, root = HERE, version = methodPinned().value) =>
+  join(homeOf(slug, root, version), slug, BODY);
+
+export const bodyPathsOf = (slug, root = HERE) =>
+  guideRoots(root).map((dir) => join(dir, slug, BODY)).filter((one) => existsSync(one));
+
+const hasBody = (slug, root = HERE, version = methodPinned().value) =>
+  existsSync(guideBodyPath(slug, root, version));
+
+const speaks = (dir, slug) =>
+  existsSync(join(dir, slug, BODY)) || namesIn(join(dir, slug, REFERENCES)).length > 0;
+
+/** Read off the directories rather than listed. */
+export const skillGuideSlugs = (root = HERE) =>
+  [...new Set(guideRoots(root).flatMap((dir) => folders(dir).filter((slug) => speaks(dir, slug))))].sort();
 
 const sizeOf = (path) => (existsSync(path) ? statSync(path).size : 0);
 
@@ -49,7 +73,7 @@ export const skillListingRow = (slug, root = HERE) => {
 };
 
 const referenceLines = (slug, root) => {
-  const dir = join(skillGuidesRoot(root), slug, REFERENCES);
+  const dir = join(homeOf(slug, root, methodPinned().value), slug, REFERENCES);
   const names = referencesOf(slug, root);
   if (!names.length) return [];
   const width = names.reduce((wide, one) => Math.max(wide, one.length), 0);
@@ -67,7 +91,7 @@ export const skillGuideAnswer = (slug, root = HERE) => ({ part = null, tracker =
     return { refusal: `${slug} takes one reference, not \`${[part, ...extra].join(" ")}\`.`
       + ` \`forge guide ${slug}\` lists them.` };
   }
-  const dir = join(skillGuidesRoot(root), slug);
+  const dir = join(homeOf(slug, root, methodPinned().value), slug);
   if (!part) {
     const body = hasBody(slug, root) ? readFileSync(join(dir, BODY), "utf8").replace(/\s+$/u, "") : INLINE(slug);
     return { lines: [body, ...referenceLines(slug, root)] };
@@ -99,7 +123,7 @@ export const unresolvedCitations = (root = HERE) => {
   const out = [];
   const files = stubsOf(root);
   for (const slug of skillGuideSlugs(root)) {
-    const dir = join(skillGuidesRoot(root), slug);
+    const dir = join(homeOf(slug, root, methodPinned().value), slug);
     if (hasBody(slug, root)) files.push(join(dir, BODY));
     files.push(...referencesOf(slug, root).map((one) => join(dir, REFERENCES, `${one}.md`)));
   }

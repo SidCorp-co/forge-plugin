@@ -7,17 +7,6 @@
 
 import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./contract.mjs";
 import { skillGuideAnswer, skillGuideSlugs, skillListingRow } from "./skill-guides.mjs";
-import { methodScope } from "../resolve/settings.mjs";
-
-/* One number pins the guide, the method and the contract, because they are designed as one set and a
-   project mixing them runs text nobody tested. `SHIPPED` is what a pinned version is refused against. */
-export const METHOD = 1;
-export const SHIPPED = [METHOD];
-
-export const methodPinned = () => {
-  const { value, from, unknown } = methodScope();
-  return value === null ? { value: METHOD, from, ...(unknown ? { unknown } : {}) } : { value, from };
-};
 
 /* The guides this copy answers off its own disk, listed rather than reached by the verb comparing a
    slug against one constant of its own; a slug absent from it is the tracker's, answered `null`. */

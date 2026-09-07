@@ -96,15 +96,23 @@ test("the roles directory is one of the roots a skill check walks, and it is fla
     { dir: "/p/guides/skills", flat: false },
     { dir: join("/p", ROLES), flat: true },
   ], "a root out of this list is a tree no skill check reads");
+  assert.ok(skillRootsIn(PLUGIN).some(({ dir }) => /guides\/v\d+\/skills\/?$/u.test(dir)),
+    "and a version directory's own skills are walked, or the method's text is the one tree unguarded");
 });
+
+/* Recounted off the tree rather than off the walker's roots, or this counts nothing: every `skills`
+   directory under `guides`, whatever the version directories above them are named. */
+const guideSkillRoots = (dir = join(PLUGIN, "guides")) => readdirSync(dir, { withFileTypes: true })
+  .filter((one) => one.isDirectory())
+  .flatMap((one) => (one.name === "skills" ? [join(dir, one.name)] : guideSkillRoots(join(dir, one.name))));
 
 /* Only the bare run says the roles were reached. */
 test("the default walk reaches every role and skill, and none of them names a path", () => {
   const run = spawnSync(process.execPath, [SCRIPT], { encoding: "utf8" });
   assert.equal(run.status, 0, run.stdout);
   const counted = Number(/clean — (\d+) skill/u.exec(run.stdout)?.[1]);
-  const owed = readdirSync(join(PLUGIN, "skills")).length
-    + readdirSync(join(PLUGIN, "guides", "skills")).length + 1;
+  const owed = [join(PLUGIN, "skills"), ...guideSkillRoots()]
+    .reduce((sum, dir) => sum + readdirSync(dir).length, 1);
   assert.equal(counted, owed,
     `${counted} directory(ies) walked where ${owed} are shipped: a root is out of the walk, and the `
       + `${rolesIn().length} role(s) it holds are unguarded`);
