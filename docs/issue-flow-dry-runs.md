@@ -5173,3 +5173,27 @@ from their handback; the twelve and nine comments were read back.
 - The ship stopped at step 7 on the fold commit that landed run 200; the run waited and resumed as
   the brief says. Two of the three filings this run made were duplicates the neighbour list showed
   it (ISS-610 of ISS-477 and ISS-572; ISS-617 beside ISS-511, ISS-382, ISS-341); marked by the fold.
+
+## Two-hundred-and-second dry run — ISS-565
+
+The fix route's search asks for rows, keeps its failure, and says when it could not tell (3.35.222,
+landed as 3123b40): one page at the route's cap with an honest count of the whole, the swallowing
+catch removed, and a third branch that names the reading rather than the backlog. Five criteria pass
+at the judged head, three mutations each turning exactly one case red; one pass qualified because the
+CLI-path case goes red at the unfixed tree for the under-ask's reason and not the swallow's, since a
+transport failure exits the process before anything downstream runs. One filed (ISS-618), one routed
+to ISS-584. Closed by its run; the release note withheld on the fix tier. No restart owed. Folded from
+its handback; the ten comments were read back.
+
+- The dispatcher set the band on the field before the brief went out, and the ladder read the fix
+  tier without a correction: the first run since the lesson was written, and the tax was not paid.
+- A multi-part change's cases can go red for the wrong reason: a case written for the swallow was
+  red at the unfixed tree because of the under-ask, and only the in-process path, where a failure
+  throws instead of exiting, could show the swallow at all. A case that fails without the fix has to
+  fail for the fix's reason, and the run recorded the gap rather than a rule.
+- The test fixture's issues routes drop a handler's refusal keys where the comments route keeps them,
+  so a case saying "this search refused" was served a complete empty page (ISS-618). Filed before the
+  workaround, which arms the status off the walk's own answer.
+- No route-side ask narrows to "open": status is a single-value filter and fourteen statuses count
+  as open, so one page at the cap plus the honest count is the only fix the Rules admit. The body's
+  "bounded by rows" was right and the number was the route's, not the CLI's.
