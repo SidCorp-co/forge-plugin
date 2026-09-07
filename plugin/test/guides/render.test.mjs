@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { homeEnv, tempRoom } from "../fixtures.mjs";
@@ -40,6 +40,16 @@ const room = (plugin) => {
   const dir = tempRoom("render-");
   writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: "render-fixture", feedback: { plugin } }));
   return dir;
+};
+
+/* The machine's option, where the channel above is the project's: its own config home, never the live one. */
+const shipping = (ship, slug = "issue-flow", part = "7") => {
+  const env = homeEnv("render-ship");
+  mkdirSync(join(env.XDG_CONFIG_HOME, "forge"), { recursive: true });
+  writeFileSync(join(env.XDG_CONFIG_HOME, "forge", "config.json"),
+    JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", ship }));
+  const argv = slug === "issue-flow" ? ["guide", slug, part] : ["guide", slug];
+  return spawnSync(FORGE, argv, { encoding: "utf8", env, cwd: room("bugs") });
 };
 
 /* The paragraph is the unit a reader sees, so equal-elsewhere is asserted over paragraphs: a
@@ -177,6 +187,31 @@ test("a marker inside a literal context is served, and one indented outside it s
   assert.equal(off.text.includes("forge:"), false, "and its own lines are never served");
   assert.equal(render(indented, answering("bugs")).text.includes("The conditional instruction."), true,
     "while the project that has the channel still gets it");
+});
+
+/* The other condition, whose two answers are both text rather than a block and its absence: a run
+   reading the wrong half is told to land a change the mode stops at a pushed branch. Off the shipped
+   bodies, because a fence that stopped matching either would pass on a fixture (ISS-673). */
+test("Phase 7 and the fold are served in the mode's own text, one branch of each per reader", () => {
+  const modes = ["self", "ready"];
+  const both = modes.map((one) => shipping(one).stdout);
+  for (const [at, said] of both.entries()) {
+    assert.equal(said.includes("forge:when"), false, `${modes[at]}: a fence is never served to a reader`);
+    assert.match(said, /^## Phase 7 — Ship/mu, `${modes[at]}: the part is the phase`);
+  }
+  const [self, ready] = both;
+  assert.match(self, /The landing is this phase's first step/u, "self mode lands its own change");
+  assert.doesNotMatch(self, /ends at ready-to-land/u, "and is told nothing about a landing it does not make");
+  assert.match(ready, /ends at ready-to-land and lands nothing/u, "ready mode stops at the checkpoint");
+  assert.match(ready, /forge claim ISS-nn --pushed --ready/u, "with the command that writes one");
+  assert.doesNotMatch(ready, /The landing is this phase's first step/u,
+    "and is not also told to merge, which is the contradiction the mode used to serve");
+  /* The fold is the other half: under `ready` the landing is the dispatcher's step, and nothing in
+     the shipped text said so, so a wave read a Phase 6 that folded reports and landed nothing. */
+  const folds = modes.map((one) => shipping(one, "dispatch").stdout);
+  assert.doesNotMatch(folds[0], /ready-to-land/u, "self mode's fold lands nothing extra");
+  assert.match(folds[1], /the landing is this phase's and it is one actor's/u, "ready mode's fold lands them");
+  assert.match(folds[1], /never the run that built the change/u, "and dispatches the judge where one is asked for");
 });
 
 /* The number is the whole address, so a phase that grew a subsection has to answer with all of it:

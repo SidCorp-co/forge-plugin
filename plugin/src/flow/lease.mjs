@@ -106,7 +106,7 @@ export const parkAnswers = (lease, status, parkedAt) =>
 
 /* The other object in the field, beside the lease and the worklog: what a build ready to land leaves
    for whoever lands it. One turn per state, `done` is nobody's, and which of the two successors a
-   state offers is the landing task's reading of the project. docs/cli/claim.md. */
+   state offers is the landing task's reading of the project. docs/cli/the-checkpoint.md. */
 export const LANDING = "landing";
 export const LANDING_READY = "ready";
 export const LANDING_QA_OWED = "qa-owed";
@@ -213,7 +213,7 @@ export const takeRefusal = (ref, landing, holder, lease, { now = Date.now(), sou
         + `comes back at \`builder-owed\` and nowhere else. ${READ_THE_STATE(ref)}`;
     }
     /* At `judged` alone and spent by the take: a judge that went on to land under that same lease
-       holds an ordinary lander's, which a third run may not take. docs/cli/claim.md. */
+       holds an ordinary lander's, which a third run may not take. docs/cli/the-checkpoint.md. */
     if (!live || lease.holder === holder || lease.holder === landing.builder) return null;
     if (landing.state === LANDING_JUDGED && landing.judge && lease.holder === landing.judge) return null;
     return `${said}, whose turn is the lander's, and ${describe(lease)} is already on it. `

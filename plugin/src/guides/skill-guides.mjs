@@ -5,7 +5,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { FEEDBACK_CHANNELS, feedbackScope } from "../resolve/settings.mjs";
+import { FEEDBACK_CHANNELS, SHIP_MODES, feedbackScope, shipMode } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { SLUG as CONTRACT_SLUG, partFor, partsOf, readContract } from "./contract.mjs";
 import { phasesOf, render } from "./render.mjs";
@@ -101,6 +101,7 @@ const versionLine = (version) =>
 /* One entry per answer this CLI can give here, each declaring the domain off that key's own list. */
 const conditions = () => ({
   "feedback.plugin": { value: feedbackScope().plugin.value, allowed: FEEDBACK_CHANNELS },
+  ship: { value: shipMode().value, allowed: SHIP_MODES },
 });
 
 const served = (slug, text, tail) => {

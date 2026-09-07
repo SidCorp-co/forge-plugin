@@ -88,6 +88,27 @@ Every report is folded, whatever it says: what landed, what was filed, what a re
 and what a run declined and why. A claim a report makes about work filed elsewhere is checked by
 reading that thread, not taken.
 
+<!-- forge:when ship ready -->
+**Where the runs end at ready-to-land, the landing is this phase's and it is one actor's.** Every
+branch a run left with a ready checkpoint is landed from this checkout, in the order the fold names
+them, and the reason it is one actor is the lock: a landing holds one every worktree shares, so runs
+landing their own would each pay a whole gate for one branch and queue behind each other to do it.
+Landed here they are gated against the base as it actually is at that moment, which is what a run's
+own gate cannot be while its siblings are still landing.
+
+A branch handed back is not a failure of the fold, and two things hand one back: a merge that touched
+a path the change owns, and a base the landing found had moved. Either way the run that built it is
+resumed as a parked run is, by the same agent and from the checkpoint, and the section says which of
+the two it was. A branch that will not merge at all is parked with its conflict list and lands
+nothing; the one after it is somebody else's release, so the fold carries on rather than stopping
+at the first refusal.
+
+**Where the project asks for an independent judge**, the landing stops for one and the fold
+dispatches it: a role of its own, given the issue, its criteria and Outcome, and the deployment
+identity the checkpoint names — never the run that built the change, whose own verdicts earn nothing
+there. Its verdicts and its hand-back are what let the landing finish.
+<!-- forge:end -->
+
 **A run that parked is resumed, never replaced.** When the block it named clears, the same agent is
 messaged to continue from the phase its park named; its reading, confirmation and narrowings are
 already in its context, and a fresh dispatch pays Phase 0 and Phase 1 again to re-derive them. A new

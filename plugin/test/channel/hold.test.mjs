@@ -4,7 +4,7 @@
    never on this plugin's own checkout, where a plugin defect and a project issue are one thing. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { writeFileSync } from "node:fs";
+import { readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
@@ -67,6 +67,28 @@ test("a body whose cause is inside this plugin is held on a project that closed 
   assert.match(run.stderr, /plugin\/hooks\/gates\/learning\.mjs/u, "naming what it read the cause as");
   assert.match(run.stderr, /run's report/u, "with the route the finding takes instead");
   assert.match(run.stderr, /withheld by the project/u, "in the words the report's own line carries");
+});
+
+/* The directory list was typed, so it stopped matching `plugin/agents/` the day that directory was
+   added and said nothing: a body whose cause is a role's own text read as another project's issue
+   and was filed there. Read off this copy now, and every directory it ships is watched matching, so
+   the next one added is covered without anybody remembering to (ISS-673). */
+test("every directory this copy ships is a path the hold reads as inside the plugin", async () => {
+  const dirs = readdirSync(new URL("../../", import.meta.url), { withFileTypes: true })
+    .filter((one) => one.isDirectory() && !one.name.startsWith("."))
+    .map((one) => one.name);
+  assert.ok(dirs.includes("agents"), "the directory whose absence from the typed list was the defect");
+  assert.ok(dirs.length > 5, `${dirs.length} directory(ies) under plugin/; the selector reads the wrong tree`);
+  for (const dir of dirs) {
+    const named = BODY.replace("plugin/hooks/gates/learning.mjs", `plugin/${dir}/whatever.md`);
+    const path = join(elsewhere, `cause-${dir}.md`);
+    writeFileSync(path, `${named}\n`);
+    state.calls = [];
+    const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--kind", "bug"],
+      tracker.env, elsewhere);
+    assert.equal(run.status, 1, `plugin/${dir}/ read as another project's issue:\n${run.stdout}`);
+    assert.match(run.stderr, /cause is inside this plugin/u, `plugin/${dir}/: ${run.stderr}`);
+  }
 });
 
 test("the same body under the same key is filed on this plugin's own checkout", async () => {

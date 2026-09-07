@@ -1,7 +1,6 @@
-/* The landing, one ready branch at a time, from the tree the fold works in. What a build leaves
-   behind is a checkpoint (`forge claim --ready`) and a pushed branch; what this does is merge it
-   onto a pinned base, prove the merge moved nothing of the change, and promote the result. It
-   repairs no conflict and re-judges nothing: both go back to the run that built the branch (ISS-673). */
+/* The landing, one ready branch at a time, from the tree the fold works in: a checkpoint and a pushed
+   branch in, a merge onto a pinned base that moved nothing of the change out. It repairs no conflict
+   and re-judges nothing — both go back to the run that built it. docs/cli/the-checkpoint.md. */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -30,15 +29,14 @@ import { INDEPENDENT, voidedBy } from "../../plugin/src/flow/qa/verdicts.mjs";
 import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/tracker/project-config.mjs";
 import { landingScope } from "../../plugin/src/resolve/settings.mjs";
 
+/* The route this task branches on, off the project's record. docs/cli/the-checkpoint.md. */
+const BEFORE_MERGE = "before-merge";
+const AFTER_MERGE = "after-merge";
 const DEVELOPED = "developed";
 const TESTED = "tested";
 
-/* The one line of the project's record this task branches on. docs/cli/claim.md. */
-const BEFORE_MERGE = "before-merge";
-const AFTER_MERGE = "after-merge";
-
-/* A landing that rebuilt twice and found the base moved again is a fold racing something else, and
-   a third pass would spend another whole gate to say so. */
+/* Rebuilt twice with the base moving under each pin is a fold racing something else, and a third
+   pass would spend another whole gate to say so. */
 const TRIES = 2;
 
 /* The steps by name rather than by number, because the resume table below points at them and a
@@ -60,12 +58,11 @@ const OWED = {
   marked: "status",
 };
 
-/* `judged` sits either side of a promotion and the release tells them apart: docs/cli/claim.md. */
+/* `judged` sits either side of a promotion, the release telling them apart: the-checkpoint.md. */
 const owedAt = (landing) =>
   (landing.state === LANDING_JUDGED && landing.release ? "status" : OWED[landing.state] ?? "");
 
-/* `fail` inside the CLI's own modules ends the process, and an exit mid-landing would drop the
-   lock's release and leave a branch promoted with nothing said about it. */
+/* `fail` in the CLI's own modules exits, dropping the lock and leaving a branch promoted in silence. */
 const asked = async (run) => {
   try {
     return await refusing(run);
@@ -139,11 +136,10 @@ const dropRoom = (root, path) => {
 };
 
 /* Whether the release is on the branch, ancestry included: a landing that died before its `promoted`
-   save may find the base a commit or two past its own release, and a head past it carries it. The
-   fetch is what makes the observed head readable at all on a resume that pinned nothing.
-   `known` is the third answer, and the reason this is not a boolean: a head pushed between the fetch
-   and the read is a commit this repository does not hold, and `--is-ancestor` cannot tell that from
-   a head that does not carry the release. Read as `false`, it would release the same change twice. */
+   save may find the base past its own release, and the fetch is what makes that head readable at all.
+   `known` is the third answer and the reason this is no boolean: a head pushed between the fetch and
+   the read is a commit this repository does not hold, which `--is-ancestor` cannot tell from a head
+   that does not carry the release — read as `false`, it would release the same change twice. */
 const landedAlready = (tree, base, intended) => {
   loud("git", ["fetch", REMOTE, base], tree, "Check the remote is reachable.");
   const now = remoteHead(tree, base);

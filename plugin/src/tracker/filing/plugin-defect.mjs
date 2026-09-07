@@ -1,15 +1,34 @@
 /* Where a defect in this plugin goes from a checkout that is not this plugin's, rendered off the
    project's key so a closed channel takes its sentence with it: docs/cli/withholding-a-verb.md. */
+import { readdirSync } from "node:fs";
+
 import { KIND_NAMES, article, originIn } from "../issue-shape.mjs";
 import { pluginChannel, verbForPluginDefect } from "../../resolve/visibility.mjs";
 import { projectScope } from "../../resolve/settings.mjs";
+import { once } from "../../resolve/config.mjs";
+import { hereCopy } from "../../tools/plugin-copy.mjs";
 
 export const PROJECT = "forge-plugin";
 
 /** Here a plugin defect and a project issue are one thing: nothing to route, nothing to hold. */
 export const onThisRepository = () => projectScope().value === PROJECT;
 
-const PLUGIN_PATH = /\bplugin\/(?:bin|guides|hooks|scripts|skills|src|test)\//u;
+/* Read off this copy, never typed: the typed list was written before `plugin/agents/` existed and
+   stopped matching a path this plugin ships, in silence (ISS-673). withholding-a-verb.md. */
+const pluginDirs = () => {
+  try {
+    return readdirSync(hereCopy().dir, { withFileTypes: true })
+      .filter((one) => one.isDirectory() && !one.name.startsWith("."))
+      .map((one) => one.name);
+  } catch {
+    return [];
+  }
+};
+
+const PLUGIN_PATH = once(() => {
+  const dirs = pluginDirs();
+  return dirs.length ? new RegExp(`\\bplugin/(?:${dirs.join("|")})/`, "u") : null;
+});
 const PLUGIN_SLUG = new RegExp(`\\b${PROJECT}\\b`, "u");
 const IN_THE_PLUGIN = "A defect in this plugin itself — one of its verbs, its hooks or its gates —\nis not this project's issue";
 
@@ -48,7 +67,7 @@ export const routingBlock = () => {
 export const pluginDefectHold = (description) => {
   if (onThisRepository() || pluginChannel().value !== "off") return null;
   const origin = originIn(description);
-  if (!PLUGIN_PATH.test(origin) && !PLUGIN_SLUG.test(origin)) return null;
+  if (!PLUGIN_PATH()?.test(origin) && !PLUGIN_SLUG.test(origin)) return null;
   return "This body says its cause is inside this plugin, and a defect in the plugin is not this "
     + `project's issue: ${origin.trim().split("\n").find(Boolean)}\n`
     + `This project files none — feedback.plugin is off in ${pluginChannel().from} — so the finding `

@@ -1,12 +1,10 @@
 # The forge CLI — the failures and numbers behind its shape
 
-Four homes, and each fact has one. `forge -h` and every verb's `-h` are the **surface**. The skills
-are **how to spend a call** — payload forms, fetching narrow, what a missing verb means, how to ask
-codex and how to read it. The code is the **mechanism**. This holds only what none of them can: the
-failure that was hit, or the measurement that settled an argument. If a line here could go in one of
-the other three, it belongs there. Dates stay: a measurement was true once and not forever.
-One row per topic: the decision it holds, and the file that holds it. The file is read by whoever
-needs that topic and by nobody else.
+Four homes, and each fact has one. `forge -h` and every verb's is the **surface**; the skills are
+**how to spend a call**; the code is the **mechanism**. This holds what none of them can — the
+failure that was hit, the measurement that settled an argument — so a line that could go in one of
+the other three does. Dates stay: a measurement was true once, not forever. One row per topic, read
+by whoever needs it and nobody else.
 
 | Topic | The decision it holds |
 |---|---|
@@ -19,6 +17,7 @@ needs that topic and by nobody else.
 | [`record`](cli/record.md) | Why the CLI owns every payload's shape, which two flags are read off the record, and what a record cannot undo. |
 | [`advance`](cli/advance.md) | What the entry criteria are read from, why git is never asked at the transition while the requirements tree is, and how a reopen is routed. |
 | [`claim`](cli/claim.md) | How far a lease can be promised without a conditional write, what the step line is for, and why every write lists the issue's comments first. |
+| [`the checkpoint`](cli/the-checkpoint.md) | What a build ready to land leaves for whoever lands it, why both merge routes are one table, and how the judge's turn is handed back rather than abandoned. |
 | [`resume`](cli/resume.md) | What the worklog holds beside the lease, why no capture of it is automatic, and what the brief prints. |
 | [`spec`](cli/spec.md) | Why a clause is answered by its identifier, and the three readings of the notation that were narrowed rather than guessed. |
 | [two writes that lie about themselves](cli/two-writes-that-lie.md) | Why a field is reported written only after the server shows it, and why the read-back compares the copy the boundary sent. |

@@ -64,6 +64,13 @@ than its own taste. One identifier per goal, from the brief's *What this project
 and *not stated* is a line to discover by hand like any other. Every project's list is its own, and
 it is the list a `Serves:` names.
 
+**Three lines say how far Phase 7 goes**, and they are read here because the plan written at Phase 3
+is written against them: where the merge sits, whether the judgement between `developed` and `tested`
+is an independent run's, and the ship mode this machine is set to. The first two are the project's,
+off `forge project`; the third is the machine's, off `forge doctor`. A run that finds the merge point
+*not stated* on a project asking for an independent judge has no way to know whether the judging
+comes before the push or after it, and discovers it by hand rather than assuming either.
+
 **The deploy lines end with the credential one**, *test credentials: present* or *none*, and it is
 read here rather than at Phase 7. A screen is proved by a rendered state and a login is what reaches
 one on a deployed host, so a *none* found now is a shortfall a run can still do something about,
@@ -193,8 +200,8 @@ Read the criteria back off the issue and judge each one, one typed verdict per c
 own evidence, at the head Phase 4's last step left. A criterion is a claim too: judge it against the
 issue before judging the code against it. **On every outcome, not only on failure.**
 
-Nothing advances from this phase: `developed` and `tested` both move at the ship, on the record
-written here. Which head, what each kind of change owes as evidence and how to capture it:
+Nothing advances from this phase: `developed` and `tested` both move at the landing, on the record
+written here, whether this run makes that landing or leaves it ready for the one that does. Which head, what each kind of change owes as evidence and how to capture it:
 `forge guide issue-flow verification`. What a record holds before either status is earned:
 `forge guide contract developed`, `forge guide contract tested`.
 
@@ -219,10 +226,13 @@ Drafted here, posted in Phase 7: `forge record note -h`.
 
 ## Phase 7 — Ship
 
-Take the integration and deploy path Phase 0 discovered. **The landing is this phase's first step**:
-the change goes onto the default branch here, after the judging, and the merged mark written at the
-landing earns `developed` and `tested` on the record Phase 5 wrote. What the mark carries:
-`forge guide contract developed`.
+Take the integration and deploy path Phase 0 discovered, and it is the ship mode that says how far
+this phase goes. Phase 0 read that mode; the text below is the one it named.
+
+<!-- forge:when ship self -->
+**The landing is this phase's first step**: the change goes onto the default branch here, after the
+judging, and the merged mark written at the landing earns `developed` and `tested` on the record
+Phase 5 wrote. What the mark carries: `forge guide contract developed`.
 
 **The ship is the longest wait a run has**, and it is waited on by the rule every other wait here
 obeys, which the poll guard enforces on its log too: `forge hooks --how polling`, read before the
@@ -237,6 +247,30 @@ what other people's queries filter on, so it moves last. What the move is owed:
 on it has handed a person the one keystroke this workflow exists to take over. Where the contract
 hands the issue to somebody instead, a park or a reopen, it stays where it is and the report says
 which.
+<!-- forge:end -->
+<!-- forge:when ship ready -->
+**This phase ends at ready-to-land and lands nothing.** One actor per checkout does the landing, for
+every branch ready at once, because a landing holds a lock every worktree shares and runs queueing
+at it each pay a whole gate for one branch. So: push the branch, and leave the checkpoint that says
+it is ready — `forge claim ISS-nn --pushed --ready`, which records the branch, the base, the head
+Phase 4's last step judged and the files the change touched, off git at that moment rather than from
+memory.
+
+**The lease is handed over and never dropped.** The checkpoint names whose turn is next and the
+landing takes it; a run that abandons the lease instead leaves an issue nobody may write to until it
+expires. Phase 5's record and Phase 6's drafted note are written before that checkpoint, because the
+landing writes neither: it moves the statuses those records earn and nothing else.
+
+**What the landing does with it is not this run's to do.** It merges the branch onto a pinned base,
+proves the merge left the change's own paths alone, gates the result, promotes it and writes the
+merged mark. Two of its outcomes come back to this run instead: a merge that touched one of those
+paths, and a base it found had moved. Either hands the branch back to be rebased, judged again at
+its new head, and readied a second time. `forge resume ISS-nn` says which happened.
+
+**Where the project asks for an independent judge**, the landing stops for one and the judgement is
+another run's: this run neither writes those verdicts nor waits for them. Whether that stop sits
+before the promotion or after it is the project's landing route, which Phase 0 read.
+<!-- forge:end -->
 
 **A failure anywhere along the path is condition 3**: roll back by the route Phase 0 established,
 and report with the evidence rather than retrying past it.

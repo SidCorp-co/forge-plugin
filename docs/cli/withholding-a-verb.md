@@ -52,11 +52,12 @@ nothing to route and nothing to hold. And never on the verb that carries a note 
 backlog on purpose, which aims at that project before it files — a hold there would lose the
 finding, which is the one thing that route promises not to do.
 
-The machine's other option sits in the same file for the same reason. `forge doctor --ship
-ready|self` says whether a run on this machine lands its own change or ends ready for another actor
-to land it: the actor that lands runs on this checkout, so the level that owns the landing owns the
-switch. Absent, it is `self`, which is what every run did before the option existed — a silence here
-is the old behaviour and never a refusal to land.
+The machine's other option sits in the same file for the same reason, and `forge doctor --ship` is
+where it is read and written. What the two modes each ask of a run is the method's to say, and the
+served method says it; what belongs here is why the switch is the machine's rather than the
+project's or the run's: the actor that lands runs on this checkout, and two checkouts of one project
+can answer differently without either being wrong. Absent, it is the mode every run had before the
+option existed — a silence here is the old behaviour and never a refusal to land.
 
 **A replaced verb is retired, not redirected.** When a new verb or tool takes over what an old one
 did, the old name leaves every surface at once — the dispatcher, `-h`, the CLI document, the skills,
