@@ -5148,3 +5148,28 @@ nineteen comments were read back.
   because the split behaved the same on both; what caught it was the diff reporting a source file as
   binary. Every changed file was swept for NUL before the commit. A green test is not a check that a
   source file is text.
+
+## Two-hundred-and-first dry run — ISS-134 and ISS-577
+
+A refused evidence upload names the file and the accepted set, and every slot is minted before any
+bytes go (3.35.219, landed as 74dfc0c and 2527476 on one branch, the second commit consuming the
+first's refusal and declared set). Fourteen and eight criteria pass at one judged head, which the
+landing moved nothing of, and the released copy was probed with an acceptable file and a `.log` on
+one write: exit one, the file named, the extension, the set, whose reading it is, the tracker's own
+line, and the link command that renames without copying. Two filed (ISS-610, ISS-617), three findings
+routed to ISS-614. Both closed by their run with release notes under Fixed. No restart owed. Folded
+from their handback; the twelve and nine comments were read back.
+
+- The body said the refused upload exits zero; the run found it never did, and wrote a note that does
+  not claim it. The defect that was real is the one the project's own rules make one: a refusal a
+  developer cannot act on. A body's headline claim is verified before the fix is aimed at it.
+- Two issues rode on one branch under the batching rule and the contract has no record for the
+  relation: no batch kind, no edge verb on this credential, and nothing owed by the ladder. The
+  relation lives in prose inside both confirmations and a gap record; a batch the tracker cannot see
+  is a batch only the journal knows.
+- The declared set enforces nothing: the tracker stays the one thing that accepts or refuses a name,
+  and the CLI's list is what the refusal prints so the next attempt is right. A declared table that
+  refused on its own would be a second allowlist, wrong the day the tracker widens.
+- The ship stopped at step 7 on the fold commit that landed run 200; the run waited and resumed as
+  the brief says. Two of the three filings this run made were duplicates the neighbour list showed
+  it (ISS-610 of ISS-477 and ISS-572; ISS-617 beside ISS-511, ISS-382, ISS-341); marked by the fold.
