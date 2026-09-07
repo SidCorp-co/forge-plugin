@@ -487,18 +487,22 @@ export const duplicateOf = ({ title, body }, live, threshold = DEFAULT_OVERLAP_T
   return worst ? { score: worst[0], where: worst[1][0], key: worst[2][0], title: worst[2][1] } : null;
 };
 
+/* One page at the route's own cap, so the bound is a count of rows; and neither a failure nor rows
+   left unserved reads as a backlog holding nothing like this, which `whole` tells apart (ISS-565). */
 const searched = async (token, most = CANDIDATES) => {
-  const asked = Math.min(most + SETTLED.length, MAX_LIMIT);
-  return openTitles(rowsOf(await listIssues({ search: token }, asked))).slice(0, most);
+  const payload = await listIssues({ search: token }, MAX_LIMIT);
+  return {
+    open: openTitles(rowsOf(payload)).slice(0, most),
+    whole: payload?.hasMore === false,
+  };
 };
 
-/* Reached only past the walk's ceiling, where a name is the one axis left. A search that fails is
-   not caught: swallowed, it would read as a backlog with nothing like this. */
+/* Reached only past the walk's ceiling, where a name is the one axis left. */
 const alsoNamed = async (tokens, live) => {
   const found = await Promise.all(tokens.map((one) => searched(one, SEARCHED)));
   const held = new Set(live.map((one) => one.issueId));
   const out = [];
-  for (const one of found.flat()) {
+  for (const one of found.flatMap((page) => page.open)) {
     if (held.has(one.issueId)) continue;
     held.add(one.issueId);
     out.push(one);
@@ -506,7 +510,12 @@ const alsoNamed = async (tokens, live) => {
   return out;
 };
 
-const fixRoutes = (tokens, candidates) => [
+const unread = (token) =>
+  `Whether an open issue names ${token} is unread: the search for it did not come back whole, so no `
+  + `candidate here is this reading's silence rather than the backlog's. \`forge issues `
+  + `--search ${token}\` finishes it; --size ${FIX} is the route either way.`;
+
+const fixRoutes = (tokens, { open, whole }) => [
   `  forge comment ISS-nn <body>   post this body there and file nothing; it needs no --kind,`,
   `                  a comment being read against no shape, and renews a lease only where it is yours`,
   `  --with ISS-nn   file it and relate it, so one branch, one review and one release carry both`,
@@ -514,9 +523,11 @@ const fixRoutes = (tokens, candidates) => [
   `                  mark it at a rung: the two below the top carry it on the light path, and where`,
   `                  an open issue both reads like it and names the same place,`,
   `                  the mark lands it there as a finding`,
-  candidates.length
-    ? `Naming ${tokens[0]}, still open: ${candidates.map((one) => `${one.issueId} ${one.title}`).join("; ")}`
-    : `No open issue names ${tokens[0]}, so --size ${FIX} is the route unless you know one.`,
+  open.length
+    ? `Naming ${tokens[0]}, still open: ${open.map((one) => `${one.issueId} ${one.title}`).join("; ")}`
+    : whole
+      ? `No open issue names ${tokens[0]}, so --size ${FIX} is the route unless you know one.`
+      : unread(tokens[0]),
 ].join("\n");
 
 const rendered = (gaps) =>
@@ -555,7 +566,7 @@ export const filingRefusal = async (filing, { gaps, fix, tokens }, { routed = fa
     ));
   }
   if (!out.length && !owesRoute) return null;
-  const routes = owesRoute ? fixRoutes(tokens, await searched(tokens[0]).catch(() => [])) : null;
+  const routes = owesRoute ? fixRoutes(tokens, await searched(tokens[0])) : null;
   const head = owesRoute && !out.length
     ? `Hold — this body names ${tokens[0]}, carries no rule or invariant and no out-of-scope, and reads as a `
       + "fix: filed as a feature the flow costs a confirmation, a decision, a plan, criteria, a baseline, a "

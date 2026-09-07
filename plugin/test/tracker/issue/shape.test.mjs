@@ -13,6 +13,7 @@ const { UNRANKED, duplicateOf, filedAs, partsIn, priorityFor, refusalFrom,
 const { FIX, TIERS, belowTop, markFor, markedIn } = await import("../../../src/ladder.mjs");
 const SIZE_LINE = markFor(FIX);
 const { filingsOf } = await import("../../../src/tracker/issue-read.mjs");
+const { refusing } = await import("../../../src/resolve/settings.mjs");
 
 const WHOLE = [
   "## Outcome",
@@ -432,6 +433,110 @@ test("a whole reading buys the filing no search at all", async () => {
   assert.equal(run.status, 0, run.stderr);
   const searches = state.calls.filter((one) => one.name === "forge_issues" && one.args.filters?.search);
   assert.deepEqual(searches, [], "the hidden row is unreachable and nothing was asked for it");
+});
+
+/* The fix route's own search, at the seam where a settled row is indistinguishable from no row at
+   all: the ask counted status names, the answer is filtered down to open rows, and a failure was
+   caught into an empty one (ISS-565). The walk behind the duplicate check answers whole out of
+   `state.issues`, so the search route below is the only one these cases reach. */
+const SETTLED_SIX = Array.from({ length: 6 }, (one, at) => ({
+  issueId: `ISS-6${at}`,
+  documentId: `uuid-6${at}`,
+  status: "closed",
+  title: `forge dep under a token, settled ${at}`,
+}));
+const OPEN_BEHIND = {
+  issueId: "ISS-88",
+  documentId: "uuid-88",
+  status: "in_progress",
+  title: "forge dep writes its edge through the relations route",
+};
+const FIX_BODY = "`forge dep` should take the `data.relations` route.";
+const FIX_TITLE = "forge dep writes an edge a token can write";
+
+const routed = async (search) => {
+  state.answer = {
+    forge_issues: (args) => {
+      if (args.action !== "list") return { documentId: "filed-uuid", ...(args.data ?? {}) };
+      return args.filters?.search ? search(args) : { issues: state.issues };
+    },
+  };
+  try {
+    return await filed(FIX_BODY, "--title", FIX_TITLE);
+  } finally {
+    state.answer = undefined;
+  }
+};
+
+/* The status the fixture serves is the server's and not a route's, so it is armed off the walk's own
+   answer and lands on the request after it, which is the search: no handler can refuse that route
+   (ISS-618). Through the verb, `fail` exits before any caller sees the throw. */
+test("a search the route refused leaves the verb saying what failed, not what is open", async () => {
+  state.answer = {
+    forge_issues: (args) => {
+      if (args.action === "list" && !args.filters?.search) state.status = 403;
+      return { issues: state.issues };
+    },
+  };
+  try {
+    const run = await filed(FIX_BODY, "--title", FIX_TITLE);
+    assert.equal(run.status, 1);
+    assert.doesNotMatch(run.stderr, /No open issue names/u,
+      "a search that failed said nothing about what is open, and that sentence routes a filer to --size fix");
+    assert.match(run.stderr, /Forge answered 403/u, "what the tracker answered is what the verb exits on");
+  } finally {
+    state.answer = undefined;
+    state.status = undefined;
+  }
+});
+
+/* Inside `refusing`, the mode `tools/run.mjs` files under, where `fail` throws instead of exiting:
+   the one caller a swallowed search can lie to, and the only seam the catch was visible at. The
+   first call is what puts the slug's id in the cache and proves the search route is reached with the
+   page handed in, so the 403 below lands on that search and on no lookup behind it. */
+test("a search that failed reaches the caller, rather than an empty backlog it never read", async () => {
+  const filing = { title: FIX_TITLE, body: FIX_BODY, kind: null };
+  const shape = shapeOf(filing);
+  const page = { live: [], read: { rows: [], whole: true, pages: 1 } };
+  state.calls = [];
+  assert.match(await refusing(() => refusalFrom(filing, shape, { page })),
+    /Naming forge dep, still open: ISS-45/u, "the search reached its answer and the route says what it named");
+  assert.ok(state.calls.some((one) => one.args?.filters?.search === "forge dep"),
+    "and that one request was the search, the page handed in buying no walk");
+  state.status = 403;
+  try {
+    await assert.rejects(refusing(() => refusalFrom(filing, shape, { page })), /Forge answered 403/u,
+      "swallowed, it would have come back as the sentence above with the tracker down");
+  } finally {
+    state.status = undefined;
+  }
+});
+
+/* Six settled rows is what the old ask fitted, being CANDIDATES + the length of the settled list. */
+test("settled rows ahead of an open one no longer hide it, the ask being a count of rows", async () => {
+  const rows = [...SETTLED_SIX, OPEN_BEHIND];
+  const run = await routed(() => ({ issues: rows }));
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /Naming forge dep, still open: ISS-88/u,
+    "the seventh row is inside the page the route reads, and openTitles keeps it");
+  assert.doesNotMatch(run.stderr, /No open issue names/u);
+});
+
+test("a page with rows behind it and no open row among them says the reading did not settle it", async () => {
+  const run = await routed(() => ({ issues: SETTLED_SIX, beyond: 4 }));
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /Whether an open issue names forge dep is unread/u);
+  assert.doesNotMatch(run.stderr, /No open issue names/u,
+    "four rows the route counted and would not serve is silence, not absence");
+  assert.match(run.stderr, /forge issues --search forge dep/u,
+    "and the one command that finishes the reading, the sentence sitting under `Name a route:`");
+});
+
+test("a page the route served whole with no open row on it still says no open issue names it", async () => {
+  const run = await routed(() => ({ issues: SETTLED_SIX }));
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No open issue names forge dep, so --size fix is the route unless you know one\./u);
+  assert.doesNotMatch(run.stderr, /is unread/u, "the reading reached its answer, and the answer is none");
 });
 
 /* The duplicate check's own line, in process: it is a console.error beside a refusal that may be
