@@ -14,6 +14,7 @@ import { recordDir, runSays } from "./gates/timing.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { follows, installs } from "./run/install.mjs";
 import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./run/land.mjs";
+import { landReady, LINKED } from "./run/land-ready.mjs";
 import { isRelease, onlyRelease } from "./run/landing.mjs";
 import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
 import { occupied } from "./run/occupant.mjs";
@@ -26,7 +27,6 @@ import { CEILINGS, overCeiling, resizeForm, tierOf } from "../plugin/src/ladder.
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
-const LINKED = ["node_modules", join("packages", "code-quality", "node_modules")];
 
 /* Each delegated run reviews its own diff and stops there, so a helper two of them each wrote, or a
    parameter one stopped passing, is inside no run's range and found by nobody (ISS-95). The reading
@@ -37,7 +37,7 @@ const NO_MARK = `no ${REVIEWED} in this repository, so what is owed a reading ca
 const sig = (verb) => VERBS.get(verb).signature;
 
 const usage = () => [
-  `Usage: ${SELF} <start|ship|land|review> [args]`,
+  `Usage: ${SELF} <start|ship|land|land-ready|review> [args]`,
   "The repository's own steps around one change: the worktree a run works in, and the release that",
   "puts its commit in the plugin copy the next session loads. Everything else is the change itself.",
   "",
@@ -54,6 +54,15 @@ const usage = () => [
   "                          gate and raises no version, so what it pushes is the caller's judgement",
   "                          and the installed plugin copy is untouched. It is the checkout's own",
   "                          verb — a wave's journal entry, not a run's change, which is a release",
+  `  ${sig("land-ready")}`,
+  "                          land each branch a build left ready: the base head pinned by ls-remote,",
+  "                          the merge built as a candidate commit, the change's own paths proved",
+  "                          unmoved by it, then the gate, a version above the pin, the push against",
+  "                          that pin, the install, the merged mark and the statuses the record",
+  "                          earns. It edits no run's tree and repairs no conflict: a conflict parks",
+  "                          the issue and a moved path hands the branch back to the run that built",
+  "                          it. Where the landing is is the issue's checkpoint, so a second run",
+  "                          finishes what is owed and needs no step number",
   `  ${sig("review")}   the range the next review reads, or --done to move the mark to it`,
   "",
   ...flagLines([...VERBS.values()].flatMap((one) => one.flags)),
@@ -542,13 +551,15 @@ const ship = async ({ flags }) => {
 };
 
 const VERB_RUNS = new Map([["start", start], ["ship", ship],
-  ["land", (read) => land(read, SELF)], ["review", review]]);
+  ["land", (read) => land(read, SELF)],
+  ["land-ready", (read) => landReady(read, { ...named(), root: HERE, base: defaultBranch(HERE), self: SELF })],
+  ["review", review]]);
 
 const main = (argv) => {
   const [verb, ...rest] = argv;
   if (!verb || verb === "-h" || verb === "--help") return console.log(usage());
   if (!VERB_RUNS.has(verb)) {
-    stop(`no step \`${verb}\`. It is start, ship, land or review; \`${SELF} -h\` says what each does.`);
+    stop(`no step \`${verb}\`. It is ${[...VERB_RUNS.keys()].join(", ")}; \`${SELF} -h\` says what each does.`);
   }
   const read = wanted(verb, rest, SELF);
   return read ? VERB_RUNS.get(verb)(read) : console.log(verbUsage(verb, SELF));

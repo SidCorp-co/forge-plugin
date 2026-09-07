@@ -27,6 +27,14 @@ export const VERBS = new Map([
     ],
     words: 0,
   }],
+  /* The one variadic verb: a landing takes the branches in the order they land, and a count would refuse the third issue by name before the first one's pin was read. */
+  ["land-ready", {
+    signature: "land-ready <ISS-nn> [ISS-nn…] [--wait M]",
+    flags: [
+      takes("--wait", "M", "minutes to wait behind another landing on this checkout before refusing"),
+    ],
+    words: Number.POSITIVE_INFINITY,
+  }],
   ["review", {
     signature: "review [--done [ref]]",
     flags: [takes("--done", "[ref]",
