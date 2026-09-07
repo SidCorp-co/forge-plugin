@@ -4,7 +4,7 @@
 import { firstLine, flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { commentPage, creditAfter, cutIn } from "../tracker/comments.mjs";
+import { commentPage, creditAfter, shortOf } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
@@ -55,7 +55,12 @@ const viewOf = async (reference, given) => {
     given.owed ? deployFor(body.plan, body.status) : null,
     policyFor(body.plan, body.status),
   ]);
-  return viewFrom(documentId, body, page.comments, cutIn(page), release, cited, deploy);
+  const short = shortOf(page);
+  /* Off `cut`, which sizes the issue: a count nobody here can account for is said and sizes nothing. */
+  return {
+    ...viewFrom(documentId, body, page.comments, short?.holds ? short.said : null, release, cited, deploy),
+    counted: short && !short.holds ? short.said : null,
+  };
 };
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs
@@ -160,13 +165,12 @@ const sayAhead = (view, ref, next) => {
   console.log(`\n${stageLine(next, partsOf(readContract()))}`);
 };
 
-/* Every entry criterion is a presence check and every rule that unearns a status fires on the newer
-   record, which is the end a shortened page keeps: so a shortfall off one can only be longer than
-   the true one, and the move is judged rather than refused (ISS-131). */
-const cutSays = (view) =>
-  `${view.cut} The cut keeps the most recent rows, so what the page earns it earns, and anything it `
-  + "says is owed may be a record written behind the cut: write it again for this status, or read "
-  + "the thread whole and take it up there.";
+/* Every entry criterion is a presence check, so a shortfall off a read that stopped short is only ever longer than the true one:
+   judged rather than refused (ISS-131), and naming no end, the envelope never saying which rows the read missed (ISS-697). */
+const cutSays = (said) =>
+  `${said} What the rows read earn, they earn, and anything they say is owed may be a record `
+  + "the read never reached: write it again for this status, or read the thread on the tracker's own "
+  + "screens and take it up there.";
 
 export const shortfall = (ref, view, held) => {
   console.log(owedLine(view, ref, held));
@@ -200,7 +204,8 @@ const run = async (argv) => {
   const view = await viewOf(ref, given);
   const left = nextHeld(view);
   if (given.owed && left) console.log(`Next, as the last write left it: ${left}`);
-  if (!view.whole) console.log(cutSays(view));
+  if (!view.whole) console.log(cutSays(view.cut));
+  if (view.counted) console.log(cutSays(view.counted));
   if (given.park || given.drop) {
     return park(view, ref, given.park ?? "dropped", given.why, given.evidence);
   }

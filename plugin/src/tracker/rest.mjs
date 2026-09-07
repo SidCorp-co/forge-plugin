@@ -106,6 +106,11 @@ export const browseOf = (row) => {
 
 export const commentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row, COMMENT) });
 
+const threadOf = (page) => ({
+  ...paged(page, "comments", rowsIn(page, "items").map(commentOf), "cursor"),
+  ...filled({ total: page?.total, nextCursor: page?.nextCursor }),
+});
+
 export const attachmentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row, ATTACHMENT) });
 
 /* The config is the project row plus what it keeps under `agentConfig`; three fields the tool
@@ -300,8 +305,8 @@ export const ROUTES = {
     sends: ["data"],
   },
   "forge_comments.list": {
-    requests: (args) => one(`/issues/${args.filters?.issue}/comments`),
-    answers: ({ page }) => paged(page, "comments", rowsIn(page, "items").map(commentOf)),
+    requests: (args) => one(`/issues/${args.filters?.issue}/comments${query({ cursor: args.filters?.cursor })}`),
+    answers: ({ page }) => threadOf(page),
     sends: ["filters"],
   },
   "forge_comments.create": {

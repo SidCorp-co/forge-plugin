@@ -24,13 +24,15 @@ const OPEN = {
   description: "no mark here",
 };
 const BARE = { ...OPEN, documentId: "bare-uuid", issueId: "ISS-96" };
+const COUNTED = { ...OPEN, documentId: "counted-uuid", issueId: "ISS-97" };
 const state = {
   calls: [],
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
-  issues: [OPEN, BARE],
+  issues: [OPEN, BARE, COUNTED],
   comments: {
     "earning-uuid": [comment("the-confirmation", render("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" }))],
     "bare-uuid": [comment("the-word", "a person's word, and no record of any kind")],
+    "counted-uuid": [comment("the-counted", render("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" }))],
   },
   answer: {
     forge_config: () => ({ config: state.config }),
@@ -42,11 +44,13 @@ const state = {
       if (args.action === "update" && held) return Object.assign(held, args.data);
       return { documentId: args.documentId, ...(args.data ?? {}) };
     },
-    /* The envelope the route sends when it holds rows back: `hasMore`, and no reason for it. */
+    /* `hasMore` and no reason for it; on one issue, called whole and counting one more than it sent. */
     forge_comments: (args) => {
       if (args.action !== "list") return { documentId: "comment-uuid", ...(args.data ?? {}) };
       const held = state.comments[args.filters?.issue] ?? [];
-      return { comments: held, returned: held.length, hasMore: true };
+      const read = { comments: held, returned: held.length };
+      if (args.filters?.issue !== COUNTED.documentId) return { ...read, hasMore: true };
+      return { ...read, total: held.length + 1, hasMore: false };
     },
   },
 };
@@ -55,13 +59,24 @@ test.after(() => tracker.close());
 const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);
 const moved = () => state.calls.filter((one) => one.args.action === "transition").map((one) => one.args.data.status);
 
-test("a cut page is judged, and the record on it earns the move", async () => {
+test("a thread the walk could not finish is judged, and the record on it earns the move", async () => {
   const run = await owed("ISS-95");
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /returned 1 comment\(s\) and reported more behind them, for a reason it did not name/u, run.stdout);
-  assert.match(run.stdout, /The cut keeps the most recent rows, so what the page earns it earns/u, run.stdout);
+  assert.match(run.stdout, /stopped after 1 comment\(s\) of 1 without the tracker ever calling the read complete/u, run.stdout);
+  assert.match(run.stdout, /What the rows read earn, they earn/u, run.stdout);
+  assert.doesNotMatch(run.stdout, /most recent|oldest|newest/u, "and no message names the end it missed");
   assert.match(run.stdout, /confirmed is next and the record earns it/u, "and the page's own confirmation earns it");
   assert.doesNotMatch(run.stdout, /more than the 200/u, "no message names a cap the tracker did not report");
+});
+
+/* `cut` is what puts an issue on the feature tier, so a column read on one tracker cannot be it. */
+test("a thread called whole below its own count is said, and the count sizes nothing", async () => {
+  const run = await owed("ISS-97");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /called this thread whole at 1 comment\(s\) and counted 2 on it/u, run.stdout);
+  assert.match(run.stdout, /What the rows read earn, they earn/u, "and what the shortfall costs the answer");
+  assert.doesNotMatch(run.stdout, /stopped after/u, "a read the tracker called whole is no short read");
+  assert.match(run.stdout, /confirmed is next and the record earns it/u, "and the count refuses nothing");
 });
 
 test("the transition a cut page earns is made, and nothing about it is done by hand", async () => {
@@ -77,15 +92,15 @@ test("the transition a cut page earns is made, and nothing about it is done by h
   assert.deepEqual(moved(), ["confirmed"], "the verb made it, which is the only route that read the record first");
 });
 
-/* What a page it cannot read whole owes an agent is the shortfall's own commands. The refusal
+/* What a thread it cannot read whole owes an agent is the shortfall's own commands. The refusal
    ISS-131 was filed on named a hand transition instead, which writes a status nothing checked and
    leaves the lease's next line as the last write set it. */
-test("a shortfall on a cut page names what is owed, and no route past it writes a status", async () => {
+test("a shortfall on a short read names what is owed, and no route past it writes a status", async () => {
   const short = await owed("ISS-96");
   assert.equal(short.status, 0, short.stderr);
   assert.match(short.stdout, /no confirmation/u, "the missing item, named as on any other issue");
   assert.match(short.stdout, /forge record confirmation ISS-96/u, "with the one command that supplies it");
-  assert.match(short.stdout, /may be a record written behind the cut/u, "and what the cut costs the answer");
+  assert.match(short.stdout, /may be a record the read never reached/u, "and what the short read costs the answer");
   const asked = await ranAsync(FORGE, ["advance", "ISS-96"], tracker.env);
   assert.equal(asked.status, 1, "asked to move on a record that does not earn it, the same list refuses");
   for (const run of [short, asked]) {

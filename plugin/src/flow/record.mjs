@@ -231,8 +231,8 @@ const CROWDED = (kind, cut) => `record ${kind} would put a file up, and the name
   + `issue cannot be read whole. ${cut} ${TWICE} Every record citing it is then ambiguous. Cite a `
   + `URL or a commit, or attach the file under a name nothing else could carry and cite that.`;
 
-/* A default read off the page is the latest of its kind, the cut keeping the most recent. Found
-   nowhere, on a cut page, it may be the comment behind it, so the flag is asked for (ISS-131). */
+/* A default read off the thread is the latest of its kind. Found nowhere, on a read that stopped
+   short, it may be a comment past where it stopped, so the flag is asked for (ISS-131). */
 const BEHIND = (kind, flag, cut) => `record ${kind} reads --${flag} off this issue and the page `
   + `carries none to read. ${cut} The one that would answer may be a comment behind the cut, so `
   + `name --${flag} for this write.`;

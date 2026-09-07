@@ -59,15 +59,15 @@ the map every reader keys by criterion would keep the last of them and nothing o
 say the first was dropped. A document two criteria prove goes up once under the one name both of them
 carry, for the reason any name goes up once. And `forge advance --owed` names the criteria with no
 verdict in one item whose command is the single write that answers them all, a list of fourteen
-commands being fourteen writes. And where the comment list stopped with more behind it, each is
-read from the page when the page carries one — the cut keeps the most recent rows, so a mark or a
-citation found there is the latest — and asked for by name only where the page carries none, since
-then the one that would answer may be exactly a comment behind the cut. The refusal says which cap
-the tracker named and how many rows it returned: for a year it said 200, the number the request asked
-for, on threads of half that (ISS-131). The release note, the plan and the criteria go
-to their fields, which the tracker already types; everything else is a comment. `report` assembles
-the latest record of each kind and the latest verdict per criterion, and names the criteria no verdict
-covers. Nothing is stored twice. The contract this serves: `forge guide contract`.
+commands being fourteen writes. And where the reader could not walk the thread to its end, each is
+read from the rows it did reach when they carry one, and asked for by name only where they carry
+none, since then the one that would answer may be exactly a comment the read never reached. The
+refusal says how many comments of how many were read and nothing about which end is missing: for a
+year it said 200, the number the request asked for, on threads of half that (ISS-131). The release
+note, the plan and the criteria go to their fields, which the tracker already types; everything else
+is a comment. `report` assembles the latest record of each kind and the latest verdict per
+criterion, and names the criteria no verdict covers. Nothing is stored twice. The contract this
+serves: `forge guide contract`.
 
 Two of the kinds exist because a reopen recorded nothing. The tracker has had a `reopen` status and a
 `reopenCount` field all along, and neither says what the person found: what they expected, what they

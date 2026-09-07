@@ -126,11 +126,14 @@ test("a comment found on its target's page is verified", async () => {
   assert.equal(landed.line, "Comment c-2 is posted on ISS-800, read back from the tracker.");
 });
 
-test("a comment absent from a page the tracker reports cut is unverified, never absent", async () => {
+/* The reader walks the thread, so this is a tracker reporting more behind a page and naming no
+   cursor to reach it: absence there is a read that stopped short and never a comment that is gone. */
+test("a comment absent from a thread the walk could not finish is unverified, never absent", async () => {
   before();
   state.answer = { forge_comments: () => page([{ documentId: "c-1" }], true) };
   const landed = await commentLanded("uuid-800", { documentId: "c-9" }, "ISS-800");
-  assert.match(landed.line, /the page read back was cut before it/u);
+  assert.match(landed.line, /the thread could not be read to its end/u);
+  assert.match(landed.line, /forge call forge_comments\.list/u, "and the read it asks for is one that exists");
 });
 
 /* `hasMore` absent. Reading it as `!hasMore` would be this reader inferring a whole page, so the
@@ -139,17 +142,17 @@ test("a page that asserts nothing about its own completeness is unverified too",
   before();
   state.answer = { forge_comments: () => ({ comments: [{ documentId: "c-1" }], returned: 1, hasMore: null }) };
   const landed = await commentLanded("uuid-800", { documentId: "c-9" }, "ISS-800");
-  assert.match(landed.line, /cut before it/u);
+  assert.match(landed.line, /could not be read to its end/u);
 });
 
 test("an answer carrying no comments at all asserts nothing either", async () => {
   before();
   state.answer = { forge_comments: () => ({ ok: true, hasMore: null }) };
   const landed = await commentLanded("uuid-800", { documentId: "c-9" }, "ISS-800");
-  assert.match(landed.line, /cut before it/u);
+  assert.match(landed.line, /could not be read to its end/u);
 });
 
-test("a comment absent from a page the tracker calls whole is said, and refuses nothing", async () => {
+test("a comment absent from a thread the tracker calls whole is said, and refuses nothing", async () => {
   before();
   state.answer = { forge_comments: () => page([{ documentId: "c-1" }], false) };
   const landed = await commentLanded("uuid-800", { documentId: "c-9" }, "ISS-800");
