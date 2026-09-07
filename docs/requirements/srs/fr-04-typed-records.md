@@ -174,6 +174,9 @@ already on a tracker stays writable and no status is earned on it.
 - **AC-04-7-6** · Rev: 1 · Proof: plugin/test/vi/rewrite.test.mjs "a plan's sections and its steps' criteria cross the boundary byte for byte"
   WHILE a project's prose language rewrites what is sent, the plan's section headings and each step's
   criterion SHALL cross byte for byte, so the stored plan reads back with its sections.
+- **AC-04-7-7** · Rev: 1 · Proof: plugin/test/flow/record-plan.test.mjs "a section a plan quotes inside a fence is text it shows and not one it carries"
+  WHERE a plan quotes a heading or a numbered step inside a fenced block, the CLI SHALL read it as
+  text the plan shows and SHALL open no section and count no step from it.
 
 ## The way back
 

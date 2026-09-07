@@ -294,12 +294,31 @@ const sectionAt = (line) => {
   return found ? CANONICAL.get(found[1].toLowerCase()) ?? null : null;
 };
 
+const FENCE = /^ {0,3}(`{3,}|~{3,})[ \t]*(.*)$/u;
+
+/** A plan's lines with the fenced ones marked: what a fence holds is text a plan quotes and never
+    structure it makes. Only markdown's own closer closes — the opener's character, at least its
+    length and nothing after it — so a longer fence quoting a shorter one holds all of it. */
+const fenceMarked = (text) => {
+  const out = [];
+  let opener = null;
+  for (const line of String(text ?? "").split(/\r?\n/u)) {
+    const found = FENCE.exec(line);
+    const closes = opener && found && found[1][0] === opener[0]
+      && found[1].length >= opener.length && !found[2].trim();
+    if (closes) opener = null;
+    else if (found && !opener) opener = found[1];
+    out.push({ line, fenced: Boolean(found ?? opener) });
+  }
+  return out;
+};
+
 /** The sections a plan carries by canonical name; a heading the table does not name closes the one above and opens none. */
 export const planSections = (plan) => {
   const open = new Map();
   let held = null;
-  for (const line of String(plan ?? "").split(/\r?\n/u)) {
-    if (ANY_HEADING.test(line)) {
+  for (const { line, fenced } of fenceMarked(plan)) {
+    if (!fenced && ANY_HEADING.test(line)) {
       held = sectionAt(line);
       if (held) open.set(held, []);
       continue;
@@ -317,7 +336,8 @@ export const planSteps = (plan) => {
   const body = planSections(plan).get("Steps");
   if (body === undefined) return [];
   const out = [];
-  for (const line of body.split("\n")) {
+  for (const { line, fenced } of fenceMarked(body)) {
+    if (fenced) continue;
     const found = NUMBERED_STEP.exec(line);
     if (found) out.push({ number: Number(found[1]), text: found[2].trim() });
     else if (out.length && line.trim()) out.at(-1).text += ` ${line.trim()}`;

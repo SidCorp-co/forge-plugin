@@ -132,6 +132,21 @@ test("a plan whose lines end in CRLF is judged by the same reading as one that d
   assert.match(short.stderr, /^ {2}## Steps$/mu);
 });
 
+/* The one input this shape could have taken away: a free-text plan quoting an example of the very
+   thing it is not. A fence holds text a plan shows, so nothing in one opens a section or is a step. */
+test("a section a plan quotes inside a fence is text it shows and not one it carries", async () => {
+  heldBy(MINE);
+  const quoted = `${PLAN}\n\nWhat a typed plan looks like:\n\n\`\`\`markdown\n## Before\n\nthe old shape\n\n## Steps\n\n1. The step — criteria 1\n\`\`\`\n`;
+  const run = await wrote(MINE, planAt(quoted));
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /carries none of the sections `forge record plan -h` prints/u,
+    "the plan is the free text it was before this shape existed, and the write stores it");
+  assert.equal(state.issues[0].plan, `${quoted}\n`, "byte for byte, the fence and all");
+  const shown = typedPlan({ Steps: "1. The one step — criteria 1, 2\n\n```\n2. What a step must not be, criteria: 9\n```" });
+  const held = await wrote(MINE, planAt(shown));
+  assert.equal(held.status, 0, held.stderr, "and a fenced line under Steps is no step to refuse");
+});
+
 test("`record plan -h` prints every section a typed plan owes, as the question it answers", async () => {
   const run = await ranAsync(FORGE, ["record", "plan", "-h"], env());
   assert.equal(run.status, 0, run.stderr);

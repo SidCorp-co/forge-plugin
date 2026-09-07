@@ -246,6 +246,21 @@ test("schema coupling and deploy coupling each owe the way back at the write and
 
 /* A plan written on Windows: the protector held every heading of it and, split on `\n` alone, the
    section reader kept the `\r` and matched none of them — a complete plan read as untyped. */
+/* A template is not a plan: every section can be quoted whole inside a fence, and a transition that
+   counted those would earn `approved` from a plan that answers nothing. */
+test("a complete plan quoted inside a fence earns nothing, and is untyped as any free text is", () => {
+  const template = `${UNTYPED}\n\n\`\`\`markdown\n${PLAN}\n\`\`\`\n`;
+  assert.deepEqual([...planSections(template).keys()], [], "no section is opened inside the fence");
+  assert.deepEqual(planSteps(template), []);
+  const owed = missing("approved", view({ plan: template, acceptanceCriteria: CRITERIA }));
+  assert.equal(owed.length, 1);
+  assert.match(owed[0], /^the plan is untyped/u, "so it owes what the free text it is owes, and no more");
+  /* A fence long enough to quote one: closing on the first delimiter seen would expose the rest. */
+  const nested = `${UNTYPED}\n\n\`\`\`\`markdown\n\`\`\`\n${PLAN}\n\`\`\`\n\`\`\`\`\n`;
+  assert.deepEqual([...planSections(nested).keys()], [], "the inner delimiter closes nothing");
+  assert.deepEqual(planSteps(nested), []);
+});
+
 test("a plan with CRLF line endings reads as the same plan with LF", () => {
   const crlf = PLAN.replace(/\n/gu, "\r\n");
   assert.deepEqual([...planSections(crlf).keys()], [...planSections(PLAN).keys()]);
