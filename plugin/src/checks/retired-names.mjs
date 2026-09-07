@@ -1,6 +1,7 @@
 /* The retired names, held once so a sentence naming a verb that no longer runs fails something. An
    entry names no replacement: pointing at what took over is the redirect docs/cli/withholding-a-verb.md forbids. */
 import { lineAt } from "../line-at.mjs";
+import { RECORDS_RATHER_THAN_INSTRUCTS } from "./doc-shape.mjs";
 import { RETIRING } from "../resolve/retiring.mjs";
 
 export const RETIRED = [
@@ -29,7 +30,8 @@ const WHY = "docs/cli/withholding-a-verb.md";
 const stem = (rel) => rel.split("/").pop().replace(/\.[^.]+$/u, "");
 
 const SELF = `plugin/${import.meta.url.split("/plugin/").pop()}`;
-const HISTORY = /^docs\/issue-flow-dry-runs\.md$|^docs\/requirements\//u;
+const REQUIREMENTS = /^docs\/requirements\//u;
+const history = (rel) => RECORDS_RATHER_THAN_INSTRUCTS.test(rel) || REQUIREMENTS.test(rel);
 /* Each records a name rather than routing to it: the argument, the case that watches one, and the
    note `forge hooks --how` answers a retired gate's name with. */
 const RECORDS = new Set([
@@ -38,7 +40,7 @@ const RECORDS = new Set([
   "plugin/test/checks/retired-names.test.mjs",
 ]);
 
-export const exempt = (rel) => rel === SELF || HISTORY.test(rel) || RECORDS.has(rel);
+export const exempt = (rel) => rel === SELF || history(rel) || RECORDS.has(rel);
 
 const mentions = ({ rel, text }, entry) =>
   [...new Set(shapesOf(entry).flatMap((shape) =>
@@ -68,7 +70,9 @@ export const retiringProblems = (retiring = RETIRING, retired = RETIRED) =>
     if (!String(row?.release ?? "").trim()) {
       return [`${who} names no release, so nothing says which one release it gets (${WHY})`];
     }
-    return retired.some((one) => one.name === String(row.typed).split(" ").at(-1).replace(/^--/u, ""))
+    /* The row's own field, not the display string re-parsed: a row shaped other than "verb --flag" derives the wrong name and this rule quietly stops matching. */
+    const name = String(row.flag ?? String(row.typed).split(" ").at(-1)).replace(/^--/u, "");
+    return retired.some((one) => one.name === name)
       ? [`${who} is retiring here and retired in ${WHY}'s own registry: one of the two is wrong, and`
         + " a retired name carries no replacement, so it is this row that goes"]
       : [];

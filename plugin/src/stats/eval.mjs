@@ -6,7 +6,7 @@ import { rootFor } from "./transcripts.mjs";
 import { derivedFrom, profileOf, projectFrom, readingAside, runsUnder, stamp } from "./runs.mjs";
 import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
-import { RUNS, againstIn, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "./marks.mjs";
+import { RUNS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "./marks.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
@@ -163,9 +163,8 @@ const head = (held) => {
       `no window before them: the corpus holds ${held.total} run(s) in all, so there is nothing yet to compare this one against.`];
   }
   if (held.against !== undefined) {
-    const overlap = held.now.profile.from <= held.before.profile.to
-      ? "  — overlapping the recent window, which begins before this one ends" : "";
-    return [first, `the ${held.before.runs} held at mark ${held.against}  ${span(held.before)}${overlap}`];
+    return [first, heldAtMark(held.before.runs, held.against, span(held.before),
+      held.now.profile.from <= held.before.profile.to)];
   }
   const short = held.size - held.before.runs;
   return [

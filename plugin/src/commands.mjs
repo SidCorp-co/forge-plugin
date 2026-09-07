@@ -50,7 +50,7 @@ import { advance } from "./flow/advance.mjs";
 import { spec } from "./spec/verbs.mjs";
 import { claim } from "./flow/claim.mjs";
 import { resume } from "./flow/resume.mjs";
-import { notAnothers, renew } from "./flow/lease.mjs";
+import { finderSaid, notAnothers, renew } from "./flow/lease.mjs";
 import { retiredFlagIn } from "./resolve/retiring.mjs";
 
 const show = (value) =>
@@ -370,9 +370,7 @@ export const commands = {
     const renewed = await renew(issue, reference, undefined, null, { finder: true });
     const posted = await postComment(issue, title === undefined ? body : `## ${title}\n\n${body}`);
     show(posted);
-    console.log(renewed
-      ? `The lease on ${reference} is yours and this post renewed it.`
-      : `No lease on ${reference} is yours, so this post is a finder's and renewed none.`);
+    console.log(finderSaid(reference, renewed));
     return sayLanded(await commentLanded(issue, posted, reference));
   },
   attach: async (argv) => {

@@ -1,9 +1,10 @@
 /* The log is codex's memory and its eval set at once. It has no session of its own — one HTTPS
    request knows nothing of the last — so continuity is these entries replayed, and scoring the
    advice later is the same file read a different way. docs/cli/codex-the-log.md. */
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 
+import { appendJsonl, jsonLines } from "../hooks/hook-log-file.mjs";
 import { configDir, userConfig } from "../resolve/config.mjs";
 import { masked } from "../hooks/hook-log.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
@@ -33,9 +34,7 @@ const maskedDeep = (value) => {
 /* It warns and carries on: failing closed would mean a full disk costs the review itself. */
 export const logConsult = (record) => {
   try {
-    mkdirSync(configDir("forge"), { recursive: true });
-    if (!existsSync(LOG_PATH)) closeSync(openSync(LOG_PATH, "a", 0o600));
-    appendFileSync(LOG_PATH, `${JSON.stringify(maskedDeep(record))}\n`);
+    appendJsonl(LOG_PATH, maskedDeep(record), configDir("forge"));
     return true;
   } catch (error) {
     console.error(`codex: could not write ${LOG_PATH} (${error.message}); this consult is unlogged.`);
@@ -43,18 +42,9 @@ export const logConsult = (record) => {
   }
 };
 
-const parsedLine = (line) => {
-  try {
-    return JSON.parse(line);
-  } catch {
-    return null;
-  }
-};
-
-/* A half-written last line is dropped, not raised: the entries before it are the eval set. */
 export const logEntries = () => {
   try {
-    return readFileSync(LOG_PATH, "utf8").split("\n").map(parsedLine).filter(Boolean);
+    return jsonLines(readFileSync(LOG_PATH, "utf8"));
   } catch {
     return [];
   }
@@ -78,8 +68,7 @@ export const consults = (entries) => entries.filter((one) => one.kind === "consu
 /* A failed consult carries no advice: "3 accepted" against a gateway timeout is not a verdict. */
 export const answered = (entries) => consults(entries).filter((one) => one.ok && one.reply);
 
-/* Every hundredth answered consult, the log says so and names the verb that reads it — by this
-   record's own place in the log, and identified by more than its id. docs/cli/codex-the-log.md. */
+/* Every hundredth answered consult, the log says so and names the verb that reads it — by this record's own place in the log, and identified by more than its id. docs/cli/codex-the-log.md. */
 export const MARK = 100;
 
 export const markedAt = (ordinal) => (ordinal > 0 && ordinal % MARK === 0 ? ordinal : null);
@@ -88,8 +77,9 @@ export const markOf = (entries, record) => {
   const of = (one) => `${one.id ?? ""}|${one.at}|${one.root ?? ""}`;
   const same = (one) => of(one) === of(record);
   const mark = markedAt(answered(entries).findLastIndex(same) + 1);
+  /* `entries` rides along because the caller's next act is to slice them: the log as it stood when this record landed is the mark's window, and reading the file again would cost the parse twice and pick up whatever landed in between. */
   return mark
-    ? { mark, at: entries.findLastIndex(same), said: `codex: ${mark} answered consults in the log — \`forge codex eval\`.` }
+    ? { mark, at: entries.findLastIndex(same), said: `codex: ${mark} answered consults in the log — \`forge codex eval\`.`, entries }
     : null;
 };
 

@@ -1,9 +1,9 @@
-/* The readings both harness evals write at a mark and read back as a pinned before window: one
-   store, kept as the consult log keeps its entries. A runs reading carries the root whose corpus was
-   counted; a consult reading is the device's and carries none. docs/cli/stats-the-eval.md. */
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
+/* The readings both harness evals write at a mark and read back as a pinned before window: one store, kept as the
+   consult log keeps its entries. A runs reading carries the root whose corpus was counted; a consult reading is the device's and carries none. docs/cli/stats-the-eval.md. */
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { appendJsonl, jsonLines } from "../hooks/hook-log-file.mjs";
 import { configDir } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 
@@ -12,17 +12,9 @@ export const CONSULTS = "consults";
 
 export const marksPath = () => join(configDir("forge"), "eval-marks.jsonl");
 
-const parsed = (line) => {
-  try {
-    return JSON.parse(line);
-  } catch {
-    return null;
-  }
-};
-
 const readAll = () => {
   try {
-    return readFileSync(marksPath(), "utf8").split("\n").map(parsed).filter(Boolean);
+    return jsonLines(readFileSync(marksPath(), "utf8"));
   } catch {
     return [];
   }
@@ -38,16 +30,13 @@ export const WRITTEN = "written";
 export const HELD = "held";
 export const FAILED = "failed";
 
-/** Appends unless the same kind, mark and root is held, and says which — written, held or failed. A
- *  failed write is said and carried past, as the consult log's is: the mark line it accompanies is
- *  worth more than a stats file. No two writers race here: a runs mark is written under the ship's
- *  lock, and a consult crossing belongs to exactly the record that landed on it. */
+/** Appends unless the same kind, mark and root is held, and says which — written, held or failed. A failed
+ *  write is said and carried past, as the consult log's is: the mark line it accompanies is worth more than a
+ *  stats file. No two writers race here: a runs mark is written under the ship's lock, and a consult crossing belongs to exactly the record that landed on it. */
 export const writeMark = (record) => {
   try {
     if (readAll().some((one) => sameMark(one, record))) return HELD;
-    mkdirSync(configDir("forge"), { recursive: true });
-    if (!existsSync(marksPath())) closeSync(openSync(marksPath(), "a", 0o600));
-    appendFileSync(marksPath(), `${JSON.stringify(record)}\n`);
+    appendJsonl(marksPath(), record, configDir("forge"));
     return WRITTEN;
   } catch (error) {
     console.error(`stats: could not write ${marksPath()} (${error.message}); this reading is not held.`);
@@ -88,6 +77,11 @@ export const resolveAgainst = (kind, asked, { root = null, verb, list, writes })
 
 const WHEN = 16;
 const stamped = (iso) => iso.slice(0, 16).replace("T", " ");
+
+/** The `--against` line both evals print, and the one sentence saying the two windows meet. The count is each eval's own unit and the span its own reading; the wording and the two spaces are neither, and a case pinning them could otherwise drift in one harness alone. */
+export const heldAtMark = (count, mark, span, overlapping) =>
+  `the ${count} held at mark ${mark}  ${span}`
+  + (overlapping ? "  — overlapping the recent window, which begins before this one ends" : "");
 
 /** One line per reading, newest first; `describe` says the recent window's size and bounds in its kind's units. */
 export const markLines = (records, describe) =>

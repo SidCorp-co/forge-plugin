@@ -5,7 +5,6 @@ import { resolve } from "node:path";
 import { digest, locate } from "./codex-api.mjs";
 import { judgedBy, logEntries } from "./codex-log.mjs";
 import { repoRoot } from "./codex.mjs";
-import { bodyFrom } from "../resolve/payload.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
 
 const OFF = "`FORGE_CODEX_DISABLE=1` in front of this command stands the check down; it runs in this "
@@ -72,11 +71,4 @@ export const readOrRefuse = (path, cwd = process.cwd()) => {
   const mine = judgedBy(logEntries(), root, [held.rel]);
   if (readWhole(mine, held.rel, digest(text))) return { refusal: null, text };
   return refusing(readIt(here, root, held.rel, whyNot(mine, held.rel)), text);
-};
-
-/** The body both verbs write: the judged bytes, or — only under the kill switch — the reader's own. */
-export const bodyChecked = async (path, raise, cwd = process.cwd()) => {
-  const { refusal, text } = readOrRefuse(path, cwd);
-  if (refusal) raise(refusal);
-  return text ?? bodyFrom(path);
 };

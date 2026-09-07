@@ -505,12 +505,17 @@ const readByCodex = (root, rel, log) => {
 export const hookRecord = (event, paths, told = () => false, log = logEntries) => {
   if (process.env.FORGE_CODEX_DISABLE === "1") return null;
   let announce = null;
+  /* The whole log, read at most once for the invocation and not at all where no path gets as far as asking:
+     `readByCodex` wants every entry, so one PostToolUse over three documents was paying for three parses of the
+     same file. Scoped to the call and not the module, since a memo outliving it would answer from a log that had moved. */
+  let held = null;
+  const read = () => (held ??= log());
   for (const path of paths) {
     const root = repoRoot(dirname(resolve(path)));
     if (!root) continue;
     const rel = inside(root, path);
     if (!rel || !recordable(rel)) continue;
-    if (!pendingIn(readState(), root).includes(rel) && readByCodex(root, rel, log)) continue;
+    if (!pendingIn(readState(), root).includes(rel) && readByCodex(root, rel, read)) continue;
     let added = false;
     updateState((held) => {
       const step = afterTouch(held, root, rel);

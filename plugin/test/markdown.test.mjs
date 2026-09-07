@@ -39,6 +39,8 @@ const LOG_READS = "plugin/src/hooks/log-reads.mjs";
 const SPEC_PARSE = "plugin/src/spec/parse.mjs";
 const CANONICAL = "plugin/src/resolve/canonical.mjs";
 const MEDIAN = "plugin/src/stats/median.mjs";
+const JSONL = "plugin/src/hooks/hook-log-file.mjs";
+const DOC_SHAPE = "plugin/src/checks/doc-shape.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move
@@ -99,6 +101,13 @@ const MEDIAN_FORMS = [
   new RegExp(String.raw`\[(\w+) - 1\]\s*\+\s*\w+\[\1\]\)\s*\/\s*2`, "u"),
 ];
 
+/* The three logs this tool keeps are all append-only JSONL: mkdir, create at 0600 while empty, append one line. The create
+   mode is what makes the needle the store's rather than any append's — `openSync(_, "w", 0o600)` in `resolve/config.mjs` is an atomic replace, a different act with the same permission. */
+const JSONL_APPEND = [new RegExp(String.raw`openSync\([^,]*, "a", 0o600\)[\s\S]{0,140}appendFileSync`, "u")];
+/* Three doc checks exempt the journal and each keeps its own predicate; the path is the part that may have only one spelling.
+   Both spellings, because the copies removed were regex sources and a plain-string needle cannot see `docs\/issue-flow-dry-runs\.md`, which is how all three wrote it. */
+const JOURNAL_PATH = [new RegExp(String.raw`docs\\?/issue-flow-dry-runs\\?\.md`, "u")];
+
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
   ["a non-empty inline code span", MARKDOWN, [CODE_SPAN_NONEMPTY_PATTERN]],
@@ -117,6 +126,8 @@ const NEEDLES = [
   ["the tree's document grammar", SPEC_PARSE, SPEC_FORMS],
   ["a path's canonical form", CANONICAL, [CANONICAL_FORM], OWN_FALLBACK],
   ["a median over numbers", MEDIAN, MEDIAN_FORMS],
+  ["an append-only JSONL store", JSONL, JSONL_APPEND],
+  ["the journal's path", DOC_SHAPE, JOURNAL_PATH],
 ];
 
 /* A needle is a primitive's bytes, or a shape where the primitive is one — a fallback body is the same reading whatever its parameter is called, and no substring tells those copies apart. */
@@ -143,7 +154,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [SHELL, SSE, RPC, HELP_WORD, LINE_AT, LOG_READS, MEDIAN]) {
+  for (const home of [SHELL, SSE, RPC, HELP_WORD, LINE_AT, LOG_READS, MEDIAN, JSONL, DOC_SHAPE]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -174,6 +185,9 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "t.mjs", text: "const mid = (rows) => { const s = [...rows].sort((x,y) => x - y); return s[Math.floor(s.length/2)]; };" },
     { rel: "u.mjs", text: "const mid = (ranked, at) => (ranked[at - 1] + ranked[at]) / 2;" },
     { rel: "v.mjs", text: "const mid = (values) => { const middle = Math.floor(values.length / 2); const sorted = [...values].sort((left, right) => left - right); return sorted[middle]; };" },
+    { rel: "w.mjs", text: 'if (!existsSync(p)) closeSync(openSync(p, "a", 0o600));\nappendFileSync(p, `${JSON.stringify(one)}\\n`);' },
+    { rel: "x.mjs", text: String.raw`const UNCAPPED = /^docs\/issue-flow-dry-runs\.md$/u;` },
+    { rel: "x2.mjs", text: 'const JOURNAL = "docs/issue-flow-dry-runs.md";' },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
@@ -198,6 +212,9 @@ test("the guard fires on a module that re-declares one", () => {
     `t.mjs declares a median over numbers of its own; ${MEDIAN} holds it`,
     `u.mjs declares a median over numbers of its own; ${MEDIAN} holds it`,
     `v.mjs declares a median over numbers of its own; ${MEDIAN} holds it`,
+    `w.mjs declares an append-only JSONL store of its own; ${JSONL} holds it`,
+    `x.mjs declares the journal's path of its own; ${DOC_SHAPE} holds it`,
+    `x2.mjs declares the journal's path of its own; ${DOC_SHAPE} holds it`,
   ]);
 });
 

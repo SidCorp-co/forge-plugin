@@ -402,11 +402,12 @@ export const cloudflare = async ([sub, ...rest]) => {
     console.log(SAYS[help.subject] ?? USAGE);
     process.exit(0);
   }
-  const asked = Boolean(help);
-  if (asked || !sub || !Object.hasOwn(SUBS, sub)) {
-    if (sub && !asked) console.error(didYouMean("cloudflare action", sub, Object.keys(SUBS)));
+  /* No branch for a help ask in the verb's own slot: `cli.mjs` has answered it before this runs, so
+     the only ways here are a missing subject and one the table does not hold — both refusals. */
+  if (!sub || !Object.hasOwn(SUBS, sub)) {
+    if (sub) console.error(didYouMean("cloudflare action", sub, Object.keys(SUBS)));
     console.error(USAGE);
-    process.exit(asked ? 0 : 1);
+    process.exit(1);
   }
   await SUBS[sub](rest);
 };

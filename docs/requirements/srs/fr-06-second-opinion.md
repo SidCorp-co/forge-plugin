@@ -59,7 +59,7 @@ is not offered again however recently it was touched.
 - **AC-06-2-1** · Rev: 1 · Proof: plugin/test/gates/codex-turn.test.mjs "a later turn is told even though the list from an earlier one is still pending"
   WHEN the first document of a turn is written THEN the CLI SHALL ask once, and SHALL record the
   rest of that turn's documents without asking again.
-- **AC-06-2-2** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs "a document the latest answered consult read at this content is not recorded again"
+- **AC-06-2-2** · Rev: 1 · Proof: plugin/test/codex/codex-record.test.mjs "a document the latest answered consult read at this content is not recorded again"
   IF the latest consult already read a document at its current content THEN the CLI SHALL not record
   it as unread, even when the document is named or touched again.
 - **AC-06-2-3** · Rev: 1 · Proof: plugin/test/gates/codex-turn.test.mjs "giving up on the lock leaves a note, and the note is not counted as a refusal"

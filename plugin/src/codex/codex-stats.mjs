@@ -14,7 +14,7 @@ import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { unknownFlag } from "../suggest.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
-import { CONSULTS, againstIn, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "../stats/marks.mjs";
+import { CONSULTS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "../stats/marks.mjs";
 
 const DEFAULT_WINDOW = 100;
 const REPLAY_WINDOW = 30;
@@ -197,8 +197,7 @@ const evalHead = (held) => {
       + "nothing yet to compare this one against."];
   }
   if (held.against !== undefined) {
-    const overlap = now.from <= before.to ? "  — overlapping the recent window, which begins before this one ends" : "";
-    return [first, `the ${before.consults} held at mark ${held.against}  ${span(before)}${overlap}`];
+    return [first, heldAtMark(before.consults, held.against, span(before), now.from <= before.to)];
   }
   return [first, `the ${before.consults} before them  ${span(before)}`
     + (before.consults < MARK ? `  — the log does not reach a full ${MARK} further back` : "")];
@@ -284,8 +283,8 @@ export const evalObject = (entries, against = null) => {
 
 /** What the consult that crossed a mark says, having written the reading once: the log as it stood
  *  when that consult landed, so one finishing just behind it is not in the window the mark names. */
-export const crossingSaid = ({ mark, at, said }) => {
-  const wrote = writeMark({ kind: CONSULTS, mark, at: new Date().toISOString(), ...evalObject(logEntries().slice(0, at + 1)) });
+export const crossingSaid = ({ mark, at, said, entries }) => {
+  const wrote = writeMark({ kind: CONSULTS, mark, at: new Date().toISOString(), ...evalObject(entries.slice(0, at + 1)) });
   return `${said} ${wroteSaid(wrote, mark, "forge codex eval")}`;
 };
 

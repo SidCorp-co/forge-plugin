@@ -39,7 +39,7 @@ export const sectionsIn = (cell) => {
  *  pattern as written and the sections it wants, in order. Takes that document, not the set. */
 export const declaredSections = (rules) => {
   const out = [];
-  for (const line of rules?.lines ?? String(rules?.text ?? "").split("\n")) {
+  for (const line of rules?.lines ?? []) {
     const row = SECTION_TABLE.exec(line);
     const sections = row && sectionsIn(row[2]);
     if (sections) out.push({ pattern: row[1], sections });

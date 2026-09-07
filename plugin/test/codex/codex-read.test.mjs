@@ -18,7 +18,7 @@ delete process.env.FORGE_CODEX_DISABLE;
 const { digest, locate } = await import("../../src/codex/codex-api.mjs");
 const { LOG_PATH, logConsult } = await import("../../src/codex/codex-log.mjs");
 const { repoRoot } = await import("../../src/codex/codex.mjs");
-const { bodyChecked, readOrRefuse } = await import("../../src/codex/codex-read.mjs");
+const { readOrRefuse } = await import("../../src/codex/codex-read.mjs");
 
 /* The refusal alone where a case is about the wording, and the pair where it is about the bytes. */
 const refusalOf = (...given) => readOrRefuse(...given).refusal;
@@ -136,7 +136,6 @@ test("a path naming nothing is raised, not stood down into the unchecked reader"
   const { root } = room();
   const gone = join(root, "never-written.md");
   assert.throws(() => readOrRefuse(gone, root), { code: "ENOENT" });
-  assert.rejects(bodyChecked(gone, assert.fail, root), { code: "ENOENT" });
 });
 
 test("a path naming something that is not a regular file is refused, never read", () => {
@@ -227,21 +226,17 @@ test("the command the refusal prints is quoted, and names the tree it has to run
   assert.doesNotMatch(refusalOf(join(root, "plan.md"), root), /cd .* &&/u);
 });
 
-/* The caller's seat, and the only route through it to a body no consult judged. */
-test("bodyChecked answers the judged bytes, raises the refusal, and reads unchecked only when off", async () => {
+/* This module hands the two halves back and composes neither: `flow/record.mjs` is what pairs the refusal
+   with the unchecked reader, and `test/flow/record-plan.test.mjs` watches that pairing's kill switch. So a
+   composing export belongs there and not here, where only its own case would reach it. */
+test("the judged bytes come back with no refusal, which is what a caller composes", () => {
   const { root, path, rel } = room();
-  /* The raise throws, as both callers' do: one that returned would let the read carry on past the
-     refusal, and a case counting calls would pass while the body went through. */
-  const stop = (why) => {
-    throw new Error(`raised: ${why.split("\n")[0]}`);
-  };
-  await assert.rejects(bodyChecked(path, stop, root), /^Error: raised: No consult has read plan\.md/u);
   consulted(root, rel, PLAN, { id: "seat01" });
-  assert.equal(await bodyChecked(path, assert.fail, root), PLAN);
+  assert.deepEqual(readOrRefuse(path, root), { refusal: null, text: PLAN });
   writeFileSync(path, "never judged\n");
   process.env.FORGE_CODEX_DISABLE = "1";
   try {
-    assert.equal(await bodyChecked(path, assert.fail, root), "never judged\n");
+    assert.deepEqual(readOrRefuse(path, root), { refusal: null, text: null }, "and under the kill switch there is no refusal and no judged text, which is what `?? bodyFrom(path)` fell through on");
   } finally {
     delete process.env.FORGE_CODEX_DISABLE;
   }

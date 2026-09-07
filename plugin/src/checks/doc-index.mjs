@@ -3,13 +3,15 @@
    exempt by kind, so a document written later is in scope without anyone remembering it: the
    requirements tree answers to its own gate, and the journal a run appends to is read by date. */
 import { LINK_TARGET_PATTERN, TABLE_SEPARATOR_PATTERN, withoutSpans } from "../markdown.mjs";
+import { RECORDS_RATHER_THAN_INSTRUCTS } from "./doc-shape.mjs";
 
 export const TOPIC_MAX = 9000;
-const UNCAPPED = /^docs\/requirements\/|^docs\/issue-flow-dry-runs\.md$/u;
+const REQUIREMENTS = /^docs\/requirements\//u;
+const uncapped = (rel) => REQUIREMENTS.test(rel) || RECORDS_RATHER_THAN_INSTRUCTS.test(rel);
 
 export const overCap = (docs, max = TOPIC_MAX) =>
   docs
-    .filter(({ rel, chars }) => !UNCAPPED.test(rel) && chars > max)
+    .filter(({ rel, chars }) => !uncapped(rel) && chars > max)
     .map(({ rel, chars }) => `${rel} is ${chars} characters, over the ${max} a topic is read in one`
       + " pass — split it and give each half its own index row. The cap is the round number above"
       + " docs/HOOKS.md, the one document this repository keeps whole");

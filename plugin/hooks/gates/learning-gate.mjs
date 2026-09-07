@@ -23,37 +23,32 @@ const FLAG = /^-/u;
 const MOVES = /^(?:cd|pushd|popd)$/u;
 const HANDED = /\bxargs\b|(?:^|\s)-exec\b|\{\}/u;
 
-/** The operands of one command, with the words that are not operands left out, each `{ from, to }` in the text this stage was cut from. */
-const operandsOf = (words) => {
-  const out = [];
-  for (let at = 0; at < words.length; at += 1) {
-    /* Its own spelling, quotes off: a shell takes `'--output'` for the option it is, and reading the raw word left the destination beside it unguarded. */
-    const said = unquote(words[at].text);
-    const before = at > 0 ? unquote(words[at - 1].text) : "";
-    if (FLAG.test(said) || FLAG.test(before) || AIMED.test(said) || AIMED.test(before)) continue;
-    out.push(words[at]);
-  }
-  return out;
-};
+/** The operands of one command, with the words that are not operands left out, each `{ from, to }` in the text this stage was cut from. It reads each word's own spelling, quotes off, because a shell takes `'--output'` for the option it is and reading the raw word left the destination beside it unguarded. */
+const operandsOf = (words) =>
+  words.filter(({ said }, at) => {
+    const before = at > 0 ? words[at - 1].said : "";
+    return !(FLAG.test(said) || FLAG.test(before) || AIMED.test(said) || AIMED.test(before));
+  });
 
 /** Which of one command's operands its write lands on, `null` where this cannot say — a verb whose operands are somewhere else, or a write made by a language's own call, which names no position here. `said` is the same command with every word's quotes off, which is how a shell reads a flag; `stage` is what it wrote, since unquoting it would promote a verb quoted inside an argument. */
 const aimsOf = (program, operands, stage, said) => {
   const aim = AIMS[program];
   if (!aim) return WRITES.test(stage) ? null : [];
   if (aim === "none" || (program === "sed" && !IN_PLACE.test(said))) return [];
-  if (aim === "of") return operands.filter((one) => unquote(one.text).startsWith("of="));
+  if (aim === "of") return operands.filter((one) => one.said.startsWith("of="));
   return aim === "last" && !UNLINKS.test(said) ? operands.slice(-1) : operands;
 };
 
-/** Every operand of one command that its write does not land on, or `null` to leave the whole span alone. */
+/** Every operand of one command that its write does not land on, or `null` to leave the whole span alone. Each word is unquoted once here and carried as `said`, since every reading below wants the shell's spelling; `text` stays because the offsets a strike works in are the raw word's. */
 const readsIn = (stage, from) => {
-  const words = [...stage.matchAll(WORDS)].map((m) => ({ text: m[0], from: from + m.index, to: from + m.index + m[0].length }));
+  const words = [...stage.matchAll(WORDS)]
+    .map((m) => ({ text: m[0], said: unquote(m[0]), from: from + m.index, to: from + m.index + m[0].length }));
   let at = 0;
-  while (at < words.length && BEFORE.test(unquote(words[at].text))) at += 1;
-  const program = basename(unquote(words[at]?.text ?? ""));
+  while (at < words.length && BEFORE.test(words[at].said)) at += 1;
+  const program = basename(words[at]?.said ?? "");
   if (MOVES.test(program)) return [];
   const operands = operandsOf(words.slice(at + 1));
-  const aims = aimsOf(program, operands, stage, ` ${words.map((one) => unquote(one.text)).join(" ")}`);
+  const aims = aimsOf(program, operands, stage, ` ${words.map((one) => one.said).join(" ")}`);
   return aims && operands.filter((one) => !aims.includes(one));
 };
 

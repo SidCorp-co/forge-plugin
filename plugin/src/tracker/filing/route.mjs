@@ -1,6 +1,5 @@
 /* The one route from a body to an issue: every verb that files calls it, and what stays a route's
    is its flags and the lines it prints. Nothing here prints and nothing here exits: docs/cli/filing.md. */
-import { fail } from "../../resolve/settings.mjs";
 import { foldFiling, neighboursOf } from "./neighbours.mjs";
 import { filingRefusal, liveTitles, rankOf, shapeOf, shapeRefusal, trackerFields, withMark }
   from "../issue-shape.mjs";
@@ -135,11 +134,4 @@ export const fileIssue = async ({
   };
   const answer = await write("forge_issues", { action: "create", data }, undefined, soft);
   return { refusal: null, description, shape, beside, said, joined: null, answer, ranked, related };
-};
-
-/** For a route whose refusal has nowhere to go but the exit. */
-export const filedOrFail = async (asked) => {
-  const filed = await fileIssue(asked);
-  if (filed.refusal) fail(filed.refusal.text);
-  return filed;
 };

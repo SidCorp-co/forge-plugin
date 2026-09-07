@@ -153,6 +153,11 @@ export const renewedLapsed = (ref, lease) =>
   + `before it still named ${lease.holder}, so no other run had taken the issue by then. A reclaim is `
   + `a handoff and this was none, so the claim history is unchanged.`;
 
+/** What a finder's write says about the lease it did not take, here rather than at its one call site because every other lease sentence is here; `renew`'s `{ finder: true }` answer is the argument. */
+export const finderSaid = (ref, renewed) => (renewed
+  ? `The lease on ${ref} is yours and this post renewed it.`
+  : `No lease on ${ref} is yours, so this post is a finder's and renewed none.`);
+
 /* Key-order-blind: the tracker returns what it stored in its own order, so a plain compare differs. */
 export const canonical = (value) => {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
