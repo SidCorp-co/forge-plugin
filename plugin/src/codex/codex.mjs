@@ -189,13 +189,17 @@ const askedRounds = (raw) => {
   return value;
 };
 
-/* Repeated `--verify`, then positionals apart from flag values, then the rest — three passes
-   because a flag can carry a value and a file cannot. */
+/* Repeated `--verify`, then positionals apart from flag values, then the rest — three passes because a flag can carry a value and a file cannot. */
 export const consultArgs = (given) => {
   if (given.includes("--bg")) fail("codex: --bg is gone; a consult runs inline, like the advisor.");
   const usage = CONSULT_USAGE;
   const { values: risks, rest: without } = pullRepeated(given, "--verify", "codex consult", { usage });
   const { positionals, flagArgv } = partition(without, BOOLEAN, { verb: "codex consult", usage });
+  /* Refused at the parse, not at the read: `-` is every other verb's stdin spelling, and this verb's stdin is its intent rather than a file, so the file reader's answer names the wrong thing. */
+  if (positionals.includes("-")) {
+    fail("codex: consult takes file paths and `-` is not one — its intent is read from standard "
+      + 'input. Pipe it: echo "<what you were doing>" | forge codex consult <file>...');
+  }
   const held = flags(flagArgv, "codex consult", BOOLEAN, { usage });
   return {
     named: positionals,
