@@ -1,4 +1,4 @@
-/* The tracker's column names this CLI reads and never shows, because it has a word of its own for each and a name an agent has to translate costs a round — docs/cli/doctor.md. A column this CLI has no second word for is not here: `complexity` is spoken as the tracker spells it, which is docs/cli/the-kinds.md's decision. Stated as patterns, and read by property access, so neither the rule nor its reader is a quoted span and neither needs an exemption. */
+/* The columns this rule holds, stated as patterns and read by property access, so neither the rule nor its reader is a quoted span and neither needs an exemption. Whose word each of these is, and why: `rest.mjs`, which names the document. A column this CLI has no second word for is not here — `complexity` is spoken as the tracker spells it, which is docs/cli/the-kinds.md's decision. */
 import { lineAt } from "../markdown.mjs";
 
 export const COLUMNS = [/baseBranch/u, /previewDeploy/u];

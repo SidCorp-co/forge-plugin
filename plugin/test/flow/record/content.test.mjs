@@ -20,7 +20,7 @@ const ISSUE = {
   issueId: "ISS-95",
   status: "confirmed",
   title: "the record a reader can act on",
-  description: "`forge dep` should take the `data.relations` route.",
+  description: "`forge issue` should take the `data.relations` route.",
   complexity: "s",
 };
 

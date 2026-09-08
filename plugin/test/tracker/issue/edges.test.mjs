@@ -88,8 +88,20 @@ test("two edge flags in one call are refused rather than one of them written", a
   state.calls = [];
   const run = await ran("issue", "ISS-45", "--blocks", "ISS-46", "--relates", "ISS-47");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /--blocks and --relates are separate edges and a call writes one/u, run.stderr);
+  assert.match(run.stderr, /--blocks and --relates are separate writes and a call makes one/u, run.stderr);
   assert.equal((state.calls ?? []).filter((one) => one.method === "POST").length, 0);
+});
+
+/* An edge and a field are two writes of this one verb, so they are judged in the same set: taken
+   together, one of them would land and the other would be dropped without a word. */
+test("an edge flag and --set in one call are refused, and neither of them is written", async () => {
+  await read("ISS-45");
+  state.calls = [];
+  const run = await ran("issue", "ISS-45", "--blocks", "ISS-46", "--set", "complexity=s", "--why", "the rung was wrong");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /--blocks and --set are separate writes and a call makes one/u, run.stderr);
+  assert.match(run.stderr, /Nothing was sent\./u);
+  assert.equal((state.calls ?? []).filter((one) => one.method !== "GET").length, 0);
 });
 
 /* The window the caller's own check cannot close: free when the two ends were checked, taken by the

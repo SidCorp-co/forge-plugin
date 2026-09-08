@@ -21,7 +21,7 @@ const ISSUE = {
   issueId: "ISS-96",
   status: "in_progress",
   title: "the issue a run had to set by hand",
-  description: "`forge dep` should take the `data.relations` route.",
+  description: "`forge issue` should take the `data.relations` route.",
   complexity: "s",
   priority: "medium",
 };

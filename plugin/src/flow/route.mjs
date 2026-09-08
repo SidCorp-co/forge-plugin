@@ -117,7 +117,7 @@ const blockingOwed = (view, ref) =>
     : [need(
       "the triage puts the expectation outside the specification, and no edge that gates dispatch "
         + "blocks this issue: the spec change or the new issue that owes it is the blocker",
-      `forge dep <the issue that owes it> ${ref} blocks`,
+      `forge issue <the issue that owes it> --blocks ${ref}`,
     )];
 
 /* The outcome says how far back the work goes and never how far forward, so the status the reopen

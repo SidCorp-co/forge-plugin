@@ -164,7 +164,7 @@ test("not-in-spec parks the issue behind the edge that gates it", () => {
   const alone = targetOf(reopened(triage), "ISS-3");
   assert.equal(alone.next, "on_hold");
   assert.match(alone.missing[0].what, /no edge that gates dispatch blocks this issue/u);
-  assert.match(alone.missing[0].command, /^forge dep <the issue that owes it> ISS-3 blocks$/u,
+  assert.match(alone.missing[0].command, /^forge issue <the issue that owes it> --blocks ISS-3$/u,
     "the verb that writes the edge, the blocked end being the issue in hand");
   const blocked = targetOf(edged({ otherDisplayId: "ISS-9", otherStatus: "open", kind: "blocks", gatesDispatch: true }), "ISS-3");
   assert.deepEqual(blocked.missing, [], "and nothing else is owed: this issue's own judging was not at fault");

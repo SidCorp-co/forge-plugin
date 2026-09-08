@@ -317,9 +317,8 @@ export const next = async (argv) => {
   const landed = lastLanded(rows);
   const warmPaths = landed ? pathsNamed((await scoped("forge_issues", {
     action: "get", documentId: landed.documentId, fields: ["description"] }))?.description ?? "") : [];
-  /* The body's own lines are read when it lands, not in `judge`: `judge` is re-run over the whole
-     read prefix on every pass — up to five of them under the caps below — and the body does not
-     change between them. They ride on the body's own entry, having no life without it. */
+  /* The body's own lines are read when it lands, not in `judge`: `judge` is re-run over the whole read prefix on every
+     pass — up to five under the caps below — and the body does not change between them, so they ride on its own entry. */
   const bodies = new Map();
   const judge = (one) => {
     const body = bodies.get(one.issueId);

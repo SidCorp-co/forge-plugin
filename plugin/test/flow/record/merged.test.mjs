@@ -25,7 +25,7 @@ const ISSUE = {
   issueId: "ISS-99",
   status: "in_progress",
   title: "the change whose landing is marked by a verb",
-  description: "`forge dep` should take the `data.relations` route.",
+  description: "`forge issue` should take the `data.relations` route.",
   complexity: "s",
 };
 

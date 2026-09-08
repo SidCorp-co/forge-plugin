@@ -6,9 +6,7 @@ import {
   FINDINGS, SHAPES, TRIAGES, criteriaUncovered, looksTo, planFlags, planTyped, sectionsOwed,
   stepsUncited, unwrap,
 } from "./machine.mjs";
-import {
-  judgedHead, landingMoved, landingWrote, markedCommit, mergedForm, reviewedHead,
-} from "./record/merged.mjs";
+import { judgedHead, landingMoved, landingWrote, markedCommit, mergedForm, reviewedHead } from "./record/merged.mjs";
 import { eachProblem } from "./record/content.mjs";
 import { FORMS } from "../spec/parse.mjs";
 import { lightens } from "../ladder.mjs";
