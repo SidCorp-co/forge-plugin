@@ -4,7 +4,7 @@ import { INHERITED, INHERITED_MEANS, OWN_ID, sessionOf, sessionSourced } from ".
 import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { writeField } from "../tracker/field-write.mjs";
-import { scoped } from "../tracker/rpc.mjs";
+import { scoped, tried } from "../tracker/rpc.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
 export const FIELD = "sessionContext";
@@ -300,8 +300,11 @@ export const canonical = (value) => {
   return JSON.stringify(value ?? null);
 };
 
-export const readContext = async (documentId) =>
-  (await scoped("forge_issues", { action: "get", documentId, fields: [FIELD] }))?.[FIELD] ?? null;
+/* Where the lease is read from, in one place. Softly, the transport's own refusal comes back in place of the context: a caller that asks for it has a record up already, and every failure it meets owes a message naming that record. */
+export const readContext = async (documentId, soft = false) => {
+  const answer = await (soft ? tried : scoped)("forge_issues", { action: "get", documentId, fields: [FIELD] });
+  return answer?.refused ? answer : answer?.[FIELD] ?? null;
+};
 
 /* The compare-and-set the tracker owes (ISS-7): it cannot stop another run's write, only refuse. The
    write itself is the field writer's, and `sessionContext`'s row there is where these three are spent. */
@@ -317,14 +320,23 @@ export const leaseMismatch = (ref, back) => {
 export const setLease = async (documentId, value, ref) =>
   writeField(documentId, FIELD, value, { ref, refuse: fail });
 
-/* An edge touches two issues and one of them is being worked: the other is only checked, so a
-   blocker just filed, holding no lease at all, can still be named. */
+/* An edge touches two issues and one of them is being worked: the other is only checked, so a blocker just filed, holding no lease at all, can still be named. */
 export const notAnothers = async (documentId, ref) => {
   const lease = leaseOf(await readContext(documentId));
   if (stateOf(lease, sessionOf()) === "live") fail(writeRefusal("live", ref, lease));
 };
 
-/* Every payload write renews the lease; another run's is refused, a read needs none, and `finder` is the one conditional renewal, answered by the return: asked for by the two writes a finder may make, a comment and an edge, and inherited by nobody, because the field writer awaits this and reads none of it, and a `false` handed back unasked would license a write on another run's issue. What it answers nothing about is whether a LIVE lease may be written past: a comment is additive and is posted anyway, an edge moves what a dispatch may take and is not, so the caller that cares reads `notAnothers` for itself — after this call, so that nothing is written having read another run's lease. The lapsed reread below is outside the option — a handoff mid-write is a handoff whoever is writing. */
+/** The same question asked rather than asserted, for the caller that has already written: the answer comes back instead of exiting — as another run's hold or as an `unknown` the transport would not say — because whoever stops here owes a message about the record it left standing. */
+export const anothersHold = async (documentId, ref) => {
+  const context = await readContext(documentId, true);
+  if (context?.refused) return { unknown: true, said: context.refused };
+  const lease = leaseOf(context);
+  const state = stateOf(lease, sessionOf());
+  if (state === "mine" || state === "lapsed") return null;
+  return { unknown: false, said: writeRefusal(state, ref, lease) };
+};
+
+/* Every payload write renews the lease; another run's is refused, a read needs none, and `finder` is the one conditional renewal, answered by the return: asked for by the two writes a finder may make, a comment and an edge, and inherited by nobody, because the field writer awaits this and reads none of it, and a `false` handed back unasked would license a write on another run's issue. What it answers nothing about is whether a LIVE lease may be written past: a comment is additive and is posted anyway, an edge moves what a dispatch may take and is not, so the caller that cares reads `notAnothers` or `anothersHold` for itself — after this call, so that nothing is written having read another run's lease. The lapsed reread below is outside the option — a handoff mid-write is a handoff whoever is writing. */
 export const renew = async (documentId, ref, next = undefined, patch = null, { finder = false } = {}) => {
   const holder = sessionOf();
   const context = await readContext(documentId);

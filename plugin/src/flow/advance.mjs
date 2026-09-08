@@ -17,7 +17,7 @@ import { render } from "./record/page.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, setForm, viewFrom } from "./earned.mjs";
 import { undoForm } from "./record/merged.mjs";
 import { credentialAhead, deployFor, lookAhead, owedLine, policyFor, targetOf } from "./route.mjs";
-import { FIELD, leaseOf, nextLine, renew } from "./lease.mjs";
+import { FIELD, anothersHold, leaseOf, nextLine, renew } from "./lease.mjs";
 
 /* A needs_info park owes the readings only the question shape carries. */
 const ASKS_A_QUESTION = "question";
@@ -70,8 +70,8 @@ const viewOf = async (reference, given) => {
 /* The renew before it is where the line is cleared: the transition is refused before this runs
    unless the record earns it, and a second lease write would cost three more calls. `said` is what
    a park adds to the payload; a plain advance sends the status alone and nothing else. */
-export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false } = {}) => {
-  await renew(view.documentId, ref, next);
+export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false, renewed = false } = {}) => {
+  if (!renewed) await renew(view.documentId, ref, next);
   const answer = await write("forge_issues",
     { action: "transition", documentId: view.documentId, data: { status, ...(said ?? {}) } }, undefined, soft);
   /* Soft is for the caller that has already written something: the tracker's own refusal exits the process, and one route needs it back to say what its record left behind. */
@@ -94,6 +94,18 @@ const waitsFor = (status) => (status === WAITING ? { waitingKind: "needs_decisio
    leaves a page reading as a status the issue does not hold, and the transition's own refusal says
    nothing about the record above it. */
 const movedAfterRecord = async (view, ref, status, move) => {
+  /* The record's write renewed the lease, so the move does not renew it again — but a handoff between the two is still a handoff, and the move must not be the write that learns it. Asked rather than asserted, and asked softly, because a read that exits here reports a transport and never the record standing above it. */
+  const held = await anothersHold(view.documentId, ref);
+  if (held) {
+    refuse(`the record for ${status} went up and the move was not attempted. ${held.said}\n`
+      + (held.unknown
+        ? `Whether ${ref} is still this run's could not be read, so nothing was sent to the status. `
+          + `Read the lease and make the move, or say on the record that it did not happen:\n  ${setForm(ref, status)}\n`
+        : `${ref} changed hands between the two writes, so no write of yours may set its status. `
+          + `Take the issue back and move it, or say on the record that it did not happen:\n  forge claim ${ref} --take\n`)
+      + `  forge record correction ${ref} --moved "the record above claims ${status}, which was not `
+      + `attempted" --why <w>`);
+  }
   const refused = await move(true);
   if (!refused) return;
   /* A dropped write is not a rejected one: the transport says so itself, and a message naming the old status either way would send a run to correct a move that may have landed. */
@@ -110,9 +122,9 @@ const movedAfterRecord = async (view, ref, status, move) => {
     + `--moved "the record above claims ${status}, which the move was refused" --why <w>`);
 };
 
-/* A move into a side status, with the announcement the tracker writes for it credited in the same breath, for the reason `markMerged` states. Soft, the tracker's refusal comes back for the caller with a record up already. */
+/* A move into a side status, with the announcement the tracker writes for it credited in the same breath, for the reason `markMerged` states. Soft, the tracker's refusal comes back for the caller with a record up already — whose own write was the renewal one call earlier, so this does not renew again: a second renewal is a second place to exit, and exiting there would leave that record claiming a move nothing attempted. */
 const moveTo = async (view, ref, status, { note = "", said, credit }, soft = false) => {
-  const refused = await transitionTo(view, status, ref, { note, said, soft });
+  const refused = await transitionTo(view, status, ref, { note, said, soft, renewed: soft });
   if (refused) return refused;
   await creditAfter(credit, [{ ref, documentId: view.documentId }]);
   return null;
@@ -207,7 +219,7 @@ export const shortfall = (ref, view, held) => {
   for (const one of held.missing) console.log(`\n  ${one.what}\n    ${one.command}`);
 };
 
-/* The status set with nothing earning it: the tracker's own set is what a value is judged against, this table having none to check it by, and the reply and the correction say no check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */
+/* The status set with nothing earning it, judged against what `declaredValue` declares and against nothing else, with the reply and the correction saying no check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */
 const setStatus = async (view, ref, status, why) => {
   const said = whyChecked("advance --set", why);
   const near = declaredValue("forge_issues", "status", status);

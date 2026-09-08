@@ -59,6 +59,20 @@ leaves a page reading as a status the issue does not hold, so both routes that w
 for the tracker's refusal rather than exiting on it, and report the pair: the record that stands, the
 status that did not move, and the two commands that settle it.
 
+The lease is read once more between the two writes, and it is a read. The record's own write was the
+renewal, so a second one would buy nothing and cost the one failure this route cannot report: a
+renewal refuses by exiting, and a process that exits there leaves the record above claiming a status
+nothing was asked to set, with only a lease sentence to read it by. So the issue changing hands
+between the record and the move is reported like a refused move — the record that stands, the move
+that was *not attempted*, and the two commands that settle it — and no move is sent under another
+run's lease.
+
+That read is asked softly for the same reason, and not knowing is said as not knowing. A read that
+exited on a transport failure would report the transport and never the record standing above it, so a
+lease this run cannot read is reported as a move not attempted too, with the move to make once the
+tracker answers rather than the reclaim a handoff needs. The two are never merged into one sentence:
+a run told it lost the issue does something different from a run told nobody could say.
+
 **A field a record writes is refused rather than overridden.** The plan, the criteria, the release
 note and the lease each have a verb, and a status is earned by the payload that verb writes; letting
 `--set` reach one of them would be a status earned by a field nobody checked, wearing a correction

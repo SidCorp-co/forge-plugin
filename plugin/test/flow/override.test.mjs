@@ -35,7 +35,16 @@ const state = {
     forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {
       if (args.action === "list") return { issues: [ISSUE], returned: 1, hasMore: false };
-      if (args.action === "get") return ISSUE;
+      if (args.action === "get") {
+        /* The one read the case is about, named by what it meets rather than by its place in the order: a read made
+           when a record is already on the page. On the record-first path that is the lease read before the move and
+           nothing else — the renewal's own read and its read-back both happen before the record goes up. A `fields`
+           read cannot be told apart here: the projection is this CLI's and the request it sends is the whole issue's. */
+        if (state.losesLeaseRead && (state.comments[ISSUE.documentId] ?? []).length) {
+          return { refused: state.losesLeaseRead };
+        }
+        return ISSUE;
+      }
       if (args.action === "update") {
         /* Acknowledged and not applied, which is the one answer the read-back below exists for. */
         if (state.ignores && args.data?.[state.ignores] !== undefined) return { ...ISSUE };
@@ -64,6 +73,10 @@ const state = {
         (state.comments[args.data.issue] ??= []).push(one);
         /* Modelled here because two cases below turn on it, and the tracker says nothing when it happens (ISS-429). */
         if (ISSUE.status === "needs_info") ISSUE.status = "open";
+        /* A run's own write is where it learns the issue changed hands, which is the window one case is about. */
+        if (state.takesLease) {
+          ISSUE.sessionContext = { lease: { holder: state.takesLease, agent: "another-agent", pid: "9", renewedAt: new Date().toISOString(), minutes: 30, next: null, history: [] } };
+        }
         return { documentId: one.documentId };
       }
       const held = state.comments[args.filters?.issue] ?? [];
@@ -74,14 +87,19 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 await ranAsync(FORGE, ["claim", "ISS-96"], tracker.env);
+/* The claim above is this suite's lease, restored per case: one of them hands the issue to another run. */
+const MINE = structuredClone(ISSUE.sessionContext);
 
 const before = (status = "in_progress") => {
   ISSUE.status = status;
   ISSUE.priority = "medium";
+  ISSUE.sessionContext = structuredClone(MINE);
   state.calls = [];
   state.refuses = null;
   state.ignores = null;
   state.dropsRecord = null;
+  state.takesLease = null;
+  state.losesLeaseRead = null;
   state.comments[ISSUE.documentId] = [];
 };
 const setField = (...argv) => ranAsync(FORGE, ["issue", "ISS-96", ...argv], tracker.env);
@@ -198,6 +216,43 @@ test("into needs_info the correction goes first, so the move cannot be undone by
   const moved = state.calls.findIndex((one) => one.args.action === "transition");
   assert.ok(wrote >= 0 && moved >= 0, `wrote ${wrote}, moved ${moved}`);
   assert.ok(wrote < moved, "the record is written against the status it left, and the move follows it");
+  const renewals = state.calls.filter((one) => one.args.action === "update" && one.args.data?.sessionContext !== undefined);
+  assert.equal(renewals.length, 1, "one renewal for the pair, spent by the record that went first");
+});
+
+/* The issue can change hands between the record and the move, and the move must not be the write
+   that learns it: the lease is read, not renewed a second time, because a renewal's own refusal
+   exits the process and would leave the correction claiming a status nothing was asked to set,
+   with only a lease sentence to read it by. */
+test("a lease taken under the correction stops the move, and the message names what the record claims", async () => {
+  before("confirmed");
+  state.takesLease = "another-run";
+  const run = await setStatus("--set", "needs_info", "--why", WHY);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /the record for needs_info went up and the move was not attempted/u,
+    "the record above is the subject, not the lease");
+  assert.match(run.stderr, /changed hands between the two writes/u, "and why nothing here may set the status");
+  assert.match(run.stderr, /forge record correction ISS-96 --moved/u, "with the way to say the record above is wrong");
+  assert.match(run.stderr, /forge claim ISS-96 --take/u, "and the way to take the issue back and finish it");
+  assert.equal(state.calls.some((one) => one.args.action === "transition"), false,
+    "no move was sent under another run's lease");
+  assert.equal(posted().length, 1, "and the correction that did go up is the one the message is about");
+});
+
+/* The same read can fail rather than answer, and it is asked softly for that: a read that exited
+   here would report a transport and never the record standing above it. Not knowing is not a
+   handoff, so it is said as not knowing, and the move to make is the one the run already typed. */
+test("a lease the transport would not read stops the move, and is reported as not knowing", async () => {
+  before("confirmed");
+  state.losesLeaseRead = "Forge answered 503";
+  const run = await setStatus("--set", "needs_info", "--why", WHY);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /the record for needs_info went up and the move was not attempted/u);
+  assert.match(run.stderr, /could not be read, so nothing was sent to the status/u,
+    "not knowing is said as not knowing, and never as a handoff");
+  assert.match(run.stderr, /forge advance ISS-96 --set needs_info --why/u, "with the move to make once it answers");
+  assert.match(run.stderr, /forge record correction ISS-96 --moved/u, "and the way to say the record above is wrong");
+  assert.equal(state.calls.some((one) => one.args.action === "transition"), false, "and nothing was sent to the status");
 });
 
 /* The cost of writing the record first, on the one route that has to: the record stands and the

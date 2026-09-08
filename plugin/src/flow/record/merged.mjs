@@ -83,12 +83,43 @@ const pathsSaid = (paths) => {
   return said;
 };
 
+const backSaid = (held) => {
+  if (held === null) return "nothing at all";
+  return Array.isArray(held) ? (held.length ? held.join(", ") : `\`${NOTHING}\``) : String(held);
+};
+
+const readsBack = (note, one) => (one.commit
+  ? one.reads.exec(note)?.[1] ?? null
+  : pathsIn(one.reads.exec(note)?.[1]?.trim()));
+
+const asGiven = (back, wanted) => (Array.isArray(wanted)
+  ? Array.isArray(back) && back.length === wanted.length && back.every((held, at) => held === wanted[at])
+  : String(back).toLowerCase() === String(wanted).toLowerCase());
+
+/* Every clause is found by its own words wherever they fall in the note, so a path carrying another clause's words is read as
+   that clause and the mark says a landing moved or wrote what it did not. The composer reads its own sentence back rather than
+   barring a list of substrings, which the next clause added to the table above would silently leave short. */
+const proved = (note, given) => {
+  for (const one of CLAUSES) {
+    const back = readsBack(note, one);
+    if (asGiven(back, given[one.flag])) continue;
+    refuse(`the note this mark would carry does not read back, so nothing was written: its `
+      + `\`${one.said}\` clause reads as ${backSaid(back)} where ${backSaid(given[one.flag])} was `
+      + `given. A clause is found by its own words wherever they fall in the note, and one of these `
+      + `values carries another clause's words: ${CLAUSES.map((row) => `\`${row.said}\``).join(", ")}. `
+      + `Name the paths some other way — the directory one is under, or a path without those words.`);
+  }
+  return note;
+};
+
 /** The note itself, from the same rows the readers above are built on: whoever lands a change —
- *  the verb below, or the landing task — composes it here and nowhere else. */
+ *  the verb below, or the landing task — composes it here and nowhere else, and it reads back as
+ *  given or it is not written. */
 export const markNote = ({ branch, at, reviewed, judged, moved = [], wrote = [] }) =>
-  `merged to ${branch} ${clause("at").said} ${at}; ${clause("reviewed").said} ${reviewed}; `
-  + `${clause("judged").said} ${judged}; ${clause("moved").said} ${pathsSaid(moved)}; `
-  + `${clause("wrote").said} ${pathsSaid(wrote)}`;
+  proved(`merged to ${branch} ${clause("at").said} ${at}; ${clause("reviewed").said} ${reviewed}; `
+    + `${clause("judged").said} ${judged}; ${clause("moved").said} ${pathsSaid(moved)}; `
+    + `${clause("wrote").said} ${pathsSaid(wrote)}`,
+  { at, reviewed, judged, moved, wrote });
 
 const TARGET = "base";
 

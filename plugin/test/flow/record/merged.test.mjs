@@ -140,6 +140,21 @@ test("a path the reader could not tell from the word for none is refused by the 
     /landing moved plugin\/src\/a\.mjs, docs\/b\.md;/u, "while the paths a landing really moves travel as they are");
 });
 
+/* A clause is found by its own words wherever they fall in the note, so a path carrying another
+   clause's words is read as that clause: the reader reaches the words inside the path first and
+   the clause they belong to reads as whatever follows them. No separator is involved, so the
+   composer's own read-back is the only thing that catches it. */
+test("a path carrying another clause's words is refused, because the note would not read back", () => {
+  const whole = { branch: "master", at: AT, reviewed: REVIEWED, judged: JUDGED };
+  assert.throws(() => markNote({ ...whole, moved: ["plugin/src/landing wrote nothing.mjs"], wrote: ["plugin/src/new.mjs"] }),
+    /does not read back/u, "the note would say the landing wrote nothing where it wrote a file");
+  assert.throws(() => markNote({ ...whole, moved: ["plugin/src/landing wrote nothing.mjs"], wrote: ["plugin/src/new.mjs"] }),
+    /`landing wrote` clause reads as nothing\.mjs where plugin\/src\/new\.mjs was given/u,
+    "and the refusal names the clause, what it read and what was given");
+  assert.match(markNote({ ...whole, moved: ["plugin/src/a.mjs"], wrote: ["plugin/src/new.mjs"] }),
+    /landing wrote plugin\/src\/new\.mjs$/u, "while a note that reads back as given is written");
+});
+
 test("a clause naming nothing is written as that word, and reads back as no paths", async () => {
   state.comments[ISSUE.documentId] = [];
   const run = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED,

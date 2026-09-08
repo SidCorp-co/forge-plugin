@@ -229,12 +229,10 @@ export const scoped = callTool;
 
 export const tried = async (name, args) => callTool(name, args, true);
 
-/** What the table declares in the tracker's stead. The set is this CLI's and goes stale when the
- *  tracker grows a value, which is what a refusal citing it has to say. */
+/** What the table declares in the tracker's stead, and a value judged against it — the nearest name, or null where the value is in the set or the table declares none.
+ *  The set is this CLI's and goes stale when the tracker grows a value, which is what the caller's sentence around either of these has to say. */
 export const declaredFor = (tool, field) => DECLARES[tool]?.[field] ?? [];
 
-/** A value judged against that set: null where it is in the set or the table declares none, else the nearest
- *  name. The caller's sentence says whose set it is and where a value the tracker has grown since is added. */
 export const declaredValue = (tool, field, given) => {
   const allowed = declaredFor(tool, field);
   return !allowed.length || allowed.includes(given) ? null : didYouMean(field, given, allowed);
