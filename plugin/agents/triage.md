@@ -20,4 +20,5 @@ Say which of the dispositions it is, or that it holds, and cite where you looked
 cannot evidence is a guess, and a guess here costs a whole run downstream.
 
 What you decided is written on the issue as a finding for the run that comes next to verify, never
-as an instruction to it.
+as an instruction to it. Which writes earn a disposition, in what order and under what lease, is
+`forge guide dispatch dispositions`, read at the point you have one.

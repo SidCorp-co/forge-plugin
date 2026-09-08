@@ -30,6 +30,33 @@ against the same corpus — and then read both.
 about to take a disposition on a negative, say which query returned nothing, so the run that reopens
 it knows what was not looked for.
 
+## The walk, for a round over the backlog
+
+A round check finds candidates two ways, and neither finding is a disposition until both bodies and
+the code have been read:
+
+1. **Find.** `forge next --count N --why` prints each ranked row's neighbours by shared path and by
+   text; `forge issues --status open --search <term>` per topic reaches the low-priority tail the
+   rank never compares. A path relation at directory level means nothing; a title that says the same
+   thing in the same words is a lead, not a verdict.
+2. **Read the cause, not the vocabulary.** Open each candidate's "Why it happens" and the file it
+   names. Two bodies naming one module and one mechanism are one issue; two naming the same shape in
+   different modules are two, and each gets a comment naming the other. The older filing is the
+   survivor unless the newer states the cause and the older only the symptom.
+3. **Verify "already fixed" live, once for the set.** Run the verb on the installed copy by its own
+   path, not the checkout, and name the landing that fixed it with its release. One live read covers
+   every filing on that cause.
+4. **Post, per issue, on its own command line.** A short `forge claim` whose record says nothing was
+   worked under it; `forge record confirmation --finding duplicate|already-fixed --where … --is …
+   --detail …`, the detail naming the survivor or the release; then `forge advance --drop --why` for
+   a duplicate and `forge advance --set closed --why` for a fix that landed. The read-first gate may
+   hold the first write with the thread's unseen comments: read them, re-send the same command.
+5. **The survivor keeps what the dropped body added.** One comment on it, carrying the evidence and
+   any rule the duplicate stated better; a drop with nothing carried loses the second report's
+   reading, which is the one thing it was worth.
+6. **Count it in the fold** as a run not spent, with the query that found it, and say which query
+   returned nothing where a set was judged complete.
+
 ## Posting it
 
 How a disposition is posted and what earns the status move are the executor's, stated in the
