@@ -6,7 +6,7 @@ import { shortly } from "../install.mjs";
 import { Refusal, refusing } from "../../../plugin/src/resolve/settings.mjs";
 import { Refused } from "../../../plugin/src/refusal.mjs";
 import { commentPage } from "../../../plugin/src/tracker/comments.mjs";
-import { scoped } from "../../../plugin/src/tracker/rpc.mjs";
+import { scoped } from "../../../plugin/src/tracker/rest.mjs";
 import { advance } from "../../../plugin/src/flow/advance.mjs";
 import { atLeast, viewFrom } from "../../../plugin/src/flow/earned.mjs";
 import { markMerged, markNote, markedCommit, namedFor } from "../../../plugin/src/flow/record/merged.mjs";
