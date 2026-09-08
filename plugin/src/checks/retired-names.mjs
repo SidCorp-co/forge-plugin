@@ -8,8 +8,8 @@ export const RETIRED = [
   { name: "feedback", kind: "directory", release: "3.35.45" },
   { name: "codex-order", kind: "tool", release: "3.35.134" },
   { name: "forge_step_start", kind: "tool", release: "3.35.225" },
-  { name: "deps", kind: "verb", release: "3.35.237" },
-  { name: "dep", kind: "verb", release: "3.35.237" },
+  { name: "deps", kind: "verb", release: "3.35.240" },
+  { name: "dep", kind: "verb", release: "3.35.240" },
 ];
 
 const KINDS = ["verb", "flag", "tool", "directory"];

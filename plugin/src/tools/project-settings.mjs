@@ -110,9 +110,8 @@ const unknownKey = (given, read) =>
   + NAMES.map((name) => `--set ${name}.${given}=<value>`).join(" or ");
 
 /* A prefixed key names its resource outright and costs no read — the only way to write a key the
-   project does not hold yet, and the only way to write one both hold. A bare key belongs to
-   whichever resource already answered with it, and one two resources answer with routes nowhere:
-   one of the two is a deploy switch and picking for the caller is picking wrong half the time. */
+   project does not hold yet, and the only way to write one both hold, a bare key both answer with
+   routing nowhere: one is a deploy switch, so picking for the caller is wrong half the time. */
 const routeFor = async (given) => {
   const at = given.indexOf(".");
   const head = at > 0 ? given.slice(0, at) : null;
@@ -175,8 +174,17 @@ export const projectReport = async ({ credentials } = {}) => {
 };
 
 /* Silently preferring a route would leave the caller reading a success about the write they did not
-   ask for, and the body's fields are refused beside a narrow write rather than ignored. */
+   ask for, so the body's fields are refused beside any write that takes no body rather than
+   dropped — a caller told a field was set that nothing stored has been told the wrong thing. */
 export const briefAsked = (asked) => WRITES.some((one) => asked[one] !== undefined);
+
+export const refuseCarried = (asked, pairs, said) => {
+  const carried = [...WITH_BODY.filter((one) => asked[one] !== undefined), ...(pairs.length ? ["meta"] : [])];
+  if (carried.length) {
+    fail(`doctor: ${carried.map((one) => `--${one}`).join(" and ")} are written with a body, so they `
+      + `belong to --refresh. ${said}`);
+  }
+};
 
 export const briefRoute = async (asked, pairs, positionals) => {
   const asks = WRITES.filter((one) => asked[one] !== undefined);
@@ -185,10 +193,8 @@ export const briefRoute = async (asked, pairs, positionals) => {
       + "way and one call takes one — --refresh the whole body, --confirm one source's digest, "
       + "--line one line's prose.");
   }
-  const carried = [...WITH_BODY.filter((one) => asked[one] !== undefined), ...(pairs.length ? ["meta"] : [])];
-  if (carried.length && asks.length && asks[0] !== "refresh") {
-    fail(`doctor: ${carried.map((one) => `--${one}`).join(" and ")} are written with a body, so `
-      + `they belong to --refresh. --${asks[0]} carries the stored entry's forward untouched.`);
+  if (asks.length && asks[0] !== "refresh") {
+    refuseCarried(asked, pairs, `--${asks[0]} carries the stored entry's forward untouched.`);
   }
   if (asked.line !== undefined && positionals.length !== 1) {
     fail("doctor: --line takes the line's number and the one line of prose replacing it, so quote "

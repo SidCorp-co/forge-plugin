@@ -115,6 +115,16 @@ test("one field is updated and the fields it takes are named where one is not", 
   assert.equal(state.calls.filter((one) => one.name === "forge_projects.update").length, 0);
 });
 
+/* The write announces its own subject: this verb acts on a record the checkout does not scope, so a
+   banner naming the checkout's project would name one project while the write went to another. */
+test("the write says which project it went to, not which one the checkout is aimed at", async () => {
+  const written = await ask("sid-erp", "--set", "name=The product");
+  assert.equal(written.status, 0, written.stderr);
+  assert.match(written.stderr, /forge_projects -> project sid-erp \(from the call\)/u, written.stderr);
+  assert.doesNotMatch(written.stderr, /-> project forge-plugin/u,
+    "the checkout's own project is not the subject of an account-level write");
+});
+
 test("a pair with no `=` in it is refused rather than read as a field set to nothing", async () => {
   const run = await ask("forge-plugin", "--set", "name");
   assert.equal(run.status, 1);

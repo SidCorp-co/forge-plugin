@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
-import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, undeclaredIn } from "./rest.mjs";
+import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, rowFor, undeclaredIn } from "./rest.mjs";
 
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
@@ -197,7 +197,7 @@ const writeCache = (patch) => {
   }
 };
 
-/** One slug's id, off the cache or off the list — the archived too where asked, since the one verb that unarchives has to find its subject; a slug nothing matches answers with what was seen, and the caller words the refusal. */
+/** One slug's id, off the cache or off the list — the archived too where asked, since the one verb that unarchives has to find its subject; a slug nothing matches answers with what was seen, and the caller words the refusal. The lookup is itself a call, which is why `soft` reaches it: `fail()` inside one exits past the caller that was holding the refusal. */
 export const projectIdOf = async (slug, { archived = false, soft = false } = {}) => {
   const known = stored().projects?.[slug];
   if (known) return { id: known };
@@ -210,8 +210,6 @@ export const projectIdOf = async (slug, { archived = false, soft = false } = {})
   return { id: found.id };
 };
 
-/* The lookup is itself a call, which is why `soft` reaches it at all: `fail()` inside one exits past
-   the caller that was holding the refusal. */
 const idOfProject = async (soft) => {
   const aimed = projectTarget().value;
   if (!aimed && soft) return { refused: "no project slug is set" };
@@ -241,17 +239,30 @@ export const refuseCredential = async (value, what) => {
 };
 
 /* Every write announces its target, and hands the payload it sent back to a caller that asks: on a project with a prose language that copy and the one the caller wrote are different documents, and only the first can be read back and compared. */
+/* Whose write this is, off the table's own `account` flag: where a project record is the subject, the announce names that record and not the project this checkout is aimed at, which would name one project while the write went to another. A prose language is the written project's rather than the reading one's, so it is left off there too. The subject is said in the caller's own word where the cache holds it — the id is what the route takes and no reader knows one by sight. */
+const slugFor = (id) => Object.entries(stored().projects ?? {}).find(([, held]) => held === id)?.[0];
+
+const wroteFor = (name, args) => {
+  const row = rowFor(name, args);
+  if (row?.account) {
+    const ref = args.projectRef;
+    const value = (ref && (slugFor(ref) ?? ref)) ?? args.data?.slug ?? "the account";
+    return { target: { value, from: "the call" }, own: false };
+  }
+  return { target: projectTarget(), own: true };
+};
+
 export const write = async (name, args, onSent, soft = false) => {
   await refuseCredential(args.data, `The payload ${name} was about to send`);
-  const project = projectTarget();
-  const language = translateTarget();
+  const { target, own } = wroteFor(name, args);
+  const language = own ? translateTarget() : {};
   /* The source in a reader's words: the project file is `forge doctor`'s to name, and dropping the source took with it the line saying the CLI itself re-aimed this write (ISS-700). */
-  const from = project.from === FROM_PROJECT ? "the project file" : project.from ?? "nowhere";
+  const from = target.from === FROM_PROJECT ? "the project file" : target.from ?? "nowhere";
   console.error(
-    `${name} -> project ${project.value ?? "(none)"} (from ${from}), `
+    `${name} -> project ${target.value ?? "(none)"} (from ${from}), `
       + `prose ${language.value ?? "as written"}`,
   );
-  const data = args.data ? translated(args.data) : null;
+  const data = own && args.data ? translated(args.data) : args.data ?? null;
   onSent?.(data);
   return scoped(name, data ? { ...args, data } : args, soft);
 };

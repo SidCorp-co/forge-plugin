@@ -106,6 +106,19 @@ test("a write and a brief write in one call are refused rather than one of them 
   assert.match(run.stderr, /two resources and two calls/u);
 });
 
+/* The brief's body fields are the one write that takes a body: beside a key write they would be
+   dropped, and a caller told a title was set that nothing stored has been told the wrong thing. */
+test("a body's field beside --set is refused rather than dropped, and nothing is sent", async () => {
+  for (const carried of [["--title", "A title"], ["--confidence", "high"], ["--meta", "k=v"]]) {
+    state.calls = [];
+    const run = await ask("--set", "autoProdDeploy=true", ...carried);
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /are written with a body, so they belong to --refresh/u, run.stderr);
+    assert.match(run.stderr, /--set writes one key of the project's configuration and takes neither/u);
+    assert.equal(state.calls.filter((one) => one.method === "PATCH").length, 0);
+  }
+});
+
 /* The project's record and this machine's keys are two stores, and the project write answers before
    the machine's ever runs: a call naming both is refused rather than half-done. */
 test("a project write beside a machine key is refused, and neither half is written", async () => {

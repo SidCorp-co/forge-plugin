@@ -248,10 +248,10 @@ const jsonOf = (batches, dropped, weights, from, read) => ({
   dropped: dropped.map((one) => ({ issueId: one.issueId, soft: one.soft, reason: one.reason })),
 });
 
-/* The claims a body makes that the tracker does not hold: the pair is compared here rather than
-   printed twice, because the whole point of the second heading is what is only in one of them. */
+/* The claims a body makes that the tracker does not hold, and only a `blocks` edge answers one: a
+   `relates` edge on the same pair orders nothing, so matching it would retire the claim for free. */
 const onlyInProse = (claims, edges) => {
-  const held = new Set(edges.map((edge) => `${edge.from} ${edge.to}`));
+  const held = new Set(edges.filter((edge) => edge.kind !== RELATES).map((edge) => `${edge.from} ${edge.to}`));
   return claims.filter((claim) => !held.has(`${claim.from} ${claim.to}`));
 };
 

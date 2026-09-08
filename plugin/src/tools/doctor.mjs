@@ -487,13 +487,16 @@ const PROJECT_FLAGS = ["set", ...WRITES, ...WITH_BODY];
 /** One write per call, then the report, because a run that asked to write is not asking to be
  *  diagnosed: the project's own writes print their lines and stop there. */
 const wroteProject = async (asked, pairs, positionals) => {
-  const { briefAsked, briefRoute, writeSetting } = await projectSettings();
+  const { briefAsked, briefRoute, refuseCarried, writeSetting } = await projectSettings();
   const brief = briefAsked(asked);
   if (asked.set !== undefined && brief) {
     fail("doctor: --set writes a key of the project's configuration and the brief's flags write the "
       + "brief, which are two resources and two calls. Send one of them.");
   }
-  if (asked.set !== undefined) return writeSetting(asked.set);
+  if (asked.set !== undefined) {
+    refuseCarried(asked, pairs, "--set writes one key of the project's configuration and takes neither.");
+    return writeSetting(asked.set);
+  }
   return brief ? briefRoute(asked, pairs, positionals) : null;
 };
 

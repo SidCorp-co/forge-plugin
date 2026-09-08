@@ -520,3 +520,22 @@ test("a claim the tracker already holds is not printed twice", async () => {
   assert.match(run.stdout, /^claims found only in prose, which gate nothing — 0$/mu);
   assert.match(run.stdout, /^ {2}none$/mu);
 });
+
+/* The edge that answers a blocking claim is a blocking edge. A `relates` edge on the same pair
+   orders nothing, so a claim standing beside one is still a claim only prose makes — and it is the
+   same answer from either end, the relation being one the two ends state in opposite directions. */
+test("a relates edge does not retire a blocking claim on the same pair", async () => {
+  const loose = { kind: "relates", edgeId: "e-12" };
+  load([
+    issue("ISS-1", { title: "the first thing", relations: { blocks: [edge("ISS-2", loose)], blockedBy: [] } }),
+    issue("ISS-2", { title: "the second thing", description: `${claims("first thing")} It waits.`,
+      relations: { blocks: [edge("ISS-1", loose)], blockedBy: [] } }),
+  ]);
+  for (const argv of [["next", "--graph"], ["next", "--graph", "ISS-1"], ["next", "--graph", "ISS-2"]]) {
+    const run = await ran(argv);
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, /^claims found only in prose, which gate nothing — 1$/mu,
+      `${argv.join(" ")}: an edge that orders nothing retired the claim: ${run.stdout}`);
+    assert.match(run.stdout, /^ {2}ISS-1\s+-> ISS-2\s+blocks, stated by ISS-2 only$/mu);
+  }
+});
