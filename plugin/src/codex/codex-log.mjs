@@ -3,6 +3,7 @@
    advice later is the same file read a different way. docs/cli/codex-the-log.md. */
 import { isAbsolute, join } from "node:path";
 
+import { HUMAN_REF } from "../tracker/issues.mjs";
 import { appendJsonl, jsonlAt } from "../hooks/hook-log-file.mjs";
 import { configDir, userConfig } from "../resolve/config.mjs";
 import { masked } from "../hooks/hook-log.mjs";
@@ -181,6 +182,9 @@ export const digestOf = (reply, held = null) => {
 const FINDING = /^\s*[-*]\s+\*\*([^*]*\b(?:blocker|major|minor)\b[^*]*)\*\*\s*(.+)$/gimu;
 const RULING = /\b(?:resolved|confirmed|refuted|cannot tell)\b/iu;
 const ANCHOR = /`([^`:\s]+):\d+(?:-\d+)?`/u;
+/* `ISS-45/body:12` is a `path:line` this anchor matches and no file list holds, tracker text being in
+   no checkout: filtered by paths it would be a finding dropped whole rather than one placed elsewhere. */
+const onTracker = (anchored) => HUMAN_REF.test(String(anchored).split("/")[0]);
 const FINDING_CHARS = 900;
 
 const ID = /^\s*F(\d+)\b\s*[—-]?\s*/u;
@@ -225,7 +229,10 @@ export const numbered = (reply, files = null) => {
       };
     })
     .filter((one) => !seen.has(one.id) && seen.add(one.id))
-    .filter((one) => !files || !ANCHOR.test(one.head) || files.includes(ANCHOR.exec(one.head)[1]));
+    .filter((one) => {
+      const found = files ? ANCHOR.exec(one.head) : null;
+      return !found || onTracker(found[1]) || files.includes(found[1]);
+    });
 };
 
 export const findingsIn = (reply, files = null) => numbered(reply, files).map((one) => one.text);

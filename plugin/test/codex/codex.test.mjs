@@ -220,21 +220,21 @@ test("a diff with nothing in it is recognised before the call", () => {
 /* A model-initiated read is the one that must not be able to name its way out: the machine holds
    `~/.config/forge/config.json` and a gateway token beside it. A refusal comes back as words,
    because a reviewer that cannot tell "outside" from "you forgot" asks again. */
-test("the reviewer reads inside the checkouts under review, and nowhere else", () => {
+test("the reviewer reads inside the checkouts under review, and nowhere else", async () => {
   const scope = scopeFor(REPO);
-  assert.equal(runTool(scope, "read_file", { path: "docs/PLAN.md" }).text.trim(), "x");
-  const out = runTool(scope, "read_file", { path: "../outside.md" });
+  assert.equal((await runTool(scope, "read_file", { path: "docs/PLAN.md" })).text.trim(), "x");
+  const out = await runTool(scope, "read_file", { path: "../outside.md" });
   assert.equal(out.error, true);
   assert.match(out.text, /outside the checkouts under review|not a readable path/u);
-  const absolute = runTool(scope, "read_file", { path: join(sandbox, "outside.md") });
+  const absolute = await runTool(scope, "read_file", { path: join(sandbox, "outside.md") });
   assert.equal(absolute.error, true);
-  assert.equal(runTool(scope, "read_file", {}).error, true, "a call with no path is answered, not thrown");
-  assert.equal(runTool(scope, "no_such_tool", { path: "docs/PLAN.md" }).error, true);
+  assert.equal((await runTool(scope, "read_file", {})).error, true, "a call with no path is answered, not thrown");
+  assert.equal((await runTool(scope, "no_such_tool", { path: "docs/PLAN.md" })).error, true);
 });
 
 /* One account configures one reviewer, so a file named in another checkout is reviewable — and
    naming it widens what the model may read to that checkout, not to the machine. */
-test("a file named in another checkout is located, and widens the scope to it", () => {
+test("a file named in another checkout is located, and widens the scope to it", async () => {
   const other = join(sandbox, "other");
   mkdirSync(join(other, "src"), { recursive: true });
   writeFileSync(join(other, ".git"), "gitdir: elsewhere\n");
@@ -246,8 +246,8 @@ test("a file named in another checkout is located, and widens the scope to it", 
   const sent = bundle(REPO, [file]);
   assert.match(sent[0].text, /export const far/u);
   const scope = scopeFor(REPO, [file]);
-  assert.match(runTool(scope, "read_file", { path: file }).text, /export const far/u);
-  assert.equal(runTool(scopeFor(REPO), "read_file", { path: file }).error, true, "unnamed, unreadable");
+  assert.match((await runTool(scope, "read_file", { path: file })).text, /export const far/u);
+  assert.equal((await runTool(scopeFor(REPO), "read_file", { path: file })).error, true, "unnamed, unreadable");
 });
 
 /* The tool call arrives as a start frame and its arguments as partial JSON, so the loop has to assemble them: a call
@@ -256,7 +256,7 @@ test("a file named in another checkout is located, and widens the scope to it", 
 test("a tool call whose arguments are not an object is refused, not thrown", async () => {
   const scope = scopeFor(REPO);
   for (const given of [null, "nope", 7, ["docs/PLAN.md"]]) {
-    const held = runTool(scope, "read_file", given);
+    const held = await runTool(scope, "read_file", given);
     assert.equal(held.error, true, `${JSON.stringify(given)} threw or was accepted`);
     assert.match(held.text, /needs a `path`/u);
   }
@@ -292,9 +292,9 @@ test("a streamed tool call is assembled from its frames", async () => {
 
 /* A read-only tool that spawns git puts a model-chosen string next to git's own options, and
    `--output=` there writes a file. The refusal is what proves it never reaches git at all. */
-test("a base that is an option is refused rather than handed to git", () => {
+test("a base that is an option is refused rather than handed to git", async () => {
   const written = join(sandbox, "written-by-git-diff");
-  const out = runTool(scopeFor(REPO), "git_diff", { path: "docs/PLAN.md", base: `--output=${written}` });
+  const out = await runTool(scopeFor(REPO), "git_diff", { path: "docs/PLAN.md", base: `--output=${written}` });
   assert.equal(out.error, true);
   assert.match(out.text, /is not a ref/u);
   assert.equal(existsSync(written), false, "git ran with a model-chosen option");

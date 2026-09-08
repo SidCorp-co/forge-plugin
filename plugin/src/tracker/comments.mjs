@@ -6,10 +6,11 @@ import { fail } from "../resolve/settings.mjs";
 import { rowsOf } from "./issues.mjs";
 import { scoped, write } from "./rest.mjs";
 
-const listPage = (documentId, cursor, soft) => scoped(
+const listPage = (documentId, cursor, soft, held) => scoped(
   "forge_comments",
   { action: "list", filters: { issue: documentId, ...(cursor ? { cursor } : {}) } },
   soft,
+  held,
 );
 
 const MOST_REQUESTS = 400;
@@ -19,11 +20,11 @@ const idOf = (comment) => comment?.documentId ?? comment?.id ?? null;
 
 /** The thread whole, one page per cursor the tracker names — the only window the route takes, so
  *  ISS-131's limit stays one nobody sends. `hasMore` is the tracker's answer and this answers to it:
- *  a walk that ended early leaves it true, so no prefix reads as a thread, and `total` is carried
- *  for the sentence and decides nothing. Overlapping pages are one row each. `MOST_REQUESTS` guards
- *  a tracker naming a fresh cursor for ever, so it sits far past any thread a project could have: a
- *  budget a real thread reaches is this bug again, and two would be two answers (ISS-697). */
-export const commentPage = async (documentId, soft = false) => {
+ *  a walk that ended early leaves it true, so no prefix reads as a thread; `total` decides nothing, and
+ *  `stopped` holds the refusal that ended one, a dropped rate limit having read as a thread's end.
+ *  Overlapping pages are one row each. `MOST_REQUESTS` guards a tracker naming a fresh cursor for ever
+ *  and sits far past any thread: a budget a real one reaches is this bug again, and two would be two answers (ISS-697). */
+export const commentPage = async (documentId, soft = false, given = {}) => {
   const comments = [];
   const held = new Set();
   const fresh = (one) => {
@@ -37,10 +38,12 @@ export const commentPage = async (documentId, soft = false) => {
   let total = null;
   let more = null;
   let cursor = null;
+  let stopped = null;
   for (let asked = 0; asked < MOST_REQUESTS; asked += 1) {
-    const page = await listPage(documentId, cursor, soft);
+    const page = await listPage(documentId, cursor, soft, given);
     if (page?.refused) {
       if (!asked) return page;
+      stopped = page.refused;
       break;
     }
     const rows = rowsOf(page, "comments").filter(fresh);
@@ -51,7 +54,7 @@ export const commentPage = async (documentId, soft = false) => {
     if (more !== true || !rows.length || !cursor || spent.has(cursor)) break;
     spent.add(cursor);
   }
-  return { comments, returned: comments.length, total, hasMore: more };
+  return { comments, returned: comments.length, total, hasMore: more, ...(stopped ? { stopped } : {}) };
 };
 
 export const cutLine = ({ returned = 0, total = null } = {}) =>

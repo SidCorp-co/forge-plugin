@@ -6,8 +6,14 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
+import { commentPage, cutIn } from "../tracker/comments.mjs";
+import { HUMAN_REF, documentIdIfAny } from "../tracker/issues.mjs";
+import { scoped } from "../tracker/rest.mjs";
+import { refusing } from "../resolve/settings.mjs";
+
 const NEAREST_UP = 12;
 const RESULT_CHARS = 20_000;
+const PAGE_ROOM = 512;
 const LIST_ENTRIES = 400;
 const GREP_LINES = 200;
 const TOOL_MS = 10_000;
@@ -22,7 +28,116 @@ const CHECK = {
   input_schema: { type: "object", properties: {} },
 };
 
-export const toolsFor = (scope) => (scope?.check ? [...TOOLS, CHECK] : TOOLS);
+export const toolsFor = (scope) => [
+  ...TOOLS,
+  ...(scope?.check ? [CHECK] : []),
+  ...(scope?.tracker ? [READ_ISSUE] : []),
+];
+
+// The one tool that reads outside the checkouts: an issue off this checkout's own tracker, in this process and through the readers `forge issue` and `forge comment` use, so the token stays here.
+export const READ_ISSUE = {
+  name: "read_issue",
+  description: "Read an issue off this project's tracker by its key: its fields, its body and its comments, "
+    + "as one text numbered for anchoring. Read-only. Optional `page` for a long one.",
+  input_schema: {
+    type: "object",
+    properties: {
+      key: { type: "string", description: "The issue key, as ISS-45." },
+      page: { type: "integer", description: "1-based page; every page says which of how many it is." },
+    },
+    required: ["key"],
+  },
+};
+
+// Requests the tracker sees, not the model's calls: ISS-815 cost eleven offset reads, two for its row and one
+// for its thread, so a flat twelve refused a live read — hence per key, plus a spare for cited neighbours.
+export const PER_KEY = 15;
+export const SPARE = 15;
+const TRACKER_SECONDS = 20;
+
+// Lifted out of the fields: a finding quotes a line of the body, and `<KEY>/fields:12` would name one of something else.
+const BODY = "description";
+
+// Null where the consult named no issue, so the tool is not offered and pays no prompt for an offer nothing could use.
+// `read` is this consult's snapshot per key: fetching an issue again for its second page put page three past the budget.
+export const trackerFor = (keys = []) =>
+  (keys.length ? { keys, left: keys.length * PER_KEY + SPARE, read: new Map() } : null);
+
+// Called by the transport before every attempt, which is what charges a retry and a nested offset lookup.
+const spending = (held, signal) => () => {
+  if (signal?.aborted) {
+    return "read_issue: this consult ran out of time before the request was sent. "
+      + "Rule on what you have, and say what you could not read.";
+  }
+  if (held.left > 0) {
+    held.left -= 1;
+    return null;
+  }
+  return "read_issue: this consult has spent its tracker request(s), so nothing was sent. "
+    + "Rule on what you have, and say what you could not read.";
+};
+
+const linesOf = (text) => String(text ?? "").replace(/\r\n/gu, "\n").split("\n");
+
+// What is read is what is echoed: an answer repeating the padding a key was typed with is past the cap before a page is in it.
+const keyIn = (given) => String(given ?? "").trim().toUpperCase();
+
+// Every key the row carries rather than a list kept here, which would leave a field the tracker grows unread.
+// Flattened: a `plan` held as one logical line numbers only its first physical one, and the promise is that a finding can anchor to any line it was shown (consult 6a4d1e, F2).
+const fieldLines = (row) => Object.entries(row)
+  .filter(([name, held]) => name !== BODY && held !== null && held !== undefined)
+  .flatMap(([name, held]) => (typeof held === "object"
+    ? [`${name}: ${JSON.stringify(held)}`]
+    : linesOf(held).map((line, at) => (at ? line : `${name}: ${line}`))));
+
+// The tracker's own id, that being what a finding about this comment names back; the position is in the heading.
+const commentPart = (key, one, at, many) => ({
+  name: `${key}/comment/${one.documentId ?? one.id ?? at + 1}`,
+  head: `${at + 1} of ${many}, by ${one.authorId ?? "an unnamed author"} at ${one.createdAt ?? "an unrecorded time"}`,
+  lines: linesOf(one.body),
+});
+
+const notAKey = (given, keys) =>
+  `read_issue: \`${given ?? ""}\` is not an issue key. They read ISS and digits, as ISS-45; this `
+  + `consult is about ${keys.join(", ")}.`;
+
+const fetched = async (budget, key, signal) => {
+  const held = { once: true, waits: TRACKER_SECONDS, signal, spend: spending(budget, signal) };
+  const found = await documentIdIfAny(key, { soft: true, ...held });
+  if (found.refused) return { refused: `read_issue ${key}: ${found.refused}` };
+  // Relations asked for and attachments not: it is the blocker that is context and the bytes it cannot fetch that are not.
+  const row = await scoped("forge_issues", { action: "get", documentId: found.id, fields: ["relations"] }, true, held);
+  if (row?.refused) return { refused: `read_issue ${key}: ${row.refused}` };
+  // `commentPage` and not `readThread`: the thread reader credits the shown ledger, and a reviewer's read is not a session's.
+  const page = await commentPage(found.id, true, held);
+  if (page?.refused) return { refused: `read_issue ${key}: ${page.refused}` };
+  const comments = page.comments ?? [];
+  return {
+    parts: [
+      { name: `${key}/fields`, lines: fieldLines(row) },
+      { name: `${key}/body`, lines: linesOf(row[BODY]) },
+      ...comments.map((one, at) => commentPart(key, one, at, comments.length)),
+    ],
+    said: [`${comments.length} comment(s).`, page.stopped, cutIn(page)].filter(Boolean).join(" "),
+  };
+};
+
+// Inside `refusing`, so a `fail()` under these readers throws rather than ending a review already paid for: a gateway with no tracker credential beside it is a configuration and not a crash (consult 6a4d1e, F3).
+export const issueParts = async (scope, given) => {
+  const budget = scope?.tracker;
+  if (!budget) return { refused: "read_issue: this consult named no issue, so there is nothing here to read." };
+  const key = keyIn(given);
+  if (!HUMAN_REF.test(key)) return { refused: notAKey(given, budget.keys) };
+  const known = budget.read.get(key);
+  if (known) return known;
+  try {
+    const held = await refusing(() => fetched(budget, key, scope.signal));
+    if (held.parts) budget.read.set(key, held);
+    return held;
+  } catch (error) {
+    return { refused: `read_issue ${key}: ${error.message}` };
+  }
+};
 
 export const TOOLS = [
   {
@@ -90,6 +205,7 @@ export const scopeFor = (root, extras = [], check = null, consult = null) => {
     files: [...files],
     check: check ? { ...check, root: canonical(root), used: false } : null,
     diff: consult?.anchor && rels.length ? { anchor: consult.anchor, rels } : null,
+    tracker: trackerFor(consult?.issues ?? []),
   };
 };
 
@@ -197,8 +313,8 @@ const nearestOf = (scope, given) => {
   return topOf(scope);
 };
 
-const clipped = (text) =>
-  text.length > RESULT_CHARS ? `${text.slice(0, RESULT_CHARS)}\n… clipped at ${RESULT_CHARS} characters` : text;
+const clip = (text, at) => (text.length > at ? `${text.slice(0, at)}\n… clipped at ${at} characters` : text);
+const clipped = (text) => clip(text, RESULT_CHARS);
 
 const readOne = (held, { from, lines }) => {
   const text = readFileSync(held.real, "utf8");
@@ -231,6 +347,50 @@ const grepIn = (scope, held, pattern) => {
   const shown = lines.slice(0, GREP_LINES).map((line) => line.replace(`${scope.roots[0]}/`, ""));
   const more = lines.length > GREP_LINES ? `\n… ${lines.length - GREP_LINES} more matches` : "";
   return clipped(shown.join("\n") + more);
+};
+
+const headed = (part, again) => `${part.name}${part.head ? ` — ${part.head}` : ""}, ${part.lines.length}`
+  + ` line(s)${again ? ", continued" : ""}:`;
+
+const marked = (parts) => parts.flatMap((part) => [
+  { part, text: headed(part, false), opens: true },
+  ...part.lines.map((line, at) => ({ part, text: `${at + 1}: ${line}` })),
+  { part, text: "" },
+]);
+
+/** Named parts as one text, cut at a line boundary and never mid-line, a page opening inside a part
+ *  restating its heading: a numbered line whose part nobody named anchors nothing. The cap is `read_file`'s. */
+export const pagedParts = (parts, asked = 1) => {
+  const pages = [[]];
+  let size = 0;
+  // Under the cap rather than at it: the heading a page restates and the line naming it are answered too.
+  const room = RESULT_CHARS - PAGE_ROOM;
+  for (const one of marked(parts)) {
+    const row = one.text.length < room ? one : { ...one, text: clip(one.text, room - PAGE_ROOM) };
+    const cost = row.text.length + 1;
+    if (size + cost > room && pages.at(-1).length) {
+      pages.push([]);
+      size = 0;
+    }
+    pages.at(-1).push(row);
+    size += cost;
+  }
+  const at = Math.min(Math.max(1, Math.trunc(Number(asked)) || 1), pages.length);
+  const page = pages[at - 1];
+  const opened = page[0]?.opens ? null : page[0]?.part;
+  return {
+    at,
+    pages: pages.length,
+    text: [...(opened ? [headed(opened, true)] : []), ...page.map((row) => row.text)].join("\n").trim(),
+  };
+};
+
+const issueRead = async (scope, input) => {
+  const held = await issueParts(scope, input.key);
+  if (held.refused) return { text: held.refused, error: true };
+  const page = pagedParts(held.parts, input.page);
+  return { text: `${keyIn(input.key)} — page ${page.at} of ${page.pages}, `
+    + `${scope.tracker.left} tracker request(s) left. ${held.said}\n\n${page.text}` };
 };
 
 /* `--output=<path>` is an option to `git diff`, and the ref sat in option position: a base the model
@@ -280,11 +440,14 @@ const ownDiff = (scope, held) => {
 
 /** One tool call, run here. Every failure comes back as text the reviewer can act on: a refusal it
  *  cannot read is indistinguishable from a file that does not exist. */
-export const runTool = (scope, name, given = {}) => {
+export const runTool = async (scope, name, given = {}) => {
   /* A default catches undefined and not `null`, which is what `"input": null` parses to — and a
      throw here ends the consult, where a refusal is something the reviewer can answer. */
   const input = given && typeof given === "object" ? given : {};
   if (name === "run_check") return checkOnce(scope);
+  /* Before the path reading below, as `run_check` is: this tool's subject is a key, and the reader
+     that answers "not a readable path in" would refuse the one argument it takes. */
+  if (name === "read_issue") return issueRead(scope, input);
   /* Optional for three of the four: the checkout is what a reviewer means by no path, and 34
      refusals in the log were that argument left out (ISS-65). read_file has no such default. */
   const rooted = name !== "read_file";

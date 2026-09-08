@@ -148,25 +148,31 @@ export const notAReference = (reference) => (isReference(reference) ? null : not
    offset can be searched. Read off the key the row prints: the browse projection carries no other. */
 const seqOf = (row) => Number(String(row?.issueId ?? "").replace(/\D+/gu, "")) || null;
 
-const rowAt = async (offset) => scoped("forge_issues", { action: "at", offset });
-
-/** One request where nothing below the key was ever deleted, and a search of the offsets where
- *  something was: `wanted - 1` is the answer, or an upper bound on where the answer sits. */
-export const documentIdOf = async (reference) => {
-  if (UUID.test(reference)) return reference;
-  if (!HUMAN_REF.test(reference)) fail(notAKey(reference));
+/** One request where nothing below the key was ever deleted, else a search of the offsets. Soft, and
+ *  every offset carrying the request option, for a caller a `fail()` cannot be allowed to exit past. */
+export const documentIdIfAny = async (reference, { soft = false, ...held } = {}) => {
+  if (UUID.test(reference)) return { id: reference };
+  if (!HUMAN_REF.test(reference)) return { refused: notAKey(reference) };
+  const at = (offset) => scoped("forge_issues", { action: "at", offset }, soft, held);
   const wanted = Number(reference.replace(/\D+/gu, ""));
-  const guess = await rowAt(Math.max(wanted - 1, 0));
-  if (seqOf(guess.row) === wanted) return guess.row.documentId;
+  const guess = await at(Math.max(wanted - 1, 0));
+  if (guess?.refused) return guess;
+  if (seqOf(guess.row) === wanted) return { id: guess.row.documentId };
   let low = 0;
   let high = Math.min(guess.total - 1, Math.max(wanted - 2, 0));
   while (low <= high) {
     const mid = Math.floor((low + high) / 2);
-    const held = mid === Math.max(wanted - 1, 0) ? guess : await rowAt(mid);
-    const seq = seqOf(held.row);
-    if (seq === wanted) return held.row.documentId;
+    const row = mid === Math.max(wanted - 1, 0) ? guess : await at(mid);
+    if (row?.refused) return row;
+    const seq = seqOf(row.row);
+    if (seq === wanted) return { id: row.row.documentId };
     if (seq === null || seq > wanted) high = mid - 1;
     else low = mid + 1;
   }
-  return fail(missing(reference, guess.total));
+  return { refused: missing(reference, guess.total) };
+};
+
+export const documentIdOf = async (reference) => {
+  const held = await documentIdIfAny(reference);
+  return held.refused ? fail(held.refused) : held.id;
 };

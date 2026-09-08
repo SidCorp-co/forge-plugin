@@ -93,35 +93,49 @@ const bodied = (form) => {
   return held;
 };
 
-const send = ({ path, method = "GET", form, body }) => {
+const send = ({ path, method = "GET", form, body }, signal) => {
   const json = !form && body !== undefined;
   return fetch(`${restBase()}${path}`, {
     method,
+    signal,
     headers: authorized(json),
     ...(form ? { body: bodied(form) } : {}),
     ...(json ? { body: JSON.stringify(body) } : {}),
   });
 };
 
-const attempted = async (make, repeatable) => {
+/* What a caller inside somebody else's clock needs: one attempt rather than the ladder, and `spend`
+   charged before each attempt — so a refusal is one the other end never saw, and a retry and a
+   nested lookup are both counted. How long to wait and how often stays this module's. */
+/* `waits` bounds an attempt in time as `once` bounds their number, and `signal` is a caller's own
+   clock: no answer at all is the failure a count of them cannot bound. */
+const attempted = async (make, repeatable, { once = false, spend = null, waits = null, signal = null } = {}) => {
+  const clock = () => {
+    const deadline = waits ? AbortSignal.timeout(waits * 1000) : null;
+    if (signal && deadline) return AbortSignal.any([signal, deadline]);
+    return signal ?? deadline ?? undefined;
+  };
+  const attempts = once ? 1 : RETRY_ATTEMPTS;
   let text = "";
   let response = null;
   let dropped = null;
-  for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt += 1) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const stop = spend?.();
+    if (stop) return { response: null, text: "", dropped: null, spent: stop };
     [response, dropped] = [null, null];
     try {
-      response = await make();
+      response = await make(clock());
       text = await response.text();
     } catch (error) {
       dropped = error;
     }
     if (response?.ok) break;
     const again = retryOf(response ? response.status : null, repeatable);
-    if (!again || attempt === RETRY_ATTEMPTS) break;
+    if (!again || attempt === attempts) break;
     const limited = again === "rate-limited";
     const wait = limited ? retryAfter(text, response.headers) : backoff(attempt);
     const said = limited ? "rate-limited this call" : `answered ${response?.status ?? dropped.message}`;
-    console.error(`Forge ${said}; waiting ${wait}s (attempt ${attempt} of ${RETRY_ATTEMPTS}).`);
+    console.error(`Forge ${said}; waiting ${wait}s (attempt ${attempt} of ${attempts}).`);
     await sleep(wait);
   }
   return { response, text, dropped };
@@ -140,20 +154,25 @@ const said = (body, status) => {
   return lines.length ? `${head}\n${lines.join("\n")}` : head;
 };
 
-const aimedAt = async (row, args, soft) => {
+const aimedAt = async (row, args, soft, held) => {
   if (!row.project) return { id: null };
-  return args.projectId ? { id: args.projectId } : idOfProject(soft);
+  return args.projectId ? { id: args.projectId } : idOfProject(soft, held);
 };
 
 const refused = (message) => ({ refused: message });
 
 /* Every part of a row's answer is asked for at once: three routes cost one round trip, not three. */
-const fetchedParts = async (row, args, soft) => {
-  const project = await aimedAt(row, args, soft);
+const fetchedParts = async (row, args, soft, held) => {
+  const project = await aimedAt(row, args, soft, held);
   if (project.refused) return [["page", refused(project.refused)]];
   const requests = row.requests(args, project.id);
   const parts = await Promise.all(Object.entries(requests).map(async ([part, request]) => {
-    const { response, text, dropped } = await attempted(() => send(request), !row.writes);
+    const { response, text, dropped, spent } = await attempted(
+      (signal) => send(request, signal),
+      !row.writes,
+      held,
+    );
+    if (spent) return [part, refused(spent)];
     if (dropped) return [part, refused(`Forge did not answer ${request.method ?? "GET"} ${request.path}: `
       + `${dropped.message}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
     if (!response.ok) return [part, refused(said(parsed(text), response.status))];
@@ -169,14 +188,14 @@ const fetchedParts = async (row, args, soft) => {
   return parts;
 };
 
-export const callTool = async (name, args, soft = false) => {
+export const callTool = async (name, args, soft = false, held = {}) => {
   const key = keyOf(name, args);
   const row = ROUTES[key];
   const stop = refusing(soft);
   if (!row) return stop(noRouteRefusal(key));
   const dropped = undeclaredIn(row, args);
   if (dropped.length) return stop(droppedRefusal(key, dropped, row));
-  const parts = await fetchedParts(row, args, soft);
+  const parts = await fetchedParts(row, args, soft, held);
   /* The tracker's words with nothing in front: a caller reading the first line frames it itself. */
   const bad = parts.find(([, held]) => held.refused);
   if (bad) return stop(bad[1].refused);
@@ -202,10 +221,10 @@ const writeCache = (patch) => {
 };
 
 /** One slug's id, off the cache or off the list — the archived too where asked, since the one verb that unarchives has to find its subject; a slug nothing matches answers with what was seen, and the caller words the refusal. The lookup is itself a call, which is why `soft` reaches it: `fail()` inside one exits past the caller that was holding the refusal. */
-export const projectIdOf = async (slug, { archived = false, soft = false } = {}) => {
+export const projectIdOf = async (slug, { archived = false, soft = false, ...held } = {}) => {
   const known = stored().projects?.[slug];
   if (known) return { id: known };
-  const listed = await callTool("forge_projects.list", archived ? { archived: 1 } : {}, soft);
+  const listed = await callTool("forge_projects.list", archived ? { archived: 1 } : {}, soft, held);
   if (listed?.refused) return listed;
   const projects = listed?.projects ?? (Array.isArray(listed) ? listed : []);
   const found = projects.find((project) => project.slug === slug || project.key === slug);
@@ -214,11 +233,11 @@ export const projectIdOf = async (slug, { archived = false, soft = false } = {})
   return { id: found.id };
 };
 
-const idOfProject = async (soft) => {
+const idOfProject = async (soft, given = {}) => {
   const aimed = projectTarget().value;
   if (!aimed && soft) return { refused: "no project slug is set" };
   const slug = aimed ?? projectSlug();
-  const held = await projectIdOf(slug, { soft });
+  const held = await projectIdOf(slug, { soft, ...given });
   if (held.id || held.refused) return held;
   return refusing(soft)(`No Forge project has slug ${slug}. Seen: ${held.seen}`);
 };

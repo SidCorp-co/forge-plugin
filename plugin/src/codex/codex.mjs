@@ -12,6 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
+import { HUMAN_REF } from "../tracker/issues.mjs";
 import { canonical } from "../resolve/canonical.mjs";
 import { configPath, userConfig } from "../resolve/config.mjs";
 import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
@@ -19,7 +20,7 @@ import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mj
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { afterTouch, ageOf, clearConsulted, demandOf, pendingIn, readState, turnsOf, updateState } from "./codex-state.mjs";
-import { TOOLS, scopeFor } from "./codex-tools.mjs";
+import { PER_KEY, READ_ISSUE, SPARE, TOOLS, scopeFor } from "./codex-tools.mjs";
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
 import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, defaultEffort, incompleteIn, keepsTools, newFindingsIn, plannedFor, plannedLimits }
@@ -88,10 +89,13 @@ export const USAGE = [
 ].join("\n");
 
 const CONSULT_USAGE = [
-  "Usage: forge codex consult [file...] [--diff [--base <ref>]] [--send m] [--only s,s]",
+  "Usage: forge codex consult [file|ISS-nn...] [--diff [--base <ref>]] [--send m] [--only s,s]",
   "                           [--verify <risk>]... [--recheck] [--angles a,a] [--effort e]",
   "                           [--rounds n] [--out-of-scope <text>] [--checks <text>] [--allow-echo]",
   "The files you name, or what this turn touched; pipe your intent on stdin.",
+  "",
+  "  ISS-nn         an issue this consult is about, read off the tracker by the reviewer itself, so",
+  "                 nothing of it is copied into the intent. Keys alone review no file",
   "",
   "  --diff         send each file's diff and refuse findings about code this turn did not touch",
   "  --base <ref>   what to diff against; implies --diff. HEAD unless you say otherwise",
@@ -201,8 +205,11 @@ export const consultArgs = (given) => {
       + 'input. Pipe it: echo "<what you were doing>" | forge codex consult <file>...');
   }
   const held = flags(flagArgv, "codex consult", BOOLEAN, { usage });
+  /* Split here, where the positionals are read: `relsOf` exits on anything that is not a readable file. */
+  const keys = positionals.filter((one) => HUMAN_REF.test(one));
   return {
-    named: positionals,
+    named: positionals.filter((one) => !keys.includes(one)),
+    issues: [...new Set(keys.map((one) => one.toUpperCase()))],
     risks,
     only: severities(held.only),
     allowEcho: Boolean(held["allow-echo"]),
@@ -275,15 +282,15 @@ const consult = async (given) => {
   if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
-  const { named, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, bodies, recheck, angles, scope, checks } = consultArgs(given);
-  const set = reviewSet({ root, named, base, namedBase, recheck, pattern: recordPattern().value, held: pendingIn(readState(), root) });
+  const { named, issues, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, bodies, recheck, angles, scope, checks } = consultArgs(given);
+  const set = reviewSet({ root, named, keys: issues, base, namedBase, recheck, pattern: recordPattern().value, held: pendingIn(readState(), root) });
   const { offered, gone } = set;
   let rels = set.rels;
   for (const line of set.said) console.error(`codex: ${line}`);
   /* Cleared here rather than after the answer: a path with nothing under it can never be consulted
      on, so leaving it would offer the next consult the same phantom (ISS-703). */
   if (gone.length) clearConsulted(root, gone);
-  if (!rels.length) fail(`codex: nothing to consult on. Name a file, or write one first.${base ? ` Nothing differs from ${base} either.` : ""}`);
+  if (!rels.length && !issues.length) fail(`codex: nothing to consult on. Name a file, an issue key, or write a file first.${base ? ` Nothing differs from ${base} either.` : ""}`);
   const entries = logEntries();
   const plan = recheck ? recheckPlan(entries, root, rels) : null;
   const offset = risks.length;
@@ -324,10 +331,12 @@ const consult = async (given) => {
     rels = rels.filter((rel) => !empty.includes(rel));
     clearConsulted(root, empty);
   }
-  if (!rels.length) fail("codex: nothing to consult on: every path it was offered is absent from the tree.");
+  if (!rels.length && !issues.length) fail("codex: nothing to consult on: every path it was offered is absent from the tree.");
   /* Said before the read, so a stall says where it is, and the read waits on the first byte alone:
      an open stdin with nothing on it was read to EOF and never returned (ISS-65). */
-  console.error(`codex: ${rels.length} file(s) to review; reading the intent from stdin.`);
+  console.error(`codex: ${rels.length} file(s) to review`
+    + `${issues.length ? `, ${issues.join(", ")} for the reviewer to read off the tracker` : ""}`
+    + "; reading the intent from stdin.");
   const said = await stdinText();
   if (said === null) console.error(`codex: nothing on stdin inside ${INTENT_MS}ms, so the consult carries no intent.`);
   const intent = (said ?? "").trim();
@@ -354,7 +363,7 @@ const consult = async (given) => {
   const { clipped, lines, budget, ceiling, effort } = plannedFor({ parts, bodies, recheck, asked: cap, effort: askedEffort });
   if (clipped.length) console.error(`codex: sent clipped, too long to fit whole: ${clipped.join(", ")}.`);
   const history = historyFor(entries, root, undefined, rels);
-  const system = roleFor(angles, { check: Boolean(projectCheck()), recheck });
+  const system = roleFor(angles, { check: Boolean(projectCheck()), recheck, tracker: issues.length > 0 });
   console.error(`codex: ${budget} call(s) at ${effort} effort for ${lines} changed line(s)`
     + `${clipped.length ? `, ${clipped.length} of them clipped` : ""}${budget < ceiling ? `, up to ${ceiling} if the review comes back incomplete` : ""}.`);
   const started = Date.now();
@@ -375,6 +384,7 @@ const consult = async (given) => {
     send: bodies ? "bodies" : "diffs",
     prompt: promptMark(system),
     ...(cap === undefined ? {} : { cap }),
+    ...(issues.length ? { issues } : {}),
     ...(recheck ? { recheck: true } : {}),
     ...(anchoredTo ? { anchoredTo } : {}),
     ...(risks.length ? { risks } : {}),
@@ -390,13 +400,13 @@ const consult = async (given) => {
     process.stdout.write(text);
   };
   try {
-    const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks });
+    const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks, issues });
     const held = await reviewed(
       values, model, opening,
       /* `reached` and not `anchoredTo`: a recheck whose tree has not moved sent no diff and so
          anchors no log row, but the reviewer asking for "the diff" still means the change since
          that head, and the tree at HEAD would hand it every file this consult is not about. */
-      scopeFor(root, rels.filter(isAbsolute), projectCheck(), { anchor: reached, files: rels }),
+      scopeFor(root, rels.filter(isAbsolute), projectCheck(), { anchor: reached, files: rels, issues }),
       streamed, askApi,
       { effort, budget, ceiling, system },
     );
@@ -465,6 +475,8 @@ const show = (rest = []) => {
   const limits = plannedLimits();
   console.log(`tools     : ${TOOLS.map((one) => one.name).join(", ")} over ${limits.base} call(s), `
     + `${limits.ceiling} when a review comes back incomplete`);
+  console.log(`tracker   : ${READ_ISSUE.name} where a consult names an issue key, `
+    + `${PER_KEY} tracker request(s) per key and ${SPARE} over, per consult`);
   console.log(`effort    : ${defaultEffort()}, a step down on a recheck or under ${limits.small} `
     + `changed line(s), a step up over ${limits.large}`);
   console.log(`angles    : ${chosenAngles(undefined).join(", ")}`);

@@ -47,7 +47,7 @@ export const rounds = async (values, model, opening, scope, onDelta, ask = askAp
     }
     const results = [];
     for (const one of held.calls) {
-      const ran = runTool(scope, one.name, one.input);
+      const ran = await runTool({ ...scope, signal }, one.name, one.input);
       used.push({ name: one.name, input: one.input, chars: ran.text.length, error: Boolean(ran.error) });
       console.error(`codex:   ${one.name} ${detail(one.input)}${ran.error ? ` — ${ran.text}` : ""}`);
       if (ran.error) refused.push(`${one.name} ${detail(one.input)}: ${ran.text}`);
@@ -112,6 +112,6 @@ export const reviewed = async (values, model, opening, scope, onDelta, ask = ask
   return climb(first);
 };
 
-/** What a tool call was for, in one line of a terminal: the path, or the pattern grep was given. */
-const detail = (input = {}) => input.path ?? (input.pattern ? `/${input.pattern}/` : "");
+/** What a tool call was for, in one line of a terminal: the path, the issue key, or the pattern. */
+const detail = (input = {}) => input.path ?? input.key ?? (input.pattern ? `/${input.pattern}/` : "");
 

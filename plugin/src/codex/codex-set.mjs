@@ -85,6 +85,10 @@ const recordSaid = (record, pattern) => (record.length
     + "anything else the tree has changed is outside this review. Pass --diff for the tree's own list."]
   : []);
 
+/* A key is a subject named as a file is: a consult about four filings would otherwise review whatever else the turn touched, and `--diff` beside a key still wins. */
+const keysSaid = (keys) => `${keys.join(", ")} named and no file, so no file is under review: the `
+  + "reviewer reads those issues itself. Name a file, or pass --diff, to review a change beside them.";
+
 const recheckSaid = (record) => [`${record.length} file(s) from this turn's record: a recheck answers `
   + "one consult's findings rather than reviewing a change, so the tree's own list does not decide its "
   + "set — name files to decide it yourself."];
@@ -98,8 +102,9 @@ const committedSaid = (record, pattern, base) => (record.length
 /** What the caller named, else — a recheck excepted, that being about findings — the checkout's change
  *  against the base, which wins whatever the turn record holds, a pattern-kept record having shown a
  *  reviewer a strict subset twice (ISS-703); else the record, nothing differing leaving no subset. */
-export const reviewSet = ({ root, named, base, namedBase, held, pattern, recheck }) => {
+export const reviewSet = ({ root, named, keys = [], base, namedBase, held, pattern, recheck }) => {
   if (named.length) return { rels: [...new Set(relsOf(root, named))], offered: TOUCHED, said: [], gone: [] };
+  if (keys.length && !base) return { rels: [], offered: TOUCHED, said: [keysSaid(keys)], gone: [] };
   const record = [...new Set(held)];
   if (!base) return { rels: record, offered: TOUCHED, said: recordSaid(record, pattern), gone: [] };
   /* A recheck answers findings, and the tree winning here loses the file they are about the moment anything else is dirty — the round then refuses instead of ruling (ISS-703). */

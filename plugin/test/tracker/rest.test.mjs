@@ -10,7 +10,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
-import { backoff, callTool, retryAfter, retrySeconds, unfencedIn } from "../../src/tracker/rest.mjs";
+import { backoff, callTool, retryAfter, retryOf, retrySeconds, unfencedIn } from "../../src/tracker/rest.mjs";
 import { useProject } from "../../src/resolve/settings.mjs";
 import { REFERENCE_KEYS } from "../../src/tracker/routes.mjs";
 
@@ -60,10 +60,13 @@ process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
 
 /* Answered in this process so the decode is watchable: every part a row asks for gets the same
    body, which is all a strip is judged on. */
+let asks = 0;
 const answering = async (bodies, call) => {
   const held = globalThis.fetch;
   const queued = [...bodies];
+  asks = 0;
   globalThis.fetch = async () => {
+    asks += 1;
     const [status, body] = queued.length > 1 ? queued.shift() : queued[0];
     return { ok: status < 400, status, headers: new Map(), text: async () => JSON.stringify(body) };
   };
@@ -272,6 +275,53 @@ test("unmark comes back with the handler's answer, and the note reaches the trac
     "the request reached the handler at all, and carried the note the caller passed");
   assert.equal(answer.note, "written with an abbreviated sha",
     "and the handler's own answer came back, rather than a parse refusing ahead of it");
+});
+
+/* Answered rather than retried, and charged rather than trusted: what a caller inside somebody else's
+   clock needs. Four waits of up to a minute is a consult's budget spent to answer nobody, and one tool
+   call the reviewer makes is several requests the tracker sees. One field below, so one request. */
+test("a rate limit is one attempt where the caller cannot wait, and its answer comes back as text", async () => {
+  assert.equal(retryOf(429, false), "rate-limited", "the ladder sends a 429 again whatever the row declares");
+  const answer = await answering([[429, { code: "RATE_LIMITED", message: "slow down" }]], () =>
+    callTool("forge_issues", { action: "get", documentId: "u-1", fields: ["title"] }, true, { once: true }));
+  assert.equal(asks, 1, `asked ${asks} times where the ladder would have asked four`);
+  assert.match(answer.refused, /slow down/u, "and the tracker's own words reach the caller");
+});
+
+test("spend is charged before each request, and the refusal it gives is what the part answers", async () => {
+  let left = 1;
+  const spend = () => {
+    if (left <= 0) return "the budget is spent, so nothing was sent";
+    left -= 1;
+    return null;
+  };
+  const answer = await answering([ok({})], () =>
+    callTool("forge_issues", { action: "get", documentId: "u-1", fields: ["relations"] }, true, { spend }));
+  assert.equal(asks, 1, "the composed read is two requests, and the second was never sent");
+  assert.equal(answer.refused, "the budget is spent, so nothing was sent");
+  assert.equal(left, 0, "charged before the request rather than after the answer");
+});
+
+test("a request given a deadline is refused in words, and the request itself is cancelled", async () => {
+  const live = globalThis.fetch;
+  let cancelled = false;
+  globalThis.fetch = (url, init) => new Promise((done, no) => {
+    init.signal.addEventListener("abort", () => {
+      cancelled = true;
+      no(init.signal.reason);
+    });
+  });
+  try {
+    const began = Date.now();
+    const answer = await callTool("forge_issues", { action: "get", documentId: "u-1", fields: ["title"] },
+      true, { once: true, waits: 0.05 });
+    assert.ok(Date.now() - began < 3000, "a tracker that never answers does not hold the caller open");
+    assert.ok(cancelled, "and the request is aborted rather than left in flight");
+    assert.match(answer.refused, /did you mean|did not answer/u, answer.refused);
+    assert.match(answer.refused, /timeout/iu, "the caller is told what ran out, not only that nothing came");
+  } finally {
+    globalThis.fetch = live;
+  }
 });
 
 test("a refused connection with retrySeconds 0 is retried to the limit in well under the old fourteen seconds", async () => {
