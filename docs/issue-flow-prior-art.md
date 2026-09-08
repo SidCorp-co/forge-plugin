@@ -25,6 +25,49 @@ phase anchored to a short constitution of non-negotiables.
 *Rejected:* local spec files. Here the tracker holds the plan, because the tracker is what
 the next person reads.
 
+## When a run breaks
+
+The problem: a run dies, collides or runs out of budget halfway, and something has to say what
+still stands. Two families of software settled this before, and the contract borrows their shapes
+rather than inventing its own. `forge guide contract when-the-run-breaks` is what it took.
+
+**[Temporal](https://temporal.io/)** — a heartbeat timeout and a start-to-close timeout detect a
+dead worker; a workflow replays from its event history; a definition is versioned, so a change made
+today never re-judges a run started yesterday.
+*Taken:* the lease's renew time and duration, and the contract version stamped on every typed
+record — a rule change owes nothing backwards.
+*Rejected:* replay from an event history. The record is the history, and a resumed run reads the
+status rather than repeating the commands that reached it.
+
+**[Kubernetes leases](https://kubernetes.io/docs/concepts/architecture/leases/)** — a holder
+identity, a renew time, a duration, and a holder that stops renewing loses it on expiry.
+*Taken:* the claim, in a field the issue already has, renewed by every payload write.
+*Rejected:* a lock service. A second store is a second thing to be out of step with the issue.
+
+**[Prefect](https://www.prefect.io/), [Airflow](https://airflow.apache.org/) and
+[Argo](https://argoproj.github.io/workflows/)** — a run whose heartbeats stopped is *crashed*, a
+state distinct from *failed*, retried or handed to a person; Argo separates the infrastructure's
+fault from the work's and retries the first alone.
+*Taken:* crashed is not failed, and a transient failure is a retry rather than a park.
+*Rejected:* retrying the work itself. What the next run resumes is the phase the status owes.
+
+**[LangGraph](https://langchain-ai.github.io/langgraph/)** — state is checkpointed every step, and
+a pause for a person is a checkpoint that waits.
+*Taken:* the record is the checkpoint, and a park is a checkpoint with a person at it.
+*Rejected:* a checkpoint per step. A checkpoint here is a payload somebody reads.
+
+**The coding-agent orchestrators** — agent-orchestrator keeps its state "in the issue itself — one
+workflow label plus one pinned JSON comment"; Baton claims an issue and releases the claim once a
+pull request exists; Gas Town keeps a git-backed ledger and a Witness that "detects stuck agents";
+Paperclip gives "atomic checkout with execution locks" and recovers orphaned runs; Buzz makes every
+step a signed event on a relay; Orca gives each task its own worktree; Composio derives its board
+from facts and puts every blocked shape in one column: needs you.
+*Taken:* the whole state on the issue rather than beside it, one holder per issue, a worktree per
+claim, and a park that names who was asked.
+*Rejected:* a merge queue, a Witness that nudges or hands off, and a budget that stops an agent
+hard. Each is a second system watching the first, and what the next run reads here is the stale
+lease and the worklog beside it.
+
 ## The global/local split
 
 The problem: a workflow worth reusing must not know one project's facts, yet cannot work
