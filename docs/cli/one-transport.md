@@ -1,5 +1,9 @@
 # One transport
 
+**Two files.** `plugin/src/tracker/routes.mjs` is the table below and makes no request;
+`plugin/src/tracker/rest.mjs` makes them all. A guard saying a module reached no write can then name
+the one file that writes.
+
 **One declared table, not a schema read at the call.** Every capability this CLI has is a row naming
 the requests it makes and how the answer becomes the shape its callers read. The tool surface it
 replaces was 130 KB fetched per process — 75% of the traffic of `forge issue` — and answered a
@@ -9,31 +13,29 @@ routes refuse *without saying what they wanted* — the enums and the length cap
 from one says it is this CLI's own word and where it is kept, because a value the tracker has grown
 since is otherwise a defect with no route out of it.
 
-**One endpoint, so there is no fallback to hide a gap behind.** Every row of the table is a request
-under the API base, which is the one configured value with its trailing endpoint segment stripped —
-so a host saved in either form keeps working and `forge doctor` prints both, the value it read and
-the base derived from it.
+**One endpoint, so no fallback hides a gap.** Every row is a request under the API base: the one
+configured value with its trailing endpoint segment stripped, so a host saved in either form works
+and `forge doctor` prints both the value it read and the base derived from it.
 
 **An upload is one authenticated request with the bytes in it, and its two targets are two routes.**
 The presigned dance — mint a ticket, then PUT the bytes to it unauthenticated — exists for a caller
 that cannot hold bytes, and a shell process can. What that move costs is the pre-flight it bought
 for nothing: the ticket carried the tracker's verdict on the name before a byte went, and one
-request cannot ask before it sends. So a name the tracker will not take now costs that file's own
-request and leaves the files before it up, undeletable, which is what the refusal has to say and
-what to cite instead of the path.
+request cannot ask before it sends. So a name the tracker refuses now costs that file's own
+request and leaves the files before it up, undeletable — which the refusal says, with what to cite
+instead of the path.
 
 **The type an upload is judged on travels on the part, so this CLI is what puts one there.** The
 tracker reads the type off the multipart part rather than off the file name and accepts an allowlist
 of types, so a client sending none has every upload refused as untyped. The extension-to-type map
 here is a copy of the guess the tracker's own upload tool makes: narrower and a name that goes up
 today is refused, wider and this CLI invents a type the tracker never guessed. It is a guess and not
-a verdict — what accepts or refuses is still the tracker's allowlist, and the refusal that arrives is
-its own 400 body.
+a verdict: the allowlist is still the tracker's, and the refusal that arrives is its own 400 body.
 
 **A content type is declared where a body of that type follows, and nowhere else.** Declaring
 `application/json` on every request that was not an upload cost the tracker's merged mark its only
 correction: the merge handler parses the payload a request declares before it looks the issue up, so
-a `DELETE` carrying nothing read as an empty payload and every `unmark` there had ever been was
+a `DELETE` carrying nothing read as an empty payload and every `unmark` was
 answered `Malformed JSON in request body` — the same refusal a `POST` to that route gets, which
 `mark_merged` escapes only because its body is always an object. The line is the tracker's, not this
 CLI's guess at it: the same bodyless `DELETE` without the header reaches the handler, a `GET`
@@ -46,8 +48,8 @@ which is exactly as long as nobody is going to notice. The refusal names the pat
 wanted and what still reaches the same thing, so the gap is reportable to the tracker as a route.
 
 **An argument the row's route does not send refuses the whole call.** A narrowing dropped in transit
-is worse than a refusal: the caller reads a whole answer as though it were the narrow one it asked
-for, and pays for the difference without being told. Two arguments are every row's rather than any
+is worse than a refusal: the caller reads a whole answer as the narrow one it asked for, and pays
+the difference untold. Two arguments are every row's rather than any
 route's — the action the table's key is made of, and the project the caller may aim a project-scoped
 route with.
 
@@ -101,8 +103,7 @@ refused wherever a payload holds it. A shorter one is refused only where a field
 surrounding punctuation aside. A credential field plausibly holds a word like `admin`, and the only
 mechanism that would catch that word inside a sentence is one that refuses every payload containing
 it — a gate no developer gets past, which is a defect rather than strictness. A review pressed twice
-for the wider guarantee; what was wrong was the width of the claim, not the mechanism, so the claim
-narrowed. A project whose credential is five characters is the project's to fix.
+for the wider guarantee; the width of the claim was wrong, not the mechanism, so the claim narrowed. A project whose credential is five characters is the project's to fix.
 
 The read behind all of it is soft and memoised: one call per process that writes, and a read that
 fails lets the write through. A payload refused because of a read this CLI could not make would be a
