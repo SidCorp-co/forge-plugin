@@ -32,7 +32,7 @@ test("a credential named as one is masked whatever its value looks like", () => 
   assert.equal(scrubbed("export FORGE_SECRET=notarealone && forge x"), "export FORGE_SECRET=*** && forge x");
   assert.equal(scrubbed("PGPASSWORD=notarealone psql -h db"), "PGPASSWORD=*** psql -h db");
   assert.match(scrubbed("psql postgres://app:notarealone@db:5432/f"), /postgres:\/\/app:\*\*\*@db/u);
-  assert.match(scrubbed('forge call x \'{"password":"notarealone"}\''), /"password":"\*\*\*"/u);
+  assert.match(scrubbed('curl -d \'{"password":"notarealone"}\' https://db'), /"password":"\*\*\*"/u);
 });
 
 /* A name-based rule masks these too, so each case here carries no name a rule would read: without
@@ -182,7 +182,7 @@ test("the rounds count is per session, per refused write, and says which write r
   assert.equal(mcp[0].per, 2, "which is the loop the number exists to show");
   const read = roundsBy([
     { ...entry("four", "deny", "", "2026-09-03T10:00:00.000Z", "mcp__forge__forge_issues"), hook: "codex-second" },
-    entry("four", "deny", `forge call forge_issues '{"action":"get","documentId":"ISS-65"}'`, "2026-09-03T10:01:00.000Z"),
+    entry("four", "deny", "forge issue ISS-65", "2026-09-03T10:01:00.000Z"),
   ]);
   assert.equal(read[0].writes, 0,
     "a gate that does not read the event for its issues could have refused a read, and `call` reaches "

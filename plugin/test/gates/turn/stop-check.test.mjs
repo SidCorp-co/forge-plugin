@@ -9,6 +9,7 @@ import { mkdirSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node
 import { join } from "node:path";
 
 import { callHook, cleanRepo, tempRoom } from "../../fixtures.mjs";
+import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 
 const HOOK = new URL("../../../hooks/entries/turn/stop-check.mjs", import.meta.url).pathname;
 const GATE = new URL("../../../hooks/gate.mjs", import.meta.url).pathname;
@@ -18,7 +19,7 @@ const REPO = new URL("../../../..", import.meta.url).pathname.replace(/\/$/u, ""
    and this suite must not read the developer's own log. Where its stamps land is the fixture's,
    which pointed `TMPDIR` at this process's own root before this line ran. */
 process.env.XDG_CONFIG_HOME = tempRoom("stop-check-own-");
-const { run, silentSince, judgedStop } = await import("../../../hooks/gates/turn/stop-check.mjs");
+const { run, silentSince, judgedStop, heldAndSilent } = await import("../../../hooks/gates/turn/stop-check.mjs");
 
 /* Both roots are the child's too, for the same two reasons. */
 const room = (log) => {
@@ -160,6 +161,42 @@ test("a lease this session holds with nothing written against it since the claim
   assert.match(refused.said, /forge record park ISS-999/u, "the command that clears it is missing");
   const quiet = decided({ ...ev, session_id: "s-quiet" }, () => []);
   assert.equal(quiet.kind, "none", `a session holding nothing silent said: ${quiet.said}`);
+});
+
+/* The cap is on what qualifies, not on what a turn named: applied to the names, two keys this session
+   does not hold hide the one it does behind them, and the stop passes on a lease nobody answered for.
+   The reader is handed in because the real one spawns the CLI, which no case here has a tracker for. */
+test("keys this session does not hold do not use up the cap the held ones are counted against", () => {
+  const holder = "s-capped";
+  const lease = { holder, renewedAt: AT, history: [{ at: AT, how: "claim", holder }] };
+  const rows = {
+    "ISS-701": { status: "closed" },
+    "ISS-702": { status: "closed" },
+    "ISS-703": { status: "in_progress", [FIELD]: { [KEY]: lease } },
+  };
+  const asked = [];
+  const read = (tree, argv) => {
+    asked.push(argv[1]);
+    return rows[argv[1]] ?? null;
+  };
+  const said = ["ISS-701 and ISS-702 are done; ISS-703 is the one in hand"];
+  assert.deepEqual(heldAndSilent({}, ".", said, holder, read), ["ISS-703"],
+    `the two closed keys were read and passed over: ${asked.join(", ")}`);
+  assert.deepEqual(asked, ["ISS-701", "ISS-702", "ISS-703"], "each named key is read once, in order");
+});
+
+/* And the cap still holds: two that qualify is where it stops, whatever follows them. */
+test("the cap stops at two that qualify, and reads no key past them", () => {
+  const holder = "s-two";
+  const lease = { holder, renewedAt: AT, history: [{ at: AT, how: "claim", holder }] };
+  const asked = [];
+  const read = (tree, argv) => {
+    asked.push(argv[1]);
+    return { status: "in_progress", [FIELD]: { [KEY]: lease } };
+  };
+  const said = ["ISS-801 ISS-802 ISS-803"];
+  assert.deepEqual(heldAndSilent({}, ".", said, holder, read), ["ISS-801", "ISS-802"]);
+  assert.deepEqual(asked, ["ISS-801", "ISS-802"], "the third is never asked for");
 });
 
 /* The rule that reader spends, which no planted transcript could reach: every payload write renews

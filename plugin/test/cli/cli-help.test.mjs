@@ -5,7 +5,7 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 
-import { GROUPS, VERBS, VERB_NAMES, helpOf, takesATrackerField, usageOf } from "../../src/resolve/visibility.mjs";
+import { GROUPS, VERBS, VERB_NAMES, helpOf, usageOf } from "../../src/resolve/visibility.mjs";
 import { flagsNamed, helpAskedOf, unknownFlag, wantsHelp } from "../../src/resolve/flags.mjs";
 import { USAGE as KNOWLEDGE, SAYS as KNOWLEDGE_SAYS } from "../../src/tools/knowledge.mjs";
 import { USAGE as CLOUDFLARE, SAYS as CLOUDFLARE_SAYS } from "../../src/tools/cloudflare.mjs";
@@ -144,29 +144,28 @@ test("an action the verb has not got is a refusal, and a later help word is a va
 
 /* The whole table rather than two examples: `<file>...` keeps its brackets and its ellipsis, and
    `[contract [part]|slug]` leaves an empty alternative behind, and neither shows in a sample. */
-const POINTS_AT = {
-  issue: "forge_issues",
+/* Every verb and the fields the tracker takes for the routes it is the route for, spelled here rather than derived: read off the tables the code reads, this case would agree with a generator that had lost half the routes. A verb owning no route names none — `claim` and `resume` spend `forge_issues` and own nothing of it, so what they send is `forge issue`'s to declare. */
+const FIELDS_OF = {
+  issue: "documentId, edgeId, fields, filters, limit, offset",
   new: null,
-  comment: null,
-  claim: "forge_issues",
-  resume: "forge_issues",
-  record: "forge_issues",
-  advance: "forge_issues",
+  comment: "filters",
+  claim: null,
+  resume: null,
+  record: null,
+  advance: "documentId",
   spec: null,
-  attach: null,
+  attach: "bytes",
   next: null,
-  guide: "forge_guide",
-  project: "forge_projects",
-  knowledge: "forge_knowledge",
+  guide: "slug",
+  project: "archived, projectRef",
+  knowledge: "authoredBy, body, confidence, injection, injectionFilter, kind, kindFilter, metadata,"
+    + " query, scope, slug, sourceFilter, strategy, title, topK",
   cloudflare: null,
   codex: null,
   hooks: null,
   feedback: null,
-  doctor: null,
+  doctor: "depth, issueId",
   stats: null,
-  tools: null,
-  schema: null,
-  call: null,
 };
 
 /* The table is where an agent learns the surface, so one write has one row in it: a name a landing
@@ -187,12 +186,12 @@ test("a retired name is in no row, and the row that took its write over says wha
 const pointerIn = (verb) =>
   helpOf(verb).split("\n").find((line) => line.startsWith("The fields the tracker takes"));
 
-test("the schema pointer goes to the rows whose every value the tracker names", () => {
-  assert.deepEqual(Object.keys(POINTS_AT), VERB_NAMES, "verb twenty-five is judged here or nowhere");
-  for (const [verb, tool] of Object.entries(POINTS_AT)) {
+test("each verb's -h names the fields the tracker takes for the routes that verb owns", () => {
+  assert.deepEqual(Object.keys(FIELDS_OF), VERB_NAMES, "a verb added is judged here or nowhere");
+  for (const [verb, fields] of Object.entries(FIELDS_OF)) {
     assert.equal(
       pointerIn(verb),
-      tool ? `The fields the tracker takes: \`forge schema ${tool}\`.` : undefined,
+      fields ? `The fields the tracker takes: ${fields}.` : undefined,
       `forge ${verb} -h: ${helpOf(verb)}`,
     );
   }
@@ -206,24 +205,6 @@ test("no row of the table but project names a project, its slug or its identifie
   assert.deepEqual(found, ["project"],
     "a verb naming a project takes one from the caller, which the checkout already answered");
   assert.ok(NAMES_A_PROJECT.test(usageOf("project")), "and the one that does still says so");
-});
-
-/* A usage line no verb has: what the derivation reads is the line, so a list of the verbs that
-   take a file could not answer any of these, and the vocabulary is pinned where it is spelled. */
-test("which values are the tracker's is read off the args line alone", () => {
-  for (const [args, earns] of [
-    ["[--status s] [--search q]", true],
-    ["<uuid|ISS-45>", true],
-    ["[contract [part]|slug]", true],
-    ["[--credentials] [--full]", false],
-    ["", false],
-    ["<file.md|@file|->", false],
-    ["<file>...", false],
-    ["<uuid|ISS-45> <report.md|@file|-> --title T", false],
-    ["[--count n] [--project dir]", false],
-  ]) {
-    assert.equal(takesATrackerField(args), earns, `\`${args}\``);
-  }
 });
 
 /* An agent in another project learns where a defect in this plugin goes from `-h` or from nowhere. */
@@ -267,10 +248,7 @@ const EVERY_HELP = [
   ...SUBJECT_HELP.flatMap(([verb, , , subs]) => subs.map((sub) => [verb, sub])),
 ];
 
-/* One screen — eighty by thirty — with room for the widest state a project can put a verb in: `new -h`
-   prints a reason its project's own state chooses, so the number sits above the longest of those and not
-   at what a fresh home happens to print. `codex -h` was 6.5 KB of guide prose no run looking for a flag
-   reads. `forge -h` is exempt and only it: a list of verbs is a different question (ISS-700). */
+/* One screen — eighty by thirty — with room for the widest state a project can put a verb in: `new -h` prints a reason its project's own state chooses, so the number sits above the longest of those and not at what a fresh home happens to print. `codex -h` was 6.5 KB of guide prose no run looking for a flag reads. `forge -h` is exempt and only it: a list of verbs is a different question (ISS-700). */
 const CAP = 2500;
 
 /* Measured whole: nothing is stripped before the count, because a cap over a subset of the text a

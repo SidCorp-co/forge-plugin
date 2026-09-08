@@ -52,8 +52,8 @@ route's — the action the table's key is made of, and the project the caller ma
 route with.
 
 **The table's key is not a name the tracker has.** Where a tool carries its action in an argument,
-`<tool>.<action>` is this CLI's own reading of the pair — and it is what `forge tools` prints, so a
-caller types it back. Read as a tool name it reaches the route while every check keyed on the tool
+`<tool>.<action>` is this CLI's own reading of the pair, and a refusal naming a route prints it, so a
+caller reads it back. Read as a tool name it reaches the route while every check keyed on the tool
 looks at the wrong one: the verb that wraps the pair, the capability record, the write targets the
 read-before-write check is made from. So a name of that form is turned back into the pair it stands
 for before any of them is asked, and each is given the tool the tracker knows.
@@ -117,6 +117,6 @@ Because they leaked once already, and a name in a printed string is invisible to
 `plugin/src/checks/tracker-names.mjs` refuses either of the tracker's two column names inside a
 string literal under `plugin/src` or `plugin/hooks`. It states them as patterns and its own reader
 reaches them by property access, so neither the rule nor the code it guards is a quoted span and no
-exemption is needed — an exemption list is where a rule like this goes to die. `forge schema` and
-`forge call` are outside it on purpose: they pass the server's own text and JSON through, and masking
-the tracker's words in the tracker's own answer would be a different and worse thing.
+exemption is needed — an exemption list is where a rule like this goes to die. The two verbs that
+used to sit outside it passed the server's own text and JSON through, masking nothing, and they are
+gone: every route is some verb's now, and a verb answers in its own words.

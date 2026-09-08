@@ -103,7 +103,8 @@ test("a flag inside a quoted value is not that flag", () => {
 
 test("the uuid form is a target, so the form is no way around this", () => {
   assert.deepEqual(targets(`forge comment ${UUID} @n.md`), [UUID]);
-  assert.deepEqual(targets(`forge call forge_issues '{"action":"update","documentId":"${UUID}","data":{"plan":"x"}}'`), [UUID]);
+  assert.deepEqual(targetsOfTool("forge_issues", { action: "update", documentId: UUID, data: { plan: "x" } }), [UUID],
+    "on the raw surface too, where a uuid is all a payload ever carries");
 });
 
 test("a prefix before the verb is still the verb", () => {
@@ -119,24 +120,19 @@ test("a prefix before the verb is still the verb", () => {
   }
 });
 
+/* The one raw surface left is a connected MCP client, so a payload is judged where it still arrives
+   from: no verb of this CLI types a tool name, and the arguments come already parsed. */
 test("a raw call is judged by its action, and the mark carries its issue inside data", () => {
-  const call = (json) => targets(`forge call forge_issues '${json}'`);
-  assert.deepEqual(call(`{"action":"transition","documentId":"ISS-29","data":{"status":"closed"}}`), ["ISS-29"]);
-  assert.deepEqual(call(`{"action":"mark_merged","data":{"issueId":"ISS-29","note":"merged"}}`), ["ISS-29"]);
-  assert.deepEqual(call(`{"action":"get","documentId":"ISS-29"}`), [], "a get reads");
-  assert.deepEqual(call(`{"action":"list"}`), []);
-  assert.deepEqual(targets(`forge call forge_comments '{"action":"create","data":{"issue":"ISS-29","body":"x"}}'`), ["ISS-29"]);
-  assert.deepEqual(targets(`forge call forge_comments '{"action":"list","filters":{"issue":"ISS-29"}}'`), []);
-  assert.deepEqual(targets(`forge call forge_comments '{"action":"delete","documentId":"${UUID}"}'`), [],
+  const call = (input) => targetsOfTool("forge_issues", input);
+  assert.deepEqual(call({ action: "transition", documentId: "ISS-29", data: { status: "closed" } }), ["ISS-29"]);
+  assert.deepEqual(call({ action: "mark_merged", data: { issueId: "ISS-29", note: "merged" } }), ["ISS-29"]);
+  assert.deepEqual(call({ action: "get", documentId: "ISS-29" }), [], "a get reads");
+  assert.deepEqual(call({ action: "list" }), []);
+  const said = (input) => targetsOfTool("forge_comments", input);
+  assert.deepEqual(said({ action: "create", data: { issue: "ISS-29", body: "x" } }), ["ISS-29"]);
+  assert.deepEqual(said({ action: "list", filters: { issue: "ISS-29" } }), []);
+  assert.deepEqual(said({ action: "delete", documentId: UUID }), [],
     "and a comment's own id names no issue to read the comments of");
-});
-
-/* JSON keeps the last of two keys of one name and a text search finds the first, so a payload
-   saying `action` twice could read as a list and post a comment. It counts as a write. */
-test("a payload that names its action twice is read as JSON reads it", () => {
-  const twice = `forge call forge_comments '{"action":"list","action":"create","data":{"issue":"ISS-29","body":"x"}}'`;
-  assert.deepEqual(targets(twice), ["ISS-29"]);
-  assert.deepEqual(targets(`forge call forge_comments '{"action":"list"`), [], "and one nothing can parse names none");
 });
 
 test("the tracker's own tool is judged by its action, with its arguments already parsed", () => {
@@ -311,17 +307,6 @@ test("a create whose body cannot carry the flow is denied, and the pointer is th
   assert.match(because(run), /a heading naming the outcome/u);
   assert.match(because(run), /forge hooks --how issue-shape/u,
     "one gate refuses two things, and each argument has its own page");
-});
-
-test("a create through the raw call is denied where the tool is, because a form is no route", async () => {
-  const json = JSON.stringify({ action: "create", data: { title: "fix", description: "It is broken." } });
-  endpoint(live());
-  const run = await callHookAsync(HOOK, {
-    tool_name: "Bash", tool_input: { command: `forge call forge_issues '${json}'` }, cwd: process.cwd(),
-  }, { ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: "probe-filing" });
-  const said = JSON.parse(run.stdout);
-  assert.equal(said.hookSpecificOutput.permissionDecision, "deny");
-  assert.match(said.hookSpecificOutput.permissionDecisionReason, /forge hooks --how issue-shape/u);
 });
 
 /* ISS-335. The shape is read first and the route second, so a body that cannot carry the flow still

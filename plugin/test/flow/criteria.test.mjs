@@ -37,7 +37,7 @@ const CRITERIA_CORPUS = [
   { issue: "ISS-474", number: 15, text: "`forge codex stats` prints byte-identical output before and after the commit." },
   { issue: "ISS-474", number: 16, text: "`forge codex eval` prints byte-identical output before and after the commit, over a window carrying at least one value below the fold threshold on both sides." },
   { issue: "ISS-474", number: 17, text: "`forge -h` prints byte-identical output before and after the commit." },
-  { issue: "ISS-474", number: 18, text: "`forge call forge_issues '{\"action\":\"list\"}'` prints byte-identical stderr before and after the commit." },
+  { issue: "ISS-474", number: 18, text: "`forge issue --status open --limit 1` prints byte-identical stderr before and after the commit." },
   { issue: "ISS-474", number: 19, text: "That same invocation exits non-zero after the commit, as it did before it." },
   { issue: "ISS-474", number: 20, text: "`npm run check` is green over the whole tree at the head the review read." },
   { issue: "ISS-474", number: 21, text: "The knowledge store carries a `module-*` entry for every tree this reading read." },

@@ -22,17 +22,16 @@ configured.
 
 An agent is offered what it can use and nothing else. A verb disappears for one of two reasons:
 
-- **The capability behind it refuses.** `forge doctor` probes and records that; the verb then
-  leaves the usage list, `forge tools` stops listing the tool, and `forge schema` refuses to print
-  its arguments. A record is keyed by project and dated, so a refusal that was true once is not read
-  as true forever.
+- **The capability behind it refuses.** `forge doctor` probes and records that; the verb then leaves
+  the usage list, and its own `-h` goes with it, the fields it named being that verb's. A record is
+  keyed by project and dated, so a refusal that was true once is not read as true forever.
 - **A human ran `forge doctor --hide <verb>`.** That one is unlisted but still runs;
   `forge doctor --show <verb>` puts it back.
 
 Nothing is filtered until `doctor` has measured it, and every refusal carries the date it was
-measured rather than claiming a permanent fact. `forge tools --all` and `forge schema <tool> --all`
-look past the filter. `forge doctor` prints what resolves, from which source, and which
-capabilities refuse.
+measured rather than claiming a permanent fact. `forge doctor` prints what resolves, from which
+source, and which capabilities refuse — including the ones whose verbs the filter is hiding, so the
+one verb that reports a refusal is never hidden by it.
 
 ## Prose language is the tracker's property
 

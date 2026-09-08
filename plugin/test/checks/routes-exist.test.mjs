@@ -7,7 +7,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { routeProblems } from "../../src/checks/doc-shape.mjs";
-import { VERB_NAMES, usageOf, verbFor } from "../../src/resolve/visibility.mjs";
+import { VERB_NAMES, usageOf } from "../../src/resolve/visibility.mjs";
 import { FORM_NAMES } from "../../src/resolve/handler.mjs";
 import { surfaceOf } from "../surfaces.mjs";
 
@@ -138,20 +138,6 @@ test("a one-letter alternative is not read as a spelled value, so those values g
     "the row spells xs|s|m|l|xl and this checker reads none of them");
   assert.deepEqual(routeProblems("forge next --count 3", held), [],
     "which is the same reading that keeps `--count n` a placeholder rather than the value `n`");
-});
-
-/* Both spellings, a message picking whichever reads better: `forge call forge_comments.list` and `forge call forge_comments '{"action":"list"}'` are one pair. Handing back a raw call for a pair some verb owns names a command this CLI refuses, so the reader spends a round to be told to type the verb — the filing reply pointed at `forge_comments.list` for exactly as long as no verb owned it (ISS-704). */
-const RAW_CALL = /forge call (forge_\w+)(?:\.(\w+))?(?:[^\n]*?"action"\s*:\s*"(\w+)")?/gu;
-
-test("no message this source prints hands back a raw call for a pair a verb owns", () => {
-  const found = [];
-  for (const { rel, text } of sources()) {
-    for (const [said, tool, dotted, inPayload] of text.matchAll(RAW_CALL)) {
-      const owner = verbFor(tool, dotted ?? inPayload ?? null);
-      if (owner) found.push(`${rel}: \`${said}\` is what ${owner.line} does`);
-    }
-  }
-  assert.deepEqual(found, [], "each of these names a call the CLI now refuses, and the verb to type");
 });
 
 test("a value against a placeholder is not judged, and the surfaces spell their placeholders", () => {

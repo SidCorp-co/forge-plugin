@@ -32,6 +32,8 @@ const answered = (run) => {
 
 const decide = (command) => answered(ask({ tool_name: "Bash", tool_input: { command } }));
 const at = (cwd, command) => answered(ask({ tool_name: "Bash", tool_input: { command }, cwd }));
+/* The endpoint's one route: a connected client's own tool call, with its arguments already parsed. */
+const called = (input) => answered(ask({ tool_name: `mcp__forge__forge${"_"}memory${"_"}write`, tool_input: input }));
 
 /* A value naming another was dropped whole rather than carried, so this exact write — found by firing
    the live gate — landed a memory file with nothing asked. The `/memory/` it spells out is enough. */
@@ -136,34 +138,29 @@ test("a verb inside a `-c` body is where the shell puts it", () => {
   assert.equal(decide(`sh -c 'grep -c x ${MEMORY}/a.md'`).allowed, true, "reading is still free");
 });
 
-/* The tracker holds project memory too, and the MCP tool was guarded while the CLI that reaches the
-   same endpoint was not. One decision, both routes. */
-test("the tracker's own memory write is the same decision through the shell", () => {
-  const { allowed, reason } = decide(`forge call forge_memory_write '{"source":"note","text":"x"}'`);
+/* The tracker holds project memory too, so the endpoint is guarded where it is reached: a connected client's tool call and nothing else, no verb of this CLI sending a payload. */
+test("the tracker's own memory write is held with the same brief a file is", () => {
+  const { allowed, reason } = called({ source: "note", text: "x" });
   assert.equal(allowed, false);
   assert.match(reason, /Record only what cost a cycle/u);
   assert.match(reason, /code cannot hold/u, "the hold sends a fixable fact to the code first");
   assert.match(reason, /which of the five conditions/u, "the tracker route counts them as the brief does");
   assert.match(reason, /metadata\.checked/u);
-  assert.equal(decide(`forge call forge_memory_search '{"q":"x"}'`).allowed, true, "recall is free");
 });
 
 /* Naming a thing is not calling it: a grep for the endpoint was refused as a write to it. */
 test("a command that only names the tracker's endpoint is not writing to it", () => {
   const named = `forge${"_"}memory${"_"}write`;
   assert.equal(decide(`grep -rn ${named} plugin/hooks`).allowed, true);
-  assert.equal(decide(`forge call ${named} '{"source":"note"}'`).allowed, false, "the call is");
+  assert.equal(decide(`printf '%s' ${named}`).allowed, true, "and neither is printing it");
 });
 
-/* One endpoint, two routes, two rules: the payload was searched for the word rather than read, so a
-   field set to false cleared it, and a source the tracker authors was refused here and not there. */
-test("the payload is read, not searched, and the tracker's own sources pass either way", () => {
-  const named = `forge${"_"}memory${"_"}write`;
-  const call = (payload) => decide(`forge call ${named} '${JSON.stringify(payload)}'`);
-  assert.equal(call({ source: "note", metadata: { checked: false } }).allowed, false, "false is not checked");
-  assert.equal(call({ source: "note", metadata: { checked: "trap" } }).allowed, true, "a category clears it");
-  assert.equal(call({ source: "issue", text: "x" }).allowed, true, "the tracker authors this one");
-  assert.equal(decide(`forge call ${named} @body.json`).allowed, false, "a payload it cannot read");
+/* The arguments are read, not searched for the word: a field set to false cleared the hold, and a
+   source the tracker itself authors is not a memory anybody chose to keep. */
+test("the arguments are read, not searched, and the tracker's own sources pass", () => {
+  assert.equal(called({ source: "note", metadata: { checked: false } }).allowed, false, "false is not checked");
+  assert.equal(called({ source: "note", metadata: { checked: "trap" } }).allowed, true, "a category clears it");
+  assert.equal(called({ source: "issue", text: "x" }).allowed, true, "the tracker authors this one");
 });
 
 /* A wrapper's own flags let `sudo -u touch <path>` inside an echo read as a write; only `xargs` needs them. */

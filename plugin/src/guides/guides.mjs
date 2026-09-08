@@ -127,16 +127,17 @@ export const GUIDE_TABLE = [
   {
     slug: "memory-and-knowledge",
     disposition: "partly",
-    why: "the three tiers are the tracker's and stand; the verbs its recall discipline names are not wrapped here",
+    why: "the three tiers are the tracker's and stand; of the verbs its recall discipline names, one is wrapped here and two are served by no route",
     replaced: [
       {
         says: "recall, write and confirm through `forge_memory.search`, `forge_memory.write` and"
           + " `forge_memory.feedback`",
-        instead: "this CLI has no memory verb: those three are reachable only through `forge call`, and"
-          + " what one run owes the next is on the issue's record rather than in memory",
+        instead: "recall is `forge knowledge search`, which reads that route; the declared table serves"
+          + " no route for the write or the confirmation, so neither is reachable from here, and what"
+          + " one run owes the next is on the issue's record rather than in memory",
       },
     ],
-    by: ["forge call", "forge resume"],
+    by: ["forge knowledge search", "forge resume"],
   },
   {
     slug: "issue-dependencies",

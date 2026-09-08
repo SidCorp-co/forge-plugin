@@ -4,7 +4,7 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, askedByAnyone, deny, how, nameLike, settled, shellText, shellWrites, spans, unquote, writtenPaths, WRITES, done } from "../_hook.mjs";
+import { askedAlready, askedByAnyone, deny, how, nameLike, settled, shellWrites, spans, unquote, writtenPaths, WRITES, done } from "../_hook.mjs";
 import { sayOnce, sessionKey } from "../../src/shown/ledger.mjs";
 import { compare, load, sentences } from "../../src/checks/duplication.mjs";
 import { BRIEF, FILE_TYPES, FORGE_SOURCES, GUARDED, SKILL_CATEGORIES } from "../../src/checks/learning.mjs";
@@ -135,20 +135,8 @@ export const run = (ev) => {
   const tool = ev.tool_name ?? "";
   const ti = ev.tool_input ?? {};
 
+  /* Reached by a connected MCP client and nothing else: no verb sends a payload, and the declared table serves no route for the write, so no shell line can make one. */
   const TRACKER = /forge[_.]memory[_.]write/;
-  /* Through the shell the CLI is the caller, so the verb has to be there: a grep is a read. */
-  const CALLED = /\bforge\s+call\s+forge[_.]memory[_.]write\b/;
-  const PAYLOAD = /(?:^|\s)('(\{[\s\S]*\})'|"(\{[\s\S]*\})")/u;
-
-  /** What the CLI was handed; one it reads from a file or stdin is judged as a write, not waved through. */
-  const payloadIn = (text) => {
-    const held = PAYLOAD.exec(text);
-    try {
-      return JSON.parse(held?.[2] ?? held?.[3] ?? "");
-    } catch {
-      return { source: FORGE_SOURCES[0] };
-    }
-  };
 
   const tracker = (src) =>
     deny(
@@ -157,7 +145,6 @@ export const run = (ev) => {
         `and say in one line which of the five conditions made it worth keeping.${how()}`,
     );
 
-  /** One rule for one endpoint, whichever route reached it: the tool's arguments or the CLI's payload. */
   const decide = (payload) => {
     const src = payload?.source ?? "";
     if (!FORGE_SOURCES.includes(src)) done(); // issue/comment/job are system-authored
@@ -170,8 +157,6 @@ export const run = (ev) => {
 
   // Through the shell the content cannot be read — `sed -i` carries none — and the question has to be answered BEFORE the write, so the route is closed for these two kinds of file, not approximated.
   if (tool === "Bash") {
-    const text = shellText(ti.command);
-    if (CALLED.test(text)) decide(payloadIn(text));
     const written = writtenPaths(struck(shellWrites(ti.command)), ev.cwd || process.cwd(), MD_TOKEN);
     if (written.length === 0) done();
     for (const { token, trees, paths } of written) {

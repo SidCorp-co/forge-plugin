@@ -2,7 +2,7 @@
    the code is. Entries are the tracker's and nothing here writes a file. docs/cli/knowledge.md. */
 import { fail, keepOnFailure } from "../resolve/settings.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
-import { declaredValue, refuseCredential, scoped, write } from "../tracker/rpc.mjs";
+import { declaredFor, declaredValue, refuseCredential, scoped, write } from "../tracker/rpc.mjs";
 import { flags, helpAskedOf, pairOf, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 
@@ -10,6 +10,9 @@ export const SLUG_WIDTH = 28;
 const KIND_WIDTH = 10;
 const HITS = 10;
 const MAX_HITS = 50;
+
+/* Derived, never copied: this help is the authority on what the store takes, so the sets come off the declaration the refusal cites and a value the tracker grows is added in one place. */
+const setOf = (field) => declaredFor("forge_knowledge", field).join(" | ");
 
 export const USAGE = [
   "Usage: forge knowledge <list|get|write|search|delete> [args]",
@@ -23,8 +26,11 @@ export const USAGE = [
   "  search <query> [--limit n]             the records this project holds, by meaning, nearest first",
   "  delete <slug>                          remove it, and say whether there was one",
   "",
-  "The values --kind, --injection and --confidence take are the tracker's own: `forge schema forge_knowledge`",
-  "prints them, and one outside the set is refused with the set before anything is sent.",
+  `  --kind          ${setOf("kind")}`,
+  `  --injection     ${setOf("injection")}`,
+  `  --confidence    ${setOf("confidence")}`,
+  "These are the tracker's own values, and one outside a set is refused with the set before anything",
+  "is sent.",
   "",
   "An entry says what is, and cites where it was read: a path, a commit, an issue key. A rule two",
   "runs each half-followed is an entry only with the two places that show it, named in the body.",
@@ -32,12 +38,9 @@ export const USAGE = [
   "second copy, and the reader who finds the overlap is the one who refuses it.",
 ].join("\n");
 
-/* Nothing is carried over to a create, so a create says which fields it is refusing to guess: the
-   tracker labels a kindless entry `guide`, which mislabels a reference rather than under-labelling
-   it, and no later reader can tell that from a deliberate one. */
+/* Nothing is carried over to a create, so a create says which fields it is refusing to guess: the tracker labels a kindless entry `guide`, which mislabels a reference rather than under-labelling it, and no later reader can tell that from a deliberate one. */
 const NO_KIND = "a new entry needs --kind: forge_knowledge labels one that names no kind `guide`, "
-  + "and a reference filed as a guide reads as somebody's choice. `forge schema forge_knowledge` "
-  + "prints the set.";
+  + "and a reference filed as a guide reads as somebody's choice. `forge knowledge -h` prints the set.";
 
 /* The route refuses a value outside the set without naming the set, so the check stands here and
    the set is the table's, whose own comment says what a refusal citing it owes its reader. */

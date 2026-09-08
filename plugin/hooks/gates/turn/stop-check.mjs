@@ -124,8 +124,7 @@ const git = (tree, argv) => {
   return said?.status === 0 ? said.out : null;
 };
 
-/* Where a command or this turn's own prompt named one: a key quoted in a diff or in a tool's answer
-   is a key this run read, not one it took. */
+/* Where a command or this turn's own prompt named one: a key quoted in a diff or in a tool's answer is a key this run read, not one it took. */
 const keysNamed = (said) => [...new Set(keysIn(said.join("\n")).map((one) => one.toUpperCase()))];
 
 /** A lease this session took and has written nothing against since. Every payload write renews the
@@ -138,22 +137,21 @@ export const silentSince = (lease, holder) => {
 };
 
 /** The issues this turn named that are in one of those. `said` is `readTurn`'s, handed down. */
-export const heldAndSilent = (ev, tree, said, holder) => {
+export const heldAndSilent = (ev, tree, said, holder, read = forge) => {
   const keys = keysNamed(said);
   if (!holder || !keys.length) return [];
-  const listed = forge(tree, ["call", "forge_issues",
-    JSON.stringify({ action: "list", filters: { status: "in_progress" }, limit: 200 })]);
-  const rows = (listed?.issues ?? []).filter((row) => keys.includes(String(row?.issueId).toUpperCase()));
   const out = [];
-  for (const row of rows.slice(0, MAX_ISSUES)) {
-    const lease = forge(tree, ["issue", row.issueId, "--fields", FIELD])?.[FIELD]?.[KEY];
-    if (silentSince(lease, holder)) out.push(row.issueId);
+  /* One read per key, status and lease together. The cap counts what qualifies and never what was named, or two closed keys hide the held one behind them; time is the other bound, `forge` answering null once the event's clock is spent. */
+  for (const key of keys) {
+    if (out.length >= MAX_ISSUES) break;
+    const held = read(tree, ["issue", key, "--fields", `status,${FIELD}`]);
+    if (held?.status !== "in_progress") continue;
+    if (silentSince(held?.[FIELD]?.[KEY], holder)) out.push(key);
   }
   return out;
 };
 
-/* A worktree this run made, and not the checkout it was made from: git answers the two directories
-   relatively in the one and absolutely in the other, so both are placed before they are compared. */
+/* A worktree this run made, and not the checkout it was made from: git answers the two directories relatively in the one and absolutely in the other, so both are placed before they are compared. */
 const isWorktree = (tree) => {
   const [own, shared] = (git(tree, ["rev-parse", "--git-dir", "--git-common-dir"]) ?? "")
     .split("\n").map((one) => one.trim());

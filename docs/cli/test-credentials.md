@@ -10,7 +10,7 @@ name an agent has to translate is a round.
 **Being a URL is not being safe to print.** What is a host and what is a secret is decided by the
 shape of the value and never by a list of field names, because that schema grows and a rule printing
 everything not *named* as a secret prints tomorrow's secret by default. The inverse can only ever
-withhold something nobody recognised, which costs a `forge call`; the other direction costs a leak.
+withhold something nobody recognised, which costs one more round trip; the other costs a leak.
 Two versions of this got it wrong before the rule was stated that way, each caught by a review and
 each verified before it was changed:
 

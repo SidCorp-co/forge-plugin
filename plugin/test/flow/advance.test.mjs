@@ -425,7 +425,7 @@ test("a --next the form cannot take is refused by name, empty or not", () => {
 });
 
 /* A refusal carries the one command that clears it, so the command has to survive being pasted: an
-   apostrophe inside `forge call ... '{json}'` ends the quote and the paste is a syntax error. */
+   apostrophe inside a single-quoted argument ends the quote and the paste is a syntax error. */
 test("every command an entry check prints can be pasted into a shell as it stands", () => {
   const quoted = /'([^']*)'/gu;
   for (const status of Object.keys(CHECKS)) {

@@ -12,6 +12,9 @@ export const RETIRED = [
   { name: "dep", kind: "verb", release: "3.35.240" },
   { name: "plan", kind: "verb", release: "3.35.211" },
   { name: "into", kind: "flag", release: "3.35.211" },
+  { name: "tools", kind: "verb", release: "3.35.252" },
+  { name: "schema", kind: "verb", release: "3.35.252" },
+  { name: "call", kind: "verb", release: "3.35.252" },
 ];
 
 const REGISTRIES = new Set(["plugin/src/resolve/visibility.mjs", "plugin/src/commands.mjs"]);

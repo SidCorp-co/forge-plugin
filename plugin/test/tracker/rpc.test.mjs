@@ -259,7 +259,7 @@ test("the fake refuses declared JSON with nothing under it where the tracker doe
 
 const UNCOMMENTED = "22222222-2222-4222-8222-222222222222";
 
-/* Over the transport rather than through `forge call`: `unmark` is an action a verb wraps, so the raw
+/* Over the transport rather than through a raw route: `unmark` is an action a verb wraps, so the raw
    route answers with `forge record merged --undo` and never reaches the request this case is about
    (ISS-701). What the defect was is here whole — the row's own request, the DELETE that declares a JSON
    body and carries one, and the answer decoded back — and the argv layer above it holds none of it. */

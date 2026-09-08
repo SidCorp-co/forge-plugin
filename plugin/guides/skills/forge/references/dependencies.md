@@ -21,5 +21,5 @@ A body and the store can diverge either way — a sentence claiming an edge the 
 edge no sentence mentions — so reading one proves nothing about the other. Where they disagree, the
 store is what `forge advance` and `forge next` act on, and the prose is a claim somebody wrote.
 
-**Which actions a credential may call is `forge doctor`'s to report**, and `forge schema forge_issues`
-owns what a call may send.
+**Which actions a credential may call is `forge doctor`'s to report**, and `forge issue -h` owns what
+a write to an issue may send.

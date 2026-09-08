@@ -203,17 +203,17 @@ test("a mistyped flag is refused before a credential is looked for", async () =>
 });
 
 test("an unknown flag is an unknown flag, never a known one given no value", async () => {
-  const run = await ran("tools", "--al");
+  const run = await ran("next", "--wh");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No tools flag named --al\. Did you mean: --all\?/u);
+  assert.match(run.stderr, /No next flag named --wh\. Did you mean: --why\?/u);
   assert.doesNotMatch(run.stderr, /given no value/u);
 });
 
 test("a verb taking no flag at all says what it does take", async () => {
-  const run = await ran("call", "forge_issues", "--body", "a finding");
+  const run = await ran("spec", "UC-01", "--body", "a finding");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No call flag named --body\./u);
-  assert.match(run.stderr, /Usage: forge call <tool> <'json'\|@file\|->/u);
+  assert.match(run.stderr, /No spec flag named --body\./u);
+  assert.match(run.stderr, /Usage: forge spec <id>/u);
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
 });
 
@@ -271,8 +271,8 @@ test("a bare flag word in a value slot is refused by naming the token, not the c
 });
 
 test("a flag a row deliberately omits still runs", async () => {
-  const run = await ran("schema", "forge_issues", "--all");
-  assert.doesNotMatch(run.stderr, /No schema flag/u, `refused its own flag: ${run.stderr}`);
+  const run = await ran("resume", "ISS-1", "--report");
+  assert.doesNotMatch(run.stderr, /No resume flag/u, `refused its own flag: ${run.stderr}`);
 });
 
 test("a target is turned away like any other name", async () => {
@@ -285,17 +285,6 @@ test("a verb nobody has is named back before the list of the ones there are", as
   const run = await ran("nosuchverb");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /^No verb named nosuchverb\./u);
-});
-
-/* Two names in one refusal, and one of them the name that was typed: an action no row serves is a
-   pair the table does not carry, never a tool nobody has heard of. */
-test("an unserved action on a served tool is not offered the tool it already names", async () => {
-  const run = await ran("call", "forge_issues", '{"action":"nosuchaction"}');
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /^forge_issues\.nosuchaction is not a capability this CLI declares a route for/mu);
-  assert.doesNotMatch(run.stderr, /No tool named/u, "the tool is one this CLI serves, and was not what was wrong");
-  const absent = await ran("call", "forge_nosuchtool", '{"action":"list"}');
-  assert.match(absent.stderr, /No tool named forge_nosuchtool/u, "while a name nothing serves is still named back");
 });
 
 /* The one place this CLI answers a name with a replacement, and it is bounded: a write that had two

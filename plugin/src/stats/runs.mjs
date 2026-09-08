@@ -84,7 +84,7 @@ const lastOf = (lines, shape) => {
 };
 
 /** The line naming the rule a call was refused by, or null where it met none of this plugin's own.
- *  Never the body's first line by default: a forge call prints its provenance banner before it
+ *  Never the body's first line by default: a `forge` command prints its provenance banner before it
  *  refuses, and reading line one filed 187 of those banners under a row that names no rule. */
 export const refusalIn = (call) => {
   const whole = call.body.trim();
@@ -171,8 +171,8 @@ export const unionSeconds = (spans) => {
 };
 
 /* An advance that follows a record is the flow working as the contract describes; one that follows
-   anything else is a poll. The comparison is against the last forge call, not the last call, so a
-   `cat` between the two does not turn one into the other. */
+   anything else is a poll. The comparison is against the last `forge` command, not the last call, so
+   a `cat` between the two does not turn one into the other. */
 const advanceRuns = (calls) => {
   let after = 0;
   let total = 0;

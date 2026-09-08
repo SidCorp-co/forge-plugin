@@ -80,9 +80,10 @@ Run it first when anything refuses.
 
 `~/.config/forge/config.json` also holds two keys `doctor` writes and the rest of the CLI reads:
 
-- **`capabilities`** — per project, which tools refused this credential and when. The usage list,
-  `forge tools` and `forge schema` withhold anything recorded here, so **a verb can be missing
-  from `forge -h` because of this file.** `forge tools --all` looks past it.
+- **`capabilities`** — per project, which tools refused this credential and when. The usage list
+  withholds every verb that spends one recorded here, so **a verb can be missing from `forge -h`
+  because of this file.** `forge doctor` prints what it measured, refusals included, and is never
+  itself withheld — the verb that re-probes a credential cannot be gated on it.
 - **`withheld`** — verbs a human hid with `forge doctor --hide <verb>`. Unlisted, but they still
   run. `forge doctor --show <verb>` puts one back.
 

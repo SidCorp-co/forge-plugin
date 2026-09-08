@@ -444,7 +444,7 @@ test("waits that overlap are counted once against the wall clock", () => {
 });
 
 /* Six of the listing's top ten rows were not refusals: the word `refused` inside an issue body, a
-   `-h` read, a grep that matched nothing, a test's failure line. And a forge call prints its
+   `-h` read, a grep that matched nothing, a test's failure line. And a `forge` command prints its
    provenance banner before it refuses, so the row that did name a refusal named the banner. */
 test("the refusals listing is what this plugin refused, keyed on the line that names the rule", () => {
   const room = tempRoom("stats-refusals-");

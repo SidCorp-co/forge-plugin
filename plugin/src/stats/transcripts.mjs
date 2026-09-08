@@ -78,7 +78,7 @@ const WHOLE_SET = /--send[= \t]+bodies\b/u;
 const forgeClass = (shell) => {
   const found = FORGE.exec(shell)?.groups;
   if (!found) return null;
-  /* A form is a forge call, classed by the word typed: read as a verb it is none, so `forge close` fell to `shell` and the tool-seconds table filed it under nothing (ISS-704). */
+  /* A form is a `forge` command, classed by the word typed: read as a verb it is none, so `forge close` fell to `shell` and the tool-seconds table filed it under nothing (ISS-704). */
   if (handledBy(found.verb)) return `forge ${found.verb}`;
   if (!VERB_NAMES.includes(found.verb)) return null;
   const sub = found.slug ? SUB_WORD.exec(found.slug)?.[0] : undefined;

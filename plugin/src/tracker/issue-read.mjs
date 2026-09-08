@@ -86,15 +86,13 @@ const VERBS = {
   advance: { at: () => [0], when: (args) => !args.includes("--owed") },
 };
 
-const CALL = /^(?:\S*\/)?forge\s+call\s+(forge_\w+)\b/u;
 const VERB = /^(?:\S*\/)?forge\s+([a-z]+)\b/u;
+/* The one raw surface left: this CLI has no verb that types a tool name, so a Bash line cannot name a route, and a connected MCP client still can — which is what `toolOfCall` is read for. */
 const MCP = /^mcp__forge__(forge_\w+)$/u;
 
 export const toolOfCall = (name) => MCP.exec(name ?? "")?.[1] ?? null;
 
 const spokenTargets = (one) => {
-  const called = CALL.exec(one);
-  if (called) return targetsOfTool(called[1], payload(one));
   const said = VERB.exec(one);
   const verb = VERBS[said?.[1]];
   if (!verb) return [];
@@ -104,9 +102,7 @@ const spokenTargets = (one) => {
   return verb.at(args).map((index) => args[index]).filter(isReference);
 };
 
-/** The physical lines a shell joins before it reads a word: the shared grammar cuts at a newline,
- *  right for where a command starts and wrong for the word this reads. A backslash escaping a
- *  backslash leaves the newline a separator, and single quotes join nothing. */
+/** The physical lines a shell joins before it reads a word: the shared grammar cuts at a newline, right for where a command starts and wrong for the word this reads. A backslash escaping a backslash leaves the newline a separator, and single quotes join nothing. */
 export const joined = (command) => {
   const text = String(command ?? "");
   let out = "";
@@ -144,11 +140,8 @@ const filingOf = (args) =>
     }]
     : []);
 
-const spokenFilings = (one) => (CALL.exec(one)?.[1] === "forge_issues" ? filingOf(payload(one)) : []);
-
-/** `forge new` is absent: it reads its body off a file this cannot see, and refuses on this reader. */
-export const filingsOf = ({ name, input }, spoken = []) => {
+/** Through a connected MCP client alone: `forge new` reads its body off a file this cannot see, and the shape a spoken filing had was a raw payload no verb takes now. */
+export const filingsOf = ({ name, input }) => {
   const tool = toolOfCall(name);
-  if (tool) return tool === "forge_issues" ? filingOf(input) : [];
-  return spoken.flatMap(spokenFilings);
+  return tool === "forge_issues" ? filingOf(input) : [];
 };

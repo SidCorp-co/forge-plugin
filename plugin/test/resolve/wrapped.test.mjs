@@ -1,16 +1,18 @@
 /* ISS-335. The verb table read backwards: which verb is the route to a tool and action a raw call is
-   asking for. Three things are watched here that a reader cannot see from either side alone — that
-   the routing column left the capability keys where they were, that no two rows claim one pair, and
-   that the CLI refuses before it asks the tracker anything. */
-import { readFileSync, readdirSync, writeFileSync } from "node:fs";
+   asking for. The raw caller left is a connected MCP client, so the gate over it is where the answer
+   is spent. Three things are watched here that a reader cannot see from either side alone — that the
+   routing column left the capability keys where they were, that no two rows claim one pair, and that
+   the refusal is made before the tracker is asked anything. */
+import { readFileSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { VERBS, actionIn, gateKey, verbFor, wrappedRefusal, wrapsOf } from "../../src/resolve/visibility.mjs";
+import { noRouteRefusal } from "../../src/tracker/rest.mjs";
 import { toolOfCall } from "../../src/tracker/issue-read.mjs";
-import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { callHookAsync, fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
 const SLUG = "wrapped-fixture";
@@ -100,29 +102,6 @@ test("routing an action leaves every capability key exactly where it was", () =>
   }
 });
 
-/* The class of regression this table creates, watched where it is created rather than one instance
-   at a time: a refusal that hands back a raw call for a pair the table claims is a command the same
-   binary will refuse, printed at the moment the caller has nowhere else to go. ISS-335 landed with
-   one of these — the park path's escape, found by review and not by the suite. */
-const SOURCE = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const under = (dir) => readdirSync(dir, { withFileTypes: true })
-  .flatMap((one) => (one.isDirectory() ? under(join(dir, one.name)) : [join(dir, one.name)]))
-  .filter((one) => one.endsWith(".mjs"));
-const CALLS = /forge call\s+(forge_[a-z_]+)([\s\S]{0,240})/gu;
-const ACTION = /"action"\s*:\s*"(\w+)"|action:\s*"(\w+)"/u;
-
-test("nothing this CLI prints hands back a raw call for a pair the table claims", () => {
-  const found = [];
-  for (const path of [...under(join(SOURCE, "src")), ...under(join(SOURCE, "hooks"))]) {
-    for (const [, tool, after] of readFileSync(path, "utf8").matchAll(CALLS)) {
-      const said = ACTION.exec(after);
-      const action = said?.[1] ?? said?.[2];
-      if (action && verbFor(tool, action)) found.push(`${path.slice(SOURCE.length + 1)}: ${tool} ${action}`);
-    }
-  }
-  assert.deepEqual(found, [], `printed as a route and refused as one: ${found.join("; ")}`);
-});
-
 test("a payload naming no action, or one that is not a name, claims nothing", () => {
   assert.equal(actionIn({ action: { create: true } }), null);
   assert.equal(actionIn({}), null);
@@ -139,18 +118,13 @@ test("the refusal names the verb and what it does that the raw call does not", (
   assert.equal(said.split("\n").length, 1, "one line, as a spent turn is owed");
 });
 
-/* `forge tools` prints the table's keys, and a caller who types one back is naming a pair rather
-   than a tool: read as a tool name it would reach the route past this refusal and past the
+/* A whole key where a tool name goes: the generated help names routes that way, so the refusal has to
+   read it that way too. Read as a tool name it would reach the route past this refusal and past the
    read-before-write check, both of which are keyed on the tool the tracker knows. */
-test("a key typed where a tool name goes is refused by the verb that wraps the pair", async () => {
-  const { ran, close } = await gated();
-  try {
-    const run = await ran("call", "forge_issues.create", '{"data":{"title":"x"}}');
-    assert.equal(run.status, 1, run.stdout);
-    assert.match(run.stderr, /forge_issues create is what `forge new` wraps/u);
-  } finally {
-    await close();
-  }
+test("a key given where a tool name goes is refused by the verb that wraps the pair", () => {
+  assert.match(wrappedRefusal("forge_issues.create", null), /forge_issues create is what `forge new` wraps/u);
+  assert.match(wrappedRefusal("forge_issues", "create"), /forge_issues create is what `forge new` wraps/u,
+    "and the two spellings of one pair answer alike");
 });
 
 /* ISS-335's second rule, on the tool whose action nothing wraps any more: the edge write moved to
@@ -212,34 +186,38 @@ const gatedKnowledge = async () => {
   await ranAsync(process.execPath, [CLI, "doctor"], tracker.env, cwd);
   return {
     close: tracker.close,
+    cwd,
+    env: tracker.env,
     ran: (...argv) => ranAsync(process.execPath, [CLI, ...argv], tracker.env, cwd),
   };
 };
 
-test("an action no row claims and no route serves is refused as unserved, not handed a gone verb", async () => {
-  const { ran, close } = await gated();
-  try {
-    const run = await ran("call", "forge_project_pm", '{"action":"set_dependency","data":{"from":"ISS-1"}}');
-    assert.equal(run.status, 1);
-    assert.match(run.stderr, /forge_project_pm\.set_dependency/u, "and names the pair it was asked for");
-    assert.doesNotMatch(run.stderr, /type it instead/u, "and offers no verb, there being none to type");
-  } finally {
-    await close();
-  }
+/* The refusal's one caller: the gate over a connected MCP client. Asked through it rather than of a command, because no verb types a tool name and the withholding is machine state a child has to be pointed at. */
+const HOOK = new URL("../../hooks/entries/issue-read-first.mjs", import.meta.url).pathname;
+const refusedBy = async (env, cwd, name, input) => {
+  const run = await callHookAsync(HOOK, { tool_name: name, tool_input: input, cwd }, env, cwd);
+  return JSON.parse(run.stdout || "{}")?.hookSpecificOutput?.permissionDecisionReason ?? run.stdout;
+};
+
+/* A pair no row claims is named back rather than offered a verb nobody has. */
+test("an action no row claims and no route serves is refused as unserved, not handed a gone verb", () => {
+  assert.equal(wrappedRefusal("forge_project_pm", "set_dependency"), null,
+    "no row claims the pair, so the wrapping refusal has nothing to say about it");
+  const said = noRouteRefusal("forge_project_pm.set_dependency");
+  assert.match(said, /forge_project_pm\.set_dependency/u, "and the transport names the pair it was asked for");
+  assert.doesNotMatch(said, /type it instead/u, "and offers no verb, there being none to type");
 });
 
-/* The class the row above proved while it existed, on the arm of the reading that still has a live
-   case: a verb this machine withheld is a verb the raw call is not the way round either. */
+/* A verb this machine withheld is a verb the raw surface is not the way round either. */
 test("a withheld verb's action is refused with the verb and the withholding, not let through", async () => {
-  const { ran, close } = await gatedKnowledge();
+  const { ran, close, env, cwd } = await gatedKnowledge();
   try {
     const hidden = await ran("doctor", "--hide", "knowledge");
     assert.match(hidden.stdout, /knowledge is now withheld from the usage list/u, hidden.stderr);
-    const run = await ran("call", "forge_knowledge", '{"action":"upsert","data":{"slug":"s"}}');
-    assert.equal(run.status, 1);
-    assert.match(run.stderr, /forge_knowledge upsert is what `forge knowledge write` wraps/u);
-    assert.match(run.stderr, /is withheld on this machine/u);
-    assert.match(run.stderr, /not the way round/u);
+    const said = await refusedBy(env, cwd, "mcp__forge__forge_knowledge", { action: "upsert", data: { slug: "s" } });
+    assert.match(said, /forge_knowledge upsert is what `forge knowledge write` wraps/u, said);
+    assert.match(said, /is withheld on this machine/u);
+    assert.match(said, /not the way round/u);
   } finally {
     await close();
   }
@@ -264,13 +242,12 @@ test("a form is refused by the capability its verb needs, and answers with the s
 });
 
 test("the graph read is refused with the verb that prints it, and that verb still reads it", async () => {
+  assert.match(wrappedRefusal("forge_project_pm", "graph"),
+    /forge_project_pm graph is what `forge doctor` wraps/u);
   const { ran, close } = await gated();
   try {
-    const run = await ran("call", "forge_project_pm", '{"action":"graph"}');
-    assert.equal(run.status, 1, run.stdout);
-    assert.match(run.stderr, /forge_project_pm graph is what `forge doctor` wraps/u, run.stderr);
     const doctor = await ran("doctor");
-    assert.match(doctor.stdout, /dependency graph/u, "and the verb that owns it still probes it");
+    assert.match(doctor.stdout, /dependency graph/u, "and the verb that owns it still reads it");
   } finally {
     await close();
   }
@@ -290,13 +267,12 @@ test("a recorded refusal of the tool doctor owns hides neither the verb nor its 
 });
 
 test("a gated verb with no refusal text of its own still says why it cannot be typed", async () => {
-  const { ran, close } = await gatedKnowledge();
+  const { close, env, cwd } = await gatedKnowledge();
   try {
-    const run = await ran("call", "forge_knowledge", '{"action":"upsert","data":{"slug":"s"}}');
-    assert.equal(run.status, 1);
-    assert.match(run.stderr, /forge_knowledge upsert is what `forge knowledge write` wraps/u);
-    assert.match(run.stderr, /cannot spend forge_knowledge on this credential/u);
-    assert.doesNotMatch(run.stderr, /type it instead/u, "the verb it names cannot be typed either");
+    const said = await refusedBy(env, cwd, "mcp__forge__forge_knowledge", { action: "upsert", data: { slug: "s" } });
+    assert.match(said, /forge_knowledge upsert is what `forge knowledge write` wraps/u, said);
+    assert.match(said, /cannot spend forge_knowledge on this credential/u);
+    assert.doesNotMatch(said, /type it instead/u, "the verb it names cannot be typed either");
   } finally {
     await close();
   }
@@ -321,7 +297,6 @@ test("a wrapped action is refused with no tracker to ask", async () => {
   const cwd = tempRoom("wrapped-offline-");
   writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: SLUG }));
   await tracker.close();
-  const run = await ranAsync(process.execPath, [CLI, "call", "forge_issues", '{"action":"list"}'], tracker.env, cwd);
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /forge_issues list is what `forge issue` wraps/u);
+  const said = await refusedBy(tracker.env, cwd, "mcp__forge__forge_issues", { action: "list" });
+  assert.match(said, /forge_issues list is what `forge issue` wraps/u, said);
 });

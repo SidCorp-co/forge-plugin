@@ -68,7 +68,7 @@ A row is a line one of this plugin's own refusals was written in, and the row is
 off the source that writes it: a gate's `Hold —` or `Refused.` opener, the `How:` line every gate's
 refusal ends with, a tracker refusal's `<name> refused:` with its reason inline or on the next line,
 and a verb's own refusal sentence, which opens with a verb this CLI has. Where a body carries more
-than one, the last is the row: a forge call prints its provenance banner before it refuses, and
+than one, the last is the row: a `forge` command prints its provenance banner before it refuses, and
 keying on the body's first line filed 187 of those banners under a row that named nothing.
 
 **A marked line beats a verb sentence wherever each of them sits**, which is a precedence rather

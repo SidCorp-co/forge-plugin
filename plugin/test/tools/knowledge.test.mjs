@@ -118,6 +118,23 @@ test("the enums are the table's declaration at the call, and a value outside the
   assert.equal(declared.status, 0, `a kind the table declares was refused: ${declared.stderr}`);
 });
 
+/* This verb answers its own help, so `helpOf` never runs for it and a case reading `helpOf` would
+   pass while the caller was handed nothing. The refusal that names this help is the reason it has to
+   carry the sets: a pointer to a surface that does not print them costs the round it was saving. */
+test("the help this verb answers prints every set its refusals name", async () => {
+  const said = await ran(["knowledge", "-h"]);
+  assert.equal(said.status, 0, said.stderr);
+  /* The three a caller can set. `authoredBy` is declared and is nobody's flag, so the help names no
+     set for it and a case reading every declared field would ask for one nothing takes. */
+  for (const field of ["kind", "injection", "confidence"]) {
+    assert.ok(said.stdout.includes(SETS[field].join(" | ")),
+      `forge knowledge -h prints no ${field} set: ${said.stdout}`);
+  }
+  const kindless = await ran(["knowledge", "write", "fresh", "-", "--title", "T"], BODY);
+  assert.match(kindless.stderr, /`forge knowledge -h` prints the set/u,
+    "and the refusal that sends a caller there is the one this case is for");
+});
+
 test("each enum flag is checked against its own field", async () => {
   for (const [flag, field] of [["--injection", "injection"], ["--confidence", "confidence"]]) {
     const run = await ran(["knowledge", "write", "fresh", "-", "--kind", "rule", "--title", "T",

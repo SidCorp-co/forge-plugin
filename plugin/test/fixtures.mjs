@@ -45,9 +45,9 @@ export const ranAsync = (command, argv, env = process.env, cwd = process.cwd(), 
     child.stdin.end(stdin ?? undefined);
   });
 
-export const callHookAsync = (hook, event, env = process.env) =>
+export const callHookAsync = (hook, event, env = process.env, cwd = process.cwd()) =>
   new Promise((done) => {
-    const child = spawn(process.execPath, [hook], { env });
+    const child = spawn(process.execPath, [hook], { env, cwd });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => {

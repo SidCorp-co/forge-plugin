@@ -729,8 +729,8 @@ installed copy naming the merged commit, so the merged mark's evidence carries t
 commit, read from the installed copy and not from the tree (ISS-71).
 
 **The verb is the document.** `forge advance --owed` carries the entry criteria for the status in
-hand, and `forge schema forge_issues` the arguments a call may send. Nothing in the skill repeats
-either.
+hand, and each verb's own `-h` the fields the tracker takes for the routes that verb is the route
+for. Nothing in the skill repeats either.
 
 **Every route this plugin sees is the same route.** The CLI enforces; the pre-hook applies the same
 check to the tracker tool called directly, so the contract cannot be stepped around by choosing a

@@ -68,7 +68,7 @@ test("a guide call's part is read by the same lead-in as its class, and a bare c
   assert.equal(guidePartOf("forge issue ISS-45"), null);
   assert.equal(guidePartOf('pgrep -f "forge guide"'), null);
   /* The part is the guide call's, not the first call's: one pattern reads both, and a reading that
-     filtered the first forge call would answer for the read a run did not make. */
+     filtered the first `forge` command would answer for the read a run did not make. */
   assert.equal(guidePartOf("forge issue ISS-45; forge guide contract developed"), "contract developed");
   assert.equal(guidePartOf("forge nosuchverb x && forge guide issue-flow"), "issue-flow");
 });

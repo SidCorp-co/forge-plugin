@@ -557,7 +557,8 @@ export const undeclaredIn = (row, args) =>
 export const droppedRefusal = (key, names, row) =>
   `${key} was given ${names.join(", ")}, which its route does not send, so nothing was sent at all: `
   + "an argument dropped in transit reads back as an answer to a question the tracker never heard. "
-  + `This route takes ${(row?.sends ?? []).join(", ") || "no arguments"}. \`forge tools\` prints it.`;
+  + `This route takes ${(row?.sends ?? []).join(", ") || "no arguments"}, which the -h of the verb `
+  + "that owns it names too.";
 
 /** The capabilities this CLI declares and REST does not serve. Each names the route it wanted, so
  *  the gap is reportable as a route rather than as a verb that stopped working, and each names what
@@ -577,5 +578,5 @@ export const noRouteRefusal = (key) => {
       + `could have fallen back to.${held.instead ? `\n${held.instead}` : ""}`;
   }
   return `${key} is not a capability this CLI declares a route for, so nothing was sent.\n`
-    + "`forge tools` prints every tool and action it does serve, with the method and path of each.";
+    + "`forge -h` lists every verb, and each route this CLI serves is some verb's own.";
 };

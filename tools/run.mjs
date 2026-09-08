@@ -156,8 +156,8 @@ const start = ({ words: [given, slug] }) => {
       + `again and nothing is half-made. Install the checkout's dependencies, then start over.`);
   }
   console.log(`\nBranch ${branch} on ${path}, cut from ${base}.`);
-  console.log(`This run's own lease holder, which its every forge call carries — without it the run`);
-  console.log(`writes under the dispatching session's id, which every agent of a wave shares:`);
+  console.log(`This run's own lease holder, which every tracker write it makes carries — without it`);
+  console.log(`the run writes under the dispatching session's id, which every agent of a wave shares:`);
   console.log(`  ${RUN_ID_VAR}=${mintRunId(path, key)}`);
   console.log(`Probe the change with this tree's own wrapper, never the one on PATH:`);
   console.log(`  ${join(path, "plugin", "bin", "forge")} <args>`);

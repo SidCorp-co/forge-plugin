@@ -226,7 +226,7 @@ describe("a name the table does not serve", () => {
 
   it("a tool nothing declares is told what it is, and not told a route that was never wanted", () => {
     const said = noRouteRefusal("forge_runners.list");
-    assert.match(said, /forge tools/u);
+    assert.match(said, /forge -h/u, "which names where every verb is, each route being some verb's");
     assert.doesNotMatch(said, /\/api\//u);
   });
 
@@ -278,7 +278,7 @@ describe("an argument a route does not send", () => {
     assert.ok(!listed.includes("q="), "which sends no q of its own");
   });
 
-  /* The key a `forge tools` row prints is not a name the tracker has, wherever the tool carries its
+  /* The key this CLI reads a pair by is not a name the tracker has, wherever the tool carries its
      action in an argument: read as one it reaches the row past every check keyed on the tool. */
   it("an action-qualified key is turned back into the tool and action it stands for", () => {
     assert.deepEqual(asToolCall("forge_issues.list", { limit: 1 }),

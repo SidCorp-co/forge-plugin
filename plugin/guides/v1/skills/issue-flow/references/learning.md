@@ -25,7 +25,7 @@ where the defect comes from rather than where it showed.
 
 The conditions a record has to meet, the categories a skill edit is typed by, and how to write
 through the refusal: `forge hooks --how learning-gate`. Where project knowledge goes and what an
-entry owes: `forge knowledge -h`, and `forge schema forge_knowledge` for the values it classifies by.
+entry owes: `forge knowledge -h`, which names the values it classifies by too.
 
 **Type the gap where you met it, before deciding what it earns**: a phase with no branch for what
 happened, a reference that sent the run the wrong way, a rule that contradicted the tracker's own.

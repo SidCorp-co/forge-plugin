@@ -162,7 +162,7 @@ test("a tool retired from the route table has no row, no listing and no route", 
   assert.equal(Object.hasOwn(ROUTES, gone.name), false, "a row would serve a name nothing calls");
   assert.equal(rowFor(gone.name, {}), null);
   assert.equal(served().some((one) => one.key === gone.name || one.tool === gone.name), false);
-  assert.match(noRouteRefusal(gone.name), /forge tools/u);
+  assert.match(noRouteRefusal(gone.name), /forge -h/u);
   assert.doesNotMatch(noRouteRefusal(gone.name), /\/api\//u,
     "and no route it wanted: a name outside the table wanted none");
 });

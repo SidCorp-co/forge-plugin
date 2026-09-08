@@ -1,7 +1,7 @@
 # `advance` — a status is earned, and the record is the only witness
 
-ISS-1, ISS-2 and ISS-10 moved twenty-six statuses between them, every one a raw `forge call
-forge_issues` transition, and not one refused anything: the record held each payload because the
+ISS-1, ISS-2 and ISS-10 moved twenty-six statuses between them, every one a raw transition typed
+straight at `forge_issues`, and not one refused anything: the record held each payload because the
 agent chose to write it. `forge advance` puts the contract's entry criteria between an agent and
 the transition, so a status nobody earned costs a refusal instead of a reader's trust.
 

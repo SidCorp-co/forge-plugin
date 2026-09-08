@@ -1,7 +1,7 @@
 import { fail, keepOnFailure } from "./resolve/settings.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
 import { declaredFor, scoped, write } from "./tracker/rpc.mjs";
-import { EDGE_KINDS, REFERENCE_KEYS, asToolCall, keyOf, noRouteRefusal, otherOf, rowFor, served } from "./tracker/rest.mjs";
+import { EDGE_KINDS, otherOf } from "./tracker/rest.mjs";
 import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -12,8 +12,7 @@ import {
   rowsOf,
   shortOf,
 } from "./tracker/issues.mjs";
-import { commentPage, creditAfter, credited, cutIn, mustBeShown, postComment, readThread }
-  from "./tracker/comments.mjs";
+import { commentPage, cutIn, mustBeShown, postComment, readThread } from "./tracker/comments.mjs";
 import { attachmentNames, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
 import {
   KINDS_HELP,
@@ -27,8 +26,7 @@ import { fileAndSay } from "./tracker/filing/say.mjs";
 import { routingBlock } from "./tracker/filing/plugin-defect.mjs";
 import { commentLanded, sayLanded } from "./tracker/filing/landed.mjs";
 import { BAND_NAMES } from "./ladder.mjs";
-import { targetsOfTool } from "./tracker/issue-read.mjs";
-import { actionIn, callable, helpOf, isGated, refuseIfGated, usageOf, wrappedRefusal } from "./resolve/visibility.mjs";
+import { helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { exclusive, flags, partition, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
 import { dispositionOf, localGuide, localRows, localSlugs, trackerHeader, visibleGuides } from "./guides/guides.mjs";
@@ -117,24 +115,6 @@ const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n]";
 const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v --why W]"
   + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46]";
 
-const resolveReferences = async (value, key) => {
-  if (Array.isArray(value)) return Promise.all(value.map((item) => resolveReferences(item, key)));
-  if (value && typeof value === "object") {
-    const entries = await Promise.all(
-      Object.entries(value).map(async ([name, held]) => [name, await resolveReferences(held, name)]),
-    );
-    return Object.fromEntries(entries);
-  }
-  if (typeof value === "string" && REFERENCE_KEYS.has(key)) return documentIdOf(value);
-  return value;
-};
-
-const toolNames = () => [...new Set(served().map((row) => row.tool))];
-
-const suggestTool = (name) =>
-  didYouMean("tool", name, callable(toolNames().map((tool) => ({ name: tool }))).map((tool) => tool.name),
-    "Ask `forge tools`.");
-
 /* One line per flag, then the one table a row cannot hold: what a body is read against depends on the kind it names. What is open beside a filing prints on the filing, and which rank it took is in the reply — the reasoning behind both is docs/cli/beside.md and docs/cli/new.md, whose second copy this help was. */
 const NEW_FLAGS = [
   "  --title T      what is true once this is fixed, one line",
@@ -209,62 +189,6 @@ export const commands = {
   codex,
   hooks,
   stats,
-  tools: (rest) => {
-    const { all } = flags(rest, "tools", ["--all"], { usage: usageOf("tools") });
-    for (const row of served()) {
-      if (all || !isGated(row.tool)) console.log(`${row.key.padEnd(30)} ${row.requests.join("  +  ")}`);
-    }
-  },
-  schema: ([name, ...rest]) => {
-    if (!name) fail(usageOf("schema"));
-    const { all } = flags(rest, "schema", ["--all"], { usage: usageOf("schema") });
-    /* Or an ownership prefix, which is what a verb's help points at: the tracker spells some actions in the tool's own name, so `forge_projects` names seven routes and matches none whole. */
-    const rows = served().filter((row) =>
-      row.tool === name || row.key === name || String(row.key ?? "").startsWith(`${name}.`));
-    if (!rows.length) fail(suggestTool(name));
-    refuseIfGated(name, all);
-    show(Object.fromEntries(rows.map((row) => [row.key, { requests: row.requests, sends: row.sends }])));
-  },
-  call: async (argv) => {
-    const { positionals } = partition(argv, [], { verb: "call", usage: usageOf("call") });
-    const [given, json] = positionals;
-    if (!given) fail(usageOf("call"));
-    const raw = json === undefined || json === "-" || json.startsWith("@") ? await bodyFrom(json ?? "-") : json;
-    if (json === undefined || json === "-") keepOnFailure(`Your payload, so that nothing loses it:\n\n${raw}`);
-    if (!raw.trim()) fail(`No arguments given for ${given}. Pass json as an argument or on stdin.`);
-    let sent;
-    try {
-      sent = JSON.parse(raw);
-    } catch (error) {
-      return fail(`Arguments for ${given} are not json: ${error.message}`);
-    }
-    const { name, args } = asToolCall(given, sent);
-    /* Before the tool list and the capability replay: a verb is the route to its action whether or
-       not the raw tool answers this credential, and a refusal naming none is what this removes. */
-    const wrapped = wrappedRefusal(name, actionIn(args));
-    if (wrapped) fail(wrapped);
-    /* No-such-tool then a suggestion of the name just typed is a line a reader sees past. */
-    if (!rowFor(name, args)) {
-      const known = served().some((row) => row.tool === name);
-      fail(known ? noRouteRefusal(keyOf(name, args)) : `${suggestTool(name)}\n\n${noRouteRefusal(keyOf(name, args))}`);
-    }
-    refuseIfGated(name);
-    const resolved = await resolveReferences(args);
-    /* `call` reaches the same writes the wrapped verbs do, so it takes the same gates — and it is
-       the route that renews no lease, so the read-before-write check is made here by hand. */
-    const targets = await Promise.all(
-      targetsOfTool(name, args).map(async (ref) => ({ ref, documentId: await documentIdOf(ref) })),
-    );
-    if (targets.length) await mustBeShown(targets);
-    const wrote = Boolean(resolved.data);
-    const answer = wrote ? await write(name, resolved) : await scoped(name, resolved);
-    credited(name, resolved, answer);
-    keepOnFailure(null);
-    show(answer);
-    /* The mark writes a comment of the tracker's own and this is the route it takes, so the page is
-       read once more after the write and what it brought is delivered here (ISS-65). */
-    if (wrote && targets.length) await creditAfter(name, targets);
-  },
   /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser
      its own text: a combined set would take `--status` beside a key and answer nothing about it. */
   issue: async (argv) => {
@@ -282,15 +206,13 @@ export const commands = {
     if (why !== undefined) fail("--why belongs to --set; a read takes no reason.");
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
     const documentId = await documentIdOf(reference);
-    /* The names ride along so the read skips the routes nothing asked for; the answer is the row
-       whole either way, and the projection is taken from it. */
+    /* The names ride along so the read skips the routes nothing asked for; the answer is the row whole either way, and the projection is taken from it. */
     const held = await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: names } : {}) });
     const body = filled(names ? projectedTo(held, names) : held);
     show(full ? body : terse(body));
     return null;
   },
-  /* `open` marks the active set; `draft` never dispatches. A filing is read before it is made,
-     because the flow costs the same for one line as for a feature: how/issue-shape.md. */
+  /* `open` marks the active set; `draft` never dispatches. A filing is read before it is made, because the flow costs the same for one line as for a feature: how/issue-shape.md. */
   new: async (argv) => {
     if (wantsHelp(argv)) return console.log(newUsage(await briefGoals()));
     const [path, ...rest] = argv;

@@ -1,6 +1,7 @@
 /* What this credential may see. Two mechanisms, deliberately not merged: the server REFUSES a
    tool, a human WITHHELD a verb. They differ in authority and consequence.
    docs/cli/withholding-a-verb.md. */
+import { ROUTES } from "../tracker/rest.mjs";
 import { userConfig } from "./config.mjs";
 import { fail, feedbackScope, projectScope } from "./settings.mjs";
 
@@ -98,11 +99,6 @@ export const VERBS = [
   ["stats", "<runs|eval|marks>",
     "where an issue-flow run's time and rounds go, read off the transcripts the harness keeps", null,
     { group: HARNESS }],
-  ["tools", "[--all]", "the reachable surface", null, { group: HARNESS }],
-  ["schema", "<tool>", "one tool's arguments", null, { group: HARNESS }],
-  ["call", "<tool> <'json'|@file|->",
-    "anything no verb wraps; an action one does is refused with the verb to type", null,
-    { group: HARNESS }],
 ];
 
 export const VERB_NAMES = VERBS.map(([verb]) => verb);
@@ -121,30 +117,22 @@ export const usageOf = (verb) => {
   return `Usage: forge ${verb}${row?.[1] ? ` ${row[1]}` : ""}`;
 };
 
-/* The pointer invites a reader to name a field, so a row earns it only where every value it
-   declares is one the tracker names: a flag line has nothing to pass, and a value the caller fills
-   from this machine — a file, an `@file`, `-` for stdin — sends a reader to a schema answering a
-   question they did not ask. That vocabulary is the whole of it; cli-help.test.mjs judges each row. */
-const readFromHere = (value) =>
-  value
-    .replaceAll(/[<>]|\.{3}$/gu, "")
-    .split("|")
-    .some((one) => /^(?:-|@\S*|file|dir|\S*\.\w+)$/u.test(one));
-
-export const takesATrackerField = (args = "") => {
-  const values = args
-    .replaceAll(/[[\]]/gu, " ")
-    .split(/\s+/u)
-    .filter((one) => one && !one.startsWith("-"));
-  return values.length > 0 && !values.some(readFromHere);
+/* Read off the routes the verb owns, so the answer arrives with the question rather than in a second command that could go out of step with the table. Owning a route is the whole condition: a verb's own argument vocabulary says nothing about what the tracker takes, and a verb owning no route names no field. */
+const fieldsOwned = (row) => {
+  const owned = wrapsOf(row);
+  if (!owned) return [];
+  const said = Object.keys(owned).flatMap((key) => ROUTES[key]?.sends ?? []);
+  /* `data` is the body every write is wrapped in and names no field, so a verb whose only send is
+     that one names none: the fields inside it are `DECLARES`, which the verb's own flags carry. */
+  return [...new Set(said)].filter((one) => one !== "data").sort();
 };
 
-/** What `-h` on a verb answers: what to type, what it is for, and which schema holds the fields the
- *  tracker itself takes — the detail, fetched only when it is asked for. */
+/** What `-h` on a verb answers: what to type, what it is for, and the fields the tracker itself
+ *  takes for the routes this verb is the route for. */
 export const helpOf = (verb) => {
   const row = rowFor(verb);
-  const detail = takesATrackerField(row?.[1]) && row?.[3]
-    && `The fields the tracker takes: \`forge schema ${row[3]}\`.`;
+  const fields = fieldsOwned(row);
+  const detail = fields.length && `The fields the tracker takes: ${fields.join(", ")}.`;
   return [usageOf(verb), row?.[2], detail]
     .filter(Boolean)
     .join("\n");
@@ -211,13 +199,13 @@ export const actionIn = (input) => {
   return typeof held === "string" ? held : null;
 };
 
-/* The ask too, the callers spelling it differently: `forge call` types the whole key with no action, the MCP gate a bare tool with one. Matched on the route, never the owning column, or a verb owning another tool's route answers for nothing. */
+/* The ask too, its callers spelling it differently: the MCP gate names a bare tool with an action, the generated help a whole key with none. Matched on the route, never the owning column, or a verb owning another tool's route answers for nothing. */
 export const verbFor = (tool, action) => {
   if (!tool || (!action && !String(tool).includes("."))) return null;
   const wanted = String(tool).includes(".") ? String(tool) : routeKey(tool, action);
   for (const row of VERBS) {
     const claimed = wrapsOf(row);
-    if (claimed && Object.hasOwn(claimed, wanted)) return { verb: row[0], line: claimed[wanted] };
+    if (claimed && Object.hasOwn(claimed, wanted)) return { verb: row[0], line: claimed[wanted], key: wanted };
   }
   return null;
 };
@@ -237,12 +225,14 @@ const unavailable = (verb) => {
 export const wrappedRefusal = (tool, action) => {
   const found = verbFor(tool, action);
   if (!found) return null;
+  /* Named off the key that matched, not the arguments: a caller naming the whole pair in the tool slot leaves the action slot empty, and `<key> null` is a refusal that reads as a bug. */
+  const said = found.key.replace(".", " ");
   const gone = unavailable(found.verb);
   if (gone) {
-    return `${tool} ${action} is what ${found.line} wraps, and ${gone.replace(/\.$/u, "")}. `
+    return `${said} is what ${found.line} wraps, and ${gone.replace(/\.$/u, "")}. `
       + "The raw call is not the way round that.";
   }
-  return `${tool} ${action} is what ${found.line} wraps: type it instead — it makes this call `
+  return `${said} is what ${found.line} wraps: type it instead — it makes this call `
     + "and takes the reading this route skips.";
 };
 

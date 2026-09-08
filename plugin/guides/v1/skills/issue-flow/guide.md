@@ -7,7 +7,7 @@ Nothing here dispatches to a runner or hands off to another agent.
 issues that are not blocked, in the order `forge next` gives, until none are left.
 
 **Method only, never project facts.** No repository's ports, deploy targets, paths or credentials
-appear here. The `forge` skill owns every payload shape: `forge -h` and `forge schema <tool>` are
+appear here. The `forge` skill owns every payload shape: `forge -h` and each verb's own `-h` are
 the authority on writing to the tracker, and nothing about their arguments is repeated here.
 
 ## The five rules
@@ -307,4 +307,4 @@ Read on arrival at the phase that cites it.
 | `forge guide issue-flow verification` | Phases 4 and 5 |
 | `forge guide issue-flow learning` | Phase 8, and any time a rule needs a home |
 | `forge guide contract <status>` | the phase whose status the issue is entering |
-| `forge -h`, `forge schema <tool>` | any tracker write |
+| `forge -h`, then the verb's own `-h` | any tracker write |

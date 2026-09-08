@@ -38,4 +38,4 @@ description: >-
 | a second opinion on this turn | `forge codex -h`; asking and reading one: `forge guide forge codex` |
 | a first call in a project, a missing verb | `forge doctor`; then `forge guide forge configuration` |
 | what a gate refused and why | `forge hooks -h` |
-| anything the verbs do not wrap | `forge tools`, `forge schema <tool>`, `forge call -h` |
+| the fields the tracker takes for a verb's own routes | that verb's `-h` |

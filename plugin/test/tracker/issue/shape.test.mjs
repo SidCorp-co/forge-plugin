@@ -162,20 +162,17 @@ test("a filing that overlaps an open issue's title is a duplicate, and a settled
   assert.equal(duplicateOf({ title: TITLE, body: WHOLE }, live), null, "and an unrelated filing is not one");
 });
 
-test("a create is found on the tracker's own tool and on a raw call, and nothing else is", () => {
-  const mcp = (action, data) => filingsOf({ name: "mcp__forge__forge_issues", input: { action, data } }, []);
+test("a create is found on the tracker's own tool, and nothing else is", () => {
+  const mcp = (action, data) => filingsOf({ name: "mcp__forge__forge_issues", input: { action, data } });
   assert.deepEqual(mcp("create", { title: "t", description: "b" }),
     [{ title: "t", body: "b", kind: null, complexity: null }]);
   assert.deepEqual(mcp("update", { title: "t" }), [], "an update files nothing");
-  assert.deepEqual(filingsOf({ name: "mcp__forge__forge_comments", input: { action: "create", data: {} } }, []), []);
-  const said = filingsOf({ name: "Bash", input: {} },
-    [`forge call forge_issues '{"action":"create","data":{"title":"t","description":"b"}}'`]);
-  assert.deepEqual(said, [{ title: "t", body: "b", kind: null, complexity: null }]);
+  assert.deepEqual(filingsOf({ name: "mcp__forge__forge_comments", input: { action: "create", data: {} } }), []);
   /* Both tracker fields travel with the body, so the gate on this route reads the shape the verb does. */
   assert.deepEqual(mcp("create", { title: "t", description: "b", category: "bug", complexity: "s" }),
     [{ title: "t", body: "b", kind: "bug", complexity: "s" }]);
-  assert.deepEqual(filingsOf({ name: "Bash", input: {} }, ["forge new body.md --title t"]), [],
-    "and the verb reads its own file, so this does not guess at one");
+  assert.deepEqual(filingsOf({ name: "Bash", input: { command: "forge new body.md --title t" } }), [],
+    "and a Bash line names no filing at all: the verb reads its own file, which this cannot see");
 });
 
 /* A rank is not a shape, and it is read in the same place for the same reason: two routes file, and
@@ -363,22 +360,6 @@ test("a whole body files with no output but the issue", async () => {
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /filed-uuid/u);
   assert.doesNotMatch(run.stdout, /Hold/u);
-});
-
-/* ISS-335 closed this route: the payload may arrive from a file or on stdin, where a hook reading
-   the command line sees nothing, so the refusal is the verb's own and is made off the parsed body
-   whatever carried it. A body that would have passed the shape read is refused with the rest. */
-test("a raw call filing is refused with the verb that reads it, from a file as from the line", async () => {
-  state.calls = [];
-  for (const data of [{ title: "fix", description: "It is broken." }, { title: TITLE, description: WHOLE }]) {
-    const path = join(room, "create.json");
-    writeFileSync(path, JSON.stringify({ action: "create", data }));
-    const run = await ranAsync(FORGE, ["call", "forge_issues", `@${path}`], tracker.env);
-    assert.equal(run.status, 1, run.stdout);
-    assert.match(run.stderr, /forge_issues create is what `forge new` wraps/u);
-    assert.doesNotMatch(run.stderr, /a heading naming the outcome/u, "the body is not what refused it");
-  }
-  assert.equal(state.calls.some((one) => one.args.action === "create"), false, "and nothing was filed");
 });
 
 /* Reading to EOF on a stdin nobody fed waited two minutes and then filed. */

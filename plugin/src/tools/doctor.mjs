@@ -422,7 +422,7 @@ const checkEndpoint = async (full, credentials) => {
   if (findings.gated) {
     console.log(
       `\n${findings.gated} declared capability(ies) refuse this credential. Declared is not callable —\n` +
-        "recorded, so `forge tools`, `forge schema` and the usage list now withhold them.",
+        "recorded, so the usage list now withholds every verb that spends one of them.",
     );
   }
   await checkProject(credentials, findings.answered?.forge_project_pm ?? null);
