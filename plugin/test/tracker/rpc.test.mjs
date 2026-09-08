@@ -257,15 +257,18 @@ test("the fake refuses declared JSON with nothing under it where the tracker doe
 
 const UNCOMMENTED = "22222222-2222-4222-8222-222222222222";
 
-test("unmark comes back with the handler's answer through the whole CLI, and the note reaches the tracker", async () => {
+/* Over the transport rather than through `forge call`: `unmark` is an action a verb wraps, so the raw
+   route answers with `forge record merged --undo` and never reaches the request this case is about
+   (ISS-701). What the defect was is here whole — the row's own request, the DELETE that declares a JSON
+   body and carries one, and the answer decoded back — and the argv layer above it holds none of it. */
+test("unmark comes back with the handler's answer, and the note reaches the tracker", async () => {
   state.calls = [];
-  const run = await ran("call", "forge_issues",
-    JSON.stringify({ action: "unmark", data: { issueId: UNCOMMENTED, note: "written with an abbreviated sha" } }));
-  assert.equal(run.status, 0, run.stderr);
+  const answer = await callTool("forge_issues",
+    { action: "unmark", data: { issueId: UNCOMMENTED, note: "written with an abbreviated sha" } });
   const call = state.calls.find((one) => one.method === "DELETE" && one.path.endsWith("/merge"));
   assert.deepEqual(call.sent, { note: "written with an abbreviated sha" },
     "the request reached the handler at all, and carried the note the caller passed");
-  assert.equal(JSON.parse(run.stdout).note, "written with an abbreviated sha",
+  assert.equal(answer.note, "written with an abbreviated sha",
     "and the handler's own answer came back, rather than a parse refusing ahead of it");
 });
 
