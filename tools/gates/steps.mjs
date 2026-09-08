@@ -1,4 +1,14 @@
+import { availableParallelism } from "node:os";
+import { fileURLToPath } from "node:url";
+
 import { under } from "./scope.mjs";
+
+// Every core, since the gate spends one step at a time; node's own reporter named so the per-file seconds can ride beside it.
+const TEST_FLAGS = [
+  `--test-concurrency=${availableParallelism()}`,
+  `--test-reporter=${process.stdout.isTTY ? "spec" : "tap"}`, "--test-reporter-destination=stdout",
+  `--test-reporter=${fileURLToPath(new URL("./file-times.mjs", import.meta.url))}`, "--test-reporter-destination=stdout",
+];
 
 /* The gate's steps and the paths each one reads. Nothing is inferred: every step is a script this
    repository owns, spent as `npm run <label>`, so its reads were taken off that script. A step
@@ -76,6 +86,6 @@ export const gateSteps = (found) => {
       throw new Error(`step ${step.label} matches no test file of the ${found.length} git reports; `
         + `its selector is broken and the step would pass without running anything.`);
     }
-    return { ...step, argv: [process.execPath, "--test", ...files[step.tests]] };
+    return { ...step, argv: [process.execPath, "--test", ...TEST_FLAGS, ...files[step.tests]] };
   });
 };

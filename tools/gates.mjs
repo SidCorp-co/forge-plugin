@@ -5,6 +5,7 @@
    since they passed; what it may not do is pass without having covered the change, so every path
    it cannot place widens the run instead of narrowing it. */
 import { spawnSync } from "node:child_process";
+import { availableParallelism, loadavg } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -13,7 +14,7 @@ import { cheapestFirst, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from 
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
-import { recordDir, recordRun, seriesFile } from "./gates/timing.mjs";
+import { CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, seriesFile } from "./gates/timing.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SELF), "..");
@@ -53,6 +54,13 @@ actually spent. Only a run that spent every step measures this gate, which is wh
 the count is part of the record, and a change is read between two of those runs of the same size and
 no others, however many scoped runs sit between them. A scoped figure is printed and named and never
 subtracted. This says what it recorded; the release is the one place that prints the change.
+
+Each line also carries the machine's one-minute load and its core count when the run started, as
+context and never as proof: the figure a run is judged against is the one the last gate review measured
+on an idle machine — ${REVIEW.seconds}s on ${REVIEW.on} (${REVIEW.issue}) — and a whole run over the
+ceiling that review set, ${CEILING_SECONDS}s, is said to be. Beside the runs, a test step leaves
+<label>-files: one line per test file with the seconds node measured on it, longest first, which is
+what the next review reads the suite's growth off.
 
 ${LEDGER_UNSEEN}
 
@@ -212,11 +220,14 @@ if (planned.length > 0) {
 }
 
 const started = Date.now();
+const [load] = loadavg();
+const cores = availableParallelism();
 
 for (const step of planned) {
   console.log(`\n=== ${step.label} ===`);
   const at = Date.now();
   const env = { ...process.env, TMPDIR: scratch };
+  if (step.tests) env.GATE_FILE_TIMES = fileTimesPath(recordDir(ROOT), step.label);
   const { status, error } = spawnSync(step.argv[0], step.argv.slice(1), { cwd: ROOT, env, stdio: "inherit" });
   const took = Math.round((Date.now() - at) / 1000);
   console.log(`\n--- ${step.label}: ${took}s`);
@@ -246,7 +257,7 @@ console.log(`\nAll ${planned.length} gate step(s) passed in ${elapsed}s${spared}
    step has already passed, and a tree that cannot be timed is still a tree this gate answered for. */
 try {
   const dir = recordDir(ROOT);
-  const figure = recordRun(dir, { seconds: elapsed, ran: planned.length, total: steps.length });
+  const figure = recordRun(dir, { seconds: elapsed, ran: planned.length, total: steps.length, load, cores });
   console.log(`recorded: ${figure} — ${seriesFile(dir)}`);
 } catch (error) {
   console.error(`This gate passed and could not record how long it took: ${error.message}`);

@@ -4,10 +4,12 @@
    about that fence — so a field reaches a reader as its author wrote it, no verb prints a marker,
    and a string carrying none comes back untouched, the half a trim breaks. */
 import assert from "node:assert/strict";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
 
-import { fakeTracker, ranAsync } from "../fixtures.mjs";
-import { callTool, unfencedIn } from "../../src/tracker/rpc.mjs";
+import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { backoff, callTool, retryAfter, retrySeconds, unfencedIn } from "../../src/tracker/rpc.mjs";
 import { useProject } from "../../src/resolve/settings.mjs";
 import { REFERENCE_KEYS } from "../../src/tracker/rest.mjs";
 
@@ -167,4 +169,31 @@ test("the marker takes the one line terminator that is the wrapper's, and no oth
   assert.equal(unfencedIn(fenced("issue.description", "")), "");
   assert.equal(unfencedIn(`⟦${MARKER} source="x"⟧\r\nkept\r\n⟦END_${MARKER}⟧`), "kept");
   assert.equal(unfencedIn(`⟦END_${MARKER}⟧`), "", "a marker alone is a whole line and goes whole");
+});
+
+/* AC-02-5-1: retried to the limit under a policy. The policy's first wait is `retrySeconds` in the
+   config; the doubling, the cap, the count and a 429's own wait are not its to move (ISS-736). */
+test("the retry schedule is 2, 4, 8 unless config.json names a non-negative number of seconds, and nothing else moves", () => {
+  assert.deepEqual([1, 2, 3].map((attempt) => backoff(attempt, {})), [2, 4, 8], "the default is the constants'");
+  assert.deepEqual([1, 2, 3].map((attempt) => backoff(attempt, { retrySeconds: 0 })), [0, 0, 0]);
+  assert.deepEqual([1, 2, 3, 4].map((attempt) => backoff(attempt, { retrySeconds: 20 })), [20, 40, 60, 60], "doubling under the cap");
+  for (const bad of ["1", null, -1, Number.NaN, Number.POSITIVE_INFINITY, true, undefined]) {
+    assert.equal(retrySeconds({ retrySeconds: bad }), 2, `${String(bad)} read as a schedule`);
+  }
+  assert.equal(retryAfter("", new Map([["retry-after", "5"]])), 5, "a 429 waits what the server says");
+  assert.equal(retryAfter("{}", new Map()), 2, "and the fallback for a 429 saying nothing is the constant, not the knob");
+});
+
+test("a refused connection with retrySeconds 0 is retried to the limit in well under the old fourteen seconds", async () => {
+  const home = tempHome("dead-port");
+  mkdirSync(join(home.path, "forge"), { recursive: true });
+  writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0 }));
+  const began = Date.now();
+  const run = await ranAsync(FORGE, ["issue", "ISS-1"], { ...process.env, XDG_CONFIG_HOME: home.path }, ROOT, null);
+  const took = Date.now() - began;
+  assert.ok(took < 5000, `four attempts with no wait took ${took}ms`);
+  assert.match(run.stderr, /waiting 0s \(attempt 3 of 4\)/u, run.stderr);
+  assert.match(run.stderr, /Forge did not answer/u, run.stderr);
+  assert.notEqual(run.status, 0);
+  home.remove();
 });

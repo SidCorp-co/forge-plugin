@@ -18,7 +18,7 @@ const tracked = () =>
     .split("\n")
     .filter((one) => TEST_FILE.test(one));
 
-const filesOf = (steps, label) => steps.find((step) => step.label === label).argv.slice(2);
+const filesOf = (steps, label) => steps.find((step) => step.label === label).argv.filter((one) => TEST_FILE.test(one));
 
 /* The rule the two-way split exists to keep: a file in neither half is a test nobody runs, and it
    reads exactly like a suite that passed. */

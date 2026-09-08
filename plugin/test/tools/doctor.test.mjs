@@ -33,6 +33,26 @@ const MCP_FORGE = JSON.stringify({
   mcpServers: { forge: { url: "https://old.example/mcp", headers: { Authorization: "Bearer t" } } },
 });
 
+/* The retry schedule is a setting like `ship`: read back where every setting is, with its source, and
+   a value the key does not take named as such (ISS-736). */
+test("the retry line says the schedule that resolves and where it was read", () => {
+  const forgeConfig = (body) => {
+    const home = tempRoom("doctor-retry-");
+    mkdirSync(join(home, "forge"));
+    writeFileSync(join(home, "forge", "config.json"), JSON.stringify(body));
+    const run = spawnSync(process.execPath, [CLI, "doctor"], {
+      encoding: "utf8", cwd: tempRoom("doctor-retry-cwd-"), env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+    });
+    return run.stdout;
+  };
+  assert.match(forgeConfig({}), /\[  ok  \] retry\s+2s first, doubling under 60s  ← the plugin's default/u);
+  assert.match(forgeConfig({ retrySeconds: 0.5 }), /\[  ok  \] retry\s+0\.5s first, doubling under 60s  ← \S+\/forge\/config\.json/u);
+  assert.match(forgeConfig({ retrySeconds: 120 }), /\[  ok  \] retry\s+60s first, doubling under 60s  ← \S+\/forge\/config\.json/u,
+    "a value over the cap is reported as the wait it buys, not as written");
+  assert.match(forgeConfig({ retrySeconds: "soon" }),
+    /\[ miss \] retry\s+"soon" is no value of this key — it takes a non-negative number of seconds; reading 2s first, doubling under 60s  ← the plugin's default/u);
+});
+
 /* The account config is the only source, and a `.mcp.json` carrying credentials is the one setup
    that would otherwise fail in silence — which is the failure this whole report exists for. */
 test("a .mcp.json naming a forge server is reported and not read", () => {

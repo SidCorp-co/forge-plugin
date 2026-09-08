@@ -5,18 +5,20 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { stampRoom } from "../../src/hooks/stamps.mjs";
-import { STEPS, WHOLE_TREE_TESTS } from "../../../tools/gates/steps.mjs";
+import { STEPS, WHOLE_TREE_TESTS, gateSteps } from "../../../tools/gates/steps.mjs";
+import { REVIEW } from "../../../tools/gates/timing.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
 const RUNNER = join("tools", "gates.mjs");
 const COPIED = [RUNNER, join("tools", "checkout.mjs"), join("tools", "gates", "steps.mjs"),
   join("tools", "gates", "scope.mjs"), join("tools", "gates", "ledger.mjs"),
-  join("tools", "gates", "timing.mjs"), join("tools", "gates", "stamp-room.mjs"),
+  join("tools", "gates", "timing.mjs"), join("tools", "gates", "stamp-room.mjs"), join("tools", "gates", "file-times.mjs"),
   join("plugin", "src", "hooks", "stamps.mjs")];
 const STAMPED = basename(stampRoom());
 
@@ -37,8 +39,12 @@ const NAMED = WHOLE_TREE_TESTS.map((one) => one.endsWith(".test.mjs") ? one : jo
 
 const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
 
+/* Without the variable node's runner sets in every test process: a `node --test` spawned under it
+   runs as a child of this suite and spends no file, so the scratch's test steps would pass empty. */
+const SHELL_ENV = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT"));
+
 const run = (work, argv = [], cwd = work) =>
-  spawnSync(process.execPath, [join(work, RUNNER), ...argv], { cwd, encoding: "utf8" });
+  spawnSync(process.execPath, [join(work, RUNNER), ...argv], { cwd, encoding: "utf8", env: SHELL_ENV });
 
 /* A step writing the hook stamp room into whatever temporary directory it was handed, which is the
    shape a suite has when nothing points TMPDIR at a room of its own (ISS-361). */
@@ -98,7 +104,8 @@ const touchedEverywhere = (work, text) => {
 };
 
 const entryDir = (work) => join(work, ".git", "gate-ledger");
-const entryNames = (work) => readdirSync(entryDir(work)).filter((one) => one !== "runs").sort();
+// The step entries alone: the runs series and the per-file records share the directory.
+const entryNames = (work) => readdirSync(entryDir(work)).filter((one) => one !== "runs" && !one.endsWith("-files")).sort();
 const entries = (work) =>
   Object.fromEntries(entryNames(work).map((one) => [one, readFileSync(join(entryDir(work), one), "utf8")]));
 
@@ -145,7 +152,8 @@ test("-h names the two flags and what the record cannot see", () => {
   for (const one of ["--full", "--anyway", "node_modules", "merge-base", "tree judged",
     "seconds that step took", "one line per green run", "a temporary directory of this run's own",
     "a path no step claims", "leaves the record", "records no pass",
-    "decide the order the steps are spent in: cheapest first", "no seconds for"]) {
+    "decide the order the steps are spent in: cheapest first", "no seconds for",
+    "one-minute load", "ceiling that review set", "<label>-files", `${REVIEW.seconds}s on ${REVIEW.on}`]) {
     assert.ok(said.includes(one), `${one} is not in the usage:\n${said}`);
   }
 });
@@ -540,23 +548,61 @@ test("a green run records its whole-run seconds and how many steps it spent; a r
     const scoped = run(work);
     assert.equal(scoped.status, 0, scoped.stdout + scoped.stderr);
     assert.equal(runs(work).length, 1, `one green run left ${runs(work).length} figure(s)`);
-    assert.match(runs(work)[0], new RegExp(`^\\S+ \\d+s 3/${STEPS.length}$`, "u"), runs(work)[0]);
+    assert.match(runs(work)[0], new RegExp(`^\\S+ \\d+s 3/${STEPS.length} load \\d+\\.\\d\\d/\\d+$`, "u"), runs(work)[0]);
     /* What it wrote and nothing the record now says: the comparison has one reader, the release,
        and the gate printing it too is the second surface the issue exists to remove. Anchored at
        both ends, so a clause about an earlier run is a failure rather than a longer pass. */
     const receipts = scoped.stdout.split("\n").filter((one) => one.startsWith("recorded:"));
     assert.equal(receipts.length, 1, `the gate printed ${receipts.length} timing line(s):\n${scoped.stdout}`);
     assert.match(receipts[0],
-      new RegExp(`^recorded: \\d+s over 3 of ${STEPS.length} step\\(s\\) on \\d{4}-\\d\\d-\\d\\d — \\S+/runs$`, "u"),
+      new RegExp(`^recorded: \\d+s over 3 of ${STEPS.length} step\\(s\\) on \\d{4}-\\d\\d-\\d\\d, load \\d+\\.\\d on \\d+ core\\(s\\) — \\S+/runs$`, "u"),
       receipts[0]);
 
+    /* One test file that spends its time before its first case and after its last: both halves are
+       the file's cost, and the per-file record has to carry them (ISS-736). */
+    landed(work, "plugin/test/tools/slow.test.mjs", "import { after, test } from \"node:test\";\n"
+      + "await new Promise((wake) => setTimeout(wake, 300));\ntest(\"slow\", () => {});\n"
+      + "after(async () => { await new Promise((wake) => setTimeout(wake, 300)); });\n");
     const whole = run(work, ["--full"]);
     assert.equal(whole.status, 0, whole.stdout + whole.stderr);
     assert.equal(runs(work).length, 2, "a --full run left no figure, and it is the comparable one");
-    assert.match(runs(work)[1], new RegExp(`^\\S+ \\d+s ${STEPS.length}/${STEPS.length}$`, "u"), runs(work)[1]);
+    assert.match(runs(work)[1], new RegExp(`^\\S+ \\d+s ${STEPS.length}/${STEPS.length} load \\d+\\.\\d\\d/\\d+$`, "u"), runs(work)[1]);
+
+    assert.ok(existsSync(join(entryDir(work), "test-files")),
+      `the test step left no per-file record; the ledger holds ${entryNames(work).join(", ")}:\n${whole.stdout}`);
+    const costs = readFileSync(join(entryDir(work), "test-files"), "utf8").trim().split("\n");
+    const seconds = costs.map((one) => Number(one.split(" ")[0].slice(0, -1)));
+    assert.deepEqual(seconds, [...seconds].sort((one, other) => other - one), `not longest first:\n${costs.join("\n")}`);
+    assert.match(costs[0], /^\d+\.\ds plugin\/test\/tools\/slow\.test\.mjs$/u, `the slow file is not the first line:\n${costs.join("\n")}`);
+    assert.ok(seconds[0] >= 0.6, `the file's setup and teardown are not in its ${seconds[0]}s`);
+    assert.equal(costs.length, 2, `one line per file the step ran:\n${costs.join("\n")}`);
+    assert.ok(existsSync(join(entryDir(work), "test-tree-files")), "the whole-tree step left no per-file record");
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
+});
+
+test("a test step runs on every core with node's own reporter named and the per-file one beside it", () => {
+  const [tree, rest] = gateSteps([...NAMED, "plugin/test/tools/one.test.mjs"]).filter((step) => step.tests);
+  for (const step of [tree, rest]) {
+    const flags = step.argv.slice(2, 7);
+    assert.deepEqual(flags, [`--test-concurrency=${availableParallelism()}`,
+      `--test-reporter=${process.stdout.isTTY ? "spec" : "tap"}`, "--test-reporter-destination=stdout",
+      `--test-reporter=${join(ROOT, "tools", "gates", "file-times.mjs")}`, "--test-reporter-destination=stdout"], step.label);
+    assert.ok(step.argv.slice(7).every((one) => one.endsWith(".test.mjs")), `the files follow the flags: ${step.argv.join(" ")}`);
+  }
+});
+
+test("a per-file record that cannot be written is said, and the passing step stays green", () => {
+  const at = tempRoom("file-times-");
+  write(at, "one.test.mjs", "import test from \"node:test\";\ntest(\"one\", () => {});\n");
+  const argv = gateSteps([...NAMED, "plugin/test/tools/one.test.mjs"]).find((step) => step.label === "test").argv;
+  const flags = argv.slice(1, 7);
+  const said = spawnSync(process.execPath, [...flags, "one.test.mjs"],
+    { cwd: at, encoding: "utf8", env: { ...SHELL_ENV, GATE_FILE_TIMES: at } });
+  assert.equal(said.status, 0, said.stdout + said.stderr);
+  assert.match(said.stdout, /# the per-file seconds could not be recorded at \S+: EISDIR/u, said.stdout);
+  rmSync(at, { recursive: true, force: true });
 });
 
 test("a run whose step failed leaves no figure", () => {

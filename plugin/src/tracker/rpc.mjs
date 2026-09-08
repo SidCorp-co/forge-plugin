@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { configDir, once, readJson } from "../resolve/config.mjs";
+import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
 import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, undeclaredIn } from "./rest.mjs";
@@ -25,7 +25,14 @@ export const retryOf = (status, repeatable) => {
 };
 
 const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000));
-const backoff = (attempt) => Math.min(FALLBACK_RETRY_SECONDS * 2 ** (attempt - 1), MAX_RETRY_SECONDS);
+
+/* The first wait, doubled per attempt under the cap; `retrySeconds` in config.json sets it (0 for a suite proving
+   the message, not the wait), only a non-negative JSON number counts, and the attempt count and a 429's wait stay (ISS-736). */
+export const retrySeconds = (config = userConfig()) => {
+  const given = config.retrySeconds;
+  return typeof given === "number" && Number.isFinite(given) && given >= 0 ? given : FALLBACK_RETRY_SECONDS;
+};
+export const backoff = (attempt, config) => Math.min(retrySeconds(config) * 2 ** (attempt - 1), MAX_RETRY_SECONDS);
 
 const parsed = (text) => {
   try {
@@ -36,7 +43,7 @@ const parsed = (text) => {
 };
 
 /* Honour the server's stated wait, with a ceiling: 3600 would be an hour of sleep, four times. */
-const retryAfter = (text, headers) => {
+export const retryAfter = (text, headers) => {
   const capped = (seconds) => Math.min(seconds, MAX_RETRY_SECONDS);
   const header = Number(headers.get("retry-after"));
   if (Number.isFinite(header) && header > 0) return capped(header);

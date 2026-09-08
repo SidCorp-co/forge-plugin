@@ -15,6 +15,7 @@ import {
   userConfig,
 } from "../resolve/config.mjs";
 import { didYouMean } from "../suggest.mjs";
+import { backoff, retrySeconds } from "../tracker/rpc.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
   FEEDBACK_CHANNELS, LANDING_ROUTES, SHIP_MODES, accountCredentials, fail, feedbackScope,
@@ -488,6 +489,14 @@ const checkFlowKeys = () => {
   else line(OK, "landing", "unset, so `forge project` derives where the merge sits from the tracker's record");
   const ship = shipMode();
   line(ship.unknown ? BAD : OK, "ship", held(ship, SHIP_MODES));
+  const given = userConfig().retrySeconds;
+  const own = retrySeconds({ retrySeconds: given }) === given;
+  const retry = {
+    value: `${backoff(1)}s first, doubling under 60s`,
+    from: own ? configPath() : "the plugin's default",
+    unknown: given === undefined || own ? null : JSON.stringify(given),
+  };
+  line(retry.unknown ? BAD : OK, "retry", held(retry, ["a non-negative number of seconds"]));
 };
 
 export const doctor = async (rest) => {

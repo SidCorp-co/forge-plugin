@@ -165,7 +165,7 @@ const HOME = tempHome("read-first");
    testing a fresh session every time, which is the one thing this gate must not do. */
 const endpoint = (url) => {
   mkdirSync(join(HOME.path, "forge"), { recursive: true });
-  writeFileSync(join(HOME.path, "forge", "config.json"), JSON.stringify(url ? { url, token: "t" } : {}));
+  writeFileSync(join(HOME.path, "forge", "config.json"), JSON.stringify(url ? { url, token: "t", retrySeconds: 0 } : {}));
 };
 const live = () => tracker.url;
 

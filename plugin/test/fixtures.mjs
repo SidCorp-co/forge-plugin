@@ -480,7 +480,7 @@ export const fakeTracker = async (state) => {
   const home = tempHome("tracker");
   mkdirSync(join(home.path, "forge"), { recursive: true });
   const url = `http://127.0.0.1:${served.address().port}/mcp`;
-  writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url, token: "t" }));
+  writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url, token: "t", retrySeconds: 0 }));
   return { url, env: { ...process.env, XDG_CONFIG_HOME: home.path }, close: () => served.close(),
     unref: () => served.unref() };
 };

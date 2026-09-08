@@ -6,7 +6,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { recordRun, runSays, runSeries } from "../../../../tools/gates/timing.mjs";
+import { CEILING_SECONDS, REVIEW, ceilingOf, fileTimesPath, recordRun, runSays, runSeries } from "../../../../tools/gates/timing.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
@@ -19,37 +19,69 @@ const planted = (lines) => {
 };
 
 const FULL = "2026-01-01T00:00:00.000Z 80s 12/12";
+// A review figure planted beside the runs, so what these cases pin is the arithmetic and not this repository's number.
+const REVIEWED = { seconds: 400, on: "2025-12-01", issue: "ISS-0" };
+const says = (lines) => runSays(planted(lines), REVIEWED);
 
 test("a figure is compared only with a whole-gate figure, and what is comparable is always named", () => {
-  assert.match(runSays(planted([])), /no run is recorded/u);
-  assert.match(runSays(planted([])), /npm run check -- --full/u);
+  assert.match(says([]), /no run is recorded/u);
+  assert.match(says([]), /npm run check -- --full/u);
 
   // The shape this repository produces: scoped ship-gate runs between the full ones, which the newest two *runs* would never subtract across.
-  const apart = runSays(planted([FULL, "2026-01-02T00:00:00.000Z 9s 3/12", "2026-01-03T00:00:00.000Z 100s 12/12"]));
-  assert.match(apart, /100s over 12 of 12 step\(s\) on 2026-01-03, 1\.25x the 80s before it/u,
+  const apart = says([FULL, "2026-01-02T00:00:00.000Z 9s 3/12", "2026-01-03T00:00:00.000Z 100s 12/12"]);
+  assert.match(apart, /100s over 12 of 12 step\(s\) on 2026-01-03, 0\.25x the 400s the review of 2025-12-01 measured \(ISS-0\); 1\.25x the 80s before it/u,
     `two whole-gate figures with a scoped run between them were not subtracted:\n${apart}`);
 
-  const scoped = runSays(planted([FULL, "2026-01-03T00:00:00.000Z 9s 3/12"]));
+  const scoped = says([FULL, "2026-01-03T00:00:00.000Z 9s 3/12"]);
   assert.match(scoped, /^9s over 3 of 12 step\(s\) on 2026-01-03, which is scoped and measures less/u, scoped);
-  assert.match(scoped, /the whole gate last took 80s over 12 of 12 step\(s\) on 2026-01-01, the only whole-gate figure recorded/u,
+  assert.match(scoped, /the whole gate last took 80s over 12 of 12 step\(s\) on 2026-01-01, 0\.20x the 400s the review of 2025-12-01 measured \(ISS-0\); the only whole-gate figure recorded/u,
     `a scoped run that names no comparable figure leaves the reader to assume one:\n${scoped}`);
 
-  const first = runSays(planted(["2026-01-04T00:00:00.000Z 9s 3/12"]));
+  const first = says(["2026-01-04T00:00:00.000Z 9s 3/12"]);
   assert.match(first, /no run recorded spent the whole table; npm run check -- --full plants a figure/u, first);
 
   // A table that gained a step is another gate, and subtracting across the two reports the addition as drift, which is what a review would act on.
-  const grown = runSays(planted([FULL, "2026-01-07T00:00:00.000Z 100s 13/13"]));
-  assert.match(grown, /100s over 13 of 13 step\(s\) on 2026-01-07, and the one before it was 80s over 12 of 12 step\(s\)/u, grown);
+  const grown = says([FULL, "2026-01-07T00:00:00.000Z 100s 13/13"]);
+  assert.match(grown, /100s over 13 of 13 step\(s\) on 2026-01-07, 0\.25x the 400s [^;]+; the one before it was 80s over 12 of 12 step\(s\)/u, grown);
   assert.match(grown, /a table of another size, so nothing is subtracted/u, grown);
   assert.doesNotMatch(grown, /x the 80s/u, `a 12-step gate was subtracted from a 13-step one:\n${grown}`);
 
-  const sameSize = runSays(planted([FULL, "2026-01-08T00:00:00.000Z 40s 13/13", "2026-01-09T00:00:00.000Z 50s 13/13"]));
-  assert.match(sameSize, /50s over 13 of 13 step\(s\) on 2026-01-09, 1\.25x the 40s before it/u,
+  const sameSize = says([FULL, "2026-01-08T00:00:00.000Z 40s 13/13", "2026-01-09T00:00:00.000Z 50s 13/13"]);
+  assert.match(sameSize, /50s over 13 of 13 step\(s\) on 2026-01-09, 0\.13x the 400s [^;]+; 1\.25x the 40s before it/u,
     `two figures over the same table were not subtracted:\n${sameSize}`);
 
   // A gate under a second is the scratch case, and a ratio over it is a division by zero.
-  assert.match(runSays(planted(["2026-01-05T00:00:00.000Z 0s 12/12", "2026-01-06T00:00:00.000Z 3s 12/12"])),
+  assert.match(says(["2026-01-05T00:00:00.000Z 0s 12/12", "2026-01-06T00:00:00.000Z 3s 12/12"]),
     /3s more than the one before it, which took under a second, so there is no ratio/u);
+});
+
+/* The load on a run's line is context; the review figure, measured with nothing else running, is what a
+   regression shows against — a rolling baseline taken under load would read it as an improvement (ISS-736). */
+test("a regression against the review figure is said even when the run before it was slower under load", () => {
+  const review = { seconds: 60, on: "2026-09-01", issue: "ISS-1" };
+  const said = runSays(planted(["2026-09-08T08:00:00.000Z 100s 14/14 load 9.00/6", "2026-09-08T09:00:00.000Z 90s 14/14 load 0.50/6"]), review);
+  assert.equal(said, "90s over 14 of 14 step(s) on 2026-09-08, load 0.5 on 6 core(s), 1.50x the 60s the review of 2026-09-01 measured (ISS-1), "
+    + "over the ceiling of 75s that review set; 0.90x the 100s before it (its line said load 9.00/6)");
+});
+
+test("under the ceiling nothing is said about it, and a line from before the load clause compares without one", () => {
+  const review = { seconds: 100, on: "2026-09-01", issue: "ISS-1" };
+  const said = runSays(planted(["2026-09-04T18:05:41.583Z 69s 14/14", "2026-09-08T09:00:00.000Z 80s 14/14 load 0.50/6"]), review);
+  assert.equal(said, "80s over 14 of 14 step(s) on 2026-09-08, load 0.5 on 6 core(s), 0.80x the 100s the review of 2026-09-01 measured (ISS-1); 1.16x the 69s before it");
+  assert.equal(ceilingOf({ seconds: 100 }), 125);
+  assert.equal(CEILING_SECONDS, Math.round(REVIEW.seconds * 1.25), "the ceiling is the drift trigger applied to the review figure");
+});
+
+test("a line without a load clause and one with it both read as runs, and a recorded run writes what it was given", () => {
+  const dir = planted(["2026-09-04T18:05:41.583Z 69s 12/12", "2026-09-08T09:00:00.000Z 100s 14/14 load 7.25/6"]);
+  recordRun(dir, { seconds: 90, ran: 14, total: 14, load: 1.5, cores: 6 });
+  recordRun(dir, { seconds: 91, ran: 3, total: 14 });
+  const [old, fresh, withLoad, without] = runSeries(dir);
+  assert.deepEqual(old, { at: "2026-09-04T18:05:41.583Z", seconds: 69, ran: 12, total: 12, load: null, cores: null });
+  assert.deepEqual(fresh, { at: "2026-09-08T09:00:00.000Z", seconds: 100, ran: 14, total: 14, load: 7.25, cores: 6 });
+  assert.equal(withLoad.load, 1.5);
+  assert.equal(without.load, null);
+  assert.equal(fileTimesPath("/ledger", "test:tree"), join("/ledger", "test-tree-files"), "the per-file record is named for its step");
 });
 
 // Any trimming reads the file first, and this one is shared, so a stale snapshot renamed over it would drop the figure a release is about to read.
