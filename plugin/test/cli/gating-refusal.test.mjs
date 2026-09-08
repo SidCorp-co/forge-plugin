@@ -7,13 +7,16 @@ import { gatingRefusal } from "../../src/tools/doctor.mjs";
 
 test("a refusal that is not one saying no gates nothing, whether the row names one or not", () => {
   assert.match(gatingRefusal({ refused: "set_dependency has no route\nand a second line" }), /has no route/u);
-  assert.equal(gatingRefusal({ refused: "Forge did not answer POST /api/projects/x/pm: socket hang up" }), null);
-  assert.equal(gatingRefusal({ refused: "BAD_REQUEST: fromIssueId is required" }), null);
+  for (const refused of [
+    "Forge did not answer POST /api/projects/x/pm: socket hang up",
+    "BAD_REQUEST: fromIssueId is required",
+    "Forge did not answer GET /api/projects/x/knowledge: fetch failed",
+    "Forge answered 503 for GET /api/guides",
+  ]) {
+    assert.equal(gatingRefusal({ refused }), null,
+      `${refused}: a row naming no refusal is not gated by a fault of the moment, and four of the five name none`);
+  }
   assert.equal(gatingRefusal({ nodes: [] }), null, "and an answer gates nothing at all");
-  const dropped = { refused: "Forge did not answer GET /api/projects/x/knowledge: fetch failed" };
-  assert.equal(gatingRefusal(dropped), null,
-    "a row naming no refusal is not gated by a fault of the moment, and four of the five name none");
-  assert.equal(gatingRefusal({ refused: "Forge answered 503 for GET /api/guides" }), null);
   assert.match(gatingRefusal({ refused: "FORBIDDEN: knowledge is not enabled" }), /FORBIDDEN/u,
     "while the tracker saying no is what a capability record is for");
 });

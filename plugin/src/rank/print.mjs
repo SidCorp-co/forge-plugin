@@ -101,9 +101,9 @@ const claimRow = (claim) =>
 
 /* An issue's own edges are few and every one of them is worth a line; a whole backlog's are not —
    the ones that order are what a dispatch turns on, and the rest are a count. */
-const edgeRows = (edges, focus) => {
+const edgeRows = (edges, verbose) => {
   if (!edges.length) return ["  none: no issue read here carries one"];
-  if (focus) return edges.map(edgeRow);
+  if (verbose) return edges.map(edgeRow);
   const orders = edges.filter((edge) => edge.orders);
   const rest = edges.length - orders.length;
   return [
@@ -114,9 +114,9 @@ const edgeRows = (edges, focus) => {
 };
 
 /** The edges the ranking reads, then the claims only a body makes, then what the reading covered. */
-export const graphLines = ({ edges, claims, unresolved, said, focus = null }) => [
+export const graphLines = ({ edges, claims, unresolved, said, verbose = false }) => [
   `edges the ranking reads — ${edges.length} on this reading`,
-  ...edgeRows(edges, focus),
+  ...edgeRows(edges, verbose),
   "",
   `claims found only in prose, which gate nothing — ${claims.length}`,
   ...(claims.length ? claims.map(claimRow) : ["  none"]),

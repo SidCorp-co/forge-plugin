@@ -197,23 +197,28 @@ const writeCache = (patch) => {
   }
 };
 
+/** One slug's id, off the cache or off the list — the archived too where asked, since the one verb that unarchives has to find its subject; a slug nothing matches answers with what was seen, and the caller words the refusal. */
+export const projectIdOf = async (slug, { archived = false, soft = false } = {}) => {
+  const known = stored().projects?.[slug];
+  if (known) return { id: known };
+  const listed = await callTool("forge_projects.list", archived ? { archived: 1 } : {}, soft);
+  if (listed?.refused) return listed;
+  const projects = listed?.projects ?? (Array.isArray(listed) ? listed : []);
+  const found = projects.find((project) => project.slug === slug || project.key === slug);
+  if (!found) return { seen: projects.map((one) => one.slug) };
+  writeCache({ projects: { ...(stored().projects ?? {}), [slug]: found.id } });
+  return { id: found.id };
+};
+
 /* The lookup is itself a call, which is why `soft` reaches it at all: `fail()` inside one exits past
    the caller that was holding the refusal. */
 const idOfProject = async (soft) => {
   const aimed = projectTarget().value;
   if (!aimed && soft) return { refused: "no project slug is set" };
   const slug = aimed ?? projectSlug();
-  const known = stored().projects?.[slug];
-  if (known) return { id: known };
-  const listed = await callTool("forge_projects.list", {}, soft);
-  if (listed?.refused) return listed;
-  const projects = listed?.projects ?? (Array.isArray(listed) ? listed : []);
-  const found = projects.find((project) => project.slug === slug || project.key === slug);
-  if (!found) {
-    return refusing(soft)(`No Forge project has slug ${slug}. Seen: ${projects.map((one) => one.slug)}`);
-  }
-  writeCache({ projects: { ...(stored().projects ?? {}), [slug]: found.id } });
-  return { id: found.id };
+  const held = await projectIdOf(slug, { soft });
+  if (held.id || held.refused) return held;
+  return refusing(soft)(`No Forge project has slug ${slug}. Seen: ${held.seen}`);
 };
 
 export const projectId = async () => (await idOfProject(false)).id;

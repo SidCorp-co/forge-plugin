@@ -127,3 +127,19 @@ export const partition = (argv, booleans = [], row = {}) => {
   }
   return { positionals, flagArgv };
 };
+
+/** The flags among `names` the caller gave, refused where two were — one sentence for every verb whose flags each name an act: `verb: --a and --b are separate <what>. Nothing was sent.` */
+export const exclusive = (asked, names, verb, what) => {
+  const given = names.filter((one) => asked[one] !== undefined);
+  if (given.length > 1) {
+    fail(`${verb}: ${given.map((one) => `--${one}`).join(" and ")} are separate ${what}. Nothing was sent.`);
+  }
+  return given;
+};
+
+/** `key=value`, split on the first `=` only so a value carrying one survives; no key before it is refused naming the flag. */
+export const pairOf = (given, flag) => {
+  const at = given.indexOf("=");
+  if (at < 1) fail(`${flag} takes \`key=value\`, not \`${given}\`.`);
+  return { key: given.slice(0, at), value: given.slice(at + 1) };
+};

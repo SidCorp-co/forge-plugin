@@ -3,10 +3,10 @@
 import { fail, keepOnFailure } from "../resolve/settings.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { declaredFor, refuseCredential, scoped, write } from "../tracker/rpc.mjs";
-import { flags, helpAskedOf, pullRepeated } from "../resolve/flags.mjs";
+import { flags, helpAskedOf, pairOf, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 
-const SLUG_WIDTH = 28;
+export const SLUG_WIDTH = 28;
 const KIND_WIDTH = 10;
 const HITS = 10;
 const MAX_HITS = 50;
@@ -131,14 +131,13 @@ const get = async ([slug, ...rest]) => {
   console.log(entry.body ?? "");
 };
 
-/* `k=v`, splitting on the first `=` only, so a value carrying one survives. Overlaid on what is
-   stored rather than replacing it: a correction adds `correctedBy` and keeps what was there. */
+/* Overlaid on what is stored rather than replacing it: a correction adds `correctedBy` and keeps
+   what was there. */
 export const metaFrom = (pairs) => {
   const out = {};
   for (const pair of pairs) {
-    const at = pair.indexOf("=");
-    if (at < 1) fail(`--meta takes \`key=value\`, not \`${pair}\`.`);
-    out[pair.slice(0, at)] = pair.slice(at + 1);
+    const { key, value } = pairOf(pair, "--meta");
+    out[key] = value;
   }
   return out;
 };

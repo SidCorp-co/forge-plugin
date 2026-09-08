@@ -38,6 +38,7 @@ import { consults, logEntries, logPath } from "../codex/codex-log.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { VERB_NAMES, usageOf } from "../resolve/visibility.mjs";
+import { PROJECT_USAGE, WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { methodPinned, pinRefusal } from "../guides/version.mjs";
 import { contractPath, contractProblems, readContract, statesContract } from "../guides/contract.mjs";
@@ -174,8 +175,9 @@ const remember = (slug, findings) => {
 const probe = async (scoped, slug) => {
   const findings = {};
   let gated = 0;
-  for (const [label, tool, args, why, gate] of CAPABILITIES) {
-    const refusal = gatingRefusal(await scoped(tool, args, true));
+  const answers = await Promise.all(CAPABILITIES.map(([, tool, args]) => scoped(tool, args, true)));
+  for (const [index, [label, tool, , why, gate]] of CAPABILITIES.entries()) {
+    const refusal = gatingRefusal(answers[index]);
     findings[gate?.key ?? tool] = refusal;
     if (refusal) {
       gated += 1;
@@ -388,8 +390,10 @@ const LEVELS = { note: NOTE, miss: BAD };
 /* The project's own record, under the names its owner uses rather than the tracker's columns, and
    in this report rather than under a verb named for the project: one surface reports every level of
    configuration with its source, and the project is a level of it. */
+const projectSettings = () => import("./project-settings.mjs");
+
 const checkProject = async (credentials) => {
-  const { projectReport } = await import("./project-settings.mjs");
+  const { projectReport } = await projectSettings();
   const { rows, brief } = await projectReport({ credentials });
   for (const row of rows) line(LEVELS[row.level] ?? OK, row.label, row.detail);
   if (!brief.length) return;
@@ -478,22 +482,22 @@ const BOOLEAN = ["--full", "--credentials"];
 /* The machine's, the checkout's and the project's, in one surface: `--set` and the brief's three
    are the project's half, and the account keys below them this machine's. */
 const SAVED = ["token", "url"];
-const PROJECT_FLAGS = ["set", "refresh", "confirm", "line", "title", "confidence"];
+const PROJECT_FLAGS = ["set", ...WRITES, ...WITH_BODY];
 
 /** One write per call, then the report, because a run that asked to write is not asking to be
  *  diagnosed: the project's own writes print their lines and stop there. */
 const wroteProject = async (asked, pairs, positionals) => {
-  const { briefAsked, briefRoute, writeSetting } = await import("./project-settings.mjs");
-  if (asked.set !== undefined && briefAsked(asked)) {
+  const { briefAsked, briefRoute, writeSetting } = await projectSettings();
+  const brief = briefAsked(asked);
+  if (asked.set !== undefined && brief) {
     fail("doctor: --set writes a key of the project's configuration and the brief's flags write the "
       + "brief, which are two resources and two calls. Send one of them.");
   }
   if (asked.set !== undefined) return writeSetting(asked.set);
-  return briefAsked(asked) ? briefRoute(asked, pairs, positionals) : null;
+  return brief ? briefRoute(asked, pairs, positionals) : null;
 };
 
 export const doctor = async (argv) => {
-  const { PROJECT_USAGE } = await import("./project-settings.mjs");
   const usage = usageOf("doctor");
   if (wantsHelp(argv)) return console.log(`${usage}\nwhat resolves, and from where.\n${PROJECT_USAGE}`);
   const { values: pairs, rest } = pullRepeated(argv, "--meta", "doctor", { usage });

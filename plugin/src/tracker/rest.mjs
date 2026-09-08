@@ -83,6 +83,9 @@ const edgeOf = (edge, side) => ({
 export const RELATES = "relates";
 const ORDERS = (edge) => edge.kind !== RELATES;
 
+export const EDGE_KINDS = ["blocks", RELATES];
+export const otherOf = (edge) => edge?.otherDisplayId ?? edge?.otherIssueId ?? null;
+
 export const relationsOf = (deps) => {
   const out = (deps?.outgoing ?? []).map((edge) => edgeOf(edge, "to"));
   const held = (deps?.incoming ?? []).map((edge) => edgeOf(edge, "from"));

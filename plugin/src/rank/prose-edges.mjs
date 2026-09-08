@@ -32,11 +32,7 @@ const overlaps = (left, right) =>
   (left.length >= 4 && right.startsWith(left)) ||
   (right.length >= 4 && left.startsWith(right));
 
-const score = (phrase, title) => {
-  const wanted = words(phrase);
-  const have = words(title);
-  return wanted.filter((word) => have.some((candidate) => overlaps(word, candidate))).length;
-};
+const score = (wanted, have) => wanted.filter((word) => have.some((candidate) => overlaps(word, candidate))).length;
 
 const splitPhrases = (list) =>
   list
@@ -55,24 +51,31 @@ const edgesIn = (description) => {
   return found;
 };
 
-/* Unique best, or nothing: a phrase tying two titles is reported as written. */
-const resolve = (phrase, issues) => {
-  const ranked = issues
-    .map((issue) => ({ issue, points: score(phrase, issue.title ?? "") }))
-    .sort((left, right) => right.points - left.points);
-  const [best, next] = ranked;
-  if (!best || best.points < 2) return null;
-  if (next && next.points === best.points) return null;
-  return best.issue;
+/* Unique best, or nothing: a phrase tying two titles is reported as written. One pass keeps the
+   best and whether a second title matched it. */
+const resolve = (phrase, titled) => {
+  const wanted = words(phrase);
+  let best = null;
+  let tied = false;
+  for (const one of titled) {
+    const points = score(wanted, one.have);
+    if (!best || points > best.points) {
+      best = { issue: one.issue, points };
+      tied = false;
+    } else if (points === best.points) {
+      tied = true;
+    }
+  }
+  return !best || best.points < 2 || tied ? null : best.issue;
 };
 
-/* Collected by pair rather than by the issue that spoke — that is what makes a one-sided claim
-   visible. */
+/* Collected by pair rather than by the issue that spoke — that is what makes a one-sided claim visible. */
 export const graphOf = (issues, universe) => {
   const claims = new Map();
   const unresolved = [];
   const silent = [];
   const key = (from, to) => `${from} ${to}`;
+  const titled = universe.map((issue) => ({ issue, have: words(issue.title ?? "") }));
   for (const issue of issues) {
     const { blockedBy, blocks } = edgesIn(issue.description);
     if (!blockedBy.length && !blocks.length) {
@@ -80,7 +83,7 @@ export const graphOf = (issues, universe) => {
       continue;
     }
     const add = (phrase, asBlocker) => {
-      const other = resolve(phrase, universe);
+      const other = resolve(phrase, titled);
       if (!other) {
         unresolved.push({ from: issue.issueId, phrase, asBlocker });
         return;
@@ -96,20 +99,19 @@ export const graphOf = (issues, universe) => {
   return { claims: [...claims.values()], unresolved, carriers: issues.length - silent.length };
 };
 
+const bodyOf = async (summary) => ({
+  ...summary,
+  ...(await scoped("forge_issues", { action: "get", documentId: summary.documentId, fields: ["description"] })),
+});
+
 /** The candidates a prose edge can be read out of, and the bodies to read it from: the search
- *  narrows, the regex above decides. One reading, spent by the ranking and by the graph alike. */
-export const carriersOf = async () => {
+ *  narrows, the regex above decides. One reading, spent by the ranking and by the graph alike, and
+ *  read a window at a time under the ranking's own cap — every body at once answered 503. */
+export const carriersOf = async (windowCap) => {
   const matched = await everyIssue({ search: PROSE_MARKER });
-  if (!matched.rows.length) return { issues: [], read: matched };
-  const issues = await Promise.all(
-    matched.rows.map(async (summary) => ({
-      ...summary,
-      ...(await scoped("forge_issues", {
-        action: "get",
-        documentId: summary.documentId,
-        fields: ["description"],
-      })),
-    })),
-  );
+  const issues = [];
+  for (let at = 0; at < matched.rows.length; at += windowCap) {
+    issues.push(...await Promise.all(matched.rows.slice(at, at + windowCap).map(bodyOf)));
+  }
   return { issues, read: matched };
 };

@@ -1,14 +1,16 @@
 /* `forge project` — the projects themselves, and this CLI's one verb outside any project's scope.
    Every other verb acts inside the project the checkout names; these act on the records that
    naming picks between. Why deletion is not among them: docs/cli/doctor.md. */
-import { deployFrom, deployed } from "../tracker/project-config.mjs";
+import { deployFrom, deployRows, deployed } from "../tracker/project-config.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
-import { scoped, write } from "../tracker/rpc.mjs";
+import { exclusive, flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
+import { projectIdOf, scoped, write } from "../tracker/rpc.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
+import { SLUG_WIDTH } from "./knowledge.mjs";
 
 const BOOLEAN = ["--archive", "--unarchive"];
+const ACTS = ["set", "archive", "unarchive"];
 
 /* The tracker's branch columns are not among them: this CLI reads those names by property access
    and prints none, so a flag naming one would be the first place it typed one. The settings screen
@@ -42,13 +44,11 @@ const listed = async (archived) => {
 };
 
 const idFor = async (slug) => {
-  const rows = await listed(true);
-  const found = rows.find((one) => one.slug === slug);
-  if (!found) {
-    fail(didYouMean("project", slug, rows.map((one) => one.slug).sort(),
-      "`forge project` lists every project this credential sees."));
+  const held = await projectIdOf(slug, { archived: true });
+  if (!held.id) {
+    fail(didYouMean("project", slug, held.seen.sort(), "`forge project` lists every project this credential sees."));
   }
-  return found.id;
+  return held.id;
 };
 
 /** The record, with the deploy read through the seat that tells a host from a secret: a project row
@@ -65,8 +65,7 @@ const recordLines = (project) => {
   ];
   if (!deployed(deploy)) return [...out, "staging deploy: none configured"];
   out.push(`staging deploy: ${deploy.urls.length} host(s)`);
-  for (const one of deploy.urls) out.push(`  ${one.label}: ${one.url}`);
-  for (const one of deploy.notes) out.push(`  notes: ${one}`);
+  for (const row of deployRows(deploy)) out.push(`  ${row.label}: ${row.detail}`);
   if (deploy.withheld.length) {
     out.push(`  held, not printed: ${deploy.withheld.map((one) => one.label).join(", ")}`);
   }
@@ -106,14 +105,10 @@ const archived = async (slug, action) => {
   return [`${action}d: ${slug}`, ...recordLines(answer?.project ?? { slug })];
 };
 
-const routed = async (slug, asked, pairs, acts) => {
-  if (acts.length > 1) {
-    fail(`project: ${acts.map((one) => `--${one}`).join(" and ")} are separate acts on one record and `
-      + "a call takes one. Nothing was sent.");
-  }
+const routed = async (slug, asked) => {
   if (asked.archive) return archived(slug, "archive");
   if (asked.unarchive) return archived(slug, "unarchive");
-  if (pairs.length) return updated(slug, pairs);
+  if (asked.set) return updated(slug, asked.set);
   const answer = await scoped("forge_projects", { action: "read", projectRef: await idFor(slug) });
   return recordLines(answer?.project);
 };
@@ -126,8 +121,8 @@ export const project = async (argv) => {
   const usage = usageOf("project");
   const { values: pairs, rest } = pullRepeated(argv, "--set", "project", { usage });
   const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "project", usage });
-  const asked = flags(flagArgv, "project", BOOLEAN, { usage });
-  const acts = [...(pairs.length ? ["set"] : []), ...BOOLEAN.map((flag) => flag.slice(2)).filter((one) => asked[one])];
+  const asked = { ...flags(flagArgv, "project", BOOLEAN, { usage }), ...(pairs.length ? { set: pairs } : {}) };
+  const acts = exclusive(asked, ACTS, "project", "acts on one record and a call takes one");
   const [first, ...extra] = positionals;
   if (extra.length) fail(`project: one project at a time, not \`${positionals.join(" ")}\`. ${usage}`);
   if (first === "new") {
@@ -141,11 +136,11 @@ export const project = async (argv) => {
         + `named. Nothing was sent: ${usage}`);
     }
     for (const one of await listed(true)) {
-      console.log(`${String(one.slug).padEnd(28)} ${one.name}${one.archivedAt ? "  (archived)" : ""}`);
+      console.log(`${String(one.slug).padEnd(SLUG_WIDTH)} ${one.name}${one.archivedAt ? "  (archived)" : ""}`);
     }
     return undefined;
   }
-  return (await routed(first, asked, pairs, acts)).forEach((said) => console.log(said));
+  return (await routed(first, asked)).forEach((said) => console.log(said));
 };
 
 project.answersHelp = true;

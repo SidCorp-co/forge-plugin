@@ -212,6 +212,12 @@ const policyRows = (policy, landing) => {
   return said ? [...out, { level: "miss", label: "release policy", detail: said }] : out;
 };
 
+/** The hosts and the notes, one row each, in the shape the report and the project's record both print. */
+export const deployRows = (deploy) => [
+  ...deploy.urls.map((one) => ({ level: "ok", label: one.label, detail: one.url })),
+  ...deploy.notes.map((one) => ({ level: "ok", label: "notes", detail: one })),
+];
+
 /** The project's answer in this CLI's words, one row each with where it was read, in the shape the
  *  one verb reporting every level of configuration prints its own keys in. */
 export const projectRows = ({ policy, deploy, credentials, landing = landingScope() }) => {
@@ -228,9 +234,7 @@ export const projectRows = ({ policy, deploy, credentials, landing = landingScop
       : NO_DEPLOY }, ...ending];
   }
   out.push({ level: "ok", label: "staging deploy", detail: `${deploy.urls.length} host(s)  ← ${deploy.from}` });
-  for (const one of deploy.urls) out.push({ level: "ok", label: one.label, detail: one.url });
-  for (const one of deploy.notes) out.push({ level: "ok", label: "notes", detail: one });
-  return [...out, ...ending];
+  return [...out, ...deployRows(deploy), ...ending];
 };
 
 export const leakRefusal = (found, what) =>

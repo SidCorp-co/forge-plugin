@@ -14,7 +14,7 @@ import { candidateLines, droppedLine, graphLines, HEAD } from "./print.mjs";
 import { carriersOf, graphOf, PROSE_FROM, PROSE_MARKER } from "./prose-edges.mjs";
 import { eligibilityOf, heldPaths, pathsNamed } from "./eligible.mjs";
 import { fail } from "../resolve/settings.mjs";
-import { RELATES } from "../tracker/rest.mjs";
+import { RELATES, otherOf } from "../tracker/rest.mjs";
 import { holdsBack, holdsBackFrom, ordersSaid } from "../flow/earned.mjs";
 import { neighboursOf } from "../tracker/filing/neighbours.mjs";
 import { scoped } from "../tracker/rpc.mjs";
@@ -32,15 +32,21 @@ const edgesOn = (key, body, status) =>
   Object.entries(body?.relations ?? {}).flatMap(([which, held]) => (held ?? []).map((edge) => {
     const upstream = which === "blockedBy";
     const blocker = upstream ? edge.otherStatus : status;
+    const orders = holdsBackFrom(edge, blocker);
     return {
       edgeId: edge.edgeId ?? null,
-      from: upstream ? edge.otherDisplayId ?? edge.otherIssueId : key,
-      to: upstream ? key : edge.otherDisplayId ?? edge.otherIssueId,
+      from: upstream ? otherOf(edge) : key,
+      to: upstream ? key : otherOf(edge),
       kind: edge.kind ?? "unnamed",
-      orders: holdsBackFrom(edge, blocker),
-      said: ordersSaid(edge, blocker),
+      orders,
+      said: orders ? null : ordersSaid(edge, blocker),
     };
   }));
+
+const takeableRows = (rows) => {
+  const open = takeableKeys(rows);
+  return rows.filter((one) => open.has(one.issueId));
+};
 
 /* One edge read from both its ends is one edge, and the tracker's own id is what says so. Where it
    named none, the kind decides: `relates` is the one kind with no direction of its own, arriving in
@@ -53,18 +59,17 @@ const edgeKey = (edge) => edge.edgeId
    the same passes: every body at once is the shape that answered 503 after three backoffs, which
    docs/cli/next.md records. */
 const graphRead = async (focus, rows, weights) => {
-  const open = takeableKeys(rows);
   const window = focus
     ? rows.filter((one) => String(one.issueId).toUpperCase() === focus)
-    : rows.filter((one) => open.has(one.issueId)).slice(0, weights.readCap);
+    : takeableRows(rows).slice(0, weights.readCap);
   if (focus && !window.length) {
     fail(`next: --graph names ${focus}, which is not on this project's tracker.`);
   }
+  const status = new Map(window.map((row) => [row.issueId, row.status]));
   const seen = new Set();
   const edges = [];
   for (let at = 0; at < window.length; at += weights.windowCap) {
     const take = window.slice(at, at + weights.windowCap).map((row) => ({ issueId: row.issueId, row }));
-    const status = new Map(take.map((one) => [one.issueId, one.row.status]));
     for (const [key, body] of await bodiesFor(take)) {
       for (const edge of edgesOn(key, body, status.get(key))) {
         const held = edgeKey(edge);
@@ -253,16 +258,14 @@ const onlyInProse = (claims, edges) => {
 const printedGraph = async (focus, read, carried, weights) => {
   const { edges, read: covered } = await graphRead(focus, read.rows, weights);
   const prose = graphOf(carried.issues, read.rows);
-  const claims = focus
-    ? onlyInProse(prose.claims, edges).filter((one) => one.from === focus || one.to === focus)
-    : onlyInProse(prose.claims, edges);
+  const claims = onlyInProse(prose.claims, edges).filter((one) => !focus || one.from === focus || one.to === focus);
   const unresolved = focus ? prose.unresolved.filter((one) => one.from === focus) : prose.unresolved;
   const said = focus
     ? `${focus} read whole; ${prose.carriers} issue(s) on the backlog carry the sentence`
       + ` "${PROSE_MARKER}" (${PROSE_FROM}).`
     : `${covered} of ${read.rows.length} issue(s) read whole, takeable first and capped at`
       + ` readCap ${weights.readCap}; an edge on an issue outside that reading is not here.`;
-  return console.log(graphLines({ edges, claims, unresolved, said, focus }).join("\n"));
+  return console.log(graphLines({ edges, claims, unresolved, said, verbose: Boolean(focus) }).join("\n"));
 };
 
 /** What the caller typed, checked before the first call: this verb's one positional is legal only
@@ -287,7 +290,7 @@ export const next = async (argv) => {
   if (wantsHelp(argv)) return console.log(usage);
   const { asked, holding, focus } = askedIn(argv, usage);
   const count = countFrom(asked.count);
-  const [read, carried] = await Promise.all([everyIssue(), carriersOf()]);
+  const [read, carried] = await Promise.all([everyIssue(), carriersOf(weights.windowCap)]);
   if (asked.graph) return printedGraph(focus, read, carried, weights);
   const said = shortOf(read, "The set this rank is computed over");
   if (said) console.error(`warning: ${said}\nSo an issue outside it is neither ranked nor named as dropped.`);
@@ -302,9 +305,8 @@ export const next = async (argv) => {
   const { blocks, blockedBy, named, unresolved } = edgesFrom(carried, rows);
 
   const alive = holdingKeys(rows);
-  const open = takeableKeys(rows);
   const statusOf = new Map(rows.map((one) => [one.issueId, String(one.status ?? "")]));
-  const takeable = rows.filter((one) => open.has(one.issueId));
+  const takeable = takeableRows(rows);
   const preScored = ordered(takeable.map((row) => ({
     issueId: row.issueId,
     row,

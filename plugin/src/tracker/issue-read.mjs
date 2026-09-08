@@ -2,6 +2,7 @@
    text: a reference in a heredoc, a quoted value or a path is no target, and one by uuid is. And
    which call files a new one, which names no issue yet and so owes no comment delivery. */
 import { isReference } from "./issues.mjs";
+import { EDGE_KINDS } from "./rest.mjs";
 
 const READS = new Set(["list", "get"]);
 const DEPTH = 4;
@@ -62,20 +63,23 @@ const unquoted = (word) => {
 const WORDS = /(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|\S)+/gu;
 const CUT = /(?<!\\)\\$/u;
 
-const EDGE_FLAGS = ["--blocks", "--relates", "--unlink"];
+const EDGE_FLAGS = [...EDGE_KINDS, "unlink"].map((one) => `--${one}`);
 
-/* Which argument is the issue, as a list of positions or as a reading of the words themselves. */
+/* Which argument is the issue, read off the words themselves. */
 const VERBS = {
-  comment: { at: [0] },
-  claim: { at: [0] },
-  attach: { at: [1], when: (args) => args[0] === "issue" },
+  comment: { at: () => [0] },
+  claim: { at: () => [0] },
+  attach: { at: () => [1], when: (args) => args[0] === "issue" },
   /* An edge write is taken against the end whose order moves, so that end is the read owed. */
   issue: {
     when: (args) => args.some((one) => EDGE_FLAGS.includes(one)),
-    at: (args) => (args.includes("--blocks") ? [args.indexOf("--blocks") + 1] : [0]),
+    at: (args) => {
+      const blocks = args.indexOf("--blocks");
+      return [blocks < 0 ? 0 : blocks + 1];
+    },
   },
-  record: { at: [1], when: (args) => args[0] !== "report" },
-  advance: { at: [0], when: (args) => !args.includes("--owed") },
+  record: { at: () => [1], when: (args) => args[0] !== "report" },
+  advance: { at: () => [0], when: (args) => !args.includes("--owed") },
 };
 
 const CALL = /^(?:\S*\/)?forge\s+call\s+(forge_\w+)\b/u;
@@ -92,8 +96,7 @@ const spokenTargets = (one) => {
   if (!verb) return [];
   const args = (one.match(WORDS) ?? []).slice(2).map((word) => (CUT.test(word) ? "" : unquoted(word)));
   if (verb.when && !verb.when(args)) return [];
-  const at = typeof verb.at === "function" ? verb.at(args) : verb.at;
-  return at.map((index) => args[index]).filter(isReference);
+  return verb.at(args).map((index) => args[index]).filter(isReference);
 };
 
 /** The physical lines a shell joins before it reads a word: the shared grammar cuts at a newline,

@@ -403,9 +403,8 @@ test("--graph prints the ordering edges the tracker holds and counts the rest", 
   ]);
   const run = await ran(["next", "--graph"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^ {2}ISS-1\s+-> ISS-2\s+blocks$/mu, "the one edge that orders a dispatch");
   assert.equal(run.stdout.match(/^ {2}ISS-1\s+-> ISS-2\s+blocks$/gmu)?.length, 1,
-    "and it is one edge however many of its ends were read");
+    "the one edge that orders a dispatch, printed once however many of its ends were read");
   assert.match(run.stdout, /^edges the ranking reads — 2 on this reading$/mu);
   assert.match(run.stdout, /^ {2}and 1 that order nothing: a relates edge/mu,
     "a whole backlog's mentions are a count, the ones that order being what a dispatch turns on");
@@ -447,7 +446,7 @@ test("a developed blocker's edge orders nothing, read from its own end or from t
          blocker's own outgoing one, and the far end it names is the open issue it held up. */
       [["next", "--graph", "ISS-4"], /^ {2}ISS-4\s+-> ISS-5\s+blocks, ordering nothing \(the blocker is developed\)$/mu],
       [["next", "--graph", "ISS-5"], /^ {2}ISS-4\s+-> ISS-5\s+blocks, ordering nothing \(the blocker is developed\)$/mu],
-      [["next", "--graph"], /^ {2}(none of them orders a dispatch|and 1 that order nothing)/mu],
+      [["next", "--graph"], /^ {2}and 1 that order nothing/mu],
     ]) {
       const run = await ran(argv);
       assert.equal(run.status, 0, run.stderr);

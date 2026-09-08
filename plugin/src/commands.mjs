@@ -1,7 +1,7 @@
 import { fail, keepOnFailure } from "./resolve/settings.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
 import { declaredFor, scoped, write } from "./tracker/rpc.mjs";
-import { REFERENCE_KEYS, asToolCall, keyOf, noRouteRefusal, rowFor, served } from "./tracker/rest.mjs";
+import { EDGE_KINDS, REFERENCE_KEYS, asToolCall, keyOf, noRouteRefusal, otherOf, rowFor, served } from "./tracker/rest.mjs";
 import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -31,7 +31,7 @@ import { TIERS } from "./ladder.mjs";
 import { targetsOfTool } from "./tracker/issue-read.mjs";
 import { actionIn, callable, helpOf, isGated, refuseIfGated, usageOf, wrappedRefusal } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { flags, partition, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
+import { exclusive, flags, partition, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
 import { LOCAL_ROWS, LOCAL_SLUGS, dispositionOf, localGuide, trackerHeader, visibleGuides } from "./guides/guides.mjs";
 import { briefGoals } from "./tracker/project-config.mjs";
 import { goalBlock, servesIn, servesRefusal } from "./goals.mjs";
@@ -151,10 +151,7 @@ const newUsage = (goals) =>
 
 /* One flag per kind of edge, and one for its removal. Which end the tracker stores as `from`, and
    which route the write takes: tracker/rest.mjs's link row. */
-const EDGE_FLAGS = { blocks: "blocks", relates: "relates" };
-
-const edgeSaid = (edge) =>
-  `${edge?.otherDisplayId ?? edge?.otherIssueId ?? "the other end"} by ${edge?.kind ?? "an unnamed kind"}`;
+const edgeSaid = (edge) => `${otherOf(edge) ?? "the other end"} by ${edge?.kind ?? "an unnamed kind"}`;
 
 /* The edge id is the tracker's and no caller holds one, so the removal reads the pair's edges. */
 const edgeBetween = async (subjectId, subject, otherId, other) => {
@@ -169,7 +166,7 @@ const edgeBetween = async (subjectId, subject, otherId, other) => {
 };
 
 const wroteEdge = async (subject, asked) => {
-  const kind = Object.keys(EDGE_FLAGS).find((one) => asked[one] !== undefined);
+  const kind = EDGE_KINDS.find((one) => asked[one] !== undefined);
   const other = kind ? asked[kind] : asked.unlink;
   const [subjectId, otherId] = await Promise.all([documentIdOf(subject), documentIdOf(other)]);
   if (subjectId === otherId) {
@@ -178,20 +175,21 @@ const wroteEdge = async (subject, asked) => {
   }
   /* The blocked end's order moves, so it is the end the route is taken against. Neither end is
      claimed for an edge, and the live check is the last read before the write. */
-  const blocked = kind === "blocks" ? otherId : subjectId;
-  const blockedRef = kind === "blocks" ? other : subject;
-  const renewed = await renew(blocked, blockedRef, undefined, null, { finder: true });
+  const blocked = kind === "blocks"
+    ? { id: otherId, ref: other, dependsOnId: subjectId }
+    : { id: subjectId, ref: subject, dependsOnId: otherId };
+  const renewed = await renew(blocked.id, blocked.ref, undefined, null, { finder: true });
   await Promise.all([notAnothers(subjectId, subject), notAnothers(otherId, other)]);
-  console.log(finderSaid(blockedRef, renewed));
+  console.log(finderSaid(blocked.ref, renewed));
   if (!kind) {
     const found = await edgeBetween(subjectId, subject, otherId, other);
     await write("forge_issues", { action: "unlink_edge", documentId: subjectId, edgeId: found.edgeId });
     return `${subject} —/— ${other}: removed the edge to ${edgeSaid(found)}.`;
   }
-  await write("forge_issues", { action: "link", documentId: blocked,
-    data: { dependsOnId: kind === "blocks" ? subjectId : otherId, kind: EDGE_FLAGS[kind] } });
-  return `${subject} ${kind} ${other}: written on the ${kind === "blocks" ? other : subject} `
-    + `dependency route, and reads back under ${kind === "blocks" ? "blockedBy" : "relates"} there.`;
+  await write("forge_issues", { action: "link", documentId: blocked.id,
+    data: { dependsOnId: blocked.dependsOnId, kind } });
+  return `${subject} ${kind} ${other}: written on the ${blocked.ref} dependency route, and reads back `
+    + `under ${kind === "blocks" ? "blockedBy" : "relates"} there.`;
 };
 
 export const commands = {
@@ -274,11 +272,7 @@ export const commands = {
   issue: async ([reference, ...rest]) => {
     if (!reference) fail(usageOf("issue"));
     const { fields, full, ...asked } = flags(rest, "issue", ["--full"], { usage: usageOf("issue") });
-    const edges = [...Object.keys(EDGE_FLAGS), "unlink"].filter((one) => asked[one] !== undefined);
-    if (edges.length > 1) {
-      fail(`issue: ${edges.map((one) => `--${one}`).join(" and ")} are separate edges and a call `
-        + "writes one. Nothing was sent.");
-    }
+    const edges = exclusive(asked, [...EDGE_KINDS, "unlink"], "issue", "edges and a call writes one");
     if (edges.length) return console.log(await wroteEdge(reference, asked));
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
     const documentId = await documentIdOf(reference);

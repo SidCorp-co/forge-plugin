@@ -195,9 +195,9 @@ const unavailable = (verb) => {
     return `\`forge ${verb}\` is withheld on this machine — \`forge doctor --show ${verb}\` offers it again`;
   }
   const blocked = blockedBy(verb);
-  if (!blocked) return null;
-  return blocked.said
-    ?? `\`forge ${verb}\` cannot spend ${blocked.key} on this credential — \`forge doctor\` measured that`;
+  return blocked
+    ? `\`forge ${verb}\` cannot spend ${blocked.key} on this credential — \`forge doctor\` measured that`
+    : null;
 };
 
 export const wrappedRefusal = (tool, action) => {
@@ -224,7 +224,7 @@ export const offeredVerbs = () => {
 export const blockedBy = (verb) => {
   const row = rowFor(verb);
   const key = gateKey(row);
-  return key && isGated(key) ? { key, said: row[4]?.refusal ?? null } : null;
+  return key && isGated(key) ? { key } : null;
 };
 
 /* A gated tool's schema is an invitation to a call that cannot succeed. */
