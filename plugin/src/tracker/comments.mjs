@@ -98,14 +98,24 @@ export const credited = (name, args, answer, ev = null) => {
 
 const at = (comment) => String(comment?.createdAt ?? "").slice(0, 19) || "an unrecorded time";
 
-/* Whole and as their authors wrote them — the refusal is the delivery, so no body is trimmed. */
-const bodies = (ref, unshown) =>
-  unshown.map((one, index) => `--- ${ref}, comment ${index + 1} of ${unshown.length}, posted `
-    + `${at(one)} ---\n${String(one?.body ?? "")}`);
+/* Whole and as their authors wrote them — the refusal is the delivery, so no body is trimmed. The id is asked for only where the thread was: a delivery is read and never cited, and the caller that must name a comment back is the write that could not read its own id. */
+const bodies = (ref, unshown, withId = false) =>
+  unshown.map((one, index) => `--- ${ref}, comment ${index + 1} of ${unshown.length}`
+    + `${withId ? `, ${idOf(one)}` : ""}, posted ${at(one)} ---\n${String(one?.body ?? "")}`);
 
 const heading = ({ ref, comments, hasMore, unshown, ...page }) =>
   `${ref}: ${unshown.length} of ${comments.length} comment(s) are new to this session`
   + (hasMore === false ? "" : `. ${cutLine(page)}`);
+
+/* The thread as a reading of its own: asked for, it is delivered and credited, so the write after it is not held for what this printed. `forge_comments.list` was the one route no verb reached. Takes the printer rather than handing the text back, because the credit follows the delivery and a caller that returns between the two has credited a reading nobody saw. */
+export const readThread = async (ref, documentId, print, ev = null) => {
+  const page = await commentPage(documentId);
+  const cut = cutIn(page);
+  const said = [`${ref}: ${page.comments.length} comment(s)${cut ? `. ${cut}` : ""}`,
+    ...bodies(ref, page.comments, true)];
+  print(said.join("\n\n"));
+  noteShown(sessionKey(ev), documentId, page.comments);
+};
 
 export const delivery = (owed) => [
   `Hold — this writes to ${owed.map((one) => one.ref).join(", ")}, and every comment on the page the `

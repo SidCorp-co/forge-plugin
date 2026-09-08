@@ -12,7 +12,8 @@ import {
   rowsOf,
   shortOf,
 } from "./tracker/issues.mjs";
-import { commentPage, creditAfter, credited, cutIn, mustBeShown, postComment } from "./tracker/comments.mjs";
+import { commentPage, creditAfter, credited, cutIn, mustBeShown, postComment, readThread }
+  from "./tracker/comments.mjs";
 import { attachmentNames, uploadAll, uploadRead, urlBearing } from "./tracker/evidence.mjs";
 import {
   KINDS_HELP,
@@ -217,7 +218,9 @@ export const commands = {
   schema: ([name, ...rest]) => {
     if (!name) fail(usageOf("schema"));
     const { all } = flags(rest, "schema", ["--all"], { usage: usageOf("schema") });
-    const rows = served().filter((row) => row.tool === name || row.key === name);
+    /* Or an ownership prefix, which is what a verb's help points at: the tracker spells some actions in the tool's own name, so `forge_projects` names seven routes and matches none whole. */
+    const rows = served().filter((row) =>
+      row.tool === name || row.key === name || String(row.key ?? "").startsWith(`${name}.`));
     if (!rows.length) fail(suggestTool(name));
     refuseIfGated(name, all);
     show(Object.fromEntries(rows.map((row) => [row.key, { requests: row.requests, sends: row.sends }])));
@@ -338,9 +341,14 @@ export const commands = {
     const usage = usageOf("comment");
     const { positionals, flagArgv } = partition(argv, [], { verb: "comment", usage });
     const [reference, path] = positionals;
-    if (!reference || !path) fail(usage);
+    if (!reference) fail(usage);
     const { title } = flags(flagArgv, "comment", [], { usage });
     const issue = await documentIdOf(reference);
+    /* No body is the read: one verb for the thread, whichever direction it is going. */
+    if (!path) {
+      if (title !== undefined) fail("comment: --title frames a body, and this call names none. Drop it to read the thread.");
+      return readThread(reference, issue, (said) => console.log(said));
+    }
     await mustBeShown([{ ref: reference, documentId: issue }]);
     const body = await bodyFrom(path);
     const renewed = await renew(issue, reference, undefined, null, { finder: true });

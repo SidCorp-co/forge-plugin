@@ -78,7 +78,7 @@ globalThis.fetch = async (address, init = {}) => {
 };
 
 const {
-  commentPage, creditCaused, cutIn, cutLine, mustBeShown, postComment, refusalFor,
+  commentPage, creditCaused, cutIn, cutLine, mustBeShown, postComment, readThread, refusalFor,
 } = await import("../../src/tracker/comments.mjs");
 const { sessionKey } = await import("../../src/shown/ledger.mjs");
 /* How a credit survives is the journal's, and its cases went with it to test/shown/journal.test.mjs. */
@@ -568,6 +568,23 @@ test("a thread the tracker calls whole but counts higher is said and holds nothi
   assert.match(asked.short[0].said, /called this thread whole at 1 comment\(s\) and counted 9 on it/u);
   assert.equal(asked.short[0].holds, false);
   assert.equal(cutIn({ hasMore: false }), null, "and nothing downstream reads it as a short read");
+});
+
+/* The credit follows the delivery, which is why this surface takes the printer: crediting first and
+   handing the text back would mark a thread delivered that a caller failing between the two never
+   showed, and the next write would pass on a reading nobody saw. */
+test("a thread whose print throws credits nothing, and one that prints credits every body", async () => {
+  page = { comments: [one("t1", "the first"), one("t2", "the second")], hasMore: false };
+  await assert.rejects(() => readThread("ISS-57", ISSUE, () => {
+    throw new Error("the caller went away");
+  }), /the caller went away/u);
+  const before = shownTo(sessionKey(), ISSUE);
+  assert.ok(!before.has("t1") && !before.has("t2"), "neither body is credited, this session or any");
+  const said = [];
+  await readThread("ISS-57", ISSUE, (text) => said.push(text));
+  const shown = shownTo(sessionKey(), ISSUE);
+  assert.ok(shown.has("t1") && shown.has("t2"), "and both bodies are credited once they are printed");
+  assert.match(said[0], /ISS-57: 2 comment\(s\)/u, "under a heading counting the whole thread");
 });
 
 test("one check is one comments list, and no read of the issue at all", async () => {

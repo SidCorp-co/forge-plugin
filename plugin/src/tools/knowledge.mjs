@@ -20,7 +20,7 @@ export const USAGE = [
   "  get <slug>                             the entry's fields, then its body as markdown",
   "  write <slug> <file.md|@file|-> --kind K [--title T] [--injection I] [--confidence C]",
   "                                         [--meta k=v]...  upsert by slug, read back after",
-  "  search <query> [--limit n]             the store by meaning, nearest first",
+  "  search <query> [--limit n]             the records this project holds, by meaning, nearest first",
   "  delete <slug>                          remove it, and say whether there was one",
   "",
   "The values --kind, --injection and --confidence take are the tracker's own: `forge schema forge_knowledge`",
@@ -246,11 +246,12 @@ const SEARCH_USAGE = "Usage: forge knowledge search <query> [--limit n]";
 const search = async ([query, ...rest]) => {
   if (!query) fail(`${SEARCH_USAGE}\n${USAGE}`);
   const { limit } = flags(rest, "knowledge search", [], { usage: SEARCH_USAGE });
-  const answer = await scoped("forge_knowledge", { action: "search", query, topK: limitFrom(limit) });
-  const hits = answer?.knowledge ?? [];
+  const answer = await scoped("forge_memory.search", { query, topK: limitFrom(limit) });
+  const hits = answer?.hits ?? [];
   for (const hit of hits) {
-    console.log(`${(hit.score ?? 0).toFixed(2)}  ${(hit.slug ?? "").padEnd(SLUG_WIDTH)} `
-      + `${(hit.kind ?? "").padEnd(KIND_WIDTH)} ${hit.title ?? ""}`);
+    const opens = String(hit.text ?? "").split("\n").find((one) => one.trim()) ?? "";
+    console.log(`${(hit.score ?? 0).toFixed(2)}  ${String(hit.source ?? "").padEnd(KIND_WIDTH)} `
+      + `${String(hit.sourceRef ?? "").padEnd(SLUG_WIDTH)} ${opens.slice(0, 90)}`);
   }
   console.log(`\n${hits.length} hit(s) for \`${query}\``);
 };

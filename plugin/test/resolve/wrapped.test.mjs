@@ -30,11 +30,36 @@ test("a pair a verb claims answers with that verb, and one no row claims answers
   assert.equal(verbFor("forge_issues", "transition").line, "`forge advance`");
   assert.equal(verbFor("forge_issues", "mark_merged").line, "`forge record merged`");
   assert.equal(verbFor("forge_issues", "unmark").line, "`forge record merged --undo`");
-  assert.equal(verbFor("forge_comments", "list"), null);
+  assert.equal(verbFor("forge_comments", "list").line, "`forge comment ISS-45`");
+  /* Answered from the route, not the owning column, the ask arriving whole with no action. */
+  assert.equal(verbFor("forge_projects.list", null).verb, "project");
+  assert.equal(verbFor("forge_memory.search", null).line, "`forge knowledge search`");
+  assert.equal(verbFor("forge_memory", "search").line, "`forge knowledge search`");
   assert.equal(verbFor("forge_memory_write", "create"), null, "a tool no row names claims nothing");
   /* An action read off the prototype is claimed by nobody and would name a function as the command. */
   assert.equal(verbFor("forge_issues", "toString"), null);
   assert.equal(verbFor("forge_issues", "constructor"), null);
+});
+
+/* Both directions of one claim, across two tables and belonging to neither, so the transport stays
+   independent of the verb surface. A route no verb prints is a raw call somebody must make; a claim
+   on a route the table does not serve refuses when typed, which is how `knowledge search` shipped. */
+test("every route a verb owns exists, and every route the table serves is some verb's", async () => {
+  const { served } = await import("../../src/tracker/rest.mjs");
+  const owner = new Map();
+  for (const row of VERBS) {
+    for (const key of Object.keys(wrapsOf(row) ?? {})) {
+      owner.set(key, [...(owner.get(key) ?? []), row[0]]);
+    }
+  }
+  const routes = served().map((one) => one.key ?? one.tool);
+  assert.ok(routes.length > 20, `${routes.length} route(s) read; the table was not reached`);
+  assert.deepEqual(routes.filter((key) => !owner.has(key)), [],
+    "a route no verb prints is a raw call this CLI is still asking somebody to make");
+  assert.deepEqual([...owner.keys()].filter((key) => !routes.includes(key)), [],
+    "a verb claims a route the transport does not serve, so typing it refuses");
+  assert.deepEqual([...owner].filter(([, verbs]) => verbs.length > 1).map(([key]) => key), [],
+    "two verbs claim one route, so the refusal names whichever row is read first");
 });
 
 /* Built here rather than borrowed from the table: the last live row of this shape went with the
@@ -44,7 +69,7 @@ const GATED_ROW = ["gated-verb", "[--x]", "a row gated on one action of its tool
   { action: "spend" }];
 
 test("the action a row spends is read out of whichever key of its gate object carries it", () => {
-  assert.deepEqual(wrapsOf(GATED_ROW), { spend: "`forge gated-verb`" },
+  assert.deepEqual(wrapsOf(GATED_ROW), { "forge_example.spend": "`forge gated-verb`" },
     "a gated row is the route to the action it names, and spelling it twice is how the two go out of step");
   /* Off the table, so the row exists: named, a verb that has since gone passes this on two undefineds. */
   const unclaimed = VERBS.find((row) => !row[4]?.wraps && !row[4]?.action);
@@ -61,26 +86,18 @@ test("routing an action leaves every capability key exactly where it was", () =>
   assert.equal(gateKey(rowFor("knowledge")), "forge_knowledge");
   assert.equal(gateKey(rowFor("issue")), "forge_issues");
   assert.equal(gateKey(rowFor("attach")), "forge_uploads");
-  assert.equal(gateKey(rowFor("project")), "forge_projects.list");
+  assert.equal(gateKey(rowFor("project")), "forge_projects.list",
+    "the seven it owns are one column and the one it spends is the other");
   assert.equal(gateKey(GATED_ROW), "forge_example.spend");
+  /* The two owning what they must not be hidden by: `doctor` is the only surface allowed to say a thing is gated, so a gate on what it probes may not take it away. */
+  assert.equal(gateKey(rowFor("doctor")), null);
+  assert.equal(gateKey(rowFor("guide")), null);
   for (const row of VERBS) {
     if (!row[4]?.wraps) continue;
     assert.equal(row[4].action, undefined, `${row[0]} names an action beside its routing entry`);
-    assert.equal(gateKey(row), row[3], `${row[0]} composed a key out of its routing entry`);
+    const owed = Object.hasOwn(row[4], "needs") ? row[4].needs : row[3];
+    assert.equal(gateKey(row), owed, `${row[0]} composed a key out of its routing entry`);
   }
-});
-
-test("no two rows claim the same tool and action", () => {
-  const seen = new Map();
-  for (const row of VERBS) {
-    for (const action of Object.keys(wrapsOf(row) ?? {})) {
-      const key = `${row[3]} ${action}`;
-      assert.equal(seen.get(key), undefined,
-        `${key} is claimed by ${seen.get(key)} and ${row[0]}: a raw call cannot be told which to type`);
-      seen.set(key, row[0]);
-    }
-  }
-  assert.ok(seen.size > 5, "the column is not empty");
 });
 
 /* The class of regression this table creates, watched where it is created rather than one instance
@@ -158,21 +175,22 @@ const gated = async () => {
 };
 
 /* Written, not probed: doctor records four capabilities and `forge_issues` is none, so the state the `needs` rule was declared for is reachable only by seeding it. */
-const gatedIssues = async () => {
+const gatedTool = async (tool) => {
   const tracker = await fakeTracker({
-    declared: ["forge_issues"],
+    declared: [tool, "forge_project_pm"],
     answer: {
       forge_guide: () => ({ guides: [] }),
+      forge_project_pm: () => ({ nodes: [] }),
       "forge_projects.list": () => ({ projects: [{ slug: SLUG, id: "1e1c1a1e-0000-4000-8000-00000000027d" }] }),
     },
   });
-  const cwd = tempRoom("wrapped-issues-");
+  const cwd = tempRoom("wrapped-gated-");
   writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: SLUG }));
   const at = join(tracker.env.XDG_CONFIG_HOME, "forge", "config.json");
   const held = JSON.parse(readFileSync(at, "utf8"));
   writeFileSync(at, JSON.stringify({
     ...held,
-    capabilities: { [SLUG]: { checkedAt: "2026-09-08T00:00:00.000Z", forge_issues: "not for this token" } },
+    capabilities: { [SLUG]: { checkedAt: "2026-09-08T00:00:00.000Z", [tool]: "not for this token" } },
   }));
   return {
     close: tracker.close,
@@ -229,7 +247,7 @@ test("a withheld verb's action is refused with the verb and the withholding, not
 
 /* Judged on the word typed, `forge list` has no row, is blocked by nothing, and performs the gated `forge issue` anyway — a way round the refusal withholding-a-verb.md exists for (F1). */
 test("a form is refused by the capability its verb needs, and answers with the same line", async () => {
-  const { ran, close } = await gatedIssues();
+  const { ran, close } = await gatedTool("forge_issues");
   try {
     const verb = await ran("issue", "-h");
     assert.equal(verb.status, 1, verb.stdout);
@@ -245,12 +263,27 @@ test("a form is refused by the capability its verb needs, and answers with the s
   }
 });
 
-test("the graph read the same tool answers is not refused, because no verb claims it", async () => {
+test("the graph read is refused with the verb that prints it, and that verb still reads it", async () => {
   const { ran, close } = await gated();
   try {
     const run = await ran("call", "forge_project_pm", '{"action":"graph"}');
-    assert.equal(run.status, 0, run.stderr);
-    assert.doesNotMatch(run.stderr, /wraps/u);
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /forge_project_pm graph is what `forge doctor` wraps/u, run.stderr);
+    const doctor = await ran("doctor");
+    assert.match(doctor.stdout, /dependency graph/u, "and the verb that owns it still probes it");
+  } finally {
+    await close();
+  }
+});
+
+/* Why `doctor` spends an explicit nothing rather than the tool it owns: gated on `forge_config`, the one verb that records a capability refusal would be hidden by the record it wrote, and no run could clear it. Derived, `needs` is `row[3]`, so this is the arm that makes the column worth having. */
+test("a recorded refusal of the tool doctor owns hides neither the verb nor its probe", async () => {
+  const { ran, close } = await gatedTool("forge_config");
+  try {
+    const listed = await ran("-h");
+    assert.match(listed.stdout, /^ {2}doctor /mu, listed.stdout);
+    const doctor = await ran("doctor");
+    assert.match(doctor.stdout, /dependency graph/u, "and it asks again rather than trusting the record");
   } finally {
     await close();
   }

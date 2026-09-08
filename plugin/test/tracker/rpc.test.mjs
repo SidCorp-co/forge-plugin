@@ -134,11 +134,13 @@ test("a wrapped title comes off the transport as one line, with nothing added ar
   assert.ok(!run.stdout.includes(MARKER), "and no marker anywhere in what the verb printed");
 });
 
-test("a raw call prints every body of a page with no marker in any of them", async () => {
-  const run = await ran("call", "forge_comments", JSON.stringify({ action: "list", filters: { issue: "11111111-1111-4111-8111-111111111111" } }));
+/* Off the verb that reads the thread, a raw call for it being refused now, so the fence is proved on the surface a caller has. */
+test("the thread read prints every body of a page with no marker in any of them", async () => {
+  const run = await ran("comment", "11111111-1111-4111-8111-111111111111");
   assert.equal(run.status, 0, run.stderr);
-  const printed = JSON.parse(run.stdout).comments.map((one) => one.body);
-  assert.deepEqual(printed, ["the design is on this comment", "and its second half"]);
+  for (const body of ["the design is on this comment", "and its second half"]) {
+    assert.ok(run.stdout.includes(body), `${body} went unprinted:\n${run.stdout}`);
+  }
   assert.ok(!run.stdout.includes(MARKER));
 });
 

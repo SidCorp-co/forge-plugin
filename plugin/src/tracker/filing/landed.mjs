@@ -9,10 +9,8 @@ const AGAIN = "Do not send this call again before reading that id: a write the t
 /* No route reads a comment by its own id, so the thread's list is the read this names (ISS-697). */
 const READ_ISSUE = (documentId) => `Read it with \`forge issue ${documentId}\`.`;
 
-const READ_THREAD = (documentId) => "Read it with \`forge call forge_comments.list "
-  + `'{"filters":{"issue":"${documentId}"}}'\`, which lists a page of the thread with the id of `
-  + "every comment on it; pass the `nextCursor` it names back in `filters.cursor` until `hasMore` "
-  + "is false.";
+const READ_THREAD = (documentId) => `Read it with \`forge comment ${documentId}\`, which prints the `
+  + "whole thread, every page of it, with the id of each comment in its marker line.";
 
 /* A read that raises would exit 1 on a write that landed, so a refusal is handed back instead. */
 const asked = async (read) => {

@@ -157,7 +157,7 @@ export const gatingRefusal = (answer) => {
 /* Declared is not callable — all 67 are declared to a PAT and six then refuse. Probed, read-only. */
 const CAPABILITIES = [
   ["guides", "forge_guide", { action: "list" }, "the tracker's own lifecycle rules"],
-  ["dependency graph", "forge_project_pm", { action: "graph" }, "reading blocks/relates edges"],
+  ["project pm", "forge_project_pm", { action: "graph" }, "the counts, the runner load and the edges"],
   ["knowledge", "forge_knowledge", { action: "list" }, "codebase context"],
   ["memory", "forge_memory.search", { query: "forge", topK: 1 }, "recall across sessions"],
 ];
@@ -187,7 +187,8 @@ const probe = async (scoped, slug) => {
     }
   }
   remember(slug, findings);
-  return { ...findings, gated };
+  const answered = Object.fromEntries(CAPABILITIES.map(([, tool], index) => [tool, answers[index]]));
+  return { ...findings, gated, answered };
 };
 
 /* Bodies are one call each and `list` carries none, so the twelve go out together. */
@@ -392,9 +393,9 @@ const LEVELS = { note: NOTE, miss: BAD };
    configuration with its source, and the project is a level of it. */
 const projectSettings = () => import("./project-settings.mjs");
 
-const checkProject = async (credentials) => {
+const checkProject = async (credentials, graph = null) => {
   const { projectReport } = await projectSettings();
-  const { rows, brief } = await projectReport({ credentials });
+  const { rows, brief } = await projectReport({ credentials, graph });
   for (const row of rows) line(LEVELS[row.level] ?? OK, row.label, row.detail);
   if (!brief.length) return;
   console.log("");
@@ -424,7 +425,7 @@ const checkEndpoint = async (full, credentials) => {
         "recorded, so `forge tools`, `forge schema` and the usage list now withhold them.",
     );
   }
-  await checkProject(credentials);
+  await checkProject(credentials, findings.answered?.forge_project_pm ?? null);
 };
 
 const install = (values) => {

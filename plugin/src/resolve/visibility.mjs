@@ -17,13 +17,15 @@ export const VERBS = [
   ["issue", "[<uuid|ISS-45>] [--status s] [--search q] [--limit n] [--fields a,b] [--full] [--set f=v --why W] [--blocks|--relates|--unlink ISS-46]",
     "every matching issue with no key, or one body and the edges on it with one",
     "forge_issues", { group: BACKLOG, wraps: { list: "`forge issue`", get: "`forge issue ISS-45`",
+      at: "`forge issue ISS-45`",
       update: "`forge issue --set`", link: "`forge issue --blocks`", unlink_edge: "`forge issue --unlink`" } }],
   ["new", "<file.md|@file|-> --title T --category C [--status S] [--priority P] [--complexity xs|s|m|l|xl] [--with ISS-45,ISS-46] [--new]",
     "file one, read against the shape its category needs",
     "forge_issues", { group: BACKLOG, wraps: { create: "`forge new`" } }],
-  ["comment", "<uuid|ISS-45> <file.md|@file|-> [--title T]",
-    "post a comment; the lease on the record decides whether it renews one",
-    "forge_comments", { group: BACKLOG, wraps: { create: "`forge comment`" } }],
+  ["comment", "<uuid|ISS-45> [<file.md|@file|->] [--title T]",
+    "the thread whole with no body, or post one; the lease on the record decides whether it renews",
+    "forge_comments", { group: BACKLOG,
+      wraps: { create: "`forge comment`", list: "`forge comment ISS-45`" } }],
   ["claim", "<uuid|ISS-45> [--minutes n] [--next <line>] [--pushed] [--review] [--open <line>] [--ready] [--take] [--judged] [--reconciled <sha>]",
     "take the issue's lease, or reclaim one a dead run left", "forge_issues", { group: FLOW }],
   ["resume", "<uuid|ISS-45> [...]", "one issue's whole context, re-minted from the record and the worklog",
@@ -44,11 +46,22 @@ export const VERBS = [
   /* `--tracker` unnamed, a maintainer's alone (docs/cli/withholding-a-verb.md); `--for` every run's. */
   ["guide", "[contract [part]|<skill> [reference]|slug] [--for ISS-nn]",
     "this plugin's contract and each skill's method, one part per call, and the tracker's guides this flow stands behind",
-    null, { group: METHOD }],
-  /* The tracker spells this action in the tool's own name, so the gate is that name whole. */
+    "forge_guide", { group: METHOD, needs: null,
+      wraps: { list: "`forge guide`", get: "`forge guide <slug>`" } }],
+  /* Owns the seven and spends the one the tracker spells in its own tool name, which is `needs`. */
   ["project", "[new --name N --slug S | <slug> [--set k=v|--archive|--unarchive]]",
     "the projects themselves, this CLI's one verb outside any project's scope",
-    "forge_projects.list", { group: HARNESS }],
+    "forge_projects", { group: HARNESS, needs: "forge_projects.list",
+      wraps: {
+        list: "`forge project`",
+        get: "`forge project <slug>`",
+        create: "`forge project new`",
+        read: "`forge project <slug>`",
+        update: "`forge project <slug> --set`",
+        archive: "`forge project <slug> --archive`",
+        unarchive: "`forge project <slug> --unarchive`" } }],
+  /* The store's own search left with its route; the recall that replaced it is another tool's, and
+     `needs` stays this one's, because a refused recall must not hide the three reads that work. */
   ["knowledge", "<list|get|write|search|delete>",
     "what a run learned of this codebase, stored where the next one reads it", "forge_knowledge",
     { group: METHOD,
@@ -56,7 +69,7 @@ export const VERBS = [
         list: "`forge knowledge list`",
         get: "`forge knowledge get`",
         upsert: "`forge knowledge write`",
-        search: "`forge knowledge search`",
+        "forge_memory.search": "`forge knowledge search`",
         delete: "`forge knowledge delete`" } }],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials",
     null, { group: HARNESS }],
@@ -72,7 +85,16 @@ export const VERBS = [
     + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text>] [--title T]"
     + " [--confidence C] [--meta k=v]... [--full]",
     "what resolves and from where, this project's own record included, and the keys of it that are written here",
-    null, { group: HARNESS }],
+    "forge_config", { group: HARNESS, needs: null,
+      wraps: {
+        get: "`forge doctor`",
+        pipeline: "`forge doctor`",
+        set_pipeline: "`forge doctor --set`",
+        facts: "`forge doctor`",
+        set_facts: "`forge doctor --set`",
+        "forge_project_pm.graph": "`forge doctor`",
+        "forge_project_pm.snapshot": "`forge doctor`",
+        "forge_project_pm.runner_load": "`forge doctor`" } }],
   ["stats", "<runs|eval|marks>",
     "where an issue-flow run's time and rounds go, read off the transcripts the harness keeps", null,
     { group: HARNESS }],
@@ -162,28 +184,40 @@ export const channelRefusal = (verb) =>
       + ` ${pluginChannel().from}, so a defect in this plugin goes in the run's report and is filed nowhere.`
     : null);
 
-/* A row naming one action is gated on it, and `row[3]` stays the schema pointer either way. Off
-   `action` and never off the column existing, or a routing row composes a key nothing records. */
-export const gateKey = (row) => (row?.[4]?.action ? `${row[3]}.${row[4].action}` : row?.[3]);
+/* Two jobs, two columns: `row[3]` is the tool whose routes this verb OWNS, `needs` the capability it
+   SPENDS, and a verb can own a route it must not be hidden by. Read by presence, so an explicit
+   `null` spends none and an omitted one derives what it always did. */
+export const gateKey = (row) => {
+  const held = row?.[4];
+  if (held && Object.hasOwn(held, "needs")) return held.needs;
+  return held?.action ? `${row[3]}.${held.action}` : row?.[3];
+};
 
-/* The actions this verb is the ROUTE for — not every action it spends. A gated row routes the one
-   it names, every other route says so in `wraps`, and wrapped.test.mjs watches the two apart. */
-export const wrapsOf = (row) =>
-  row?.[4]?.wraps ?? (row?.[4]?.action ? { [row[4].action]: `\`forge ${row[0]}\`` } : null);
+/* One spelling everywhere, `<tool>.<action>`: a claim writes the bare action under the tool its row owns, or the whole key where the route is another tool's, and two spellings of one route is how a claim stops matching. */
+export const routeKey = (owns, action) => (String(action).includes(".") ? String(action) : `${owns}.${action}`);
 
-/* And read backwards: which verb is the route to the tool and action a raw call asks for. A pair no
-   row claims is what `forge call` is left for, and the table's silence is that decision. */
+/* The routes this verb is the ROUTE for, not every route it spends; wrapped.test.mjs keeps the two apart. */
+export const wrapsOf = (row) => {
+  const claims = row?.[4]?.wraps
+    ?? (row?.[4]?.action ? { [row[4].action]: `\`forge ${row[0]}\`` } : null);
+  if (!claims) return null;
+  return Object.fromEntries(Object.entries(claims)
+    .map(([action, line]) => [routeKey(row[3], action), line]));
+};
+
+/* Read backwards: which verb is the route a raw call asks for, the table's silence being a decision. */
 export const actionIn = (input) => {
   const held = input?.action;
   return typeof held === "string" ? held : null;
 };
 
+/* The ask too, the callers spelling it differently: `forge call` types the whole key with no action, the MCP gate a bare tool with one. Matched on the route, never the owning column, or a verb owning another tool's route answers for nothing. */
 export const verbFor = (tool, action) => {
-  if (!tool || !action) return null;
+  if (!tool || (!action && !String(tool).includes("."))) return null;
+  const wanted = String(tool).includes(".") ? String(tool) : routeKey(tool, action);
   for (const row of VERBS) {
-    if (row[3] !== tool) continue;
     const claimed = wrapsOf(row);
-    if (claimed && Object.hasOwn(claimed, action)) return { verb: row[0], line: claimed[action] };
+    if (claimed && Object.hasOwn(claimed, wanted)) return { verb: row[0], line: claimed[wanted] };
   }
   return null;
 };

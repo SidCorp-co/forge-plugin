@@ -155,8 +155,8 @@ const POINTS_AT = {
   spec: null,
   attach: null,
   next: null,
-  guide: null,
-  project: "forge_projects.list",
+  guide: "forge_guide",
+  project: "forge_projects",
   knowledge: "forge_knowledge",
   cloudflare: null,
   codex: null,
@@ -179,7 +179,7 @@ test("a retired name is in no row, and the row that took its write over says wha
     const offering = VERB_NAMES.filter((verb) => rowOf(verb)?.includes(`--${name}`));
     assert.deepEqual(offering, [], `--${name} is retired and still offered by: ${offering.join(", ")}`);
   }
-  assert.match(rowOf("comment"), /\[--title T\] post a comment; the lease on the record decides/u);
+  assert.match(rowOf("comment"), /\[--title T\] the thread whole with no body, or post one/u);
   assert.match(rowOf("feedback"), /`forge new` with the kind, the project and the Where filled in/u,
     "and the verb kept as a name says what it expands to");
 });

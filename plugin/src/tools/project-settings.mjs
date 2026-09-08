@@ -160,15 +160,54 @@ export const writeSetting = async (given) => {
   return [`${route.name}.${route.key}: ${shown(kept)}  ← ${resource.said}`];
 };
 
+/* The project's work as the tracker counts it, beside its configuration because both are the project's
+   own record. The graph rides in from the capability probe that already asked for it rather than being
+   asked twice, and its row says what the reading did not reach: the tracker answers this project
+   truncated, so a count printed as if it were the whole graph would be a lie a reader cannot see. */
+const pmRows = (snapshot, load, graph) => {
+  /* A refusal read as an answer prints zeros, which is a measurement this never made. */
+  const refused = [snapshot, load, graph].map((one) => one?.refused).find(Boolean);
+  if (refused) return [{ level: "note", label: "project pm", detail: `not read: ${refused}` }];
+  const counts = Object.entries(snapshot?.countsByStatus ?? {})
+    .filter(([, held]) => held)
+    .map(([status, held]) => `${held} ${status}`)
+    .join(", ");
+  const stalled = (snapshot?.stalledIssues ?? []).length;
+  const runners = (load?.runners ?? []).length;
+  const reached = `${(graph?.edges ?? []).length} edge(s) over ${(graph?.nodes ?? []).length} `
+    + `issue(s) at depth ${graph?.depth ?? "unstated"}`;
+  return [
+    { level: snapshot?.countsByStatus ? "ok" : "note",
+      label: "issue counts",
+      detail: snapshot?.countsByStatus
+        ? (counts || "no issue in any status")
+        : "the tracker named no counts, so this is not a reading of an empty project" },
+    { level: stalled ? "note" : "ok",
+      label: "work queue",
+      detail: `${snapshot?.queuedCount ?? 0} queued, ${(snapshot?.activeJobs ?? []).length} active, `
+        + `${stalled} stalled, ${(snapshot?.recentFailures ?? []).length} recent failure(s)` },
+    { level: "ok",
+      label: "runner load",
+      detail: runners ? `${runners} runner(s) registered` : "no runner registered here" },
+    { level: graph?.truncated ? "note" : "ok",
+      label: "dependency graph",
+      detail: graph?.truncated
+        ? `${reached}, and ${graph?.remainingNodes ?? 0} issue(s) it did not reach`
+        : reached },
+  ];
+};
+
 /** Every level of the project's own record in one reading: the branches and the deploy, then each
- *  key of the two configuration resources, then the brief as prose. The four reads go together —
- *  one report is one round trip's worth of waiting, not four. */
-export const projectReport = async ({ credentials } = {}) => {
-  const [policy, deploy, settings, brief] = await Promise.all([
+ *  key of the two configuration resources, the work the tracker counts, then the brief as prose. The
+ *  reads go together — one report is one round trip's worth of waiting, not six. */
+export const projectReport = async ({ credentials, graph = null } = {}) => {
+  const [policy, deploy, settings, brief, snapshot, load] = await Promise.all([
     releasePolicy(), stagingDeploy(), readSettings(), readBrief(),
+    scoped("forge_project_pm.snapshot", {}, true), scoped("forge_project_pm.runner_load", {}, true),
   ]);
   return {
-    rows: [...projectRows({ policy, deploy, credentials }), ...settingRows(settings)],
+    rows: [...projectRows({ policy, deploy, credentials }), ...settingRows(settings),
+      ...pmRows(snapshot, load, graph)],
     brief: briefLines(brief),
   };
 };

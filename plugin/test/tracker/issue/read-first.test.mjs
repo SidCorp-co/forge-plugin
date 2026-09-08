@@ -21,6 +21,11 @@ const OTHER = "ee166bb0-839a-45a3-b436-036c2858d4d0";
 test("every verb that writes the record names its issue, and the read verbs name none", () => {
   const owed = {
     "forge comment ISS-29 @n.md": ["ISS-29"],
+    "forge comment ISS-29": [],
+    "forge comment ISS-29 --title T": [],
+    "forge comment ISS-29 --title T @n.md": ["ISS-29"],
+    "forge comment ISS-29 --title T -": ["ISS-29"],
+    "forge comment --title T ISS-29 @n.md": ["ISS-29"],
     "forge record plan ISS-29 -": ["ISS-29"],
     "forge claim ISS-29 --next 'go on'": ["ISS-29"],
     "forge attach issue ISS-29 shot.png": ["ISS-29"],

@@ -39,8 +39,13 @@ const state = {
     }),
     "forge_projects.get": () => ({ project: { previewDeploy: state.deploy } }),
     forge_knowledge: knowledge,
+    /* One handler for the three, because the fake routes every `pm/<what>` path to this tool. */
+    forge_project_pm: ({ action }) => (action === "snapshot" ? state.snapshot
+      : action === "runner_load" ? { runners: [{ id: "r-1" }] } : state.graph),
   },
   deploy,
+  graph: { nodes: [{ id: ISSUE }], edges: [], depth: 2, truncated: false, remainingNodes: 0 },
+  snapshot: { countsByStatus: { open: 3 }, activeJobs: [], stalledIssues: [], queuedCount: 0, recentFailures: [] },
 };
 
 const tracker = await fakeTracker(state);
@@ -91,6 +96,38 @@ test("the credential is named and not printed until the flag asks for it", async
   assert.doesNotMatch(held.stdout, new RegExp(PASSWORD, "u"));
   const asked = await ask("doctor", "--credentials");
   assert.match(asked.stdout, ROW("test credentials · password", PASSWORD), asked.stderr);
+});
+
+const NOTE_ROW = (label, detail) => new RegExp(`^\\[ note {1}\\] ${label}\\s+${detail}`, "mu");
+
+/* The three pm routes were called for liveness and their answers dropped, so a reader learned the
+   tool answered and nothing it said. A graph the tracker truncates is the case that makes the
+   difference visible: printed as a count alone it reads as the whole graph. */
+test("the pm readings are printed rather than probed for liveness alone", async () => {
+  state.graph = { nodes: [{ id: ISSUE }], edges: [], depth: 2, truncated: false, remainingNodes: 0 };
+  const run = await ask("doctor");
+  assert.match(run.stdout, ROW("issue counts", "3 open"), run.stdout);
+  assert.match(run.stdout, ROW("runner load", "1 runner\\(s\\) registered"), run.stdout);
+  assert.match(run.stdout, ROW("dependency graph", "0 edge\\(s\\) over 1 issue\\(s\\) at depth 2"), run.stdout);
+  assert.doesNotMatch(run.stdout, /did not reach/u, "a whole reading claims nothing was cut");
+});
+
+test("a graph the tracker cut says what the reading did not reach", async () => {
+  state.graph = { nodes: [{ id: ISSUE }], edges: [], depth: 2, truncated: true, remainingNodes: 579 };
+  const run = await ask("doctor");
+  assert.match(run.stdout,
+    NOTE_ROW("dependency graph", "0 edge\\(s\\) over 1 issue\\(s\\) at depth 2, and 579 issue\\(s\\) it did not reach"),
+    run.stdout);
+});
+
+/* Zeros are a measurement, and a refusal is not one: the row that reads a refusal as an answer would
+   report an empty project to a caller whose credential was simply told no. */
+test("a pm route that refuses prints no counts at all", async () => {
+  state.snapshot = { refused: "FORBIDDEN: pm is not enabled for this credential" };
+  const run = await ask("doctor");
+  assert.match(run.stdout, NOTE_ROW("project pm", "not read: .*FORBIDDEN"), run.stdout);
+  assert.doesNotMatch(run.stdout, /issue counts/u, "and no row claims a count it never read");
+  state.snapshot = { countsByStatus: { open: 3 }, activeJobs: [], stalledIssues: [], queuedCount: 0, recentFailures: [] };
 });
 
 test("the tracker's own field names reach no reader of this verb", async () => {

@@ -133,7 +133,8 @@ test("a comment absent from a thread the walk could not finish is unverified, ne
   state.answer = { forge_comments: () => page([{ documentId: "c-1" }], true) };
   const landed = await commentLanded("uuid-800", { documentId: "c-9" }, "ISS-800");
   assert.match(landed.line, /the thread could not be read to its end/u);
-  assert.match(landed.line, /forge call forge_comments\.list/u, "and the read it asks for is one that exists");
+  assert.match(landed.line, /`forge comment uuid-800`/u, "and the read it asks for is one that exists");
+  assert.doesNotMatch(landed.line, /forge call/u, "the raw route for it being the verb's own now");
 });
 
 /* `hasMore` absent. Reading it as `!hasMore` would be this reader inferring a whole page, so the

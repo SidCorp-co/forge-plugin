@@ -420,10 +420,9 @@ export const ROUTES = {
     answers: ({ page }) => ({ project: projectOf(page) }),
     sends: [],
   },
-  /* `projectRef` and not `documentId`: the reference keys below are resolved as issue keys on a raw
-     call, and a project id resolved as an issue answers about the wrong record. Nothing declares the
-     tracker's own DELETE — a route the table does not name cannot be sent. `account` says its
-     subject is the record and not the scope: the write announces it, and no prose language reaches it. */
+  /* `projectRef` and not `documentId`: a reference key is resolved as an issue key on a raw call, and
+     a project id resolved as an issue answers about the wrong record. Nothing declares the tracker's
+     own DELETE. `account` says the subject is the record, not the scope, so no prose language reaches it. */
   "forge_projects.create": {
     writes: true,
     account: true,

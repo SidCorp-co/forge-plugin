@@ -223,7 +223,7 @@ test("a verb taking one flag names the set and the row it read the set off", asy
   const run = await ran("comment", "ISS-1", "--body", "a finding");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No comment flag named --body\. The set is --title\./u);
-  assert.match(run.stderr, /^Usage: forge comment <uuid\|ISS-45> <file\.md\|@file\|-> \[--title T\]$/mu,
+  assert.match(run.stderr, /^Usage: forge comment <uuid\|ISS-45> \[<file\.md\|@file\|->\] \[--title T\]$/mu,
     "the row, which is where the body slot the caller wanted is spelled");
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
 });

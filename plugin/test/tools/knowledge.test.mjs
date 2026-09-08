@@ -157,19 +157,29 @@ test("a delete says whether there was one to delete", async () => {
   assert.match(again.stdout, /no entry named module-knowledge was in the store/u, again.stdout);
 });
 
-/* The one capability the store has and this transport does not. It fails where it is asked for,
-   naming the route it wanted, so the gap is reportable to the tracker as a route rather than as a
-   verb that quietly stopped working — and nothing here falls back to the other endpoint. */
-test("search names the route it wanted, sends nothing, and points at what still reads the store", async () => {
-  await created();
+/* This read named `forge_knowledge.search` and the route table has no such row, so every call of it
+   refused. The recall that answers by meaning is another tool's and was reachable through no verb at
+   all, so the repair is one move: the read asks the route that exists, and the route stops being raw.
+   Its hits are records rather than entries, which is why the columns are a source and a reference. */
+test("search asks the route that exists, and prints the records it answers with", async () => {
   state.calls.length = 0;
+  state.answer["forge_memory.search"] = () => ({
+    hits: [
+      { source: "issue", sourceRef: "ISS-152", score: 0.71, text: "\nWhat this module owns\nand more" },
+      { source: "comment", sourceRef: "uuid-9", score: 0.4, text: "a finding about the store" },
+    ],
+  });
   const run = await ran(["knowledge", "search", "what the module owns", "--limit", "3"]);
-  assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /POST \/api\/projects\/:id\/knowledge\/search/u, run.stderr);
-  assert.match(run.stderr, /forge knowledge list/u, "and the two verbs that still reach the store");
-  assert.match(run.stderr, /forge knowledge get <slug>/u, run.stderr);
-  assert.deepEqual(state.calls.filter((one) => one.path === "/mcp"), [],
-    "and nothing fell back to the endpoint the tool answered on");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^0\.71 {2}issue.*ISS-152.*What this module owns$/mu, run.stdout);
+  assert.match(run.stdout, /^0\.40 {2}comment.*uuid-9.*a finding about the store$/mu, run.stdout);
+  assert.match(run.stdout, /2 hit\(s\) for `what the module owns`/u, run.stdout);
+  const asked = state.calls.filter((one) => one.name === "forge_memory.search");
+  assert.equal(asked.length, 1, `the route was asked once: ${JSON.stringify(state.calls)}`);
+  assert.equal(asked[0].args.query, "what the module owns");
+  assert.equal(asked[0].args.topK, 3, "and the limit is the count it sends");
+  assert.deepEqual(state.calls.filter((one) => one.name === "forge_knowledge"), [],
+    "and the store's own tool is not asked for a reading it has no route for");
 });
 
 test("a limit outside the range is refused before the call", async () => {

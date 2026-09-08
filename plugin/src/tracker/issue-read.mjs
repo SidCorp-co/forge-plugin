@@ -65,9 +65,13 @@ const CUT = /(?<!\\)\\$/u;
 
 const EDGE_FLAGS = [...EDGE_KINDS, "unlink"].map((one) => `--${one}`);
 
+/* Positionals as `partition` finds them, so a row reads a slot and not a fixed index: `comment` declares no boolean flag, every `--flag` takes the next word, and a body after `--title T` is the write the raw second argument called a read. With no body the verb reads the thread, and holding a read is circular — the command held is the one the refusal asks for. */
+const positionalsIn = (args) =>
+  args.filter((one, at) => !one.startsWith("--") && !(at > 0 && args[at - 1].startsWith("--")));
+
 /* Which argument is the issue, read off the words themselves. */
 const VERBS = {
-  comment: { at: () => [0] },
+  comment: { words: positionalsIn, at: () => [0], when: (args) => args.length > 1 },
   claim: { at: () => [0] },
   attach: { at: () => [1], when: (args) => args[0] === "issue" },
   /* An edge write is taken against the end whose order moves, so that end is the read owed. */
@@ -94,7 +98,8 @@ const spokenTargets = (one) => {
   const said = VERB.exec(one);
   const verb = VERBS[said?.[1]];
   if (!verb) return [];
-  const args = (one.match(WORDS) ?? []).slice(2).map((word) => (CUT.test(word) ? "" : unquoted(word)));
+  const words = (one.match(WORDS) ?? []).slice(2).map((word) => (CUT.test(word) ? "" : unquoted(word)));
+  const args = verb.words ? verb.words(words) : words;
   if (verb.when && !verb.when(args)) return [];
   return verb.at(args).map((index) => args[index]).filter(isReference);
 };
