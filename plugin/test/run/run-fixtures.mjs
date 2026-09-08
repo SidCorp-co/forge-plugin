@@ -14,7 +14,7 @@ process.env.XDG_CONFIG_HOME = tempRoom("run-script-home-");
 const { bandFor } = await import("../../src/ladder.mjs");
 
 export const ROOT = new URL("../../..", import.meta.url).pathname;
-const OWN_SLUG = JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")).slug;
+export const OWN_SLUG = JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")).slug;
 export const SCRIPT = join("tools", "run.mjs");
 /* npm and node without whatever else the developer has on PATH: the ship path's last two steps are
    `claude`, and a machine that has it would prove nothing about what a missing step does. */

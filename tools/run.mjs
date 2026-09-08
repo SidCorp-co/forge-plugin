@@ -22,7 +22,7 @@ import { mintRunId, RUN_ID_VAR } from "./run/run-id.mjs";
 import { markRefused, REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, spannedIn } from "./run/review.mjs";
 import { edgesLeft, fileIssue } from "../plugin/src/tracker/filing/route.mjs";
 import { runsMark } from "../plugin/src/stats/eval.mjs";
-import { refusing } from "../plugin/src/resolve/settings.mjs";
+import { refusing, slugIfAny } from "../plugin/src/resolve/settings.mjs";
 import { CEILINGS, overCeiling, resizeForm, tierOf } from "../plugin/src/ladder.mjs";
 import { partForLanding } from "../plugin/src/guides/served.mjs";
 
@@ -126,7 +126,10 @@ const usage = () => [
   "work in it, is left exactly where it is and the refusal says so.",
 ].join("\n");
 
-const worktreePath = (root, key) => join(dirname(root), `wt-${key}`);
+/* The slug is in the name because two projects on one device share the parent directory and the
+   issue-key scheme: `wt-ISS-42` was one project's live work or another's depending on who got there
+   first (ISS-401). A checkout with no project file is named by its directory. */
+const worktreePath = (root, key) => join(dirname(root), `wt-${slugIfAny() ?? basename(root)}-${key}`);
 
 const start = ({ words: [given, slug] }) => {
   const key = String(given ?? "").toUpperCase();

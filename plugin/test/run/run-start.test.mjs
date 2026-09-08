@@ -6,7 +6,7 @@ import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { BARE, committed, git, runIn, scratch } from "./run-fixtures.mjs";
+import { BARE, committed, git, OWN_SLUG, runIn, scratch } from "./run-fixtures.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const checkout = (name) => {
@@ -30,7 +30,7 @@ test("start adds the worktree, links what the checkout installed, and names the 
   const { work } = checkout("start");
   const run = runIn(work, ["start", "ISS-88", "one-line"]);
   assert.equal(run.status, 0, run.stderr + run.stdout);
-  const tree = join(dirname(work), "wt-ISS-88");
+  const tree = join(dirname(work), `wt-${OWN_SLUG}-ISS-88`);
   assert.ok(existsSync(tree), `${tree} was not made:\n${run.stdout}${run.stderr}`);
   assert.ok(existsSync(join(tree, "node_modules")), "the checkout's node_modules is not linked in");
   assert.ok(run.stdout.includes(join(tree, "plugin", "bin", "forge")),
@@ -56,8 +56,8 @@ test("start mints a holder id for the worktree, keeps it beside it, and hands it
   const id = /FORGE_SESSION_ID=([^\s,]+)/u.exec(run.stdout)?.[1];
   assert.ok(id, `no holder id was printed for the run to carry:\n${run.stdout}`);
   assert.match(id, /^iss-89-/u, "named for the issue it works, so two worktrees are two runs");
-  const tree = join(dirname(work), "wt-ISS-89");
-  const kept = join(work, ".git", "worktrees", "wt-ISS-89", "forge-run-id");
+  const tree = join(dirname(work), `wt-${OWN_SLUG}-ISS-89`);
+  const kept = join(work, ".git", "worktrees", `wt-${OWN_SLUG}-ISS-89`, "forge-run-id");
   assert.equal(readFileSync(kept, "utf8").trim(), id, `the id is not kept at ${kept}`);
   assert.ok(!existsSync(join(home, "forge", "session.json")),
     "and nowhere the account shares, which every run of a wave would race");
@@ -69,16 +69,16 @@ test("start mints a holder id for the worktree, keeps it beside it, and hands it
     `the refusal reads the id back off the record rather than handing back what it just minted:\n${again.stderr}`);
 });
 
-/* The path is the issue key beside the checkout, so a project sharing this parent directory and the
-   same key scheme owns a path this one derives (ISS-401). The remove offered for a tree of ours is
-   refused for one of theirs, and an agent following it would aim at another project's live work. */
+/* The slug in the path separates two projects sharing this parent; a same-slug project or a tree made
+   by hand at that name still owns the path this one derives (ISS-401). The remove offered for a tree
+   of ours is refused for one of theirs, since an agent following it would aim at their live work. */
 test("start on a path another repository's worktree holds names that repository and offers no remove", () => {
   const { at, work } = checkout("foreign-tree");
   const other = theirRepo(join(at, "other"));
-  const tree = join(at, "wt-ISS-90");
+  const tree = join(at, `wt-${OWN_SLUG}-ISS-90`);
   git(other, "worktree", "add", tree, "-b", "iss-90");
   /* Seeded, so the case proves the id of a run this checkout does not own is withheld, not absent. */
-  writeFileSync(join(other, ".git", "worktrees", "wt-ISS-90", "forge-run-id"), "iss-90-theirs\n");
+  writeFileSync(join(other, ".git", "worktrees", `wt-${OWN_SLUG}-ISS-90`, "forge-run-id"), "iss-90-theirs\n");
 
   const run = runIn(work, ["start", "ISS-90"], BARE);
   assert.equal(run.status, 1, run.stdout);
@@ -97,7 +97,7 @@ test("a worktree of a bare repository is named as that repository, not as the di
   const { at, work } = checkout("bare-owner");
   const bare = join(at, "theirs.git");
   git(at, "clone", "--bare", theirRepo(join(at, "other")), bare);
-  const tree = join(at, "wt-ISS-92");
+  const tree = join(at, `wt-${OWN_SLUG}-ISS-92`);
   git(bare, "worktree", "add", tree, "-b", "iss-92");
 
   const run = runIn(work, ["start", "ISS-92"], BARE);
@@ -108,7 +108,7 @@ test("a worktree of a bare repository is named as that repository, not as the di
 
 test("start on a path that is no worktree at all says git answers no root for it, and offers no remove", () => {
   const { at, work } = checkout("stray-directory");
-  const tree = join(at, "wt-ISS-91");
+  const tree = join(at, `wt-${OWN_SLUG}-ISS-91`);
   mkdirSync(tree, { recursive: true });
 
   const run = runIn(work, ["start", "ISS-91"], BARE);
