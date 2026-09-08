@@ -50,11 +50,11 @@ const grantedIn = (found) => {
   const chained = (i) => found.slice(at, i).every((one) => sepAfter(one) === "&&");
   const reached = (i) => at >= 0 && i > at && i < reach
     && (!before.includes("||") && (!before.includes("&&") || chained(i)));
-  const covered = ({ said }, i) => PREFIX_ON_THE_WRITER.test(said) || reached(i);
-  const calls = found.map((one, i) => (CALLS_THE_WRITER.test(one.said) ? covered(one, i) : null));
+  const called = found.map(({ said }) => CALLS_THE_WRITER.test(said));
+  const prefixes = found.map(({ said }, i) => (called[i] ? PREFIX_ON_THE_WRITER.exec(said) : null));
+  const calls = called.map((yes, i) => (yes ? Boolean(prefixes[i]) || reached(i) : null));
   if (!calls.includes(true) || calls.includes(false)) return null;
-  const prefixed = found.map(({ said }) => PREFIX_ON_THE_WRITER.exec(said)).find(Boolean);
-  return prefixed ?? TOP_LEVEL_EXPORT.exec(found[at].said);
+  return prefixes.find(Boolean) ?? TOP_LEVEL_EXPORT.exec(found[at].said);
 };
 
 export const idGrantedBy = (command) => {

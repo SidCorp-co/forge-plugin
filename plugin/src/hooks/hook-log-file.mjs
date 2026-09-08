@@ -1,6 +1,5 @@
-/* The log file itself, apart from the verb that reads it back: a gate writes one line per decision and
-   the release step reads the notes, and neither should load the CLI to do it (docs/cli/the-refusal-log.md).
-   The append-only JSONL store all three of this tool's logs keep is here because `resolve/` is at the folder-width limit. */
+/* The log file itself, apart from the verb that reads it back: a gate writes one line per decision and the release step reads the notes, and neither should load the CLI to do it (docs/cli/the-refusal-log.md).
+   The append-only JSONL store every one of this tool's logs keeps — the append, the parse and the read — is here because `resolve/` is at the folder-width limit. */
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
@@ -37,10 +36,13 @@ export const jsonLines = (text) =>
     })
     .filter(Boolean);
 
-export const hookEntries = () => {
+/** A JSONL store read back, or an empty list where there is no file yet: the read side of `appendJsonl`, in one place because an unwritten store is the ordinary case for every one of them. */
+export const jsonlAt = (path) => {
   try {
-    return jsonLines(readFileSync(hookLogPath(), "utf8"));
+    return jsonLines(readFileSync(path, "utf8"));
   } catch {
     return [];
   }
 };
+
+export const hookEntries = () => jsonlAt(hookLogPath());

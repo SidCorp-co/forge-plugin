@@ -502,17 +502,17 @@ const searched = async (token, most = CANDIDATES) => {
   };
 };
 
-/* Reached only past the walk's ceiling, where a name is the one axis left. */
+/* Reached only past the walk's ceiling, where a name is the one axis left. The pages ride back beside the issues: the route block below needs the first token's page, and asking again is a second two-hundred-row read of an answer this call already holds. */
 const alsoNamed = async (tokens, live) => {
-  const found = await Promise.all(tokens.map((one) => searched(one, SEARCHED)));
+  const pages = await Promise.all(tokens.map((one) => searched(one, SEARCHED)));
   const held = new Set(live.map((one) => one.issueId));
-  const out = [];
-  for (const one of found.flatMap((page) => page.open)) {
+  const named = [];
+  for (const one of pages.flatMap((page) => page.open)) {
     if (held.has(one.issueId)) continue;
     held.add(one.issueId);
-    out.push(one);
+    named.push(one);
   }
-  return out;
+  return { named, pages };
 };
 
 /* The value a filing takes to reach the light path, read off the ladder rather than spelt here. */
@@ -558,7 +558,8 @@ export const filingRefusal = async (filing, { gaps, fix, tokens }, { routed = fa
   const { live, read } = page ?? await liveTitles();
   /* Searched only where the walk fell short: a whole reading already holds every open issue. */
   const said = shortOf(read, "the set the duplicate check read");
-  const wider = said ? [...live, ...await alsoNamed(tokens, live)] : live;
+  const found = said ? await alsoNamed(tokens, live) : null;
+  const wider = found ? [...live, ...found.named] : live;
   if (said) {
     console.error(`${said}\nPast that ceiling the measure is what a search for `
       + `${tokens.join(", ") || "nothing"} returned, and a duplicate sharing no such name is not `
@@ -574,7 +575,12 @@ export const filingRefusal = async (filing, { gaps, fix, tokens }, { routed = fa
     ));
   }
   if (!out.length && !owesRoute) return null;
-  const routes = owesRoute ? fixRoutes(tokens, await searched(tokens[0])) : null;
+  const held = found?.pages[0];
+  const routes = owesRoute
+    ? fixRoutes(tokens, held
+      ? { open: held.open.slice(0, CANDIDATES), whole: held.whole }
+      : await searched(tokens[0]))
+    : null;
   const head = owesRoute && !out.length
     ? `Hold — this body names ${tokens[0]}, carries no rule or invariant and no out-of-scope, and reads as a `
       + "fix: filed as a feature the flow costs a confirmation, a decision, a plan, criteria, a baseline, a "

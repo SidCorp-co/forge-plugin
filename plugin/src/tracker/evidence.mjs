@@ -9,15 +9,8 @@ import { declaredFor, refuseCredential, write } from "./rpc.mjs";
 
 export const urlBearing = (item) => Boolean(item) && typeof item === "object" && typeof item.url === "string";
 
-export const uploaded = (answer) => {
-  if (urlBearing(answer)) return answer.url;
-  try {
-    const parsed = JSON.parse(answer);
-    return urlBearing(parsed) ? parsed.url : answer;
-  } catch {
-    return answer;
-  }
-};
+/** The URL of what went up, or the answer whole where it carries none — the row `rest.mjs` builds every upload's answer as, never a string it once was (ISS-614). */
+export const uploaded = (answer) => (urlBearing(answer) ? answer.url : answer);
 
 /* A shell parses what a caller types, and `ln` refuses a destination `cp` would overwrite. */
 const shellArg = (value) => `'${String(value).replaceAll("'", `'\\''`)}'`;
@@ -65,9 +58,7 @@ const sendFile = async (target, targetId, { path, name, digest }, sending) => {
   return write("forge_uploads", asked, undefined, true);
 };
 
-/** Two passes: the credential scan whole and ahead, so a secret in the last of ten costs no
- *  attachment (ISS-577), then one authenticated request per file carrying its own bytes. A body is
- *  dropped once scanned, so the peak stays one file, its digest standing in for it. */
+/** Two passes: the credential scan whole and ahead, so a secret in the last of ten costs no attachment (ISS-577), then one authenticated request per file carrying its own bytes. A body is dropped once scanned, so the peak stays one file, its digest standing in for it. */
 export const uploadAll = async (target, targetId, paths, { renewing, sending = () => {} } = {}) => {
   if (!declaredFor("forge_uploads", "targets").includes(target)) fail(targetRefusal(target));
   const files = [];

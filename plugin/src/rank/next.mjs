@@ -7,7 +7,6 @@ import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { asksOf } from "../tracker/issue-shape.mjs";
 import { rootFor } from "../stats/transcripts.mjs";
-import { servesIn } from "../goals.mjs";
 import { batchesOf } from "./batch.mjs";
 import { candidateLines, droppedLine, graphLines, HEAD } from "./print.mjs";
 import { carriersOf, graphOf, PROSE_FROM, PROSE_MARKER } from "./prose-edges.mjs";
@@ -341,7 +340,6 @@ export const next = async (argv) => {
       read,
       relates: (body?.relations?.relates ?? []).flatMap((other) => keysIn(other?.issueId ?? other)),
       cost: costFor(score.band, runs, bands),
-      serves: body?.serves ?? [],
       restart: owesRestart(text),
       warm: isWarm(text, warmPaths) ? (pathsNamed(text)[0] ?? "the tree") : null,
       ...verdict,
@@ -361,7 +359,7 @@ export const next = async (argv) => {
     const take = unread.slice(0, Math.min(weights.windowCap, weights.readCap - cursor));
     if (!take.length) break;
     for (const [key, body] of await bodiesFor(take)) {
-      bodies.set(key, { ...body, serves: servesIn(body?.description ?? "") });
+      bodies.set(key, { ...body });
     }
     for (const one of take) {
       edges += withRelations(blocks, blockedBy, { ...bodies.get(one.issueId), issueId: one.issueId });

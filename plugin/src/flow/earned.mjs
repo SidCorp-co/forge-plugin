@@ -3,8 +3,8 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  FINDINGS, SHAPES, TRIAGES, criteriaUncovered, looksTo, planFlags, planTyped, sectionsOwed,
-  stepsUncited, unwrap,
+  FINDINGS, SHAPES, TRIAGES, criteriaUncovered, looksTo, planFlags, planSteps, planTyped,
+  sectionsOwed, stepsUncited, unwrap,
 } from "./machine.mjs";
 import { judgedHead, landingMoved, landingWrote, markedCommit, mergedForm, reviewedHead } from "./record/merged.mjs";
 import { eachProblem } from "./record/content.mjs";
@@ -479,14 +479,14 @@ export const CHECKS = {
       ));
     } else if (asks && plan) {
       const owed = sectionsOwed(plan, flags);
-      const heading = (name) => `\`## ${name}\``;
       if (owed.length) {
         out.push(need(
-          `the plan carries no ${owed.length === 1 ? "section" : "sections"} ${owed.map(heading).join(", ")}`,
+          `the plan carries no ${owed.length === 1 ? "section" : "sections"} ${owed.map((name) => `\`## ${name}\``).join(", ")}`,
           `forge record plan ${ref} <plan.md>, with each in it`,
         ));
       }
-      const bare = criteriaUncovered(plan, view.criteria);
+      const steps = planSteps(plan);
+      const bare = criteriaUncovered(steps, view.criteria);
       if (bare.length) {
         out.push(need(
           `no plan step names criterion ${bare.join(", ")}, so nothing the plan does serves ${bare.length === 1 ? "it" : "them"}`,
@@ -495,7 +495,7 @@ export const CHECKS = {
       }
       /* The write's own refusal, asked again over the criteria the write cannot see: a step citing a
          number the issue does not hold serves as little as one citing nothing. */
-      const uncited = stepsUncited(plan, view.criteria);
+      const uncited = stepsUncited(steps, view.criteria);
       if (uncited.length) {
         const named = uncited.map((one) => (one.cites.length ? `${one.number} (citing ${one.cites.join(", ")})` : `${one.number}`));
         out.push(need(

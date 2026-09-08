@@ -5,11 +5,11 @@ import { Refused, refuse } from "../../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "../../resolve/record-rows.mjs";
-import { CLOSES_FROM, SECTIONS, SHAPES, compoundCriteria, criterionNumber, planFlags, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, unwrap } from "../machine.mjs";
+import { CLOSES_FROM, SECTIONS, SHAPES, compoundCriteria, criterionNumber, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, unwrap } from "../machine.mjs";
 import { assemble, parseAll, printRecord, render } from "./page.mjs";
 import { markedCommit, recordMerged } from "./merged.mjs";
 import { eachProblem } from "./content.mjs";
-import { KINDS, USAGE, kindHelp, kindUsage, usage } from "../../resolve/record-rows.mjs";
+import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, usage } from "../../resolve/record-rows.mjs";
 import { readOrRefuse } from "../../codex/codex-read.mjs";
 import { bodyFrom } from "../../resolve/payload.mjs";
 import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../../resolve/flags.mjs";
@@ -242,7 +242,7 @@ const SERVES = "serves";
 
 /* Absent, it is written *none stated*: a goal nobody asked for and none named read alike without. */
 const servesChecked = async (kind, blocks) => {
-  if (!SHAPES[kind].fields.some((one) => one.flag === SERVES)) return;
+  if (!SERVES_KINDS.includes(kind)) return;
   const given = [...new Set(blocks.map((one) => one[SERVES]).filter((one) => one !== undefined))];
   if (!given.length) {
     for (const got of blocks) got[SERVES] = NONE_STATED;
@@ -440,7 +440,7 @@ const planChecked = (plan) => {
       "Each opens on a heading whose text is the name and nothing else. What each answers: `forge record plan -h`.",
     ].join("\n"));
   }
-  const bare = stepsUncited(plan);
+  const bare = stepsUncited(planSteps(plan));
   if (bare.length) {
     refuse([
       `${bare.length === 1 ? "One step names" : `${bare.length} steps name`} no criterion, and a step`

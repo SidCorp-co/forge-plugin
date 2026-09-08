@@ -51,8 +51,7 @@ export const docClaims = (text) => claimsFrom(
 );
 
 /* One document records what runs typed rather than telling a reader to type it, so a command right on the day it was written stays right and a rewrite falsifies the record. Three doc checks exempt it and each has its own predicate; the path itself is spelled here alone (ISS-616). */
-export const JOURNAL = "docs/issue-flow-dry-runs.md";
-export const RECORDS_RATHER_THAN_INSTRUCTS = new RegExp(`^${JOURNAL.replaceAll(".", String.raw`\.`)}$`, "u");
+export const RECORDS_RATHER_THAN_INSTRUCTS = /^docs\/issue-flow-dry-runs\.md$/u;
 
 /** A verb whose usage names no flag keeps them under a sub-verb, so its flags are not checked here. */
 export const claimProblems = (text, held) =>

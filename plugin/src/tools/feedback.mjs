@@ -94,9 +94,12 @@ export const feedback = async (argv) => {
   keep(read.description);
   /* Before the first call: everything below reaches the plugin's project, in its language. */
   aimed();
-  const unnamed = servesRefusal(servesIn(read.description), await briefGoals(),
-    "This note's `Serves:` line", onThisRepository());
-  if (unnamed) fail(unnamed);
+  const serves = servesIn(read.description);
+  if (serves.length) {
+    const unnamed = servesRefusal(serves, await briefGoals(), "This note's `Serves:` line",
+      onThisRepository());
+    if (unnamed) fail(unnamed);
+  }
   /* After the project is aimed, and not before: a key names an issue of the plugin's backlog, and
      the same key resolved against the caller's project would relate somebody else's issue. */
   const relations = withKeys.length

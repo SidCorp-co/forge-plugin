@@ -60,10 +60,11 @@ test("a url that is not a string is not mistaken for one", () => {
   assert.equal(urlBearing("string"), false);
 });
 
-test("an upload reply prints its url, and an unexpected body prints whole", () => {
-  assert.equal(uploaded(JSON.stringify(ATTACHMENT)), ATTACHMENT.url);
-  assert.equal(uploaded("502 Bad Gateway"), "502 Bad Gateway");
-  assert.equal(uploaded('{"error":"denied"}'), '{"error":"denied"}');
+test("an upload reply prints its url, and a reply carrying none prints whole", () => {
+  assert.equal(uploaded(ATTACHMENT), ATTACHMENT.url);
+  const bare = { documentId: "x", name: "n" };
+  assert.equal(uploaded(bare), bare);
+  assert.equal(uploaded(null), null, "and nothing at all is nothing, not a crash");
 });
 
 /* The browse verb is a queue or it is a reading order, and only the verb spawned against a tracker

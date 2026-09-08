@@ -1,6 +1,6 @@
 /* What the rank looks like on a terminal: one row per candidate, its batch under it, the wave it
    frees, and the issues a filter dropped with the filter that did it. */
-import { servesSaid } from "../goals.mjs";
+import { servesIn, servesSaid } from "../goals.mjs";
 
 const KEY = 8;
 const TITLE = 96;
@@ -47,11 +47,11 @@ const signalLine = (candidate) => {
   return `  signal ${said.join(" · ")}`;
 };
 
-/* Its own line, under both: a `Serves:` is neither a weight nor a signal, and this issue moved no
-   weight, so a goal printed inside either line would read as a number the score used. */
+/* Its own line, under both: a `Serves:` is neither a weight nor a signal, and this issue moved no weight, so a goal printed inside either line would read as a number the score used.
+   Read off the body here rather than on the way in: only `--why` prints it, where the read loop pays for every body it walks past. */
 const servesLine = (candidate) =>
   `  serves ${candidate.read
-    ? servesSaid(candidate.serves)
+    ? servesSaid(servesIn(candidate.body))
     : "unknown — this candidate's body was not read at this depth"}`;
 
 const memberLine = (member) =>

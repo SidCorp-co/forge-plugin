@@ -35,6 +35,7 @@ const MINE = `${process.pid}-${randomBytes(4).toString("hex")}`;
 /* One file serves every checkout on the machine, so read-add-write would lose another project's line.
    Bounded and stale-breaking: a gate that waits forever costs more than a list. */
 const underLock = (fn) => {
+  const lock = lockPath();
   let held = null;
   try {
     mkdirSync(configDir("forge"), { recursive: true });
@@ -43,17 +44,17 @@ const underLock = (fn) => {
   }
   for (let tries = 0; tries < TRIES && held === null; tries += 1) {
     try {
-      held = openSync(lockPath(), "wx");
+      held = openSync(lock, "wx");
       writeFileSync(held, MINE);
     } catch (error) {
       if (error.code !== "EEXIST") break;
       let since = 0;
       try {
-        since = statSync(lockPath()).mtimeMs;
+        since = statSync(lock).mtimeMs;
       } catch {
         since = 0;
       }
-      if (since && Date.now() - since > STALE_MS) rmSync(lockPath(), { force: true });
+      if (since && Date.now() - since > STALE_MS) rmSync(lock, { force: true });
       else pause(WAIT_MS);
     }
   }
@@ -65,7 +66,7 @@ const underLock = (fn) => {
       decision: "note",
       tool: "",
       session: "",
-      target: lockPath(),
+      target: lock,
       reason: `the lock held for ${(TRIES * WAIT_MS) / 1000}s, so the state was written without it`,
     });
   }
@@ -75,7 +76,7 @@ const underLock = (fn) => {
     if (held !== null) {
       closeSync(held);
       try {
-        if (readFileSync(lockPath(), "utf8") === MINE) rmSync(lockPath(), { force: true });
+        if (readFileSync(lock, "utf8") === MINE) rmSync(lock, { force: true });
       } catch {
         held = null;
       }

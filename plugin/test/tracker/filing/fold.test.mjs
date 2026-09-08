@@ -75,9 +75,13 @@ test("--new tells a fold it declined from one it was never going to make, and fr
 
 /* Asked with no neighbour, so the answer is the decision and nothing is posted. */
 test("a category whose body owes a cause is foldable at every size, and one that owes none never is", async () => {
-  const decided = async (kind, complexity = undefined) =>
-    (await foldFiling({ suggestions: [] },
-      { title: "the edge a token can write", body: "a body", kind, complexity })).said.foldable;
+  /* Read off the callback, which is where the decision leaves: the return carries what was posted. */
+  const decided = async (kind, complexity = undefined, rest = {}) => {
+    let said = null;
+    await foldFiling({ suggestions: [] }, { title: "the edge a token can write", body: "a body",
+      kind, complexity, ...rest, onBeside: (_, one) => { said = one; } });
+    return said.foldable;
+  };
   for (const band of [...BAND_NAMES, undefined]) {
     assert.equal(await decided("bug", band), true, `bug at ${band ?? "no complexity"}`);
     assert.equal(await decided("feature", band), false, `feature at ${band ?? "no complexity"}`);
@@ -86,8 +90,7 @@ test("a category whose body owes a cause is foldable at every size, and one that
   assert.equal(await decided("enhancement"), false, "and a kind that owes no cause today owes no fold");
   assert.equal(await decided(null), false, "the kind a raw create is read as owes no cause either");
   assert.equal(
-    (await foldFiling({ suggestions: [] }, { title: "t", body: "a body", kind: "bug", routed: true }))
-      .said.foldable,
+    await decided("bug", undefined, { routed: true }),
     false,
     "while a filing riding another issue's branch has that issue's flow and folds onto nothing",
   );

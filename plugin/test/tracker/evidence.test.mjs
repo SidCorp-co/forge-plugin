@@ -166,9 +166,10 @@ test("the command the refusal prints runs, and refuses a destination rather than
   assert.equal(readFileSync(join(room, "held.log.txt"), "utf8"), "already here\n", "and its bytes stand");
 });
 
-test("the upload answer is read for its url, and an unexpected body is printed whole", () => {
-  assert.equal(uploaded(JSON.stringify({ id: "x", name: "n", url: "https://example.test/n" })), "https://example.test/n");
-  assert.equal(uploaded("not json at all"), "not json at all");
+test("the upload answer is read for its url, and one carrying none is printed whole", () => {
+  assert.equal(uploaded({ documentId: "x", name: "n", url: "https://example.test/n" }), "https://example.test/n");
+  const bare = { documentId: "x", name: "n" };
+  assert.equal(uploaded(bare), bare, "the row itself, since a reader needs to see what came back");
   assert.equal(urlBearing({ url: "https://example.test/n" }), true);
   assert.equal(urlBearing({ url: 12 }), false);
 });

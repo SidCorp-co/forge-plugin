@@ -13,7 +13,7 @@ import { gitRootOf } from "./codex-tools.mjs";
 import { userConfig } from "../resolve/config.mjs";
 import { sseData } from "../sse.mjs";
 
-const PROFILE_PATH = process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
+const profilePath = () => process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
 export const modelSlot = () => userConfig().codex?.model || "fable";
 const maxTokens = () => Number(userConfig().codex?.maxTokens || 32_000);
 /* Accepted by the gateway and not observable from here: the same puzzle answers the same at high and
@@ -112,12 +112,13 @@ export const profileFrom = (text) => {
 };
 
 export const profile = () => {
-  if (!existsSync(PROFILE_PATH)) return { path: PROFILE_PATH, problem: `no gateway profile at ${PROFILE_PATH}` };
-  const values = profileFrom(readFileSync(PROFILE_PATH, "utf8"));
+  const path = profilePath();
+  if (!existsSync(path)) return { path, problem: `no gateway profile at ${path}` };
+  const values = profileFrom(readFileSync(path, "utf8"));
   for (const key of ["ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN"]) {
-    if (!values[key]) return { path: PROFILE_PATH, problem: `${key} is missing from ${PROFILE_PATH}`, values };
+    if (!values[key]) return { path, problem: `${key} is missing from ${path}`, values };
   }
-  return { path: PROFILE_PATH, values };
+  return { path, values };
 };
 
 /* The slot is what gets asked for; the profile decides which model that is, and that mapping is the

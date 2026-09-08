@@ -217,7 +217,6 @@ export const DECLARES = {
      names, so a name missing here may go up under one that is in it (ISS-134). */
   forge_uploads: {
     extensions: Object.keys(UPLOAD_MIMES),
-    mimes: UPLOAD_MIMES,
     targets: Object.keys(COLLECTIONS),
   },
 };

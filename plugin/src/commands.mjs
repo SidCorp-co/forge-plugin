@@ -129,9 +129,6 @@ const suggestTool = (name) =>
   didYouMean("tool", name, callable(toolNames().map((tool) => ({ name: tool }))).map((tool) => tool.name),
     "Ask `forge tools`.");
 
-/* Two names, and the one place they are stated: `attach` reads its target from them. */
-const ATTACH_TARGETS = ["issue", "comment"];
-
 /* One line per flag, then the one table a row cannot hold: what a body is read against depends on the kind it names. What is open beside a filing prints on the filing, and which rank it took is in the reply — the reasoning behind both is docs/cli/beside.md and docs/cli/new.md, whose second copy this help was. */
 const NEW_FLAGS = [
   "  --title T      what is true once this is fixed, one line",
@@ -312,8 +309,11 @@ export const commands = {
     /* Registered the moment there is something to lose, and only then: a body from a file is on
        disk, and one from stdin cannot be sent a second time. */
     if (path === "-") keepOnFailure(`Your body, so that nothing here loses it:\n\n${body}`);
-    const unnamed = servesRefusal(servesIn(body), await briefGoals(), "This body's `Serves:` line");
-    if (unnamed) fail(unnamed);
+    const serves = servesIn(body);
+    if (serves.length) {
+      const unnamed = servesRefusal(serves, await briefGoals(), "This body's `Serves:` line");
+      if (unnamed) fail(unnamed);
+    }
     const { title, ...carried } = given;
     return fileAndSay({
       title,
@@ -351,7 +351,9 @@ export const commands = {
     const { positionals } = partition(argv, [], { verb: "attach", usage: usageOf("attach") });
     const [target, targetRef, ...paths] = positionals;
     if (!target || !targetRef || !paths.length) fail(usageOf("attach"));
-    if (!ATTACH_TARGETS.includes(target)) fail(didYouMean("attach target", target, ATTACH_TARGETS));
+    /* The two names off the table that holds the routes they name, which is what `evidence.mjs` refuses on: here for the suggestion, since a caller who mistyped one is owed the nearest. */
+    const targets = declaredFor("forge_uploads", "targets");
+    if (!targets.includes(target)) fail(didYouMean("attach target", target, targets));
     const targetId = target === "issue" ? await documentIdOf(targetRef) : targetRef;
     /* One name on one issue names one document (ISS-137), and the read comes before the first
        request: what is up can be neither deleted nor replaced, so a collision seen afterwards is one

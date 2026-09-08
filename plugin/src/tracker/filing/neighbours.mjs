@@ -33,8 +33,7 @@ const ask = async (query, strategy) => {
   return { hits: hitsOf(answer), note: null };
 };
 
-/** Every open issue either query reached. The key, the title and the open-ness are the
- *  projection's, which `live` already is, so the resolve costs no call of its own. */
+/** Every open issue either query reached. The key, the title and the open-ness are the projection's, which `live` already is, so the resolve costs no call of its own. */
 export const neighboursOf = async ({ seed, place }, live) => {
   const open = new Map(live.filter((one) => one.documentId).map((one) => [one.documentId, one]));
   const [near, named] = await Promise.all([ask(seed, "semantic"), ask(place, "keyword")]);
@@ -126,10 +125,10 @@ export const foldFiling = async (beside,
   { title, body, kind = null, routed = false, fresh = false, soft = false, onBeside = null }) => {
   const nearest = foldOnto(beside.suggestions);
   const foldable = !routed && owesCause(kind);
-  const said = { nearest, foldable, routed, fresh: Boolean(fresh) };
-  onBeside?.(beside, said);
-  if (!foldable || fresh || !nearest) return { joined: null, answer: null, said };
+  /* Handed to the callback and nowhere else: printing off a return value is the double print ISS-628 removed, so the decision leaves by the one seam that has a reader. */
+  onBeside?.(beside, { nearest, foldable, routed, fresh: Boolean(fresh) });
+  if (!foldable || fresh || !nearest) return { joined: null, answer: null };
   await mustBeShown([{ ref: nearest.issueId, documentId: nearest.documentId }]);
   const answer = await postComment(nearest.documentId, `## ${title}\n\n${body}`, null, soft);
-  return { joined: nearest, answer, said };
+  return { joined: nearest, answer };
 };

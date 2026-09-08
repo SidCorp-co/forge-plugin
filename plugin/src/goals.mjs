@@ -79,8 +79,7 @@ const listed = (read) => read.goals.map((one) => one.id);
 const NAMES = "Which goal a decision or a filing names, and when the line is written: "
   + "`forge guide issue-flow`.";
 
-/** A value neither source answers for. Nothing is refused for naming no goal — an absent line and
- *  `none stated` both pass — so a caller reaching here typed a value nothing resolves. */
+/** A value neither source answers for. Nothing is refused for naming no goal — an absent line and `none stated` both pass — so a caller reaching here typed a value nothing resolves, and one with no value owes the brief no read at all: there is nothing a goal list could refuse, and reading one is a tracker call. */
 export const servesRefusal = (values, read, what, asksTree = true) => {
   if (values.length > 1) {
     return `${what} carries ${values.length} \`Serves:\` lines: ${values.join(", ")}. One decision `

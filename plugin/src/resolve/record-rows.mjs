@@ -2,7 +2,8 @@
    each capped field's cap on the row of the field it caps, so a note is drafted against the number
    rather than learning it from the refusal (ISS-46). Beside the verb table, not in `flow/`, which
    is at its file limit. */
-import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES } from "../flow/machine.mjs";
+import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES,
+  sectionOwedBy } from "../flow/machine.mjs";
 import { CLAUSES, NOTHING } from "../flow/record/merged.mjs";
 import { DECLARES } from "../tracker/rest.mjs";
 import { goalBlock } from "../goals.mjs";
@@ -25,9 +26,12 @@ export const CAP_LEGEND = [
 /* Wide enough for the criteria row carrying its cap, so the descriptions align either way. */
 const VALUES = 19;
 
+/* The row carries the flag where the table gives the kind the field, so a second kind growing it gets the row as well as the help block below. */
+const servesOn = (kind) => (SERVES_KINDS.includes(kind) ? "  [--serves G]" : "");
+
 export const kindRows = (caps) => [
   "  confirmation --where W... --is I --finding F [--detail D]   F: " + FINDINGS.join("|"),
-  "  decision     --decision \"reading | assumption | undo\"... | --none <why>  [--serves G]",
+  "  decision     --decision \"reading | assumption | undo\"... | --none <why>" + servesOn("decision"),
   "  question     --reading \"reading -> outcome\" (two or more) [--to who]",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W                                a plan or criteria change after approval",
@@ -76,14 +80,17 @@ const KIND_PHRASE = {
 export const phraseRows = () =>
   KINDS.map((kind) => `  ${kind.padEnd(13)}${KIND_PHRASE[kind] ?? ""}`);
 
-/* The sections a typed plan owes, each as the question it answers, so a plan is written against the
-   list rather than against the refusal. The heading is the section's whole name and nothing else on
-   its line; a plan carrying none of them writes as the free text it is and `approved` says so. */
+/* The sections a typed plan owes, each as the question it answers, so a plan is written against the list rather than against the refusal. The heading is the section's whole name and nothing else on its line; a plan carrying none of them writes as the free text it is and `approved` says so.
+   The section a declaration puts a way back behind, and the declarations that do, are both off the table below, so a third one growing it is not a sentence here to hand-edit. */
+const OWED_BY = PLAN_SECTIONS.find((one) => one.owed);
+const TRIGGERS = sectionOwedBy(OWED_BY.name,
+  Object.fromEntries(OWED_BY.owed.map((key) => [key, "yes"])));
+
 const PLAN_BLOCKS = [
   "The plan file is markdown, and a typed one carries these sections, each opened by a heading whose",
   "text is the name:",
   ...PLAN_SECTIONS.map((one) => `  ## ${one.name.padEnd(23)}${one.asks}`),
-  "The way back is owed only where the plan declares schema coupling or deploy coupling. Every",
+  `${OWED_BY.name} is owed only where the plan declares ${TRIGGERS.join(" or ")}. Every`,
   "numbered step under Steps names what it serves as `criteria: 3` or `criteria: 3, 4`, and a step",
   "naming none is refused here. At `approved`, where the criteria field is read, so is a step whose",
   "numbers name no criterion the issue holds, and a criterion no step names.",
@@ -112,7 +119,8 @@ const CRITERION_BLOCKS = [
   "back as the record a single write makes, so nothing downstream can tell one write from three.",
 ];
 
-const SERVES_KINDS = Object.entries(SHAPES)
+/** Which kinds carry a `Serves:`, off the table that gives them the field: one derivation, so a second kind growing it is a row in `SHAPES` and nothing typed anywhere. */
+export const SERVES_KINDS = Object.entries(SHAPES)
   .filter(([, shape]) => shape.fields.some((one) => one.flag === "serves"))
   .map(([kind]) => kind);
 

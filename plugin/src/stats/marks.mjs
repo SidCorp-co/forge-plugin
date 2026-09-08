@@ -1,9 +1,8 @@
 /* The readings both harness evals write at a mark and read back as a pinned before window: one store, kept as the
    consult log keeps its entries. A runs reading carries the root whose corpus was counted; a consult reading is the device's and carries none. docs/cli/stats-the-eval.md. */
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { appendJsonl, jsonLines } from "../hooks/hook-log-file.mjs";
+import { appendJsonl, jsonlAt } from "../hooks/hook-log-file.mjs";
 import { configDir } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 
@@ -12,13 +11,7 @@ export const CONSULTS = "consults";
 
 export const marksPath = () => join(configDir("forge"), "eval-marks.jsonl");
 
-const readAll = () => {
-  try {
-    return jsonLines(readFileSync(marksPath(), "utf8"));
-  } catch {
-    return [];
-  }
-};
+const readAll = () => jsonlAt(marksPath());
 
 export const marksOf = (kind, root = null) =>
   readAll().filter((one) => one.kind === kind && (root === null || one.root === root));
@@ -30,9 +23,8 @@ export const WRITTEN = "written";
 export const HELD = "held";
 export const FAILED = "failed";
 
-/** Appends unless the same kind, mark and root is held, and says which — written, held or failed. A failed
- *  write is said and carried past, as the consult log's is: the mark line it accompanies is worth more than a
- *  stats file. No two writers race here: a runs mark is written under the ship's lock, and a consult crossing belongs to exactly the record that landed on it. */
+/** Appends unless the same kind, mark and root is held, and says which — written, held or failed. A failed write is said and carried past, as the consult log's is: the mark line it accompanies is worth more than a stats file.
+ *  No two writers race here: a runs mark is written under the ship's lock, and a consult crossing belongs to exactly the record that landed on it. */
 export const writeMark = (record) => {
   try {
     if (readAll().some((one) => sameMark(one, record))) return HELD;

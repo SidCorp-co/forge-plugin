@@ -216,7 +216,7 @@ export const compoundCriteria = (criteria, language) => {
 export const unwrap = (text) => String(text ?? "").trim();
 
 /* Machine data in prose; every occurrence outside a code span decides, not the first (docs/cli/the-ladder.md). */
-export const DECLARED = {
+const DECLARED = {
   screen: "screen change", schema: "schema coupling", deploy: "deploy coupling", look: "user-facing outcome",
 };
 const DECLARED_VALUE = ":\\s*(yes|no)\\b";
@@ -331,16 +331,16 @@ export const sectionOwedBy = (name, flags = {}) =>
     .filter((key) => flags[key] === "yes")
     .map((key) => DECLARED[key]);
 
-/** The steps that serve nothing: citing none, or none the given criteria hold — with none given, presence is the whole of it. */
-export const stepsUncited = (plan, criteria) => {
+/** The steps that serve nothing: citing none, or none the given criteria hold — with none given, presence is the whole of it. Taking the steps and not the plan, because one caller judges both rules over one plan and reading it twice is the read twice. */
+export const stepsUncited = (steps, criteria) => {
   const held = criteria?.length ? new Set(criteria.map((one) => one.number)) : null;
-  return planSteps(plan).filter((one) => (held
+  return steps.filter((one) => (held
     ? !one.cites.some((number) => held.has(number))
     : !one.cites.length));
 };
 
-export const criteriaUncovered = (plan, criteria) => {
-  const cited = new Set(planSteps(plan).flatMap((one) => one.cites));
+export const criteriaUncovered = (steps, criteria) => {
+  const cited = new Set(steps.flatMap((one) => one.cites));
   return criteria.map((one) => one.number).filter((number) => !cited.has(number));
 };
 

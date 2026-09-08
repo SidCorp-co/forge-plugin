@@ -1,5 +1,4 @@
-/* How a credit survives; what a row means is `ledger.mjs`'s. Moved whole from `tracker/comments.mjs`
-   with its proofs, so the mechanism is unchanged. Why it is shaped so: docs/cli/the-shown-ledger.md. */
+/* How a credit survives; what a row means is `ledger.mjs`'s. Moved whole from `tracker/comments.mjs` with its proofs, so the mechanism is unchanged. Why it is shaped so: docs/cli/the-shown-ledger.md. */
 import {
   closeSync, fstatSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync,
   statSync, writeFileSync,
@@ -8,7 +7,7 @@ import { randomBytes } from "node:crypto";
 import { basename, join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
-import { jsonLines } from "../hooks/hook-log-file.mjs";
+import { jsonlAt } from "../hooks/hook-log-file.mjs";
 
 /* A credit is an append and a read is the fold: two appending lose neither line, where two that
    rebuild this file leave only the later's, and no lock closes that (ISS-661). */
@@ -25,12 +24,17 @@ const base = () => {
   return held && typeof held === "object" ? held : {};
 };
 
-const lines = (path) => {
+/* How long the journal is, which is what the rotation bound is against: `fold` runs on every credited write, and parsing two hundred rows to compare a number with two hundred is the read this replaces. Walked rather than split, since it allocates nothing and the split form is `markdown.mjs`'s line-from-an-index. */
+const lineCount = (path) => {
+  let text = "";
   try {
-    return jsonLines(readFileSync(path, "utf8"));
+    text = readFileSync(path, "utf8");
   } catch {
-    return [];
+    return 0;
   }
+  let held = 0;
+  for (let at = text.indexOf("\n"); at >= 0; at = text.indexOf("\n", at + 1)) held += 1;
+  return held;
 };
 
 /* An aside is a journal a fold is holding, and reads like one: a failed fold is owed again, not lost. */
@@ -45,7 +49,7 @@ const journals = () => {
 };
 
 const creditsIn = (paths) => paths
-  .flatMap(lines)
+  .flatMap(jsonlAt)
   .filter((one) => one?.session && one?.surface && Array.isArray(one.items))
   .sort((one, two) => String(one.at).localeCompare(String(two.at)));
 
@@ -134,7 +138,7 @@ const heldLock = (lock) => {
 
 /* Exactly one of several concurrent folds wins the rename; the loser leaves the file alone. */
 const fold = () => {
-  if (lines(LOG()).length < KEPT.lines) return;
+  if (lineCount(LOG()) < KEPT.lines) return;
   /* Per rotation, not per process: a second one would rename over its own waiting aside. */
   const aside = `${LOG()}.${MINE}-${randomBytes(4).toString("hex")}.folding`;
   try {

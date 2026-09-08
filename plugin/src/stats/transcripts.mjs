@@ -60,7 +60,11 @@ const LEADS = String.raw`(?:^|[\n;|&(){}])[ \t]*`
 
 const at = (what) => new RegExp(LEADS + what, "u");
 
-const FORGE = at(String.raw`(?:\S*/)?forge[ \t]+(?<verb>[a-z][a-z-]*)(?:[ \t]+(?<sub>[a-z][a-z-]*))?`);
+/* One spelling of the call for both readings below — the binary, the verb, the word after it and the word after that. The guide reading fixes the verb rather than filtering the first call, so a `forge guide` later in a compound command is still the part that run read. A sub is that second word as a verb name reads it, stopping at the first character no verb carries, where a slug and its part are read whole: one token, two word classes. */
+const CALL = (verb) => String.raw`(?:\S*/)?forge[ \t]+${verb}`
+  + String.raw`(?:[ \t]+(?<slug>[a-z][\w-]*)(?:[ \t]+(?<part>[a-z][\w-]*))?)?`;
+const FORGE = at(CALL(String.raw`(?<verb>[a-z][a-z-]*)`));
+const SUB_WORD = /^[a-z][a-z-]*/u;
 
 /* Two verbs whose actions cost differently enough to earn rows; `forge guide` would be thirteen. */
 const SUBBED = new Set(["codex", "record"]);
@@ -73,17 +77,18 @@ const WHOLE_SET = /--send[= \t]+bodies\b/u;
 const forgeClass = (shell) => {
   const found = FORGE.exec(shell)?.groups;
   if (!found || !VERB_NAMES.includes(found.verb)) return null;
-  if (found.verb === "codex" && found.sub === "consult") {
+  const sub = found.slug ? SUB_WORD.exec(found.slug)?.[0] : undefined;
+  if (found.verb === "codex" && sub === "consult") {
     if (shell.includes("--recheck")) return "forge codex recheck";
     return WHOLE_SET.test(shell) ? WHOLE_SET_CLASS : "forge codex consult";
   }
-  return SUBBED.has(found.verb) && found.sub ? `forge ${found.verb} ${found.sub}` : `forge ${found.verb}`;
+  return SUBBED.has(found.verb) && sub ? `forge ${found.verb} ${sub}` : `forge ${found.verb}`;
 };
 
-/* The class table keeps `forge guide` one row; which part a run read is a table of its own. */
-const GUIDE = at(String.raw`(?:\S*/)?forge[ \t]+guide(?:[ \t]+(?<slug>[a-z][\w-]*))?(?:[ \t]+(?<part>[a-z][\w-]*))?`);
-
 export const GUIDE_INDEX = "(index)";
+
+/* The class table keeps `forge guide` one row; which part a run read is a table of its own. */
+const GUIDE = at(CALL("guide"));
 
 export const guidePartOf = (shell) => {
   const found = GUIDE.exec(shell)?.groups;

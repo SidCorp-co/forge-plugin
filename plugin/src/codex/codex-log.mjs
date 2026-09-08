@@ -1,10 +1,9 @@
 /* The log is codex's memory and its eval set at once. It has no session of its own — one HTTPS
    request knows nothing of the last — so continuity is these entries replayed, and scoring the
    advice later is the same file read a different way. docs/cli/codex-the-log.md. */
-import { readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 
-import { appendJsonl, jsonLines } from "../hooks/hook-log-file.mjs";
+import { appendJsonl, jsonlAt } from "../hooks/hook-log-file.mjs";
 import { configDir, userConfig } from "../resolve/config.mjs";
 import { masked } from "../hooks/hook-log.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
@@ -42,13 +41,7 @@ export const logConsult = (record) => {
   }
 };
 
-export const logEntries = () => {
-  try {
-    return jsonLines(readFileSync(logPath(), "utf8"));
-  } catch {
-    return [];
-  }
-};
+export const logEntries = () => jsonlAt(logPath());
 
 const HEADER = /^CODEX:\s*(\d+)\s*findings?(?:\s*\(([^)]*)\))?/im;
 const SEVERITY = /(\d+)\s*(blocker|major|minor)/gi;
