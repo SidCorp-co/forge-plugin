@@ -8,10 +8,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-  BASE, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, OWNED, RECORD,
+  BASE, BUILDER, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, OWNED, RECORD,
   claudeCalls, comments, context, ctx, forgetInstall, git, issue, marks, ready, seeded, serverPushes,
   sha, strayWrites, tracker, world,
 } from "./fixture.mjs";
+import { ranAsync } from "../../fixtures.mjs";
+
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
 const { landReady } = await import("../../../../tools/run/land-ready.mjs");
 const { Stop } = await import("../../../../tools/checkout.mjs");
@@ -36,6 +39,18 @@ const ran = async (keys, work) => {
     process.exitCode = 0;
   }
   return out.join("\n");
+};
+
+/** The builder's own commands, through the shipped verb: a landing hands the branch back to a run
+ *  of its own, so what that run types is what this suite has to ask for. Twice, since the gate every
+ *  write passes delivers a comment this session has not read and refuses once. */
+const asBuilder = async (argv) => {
+  let run = null;
+  for (const again of [1, 2]) {
+    run = await ranAsync(FORGE, argv, { ...process.env, FORGE_SESSION_ID: BUILDER }, process.cwd());
+    if (run.status === 0 || again === 2) return run;
+  }
+  return run;
 };
 
 const landing = (documentId) => landingOf(context(documentId));
@@ -117,9 +132,15 @@ test("a base that moved a line of the change's own file hands the branch back, r
   assert.equal(remote(at), pinned, `nothing was pushed:\n${said}`);
   assert.equal(marks().length, 0, `and nothing marked:\n${said}`);
   assert.equal(claudeCalls().length, before, `and nothing installed:\n${said}`);
-  /* The builder's reconciliation, written at that candidate and nowhere else: the landing then
-     promotes the same candidate, and the mark's judged head is the candidate it judged. */
-  issue().sessionContext.landing = { ...held, state: "reconciled", reconciled: held.candidate };
+  /* The two commands the stop above names, run as the builder would run them rather than written
+     into the field: a fixture standing in for them is how this suite passed for years without asking
+     whether the builder had a route out at all (ISS-726). Their own refusals are the claim's tests. */
+  const took = await asBuilder(["claim", KEY, "--take"]);
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
+  const wrote = await asBuilder(["claim", KEY, "--reconciled", held.candidate]);
+  assert.equal(wrote.status, 0, `${wrote.stdout}${wrote.stderr}`);
+  assert.equal(landing().state, "reconciled", `the builder's own write moved it:\n${wrote.stdout}`);
+  assert.equal(landing().reconciled, held.candidate, wrote.stdout);
   const after = await ran([KEY], work);
   assert.equal(landing().state, "marked", after);
   assert.notEqual(remote(at), pinned, `the reconciled candidate lands:\n${after}`);

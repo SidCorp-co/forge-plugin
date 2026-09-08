@@ -266,8 +266,9 @@ status past them.
 **What the landing does with it is not this run's to do.** It merges the branch onto a pinned base,
 proves the merge left the change's own paths alone, gates the result, promotes it and writes the
 merged mark. One outcome comes back to this run: a merge that touched a path the change owns, which
-leaves the checkpoint at `builder-owed` for the run that built it to take and reconcile against the
-candidate named there. A base that moved under the pin is the landing's own to build again, and it
+leaves the checkpoint at `builder-owed` for the run that built it to take, read the candidate named
+there, and answer for that candidate by its sha — `forge claim ISS-nn --take`, then `forge claim
+ISS-nn --reconciled <sha>`. A base that moved under the pin is the landing's own to build again, and it
 voids the readings taken at the candidate given up rather than handing anything over. `forge resume
 ISS-nn` says which happened.
 

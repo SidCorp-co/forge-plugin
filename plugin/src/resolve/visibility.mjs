@@ -26,7 +26,7 @@ export const VERBS = [
   ["comment", "<uuid|ISS-45> <file.md|@file|-> [--title T]",
     "post a comment; the lease on the record decides whether it renews one",
     "forge_comments", { group: BACKLOG, wraps: { create: "`forge comment`" } }],
-  ["claim", "<uuid|ISS-45> [--minutes n] [--next <line>] [--pushed] [--review] [--open <line>] [--ready] [--take] [--judged]",
+  ["claim", "<uuid|ISS-45> [--minutes n] [--next <line>] [--pushed] [--review] [--open <line>] [--ready] [--take] [--judged] [--reconciled <sha>]",
     "take the issue's lease, or reclaim one a dead run left", "forge_issues", { group: FLOW }],
   ["resume", "<uuid|ISS-45> [...]", "one issue's whole context, re-minted from the record and the worklog",
     "forge_issues", { group: FLOW }],

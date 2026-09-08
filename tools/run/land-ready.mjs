@@ -22,8 +22,8 @@ import { advance, parkAs } from "../../plugin/src/flow/advance.mjs";
 import { atLeast, viewFrom } from "../../plugin/src/flow/earned.mjs";
 import { markMerged, markNote, markedCommit, namedFor } from "../../plugin/src/flow/record/merged.mjs";
 import {
-  LANDING_CANDIDATE, LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED, LANDING_READY,
-  landingOf, landingSaved, landingVoided, takeLease,
+  LANDING_BUILDER_OWED, LANDING_CANDIDATE, LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED,
+  LANDING_READY, LANDING_RECONCILED, landingOf, landingSaved, landingVoided, takeLease,
 } from "../../plugin/src/flow/lease.mjs";
 import { INDEPENDENT, judgedAt } from "../../plugin/src/flow/qa/verdicts.mjs";
 import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/tracker/project-config.mjs";
@@ -266,16 +266,17 @@ const candidateStep = async (one) => {
        once and what came back does not answer for this candidate, so nothing here writes over it. */
     if (at.landing.state !== LANDING_CANDIDATE) stop(notReconciled(key, at.landing, at.candidate, moved));
     at.landing = await asked(() => landingSaved(documentId, key,
-      { state: "builder-owed", candidate: at.candidate, moved: moved.join(", ") }));
+      { state: LANDING_BUILDER_OWED, candidate: at.candidate, moved: moved.join(", ") }));
     stop(`the landing moved ${moved.join(", ")}, so this change's own paths are not what was judged `
       + `and the branch goes back to the run that built it. Nothing of ${key} is pushed, deployed or `
-      + `installed until the checkpoint reads \`reconciled\` at ${shortly(at.candidate)}:\n`
-      + `    forge claim ${key} --take`);
+      + `installed until the checkpoint reads \`${LANDING_RECONCILED}\` at ${shortly(at.candidate)}:\n`
+      + `    forge claim ${key} --take\n`
+      + `    ... rebased onto that candidate, then: forge claim ${key} --reconciled ${at.candidate}`);
   }
   console.log("  landing moved nothing of the change");
   if (at.landing.state === LANDING_CANDIDATE) {
     at.landing = await asked(() => landingSaved(documentId, key,
-      { state: "reconciled", candidate: at.candidate, reconciled: at.candidate }));
+      { state: LANDING_RECONCILED, candidate: at.candidate, reconciled: at.candidate }));
   }
   if (at.landing.reconciled !== at.candidate) stop(notReconciled(key, at.landing, at.candidate));
 };

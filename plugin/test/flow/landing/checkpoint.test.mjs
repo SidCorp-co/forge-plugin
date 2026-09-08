@@ -205,24 +205,37 @@ test("a void gives up every field the candidate it built was the evidence for", 
 });
 
 /* The table above walks its own rows and says nothing about a row nobody writes, which is how
-   `qa-owed → judged`, `judged → …` and `marked → done` shipped green as a dead end (ISS-673). This
-   asks the weaker question — is the state named at all in a file that writes one — and so it catches
-   a row added with no writer anywhere. What it does not reach is whether the state's own turn holder
-   has a command that writes its successor: `builder-owed` is a builder's turn whose one successor
-   only the lander writes, red under a turn-aware reading and green here (ISS-726). */
-test("every state some step is meant to write is named in the source of the two files that write one", () => {
-  const root = new URL("../../../../", import.meta.url);
-  /* Below the imports: a name a file only imports is a name nothing there writes, and reading the
-     whole file would let the import that survived a deleted write answer for it. */
-  const src = ["plugin/src/flow/claim.mjs", "tools/run/land-ready.mjs"]
-    .map((one) => readFileSync(new URL(one, root), "utf8").split("\n")
-      .filter((line) => !/^(?:import\b|\s*[\w{},]+\s*(?:,|\}\s*from))/u.test(line)).join("\n"))
-    .join("\n");
-  const named = (state) =>
-    src.includes(`"${state}"`) || src.includes(`LANDING_${state.toUpperCase().replaceAll("-", "_")}`);
+   `qa-owed → judged` and `marked → done` shipped green as dead ends (ISS-673). Two readings, because
+   a row can fail either way: written by neither file, or written only by the lander where the turn is
+   somebody else's — a state its own turn holder cannot leave, which `builder-owed` was (ISS-726).
+   Both read the source for `state:` and the state, a convention over the object handed to
+   `landingSaved` rather than proof the line runs, so the mutation that proves the second fires is the
+   write removed with the refusals that name the state left standing. */
+const WRITERS = { claim: "plugin/src/flow/claim.mjs", lander: "tools/run/land-ready.mjs" };
+const ROOT = new URL("../../../../", import.meta.url);
+const source = Object.fromEntries(Object.entries(WRITERS)
+  .map(([who, path]) => [who, readFileSync(new URL(path, ROOT), "utf8")]));
+const WRITTEN = (state) =>
+  new RegExp(`state:\\s*(?:"${state}"|LANDING_${state.toUpperCase().replaceAll("-", "_")}\\b)`, "u");
+const writes = (who, state) => WRITTEN(state).test(source[who]);
+
+test("every state some step is meant to write is written in the source of the two files that write one", () => {
   for (const state of Object.keys(LANDING_STATES)) {
-    assert.ok(named(state), `nothing under plugin/src/flow/claim.mjs or tools/run/land-ready.mjs asks `
-      + `for \`${state}\`, so the table offers a state no step writes and a landing reaching the row `
-      + `above it parks there for good`);
+    assert.ok(writes("claim", state) || writes("lander", state),
+      `neither ${WRITERS.claim} nor ${WRITERS.lander} writes \`state: ${state}\`, so the table offers `
+      + `a state no step writes and a landing reaching the row above it parks there for good`);
+  }
+});
+
+test("a state whose turn is a run's own has its successor written by that run's own verb", () => {
+  for (const [state, row] of Object.entries(LANDING_STATES)) {
+    if (row.turn !== "builder" && row.turn !== "qa") continue;
+    for (const one of row.next) {
+      assert.ok(writes("claim", one),
+        `\`${state}\` is a ${row.turn}'s turn and ${WRITERS.claim} writes no \`state: ${one}\`, so the `
+        + `run the state names can take the turn and has nothing to run: the landing parks there for `
+        + `good. A route out is a flag of that verb, as \`--judged\` is out of \`qa-owed\`, and a `
+        + `write spelled other than \`state: <the state>\` is one this reading cannot see`);
+    }
   }
 });

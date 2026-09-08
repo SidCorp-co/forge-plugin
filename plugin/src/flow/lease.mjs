@@ -106,11 +106,19 @@ const lastReclaimAt = (lease, status) =>
 export const parkAnswers = (lease, status, parkedAt) =>
   parksAsCrashed(lease, status) && lastReclaimAt(lease, status) <= String(parkedAt ?? "");
 
+/** Whether this session's own last claim was a take at this state, which a lease held from before that handoff is not. The holder's latest row and no earlier one, because the history outlives both the holder and the state: a run that took this turn and lost the lease is any other run again, and one that has since taken another turn is at that one. */
+export const tookAt = (lease, holder, state) => {
+  const last = (lease?.history ?? []).findLast((one) => one?.holder === holder);
+  return last?.how === "take" && last?.landing === state;
+};
+
 /* The other object in the field, beside the lease and the worklog: what a build ready to land leaves
    for whoever lands it. One turn per state, `done` is nobody's, and which of the two successors a
    state offers is the landing task's reading of the project. docs/cli/the-checkpoint.md. */
 export const LANDING = "landing";
 export const LANDING_READY = "ready";
+export const LANDING_BUILDER_OWED = "builder-owed";
+export const LANDING_RECONCILED = "reconciled";
 export const LANDING_QA_OWED = "qa-owed";
 export const LANDING_JUDGED = "judged";
 export const LANDING_DONE = "done";
@@ -149,7 +157,7 @@ export const landingTurn = (landing) => LANDING_STATES[landing?.state]?.turn ?? 
 /* A base that moved under a pin is built again from a fresh one — the one move the table above
    cannot carry, being backwards. Never past the push: that would void evidence for a landed release. */
 export const LANDING_CANDIDATE = "candidate";
-const REBUILDS = new Set([LANDING_CANDIDATE, "reconciled", LANDING_QA_OWED, LANDING_JUDGED, "promoting"]);
+const REBUILDS = new Set([LANDING_CANDIDATE, LANDING_RECONCILED, LANDING_QA_OWED, LANDING_JUDGED, "promoting"]);
 
 /** Blank rather than absent: `landingOf` drops what is falsy, so this is how a field is cleared. */
 export const landingVoided = (pinned) => ({
@@ -197,7 +205,7 @@ export const takeRefusal = (ref, landing, holder, lease, { now = Date.now(), sou
   }
   if (row.turn === "builder") {
     if (holder !== landing.builder) {
-      if (!live) return null;
+      if (!live || (lease.holder === holder && tookAt(lease, holder, landing.state))) return null;
       return `${said}, whose turn is the builder ${landing.builder}'s, and this session is ${holder}: `
         + `neither it nor a successor, since a successor is eligible only once that lease is dead by `
         + `the reclaim rules and ${describe(lease)} is on it. ${READ_THE_STATE(ref)}`;
@@ -212,12 +220,14 @@ export const takeRefusal = (ref, landing, holder, lease, { now = Date.now(), sou
   if (row.turn === "lander") {
     if (holder === landing.builder) {
       return `${said}, whose turn is the lander's, and this session built it: the builder's turn `
-        + `comes back at \`builder-owed\` and nowhere else. ${READ_THE_STATE(ref)}`;
+        + `comes back at \`${LANDING_BUILDER_OWED}\` and nowhere else. ${READ_THE_STATE(ref)}`;
     }
     /* At `judged` alone and spent by the take: a judge that went on to land under that same lease
        holds an ordinary lander's, which a third run may not take. docs/cli/the-checkpoint.md. */
     if (!live || lease.holder === holder || lease.holder === landing.builder) return null;
     if (landing.state === LANDING_JUDGED && landing.judge && lease.holder === landing.judge) return null;
+    /* And one state over, a successor's own lease after the write its turn ended with: spent by the take, and with no marker to clear, the row saying nothing once the lease moves. */
+    if (landing.state === LANDING_RECONCILED && tookAt(lease, lease.holder, LANDING_BUILDER_OWED)) return null;
     return `${said}, whose turn is the lander's, and ${describe(lease)} is already on it. `
       + `${READ_THE_STATE(ref)}`;
   }

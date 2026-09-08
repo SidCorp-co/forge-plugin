@@ -24,11 +24,35 @@ Where nothing asks for a second judge the state is not written at all and the la
 
 ## The turn is handed back, never abandoned
 
-`--judged` is the one route out of the judge's state, and without it that state is where a landing
-goes to die: the judge takes the turn, writes its verdicts as any run does, and says the turn is
-over. What those verdicts have to carry — a judge that is not the builder, and a citation of the
+Two states name a turn that is not the lander's, and each has one route out, a flag of the claim the
+run holding it makes: without one, that state is where a landing goes to die.
+
+`--judged` is the judge's: it takes the turn, writes its verdicts as any run does, and says the turn
+is over. What those verdicts have to carry — a judge that is not the builder, and a citation of the
 deployment identity the checkpoint holds — is the contract's business at `tested` and is not
 re-judged here, because a judge this claim refused could neither hand back nor be replaced.
+
+`--reconciled <sha>` is the builder's, and the sha is what that state is for: the run is asked which
+candidate it read, and the candidate the checkpoint names is what proves the reading rather than the
+run's word for it. Seven digits or forty, because seven is what the hand-back prints; the checkpoint's own string
+is what is stored, since the promotion compares that. A reconciliation of some other candidate is
+refused at the write rather than at the promotion, and the same independence `--judged` is held to
+holds here: at that state the turn is the builder the checkpoint names, and an id a whole wave carries
+is not proof of being it.
+
+Where the builder is gone its dead lease is any run's, and the run that takes the turn there may make
+that write too. Its own take is what says so — the claim history's row, naming the run at that state
+— because a successor holds a live lease from the moment it takes and the lease alone cannot tell it
+from the lander that wrote the hand-back under a lease it already held. The row read is the holder's
+own latest and no earlier one, because the history outlives both the holder and the state: a run that
+took the turn and lost the lease is any other run again, and one that has since taken another turn is
+at that one.
+
+The lease such a run leaves is spent where the judge's is, one state along: at `reconciled` the
+lander's turn comes back at once rather than after a run whose own turn ended with that write. Nothing
+is marked and nothing has to be cleared: the take that spends the row is the same take that writes a
+newer one, so the lease the lander then holds — that run's own, or the successor's if it goes on to
+land — is an ordinary lander's, which a third run may not take.
 
 The hand-back names the judge, because the lease it wrote under is still live and the landing has to
 be able to take it: that is a hole in the guard refusing a live lease, so it is cut at that one state
@@ -50,7 +74,8 @@ record earned and not on the attempt to move one, because a checkpoint closed ov
 earned would leave the issue reachable by no route at all.
 
 A state whose successor nothing writes is the same defect wearing a table's clothes — the table's own
-reachability walk cannot see it — so every state is asked for by name in the sources that write one.
-That catches a row nobody writes at all and not a row whose turn holder has no command for it, which
-is a state its own turn cannot leave: `builder-owed` is one, and ISS-726 carries both the reading
-that would fail on it and the route out it is missing.
+reachability walk cannot see it — so the sources that write one are read for every state, twice. Once
+for the state written at all, which catches a row nobody writes; and once for a row whose turn is a
+run's own, whose every successor has to be written by that run's verb, because a turn the holder
+cannot leave is a landing parked for good. Both readings are of the source and of the one spelling a
+state is written in, so a write spelled otherwise is refused by them rather than missed.

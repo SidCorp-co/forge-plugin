@@ -181,7 +181,7 @@ test("at builder-owed the named builder takes the lease off the lander that hold
   assert.match(run.stdout, /landing `builder-owed`/u, run.stdout);
 });
 
-test("with the builder holding the lease at builder-owed, its reconciliation write is accepted", async () => {
+test("with the builder holding the lease at builder-owed, a payload write of its own is accepted", async () => {
   field({ ...BUILT, state: "builder-owed" }, lease(BUILDER));
   const run = await ran(["record", "review", "ISS-673", "--reviewer", "codex", "--commit",
     "9e24c2af0000000000000000000000000000abcd", "--outcome", "approved"], BUILDER);
@@ -191,6 +191,141 @@ test("with the builder holding the lease at builder-owed, its reconciliation wri
   assert.equal(after.builder, BUILDER, "which still names who owes the reconciliation");
   assert.deepEqual(after.files, BUILT.files);
   assert.equal(held().holder, BUILDER);
+});
+
+/* The route out of `builder-owed`, which the state had none of until this: the builder says which
+   candidate it read, and the sha it names is what the landing compares before it promotes anything
+   (ISS-726). Refusals read for the state and the shas they name, as every refusal here is. */
+const CANDIDATE = "7c1d0e5b0000000000000000000000000000face";
+const OWED = { ...BUILT, state: "builder-owed", candidate: CANDIDATE, moved: "one.mjs" };
+
+test("the builder's reconciliation moves the checkpoint to reconciled at the candidate it names", async () => {
+  field(OWED, lease(BUILDER));
+  const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const after = checkpoint();
+  assert.equal(after.state, "reconciled", "the state the lander's turn is read from again");
+  assert.equal(after.reconciled, CANDIDATE, "against the candidate this landing built, which the promotion compares");
+  assert.equal(after.candidate, CANDIDATE, "and the candidate itself is left where it was");
+  assert.match(run.stdout, /landing `reconciled`/u, run.stdout);
+  assert.match(run.stdout, /promotes that commit and no other/u, "and what the run is told is left of it");
+});
+
+test("the seven digits the landing prints are the value, and the whole sha is what is stored", async () => {
+  field(OWED, lease(BUILDER));
+  const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE.slice(0, 7)], BUILDER);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(checkpoint().reconciled, CANDIDATE,
+    "the stop prints seven and the promotion compares forty, so the checkpoint's own string is stored");
+});
+
+test("a reconciliation naming another candidate is refused with both shas, and writes nothing", async () => {
+  field(OWED, lease(BUILDER));
+  const before = JSON.stringify(state.issues[0].sessionContext);
+  const run = await ran(["claim", "ISS-673", "--reconciled", BUILT.head], BUILDER);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, new RegExp(`names the candidate ${CANDIDATE.slice(0, 7)}`, "u"), run.stderr);
+  assert.match(run.stderr, new RegExp(`reconciliation names ${BUILT.head.slice(0, 7)}`, "u"),
+    "the sha given, so the two are read side by side");
+  assert.match(run.stderr, new RegExp(`--reconciled ${CANDIDATE}`, "u"), "with the command that answers it");
+  assert.equal(JSON.stringify(state.issues[0].sessionContext), before, "and the field is untouched");
+  const shapeless = await ran(["claim", "ISS-673", "--reconciled", "the-candidate"], BUILDER);
+  assert.equal(shapeless.status, 1, shapeless.stdout);
+  assert.match(shapeless.stderr, /7 to 40 hex digits/u, shapeless.stderr);
+  assert.equal(JSON.stringify(state.issues[0].sessionContext), before);
+});
+
+test("a reconciliation at any state but builder-owed is refused naming the state it read", async () => {
+  for (const state of ["ready", "candidate", "reconciled", "qa-owed", "judged", "marked", "done"]) {
+    field({ ...OWED, state }, lease(BUILDER));
+    const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER);
+    assert.equal(run.status, 1, `${state}: ${run.stdout}`);
+    assert.match(run.stderr, new RegExp(`reads \`${state}\``, "u"), run.stderr);
+    assert.match(run.stderr, /handed back from `builder-owed`/u, "and the one state it is handed back from");
+    assert.equal(checkpoint().state, state, "nothing was written");
+  }
+  field(null, lease(BUILDER));
+  const none = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER);
+  assert.equal(none.status, 1, none.stdout);
+  assert.match(none.stderr, /reads `nothing at all`/u, "an issue with no checkpoint reads as no state");
+});
+
+/* The successor route the reclaim rules already allow, all the way through: the builder is gone, so
+   its dead lease is any run's, and the run that takes the turn holds a live lease of its own from
+   that moment — read as the lease alone, that live lease would refuse the write the take was made
+   for. What separates it from the lander is its take's own history row (ISS-726). */
+test("a successor that took the builder's dead turn writes the reconciliation under the lease it took", async () => {
+  field(OWED, { ...lease(BUILDER), renewedAt: "2026-09-07T10:00:00.000Z" });
+  const took = await ran(["claim", "ISS-673", "--take"], "a-successor-run");
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`, "the builder is gone and its lease is dead");
+  assert.equal(held().holder, "a-successor-run");
+  assert.equal(held().history.at(-1).landing, "builder-owed", "the take names the state it was taken at");
+  const wrote = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], "a-successor-run");
+  assert.equal(wrote.status, 0, `${wrote.stdout}${wrote.stderr}`, "and the write it took the turn to make is its own");
+  assert.equal(checkpoint().state, "reconciled");
+  assert.equal(checkpoint().reconciled, CANDIDATE);
+});
+
+/* The lease a successor's reconciliation leaves behind is the judge's hole one state over: it is
+   live, its turn is over, and the state's turn is the lander's. Spent by the take, and by the same
+   take a third run's would not be. */
+test("the lease a successor reconciled under is taken back from at once, and its lander's is not", async () => {
+  const took = [{ holder: "a-successor-run", at: "2026-09-07T11:00:00.000Z", how: "take", status: "developed", next: null, landing: "builder-owed" }];
+  field({ ...OWED, state: "reconciled", reconciled: CANDIDATE }, { ...lease("a-successor-run"), history: took });
+  const lander = await ran(["claim", "ISS-673", "--take"], LANDER);
+  assert.equal(lander.status, 0, `${lander.stdout}${lander.stderr}`, "the landing carries on the moment the write lands");
+  assert.equal(held().holder, LANDER);
+  const third = await ran(["claim", "ISS-673", "--take"], "a-third-run");
+  assert.equal(third.status, 1, `${third.stdout}${third.stderr}`);
+  assert.match(third.stderr, /is already on it/u, "the lander's own lease is an ordinary one");
+  assert.equal(held().holder, LANDER, "and it is where it was");
+  /* The same run twice over: the successor that reconciled goes on to land, and the row that made
+     its builder's lease spent is not the one its lander's lease is read by. */
+  field({ ...OWED, state: "reconciled", reconciled: CANDIDATE }, { ...lease("a-successor-run"), history: took });
+  const landing = await ran(["claim", "ISS-673", "--take"], "a-successor-run");
+  assert.equal(landing.status, 0, `${landing.stdout}${landing.stderr}`, "its own lease, taken again, which a re-run is");
+  const after = await ran(["claim", "ISS-673", "--take"], "a-third-run");
+  assert.equal(after.status, 1, `${after.stdout}${after.stderr}`);
+  assert.match(after.stderr, /is already on it/u, "and what it holds now is a lander's, spent by nothing");
+  assert.equal(held().holder, "a-successor-run");
+});
+
+/* The history outlives the holder, and a row that licensed a run once would license it forever: the
+   run that took this turn and lost the lease is any other run again, and the live lease it would be
+   taking is a second successor's own turn. */
+test("a successor whose lease went to the run after it is refused the turn it once held", async () => {
+  const gone = { ...lease("the-first-successor"), renewedAt: "2026-09-07T10:00:00.000Z" };
+  field(OWED, { ...gone, history: [{ holder: "the-first-successor", at: gone.renewedAt, how: "take", status: "developed", next: null, landing: "builder-owed" }] });
+  const second = await ran(["claim", "ISS-673", "--take"], "the-second-successor");
+  assert.equal(second.status, 0, `${second.stdout}${second.stderr}`, "the first successor's lease is dead");
+  assert.equal(held().holder, "the-second-successor");
+  const again = await ran(["claim", "ISS-673", "--take"], "the-first-successor");
+  assert.equal(again.status, 1, `${again.stdout}${again.stderr}`);
+  assert.match(again.stderr, /neither it nor a successor/u, again.stderr);
+  assert.equal(held().holder, "the-second-successor", "and the live lease it would have taken is where it was");
+});
+
+test("the lander that wrote the hand-back cannot sign the reconciliation, holding an older lease", async () => {
+  field(OWED, lease(LANDER));
+  const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], LANDER);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, new RegExp(`the builder ${BUILDER}'s`, "u"), run.stderr);
+  assert.equal(checkpoint().state, "builder-owed", "the reading is the builder's to make and the turn is still owed");
+});
+
+test("a reconciliation by a run the state does not license is refused, naming whose turn it is", async () => {
+  field(OWED, lease(LANDER));
+  const third = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], "a-third-run");
+  assert.equal(third.status, 1, third.stdout);
+  assert.match(third.stderr, new RegExp(`the builder ${BUILDER}'s`, "u"), third.stderr);
+  assert.equal(checkpoint().state, "builder-owed", "and the turn is still owed");
+  /* And the hole the case below this file's next comment is about, asked at this write too. */
+  field({ ...OWED, builder: "the-dispatching-session" }, lease(LANDER));
+  const wave = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE],
+    "the-dispatching-session", process.cwd(), asWave);
+  assert.equal(wave.status, 1, `${wave.stdout}${wave.stderr}`);
+  assert.match(wave.stderr, /names a wave and not a run/u, wave.stderr);
+  assert.equal(checkpoint().state, "builder-owed");
 });
 
 test("at builder-owed a run that is neither the builder nor a successor is refused naming the state", async () => {
