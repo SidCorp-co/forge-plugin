@@ -207,6 +207,8 @@ const wroteLine = (tree, own) => {
   const said = [...wrote].sort();
   console.log(`  the mark's note says what this change wrote, which \`developed\` reads against the plan:`);
   console.log(`    landing wrote ${said.length ? said.join(", ") : "nothing"}`);
+  console.log(`  type that clause whole: the note is built to the room the tracker gives it, and one `
+    + `too long to store leaves out paths the plan names and says so in a clause of its own`);
 };
 
 /** Why each frozen file had to move, as the gate that held the write recorded it. Read here because

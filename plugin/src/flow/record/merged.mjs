@@ -6,9 +6,10 @@ import { refuse } from "../../refusal.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { commentPage, creditAfter } from "../../tracker/comments.mjs";
 import { isCommit } from "../../tracker/evidence.mjs";
+import { capsOf, lengthOf } from "../../tracker/field-write.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
 import { releasePolicy } from "../../tracker/project-config.mjs";
-import { write } from "../../tracker/rpc.mjs";
+import { scoped, write } from "../../tracker/rpc.mjs";
 import { notAnothers, renew } from "../lease.mjs";
 import { unwrap } from "../machine.mjs";
 
@@ -83,6 +84,69 @@ const pathsSaid = (paths) => {
   return said;
 };
 
+/* A whole path or nothing, prefixes included; a trailing dot ends a sentence unless a name follows. Beside the note rather than beside the check that spends it, because the composer asks the same question of the same text before it leaves a path out. */
+export const namesPath = (named, path) =>
+  new RegExp(`(?<![\\w./-])${path.replace(/[$()*+.?[\\\]^{|}]/gu, "\\$&")}(?![\\w/-])(?!\\.\\w)`, "u").test(named);
+
+/** The write that names a path the plan does not, spelt once: the mark's own refusal and `developed`'s shortfall both spend it, and two spellings would send a run to two commands. */
+export const correctionForm = (ref, paths) =>
+  `forge record correction ${ref} --moved "the change also wrote ${paths.join(", ")}" `
+  + `--why "<why each was needed>"`;
+
+/** The text `developed` reads each path of the note against — the plan and its corrections — for the composer that must not leave out what that check would refuse. The import is at the call because `earned.mjs` reads this module's clauses, so a static one back would be a cycle. */
+export const namedFor = async (documentId, comments = null) => {
+  const { namedIn, viewFrom } = await import("../earned.mjs");
+  const issue = await scoped("forge_issues", { action: "get", documentId, fields: ["plan"] });
+  const page = comments ?? (await commentPage(documentId)).comments ?? [];
+  return namedIn(viewFrom(documentId, issue ?? {}, page ?? []));
+};
+
+const sentenceOf = ({ branch, at, reviewed, judged, moved, wrote, tail = "" }) =>
+  `merged to ${branch} ${clause("at").said} ${at}; ${clause("reviewed").said} ${reviewed}; `
+  + `${clause("judged").said} ${judged}; ${clause("moved").said} ${pathsSaid(moved)}; `
+  + `${clause("wrote").said} ${pathsSaid(wrote)}${tail}`;
+
+/* The room the note has, off the route table like every other field's cap: a composer fitting to a number of its own would be deciding the tracker's limit for it. */
+const roomOf = () => capsOf().note?.self ?? null;
+
+/* What stands in for the paths there was no room for, after the `;` that ends the path clause, which is read only as far as that separator — so no word of this is taken for a path or for another clause. Only paths the plan names are ever left out, which is what makes a count enough. */
+const leftOut = (kept, whole, named) =>
+  `; that clause holds ${kept} of this change's ${whole} paths and leaves out ${whole - kept} `
+  + `${named ? "the plan names" : "that no plan of this issue names"}, whose whole list is the diff `
+  + `of the judged head above against its base`;
+
+const tooLong = (over, room, owed, ref) => (owed.length
+  ? `the note is ${over} code points over the ${room} the tracker takes with only the ${owed.length} `
+    + `path(s) the plan and its corrections do not name in it, and those are the paths \`developed\` `
+    + `reads, so none of them may be left out: nothing was written. Name them in the correction that `
+    + `status asks for and mark again — they are named then, and the note has the room to leave them `
+    + `out:\n  ${correctionForm(ref, owed)}`
+  : `the note is ${over} code points over the ${room} the tracker takes with the shortest written `
+    + `path in it and no other, so what overran is the \`landing moved\` clause: nothing was written. That `
+    + `clause is never shortened, a landing that moved this change's paths being what stands the `
+    + `verdicts down. Name the directory those paths are under.`);
+
+/* Every path the plan does not name stays in the clause and the ones it names fill what room is left, so `developed` reads the set it would have read off the whole list: what is left out is what that check already passes. A change whose unnamed paths alone overrun the note is refused rather than quietly shortened, because shortening there would earn the status a change that grew has not. No plan at all is a change `developed` reads no path of against anything, so the tier that writes none is excused the check and this refusal both. The floor is measured on the shortest path and a path the room cannot take is passed over rather than ending the fill, because a long one first would blame `landing moved` for a note a shorter path fits in. */
+const fitted = (held, named, ref) => {
+  const room = roomOf();
+  const whole = sentenceOf(held);
+  if (room === null || lengthOf(whole) <= room) return { note: whole, wrote: held.wrote };
+  const text = named.trim();
+  const noteOf = (kept) =>
+    sentenceOf({ ...held, wrote: kept, tail: leftOut(kept.length, held.wrote.length, text) });
+  const owed = text ? held.wrote.filter((one) => !namesPath(text, one)) : [];
+  const over = (kept) => lengthOf(noteOf(kept)) - room;
+  const least = held.wrote.length ? [[...held.wrote].sort((one, two) => lengthOf(one) - lengthOf(two))[0]] : [];
+  if (over(least) > 0) refuse(tooLong(over(least), room, [], ref));
+  const keep = owed.length ? [...owed] : least;
+  if (over(keep) > 0) refuse(tooLong(over(keep), room, owed, ref));
+  for (const one of held.wrote) {
+    if (keep.includes(one) || over([...keep, one]) > 0) continue;
+    keep.push(one);
+  }
+  return { note: noteOf(keep), wrote: keep };
+};
+
 const backSaid = (held) => {
   if (held === null) return "nothing at all";
   return Array.isArray(held) ? (held.length ? held.join(", ") : `\`${NOTHING}\``) : String(held);
@@ -113,13 +177,14 @@ const proved = (note, given) => {
 };
 
 /** The note itself, from the same rows the readers above are built on: whoever lands a change —
- *  the verb below, or the landing task — composes it here and nowhere else, and it reads back as
- *  given or it is not written. */
-export const markNote = ({ branch, at, reviewed, judged, moved = [], wrote = [] }) =>
-  proved(`merged to ${branch} ${clause("at").said} ${at}; ${clause("reviewed").said} ${reviewed}; `
-    + `${clause("judged").said} ${judged}; ${clause("moved").said} ${pathsSaid(moved)}; `
-    + `${clause("wrote").said} ${pathsSaid(wrote)}`,
-  { at, reviewed, judged, moved, wrote });
+ *  the verb below, or the landing task — composes it here and nowhere else, built to the room the
+ *  tracker gives it, and it reads back as written or it is not written. `named` is what the paths
+ *  are ranked by; without it every path is one the note may not leave out. */
+export const markNote = ({ branch, at, reviewed, judged, moved = [], wrote = [], named = "",
+  ref = "<uuid|ISS-45>" }) => {
+  const fit = fitted({ branch, at, reviewed, judged, moved, wrote }, named, ref);
+  return proved(fit.note, { at, reviewed, judged, moved, wrote: fit.wrote });
+};
 
 const TARGET = "base";
 
@@ -206,7 +271,8 @@ export const recordMerged = async (reference, argv, { next, patch, usage } = {})
     return undone(documentId, reference, { next, patch });
   }
   const held = clausesFrom(given);
-  const note = markNote({ branch: await branchFor(given), ...held });
+  const note = markNote({ branch: await branchFor(given), ...held,
+    named: await namedFor(documentId), ref: reference });
   await renew(documentId, reference, next, patch);
   await markMerged(documentId, reference, note, { leased: true });
   console.log(`${reference}  marked merged at ${held.at}. Its note:\n  ${note}`);

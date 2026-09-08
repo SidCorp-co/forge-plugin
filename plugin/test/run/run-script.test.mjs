@@ -457,6 +457,9 @@ test("the last step prints what this change wrote, and leaves the release commit
   for (const one of ["package.json", "package-lock.json", "plugin.json"]) {
     assert.ok(!said[1].includes(one), `the release commit's own ${one} is in the clause:\n${out}`);
   }
+  /* ISS-730: a run that shortened this clause by hand is what the composer's fitting replaced, so the step that prints it says the list is typed as it stands. */
+  assert.match(out, /type that clause whole: the note is built to the room the tracker gives it/u,
+    `the clause is printed with nothing saying it is typed whole:\n${out}`);
 });
 
 /* Identity is the wrong test: a manifest is where a dependency lives too, and a change that added

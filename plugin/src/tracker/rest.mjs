@@ -201,7 +201,7 @@ export const DECLARES = {
       acceptanceCriteria: { self: 100000, halves: {} },
       plan: { self: 200000, halves: {} },
       releaseNotes: { self: null, halves: { section: null, userFacing: 500, technical: 500 } },
-      note: { self: 10000, halves: {} },
+      note: { self: 2000, halves: {} },
       taskTitle: { self: 500, halves: {} },
       taskDescription: { self: 50000, halves: {} },
       reason: { self: 10000, halves: {} },

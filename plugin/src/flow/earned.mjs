@@ -6,7 +6,7 @@ import {
   FINDINGS, SHAPES, TRIAGES, criteriaUncovered, looksTo, planFlags, planSteps, planTyped,
   sectionsOwed, stepsUncited, unwrap,
 } from "./machine.mjs";
-import { judgedHead, landingMoved, landingWrote, markedCommit, mergedForm, reviewedHead } from "./record/merged.mjs";
+import { correctionForm, judgedHead, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead } from "./record/merged.mjs";
 import { eachProblem } from "./record/content.mjs";
 import { FORMS } from "../spec/parse.mjs";
 import { lightens } from "../ladder.mjs";
@@ -414,16 +414,15 @@ const deployOwed = (view, ref) => {
   return out;
 };
 
-/* A whole path or nothing, prefixes included; a trailing dot ends a sentence unless a name follows. */
-const namesPath = (named, path) =>
-  new RegExp(`(?<![\\w./-])${path.replace(/[$()*+.?[\\\]^{|}]/gu, "\\$&")}(?![\\w/-])(?!\\.\\w)`, "u").test(named);
+/** The plan's own text and not a path list, a plan being prose; `wrote` is not `moved`. The composer of the note reads this too, before it leaves a path out of one that will not fit. */
+export const namedIn = (view) => [unwrap(view.issue.plan), ...correctionsIn(view)].join("\n");
 
-/* The plan's own text and not a path list, a plan being prose; `wrote` is not `moved`. A tier below
-   `feature` writes no plan, and refusing against a list the ladder excused would take that rung back. */
+/* A tier below `feature` writes no plan, and refusing against a list the ladder excused would take
+   that rung back. */
 const unplannedIn = (view) => {
   const wrote = landingWrote(view.comments);
   if (!wrote) return [];
-  const named = [unwrap(view.issue.plan), ...correctionsIn(view)].join("\n");
+  const named = namedIn(view);
   if (!named.trim()) return [];
   return wrote.filter((path) => !namesPath(named, path));
 };
@@ -434,8 +433,7 @@ const scopeOwed = (view, ref) => {
   return [need(
     `the landing wrote ${outside.join(", ")}, which the plan does not name and no correction names `
       + `either, so the change grew and the record does not say where`,
-    `forge record correction ${ref} --moved "the change also wrote ${outside.join(", ")}" `
-      + `--why "<why each was needed>"`,
+    correctionForm(ref, outside),
   )];
 };
 

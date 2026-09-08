@@ -48,6 +48,35 @@ answers: a clause that parses to no path at all says nothing about what moved, a
 judged head then has nothing saying it survived the landing. That is why the verb refuses a clause
 whose value parses to no path rather than storing the empty string.
 
+## The note is built to the room the tracker gives it
+
+The tracker takes 2000 code points of note on that route, and a change of some forty-five paths is
+already past it. The number is the route table's `note` cap, read where every other field's cap is
+read, so a tracker that raises it is one table edit and not a search for the composer that decided
+otherwise.
+
+So the composer fits the sentence, and what it leaves out it leaves out by a rule. `developed` reads
+each path of `landing wrote` against the plan and its corrections and refuses one they do not name:
+a path they *do* name is one that check already passes, and dropping it changes no answer, while a
+path they do not name is the whole evidence that the change grew. Every unnamed path therefore stays
+in the clause, the named ones fill what room is left, and a clause of its own — after the `;`, where
+no reader takes it for a path — says how many of the change's paths are in the note, how many are
+not, that the plan names those, and where the whole list is read from.
+
+Two notes are refused before the call rather than fitted, because fitting either would say something
+untrue:
+
+- one whose unnamed paths alone overrun it. Shortening there would earn `developed` for a change
+  that grew and never disclosed it, so the refusal names those paths and the correction that clears
+  them — which is the correction the status asks for anyway, and once it is written they are named
+  and the note has room to leave them out.
+- one whose `landing moved` clause has no room for a single written path. That clause is what stands
+  the verdicts down, and a partial list of it reads as a landing that moved less than it did.
+
+A run following the ship's last step types the clause whole. The improvisation this replaced —
+a shorter note invented per run, because the printed instruction was refused by the write it asked
+for — is what made the record of a large change whatever its run had time to type.
+
 ## Marks already on the tracker still earn
 
 The parser is unchanged, byte for byte, and the verb writes the sentence it already read. Every mark

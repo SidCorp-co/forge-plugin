@@ -12,6 +12,7 @@ process.env.XDG_CONFIG_HOME = tempHome("entry-checks").path;
 const { parse, render } = await import("../../../src/flow/record/page.mjs");
 const { CHECKS, shapeGaps, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { planFlags, planSections, planSteps } = await import("../../../src/flow/machine.mjs");
+const { markNote } = await import("../../../src/flow/record/merged.mjs");
 const { targetOf } = await import("../../../src/flow/route.mjs");
 
 let clock = 0;
@@ -93,6 +94,29 @@ test("a file the landing wrote and the plan does not name owes a correction", ()
   assert.deepEqual(owed({ acceptanceCriteria: CRITERIA, mergedAt: at() },
     wrote("; landing wrote plugin/src/flow/earned.mjs, tools/run.mjs")).map((one) => one.what), [],
   "an issue carrying no plan has no list to be outside of");
+});
+
+/* ISS-730: the note of a change too big to carry every path leaves out only paths the plan names,
+   so this check reads the same set off a fitted note as it would off the whole list. Composed here
+   by the composer itself rather than by hand, the two halves being what has to stay in step. */
+test("a fitted note earns what the whole list would have earned, and refuses what it would have refused", () => {
+  const cases = Array.from({ length: 119 },
+    (_, one) => `plugin/src/flow/record/case-${String(one).padStart(3, "0")}.mjs`);
+  const note = (named) => markNote({ branch: "master", at: "43b811e", reviewed: "43b811e",
+    judged: "43b811e", moved: [], wrote: cases, named: named.join("\n"), ref: "ISS-3" });
+  const seen = (named) => [mark(note(named)),
+    recorded("review", { reviewer: "codex", commit: "43b811e", outcome: "approved", finding: [] })];
+  const owed = (plan, named) =>
+    CHECKS.developed(view({ plan, acceptanceCriteria: CRITERIA, mergedAt: at() }, seen(named)), "ISS-3");
+  const whole = owed(`It touches ${cases.join(" and ")}.`, cases);
+  assert.deepEqual(whole.map((one) => one.what), [], "a plan naming all 119 leaves nothing outside it");
+  const grew = owed(`It touches ${cases.slice(29).join(" and ")}.`, cases.slice(29));
+  assert.equal(grew.length, 1, "while the 29 it does not name are one shortfall");
+  for (const one of cases.slice(0, 29)) {
+    assert.match(grew[0].what, new RegExp(one.replace(/\./gu, "\\."), "u"),
+      `${one} is a path the plan does not name, so the note may not leave it out`);
+  }
+  assert.doesNotMatch(grew[0].what, /case-118/u, "and no path it does name is reported as growth");
 });
 
 test("a project that deploys on its own earns released by proving the deploy, not by asserting it", () => {

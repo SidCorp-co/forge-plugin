@@ -162,6 +162,32 @@ test("a branch that conflicts with the pinned base is parked with the list, and 
   assert.deepEqual(strayWrites(), [], `and the park is inside the boundary too:\n${said}`);
 });
 
+/* ISS-730: the note is fitted to the tracker's cap, and the one shape it will not fit is a change
+   whose paths the plan names none of. That refusal arrives after the push and the install, so what
+   this watches is the route it takes: this step's own stop, the checkpoint still `installed` for the
+   run that comes back, and the branch after it landing all the same. */
+test("a note the composer cannot fit stops the mark, keeps the checkpoint and lands the branch after it", async () => {
+  const { at, work, head, next, base } = world({ base: "other", second: true });
+  const pinned = sha(work, BASE);
+  const cases = Array.from({ length: 119 },
+    (_, one) => `plugin/src/flow/record/case-${String(one).padStart(3, "0")}.mjs`);
+  seeded({
+    landing: ready(head, base, { files: cases }),
+    next: ready(next, base, { branch: NEXT_BRANCH, files: [NEXT_OWNED] }),
+  });
+  const said = await ran([KEY, NEXT_KEY], work);
+  assert.match(said, /the plan and its corrections do not name/u, said);
+  assert.match(said, new RegExp(`forge record correction ${KEY} --moved`, "u"),
+    `the write that clears it:\n${said}`);
+  assert.match(said, /stopped at step \d+ \(the merged mark\)/u,
+    `the step's own stop and not a thrown error:\n${said}`);
+  assert.equal(landing().state, "installed", `the checkpoint waits at the mark:\n${said}`);
+  assert.equal(marks().length, 0, `and nothing was marked:\n${said}`);
+  assert.equal(landing(NEXT_UUID).state, "marked", `the branch after it is somebody else's release:\n${said}`);
+  assert.notEqual(remote(at), pinned, `which landed:\n${said}`);
+  assert.deepEqual(strayWrites(), [], `and the stop is inside the landing's own writes:\n${said}`);
+});
+
 test("a base head past the pin refuses the promotion, names it, and rebuilds from the new head", async () => {
   const { at, work, head, base } = world({ base: "other" });
   const pinned = sha(work, BASE);

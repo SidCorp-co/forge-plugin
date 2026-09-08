@@ -20,7 +20,7 @@ import { scoped } from "../../plugin/src/tracker/rpc.mjs";
 import { pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
 import { advance, parkAs } from "../../plugin/src/flow/advance.mjs";
 import { atLeast, viewFrom } from "../../plugin/src/flow/earned.mjs";
-import { markMerged, markNote, markedCommit } from "../../plugin/src/flow/record/merged.mjs";
+import { markMerged, markNote, markedCommit, namedFor } from "../../plugin/src/flow/record/merged.mjs";
 import {
   LANDING_CANDIDATE, LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED, LANDING_READY,
   landingOf, landingSaved, landingVoided, takeLease,
@@ -401,14 +401,18 @@ const markStep = async (one) => {
     console.log(`  the mark at ${shortly(landed)} is up already`);
   } else {
     const judged = at.landing.moved ? at.landing.candidate : at.landing.head;
-    const note = markNote({
+    const named = await asked(() => namedFor(documentId, comments ?? []));
+    /* Through `asked` because the composer refuses: a note it cannot fit under the tracker's cap is a correction this issue owes, and the run reads it as this step's own stop with the resume line under it rather than as an exception thrown past a landing that has already pushed. */
+    const note = await asked(() => markNote({
       branch: base,
       at: landed,
       reviewed: judged,
       judged,
       moved: at.landing.moved ? at.landing.moved.split(", ") : [],
       wrote: at.landing.files,
-    });
+      named,
+      ref: key,
+    }));
     await asked(() => markMerged(documentId, key, note));
     console.log(`  ${key} is marked merged at ${shortly(landed)}`);
   }
