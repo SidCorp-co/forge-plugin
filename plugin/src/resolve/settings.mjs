@@ -53,7 +53,7 @@ const ancestors = (start) => {
 };
 
 /* A linked worktree owns neither file; `--git-common-dir` names the checkout that does. Memoised —
-   unmemoised this spawned nine `git rev-parse` for one `forge issues`. */
+   unmemoised this spawned nine `git rev-parse` for one `forge issue`. */
 const checkoutRoot = once(() => {
   const common = git(["rev-parse", "--git-common-dir"], process.cwd());
   return common === null ? null : dirname(resolve(process.cwd(), common));

@@ -29,7 +29,7 @@ description: >-
 
 | you want | run |
 |---|---|
-| list, read, search issues | `forge issues -h`, `forge issue -h` |
+| list, read, search issues | `forge issue -h` |
 | file, comment, attach | `forge new -h`, `forge comment -h`, `forge attach -h` |
 | a plan, a lease, a record, a status move | `forge record -h`, `forge claim -h`, `forge advance -h` |
 | the next issue to work | `forge next -h` |

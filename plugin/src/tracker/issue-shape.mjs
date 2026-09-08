@@ -520,7 +520,7 @@ const LIGHT = bandFor(FIX);
 
 const unread = (token) =>
   `Whether an open issue names ${token} is unread: the search for it did not come back whole, so no `
-  + `candidate here is this reading's silence rather than the backlog's. \`forge issues `
+  + `candidate here is this reading's silence rather than the backlog's. \`forge issue `
   + `--search ${token}\` finishes it; --complexity ${LIGHT} is the route either way.`;
 
 const fixRoutes = (tokens, { open, whole }) => [

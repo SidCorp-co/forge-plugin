@@ -518,7 +518,7 @@ test("a page with rows behind it and no open row among them says the reading did
   assert.match(run.stderr, /Whether an open issue names forge issue is unread/u);
   assert.doesNotMatch(run.stderr, /No open issue names/u,
     "four rows the route counted and would not serve is silence, not absence");
-  assert.match(run.stderr, /forge issues --search forge issue/u,
+  assert.match(run.stderr, /forge issue --search forge issue/u,
     "and the one command that finishes the reading, the sentence sitting under `Name a route:`");
 });
 

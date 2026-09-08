@@ -115,7 +115,7 @@ identifiers of a requirements tree are letters-dash-digits too and a citation is
 Accepting the wider shape cost twice over: the read-first gate asked for the comments of `FR-05` as
 though a clause could have any, and the lookup above spent the whole backlog — seven windows, 210
 rows — before calling a specification clause an issue the tracker does not hold, which sent its
-reader to `forge issues` for something that was never going to be there.
+reader to `forge issue` for something that was never going to be there.
 
 So the shape is refused before the first call, and the refusal names `forge spec`, which answers
 that identifier off disk. The prefix is an allowlist of one rather than configuration: it is the only

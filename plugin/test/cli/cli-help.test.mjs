@@ -49,7 +49,7 @@ test("help is an answer, not a failure", () => {
   assert.equal(run.stderr, "", `and nothing to stderr: ${run.stderr}`);
   const missing = ask("isues");
   assert.equal(missing.status, 1, "a verb that does not exist is still a failure");
-  assert.match(missing.stderr, /No verb named isues. Did you mean: issues/u);
+  assert.match(missing.stderr, /No verb named isues. Did you mean: issue/u);
   assert.equal(missing.stdout, "", "and a failure says nothing on stdout");
 });
 
@@ -144,7 +144,6 @@ test("an action the verb has not got is a refusal, and a later help word is a va
 /* The whole table rather than two examples: `<file>...` keeps its brackets and its ellipsis, and
    `[contract [part]|slug]` leaves an empty alternative behind, and neither shows in a sample. */
 const POINTS_AT = {
-  issues: "forge_issues",
   issue: "forge_issues",
   new: null,
   comment: null,

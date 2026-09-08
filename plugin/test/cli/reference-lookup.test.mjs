@@ -81,7 +81,7 @@ test("a refusal names no limit, the limit having never been what cut the page", 
 test("a refusal over a covered backlog routes to the keys the tracker does hold", async () => {
   cutTo(BACKLOG, 2);
   const run = await ran(["issue", "ISS-99"]);
-  assert.match(run.stderr, /`forge issues`/u);
+  assert.match(run.stderr, /`forge issue`/u);
   assert.doesNotMatch(run.stderr, /words from its title/u, "which a reader holding only a key has not got");
 });
 
@@ -105,12 +105,12 @@ test("a key inside the gaps, which no offset holds, is refused as an absence", a
 test("a refusal routes to the verb that prints the keys, and names no limit", async () => {
   cutTo(GAPPED, 2);
   const run = await ran(["issue", "ISS-3"]);
-  assert.match(run.stderr, /`forge issues`/u, "the one route a reader holding only a key can run");
+  assert.match(run.stderr, /`forge issue`/u, "the one route a reader holding only a key can run");
   assert.doesNotMatch(run.stderr, /500/u);
 });
 
 /* ISS-36. A wider shape sends a citation through the whole walk — 7 windows and 210 rows, measured
-   live — and then calls a clause an absent issue, routing its reader to `forge issues`. */
+   live — and then calls a clause an absent issue, routing its reader to `forge issue`. */
 const asked = () => state.calls.filter((one) => /\/issues/u.test(one.path ?? "")).length;
 
 /* Only the one-row reads the key search makes, which is what its cost is counted in. */
@@ -135,7 +135,7 @@ test("that refusal claims no absence, a clause not being an issue the tracker la
   cutTo(BACKLOG, 2);
   const run = await ran(["issue", "FR-05"]);
   assert.doesNotMatch(run.stderr, /not on this project's tracker|whole backlog/u);
-  assert.doesNotMatch(run.stderr, /`forge issues`/u, "the keys it holds is no answer to a citation");
+  assert.doesNotMatch(run.stderr, /`forge issue`/u, "the keys it holds is no answer to a citation");
 });
 
 /* Every family, through the verb rather than the predicate: the refusal is what a reader meets. */

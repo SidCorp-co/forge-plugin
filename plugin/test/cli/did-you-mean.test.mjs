@@ -151,7 +151,7 @@ test("a synonym answers with the one verb it means, before any distance is measu
   for (const [given, meant] of Object.entries(ALIASES)) {
     assert.deepEqual(suggest(given, VERB_NAMES), [meant], `forge ${given}`);
   }
-  assert.deepEqual(suggest("list", ["issue", "lists", "plan"]), ["lists"],
+  assert.deepEqual(suggest("list", ["lists", "plan"]), ["lists"],
     "and where the verb it means is not on offer, distance answers in its place");
 });
 
@@ -181,8 +181,8 @@ test("the rule fires on a table that answers a retired name", () => {
   assert.equal(found.length, 1, found.join("\n"));
   assert.match(found[0], /retired in 3\.36\.0/u);
   assert.match(found[0], /withholding-a-verb\.md/u, "and the finding says where the rule reads");
-  assert.deepEqual(aliasProblems({ issues: "issues" }, RETIRED, VERB_NAMES),
-    ["issues is a verb of its own, so its row is never reached"]);
+  assert.deepEqual(aliasProblems({ issue: "issue" }, RETIRED, VERB_NAMES),
+    ["issue is a verb of its own, so its row is never reached"]);
   assert.deepEqual(aliasProblems({ fetch: "gone" }, RETIRED, VERB_NAMES),
     ["the table sends fetch to gone, which no verb answers to"]);
 });

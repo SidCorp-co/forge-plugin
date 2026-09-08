@@ -18,7 +18,7 @@ const rowFor = (verb) => VERBS.find(([name]) => name === verb);
 
 test("a pair a verb claims answers with that verb, and one no row claims answers with nothing", () => {
   assert.equal(verbFor("forge_issues", "create").verb, "new");
-  assert.equal(verbFor("forge_issues", "list").verb, "issues");
+  assert.equal(verbFor("forge_issues", "list").verb, "issue");
   assert.equal(verbFor("forge_issues", "get").verb, "issue");
   assert.equal(verbFor("forge_comments", "create").verb, "comment");
   assert.equal(verbFor("forge_knowledge", "upsert").line, "`forge knowledge write`");
@@ -56,7 +56,7 @@ test("the action a row spends is read out of whichever key of its gate object ca
    spend it. So the key is composed off `action` alone, and this watches that it is. */
 test("routing an action leaves every capability key exactly where it was", () => {
   assert.equal(gateKey(rowFor("knowledge")), "forge_knowledge");
-  assert.equal(gateKey(rowFor("issues")), "forge_issues");
+  assert.equal(gateKey(rowFor("issue")), "forge_issues");
   assert.equal(gateKey(rowFor("attach")), "forge_uploads");
   assert.equal(gateKey(rowFor("project")), "forge_projects.list");
   assert.equal(gateKey(GATED_ROW), "forge_example.spend");
@@ -231,7 +231,7 @@ test("a credential whose knowledge tool refuses still has the verb hidden from t
   try {
     const listed = await ran("-h");
     assert.doesNotMatch(listed.stdout, /^ {2}knowledge /mu, "the verb left the usage list");
-    assert.match(listed.stdout, /^ {2}issues /mu, "and the verbs beside it did not");
+    assert.match(listed.stdout, /^ {2}issue /mu, "and the verbs beside it did not");
   } finally {
     await close();
   }
@@ -246,5 +246,5 @@ test("a wrapped action is refused with no tracker to ask", async () => {
   await tracker.close();
   const run = await ranAsync(process.execPath, [CLI, "call", "forge_issues", '{"action":"list"}'], tracker.env, cwd);
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /forge_issues list is what `forge issues` wraps/u);
+  assert.match(run.stderr, /forge_issues list is what `forge issue` wraps/u);
 });

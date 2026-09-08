@@ -15,7 +15,7 @@ length of the write, and a temp file a crashed run left behind would take the to
 permissions it already had.
 
 The once-only memo remembers *that* it ran, not what it returned — four of the seven it replaced tested
-the value for truthiness and re-ran on a valid `null`. Unmemoised, one `forge issues` spawned
+the value for truthiness and re-ran on a valid `null`. Unmemoised, one `forge issue` spawned
 `git rev-parse` nine times. Flag parsing lives in one place: three verbs had grown their own copy and
 two dropped a valueless flag silently, which reads as an unfiltered answer.
 

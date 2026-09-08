@@ -32,7 +32,7 @@ export const ALIASES = {
   show: "issue",
   read: "issue",
   comments: "comment",
-  list: "issues",
+  list: "issue",
 };
 
 export const suggest = (given, candidates, limit = 5) => {

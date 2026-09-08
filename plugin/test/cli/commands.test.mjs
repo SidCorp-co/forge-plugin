@@ -88,7 +88,7 @@ const ran = (argv) => ranAsync(FORGE, argv, tracker.env, ROOT);
 
 test("the browse page comes back in the order it is to be worked, not the order it was touched", async () => {
   state.issues = ROWS;
-  const run = await ran(["issues"]);
+  const run = await ran(["issue"]);
   assert.equal(run.status, 0, run.stderr);
   const keys = run.stdout.split("\n").filter((line) => line.startsWith("ISS-")).map((line) => line.split(" ")[0]);
   assert.deepEqual(keys, ["ISS-11", "ISS-13", "ISS-12", "ISS-10"],
@@ -97,7 +97,7 @@ test("the browse page comes back in the order it is to be worked, not the order 
 
 test("every row shows the rank it was sorted on", async () => {
   state.issues = ROWS;
-  const run = await ran(["issues"]);
+  const run = await ran(["issue"]);
   assert.match(run.stdout, /^ISS-11 {3}critical {1}open {9}filed last and wanted first$/mu);
   assert.match(run.stdout, /^ISS-10 {3}low {6}open {9}the oldest/mu);
 });
@@ -105,7 +105,7 @@ test("every row shows the rank it was sorted on", async () => {
 const NOTE = [
   "## What happened",
   "",
-  "`forge issues` answered in the order the rows were last touched, which is nobody's queue.",
+  "`forge issue` answered in the order the rows were last touched, which is nobody's queue.",
   "",
   "## Why it happens",
   "",
@@ -168,7 +168,7 @@ const keysOf = (run) =>
 
 test("a page the byte cap cut is walked until every matching row is in hand", async () => {
   cutByBytes();
-  const run = await ran(["issues"]);
+  const run = await ran(["issue"]);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(keysOf(run).sort(), ["ISS-10", "ISS-11", "ISS-12", "ISS-13"],
     "two of the four fit one answer, and the verb printed all four");
@@ -176,7 +176,7 @@ test("a page the byte cap cut is walked until every matching row is in hand", as
 
 test("the count line says the whole set and how many requests it took", async () => {
   cutByBytes();
-  const run = await ran(["issues"]);
+  const run = await ran(["issue"]);
   const said = /4 issue\(s\) over (\d+) page\(s\), which is every row matching this ask/u.exec(run.stdout);
   assert.ok(said, `no count line in:\n${run.stdout}`);
   assert.ok(Number(said[1]) > 1, "one answer held two of the four, so the reading took more than one");
@@ -184,7 +184,7 @@ test("the count line says the whole set and how many requests it took", async ()
 
 test("a walked reading claims no cut", async () => {
   cutByBytes();
-  const run = await ran(["issues"]);
+  const run = await ran(["issue"]);
   assert.doesNotMatch(run.stdout, /incomplete/u, "nothing was withheld, so nothing is owed to say so");
 });
 
@@ -197,7 +197,7 @@ const stuckAt = (served) => {
 
 test("a reading that stays cut says so, in the count it measured", async () => {
   stuckAt(2);
-  const run = await ran(["issues"]);
+  const run = await ran(["issue"]);
   assert.equal(run.status, 0, run.stderr);
   const said = run.stdout.split("\n").find((line) => line.includes("incomplete")) ?? "";
   assert.match(said, /2 issue\(s\) over \d+ page\(s\)/u);
@@ -206,15 +206,15 @@ test("a reading that stays cut says so, in the count it measured", async () => {
 
 test("that reading routes to an ask narrow enough to come back whole", async () => {
   stuckAt(2);
-  const run = await ran(["issues"]);
-  assert.match(run.stdout, /forge issues --status open/u);
+  const run = await ran(["issue"]);
+  assert.match(run.stdout, /forge issue --status open/u);
 });
 
 /* `--limit` stopped being the wire ask when the answer became a union of windows: it is how many of
    the whole set print, and the rows it drops are the tail of an order the reader can see. */
 test("the limit prints that many of the whole set and says what it left out", async () => {
   cutByBytes();
-  const run = await ran(["issues", "--limit", "2"]);
+  const run = await ran(["issue", "--limit", "2"]);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(keysOf(run), ["ISS-11", "ISS-13"], "the top two of the order, not the two that fit");
   assert.match(run.stdout, /2 of 4 issue\(s\)/u);
@@ -239,7 +239,7 @@ const overTheCeiling = () => {
 
 test("at the ceiling the cut sentence drops the flag and keeps the route that works", async () => {
   overTheCeiling();
-  const run = await ran(["issues", "--limit", String(MAX_LIMIT)]);
+  const run = await ran(["issue", "--limit", String(MAX_LIMIT)]);
   assert.equal(run.status, 0, run.stderr);
   const said = run.stdout.split("\n").find((line) => line.includes("not printed")) ?? "";
   assert.match(said, new RegExp(`^${MAX_LIMIT} of ${MAX_LIMIT + 1} issue\\(s\\)`, "u"));
@@ -252,7 +252,7 @@ test("a page the tracker reports whole is read in one request", async () => {
   state.issues = ROWS;
   state.answer = undefined;
   state.calls = [];
-  const run = await ran(["issues"]);
+  const run = await ran(["issue"]);
   assert.equal(run.status, 0, run.stderr);
   assert.doesNotMatch(run.stdout, /incomplete/u);
   assert.equal(state.calls.filter((one) => one.name === "forge_issues").length, 1,
@@ -264,7 +264,7 @@ test("a page the tracker reports whole is read in one request", async () => {
 test("a short page from a server that reports nothing is read as whole", async () => {
   state.issues = ROWS;
   state.answer = { forge_issues: () => ({ issues: ROWS }) };
-  const run = await ran(["issues"]);
+  const run = await ran(["issue"]);
   assert.equal(run.status, 0, run.stderr);
   assert.doesNotMatch(run.stdout, /incomplete/u);
   state.answer = undefined;
@@ -276,7 +276,7 @@ test("a page reporting rows behind it is walked past, and every row is printed",
   state.issues = ROWS;
   state.answer = { forge_issues: pageOf(ROWS, 2) };
   state.calls = [];
-  const run = await ran(["issues"]);
+  const run = await ran(["issue"]);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(keysOf(run).sort(), ROWS.map((one) => one.issueId).sort());
   assert.doesNotMatch(run.stdout, /incomplete/u, "nothing was withheld, so nothing is owed to say so");

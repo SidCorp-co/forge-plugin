@@ -123,13 +123,13 @@ export const readSaid = (read) => `${read.rows.length} issue(s) over ${read.page
 export const shortOf = (read, what) => (read.whole ? null
   : `${what} reached ${readSaid(read)} and the reading is incomplete: a page still reported rows`
     + " behind it and the next offset returned none.\nA narrower ask comes back whole where this one"
-    + " did not — add filters until `hasMore` is false:\n  forge issues --status open");
+    + " did not — add filters until `hasMore` is false:\n  forge issue --status open");
 
 /* The count the route measured, never the limit asked for, and a lookup that could not read the set
    reports its own ceiling rather than the issue's absence. */
 const missing = (reference, total) =>
   `${reference} is not on this project's tracker; ${total} issue(s) were counted, which is the whole`
-  + " backlog.\nThe keys it does hold are on `forge issues`, one per line.";
+  + " backlog.\nThe keys it does hold are on `forge issue`, one per line.";
 
 /* Refused before the first call: rejecting a citation cost the whole backlog, and routed nowhere. */
 const notAKey = (reference) =>

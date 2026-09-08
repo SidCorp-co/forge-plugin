@@ -111,6 +111,11 @@ const printIssues = (read, limit, order) => {
   if (said) console.log(said);
 };
 
+const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n]";
+
+const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v --why W]"
+  + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46]";
+
 const resolveReferences = async (value, key) => {
   if (Array.isArray(value)) return Promise.all(value.map((item) => resolveReferences(item, key)));
   if (value && typeof value === "object") {
@@ -257,17 +262,17 @@ export const commands = {
        read once more after the write and what it brought is delivered here (ISS-65). */
     if (wrote && targets.length) await creditAfter(name, targets);
   },
-  /* The tracker's own filter names are the hidden set; `forge schema forge_issues` names them. */
-  issues: async (rest) => {
-    const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
-    const { limit: raw, ...filters } = flags(rest, "issues", [],
-      { usage: usageOf("issues"), hidden: declared });
-    printIssues(await everyIssue(filters), limitFrom(raw), declaredFor("forge_issues", "priority"));
-  },
-  /* Three tiers, and the payload is what costs. Fetch narrow, then fetch again. */
-  issue: async ([reference, ...rest]) => {
-    if (!reference) fail(usageOf("issue"));
-    const { fields, full, why, ...asked } = flags(rest, "issue", ["--full"], { usage: usageOf("issue") });
+  /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser
+     its own text: a combined set would take `--status` beside a key and answer nothing about it. */
+  issue: async (argv) => {
+    const [first, ...rest] = argv;
+    if (first === undefined || first.startsWith("--")) {
+      const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
+      const { limit: raw, ...filters } = flags(argv, "issue", [], { usage: LIST_USAGE, hidden: declared });
+      return printIssues(await everyIssue(filters), limitFrom(raw), declaredFor("forge_issues", "priority"));
+    }
+    const reference = first;
+    const { fields, full, why, ...asked } = flags(rest, "issue", ["--full"], { usage: READ_USAGE });
     const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set"], "issue", "writes and a call makes one");
     if (wrote === "set") return overrideField(reference, asked.set, why);
     if (wrote !== undefined) return console.log(await wroteEdge(reference, asked));
