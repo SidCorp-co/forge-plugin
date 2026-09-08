@@ -261,7 +261,7 @@ test("a skill file through a variable is refused", () => {
 test("a served skill body and its references are a skill's own text", () => {
   assert.equal(decide("cat > plugin/guides/v1/skills/issue-flow/guide.md <<'EOF'\nx\nEOF").allowed, false);
   assert.equal(decide("sed -i s/a/b/ plugin/guides/v1/skills/issue-flow/references/plan.md").allowed, false);
-  assert.equal(decide("cat > plugin/guides/v1/issue-flow-contract.md <<'EOF'\nx\nEOF").allowed, true, "the contract is not a skill");
+  assert.equal(decide("cat > plugin/guides/v1/contract/03-the-flow.md <<'EOF'\nx\nEOF").allowed, true, "the contract is not a skill");
 });
 
 test("MEMORY.md is the index, not a memory", () => {

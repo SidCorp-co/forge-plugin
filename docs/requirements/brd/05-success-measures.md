@@ -12,7 +12,7 @@ here: a measurement quoted in a second place is a number that will disagree with
 | Measure | Read from | Direction |
 |---|---|---|
 | **M-01** Transitions refused for a missing payload, against transitions accepted with nothing behind them. | the refusal log and the issue records | refusals early, and none late |
-| **M-02** Raw tracker transitions per run, against transitions made by the verb. | the dry-run sections of `docs/issue-flow-contract.md` | falling to none |
+| **M-02** Raw tracker transitions per run, against transitions made by the verb. | the dry-run sections of `docs/issue-flow-dry-runs.md` | falling to none |
 | **M-03** Tracker calls made by hand to finish one issue. | the same sections | falling |
 | **M-04** Payloads a run had to invent at the keyboard because no shape existed. | the same sections | none |
 | **M-05** False refusals found by watching a command fail rather than by reading the log. | `forge hooks --deny` against the run reports | none, because the log is the route |

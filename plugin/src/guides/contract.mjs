@@ -1,8 +1,8 @@
 /* The contract this flow runs on, read out of the copy that is running: it sits inside `plugin/`
    because installing copies that and nothing beside it, and beside guides.mjs because `forge guide`
-   serves both. Served by part, never whole — the parts are the file's own headings, so nothing here
-   lists them and fifty thousand characters never arrive at once (ISS-78). */
-import { readFileSync } from "node:fs";
+   serves both. Served by part, never whole — one file per part, ordered by the number its name
+   carries, so nothing here lists them (ISS-78, ISS-802). */
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,17 +16,34 @@ export const SLUG = "contract";
 export const LISTING_ROW = `${SLUG}\n  this plugin's own, not the tracker's: `
   + `\`forge guide ${SLUG}\` is the issue-flow contract's table of contents, one part per call`;
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const FILE = "issue-flow-contract.md";
+const DIR = "contract";
 
 export const contractPath = (root = HERE, version = methodPinned().value) =>
-  join(root, "guides", versionDir(version), FILE);
+  join(root, "guides", versionDir(version), DIR);
 
-export const readContract = (root = HERE) => {
+/** One heading per file, at the top: a file that lost its own is prose the join serves under the part before it, and a second is a part whose file name addresses neither. */
+export const partFileProblem = (name, text) => {
+  const lines = String(text).split("\n").filter((line) => line.trim());
+  const heads = lines.filter((line) => HEADING.test(line));
+  if (!lines.length || !HEADING.test(lines[0])) return `${name} opens with no heading, so nothing addresses it`;
+  return heads.length > 1 ? `${name} carries ${heads.length} headings, and its name addresses one part` : null;
+};
+
+export const readContractFiles = (root = HERE) => {
+  const dir = contractPath(root);
   try {
-    return readFileSync(contractPath(root), "utf8");
+    const names = readdirSync(dir).filter((one) => one.endsWith(".md")).sort();
+    return names.length ? names.map((name) => [name, readFileSync(join(dir, name), "utf8")]) : null;
   } catch {
     return null;
   }
+};
+
+/** The parts joined into the one text every reader below expects, the files being the parts in order. A malformed part withholds the whole join rather than serving its prose under the part before it: a reader that took the join would answer with the wrong part's text and nothing would say so, and this way every reader takes its own absent-contract route to `forge doctor`, which names the file. */
+export const readContract = (root = HERE) => {
+  const held = readContractFiles(root);
+  if (!held || held.some(([name, text]) => partFileProblem(name, text))) return null;
+  return held.map(([, text]) => text.replace(/\s+$/u, "")).join("\n\n");
 };
 
 /* Its own line and shape, so the prose about contract versions is not read as the file's claim. */
@@ -95,8 +112,10 @@ export const stageLine = (status, parts, path = contractPath()) => {
     + ` (${part.chars} characters).`;
 };
 
-/** Presence first: a copy with no file holds none of the rules that are not code. */
-export const contractProblems = ({ text, path, reads = CONTRACT }) => {
+/** The malformed part before presence: a directory holding one is what `readContract` withholds the join for, and a reader told only that the contract is absent would go looking for a directory that is right there. */
+export const contractProblems = ({ text, path, files = null, reads = CONTRACT }) => {
+  const malformed = (files ?? []).map(([name, held]) => partFileProblem(name, held)).filter(Boolean);
+  if (malformed.length) return malformed.map((one) => `${path}: ${one}`);
   if (text === null || text === undefined) {
     return [`no contract at ${path}, so this copy holds none of the rules that are not code`];
   }
@@ -123,8 +142,9 @@ export const contractAnswer = ({ part = null, tracker = false, extra = [], root 
   /* The pin before the file: an absent `v7/` is a chosen number, not a copy that lost its rules. */
   const pinned = pinRefusal();
   if (pinned) return { refusal: pinned };
-  const text = readContract(root);
-  const wrong = contractProblems({ text, path: contractPath(root) });
+  const files = readContractFiles(root);
+  const text = files && files.map(([, held]) => held.replace(/\s+$/u, "")).join("\n\n");
+  const wrong = contractProblems({ text, files, path: contractPath(root) });
   if (wrong.length) return { refusal: `${wrong[0]}. \`forge doctor\` reports which copy is running.` };
   const parts = partsOf(text);
   if (!part) return { lines: contentsOf(parts, statesContract(text)) };

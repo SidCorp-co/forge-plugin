@@ -26,6 +26,20 @@ export function sentences(text) {
   return splitSentences(stripped, DEFAULT_MIN_SENTENCE_LENGTH);
 }
 
+const RULE_ROW = /^[\s|:-]+$/u;
+
+/** The prose plus every table cell, because a rule written into a row is stated as loudly as one in
+ *  a paragraph and `sentences` drops the row whole. A cell is one unit however short: the floor a comparison applies is words shared, which is what keeps a two-word cell quiet. */
+export function claims(text) {
+  const held = String(text ?? "");
+  const cells = (held.match(TABLE_ROW) ?? [])
+    .filter((row) => !RULE_ROW.test(row))
+    .flatMap((row) => row.split("|").slice(1, -1))
+    .map((cell) => withoutMarkup(withoutSpans(cell)).replace(/\s+/gu, " ").trim())
+    .filter(Boolean);
+  return [...sentences(held), ...cells];
+}
+
 // A glob is not a comment: `"dist/**"` opens one to a scanner and swallows the code after it,
 // so an opener preceded by a word character, a quote or a slash is one of those.
 const COMMENT = /^[ \t]*\/\/([^\n]*)|(?<![\w"'`/])\/\*([\s\S]*?)\*\//gm;

@@ -22,16 +22,9 @@ a row outliving its issue sends the next reader to a key with no answer behind i
 | Whether every move can be rehearsed, a park and a drop included. | ISS-12 |
 | Whether a decision record may defer one question to a later status that then refuses until it is answered. | ISS-23 |
 | Whether the requirements gate reads a tree the one-home gate cannot see, or whether that gate learns to recurse. | ISS-526 |
-| Whether an identifier in a payload is read as a tracker key or as a clause citation. | ISS-36 |
-| Whether an issue must cite the clause it serves before it can be approved. | ISS-28 |
-
-## Where the workflow's own open questions live
-
-*Why are they not listed here?*
-
-Because they are already listed once. The issue-flow contract closes with the questions the workflow
-has not answered — `forge guide contract open-questions` prints that part, and
-[`../../issue-flow-contract.md`](../../issue-flow-contract.md) points at the text — and that document
-is the specification of the statuses this tree's requirements implement. Summarising even one of them here would put it in two places to be kept in
-step, which is the duty of BR-09; the list is one link away and it is the authority for its own
-contents.
+| Whether a per-criterion verdict is carried by a task record rather than by a shaped comment. | ISS-806 |
+| What a project with no deploy step writes for `released`. | ISS-808 |
+| Whether a clause can say its result is one a person judges, so the criteria citing it carry that demand. | ISS-812 |
+| Whether the entry criteria, the served text and the verb's own answer are held against each other. | ISS-813 |
+| Whether a plan or criteria write after approval is refused without its correction. | ISS-814 |
+| Whether the comment list takes a cursor, so no rule reads the end of a page a cut invented. | ISS-17 |

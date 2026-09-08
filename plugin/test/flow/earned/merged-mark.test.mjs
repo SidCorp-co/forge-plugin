@@ -13,6 +13,7 @@ const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { sameCommit } = await import("../../../src/tracker/evidence.mjs");
 const { judgedHead, landingMoved, landingWrote, markedCommit } = await import("../../../src/flow/record/merged.mjs");
 const { partFor, partsOf, readContract } = await import("../../../src/guides/contract.mjs");
+const { kindHelp } = await import("../../../src/flow/record/record-rows.mjs");
 
 let clock = 0;
 const at = () => `2026-09-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
@@ -169,16 +170,18 @@ test("the mark's writer decides nothing: `developed` is earned by the note, whic
   assert.match(developed, /Whichever actor landed the change writes the mark/u,
     "the developed stage does not say the landing may be another actor's, so a builder bound not to "
     + "merge reads a rung it cannot earn and picks some other status instead");
-  assert.match(developed, /Nothing in this stage reads who wrote the mark, and nothing may/u,
+  assert.match(developed, /Nothing in this stage reads who wrote the mark,\s+and nothing may/u,
     "and it does not say the writer goes unread, which is the half a second actor needs to write the mark");
-  assert.match(partFor(parts, "in_progress").text, /the merged mark[^|]*written by whichever actor landed/u,
-    "the row that writes the mark still reads as the building run's own act");
-  /* The heads are what the writer owes in its place, so the sentence that drops the actor may not
-     drop them: a note naming neither leaves every verdict owed at the merged commit. */
-  for (const head of ["judged head", "landed head"]) {
-    assert.ok(developed.includes(head),
-      `the stage stops naming the ${head}, and the note is what binds the verdicts once the writer does not`);
+  /* The heads are what the writer owes in its place, and the clause that carries each is the mark's
+     own usage: a note naming neither leaves every verdict owed at the merged commit, and the
+     shortfall that says so is `mergedForm`'s. The contract states the boundary and not the clauses. */
+  const owed = kindHelp("merged");
+  for (const [flag, label] of [["--judged", "the head the verdicts judged"], ["--at", "the sha the change landed at"]]) {
+    assert.ok(owed.includes(flag) && owed.includes(label),
+      `\`forge record merged -h\` stops naming ${flag}, and the note is what binds the verdicts once the writer goes unread`);
   }
+  assert.doesNotMatch(developed, /judged head/u, "and the contract does not restate the clause the "
+    + "usage names: one home per clause, or the note's form has two and the copy nobody corrects is the prose");
 });
 
 /* The claim above, read off the code: the mark and the verdicts carry different authors and every

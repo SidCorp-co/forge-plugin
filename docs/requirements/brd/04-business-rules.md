@@ -39,7 +39,7 @@ citation that does.
 | **BR-11** | 1 | whose language is whose | `CLAUDE.md`, "Vietnamese is the tracker's and the product's"; `VI-NATURAL.md` |
 | **BR-12** | 1 | the source, not the gate | `CLAUDE.md`, "Verifying" |
 | **BR-13** | 1 | a checker watched to fire | `CLAUDE.md`, "Verifying" |
-| **BR-14** | 1 | an input used or refused | `docs/issue-flow-contract.md`, "Second dry run" |
+| **BR-14** | 1 | an input used or refused | `docs/issue-flow-dry-runs.md`, "Second dry run" |
 | **BR-15** | 1 | a stop only for the irreversible | `plugin/guides/v1/skills/issue-flow/guide.md`, "Autonomy, and the three things that stop it" |
 | **BR-16** | 1 | the half no gate reaches | `CLAUDE.md`, "The half no gate reaches" |
 | **BR-17** | 1 | never the developer's own credential | `CLAUDE.md`, "The live config directory is one environment variable away" |

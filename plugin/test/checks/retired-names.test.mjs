@@ -101,7 +101,7 @@ test("a retired verb is refused on the help, the skills, the topics and the cont
   for (const surface of [
     "plugin/guides/v1/skills/issue-flow/guide.md",
     "docs/cli/advance.md",
-    "plugin/guides/v1/issue-flow-contract.md",
+    "plugin/guides/v1/contract/",
     "plugin/src/resolve/visibility.mjs",
   ]) {
     assert.ok(found.some((one) => one.startsWith(surface)), `${surface} went unread:\n${found.slice(0, 5).join("\n")}`);

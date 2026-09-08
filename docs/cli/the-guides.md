@@ -54,15 +54,15 @@ the rename left.
 
 The contract those rows send a reader to is answered by the same verb, and it had to move to be
 answerable at all: installing copies `plugin/` and nothing beside it, so for six releases every one
-of those rows named a file that existed on one machine. It is `plugin/guides/v1/issue-flow-contract.md`
-now, and `docs/` keeps a pointer so the requirement clauses citing a section still land. Whole it is
-fifty thousand characters, most of them about a stage the reader is not at, so the verb serves it cut
-at its own headings: a bare `forge guide contract` answers with the parts, their sizes and the call
-for each, and a named part answers with that part. Two consequences worth knowing before either
-surprises somebody. A heading is the address, so renaming one moves the call that reaches it and the
-suite fails until the change admits that. And `forge doctor` prints the file's absolute path and the
-contract number it declares, because a copy that arrived without it is indistinguishable, from
-inside, from a copy whose rules simply say nothing.
+of those rows named a file that existed on one machine. It is `plugin/guides/v1/contract/` now, one
+file per part, and `docs/` keeps a pointer so the requirement clauses citing a section still land.
+Most of a contract is about a stage the reader is not at, so the verb serves one part per call: a
+bare `forge guide contract` answers with the parts, their sizes and the call for each, in name
+order. Three consequences. A heading is the address, so renaming one moves the call that reaches it
+and the suite fails until the change admits that. A file with no heading, or with two, is named
+rather than served under the part before it. And `forge doctor` prints
+the directory's absolute path and the contract number it declares, because a copy that arrived
+without it is indistinguishable, from inside, from one whose rules say nothing.
 
 The overlap measure has the same premise the verb just abandoned — the guide is the authority, the
 project's own file the copy — so it no longer scores a superseded guide. It would otherwise ask a

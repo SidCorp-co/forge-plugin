@@ -18,14 +18,17 @@ const {
   contractPath,
   contractProblems,
   keysOfAll,
+  partFileProblem,
   partFor,
   partsOf,
   readContract,
+  readContractFiles,
   stageLine,
   statesContract,
 } = await import("../../src/guides/contract.mjs");
 const { CHECKS, ORDER, PHASE, viewFrom } = await import("../../src/flow/earned.mjs");
 const { LIGHTER, SPARES, TIERS, bandFor } = await import("../../src/ladder.mjs");
+const { sizeReport } = await import("../../src/ladder-report.mjs");
 const { render } = await import("../../src/flow/record/page.mjs");
 
 const ROOT = new URL("../../../", import.meta.url).pathname;
@@ -33,30 +36,77 @@ const PLUGIN = join(ROOT, "plugin");
 const TEXT = readContract();
 const PARTS = partsOf(TEXT);
 const STAGED = [...ORDER, "dropped"];
+const TRACKED = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
+  .trim().split("\n").filter(Boolean);
 
 test("the contract is inside the plugin, at one path, and nothing else in the tree holds it", () => {
-  assert.equal(contractPath(), join(PLUGIN, "guides", "v1", "issue-flow-contract.md"));
+  assert.equal(contractPath(), join(PLUGIN, "guides", "v1", "contract"));
   assert.ok(existsSync(contractPath()), `${contractPath()} is what every route now names`);
-  const tracked = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
-    .trim().split("\n").filter(Boolean);
-  const holding = tracked.filter((rel) =>
-    readFileSync(join(ROOT, rel), "utf8").includes("## The stages, scenario by scenario"));
-  assert.deepEqual(holding, ["plugin/guides/v1/issue-flow-contract.md"], "one source, and docs/ points at it");
+  const holding = TRACKED.filter((rel) =>
+    readFileSync(join(ROOT, rel), "utf8").includes("## Two layers, one record"));
+  assert.deepEqual(holding, ["plugin/guides/v1/contract/02-two-layers-one-record.md"],
+    "one source, and docs/ points at it");
 });
 
-test("every status of the flow has a part, and the sections are the file's own headings", () => {
+test("every status of the flow has a part, and the sections are the files' own headings", () => {
   for (const status of STAGED) {
     assert.ok(partFor(PARTS, status), `no part of the contract states the ${status} stage`);
   }
   assert.deepEqual(keysOfAll(PARTS), [
-    "the-issue-flow-contract", "the-constraint", "two-layers-one-record", "the-flow",
-    "the-stages-scenario-by-scenario", ...STAGED.slice(0, 9), "dropped", "when-the-run-breaks",
-    "breaks-mid-run", "findings-mid-development", "the-mechanics", "earning-and-unearning", "the-review",
-    "evidence", "release-and-routes", "what-it-does-not-do",
-    "open-questions", "where-the-rules-came-from",
+    "the-issue-flow-contract", "two-layers-one-record", "the-flow", "the-stages",
+    ...STAGED.slice(0, 9), "dropped", "when-the-run-breaks", "the-mechanics",
+    "earning-and-unearning", "the-review", "evidence", "release-and-routes", "what-it-does-not-do",
   ], "a heading renamed, dropped or added moves the command that reaches it, and says so here");
   const keys = keysOfAll(PARTS);
   assert.equal(new Set(keys).size, keys.length, "two parts under one key would serve whichever came first");
+});
+
+/* One file per part, and the file name is what a reader opens to find the part `forge guide contract
+   <slug>` printed: the number orders the join and the slug is the address. */
+test("each part is one file, whose name carries its order and its slug", () => {
+  const files = readContractFiles();
+  assert.equal(files.length, PARTS.length, `${files.length} file(s) and ${PARTS.length} part(s)`);
+  files.forEach(([name], at) => {
+    assert.match(name, /^\d\d-[a-z][a-z0-9-]*\.md$/u, `${name} does not name an order and a slug`);
+    const slug = name.slice(3, -3);
+    const keys = PARTS[at].keys.map((one) => one.replace(/_/gu, "-"));
+    assert.ok(keys.some((one) => slug === one || slug.startsWith(`${one}-`)) || keys.join("-") === slug,
+      `${name} sits at part ${at} whose keys are ${PARTS[at].keys.join(", ")}`);
+  });
+});
+
+/* A join is one text, so a file that lost its heading would have its prose served under the part
+   above it and a file with two would hold a part its name does not address. Both are named. */
+test("a part file with no heading of its own, or with two, is a finding naming that file", () => {
+  const room = tempRoom("contract-files-");
+  const dir = join(room, "guides", "v1", "contract");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "01-first.md"), "# First\n\n**Contract 1.** The number.\n");
+  writeFileSync(join(dir, "02-second.md"), "Prose with no heading over it at all.\n");
+  const path = join(room, "guides", "v1", "contract");
+  assert.equal(readContract(room), null, "the raw reader served a join it should have withheld");
+  const said = contractProblems({ text: readContract(room), files: readContractFiles(room), path });
+  assert.equal(said.length, 1, said.join("; "));
+  assert.match(said[0], /02-second\.md opens with no heading, so nothing addresses it/u);
+  writeFileSync(join(dir, "02-second.md"), "## Second\n\nProse.\n\n## Third\n\nMore prose.\n");
+  const two = contractProblems({ text: readContract(room), files: readContractFiles(room), path });
+  assert.equal(two.length, 1, two.join("; "));
+  assert.match(two[0], /02-second\.md carries 2 headings, and its name addresses one part/u);
+  assert.deepEqual(partFileProblem("03-ok.md", "### `x` — reads y\n\nProse.\n"), null);
+});
+
+/* A part arrives whole in one call, so its size is what a reader pays to reach one rule. The whole
+   was 70,809 characters over 25 parts, most of them about a stage the reader is not at (ISS-802). */
+const PART_MAX = 3000;
+const WHOLE_MAX = 20000;
+test("no part is longer than one pass, and the contract is shorter than what it replaced", () => {
+  const over = PARTS.filter((part) => part.chars > PART_MAX)
+    .map((part) => `${part.keys[0]} is ${part.chars} characters`);
+  assert.deepEqual(over, [], `a part over ${PART_MAX} characters is two parts: split it at a heading, `
+    + "which gives each half its own address");
+  assert.ok(TEXT.length <= WHOLE_MAX,
+    `the contract is ${TEXT.length} characters, over the ${WHOLE_MAX} it is held to: what has a `
+    + "checker is said by the checker, and `npm run check` names the case that measures it");
 });
 
 test("the parts partition the whole, so nothing is served twice and nothing is unreachable", () => {
@@ -77,137 +127,9 @@ test("a heading becomes its own address, and a heading of statuses becomes one p
   assert.deepEqual(partsOf("## Two layers, one record\n\nz\n")[0].keys, ["two-layers-one-record"]);
 });
 
-/* The fourth column of the flow table, keyed by the status in its first: a row of the contract's
-   own markdown, and a row of the figure's copy of it, read the same way so neither is transcribed
-   by eye. Read off the part rather than the file, so a table added under another heading feeds
-   nothing here. */
-const FIGURE = join(ROOT, "docs", "diagrams", "issue-flow.html");
-const bare = (cell) => cell.replace(/<[^>]+>/gu, "").replace(/`/gu, "").trim();
-const tableCells = (text) => Object.fromEntries(
-  text.split("\n")
-    .filter((line) => /^\| `\w+` \|/u.test(line))
-    .map((line) => line.split("|").slice(1, -1).map(bare))
-    .map((fields) => [fields[0], fields[3]]),
-);
-const figureCells = (html) => {
-  const flow = /<table class="flow">[\s\S]*?<\/table>/u.exec(html)?.[0] ?? "";
-  return Object.fromEntries(
-    [...flow.matchAll(/<tr>((?:<td>[\s\S]*?<\/td>)+)<\/tr>/gu)]
-      .map((row) => [...row[1].matchAll(/<td>([\s\S]*?)<\/td>/gu)].map((cell) => bare(cell[1])))
-      .map((fields) => [fields[0], fields[3]]),
-  );
-};
-
-/* One order, and three places that state it: the flow table, the PHASE table `advance` and `resume`
-   print a phase owed from, and the figure. A run reads whichever it reaches first, so two of them
-   disagreeing is how a phase order comes to be discovered by a refusal (ISS-218). Only the sequence
-   is compared: `reopen` is a route rather than a phase, and its cell in each table says so. */
-test("the phase a status owes is one string, and every surface that states it says that one", () => {
-  const table = tableCells(partFor(PARTS, "the-flow").text);
-  const figure = figureCells(readFileSync(FIGURE, "utf8"));
-  for (const held of [table, figure]) {
-    assert.equal(Object.keys(held).length, ORDER.length + 1, "each flow table is the flow's rows and reopen");
-  }
-  for (const status of ORDER) {
-    const owed = PHASE[status][0];
-    assert.equal(table[status], owed, `the flow table says ${status} owes \`${table[status]}\` and PHASE says \`${owed}\``);
-    assert.equal(figure[status], owed, `${FIGURE} says ${status} owes \`${figure[status]}\` and PHASE says \`${owed}\``);
-  }
-});
-
-/* ISS-218 held one column of one table and the rest drifted in silence. What holds them now is
-   every table the figure copies, cell for cell against the contract part it copies; `text`
-   normalizes the three ways the renderings differ and nothing else — a code span, emphasis, and a
-   rules row's tail behind `<details>` where the paragraph continues. The parks table is excluded
-   and cannot be held: its five columns decompose the contract's bullet list, and its `From` column
-   reads "any status" for `waiting`, which the contract does not say (ISS-241, ISS-148). */
-const ENTITIES = { lt: "<", gt: ">", amp: "&", quot: '"', "#39": "'" };
-const text = (held) => String(held)
-  .replace(/<details><summary>more<\/summary>([\s\S]*?)<\/details>/gu, " $1")
-  .replace(/<\/?(?:p|em|strong|code)>/gu, "")
-  .replace(/&(lt|gt|amp|quot|#39);/gu, (_, one) => ENTITIES[one])
-  .replace(/\*\*([^*]+)\*\*/gu, "$1")
-  .replace(/\*([^*]+)\*/gu, "$1")
-  .replace(/`([^`]*)`/gu, "$1")
-  .replace(/\s+/gu, " ")
-  .trim();
-
-const rowsOf = (part) => {
-  const lines = part.text.split("\n").filter((line) => line.startsWith("|"));
-  return lines
-    .filter((line) => !/^\|[-\s|:]+\|$/u.test(line))
-    .map((line) => line.split("|").slice(1, -1).map(text));
-};
-
-const FIGURE_TEXT = readFileSync(FIGURE, "utf8");
-const TABLES = [...FIGURE_TEXT.matchAll(/<table class="([a-z]*)">([\s\S]*?)<\/table>/gu)].map((one) => ({
-  cls: one[1],
-  rows: [...one[2].matchAll(/<tr>([\s\S]*?)<\/tr>/gu)]
-    .map((row) => [...row[1].matchAll(/<t[dh]>([\s\S]*?)<\/t[dh]>/gu)].map((cell) => text(cell[1]))),
-}));
-
-/* Cell by cell: the word that changed is what a reader has to go and fix. */
-const holdsEqual = (what, mine, theirs) => {
-  assert.equal(theirs.length, mine.length,
-    `${what}: the contract has ${mine.length} row(s) and the figure ${theirs.length} — `
-    + `${FIGURE} is a copy and a row it lacks is a rule the picture does not state`);
-  mine.forEach((row, at) => {
-    assert.equal(theirs[at].length, row.length, `${what} row ${at}: ${row.length} cell(s) here, ${theirs[at].length} there`);
-    row.forEach((cell, col) => {
-      assert.equal(theirs[at][col], cell,
-        `${what} row ${at} column ${col} has drifted.\n  contract: ${cell}\n  figure:   ${theirs[at][col]}`);
-    });
-  });
-};
-
-test("the figure's copy of the flow table is the contract's, every cell of it", () => {
-  holdsEqual("the flow table", rowsOf(partFor(PARTS, "the-flow")), TABLES.find((one) => one.cls === "flow").rows);
-});
-
-/* Paired by the heading above each table, so the headings are held too and a moved one is named. */
-test("every scenario table the figure copies is its contract part's, heading and all", () => {
-  const section = FIGURE_TEXT.slice(FIGURE_TEXT.indexOf("<h2>The contract:"));
-  const found = [...section.matchAll(/<h4>([\s\S]*?)<\/h4>\s*<table class="">([\s\S]*?)<\/table>/gu)];
-  const scenarios = [...STAGED.slice(0, 9), "breaks-mid-run", "findings-mid-development"];
-  const parts = [...new Set(scenarios.map((key) => partFor(PARTS, key)))];
-  assert.equal(found.length, parts.length,
-    `the contract has ${parts.length} scenario table(s) and ${FIGURE} ${found.length}`);
-  parts.forEach((part, at) => {
-    assert.equal(text(found[at][1]), text(part.title),
-      `the figure's ${at + 1}th scenario table is headed for another part of the contract`);
-    holdsEqual(`\`forge guide contract ${part.keys[0]}\``, rowsOf(part), TABLES.filter((one) => one.cls === "").at(at).rows);
-  });
-});
-
-/* A rule is `**Lead.** body` in the contract and two cells in the figure, held in both directions:
-   the two rules the figure never grew were as invisible as the lead it let go stale. The parts are
-   named because the same form carries prose that is no rule — the engines the contract compares
-   itself against — and reading those as rows would demand rows the figure never owed. */
-const BULLET = /^\s*- \*\*(.+?)\.\*\* ([\s\S]*)$/u;
-const PARAGRAPH = /^\*\*(.+?)\.\*\*\s+([\s\S]*)$/u;
-const rulesOf = (keys, form) => keys.flatMap((key) => {
-  const held = partFor(PARTS, key).text;
-  return (form === BULLET ? held.split(/\n(?=\s*- \*\*)/u) : held.split(/\n\s*\n/u))
-    .map((block) => form.exec(block.trim()))
-    .filter(Boolean)
-    .map((found) => [text(found[1]), text(found[2])]);
-});
-
-/* One table each rather than the two flattened together: a rule moved from the end of the first to
-   the start of the second keeps the flat sequence and lands under the wrong heading. */
-test("every rule the contract states has the figure's row, and every row states the contract's rule", () => {
-  const held = TABLES.filter((one) => one.cls === "rules");
-  assert.equal(held.length, 2, `${FIGURE} states its rules in ${held.length} table(s), not two`);
-  holdsEqual("the rules of when the run breaks", rulesOf(["when-the-run-breaks"], BULLET), held[0].rows.slice(1));
-  holdsEqual("the rules of the mechanics",
-    rulesOf(["earning-and-unearning", "the-review", "evidence", "release-and-routes"], PARAGRAPH),
-    held[1].rows.slice(1));
-});
-
 /* The body `forge guide issue-flow` serves, not the stub Claude Code loads (ISS-353). */
 const SKILL = join(PLUGIN, "guides", "v1", "skills", "issue-flow", "guide.md");
 const VERIFICATION = join(PLUGIN, "guides", "v1", "skills", "issue-flow", "references", "verification.md");
-const CONTRACT_REL = contractPath();
 /* Split rather than matched to a lookahead: a lazy body against a multiline `$` ends at the first
    line break, and every phase then reads as empty. */
 const flat = (text) => text.replace(/\s+/gu, " ");
@@ -219,9 +141,9 @@ const phasesOf = (text) => Object.fromEntries(
 
 /* The pass that earns a review has a place as well as a shape, and the place is the last step of the
    phase the ladder names the review in: met after the judging instead, it moves a path and every
-   verdict is owed again — thirty-eight records for nineteen criteria, once (ISS-236). Three surfaces
-   state it, and none of them may send a landing back for a recheck, which the CLI refuses after a
-   clean whole-set pass and has since 3.35.73 (ISS-51, ISS-230). */
+   verdict is owed again — thirty-eight records for nineteen criteria, once (ISS-236). The replay
+   before it is the method's and has one home; what the contract keeps is that the pass is what earns
+   the review, and no surface may send a landing back for a recheck (ISS-51, ISS-230). */
 test("the read that earns the review has one place, and no landing owes a recheck", () => {
   const phases = phasesOf(readFileSync(SKILL, "utf8"));
   assert.match(PHASE.in_progress[0], /to the review/u, "the ladder names the review in Phase 4");
@@ -232,17 +154,16 @@ test("the read that earns the review has one place, and no landing owes a rechec
   const order = (text, first, then) => text.includes(first) && text.indexOf(first) < text.indexOf(then);
   assert.ok(order(phases["4"], "Replay the change onto", "the read of the whole set"),
     "the replay comes before the read it is taken after");
+  const naming4 = Object.keys(phases).filter((n) => /Replay the change onto/u.test(phases[n]));
+  assert.deepEqual(naming4, ["4"], "and the replay is stated in that phase and nowhere else");
   const held = flat(partFor(PARTS, "in_progress").text);
-  assert.ok(order(held, "the replay onto", "the one read of the whole set"), "and in the contract's own row");
-  for (const [what, text] of [["the contract", held], ["the figure", readFileSync(FIGURE, "utf8")]]) {
-    assert.match(text, /the pass the review is earned by/u, `${what} names what earns the review`);
-    assert.match(text, /never a recheck/u, `${what} says what a landing owes instead`);
-  }
+  assert.match(held, /the pass the review is earned by/u, "the contract names what earns the review");
+  assert.match(held, /never a recheck/u, "and says what a landing owes instead");
   /* Every surface, not the two that state the rule: one left prescribing the retired round is a run
      reading that one and taking a step the CLI refuses. */
-  for (const rel of [CONTRACT_REL, FIGURE, SKILL, VERIFICATION]) {
-    assert.doesNotMatch(readFileSync(rel, "utf8"), /owes its own recheck/u,
-      `${rel} sends a landing back for a recheck`);
+  for (const [what, held2] of [["the contract", TEXT], [SKILL, readFileSync(SKILL, "utf8")],
+    [VERIFICATION, readFileSync(VERIFICATION, "utf8")]]) {
+    assert.doesNotMatch(held2, /owes its own recheck/u, `${what} sends a landing back for a recheck`);
   }
 });
 
@@ -274,23 +195,17 @@ test("the gate's cadence is stated in the verification reference and restated no
     + "at once, so delete it there rather than leaving two answers to one question (ISS-108, ISS-290)");
 });
 
-/* An owed-marker's issue key must not outlive the issue: ISS-14 was dropped once its rule was met
-   at the write, and three surfaces went on citing it as owed, which is the redirect a retirement
-   refuses (ISS-226). The population is the surfaces that state a rule, not the tree — the dry-runs
-   doc cites ISS-14 as a run's history and the projections doc as a key a lookup refuses. */
-const RETIRED = ["ISS-14"];
-test("no surface that states a rule cites an issue retired from it", () => {
-  const stating = [CONTRACT_REL, FIGURE, join(ROOT, "docs", "requirements", "brd", "08-open-items.md")];
-  for (const rel of stating) {
-    const held = readFileSync(rel, "utf8");
-    for (const key of RETIRED) {
-      const found = held.split("\n")
-        .map((line, at) => [at + 1, line])
-        .filter(([, line]) => new RegExp(`\\b${key}\\b`, "u").test(line));
-      assert.deepEqual(found, [],
-        `${rel} cites ${key}, which is retired from the rule it was owed by: the marker goes with `
-        + `the issue, and a run reading this is sent to an issue it will find terminal`);
-    }
+/* A guide carries fact and method, never live data. An issue key is live data: it is open until the
+   tracker says otherwise, and ISS-14 outlived its rule on three surfaces at once (ISS-226). A date is
+   the same defect wearing a number. */
+test("the contract names no issue and no date, which the tracker and git hold", () => {
+  const live = [[/\bISS-\d+\b/gu, "an issue key, which is open until the tracker says otherwise"],
+    [/\b20\d\d-\d\d-\d\d\b/gu, "a date, which git holds"]];
+  for (const [pattern, what] of live) {
+    const found = PARTS.flatMap((part) =>
+      [...part.text.matchAll(pattern)].map((one) => `${part.keys[0]}: ${one[0]}`));
+    assert.deepEqual(found, [], `the contract names ${what}: a served guide carries fact and method, `
+      + "and live data in it is a claim that stops being true with nothing failing");
   }
 });
 
@@ -305,7 +220,8 @@ test("the table of contents is one line per part and per status, and none of the
   assert.equal(rows.length, keysOfAll(PARTS).length);
   for (const row of rows) assert.match(row, /^ {2}\S+ +\d+ {2}forge guide contract \S+$/u);
   assert.match(lines[0], new RegExp(`contract ${CONTRACT}`, "u"));
-  assert.equal(lines.join("\n").includes("A status is a promise"), false, "no sentence of the contract");
+  assert.equal(lines.join("\n").includes("Presence is checked and fit is judged"), false,
+    "no sentence of the contract");
   assert.match(LISTING_ROW, /^contract\n {2}this plugin's own, not the tracker's/u);
 });
 
@@ -316,7 +232,7 @@ test("the number the file states is its own line, and the prose about versions i
 });
 
 test("a copy with no contract, one with no number and one from another build are each a finding", () => {
-  const path = "/somewhere/guides/v1/issue-flow-contract.md";
+  const path = "/somewhere/guides/v1/contract";
   assert.deepEqual(contractProblems({ text: TEXT, path }), []);
   assert.match(contractProblems({ text: null, path })[0], /no contract at \/somewhere\//u);
   assert.match(contractProblems({ text: "# No number here", path })[0], /states no contract number/u);
@@ -344,9 +260,9 @@ test("the stage line names the part for the status and the command that prints i
     "a status no part covers is said out loud, never left silent",
   );
   assert.match(
-    stageLine("confirmed", partsOf(null), "/gone/issue-flow-contract.md"),
-    /No confirmed stage in the contract at \/gone\/issue-flow-contract\.md/u,
-    "and a copy that arrived without the file reads the same way, which `forge doctor` tells apart",
+    stageLine("confirmed", partsOf(null), "/gone/guides/v1/contract"),
+    /No confirmed stage in the contract at \/gone\/guides\/v1\/contract/u,
+    "and a copy that arrived without the parts reads the same way, which `forge doctor` tells apart",
   );
 });
 
@@ -368,9 +284,10 @@ const copyOfCode = (contract) => {
   for (const held of ["src", "hooks"]) {
     cpSync(join(PLUGIN, held), join(room, held), { recursive: true });
   }
-  if (contract !== null) {
-    mkdirSync(join(room, "guides", "v1"), { recursive: true });
-    writeFileSync(join(room, "guides", "v1", "issue-flow-contract.md"), contract);
+  if (contract === "whole") cpSync(contractPath(), join(room, "guides", "v1", "contract"), { recursive: true });
+  else if (contract !== null) {
+    mkdirSync(join(room, "guides", "v1", "contract"), { recursive: true });
+    writeFileSync(join(room, "guides", "v1", "contract", "01-only.md"), contract);
   }
   const home = tempRoom("contract-home-");
   const run = spawnSync(process.execPath, [join(room, "src", "cli.mjs"), "doctor"], {
@@ -381,9 +298,13 @@ const copyOfCode = (contract) => {
 };
 
 test("doctor names the missing file, and a file from another build, in the copy that is running", () => {
-  assert.match(copyOfCode(null), /\[ miss \] contract\s+no contract at \S+guides\/v1\/issue-flow-contract\.md/u);
-  assert.match(copyOfCode("**Contract 9.**\n"), /\[ miss \] contract\s+\S+ states contract 9/u);
-  assert.match(copyOfCode(TEXT), /\[ {2}ok {2}\] contract\s+\S+ states contract 1/u);
+  assert.match(copyOfCode(null), /\[ miss \] contract\s+no contract at \S+guides\/v1\/contract/u);
+  assert.match(copyOfCode("# A contract\n\n**Contract 9.**\n"), /\[ miss \] contract\s+\S+ states contract 9/u);
+  assert.match(copyOfCode("# A contract\n\nNo number here.\n"), /\[ miss \] contract\s+\S+ states no contract number/u);
+  assert.match(copyOfCode("**Contract 1.** No heading over it.\n"),
+    /\[ miss \] contract\s+\S+: 01-only\.md opens with no heading/u,
+    "a part file the install truncated is named, not served under the part before it");
+  assert.match(copyOfCode("whole"), /\[ {2}ok {2}\] contract\s+\S+ states contract 1/u);
 });
 
 let clock = 0;
@@ -410,18 +331,10 @@ const CASES = {
   released: { comments: VERIFIED, owed: /^no release note/u },
 };
 
-test("every status a tier lightens says so in its own part, and drops it in its own check", () => {
+test("every status a tier lightens is dropped by its own check, and the rung report is the one home", () => {
   assert.deepEqual(LIGHTER.map((one) => one.status), Object.keys(CASES),
     "a row this test has no case for is a status lightened and unasked");
   for (const row of LIGHTER) {
-    /* The part whose scenario table earns a status is the one before it, so that is where a tier's
-       row belongs: the `approved` row is written while the issue is still `clarified`. */
-    const earns = ORDER[ORDER.indexOf(row.status) - 1];
-    const text = partFor(PARTS, earns).text;
-    for (const tier of row.tiers) {
-      assert.match(text, new RegExp(`\\| \\*\\*${tier}\\*\\* —`, "u"),
-        `the ${row.status} check drops ${row.drops} for a ${tier} and \`forge guide contract ${earns}\` states no demand for one`);
-    }
     assert.ok(CHECKS[row.status], `the ladder drops ${row.drops} at ${row.status}, which is no entry check`);
     assert.ok(row.because, `${row.status} drops ${row.drops} and says why nowhere`);
     const held = CASES[row.status].comments ?? [];
@@ -435,22 +348,31 @@ test("every status a tier lightens says so in its own part, and drops it in its 
   }
 });
 
-/* A tier whose saving is rounds has nothing in LIGHTER to check, so what stops it from being the
-   tier below it wearing another word is that the contract states the rounds and states them apart. */
-test("every tier the ladder has is a row of the contract's own table, with what it stops owing", () => {
-  const table = partFor(PARTS, "the-stages-scenario-by-scenario").text;
+/* What a tier drops, why, and the rounds it spares are `LIGHTER`, `LIGHTER.because` and `SPARES`,
+   printed for the issue in hand by `forge advance --owed`. A guide restating any of it is a second
+   copy that goes stale when the data moves, and the contract carried one for months (ISS-802). */
+test("what a tier drops and the rounds it spares are the rung report's, and no guide restates them", () => {
+  const rung = sizeReport({ plan: "", moved: [], whole: true, band: null }, "ISS-3");
   for (const tier of TIERS) {
-    assert.match(table, new RegExp(`^\\| \`${tier}\` \\|`, "mu"),
-      `${tier} is a tier of the ladder and the contract's own table has no row for it`);
-  }
-  const rows = new Map(TIERS.map((tier) => [tier, new RegExp(`^\\| \`${tier}\` \\|.*$`, "mu").exec(table)[0]]));
-  for (const [tier, spared] of Object.entries(SPARES)) {
-    for (const one of spared) {
+    for (const one of SPARES[tier]) {
       const words = one.split(";")[0].split(",")[0].trim();
-      assert.ok(rows.get(tier).includes(words),
-        `\`${tier}\` may spend fewer rounds on "${words}" and its row in the contract does not say so`);
+      const said = sizeReport({ plan: "", moved: [], whole: true, band: bandFor(tier) }, "ISS-3");
+      assert.ok(said.includes(words), `\`${tier}\` may spend fewer rounds on "${words}" and --owed does not say so`);
     }
   }
+  for (const row of LIGHTER) {
+    const said = sizeReport({ plan: "", moved: [], whole: true, band: bandFor(row.tiers[0]) }, "ISS-3");
+    assert.ok(said.includes(row.drops) && said.includes(row.because),
+      `${row.status} drops ${row.drops} and --owed prints neither it nor the reason`);
+  }
+  assert.ok(rung.includes("nothing dropped"), "and a feature is told it drops nothing");
+  const restating = PARTS.filter((part) =>
+    TIERS.some((tier) => new RegExp(`\`${tier}\``, "u").test(part.text))
+    && Object.values(SPARES).flat().concat(LIGHTER.map((one) => one.drops))
+      .some((one) => part.text.includes(one.split(";")[0].split(",")[0].trim())));
+  assert.deepEqual(restating.map((part) => part.keys[0]), [], "a part of the contract restates what "
+    + "`forge advance --owed` prints about a rung: cut it to the command, which prints it for the "
+    + "issue in hand rather than in general");
   const [lowest] = TIERS;
   assert.ok(SPARES[lowest].length > SPARES[TIERS[1]].length,
     "the shortest ladder saves no more rounds than the one above it, so nothing distinguishes them");

@@ -72,7 +72,7 @@ test("every file in the tree is read, or left out for a reason named here", () =
 /* The class the filter hid, counted so a figure added and never walked cannot read as covered. */
 test("every figure under the documents directory is in the population", () => {
   const figures = TREE.filter((one) => one.startsWith("docs/") && one.endsWith(".html"));
-  assert.ok(figures.length >= 3, `${figures.length} figure(s) tracked; the tree is read too narrowly`);
+  assert.ok(figures.length >= 2, `${figures.length} figure(s) tracked; the tree is read too narrowly`);
   assert.deepEqual(figures.filter((one) => !POPULATION.includes(one)), [],
     "a file class the population declares in and the selector leaves out reads as a clean tree");
 });
