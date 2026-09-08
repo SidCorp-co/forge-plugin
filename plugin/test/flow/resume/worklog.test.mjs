@@ -187,13 +187,14 @@ test("--pushed outside a checkout is refused, naming the directory it was asked 
   assert.match(outside.stderr, new RegExp(tmpdir(), "u"), "and says where it looked");
 });
 
-/* The refusal said report carries no capture flag, and then let one through whenever the log had
-   nothing to give: what an input was is not what it produced. */
-test("record report refuses a capture flag it was given, whatever the log had to say", () => {
-  const run = spawnSync(FORGE, ["record", "report", "ISS-1", "--review"], { encoding: "utf8", env: process.env });
+/* The report's own refusal said it carries no capture flag, and then let one through whenever the
+   log had nothing to give: what an input was is not what it produced. The report is `resume
+   --report` now, and the rule holds there by the parser rather than by a sentence of its own. */
+test("the report refuses a capture flag it was given, whatever the log had to say", () => {
+  const run = spawnSync(FORGE, ["resume", "ISS-1", "--report", "--review"], { encoding: "utf8", env: process.env });
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /record report writes nothing/u);
-  assert.match(run.stderr, /--review/u, "and names the flag it will not take");
+  assert.match(run.stderr, /No resume flag named --review/u);
+  assert.match(run.stderr, /--report/u, "and the rows name the reading it does take");
 });
 
 /* Three captures after a fast-forward wrote base equal to head and no touched set, in silence, over

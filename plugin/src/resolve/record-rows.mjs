@@ -12,7 +12,7 @@ import { usageOf } from "./visibility.mjs";
 
 /* The shapes, then the kinds whose payload is a field or the tracker's own mark rather than a
    comment: each of those four has a route of its own in `record.mjs`. */
-export const KINDS = [...Object.keys(SHAPES), "merged", "note", "criteria", "plan", "report"];
+export const KINDS = [...Object.keys(SHAPES), "merged", "note", "criteria", "plan"];
 
 const withCap = (value, cap) => (typeof cap === "number" ? `${value}(${cap})` : value);
 
@@ -50,7 +50,6 @@ export const kindRows = (caps) => [
   `  plan         ${withCap("<file.md>", caps.plan?.self).padEnd(VALUES)}${KIND_PHRASE.plan}`,
   `  criteria     ${withCap("<file.md>", caps.acceptanceCriteria?.self).padEnd(VALUES)}`
     + "numbered lines, from a file a consult has read",
-  `  report       ${KIND_PHRASE.report}`,
 ];
 
 /* What each kind is for, one phrase each, because `forge record -h` is the list of kinds and a
@@ -74,7 +73,6 @@ const KIND_PHRASE = {
   note: "the release note, in the words of whoever filed the issue",
   plan: "the plan itself, from a file a consult has read",
   criteria: "the numbered criteria, from a file a consult has read",
-  report: "the latest record of each kind, the latest verdict per criterion, and what is owed",
 };
 
 const phraseRows = () =>

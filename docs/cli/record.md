@@ -65,19 +65,19 @@ none, since then the one that would answer may be exactly a comment the read nev
 refusal says how many comments of how many were read and nothing about which end is missing: for a
 year it said 200, the number the request asked for, on threads of half that (ISS-131). The release
 note, the plan and the criteria go to their fields, which the tracker already types; everything else
-is a comment. `report` assembles the latest record of each kind and the latest verdict per
-criterion, and names the criteria no verdict covers. Nothing is stored twice. The contract this
-serves: `forge guide contract`.
+is a comment. Nothing is stored twice. The reading that assembles them all is `forge resume
+--report`, which writes nothing and so is no kind of this verb. The contract this serves:
+`forge guide contract`.
 
 Two of the kinds exist because a reopen recorded nothing. The tracker has had a `reopen` status and a
 `reopenCount` field all along, and neither says what the person found: what they expected, what they
 actually saw and their own words went into a plain comment nothing read back, so the gap that let it
 ship was never named. A finding is that comment typed, written by the agent on the person's behalf
 and quoting them; a triage is the ruling on it, one of three outcomes and one line naming what would
-have caught it. Both are marked as repeating, so `report` shows every one: the fourth dry run wrote
+have caught it. Both are marked as repeating, so the report shows every one: the fourth dry run wrote
 four corrections and reported one, because the assembly kept the latest of every kind.
 
-Two more exist because the fold of a run was prose. A parent reading `report` got every payload that
+Two more exist because the fold of a run was prose. A parent reading the report got every payload that
 earned a status and nothing about what the run met on the way: a defect it found on something else
 and sent to the issue that owns it, and a place the method it followed did not answer. Sixteen runs
 put both in a closing message instead, typed at the end out of whatever the agent still held, which
@@ -86,7 +86,7 @@ is the one moment neither is accurate. `routed` names what was found and where i
 reason, the way `decision` does, so a run that met neither answers rather than leaving an absent
 record to read like an unasked question. Neither earns a status: a payload nothing told an older
 copy about would refuse a run for a rule it could not have read, and the point of the record is that
-nothing has to be told. `report` closes with the run's own worklog — the branch, the head, what it
+nothing has to be told. The report closes with the run's own worklog — the branch, the head, what it
 touched and the plugin copy the capture was made under — so one read answers which copy typed it.
 
 Over ninety-seven runs here, 264 of 564 `advance` calls followed a record directly, asking what the

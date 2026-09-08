@@ -290,7 +290,7 @@ test("`-h` names --json and asks the tracker nothing", () => {
 test("a flag with no form to belong to is refused, and the issue comes first", () => {
   for (const [argv, said] of [
     [["resume", "--json"], /resume takes the issue first/u],
-    [["resume", "ISS-44", "--nope", "x"], /No resume flag named --nope\. The set is --json\./u],
+    [["resume", "ISS-44", "--nope", "x"], /No resume flag named --nope\. The set is --json, --report\./u],
   ]) {
     const run = ask(...argv);
     assert.equal(run.status, 1, argv.join(" "));

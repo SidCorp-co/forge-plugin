@@ -184,7 +184,7 @@ test("three criteria are judged in one write, and the report prints each one", a
   assert.match(run.stdout, /^criterion: 1 — The first outcome\.$/mu, "each block quotes the criterion it judged");
   assert.equal(run.stderr.match(/from the merged mark's note/gu).length, 1,
     "and the line saying where the commit came from is said once, not once per block");
-  const report = await ask("record", "report", "ISS-7");
+  const report = await ask("resume", "ISS-7", "--report");
   assert.equal(report.stdout.match(/^Verdict {2}\(/gmu).length, 3, report.stdout);
   assert.match(report.stdout, /^ {2}Criterion: 3 — The third outcome\.$/mu);
   assert.match(report.stdout, /^Every criterion has a verdict\.$/mu);
@@ -198,7 +198,7 @@ test("one write mixes a pass and a fail, and each criterion keeps its own verdic
   assert.match(run.stdout, /^criterion: 1 — The first outcome\.\nverdict: pass$/mu);
   assert.match(run.stdout, /^criterion: 2 — The second outcome\.\nverdict: fail$/mu);
   assert.match(run.stdout, /^why: the list came back sorted by id$/mu);
-  const report = await ask("record", "report", "ISS-7");
+  const report = await ask("resume", "ISS-7", "--report");
   assert.match(report.stdout, /Criterion: 2 — The second outcome\.\n {2}Verdict: fail/u, report.stdout);
   assert.match(report.stdout, /Criterion: 1 — The first outcome\.\n {2}Verdict: pass/u, "and the pass beside it");
   const owed = await ask("advance", "ISS-7", "--owed");

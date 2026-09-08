@@ -45,6 +45,13 @@ status is owed in the same words `advance --owed` uses and from the same functio
 the reference holding that phase's method. `--json` is the assembled object the screen was printed
 from, so a tool and a reader cannot be told different things.
 
+`--report` is the other end of the same reading: every record whole rather than one line of each,
+the latest verdict per criterion with its evidence, the plan, the release note and what is owed. It
+lives here rather than under `record` because it writes nothing, and a verb whose every other name
+posts a payload was the wrong home for the one that only reads — a reader reached for the writing
+verb to make a read, and the refusal that told it so had to exist. The brief and the report are one
+verb's two depths, and `--json` and `--report` are separate readings: asking for both is refused.
+
 Two smaller measurements. A section with nothing in it is left out, not printed empty, which is what
 made the brief fit a screen at all. And the comments it reads are not shown as themselves: the typed
 kinds are, one line each, so a plain comment a person left reaches nobody through this verb. It

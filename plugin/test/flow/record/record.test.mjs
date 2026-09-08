@@ -530,14 +530,14 @@ test("no flag puts the project's answer on a record", () => {
 /* Five of one day's runs left their issues at `released` and a person closed them by hand, so what
    a run reads at the end of one says the close is owed rather than leaving it to be noticed. */
 test("the report says the close is owed on an issue a run has released", async () => {
-  const run = await ranAsync(FORGE, ["record", "report", "ISS-4"], project.env ?? tracker.env);
+  const run = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], project.env ?? tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^Every criterion has a verdict\.$/mu, "the criteria are judged");
   assert.match(run.stdout, /^Owed: the close\. A run ends at closed, not at released:$/mu, run.stdout);
   assert.match(run.stdout, /^ {2}forge advance ISS-4$/mu, "with the one command that makes it");
   assert.match(run.stdout, /^Plan {2}\(typed\)$/mu, "the plan is on the report, as every other payload is");
   assert.match(run.stdout, /^## Files touched$/mu, "and whole: it is what every later phase was built against");
-  const quiet = await ranAsync(FORGE, ["record", "report", "ISS-3"], tracker.env);
+  const quiet = await ranAsync(FORGE, ["resume", "ISS-3", "--report"], tracker.env);
   assert.doesNotMatch(quiet.stdout, /the close/u, "and an issue not yet released is owed no close");
   assert.doesNotMatch(quiet.stdout, /^Plan {2}\(/mu, "an issue with an empty plan field prints no plan line");
 });
@@ -561,7 +561,7 @@ test("a record write ends with the line advance --owed would print, and never fa
   const done = await ranAsync(FORGE, ["record", "gap", "ISS-5", "--none", "the method answered"], tracker.env);
   assert.equal(done.status, 0, done.stderr);
   assert.match(done.stderr, /^ISS-5 is closed; nothing advances from it\./mu, done.stderr);
-  const report = await ranAsync(FORGE, ["record", "report", "ISS-3"], tracker.env);
+  const report = await ranAsync(FORGE, ["resume", "ISS-3", "--report"], tracker.env);
   assert.doesNotMatch(report.stderr, /is next and the record/u, "and a report writes nothing, so it owes nothing");
 });
 

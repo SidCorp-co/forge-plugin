@@ -306,7 +306,7 @@ test("a record whose write neither landed nor failed sends the run to the page",
   const run = await setStatus("--set", "needs_info", "--why", WHY);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /may or may not have gone up/u);
-  assert.match(run.stderr, /forge record report ISS-96/u, "the page is the read that settles it");
+  assert.match(run.stderr, /forge resume ISS-96 --report/u, "the page is the read that settles it");
   assert.doesNotMatch(run.stderr, /Run the same override again/u, "and a second override is what would duplicate it");
   assert.equal(state.calls.some((one) => one.args.action === "transition"), false);
 });

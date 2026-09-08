@@ -8,7 +8,7 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { Refused } from "../refusal.mjs";
-import { issueOf } from "./record/record.mjs";
+import { issueOf, recordReport } from "./record/record.mjs";
 import { sizeOf, viewFrom } from "./earned.mjs";
 import { READ_OFF_THE_RECORD, indexLines, phaseIndex } from "../guides/phases.mjs";
 import { shortfall } from "./advance.mjs";
@@ -26,6 +26,8 @@ export const USAGE = [
   "next status is owed, and where the method for that phase is written.",
   "",
   "  --json    the same assembled object, for a tool rather than a reader",
+  "  --report  every record whole instead of this brief: the latest of each kind, the latest",
+  "            verdict per criterion with its evidence, the plan, and what is owed",
   "",
   "It writes nothing and needs no lease, so anyone may read any issue. A fact a successor needed and",
   "did not find here belongs on the record or in the worklog: docs/cli/resume.md.",
@@ -130,7 +132,9 @@ const run = async (argv) => {
   if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) fail(`resume takes the issue first. ${usageOf("resume")}`);
-  const given = flags(rest, "resume", ["--json"], { usage: USAGE });
+  const given = flags(rest, "resume", ["--json", "--report"], { usage: USAGE });
+  if (given.report && given.json) fail("resume: --report and --json are separate readings. Ask for one.");
+  if (given.report) return recordReport(ref);
   const { documentId, body } = await issueOf(ref);
   const page = await commentPage(documentId);
   const view = viewFrom(documentId, body, page.comments, cutIn(page), await policyFor(body.plan, body.status), () => citedClauses(body));

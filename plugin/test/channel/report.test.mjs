@@ -36,7 +36,7 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-const report = (room) => ranAsync(FORGE, ["record", "report", "ISS-9"], tracker.env, room);
+const report = (room) => ranAsync(FORGE, ["resume", "ISS-9", "--report"], tracker.env, room);
 
 test("a report on a project that closed the channel says the project withheld it", async () => {
   const run = await report(closed);

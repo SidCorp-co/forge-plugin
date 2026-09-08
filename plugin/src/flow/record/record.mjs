@@ -477,7 +477,7 @@ const recordPlan = async (reference, [path, ...extra], { next, patch }) => {
   sayPart("plan");
 };
 
-const recordReport = async (reference) => {
+export const recordReport = async (reference) => {
   const { documentId, body } = await issueOf(reference);
   let criteria = [];
   try {
@@ -532,9 +532,6 @@ const pullRun = (argv, kind, usage) => {
   return {
     next: nextLine(line.value),
     patch: patchFrom({ ...took, open: lines.values }),
-    /* Asked for, not produced: a capture that found nothing to write would otherwise let a
-       read-only kind through the refusal below on the strength of an empty log. */
-    asked: line.value !== undefined || lines.values.length || Object.values(took).some(Boolean),
     rest,
   };
 };
@@ -547,16 +544,10 @@ const run = async ([kind, reference, ...argv]) => {
   if (wantsHelp([reference])) return console.log(kindHelp(kind, await capsOf(), await briefGoals()));
   if (!reference) refuse(firstLine(USAGE));
   const own = kindUsage(kind);
-  const { next, patch, asked, rest } = pullRun(argv, kind, own);
+  const { next, patch, rest } = pullRun(argv, kind, own);
   const run = { next, patch, usage: own };
   const routed = { note: recordNote, criteria: recordCriteria, plan: recordPlan, merged: recordMerged };
   if (routed[kind]) return routed[kind](reference, rest, run);
-  if (kind === "report") {
-    if (asked) {
-      refuse("record report writes nothing, so it renews no lease and carries no --next, --pushed, --review or --open.");
-    }
-    return recordReport(reference);
-  }
   return recordShaped(kind, reference, rest, run);
 };
 

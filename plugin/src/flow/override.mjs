@@ -38,7 +38,7 @@ export const correctionFor = async (documentId, ref, moved, why, { done = true }
     : `nothing was sent to ${ref}'s status, and the record this route writes first ${said}: ${answer.refused}`;
   if (unknown) {
     refuse(`${opened}\nRead the page before writing anything else — a record this route could not `
-      + `see is one a second write would post twice:\n  forge record report ${ref}`);
+      + `see is one a second write would post twice:\n  forge resume ${ref} --report`);
   }
   if (done) keepOnFailure(`The correction, so that nothing here loses it:\n\n${body}`);
   refuse(done

@@ -12,7 +12,7 @@ const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped" };
 const NONE = "– none";
 const HEADLINE_CHARS = 200;
 
-/* The field of each kind a reader wants on one line. The whole record is `forge record report`. */
+/* The field of each kind a reader wants on one line. The whole record is `forge resume <ref> --report`. */
 const HEADLINE = {
   confirmation: "is",
   decision: "decision",
