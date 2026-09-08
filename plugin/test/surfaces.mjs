@@ -8,7 +8,7 @@ import { SAYS as CODEX, USAGE as CODEX_USAGE } from "../src/codex/codex.mjs";
 import { SAYS as KNOWLEDGE, USAGE as KNOWLEDGE_USAGE } from "../src/tools/knowledge.mjs";
 import { SAYS as STATS } from "../src/stats/stats.mjs";
 import { CHECK_USAGE, USAGE as SPEC } from "../src/spec/verbs.mjs";
-import { KINDS, kindUsage } from "../src/resolve/record-rows.mjs";
+import { KINDS, kindUsage } from "../src/flow/record/record-rows.mjs";
 import { usageOf } from "../src/resolve/visibility.mjs";
 
 /** The verb's own `-h` text, for a row on `forge -h` that names no flag because it delegates. */

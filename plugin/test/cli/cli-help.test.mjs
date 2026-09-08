@@ -12,8 +12,8 @@ import { USAGE as CLOUDFLARE, SAYS as CLOUDFLARE_SAYS } from "../../src/tools/cl
 import { USAGE as STATS, SAYS as STATS_SAYS } from "../../src/stats/stats.mjs";
 import { SAYS as CODEX_SAYS, USAGE as CODEX } from "../../src/codex/codex.mjs";
 import { CHECK_USAGE, USAGE as SPEC } from "../../src/spec/verbs.mjs";
-import { KINDS, USAGE as RECORD, kindUsage } from "../../src/resolve/record-rows.mjs";
-import { RETIRED } from "../../src/checks/retired-names.mjs";
+import { KINDS, USAGE as RECORD, kindUsage } from "../../src/flow/record/record-rows.mjs";
+import { RETIRED, commandShapes } from "../../src/checks/retired-names.mjs";
 import { WHY, goalBlock } from "../../src/goals.mjs";
 import { SHAPES } from "../../src/flow/machine.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -429,13 +429,18 @@ test("no help text names a form of the handler's table", async () => {
   const forms = Object.keys(held.FORMS ?? {});
   assert.ok(forms.length, "the handler landed, so FORMS is what every help text is walked for");
   const named = [];
+  /* The checker's reading, not a bare word, since `list`, `get` and `confirm` are English a help
+     text is written in; and narrowed by whose table it is — a row of one verb's own help is that
+     verb's sub-name, so `record park` and `knowledge list` are live and keep their rows. */
   for (const argv of [["-h"], ["-h", "--full"], ...EVERY_HELP.map((one) => [...one, "-h"])]) {
     const said = `${ask(...argv).stdout}${ask(...argv).stderr}`;
+    const top = argv.every((word) => word.startsWith("-"));
     for (const form of forms) {
-      if (new RegExp(`\\b${form}\\b`, "u").test(said)) named.push(`forge ${argv.join(" ")}: ${form}`);
+      const shapes = top ? commandShapes(form) : commandShapes(form).slice(0, 1);
+      if (shapes.some((shape) => shape.test(said))) named.push(`forge ${argv.join(" ")}: ${form}`);
     }
   }
-  assert.deepEqual(named, []);
+  assert.deepEqual(named, [], "a form named as a verb this CLI offers, with the help text naming it");
 });
 
 /* The kinds are the list `record -h` is for; a kind's flags are that kind's own call. */

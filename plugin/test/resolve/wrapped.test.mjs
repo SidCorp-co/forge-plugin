@@ -46,7 +46,10 @@ const GATED_ROW = ["gated-verb", "[--x]", "a row gated on one action of its tool
 test("the action a row spends is read out of whichever key of its gate object carries it", () => {
   assert.deepEqual(wrapsOf(GATED_ROW), { spend: "`forge gated-verb`" },
     "a gated row is the route to the action it names, and spelling it twice is how the two go out of step");
-  assert.equal(wrapsOf(rowFor("plan")), null, "a verb that is no action's route claims none");
+  /* Off the table, so the row exists: named, a verb that has since gone passes this on two undefineds. */
+  const unclaimed = VERBS.find((row) => !row[4]?.wraps && !row[4]?.action);
+  assert.ok(unclaimed, "some verb is no action's route, or this reading has nothing to make");
+  assert.equal(wrapsOf(unclaimed), null, "a verb that is no action's route claims none");
   assert.equal(wrapsOf(rowFor("call")), null);
 });
 
@@ -154,6 +157,29 @@ const gated = async () => {
   };
 };
 
+/* Written, not probed: doctor records four capabilities and `forge_issues` is none, so the state the `needs` rule was declared for is reachable only by seeding it. */
+const gatedIssues = async () => {
+  const tracker = await fakeTracker({
+    declared: ["forge_issues"],
+    answer: {
+      forge_guide: () => ({ guides: [] }),
+      "forge_projects.list": () => ({ projects: [{ slug: SLUG, id: "1e1c1a1e-0000-4000-8000-00000000027d" }] }),
+    },
+  });
+  const cwd = tempRoom("wrapped-issues-");
+  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: SLUG }));
+  const at = join(tracker.env.XDG_CONFIG_HOME, "forge", "config.json");
+  const held = JSON.parse(readFileSync(at, "utf8"));
+  writeFileSync(at, JSON.stringify({
+    ...held,
+    capabilities: { [SLUG]: { checkedAt: "2026-09-08T00:00:00.000Z", forge_issues: "not for this token" } },
+  }));
+  return {
+    close: tracker.close,
+    ran: (...argv) => ranAsync(process.execPath, [CLI, ...argv], tracker.env, cwd),
+  };
+};
+
 const gatedKnowledge = async () => {
   const tracker = await fakeTracker({
     declared: ["forge_knowledge", "forge_issues"],
@@ -196,6 +222,24 @@ test("a withheld verb's action is refused with the verb and the withholding, not
     assert.match(run.stderr, /forge_knowledge upsert is what `forge knowledge write` wraps/u);
     assert.match(run.stderr, /is withheld on this machine/u);
     assert.match(run.stderr, /not the way round/u);
+  } finally {
+    await close();
+  }
+});
+
+/* Judged on the word typed, `forge list` has no row, is blocked by nothing, and performs the gated `forge issue` anyway — a way round the refusal withholding-a-verb.md exists for (F1). */
+test("a form is refused by the capability its verb needs, and answers with the same line", async () => {
+  const { ran, close } = await gatedIssues();
+  try {
+    const verb = await ran("issue", "-h");
+    assert.equal(verb.status, 1, verb.stdout);
+    assert.match(verb.stderr, /needs forge_issues, which this credential may not call/u, verb.stderr);
+    for (const form of ["list", "get", "show", "read", "issues"]) {
+      const run = await ran(form, "-h");
+      assert.equal(run.status, 1, `forge ${form}: ${run.stdout}`);
+      assert.match(run.stderr, /needs forge_issues, which this credential may not call/u, run.stderr);
+      assert.doesNotMatch(run.stderr, /^forge: read /mu, "and nothing ran, so no line says one did");
+    }
   } finally {
     await close();
   }

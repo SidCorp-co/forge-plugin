@@ -7,6 +7,7 @@ import { blockedBy, channelRefusal, grouped, helpLine, helpOf, offeredVerbs, ver
   from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
 import { retiredRefusal } from "./resolve/retiring.mjs";
+import { argvOf, handledBy, refusedFor, saidFor } from "./resolve/handler.mjs";
 import { fail } from "./resolve/settings.mjs";
 
 const offered = offeredVerbs();
@@ -65,19 +66,38 @@ if (retired) {
   process.exit(1);
 }
 
-const closed = command ? channelRefusal(command) : null;
+/* Performed, not suggested, and ahead of the near miss that would answer a word this CLI runs. */
+const form = command && !Object.hasOwn(commands, command) ? handledBy(command) : null;
+
+/* Before the two checks, which judge what will run: judged on the typed word, `forge list` would run a gated `forge issue` and print a line for it. */
+const running = form ? form.verb : command;
+
+const closed = running ? channelRefusal(running) : null;
 
 if (closed) {
   console.error(closed);
   process.exit(1);
 }
 
-const needs = command ? blockedBy(command) : null;
+const needs = running ? blockedBy(running) : null;
 
 if (needs) {
   console.error(`forge ${command} needs ${needs}, which this credential may not call.\n`
     + "`forge doctor` measured that; re-run it after a credential change.");
   process.exit(1);
+}
+
+if (form) {
+  const refused = refusedFor(command, rest);
+  if (refused) fail(refused);
+  console.error(saidFor(command, rest));
+  const argv = argvOf(command, rest);
+  if (!commands[form.verb].answersHelp && wantsHelp(rest)) {
+    console.log(helpOf(form.verb));
+    process.exit(0);
+  }
+  await commands[form.verb](argv, { readAs: `forge ${form.verb}` });
+  process.exit(0);
 }
 
 /* `Object.hasOwn`: `commands.toString` is inherited and callable, so a mistyped verb naming a

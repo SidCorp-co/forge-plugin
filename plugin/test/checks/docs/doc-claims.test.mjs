@@ -8,6 +8,7 @@ import { join } from "node:path";
 
 import { RECORDS_RATHER_THAN_INSTRUCTS, claimProblems, docClaims } from "../../../src/checks/doc-shape.mjs";
 import { VERB_NAMES } from "../../../src/resolve/visibility.mjs";
+import { FORM_NAMES } from "../../../src/resolve/handler.mjs";
 import { surfaceOf } from "../../surfaces.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
@@ -29,8 +30,10 @@ const sources = () => {
   return out.join("\n");
 };
 
+/* A handled form is a command the CLI has, so a document naming one is naming something a reader can
+   type; what the forms may not appear in is any help text, which cli-help.test.mjs holds. */
 const held = {
-  verbs: VERB_NAMES,
+  verbs: [...VERB_NAMES, ...FORM_NAMES],
   usageOf: surfaceOf,
   documented: readdirSync(HOW).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3)),
   sources: sources(),

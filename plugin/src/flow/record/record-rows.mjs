@@ -1,14 +1,13 @@
 /* The kinds, the table `forge record -h` prints of them, and the help rendered from that table —
    each capped field's cap on the row of the field it caps, so a note is drafted against the number
-   rather than learning it from the refusal (ISS-46). Beside the verb table, not in `flow/`, which
-   is at its file limit. */
+   rather than learning it from the refusal (ISS-46). */
 import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES,
-  sectionOwedBy } from "../flow/machine.mjs";
-import { CLAUSES, NOTHING } from "../flow/record/merged.mjs";
-import { declaredFor } from "../tracker/rpc.mjs";
-import { goalBlock } from "../goals.mjs";
-import { OPEN_KEPT } from "../flow/worklog.mjs";
-import { usageOf } from "./visibility.mjs";
+  sectionOwedBy } from "../machine.mjs";
+import { CLAUSES, NOTHING } from "./merged.mjs";
+import { declaredFor } from "../../tracker/rpc.mjs";
+import { goalBlock } from "../../goals.mjs";
+import { OPEN_KEPT } from "../worklog.mjs";
+import { usageOf } from "../../resolve/visibility.mjs";
 
 /* The shapes, then the kinds whose payload is a field or the tracker's own mark rather than a
    comment: each of those four has a route of its own in `record.mjs`. */

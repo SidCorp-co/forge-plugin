@@ -21,6 +21,7 @@ import { median } from "./median.mjs";
 import { PHASES } from "../flow/earned.mjs";
 import { TIERS } from "../ladder.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
+import { FORMS, READ_AS } from "../resolve/handler.mjs";
 import { isVersioned } from "../guides/skill-guides.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
@@ -101,6 +102,15 @@ export const refusalIn = (call) => {
   const tool = TOOL_RULE.exec(lines[at]);
   if (!tool) return shortened(lines[at]);
   return shortened(tool.groups.rule || lines[at + 1] || lines[at]);
+};
+
+/* Three claims, output being no provenance: the line printed, it names a pair the handler routes, and the call's class is that form — `transcripts.mjs` deciding what ran, so a heredoc is stripped and a mention is no command position, judged where every class is. */
+const FORM_SAID = new RegExp(`^${READ_AS} (?<form>\\S+) as forge (?<verb>\\S+)`, "mu");
+
+export const formIn = (call) => {
+  const said = FORM_SAID.exec(call.body ?? "")?.groups;
+  if (!said || FORMS[said.form]?.verb !== said.verb) return null;
+  return call.class === `forge ${said.form}` ? said.form : null;
 };
 
 const said = (command) => command.replaceAll(/\s+/gu, " ").trim().slice(0, 160);
@@ -213,6 +223,7 @@ export const runFrom = (path, session, text) => {
   const endedAt = read.lastAt;
   const byClass = new Map();
   const refusals = new Map();
+  const forms = new Map();
   const errors = new Map();
   const repeats = new Map();
   const guideParts = new Map();
@@ -227,6 +238,8 @@ export const runFrom = (path, session, text) => {
     if (!call.answered) unanswered += 1;
     if (call.name === "Bash") add(repeats, said(call.command));
     if (call.class === "forge guide") add(guideParts, partRead(call));
+    const form = formIn(call);
+    if (form) add(forms, form);
     const refusal = refusalIn(call);
     if (refusal) add(refusals, refusal);
     else if (call.error) add(errors, call.class);
@@ -263,6 +276,7 @@ export const runFrom = (path, session, text) => {
     edits: editsIn(calls),
     byClass,
     refusals,
+    forms,
     errors,
     repeats: new Map([...repeats].filter(([, many]) => many >= REPEATED)),
     guideParts,
@@ -426,6 +440,7 @@ export const profileOf = (runs) => {
     tiers: perTier(runs),
     byClass: mergedClasses(runs, (run) => run.byClass),
     refusals: mergedCounts(runs, (run) => run.refusals),
+    forms: mergedCounts(runs, (run) => run.forms),
     errors: mergedCounts(runs, (run) => run.errors),
     repeats: mergedCounts(runs, (run) => run.repeats),
     guideParts: mergedParts(runs),
@@ -507,6 +522,9 @@ export const profileLines = (held, all = false) => [
   ),
   ...listing("refusals this plugin wrote, by the line naming the rule", held.refusals,
     ([line, many]) => `  ${String(many).padStart(4)}  ${line}`, all),
+  /* Beside the refusals, the two answering one question together: a form is a word a run reached for and got, a refusal one it reached for and did not. */
+  ...listing("handled forms performed, by the word typed", held.forms,
+    ([form, many]) => `  ${String(many).padStart(4)}  ${form}`, all),
   ...listing(`commands repeated ${REPEATED}+ times inside one run`, held.repeats,
     ([line, many]) => `  ${String(many).padStart(4)}  ${line.slice(0, 108)}`, all),
   ...listing(

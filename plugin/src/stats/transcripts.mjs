@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 
 import { NOTHING, logRead } from "../hooks/log-reads.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
+import { handledBy } from "../resolve/handler.mjs";
 import { TIERS, highest } from "../ladder.mjs";
 import { stampedIn } from "../flow/machine.mjs";
 
@@ -76,7 +77,10 @@ const WHOLE_SET = /--send[= \t]+bodies\b/u;
 /* The binary by path and by name is one row, and what follows has to be a verb this CLI has. */
 const forgeClass = (shell) => {
   const found = FORGE.exec(shell)?.groups;
-  if (!found || !VERB_NAMES.includes(found.verb)) return null;
+  if (!found) return null;
+  /* A form is a forge call, classed by the word typed: read as a verb it is none, so `forge close` fell to `shell` and the tool-seconds table filed it under nothing (ISS-704). */
+  if (handledBy(found.verb)) return `forge ${found.verb}`;
+  if (!VERB_NAMES.includes(found.verb)) return null;
   const sub = found.slug ? SUB_WORD.exec(found.slug)?.[0] : undefined;
   if (found.verb === "codex" && sub === "consult") {
     if (shell.includes("--recheck")) return "forge codex recheck";

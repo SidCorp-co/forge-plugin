@@ -19,17 +19,18 @@ const REGISTRIES = new Set(["plugin/src/resolve/visibility.mjs", "plugin/src/com
 const KINDS = ["verb", "flag", "tool", "directory"];
 const FIELDS = ["name", "kind", "release"];
 
-/* Where this surface puts a name, never a bare word: a verb behind `forge`, leading a help row, at
-   the head of a spawn's argv array, or declared in one of the two files above, its word being also a
-   field's; a directory the path form rooted, `./` included — the folder sat at a root, not `/api/x/`. */
+/* The one reading of a name written as a command and not used as a word — behind `forge`, leading a help row, at the head of a spawn's argv, or declared where verbs are. Spent by this checker and by the help tripwire, which held a bare-word copy and refused prose. */
+export const commandShapes = (name, rel = "") => [
+  new RegExp(`\\bforge\\s+${name}\\b`, "gu"),
+  new RegExp(`^[ \\t]{1,4}${name}(?=[ \\t]+[<[]|[ \\t]{2,}\\S)`, "gmu"),
+  new RegExp(`(?<=[(,]\\s{0,80}\\[\\s{0,80})(["'\`])${name}\\1`, "gu"),
+  ...(REGISTRIES.has(rel) ? [new RegExp(`(?:(?<=[[{,]\\s*)(["'\`])${name}\\1|^\\s*${name}:)`, "gmu")] : []),
+];
+
+/* A directory is the path form rooted, `./` included: the folder sat at a root, not `/api/feedback/`. */
 const shapesOf = ({ name, kind }, rel) =>
   ({
-    verb: [
-      new RegExp(`\\bforge\\s+${name}\\b`, "gu"),
-      new RegExp(`^[ \\t]{1,4}${name}(?=[ \\t]+[<[]|[ \\t]{2,}\\S)`, "gmu"),
-      new RegExp(`(?<=[(,]\\s{0,80}\\[\\s{0,80})(["'\`])${name}\\1`, "gu"),
-      ...(REGISTRIES.has(rel) ? [new RegExp(`(?:(?<=[[{,]\\s*)(["'\`])${name}\\1|^\\s*${name}:)`, "gmu")] : []),
-    ],
+    verb: commandShapes(name, rel),
     flag: [new RegExp(`--${name}\\b`, "gu")],
     tool: [new RegExp(`\\b${name}\\b`, "gu")],
     directory: [new RegExp(`(?<![\\w./-])(?<!/[\\w-]+ )(?:\\.\\.?/)*${name}/`, "gu")],

@@ -101,8 +101,12 @@ test("a shortfall on a short read names what is owed, and no route past it write
   assert.match(short.stdout, /no confirmation/u, "the missing item, named as on any other issue");
   assert.match(short.stdout, /forge record confirmation ISS-96/u, "with the one command that supplies it");
   assert.match(short.stdout, /may be a record the read never reached/u, "and what the short read costs the answer");
-  const asked = await ranAsync(FORGE, ["advance", "ISS-96"], tracker.env);
+  /* Typed as the form for the status it names, which is the status that is next: the shortfall is
+     the verb's, so what a form buys here is the word and never a different answer (ISS-704). */
+  const asked = await ranAsync(FORGE, ["confirm", "ISS-96"], tracker.env);
   assert.equal(asked.status, 1, "asked to move on a record that does not earn it, the same list refuses");
+  assert.match(asked.stderr, /^forge: read confirm as forge advance ISS-96$/mu, asked.stderr);
+  assert.match(asked.stdout, /forge record confirmation ISS-96/u, "with the owed item's own command");
   for (const run of [short, asked]) {
     const said = `${run.stdout}${run.stderr}`;
     assert.equal(said.includes('"action":"transition"'), false, `a hand transition was offered: ${said}`);

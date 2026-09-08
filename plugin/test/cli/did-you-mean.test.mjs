@@ -7,11 +7,12 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ALIASES, didYouMean, suggest } from "../../src/suggest.mjs";
+import { didYouMean, suggest } from "../../src/suggest.mjs";
+import { FORMS } from "../../src/resolve/handler.mjs";
 import { RETIRED } from "../../src/checks/retired-names.mjs";
 import { USAGE as CLAIM } from "../../src/flow/claim.mjs";
 import { SAYS as CODEX } from "../../src/codex/codex.mjs";
-import { kindUsage } from "../../src/resolve/record-rows.mjs";
+import { kindUsage } from "../../src/flow/record/record-rows.mjs";
 import { retiredFlagIn, retiredRefusal } from "../../src/resolve/retiring.mjs";
 import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
 import { FLAG_WORD, flags, flagsNamed, partition, pullRepeated, unknownFlag } from "../../src/resolve/flags.mjs";
@@ -133,12 +134,12 @@ test("the form the parser refuses is left to the parser", () => {
   assert.equal(unknownFlag("issue", ["ISS-1", "--fields", "plan"], { usage }), null);
 });
 
-/* The table is read before distance, so a synonym answers with one verb and not with two near
-   spellings of the wrong one. What the rows have to hold is held here rather than in prose: a key
+/* The form table is read before distance, so a synonym answers with one verb and not with two near
+   spellings of the wrong one. What a row has to hold is held here rather than in prose: a form
    naming a retired verb would answer a name the CLI is supposed not to know, which is the redirect
-   docs/cli/withholding-a-verb.md forbids, and a key that is itself a verb is a row nothing reads. */
-const aliasProblems = (aliases, retired, live) =>
-  Object.entries(aliases).flatMap(([given, meant]) => [
+   docs/cli/withholding-a-verb.md forbids, and a form that is itself a verb is a row nothing reads. */
+const formProblems = (forms, retired, live) =>
+  Object.entries(forms).flatMap(([given, { verb: meant }]) => [
     ...(retired.some((entry) => entry.kind === "verb" && entry.name === given)
       ? [`the table answers ${given}, retired in ${retired.find((entry) => entry.name === given).release}`
         + " — delete the row rather than aiming it at a live name (docs/cli/withholding-a-verb.md)"]
@@ -148,7 +149,7 @@ const aliasProblems = (aliases, retired, live) =>
   ]);
 
 test("a synonym answers with the one verb it means, before any distance is measured", () => {
-  for (const [given, meant] of Object.entries(ALIASES)) {
+  for (const [given, { verb: meant }] of Object.entries(FORMS)) {
     assert.deepEqual(suggest(given, VERB_NAMES), [meant], `forge ${given}`);
   }
   assert.deepEqual(suggest("list", ["lists", "plan"]), ["lists"],
@@ -167,23 +168,23 @@ test("an alias answers wherever the name it means is among the candidates", () =
     "and a codex action named list reaches no name of this CLI's");
 });
 
-test("every alias names a live verb, and no alias is a name the CLI answers to", () => {
-  assert.deepEqual(aliasProblems(ALIASES, RETIRED, VERB_NAMES), []);
-  assert.ok(Object.keys(ALIASES).length > 0, "and the table holds something, so the rule judged a row");
+test("every form names a live verb, and no form is a name the CLI answers to", () => {
+  assert.deepEqual(formProblems(FORMS, RETIRED, VERB_NAMES), []);
+  assert.ok(Object.keys(FORMS).length > 0, "and the table holds something, so the rule judged a row");
 });
 
-/* The registry holds no retired verb yet, so the rule above passes on an empty set and would pass
-   on a broken table too. One is planted here, the way retired-names.test.mjs plants `advance`. */
+/* The rule above passes on a table of rows that happen to be sound, and would pass on a broken one
+   were the registry to hold no verb it answers. One is planted, as retired-names.test.mjs plants `advance`. */
 test("the rule fires on a table that answers a retired name", () => {
-  const [alias] = Object.keys(ALIASES);
-  const asIf = [{ name: alias, kind: "verb", release: "3.36.0" }];
-  const found = aliasProblems(ALIASES, asIf, VERB_NAMES);
+  const [form] = Object.keys(FORMS);
+  const asIf = [{ name: form, kind: "verb", release: "3.36.0" }];
+  const found = formProblems(FORMS, asIf, VERB_NAMES);
   assert.equal(found.length, 1, found.join("\n"));
   assert.match(found[0], /retired in 3\.36\.0/u);
   assert.match(found[0], /withholding-a-verb\.md/u, "and the finding says where the rule reads");
-  assert.deepEqual(aliasProblems({ issue: "issue" }, RETIRED, VERB_NAMES),
+  assert.deepEqual(formProblems({ issue: { verb: "issue" } }, RETIRED, VERB_NAMES),
     ["issue is a verb of its own, so its row is never reached"]);
-  assert.deepEqual(aliasProblems({ fetch: "gone" }, RETIRED, VERB_NAMES),
+  assert.deepEqual(formProblems({ fetch: { verb: "gone" } }, RETIRED, VERB_NAMES),
     ["the table sends fetch to gone, which no verb answers to"]);
 });
 
@@ -328,11 +329,12 @@ test("a name whose window has closed is answered as any unknown one", async () =
   }
 });
 
-test("a synonym typed at the CLI answers with the one verb, on the real dispatcher", async () => {
-  for (const [given, meant] of Object.entries(ALIASES)) {
-    const run = await ran(given);
-    assert.equal(run.status, 1);
-    assert.match(run.stderr, new RegExp(`^No verb named ${given}\\. Did you mean: ${meant}\\?$`, "mu"),
-      `forge ${given}: ${run.stderr.split("\n")[0]}`);
+test("a form typed at the CLI is performed by the verb behind it, and suggested by nothing", async () => {
+  for (const [form, { verb }] of Object.entries(FORMS)) {
+    const run = await ran(form, "ISS-1");
+    assert.match(run.stderr, new RegExp(`^forge: read ${form} as forge ${verb} ISS-1$`, "mu"),
+      `forge ${form}: ${run.stderr.split("\n")[0]}`);
+    assert.doesNotMatch(run.stderr, /Did you mean/u, "a word that runs is not answered with a near miss");
+    assert.doesNotMatch(run.stderr, /No verb named/u, `forge ${form} is a word this CLI performs`);
   }
 });

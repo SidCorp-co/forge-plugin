@@ -261,7 +261,7 @@ const readFlags = (rest) => {
   return { ...given, evidence, next: nextLine(given.next) };
 };
 
-const run = async (argv) => {
+const run = async (argv, readAs) => {
   if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) refuse(`advance takes the issue first. ${firstLine(USAGE)}`);
@@ -290,13 +290,16 @@ const run = async (argv) => {
   /* The triage that puts the expectation outside the specification writes its park here, because a
      park is a record and a status and the route decided both from the triage the record holds. */
   if (routed) return parkAs(view, ref, routed.kind, routed.why, [], routed.left);
-  return transitionTo(view, next, ref,
-    { note: resumed ? "  (resumed where its park left it)" : "", next: given.next ?? null });
+  /* Both notes, where a form resumed a park: what moved it and what was typed to move it are two
+     facts, and dropping either leaves the line answering a question nobody asked. */
+  const note = `${resumed ? "  (resumed where its park left it)" : ""}`
+    + `${readAs ? `  (read as ${readAs} ${ref})` : ""}`;
+  return transitionTo(view, next, ref, { note, next: given.next ?? null });
 };
 
-export const advance = async (argv) => {
+export const advance = async (argv, { readAs = null } = {}) => {
   try {
-    await run(argv);
+    await run(argv, readAs);
   } catch (error) {
     if (error instanceof Refused) fail(error.message);
     throw error;

@@ -84,6 +84,15 @@ old verb outlives the verb, with nothing to fail when it does. A checker holds t
 retired names and refuses any occurrence under `plugin/` and `docs/` that is not in one of the trees
 it exempts as history (ISS-108).
 
+**A handled form is not a redirect, because a redirect does not run.** A form is a word the
+dispatcher performs through a verb it has — `forge close ISS-45` as `forge advance` — for one line on
+stderr naming what ran. A redirect spends the turn and asks for another; a form spends it and
+answers. That is why the rule above forbids the one and this allows the other: the objection was
+never to the old word but to hearing about a better one instead of being served. So a form is
+*performed and never listed* — in no help text, verb list or near miss, for the reason a withheld
+verb is not. Typing it is served; not knowing it costs nothing. A word that is neither verb nor form
+gets the unknown-verb answer, and `plugin/src/resolve/handler.mjs` is the table.
+
 **Two exceptions, both bounded, and neither is a way round the rule.** The first is a release note on
 the issue that made the change, which is history and lives on the tracker. The second is
 **one write that had two verbs**: the name that loses gets one release of the refusal the rule

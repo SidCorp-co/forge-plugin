@@ -90,6 +90,9 @@ test("--owed on a shipped issue names the close, and reads no page to say it", a
   assert.deepEqual(moved("shipped-uuid"), [], "a rehearsal moves nothing");
 });
 
+/* Typed as the form for the status, which is the spelling this move has: one word rather than a verb
+   and a target, performed rather than suggested, and the transition line naming what ran it so a
+   reader of the answer is not left inferring which verb moved the issue (ISS-704). */
 test("a close transitions, and the page a shipped issue overflows cannot refuse it", async () => {
   /* The read-before-write gate sits inside every lease write and credits what it delivered, so the
      claim meets it twice and the close not at all. That hold is not the refusal this case is about. */
@@ -98,9 +101,10 @@ test("a close transitions, and the page a shipped issue overflows cannot refuse 
     assert.equal(claim.status, again === 1 ? 1 : 0, claim.stderr);
   }
   const pages = listed("shipped-uuid");
-  const run = await ranAsync(FORGE, ["advance", "ISS-96"], tracker.env);
+  const run = await ranAsync(FORGE, ["close", "ISS-96"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /ISS-96 {2}released -> closed/u, run.stdout);
+  assert.match(run.stderr, /^forge: read close as forge advance ISS-96$/mu, run.stderr);
+  assert.match(run.stdout, /ISS-96 {2}released -> closed {2}\(read as forge advance ISS-96\)/u, run.stdout);
   assert.equal(listed("shipped-uuid"), pages + 1, "one page, read by the lease write's gate and by no check");
   assert.deepEqual(wrote("shipped-uuid"), [], "nothing is written to close");
   assert.deepEqual(moved("shipped-uuid").map((one) => one.args.data.status), ["closed"]);

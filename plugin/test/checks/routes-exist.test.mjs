@@ -8,13 +8,14 @@ import { join } from "node:path";
 
 import { routeProblems } from "../../src/checks/doc-shape.mjs";
 import { VERB_NAMES, usageOf } from "../../src/resolve/visibility.mjs";
+import { FORM_NAMES } from "../../src/resolve/handler.mjs";
 import { surfaceOf } from "../surfaces.mjs";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 const HOW = join(ROOT, "plugin", "hooks", "how");
 
 const held = {
-  verbs: VERB_NAMES,
+  verbs: [...VERB_NAMES, ...FORM_NAMES],
   usageOf: surfaceOf,
   documented: readdirSync(HOW).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3)),
   sources: "",
