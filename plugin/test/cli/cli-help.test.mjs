@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 
 import { GROUPS, VERB_NAMES, helpOf, takesATrackerField, usageOf } from "../../src/resolve/visibility.mjs";
 import { flagsNamed, helpAskedOf, unknownFlag, wantsHelp } from "../../src/resolve/flags.mjs";
@@ -408,6 +409,28 @@ test("the project file is named by doctor and by no other verb's help", () => {
 test("the guides and the contract name the project file nowhere", () => {
   const held = spawnSync("grep", ["-rn", ".forge.json", "plugin/guides"], { cwd: ROOT, encoding: "utf8" });
   assert.equal(held.stdout, "", `a guide names the file rather than \`forge doctor\`:\n${held.stdout}`);
+});
+
+/* A tripwire with a declared dormancy, not a dead selector: the handler's table is part 4's, this walk matches nothing until it lands, and ISS-700's rules ask for it by name — the day `handler.mjs` exports FORMS its words are held out of every help text with no second edit. Deleting it as dead is the one move to not make here; it was made at afeb945 and undone. */
+test("no help text names a form of the handler's table", async () => {
+  /* Dormant while the file is absent and never for any other reason: an import that throws, or a
+     table renamed, is the walk going quiet on a tree that has the handler in it (F1). */
+  const at = new URL("../../src/resolve/handler.mjs", import.meta.url);
+  if (!existsSync(at)) {
+    assert.equal(existsSync(at), false, "the handler has not landed, so this walk has nothing to match");
+    return;
+  }
+  const held = await import(at.href);
+  const forms = Object.keys(held.FORMS ?? {});
+  assert.ok(forms.length, "the handler landed, so FORMS is what every help text is walked for");
+  const named = [];
+  for (const argv of [["-h"], ["-h", "--full"], ...EVERY_HELP.map((one) => [...one, "-h"])]) {
+    const said = `${ask(...argv).stdout}${ask(...argv).stderr}`;
+    for (const form of forms) {
+      if (new RegExp(`\\b${form}\\b`, "u").test(said)) named.push(`forge ${argv.join(" ")}: ${form}`);
+    }
+  }
+  assert.deepEqual(named, []);
 });
 
 /* The kinds are the list `record -h` is for; a kind's flags are that kind's own call. */
