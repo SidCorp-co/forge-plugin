@@ -203,6 +203,11 @@ export const consultArgs = (given) => {
   const usage = CONSULT_USAGE;
   const { values: risks, rest: without } = pullRepeated(given, "--verify", "codex consult", { usage });
   const { positionals, flagArgv } = partition(without, BOOLEAN, { verb: "codex consult", usage });
+  /* Refused at the parse, not at the read: `-` is every other verb's stdin spelling, and this verb's stdin is its intent rather than a file, so the file reader's answer names the wrong thing. */
+  if (positionals.includes("-")) {
+    fail("codex: consult takes file paths and `-` is not one — its intent is read from standard "
+      + 'input. Pipe it: echo "<what you were doing>" | forge codex consult <file>...');
+  }
   const held = flags(flagArgv, "codex consult", BOOLEAN, { usage });
   return {
     named: positionals,

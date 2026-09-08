@@ -425,6 +425,25 @@ test("--bg is refused by name", () => {
   }
 });
 
+/* Every other verb reads its body from `-`, so a run types it here for the intent; read as a file
+   path it answered "- is not a readable file", which names the wrong thing about the wrong slot. */
+test("a dash where a file goes is refused naming standard input", () => {
+  const stopped = mock.method(process, "exit", () => {
+    throw new Error("exited");
+  });
+  const said = mock.method(console, "error", () => {});
+  try {
+    assert.throws(() => consultArgs(["-"]), /exited/);
+    const one = String(said.mock.calls[0].arguments[0]);
+    assert.match(one, /standard input/, one);
+    assert.ok(!/not a readable file/u.test(one), "and never as a file that could not be read");
+    assert.throws(() => consultArgs(["a.mjs", "-"]), /exited/, "beside a real path too");
+  } finally {
+    stopped.mock.restore();
+    said.mock.restore();
+  }
+});
+
 /* Both are per-consult: the cap because a review's worth of rounds is not a property of the
    repository, and the payload because a consult on a file outside any checkout has nothing to read
    with. An unknown value is refused rather than sent on. */
