@@ -30,6 +30,16 @@ today is refused, wider and this CLI invents a type the tracker never guessed. I
 a verdict — what accepts or refuses is still the tracker's allowlist, and the refusal that arrives is
 its own 400 body.
 
+**A content type is declared where a body of that type follows, and nowhere else.** Declaring
+`application/json` on every request that was not an upload cost the tracker's merged mark its only
+correction: the merge handler parses the payload a request declares before it looks the issue up, so
+a `DELETE` carrying nothing read as an empty payload and every `unmark` there had ever been was
+answered `Malformed JSON in request body` — the same refusal a `POST` to that route gets, which
+`mark_merged` escapes only because its body is always an object. The line is the tracker's, not this
+CLI's guess at it: the same bodyless `DELETE` without the header reaches the handler, a `GET`
+carrying it is served, and the knowledge store's own `DELETE` answers `deleted` either way. A route
+wanting a field in that body says so by declaring one, which is what carries `unmark`'s note.
+
 **A capability with no route fails where it is asked for, naming the route it wanted.** A fallback to
 the other endpoint would keep the verb working and hide the gap for as long as both endpoints exist,
 which is exactly as long as nobody is going to notice. The refusal names the path the row would have

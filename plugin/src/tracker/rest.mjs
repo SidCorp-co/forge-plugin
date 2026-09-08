@@ -313,7 +313,7 @@ export const ROUTES = {
   },
   "forge_issues.unmark": {
     writes: true,
-    requests: (args) => one(`/issues/${args.data?.issueId}/merge`, "DELETE"),
+    requests: (args) => one(`/issues/${args.data?.issueId}/merge`, "DELETE", filled({ note: args.data?.note })),
     sends: ["data"],
   },
   /* The edge store, on the issue's own route: `documentId` is the issue that DEPENDS and

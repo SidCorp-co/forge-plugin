@@ -77,10 +77,10 @@ export const unfencedIn = (value) => {
 /** One configured value, whatever form it names, with the endpoint segment off the end of it. */
 export const restBase = () => settings().url.replace(/\/mcp\/?$/u, "") + "/api";
 
-/* No declared content type where a part carries the body: the boundary is the runtime's to name. */
-const authorized = (multipart = false) => {
+/* Declared where a JSON body follows it and nowhere else — docs/cli/one-transport.md says what a header over an empty body cost, and why a multipart one's boundary is the runtime's. */
+const authorized = (json) => {
   const { token } = settings();
-  return { Authorization: token, ...(multipart ? {} : { "Content-Type": "application/json" }) };
+  return { Authorization: token, ...(json ? { "Content-Type": "application/json" } : {}) };
 };
 
 /* Per attempt and never kept: a rate limit is sent again whatever the row declares. */
@@ -92,12 +92,15 @@ const bodied = (form) => {
   return held;
 };
 
-const send = ({ path, method = "GET", form, body }) => fetch(`${restBase()}${path}`, {
-  method,
-  headers: authorized(Boolean(form)),
-  ...(form ? { body: bodied(form) } : {}),
-  ...(form || body === undefined ? {} : { body: JSON.stringify(body) }),
-});
+const send = ({ path, method = "GET", form, body }) => {
+  const json = !form && body !== undefined;
+  return fetch(`${restBase()}${path}`, {
+    method,
+    headers: authorized(json),
+    ...(form ? { body: bodied(form) } : {}),
+    ...(json ? { body: JSON.stringify(body) } : {}),
+  });
+};
 
 const attempted = async (make, repeatable) => {
   let text = "";

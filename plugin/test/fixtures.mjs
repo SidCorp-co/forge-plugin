@@ -264,6 +264,13 @@ const SETTINGS = {
   set_facts: "projectFacts",
 };
 
+const MERGE_ROUTE = /^\/api\/issues\/[^/]+\/merge$/u;
+
+/* Declared JSON with nothing under it, which only the merge handler was measured refusing: every other route serves that shape, knowledge's own DELETE answering `deleted` with the header or without, so a fake refusing it everywhere would be a red for a request the tracker takes (ISS-729). */
+const emptyJson = ({ method, headers }) => (method === "POST" || method === "DELETE")
+  && String(headers["content-type"] ?? "").startsWith("application/json")
+  && !headers["transfer-encoding"] && Number(headers["content-length"] ?? 0) === 0;
+
 /** A tracker a verb can be spawned against, answering out of `state` at request time so a case that
  *  changes the state changes the answer; a handler in `state.answer` keyed by tool wins over the
  *  defaults, and `state.calls` collects every call for a case to assert on. */
@@ -482,7 +489,12 @@ export const fakeTracker = async (state) => {
       return;
     }
     const url = new URL(request.url, "http://x");
-    const sent = request.method === "GET" || request.method === "DELETE" ? {} : await body(request);
+    if (MERGE_ROUTE.test(url.pathname) && emptyJson(request)) {
+      response.writeHead(400, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ code: "BAD_REQUEST", message: "Malformed JSON in request body" }));
+      return;
+    }
+    const sent = request.method === "GET" ? {} : await body(request);
     pending = {
       path: url.pathname,
       method: request.method,

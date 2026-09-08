@@ -1,8 +1,9 @@
-/* Two halves of the transport. The refusal path renders the tracker's own validation error, which
+/* Three halves of the transport. The refusal path renders the tracker's own validation error, which
    is where a rejected key and the set a value was outside of are named. The read path takes the
    tracker's fence off every string of a response, which is the whole of what this repository knows
    about that fence — so a field reaches a reader as its author wrote it, no verb prints a marker,
-   and a string carrying none comes back untouched, the half a trim breaks. */
+   and a string carrying none comes back untouched, the half a trim breaks. The third is what goes
+   out: which requests declare a JSON payload, and which carry one. */
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -182,6 +183,90 @@ test("the retry schedule is 2, 4, 8 unless config.json names a non-negative numb
   }
   assert.equal(retryAfter("", new Map([["retry-after", "5"]])), 5, "a 429 waits what the server says");
   assert.equal(retryAfter("{}", new Map()), 2, "and the fallback for a 429 saying nothing is the constant, not the knob");
+});
+
+/* What went on the wire, off `fetch`'s own second argument rather than off the row's intent. */
+const wired = async (call) => {
+  const held = globalThis.fetch;
+  const sent = [];
+  globalThis.fetch = async (url, init) => {
+    sent.push({ url, ...init, type: init.headers["Content-Type"] ?? null });
+    return { ok: true, status: 200, headers: new Map(), text: async () => "{}" };
+  };
+  try {
+    await call();
+  } finally {
+    globalThis.fetch = held;
+  }
+  return sent;
+};
+
+const only = (sent, name) => [...new Set(sent.map((one) => one[name]))];
+
+/* AC-19-1-1: the request the declaration names, which a header declaring a payload the request does
+   not carry is not. The tracker's merge handler parses that declared payload before it looks the
+   issue up, so the header over an empty body answered every `unmark` there had ever been with
+   `Malformed JSON in request body` (ISS-729). */
+test("the JSON content type is declared on the request that carries a JSON body, and on no other", async () => {
+  const read = await wired(() => callTool("forge_issues", { action: "get", documentId: "u-1" }));
+  assert.ok(read.length > 1, "the composed read is more than one request, and each is judged");
+  assert.deepEqual(only(read, "type"), [null], "a read sends no payload, so it declares none");
+  assert.deepEqual(only(read, "body"), [undefined]);
+
+  const dropped = await wired(() => callTool("forge_knowledge",
+    { action: "delete", slug: "module-nothing", projectId: "p-1" }));
+  assert.deepEqual(only(dropped, "type"), [null], "the other bodyless write, which sends nothing either");
+  assert.deepEqual(only(dropped, "body"), [undefined]);
+
+  const noted = await wired(() => callTool("forge_issues",
+    { action: "unmark", data: { issueId: "u-1", note: "the mark carried an abbreviated sha" } }));
+  assert.equal(noted[0].method, "DELETE");
+  assert.equal(noted[0].type, "application/json");
+  assert.deepEqual(JSON.parse(noted[0].body), { note: "the mark carried an abbreviated sha" },
+    "the note a caller passes, on the wire rather than dropped where the request is built");
+
+  const bare = await wired(() => callTool("forge_issues", { action: "unmark", data: { issueId: "u-1" } }));
+  assert.deepEqual(JSON.parse(bare[0].body), {}, "and an object where none was given, the parse insisting on one");
+
+  const put = await wired(() => callTool("forge_uploads.request",
+    { data: { target: "issue", targetId: "u-1", name: "gate.txt" }, bytes: Buffer.from("two lines\nof it\n") }));
+  assert.equal(put[0].type, null, "the part names the type and the runtime names the boundary");
+  assert.ok(put[0].body instanceof FormData);
+});
+
+const apiBase = tracker.url.replace(/\/mcp$/u, "") + "/api";
+
+const bodyless = (path, headers, method = "DELETE") => fetch(`${apiBase}${path}`, { method, headers });
+
+/* The refusal watched firing, which is what the case above would otherwise be green without. It is
+   the merge route's alone: knowledge's own DELETE is served with the header or without it on the
+   tracker, so refusing that here would be a red for a request the tracker takes. */
+test("the fake refuses declared JSON with nothing under it where the tracker does, and serves it where the tracker does", async () => {
+  const json = { Authorization: "t", "Content-Type": "application/json" };
+  const refused = await bodyless("/issues/u-1/merge", json);
+  assert.equal(refused.status, 400);
+  assert.match((await refused.json()).message, /Malformed JSON in request body/u);
+  assert.equal((await bodyless("/issues/u-1/merge", { Authorization: "t" })).status, 200,
+    "the same request without the header reaches the handler, which is the whole of the defect");
+  assert.equal((await bodyless("/projects/p-1/knowledge/module-nothing", json)).status, 200,
+    "and the route the tracker serves that shape on is served here too");
+  const zero = await bodyless("/issues/u-1/merge", { ...json, "Content-Length": "0" }, "POST");
+  assert.equal(zero.status, 400, "a stated zero length is as empty as no length at all, and mark_merged is refused for it too");
+  assert.match((await zero.json()).message, /Malformed JSON in request body/u);
+});
+
+const UNCOMMENTED = "22222222-2222-4222-8222-222222222222";
+
+test("unmark comes back with the handler's answer through the whole CLI, and the note reaches the tracker", async () => {
+  state.calls = [];
+  const run = await ran("call", "forge_issues",
+    JSON.stringify({ action: "unmark", data: { issueId: UNCOMMENTED, note: "written with an abbreviated sha" } }));
+  assert.equal(run.status, 0, run.stderr);
+  const call = state.calls.find((one) => one.method === "DELETE" && one.path.endsWith("/merge"));
+  assert.deepEqual(call.sent, { note: "written with an abbreviated sha" },
+    "the request reached the handler at all, and carried the note the caller passed");
+  assert.equal(JSON.parse(run.stdout).note, "written with an abbreviated sha",
+    "and the handler's own answer came back, rather than a parse refusing ahead of it");
 });
 
 test("a refused connection with retrySeconds 0 is retried to the limit in well under the old fourteen seconds", async () => {
