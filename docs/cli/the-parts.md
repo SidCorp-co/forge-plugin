@@ -86,3 +86,28 @@ until the next one at that level or above.
 A part served out of a version directory ends by naming that version. A phase read out of a version
 nobody named cannot be held against the version the project runs, and that comparison is the whole
 reason a project pins one.
+
+## The verb that acts carries its own phase, and asks nobody which one it is
+
+A part chosen by the agent reading the method can be the wrong part, and one read early is one held
+loosely by the time it matters. So `forge claim`, a record write and the ship's last step each end by
+printing the phase for the act they are, through the same call the `guide` verb makes — byte-identity
+is what the criterion asks for, and one call site is cheaper to keep true than two texts compared.
+
+**The number is the record's and never the caller's.** A claim opens a phase's work, so it carries
+the first phase the row for the issue's status names — the same reading `forge resume` prints as *the
+phase owed*. A record ends a phase's work, so it carries the phase owed by the rung below the one
+whose entry check cites that record: the plan is written at `clarified` and carries Phase 3, the
+verdicts at `developed` and carry Phase 5. Nothing takes a phase as an argument, because a caller
+that could name its phase could name the wrong one, and the two rows that abbreviate several phases
+into one cell answer nothing here rather than answer wrongly — a rung owing several phases owes
+several records, and which of them ends it is not something that table says. The landing is the one
+act read off a rung rather than a record, since the row it ends is the one naming the note and the
+ship together and the landing is the end of it.
+
+**A part is the whole text or it is nothing.** The [shown ledger](the-shown-ledger.md) is what makes
+a second act of the same kind free, and it can answer a repeat with the lines it has not already
+credited. That is right for a paragraph that grew and wrong for a part, which is owed identical to
+what the `guide` verb prints: a rendering that changed because a project's key changed shares most of
+its lines with the one before it, and the difference between them is not the method. So each phase
+holds a ledger surface of its own and the ask is whether the whole was ever shown.

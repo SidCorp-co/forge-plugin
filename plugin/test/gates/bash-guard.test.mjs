@@ -61,6 +61,58 @@ test("a rule this session already read in full is refused again in one line", ()
   assert.match(other.reason, /stages everything in the tree/u, "another session is owed the whole of it");
 });
 
+/* The project a hook stands in, for the key the filing line resolves off. The room holds no git, so
+   the settings walk finds this `.forge.json` and no checkout's. */
+const inProject = (channel) => {
+  const room = tempRoom(`bash-guard-${channel}-`);
+  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "a-project", feedback: { plugin: channel } }));
+  return room;
+};
+
+const BUGS = inProject("bugs");
+const OFF = inProject("off");
+
+/* One home across these cases, because the ledger lives in it: a fresh one per call would owe every
+   paragraph again and the repeat this rule is about could not happen. Sessions keep them apart. */
+const FILING_HOME = homeEnv("bash-guard-filing");
+
+const refusedIn = (room, session, command) => {
+  const env = { ...FILING_HOME, FORGE_SESSION_ID: session };
+  const run = callHook(HOOK, { session_id: session, tool_name: tool(), tool_input: { command }, cwd: DIRTY }, env, room);
+  assert.equal(run.status, 0, run.stderr);
+  assert.ok(run.stdout.trim(), `nothing was refused, so there is no refusal to read: ${command}`);
+  return JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason;
+};
+
+const tool = () => "Bash";
+const FILES_IT = /`forge feedback <note\.md> --title "<one line>"` files it\./u;
+
+/* AC-02-8-6. Before this the refusal read the same whatever the key said, so a project that closed
+   the channel was told to file through a verb its own key refuses. */
+test("a refusal ends with the filing line where the project's key leaves a route", () => {
+  const said = refusedIn(BUGS, randomUUID(), STAGE_ALL);
+  assert.match(said, /stages everything in the tree/u, "the rule's own paragraph is still the refusal");
+  assert.match(said, FILES_IT, "and it ends by naming the verb that files a defect in this plugin");
+  assert.match(said.trimEnd().split("\n").at(-1), FILES_IT, "as the last line of it");
+});
+
+test("the same refusal under a closed channel ends where it ended before", () => {
+  const said = refusedIn(OFF, randomUUID(), STAGE_ALL);
+  assert.match(said, /stages everything in the tree/u, "the rule is refused just the same");
+  assert.doesNotMatch(said, /forge feedback/u, "and no route is offered that the key refuses");
+  assert.match(said.trimEnd().split("\n").at(-1), /forge hooks --how bash-guard/u, "the How line is the end");
+});
+
+/* The ledger and not a second rule: AC-10-5-2 refuses a rule already shown in one line, and a line
+   appended to every refusal would make that two. */
+test("a session is told where to file once, so a repeat stays the one line it was", () => {
+  const session = randomUUID();
+  assert.match(refusedIn(BUGS, session, STAGE_ALL), FILES_IT, "the first refusal of the session carries it");
+  const again = refusedIn(BUGS, session, `${STAGE_ALL} .`);
+  assert.equal(again.split("\n").length, 1, "the second is one line");
+  assert.doesNotMatch(again, /forge feedback/u, "and carries no filing line to make it two");
+});
+
 /* Twice in one session a heredoc was refused for holding the command in a *string literal*. */
 test("a literal inside a program is data, and the line that ran it is not", () => {
   assert.ok(decide(`python3 - <<'PY'\nt = t.replace("${STAGE_ALL}", "x")\nPY`).allowed);

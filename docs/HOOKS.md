@@ -23,10 +23,10 @@ direction: a clean checkout stands the rules down and nothing is refused.
 Both are literals in their hook, never loaded from a file: the wording belongs beside the decision
 that produces it, and a message assembled somewhere else drifts from what the code actually refused.
 
-**A refusal:** what was refused, the rule in one clause, one action, then `How: forge hooks --how
-<hook>`. Nothing else — it lands in a context window on every tool use. The learning-gate message was
-864 characters of conditions and categories; it is 434 now, and the conditions it kept are the test the
-agent has to apply before re-sending.
+**A refusal:** what was refused, the rule in one clause, one action, `How: forge hooks --how
+<hook>`, and the line the runner appends. Nothing else: it lands in a context window every call. The
+learning-gate message ran 864 characters of conditions and categories; it is 434, and those it kept
+are the test to apply before re-sending.
 
 Four failures worth naming, every one found by firing a gate rather than reading it:
 

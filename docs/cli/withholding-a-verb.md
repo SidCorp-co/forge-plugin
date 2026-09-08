@@ -52,6 +52,17 @@ nothing to route and nothing to hold. And never on the verb that carries a note 
 backlog on purpose, which aims at that project before it files — a hold there would lose the
 finding, which is the one thing that route promises not to do.
 
+**A hook refusal ends with the key's answer too, and it is the one line in a refusal not written in
+the gate that prints it.** `docs/HOOKS.md` holds a refusal to what was refused, the rule, one action
+and the `--how` pointer, on the ground of what a refusal costs where it lands; the filing line is the
+exception that rule earns, because a gate refusing the wrong shape is a defect a run otherwise works
+around rather than reports. Two things keep it inside that budget. It is resolved off
+`feedback.plugin` where the hook runs rather than written into any hook, so a project that closed the
+channel gets no line at all rather than a sentence naming a verb its own key refuses — the same
+reader `routingBlock` uses, so the two cannot disagree about whether there is a route. And the
+[ledger](the-shown-ledger.md) delivers it to one refusal in a run and to no later one, so the cost
+falls once rather than per call, and a refusal already abbreviated to a single line keeps that shape.
+
 The machine's other option sits in the same file for the same reason, and `forge doctor --ship` is
 where it is read and written. What the two modes each ask of a run is the method's to say, and the
 served method says it; what belongs here is why the switch is the machine's rather than the

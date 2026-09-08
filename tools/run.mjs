@@ -24,6 +24,7 @@ import { edgesLeft, fileIssue } from "../plugin/src/tracker/filing/route.mjs";
 import { runsMark } from "../plugin/src/stats/eval.mjs";
 import { refusing } from "../plugin/src/resolve/settings.mjs";
 import { CEILINGS, overCeiling, resizeForm, tierOf } from "../plugin/src/ladder.mjs";
+import { partForLanding } from "../plugin/src/guides/served.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
@@ -517,6 +518,8 @@ const shipSteps = (tree, root, base, note) => {
       await reviewOwed(tree);
       const mark = runsMark(root);
       if (mark) console.log(`  ${mark}`);
+      /* Inside the step and not after the whole run, so a `--from 9` resume carries it too. */
+      partForLanding((phase) => console.log(`\n${phase}`));
     }],
   ];
 };

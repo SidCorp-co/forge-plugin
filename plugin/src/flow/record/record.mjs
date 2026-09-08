@@ -25,6 +25,7 @@ import { capsOf, writeField } from "../../tracker/field-write.mjs";
 import { scoped } from "../../tracker/rpc.mjs";
 import { refuseIfGated } from "../../resolve/visibility.mjs";
 import { pluginFilingLine } from "../../tracker/filing/plugin-defect.mjs";
+import { partForRecord } from "../../guides/served.mjs";
 import { didYouMean } from "../../suggest.mjs";
 import { FIELD as SESSION, nextLine, renew, writtenBy } from "../lease.mjs";
 import { patchFrom, worklogLines, worklogOf } from "../worklog.mjs";
@@ -155,6 +156,9 @@ const sayOwed = async (documentId, issue, ref, held = null) => {
     console.error(`what this write now owes could not be read: ${error.message}`);
   }
 };
+
+/* On stderr, beside what the write owes and not on the stream carrying the record: a caller reading a payload back is not reading the method. A record ends its phase's work, so the part is that phase's. */
+const sayPart = (kind) => partForRecord(kind, (part) => console.error(`\n${part}`));
 
 /* `renewed` is the caller whose write a moment ago renewed the lease, which a second lease write would only repeat; `soft` hands the tracker's refusal back rather than exiting, for the caller with something to say about it. */
 export const post = async (documentId, body, { ref = documentId, next = undefined, patch = null, soft = false, renewed = false } = {}) => {
@@ -361,6 +365,7 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
   process.off("exit", stranded);
   const posted = { documentId: written?.documentId ?? null, createdAt: stampedLast(comments, written), body: rendered };
   await sayOwed(documentId, body, reference, asks ? { comments: [...comments, posted], cut } : null);
+  sayPart(kind);
   return written;
 };
 
@@ -469,6 +474,7 @@ const recordPlan = async (reference, [path, ...extra], { next, patch }) => {
   await writeField(documentId, "plan", plan, { ref: reference, next, patch, refuse });
   console.log(plan);
   await sayOwed(documentId, { ...body, plan }, reference);
+  sayPart("plan");
 };
 
 const recordReport = async (reference) => {

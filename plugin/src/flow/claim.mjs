@@ -7,6 +7,7 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rpc.mjs";
 import { commentPage } from "../tracker/comments.mjs";
+import { partForStatus } from "../guides/served.mjs";
 import { parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
 import { OPEN_KEPT, patchFrom, worklogFor } from "./worklog.mjs";
@@ -39,6 +40,12 @@ import {
 
 const MAX_MINUTES = 24 * 60;
 const PARKS_IN = "on_hold";
+
+/* Beside the advisory rather than above the lease line: both are what the run does next, where the lines above are what this write did. A claim opens a phase's work, so the part is the one its status owes. */
+const advisory = (status) => {
+  console.log(ADVISORY);
+  partForStatus(status, (part) => console.log(`\n${part}`));
+};
 
 export const USAGE = [
   usageOf("claim"),
@@ -217,11 +224,11 @@ export const claim = async (argv) => {
   if (given.take) {
     const took = await takeTurn(documentId, ref, issue, context, { holder, minutes, line, patch });
     if (sharedHolder(took, mine)) console.log(SHARED_HOLDER);
-    return console.log(ADVISORY);
+    return advisory(issue.status);
   }
   if (given.judged) {
     await handBack(documentId, ref, context, holder);
-    return console.log(ADVISORY);
+    return advisory(issue.status);
   }
   if (state === "live") fail(claimRefusal(ref, lease));
   const left = lease?.next ?? null;
@@ -249,6 +256,6 @@ export const claim = async (argv) => {
     console.log(`Reclaim ${reclaimsOf(taken, issue.status)} of ${issue.status}: `
       + `the one after ${RECLAIMS_BEFORE_PARK} parks the issue as crashed.`);
   }
-  return console.log(ADVISORY);
+  return advisory(issue.status);
 };
 claim.answersHelp = true;

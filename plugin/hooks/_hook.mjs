@@ -2,6 +2,7 @@
 // hands one event to every gate of its kind in one process, and the once-per-file-per-session stamp.
 // Why write detection asks the disk: docs/HOOKS.md. Which copy this one is: how/copies.md.
 
+import { spawnSync } from "node:child_process";
 import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -50,6 +51,43 @@ export const done = () => {
 
 const emit = (out) => process.stdout.write(JSON.stringify(out));
 
+const FILES_IT = (verb) => `Refused the wrong shape? That is a defect in this plugin and not a rule `
+  + `to work around: \`forge ${verb} <note.md> --title "<one line>"\` files it.`;
+
+/** What resolving the route may spend of an event's clock, and the floor under which it is not tried. Reading the project's key reads the project file, and finding the checkout that owns a linked worktree runs a `git` that a wrapper on PATH can hold open for as long as it likes (ISS-761). A refusal already decided is never traded for the line about where to file it, so the read is a child this process can outlive: killed at the deadline, the refusal goes out as its gate wrote it. */
+export const FILING_MS = 400;
+/** And the ceiling on the read itself, which is a Node start and one `git` — bounded by what it should cost rather than by what the event has left, so a wrapper that never answers costs a second and not the whole clock. */
+const RESOLVE_MS = 1_500;
+const FILING_SURFACE = "plugin-filing";
+const RESOLVER = new URL("../src/resolve/visibility.mjs", import.meta.url).href;
+const ASKS = `import(${JSON.stringify(RESOLVER)}).then((m) => `
+  + `process.stdout.write(m.verbForPluginDefect() || ""))`;
+
+/* Nothing at or below zero, since `spawnSync` reads a `timeout` of 0 as no timeout at all and the whole point here is the ceiling; and one word, because the answer is spent inside a line somebody may copy and run. */
+const VERB = /^[a-z][a-z-]*$/u;
+
+const verbWithin = (ms) => {
+  if (ms <= 0) return "";
+  const held = spawnSync(process.execPath, ["-e", ASKS], { encoding: "utf8", timeout: ms });
+  const said = held.status === 0 ? String(held.stdout).trim() : "";
+  return VERB.test(said) ? said : "";
+};
+
+/* The one line in a refusal the gate refusing does not write, off the project's key through the reader `routingBlock` uses so the two cannot disagree about whether there is a route: docs/cli/withholding-a-verb.md. Asked once a session, the ledger read first so a session already told resolves nothing at all, and the answer credited whether or not there was a route, since a project files nowhere for the rest of the run too. A failed read leaves the refusal as it was. */
+export const filed = async (reason, ev, left = remaining()) => {
+  if (left <= FILING_MS) return reason;
+  try {
+    const { lastShown, noteShown, sessionKey } = await import("../src/shown/ledger.mjs");
+    const session = sessionKey(ev);
+    if (session && lastShown(session, FILING_SURFACE)) return reason;
+    const verb = verbWithin(Math.min(left - FILING_MS, RESOLVE_MS));
+    if (session) noteShown(session, FILING_SURFACE, verb || "nowhere");
+    return verb ? `${reason}\n\n${FILES_IT(verb)}` : reason;
+  } catch {
+    return reason;
+  }
+};
+
 /* Ten processes per call was the whole cost of the hooks, 38 ms of each 50 being Node starting. One
    process per event: the first refusal answers before a call; after one every block and context is kept. */
 export const dispatch = async (given, ev = readEvent()) => {
@@ -66,7 +104,7 @@ export const dispatch = async (given, ev = readEvent()) => {
       if (kind === "pre") {
         const reason = `The hooks ran out of time before ${name} could decide this call. Re-send it.`;
         logged("deny", reason);
-        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } });
+        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await filed(reason, ev) } });
         return;
       }
       logged("error", `${name} skipped: the post clock ran out before it`);
@@ -84,7 +122,7 @@ export const dispatch = async (given, ev = readEvent()) => {
         continue;
       }
       if (error.kind === "deny") {
-        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: error.message } });
+        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await filed(error.message, ev) } });
         return;
       }
       if (error.kind === "block") blocks.push(error.message);
@@ -93,7 +131,7 @@ export const dispatch = async (given, ev = readEvent()) => {
   }
   if (!blocks.length && !contexts.length) return;
   emit({
-    ...(blocks.length ? { decision: "block", reason: blocks.join("\n\n") } : {}),
+    ...(blocks.length ? { decision: "block", reason: await filed(blocks.join("\n\n"), ev) } : {}),
     ...(contexts.length ? { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: contexts.join("\n\n") } } : {}),
   });
 };

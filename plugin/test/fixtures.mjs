@@ -24,8 +24,9 @@ export const typedPlan = (over = {}) => {
     .join("\n\n");
 };
 
-export const callHook = (hook, event, env = process.env) =>
-  spawnSync(process.execPath, [hook], { input: JSON.stringify(event), encoding: "utf8", env });
+/* `cwd` is the project the hook stands in, a different question from the event's `cwd`: the settings resolver walks up from the process, so a case varying a `.forge.json` key sets this. */
+export const callHook = (hook, event, env = process.env, cwd = process.cwd()) =>
+  spawnSync(process.execPath, [hook], { input: JSON.stringify(event), encoding: "utf8", env, cwd });
 
 /* A child awaited rather than waited on: anything that asks a server the test itself is running
    deadlocks under `spawnSync`, which holds the loop that would answer it. */

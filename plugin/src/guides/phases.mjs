@@ -22,6 +22,22 @@ export const CITED = {
 
 export const dischargedBy = (status) => CITED[stepAfter(status)] ?? null;
 
+/** Three readings of one row: every phase it names, the phase a record of a kind ends, and the phase the landing ends. A record's is the rung below the one `CITED` says it earns, and null where that rung owes several phases, since `CITED` does not say which of a rung's records ends it; the landing's is the last its own rung names, that row abbreviating the note and the ship into one cell. docs/cli/the-parts.md. */
+const EVERY_NUMBER = /\d+/gu;
+const RELEASED = "released";
+const rungBelow = (status) => ORDER[ORDER.indexOf(status) - 1] ?? null;
+
+export const phasesOwed = (status) =>
+  [...String(PHASE[status]?.[0] ?? "").matchAll(EVERY_NUMBER)].map((one) => Number(one[0]));
+
+export const phaseForRecord = (kind) => {
+  const earns = ORDER.find((status) => CITED[status] === kind);
+  const owed = earns ? phasesOwed(rungBelow(earns)) : [];
+  return owed.length === 1 ? owed[0] : null;
+};
+
+export const phaseAtLanding = () => phasesOwed(rungBelow(RELEASED)).at(-1) ?? null;
+
 /** The waiver a tier grants on the way out of a status, named by what it drops and why. */
 export const waivedFor = (status, size) => {
   const next = stepAfter(status);

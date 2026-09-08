@@ -33,6 +33,8 @@ string that is.
 | a refusal a session must act on | the paragraph | one line naming the route to the reason | ever shown |
 | a line reporting what is owed next | the whole of it | nothing | shown last |
 | a hint that a document wants a second reader | the whole of it | the whole of it | credited only |
+| the filing line a refusal ends with | the line | nothing | ever shown |
+| a phase of the method, carried by the verb that acts | the whole part | nothing | ever shown, whole only |
 
 A refusal repeats as a line and never as nothing, because the call is still being refused and a
 session shown nothing cannot tell a block from a pass. That line still reads as a refusal and names
@@ -51,6 +53,19 @@ a surface is the last thing said on it.
 The delta is per line, and belongs to the first reading. A text is credited both whole and line by
 line, so a paragraph that grew by a sentence owes the sentence, not the paragraph again. Where no
 line of a text was ever shown, the whole of it is owed — a delta equal to the text is the text.
+
+**A surface may want the whole text and no delta, and then it asks what is owed rather than for what
+to say.** A served phase of the method is one: it is owed to be identical to what `forge guide`
+prints for the same phase, and a delta is by definition not that. So it reads whether the whole text
+was ever shown and never takes the lines back. A surface doing this holds one key per thing it can
+say — one per phase rather than one for the method — so that two texts sharing a line cannot be
+answered with the difference between them.
+
+**And a surface printed by somebody else takes the printer rather than returning the text.** The
+credit follows the delivery, so a surface that hands its text back and credits it in the same breath
+has decided that its caller printed — and where the caller is three call sites in three files, one of
+them will one day return early between the two. Handing the printer down puts the credit after the
+call that delivers, at every site, with nothing to remember.
 
 ## The surface that is credited and never held
 

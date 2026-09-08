@@ -21,6 +21,43 @@ const run = (names, event, env = {}) =>
   });
 const out = (held) => (held.stdout.trim() ? JSON.parse(held.stdout) : null);
 
+/* The line about where to file a wrong refusal costs a read of the project's key, and finding the
+   checkout behind a linked worktree runs `git` — a wrapper on PATH can hold that open past the
+   event's whole clock (ISS-761). A refusal already decided must never be lost to it. */
+test("a refusal near the end of its budget is emitted without the line about filing it", async () => {
+  const { FILING_MS, filed } = await import("../../hooks/_hook.mjs");
+  const ev = { session_id: `budget-${Date.now()}` };
+  assert.equal(await filed("Refused. The rule.", ev, 0), "Refused. The rule.", "nothing is added");
+  assert.equal(await filed("Refused. The rule.", ev, FILING_MS - 1), "Refused. The rule.",
+    "nor a millisecond under the margin, which is the floor and not the bound");
+  /* The margin exactly: `spawnSync` reads a `timeout` of 0 as no timeout, so the one budget that
+     leaves the ceiling at nothing is the one that would have spawned unbounded. */
+  assert.equal(await filed("Refused. The rule.", ev, FILING_MS), "Refused. The rule.",
+    "nor at the margin itself, where the ceiling the read would get is zero");
+  const said = await filed("Refused. The rule.", { session_id: `spend-${Date.now()}` }, FILING_MS * 100);
+  assert.match(said, /forge feedback <note\.md>/u, "and with the clock to spend, the line arrives");
+  assert.match(said, /^Refused\. The rule\./u, "after the refusal and never instead of it");
+});
+
+/* The margin admits the read; this is what bounds it. A wrapper first on PATH that never answers is
+   the shape ISS-761 names, and the whole point of the child is that this process outlives it. */
+test("a git that never answers costs the line about filing and never the refusal", () => {
+  const bin = tempRoom("slow-git-");
+  /* Twenty times the ceiling and no more: the timeout kills the child that asked, never the wrapper
+     it is waiting on, so a longer sleep is a process this suite leaves behind for minutes. */
+  writeFileSync(join(bin, "git"), "#!/bin/sh\nexec sleep 30\n", { mode: 0o755 });
+  const cwd = dirtyRepo();
+  const ev = { tool_name: "Bash", tool_input: { command: `pk${"ill"} -f node` }, cwd, session_id: "stalled" };
+  const began = Date.now();
+  const held = run(["pre", "bash-guard"], ev, { PATH: `${bin}:${process.env.PATH}`, FORGE_SESSION_ID: "stalled" });
+  const took = Date.now() - began;
+  const answer = out(held)?.hookSpecificOutput;
+  assert.equal(answer?.permissionDecision, "deny", `the refusal still arrives: ${held.stderr}`);
+  assert.match(answer.permissionDecisionReason, /select by name/u, "and it is the rule's own reason");
+  assert.doesNotMatch(answer.permissionDecisionReason, /forge feedback/u, "with no route resolved for it");
+  assert.ok(took < 6_000, `costing the read's own ceiling and not the event's clock: ${took}ms`);
+});
+
 test("before a call, the first gate to refuse is the answer and the rest are not asked", () => {
   const cwd = dirtyRepo();
   const ev = { tool_name: "Bash", tool_input: { command: "git stash" }, cwd, session_id: "g1" };
