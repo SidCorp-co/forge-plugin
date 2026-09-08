@@ -48,6 +48,17 @@ recommendation was made against a tree that no longer exists. The fourth is read
 never invented here, so the fold can say what the wave served and how much of it served nothing
 stated.
 
+**A candidate that survives is also sized, and the tracker's `complexity` field is where.** Sizing
+is this phase's, because it is the same reading triage has just done: `forge issue ISS-nn --set
+complexity=<value> --why <w>`, the why naming what was read to size it — the files the change would
+touch, whether a person sees the result, whether a rule changes. Which value claims which rung, and
+what a rung then buys, is the contract's. The write goes on the issue and nowhere else, so the brief
+carries no rung and there is nothing for a run to find disagreeing with the field.
+
+**The sizing is the step before the brief, and no run is dispatched on an issue holding none.** An
+unsized issue spends a run's payloads settling a question one write here answers, and the ranking
+verb names the gap on any lead holding none, so this is a step the order has already pointed at.
+
 A candidate too big for one run is split before it is dispatched.
 
 ## Phase 3 — Group what shares a place

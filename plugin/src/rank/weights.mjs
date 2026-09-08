@@ -5,10 +5,12 @@ import { FROM_PROJECT, rankConvention } from "../resolve/settings.mjs";
 
 export const TAKEABLE = ["open", "confirmed", "clarified", "approved", "reopen"];
 
+export const UNSET = "unset";
+
 export const DEFAULTS = {
   priority: { critical: 40, high: 30, medium: 20, low: 10, none: 0 },
   kind: { bug: 8, enhancement: 4, feature: 0 },
-  band: { xs: 8, s: 6, m: 4, l: 2, xl: 0, unset: 3 },
+  band: { xs: 8, s: 6, m: 4, l: 2, xl: 0, [UNSET]: 3 },
   agePerDay: 1,
   ageCap: 10,
   reopened: 5,

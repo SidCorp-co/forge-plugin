@@ -19,7 +19,7 @@ import {
 } from "../../tracker/evidence.mjs";
 import { briefGoals, releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
 import { NONE_STATED, servesRefusal } from "../../goals.mjs";
-import { sizeFrom } from "../../ladder.mjs";
+import { belowTop, resizeForm, sizeFrom } from "../../ladder.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
 import { capsOf, writeField } from "../../tracker/field-write.mjs";
 import { scoped } from "../../tracker/rest.mjs";
@@ -237,9 +237,26 @@ const DERIVED = {
   confirmation: async (body) => ({ tier: sizeFrom({ band: body?.complexity }).rung }),
 };
 
-const derive = async (kind, blocks, body) => {
+/* The stamp said out loud, because a run that has to read its own record back to learn its rung learns it after the phase that would have checked it. The rung is the triager's claim; this run's reading of the code is what holds it up, and the route up is printed only where one exists — `resizeForm` at the top rung renders a pair that does not climb, which `climbsIn` drops. Advisory throughout: nothing here can judge the work against the rung. */
+const SAID = {
+  confirmation: (body, reference) => {
+    const { rung, band } = sizeFrom({ band: body?.complexity });
+    const from = band
+      ? `claimed by the complexity \`${band}\``
+      : "claimed by nobody: this issue holds no complexity, so the top rung stands by the upward rule";
+    return `tier \`${rung}\`, ${from}. `
+      + (belowTop(rung)
+        ? `Where what you have just read is bigger than that, move it up before the plan:\n  ${resizeForm(reference, rung)}`
+        : "No rung stands above it, so there is nothing here to correct upward.");
+  },
+};
+
+const derive = async (kind, blocks, body, { say, reference }) => {
   const held = await DERIVED[kind]?.(body);
-  if (held) for (const got of blocks) Object.assign(got, held);
+  if (!held) return;
+  for (const got of blocks) Object.assign(got, held);
+  const line = SAID[kind]?.(body, reference);
+  if (line) say(line);
 };
 
 const SERVES = "serves";
@@ -342,7 +359,7 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
     const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
     if (bad) refuse(bad);
   }
-  await derive(kind, blocks, body);
+  await derive(kind, blocks, body, { say, reference });
   await servesChecked(kind, blocks);
   quoteCriteria(kind, blocks, body, reference);
   const stamp = shape.stamp ? String(body[shape.stamp.from ?? "status"] ?? "") : null;

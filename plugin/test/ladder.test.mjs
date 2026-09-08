@@ -230,6 +230,43 @@ test("a confirmation a write posts carries the rung, and one handed in without i
 });
 
 
+/* The stamp said to the run that wrote it, since a run reading its own record back learns its rung
+   after the phase that would have checked it. Four forms, because the route up exists on two of
+   them: `resizeForm` at the top rung renders `feature -> feature`, which `climbsIn` drops, so
+   printing it there would send a run to a write that corrects nothing. */
+const confirmed = async (key) => {
+  await ranAsync(FORGE, ["claim", key], tracker.env);
+  const run = await ranAsync(FORGE,
+    ["record", "confirmation", key, "--where", "src/ladder.mjs", "--is", "a rung", "--finding", "holds"],
+    tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  return run.stderr;
+};
+
+test("the confirmation says the rung it stamped, the complexity that claimed it, and the route up", async () => {
+  const [trivial, fix] = TIERS;
+  /* Complexity `xs` on a body naming the top rung: the line is held to the field's own value, so a
+     line saying only "from the complexity" would pass while reading the wrong source (ISS-394). */
+  const disagreeing = await confirmed("ISS-90");
+  assert.match(disagreeing, new RegExp(String.raw`tier \x60${trivial}\x60, claimed by the complexity \x60xs\x60`, "u"));
+  assert.match(disagreeing, /move it up before the plan:/u);
+  assert.match(disagreeing, new RegExp(`Size: ${trivial} -> ${fix}`, "u"), "one rung, not a jump to the top");
+  const sized = await confirmed("ISS-81");
+  assert.match(sized, new RegExp(`Size: ${fix} -> ${TIERS.at(-1)}`, "u"));
+});
+
+test("a confirmation at the top rung offers no upward correction, and an unsized issue says who claimed it", async () => {
+  const top = TIERS.at(-1);
+  const unsized = await confirmed("ISS-72");
+  assert.match(unsized, new RegExp(String.raw`tier \x60${top}\x60, claimed by nobody`, "u"));
+  assert.match(unsized, /holds no complexity, so the top rung stands by the upward rule/u);
+  assert.match(unsized, /No rung stands above it/u);
+  assert.doesNotMatch(unsized, /Size: \w+ -> /u, "a pair that does not climb is a write that corrects nothing");
+  const atTop = await confirmed("ISS-82");
+  assert.match(atTop, new RegExp(String.raw`tier \x60${top}\x60, claimed by the complexity \x60m\x60`, "u"));
+  assert.doesNotMatch(atTop, /Size: \w+ -> /u);
+});
+
 test("--owed reports the rung the checks run, what it drops and every route up from it", async () => {
   const run = await owed("ISS-71");
   assert.equal(run.status, 0, "asked what is owed, the shortfall is the answer and not a refusal");

@@ -86,6 +86,12 @@ It is not a licence to escalate. The rungs are claimed by meaning — one tree a
 sees, one behaviour and its replacement, or everything else — and that claim is the author's. This
 rule decides only what to do when the *reading* is ambiguous, never when the claim is merely small.
 
+Nor is urgency an input to it. Priority is the order `forge next` ranks by and it reaches no rung:
+an urgent change whose meaning is new behaviour, or a screen, is a `feature` at the top of the queue,
+and a one-line fix nobody is waiting for is still a `fix`. So there is no rung for a hotfix, and the
+way to make an urgent change cheap is to make it small — `bandFor` writes the rung back as a
+complexity, and the two axes meet nowhere else.
+
 Nor does it reach the ceiling. `CEILINGS` is arithmetic the ship prints after the judging, and it
 refuses nothing: by then a refusal would have nothing left to protect, and the correction is the
 run's to write.

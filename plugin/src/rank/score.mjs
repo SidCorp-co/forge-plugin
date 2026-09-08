@@ -1,11 +1,10 @@
 /* The score and its parts. Nothing here calls anything; why each weight: docs/cli/next.md. */
-import { TAKEABLE } from "./weights.mjs";
+import { TAKEABLE, UNSET } from "./weights.mjs";
 import { holdsBack } from "../flow/earned.mjs";
 import { FIELD_SAID } from "../ladder.mjs";
 
 const DAY = 86_400_000;
 
-const UNSET = "unset";
 
 /** The band the score weighs, off the complexity field and nothing else: the field's own value, so `l` and `xl` still score apart on a three-wide rung, and an issue holding none is scored as unset rather than as the rung it would fall to. */
 export const bandOf = (row) => (row?.complexity ? String(row.complexity) : UNSET);

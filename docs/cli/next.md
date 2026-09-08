@@ -64,6 +64,15 @@ The body's `Size:` line was the other source until ISS-701. Two sources meant a 
 and one the tracker gave scoring alike and meaning differently, and it meant reading a body per
 candidate to find out. [`the-ladder`](the-ladder.md) holds why the field is the one source.
 
+**`--why` is where an unsized lead is told to be sized**, on a line of its own carrying the `forge
+issue --set complexity=` write, and only where the field is empty. The `unset` in the band column
+says a lead was never weighed and cannot say what to do about it; a line on every candidate would
+repeat the column for the sized ones. The word is one constant, `UNSET`, and it lives in
+`plugin/src/rank/weights.mjs` because the overridable `band` table keys a row by it and both the
+scoring and the printing then ask by the same name — a second spelling of it is how the column comes
+to say `unset` while the line below it goes quiet, or how a project's `rank.band.unset` comes to
+weight a row nothing lands in.
+
 ## Where the module reading stops, and why it is not the repository
 
 Relatedness by module is the tree a body names, matched against the trees another body names, one

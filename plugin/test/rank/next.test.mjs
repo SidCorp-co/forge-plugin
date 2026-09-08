@@ -171,6 +171,26 @@ test("the restart line says what a session cannot pick up, not which tree the fi
   assert.match(run.stdout, /restart: its body names a file no open session can pick up/u);
 });
 
+/* The gap a wave has to close before the brief, and the column cannot: `unset` says a lead was never
+   weighed and not what to do about it, so the line carries the write. Sized, it prints nothing —
+   a fourth line per candidate repeating the band column is what this asks to be told apart from. */
+test("--why names the write that sizes a lead the tracker holds no complexity for", async () => {
+  load([issue("ISS-1", { priority: "critical" })]);
+  const run = await ran(["next", "--why"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^ {2}size {3}nobody sized this lead, so the ladder runs it as a feature\./mu);
+  assert.match(run.stdout, /forge issue ISS-1 --set complexity=<xs\|s\|m\|l\|xl> --why "<what you read to size it>"/u,
+    "the write is on the line, so the dispatcher needs no second call to learn the values");
+});
+
+test("a lead the tracker already sized earns no sizing line", async () => {
+  load([issue("ISS-1", { priority: "critical", complexity: "s" })]);
+  const run = await ran(["next", "--why"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.doesNotMatch(run.stdout, /nobody sized this lead/u);
+  assert.match(run.stdout, /band s /u, "and the band column says which rung it claims, as it did before");
+});
+
 test("--json carries the score, its parts and every signal as its own column", async () => {
   load([issue("ISS-1", { priority: "critical", description: "It edits `plugin/hooks/gate.mjs`." })]);
   const run = await ran(["next", "--json"]);

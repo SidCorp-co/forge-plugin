@@ -1,6 +1,8 @@
 /* What the rank looks like on a terminal: one row per candidate, its batch under it, the wave it
    frees, and the issues a filter dropped with the filter that did it. */
 import { servesIn, servesSaid } from "../goals.mjs";
+import { BAND_NAMES } from "../ladder.mjs";
+import { UNSET } from "./weights.mjs";
 
 const KEY = 8;
 const TITLE = 96;
@@ -47,6 +49,12 @@ const signalLine = (candidate) => {
   return `  signal ${said.join(" · ")}`;
 };
 
+/* Only where the field is empty, and its own line rather than a widened band column: a column can carry `unset` and not the write that clears it, and a line on every candidate would repeat the column for the sized ones. docs/cli/next.md carries the rest. */
+const sizeLine = (candidate) =>
+  `  size   nobody sized this lead, so the ladder runs it as a feature. Size it before the brief:`
+  + ` forge issue ${candidate.issueId} --set complexity=<${BAND_NAMES.join("|")}>`
+  + ` --why "<what you read to size it>"`;
+
 /* Its own line, under both: a `Serves:` is neither a weight nor a signal, and this issue moved no weight, so a goal printed inside either line would read as a number the score used.
    Read off the body here rather than on the way in: only `--why` prints it, where the read loop pays for every body it walks past. */
 const servesLine = (candidate) =>
@@ -81,6 +89,7 @@ export const droppedLine = (one) =>
 export const candidateLines = (batch, { why = false } = {}) => [
   headRow(batch.head),
   ...(why ? [whyLine(batch.head), signalLine(batch.head), servesLine(batch.head)] : []),
+  ...(why && batch.head.score.band === UNSET ? [sizeLine(batch.head)] : []),
   ...batch.members.map(memberLine),
   ...batch.aside.map(asideLine),
   ...(hasWave(batch.wave) ? [unblocksLine(batch.wave)] : []),
