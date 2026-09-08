@@ -16,18 +16,29 @@ const QUOTED_COMMAND = /`forge [^`]*`/gu;
 /* And so does a flag on a second usage line: `cloudflare dns -h` prints the three routes that change a record under its own row, which put --content and --ttl in the set the listing takes and then ignores. The first line is the only one this name declares with. */
 const ANOTHER_USAGE = /^[ \t]*Usage:/u;
 
+const FLAG_NAMES = /--[a-z][\w-]*/gu;
+const namesAFlag = (line) => line.replaceAll(QUOTED_COMMAND, " ").search(FLAG_NAMES) >= 0;
+
+/* Held per text: a verb chaining pullRepeated, partition and flags hands each the same usage. */
+const NAMED = new Map();
 export const flagsNamed = (usage) => {
-  const [first, ...rest] = usage.split("\n");
-  const mine = [first, ...rest.filter((line) => !ANOTHER_USAGE.test(line))].join("\n");
-  return [...new Set(mine.replaceAll(QUOTED_COMMAND, " ").match(/--[a-z][\w-]*/gu) ?? [])];
+  if (!NAMED.has(usage)) {
+    const [first, ...rest] = usage.split("\n");
+    const mine = [first, ...rest.filter((line) => !ANOTHER_USAGE.test(line))].join("\n");
+    NAMED.set(usage, [...new Set(mine.replaceAll(QUOTED_COMMAND, " ").match(FLAG_NAMES) ?? [])]);
+  }
+  return NAMED.get(usage);
 };
 
+/** The line a refusal quotes: a usage text is its first line and the rows under it. */
+export const firstLine = (text) => String(text ?? "").split("\n")[0];
+
 /* What a refused caller can type from. A record kind's first line is `forge record verdict <ISS-45> [...]`, whose fields are the rows under it, so printing the first line alone answered a refusal with a line naming no flag at all (ISS-700). A row is indented and names a flag of its own: the paragraph under `record -h` citing `forge advance --owed` is neither. */
-const isRow = (line) => /^\s+\S/u.test(line) && flagsNamed(line).length > 0;
+const isRow = (line) => /^\s+\S/u.test(line) && namesAFlag(line);
 
 const rowsOf = (usage) => {
   const [first, ...rest] = usage.split("\n");
-  if (flagsNamed(first).length) return first;
+  if (namesAFlag(first)) return first;
   return [first, ...rest.filter(isRow)].join("\n");
 };
 

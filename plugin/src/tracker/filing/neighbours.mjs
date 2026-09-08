@@ -2,6 +2,7 @@
 import { mustBeShown, postComment } from "../comments.mjs";
 import { owesCause } from "../issue-shape.mjs";
 import { tried } from "../rpc.mjs";
+import { firstLine } from "../../resolve/flags.mjs";
 
 const TOOL = "forge_memory.search";
 const SOURCE = ["issue"];
@@ -15,7 +16,6 @@ export const FLOOR = 0.7;
 export const FOLD_FLOOR = 0.78;
 
 const hitsOf = (answer) => (Array.isArray(answer?.hits) ? answer.hits : []);
-const first = (text) => String(text ?? "").split("\n")[0];
 
 const ask = async (query, strategy) => {
   const text = String(query ?? "").trim();
@@ -28,7 +28,7 @@ const ask = async (query, strategy) => {
     sourceFilter: SOURCE,
   });
   if (answer?.refused) {
-    return { hits: [], note: `the ${strategy} query could not run: ${first(answer.refused)}` };
+    return { hits: [], note: `the ${strategy} query could not run: ${firstLine(answer.refused)}` };
   }
   return { hits: hitsOf(answer), note: null };
 };

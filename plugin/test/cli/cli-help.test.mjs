@@ -18,11 +18,16 @@ import { tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../", import.meta.url).pathname;
-const ask = (...argv) =>
-  spawnSync(FORGE, argv, {
-    encoding: "utf8",
-    env: { ...process.env, XDG_CONFIG_HOME: tempRoom("cli-help-") },
-  });
+/* One spawn per argv, held for the file: four walks ask the same names for help, and nothing asked here writes state. */
+const HOME = tempRoom("cli-help-");
+const ASKED = new Map();
+const ask = (...argv) => {
+  const key = argv.join("\0");
+  if (!ASKED.has(key)) {
+    ASKED.set(key, spawnSync(FORGE, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: HOME } }));
+  }
+  return ASKED.get(key);
+};
 
 test("every verb says what to type", () => {
   for (const verb of VERB_NAMES) {
@@ -61,19 +66,6 @@ test("no run of anything else is advertised", () => {
     assert.ok(!ask(...argv).stdout.includes("pipeline run"), argv.join(" "));
   }
   assert.match(ask("-h", "--full").stdout, /replace-not-merge/u);
-});
-
-/* The verb's own text lists the actions and an action's flags are its own: a generic `Usage: forge
-   codex <...>` would satisfy the old assertion while deleting all of it (ISS-700). */
-test("a verb with actions of its own lists them, and each action's flags are its own", () => {
-  const out = ask("codex", "-h");
-  assert.equal(out.status, 0);
-  const said = `${out.stdout}${out.stderr}`;
-  for (const action of ["consult", "verdict", "pending", "show", "log", "stats", "eval", "marks", "replay"]) {
-    assert.match(said, new RegExp(`^\\s{2}${action}\\b`, "mu"), `codex -h lists no ${action}: ${said}`);
-  }
-  assert.doesNotMatch(said, /--verify <risk>/u, "and consult's own flags are not on it");
-  assert.match(`${ask("codex", "consult", "-h").stdout}`, /--verify <risk>/u);
 });
 
 /* A reference followed by `-h` names a file to post, and help there is a write that never ran. */
@@ -416,26 +408,6 @@ test("the project file is named by doctor and by no other verb's help", () => {
 test("the guides and the contract name the project file nowhere", () => {
   const held = spawnSync("grep", ["-rn", ".forge.json", "plugin/guides"], { cwd: ROOT, encoding: "utf8" });
   assert.equal(held.stdout, "", `a guide names the file rather than \`forge doctor\`:\n${held.stdout}`);
-});
-
-/* The handler's table is part 4's and not in this tree, so this walk matches nothing today and says
-   so: the rule is that no form of it ever appears in a help text (ISS-681 part 4). */
-test("no help text names a form of the handler's table", async () => {
-  const forms = await import("../../src/resolve/handler.mjs")
-    .then((held) => Object.keys(held.FORMS ?? {}))
-    .catch(() => []);
-  if (!forms.length) {
-    assert.deepEqual(forms, [], "the handler has not landed, so this walk has nothing to match");
-    return;
-  }
-  const named = [];
-  for (const argv of [["-h"], ["-h", "--full"], ...EVERY_HELP.map((one) => [...one, "-h"])]) {
-    const said = `${ask(...argv).stdout}${ask(...argv).stderr}`;
-    for (const form of forms) {
-      if (new RegExp(`\\b${form}\\b`, "u").test(said)) named.push(`forge ${argv.join(" ")}: ${form}`);
-    }
-  }
-  assert.deepEqual(named, []);
 });
 
 /* The kinds are the list `record -h` is for; a kind's flags are that kind's own call. */

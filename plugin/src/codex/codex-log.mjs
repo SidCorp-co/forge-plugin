@@ -538,10 +538,9 @@ export const VERDICT_USAGE = [
 /* The reply is half an eval set. Which findings survived contact with the work is the other half,
    and only the caller knows it — so it is recorded, not inferred. */
 export const verdict = (rest, root) => {
-  const usage = VERDICT_USAGE;
-  const { values: accepted, rest: r1 } = pullRepeated(rest, "--accepted", "codex verdict", { usage });
-  const { values: rejected, rest: r2 } = pullRepeated(r1, "--rejected", "codex verdict", { usage });
-  const { note, of } = flags(r2, "codex verdict", [], { usage });
+  const { values: accepted, rest: r1 } = pullRepeated(rest, "--accepted", "codex verdict", { usage: VERDICT_USAGE });
+  const { values: rejected, rest: r2 } = pullRepeated(r1, "--rejected", "codex verdict", { usage: VERDICT_USAGE });
+  const { note, of } = flags(r2, "codex verdict", [], { usage: VERDICT_USAGE });
   if (!accepted.length && !rejected.length && !note) fail(VERDICT_USAGE);
   /* This repository's last consult that made findings and heard nothing back, not the last answer:
      after a converged recheck the last answer found nothing, and a verdict landed on it twice. */

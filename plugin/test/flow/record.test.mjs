@@ -47,7 +47,7 @@ test("the cap of a capped field is on its row, and a row with no cap read prints
   assert.match(kindHelp("note"), /^ {2}note {9}--section S --user T \[--technical T\]/mu, "no cap read, and the row is untouched");
   assert.match(kindHelp("criteria"), /^ {2}criteria {5}<file\.md> +numbered lines/mu, "the description column holding where it was");
   assert.doesNotMatch(kindHelp("note"), /A number in parentheses/u, "and no notation to explain, so none is printed");
-  assert.doesNotMatch(usage(caps), /\(4[01]\)|A number in parentheses/u,
+  assert.doesNotMatch(usage(), /\(4[01]\)|A number in parentheses/u,
     "and the text that lists the kinds carries no field of theirs, capped or not");
   assert.doesNotMatch(kindHelp("note"), /\(\d+\)|A number in parentheses/u, "and neither where none was read");
 });

@@ -86,7 +86,7 @@ export const VERBS = [
 
 export const VERB_NAMES = VERBS.map(([verb]) => verb);
 
-export const groupOf = (row) => row?.[4]?.group ?? null;
+const groupOf = (row) => row?.[4]?.group ?? null;
 
 /** The offered rows under their heading, in `GROUPS`'s order; an empty group prints no heading. */
 export const grouped = (rows) =>

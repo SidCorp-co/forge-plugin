@@ -9,7 +9,7 @@ import { CLOSES_FROM, SECTIONS, SHAPES, atMinute, blockOf, compoundCriteria, cri
 import { KINDS, USAGE, kindHelp, kindUsage, usage } from "../resolve/record-rows.mjs";
 import { readOrRefuse } from "../codex/codex-read.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
-import { FLAG_WORD, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
+import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../resolve/flags.mjs";
 import { commentPage, cutIn, cutLine, postComment } from "../tracker/comments.mjs";
 import {
   TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadAll,
@@ -590,7 +590,7 @@ const run = async ([kind, reference, ...argv]) => {
   /* `record` answers its own help, so cli.mjs hands the whole tail over and `-h` in the reference
      position was spent as an issue key — the one flag its own refusal could not answer for. */
   if (wantsHelp([reference])) return console.log(kindHelp(kind, await capsOf(), await briefGoals()));
-  if (!reference) refuse(USAGE.split("\n")[0]);
+  if (!reference) refuse(firstLine(USAGE));
   const { next, patch, asked, rest } = pullRun(argv, kind);
   const run = { next, patch };
   if (kind === "note") return recordNote(reference, rest, run);

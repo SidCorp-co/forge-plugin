@@ -6,7 +6,7 @@
    account: which account holds that zone is asked rather than typed. */
 import { configPath, saveConfig, userConfig } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
-import { flags, helpAskedOf, pullRepeated } from "../resolve/flags.mjs";
+import { firstLine, flags, helpAskedOf, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 
 const CF_BASE = "https://api.cloudflare.com/client/v4";
@@ -357,8 +357,8 @@ const dnsRemove = async ([record, ...rest]) => {
 const DNS_USAGE = [
   "Usage: forge cloudflare dns <zone-id> [--type A] [--name www]",
   "The zone's records, and the three routes that change one — each with its own `-h`:",
-  `  ${DNS_ADD_USAGE.split("\n")[0]}`,
-  `  ${DNS_SET_USAGE.split("\n")[0]}`,
+  `  ${firstLine(DNS_ADD_USAGE)}`,
+  `  ${firstLine(DNS_SET_USAGE)}`,
   `  ${DNS_RM_USAGE}`,
 ].join("\n");
 

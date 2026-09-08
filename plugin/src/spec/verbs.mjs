@@ -149,7 +149,7 @@ const printed = (index, clause, ref, given) => {
 
 const read = (argv) => {
   const { positionals, flagArgv } = partition(argv, KNOWN, { verb: "spec", usage: USAGE });
-  const given = { json: false, where: false, ...flags(flagArgv, "spec", KNOWN, { usage: USAGE }) };
+  const given = flags(flagArgv, "spec", KNOWN, { usage: USAGE });
   if (!positionals.length) refuse(`${usageOf("spec")} — an identifier, not a path. One of ${FORMS}.`);
   if (positionals.length > 1) refuse(`spec reads one clause at a time, not \`${positionals.join(" ")}\`.`);
   return { given, token: positionals[0] };

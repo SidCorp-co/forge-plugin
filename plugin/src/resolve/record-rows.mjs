@@ -39,11 +39,10 @@ export const kindRows = (caps) => [
   "  note         --section S --user " + withCap("T", caps.releaseNotes?.halves?.userFacing)
     + " [--technical " + withCap("T", caps.releaseNotes?.halves?.technical)
     + "] | --skip --why W   S: " + SECTIONS.join("|"),
-  `  plan         ${withCap("<file.md>", caps.plan?.self).padEnd(VALUES)}`
-    + "the plan itself, from a file a consult has read",
+  `  plan         ${withCap("<file.md>", caps.plan?.self).padEnd(VALUES)}${KIND_PHRASE.plan}`,
   `  criteria     ${withCap("<file.md>", caps.acceptanceCriteria?.self).padEnd(VALUES)}`
     + "numbered lines, from a file a consult has read",
-  "  report       the latest record of each kind, the latest verdict per criterion, and what is owed",
+  `  report       ${KIND_PHRASE.report}`,
 ];
 
 /* What each kind is for, one phrase each, because `forge record -h` is the list of kinds and a
@@ -118,7 +117,7 @@ const EVIDENCE_BLOCKS = [
 ];
 
 const CITES_EVIDENCE = (kind) =>
-  Boolean(SHAPES[kind]?.fields.some((one) => one.evidence || one.flag === "commit"));
+  Boolean(SHAPES[kind]?.fields.some((one) => one.evidence || one.commit));
 
 const SHARED_FLAGS = [
   "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
@@ -144,11 +143,17 @@ export const usage = () => [
    takes: the route check `forge -h` answers to, and the kind table's own test. */
 export const USAGE = usage();
 
-const rowFor = (kind, caps) => kindRows(caps).find((row) => new RegExp(`^ {2}${kind}\\b`, "u").test(row));
+const rowFor = (kind, caps) => kindRows(caps).find((row) => row.startsWith(`  ${kind} `));
 
-/** What a kind's own `-h` opens with, which is the set its parse refuses a stranger against. */
-export const kindUsage = (kind) =>
-  [usageOf("record").replace("<kind>", kind), rowFor(kind, {}) ?? "", ...SHARED_FLAGS].join("\n");
+/** What a kind's own `-h` opens with, which is the set its parse refuses a stranger against. Built
+ *  once per kind: a record's parse asks for it at each of its three steps. */
+const KIND_USAGE = new Map();
+export const kindUsage = (kind) => {
+  if (!KIND_USAGE.has(kind)) {
+    KIND_USAGE.set(kind, [usageOf("record").replace("<kind>", kind), rowFor(kind, {}) ?? "", ...SHARED_FLAGS].join("\n"));
+  }
+  return KIND_USAGE.get(kind);
+};
 
 export const kindHelp = (kind, caps = {}, goals = null) => {
   const row = rowFor(kind, caps) ?? `  ${kind}`;

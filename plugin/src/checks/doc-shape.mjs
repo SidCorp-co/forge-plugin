@@ -17,38 +17,38 @@ const SOURCE_FORM = new RegExp(String.raw`forge ([a-z]+)((?:(?:[ \t]+|${JOIN})${
 const JOINED = new RegExp(JOIN, "gu");
 const QUOTED = /\\?"[^"\n]*\\?"|'[^'\n]*'/gu;
 
-/* Help split per sub-verb and per kind puts a flag one level in from the verb — `--criterion` is
-   verdict's, not record's. The first bare word only: past it, a bare word is a value (ISS-700). */
-const SUB_WORD = /^[a-z][a-z-]+$/u;
+/* Help split per sub-verb and per kind puts a flag one level in from the verb — `--criterion` is verdict's, not record's. The first bare word only: past it, a bare
+   word is a value (ISS-700); one space past a flag, it is a value that flag takes, since a usage line writes what it accepts verbatim and what the caller fills as `<word>` (ISS-118). */
+const BARE_WORD = /^[a-z][a-z-]+$/u;
 const rested = (verb, rest) => {
   const first = rest.trim().split(/\s+/u)[0] ?? "";
-  return { verb, sub: SUB_WORD.test(first) ? first : null, rest };
+  return { verb, sub: BARE_WORD.test(first) ? first : null, rest };
 };
 
-export const routeClaims = (text) => {
-  /* The join goes first, or its own quote is read as one of theirs; a quoted value is data. */
-  const calls = [...String(text).matchAll(SOURCE_FORM)]
-    .map(([, verb, rest]) => rested(verb, (rest ?? "").replace(JOINED, " ").replace(QUOTED, " ")));
-  return {
-    calls,
-    flags: calls.flatMap(({ verb, sub, rest }) => flagsIn(verb, sub, rest)),
-    hows: calls.flatMap(({ rest }) => [...rest.matchAll(/--how\s+([a-z][\w-]*)/gu)].map((one) => one[1])),
-    envs: [],
-  };
-};
+const HOW = /--how\s+([a-z][\w-]*)/gu;
 
 const flagsIn = (verb, sub, rest) =>
   [...rest.matchAll(FLAG_VALUE)].map(([, flag, value]) => ({ verb, sub, flag, value: value ?? null }));
 
-export const docClaims = (text) => {
-  const calls = [...text.matchAll(FORGE_CALL)].map(([, verb, rest]) => rested(verb, rest ?? ""));
-  return {
-    calls,
-    flags: calls.flatMap(({ verb, sub, rest }) => flagsIn(verb, sub, rest)),
-    hows: calls.flatMap(({ rest }) => [...rest.matchAll(/--how\s+([a-z][\w-]*)/gu)].map((one) => one[1])),
-    envs: [...new Set(text.match(ENV_VAR) ?? [])],
-  };
-};
+/* The two walks differ in how a call is found and in whether an environment variable is a claim. */
+const claimsFrom = (calls, envs) => ({
+  calls,
+  flags: calls.flatMap(({ verb, sub, rest }) => flagsIn(verb, sub, rest)),
+  hows: calls.flatMap(({ rest }) => [...rest.matchAll(HOW)].map((one) => one[1])),
+  envs,
+});
+
+/* The join goes first, or its own quote is read as one of theirs; a quoted value is data. */
+export const routeClaims = (text) => claimsFrom(
+  [...String(text).matchAll(SOURCE_FORM)]
+    .map(([, verb, rest]) => rested(verb, (rest ?? "").replace(JOINED, " ").replace(QUOTED, " "))),
+  [],
+);
+
+export const docClaims = (text) => claimsFrom(
+  [...text.matchAll(FORGE_CALL)].map(([, verb, rest]) => rested(verb, rest ?? "")),
+  [...new Set(text.match(ENV_VAR) ?? [])],
+);
 
 /* One document records what runs typed rather than telling a reader to type it, so a command right on the day it was written stays right and a rewrite falsifies the record. Three doc checks exempt it and each has its own predicate; the path itself is spelled here alone (ISS-616). */
 export const JOURNAL = "docs/issue-flow-dry-runs.md";
@@ -64,10 +64,6 @@ export const routeProblems = (text, held) => problemsIn(routeClaims(text), { ...
 const proposedIn = (text) =>
   [...(PROPOSAL.exec(text)?.[1] ?? "").matchAll(/`forge ([a-z]+)`/gu)].map((one) => one[1]);
 
-/* A bare lowercase word one space past a flag is a value that flag takes, because a usage line
-   writes what it accepts verbatim and what the caller fills as `<word>` (ISS-118). */
-const NAMES_A_VALUE = /^[a-z][a-z-]+$/u;
-
 const valuesOffered = (usage, flag) => {
   const offered = new Set();
   let spelled = false;
@@ -75,7 +71,7 @@ const valuesOffered = (usage, flag) => {
     if (name !== flag) continue;
     const written = (value ?? "").replaceAll(/[[\]]/gu, "").replace(/\.{3}$/u, "");
     const parts = written.split("|");
-    if (written === "" || !parts.every((one) => NAMES_A_VALUE.test(one))) return null;
+    if (written === "" || !parts.every((one) => BARE_WORD.test(one))) return null;
     spelled = true;
     for (const one of parts) offered.add(one);
   }
@@ -89,11 +85,16 @@ const problemsIn = ({ calls, flags, hows, envs, proposed = [] }, { verbs, usageO
   for (const { verb } of calls) {
     if (!verbs.includes(verb) && !proposed.includes(verb)) out.push(`\`forge ${verb}\` is no verb`);
   }
+  /* Whole names, read once per surface: `--den` is in `--deny` by substring, and a truncated flag is the drift. */
+  const named = new Map();
+  const namedIn = (usage) => {
+    if (!named.has(usage)) named.set(usage, new Set(usage.match(/--[\w-]+/gu) ?? []));
+    return named.get(usage);
+  };
   for (const { verb, sub, flag, value } of flags.filter((one) => verbs.includes(one.verb))) {
     const usage = usageOf(verb, sub);
     const under = [verb, sub].filter(Boolean).join(" ");
-    /* Named with its sub-verb, which is the surface it was held to, and held to a boundary: `--den` is in `--deny` by substring, and a truncated flag is the drift. */
-    const has = new RegExp(`${flag}(?![\\w-])`, "u").test(usage);
+    const has = namedIn(usage).has(flag);
     if ((strict || usage.includes("--")) && !has) {
       out.push(`\`forge ${under} ${flag}\` is in no usage line`);
       continue;

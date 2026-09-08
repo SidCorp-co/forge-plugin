@@ -145,8 +145,7 @@ export const kindRefusal = (given) =>
   `${didYouMean("kind", given, KIND_NAMES)}\nIt names no shape to read the body against, and`
   + ` ${KIND_ROUTE}.`;
 
-/** A filing that named none at all: prose decides neither the sections nor the field, the same
- *  headings carrying a bug and a feature. */
+/** A filing that named none at all: prose decides neither the sections nor the field, the same headings carrying a bug and a feature. */
 export const kindNeeded = () =>
   `A filing needs --kind. It decides which sections the body is read against and it is what the`
   + ` tracker's own field for a kind carries, so a filing without one is read against a guess and`
@@ -203,13 +202,6 @@ export const filedAs = (answer, said) => {
   const key = answer?.issueId ?? answer?.documentId ?? null;
   return key ? `${key} is filed, ${said}.` : `Filed, ${said}; the reply named no key to say it of.`;
 };
-
-export const PRIORITY_HELP = [
-  `--priority takes the tracker's own set, read at the call, and absent it a filing is ${UNRANKED}.`,
-  `The reply says which of the two it was. \`${UNRANKED}\` is the tracker's own value for nobody`,
-  "having judged, so an unranked filing is not a `low` one and is not read as one: it sorts to the",
-  "bottom of the browse verb, and what is left there is what nobody has weighed yet.",
-].join("\n");
 
 export const inFlowWords = (record) => {
   if (!record || typeof record !== "object" || Array.isArray(record)) return record;
