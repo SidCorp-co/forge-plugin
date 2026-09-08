@@ -1,6 +1,6 @@
 /* An issue's comments, and the delivery owed a session not shown them: the gate refusing a write and
    the verb making it must agree. One surface of the ledger, docs/cli/the-shown-ledger.md. */
-import { KEPT, credit, creditedTo } from "../shown/journal.mjs";
+import { KEPT, credit, creditedTo, creditsFor } from "../shown/journal.mjs";
 import { sessionKey } from "../shown/ledger.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { rowsOf } from "./issues.mjs";
@@ -14,7 +14,7 @@ const listPage = (documentId, cursor, soft) => scoped(
   soft,
 );
 
-const MOST_REQUESTS = 100;
+const MOST_REQUESTS = 400;
 
 /* An id is a comment's whole identity, a body being fixed once posted, so the id is the item. */
 const idOf = (comment) => comment?.documentId ?? comment?.id ?? null;
@@ -22,8 +22,9 @@ const idOf = (comment) => comment?.documentId ?? comment?.id ?? null;
 /** The thread whole, one page per cursor the tracker names — the only window the route takes, so
  *  ISS-131's limit stays one nobody sends. `hasMore` is the tracker's answer and this answers to it:
  *  a walk that ended early leaves it true, so no prefix reads as a thread, and `total` is carried
- *  for the sentence and decides nothing. The budget is round trips and never rows (ISS-697).
- *  Overlapping pages are one row each, so a page that is all repeats ends the read as a spent cursor does. */
+ *  for the sentence and decides nothing. Overlapping pages are one row each. `MOST_REQUESTS` guards
+ *  a tracker naming a fresh cursor for ever, so it sits far past any thread a project could have: a
+ *  budget a real thread reaches is this bug again, and two would be two answers (ISS-697). */
 export const commentPage = async (documentId, soft = false) => {
   const comments = [];
   const held = new Set();
@@ -35,22 +36,24 @@ export const commentPage = async (documentId, soft = false) => {
     return true;
   };
   const spent = new Set();
-  let page = await listPage(documentId, null, soft);
-  if (page?.refused) return page;
   let total = null;
-  for (let asked = 1; ; asked += 1) {
+  let more = null;
+  let cursor = null;
+  for (let asked = 0; asked < MOST_REQUESTS; asked += 1) {
+    const page = await listPage(documentId, cursor, soft);
+    if (page?.refused) {
+      if (!asked) return page;
+      break;
+    }
     const rows = rowsOf(page, "comments").filter(fresh);
     comments.push(...rows);
     total = page?.total ?? total;
-    const read = { comments, returned: comments.length, total };
-    if (page?.hasMore !== true) return { ...read, hasMore: page?.hasMore ?? null };
-    const cursor = page?.nextCursor ?? null;
-    const on = rows.length && cursor && !spent.has(cursor) && asked < MOST_REQUESTS;
-    if (!on) return { ...read, hasMore: true };
+    more = page?.hasMore ?? null;
+    cursor = page?.nextCursor ?? null;
+    if (more !== true || !rows.length || !cursor || spent.has(cursor)) break;
     spent.add(cursor);
-    page = await listPage(documentId, cursor, soft);
-    if (page?.refused) return { ...read, hasMore: true };
   }
+  return { comments, returned: comments.length, total, hasMore: more };
 };
 
 export const cutLine = ({ returned = 0, total = null } = {}) =>
@@ -66,14 +69,11 @@ const countLine = ({ returned = 0, total = null } = {}) =>
 /** The sentence a page owes its reader unless the envelope called it whole: silence is not whole. */
 export const cutIn = (page) => (page?.hasMore === false ? null : cutLine(page));
 
-/** What a read owes beside its rows: `hasMore` decides whether it holds a write, and a count short
- *  of the envelope's `total` is said and holds nothing, that column's meaning being one tracker's. */
-export const shortOf = (page) => {
-  const cut = cutIn(page);
-  if (cut) return { said: cut, holds: true };
+/** Called whole yet counted above its rows: said, never held or sized on, `total` being one tracker's. */
+export const countedShort = (page) => {
+  if (page?.hasMore !== false) return null;
   const total = page?.total ?? null;
-  const read = page?.comments?.length ?? 0;
-  return total !== null && read < total ? { said: countLine(page), holds: false } : null;
+  return total !== null && (page?.comments?.length ?? 0) < total ? countLine(page) : null;
 };
 
 export const noteShown = (session, documentId, comments) =>
@@ -119,10 +119,7 @@ export const delivery = (owed) => [
 ].join("\n\n");
 
 /* One reading of "not yet delivered", so the refusing gate and the crediting one cannot drift. */
-const unshownIn = (session, documentId, comments) => {
-  const shown = creditedTo(session, documentId);
-  return comments.filter((one) => !shown.has(idOf(one)));
-};
+const unshownIn = (shown, comments) => comments.filter((one) => !shown.has(idOf(one)));
 
 /* Shed as a comment is, one refusal again the cost, but on a surface of its own: a surface keeps its
    last `KEPT.items`, and a thread of exactly that many would evict a comment for this and this for it.
@@ -146,24 +143,31 @@ const shortSaid = (short) => [
   ...short.map((one) => `${one.ref}: ${one.said}`),
 ].join("\n\n");
 
+/* What a read owes beside its rows, under the mark it is credited on; past the credits it is never delivered. */
+const shortage = (page) => {
+  if (overKeep(page)) return { said: keepLine(page), holds: true, mark: OVER_KEEP };
+  const cut = cutIn(page);
+  if (cut) return { said: cut, holds: true, mark: SHORT_READ };
+  const counted = countedShort(page);
+  return counted ? { said: counted, holds: false, mark: SHORT_READ } : null;
+};
+
+const readOf = async (shown, { ref, documentId }) => {
+  const page = await commentPage(documentId);
+  const owes = shortage(page);
+  const unshown = owes?.mark === OVER_KEEP ? [] : unshownIn(shown(documentId), page.comments);
+  return { ref, documentId, page, unshown, owes: owes && { ...owes, told: shown(threadOn(documentId)).has(owes.mark) } };
+};
+
 export const unshownFor = async (targets, session) => {
-  const owed = [];
-  const none = [];
-  const short = [];
-  for (const { ref, documentId } of targets) {
-    const page = await commentPage(documentId);
-    if (!page.comments.length) none.push(ref);
-    const told = (mark) => creditedTo(session, threadOn(documentId)).has(mark);
-    if (overKeep(page)) {
-      short.push({ ref, documentId, said: keepLine(page), holds: true, mark: OVER_KEEP, told: told(OVER_KEEP) });
-      continue;
-    }
-    const owes = shortOf(page);
-    if (owes) short.push({ ref, documentId, ...owes, mark: SHORT_READ, told: told(SHORT_READ) });
-    const unshown = unshownIn(session, documentId, page.comments);
-    if (unshown.length) owed.push({ ref, documentId, ...page, unshown });
-  }
-  return { none, owed, short };
+  const shown = creditsFor(session);
+  const read = await Promise.all(targets.map((one) => readOf(shown, one)));
+  return {
+    none: read.filter(({ page }) => !page.comments.length).map(({ ref }) => ref),
+    owed: read.filter(({ unshown }) => unshown.length)
+      .map(({ ref, documentId, page, unshown }) => ({ ref, documentId, ...page, unshown })),
+    short: read.filter(({ owes }) => owes).map(({ ref, documentId, owes }) => ({ ref, documentId, ...owes })),
+  };
 };
 
 /* Recorded once the text exists, so a list that fails halfway credits nothing it never delivered. */
@@ -188,7 +192,7 @@ export const creditCaused = async (targets, ev = null) => {
       console.error(`${ref}: ${keepLine(page)}`);
       continue;
     }
-    const caused = unshownIn(session, documentId, page.comments);
+    const caused = unshownIn(creditedTo(session, documentId), page.comments);
     if (!caused.length) continue;
     console.error(`${ref}: the page read after this write held ${caused.length} comment(s) this `
       + "session had not been shown, quoted whole below and credited as read, "

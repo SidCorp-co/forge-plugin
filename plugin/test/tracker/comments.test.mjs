@@ -437,8 +437,29 @@ test("a tracker naming a fresh cursor for ever is stopped by the request budget"
   const held = await commentPage(ISSUE);
   feed = null;
   assert.equal(held.hasMore, true, "a budget spent is a short read like any other");
-  assert.equal(urls.length, 100, "and the budget is what bounds it");
-  assert.equal(held.returned, 100);
+  assert.equal(urls.length, 400, "and the budget is what bounds it");
+  assert.equal(held.returned, 400);
+});
+
+/* The budget guards a runaway cursor and must not be near a thread a project could have: at the
+   fifty rows this route serves, twenty-one pages is a thousand comments, and the record on the last
+   page is exactly what this issue exists to reach. */
+test("a thread of twenty-one pages is walked to its end, last page and all", async () => {
+  const pages = 21;
+  /* The stub counts the requests it has served, so the first page arrives as one and the last as 21. */
+  shortRead((cursor, asked) => ({
+    items: [served(one(`page-${asked}`, asked === pages ? "the record on the last page" : "a row"))],
+    returned: 1,
+    total: pages,
+    hasMore: asked < pages,
+    ...(asked < pages ? { nextCursor: `on-${asked}` } : {}),
+  }));
+  const held = await commentPage(ISSUE);
+  feed = null;
+  assert.equal(held.hasMore, false, "the tracker called it whole and the walk got there");
+  assert.equal(held.returned, pages, "every page's row is held");
+  assert.equal(held.comments.at(-1).documentId, `page-${pages}`, "the last page's row among them");
+  assert.equal(cutIn(held), null, "so no reader above it is told this is a prefix");
 });
 
 test("a page with no rows behind a page that reported more ends the read short", async () => {

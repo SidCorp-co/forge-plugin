@@ -14,10 +14,10 @@ const READ_THREAD = (documentId) => "Read it with \`forge call forge_comments.li
   + "every comment on it; pass the `nextCursor` it names back in `filters.cursor` until `hasMore` "
   + "is false.";
 
-/* Anything `tried` is not soft on would exit 1 on a write that landed, so nothing raises past here. */
-const asked = async (name, args) => {
+/* A read that raises would exit 1 on a write that landed, so a refusal is handed back instead. */
+const asked = async (read) => {
   try {
-    return await tried(name, args);
+    return await read();
   } catch (error) {
     return { refused: String(error?.message ?? error) };
   }
@@ -30,13 +30,13 @@ const plain = (answer) =>
   Boolean(answer) && typeof answer === "object" && !Array.isArray(answer) && !answer.refused;
 
 const verified = (line) => ({ line });
-const unverified = (line, read = null) => ({ line: [line, AGAIN, read].filter(Boolean).join(" ") });
+const unverified = (read = null) => (line) => ({ line: [line, AGAIN, read].filter(Boolean).join(" ") });
 
 export const idOf = (answer) => (plain(answer) ? (answer.documentId ?? null) : null);
 
 const noId = (what, answer) => {
   const key = plain(answer) ? (answer.issueId ?? null) : null;
-  return unverified(`The tracker answered this ${what} with no id${key ? `, only the key ${key}` : ""}, `
+  return unverified()(`The tracker answered this ${what} with no id${key ? `, only the key ${key}` : ""}, `
     + "so nothing was read back and nothing here can say what it wrote.");
 };
 
@@ -44,44 +44,35 @@ const noId = (what, answer) => {
 export const issueLanded = async (answer) => {
   const documentId = idOf(answer);
   if (!documentId) return noId("filing", answer);
-  const back = await asked("forge_issues", { action: "get", documentId });
+  const back = await asked(() => tried("forge_issues", { action: "get", documentId }));
   const said = `The create was answered with ${documentId}`;
-  const read = READ_ISSUE(documentId);
-  if (back?.refused) return unverified(`${said} and the read-back could not run: ${oneLine(back.refused)}.`, read);
-  if (!plain(back)) return unverified(`${said} and the read-back answered with no record to read.`, read);
+  const unread = unverified(READ_ISSUE(documentId));
+  if (back?.refused) return unread(`${said} and the read-back could not run: ${oneLine(back.refused)}.`);
+  if (!plain(back)) return unread(`${said} and the read-back answered with no record to read.`);
   if (back.documentId === documentId) {
     return verified(`${back.issueId ?? documentId} is filed at ${documentId}, read back from the tracker.`);
   }
   if (back.documentId) {
-    return unverified(`${said} and the read-back answered about something else, so the filing is unverified.`, read);
+    return unread(`${said} and the read-back answered about something else, so the filing is unverified.`);
   }
-  return unverified(`${said} and a read of that id came back with no issue.`, read);
-};
-
-/* Whole rather than a first page, and refusals handed back rather than exiting as all of this does. */
-const threadBack = async (documentId) => {
-  try {
-    return await commentPage(documentId, true);
-  } catch (error) {
-    return { refused: String(error?.message ?? error) };
-  }
+  return unread(`${said} and a read of that id came back with no issue.`);
 };
 
 /** Whole means `hasMore` false and nothing weaker, a page asserting nothing being no assertion. */
 export const commentLanded = async (documentId, answer, ref) => {
   const posted = idOf(answer);
   if (!posted) return noId("comment", answer);
-  const back = await threadBack(documentId);
+  const back = await asked(() => commentPage(documentId, true));
   const said = `Comment ${posted} was answered for ${ref}`;
-  const read = READ_THREAD(documentId);
-  if (back?.refused) return unverified(`${said} and the read-back could not run: ${oneLine(back.refused)}.`, read);
+  const unread = unverified(READ_THREAD(documentId));
+  if (back?.refused) return unread(`${said} and the read-back could not run: ${oneLine(back.refused)}.`);
   if ((back?.comments ?? []).some((one) => one?.documentId === posted)) {
     return verified(`Comment ${posted} is posted on ${ref}, read back from the tracker.`);
   }
   if (cutIn(back)) {
-    return unverified(`${said} and the thread could not be read to its end, so the write is unverified.`, read);
+    return unread(`${said} and the thread could not be read to its end, so the write is unverified.`);
   }
-  return unverified(`${said} and the thread of ${ref}, which the tracker called whole, does not hold it.`, read);
+  return unread(`${said} and the thread of ${ref}, which the tracker called whole, does not hold it.`);
 };
 
 /** On stdout on every outcome, so the last line names the id even where the read-back failed. */

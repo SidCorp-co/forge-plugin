@@ -4,7 +4,7 @@
 import { firstLine, flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { commentPage, creditAfter, shortOf } from "../tracker/comments.mjs";
+import { commentPage, countedShort, creditAfter, cutIn } from "../tracker/comments.mjs";
 import { write } from "../tracker/rpc.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
@@ -55,11 +55,10 @@ const viewOf = async (reference, given) => {
     given.owed ? deployFor(body.plan, body.status) : null,
     policyFor(body.plan, body.status),
   ]);
-  const short = shortOf(page);
   /* Off `cut`, which sizes the issue: a count nobody here can account for is said and sizes nothing. */
   return {
-    ...viewFrom(documentId, body, page.comments, short?.holds ? short.said : null, release, cited, deploy),
-    counted: short && !short.holds ? short.said : null,
+    ...viewFrom(documentId, body, page.comments, cutIn(page), release, cited, deploy),
+    counted: countedShort(page),
   };
 };
 

@@ -84,6 +84,11 @@ const creditsOf = (session, surface) => folded()[session]?.surfaces?.[surface] ?
 
 export const creditedTo = (session, surface) => new Set(creditsOf(session, surface));
 
+export const creditsFor = (session) => {
+  const surfaces = folded()[session]?.surfaces ?? {};
+  return (surface) => new Set(surfaces[surface] ?? []);
+};
+
 /** The newest item on a surface, or null: the list is kept in the order it was credited. */
 export const lastCredited = (session, surface) => creditsOf(session, surface).at(-1) ?? null;
 
