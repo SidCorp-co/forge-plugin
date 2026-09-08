@@ -209,10 +209,11 @@ test("an install of an older release never overwrites the newer installed copy",
   assert.notEqual(remote(at), base, `the release landed — it is the install that is refused:\n${said}`);
   assert.equal(marks().length, 0, `and nothing is marked past a half-done install:\n${said}`);
   assert.equal(landing().state, "promoted", `the checkpoint says where it stopped:\n${said}`);
-  /* An install entered and not finished is the machine's, not this branch's: the one cache every
-     release goes into is what the refusal is about, so the branch after it waits for a person. */
+  /* An install entered and not finished is the machine's, not this branch's, so nothing runs past
+     the refusal — and these two are on one candidate, so the branch beside it waits where it does. */
   assert.match(said, /Read it and put back what it names before any other branch lands/u, said);
-  assert.equal(landing(NEXT_UUID).state, "ready", `the next branch was not landed over it:\n${said}`);
+  assert.equal(landing(NEXT_UUID).state, "promoted", `the branch beside it stops there too:\n${said}`);
+  assert.equal(marks(NEXT_UUID).length, 0, `and nothing of it is marked:\n${said}`);
 });
 
 test("a checkpoint whose turn is not the lander's is refused before any write", async () => {

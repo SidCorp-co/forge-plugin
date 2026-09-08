@@ -3,7 +3,7 @@
    state reachable, every state one turn — and each refusal is read for the state it names rather
    than for its exit code (ISS-673). */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 import { tempHome } from "../../fixtures.mjs";
@@ -211,19 +211,27 @@ test("a void gives up every field the candidate it built was the evidence for", 
    Both read the source for `state:` and the state, a convention over the object handed to
    `landingSaved` rather than proof the line runs, so the mutation that proves the second fires is the
    write removed with the refusals that name the state left standing. */
-const WRITERS = { claim: "plugin/src/flow/claim.mjs", lander: "tools/run/land-ready.mjs" };
+const WRITERS = {
+  claim: ["plugin/src/flow/claim.mjs"],
+  /* The verb and every part of it, read off the directory rather than listed: a state written in a
+     part this table forgot to name would read exactly like a state nobody writes. */
+  lander: ["tools/run/land-ready.mjs",
+    ...readdirSync(new URL("../../../../tools/run/land-ready/", import.meta.url))
+      .map((one) => `tools/run/land-ready/${one}`)],
+};
 const ROOT = new URL("../../../../", import.meta.url);
-const source = Object.fromEntries(Object.entries(WRITERS)
-  .map(([who, path]) => [who, readFileSync(new URL(path, ROOT), "utf8")]));
+const source = Object.fromEntries(Object.entries(WRITERS).map(([who, paths]) =>
+  [who, paths.map((path) => readFileSync(new URL(path, ROOT), "utf8")).join("\n")]));
+const named = (who) => WRITERS[who].join(", ");
 const WRITTEN = (state) =>
   new RegExp(`state:\\s*(?:"${state}"|LANDING_${state.toUpperCase().replaceAll("-", "_")}\\b)`, "u");
 const writes = (who, state) => WRITTEN(state).test(source[who]);
 
-test("every state some step is meant to write is written in the source of the two files that write one", () => {
+test("every state some step is meant to write is written in the source of the files that write one", () => {
   for (const state of Object.keys(LANDING_STATES)) {
     assert.ok(writes("claim", state) || writes("lander", state),
-      `neither ${WRITERS.claim} nor ${WRITERS.lander} writes \`state: ${state}\`, so the table offers `
-      + `a state no step writes and a landing reaching the row above it parks there for good`);
+      `neither ${named("claim")} nor ${named("lander")} writes \`state: ${state}\`, so the table `
+      + `offers a state no step writes and a landing reaching the row above it parks there for good`);
   }
 });
 
@@ -232,7 +240,7 @@ test("a state whose turn is a run's own has its successor written by that run's 
     if (row.turn !== "builder" && row.turn !== "qa") continue;
     for (const one of row.next) {
       assert.ok(writes("claim", one),
-        `\`${state}\` is a ${row.turn}'s turn and ${WRITERS.claim} writes no \`state: ${one}\`, so the `
+        `\`${state}\` is a ${row.turn}'s turn and ${named("claim")} writes no \`state: ${one}\`, so the `
         + `run the state names can take the turn and has nothing to run: the landing parks there for `
         + `good. A route out is a flag of that verb, as \`--judged\` is out of \`qa-owed\`, and a `
         + `write spelled other than \`state: <the state>\` is one this reading cannot see`);

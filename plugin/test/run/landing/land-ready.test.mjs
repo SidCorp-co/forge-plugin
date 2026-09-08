@@ -185,18 +185,16 @@ test("a branch that conflicts with the pinned base is parked with the list, and 
 
 /* ISS-730: the note is fitted to the tracker's cap, and the one shape it will not fit is a change
    whose paths the plan names none of. That refusal arrives after the push and the install, so what
-   this watches is the route it takes: this step's own stop, the checkpoint still `installed` for the
-   run that comes back, and the branch after it landing all the same. */
-test("a note the composer cannot fit stops the mark, keeps the checkpoint and lands the branch after it", async () => {
-  const { at, work, head, next, base } = world({ base: "other", second: true });
+   this watches is the route it takes: this step's own stop, and the checkpoint still `installed` for
+   the run that comes back. */
+const UNNAMED = Array.from({ length: 119 },
+  (_, one) => `plugin/src/flow/record/case-${String(one).padStart(3, "0")}.mjs`);
+
+test("a note the composer cannot fit stops the mark as this step's own stop and keeps the checkpoint", async () => {
+  const { at, work, head, base } = world({ base: "other" });
   const pinned = sha(work, BASE);
-  const cases = Array.from({ length: 119 },
-    (_, one) => `plugin/src/flow/record/case-${String(one).padStart(3, "0")}.mjs`);
-  seeded({
-    landing: ready(head, base, { files: cases }),
-    next: ready(next, base, { branch: NEXT_BRANCH, files: [NEXT_OWNED] }),
-  });
-  const said = await ran([KEY, NEXT_KEY], work);
+  seeded({ landing: ready(head, base, { files: UNNAMED }) });
+  const said = await ran([KEY], work);
   assert.match(said, /the plan and its corrections do not name/u, said);
   assert.match(said, new RegExp(`forge record correction ${KEY} --moved`, "u"),
     `the write that clears it:\n${said}`);
@@ -204,8 +202,29 @@ test("a note the composer cannot fit stops the mark, keeps the checkpoint and la
     `the step's own stop and not a thrown error:\n${said}`);
   assert.equal(landing().state, "installed", `the checkpoint waits at the mark:\n${said}`);
   assert.equal(marks().length, 0, `and nothing was marked:\n${said}`);
-  assert.equal(landing(NEXT_UUID).state, "marked", `the branch after it is somebody else's release:\n${said}`);
-  assert.notEqual(remote(at), pinned, `which landed:\n${said}`);
+  assert.notEqual(remote(at), pinned, `the release landed all the same:\n${said}`);
+  assert.deepEqual(strayWrites(), [], `and the stop is inside the landing's own writes:\n${said}`);
+});
+
+/* And beside another branch on the same candidate the refusal is that member's alone: after the push
+   every member holds the release that went out, so what a stop leaves is what that one is owed and
+   no reason to keep the mark and the statuses from the branch beside it (ISS-722). */
+test("a note that will not fit is one member's own, and the branch beside it is marked all the same", async () => {
+  const { at, work, head, next, base } = world({ base: "other", second: true });
+  const pinned = sha(work, BASE);
+  seeded({
+    landing: ready(head, base, { files: UNNAMED }),
+    next: ready(next, base, { branch: NEXT_BRANCH, files: [NEXT_OWNED] }),
+  });
+  const said = await ran([KEY, NEXT_KEY], work);
+  assert.match(said, new RegExp(`${KEY}: the note is \\d+ code points over`, "u"),
+    `the refusal is that member's, named:\n${said}`);
+  assert.match(said, /the plan and its corrections do not name/u, said);
+  assert.equal(landing().state, "installed", `whose checkpoint waits at the mark:\n${said}`);
+  assert.equal(marks().length, 0, `and nothing of it was marked:\n${said}`);
+  assert.equal(landing(NEXT_UUID).state, "marked", `the branch beside it is marked:\n${said}`);
+  assert.equal(marks(NEXT_UUID).length, 1, said);
+  assert.notEqual(remote(at), pinned, `and the release the two share landed:\n${said}`);
   assert.deepEqual(strayWrites(), [], `and the stop is inside the landing's own writes:\n${said}`);
 });
 

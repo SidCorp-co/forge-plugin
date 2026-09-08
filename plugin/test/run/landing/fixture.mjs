@@ -14,11 +14,16 @@ export const KEY = "ISS-673";
 export const UUID = "landing-uuid";
 export const NEXT_KEY = "ISS-674";
 export const NEXT_UUID = "landing-uuid-two";
+export const THIRD_KEY = "ISS-675";
+export const THIRD_UUID = "landing-uuid-three";
 export const BASE = "master";
 export const BRANCH = "iss-673";
 export const NEXT_BRANCH = "iss-674";
+export const THIRD_BRANCH = "iss-675";
 /** The second branch's own file, so the two land without meeting. */
 export const NEXT_OWNED = join("docs", "two.md");
+/** And the third's, or `shared` to have it write a line of the first branch's file instead. */
+export const THIRD_OWNED = join("docs", "three.md");
 export const MARKET = "scratch-local";
 export const PLUGIN = "scratch";
 /** The change's own file, ten lines, so a base commit can move a line the branch did not touch. */
@@ -57,6 +62,29 @@ export const probeOnce = (tree) => {
   spawnSync(process.execPath, [join(tree, "tools", "probe.mjs"), tree, PROBE_SAID], { encoding: "utf8" });
   return probeSaid().at(-1);
 };
+
+/** A gate that counts its runs, and — where a case asks for it — is red only in a tree holding two
+ *  of the changes: what no reading of the paths could have told the landing and it has to run to
+ *  find out. One line per run, `red` or `green`, from whichever tree the landing gated. */
+const GATE_RUNS = join(ROOM, "gate-runs.txt");
+const TOGETHER = join(ROOM, "red-together");
+export const gateRuns = () =>
+  (existsSync(GATE_RUNS) ? readFileSync(GATE_RUNS, "utf8") : "").split("\n").filter(Boolean);
+export const forgetGateRuns = () => {
+  rmSync(GATE_RUNS, { force: true });
+  rmSync(TOGETHER, { force: true });
+};
+export const redTogether = () => writeFileSync(TOGETHER, "the pair is refused\n");
+const PAIRED = [
+  'import { appendFileSync, existsSync, readFileSync } from "node:fs";',
+  'const held = (path) => (existsSync(path) ? readFileSync(path, "utf8") : "");',
+  `const one = held(${JSON.stringify(OWNED)}).includes("as the change wrote it");`,
+  `const two = held(${JSON.stringify(NEXT_OWNED)}).includes("the second change");`,
+  `const red = one && two && existsSync(${JSON.stringify(TOGETHER)});`,
+  `appendFileSync(${JSON.stringify(GATE_RUNS)}, (red ? "red" : "green") + "\\n");`,
+  'if (red) { process.stderr.write("these two changes cannot both be here\\n"); process.exit(1); }',
+].join("\n");
+export const PAIRED_GATE = "node tools/paired.mjs";
 
 const CLAUDE = `#!/usr/bin/env node
 import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -169,11 +197,16 @@ const row = (documentId, issueId, status, landing, lease, owned) => ({
   sessionContext: { ...(landing ? { landing } : {}), ...(lease ? { lease } : {}) },
 });
 
-/** The issues a case runs against, their checkpoints, and nothing recorded against either. */
-export const seeded = ({ landing = null, status = "in_progress", lease = null, next = null } = {}) => {
+/** The issues a case runs against, their checkpoints, and nothing recorded against any of them. */
+export const seeded = ({
+  landing = null, status = "in_progress", lease = null, next = null, last = null,
+} = {}) => {
   state.issues = [row(UUID, KEY, status, landing, lease, OWNED)];
   if (next) state.issues.push(row(NEXT_UUID, NEXT_KEY, status, next, null, NEXT_OWNED));
-  state.comments = { [UUID]: [], [NEXT_UUID]: [] };
+  /* Off the checkpoint, because `shared` puts the third branch in the first one's file and the mark
+     is refused where the plan names none of the paths the change wrote. */
+  if (last) state.issues.push(row(THIRD_UUID, THIRD_KEY, status, last, null, (last.files ?? []).join(", ")));
+  state.comments = { [UUID]: [], [NEXT_UUID]: [], [THIRD_UUID]: [] };
   state.calls = [];
 };
 
@@ -208,7 +241,9 @@ const PACKAGE = {
 
 /** A checkout of a bare origin, the change on a branch both hold, and the base wherever `base`
  *  puts it. The gate is a script here; the version lifecycle is a real one. */
-export const world = ({ base = "still", gate = PACKAGE.scripts.check, second = false } = {}) => {
+export const world = ({
+  base = "still", gate = PACKAGE.scripts.check, second = false, third = false, shared = false,
+} = {}) => {
   const at = tempRoom("land-ready-");
   const work = join(at, "checkout");
   git(at, "init", "--bare", "origin.git");
@@ -222,6 +257,7 @@ export const world = ({ base = "still", gate = PACKAGE.scripts.check, second = f
   written(work, ".forge.json", JSON.stringify({ slug: "forge-plugin" }));
   written(work, join("tools", "sync.mjs"), SYNC);
   written(work, join("tools", "probe.mjs"), PROBE);
+  written(work, join("tools", "paired.mjs"), PAIRED);
   written(work, join("plugin", ".claude-plugin", "plugin.json"), JSON.stringify({ name: PLUGIN, version: "1.0.0" }, null, 2));
   written(work, join(".claude-plugin", "marketplace.json"),
     JSON.stringify({ name: MARKET, plugins: [{ name: PLUGIN, source: "./plugin" }] }));
@@ -241,6 +277,10 @@ export const world = ({ base = "still", gate = PACKAGE.scripts.check, second = f
   };
   const head = branched(BRANCH, OWNED, TEN.replace("line 2\n", "line 2, as the change wrote it\n"));
   const next = second ? branched(NEXT_BRANCH, NEXT_OWNED, "the second change\n") : null;
+  const wrote = shared
+    ? [OWNED, TEN.replace("line 5\n", "line 5, as the third change wrote it\n")]
+    : [THIRD_OWNED, "the third change\n"];
+  const last = third || shared ? branched(THIRD_BRANCH, wrote[0], wrote[1]) : null;
   /* `moved` takes a line of the change's own file the branch did not touch, so the merge is clean
      and the change's paths still differ from what was judged; `conflict` takes the line it did. */
   if (base === "moved" || base === "conflict") {
@@ -258,7 +298,7 @@ export const world = ({ base = "still", gate = PACKAGE.scripts.check, second = f
   }
   writeFileSync(join(ROOM, "marketplace-source"), `${work}\n`);
   process.chdir(work);
-  return { at, work, head, next, base: sha(work, BASE) };
+  return { at, work, head, next, last, base: sha(work, BASE) };
 };
 
 /** Another clone's release, pushed to the same origin: the checkout's tracking ref stays where it

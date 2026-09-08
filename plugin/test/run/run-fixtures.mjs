@@ -5,6 +5,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSyn
 import { dirname, join } from "node:path";
 
 import { tempRoom } from "../fixtures.mjs";
+import { derivationFiles } from "../../../tools/gates/scope.mjs";
 
 /* Before the shape reader is loaded: it reaches the tracker's own settings, and a module that read
    the developer's config directory would run on their credential. */
@@ -23,16 +24,13 @@ export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "ut
 export const runIn = (cwd, argv, env = process.env) =>
   spawnSync(process.execPath, [SCRIPT, ...argv], { cwd, encoding: "utf8", env });
 
-/* Every file the script is: itself and each module under `tools/` it loads. `check` stands in for the
-   repository's gate, which ship spends by name — the real one needs a tree this scratch checkout is not. */
+/* `check` stands in for the repository's gate, which ship spends by name — the real one needs a tree
+   this scratch checkout is not. */
 export const GATE = "node -e \"console.log('scratch gate ran')\"";
 
-const COPIED = [SCRIPT, join("tools", "run", "args.mjs"), join("tools", "run", "install.mjs"),
-  join("tools", "run", "land.mjs"), join("tools", "run", "land-ready.mjs"),
-  join("tools", "run", "landing.mjs"), join("tools", "run", "lock.mjs"), join("tools", "run", "review.mjs"),
-  join("tools", "run", "occupant.mjs"), join("tools", "run", "run-id.mjs"),
-  join("tools", "run", "version.mjs"), join("tools", "checkout.mjs"),
-  join("tools", "gates", "timing.mjs")];
+/* Every file the script is, derived from it and never listed beside it: a module added to the runner
+   and missed here is a scratch checkout that loads nothing. `plugin/src` is copied whole below. */
+const COPIED = derivationFiles(join(ROOT, SCRIPT), ROOT).filter((one) => one.startsWith("tools/"));
 
 export const scratch = (name, gate = GATE) => {
   const at = tempRoom(`${name}-`);
@@ -122,8 +120,7 @@ export const lastStep = (work) => {
 
 /* The `claude` the install steps invoke: the one registration the real one keeps, a cache keyed by
    version and the install record `pluginCopy` reads, so a case can ask which tree the install read.
-   Three files switch its failures on: an add of a named path, both updates, and an install that
-   records a version below the tree's. */
+   Three files switch its failures on: an add of a named path, both updates, and a low version. */
 const CLAUDE_STUB = `#!/usr/bin/env node
 import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";

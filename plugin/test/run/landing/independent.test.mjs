@@ -7,7 +7,8 @@ import test from "node:test";
 import { join } from "node:path";
 
 import {
-  BASE, KEY, UUID, comments, context, ctx, issue, marks, ready, seeded, serverPushes, sha, state,
+  BASE, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, UUID,
+  comments, context, ctx, issue, marks, ready, seeded, serverPushes, sha, state,
   strayWrites, tracker, world,
 } from "./fixture.mjs";
 
@@ -137,6 +138,26 @@ test("a judgement with no intended sha is the turn before the push, so the landi
   assert.match(said, /step 7\/10/u, `and reaches the push it had not made:\n${said}`);
   assert.notEqual(remote(at), base, `so the change lands rather than parking for good:\n${said}`);
   assert.equal(marks().length, 1, `with the mark that says it did:\n${said}`);
+});
+
+/* And no set is made of two of them here: the candidate a judge is handed is a fact about the set it
+   was built from, so a set half of which came back judged is one nothing rebuilds (ISS-722). */
+test("two ready branches on this route make no candidate together, and are landed one at a time", async () => {
+  const { at, work, head, next, base } = world({ base: "other", second: true });
+  seeded({
+    landing: ready(head, base),
+    next: ready(next, base, { branch: NEXT_BRANCH, files: [NEXT_OWNED] }),
+  });
+  const said = await ran([KEY, NEXT_KEY], work);
+  assert.match(said, /no candidate is made of these branches together/u, said);
+  assert.match(said, /a set half of which came back judged is one nothing rebuilds/u, said);
+  assert.doesNotMatch(said, /as one candidate/u, said);
+  /* One at a time, and each judged at a candidate of its own: two candidates, not one. */
+  assert.equal(landing().state, "qa-owed", said);
+  assert.equal(landing(NEXT_UUID).state, "qa-owed", said);
+  assert.notEqual(landing().deployment, landing(NEXT_UUID).deployment,
+    `each turn is handed the candidate of its own branch:\n${said}`);
+  assert.equal(remote(at), base, `and nothing is pushed while both judgements are owed:\n${said}`);
 });
 
 test("a void leaves no release on the checkpoint for a later resume to read as a push", async () => {
