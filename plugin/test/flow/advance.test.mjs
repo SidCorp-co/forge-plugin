@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { fakeTracker, ranAsync, tempHome, typedPlan } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance").path;
-const { parse, render } = await import("../../src/flow/record/record.mjs");
+const { parse, render } = await import("../../src/flow/record/page.mjs");
 const { PARKS } = await import("../../src/flow/machine.mjs");
 const {
   CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, holdsBack,

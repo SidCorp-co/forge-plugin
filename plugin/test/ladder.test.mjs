@@ -12,11 +12,11 @@ import { fakeTracker, ranAsync, tempHome } from "./fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("ladder").path;
 const {
-  BAND_NAMES, CEILINGS, FIELD_SAID, LIGHTER, SPARES, TIERS, bandFor, belowTop, climbsIn, escalatedBy,
-  heightOf, lightens, markedIn, overCeiling, resizeForm, rungFrom, sizeFrom, splits, tierOf,
+  BAND_NAMES, CEILINGS, LIGHTER, SPARES, TIERS, bandFor, belowTop, climbsIn, escalatedBy,
+  heightOf, lightens, overCeiling, resizeForm, rungFrom, sizeFrom, splits, tierOf,
 } = await import("../src/ladder.mjs");
 const { planFlags } = await import("../src/flow/machine.mjs");
-const { render } = await import("../src/flow/record/record.mjs");
+const { render } = await import("../src/flow/record/page.mjs");
 
 const FORGE = new URL("../bin/forge", import.meta.url).pathname;
 
@@ -78,16 +78,12 @@ const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tr
 
 test("the complexity names the rung, and an issue holding none is at the top", () => {
   for (const tier of TIERS) {
-    assert.deepEqual(sizeFrom({ band: bandFor(tier) }), { rung: tier, band: bandFor(tier), claimed: FIELD_SAID },
+    assert.deepEqual(sizeFrom({ band: bandFor(tier) }), { rung: tier, band: bandFor(tier) },
       `\`${bandFor(tier)}\` on the tracker is the ${tier} rung, and the field is what claimed it`);
   }
-  assert.deepEqual(sizeFrom({}), { rung: "feature", band: null, claimed: null },
+  assert.deepEqual(sizeFrom({}), { rung: "feature", band: null },
     "an issue holding no complexity reads as the tier that owes everything, claimed by nothing");
   assert.equal(sizeFrom({ band: "huge" }).rung, "feature", "as does one sized a word the ladder has no rung for");
-  for (const said of [body("trivial"), "Size: fix.", "no mark here"]) {
-    assert.equal(sizeFrom({ description: said }).rung, "feature",
-      `\`${said.trim()}\` is prose: what a body says about its size is read by nothing`);
-  }
 });
 
 /* Every case below is one a reader could resolve either way, and each was resolved downward until a
@@ -96,16 +92,6 @@ test("the complexity names the rung, and an issue holding none is at the top", (
    status nobody established. */
 test("a doubtful reading answers with the rung that owes more, never the one that owes less", () => {
   const [lowest, middle] = TIERS;
-  for (const order of [`Size: ${lowest}.\nSize: ${middle}.`, `Size: ${middle}.\nSize: ${lowest}.`]) {
-    assert.equal(markedIn(order), middle,
-      "a body naming two rungs is unsettled, and whichever the reader met first must not decide it");
-  }
-  /* The top rung is the default, so a line naming it says nothing alone and everything beside a
-     lower one. This repository's own issues write it in full, which is how the hole was found. */
-  const top = TIERS.at(-1);
-  assert.equal(markedIn(`Size: ${top}.`), top, "the top rung is a line like any other, not an absence");
-  assert.equal(markedIn(`Size: ${top}.\nSize: ${lowest}.`), top,
-    "so a body naming it beside a lower one has named it, and does not read as the lower");
   assert.deepEqual(climbsIn(`Size: ${TIERS.at(-1)} -> ${lowest}`), [],
     "a pair pointing down is no climb: read by its destination alone it would raise a trivial to a fix");
   assert.deepEqual(climbsIn(`Size: ${lowest} -> ${middle}\nSize: ${middle} -> ${TIERS.at(-1)}`),
@@ -151,33 +137,6 @@ test("what a rung stops owing is the row's, and a rung absent from a row owes th
     assert.equal(lightens("in_progress", { band: bandFor(tier), plan: "", moved: [], whole: true }), false,
       `${tier} is exempted from the baseline, which no rung buys`);
   }
-});
-
-/* The contract's own guide prints the line inside a fence, so a reading that took one would find it
-   in every body quoting the guide. The same strip serves `goals.mjs`, which reads a live claim. */
-test("a line inside an example is read as none, and does not move one the body really carries", () => {
-  const [lowest] = TIERS;
-  const top = TIERS.at(-1);
-  /* A line before the mark in each: a pattern stopping at the first line end passed without it. */
-  for (const shown of [
-    `no mark here\n\n\`\`\`text\nExample:\nSize: ${lowest}.\n\`\`\`\n`,
-    `no mark here\n\n~~~\nExample:\nSize: ${lowest}.\n~~~\n`,
-    `no mark here\n\n\`\`\`\nExample:\nSize: ${lowest}.\n`,
-    `no mark here\n\n    Example:\n    Size: ${lowest}.\n`,
-    /* A wall closes on its own character and nothing else on the line: a pattern taking any line
-       that starts with one ended the example here and read the mark below it as the body's (F1). */
-    `no mark here\n\n\`\`\`text\nExample:\n\`\`\`not-a-closing-wall\nSize: ${lowest}.\n\`\`\`\n`,
-    `no mark here\n\n~~~\nExample:\n\`\`\`\nSize: ${lowest}.\n~~~\n`,
-  ]) {
-    assert.equal(markedIn(shown), null, "an example holds the only apparent line, and the body carries none");
-  }
-  assert.equal(markedIn(`no mark\n\n\`\`\`\na\n\`\`\`\n\nSize: ${lowest}.\n\n\`\`\`\nb\n\`\`\`\n`), lowest,
-    "while a line standing between two examples is the body's, so stripping cannot run past a closing wall");
-  assert.equal(markedIn(`Size: ${lowest}.\n\n\`\`\`\nSize: ${top}.\n\`\`\`\n`), lowest,
-    "and an example beside a real line leaves the real one standing, rather than being read beside it");
-  assert.equal(markedIn(`\`\`\`\nSize: ${top}.\n\`\`\`\`\n\nSize: ${lowest}.\n`), lowest,
-    "a longer wall closes too, so a body writing one does not lose the line standing after it");
-  assert.equal(markedIn("a body with no mark at all"), null, "and a body with none reads as none");
 });
 
 /* Read every declaration, not the first: a plan naming one twice is doubtful, and the order two
@@ -355,10 +314,6 @@ test("the two largest sizes ask whether the issue is one change, and the three b
 
 /* The reading a second source bought: an issue sized `xs` whose body named the top rung had two answers, and whichever won, the other had to be printed for the losing claim to be actionable. One source, so the body is prose and the field is the answer at every reader (ISS-701). */
 test("a body naming another rung changes nothing, the field being the only claim there is", async () => {
-  assert.equal(sizeFrom({ band: "xs", description: body("feature") }).rung, "trivial");
-  assert.equal(sizeFrom({ band: "xl", description: body("trivial") }).rung, "feature");
-  assert.equal(sizeFrom({ description: body("fix") }).rung, "feature",
-    "and a body naming a rung with the field unset claims nothing, so it owes what a feature owes");
   const run = await owed("ISS-90");
   assert.match(run.stdout, /is a `trivial`: the tracker's complexity is `xs`/u);
   assert.doesNotMatch(run.stdout, /Size: feature|does not lower a rung/u,
@@ -371,7 +326,7 @@ test("a correction re-sizing upward outranks a complexity naming a lower rung", 
   assert.equal(tierOf({ plan: "", moved, band: "xs" }), "feature");
   assert.equal(tierOf({ plan: "", moved: ["Size: feature -> fix"], band: "xs" }), "trivial",
     "while a correction pointing downward moves nothing, as it moves nothing off a mark");
-  assert.equal(tierOf({ description: UNMARKED, plan: "", moved: [], band: "xs", whole: false }), "feature",
+  assert.equal(tierOf({ plan: "", moved: [], band: "xs", whole: false }), "feature",
     "and a cut page is a feature whatever the field says: it cannot show the correction it hid");
 });
 

@@ -13,8 +13,8 @@ export const noteLandedAs = (held, sent) =>
 
 export const storedNotEmpty = (held) => Boolean(String(held ?? "").trim());
 
-/* Comparator, cap, gate and renewal are the field's, never a caller's argument, and renewal is what a
-   write here means, so only a row that does not renew says so. Built on first use: `lease.mjs` imports back. */
+/* Comparator, cap, gate and renewal are the field's, never a caller's argument, and renewal is what a write here means, so only a row that does not renew says so. Built on first use: `lease.mjs` imports back.
+   A recorded override writes under a row of its own, in `writeField`: the tracker judges a field this CLI declares no cap and no comparator of, so what came back is compared with what was sent and nothing else. */
 let rows = null;
 const fields = () => (rows ??= {
   plan: {
@@ -26,8 +26,8 @@ const fields = () => (rows ??= {
   sessionContext: { same: leaseLandedAs, said: leaseMismatch, shows: true, renews: false },
 });
 
-const mismatch = (field, ref, back) =>
-  fields()[field]?.said?.(ref, back)
+const mismatch = (row, field, ref, back) =>
+  row.said?.(ref, back)
   ?? `The update answered success but ${field} did not read back as written. Nothing to rely on.`;
 
 /* Code points, and never above the code-unit count: it can only miss a refusal. */
@@ -54,8 +54,7 @@ export const capRefusal = (where, cap, sent, given) => capClause(where, cap, sen
 
 /* Synchronous on purpose: `write` does not await this, so a promise would let the send go ahead.
    Every over-cap half at once, too — refusing inside the loop cost a round per half (ISS-325). */
-export const capChecked = (field, caps, sent, given, refuse, under = null) => {
-  const row = under ?? fields()[field];
+export const capChecked = (field, caps, sent, given, refuse, row = fields()[field]) => {
   const held = caps[field] ?? { self: null, halves: {} };
   if (!row.halves) {
     if (held.self !== null && lengthOf(sent) > held.self) refuse(capRefusal(field, held.self, sent, given));
@@ -70,11 +69,8 @@ export const capChecked = (field, caps, sent, given, refuse, under = null) => {
 
 export const ownsField = (field) => Boolean(fields()[field]);
 
-/* The row a recorded override writes under: the tracker judges a field this CLI declares no cap and no comparator of, so what came back is compared with what was sent and nothing else. */
-export const OVERRIDE = { same: landedAs };
-
-export const writeField = async (documentId, field, value, { ref, next, patch, refuse, row: under = null }) => {
-  const row = under ?? fields()[field];
+export const writeField = async (documentId, field, value, { ref, next, patch, refuse, override = false }) => {
+  const row = override ? { same: landedAs } : fields()[field];
   if (!row) {
     refuse(`${field} is not a field this writer sets. It takes ${Object.keys(fields()).join(", ")}.`);
   }
@@ -88,6 +84,6 @@ export const writeField = async (documentId, field, value, { ref, next, patch, r
     capChecked(field, caps, sent, given, refuse, row);
   });
   const back = await scoped("forge_issues", { action: "get", documentId, fields: [field] });
-  if (!row.same(back?.[field], sent)) refuse(mismatch(field, ref, back?.[field]));
+  if (!row.same(back?.[field], sent)) refuse(mismatch(row, field, ref, back?.[field]));
   return back?.[field];
 };

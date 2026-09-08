@@ -7,7 +7,7 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rpc.mjs";
 import { commentPage } from "../tracker/comments.mjs";
-import { parse } from "./record/record.mjs";
+import { parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
 import { OPEN_KEPT, patchFrom, worklogFor } from "./worklog.mjs";
 import {

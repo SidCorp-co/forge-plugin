@@ -6,7 +6,6 @@ import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "../../resolve/record-rows.mjs";
 import { CLOSES_FROM, SECTIONS, SHAPES, compoundCriteria, criterionNumber, planFlags, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, unwrap } from "../machine.mjs";
-export { assemble, parse, parseAll, render } from "./page.mjs";
 import { assemble, parseAll, printRecord, render } from "./page.mjs";
 import { markedCommit, recordMerged } from "./merged.mjs";
 import { eachProblem } from "./content.mjs";
@@ -20,7 +19,7 @@ import {
 } from "../../tracker/evidence.mjs";
 import { briefGoals, releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
 import { NONE_STATED, servesRefusal } from "../../goals.mjs";
-import { FEATURE, rungFrom } from "../../ladder.mjs";
+import { sizeFrom } from "../../ladder.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
 import { capsOf, writeField } from "../../tracker/field-write.mjs";
 import { scoped } from "../../tracker/rpc.mjs";
@@ -157,10 +156,11 @@ const sayOwed = async (documentId, issue, ref, held = null) => {
   }
 };
 
-export const post = async (documentId, body, ref = documentId, next = undefined, patch = null, soft = false) => {
+/* `renewed` is the caller whose write a moment ago renewed the lease, which a second lease write would only repeat; `soft` hands the tracker's refusal back rather than exiting, for the caller with something to say about it. */
+export const post = async (documentId, body, { ref = documentId, next = undefined, patch = null, soft = false, renewed = false } = {}) => {
   refuseIfGated("forge_comments");
   sayStored("record");
-  await renew(documentId, ref, next, patch);
+  if (!renewed) await renew(documentId, ref, next, patch);
   const answer = await postComment(documentId, body, null, soft);
   /* Asked softly by a caller that has something to say about the failure: the tracker's own refusal
      exits the process, and the body would be lost with it. */
@@ -230,7 +230,7 @@ const DERIVED = {
     const held = releaseLine(await releasePolicy());
     return held ? { [held[0]]: held[1] } : null;
   },
-  confirmation: async (body) => ({ tier: rungFrom(body?.complexity) ?? FEATURE }),
+  confirmation: async (body) => ({ tier: sizeFrom({ band: body?.complexity }).rung }),
 };
 
 const derive = async (kind, blocks, body) => {
@@ -355,7 +355,7 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
     sending: sent.push.bind(sent),
   });
   const rendered = render(kind, blocks, stamp);
-  const written = await post(documentId, rendered, reference, next, patch);
+  const written = await post(documentId, rendered, { ref: reference, next, patch });
   /* Dropped on the way out and never in a `finally`: a thrown failure unwinds through one before the
      exit, and the notice would be gone for every route but `fail()`'s. */
   process.off("exit", stranded);

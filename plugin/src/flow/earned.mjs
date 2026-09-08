@@ -18,7 +18,8 @@ import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/
 import { Refused } from "../refusal.mjs";
 import { FIELD as SESSION, landingOf } from "./lease.mjs";
 import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
-import { assemble, criteriaLines, parse } from "./record/record.mjs";
+import { criteriaLines } from "./record/record.mjs";
+import { assemble, parse } from "./record/page.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
 import { waitsForPerson } from "../tracker/project-config.mjs";
 
@@ -56,10 +57,12 @@ export const methodOf = (status) => {
   return { phase: held[0], reference: held[1] ? `forge guide issue-flow ${held[1]}` : "forge guide issue-flow" };
 };
 
-/* Which reader each park kind speaks to, and so which side status it lands in. Every kind in PARKS
-   has a row: a park with nowhere to go is a status set from nothing. */
+/* Which reader each park kind speaks to, and so which side status it lands in. Every kind in PARKS has a row: a park with nowhere to go is a status set from nothing. */
+/** The status on which the tracker reads any comment as the reporter's answer and puts the issue back to `open` (ISS-429): the one a park's record goes up on before its move, and the one an override is refused on. */
+export const ANSWERED_BY_COMMENT = "needs_info";
+
 export const PARK_STATUS = {
-  question: "needs_info",
+  question: ANSWERED_BY_COMMENT,
   "screen-review": "waiting",
   "destructive-migration": "waiting",
   "release-decision": "waiting",
@@ -73,7 +76,7 @@ export const PARK_STATUS = {
   dropped: "dropped",
 };
 
-export const SIDE = ["needs_info", "waiting", "on_hold"];
+export const SIDE = [ANSWERED_BY_COMMENT, "waiting", "on_hold"];
 
 export const atLeast = (status, floor) =>
   ORDER.indexOf(status) >= 0 && ORDER.indexOf(status) >= ORDER.indexOf(floor);
@@ -94,12 +97,13 @@ export const shapeGaps = (kind, record, names = []) => {
       return Boolean(field.oneOf) && !field.oneOf.includes(held);
     })
     .map((field) => `--${field.flag}`);
-  for (const field of shape.fields.filter((one) => one.many && one.each)) {
-    const said = eachProblem(field, got[field.flag]);
-    if (said) gaps.push(`--${field.flag}, which ${said}`);
-  }
-  for (const field of shape.fields.filter((one) => !one.many)) {
+  for (const field of shape.fields) {
     const held = got[field.flag];
+    if (field.many) {
+      const said = eachProblem(field, held);
+      if (said) gaps.push(`--${field.flag}, which ${said}`);
+      continue;
+    }
     if (held === undefined) continue;
     if (field.commit && !isCommit(held)) gaps.push(`--${field.flag} \`${held}\`, which is no commit`);
     if (field.criterion && !/^\d+\b/u.test(held)) gaps.push(`--${field.flag} \`${held}\`, which opens with no number`);

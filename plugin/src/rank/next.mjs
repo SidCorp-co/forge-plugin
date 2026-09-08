@@ -2,12 +2,11 @@
    call budget, and why the score is computed on the browse projection: docs/cli/next.md. */
 import { bandSpread, weightLines, weightsFrom } from "./weights.mjs";
 import { bandsOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart } from "./cost.mjs";
-import { chainOf, holdingKeys, ordered, scoreOf, takeableKeys } from "./score.mjs";
+import { bandSaid, chainOf, holdingKeys, ordered, scoreOf, takeableKeys } from "./score.mjs";
 import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { asksOf } from "../tracker/issue-shape.mjs";
 import { rootFor } from "../stats/transcripts.mjs";
-import { markedIn } from "../ladder.mjs";
 import { servesIn } from "../goals.mjs";
 import { batchesOf } from "./batch.mjs";
 import { candidateLines, droppedLine, graphLines, HEAD } from "./print.mjs";
@@ -235,7 +234,7 @@ const jsonOf = (batches, dropped, weights, from, read) => ({
     score: batch.head.score.total,
     parts: Object.fromEntries(batch.head.score.parts.map(([name, said, points]) => [name, { said, points }])),
     band: batch.head.score.band,
-    bandFrom: batch.head.score.bandFrom,
+    bandFrom: bandSaid(batch.head.score.band),
     priority: batch.head.row.priority ?? null,
     kind: batch.head.row.category ?? null,
     cost: batch.head.cost,
@@ -318,20 +317,15 @@ export const next = async (argv) => {
   const landed = lastLanded(rows);
   const warmPaths = landed ? pathsNamed((await scoped("forge_issues", {
     action: "get", documentId: landed.documentId, fields: ["description"] }))?.description ?? "") : [];
-  /* The mark is read when the body lands, not in `judge`: `judge` is re-run over the whole read
-     prefix on every pass — up to five of them under the caps below — and the body does not change
-     between them. It rides on the body's own entry, having no life without it. */
+  /* The body's own lines are read when it lands, not in `judge`: `judge` is re-run over the whole
+     read prefix on every pass — up to five of them under the caps below — and the body does not
+     change between them. They ride on the body's own entry, having no life without it. */
   const bodies = new Map();
   const judge = (one) => {
     const body = bodies.get(one.issueId);
     const text = body?.description ?? "";
     const read = bodies.has(one.issueId);
-    const score = scoreOf(one.row, {
-      weights,
-      chain: chainOf(one.issueId, blocks, alive),
-      read,
-      marked: body?.marked ?? null,
-    });
+    const score = scoreOf(one.row, { weights, chain: chainOf(one.issueId, blocks, alive) });
     const blockers = (blockedBy.get(one.issueId) ?? []).map((key) =>
       ({ otherDisplayId: key, otherStatus: statusOf.get(key) ?? "unknown", kind: "blocks" }));
     const verdict = eligibilityOf(one.row, {
@@ -368,8 +362,7 @@ export const next = async (argv) => {
     const take = unread.slice(0, Math.min(weights.windowCap, weights.readCap - cursor));
     if (!take.length) break;
     for (const [key, body] of await bodiesFor(take)) {
-      bodies.set(key, { ...body, marked: markedIn(body?.description ?? ""),
-        serves: servesIn(body?.description ?? "") });
+      bodies.set(key, { ...body, serves: servesIn(body?.description ?? "") });
     }
     for (const one of take) {
       edges += withRelations(blocks, blockedBy, { ...bodies.get(one.issueId), issueId: one.issueId });

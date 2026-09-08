@@ -10,12 +10,11 @@ import { documentIdOf } from "../../tracker/issues.mjs";
 import { releasePolicy } from "../../tracker/project-config.mjs";
 import { write } from "../../tracker/rpc.mjs";
 import { notAnothers, renew } from "../lease.mjs";
+import { unwrap } from "../machine.mjs";
 
 /* The tracker's own audit comment for the mark opens on the action's name, and that is what tells a
    mark apart from a comment quoting one. */
 const MARK = /^mark_merged\b/u;
-
-const unwrap = (text) => String(text ?? "").trim();
 
 /** The word a clause carrying no path takes. Enumerated on the read, because `nothingness` and
  *  `nothing generated` are paths and a clause that parses to no path says nothing rather than none. */
@@ -44,11 +43,12 @@ export const lastMark = (comments) => {
   return marks.length ? marks.at(-1) : null;
 };
 
-const readSha = (comments, flag) => clause(flag).reads.exec(lastMark(comments) ?? "")?.[1] ?? null;
+/* What the standing mark says in one clause, or null where it says nothing there. */
+const readClause = (comments, flag) => clause(flag).reads.exec(lastMark(comments) ?? "")?.[1] ?? null;
 
-export const markedCommit = (comments) => readSha(comments, "at");
-export const reviewedHead = (comments) => readSha(comments, "reviewed");
-export const judgedHead = (comments) => readSha(comments, "judged");
+export const markedCommit = (comments) => readClause(comments, "at");
+export const reviewedHead = (comments) => readClause(comments, "reviewed");
+export const judgedHead = (comments) => readClause(comments, "judged");
 
 const pathsIn = (said) => {
   if (!said) return null;
@@ -57,8 +57,7 @@ const pathsIn = (said) => {
   return paths.length ? paths : null;
 };
 
-const readPaths = (comments, flag) =>
-  pathsIn(clause(flag).reads.exec(lastMark(comments) ?? "")?.[1]?.trim());
+const readPaths = (comments, flag) => pathsIn(readClause(comments, flag)?.trim());
 
 export const landingMoved = (comments) => readPaths(comments, "moved");
 export const landingWrote = (comments) => readPaths(comments, "wrote");
@@ -91,13 +90,13 @@ export const markNote = ({ branch, at, reviewed, judged, moved = [], wrote = [] 
   + `${clause("judged").said} ${judged}; ${clause("moved").said} ${pathsSaid(moved)}; `
   + `${clause("wrote").said} ${pathsSaid(wrote)}`;
 
-export const TARGET = "base";
+const TARGET = "base";
 
-/** The mark, and the audit comment it causes credited in the same breath: the next write to the issue is refused for a comment nothing has read, and every route that causes one clears it. The lease is checked here rather than only at the call site because the landing task marks a merge too, holding a lease this must not renew — a renewal would rewrite the landing state saved a step before it — so a check no caller can reach the write without is a read and not a renewal. */
-export const markMerged = async (documentId, ref, note, target = TARGET) => {
-  await notAnothers(documentId, ref);
+/** The mark, and the audit comment it causes credited in the same breath: the next write to the issue is refused for a comment nothing has read, and every route that causes one clears it. The lease is checked here rather than only at the call site because the landing task marks a merge too, holding a lease this must not renew — a renewal would rewrite the landing state saved a step before it — so a check no caller can reach the write without is a read and not a renewal. `leased` is the caller that renewed a moment ago, whose renewal was that read. */
+export const markMerged = async (documentId, ref, note, { leased = false } = {}) => {
+  if (!leased) await notAnothers(documentId, ref);
   const answer = await write("forge_issues",
-    { action: "mark_merged", data: { issueId: documentId, target, note } });
+    { action: "mark_merged", data: { issueId: documentId, target: TARGET, note } });
   await creditAfter("the merged mark", [{ ref, documentId }]);
   return answer;
 };
@@ -147,9 +146,8 @@ const branchFor = async (given) => {
   if (given.to !== undefined) return given.to;
   const held = (await releasePolicy())?.staging;
   if (held) return held;
-  refuse("record merged writes the branch the change landed on into the note, and this project's "
+  return refuse("record merged writes the branch the change landed on into the note, and this project's "
     + "config names no base branch to read it from. Name it with --to <branch>.");
-  return null;
 };
 
 const undone = async (documentId, ref, { next, patch }) => {
@@ -179,7 +177,7 @@ export const recordMerged = async (reference, argv, { next, patch, usage } = {})
   const held = clausesFrom(given);
   const note = markNote({ branch: await branchFor(given), ...held });
   await renew(documentId, reference, next, patch);
-  await markMerged(documentId, reference, note, given.target ?? TARGET);
+  await markMerged(documentId, reference, note, { leased: true });
   console.log(`${reference}  marked merged at ${held.at}. Its note:\n  ${note}`);
   return null;
 };

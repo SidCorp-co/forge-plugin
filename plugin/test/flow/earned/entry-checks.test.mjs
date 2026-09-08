@@ -9,7 +9,7 @@ import test from "node:test";
 import { tempHome, typedPlan } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("entry-checks").path;
-const { parse, render } = await import("../../../src/flow/record/record.mjs");
+const { parse, render } = await import("../../../src/flow/record/page.mjs");
 const { CHECKS, shapeGaps, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { planFlags, planSections, planSteps } = await import("../../../src/flow/machine.mjs");
 const { targetOf } = await import("../../../src/flow/route.mjs");

@@ -2,7 +2,7 @@
    the code is. Entries are the tracker's and nothing here writes a file. docs/cli/knowledge.md. */
 import { fail, keepOnFailure } from "../resolve/settings.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
-import { declaredFor, refuseCredential, scoped, write } from "../tracker/rpc.mjs";
+import { declaredValue, refuseCredential, scoped, write } from "../tracker/rpc.mjs";
 import { flags, helpAskedOf, pairOf, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 
@@ -40,12 +40,12 @@ const NO_KIND = "a new entry needs --kind: forge_knowledge labels one that names
   + "prints the set.";
 
 /* The route refuses a value outside the set without naming the set, so the check stands here and
-   the set is `declaredFor`'s, whose own comment says what a refusal citing it owes its reader. */
+   the set is the table's, whose own comment says what a refusal citing it owes its reader. */
 const checked = (value, field) => {
   if (value === undefined) return undefined;
-  const allowed = declaredFor("forge_knowledge", field);
-  if (allowed.length && !allowed.includes(value)) {
-    fail(`${didYouMean(field, value, allowed)} That set is this CLI's own declaration of what the `
+  const near = declaredValue("forge_knowledge", field, value);
+  if (near) {
+    fail(`${near} That set is this CLI's own declaration of what the `
       + `store takes, in \`plugin/src/tracker/rest.mjs\`, and the tracker names no set when it `
       + `refuses one: a value the tracker has grown since is added there.`);
   }

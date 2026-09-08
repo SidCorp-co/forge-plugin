@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
+import { didYouMean } from "../suggest.mjs";
 import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, rowFor, undeclaredIn } from "./rest.mjs";
 
 const RETRY_ATTEMPTS = 4;
@@ -231,6 +232,13 @@ export const tried = async (name, args) => callTool(name, args, true);
 /** What the table declares in the tracker's stead. The set is this CLI's and goes stale when the
  *  tracker grows a value, which is what a refusal citing it has to say. */
 export const declaredFor = (tool, field) => DECLARES[tool]?.[field] ?? [];
+
+/** A value judged against that set: null where it is in the set or the table declares none, else the nearest
+ *  name. The caller's sentence says whose set it is and where a value the tracker has grown since is added. */
+export const declaredValue = (tool, field, given) => {
+  const allowed = declaredFor(tool, field);
+  return !allowed.length || allowed.includes(given) ? null : didYouMean(field, given, allowed);
+};
 
 /* One seat rather than a list of the payload kinds that may carry a secret, which goes stale the
    next time a verb learns to write. `uploadAll` holds the other: bytes never pass here. */

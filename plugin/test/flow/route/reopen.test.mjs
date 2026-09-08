@@ -7,7 +7,7 @@ import test from "node:test";
 import { tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("route").path;
-const { render } = await import("../../../src/flow/record/record.mjs");
+const { render } = await import("../../../src/flow/record/page.mjs");
 const { viewFrom } = await import("../../../src/flow/earned.mjs");
 const { targetOf } = await import("../../../src/flow/route.mjs");
 
@@ -74,13 +74,11 @@ test("a reopen falls where its triage says, once the write that outcome owes is 
   /* The finding names what it is about, so a failing verdict on some other criterion is not the
      one this triage owes. */
   const named = { ...FOUND, criterion: "2 — The second outcome." };
-  const other = (verdict) => recorded("verdict", { criterion: "1 — The first outcome.", verdict, commit: "43b811e",
-    evidence: ["run.txt"], why: "the first outcome came back empty" });
   const cited = (comments) => targetOf(view(
     { status: "reopen", mergedAt: MARKED, plan: PLAN, acceptanceCriteria: CRITERIA, attachments: ATTACHED },
     comments(),
   ), "ISS-3");
-  const elsewhere = cited(() => [recorded("finding", named, "0"), recorded("triage", NOT_MET, "0"), other("fail")]);
+  const elsewhere = cited(() => [recorded("finding", named, "0"), recorded("triage", NOT_MET, "0"), judged("fail")]);
   assert.match(elsewhere.missing[0].what, /on criterion 2, which the finding names,/u);
   const onIt = cited(() => [
     recorded("finding", named, "0"), recorded("triage", NOT_MET, "0"),

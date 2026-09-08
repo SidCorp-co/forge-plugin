@@ -1,20 +1,20 @@
 /* One verb between an agent and a status change: the entry criteria of the next status, checked
    against the issue's record and nothing else. The rule a status is earned by, stage by stage:
    `forge guide contract <status>`. */
-import { firstLine, flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
+import { exclusive, firstLine, flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, countedShort, creditAfter, cutIn } from "../tracker/comments.mjs";
-import { AMBIGUOUS, declaredFor, write } from "../tracker/rpc.mjs";
-import { didYouMean } from "../suggest.mjs";
-import { UNREAD, correctionFor, whyChecked } from "./override.mjs";
+import { declaredValue, write } from "../tracker/rpc.mjs";
+import { UNREAD, afterRefused, correctionFor, whyChecked } from "./override.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
 import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE } from "./machine.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { Refused, refuse } from "../refusal.mjs";
-import { issueOf, post, render } from "./record/record.mjs";
-import { PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, setForm, viewFrom } from "./earned.mjs";
+import { issueOf, post } from "./record/record.mjs";
+import { render } from "./record/page.mjs";
+import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, setForm, viewFrom } from "./earned.mjs";
 import { undoForm } from "./record/merged.mjs";
 import { credentialAhead, deployFor, lookAhead, owedLine, policyFor, targetOf } from "./route.mjs";
 import { FIELD, leaseOf, nextLine, renew } from "./lease.mjs";
@@ -70,7 +70,7 @@ const viewOf = async (reference, given) => {
 /* The renew before it is where the line is cleared: the transition is refused before this runs
    unless the record earns it, and a second lease write would cost three more calls. `said` is what
    a park adds to the payload; a plain advance sends the status alone and nothing else. */
-export const transitionTo = async (view, status, ref, note = "", next = null, said = null, soft = false) => {
+export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false } = {}) => {
   await renew(view.documentId, ref, next);
   const answer = await write("forge_issues",
     { action: "transition", documentId: view.documentId, data: { status, ...(said ?? {}) } }, undefined, soft);
@@ -89,15 +89,15 @@ const waitsFor = (status) => (status === WAITING ? { waitingKind: "needs_decisio
 
 /* The two writes of one park: the typed `why` travels with the move, which the tracker refuses
    without one (ISS-157), and the status goes first so a refused move leaves no record to disagree
-   with it — except at `needs_info`, where any comment is read as the answer (ISS-429). */
-const RECORD_FIRST = "needs_info";
-
-/* What that order costs, said by the one route both writers of it spend: a move refused after the record went up leaves a page reading as a status the issue does not hold, and the transition's own refusal says nothing about the record above it. */
+   with it — except at `ANSWERED_BY_COMMENT`, where the record has to go first. What that order
+   costs, said by the one route both writers of it spend: a move refused after the record went up
+   leaves a page reading as a status the issue does not hold, and the transition's own refusal says
+   nothing about the record above it. */
 const movedAfterRecord = async (view, ref, status, move) => {
   const refused = await move(true);
   if (!refused) return;
   /* A dropped write is not a rejected one: the transport says so itself, and a message naming the old status either way would send a run to correct a move that may have landed. */
-  if (refused.includes(AMBIGUOUS)) {
+  if (afterRefused(refused).unknown) {
     refuse(`the record for ${status} went up and the move neither landed nor failed cleanly. ${refused}\n`
       + `Read ${ref}'s status before writing anything else — the record above claims ${status}, and `
       + `whether the issue holds it is what decides which of these two is owed:\n`
@@ -110,23 +110,27 @@ const movedAfterRecord = async (view, ref, status, move) => {
     + `--moved "the record above claims ${status}, which the move was refused" --why <w>`);
 };
 
+/* A move into a side status, with the announcement the tracker writes for it credited in the same breath, for the reason `markMerged` states. Soft, the tracker's refusal comes back for the caller with a record up already. */
+const moveTo = async (view, ref, status, { note = "", said, credit }, soft = false) => {
+  const refused = await transitionTo(view, status, ref, { note, said, soft });
+  if (refused) return refused;
+  await creditAfter(credit, [{ ref, documentId: view.documentId }]);
+  return null;
+};
+
 export const parkAs = async (view, ref, kind, why, evidence = [], left = null) => {
   const status = PARK_STATUS[kind];
   const body = render("park", { kind, why, evidence }, left ?? view.issue.status);
-  const move = async (soft = false) => {
-    const refused = await transitionTo(view, status, ref, "", null, { reason: why, ...waitsFor(status) }, soft);
-    if (refused) return refused;
-    await creditAfter("the park's transition", [{ ref, documentId: view.documentId }]);
-    return null;
-  };
-  if (status === RECORD_FIRST) {
-    await post(view.documentId, body, ref);
+  const move = (soft = false) =>
+    moveTo(view, ref, status, { said: { reason: why, ...waitsFor(status) }, credit: "the park's transition" }, soft);
+  if (status === ANSWERED_BY_COMMENT) {
+    await post(view.documentId, body, { ref });
     await movedAfterRecord(view, ref, status, move);
     return;
   }
   await move();
   try {
-    await post(view.documentId, body, ref);
+    await post(view.documentId, body, { ref, renewed: true });
   }
   catch (error) {
     /* A record written now would stamp the side status as the one it left. The body goes back on
@@ -141,7 +145,7 @@ export const parkAs = async (view, ref, kind, why, evidence = [], left = null) =
 const park = async (view, ref, kind, why, evidence) => {
   const to = PARK_STATUS[kind];
   if (!to) refuse(`--park takes one of ${Object.keys(PARK_STATUS).join(", ")}, not \`${kind}\`.`);
-  if (to === "needs_info" && !ASKED_AT.includes(view.issue.status)) {
+  if (to === ANSWERED_BY_COMMENT && !ASKED_AT.includes(view.issue.status)) {
     refuse(`a question goes to the reporter, and ${ref} is ${view.issue.status}: the readings it would `
       + `offer are the triage ones. Ask from ${ASKED_AT.join(" or ")}, or park for a reviewer instead.`);
   }
@@ -206,25 +210,18 @@ export const shortfall = (ref, view, held) => {
 /* The status set with nothing earning it: the tracker's own set is what a value is judged against, this table having none to check it by, and the reply and the correction say no check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */
 const setStatus = async (view, ref, status, why) => {
   const said = whyChecked("advance --set", why);
-  const allowed = declaredFor("forge_issues", "status");
-  if (allowed.length && !allowed.includes(status)) {
-    refuse(`${didYouMean("status", status, allowed)} That set is what the route table declares this `
-      + "tracker takes. Nothing was sent.");
-  }
+  const near = declaredValue("forge_issues", "status", status);
+  if (near) refuse(`${near} That set is what the route table declares this tracker takes. Nothing was sent.`);
   const moved = `the status set to \`${status}\` by \`forge advance --set\`, from `
     + `\`${view.issue.status}\`, with no entry check read`;
   const move = async (soft = false) => {
-    const refused = await transitionTo(view, status, ref, "  (set, unearned)", null,
-      { reason: said, ...waitsFor(status) }, soft);
+    const refused = await moveTo(view, ref, status,
+      { note: "  (set, unearned)", said: { reason: said, ...waitsFor(status) }, credit: "the set transition" }, soft);
     if (refused) return refused;
-    /* The move into a side status is announced by a comment, and the correction below is a write:
-       uncredited, the announcement holds that write and the record keeps no trace of the override. */
-    await creditAfter("the set transition", [{ ref, documentId: view.documentId }]);
     console.log(UNREAD);
     return null;
   };
-  /* The order is `RECORD_FIRST`'s, for the reason stated where that constant is declared. */
-  if (status === RECORD_FIRST) {
+  if (status === ANSWERED_BY_COMMENT) {
     await correctionFor(view.documentId, ref, moved, said, { done: false });
     return movedAfterRecord(view, ref, status, move);
   }
@@ -238,12 +235,12 @@ const readFlags = (rest) => {
   const pulled = pullRepeated(rest, "--evidence", "advance", { usage: USAGE });
   const given = flags(pulled.rest, "advance", ["--owed", "--drop"], { usage: USAGE });
   const evidence = pulled.values;
-  const writes = Boolean(given.park) || Boolean(given.drop) || Boolean(given.set);
-  if (given.park && given.drop) refuse("--park and --drop are two forms; a drop is the park kind `dropped`.");
-  if (given.set && (given.park || given.drop)) refuse("--set names the status outright; a park goes where its kind says.");
+  const [wrote] = exclusive(given, ["park", "drop", "set"], "advance",
+    "forms: a drop is the park kind `dropped`, and --set names the status outright; a park goes where its kind says");
+  const writes = wrote !== undefined;
   if (writes && given.owed) refuse("--owed moves nothing, and --park, --drop and --set write. Ask for one.");
   if (writes && given.to) refuse("--to names the status to advance to; --set and a park each say where they go.");
-  if (writes && !given.why) refuse(`--${given.park ? "park" : (given.set ? "set" : "drop")} needs --why: `
+  if (writes && !given.why) refuse(`--${wrote} needs --why: `
     + "the reason is what the record carries about it.");
   if (given.why && !writes) refuse("--why belongs to --park, --drop or --set; nothing else here takes a reason.");
   if (evidence.length && !writes) refuse("--evidence belongs to the park record; a check reads the evidence already on the issue.");
@@ -282,7 +279,8 @@ const run = async (argv) => {
   /* The triage that puts the expectation outside the specification writes its park here, because a
      park is a record and a status and the route decided both from the triage the record holds. */
   if (routed) return parkAs(view, ref, routed.kind, routed.why, [], routed.left);
-  return transitionTo(view, next, ref, resumed ? "  (resumed where its park left it)" : "", given.next ?? null);
+  return transitionTo(view, next, ref,
+    { note: resumed ? "  (resumed where its park left it)" : "", next: given.next ?? null });
 };
 
 export const advance = async (argv) => {

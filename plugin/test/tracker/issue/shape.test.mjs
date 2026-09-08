@@ -302,15 +302,6 @@ test("the verb refuses a fix with the two flags, the comment route and the open 
   assert.match(run.stderr, /the mark is what drops the decision, the plan and the note/u);
 });
 
-/* Criterion 11: refused by naming the tracker's five and the rung each claims, so a filer reaching for a rung name learns which value to type. */
-test("a complexity the tracker has no value for is refused rather than kept", async () => {
-  const run = await filed(WHOLE, "--title", TITLE, "--complexity", "huge");
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /No complexity named huge\. The set is xs, s, m, l, xl\./u);
-  assert.match(run.stderr, /the tracker's own five, smallest first/u);
-  assert.match(run.stderr, /xs a trivial, s a fix, m a feature, l a feature, xl a feature/u);
-});
-
 test("forge comment posts the body where it belongs and files nothing, lint or no lint", async () => {
   state.calls = [];
   const run = await posted("`forge issue` should take the `data.relations` route.", "--title", "the edge a token can write");

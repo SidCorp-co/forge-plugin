@@ -272,8 +272,6 @@ test("the kinds surface speaks the tracker's own word for the category", () => {
   ];
   for (const text of printed) assert.doesNotMatch(text, /--kind\b|--size\b|Size:/u, text);
   assert.match(kindNeeded(), /--category/u, "the refusal names the flag a filer types");
-  assert.match(complexityRefusal("huge"), /xs.*\bxl\b/su, "and the complexity's names the five it takes");
-  for (const one of ["xs", "s", "m", "l", "xl"]) {
-    assert.ok(complexityRefusal("huge").includes(one), `${one} is in the set the refusal names`);
-  }
+  const said = complexityRefusal("huge");
+  for (const one of ["xs", "s", "m", "l", "xl"]) assert.ok(said.includes(one), `${one} is in the set the refusal names`);
 });

@@ -10,7 +10,7 @@ import test, { after, before } from "node:test";
 import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent").path;
-const { render } = await import("../../../src/flow/record/record.mjs");
+const { render } = await import("../../../src/flow/record/page.mjs");
 const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { judgeAsk, judgeProblem, judgedAt } = await import("../../../src/flow/qa/verdicts.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");

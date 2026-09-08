@@ -5,11 +5,12 @@ import { FIELD_SAID } from "../ladder.mjs";
 
 const DAY = 86_400_000;
 
+const UNSET = "unset";
+
 /** The band the score weighs, off the complexity field and nothing else: the field's own value, so `l` and `xl` still score apart on a three-wide rung, and an issue holding none is scored as unset rather than as the rung it would fall to. */
-export const bandOf = (row) => {
-  const band = row?.complexity ? String(row.complexity) : null;
-  return band ? { band, from: FIELD_SAID } : { band: "unset", from: "no complexity on the tracker" };
-};
+export const bandOf = (row) => (row?.complexity ? String(row.complexity) : UNSET);
+
+export const bandSaid = (band) => (band === UNSET ? "no complexity on the tracker" : FIELD_SAID);
 
 /** Every issue this one holds up: blocking one that blocks three counts four, a cycle terminates on the visited set, and the walk stops at one that landed — what waited on it is free already. */
 export const chainOf = (key, blocks, alive) => {
@@ -30,19 +31,19 @@ const points = (table, name, fallback = 0) =>
 /** The total and its parts, `now` passed rather than read: age is the one weight a clock moves, and
  *  a case that could not fix the clock could not pin the order. */
 export const scoreOf = (row, { weights, chain = [], now = Date.now() }) => {
-  const { band, from } = bandOf(row);
+  const band = bandOf(row);
   const filed = Date.parse(row?.createdAt ?? "");
   const days = Number.isFinite(filed) ? Math.max(0, Math.floor((now - filed) / DAY)) : 0;
   const reopened = Number(row?.reopenCount ?? 0) || 0;
   const parts = [
     ["priority", String(row?.priority ?? "none"), points(weights.priority, row?.priority ?? "none")],
     ["kind", String(row?.category ?? "feature"), points(weights.kind, row?.category ?? "feature")],
-    ["band", `${band} (${from})`, points(weights.band, band, weights.band.unset)],
+    ["band", `${band} (${bandSaid(band)})`, points(weights.band, band, weights.band.unset)],
     ["age", `${days}d`, Math.min(days * weights.agePerDay, weights.ageCap)],
     ["reopened", `${reopened}`, reopened ? weights.reopened : 0],
     ["blocks", `${chain.length} chained`, chain.length * weights.blocks],
   ];
-  return { total: parts.reduce((sum, one) => sum + one[2], 0), parts, band, bandFrom: from, days, chain };
+  return { total: parts.reduce((sum, one) => sum + one[2], 0), parts, band, days, chain };
 };
 
 const filedAt = (row) => Date.parse(row?.createdAt ?? "") || Infinity;

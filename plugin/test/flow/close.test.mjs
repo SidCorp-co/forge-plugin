@@ -7,7 +7,7 @@ import test from "node:test";
 import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("close").path;
-const { render } = await import("../../src/flow/record/record.mjs");
+const { render } = await import("../../src/flow/record/page.mjs");
 const { CLOSES_FROM } = await import("../../src/flow/machine.mjs");
 const { CHECKS, nextOf, viewFrom } = await import("../../src/flow/earned.mjs");
 

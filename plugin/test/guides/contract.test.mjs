@@ -26,7 +26,7 @@ const {
 } = await import("../../src/guides/contract.mjs");
 const { CHECKS, ORDER, PHASE, viewFrom } = await import("../../src/flow/earned.mjs");
 const { LIGHTER, SPARES, TIERS, bandFor } = await import("../../src/ladder.mjs");
-const { render } = await import("../../src/flow/record/record.mjs");
+const { render } = await import("../../src/flow/record/page.mjs");
 
 const ROOT = new URL("../../../", import.meta.url).pathname;
 const PLUGIN = join(ROOT, "plugin");

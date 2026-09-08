@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { DEFAULTS } from "../../src/rank/weights.mjs";
-import { bandOf, chainOf, holdingKeys, ordered, scoreOf, takeableKeys } from "../../src/rank/score.mjs";
+import { bandOf, bandSaid, chainOf, holdingKeys, ordered, scoreOf, takeableKeys } from "../../src/rank/score.mjs";
 
 const NOW = Date.parse("2026-09-05T00:00:00.000Z");
 
@@ -53,7 +53,7 @@ test("the band's own weight moves the order, the five values ranking apart", () 
   const rows = BANDS.map((band, at) => row(`ISS-${at + 1}`, { complexity: band })).reverse();
   assert.deepEqual(rank(rows), ["ISS-1", "ISS-2", "ISS-3", "ISS-4", "ISS-5"],
     "the cheapest band first, and no two of the five sharing a weight");
-  assert.equal(bandOf(row("ISS-1", { complexity: "l" })).from, "the tracker's complexity",
+  assert.equal(bandSaid(bandOf(row("ISS-1", { complexity: "l" }))), "the tracker's complexity",
     "and what the report names as having decided is the field, in the words the CLI says it in");
 });
 
@@ -62,9 +62,10 @@ test("the band's own weight moves the order, the five values ranking apart", () 
    on the ladder while `forge advance --owed` held the run to a fix (ISS-394). */
 test("the field is the whole of the band, and a size named in a body moves nothing", () => {
   const marked = { description: "## Why\n\nA small thing.\n\nSize: fix.\n" };
-  assert.deepEqual([bandOf(row("ISS-1", marked)).band, bandOf(row("ISS-1", marked)).from],
+  const band = bandOf(row("ISS-1", marked));
+  assert.deepEqual([band, bandSaid(band)],
     ["unset", "no complexity on the tracker"], "a body naming a size is banded as an issue holding none");
-  assert.deepEqual(["xs", "s", "m", "l", "xl"].map((one) => bandOf(row("ISS-1", { complexity: one })).band),
+  assert.deepEqual(["xs", "s", "m", "l", "xl"].map((one) => bandOf(row("ISS-1", { complexity: one }))),
     ["xs", "s", "m", "l", "xl"], "and every one of the five is its own value, three rungs or not");
   const order = rank([row("ISS-2", { complexity: "s" }), row("ISS-1", { ...marked, complexity: "xs" })]);
   assert.deepEqual(order, ["ISS-1", "ISS-2"], "so an xs outranks an s whatever the body beside it claims");

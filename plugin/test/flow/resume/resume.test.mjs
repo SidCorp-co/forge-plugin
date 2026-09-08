@@ -12,7 +12,7 @@ import { tempHome } from "../../fixtures.mjs";
 
 const HOME = tempHome("resume");
 process.env.XDG_CONFIG_HOME = HOME.path;
-const { render } = await import("../../../src/flow/record/record.mjs");
+const { render } = await import("../../../src/flow/record/page.mjs");
 const { PHASE, ORDER, SIDE, methodOf, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { briefOf } = await import("../../../src/flow/brief.mjs");
 const { USAGE, edgeSaid } = await import("../../../src/flow/resume.mjs");

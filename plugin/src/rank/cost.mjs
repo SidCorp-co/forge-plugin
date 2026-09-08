@@ -29,7 +29,7 @@ export const costFor = (band, runs, bands) => {
 
 /* This and `lastLanded` below read the browse projection and the backlog the verb already holds, and never a checkout it may not be standing in: a body per past run is the fan-out this verb exists without. */
 export const bandsOf = (rows) =>
-  new Map(rows.map((row) => [row.issueId, bandOf(row).band]));
+  new Map(rows.map((row) => [row.issueId, bandOf(row)]));
 
 export const owesRestart = (body) => pathsNamed(body).some(freezesSession);
 

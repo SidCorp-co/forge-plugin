@@ -2,7 +2,7 @@
    which rung and this answers how to say it, and a report is where prose accumulates. Printed at
    every rung, a route nobody is shown being one they infer. */
 import {
-  FEATURE, LIGHTER, SPARES, TIERS, heightOf, resizeForm, sizeFrom, splits, tierOf,
+  FEATURE, FIELD_SAID, LIGHTER, SPARES, TIERS, heightOf, resizeForm, sizeFrom, splits, tierOf,
 } from "./ladder.mjs";
 import { looksTo, planFlags } from "./flow/machine.mjs";
 
@@ -15,9 +15,9 @@ const spareLines = (tier) => SPARES[tier].map((one, at) =>
   `  ${(at ? "" : "and fewer rounds").padEnd(WIDTH)}${one}`);
 
 /* Two sentences and no third: a rung something claimed, and an absence. A reader told it holds none learns what to set; one told a value learns which value the tier was read off, and neither has to be read as the other. */
-const markSaid = ({ rung, band, claimed }) =>
-  (claimed
-    ? `This issue is a \`${rung}\`: ${claimed} is \`${band}\``
+const markSaid = ({ rung, band }) =>
+  (band
+    ? `This issue is a \`${rung}\`: ${FIELD_SAID} is \`${band}\``
     : `This issue holds no complexity on the tracker, so it is a \`${FEATURE}\``);
 
 /* Advice and no demand: what a rung owes is the contract's, and asking is what the two largest

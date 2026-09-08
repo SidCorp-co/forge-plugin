@@ -2,29 +2,16 @@
    ladder-report.mjs. Out of `flow/` because three trees read it and a primitive each could declare
    drifts on one side (docs/cli/the-primitives.md). Smallest first, so an index is a height. What each rung is for and what it may not buy: `forge guide contract`; why a doubtful reading resolves upward, here and in every function below: docs/cli/the-ladder.md. */
 import { looksTo, planFlags } from "./flow/machine.mjs";
-import { withoutExamples } from "./markdown.mjs";
 
 export const TIERS = ["trivial", "fix", "feature"];
 const [TRIVIAL, FIX] = TIERS;
 export { FIX };
 export const FEATURE = TIERS.at(-1);
 
-/* One reader, hoisted: it is on the rank walk, where a regex per rung per call cost three compiles and three strips of one body, and `ASKS` keeps a body naming no size out of the strip at all. `MARK_LINE`, which strips rather than reads, matches a wider line than this does (ISS-407). */
-const MARKED = new RegExp(String.raw`^size:[ \t]*(${TIERS.join("|")})\.?[ \t]*$`, "gimu");
-const ASKS = /size:/iu;
-
 export const MARK_LINE = new RegExp(String.raw`^[ \t]*size:[ \t]*(?:${TIERS.join("|")})\.?[ \t]*$`, "gimu");
 
-
-/* `highest` is the heaviest of a list, the rule wherever two sources or two issues each claim a rung; the empty list is the caller's answer to give, since *no rung* is `null` to a body and a word of its own to a run. And null, not the top rung, is what a body carrying `Size: feature.` is told apart from by one carrying no mark. */
+/* `highest` is the heaviest of a list, the rule wherever two issues each claim a rung; the empty list is the caller's answer to give, since *no rung* is a word of its own to a run. */
 export const highest = (rungs) => TIERS[Math.max(...rungs.map(heightOf))];
-
-export const markedIn = (description) => {
-  const text = String(description ?? "");
-  if (!ASKS.test(text)) return null;
-  const found = [...withoutExamples(text).matchAll(MARKED)].map((one) => one[1].toLowerCase());
-  return found.length ? highest(found) : null;
-};
 
 export const heightOf = (tier) => Math.max(0, TIERS.indexOf(tier));
 
@@ -49,10 +36,10 @@ const BELOW_TOP = TIERS.filter((one) => belowTop(one));
 
 export const FIELD_SAID = "the tracker's complexity";
 
-/** The rung the complexity field claims, and the field named as what claimed it: one source, so a body carrying `Size: fix.` and no field reads as a `feature` by the upward rule rather than as a fix. `band` is the field's own value, kept beside the rung because three of the five share a rung and the rank scores them apart. */
+/** The rung the complexity field claims: one source, so a body carrying `Size: fix.` and no field reads as a `feature` by the upward rule rather than as a fix. `band` is the field's own value, null where it claims nothing, and kept beside the rung because three of the five share a rung and the rank scores them apart. */
 export const sizeFrom = ({ band = null } = {}) => {
   const rung = rungFrom(band);
-  return rung ? { rung, band, claimed: FIELD_SAID } : { rung: FEATURE, band: null, claimed: null };
+  return rung ? { rung, band } : { rung: FEATURE, band: null };
 };
 
 /* Judged on the pair: where it points alone would let `feature -> fix` raise a trivial. */

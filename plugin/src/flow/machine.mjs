@@ -400,7 +400,8 @@ export const PARKS = [
 /* The three parks that speak to a reviewer, who cannot answer without the thing to look at. One
    list, because the read-back judges a park a hand wrote by the same rule the write applies. */
 export const SHOWS_EVIDENCE = ["screen-review", "code-review", "destructive-migration"];
-export const VERDICTS = ["pass", "fail", "skipped"];
+export const FAIL = "fail";
+export const VERDICTS = ["pass", FAIL, "skipped"];
 export const SCOPES = ["whole", "part"];
 /* What the agent may rule a person's finding to be: the criterion asked the wrong thing, the
    criterion was not met, or nothing in the specification ever promised what the person expected. */
@@ -506,7 +507,7 @@ export const SHAPES = {
     check: (got) => {
       if (got.verdict === "skipped" && !got.why) return "--why, for a skipped check";
       /* A failing verdict is the one another run acts on, and one saying only `fail` sends them back to run it again to find out what. */
-      if (got.verdict === VERDICTS[1] && !got.why) return `--why, naming what the criterion did instead: a \`${VERDICTS[1]}\` is what another run acts on`;
+      if (got.verdict === FAIL && !got.why) return `--why, naming what the criterion did instead: a \`${FAIL}\` is what another run acts on`;
       if (OWES.verdict(got) && !got.evidence.length) return "--evidence (repeatable): a verdict with none is refused";
       return null;
     },

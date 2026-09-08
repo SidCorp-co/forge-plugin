@@ -8,7 +8,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { PHASES, methodOf } from "../../src/flow/earned.mjs";
-import { render } from "../../src/flow/record/record.mjs";
+import { render } from "../../src/flow/record/page.mjs";
 import {
   MARKERS, UNTIERED, WHOLE_SET_CLASS, callsIn, classOf, markerOf, shellOf, slugFor, tierRun,
 } from "../../src/stats/transcripts.mjs";

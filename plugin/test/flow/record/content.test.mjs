@@ -10,7 +10,7 @@ import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("content").path;
 const { DECISION_PARTS, decisionProblem, eachProblem, whereProblem } = await import("../../../src/flow/record/content.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
-const { parse, render } = await import("../../../src/flow/record/record.mjs");
+const { parse, render } = await import("../../../src/flow/record/page.mjs");
 const { shapeGaps } = await import("../../../src/flow/earned.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -115,30 +115,20 @@ test("a repeating field is judged value by value, and the first problem is the a
   assert.equal(eachProblem({ flag: "is" }, ["anything at all"]), null, "a field with no rule of its own judges nothing");
 });
 
-test("the verb refuses a where that names nothing, and writes no record for it", async () => {
-  state.calls = [];
-  const run = await recorded("confirmation", "ISS-95", "--where", "in the code", "--is", "a rung", "--finding", "holds");
-  assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /takes a path or an identifier/u);
-  assert.equal(posted(), 0, "and nothing went up: a refusal after the write would leave the record it refused");
-});
-
-test("the verb refuses a decision with no way back, and writes no record for it", async () => {
-  state.calls = [];
-  const run = await recorded("decision", "ISS-95", "--decision", "the field is the one source | nothing else sets it");
-  assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /three parts on one line/u);
-  assert.equal(posted(), 0);
-});
-
-test("the verb refuses a failing verdict that says nothing about what failed", async () => {
-  state.calls = [];
-  const run = await recorded("verdict", "ISS-95", "--criterion", "1",
-    "--verdict", "fail", "--commit", "c8c3550", "--evidence", "c8c3550");
-  assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /--why, naming what the criterion did instead/u);
-  assert.match(run.stderr, /is what another run acts on/u);
-  assert.equal(posted(), 0);
+/* The sentences are the rules' own, asserted above; what the verb adds is that the refusal comes
+   before the write, so nothing went up for a refusal after it to leave behind. */
+test("the verb refuses each of the three rules before the write, and writes no record for it", async () => {
+  const refused = [
+    ["confirmation", "ISS-95", "--where", "in the code", "--is", "a rung", "--finding", "holds"],
+    ["decision", "ISS-95", "--decision", "the field is the one source | nothing else sets it"],
+    ["verdict", "ISS-95", "--criterion", "1", "--verdict", "fail", "--commit", "c8c3550", "--evidence", "c8c3550"],
+  ];
+  for (const argv of refused) {
+    state.calls = [];
+    const run = await recorded(...argv);
+    assert.equal(run.status, 1, `${argv[0]}: ${run.stdout}`);
+    assert.equal(posted(), 0, `${argv[0]}: nothing went up, since a refusal after the write would leave the record it refused`);
+  }
 });
 
 /* The read-back side of the same three rules, through the call the entry checks make: a record typed

@@ -11,9 +11,9 @@ import { fakeTracker, ranAsync, tempRoom, typedPlan } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-");
 const {
-  KINDS, USAGE, assemble, checked, compoundRefused, criteriaLines, fromRecord, kindHelp, noteFrom,
-  parse, render, usage,
+  KINDS, USAGE, checked, compoundRefused, criteriaLines, fromRecord, kindHelp, noteFrom, usage,
 } = await import("../../../src/flow/record/record.mjs");
+const { assemble, parse, render } = await import("../../../src/flow/record/page.mjs");
 const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../../src/flow/machine.mjs");
 const { CONTRACT } = await import("../../../src/guides/contract.mjs");
 const { TWICE } = await import("../../../src/tracker/evidence.mjs");
