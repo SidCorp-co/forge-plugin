@@ -10,9 +10,9 @@ const RUN = /^(\S+) (\d+)s (\d+)\/(\d+)(?: load (\d+(?:\.\d+)?)\/(\d+))?$/u;
 
 export const PLANTS = "npm run check -- --full";
 
-/* The figure the last gate review measured with nothing else on the machine, and the ceiling is the
-   drift trigger applied to it; load on a run's own line is context, and never what it is judged by. */
-export const REVIEW = { seconds: 367, on: "2026-09-08", issue: "ISS-736" };
+/* The figure the last gate review measured and the one-minute load it measured under, and the ceiling
+   is the drift trigger applied to it; load on a run's own line is context, and never what it is judged by. */
+export const REVIEW = { seconds: 211, load: 10.3, cores: 6, on: "2026-09-08", issue: "ISS-736" };
 export const ceilingOf = (review) => Math.round(review.seconds * 1.25);
 export const CEILING_SECONDS = ceilingOf(REVIEW);
 
@@ -59,7 +59,7 @@ const changeFrom = (newest, before) => before.seconds > 0
   : `${newest.seconds}s more than the one before it, which took under a second, so there is no ratio`;
 
 const reviewed = (now, review) => `${(now.seconds / review.seconds).toFixed(2)}x the ${review.seconds}s the review of `
-  + `${review.on} measured (${review.issue})`
+  + `${review.on} measured under load ${review.load} on ${review.cores} core(s) (${review.issue})`
   + (now.seconds > ceilingOf(review) ? `, over the ceiling of ${ceilingOf(review)}s that review set` : "");
 
 // Over the same table: a gate that gained a step is another gate, and the arithmetic would report the addition as drift.

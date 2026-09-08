@@ -56,9 +56,9 @@ no others, however many scoped runs sit between them. A scoped figure is printed
 subtracted. This says what it recorded; the release is the one place that prints the change.
 
 Each line also carries the machine's one-minute load and its core count when the run started, as
-context and never as proof: the figure a run is judged against is the one the last gate review measured
-on an idle machine — ${REVIEW.seconds}s on ${REVIEW.on} (${REVIEW.issue}) — and a whole run over the
-ceiling that review set, ${CEILING_SECONDS}s, is said to be. Beside the runs, a test step leaves
+context and never as proof: the figure a run is judged against is the one the last gate review measured,
+said with the load it measured under — ${REVIEW.seconds}s on ${REVIEW.on} (${REVIEW.issue}) — and a whole run
+over the ceiling that review set, ${CEILING_SECONDS}s, is said to be. Beside the runs, a test step leaves
 <label>-files: one line per test file with the seconds node measured on it, longest first, which is
 what the next review reads the suite's growth off.
 

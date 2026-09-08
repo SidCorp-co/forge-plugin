@@ -13,7 +13,7 @@ const HOME = tempHome("comments");
 mkdirSync(join(HOME.path, "forge"), { recursive: true });
 writeFileSync(
   join(HOME.path, "forge", "config.json"),
-  JSON.stringify({ url: "https://stub.example/mcp", token: "t" }),
+  JSON.stringify({ url: "https://stub.example/mcp", token: "t", retrySeconds: 0 }),
 );
 process.env.XDG_CONFIG_HOME = HOME.path;
 process.env.FORGE_SESSION_ID = "session-one";

@@ -496,7 +496,7 @@ test("the last step prints the newest whole-run figure beside the volume count, 
   writeFileSync(join(dir, "runs"), "2026-01-01T00:00:00.000Z 80s 12/12\n2026-01-02T00:00:00.000Z 100s 12/12\n");
   const said = lastStep(work);
   assert.match(said.stdout, new RegExp(`the gate: 100s over 12 of 12 step\\(s\\) on 2026-01-02, \\d\\.\\d\\dx the ${REVIEW.seconds}s the review of `
-    + `${REVIEW.on} measured \\(${REVIEW.issue}\\); 1\\.25x the 80s before it`, "u"), said.stdout);
+    + `${REVIEW.on} measured under load ${REVIEW.load} on ${REVIEW.cores} core\\(s\\) \\(${REVIEW.issue}\\); 1\\.25x the 80s before it`, "u"), said.stdout);
 
   const lines = said.stdout.split("\n");
   const figure = lines.findIndex((one) => one.includes("the gate: 100s"));

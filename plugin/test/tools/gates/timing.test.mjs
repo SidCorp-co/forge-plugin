@@ -20,7 +20,7 @@ const planted = (lines) => {
 
 const FULL = "2026-01-01T00:00:00.000Z 80s 12/12";
 // A review figure planted beside the runs, so what these cases pin is the arithmetic and not this repository's number.
-const REVIEWED = { seconds: 400, on: "2025-12-01", issue: "ISS-0" };
+const REVIEWED = { seconds: 400, load: 0.2, cores: 8, on: "2025-12-01", issue: "ISS-0" };
 const says = (lines) => runSays(planted(lines), REVIEWED);
 
 test("a figure is compared only with a whole-gate figure, and what is comparable is always named", () => {
@@ -29,12 +29,12 @@ test("a figure is compared only with a whole-gate figure, and what is comparable
 
   // The shape this repository produces: scoped ship-gate runs between the full ones, which the newest two *runs* would never subtract across.
   const apart = says([FULL, "2026-01-02T00:00:00.000Z 9s 3/12", "2026-01-03T00:00:00.000Z 100s 12/12"]);
-  assert.match(apart, /100s over 12 of 12 step\(s\) on 2026-01-03, 0\.25x the 400s the review of 2025-12-01 measured \(ISS-0\); 1\.25x the 80s before it/u,
+  assert.match(apart, /100s over 12 of 12 step\(s\) on 2026-01-03, 0\.25x the 400s the review of 2025-12-01 measured under load 0\.2 on 8 core\(s\) \(ISS-0\); 1\.25x the 80s before it/u,
     `two whole-gate figures with a scoped run between them were not subtracted:\n${apart}`);
 
   const scoped = says([FULL, "2026-01-03T00:00:00.000Z 9s 3/12"]);
   assert.match(scoped, /^9s over 3 of 12 step\(s\) on 2026-01-03, which is scoped and measures less/u, scoped);
-  assert.match(scoped, /the whole gate last took 80s over 12 of 12 step\(s\) on 2026-01-01, 0\.20x the 400s the review of 2025-12-01 measured \(ISS-0\); the only whole-gate figure recorded/u,
+  assert.match(scoped, /the whole gate last took 80s over 12 of 12 step\(s\) on 2026-01-01, 0\.20x the 400s the review of 2025-12-01 measured under load 0\.2 on 8 core\(s\) \(ISS-0\); the only whole-gate figure recorded/u,
     `a scoped run that names no comparable figure leaves the reader to assume one:\n${scoped}`);
 
   const first = says(["2026-01-04T00:00:00.000Z 9s 3/12"]);
@@ -55,19 +55,19 @@ test("a figure is compared only with a whole-gate figure, and what is comparable
     /3s more than the one before it, which took under a second, so there is no ratio/u);
 });
 
-/* The load on a run's line is context; the review figure, measured with nothing else running, is what a
-   regression shows against — a rolling baseline taken under load would read it as an improvement (ISS-736). */
+/* The load on a run's line is context; the review figure, said with the load it was measured under, is
+   what a regression shows against — a rolling baseline taken under load would read it as an improvement (ISS-736). */
 test("a regression against the review figure is said even when the run before it was slower under load", () => {
-  const review = { seconds: 60, on: "2026-09-01", issue: "ISS-1" };
+  const review = { seconds: 60, load: 1.1, cores: 6, on: "2026-09-01", issue: "ISS-1" };
   const said = runSays(planted(["2026-09-08T08:00:00.000Z 100s 14/14 load 9.00/6", "2026-09-08T09:00:00.000Z 90s 14/14 load 0.50/6"]), review);
-  assert.equal(said, "90s over 14 of 14 step(s) on 2026-09-08, load 0.5 on 6 core(s), 1.50x the 60s the review of 2026-09-01 measured (ISS-1), "
+  assert.equal(said, "90s over 14 of 14 step(s) on 2026-09-08, load 0.5 on 6 core(s), 1.50x the 60s the review of 2026-09-01 measured under load 1.1 on 6 core(s) (ISS-1), "
     + "over the ceiling of 75s that review set; 0.90x the 100s before it (its line said load 9.00/6)");
 });
 
 test("under the ceiling nothing is said about it, and a line from before the load clause compares without one", () => {
-  const review = { seconds: 100, on: "2026-09-01", issue: "ISS-1" };
+  const review = { seconds: 100, load: 1.1, cores: 6, on: "2026-09-01", issue: "ISS-1" };
   const said = runSays(planted(["2026-09-04T18:05:41.583Z 69s 14/14", "2026-09-08T09:00:00.000Z 80s 14/14 load 0.50/6"]), review);
-  assert.equal(said, "80s over 14 of 14 step(s) on 2026-09-08, load 0.5 on 6 core(s), 0.80x the 100s the review of 2026-09-01 measured (ISS-1); 1.16x the 69s before it");
+  assert.equal(said, "80s over 14 of 14 step(s) on 2026-09-08, load 0.5 on 6 core(s), 0.80x the 100s the review of 2026-09-01 measured under load 1.1 on 6 core(s) (ISS-1); 1.16x the 69s before it");
   assert.equal(ceilingOf({ seconds: 100 }), 125);
   assert.equal(CEILING_SECONDS, Math.round(REVIEW.seconds * 1.25), "the ceiling is the drift trigger applied to the review figure");
 });
