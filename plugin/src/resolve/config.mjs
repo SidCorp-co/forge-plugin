@@ -45,11 +45,10 @@ export const readJson = (path) => {
 
 export const userConfig = once(() => readJson(configPath()) ?? {});
 
-/* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. */
-/* The temporary name carries the writer's pid: two processes sharing one would interleave a file
-   the survivor then renames into place. */
-/* A writer killed between the open and the rename leaves its temp file behind, and the pid in the name
-   means nothing reuses it. Swept on the next write, since nothing else here runs to clean up. */
+/* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. The
+   temporary name carries the writer's pid: two processes sharing one would interleave a file the
+   survivor then renames into place, and a writer killed before its rename leaves a file nothing
+   reuses. The next write sweeps it, there being nothing else here that runs to clean up. */
 const STRANDED_MS = 60_000;
 
 const sweepStranded = (path) => {
@@ -163,4 +162,12 @@ export const sessionOf = () => {
     /* An id that cannot be saved is a holder for this process alone, never a failed call. */
   }
   return minted;
+};
+
+export const MINTED = "minted";
+
+/* The id a write goes under and where it came from, in one answer, and the one source no row above reads: `sessionOf` saves what it mints, so a source asked for after it would say `saved` about an id that did not exist a call earlier. */
+export const sessionWriting = () => {
+  const held = sessionSourced();
+  return held.id ? { id: held.id, source: held.source } : { id: sessionOf(), source: MINTED };
 };

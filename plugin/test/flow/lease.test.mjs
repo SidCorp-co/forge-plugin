@@ -15,9 +15,11 @@ process.env.CLAUDE_PID = "4242";
 const {
   ADVISORY, MINUTES, RECLAIMS_BEFORE_PARK, SHARED_HOLDER, agentOf, canonical, claimRefusal, claimed,
   describe, expiryOf, historyLine, leaseOf, nextLine, parksAsCrashed, pidOf, reclaimsOf,
-  sharedHolder, stateOf, writeRefusal,
+  sharedHolder, stateOf, writeRefusal, writtenBy,
 } = await import("../../src/flow/lease.mjs");
-const { sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced } = await import("../../src/resolve/config.mjs");
+const {
+  MINTED, sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced, sessionWriting,
+} = await import("../../src/resolve/config.mjs");
 const { sessionKey } = await import("../../src/tracker/comments.mjs");
 const { retryOf } = await import("../../src/tracker/rpc.mjs");
 const { ROUTES } = await import("../../src/tracker/rest.mjs");
@@ -285,6 +287,27 @@ test("each source of the holder is named, and naming it changes no holder", () =
     assert.equal(sessionKey({ session_id: "the-event" }), harness || asked ? want : "the-event",
       "and the event is a row of the same table rather than a fourth source beside it");
   }
+  Object.assign(process.env, env);
+});
+
+/* What a payload's `written` field is filled from, in one read of the session: `sessionOf` saves
+   what it mints, so a source asked for after it would say `saved` about an id that did not exist a
+   call earlier, and a record would claim a run was resumed where it was invented (ISS-705). */
+test("a written field is filled from the id and its source together, and a minted id says so", () => {
+  const env = { ...process.env };
+  process.env.XDG_CONFIG_HOME = tempHome("writing-pair").path;
+  delete process.env.CLAUDE_CODE_SESSION_ID;
+  process.env.FORGE_SESSION_ID = "asked-for";
+  assert.deepEqual(sessionWriting(), { id: "asked-for", source: "asked" });
+  const shape = { fields: [{ flag: "judge", written: "id" }, { flag: "judge-from", written: "source" }, { flag: "why" }] };
+  assert.deepEqual(writtenBy(shape), { judge: "asked-for", "judge-from": "asked" },
+    "each field taking the half its marker names, and a field with no marker filled by no session");
+  delete process.env.FORGE_SESSION_ID;
+  const minted = sessionWriting();
+  assert.match(minted.id, /^machine-/u, "with nothing held at all, the mint answers");
+  assert.equal(minted.source, MINTED, "as the mint rather than as the file it went on to write");
+  assert.deepEqual(sessionWriting(), { id: minted.id, source: "saved" },
+    "which is what the call after it reads, that file now being where the id is held");
   Object.assign(process.env, env);
 });
 

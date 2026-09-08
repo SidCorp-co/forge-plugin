@@ -1,6 +1,6 @@
 /* The issue's session field read as a lease, and what a build ready to land leaves beside it. The
    tracker has no conditional write (ISS-7), so a write is a read-back compare. docs/cli/claim.md. */
-import { INHERITED, INHERITED_MEANS, OWN_ID, sessionOf, sessionSourced } from "../resolve/config.mjs";
+import { INHERITED, INHERITED_MEANS, OWN_ID, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { writeField } from "../tracker/field-write.mjs";
@@ -31,9 +31,11 @@ const UNKNOWN = "unknown";
 export const agentOf = () => process.env.AI_AGENT || UNKNOWN;
 export const pidOf = () => process.env.CLAUDE_PID || UNKNOWN;
 
-/* A shape's `written` field is filled from the session here and refused as a flag where the payload is gathered, for the reason `claimed` below states. Here, beside the other two the environment answers for. */
-export const writtenBy = (shape) =>
-  Object.fromEntries(shape.fields.filter((one) => one.written).map((one) => [one.flag, sessionOf()]));
+/* A shape's `written` field is filled from the session here and refused as a flag where the payload is gathered, for the reason `claimed` below states. Here, beside the other two the environment answers for. The marker names which half of the writing session the field takes, because an id says nothing about whether it is a run's own (ISS-705). */
+export const writtenBy = (shape) => {
+  const writing = sessionWriting();
+  return Object.fromEntries(shape.fields.filter((one) => one.written).map((one) => [one.flag, writing[one.written]]));
+};
 
 export const nextLine = (given, flag = "--next") => {
   if (given === undefined) return undefined;

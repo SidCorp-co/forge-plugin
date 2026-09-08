@@ -93,22 +93,22 @@ record are the same code.
 
 `pipelineConfig.qa` takes `independent`: the run that wrote the change may not be the run that says
 it works. Nothing here tells two agents apart by watching them, so the claim goes on the record.
-`forge record verdict` writes the writer's session id as a `judge:` line, off the session the CLI
-resolved and never off a flag — `--judge` is refused, for the reason the lease's holder is read
-rather than passed. Declared on the shape so the read keeps it, and `newer` for the reason `--scope`
-is below.
+`forge record verdict` writes the writer's session id as a `judge:` line and where that id came from
+as `judge-from:`, off the session the CLI resolved and never off a flag — `--judge` is refused, for
+the reason the lease's holder is read rather than passed. Declared on the shape so the read keeps
+them, and `newer` for the reason `--scope` is below.
 
-`tested` reads each standing verdict against the landing checkpoint, the only thing on the record
-naming both the builder and what the deployment reported running. The builder's own id is the case
-the project asked about. *No* judge is refused too, and is not read as the builder's: `judge` is
-excused at the read-back, so a verdict without one is a whole payload by every other reading and a
-check comparing only ids would pass it in silence. Two runs sharing a session id compare equal and
-it refuses — the answer, not a miss: nothing there tells those runs apart either.
+`tested` reads each standing verdict against the landing checkpoint, the only record naming both the
+builder and what the deployment reported running. The builder's own id is the case the project asked
+about. *No* judge is refused too, and is not read as the builder's: `judge` is excused at the
+read-back, so a check comparing only ids would pass it in silence. An id a run inherited is refused
+however it compares — two ids that differ are two runs only where each is a run's own — naming the
+wave that dispatched it and no run in it; one with no source at all is judged as it was written.
 
-The third way is the one worth the argument. A verdict cites the deployment identity off its
-evidence, never off its commit: under route after-merge that identity *is* the merged head, which
-every verdict already carries in the commit slot, so a commit read would pass an ordinary builder
-verdict by accident. The same sha in the slot that means something else is a coincidence.
+The last is the one worth the argument. A verdict cites the deployment identity off its evidence,
+never off its commit: under route after-merge that identity *is* the merged head, which every verdict
+already carries in the commit slot, so a commit read would pass an ordinary builder verdict by
+accident.
 
 Inverted, the reading is what a promotion spends: a candidate whose base or batch moved is deployed
 again under a new identity, so verdicts citing the old one judged what is no longer there and are

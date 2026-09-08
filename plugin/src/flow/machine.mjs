@@ -402,6 +402,7 @@ export const PARKS = [
 export const SHOWS_EVIDENCE = ["screen-review", "code-review", "destructive-migration"];
 export const FAIL = "fail";
 export const VERDICTS = ["pass", FAIL, "skipped"];
+export const JUDGE_FROM = "judge-from";
 export const SCOPES = ["whole", "part"];
 /* What the agent may rule a person's finding to be: the criterion asked the wrong thing, the
    criterion was not met, or nothing in the specification ever promised what the person expected. */
@@ -502,7 +503,8 @@ export const SHAPES = {
       FIELD("commit", "Commit", { commit: true }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
       FIELD("why", "Why", { optional: true }),
-      FIELD("judge", "Judge", { written: true, newer: true }),
+      FIELD("judge", "Judge", { written: "id", newer: true }),
+      FIELD(JUDGE_FROM, "Judge id from", { written: "source", newer: true }),
     ],
     check: (got) => {
       if (got.verdict === "skipped" && !got.why) return "--why, for a skipped check";

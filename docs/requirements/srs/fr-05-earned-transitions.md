@@ -340,6 +340,14 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
 - **AC-05-11-4** · Rev: 1 · Proof: none yet — ISS-673
   WHERE the route verifies before the merge, a candidate whose base or batch changed after its
   judgement SHALL be refused promotion naming the judgement as void.
+- **AC-05-11-7** · Rev: 1 · Proof: plugin/test/flow/verdicts/judge.test.mjs "a run holding only the dispatching session's id records the judge as inherited"
+  WHEN a verdict is written THEN the record SHALL carry where the writer's identity came from beside
+  the identity itself, because two identities that differ are two actors only where each is its
+  own actor's.
+- **AC-05-11-8** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "a verdict whose judge id was inherited earns nothing, however that id compares with the builder's"
+  WHERE the project's record asks for an independent judgement, IF a standing verdict's identity was
+  inherited from the session that dispatched the run THEN the CLI SHALL refuse `tested` naming the
+  environment variable that gives a run an identity of its own.
 
 ## Business rules enforced
 

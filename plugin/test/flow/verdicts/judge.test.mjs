@@ -9,7 +9,7 @@ import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-judge").path;
 const { assemble, parseAll, render } = await import("../../../src/flow/record/page.mjs");
-const { SHAPES } = await import("../../../src/flow/machine.mjs");
+const { JUDGE_FROM, SHAPES } = await import("../../../src/flow/machine.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const COMMIT = "43b811e";
@@ -26,12 +26,28 @@ test("the judge is a declared field, so a rendered verdict reads back carrying i
   const held = SHAPES.verdict.fields.find((one) => one.flag === "judge");
   assert.ok(held, "SHAPES.verdict declares judge");
   assert.notEqual(held.derived, true, "declared and not derived: a derived field is dropped on the way back");
-  assert.equal(held.written, true, "and written by the CLI, so no caller flag reaches it");
+  assert.equal(held.written, "id", "and written by the CLI off the session it resolved, so no caller flag reaches it");
   assert.equal(held.newer, true, "and excused at the read-back, or every verdict older than the field reads as a gap");
   const body = render("verdict", [verdictOf(1, { judge: JUDGE }), verdictOf(2, { judge: JUDGE })]);
   assert.equal(body.match(/^judge: /gmu).length, 2, `a line per block:\n${body}`);
   assert.deepEqual(parseAll(body).map((one) => one.fields.judge), [JUDGE, JUDGE],
     "and each block reads back naming its judge");
+});
+
+/* The id alone is a string two runs can share, so where it came from is the other half of the claim
+   and is declared beside it: the write has the source and threw it away, and a reader of the record
+   could not tell an id a run chose from one a whole wave carries (ISS-705). */
+test("where the judge id came from is a declared field too, and reads back beside the id", () => {
+  const held = SHAPES.verdict.fields.find((one) => one.flag === JUDGE_FROM);
+  assert.ok(held, `SHAPES.verdict declares ${JUDGE_FROM}`);
+  assert.equal(held.written, "source", "written off the same session read as the id, and by no flag");
+  assert.equal(held.newer, true, "and excused at the read-back, every verdict on the tracker predating it");
+  const body = render("verdict", [verdictOf(1, { judge: JUDGE, [JUDGE_FROM]: "asked" })]);
+  assert.match(body, /^judge-from: asked$/mu, `beside the id it qualifies:\n${body}`);
+  assert.equal(parseAll(body)[0].fields[JUDGE_FROM], "asked", "and the read the entry checks weigh keeps it");
+  const older = render("verdict", [verdictOf(1, { judge: JUDGE })]);
+  assert.equal(parseAll(older)[0].fields[JUDGE_FROM], undefined,
+    "while a verdict written before the field reads back without it rather than as some default");
 });
 
 test("the assembled view of an issue's verdicts keeps the judge on each", () => {
@@ -114,4 +130,31 @@ test("--judge is refused rather than dropped, so no writer names another run as 
   const offered = /^ {2}verdict\s+(.*)$/mu.exec(run.stderr)[1].match(/--[a-z]+/gu);
   assert.deepEqual(offered, ["--criterion", "--verdict", "--commit", "--evidence", "--why"]);
   assert.doesNotMatch(run.stderr, /--judge\b(?!\.)/u, "and the flag it refused is not offered back");
+});
+
+test("--judge-from is refused too, the source being read off the session like the id it qualifies", async () => {
+  const run = await ask("record", "verdict", "ISS-7", "--evidence", COMMIT, "--verdict", "pass",
+    "--criterion", "1", `--${JUDGE_FROM}`, "asked");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, new RegExp(`No record verdict flag named --${JUDGE_FROM}\\.`, "u"), run.stderr);
+});
+
+/* The value the CLI resolved rather than one a fixture handed it, and the case ISS-705 is about: a
+   run given no id of its own writes under the id every agent of that wave carries, which differs
+   from the builder's and names none of them. */
+test("a run holding only the dispatching session's id records the judge as inherited", async () => {
+  judging.sessionContext.lease.renewedAt = "2026-09-07T09:00:00.000Z";
+  const wave = { ...env, CLAUDE_CODE_SESSION_ID: "the-whole-wave" };
+  delete wave.FORGE_SESSION_ID;
+  const asWave = (...argv) => ranAsync(FORGE, argv, wave);
+  await asWave("claim", "ISS-7");
+  assert.equal((await asWave("claim", "ISS-7")).status, 0, "the lapsed lease is the next run's to reclaim");
+  const run = await asWave("record", "verdict", "ISS-7", "--evidence", COMMIT, "--verdict", "pass",
+    "--criterion", "1");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^judge: the-whole-wave$/mu, run.stdout);
+  assert.match(run.stdout, /^judge-from: inherited$/mu, `and where that id came from:\n${run.stdout}`);
+  const stored = parseAll(state.comments["judging-uuid"].at(-1).body)[0].fields;
+  assert.deepEqual([stored.judge, stored[JUDGE_FROM]], ["the-whole-wave", "inherited"],
+    "which is what the tracker holds, the pair being no use if either half is the run's memory");
 });

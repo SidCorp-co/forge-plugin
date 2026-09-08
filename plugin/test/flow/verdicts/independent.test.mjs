@@ -12,6 +12,7 @@ import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { JUDGE_FROM } = await import("../../../src/flow/machine.mjs");
 const { judgeAsk, judgeProblem, judgedAt } = await import("../../../src/flow/qa/verdicts.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
 
@@ -19,6 +20,7 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const BUILDER = "the-builder-session";
 const QA = "the-qa-session";
 const LANDER = "the-lander-session";
+const WAVE = "the-dispatching-session";
 const MERGED = "c8c35500000000000000000000000000000000ab";
 const DEPLOYED = "9e24c2af00000000000000000000000000000cde";
 const MOVED = "3cd76450000000000000000000000000000000ef";
@@ -170,6 +172,28 @@ test("a project that asked for no judge has nothing for a void to name", () => {
     "and on a project with no QA at all a resumed builder's verdicts are not a judgement to lose");
   assert.deepEqual(judgedAt(moved, view.verdicts, null), [],
     "nor on one whose config did not answer, which is read as having decided nothing");
+});
+
+/* The gap ISS-673 left and this closes: an id a run inherited names the session that dispatched a
+   whole wave, so it differs from the builder's and a reading comparing only ids called that a second
+   judge. The verdict is honest about who wrote it and still proves nothing about who judged. */
+test("a verdict whose judge id was inherited earns nothing, however that id compares with the builder's", () => {
+  const said = items([verdictOf(1, { judge: WAVE, [JUDGE_FROM]: "inherited" }), verdictOf(2)]);
+  assert.equal(said.length, 1, `one item, for the one verdict that proves no second judge: ${said.map((one) => one.what)}`);
+  assert.match(said[0].what, /carries the judge id `the-dispatching-session`/u, said[0].what);
+  assert.match(said[0].what, /names a wave and not a run/u, "in the words the lease already keeps");
+  assert.match(said[0].what, /FORGE_SESSION_ID/u, "naming what to set, or the role re-runs it unchanged");
+  assert.match(said[0].command, /^FORGE_SESSION_ID=\S+ forge record verdict ISS-8 /u,
+    "and the write that answers it is granted an id, which is the whole of what the item asks for");
+  assert.deepEqual(owed([verdictOf(1, { judge: WAVE }), verdictOf(2)]), [],
+    "while the same id with no source beside it is judged by the rule it was written under");
+});
+
+test("a void names no verdict whose judge id was inherited, that verdict never having stood", () => {
+  const held = [verdictOf(1, { judge: WAVE, [JUDGE_FROM]: "inherited" }), verdictOf(2)];
+  const view = viewFrom("the-uuid", issueOf(), [mark(), comment(render("verdict", held))], null, INDEPENDENT);
+  assert.deepEqual(judgedAt(CHECKPOINT, view.verdicts, INDEPENDENT), [2],
+    "the one a run of its own judged is what the void gives up, and the other was void before it");
 });
 
 test("the problem a verdict has is one reading, so a caller outside the check reads the same answer", () => {

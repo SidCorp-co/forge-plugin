@@ -380,7 +380,7 @@ const shownOwed = (view, ref) => {
 };
 
 const judgeOwed = (view, ref) => judgeProblems(view)
-  .map(({ number, why }) => need(`the verdict on criterion ${number} ${why}`, judgeAsk(ref, number, view.landing)));
+  .map(({ number, why, held }) => need(`the verdict on criterion ${number} ${why}`, judgeAsk(ref, number, view.landing, held)));
 
 export const verificationForm = (ref, commit, evidence, tail = "") =>
   `forge record verification ${ref} --where "<where it runs>" --commit ${commit} `
