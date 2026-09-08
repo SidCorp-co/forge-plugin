@@ -224,7 +224,7 @@ if (existsSync(join(room, "forge-refuses"))) {
 }
 const rows = join(room, "forge-rows.txt");
 const STATUS_AT = 2;
-if (argv[0] === "issues") {
+if (argv[0] === "issue" && (argv[1] === undefined || argv[1].startsWith("--"))) {
   const want = argv.includes("--status") ? argv[argv.indexOf("--status") + 1] : null;
   const all = (existsSync(rows) ? readFileSync(rows, "utf8") : "").split("\\n").filter(Boolean);
   const kept = want ? all.filter((line) => line.trim().split(/\\s+/)[STATUS_AT] === want) : all;
@@ -254,7 +254,7 @@ if (argv[0] === "issue") {
   process.stdout.write(JSON.stringify(shape, null, 2));
   process.exit(0);
 }
-if (argv[0] === "record" && argv[1] === "report") {
+if (argv[0] === "resume" && argv.includes("--report")) {
   const page = join(room, "forge-record-page");
   process.stdout.write(existsSync(page) ? readFileSync(page, "utf8") : "Every criterion has a verdict.");
   process.exit(0);
@@ -263,7 +263,7 @@ if (existsSync(join(room, "forge-collides"))) {
   process.stderr.write("Hold — this files an issue the flow cannot carry.\\n\\n"
     + "- read: " + process.argv[1] + " read the body\\n"
     + "- read: the title of this filing, against ISS-135, overlapping at 1.00\\n"
-    + "  clear: forge new <body> --title T --into ISS-135\\n");
+    + "  clear: forge comment ISS-135 <body> --title T\\n");
   process.exit(1);
 }
 if (existsSync(join(room, "forge-shape-refuses"))) {

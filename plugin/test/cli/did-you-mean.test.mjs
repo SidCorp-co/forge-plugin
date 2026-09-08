@@ -12,7 +12,7 @@ import { RETIRED } from "../../src/checks/retired-names.mjs";
 import { USAGE as CLAIM } from "../../src/flow/claim.mjs";
 import { SAYS as CODEX } from "../../src/codex/codex.mjs";
 import { kindUsage } from "../../src/resolve/record-rows.mjs";
-import { RETIRING } from "../../src/resolve/retiring.mjs";
+import { retiredFlagIn, retiredRefusal } from "../../src/resolve/retiring.mjs";
 import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
 import { FLAG_WORD, flags, flagsNamed, partition, pullRepeated, unknownFlag } from "../../src/resolve/flags.mjs";
 import { bodyFrom, notABody } from "../../src/resolve/payload.mjs";
@@ -301,30 +301,31 @@ test("an unserved action on a served tool is not offered the tool it already nam
    verbs gets one release of the line, in front of the did-you-mean, so an agent that learned the
    losing name types the winning one next rather than reading a near miss (ISS-348). The window and
    what closes it: docs/cli/withholding-a-verb.md. */
-const RETIRED_CALL = {
-  plan: ["plan", "ISS-1", "plan.md"],
-  "new --into": ["new", "body.md", "--into", "ISS-1"],
-};
+const WINDOW = [{ typed: "sweep", release: "3.36.0", verb: "new", flag: "--sweep", instead: "forge attach <issue> <file>" }];
 
-test("a retiring name is refused with the verb to type, and nothing else", async () => {
-  for (const { typed, instead } of RETIRING) {
-    const argv = RETIRED_CALL[typed];
-    assert.ok(argv, `${typed} is a retiring row nothing here types, so its refusal is unproven`);
-    const run = await ran(...argv);
-    assert.equal(run.status, 1, `forge ${typed}: ${run.stdout}`);
-    assert.match(run.stderr, new RegExp(`^\`forge ${typed}\` is retired`, "mu"));
-    assert.ok(run.stderr.includes(instead), `the line names no verb to type: ${run.stderr}`);
-    assert.doesNotMatch(run.stderr, /Did you mean/u, "a retirement is answered before the near miss");
-    assert.doesNotMatch(run.stderr, /ENOENT|No Forge endpoint/u, "and before anything was read or resolved");
-  }
+/* The registry is empty between retirements, which is most of the time, so the rule is watched against a row of its own and both entry points read it. */
+test("a retiring name is refused with the verb to type, and nothing else", () => {
+  const [row] = WINDOW;
+  const said = retiredRefusal(row.typed, WINDOW);
+  assert.match(said, new RegExp(`^\`forge ${row.typed}\` is retired`, "mu"));
+  assert.ok(said.includes(row.instead), `the line names no verb to type: ${said}`);
+  assert.doesNotMatch(said, /Did you mean/u, "a retirement is answered before the near miss");
+  assert.equal(retiredRefusal("attach", WINDOW), null, "and a live name is not answered with a row");
+  assert.equal(retiredFlagIn("new", ["--sweep", "ISS-1"], WINDOW), said, "the flag half prints the same line");
+  assert.equal(retiredFlagIn("comment", ["--sweep"], WINDOW), null, "on the verb the row names and no other");
 });
 
-/* `-h` on a retired name is the same question: an agent asking what a verb that is gone takes has spent the turn, and a usage line for it spends another. */
-test("asking a retiring verb what it takes gets the retirement, not a usage line", async () => {
-  const run = await ran("plan", "-h");
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /^`forge plan` is retired/mu);
-  assert.doesNotMatch(run.stderr, /Usage: forge plan/u);
+/* What closing the window buys: a name past its release gets what a name that never existed gets (ISS-704). */
+test("a name whose window has closed is answered as any unknown one", async () => {
+  for (const { name } of RETIRED.filter((one) => one.kind === "verb" && one.release === "3.35.211")) {
+    for (const argv of [[name, "ISS-1", "body.md"], [name, "-h"]]) {
+      const run = await ran(...argv);
+      assert.equal(run.status, 1, `forge ${argv.join(" ")}: ${run.stdout}`);
+      assert.doesNotMatch(run.stderr, /is retired/u, "a closed window leaves no line behind");
+      assert.match(run.stderr, new RegExp(`^No verb named ${name}\\.`, "mu"), run.stderr);
+      assert.doesNotMatch(run.stderr, new RegExp(`Usage: forge ${name}`, "u"), "and no usage for it either");
+    }
+  }
 });
 
 test("a synonym typed at the CLI answers with the one verb, on the real dispatcher", async () => {

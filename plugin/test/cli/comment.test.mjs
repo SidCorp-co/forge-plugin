@@ -1,6 +1,6 @@
-/* One verb for one write. `forge comment` took over what `forge new --into` did, so the lease on the
-   record and not the verb typed decides what a post renews — and the reply says which, because a
-   caller who thought they held the issue learns it here or not at all (ISS-348). */
+/* One verb for one write, and this is the write: the lease on the record and not the verb typed
+   decides what a post renews — and the reply says which, because a caller who thought they held the
+   issue learns it here or not at all (ISS-348). */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { writeFileSync } from "node:fs";
@@ -79,7 +79,7 @@ test("a comment is posted, and its body is the file's own where no title is give
   assert.equal(lastComment().body.trim(), BODY, "no heading is framed over a body nobody titled");
 });
 
-test("--title frames the title as a heading over the body, which is what --into did", async () => {
+test("--title frames the title as a heading over the body", async () => {
   heldBy(null);
   const run = await posted(MINE, "--title", "What the finder had nowhere to put");
   assert.equal(run.status, 0, run.stderr);
@@ -95,8 +95,8 @@ test("a holder's post renews the lease, and the reply says it did", async () => 
   assert.notEqual(renewedAt(), before, "and the window started again");
 });
 
-/* The half `forge comment` refused before this issue and `forge new --into` did instead: a finding
-   on an issue somebody else is working is still a finding, and it claims nothing. */
+/* The half this verb refused before ISS-348 and the losing verb did instead: a finding on an issue
+   somebody else is working is still a finding, and it claims nothing. */
 test("a finder's post is made rather than refused, and renews nothing", async () => {
   heldBy("the-other-run");
   const before = renewedAt();

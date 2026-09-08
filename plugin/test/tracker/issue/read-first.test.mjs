@@ -33,10 +33,10 @@ test("every verb that writes the record names its issue, and the read verbs name
     "forge issue ISS-30 --relates ISS-29": ["ISS-30"],
     "forge issue ISS-30 --unlink ISS-29": ["ISS-30"],
     "forge issue ISS-29 --full": [],
-    "forge issues --status open": [],
+    "forge issue --status open": [],
     "forge resume ISS-29": [],
+    "forge resume ISS-29 --report": [],
     "forge advance ISS-29 --owed": [],
-    "forge record report ISS-29": [],
     "forge attach comment 8f14e45f-ceea-467a-9bfe-2b0b1c0a1d2f x.png": [],
     "forge new /tmp/body.md --title x": [],
   };

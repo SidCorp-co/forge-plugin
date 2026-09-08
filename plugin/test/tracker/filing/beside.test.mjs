@@ -10,6 +10,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { RETIRED } from "../../../src/checks/retired-names.mjs";
 
 const home = tempHome("neighbours");
 process.env.XDG_CONFIG_HOME = home.path;
@@ -148,22 +149,24 @@ test("--new declines the fold, files the issue and names what it would have join
   assert.ok(created(), "the filing was made after all");
   assert.equal(commented(), undefined);
   assert.match(run.stdout, /--new declined the fold: ISS-45 is the nearest of the neighbours/u);
-  /* And the flag reaches neither the payload nor the flags a --into refusal lists as a filing's. */
+  /* And the flag reaches the payload no more than it reaches the flags a filing is said to take. */
   assert.equal("new" in created().args.data, false);
 });
 
-/* The flag this verb no longer takes: refused before any of the above is reached, so a filing it
-   would once have redirected costs no reading at all. */
-test("--into is refused with the verb that took it over, and files nothing", async () => {
+/* The window closed in 3.35.251, so the flag that carried this write before ISS-348 now gets what a
+   flag nothing declares gets — no refusal written for it, and nothing naming the verb that won. */
+test("the flag this verb lost is answered as any undeclared one, and files nothing", async () => {
   before();
-  const run = await wrote("--into", "ISS-45", "--new");
+  const gone = RETIRED.find((one) => one.kind === "flag" && one.release === "3.35.211");
+  assert.ok(gone, "the registry holds the flag the retirement entered");
+  const run = await wrote(`--${gone.name}`, "ISS-45", "--new");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /`forge new --into` is retired/u);
-  assert.match(run.stderr, /forge comment <uuid\|ISS-45>/u);
+  assert.doesNotMatch(run.stderr, /is retired/u, "a closed window leaves no line behind");
+  assert.match(run.stderr, new RegExp(`No new flag named --${gone.name}\\.`, "u"), run.stderr);
   assert.equal(state.calls.some((one) => one.args.action === "create"), false);
 });
 
-test("forge comment redirects as --into did, and asks the tracker nothing about neighbours", async () => {
+test("forge comment takes the write over, and asks the tracker nothing about neighbours", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
   const run = await posted();

@@ -10,18 +10,25 @@ export const RETIRED = [
   { name: "forge_step_start", kind: "tool", release: "3.35.225" },
   { name: "deps", kind: "verb", release: "3.35.240" },
   { name: "dep", kind: "verb", release: "3.35.240" },
+  { name: "plan", kind: "verb", release: "3.35.211" },
+  { name: "into", kind: "flag", release: "3.35.211" },
 ];
+
+const REGISTRIES = new Set(["plugin/src/resolve/visibility.mjs", "plugin/src/commands.mjs"]);
 
 const KINDS = ["verb", "flag", "tool", "directory"];
 const FIELDS = ["name", "kind", "release"];
 
-/* Where this surface puts a name, never a bare word; a directory is the path form rooted, `./`
-   included — the folder sat at a checkout's root, so `/api/feedback/` and a delimiter are not it. */
-const shapesOf = ({ name, kind }) =>
+/* Where this surface puts a name, never a bare word: a verb behind `forge`, leading a help row, at
+   the head of a spawn's argv array, or declared in one of the two files above, its word being also a
+   field's; a directory the path form rooted, `./` included — the folder sat at a root, not `/api/x/`. */
+const shapesOf = ({ name, kind }, rel) =>
   ({
     verb: [
       new RegExp(`\\bforge\\s+${name}\\b`, "gu"),
-      new RegExp(`(["'\`])${name}(?:\\s[^"'\`]*)?\\1`, "gu"),
+      new RegExp(`^[ \\t]{1,4}${name}(?=[ \\t]+[<[]|[ \\t]{2,}\\S)`, "gmu"),
+      new RegExp(`(?<=[(,]\\s{0,80}\\[\\s{0,80})(["'\`])${name}\\1`, "gu"),
+      ...(REGISTRIES.has(rel) ? [new RegExp(`(?:(?<=[[{,]\\s*)(["'\`])${name}\\1|^\\s*${name}:)`, "gmu")] : []),
     ],
     flag: [new RegExp(`--${name}\\b`, "gu")],
     tool: [new RegExp(`\\b${name}\\b`, "gu")],
@@ -45,7 +52,7 @@ const RECORDS = new Set([
 export const exempt = (rel) => rel === SELF || history(rel) || RECORDS.has(rel);
 
 const mentions = ({ rel, text }, entry) =>
-  [...new Set(shapesOf(entry).flatMap((shape) =>
+  [...new Set(shapesOf(entry, rel).flatMap((shape) =>
     [...text.matchAll(shape)].map(({ index }) => lineAt(text, index))))]
     .sort((one, other) => one - other)
     .map((line) => `${rel}:${line} names the ${entry.kind} ${entry.name}, retired in ${entry.release}`

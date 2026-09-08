@@ -202,7 +202,7 @@ test("the mark's issue is found at whatever status it has reached, and the looku
     `an issue the tracker already holds for this mark was filed again:\n${held.stdout}${held.stderr}`);
   assert.match(held.stdout, /ISS-501 is in_progress for this mark already, so nothing was filed/u, held.stdout);
   assert.ok(held.stdout.includes("Work ISS-501."), held.stdout);
-  const lookup = called(at).find((one) => one.argv[0] === "issues");
+  const lookup = called(at).find((one) => one.argv[0] === "issue" && one.argv.includes("--search"));
   assert.ok(!lookup.argv.includes("--status"),
     `the question is whether an issue for this mark exists, and a status is no part of it: ${lookup.argv.join(" ")}`);
   assert.ok(called(at).some((one) => one.argv[0] === "issue" && one.argv[1] === "ISS-501"),

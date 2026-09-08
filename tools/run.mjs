@@ -291,7 +291,7 @@ const READ = "closed";
  *  and no route that files another. The filter is on the range's start, so a moved mark misses it. */
 const issueFor = (tree, from) => {
   const at = from.slice(0, 7);
-  const found = forgeSays(tree, ["issues", "--search", at, "--limit", "100"]);
+  const found = forgeSays(tree, ["issue", "--search", at, "--limit", "100"]);
   if (found.why) return { why: found.why, whose: whose(found, "the lookup") };
   /* The row says which issue, the issue what status: those columns grew a rank mid-batch. */
   const key = found.out.split("\n").map((line) => /^(ISS-\d+)\s+(.*)$/u.exec(line.trim()))
@@ -364,7 +364,7 @@ const tierCeiling = (tree, was) => {
     const body = JSON.parse(said.out);
     if (!body || typeof body !== "object") return undefined;
     /* One string: every climb on it is a climb, whichever record carried it, and only the latest. */
-    const page = forgeSays(tree, ["record", "report", ref]);
+    const page = forgeSays(tree, ["resume", ref, "--report"]);
     const size = { band: body.complexity, plan: body.plan, whole: true, moved: page.why ? [] : [page.out] };
     const tier = tierOf(size), ceiling = CEILINGS[tier];
     if (!ceiling) return undefined;

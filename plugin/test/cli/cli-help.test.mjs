@@ -13,6 +13,7 @@ import { USAGE as STATS, SAYS as STATS_SAYS } from "../../src/stats/stats.mjs";
 import { SAYS as CODEX_SAYS, USAGE as CODEX } from "../../src/codex/codex.mjs";
 import { CHECK_USAGE, USAGE as SPEC } from "../../src/spec/verbs.mjs";
 import { KINDS, USAGE as RECORD, kindUsage } from "../../src/resolve/record-rows.mjs";
+import { RETIRED } from "../../src/checks/retired-names.mjs";
 import { WHY, goalBlock } from "../../src/goals.mjs";
 import { SHAPES } from "../../src/flow/machine.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -170,11 +171,14 @@ const POINTS_AT = {
 
 /* The table is where an agent learns the surface, so one write has one row in it: a name a landing
    retired leaves the table with the flag it was reached through, and the row that took the write
-   over says what it takes now. `plan` is judged above; these are the two halves with rows (ISS-348). */
+   over says what it takes now. Read off the registry, so the next retirement is judged too (ISS-348). */
 test("a retired name is in no row, and the row that took its write over says what it takes", () => {
   const brief = ask("-h").stdout;
   const rowOf = (verb) => brief.split("\n").find((line) => line.trim().startsWith(`${verb} `));
-  assert.ok(!rowOf("new").includes("--into"), `the new row still offers --into: ${rowOf("new")}`);
+  for (const { name } of RETIRED.filter((one) => one.kind === "flag")) {
+    const offering = VERB_NAMES.filter((verb) => rowOf(verb)?.includes(`--${name}`));
+    assert.deepEqual(offering, [], `--${name} is retired and still offered by: ${offering.join(", ")}`);
+  }
   assert.match(rowOf("comment"), /\[--title T\] post a comment; the lease on the record decides/u);
   assert.match(rowOf("feedback"), /`forge new` with the kind, the project and the Where filled in/u,
     "and the verb kept as a name says what it expands to");

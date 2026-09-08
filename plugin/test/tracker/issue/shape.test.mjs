@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { fakeTracker, ranAsync, shortPage, tempHome } from "../../fixtures.mjs";
+import { RETIRED } from "../../../src/checks/retired-names.mjs";
 
 const home = tempHome("issue-shape");
 process.env.XDG_CONFIG_HOME = home.path;
@@ -335,12 +336,13 @@ test("a flag that belongs to a filing is refused on the comment verb, not silent
   }
 });
 
-test("the flag the comment verb took over is refused with it, and files nothing", async () => {
+test("the flag the comment verb took over is answered as any undeclared one, and files nothing", async () => {
   state.calls = [];
-  const run = await filed(WHOLE, "--title", TITLE, "--into", "ISS-45", "--with", "ISS-45");
+  const gone = RETIRED.find((one) => one.kind === "flag" && one.release === "3.35.211");
+  const run = await filed(WHOLE, "--title", TITLE, `--${gone.name}`, "ISS-45", "--with", "ISS-45");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /`forge new --into` is retired/u);
-  assert.match(run.stderr, /forge comment <uuid\|ISS-45>/u);
+  assert.doesNotMatch(run.stderr, /is retired/u, "the window closed in 3.35.251 and left no line");
+  assert.match(run.stderr, new RegExp(`No new flag named --${gone.name}\\.`, "u"), run.stderr);
   assert.equal(state.calls.some((one) => one.args.action === "create"), false);
 });
 

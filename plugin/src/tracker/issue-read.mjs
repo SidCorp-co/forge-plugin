@@ -78,7 +78,7 @@ const VERBS = {
       return [blocks < 0 ? 0 : blocks + 1];
     },
   },
-  record: { at: () => [1], when: (args) => args[0] !== "report" },
+  record: { at: () => [1] },
   advance: { at: () => [0], when: (args) => !args.includes("--owed") },
 };
 

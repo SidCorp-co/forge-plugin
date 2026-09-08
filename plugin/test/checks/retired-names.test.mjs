@@ -30,13 +30,16 @@ const walk = (dir, at) =>
     return [{ rel: `${at}/${one.name}`, text: readFileSync(join(dir, one.name), "utf8") }];
   });
 
-const files = [...walk(join(ROOT, "plugin"), "plugin"), ...walk(join(ROOT, "docs"), "docs")];
+/* `tools/` types the CLI too, and a walk of plugin/ and docs/ read neither call this issue's own steps left pointing at a retired verb (ISS-704). */
+const files = [...walk(join(ROOT, "plugin"), "plugin"), ...walk(join(ROOT, "docs"), "docs"),
+  ...walk(join(ROOT, "tools"), "tools")];
 const AS_IF = { name: "advance", kind: "verb", release: "3.36.0" };
 /* What the CLI answers to now, so a retired name a live one happens to share is judged by kind. */
 const LIVE = [...new Set([...VERB_NAMES, ...Object.keys(commands)])];
 
-test("no surface under plugin/ or docs/ names something that was retired", () => {
+test("no surface under plugin/, docs/ or tools/ names something that was retired", () => {
   assert.ok(files.length > 150, `${files.length} file(s) walked; the selector matches too little`);
+  assert.ok(files.some(({ rel }) => rel.startsWith("tools/")), "the walk reaches what types the CLI");
   const found = problems(files, RETIRED, LIVE);
   assert.deepEqual(found, [], `a retired name is still readable:\n${found.join("\n")}`);
   assert.deepEqual(registryProblems(), []);
@@ -126,6 +129,12 @@ test("a file named for a retired thing goes only where the name is not also a li
   assert.match(problems([{ rel: "docs/other/feedback.md", text: "nothing\n" }], [tool], LIVE)[0],
     /^docs\/other\/feedback\.md is named for the tool feedback/u,
     "a retired tool sharing a live verb's name still loses the file named for it");
+  /* A suffixed stem is not the name: `plan.test.mjs` stems to `plan.test`, so no relaxation is owed. */
+  const kept = RETIRED.find((one) => one.kind === "verb" && one.name === "plan");
+  assert.ok(kept, "the registry holds the verb whose word a live record kind still uses");
+  assert.deepEqual(problems([{ rel: "plugin/test/flow/record/plan.test.mjs", text: "nothing\n" }], [kept], LIVE), []);
+  assert.match(problems([{ rel: "plugin/src/flow/record/plan.mjs", text: "nothing\n" }], [kept], LIVE)[0],
+    /is named for the verb plan/u, "and a module named for the bare word would still leave");
 });
 
 /* A retired gate's name is a bare word nothing live answers to, so every surface that could still
@@ -170,7 +179,28 @@ test("the word is a mention where the CLI uses it and not where English does", (
   const said = (text) => problems([{ rel: "one.md", text }], [AS_IF]);
   assert.deepEqual(said("the run had to advance the issue before the advanced gate ran\n"), []);
   assert.equal(said("read it, then run `forge advance ISS-45 --owed`\n").length, 1);
-  assert.equal(said('  ["advance", "<uuid|ISS-45>", "the next status"],\n').length, 1);
+  assert.equal(said("  advance <uuid|ISS-45> [--owed]   the next status this has earned\n").length, 1,
+    "the leader of a help row is the form the table renders, `forge` nowhere on the line");
+  assert.deepEqual(said("  advance the issue once the verdicts are in\n"), [],
+    "and an indented sentence starting with the word is prose, not a row");
+  /* A row or a key is a command only where a verb is declared: the same text elsewhere is a field's
+     name, a record kind's or a phase's, which is what fired 48 of 54 times before this narrowed. */
+  /* The form both live breaks under tools/ took, and what makes the walk reaching them worth anything. */
+  assert.equal(said('  const page = forgeSays(tree, ["advance", ref]);\n').length, 1,
+    "the head of an argv array is the verb a spawn will type");
+  assert.deepEqual(said('  const narrow = requests({ fields: ["advance", "status"] });\n'), [],
+    "and an array under a key is a field list, whatever its first element spells");
+  assert.deepEqual(said('  await ranAsync(FORGE, ["record", "advance", ref]);\n'), [],
+    "nor is a word past the head, which is a subcommand of a verb that still runs");
+  const declared = '  ["advance", "<uuid|ISS-45>", "the next status"],\n';
+  assert.deepEqual(said(declared), [], "a row-shaped line outside the registries is no declaration");
+  for (const rel of ["plugin/src/resolve/visibility.mjs", "plugin/src/commands.mjs"]) {
+    assert.equal(problems([{ rel, text: declared }], [AS_IF]).length, 1, `${rel} declares it again`);
+    assert.equal(problems([{ rel, text: "  advance: async (argv) => run(argv),\n" }], [AS_IF]).length, 1,
+      `${rel}: a dispatch key is the other half of a declaration`);
+    assert.deepEqual(problems([{ rel, text: "  { approved: \"advance\" },\n" }], [AS_IF]), [],
+      `${rel}: and the word in a value is not one`);
+  }
   const flag = { name: "pushed", kind: "flag", release: "3.36.0" };
   assert.deepEqual(problems([{ rel: "two.md", text: "the branch was pushed at the claim\n" }], [flag]), []);
   assert.equal(problems([{ rel: "two.md", text: "run `forge claim ISS-45 --pushed`\n" }], [flag]).length, 1);
@@ -191,7 +221,7 @@ test("an entry holds a name, a kind and the release, and nothing pointing at a l
    somebody has to make. What fires if they do not make it: the two holding one name at once. */
 test("a name is retiring here or retired there, and never both at once", () => {
   assert.deepEqual(retiringProblems(), [], "the live registries are disjoint and every row is dated");
-  assert.ok(RETIRING.length > 0, "and there is a row, so the check above judged something");
+  /* Empty while no window is open, which is most of the time, so the synthetic rows below judge this. */
   for (const row of RETIRING) assert.ok(row.instead, `${row.typed} names the verb to type`);
   assert.match(retiringProblems([{ typed: "plan", instead: "x" }])[0], /names no release/u);
   const both = retiringProblems([{ typed: "plan", release: "3.36.0", instead: "x" }],
