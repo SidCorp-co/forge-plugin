@@ -27,6 +27,9 @@ const MOVED = "3cd76450000000000000000000000000000000ef";
 const AT = "2026-09-07T12:00:00.000Z";
 const CRITERIA = "1. The first outcome.\n2. The second outcome.";
 const PLAN = "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no.";
+const SCREENING = "Screen change: yes.\nSchema coupling: no.\nUser-facing outcome: no.";
+const LOOKED = "rendered.png";
+const NO_LOGIN = "the project holds no test credential, so no login reaches this screen";
 const CHECKPOINT = {
   state: "judged",
   builder: BUILDER,
@@ -106,6 +109,38 @@ test("an attachment named after the deployment is not a citation of it", () => {
 
 test("every standing verdict judged by the QA session and citing the deployment earns tested", () => {
   assert.deepEqual(owed([verdictOf(1), verdictOf(2)]), []);
+});
+
+/* The configuration no case that shipped with the role used: a screen change declared on a project
+   asking for a second judge. The screen check wants an attachment on every verdict that is not
+   `skipped`, the judge check the identity on every one, and the role renders no page (ISS-706). */
+const screening = (verdicts, attachments = []) =>
+  owed(verdicts, { issue: { plan: SCREENING, attachments } });
+const skip = (number, over = {}) => verdictOf(number, { verdict: "skipped", why: NO_LOGIN, ...over });
+
+test("a skip citing the deployment identity earns tested where no route reaches the rendered state", () => {
+  assert.deepEqual(screening([skip(1), skip(2)]), [],
+    "the one route a judge with no capture tool has, and the check it has to clear is the judge's own");
+});
+
+test("a pass citing the deployment identity and an attachment this issue carries earns it as well", () => {
+  const cited = { evidence: [DEPLOYED, LOOKED] };
+  assert.deepEqual(screening([verdictOf(1, cited), verdictOf(2, cited)], [{ name: LOOKED }]), [],
+    "the other route: a render taken where no login is needed, cited beside the identity");
+});
+
+/* The fence: a skip is excused the attachment and no verdict is excused the citation. */
+test("a skip citing nothing earns nothing, the judge check reading the identity off the evidence", () => {
+  const said = screening([skip(1, { evidence: [] }), skip(2)]);
+  assert.deepEqual(said, [`the verdict on criterion 1 cites nothing at ${DEPLOYED.slice(0, 7)}, `
+    + "which is what the deployment reported running"]);
+});
+
+test("a pass citing the deployment and no attachment is refused, this changing nothing about that", () => {
+  const said = screening([verdictOf(1), verdictOf(2)]);
+  assert.equal(said.length, 1, `one item for the set of verdicts, not one each: ${said}`);
+  assert.match(said[0], /cites no attachment this issue carries/u,
+    "a screen change nobody looked at earns no tested, whoever judged it");
 });
 
 /* The half kept as regression coverage rather than as a criterion: a project that asks for no

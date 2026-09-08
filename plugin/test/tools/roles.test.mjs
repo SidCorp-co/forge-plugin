@@ -107,6 +107,42 @@ test("the qa role does not stand in for a review a plan declares a person's", ()
   assert.match(roleText("qa"), /person's review/u, "nothing in the role marks that boundary");
 });
 
+/* A role's instructions and its tool list are one decision, and this is the instruction a tree may
+   not be equipped for: nothing a subagent is granted renders a page (ISS-706). */
+test("the qa role's ask for an artifact carries the route that produces it", () => {
+  const paragraph = roleText("qa").split(/\n\s*\n/u).find((one) => /attach it/u.test(one));
+  assert.ok(paragraph, "nothing in the role asks for the thing it looked at");
+  assert.match(paragraph, /Where a route reaches/u, "the ask is unconditional, and no tree guarantees a route");
+  assert.match(paragraph, /`script`/u, "no route is named, so which tool takes the artifact is the tree's guess");
+  assert.match(paragraph, /check for it by name/u, "a capture tool the project installs is counted on unchecked");
+  assert.match(paragraph, /say it is absent/u, "and its absence goes unsaid, reading as a state nobody took");
+});
+
+test("a tool the qa role's frontmatter withholds is named as one it does not have", () => {
+  const text = roleText("qa");
+  const granted = (field(text, "tools") ?? "").split(",").map((one) => one.trim());
+  for (const withheld of ["Write", "Edit"]) {
+    assert.ok(!granted.includes(withheld), `${withheld} is granted, so the text says the opposite of the frontmatter`);
+  }
+  assert.match(text, /`Write` and\s+`Edit` are off that list on purpose/u,
+    "a missing writing tool reads as an oversight, and the next reader grants it back");
+  assert.match(text, /goes through the shell/u, "nothing says how the file it attaches gets written");
+});
+
+/* The escape is worth having only ahead of the work: at the verdict write the run is already spent. */
+test("the qa role reads what tested will want before it judges a criterion", () => {
+  const text = roleText("qa");
+  const ahead = text.indexOf("--owed");
+  assert.ok(ahead > 0, "the role names no read that says what the write at the end will want");
+  assert.ok(ahead < text.indexOf("Work each criterion"),
+    "that read sits after the judging, which is where the refusal already was");
+  const paragraph = text.split(/\n\s*\n/u).find((one) => /--owed/u.test(one));
+  assert.match(paragraph, /screen change/u, "and nothing says which declaration makes the attachment owed");
+  assert.match(paragraph, /skip/u, "no verdict shape is named for the criterion no route reaches");
+  assert.match(paragraph, /forge guide issue-flow verification/u, "and the rest of that case is cited nowhere");
+  assert.match(text, /stop before judging/u, "a run whose every criterion would be a skip spends itself to say so");
+});
+
 test("the roles ship inside the plugin directory, where a copy of it travels alone", () => {
   for (const name of rolesIn()) {
     assert.ok(readFileSync(join(PLUGIN, WITHIN, `${name}.md`), "utf8").length > 0);

@@ -65,6 +65,10 @@ time (C-01). How a gate's answer becomes that protocol is `docs/HOOKS.md`'s.
 - **AC-19-3-4** · Rev: 1 · Proof: plugin/test/tools/roles.test.mjs "the qa role's text names the deployment identity as an input it is refused without"
   WHEN the judging role's text is read THEN it SHALL name the deployment identity as an input the
   role is refused without.
+- **AC-19-3-5** · Rev: 1 · Proof: plugin/test/tools/roles.test.mjs "the qa role's ask for an artifact carries the route that produces it"
+  WHEN the judging role's text asks for an artifact THEN it SHALL name the route that takes one from
+  the equipment the role is granted, and SHALL name what stands where no route reaches the state a
+  criterion is about.
 
 ### EI-04 — The project's linter
 
