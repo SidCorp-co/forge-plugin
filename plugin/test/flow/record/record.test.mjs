@@ -13,7 +13,7 @@ process.env.XDG_CONFIG_HOME = tempRoom("record-");
 const {
   KINDS, USAGE, checked, compoundRefused, criteriaLines, fromRecord, kindHelp, noteFrom, usage,
 } = await import("../../../src/flow/record/record.mjs");
-const { assemble, parse, render } = await import("../../../src/flow/record/page.mjs");
+const { parse, render } = await import("../../../src/flow/record/page.mjs");
 const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../../src/flow/machine.mjs");
 const { CONTRACT } = await import("../../../src/guides/contract.mjs");
 const { TWICE } = await import("../../../src/tracker/evidence.mjs");
@@ -237,49 +237,6 @@ test("a release note has two forms, and a flag from the other form is refused, n
   assert.throws(() => noteFrom(["--skip", "--why", "w", "--user", "dropped?"]), /takes --why --technical, not --user/u);
   assert.throws(() => noteFrom(["--section", "Fixed", "--user", "t", "--why", "w"]), /not --why/u);
   assert.throws(() => noteFrom(["--section", "Nope", "--user", "t"]), /--section takes one of/u);
-});
-
-test("the report keeps the latest of each kind, the latest verdict per criterion, and names what is owed", () => {
-  const at = (n) => `2026-09-02T10:0${n}:00.000Z`;
-  const verdict = (n, verdict, when) => ({
-    createdAt: at(when),
-    body: render("verdict", { criterion: `${n} — text`, verdict, commit: "abc1234", evidence: ["run.txt"] }),
-  });
-  const comments = [
-    { createdAt: at(1), body: render("confirmation", { where: ["x"], is: "old", finding: "holds" }) },
-    { createdAt: at(3), body: render("confirmation", { where: ["x"], is: "new", finding: "holds" }) },
-    verdict(1, "fail", 2),
-    verdict(1, "pass", 4),
-    verdict(2, "pass", 5),
-    { createdAt: at(6), body: "just a comment" },
-  ];
-  const criteria = [{ number: 1, text: "a" }, { number: 2, text: "b" }, { number: 3, text: "c" }];
-  const { latest, verdicts, owed } = assemble(comments, criteria);
-  assert.equal(latest.confirmation.record.fields.is, "new");
-  assert.equal(verdicts.get(1).record.fields.verdict, "pass", "the later verdict replaces");
-  assert.deepEqual(owed, [3]);
-});
-
-/* The latest of a kind is right for a kind that can only be current, and wrong for one that
-   repeats: four corrections were written and one was reported in the fourth dry run. */
-test("every finding and every triage is on the report, not the latest of each", () => {
-  const at = (n) => `2026-09-03T05:0${n}:00.000Z`;
-  const found = (seen, when) => ({
-    createdAt: at(when),
-    body: render("finding", { expected: "sorted by name", seen, evidence: ["run.txt"], quoted: "cannot find it" }),
-  });
-  const ruled = (outcome, when) => ({
-    createdAt: at(when),
-    body: render("triage", { outcome, "would-have-caught": "a criterion naming the order" }),
-  });
-  const { latest, repeated } = assemble([found("sorted by id", 1), ruled("not-met", 2), found("still by id", 3), ruled("wrong-test", 4)], []);
-  assert.deepEqual(repeated.finding.map((one) => one.record.fields.seen), ["sorted by id", "still by id"]);
-  assert.deepEqual(repeated.triage.map((one) => one.record.fields.outcome), ["not-met", "wrong-test"]);
-  assert.equal(latest.finding.record.fields.seen, "still by id", "and the latest of each is still there, for the brief");
-  assert.equal(repeated.confirmation, undefined, "a kind that can only be current keeps no list");
-  for (const kind of Object.keys(SHAPES)) {
-    assert.equal(Boolean(SHAPES[kind].repeats), ["finding", "gap", "routed", "triage"].includes(kind), `${kind} repeats or it does not`);
-  }
 });
 
 /* Every record carries the contract it was written under, and the reader judges all of them against
@@ -601,4 +558,27 @@ test("the record route's collision refusal carries the one sentence evidence.mjs
   assert.match(run.stderr, /^record verdict would put a file up/mu, run.stderr);
   assert.ok(run.stderr.includes(TWICE), `the sentence itself, verbatim: ${run.stderr}`);
   assert.match(run.stderr, /Every record citing it is then ambiguous\./u, "and the record route's own words after it");
+});
+
+/* The count has to sit above the records it counts, which is the half a unit case on the assembly
+   cannot see: a reader who takes the newest correction for the whole record is what ISS-11 is
+   about, and the line is what tells them there are older ones. */
+test("the report prints the count of a repeating kind on the line above its records", async () => {
+  const at = (n) => `2026-09-09T06:0${n}:00.000Z`;
+  project.comments["held-uuid"] = [
+    { createdAt: at(1), body: render("correction", { moved: "criterion 9", why: "it named the wrong file" }) },
+    { createdAt: at(2), body: render("baseline", { gate: "npm run check", result: "green", commit: "43b811e", scope: "whole" }) },
+    { createdAt: at(3), body: render("correction", { moved: "criterion 20", why: "it read as two outcomes" }) },
+  ];
+  const run = await ranAsync(FORGE, ["resume", "ISS-5", "--report"], tracker.env);
+  project.comments["held-uuid"] = [];
+  assert.equal(run.status, 0, run.stderr);
+  const lines = run.stdout.split("\n");
+  const count = lines.findIndex((one) => one === "2 Correction records, oldest first");
+  assert.ok(count >= 0, `the count line is printed: ${run.stdout}`);
+  assert.match(lines[count + 1], /^Correction {2}\(2026-09-09T06:01/u, "immediately above the oldest of them");
+  assert.match(lines[count + 2], /^ {2}What moved: criterion 9$/u, "which is the one the report used to drop");
+  assert.match(run.stdout, /^ {2}What moved: criterion 20$/mu, "and the newest is still there, under it");
+  assert.doesNotMatch(run.stdout, /^1 Baseline record/mu, "a kind holding one record gets no count line");
+  assert.match(run.stdout, /^Baseline {2}\(/mu, "and is printed on its own, as it always was");
 });

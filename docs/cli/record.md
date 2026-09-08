@@ -74,8 +74,8 @@ Two of the kinds exist because a reopen recorded nothing. The tracker has had a 
 actually saw and their own words went into a plain comment nothing read back, so the gap that let it
 ship was never named. A finding is that comment typed, written by the agent on the person's behalf
 and quoting them; a triage is the ruling on it, one of three outcomes and one line naming what would
-have caught it. Both are marked as repeating, so the report shows every one: the fourth dry run wrote
-four corrections and reported one, because the assembly kept the latest of every kind.
+have caught it. Both repeat, as correction, park, question, routed and gap do, so the report shows every one and
+says how many above them: the fourth dry run wrote four corrections and reported one.
 
 Two more exist because the fold of a run was prose. A parent reading the report got every payload that
 earned a status and nothing about what the run met on the way: a defect it found on something else

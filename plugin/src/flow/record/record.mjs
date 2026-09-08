@@ -5,7 +5,7 @@ import { Refused, refuse } from "../../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
-import { CLOSES_FROM, SECTIONS, SHAPES, compoundCriteria, criterionNumber, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, unwrap } from "../machine.mjs";
+import { CLOSES_FROM, SECTIONS, SHAPES, compoundCriteria, criterionNumber, heldSaid, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, unwrap } from "../machine.mjs";
 import { assemble, parseAll, printRecord, render } from "./page.mjs";
 import { markedCommit, recordMerged } from "./merged.mjs";
 import { eachProblem } from "./content.mjs";
@@ -489,8 +489,12 @@ export const recordReport = async (reference) => {
     + "from no others.");
   const { latest, verdicts, owed, repeated, unreadable } = assemble(comments, criteria);
   for (const kind of Object.keys(SHAPES)) {
-    if (SHAPES[kind].repeats) for (const one of repeated[kind] ?? []) printRecord(one);
-    else if (latest[kind]) printRecord(latest[kind]);
+    if (SHAPES[kind].repeats) {
+      const held = repeated[kind] ?? [];
+      const said = heldSaid(kind, held.length);
+      if (said) console.log(`${said}, oldest first`);
+      for (const one of held) printRecord(one);
+    } else if (latest[kind]) printRecord(latest[kind]);
   }
   for (const number of [...verdicts.keys()].sort((a, b) => a - b)) printRecord(verdicts.get(number));
   for (const one of unreadable) printRecord(one);

@@ -77,6 +77,14 @@ const commentsRead = (view) =>
     kind: one.body && /forge-record: ([a-z]+)/u.exec(unwrap(one.body))?.[1],
   }));
 
+/* Counts and not headlines: the one line above says the latest correction, and this says how many
+   more there are, so a brief admits what only `--report` can show. */
+const repeatedIn = (view) => Object.fromEntries(
+  Object.entries(view.repeated ?? {})
+    .map(([kind, held]) => [kind, held.length])
+    .filter(([, held]) => held > 1),
+);
+
 export const briefOf = (view, ref) => {
   const status = view.issue.status;
   const method = methodOf(status);
@@ -93,6 +101,7 @@ export const briefOf = (view, ref) => {
         .map((kind) => [kind, headlineOf(view.latest[kind], kind)])
         .filter(([, one]) => one),
     ),
+    repeated: repeatedIn(view),
     next: held?.next ?? null,
     worklog: worklogOf(view.issue?.[FIELD]),
     lease: held,

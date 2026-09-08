@@ -16,7 +16,7 @@ import { owedLine, policyFor } from "./route.mjs";
 import { worklogLines } from "./worklog.mjs";
 import { briefOf } from "./brief.mjs";
 import { SHARED_HOLDER, landingLine, landingTurn } from "./lease.mjs";
-import { atMinute } from "./machine.mjs";
+import { atMinute, heldSaid } from "./machine.mjs";
 
 export const USAGE = [
   usageOf("resume"),
@@ -26,8 +26,9 @@ export const USAGE = [
   "next status is owed, and where the method for that phase is written.",
   "",
   "  --json    the same assembled object, for a tool rather than a reader",
-  "  --report  every record whole instead of this brief: the latest of each kind, the latest",
-  "            verdict per criterion with its evidence, the plan, and what is owed",
+  "  --report  every record whole instead of this brief: the latest of each kind that can only be",
+  "            current and every one of a kind that repeats, which `forge record -h` names, the",
+  "            latest verdict per criterion with its evidence, the plan, and what is owed",
   "",
   "It writes nothing and needs no lease, so anyone may read any issue. A fact a successor needed and",
   "did not find here belongs on the record or in the worklog: docs/cli/resume.md.",
@@ -70,6 +71,16 @@ export const edgeSaid = (one) => {
   return one.satisfied ? "satisfied" : "not an edge the tracker gates dispatch on";
 };
 
+/* Under the headlines, because it is what qualifies them: the correction on the line above is one
+   of five, and a reader who takes it for the whole record judges against text four others moved. */
+const records = (brief) => [
+  ...Object.entries(brief.latest).map(([kind, one]) => `${kind.padEnd(13)} ${one.said}  (${one.at})`),
+  ...(Object.keys(brief.repeated).length
+    ? [`${"repeated".padEnd(13)} ${Object.entries(brief.repeated)
+      .map(([kind, held]) => heldSaid(kind, held)).join(", ")}  (forge resume ${brief.ref} --report)`]
+    : []),
+];
+
 const parks = (brief) => [
   ...(brief.park ? [`parked: ${brief.park.said}  (${brief.park.at})`] : []),
   ...brief.blockers.map((one) => `${one.kind ?? "unnamed"} ${one.ref}, which is ${one.status} — ${edgeSaid(one)}`),
@@ -109,7 +120,7 @@ const print = (brief, view, ref) => {
   block("Lease", held(brief));
   block("Plan", planLines(brief, ref));
   block("Criteria", brief.criteria.map((one) => `${one.mark.padEnd(10)} ${one.number}. ${one.text}`));
-  block("Record", Object.entries(brief.latest).map(([kind, one]) => `${kind.padEnd(13)} ${one.said}  (${one.at})`));
+  block("Record", records(brief));
   block("Worklog", worklogLines(brief.worklog, brief.next));
   block("Parks and blockers", parks(brief));
   owed(brief, view, ref);

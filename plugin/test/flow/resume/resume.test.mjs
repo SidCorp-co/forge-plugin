@@ -135,6 +135,23 @@ test("the latest confirmation, decision and correction come down to one line eac
   assert.match(long.latest.confirmation.said, /…$/u);
 });
 
+/* The headline above says the latest correction and nothing about the four under it, which is how
+   ISS-673's QA came to judge two criteria against text those four had moved (ISS-11). */
+test("the brief counts each repeating kind holding more than one, and says nothing where none does", () => {
+  const one = brief({}, [
+    recorded("correction", { moved: "criterion 9", why: "it named the wrong file" }),
+    recorded("correction", { moved: "criterion 20", why: "it read as two outcomes" }),
+    recorded("park", { kind: "paused", why: "the wave stopped", evidence: [] }),
+    recorded("park", { kind: "crashed", why: "the shell died", evidence: [] }),
+    recorded("confirmation", { where: ["src/one.mjs"], is: "a reading", finding: "holds" }),
+  ]);
+  assert.deepEqual(one.repeated, { correction: 2, park: 2 }, "a count per kind holding more than one");
+  assert.equal(one.latest.correction.said, "criterion 20", "and the headline is still the latest of them");
+  const once = brief({}, [recorded("correction", { moved: "criterion 9", why: "it named the wrong file" })]);
+  assert.deepEqual(once.repeated, {}, "one record needs no count: the headline above is the whole of it");
+  assert.deepEqual(brief().repeated, {}, "and an issue with no record at all carries no line");
+});
+
 /* A reopen is the one thing the record could not show: what the person found lived in a plain
    comment, and how often it had happened lived in a field nothing read (ISS-43). */
 test("the brief carries the finding, the triage and the reopen count", () => {

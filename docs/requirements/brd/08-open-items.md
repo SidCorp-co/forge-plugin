@@ -18,7 +18,6 @@ a row outliving its issue sends the next reader to a key with no answer behind i
 |---|---|
 | Whether a review's outcome and the author's disposition of each finding are two values rather than one. | ISS-16 |
 | Whether a finding's identifier names the round that issued it, so a review over several rounds has no two findings alike. | ISS-34 |
-| Whether an assembled report keeps every instance of a kind that repeats, rather than the latest. | ISS-11 |
 | Whether a park is lifted on the record, so a retraction sits beside the park. | ISS-13 |
 | Whether every move can be rehearsed, a park and a drop included. | ISS-12 |
 | Whether a decision record may defer one question to a later status that then refuses until it is answered. | ISS-23 |

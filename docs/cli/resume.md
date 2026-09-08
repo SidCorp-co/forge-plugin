@@ -38,7 +38,8 @@ log --id <id>` expands it.
 holder itself may all read it; the printer and the brief import none of the writing functions, which
 is what a case asserts rather than a comment claiming it. It prints, in reading order: the status
 with the phase it owes, the plan bounded with a pointer to the whole field, every criterion with its
-verdict mark, one line each of the latest confirmation, decision and correction, the worklog, the
+verdict mark, one line each of the latest confirmation, decision and correction with a count of any
+kind holding more than one under them, the worklog, the
 parks and the blocking edges with the kind of each and whether it holds the status back — one
 answer, the entry check's own, never worked out a second time for the screen — the command the next
 status is owed in the same words `advance --owed` uses and from the same function, and the path of

@@ -77,6 +77,10 @@ const KIND_PHRASE = {
 const phraseRows = () =>
   KINDS.map((kind) => `  ${kind.padEnd(13)}${KIND_PHRASE[kind] ?? ""}`);
 
+/* Read off the flag the assembly reads, so a kind flagged later says so here without being typed
+   in a second list: the contract and `forge resume -h` both point at this line for the answer. */
+const REPEATS = Object.keys(SHAPES).filter((kind) => SHAPES[kind].repeats);
+
 /* The sections a typed plan owes, each as the question it answers, so a plan is written against the list rather than against the refusal. The heading is the section's whole name and nothing else on its line; a plan carrying none of them writes as the free text it is and `approved` says so.
    The section a declaration puts a way back behind, and the declarations that do, are both off the table below, so a third one growing it is not a sentence here to hand-edit. */
 const OWED_BY = PLAN_SECTIONS.find((one) => one.owed);
@@ -154,6 +158,11 @@ export const usage = () => [
   "is refused by name, and one kind's own flags are `forge record <kind> -h`.",
   "",
   ...phraseRows(),
+  "",
+  "A record of one of these kinds adds to what the issue holds rather than superseding the last, so",
+  "the report lists every one of them, oldest first, under a count of how many it holds:",
+  `  ${REPEATS.join(", ")}`,
+  "Every other kind is latest-wins, because a later record of it supersedes the one before.",
   "",
   ...SHARED_FLAGS,
   "",

@@ -98,7 +98,7 @@ after approval is refused without one, so criteria cannot be relaxed to fit what
 - **AC-04-4-1** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "a correction says what moved and why, both required"
   WHEN a correction is written THEN it SHALL carry what moved and why, and SHALL refuse without
   either.
-- **AC-04-4-2** · Rev: 1 · Proof: none yet — ISS-11
+- **AC-04-4-2** · Rev: 1 · Proof: plugin/test/flow/record/assembled.test.mjs "every correction, park and question is kept and counted, and a kind that can only be current keeps its latest"
   WHEN a report is assembled THEN it SHALL show every instance of a kind that repeats rather than
   the latest one.
 
@@ -140,9 +140,12 @@ counts, and nobody writes a report from memory.
 - **AC-04-6-2** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "three criteria are judged in one write, and the report prints each one"
   WHEN a report holds a record carrying several blocks THEN it SHALL print each block as it prints a
   record written on its own.
-- **AC-04-6-3** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "the report keeps the latest of each kind, the latest verdict per criterion, and names what is owed"
+- **AC-04-6-3** · Rev: 1 · Proof: plugin/test/flow/record/assembled.test.mjs "the report keeps the latest of each kind, the latest verdict per criterion, and names what is owed"
   WHEN a report is asked for on an issue whose plan field is set THEN it SHALL print that plan whole,
   under a heading of its own.
+- **AC-04-6-4** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "the report prints the count of a repeating kind on the line above its records"
+  WHERE a report holds more than one record of a kind that repeats, it SHALL say how many it holds
+  above them, so a reader of the newest one knows there are older ones to read.
 
 ### UC-04-7 — The plan is a typed payload, and its shape is checked at the write
 

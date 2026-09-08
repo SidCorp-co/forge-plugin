@@ -647,7 +647,8 @@ confirmation, a decision record, a question, a review, a verdict, a verification
 the triage of it, and the plan in the field of its own — and a report is
 assembled from the record rather than written from memory: the latest of each kind that can only
 be current, and every instance of a kind that repeats, so a report shows four corrections when
-four were written (owed by ISS-11; today only verdicts, findings and triages are kept per instance). A separator between
+four were written, and prints how many it holds above them; which kinds repeat is `forge record -h`'s
+to name. A separator between
 repeated values must be one a value cannot contain, or the record does not read back as it was
 written (met at the write: the fenced form starts each repeated value on its own
 keyed line, carries any newline inside it on indented continuation lines, and sizes its

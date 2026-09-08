@@ -466,9 +466,11 @@ export const SHAPES = {
   question: {
     heading: "Question",
     fields: [FIELD("reading", "Reading", { many: true, least: 2 }), FIELD("to", "To", { optional: true })],
+    repeats: true,
   },
   park: {
     heading: "Park",
+    repeats: true,
     fields: [
       FIELD("kind", "Kind", { oneOf: PARKS }),
       FIELD("why", "Why"),
@@ -483,6 +485,7 @@ export const SHAPES = {
   correction: {
     heading: "Correction",
     fields: [FIELD("moved", "What moved"), FIELD("why", "Why")],
+    repeats: true,
   },
   baseline: {
     heading: "Baseline",
@@ -601,3 +604,6 @@ export const SHAPES = {
     ],
   },
 };
+
+/* Said once, so the report's count line and the brief's cannot disagree; silent at the one `latest` gives. */
+export const heldSaid = (kind, held) => (held > 1 ? `${held} ${SHAPES[kind].heading} records` : null);
