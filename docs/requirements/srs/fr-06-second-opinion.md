@@ -36,9 +36,9 @@ The intent — what the author was trying to do — is the part the reviewer can
 sent alongside it is the codex reference's business. Which files are worth a second opinion is the
 checkout's decision rather than the account's, and `README.md` says why that level.
 
-- **AC-06-1-1** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs "the pattern comes from the checkout, else the account, else the default"
-  WHEN a consult runs THEN the pattern deciding which files it covers SHALL be taken from the
-  checkout, else the account, else the default, in that order.
+- **AC-06-1-1** · Rev: 2 · Proof: plugin/test/codex/codex.test.mjs "the pattern comes from the checkout, else the account, else the default"
+  WHEN a consult runs THEN the pattern deciding which paths are eligible for the turn's record SHALL
+  be taken from the checkout, else the account, else the default, in that order.
 - **AC-06-1-2** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs "a slot resolving to this model's own family is the echo case"
   IF the review model resolves to this model's own family THEN the CLI SHALL refuse the consult.
 - **AC-06-1-3** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs "a path escapes the repo by neither dots nor a symlink"
@@ -47,6 +47,15 @@ checkout's decision rather than the account's, and `README.md` says why that lev
 - **AC-06-1-4** · Rev: 1 · Proof: plugin/test/codex/codex-tools.test.mjs "run_check runs the named command once, from the checkout, and reports exit and tail"
   WHERE the checkout names a command the reviewer may run, the CLI SHALL run it once per consult,
   from that checkout, and SHALL report its exit status and the tail of its output.
+- **AC-06-1-5** · Rev: 1 · Proof: plugin/test/codex/codex-anchor.test.mjs "a diff consult reviews the tree's own change, tests and deletions included, and says what of the turn record it left out"
+  WHEN a consult selects the files it reviews THEN the CLI SHALL take the paths the caller named
+  where there are any, else the turn's record where the consult is a recheck holding one, else the
+  checkout's own change against the base whatever that record holds, else the record; and it SHALL
+  disclose each of those last three as the ground it selected on.
+- **AC-06-1-6** · Rev: 1 · Proof: plugin/test/codex/codex-anchor.test.mjs "a path that is not in the tree and has no diff reaches neither the reviewer nor the log, and leaves the turn record"
+  IF a path is absent from the tree and has no diff against the base THEN the CLI SHALL send it to
+  the reviewer in no form, SHALL leave it out of the file list it records, and SHALL drop it from the
+  turn's record.
 
 ### UC-06-2 — List the documents a turn changed, once, at the end
 

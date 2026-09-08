@@ -104,6 +104,9 @@ export const spelled = (one) =>
 const PLAIN = /^[\w./@+][\w./@+-]*$/u;
 export const typed = (one) =>
   PLAIN.test(one) ? one : `'${one.replace(/'/gu, String.raw`'\''`)}'`;
+
+/** `typed` for a path, which has a second way of being unreadable: a leading hyphen a CLI's own parser eats as a flag. Both halves are wanted together, so they are one function (ISS-703). */
+export const pathed = (one) => typed(one.startsWith("-") ? `./${one}` : one);
 const named = (to) => to !== "" && to !== "-" && !to.startsWith("+") && !to.includes("$");
 const onto = (base, to) => {
   if (to === NOWHERE) return NOWHERE;

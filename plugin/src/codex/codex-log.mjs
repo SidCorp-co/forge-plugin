@@ -6,7 +6,7 @@ import { isAbsolute, join } from "node:path";
 import { appendJsonl, jsonlAt } from "../hooks/hook-log-file.mjs";
 import { configDir, userConfig } from "../resolve/config.mjs";
 import { masked } from "../hooks/hook-log.mjs";
-import { typed } from "../hooks/shell-spans.mjs";
+import { pathed } from "../hooks/shell-spans.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags, pullRepeated } from "../resolve/flags.mjs";
 import { median } from "../stats/median.mjs";
@@ -305,11 +305,10 @@ export const recheckRange = (plan, rels) => {
   return kept.length && kept.length < rels.length ? kept : null;
 };
 
-/* Six and a count in the sentence keeps a refusal readable; the command carries every path, since a pass over six of thirty earns nothing while looking as though it did — quoted where a shell would split it, pathed where this CLI's own parser would eat it as a flag. */
+/* Six and a count in the sentence keeps a refusal readable; the command carries every path, since a pass over six of thirty earns nothing while looking as though it did — `pathed` for both ways a path is unreadable back. */
 const SHOWN = 6;
-const quoted = (one) => (one.startsWith("-") ? `./${one}` : typed(one));
 const listed = (rels) => {
-  const shown = rels.slice(0, SHOWN).map(quoted).join(" ");
+  const shown = rels.slice(0, SHOWN).map(pathed).join(" ");
   return rels.length > SHOWN ? `${shown} and ${rels.length - SHOWN} more` : shown;
 };
 
@@ -317,7 +316,7 @@ const listed = (rels) => {
  *  Three unlike situations shared one sentence naming no route, so it travelled by hand (ISS-51). */
 export const recheckOwed = (plan, rels) => {
   if (plan?.risks.length) return null;
-  const read = `Do this: \`echo "<what you were doing>" | forge codex consult --send bodies ${rels.map(quoted).join(" ")}\``;
+  const read = `Do this: \`echo "<what you were doing>" | forge codex consult --send bodies ${rels.map(pathed).join(" ")}\``;
   if (!plan) {
     return `--recheck answers an earlier consult's findings, and no consult in the log has answered on ${listed(rels)}.\n`
       + `${read} — the read of the whole set is the pass a review is earned by, and a recheck follows one of its findings.`;

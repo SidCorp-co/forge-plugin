@@ -235,8 +235,8 @@ const changedIn = (root, rel, base, fromParting) => {
   return known.status === 0 ? { unchanged: true } : { untracked: true };
 };
 
-/** For a consult asked to review a diff and given no file: every path git names, a deletion and an
- *  untracked one included, or null where the base is no ref, which is not the same as no change. */
+/** For a consult asked to review a diff and given no file: every path git names, a deletion, an
+ *  untracked one and both ends of a rename included — detected, a rename is named by its destination alone and its source by nothing (ISS-703) — or null where the base is no ref, which is not the same as no change. */
 export const changedAgainst = (root, base, fromParting = false) => {
   const asked = (argv) => {
     const run = spawnSync("git", argv, { cwd: root, encoding: "utf8" });
@@ -244,9 +244,19 @@ export const changedAgainst = (root, base, fromParting = false) => {
   };
   /* `-z` ahead of `--end-of-options`, past which every word is a path: a newline is a legal one. */
   const from = (fromParting && divergedFrom(root, base)) || base;
-  const changed = asked(["diff", "--name-only", "-z", "--end-of-options", from]);
+  const changed = asked(["diff", "--name-only", "-z", "--no-renames", "--end-of-options", from]);
   if (!changed) return null;
   return [...new Set([...changed, ...(asked(["ls-files", "--others", "--exclude-standard", "-z"]) ?? [])])].sort();
+};
+
+/** Of these paths, the ones git ignores: `changedAgainst` enumerates the untracked with
+ *  `--exclude-standard`, so an ignored path is in neither list and reads as unchanged. `1` is none. */
+export const ignoredIn = (root, rels) => {
+  if (!rels.length) return new Set();
+  const run = spawnSync("git", ["-C", root, "check-ignore", "-z", "--stdin"],
+    { input: `${rels.join("\0")}\0`, encoding: "utf8" });
+  if (run.status !== 0 && run.status !== 1) return new Set();
+  return new Set((run.stdout ?? "").split("\0").filter(Boolean));
 };
 
 export const withDiffs = (root, parts, base, fromParting = false) =>

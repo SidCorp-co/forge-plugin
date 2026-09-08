@@ -67,13 +67,21 @@ after bytes have arrived is a refusal and never a short payload: a plan read in 
 as the plan. The line naming what the consult is about to do prints before the read, so a stall says
 where it is.
 
-**Asked for a diff and given nothing, the tree answers.** `--diff` with no file named and nothing
-pending answered "nothing to consult on", and what an author then did was run `git diff --name-only`
-and type the list back. The names come from there now and are printed on stderr, so the review's
-scope is legible without a second call. A deletion is among them, and so is an untracked file: the
-diff step used to pass over a path that is not on disk, which named the file and said nothing about
-it, and `git diff` never lists a file git has not been told about, which a turn's new file always
-is.
+**Asked for a diff, the tree answers and the turn's record does not.** The record is kept on
+`codex.pathRe` and holds a path until a consult names it, so it is neither the change nor a subset of
+it (ISS-703: a reviewer shown a strict subset twice, and a path logged that was never in the tree). A
+diff with no file named is `git diff --name-only` plus the untracked, whatever the record holds. Two
+exceptions, the run naming which: a **recheck** keeps the record, answering one consult's findings
+rather than reviewing a change, and the tree would lose the file they are about the moment anything
+else went dirty; and where nothing differs from the base the record travels too, for a change just
+committed. Every record path left out is classed absent, ignored by git, or unchanged: ignored is the
+one that is real work, and absent leaves the record, no consult being able to reach it.
+
+**A path nothing can be shown of never travels and is never recorded.** `bundle` marks what it cannot
+read `missing`, which is three things: a tracked deletion, whose diff is its whole change; a file that
+exists and could not be read, a dangling symbolic link among them; and one that is not there at all
+and has no diff, which went out as `NEW FILE` with no lines under it. Absence is `lstat` and only
+`ENOENT`, never a failed read.
 
 **A base is read from where the branch left it.** `--base master` diffed against the ref as it
 stood, so a base that moved under the run — master taking another run's release mid-branch —

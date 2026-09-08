@@ -1306,8 +1306,8 @@
       "digest": "4daea7d1c6ed21a2cef10002bbd861994d1645a65fad55081807f336d6fc44bf"
     },
     "AC-06-1-1": {
-      "rev": 1,
-      "digest": "6d4da1ba45459a1e39a809e5a59bb4d27c7153c578ac3ac4ef9f70bbac8b4373"
+      "rev": 2,
+      "digest": "e593465f99466b8fbbb520d2cfe2230cd38fdd72b5b049cd87a9a19915ae844a"
     },
     "AC-06-1-2": {
       "rev": 1,
@@ -1320,6 +1320,14 @@
     "AC-06-1-4": {
       "rev": 1,
       "digest": "2efd000780e830c5de611afe04b5a0e261373665dad0273d93e043d260fe978d"
+    },
+    "AC-06-1-5": {
+      "rev": 1,
+      "digest": "ab79e594ec0346ac53d790f84b3dc79e9662c78e41ee7c620909eb1bde6cde39"
+    },
+    "AC-06-1-6": {
+      "rev": 1,
+      "digest": "1b2b933d9106257c0e734b72ce47db21050c515e52944326a313785b70f32616"
     },
     "UC-06-2": {
       "rev": 1,

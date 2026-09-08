@@ -20,6 +20,7 @@ import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mj
 import { didYouMean } from "../suggest.mjs";
 import { afterTouch, ageOf, clearConsulted, demandOf, pendingIn, readState, turnsOf, updateState } from "./codex-state.mjs";
 import { TOOLS, scopeFor } from "./codex-tools.mjs";
+import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
 import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, defaultEffort, incompleteIn, keepsTools, newFindingsIn, plannedFor, plannedLimits }
   from "./codex-plan.mjs";
@@ -28,11 +29,9 @@ import {
   modelSlot,
   askApi,
   bundle,
-  changedAgainst,
   digest,
   divergedFrom,
   inside,
-  locate,
   modelBehind,
   promptMark,
   withDiffs,
@@ -135,14 +134,6 @@ export const repoRoot = (start) => {
   }
 };
 
-/** The files a caller named, as the log keys them: absolute in somebody else's checkout, relative
- *  to `root` here, and an unreadable one refused loudly rather than dropped. */
-const relsOf = (root, named) => named.map((one) => {
-  const held = locate(root, one);
-  if (!held) fail(`codex: ${one} is not a readable file, from ${root}.`);
-  return held.rel;
-});
-
 /* A pattern that does not compile is worse than no pattern: the gate would throw on every write of
    whatever repository carries it. It is skipped for the next source, and `show` names what resolved. */
 const compiles = (source) => {
@@ -162,7 +153,9 @@ export const recordPattern = () => {
 
 export const recordable = (rel) => new RegExp(recordPattern().value).test(rel);
 
-export const unchangedAll = (parts) => parts.length > 0 && parts.every((part) => part.missing || part.diff?.unchanged);
+/* A `missing` part with a diff is a deletion, and a change: every `missing` read as unchanged sent a deletion-only review no diffs at all (ISS-703). */
+export const unchangedAll = (parts) => parts.length > 0
+  && parts.every((part) => part.diff?.unchanged || (part.missing && noDiffIn(part.diff)));
 
 /* A head logged days ago may be gone: a worktree branch deleted, a rebase, another checkout. An
    unreadable one is not an error — the recheck simply carries no diff. */
@@ -261,26 +254,32 @@ const chosenEffort = (raw) => {
   return raw;
 };
 
+/* The premise is a decorrelated reviewer, so an echo is refused rather than warned about: a warning
+   on stderr is read after the tokens are spent. */
+const modelFor = (values, path, allowEcho) => {
+  const model = modelBehind(values);
+  if (!model) fail(`codex: ${path} maps the ${modelSlot()} slot to no model.`);
+  if (sameFamily(model) && !allowEcho) {
+    fail(`codex: the ${modelSlot()} slot resolves to ${model}, this model's own family — that echoes rather `
+      + "than reviews. Point `codex.model` at another slot, or pass --allow-echo.");
+  }
+  return model;
+};
+
 const consult = async (given) => {
   const { problem, values, path } = profile();
   if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
   const { named, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, bodies, recheck, angles, scope, checks } = consultArgs(given);
-  let rels = [...new Set(named.length ? relsOf(root, named) : pendingIn(readState(), root))];
-  let offered = (many) => `${many} this turn touched`;
-  /* Asked for a diff and given nothing to diff, the tree answers: the round it replaces read
-     `git diff --name-only` and typed the list back (ISS-65). */
-  if (!rels.length && base) {
-    const changed = changedAgainst(root, base, base === namedBase);
-    if (!changed) fail(`codex: --base ${base} is no ref this checkout can read, so what changed against it is unknown. Name the base, or name the files.`);
-    rels.push(...changed);
-    offered = (many) => `${many} that differ from ${base} now`;
-    if (rels.length) console.error(`codex: nothing named and nothing pending, so the ${rels.length} file(s) changed against ${base}: ${rels.join(", ")}.`);
-  }
-  if (!rels.length) {
-    fail(`codex: nothing to consult on. Name a file, or write one first.${base ? ` Nothing differs from ${base} either.` : ""}`);
-  }
+  const set = reviewSet({ root, named, base, namedBase, recheck, pattern: recordPattern().value, held: pendingIn(readState(), root) });
+  const { offered, gone } = set;
+  let rels = set.rels;
+  for (const line of set.said) console.error(`codex: ${line}`);
+  /* Cleared here rather than after the answer: a path with nothing under it can never be consulted
+     on, so leaving it would offer the next consult the same phantom (ISS-703). */
+  if (gone.length) clearConsulted(root, gone);
+  if (!rels.length) fail(`codex: nothing to consult on. Name a file, or write one first.${base ? ` Nothing differs from ${base} either.` : ""}`);
   const entries = logEntries();
   const plan = recheck ? recheckPlan(entries, root, rels) : null;
   const offset = risks.length;
@@ -310,14 +309,18 @@ const consult = async (given) => {
   const parted = fromParting ? divergedFrom(root, anchor) : null;
   if (parted) console.error(`codex: ${anchor} has moved under this branch, so the diff is from ${parted.slice(0, 7)}, where they parted.`);
 
-  const model = modelBehind(values);
-  if (!model) fail(`codex: ${path} maps the ${modelSlot()} slot to no model.`);
-  /* The premise is a decorrelated reviewer. Refused rather than warned about, because a warning on
-     stderr is read after the tokens are spent. */
-  if (sameFamily(model) && !allowEcho) {
-    fail(`codex: the ${modelSlot()} slot resolves to ${model}, this model's own family — that echoes rather `
-      + "than reviews. Point `codex.model` at another slot, or pass --allow-echo.");
+  const model = modelFor(values, path, allowEcho);
+  /* Bundled before the count is printed, because a path with nothing under it is not a file to
+     review: it travelled as a NEW FILE heading with no lines and was logged as reviewed (ISS-703). */
+  const showing = shownOf(root,
+    anchor ? withDiffs(root, bundle(root, rels), anchor, fromParting) : bundle(root, rels), anchor);
+  const { parts: bundled, empty } = showing;
+  for (const line of showing.said) console.error(`codex: ${line}`);
+  if (empty.length) {
+    rels = rels.filter((rel) => !empty.includes(rel));
+    clearConsulted(root, empty);
   }
+  if (!rels.length) fail("codex: nothing to consult on: every path it was offered is absent from the tree.");
   /* Said before the read, so a stall says where it is, and the read waits on the first byte alone:
      an open stdin with nothing on it was read to EOF and never returned (ISS-65). */
   console.error(`codex: ${rels.length} file(s) to review; reading the intent from stdin.`);
@@ -326,7 +329,6 @@ const consult = async (given) => {
   const intent = (said ?? "").trim();
   const id = randomBytes(3).toString("hex");
 
-  const bundled = anchor ? withDiffs(root, bundle(root, rels), anchor, fromParting) : bundle(root, rels);
   /* A review of nothing is still billed: after a commit every file reads UNCHANGED against HEAD. A
      recheck is the one case that carries on: its base was chosen for it, so an unmoved tree means
      nothing to diff and not nothing to ask, and the findings are still owed a ruling. */
