@@ -4,6 +4,7 @@
 import { spawnSync } from "node:child_process";
 
 import { fail } from "../resolve/settings.mjs";
+import { shortSha } from "../tracker/evidence.mjs";
 import { pluginCopy } from "../tools/plugin-copy.mjs";
 
 import {
@@ -128,7 +129,7 @@ export const capturedLine = (git) => {
     return `--pushed: nothing to capture — ${emptyWhy(git)}. The worklog is unchanged, and what it `
       + "holds is whatever the last capture wrote. Capture at the push, before the merge.";
   }
-  return `--pushed: ${git.branch} at ${git.head.slice(0, 7)}, base ${git.base.slice(0, 7)}, `
+  return `--pushed: ${git.branch} at ${shortSha(git.head)}, base ${shortSha(git.base)}, `
     + `${files} file(s) touched.`;
 };
 

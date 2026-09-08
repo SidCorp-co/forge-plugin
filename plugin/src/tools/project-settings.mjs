@@ -32,7 +32,7 @@ const shown = (value) => {
 const factShown = (text, key, answer) =>
   `${String(text ?? "").length} characters${answer?.projectFactsConfig?.[key]?.alwaysInject === true ? ", always-inject" : ""}`;
 
-export const RESOURCES = {
+const RESOURCES = {
   pipeline: {
     said: "the tracker's pipeline configuration",
     read: "pipeline",
@@ -65,11 +65,11 @@ const valueFor = (resource, given) => {
 
 /** Every resource at once, and soft: one a credential cannot reach is a line saying so, never an
  *  empty key set that reads as a project having configured nothing. */
-export const readSettings = async () =>
+const readSettings = async () =>
   Object.fromEntries(await Promise.all(NAMES.map(async (name) =>
     [name, await scoped("forge_config", { action: RESOURCES[name].read }, true)])));
 
-export const settingRows = (read) => {
+const settingRows = (read) => {
   const out = [];
   for (const name of NAMES) {
     const resource = RESOURCES[name];
@@ -92,7 +92,7 @@ export const settingRows = (read) => {
   return out;
 };
 
-export const SET_USAGE = "forge doctor --set <key>=<value>";
+const SET_USAGE = "forge doctor --set <key>=<value>";
 
 const keySets = (read) =>
   NAMES.map((name) =>

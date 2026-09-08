@@ -8,8 +8,8 @@ import { agentOf } from "../flow/lease.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { documentIdOf, shortOf } from "../tracker/issues.mjs";
 import { CAUSE_HELP, KIND_NAMES, kindRefusal, liveTitles } from "../tracker/issue-shape.mjs";
-import { briefGoals } from "../tracker/project-config.mjs";
-import { goalBlock, servesIn, servesRefusal } from "../goals.mjs";
+import { briefGoals, servesOwed } from "../tracker/project-config.mjs";
+import { goalBlock } from "../goals.mjs";
 import { bodyOf, keysFrom } from "../tracker/filing/route.mjs";
 import { fileAndSay } from "../tracker/filing/say.mjs";
 import { PROJECT, allowedKinds, onThisRepository, routingBlock } from "../tracker/filing/plugin-defect.mjs";
@@ -94,12 +94,8 @@ export const feedback = async (argv) => {
   keep(read.description);
   /* Before the first call: everything below reaches the plugin's project, in its language. */
   aimed();
-  const serves = servesIn(read.description);
-  if (serves.length) {
-    const unnamed = servesRefusal(serves, await briefGoals(), "This note's `Serves:` line",
-      onThisRepository());
-    if (unnamed) fail(unnamed);
-  }
+  const unnamed = await servesOwed(read.description, "This note's `Serves:` line", onThisRepository());
+  if (unnamed) fail(unnamed);
   /* After the project is aimed, and not before: a key names an issue of the plugin's backlog, and
      the same key resolved against the caller's project would relate somebody else's issue. */
   const relations = withKeys.length

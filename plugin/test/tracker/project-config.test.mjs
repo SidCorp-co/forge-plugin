@@ -4,8 +4,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { NOT_STATED } from "../../src/goals.mjs";
 import {
-  NOT_STATED,
   briefLines,
   briefSources,
   credentialLeak,

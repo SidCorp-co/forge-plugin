@@ -54,7 +54,7 @@ export const capRefusal = (where, cap, sent, given) => capClause(where, cap, sen
 
 /* Synchronous on purpose: `write` does not await this, so a promise would let the send go ahead.
    Every over-cap half at once, too — refusing inside the loop cost a round per half (ISS-325). */
-export const capChecked = (field, caps, sent, given, refuse, row = fields()[field]) => {
+export const capChecked = (field, caps, sent, given, refuse, row) => {
   const held = caps[field] ?? { self: null, halves: {} };
   if (!row.halves) {
     if (held.self !== null && lengthOf(sent) > held.self) refuse(capRefusal(field, held.self, sent, given));
@@ -67,10 +67,13 @@ export const capChecked = (field, caps, sent, given, refuse, row = fields()[fiel
   if (over.length) refuse(over.join(" ") + NOTHING_SENT);
 };
 
-export const ownsField = (field) => Boolean(fields()[field]);
+/** The one reader of the table, so a caller that has to hand a row on holds the same one the writer would. */
+export const rowOf = (field) => fields()[field];
+
+export const ownsField = (field) => Boolean(rowOf(field));
 
 export const writeField = async (documentId, field, value, { ref, next, patch, refuse, override = false }) => {
-  const row = override ? { same: landedAs } : fields()[field];
+  const row = override ? { same: landedAs } : rowOf(field);
   if (!row) {
     refuse(`${field} is not a field this writer sets. It takes ${Object.keys(fields()).join(", ")}.`);
   }

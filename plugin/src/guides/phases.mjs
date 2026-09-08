@@ -39,7 +39,7 @@ export const phaseForRecord = (kind) => {
 export const phaseAtLanding = () => phasesOwed(rungBelow(RELEASED)).at(-1) ?? null;
 
 /** The waiver a tier grants on the way out of a status, named by what it drops and why. */
-export const waivedFor = (status, size) => {
+const waivedFor = (status, size) => {
   const next = stepAfter(status);
   const tier = tierOf(size);
   const row = next && LIGHTER.find((one) => one.status === next && one.tiers.includes(tier));

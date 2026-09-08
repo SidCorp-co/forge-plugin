@@ -5,18 +5,20 @@
    tracker, and a project cannot rightly turn a contradiction back on. docs/cli/the-guides.md
    carries what the stale rules cost; `forge guide contract` prints what holds instead. */
 
+import { once } from "../resolve/config.mjs";
 import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./contract.mjs";
 import { skillGuideAnswer, skillGuideSlugs, skillListingRow } from "./skill-guides.mjs";
 
 /* The guides this copy answers off its own disk, listed rather than reached by the verb comparing a
-   slug against one constant of its own; a slug absent from it is the tracker's, answered `null`. */
-const LOCAL = [
+   slug against one constant of its own; a slug absent from it is the tracker's, answered `null`.
+   Built on the first call that asks: the rows are read off `plugin/guides/`, 51 filesystem calls every verb paid at import while two of them read the answer (ISS-762). */
+const LOCAL = once(() => [
   { slug: CONTRACT_SLUG, row: CONTRACT_ROW, answer: contractAnswer },
   ...skillGuideSlugs().map((slug) => ({ slug, row: skillListingRow(slug), answer: skillGuideAnswer(slug) })),
-];
-export const LOCAL_SLUGS = LOCAL.map((one) => one.slug);
-export const LOCAL_ROWS = LOCAL.map((one) => one.row);
-export const localGuide = (slug) => LOCAL.find((one) => one.slug === slug)?.answer ?? null;
+]);
+export const localSlugs = () => LOCAL().map((one) => one.slug);
+export const localRows = () => LOCAL().map((one) => one.row);
+export const localGuide = (slug) => LOCAL().find((one) => one.slug === slug)?.answer ?? null;
 
 /* Having a row is what withholds the guide, whichever disposition the row carries: neither a page
    the contract replaced nor a page half of which is the runner's is one an agent can follow whole,

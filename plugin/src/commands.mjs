@@ -30,9 +30,9 @@ import { targetsOfTool } from "./tracker/issue-read.mjs";
 import { actionIn, callable, helpOf, isGated, refuseIfGated, usageOf, wrappedRefusal } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { exclusive, flags, partition, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
-import { LOCAL_ROWS, LOCAL_SLUGS, dispositionOf, localGuide, trackerHeader, visibleGuides } from "./guides/guides.mjs";
-import { briefGoals } from "./tracker/project-config.mjs";
-import { goalBlock, servesIn, servesRefusal } from "./goals.mjs";
+import { dispositionOf, localGuide, localRows, localSlugs, trackerHeader, visibleGuides } from "./guides/guides.mjs";
+import { briefGoals, servesOwed } from "./tracker/project-config.mjs";
+import { goalBlock } from "./goals.mjs";
 import { doctor } from "./tools/doctor.mjs";
 import { project } from "./tools/project.mjs";
 import { next } from "./rank/next.mjs";
@@ -309,11 +309,8 @@ export const commands = {
     /* Registered the moment there is something to lose, and only then: a body from a file is on
        disk, and one from stdin cannot be sent a second time. */
     if (path === "-") keepOnFailure(`Your body, so that nothing here loses it:\n\n${body}`);
-    const serves = servesIn(body);
-    if (serves.length) {
-      const unnamed = servesRefusal(serves, await briefGoals(), "This body's `Serves:` line");
-      if (unnamed) fail(unnamed);
-    }
+    const unnamed = await servesOwed(body, "This body's `Serves:` line");
+    if (unnamed) fail(unnamed);
     const { title, ...carried } = given;
     return fileAndSay({
       title,
@@ -406,7 +403,7 @@ export const commands = {
       return rows.filter((one) => shown.has(one.slug));
     };
     if (!slug) {
-      for (const row of LOCAL_ROWS) console.log(row);
+      for (const row of localRows()) console.log(row);
       if (isGated("forge_guide")) return console.log("The tracker's guides are withheld from this credential: `forge doctor`.");
       for (const guide of await listed()) console.log(`${guide.slug}\n  ${guide.summary}`);
       return;
@@ -416,7 +413,7 @@ export const commands = {
     /* The one place a slug the verb does not serve is refused, so a held one and an unserved one
        answer in the same words. A held slug reaches it without the get: the body is not wanted. */
     const noSuchGuide = async () =>
-      fail(didYouMean("guide", slug, [...LOCAL_SLUGS, ...(await listed()).map((one) => one.slug)],
+      fail(didYouMean("guide", slug, [...localSlugs(), ...(await listed()).map((one) => one.slug)],
         "`forge guide` lists the guides this plugin stands behind."));
     if (row && !asked.tracker) await noSuchGuide();
     const answer = await scoped("forge_guide", { action: "get", slug }, true);

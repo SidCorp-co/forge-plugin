@@ -62,7 +62,7 @@ globalThis.fetch = async (address, init = {}) => {
   return answer({ id: ISSUE, ...stored, sessionContext: readBack ? readBack(held) : held });
 };
 
-const { capChecked, capRefusal, capsOf, lengthOf, writeField } = await import("../../src/tracker/field-write.mjs");
+const { capChecked, capRefusal, capsOf, lengthOf, rowOf, writeField } = await import("../../src/tracker/field-write.mjs");
 
 class Refused extends Error {}
 const refuse = (message) => {
@@ -99,7 +99,8 @@ test("the caps are the table's declaration, and a field it does not name is not 
   assert.equal(caps.releaseNotes.halves.section, null, "a half the declaration does not cap carries none");
   assert.equal(caps.sessionContext, undefined, "and a field it names nothing for is absent");
   const said = [];
-  capChecked("sessionContext", caps, "x".repeat(9_000), "x".repeat(9_000), (one) => said.push(one));
+  capChecked("sessionContext", caps, "x".repeat(9_000), "x".repeat(9_000), (one) => said.push(one),
+    rowOf("sessionContext"));
   assert.deepEqual(said, [], "an absent row is uncapped, not a throw");
 });
 
@@ -187,14 +188,14 @@ test("the cap is measured on what the boundary sent, not on what the author type
   const under = { section: "Added", userFacing: "x".repeat(443), technical: null };
   const grew = { ...under, userFacing: "y".repeat(600) };
   assert.throws(
-    () => capChecked("releaseNotes", caps, grew, under, refuse),
+    () => capChecked("releaseNotes", caps, grew, under, refuse, rowOf("releaseNotes")),
     /is 600/u,
     "a source inside the cap that the rewrite pushed over it is refused, on the rewrite's length",
   );
   const over = { section: "Added", userFacing: "x".repeat(600), technical: null };
   const shrank = { ...over, userFacing: "y".repeat(443) };
   assert.doesNotThrow(
-    () => capChecked("releaseNotes", caps, shrank, over, refuse),
+    () => capChecked("releaseNotes", caps, shrank, over, refuse, rowOf("releaseNotes")),
     "and a source over the cap that the rewrite brought under it is not refused at all",
   );
 });

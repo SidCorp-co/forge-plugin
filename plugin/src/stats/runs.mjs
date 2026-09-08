@@ -336,11 +336,17 @@ const mergedCounts = (runs, pick) => {
 
 /* A versioned part differs per version, so the key carries which: read again after a pin moved is a
    run that changed method, not one that went back. The version is the one that call was served, off
-   the part's own last line, and a call refused or unanswered says so rather than borrow this pin. */
+   the part's own last line, and a call refused or unanswered says so rather than borrow this pin. Whether a slug is versioned at all is asked once per slug: it is an `existsSync` under this copy's own guides, which cannot move while the process runs, and the corpus asked it once per `forge guide` call for six answers. */
+const VERSIONED = new Map();
+const versionedSlug = (slug) => {
+  if (!VERSIONED.has(slug)) VERSIONED.set(slug, isVersioned(slug));
+  return VERSIONED.get(slug);
+};
+
 const partRead = (call) => {
   const part = guidePartOf(call.shell) ?? GUIDE_INDEX;
   const [slug] = part.split(" ");
-  if (!isVersioned(slug)) return part;
+  if (!versionedSlug(slug)) return part;
   const version = guideVersionOf(call.body);
   return `${part} (${version ? `v${version}` : "version unread"})`;
 };

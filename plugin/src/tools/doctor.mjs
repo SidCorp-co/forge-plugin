@@ -506,7 +506,7 @@ export const doctor = async (argv) => {
   const { values: pairs, rest } = pullRepeated(argv, "--meta", "doctor", { usage });
   const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "doctor", usage });
   const asked = flags(flagArgv, "doctor", BOOLEAN, { usage });
-  const { full, credentials, hide, show: reveal, ship, ...values } = asked;
+  const { full, credentials, hide, show: reveal, ship } = asked;
   if (positionals.length && asked.line === undefined) {
     fail(`doctor: \`${positionals[0]}\` names no flag, and the prose of a line is --line's: `
       + "forge doctor --line <n> <text>");
@@ -523,7 +523,7 @@ export const doctor = async (argv) => {
   if (hide) setVisibility(hide, true);
   if (reveal) setVisibility(reveal, false);
   if (ship) setShip(ship);
-  const saved = Object.fromEntries(SAVED.filter((key) => values[key] !== undefined).map((key) => [key, values[key]]));
+  const saved = Object.fromEntries(SAVED.filter((key) => asked[key] !== undefined).map((key) => [key, asked[key]]));
   if (Object.keys(saved).length) install(saved);
 
   const { url, token } = accountCredentials();

@@ -2,7 +2,8 @@
 // how/issue-shape.md for a filing read before it is made, how/wrapped-route.md for a verb's action.
 
 import { deny, done, how, shellText, starts } from "../_hook.mjs";
-import { refusalFor, sessionKey } from "../../src/tracker/comments.mjs";
+import { refusalFor } from "../../src/tracker/comments.mjs";
+import { sessionKey } from "../../src/shown/ledger.mjs";
 import { filingsOf, joined, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
 import { actionIn, wrappedRefusal } from "../../src/resolve/visibility.mjs";
 import { refusalFrom, shapeOf } from "../../src/tracker/issue-shape.mjs";

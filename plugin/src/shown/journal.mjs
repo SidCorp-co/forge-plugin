@@ -51,7 +51,10 @@ const journals = () => {
 const creditsIn = (paths) => paths
   .flatMap(jsonlAt)
   .filter((one) => one?.session && one?.surface && Array.isArray(one.items))
-  .sort((one, two) => String(one.at).localeCompare(String(two.at)));
+  .sort((one, two) => {
+    const [at, next] = [String(one.at), String(two.at)];
+    return at < next ? -1 : Number(at > next);
+  });
 
 /* Insertion order is touch order, so the front is coldest and one short keeps the surface just read. */
 const budgeted = (surfaces) => {
@@ -65,13 +68,18 @@ const budgeted = (surfaces) => {
   return Object.fromEntries(rows.slice(from));
 };
 
+/* Written into the accumulator rather than cloning it per row: `foldedFrom` is this function's only reach and the object it starts from is `base()`'s own parse, so no caller holds an intermediate that could see it change — where two hundred rows cost two hundred whole-object copies, and a surface's held items were re-scanned per row. `creditsIn` above orders by comparison for the same reason: ISO-8601 stamps sort lexically by construction, so the collator bought nothing at 20 times the cost.
+   Defined rather than assigned, because a session is a caller's string: `FORGE_SESSION_ID=__proto__` assigns through the inherited setter and stores nothing, where the spread this replaces made an own property of it and the credit survived. */
 const added = (all, one) => {
   const mine = { ...(all[one.session]?.surfaces ?? {}) };
-  const older = (mine[one.surface] ?? []).filter((item) => !one.items.includes(item));
+  const fresh = new Set(one.items);
+  const older = (mine[one.surface] ?? []).filter((item) => !fresh.has(item));
   const kept = [...new Set([...older, ...one.items])].slice(-KEPT.items);
   delete mine[one.surface];
   const at = one.at ?? all[one.session]?.at ?? new Date().toISOString();
-  return { ...all, [one.session]: { at, surfaces: budgeted({ ...mine, [one.surface]: kept }) } };
+  const row = { at, surfaces: budgeted({ ...mine, [one.surface]: kept }) };
+  Object.defineProperty(all, one.session, { configurable: true, enumerable: true, value: row, writable: true });
+  return all;
 };
 
 const living = (all) => {

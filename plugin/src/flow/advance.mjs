@@ -67,11 +67,10 @@ const viewOf = async (reference, given) => {
   };
 };
 
-/* The renew before it is where the line is cleared: the transition is refused before this runs
-   unless the record earns it, and a second lease write would cost three more calls. `said` is what
-   a park adds to the payload; a plain advance sends the status alone and nothing else. */
-export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false, renewed = false } = {}) => {
-  if (!renewed) await renew(view.documentId, ref, next);
+/* The renew before it is where the line is cleared: the transition is refused before this runs unless the record earns it, and a second lease write would cost three more calls. `said` is what a park adds to the payload; a plain advance sends the status alone and nothing else.
+   `soft` is the caller with a record up already, which is one fact and not two: the renewal its own write made a call earlier is not made twice, and the tracker's refusal comes back to it rather than exiting the process, because a second renewal is a second place to exit and exiting there would leave that record claiming a move nothing attempted. */
+export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false } = {}) => {
+  if (!soft) await renew(view.documentId, ref, next);
   const answer = await write("forge_issues",
     { action: "transition", documentId: view.documentId, data: { status, ...(said ?? {}) } }, undefined, soft);
   /* Soft is for the caller that has already written something: the tracker's own refusal exits the process, and one route needs it back to say what its record left behind. */
@@ -122,9 +121,9 @@ const movedAfterRecord = async (view, ref, status, move) => {
     + `--moved "the record above claims ${status}, which the move was refused" --why <w>`);
 };
 
-/* A move into a side status, with the announcement the tracker writes for it credited in the same breath, for the reason `markMerged` states. Soft, the tracker's refusal comes back for the caller with a record up already — whose own write was the renewal one call earlier, so this does not renew again: a second renewal is a second place to exit, and exiting there would leave that record claiming a move nothing attempted. */
+/* A move into a side status, with the announcement the tracker writes for it credited in the same breath, for the reason `markMerged` states. It asks softly because it has a record up already, which is the one fact `transitionTo` reads that flag for. */
 const moveTo = async (view, ref, status, { note = "", said, credit }, soft = false) => {
-  const refused = await transitionTo(view, status, ref, { note, said, soft, renewed: soft });
+  const refused = await transitionTo(view, status, ref, { note, said, soft });
   if (refused) return refused;
   await creditAfter(credit, [{ ref, documentId: view.documentId }]);
   return null;

@@ -6,8 +6,6 @@ import { fail } from "../resolve/settings.mjs";
 import { rowsOf } from "./issues.mjs";
 import { scoped, write } from "./rpc.mjs";
 
-export { sessionKey };
-
 const listPage = (documentId, cursor, soft) => scoped(
   "forge_comments",
   { action: "list", filters: { issue: documentId, ...(cursor ? { cursor } : {}) } },

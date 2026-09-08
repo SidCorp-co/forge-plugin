@@ -78,8 +78,9 @@ globalThis.fetch = async (address, init = {}) => {
 };
 
 const {
-  commentPage, creditCaused, cutIn, cutLine, mustBeShown, postComment, refusalFor, sessionKey,
+  commentPage, creditCaused, cutIn, cutLine, mustBeShown, postComment, refusalFor,
 } = await import("../../src/tracker/comments.mjs");
+const { sessionKey } = await import("../../src/shown/ledger.mjs");
 /* How a credit survives is the journal's, and its cases went with it to test/shown/journal.test.mjs. */
 const { creditedTo: shownTo } = await import("../../src/shown/journal.mjs");
 

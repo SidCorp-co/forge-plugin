@@ -47,7 +47,7 @@ export const correctionFor = async (documentId, ref, moved, why, { done = true }
     : `${opened}\nSo there is no move to correct and no record claiming one. Run the same override again.`);
 };
 
-export const setPair = (given) => {
+const setPair = (given) => {
   const { key: field, value } = pairOf(String(given ?? ""), "--set");
   if (!value.trim()) refuse(`--set ${field}= names no value, and an override that clears a field is not one this verb writes.`);
   if (ownsField(field)) {

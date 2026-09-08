@@ -29,7 +29,7 @@ export const bandFor = (tier) => CANONICAL[tier] ?? null;
 
 export const splits = (band) => BAND_NAMES.indexOf(String(band ?? "")) >= SPLIT_FROM;
 
-/** A rung below the top, which is the whole of what every lighter path asks: one predicate, the caller spelling which source it read — `belowTop(markedIn(body))`, `belowTop(rungFrom(band))` — and `BELOW_TOP` derived so a row's rungs are not a third spelling of it. */
+/** A rung below the top, which is the whole of what every lighter path asks: one predicate over the one source a rung has, `belowTop(rungFrom(band))`, and `BELOW_TOP` derived so a row's rungs are not a second spelling of it. */
 export const belowTop = (rung) => Boolean(rung) && rung !== FEATURE;
 
 const BELOW_TOP = TIERS.filter((one) => belowTop(one));

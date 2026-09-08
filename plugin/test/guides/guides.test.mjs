@@ -12,12 +12,12 @@ import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("guides").path;
 const {
   GUIDE_TABLE,
-  LOCAL_ROWS,
-  LOCAL_SLUGS,
   REVIEWED,
   dispositionOf,
   heldSlugs,
   localGuide,
+  localRows,
+  localSlugs,
   reviewGuideTable,
   supersededSlugs,
   trackerHeader,
@@ -49,9 +49,9 @@ test("a local guide is answered from this copy, and nothing else is", async () =
     assert.equal(localGuide(slug), null, `${slug} is the tracker's, and this copy holds no page of it`);
   }
   const { skillGuideSlugs } = await import("../../src/guides/skill-guides.mjs");
-  assert.deepEqual(LOCAL_SLUGS, ["contract", ...skillGuideSlugs()], "the contract, then every skill this copy serves");
+  assert.deepEqual(localSlugs(), ["contract", ...skillGuideSlugs()], "the contract, then every skill this copy serves");
   assert.ok(skillGuideSlugs().includes("issue-flow"), "the issue-flow method is served from this copy");
-  assert.equal(LOCAL_ROWS.length, LOCAL_SLUGS.length, "a local guide the listing would not print is hidden");
+  assert.equal(localRows().length, localSlugs().length, "a local guide the listing would not print is hidden");
 });
 
 test("every disposition is one the verb acts on", () => {

@@ -14,7 +14,8 @@ import { didYouMean } from "../suggest.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
 import { citedIn } from "../checks/cited-paths.mjs";
 import { CODE_SPAN_PATTERN } from "../markdown.mjs";
-import { SOURCE_MARK, WHY, goalLine, goalsIn } from "../goals.mjs";
+import { NOT_STATED, SOURCE_MARK, WHY, goalLine, goalsIn, servesIn, servesRefusal }
+  from "../goals.mjs";
 import { BRIEF_SLUG, metaFrom, same, softEntryAt, upsertEntry, wroteLines }
   from "../tools/knowledge.mjs";
 import { scoped } from "./rpc.mjs";
@@ -32,7 +33,6 @@ export const releaseFrom = (config) => ({
 
 const readable = (policy) => Boolean(policy?.staging && policy?.production);
 
-export const NOT_STATED = "not stated";
 export const QA_MODES = ["independent", "builder"];
 
 /* Derived, never asked for again: one branch deploying production means a push IS the deploy, so the
@@ -349,6 +349,12 @@ export const briefLines = (read) => {
 };
 
 export const readBrief = async () => (slugIfAny() ? softEntryAt(BRIEF_SLUG) : null);
+
+/** The refusal a body's own `Serves:` line earns, or null. The read of the brief is inside the guard because a body with no such line owes it none, and reading one is a tracker call: the two verbs that file spend this rather than each spelling that condition. */
+export const servesOwed = async (text, what, asksTree = true) => {
+  const values = servesIn(text);
+  return values.length ? servesRefusal(values, await briefGoals(), what, asksTree) : null;
+};
 
 /** Not memoised: the store's answer is one project's, and `forge feedback` re-aims the scope. */
 export const briefGoals = async () => {

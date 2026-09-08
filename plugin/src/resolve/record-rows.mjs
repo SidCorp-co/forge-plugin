@@ -5,7 +5,7 @@
 import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES,
   sectionOwedBy } from "../flow/machine.mjs";
 import { CLAUSES, NOTHING } from "../flow/record/merged.mjs";
-import { DECLARES } from "../tracker/rest.mjs";
+import { declaredFor } from "../tracker/rpc.mjs";
 import { goalBlock } from "../goals.mjs";
 import { OPEN_KEPT } from "../flow/worklog.mjs";
 import { usageOf } from "./visibility.mjs";
@@ -77,7 +77,7 @@ const KIND_PHRASE = {
   report: "the latest record of each kind, the latest verdict per criterion, and what is owed",
 };
 
-export const phraseRows = () =>
+const phraseRows = () =>
   KINDS.map((kind) => `  ${kind.padEnd(13)}${KIND_PHRASE[kind] ?? ""}`);
 
 /* The sections a typed plan owes, each as the question it answers, so a plan is written against the list rather than against the refusal. The heading is the section's whole name and nothing else on its line; a plan carrying none of them writes as the free text it is and `approved` says so.
@@ -134,7 +134,7 @@ const EVIDENCE_BLOCKS = [
   "Evidence is an attachment name on the issue, a URL, a commit of 7 to 40 hex digits, or a path to",
   "a readable file, which goes up under its base name and is cited by it. A name already attached is",
   `refused rather than attached twice. The tracker types a file by its name and takes`,
-  `${DECLARES.forge_uploads.extensions.join(" ")} — this CLI's reading of the tracker's set rather`,
+  `${declaredFor("forge_uploads", "extensions").join(" ")} — this CLI's reading of the tracker's set rather`,
   "than its answer, so one missing may work too, and no path costs an upload before it is minted.",
   "",
   "--commit and --evidence are read off the record where the flag is absent: the commit from the",

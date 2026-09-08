@@ -20,7 +20,7 @@ const {
 const {
   MINTED, sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced, sessionWriting,
 } = await import("../../src/resolve/config.mjs");
-const { sessionKey } = await import("../../src/tracker/comments.mjs");
+const { sessionKey } = await import("../../src/shown/ledger.mjs");
 const { retryOf } = await import("../../src/tracker/rpc.mjs");
 const { ROUTES } = await import("../../src/tracker/rest.mjs");
 const { parkAnswers } = await import("../../src/flow/lease.mjs");

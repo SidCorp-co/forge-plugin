@@ -38,8 +38,9 @@ const NO_DELETE = "project: a project is not deleted from here. Its issues, comm
   + " knowledge hang off it, and nothing was sent — archive it instead, which is reversible:\n"
   + "  forge project <slug> --archive";
 
-const listed = async (archived) => {
-  const answer = await scoped("forge_projects", { action: "list", ...(archived ? { archived: 1 } : {}) });
+/* Archived included, because this listing is what names one to unarchive. */
+const listed = async () => {
+  const answer = await scoped("forge_projects", { action: "list", archived: 1 });
   return answer?.projects ?? [];
 };
 
@@ -135,7 +136,7 @@ export const project = async (argv) => {
       fail(`project: ${acts.map((one) => `--${one}`).join(" and ")} acts on one project and none is `
         + `named. Nothing was sent: ${usage}`);
     }
-    for (const one of await listed(true)) {
+    for (const one of await listed()) {
       console.log(`${String(one.slug).padEnd(SLUG_WIDTH)} ${one.name}${one.archivedAt ? "  (archived)" : ""}`);
     }
     return undefined;

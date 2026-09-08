@@ -181,7 +181,7 @@ export const rankConvention = once(() => sourced(FROM_PROJECT, forgeJson().parse
 export const projectReview = () => forgeJson().parsed?.review ?? {};
 export const projectStop = () => forgeJson().parsed?.stop ?? {};
 
-export const PLUGIN_DEFAULT = "the plugin's default";
+const PLUGIN_DEFAULT = "the plugin's default";
 
 /* One shape for every keyed choice, so doctor and the guides' conditions read them all the same way. */
 const chosen = (given, allowed, fallback, { source = FROM_PROJECT, absent = PLUGIN_DEFAULT } = {}) => {

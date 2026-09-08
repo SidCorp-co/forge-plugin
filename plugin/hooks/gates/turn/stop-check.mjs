@@ -12,7 +12,7 @@ import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { gitProbe } from "../../../src/hooks/git-probe.mjs";
 import { linting } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
-import { sessionKey } from "../../../src/tracker/comments.mjs";
+import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { keysIn } from "../../../src/tracker/issues.mjs";
 import { askedAlready, block, done, how, isSubagent, remaining, sinceTurn, transcriptOf, turnAt,
   turnRecords, turnWrites, typed } from "../../_hook.mjs";

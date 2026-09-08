@@ -147,13 +147,13 @@ export const isGated = (tool) => Boolean(recorded().gates[tool]);
 export const gatedTools = () => new Set(Object.keys(recorded().gates).filter(isGated));
 export const withheldVerbs = () => new Set(userConfig().withheld ?? []);
 
-export const FEEDBACK_VERB = "feedback";
+const FEEDBACK_VERB = "feedback";
 
 /** The project's say over the channel to this plugin's backlog, beside this machine's over the verb:
  *  neither grants what the other withholds, and a closed one is refused in a line naming the key. */
 export const pluginChannel = () => feedbackScope().plugin;
 
-export const closedByProject = (verb) => verb === FEEDBACK_VERB && pluginChannel().value === "off";
+const closedByProject = (verb) => verb === FEEDBACK_VERB && pluginChannel().value === "off";
 
 export const verbForPluginDefect = () =>
   (closedByProject(FEEDBACK_VERB) || withheldVerbs().has(FEEDBACK_VERB) ? null : FEEDBACK_VERB);
@@ -198,7 +198,7 @@ const unavailable = (verb) => {
   }
   const blocked = blockedBy(verb);
   return blocked
-    ? `\`forge ${verb}\` cannot spend ${blocked.key} on this credential — \`forge doctor\` measured that`
+    ? `\`forge ${verb}\` cannot spend ${blocked} on this credential — \`forge doctor\` measured that`
     : null;
 };
 
@@ -224,9 +224,8 @@ export const offeredVerbs = () => {
 };
 
 export const blockedBy = (verb) => {
-  const row = rowFor(verb);
-  const key = gateKey(row);
-  return key && isGated(key) ? { key } : null;
+  const key = gateKey(rowFor(verb));
+  return key && isGated(key) ? key : null;
 };
 
 /* A gated tool's schema is an invitation to a call that cannot succeed. */

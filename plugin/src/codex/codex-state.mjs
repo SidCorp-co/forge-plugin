@@ -6,7 +6,7 @@ import { randomBytes } from "node:crypto";
 import { basename, join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
-import { logHook } from "../hooks/hook-log.mjs";
+import { logHook } from "../hooks/hook-log-file.mjs";
 
 export const statePath = () => join(configDir("forge"), "codex.json");
 

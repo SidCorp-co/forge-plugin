@@ -12,6 +12,7 @@ import { gitRootOf } from "./codex-tools.mjs";
 import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
+import { shortSha } from "../tracker/evidence.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
 import { CONSULTS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "../stats/marks.mjs";
 
@@ -430,7 +431,7 @@ export const replayOf = (rows) => {
 
 /** Every place a kept row's bytes came from, and the checkout that answered where it is not the one recorded: a rebuild off a later commit, another worktree or the log itself is a different claim from a rebuild off the row's own commit, and a reader counting rows is owed the difference. */
 const sourceOf = (parts, row, from) => {
-  const each = parts.map((part) => (part.from === row.head ? "the commit recorded" : part.from === "the log" ? "the log" : `commit ${part.from.slice(0, 7)}`));
+  const each = parts.map((part) => (part.from === row.head ? "the commit recorded" : part.from === "the log" ? "the log" : `commit ${shortSha(part.from)}`));
   return `${[...new Set(each)].join(" and ")}${from === row.root ? "" : ` in ${from}`}`
     + `${parts.some((part) => part.masked) ? ", a masked body among them" : ""}`;
 };
