@@ -9,7 +9,7 @@ import { isCommit } from "../../tracker/evidence.mjs";
 import { capsOf, lengthOf } from "../../tracker/field-write.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
 import { releasePolicy } from "../../tracker/project-config.mjs";
-import { scoped, write } from "../../tracker/rpc.mjs";
+import { scoped, write } from "../../tracker/rest.mjs";
 import { notAnothers, renew } from "../lease.mjs";
 import { unwrap } from "../machine.mjs";
 

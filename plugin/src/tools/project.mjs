@@ -4,7 +4,7 @@
 import { deployFrom, deployRows, deployed } from "../tracker/project-config.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { exclusive, flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
-import { projectIdOf, scoped, write } from "../tracker/rpc.mjs";
+import { projectIdOf, scoped, write } from "../tracker/rest.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { SLUG_WIDTH } from "./knowledge.mjs";

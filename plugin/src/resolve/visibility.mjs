@@ -1,7 +1,7 @@
 /* What this credential may see. Two mechanisms, deliberately not merged: the server REFUSES a
    tool, a human WITHHELD a verb. They differ in authority and consequence.
    docs/cli/withholding-a-verb.md. */
-import { ROUTES } from "../tracker/rest.mjs";
+import { ROUTES } from "../tracker/routes.mjs";
 import { userConfig } from "./config.mjs";
 import { fail, feedbackScope, projectScope } from "./settings.mjs";
 

@@ -3,7 +3,7 @@ import { refuse } from "../refusal.mjs";
 import { pairOf } from "../resolve/flags.mjs";
 import { keepOnFailure } from "../resolve/settings.mjs";
 import { ownsField, writeField } from "../tracker/field-write.mjs";
-import { AMBIGUOUS } from "../tracker/rpc.mjs";
+import { AMBIGUOUS } from "../tracker/rest.mjs";
 import { ANSWERED_BY_COMMENT } from "./earned.mjs";
 import { issueOf, post } from "./record/record.mjs";
 import { render } from "./record/page.mjs";

@@ -5,7 +5,7 @@ import { exclusive, firstLine, flags, pullRepeated, wantsHelp } from "../resolve
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, countedShort, creditAfter, cutIn } from "../tracker/comments.mjs";
-import { declaredValue, write } from "../tracker/rpc.mjs";
+import { declaredValue, write } from "../tracker/rest.mjs";
 import { UNREAD, afterRefused, correctionFor, whyChecked } from "./override.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";

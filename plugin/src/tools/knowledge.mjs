@@ -2,7 +2,7 @@
    the code is. Entries are the tracker's and nothing here writes a file. docs/cli/knowledge.md. */
 import { fail, keepOnFailure } from "../resolve/settings.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
-import { declaredFor, declaredValue, refuseCredential, scoped, write } from "../tracker/rpc.mjs";
+import { declaredFor, declaredValue, refuseCredential, scoped, write } from "../tracker/rest.mjs";
 import { flags, helpAskedOf, pairOf, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 
@@ -49,7 +49,7 @@ const checked = (value, field) => {
   const near = declaredValue("forge_knowledge", field, value);
   if (near) {
     fail(`${near} That set is this CLI's own declaration of what the `
-      + `store takes, in \`plugin/src/tracker/rest.mjs\`, and the tracker names no set when it `
+      + `store takes, in \`plugin/src/tracker/routes.mjs\`, and the tracker names no set when it `
       + `refuses one: a value the tracker has grown since is added there.`);
   }
   return value;

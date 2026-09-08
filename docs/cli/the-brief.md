@@ -84,7 +84,7 @@ this turns a silent overwrite into a refusal naming the read to redo.
 The obvious answer — the rules file, the readme, the manifest, the gate script — knows only the
 ecosystems whoever wrote the list had met, and this repository refuses a checker that hard-codes
 its cases for exactly that reason. The other obvious answer, every path the brief cites, over-fires:
-a brief maps the tree, so hashing `plugin/src/tracker/rpc.mjs` would call the brief stale on any
+a brief maps the tree, so hashing `plugin/src/tracker/rest.mjs` would call the brief stale on any
 release that touched a module, and a stale line that is always on is read as noise within two runs.
 
 So a source is **what a line names as its own** — the tail after the line's `←`, run through the

@@ -247,7 +247,9 @@ test("nothing in the brief or its printer can write, because none of the writes 
     for (const call of ["renew", "setLease", "claimed", "post", "write", "transitionTo", "worklogFor"]) {
       assert.ok(!new RegExp(`\\b${call}\\b`, "u").test(imports), `${name} imports ${call}, which writes`);
     }
-    assert.ok(!/\brpc\.mjs\b/u.test(imports), `${name} reaches the transport itself`);
+    /* The transport by its own name, and never the table beside it: `routes.mjs` declares what a
+       route is and writes nothing, so a reader importing it has reached no write. */
+    assert.ok(!/\btracker\/rest\.mjs\b/u.test(imports), `${name} reaches the transport itself`);
   }
 });
 

@@ -22,7 +22,7 @@ import { NONE_STATED, servesRefusal } from "../../goals.mjs";
 import { sizeFrom } from "../../ladder.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
 import { capsOf, writeField } from "../../tracker/field-write.mjs";
-import { scoped } from "../../tracker/rpc.mjs";
+import { scoped } from "../../tracker/rest.mjs";
 import { refuseIfGated } from "../../resolve/visibility.mjs";
 import { pluginFilingLine } from "../../tracker/filing/plugin-defect.mjs";
 import { partForRecord } from "../../guides/served.mjs";

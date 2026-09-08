@@ -18,7 +18,7 @@ import { NOT_STATED, SOURCE_MARK, WHY, goalLine, goalsIn, servesIn, servesRefusa
   from "../goals.mjs";
 import { BRIEF_SLUG, metaFrom, same, softEntryAt, upsertEntry, wroteLines }
   from "../tools/knowledge.mjs";
-import { scoped } from "./rpc.mjs";
+import { scoped } from "./rest.mjs";
 
 const CONFIG_SOURCE = "the tracker's project config";
 const DEPLOY_SOURCE = "the tracker's project detail";

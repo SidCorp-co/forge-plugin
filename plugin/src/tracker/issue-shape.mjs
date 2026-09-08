@@ -11,7 +11,7 @@ import { BAND_NAMES, FIX, MARK_LINE, bandFor, belowTop, rungFrom } from "../ladd
 import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
-import { declaredFor } from "./rpc.mjs";
+import { declaredFor } from "./rest.mjs";
 
 const SETTLED = ["closed", "dropped"];
 const CANDIDATES = 4;

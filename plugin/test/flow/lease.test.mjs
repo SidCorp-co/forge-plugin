@@ -21,8 +21,8 @@ const {
   MINTED, sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced, sessionWriting,
 } = await import("../../src/resolve/config.mjs");
 const { sessionKey } = await import("../../src/shown/ledger.mjs");
-const { retryOf } = await import("../../src/tracker/rpc.mjs");
-const { ROUTES } = await import("../../src/tracker/rest.mjs");
+const { retryOf } = await import("../../src/tracker/rest.mjs");
+const { ROUTES } = await import("../../src/tracker/routes.mjs");
 const { parkAnswers } = await import("../../src/flow/lease.mjs");
 const { USAGE, nextLines, parkWrite } = await import("../../src/flow/claim.mjs");
 

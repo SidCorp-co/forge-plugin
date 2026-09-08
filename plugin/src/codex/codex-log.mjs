@@ -19,7 +19,7 @@ const HISTORY_CHARS = 6000;
 const INTENT_CHARS = 1500;
 const LOG_TAIL = 10;
 
-/* One seat, not a list of the fields that may carry a credential (rpc.mjs); at every depth, since the
+/* One seat, not a list of the fields that may carry a credential (the transport's); at every depth, since the
    last leak got through a redaction that missed one; per value, since a line-wide mask eats a quote. */
 const maskedDeep = (value) => {
   if (typeof value === "string") return masked(value);

@@ -4,7 +4,7 @@
 import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES,
   sectionOwedBy } from "../machine.mjs";
 import { CLAUSES, NOTHING } from "./merged.mjs";
-import { declaredFor } from "../../tracker/rpc.mjs";
+import { declaredFor } from "../../tracker/rest.mjs";
 import { goalBlock } from "../../goals.mjs";
 import { OPEN_KEPT } from "../worklog.mjs";
 import { usageOf } from "../../resolve/visibility.mjs";

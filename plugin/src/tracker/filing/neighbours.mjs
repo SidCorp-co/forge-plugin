@@ -1,7 +1,7 @@
 /* What is already open beside a filing, asked of the tracker's own memory search from inside the create path. Every decision below is docs/cli/beside.md's for the reading — the two queries, both floors, the term each is asked on — and docs/cli/the-fold.md's for the act. */
 import { mustBeShown, postComment } from "../comments.mjs";
 import { owesCause } from "../issue-shape.mjs";
-import { tried } from "../rpc.mjs";
+import { tried } from "../rest.mjs";
 import { firstLine } from "../../resolve/flags.mjs";
 
 const TOOL = "forge_memory.search";

@@ -1,7 +1,7 @@
 /* The last line of every reply that wrote: the id, read back rather than taken off the echo the
    write answered with. Why nothing here refuses, whatever it finds: docs/cli/filing.md. */
 import { commentPage, cutIn } from "../comments.mjs";
-import { tried } from "../rpc.mjs";
+import { tried } from "../rest.mjs";
 
 const AGAIN = "Do not send this call again before reading that id: a write the tracker took and a "
   + "write it dropped answer alike, and a second send files the body twice.";

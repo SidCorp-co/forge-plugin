@@ -2,7 +2,7 @@
    with the source each key was read from and written one key at a time. Whose the decision is, and
    why a key is never re-declared in a checkout: docs/cli/doctor.md. */
 import { fail, projectSlug } from "../resolve/settings.mjs";
-import { scoped, write } from "../tracker/rpc.mjs";
+import { scoped, write } from "../tracker/rest.mjs";
 import { WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
 import {
   briefLines,

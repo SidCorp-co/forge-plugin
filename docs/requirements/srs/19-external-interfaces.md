@@ -24,11 +24,11 @@ refused where it was asked for. Where such a route reads off the request what th
 read off a payload — the type of a file being uploaded — this product supplies that value and the
 tracker keeps the verdict on it.
 
-- **AC-19-1-1** · Rev: 2 · Proof: plugin/test/tracker/rest.test.mjs "no row of the table declares a transport, every one of them being a request"
+- **AC-19-1-1** · Rev: 2 · Proof: plugin/test/tracker/routes.test.mjs "no row of the table declares a transport, every one of them being a request"
   WHEN the CLI calls a tracker capability THEN it SHALL send the request its own declaration for
   that capability names, and SHALL refuse a capability its declaration leaves without one rather
   than reaching the tracker by another transport.
-- **AC-19-1-2** · Rev: 2 · Proof: plugin/test/tracker/rpc.test.mjs "the marker takes the one line terminator that is the wrapper's, and no other"
+- **AC-19-1-2** · Rev: 2 · Proof: plugin/test/tracker/rest.test.mjs "the marker takes the one line terminator that is the wrapper's, and no other"
   WHEN a field arrives inside the tracker's data fence THEN the transport SHALL hand on the value
   with the whitespace its author wrote and without the fence or the line terminators it owned.
 

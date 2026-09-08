@@ -22,7 +22,7 @@ import {
   withoutMarkup,
   withoutSpans,
 } from "../src/markdown.mjs";
-import { FENCE_PATTERN } from "../src/tracker/rpc.mjs";
+import { FENCE_PATTERN } from "../src/tracker/rest.mjs";
 import { typed } from "../src/hooks/shell-spans.mjs";
 import { DATA_FIELD, sseData } from "../src/sse.mjs";
 import { checkStructure } from "../src/checks/claude-md.mjs";
@@ -32,7 +32,7 @@ const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MARKDOWN = "plugin/src/markdown.mjs";
 const SHELL = "plugin/src/hooks/shell-spans.mjs";
 const SSE = "plugin/src/sse.mjs";
-const RPC = "plugin/src/tracker/rpc.mjs";
+const TRANSPORT = "plugin/src/tracker/rest.mjs";
 const HELP_WORD = "plugin/src/resolve/help-word.mjs";
 const LOG_READS = "plugin/src/hooks/log-reads.mjs";
 const SPEC_PARSE = "plugin/src/spec/parse.mjs";
@@ -118,7 +118,7 @@ const NEEDLES = [
   ["a markup class", MARKDOWN, [MARKUP_PATTERN]],
   ["a shell word", SHELL, [String.raw`[\w./@+][\w./@+-]*`, SHELL_ESCAPE]],
   ["an SSE frame reader", SSE, SSE_NEEDLES],
-  ["the untrusted-data fence", RPC, [FENCE_WORD]],
+  ["the untrusted-data fence", TRANSPORT, [FENCE_WORD]],
   ["the help predicate", HELP_WORD, HELP_FORMS],
   ["a line number from an index", MARKDOWN, LINE_AT_FORMS, WHOLE_TEXT],
   ["a log's name", LOG_READS, LOG_FORMS],
@@ -153,7 +153,7 @@ const markdown = () => listed("*.md", "docs", "plugin").filter((one) => one.ends
 test("no module of the plugin declares a primitive another module is the home of", () => {
   const found = modules();
   assert.ok(found.length >= 60, `${found.length} module(s) scanned; the selector matches too little`);
-  for (const home of [MARKDOWN, SHELL, SSE, RPC, HELP_WORD, LOG_READS, MEDIAN, JSONL, DOC_SHAPE]) {
+  for (const home of [MARKDOWN, SHELL, SSE, TRANSPORT, HELP_WORD, LOG_READS, MEDIAN, JSONL, DOC_SHAPE]) {
     assert.ok(found.some(({ rel }) => rel === home), `${home} is out of the scan the guard runs`);
   }
   assert.deepEqual(redeclared(found), []);
@@ -200,7 +200,7 @@ test("the guard fires on a module that re-declares one", () => {
     `f.mjs declares a shell word of its own; ${SHELL} holds it`,
     `h.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
     `i.mjs declares an SSE frame reader of its own; ${SSE} holds it`,
-    `j.mjs declares the untrusted-data fence of its own; ${RPC} holds it`,
+    `j.mjs declares the untrusted-data fence of its own; ${TRANSPORT} holds it`,
     `m.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
     `n.mjs declares the help predicate of its own; ${HELP_WORD} holds it`,
     `o.mjs declares a line number from an index of its own; ${MARKDOWN} holds it`,
@@ -261,7 +261,7 @@ test("escaping an apostrophe for a shell is not re-declaring the quoter", () => 
 });
 
 /* Tied back to the home's own source, so the needle cannot drift from the pattern it watches. */
-test("the fence needle is the source rpc.mjs holds, and catches a copy anchored any way", () => {
+test("the fence needle is the source the transport holds, and catches a copy anchored any way", () => {
   assert.ok(FENCE_PATTERN.includes(FENCE_WORD), "the needle no longer occurs in the pattern it watches");
   const copies = [
     String.raw`const F = /^⟦(?:END_)?UNTRUSTED_DATA[^⟧]*⟧\s*$/gmu;`,
@@ -269,7 +269,7 @@ test("the fence needle is the source rpc.mjs holds, and catches a copy anchored 
   ];
   for (const text of copies) {
     assert.deepEqual(redeclared([{ rel: "k.mjs", text }]),
-      [`k.mjs declares the untrusted-data fence of its own; ${RPC} holds it`]);
+      [`k.mjs declares the untrusted-data fence of its own; ${TRANSPORT} holds it`]);
   }
 });
 
@@ -404,7 +404,7 @@ test("the shared shell word agrees with both forms it replaced, over every path 
 
 /* Each transport's frame reader at 1d40447, kept here so the shared one can be judged against them. */
 const SSE_WAS = {
-  rpc: (text) =>
+  rest: (text) =>
     text
       .split("\n")
       .filter((line) => line.startsWith("data:"))

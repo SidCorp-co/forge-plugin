@@ -15,7 +15,7 @@ import {
   userConfig,
 } from "../resolve/config.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { backoff, retrySeconds } from "../tracker/rpc.mjs";
+import { backoff, retrySeconds } from "../tracker/rest.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
   FEEDBACK_CHANNELS, LANDING_ROUTES, SHIP_MODES, accountCredentials, fail, feedbackScope,
@@ -404,8 +404,8 @@ const checkProject = async (credentials, graph = null) => {
 
 /* Lazy: the transport exits the process when credentials have not resolved. */
 const checkEndpoint = async (full, credentials) => {
-  const { forgetProjects, projectId, restBase, scoped } = await import("../tracker/rpc.mjs");
-  const { served } = await import("../tracker/rest.mjs");
+  const { forgetProjects, projectId, restBase, scoped } = await import("../tracker/rest.mjs");
+  const { served } = await import("../tracker/routes.mjs");
   forgetProjects();
   const declared = served().map((row) => ({ name: row.tool }));
   line(OK, "rest base", `${restBase()}  ← derived from the endpoint url above, its trailing /mcp off`);

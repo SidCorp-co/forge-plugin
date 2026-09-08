@@ -5,11 +5,11 @@ import { readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 
 import { fail } from "../resolve/settings.mjs";
-import { declaredFor, refuseCredential, write } from "./rpc.mjs";
+import { declaredFor, refuseCredential, write } from "./rest.mjs";
 
 export const urlBearing = (item) => Boolean(item) && typeof item === "object" && typeof item.url === "string";
 
-/** The URL of what went up, or the answer whole where it carries none — the row `rest.mjs` builds every upload's answer as, never a string it once was (ISS-614). */
+/** The URL of what went up, or the answer whole where it carries none — the row `routes.mjs` builds every upload's answer as, never a string it once was (ISS-614). */
 export const uploaded = (answer) => (urlBearing(answer) ? answer.url : answer);
 
 /* A shell parses what a caller types, and `ln` refuses a destination `cp` would overwrite. */

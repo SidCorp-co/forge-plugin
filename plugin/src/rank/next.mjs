@@ -12,10 +12,10 @@ import { candidateLines, droppedLine, graphLines, HEAD } from "./print.mjs";
 import { carriersOf, graphOf, PROSE_FROM, PROSE_MARKER } from "./prose-edges.mjs";
 import { eligibilityOf, heldPaths, pathsNamed } from "./eligible.mjs";
 import { fail } from "../resolve/settings.mjs";
-import { RELATES, otherOf } from "../tracker/rest.mjs";
+import { RELATES, otherOf } from "../tracker/routes.mjs";
 import { holdsBack, holdsBackFrom, ordersSaid } from "../flow/earned.mjs";
 import { neighboursOf } from "../tracker/filing/neighbours.mjs";
-import { scoped } from "../tracker/rpc.mjs";
+import { scoped } from "../tracker/rest.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 
 const DEFAULT_COUNT = 5;

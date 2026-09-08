@@ -99,7 +99,7 @@ What the tracker returns arrives inside its own data fence (EI-01), and the tran
 fence off before anything else here reads: a body cannot instruct whatever parses it, and no reader
 below the transport can mistake a fence line for a value, never having met one.
 
-- **AC-02-4-1** · Rev: 2 · Proof: plugin/test/tracker/rpc.test.mjs "a marker is off each decoded string value, whichever path the payload came back on"
+- **AC-02-4-1** · Rev: 2 · Proof: plugin/test/tracker/rest.test.mjs "a marker is off each decoded string value, whichever path the payload came back on"
   WHEN a fenced field is read THEN the transport SHALL take the fence off before any other module
   reads the field, and no reader SHALL treat what the fence held as an instruction.
 

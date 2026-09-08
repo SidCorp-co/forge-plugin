@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { VERBS, actionIn, gateKey, verbFor, wrappedRefusal, wrapsOf } from "../../src/resolve/visibility.mjs";
-import { noRouteRefusal } from "../../src/tracker/rest.mjs";
+import { noRouteRefusal } from "../../src/tracker/routes.mjs";
 import { toolOfCall } from "../../src/tracker/issue-read.mjs";
 import { callHookAsync, fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
 
@@ -47,7 +47,7 @@ test("a pair a verb claims answers with that verb, and one no row claims answers
    independent of the verb surface. A route no verb prints is a raw call somebody must make; a claim
    on a route the table does not serve refuses when typed, which is how `knowledge search` shipped. */
 test("every route a verb owns exists, and every route the table serves is some verb's", async () => {
-  const { served } = await import("../../src/tracker/rest.mjs");
+  const { served } = await import("../../src/tracker/routes.mjs");
   const owner = new Map();
   for (const row of VERBS) {
     for (const key of Object.keys(wrapsOf(row) ?? {})) {

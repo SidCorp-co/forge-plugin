@@ -4,7 +4,7 @@ import { KEPT, credit, creditedTo, creditsFor } from "../shown/journal.mjs";
 import { sessionKey } from "../shown/ledger.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { rowsOf } from "./issues.mjs";
-import { scoped, write } from "./rpc.mjs";
+import { scoped, write } from "./rest.mjs";
 
 const listPage = (documentId, cursor, soft) => scoped(
   "forge_comments",

@@ -282,7 +282,10 @@ const bare = (text) => {
   return out;
 };
 const CALLS = /(?<![.\w])write\s*\(\s*(?:"(forge_\w+)")?/gu;
-const FROM_RPC = /import\s*(\*\s*as\s*\w+|\{[^}]*\})\s*from\s*"[^"]*rpc\.mjs"/u;
+/* The specifier's last segment, not the word `rest` in it: every module inside `tracker/` reaches the
+   transport as `./rest.mjs` or `../rest.mjs`, which is where the writes are, and a pattern spelling
+   the directory misses all of them. The separator is the boundary, so `interest.mjs` is not it. */
+const FROM_TRANSPORT = /import\s*(\*\s*as\s*\w+|\{[^}]*\})\s*from\s*"(?:[^"]*\/)?rest\.mjs"/u;
 
 export const uncheckedIn = (name, source) => {
   const text = bare(source);
@@ -303,7 +306,7 @@ export const uncheckedIn = (name, source) => {
 
 /* A name the scan cannot follow: `write` under another name, or the whole module behind one. */
 export const renamesWrite = (text) => {
-  const said = FROM_RPC.exec(text)?.[1];
+  const said = FROM_TRANSPORT.exec(text)?.[1];
   return Boolean(said) && (said.startsWith("*") || /\bwrite\s+as\s+/u.test(said));
 };
 
@@ -325,9 +328,16 @@ test("the scan sees a write however it is spelled, and nothing that is not one",
 });
 
 test("an aliased or namespaced import of the transport is refused", () => {
-  assert.equal(renamesWrite('import { write as post } from "./rpc.mjs";'), true);
-  assert.equal(renamesWrite('import * as rpc from "../tracker/rpc.mjs";'), true);
-  assert.equal(renamesWrite('import { scoped, write } from "./rpc.mjs";'), false);
+  assert.equal(renamesWrite('import { write as post } from "../tracker/rest.mjs";'), true);
+  assert.equal(renamesWrite('import * as sent from "../tracker/rest.mjs";'), true);
+  assert.equal(renamesWrite('import { write as post } from "./rest.mjs";'), true,
+    "the form every module inside tracker/ uses, which is where the writes are");
+  assert.equal(renamesWrite('import * as sent from "../rest.mjs";'), true, "and the form filing/ uses");
+  assert.equal(renamesWrite('import { scoped, write } from "../tracker/rest.mjs";'), false);
+  assert.equal(renamesWrite('import { ROUTES } from "../tracker/routes.mjs";'), false,
+    "and the table beside it writes nothing, so importing that is no write to rename");
+  assert.equal(renamesWrite('import * as all from "./interest.mjs";'), false,
+    "a name merely ending in those letters: the separator is what makes it the transport");
   assert.equal(renamesWrite('import { write as post } from "./other.mjs";'), false, "another module is not this one");
 });
 
@@ -340,7 +350,7 @@ const SRC = new URL("../../src", import.meta.url).pathname;
 test("every tracker write in the source is behind the check, or named as exempt", () => {
   const found = [];
   for (const path of sources(SRC)) {
-    if (path.endsWith("/rpc.mjs")) continue;
+    if (path.endsWith("/tracker/rest.mjs")) continue;
     const text = readFileSync(path, "utf8");
     assert.equal(renamesWrite(text), false, `${path} takes the transport under another name, which the scan reads`);
     found.push(...uncheckedIn(path.slice(SRC.length + 1), text));

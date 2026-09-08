@@ -4,7 +4,7 @@
    listed apart. What the marker sentence had to be, and why: docs/cli/next-the-edges.md. */
 import { depsConvention } from "../resolve/settings.mjs";
 import { everyIssue } from "../tracker/issues.mjs";
-import { scoped } from "../tracker/rpc.mjs";
+import { scoped } from "../tracker/rest.mjs";
 
 /* The marker sentence, and only it; the trailing period separates a claim from prose about one.
    The phrases come from the project file, which `forge doctor` names. */

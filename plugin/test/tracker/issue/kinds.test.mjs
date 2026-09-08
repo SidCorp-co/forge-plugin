@@ -25,7 +25,7 @@ import { unknownFlag } from "../../../src/resolve/flags.mjs";
 const TITLE = "the filing is read against the shape its kind names";
 const SECTIONS = {
   happened: "## What happened\n\nThe verb answered success and stored nothing at all.",
-  cause: "## Why it happens\n\n`plugin/src/tracker/rpc.mjs` reads the status and never the body.",
+  cause: "## Why it happens\n\n`plugin/src/tracker/rest.mjs` reads the status and never the body.",
   today: "## What happens today\n\nEvery filing is read against the one same shape.",
   outcome: "## Outcome\n\nA filing is read against the shape its kind names.",
   rules: "## Rules\n\n- The refusal names the section and the kind it is required for.",
@@ -97,7 +97,7 @@ test("a heading is matched by family, so the backlog's own wordings are the same
   /* And the cause's own family, the four wordings a backlog writes it under. */
   for (const heading of ["Why it happens", "Why this happens", "Root cause", "Where it comes from"]) {
     const named = body("happened", "outcome", "rules", "scope")
-      .replace("## Outcome", `## ${heading}\n\n\`plugin/src/tracker/rpc.mjs\` reads only the status.\n\n## Outcome`);
+      .replace("## Outcome", `## ${heading}\n\n\`plugin/src/tracker/rest.mjs\` reads only the status.\n\n## Outcome`);
     assert.deepEqual(gapsOf(named, "bug").gaps, [], heading);
   }
 });

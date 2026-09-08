@@ -5,7 +5,7 @@ import { sessionOf, sessionSourced } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
-import { scoped } from "../tracker/rpc.mjs";
+import { scoped } from "../tracker/rest.mjs";
 import { commentPage } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { partForStatus } from "../guides/served.mjs";

@@ -4,7 +4,7 @@ import { INHERITED, INHERITED_MEANS, OWN_ID, sessionOf, sessionSourced, sessionW
 import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { writeField } from "../tracker/field-write.mjs";
-import { scoped, tried } from "../tracker/rpc.mjs";
+import { scoped, tried } from "../tracker/rest.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
 export const FIELD = "sessionContext";

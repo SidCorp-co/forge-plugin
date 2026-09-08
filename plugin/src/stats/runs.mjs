@@ -64,7 +64,7 @@ const shortened = (line) =>
    A body that only quotes a refusal goes on printing past it. */
 const GATE_HOW = /^How: `forge hooks --how \S+`$/u;
 
-/* A gate's two openers and `rpc.mjs`'s `<name> refused:`, which carries the rule after the colon for
+/* A gate's two openers and the transport's `<name> refused:`, which carries the rule after the colon for
    a transport failure and on the next line for a tool's. These are read first, because a refusal
    opening on one goes on to quote the lines it was refused over and those look like the shape below. */
 const MARKED = /^(?:Hold — .*|Refused\. .*|\S+ refused:.*)$/u;

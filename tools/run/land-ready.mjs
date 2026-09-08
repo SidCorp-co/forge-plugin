@@ -27,7 +27,7 @@ import {
 import { INDEPENDENT } from "../../plugin/src/flow/qa/verdicts.mjs";
 import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/tracker/project-config.mjs";
 import { landingScope } from "../../plugin/src/resolve/settings.mjs";
-import { scoped } from "../../plugin/src/tracker/rpc.mjs";
+import { scoped } from "../../plugin/src/tracker/rest.mjs";
 
 /* The route this task branches on, off the project's record. docs/cli/the-checkpoint.md. */
 const BEFORE_MERGE = "before-merge";

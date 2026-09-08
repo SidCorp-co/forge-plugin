@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { fakeStore, fakeTracker, ranAsync } from "../fixtures.mjs";
 import { credentialLeak, deployFrom } from "../../src/tracker/project-config.mjs";
-import { DECLARES } from "../../src/tracker/rest.mjs";
+import { DECLARES } from "../../src/tracker/routes.mjs";
 
 const SETS = DECLARES.forge_knowledge;
 
@@ -110,7 +110,7 @@ test("the enums are the table's declaration at the call, and a value outside the
   assert.match(outside.stderr, /No kind named nonesuch/u, outside.stderr);
   assert.ok(outside.stderr.includes(SETS.kind.join(", ")),
     `the refusal does not print the set it read: ${outside.stderr}`);
-  assert.match(outside.stderr, /plugin\/src\/tracker\/rest\.mjs/u,
+  assert.match(outside.stderr, /plugin\/src\/tracker\/routes\.mjs/u,
     "and where a value the tracker has grown since is added");
   assert.deepEqual(upserts(), [], "refused after the call rather than before it");
 

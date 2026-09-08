@@ -2,7 +2,7 @@
    text: a reference in a heredoc, a quoted value or a path is no target, and one by uuid is. And
    which call files a new one, which names no issue yet and so owes no comment delivery. */
 import { isReference } from "./issues.mjs";
-import { EDGE_KINDS } from "./rest.mjs";
+import { EDGE_KINDS } from "./routes.mjs";
 
 const READS = new Set(["list", "get"]);
 const DEPTH = 4;

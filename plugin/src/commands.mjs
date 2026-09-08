@@ -1,7 +1,7 @@
 import { fail, keepOnFailure } from "./resolve/settings.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
-import { declaredFor, scoped, write } from "./tracker/rpc.mjs";
-import { EDGE_KINDS, otherOf } from "./tracker/rest.mjs";
+import { declaredFor, scoped, write } from "./tracker/rest.mjs";
+import { EDGE_KINDS, otherOf } from "./tracker/routes.mjs";
 import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -132,7 +132,7 @@ const newUsage = (goals) =>
     .join("\n\n");
 
 /* One flag per kind of edge, and one for its removal. Which end the tracker stores as `from`, and
-   which route the write takes: tracker/rest.mjs's link row. */
+   which route the write takes: tracker/routes.mjs's link row. */
 const edgeSaid = (edge) => `${otherOf(edge) ?? "the other end"} by ${edge?.kind ?? "an unnamed kind"}`;
 
 /* The edge id is the tracker's and no caller holds one, so the removal reads the pair's edges. */

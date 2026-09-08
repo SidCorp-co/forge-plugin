@@ -3,7 +3,7 @@
 import { foldFiling, neighboursOf } from "./neighbours.mjs";
 import { filingRefusal, liveTitles, rankOf, shapeOf, shapeRefusal, trackerFields }
   from "../issue-shape.mjs";
-import { write } from "../rpc.mjs";
+import { write } from "../rest.mjs";
 import { notAReference } from "../issues.mjs";
 import { PROJECT, pluginDefectHold } from "./plugin-defect.mjs";
 import { projectTarget } from "../../resolve/settings.mjs";

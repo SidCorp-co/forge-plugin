@@ -1,6 +1,6 @@
 /* Every verb setting a field of the issue writes it here: one home for the cap, the renewal, the
    comment delivery and the read-back, which is why it imports upward (ISS-346, ISS-451). */
-import { declaredFor, scoped, write } from "./rpc.mjs";
+import { declaredFor, scoped, write } from "./rest.mjs";
 import { mustBeShown } from "./comments.mjs";
 import { leaseLandedAs, leaseMismatch, renew } from "../flow/lease.mjs";
 
