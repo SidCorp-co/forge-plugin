@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { homeEnv, tempRoom } from "../fixtures.mjs";
+import { flat, homeEnv, tempRoom } from "../fixtures.mjs";
 
 const { blocksOf, phasesOf, render } = await import("../../src/guides/render.mjs");
 
@@ -42,14 +42,15 @@ const room = (plugin) => {
   return dir;
 };
 
-/* The machine's option, where the channel above is the project's: its own config home, never the live one. */
+/* The machine's option, where the channel above is the project's: its own config home, never the live one.
+   Flat, so a phrase pattern over the answer asserts the rule and not the wrap it was written under. */
 const shipping = (ship, slug = "issue-flow", part = "7") => {
   const env = homeEnv("render-ship");
   mkdirSync(join(env.XDG_CONFIG_HOME, "forge"), { recursive: true });
   writeFileSync(join(env.XDG_CONFIG_HOME, "forge", "config.json"),
     JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", ship }));
   const argv = slug === "issue-flow" ? ["guide", slug, part] : ["guide", slug];
-  return spawnSync(FORGE, argv, { encoding: "utf8", env, cwd: room("bugs") });
+  return flat(spawnSync(FORGE, argv, { encoding: "utf8", env, cwd: room("bugs") }).stdout);
 };
 
 /* The paragraph is the unit a reader sees, so equal-elsewhere is asserted over paragraphs: a
@@ -194,10 +195,10 @@ test("a marker inside a literal context is served, and one indented outside it s
    bodies, because a fence that stopped matching either would pass on a fixture (ISS-673). */
 test("Phase 7 and the fold are served in the mode's own text, one branch of each per reader", () => {
   const modes = ["self", "ready"];
-  const both = modes.map((one) => shipping(one).stdout);
+  const both = modes.map((one) => shipping(one));
   for (const [at, said] of both.entries()) {
     assert.equal(said.includes("forge:when"), false, `${modes[at]}: a fence is never served to a reader`);
-    assert.match(said, /^## Phase 7 — Ship/mu, `${modes[at]}: the part is the phase`);
+    assert.match(said, /^## Phase 7 — Ship/u, `${modes[at]}: the part opens on the phase`);
   }
   const [self, ready] = both;
   assert.match(self, /The landing is this phase's first step/u, "self mode lands its own change");
@@ -208,7 +209,7 @@ test("Phase 7 and the fold are served in the mode's own text, one branch of each
     "and is not also told to merge, which is the contradiction the mode used to serve");
   /* The fold is the other half: under `ready` the landing is the dispatcher's step, and nothing in
      the shipped text said so, so a wave read a Phase 6 that folded reports and landed nothing. */
-  const folds = modes.map((one) => shipping(one, "dispatch").stdout);
+  const folds = modes.map((one) => shipping(one, "dispatch"));
   assert.doesNotMatch(folds[0], /ready-to-land/u, "self mode's fold lands nothing extra");
   assert.match(folds[1], /the landing is this phase's and it is one actor's/u, "ready mode's fold lands them");
   assert.match(folds[1], /never the run that built the change/u, "and dispatches the judge where one is asked for");
@@ -216,18 +217,26 @@ test("Phase 7 and the fold are served in the mode's own text, one branch of each
 
 /* What a fence takes with it: the `self` branch carried the note, `released` and the close, so fencing it left a `ready` reader two statuses short of the end state. Over the union served, either half may own it and neither may drop it (ISS-673). */
 test("a ready reader is told somewhere who moves released, which the mode's own half no longer does", () => {
-  const phase = shipping("ready").stdout;
-  const fold = shipping("ready", "dispatch").stdout;
-  assert.match(`${phase}\n${fold}`, /`released`/u,
+  const phase = shipping("ready");
+  const fold = shipping("ready", "dispatch");
+  assert.match(`${phase} ${fold}`, /`released`/u,
     "the status past tested is named to a reader whose own phase stops at a pushed branch");
-  assert.match(fold, /`released` and\n`closed` are moved from here/u,
+  assert.match(fold, /`released` and `closed` are moved from here/u,
     "and the fold, whose landing it follows, is where it is owned");
   assert.match(phase, /are the landing actor's, not this run's/u,
     "the phase says whose it is rather than leaving the run to assume it is nobody's");
   assert.doesNotMatch(phase, /Then close it, in this phase/u,
     "and does not also claim the close, which under this mode it cannot make");
-  assert.match(shipping("self").stdout, /Then close it, in this phase/u,
+  assert.match(shipping("self"), /Then close it, in this phase/u,
     "while the mode that does land its own change still closes it there");
+});
+
+/* The shape the reader above exists to remove: the pattern is the phrase a reader reads, the fixture the wrap it arrived under. */
+test("a phrase of served prose is matched across whatever break the formatter chose", () => {
+  const wrapped = "and the fold, whose landing it follows, is where `released` and\n`closed` are\nmoved from here.";
+  const phrase = /`released` and `closed` are moved from here/u;
+  assert.doesNotMatch(wrapped, phrase, "one day's wrap is what a pattern over the raw answer asserts");
+  assert.match(flat(wrapped), phrase, "and the rule is what a reader reads, whatever column it broke at");
 });
 
 /* The number is the whole address, so a phase that grew a subsection has to answer with all of it:

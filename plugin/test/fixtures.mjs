@@ -24,6 +24,8 @@ export const typedPlan = (over = {}) => {
     .join("\n\n");
 };
 
+export const flat = (text) => text.replace(/\s+/gu, " ");
+
 /* `cwd` is the project the hook stands in, a different question from the event's `cwd`: the settings resolver walks up from the process, so a case varying a `.forge.json` key sets this. */
 export const callHook = (hook, event, env = process.env, cwd = process.cwd()) =>
   spawnSync(process.execPath, [hook], { input: JSON.stringify(event), encoding: "utf8", env, cwd });
