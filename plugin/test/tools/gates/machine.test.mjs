@@ -1,6 +1,6 @@
-/* The ceiling, watched firing both ways: a checker whose selector matches nothing looks exactly
-   like a clean repository. Half against a process table this case writes, where every interleaving
-   is reachable, and half against two real gates, where the count is the kernel's own (ISS-917). */
+/* The ceiling, watched firing both ways. Half against a process table this case writes, where every
+   interleaving is reachable, and half against two real gates, where the count is the kernel's own
+   and nothing here decides what it reads (ISS-917). */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
