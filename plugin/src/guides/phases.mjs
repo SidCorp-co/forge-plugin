@@ -9,18 +9,18 @@ const NUMBERED = /^(\d+)/u;
 /** The phase number a status owes, or NaN where the row names none. */
 export const phaseNumber = (status) => Number(NUMBERED.exec(PHASE[status]?.[0] ?? "")?.[1] ?? NaN);
 
-/* What each entry check refuses without, held to their own refusals by a case. */
+/* Every payload each entry check refuses without, held to their own refusals by a case. The one that discharges the phase below the status leads the row, `dischargedBy` answering with it. */
 export const CITED = {
-  confirmed: "confirmation",
-  clarified: "decision",
-  approved: "plan",
-  in_progress: "baseline",
-  developed: "review",
-  tested: "verdict",
-  released: "verification",
+  confirmed: ["confirmation"],
+  clarified: ["decision"],
+  approved: ["plan", "criteria"],
+  in_progress: ["baseline"],
+  developed: ["review", "merged"],
+  tested: ["verdict"],
+  released: ["verification", "note"],
 };
 
-export const dischargedBy = (status) => CITED[stepAfter(status)] ?? null;
+export const dischargedBy = (status) => CITED[stepAfter(status)]?.[0] ?? null;
 
 /** Three readings of one row: every phase it names, the phase a record of a kind ends, and the phase the landing ends. A record's is the rung below the one `CITED` says it earns, and null where that rung owes several phases, since `CITED` does not say which of a rung's records ends it; the landing's is the last its own rung names, that row abbreviating the note and the ship into one cell. docs/cli/the-parts.md. */
 const EVERY_NUMBER = /\d+/gu;
@@ -31,7 +31,7 @@ export const phasesOwed = (status) =>
   [...String(PHASE[status]?.[0] ?? "").matchAll(EVERY_NUMBER)].map((one) => Number(one[0]));
 
 export const phaseForRecord = (kind) => {
-  const earns = ORDER.find((status) => CITED[status] === kind);
+  const earns = ORDER.find((status) => CITED[status]?.includes(kind));
   const owed = earns ? phasesOwed(rungBelow(earns)) : [];
   return owed.length === 1 ? owed[0] : null;
 };
@@ -97,6 +97,56 @@ export const openingLines = (status) => {
   return earned.length
     ? [READ_OFF_THE_RECORD, ...earned.map((one) => `  passed: ${one.phase}  —  ${one.cites}`)]
     : [];
+};
+
+/* The lane: every status from this one on, and the payloads each is earned by at this rung, read off the two tables and never off the record — so a status it says owes nothing is one the rung leaves no payload to write rather than one whose payload happens to be on the page, which is the distinction ISS-810 defers. A route is not a shortfall. docs/cli/the-ladder.md. */
+const droppedAt = (status, tier) => LIGHTER
+  .filter((one) => one.status === status && one.tiers.includes(tier))
+  .map((one) => one.kind);
+
+export const laneOf = ({ status, size }) => {
+  const at = ORDER.indexOf(status);
+  if (at < 0) return { aside: status, rows: [] };
+  const tier = tierOf(size);
+  return {
+    aside: null,
+    tier,
+    rows: ORDER.slice(at).map((one) => {
+      const earns = CITED[one] ?? [];
+      const dropped = droppedAt(one, tier);
+      return {
+        status: one,
+        here: one === status,
+        earns,
+        dropped,
+        owed: earns.filter((kind) => !dropped.includes(kind)),
+      };
+    }),
+  };
+};
+
+/* Two answers and not one: a status this tier leaves nothing to write at is one a lighter rung bought, and one no tier ever asks a payload of is earned by the status below it — a reader given a single sentence for both would read the ladder as the reason for either. */
+const laneSaid = (row) => {
+  if (row.here) return "← where it stands";
+  if (!row.earns.length) return "nothing owed at any tier";
+  const dropped = row.dropped.map((kind) => `no ${kind}`).join(", ");
+  if (!row.owed.length) return "nothing owed at this tier";
+  return row.dropped.length ? `${row.owed.join(", ")}; ${dropped} at this tier` : row.owed.join(", ");
+};
+
+const LANE_WIDTH = 15;
+
+/** The lane as the three verbs print it, one renderer so their blocks cannot differ (ISS-810). */
+export const laneLines = ({ status, size }) => {
+  const { aside, tier, rows } = laneOf({ status, size });
+  if (aside) return [`Lane: \`${aside}\` is off the ladder's linear path, so no lane is read from it.`];
+  return [
+    `Lane at \`${tier}\` — every status from where it stands, and what earns it:`,
+    ...rows.map((one) => `  ${one.status.padEnd(LANE_WIDTH)}${laneSaid(one)}`),
+    ...(rows.some((one) => !one.here && one.owed.length)
+      ? ["Each name is a record kind: `forge record <kind> -h`."]
+      : []),
+  ];
 };
 
 export const indexLines = (slug, ref, index) => [

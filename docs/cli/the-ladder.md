@@ -12,6 +12,11 @@ claiming one rung — the smallest a `trivial`, the next a `fix`, the top three 
 feature is everything else. An issue holding none is a `feature`, the top rung being what an
 unclaimed issue falls to, and `forge advance --owed` names the value that claimed it.
 
+The rung is also the height the lane is printed at — the statuses ahead of an issue with what earns
+each — so it reaches `forge claim` and `forge resume` as well, and a correction that climbs changes
+what all three say the statuses ahead are owed. Which is why the claim reads the issue's comment page
+for a rung it once had no use for.
+
 The body used to claim one too, on a `Size:` line, and two sources for one switch is a precedence
 rule, a report about which of them lost, and an undo that only half works: the field said `xs`, the
 body said `feature`, and neither a run nor a reader could say which the checks would run. So the

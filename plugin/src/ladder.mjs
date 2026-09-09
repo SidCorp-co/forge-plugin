@@ -58,22 +58,26 @@ export const resizeForm = (ref, from = FIX) =>
   `forge record correction ${ref} --moved "Size: ${from} -> ${TIERS[Math.min(heightOf(from) + 1, TIERS.length - 1)]}" `
   + `--why "<what the work turned out to be>"`;
 
+/* One row per status a rung below the top stops owing something at. `kind` is the record kind the row drops, so a reader deciding what a status is still earned by matches the row to a payload by that key rather than by reading `drops`, which with `because` is the report's own prose for it. */
 export const LIGHTER = [
   {
     status: "clarified",
     tiers: BELOW_TOP,
+    kind: "decision",
     drops: "a decision record",
     because: "the reading that mattered is the defect, and the confirmation held it",
   },
   {
     status: "approved",
     tiers: BELOW_TOP,
+    kind: "plan",
     drops: "the plan field, and the declarations it would carry, which absent read `no`",
     because: "a fix's criteria are the one check that fails without it, which is the whole of its plan",
   },
   {
     status: "released",
     tiers: BELOW_TOP,
+    kind: "note",
     drops: "a release note",
     because: "no person sees the change, so the withholding is the rule and not a record to type",
   },

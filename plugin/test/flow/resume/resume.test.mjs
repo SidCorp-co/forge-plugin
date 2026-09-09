@@ -82,16 +82,45 @@ test("the claim and the resume print one opening, and at open neither prints any
     try { run(); } finally { console.log = was; }
     return lines;
   };
+  const size = { plan: null, moved: [], whole: true, band: "m" };
   const opened = openingLines("approved");
   assert.equal(opened.length, 4, "an approved issue has three phases behind it and a line saying so");
-  assert.deepEqual(said(() => opening("approved")), opened, "the resume prints them and nothing else");
-  const claimed = said(() => advisory("approved"));
+  assert.deepEqual(said(() => opening("approved", size)).slice(0, opened.length), opened,
+    "the resume prints them above what is ahead");
+  const claimed = said(() => advisory("approved", size));
   assert.deepEqual(claimed.slice(0, opened.length), opened,
     "and the claim prints the same lines, so a run reading both is shown one record once");
-  assert.equal(claimed[opened.length], `\n${ADVISORY}`, "above the advisory, which the method follows");
-  assert.deepEqual(said(() => opening("open")), [], "an issue at open has nothing behind it");
-  assert.equal(said(() => advisory("open"))[0], ADVISORY,
-    "so a claim there opens on the advisory, which is what it printed before any of this");
+  assert.deepEqual(said(() => opening("open", size)).slice(0, 1), [""],
+    "an issue at open has nothing behind it, so the first thing either verb prints is what is ahead");
+  assert.ok(said(() => advisory("open", size)).includes(`\n${ADVISORY}`),
+    "and the claim still prints the advisory, under what is ahead and above the served method");
+});
+
+/* One lane, printed by the claim, the resume and the rehearsal, so a run reading two of them is
+   shown one route. Judged on the screen for the reason the case above is (ISS-810). */
+test("the claim and the resume print the lane, and neither composes a line of it", async () => {
+  const { laneLines } = await import("../../../src/guides/phases.mjs");
+  const { opening } = await import("../../../src/flow/resume.mjs");
+  const { advisory } = await import("../../../src/flow/claim.mjs");
+  const said = (run) => {
+    const lines = [];
+    const was = console.log;
+    console.log = (line) => lines.push(String(line));
+    try { run(); } finally { console.log = was; }
+    return lines;
+  };
+  const size = { plan: null, moved: [], whole: true, band: "s" };
+  const lane = laneLines({ status: "in_progress", size });
+  assert.ok(lane.length > 1, "a lane at a status short of the end has rows to print");
+  const inside = (lines) => lines.slice(lines.indexOf(lane[0]), lines.indexOf(lane[0]) + lane.length);
+  assert.deepEqual(inside(said(() => opening("in_progress", size))), lane, "the resume prints it whole");
+  assert.deepEqual(inside(said(() => advisory("in_progress", size))), lane,
+    "and the claim prints the same block, byte for byte, since one renderer answers for both");
+  for (const path of ["../../../src/flow/claim.mjs", "../../../src/flow/resume.mjs", "../../../src/flow/advance.mjs"]) {
+    const source = readFileSync(new URL(path, import.meta.url), "utf8");
+    assert.ok(!source.includes("Lane at"), `${path} composes a lane line of its own`);
+    assert.ok(source.includes("laneLines"), `${path} prints no lane, so a run reading it is shown none`);
+  }
 });
 
 /* Written by one run and readable by none: the checkpoint sat in the field beside the lease and no

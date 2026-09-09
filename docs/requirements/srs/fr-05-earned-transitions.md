@@ -61,6 +61,11 @@ agent learns what a status wants.
 - **AC-05-1-8** · Rev: 1 · Proof: plugin/test/flow/route/credential-ahead.test.mjs "--owed says a screen change has no login to prove it with, and refuses nothing for it"
   WHERE the plan declares a screen change and the project holds no test credential, the CLI SHALL
   say so in the rehearsal of every status below `tested`, and SHALL refuse none of them for it.
+- **AC-05-1-9** · Rev: 1 · Proof: plugin/test/flow/resume/resume.test.mjs "the claim and the resume print the lane, and neither composes a line of it"
+  WHEN the agent asks what is owed, takes an issue's lease, or has its context re-minted THEN the
+  CLI SHALL name every status from the issue's own onwards with the payloads that earn each at the
+  issue's own rung, and SHALL say of a status the rung leaves no payload to write that nothing is
+  owed at it.
 
 ### UC-05-2 — Advance to the next status
 

@@ -6,9 +6,10 @@ import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
-import { commentPage } from "../tracker/comments.mjs";
+import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
-import { openingLines } from "../guides/phases.mjs";
+import { sizeOf, viewFrom } from "./earned.mjs";
+import { laneLines, openingLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
@@ -47,11 +48,26 @@ const PARKS_IN = "on_hold";
 
 /* Beside the advisory rather than above the lease line: both are what the run does next, where the lines above are what this write did. A claim opens a phase's work, so the part is the one its status owes. */
 /* And the opening above both, because a run handed an issue past `open` redoes the phases behind it otherwise, through the renderer `forge resume` prints so the two cannot say different things about one record. Both printers are exported so a case reads what each verb prints rather than what that renderer returns, a renderer nobody prints passing every case that asks it for lines (ISS-804). */
-export const advisory = (status) => {
-  const lines = openingLines(status);
-  for (const line of lines) console.log(line);
-  console.log(`${lines.length ? "\n" : ""}${ADVISORY}`);
+export const advisory = (status, size) => {
+  for (const line of openingLines(status)) console.log(line);
+  console.log("");
+  for (const line of laneLines({ status, size })) console.log(line);
+  console.log(`\n${ADVISORY}`);
   partForStatus(status, (part) => console.log(`\n${part}`));
+};
+
+/* The rung the lane is printed at is the effective one — the field, every correction that climbs and the cut rule — so this is the one read this verb makes for something other than the lease, and it is made after the writes: a page that does not read back costs a line and never the claim. Unread, it is read as a cut page is, which is the rung that owes most (docs/cli/the-ladder.md). */
+const UNREAD = { plan: null, moved: [], whole: false, band: null };
+
+const advise = async (documentId, issue) => {
+  try {
+    const page = await commentPage(documentId);
+    return advisory(issue.status, sizeOf(viewFrom(documentId, issue, page.comments, cutIn(page))));
+  } catch (error) {
+    console.log(`This issue's comment page did not read back, so the lane below is printed at the `
+      + `rung an unread page owes: ${error.message}`);
+    return advisory(issue.status, UNREAD);
+  }
 };
 
 export const USAGE = [
@@ -261,7 +277,7 @@ export const claim = async (argv) => {
   const line = nextLine(given.next);
   const patch = patchFrom({ pushed: given.pushed, review: given.review, open: pulled.values });
   const documentId = await documentIdOf(ref);
-  const issue = await scoped("forge_issues", { action: "get", documentId, fields: ["sessionContext", "status"] });
+  const issue = await scoped("forge_issues", { action: "get", documentId, fields: ["sessionContext", "status", "complexity", "plan"] });
   const context = issue?.sessionContext ?? null;
   const lease = leaseOf(context);
   const mine = sessionSourced();
@@ -271,15 +287,15 @@ export const claim = async (argv) => {
   if (given.take) {
     const took = await takeTurn(documentId, ref, issue, context, { holder, minutes, line, patch });
     if (sharedHolder(took, mine)) console.log(SHARED_HOLDER);
-    return advisory(issue.status);
+    return advise(documentId, issue);
   }
   if (given.judged) {
     await handBack(documentId, ref, context, holder);
-    return advisory(issue.status);
+    return advise(documentId, issue);
   }
   if (given.reconciled) {
     await reconcile(documentId, ref, context, holder, given.reconciled);
-    return advisory(issue.status);
+    return advise(documentId, issue);
   }
   if (state === "live") fail(claimRefusal(ref, lease));
   const left = lease?.next ?? null;
@@ -307,6 +323,6 @@ export const claim = async (argv) => {
     console.log(`Reclaim ${reclaimsOf(taken, issue.status)} of ${issue.status}: `
       + `the one after ${RECLAIMS_BEFORE_PARK} parks the issue as crashed.`);
   }
-  return advisory(issue.status);
+  return advise(documentId, issue);
 };
 claim.answersHelp = true;

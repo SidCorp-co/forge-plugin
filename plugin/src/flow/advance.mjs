@@ -14,7 +14,8 @@ import { citedClauses } from "../spec/checked.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/record.mjs";
 import { render } from "./record/page.mjs";
-import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, setForm, viewFrom } from "./earned.mjs";
+import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, setForm, sizeOf, viewFrom } from "./earned.mjs";
+import { laneLines } from "../guides/phases.mjs";
 import { undoForm } from "./record/merged.mjs";
 import { credentialAhead, deployFor, lookAhead, owedLine, policyFor, targetOf } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, renew } from "./lease.mjs";
@@ -199,6 +200,8 @@ export const checkTarget = (to, next, view, ref) => {
 const sayAhead = (view, ref, next) => {
   const size = fixReport(view, ref);
   if (size) console.log(`\n${size}`);
+  console.log("");
+  for (const line of laneLines({ status: view.issue.status, size: sizeOf(view) })) console.log(line);
   const shortly = credentialAhead(view, ref);
   if (shortly) console.log(`\n${shortly}`);
   const said = lookAhead(view, ref);

@@ -3,11 +3,26 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 import {
-  CITED, READ_OFF_THE_RECORD, dischargedBy, indexLines, openingLines, phaseIndex, phaseNumber,
+  CITED, READ_OFF_THE_RECORD, dischargedBy, indexLines, laneLines, openingLines, phaseIndex,
+  phaseNumber,
 } from "../../src/guides/phases.mjs";
 import { CHECKS, ORDER, PHASE, viewFrom } from "../../src/flow/earned.mjs";
+import { LIGHTER } from "../../src/ladder.mjs";
+import { KINDS } from "../../src/flow/record/record-rows.mjs";
 
-const sized = (band) => ({ description: "a defect", plan: null, moved: [], whole: true, band });
+const sized = (band, moved = []) =>
+  ({ description: "a defect", plan: null, moved, whole: true, band });
+
+const PLAN = "Screen change: no. Schema coupling: no.";
+
+/** What a status's entry check asks of a record holding nothing but the band and the two readings
+ *  the criteria field decides between, so a case asks the check rather than a table about it. */
+const asked = (status, band = null) => [{ acceptanceCriteria: "1. The outcome." }, {}]
+  .map((held) => CHECKS[status](
+    viewFrom("the-uuid", { status, plan: PLAN, complexity: band, ...held }, []), "ISS-1",
+  ))
+  .map((one) => JSON.stringify(one))
+  .join(" ");
 
 /* The index invents nothing: every phase, citation and waiver is another table's row. */
 test("every citation names the record the check into the next status refuses without", () => {
@@ -18,12 +33,34 @@ test("every citation names the record the check into the next status refuses wit
     assert.ok(CITED[status], `${status} has an entry check and no record named for it, so the phase `
       + "below it would print as discharged by nothing");
   }
-  /* The value, not the presence: three were wrong and a presence check passed all three. */
-  for (const [status, kind] of Object.entries(CITED)) {
-    const issue = { status, acceptanceCriteria: "1. The outcome.", plan: "Screen change: no. Schema coupling: no." };
-    const said = JSON.stringify(CHECKS[status](viewFrom("the-uuid", issue, []), "ISS-1"));
-    assert.match(said, new RegExp(`\\b${kind}\\b`, "u"),
-      `${status} is cited as discharged by a ${kind} and its check asks for no such thing: ${said}`);
+  /* The values, not the presence: three were wrong and a presence check passed all three. Asked of
+     two records, one holding criteria and one not, because the criteria are what `approved` asks for
+     when they are absent and what `tested` needs present before it asks for a verdict at all. */
+  for (const [status, kinds] of Object.entries(CITED)) {
+    const said = asked(status);
+    for (const kind of kinds) {
+      assert.match(said, new RegExp(`\\b${kind}\\b`, "u"),
+        `${status} is cited as earned by a ${kind} and its check asks for no such thing: ${said}`);
+    }
+  }
+});
+
+/* Every name the lane prints is a kind that verb writes, or a run reads a route it cannot walk. */
+test("every payload the lane names is a record kind forge record writes", () => {
+  for (const kind of Object.values(CITED).flat()) {
+    assert.ok(KINDS.includes(kind), `the lane names a ${kind} and \`forge record\` has no such kind`);
+  }
+});
+
+/* The waiver's own key. Matched to a payload by prose, a row would mark a status as owing nothing
+   that `forge advance` refuses — the one thing the lane may not do (ISS-810). */
+test("a row's kind is the payload its status stops being asked for at a rung below the top", () => {
+  for (const row of LIGHTER) {
+    const named = new RegExp(`\\b${row.kind}\\b`, "u");
+    assert.match(asked(row.status, "m"), named,
+      `${row.status} at the top rung asks for no ${row.kind}, so the row waives nothing`);
+    assert.ok(!named.test(asked(row.status, "s")),
+      `${row.status} still asks for a ${row.kind} at a fix, and the lane would say it is not owed`);
   }
 });
 
@@ -64,6 +101,42 @@ test("the opening lists each phase behind with the record that discharged it, or
   assert.deepEqual(openingLines("open"), [],
     "an issue nobody has opened yet earns no header over an empty list, on either verb");
   assert.deepEqual(openingLines("closed"), [], "and one owing no phase is not told where to start");
+});
+
+/* The lane a run reads before it spends anything. Pinned whole at the rung the issue that asked for
+   it names, because every one of these lines is what a run acts on: the payload it writes at each
+   status, the one it is not asked for, and the two ways a status can owe nothing (ISS-810). */
+test("the lane names what earns each status ahead, and what the rung drops on the way", () => {
+  assert.deepEqual(laneLines({ status: "open", size: sized("s") }), [
+    "Lane at `fix` — every status from where it stands, and what earns it:",
+    "  open           ← where it stands",
+    "  confirmed      confirmation",
+    "  clarified      nothing owed at this tier",
+    "  approved       criteria; no plan at this tier",
+    "  in_progress    baseline",
+    "  developed      review, merged",
+    "  tested         verdict",
+    "  released       verification; no note at this tier",
+    "  closed         nothing owed at any tier",
+    "Each name is a record kind: `forge record <kind> -h`.",
+  ], "a fix reads its whole route: what it writes, what it does not, and where it ends");
+  const feature = laneLines({ status: "open", size: sized("m") });
+  assert.ok(!feature.some((one) => one.includes("at this tier")),
+    "a feature is waived nothing, so no line of its lane names a payload as dropped");
+  assert.deepEqual(feature.filter((one) => /clarified|approved|released/u.test(one)), [
+    "  clarified      decision",
+    "  approved       plan, criteria",
+    "  released       verification, note",
+  ], "and each of the three rows a lighter rung touches asks for the whole of its payload");
+  assert.deepEqual(laneLines({ status: "open", size: sized("s", ["Size: fix -> feature"]) }), feature,
+    "a correction that re-sized the work prints the feature lane, the field having claimed a fix");
+});
+
+/* The lane is what is ahead, so a status the ladder's path does not hold has none to read. */
+test("a status off the linear path is told there is no lane, and is shown no rows", () => {
+  const lines = laneLines({ status: "reopen", size: sized("s") });
+  assert.deepEqual(lines, ["Lane: `reopen` is off the ladder's linear path, so no lane is read from it."],
+    "one line saying why, and not a lane read from a status the order does not hold");
 });
 
 test("neither verb that prints the opening composes a line of it", () => {

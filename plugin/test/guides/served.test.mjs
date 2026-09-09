@@ -44,16 +44,18 @@ const asRun = (id) => {
 };
 
 test("a record's phase is the one owed by the rung below the status its entry check cites", () => {
-  for (const [earns, kind] of Object.entries(CITED)) {
+  for (const [earns, kinds] of Object.entries(CITED)) {
     const owed = phasesOwed(rungBelow(earns));
-    const answer = phaseForRecord(kind);
-    if (owed.length === 1) {
-      assert.equal(answer, owed[0],
-        `a ${kind} earns ${earns}, so it ends the one phase ${rungBelow(earns)} owes`);
-    } else {
-      assert.equal(answer, null,
-        `${rungBelow(earns)} owes ${owed.join(" and ")}, and which of its records ends it is not `
-        + `something the citation table says, so a ${kind} answers nothing rather than the last`);
+    for (const kind of kinds) {
+      const answer = phaseForRecord(kind);
+      if (owed.length === 1) {
+        assert.equal(answer, owed[0],
+          `a ${kind} earns ${earns}, so it ends the one phase ${rungBelow(earns)} owes`);
+      } else {
+        assert.equal(answer, null,
+          `${rungBelow(earns)} owes ${owed.join(" and ")}, and which of its records ends it is not `
+          + `something the citation table says, so a ${kind} answers nothing rather than the last`);
+      }
     }
   }
 });
