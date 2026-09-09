@@ -219,7 +219,7 @@ const clausesAfter = (reply, from) => {
 
 /* Each finding with its id, `F<n>` as the reply numbered it or by its place in the whole reply where
    it did not — before any file filter, so a recheck on one file keeps the ids a verdict was given against.
-   `head` is the bullet alone, because a Fix clause naming a second path is not where this finding lives. */
+   `head` is the bullet alone, because a Fix clause naming a second path is not where this finding lives. An empty list is no list — it says the caller named none, never that none may be cited — and it is what a consult given only issue keys records: read as a range admitting no path, it dropped every finding anchored to one, which is most of what a reviewer told to read the checkout writes. */
 export const numbered = (reply, files = null) => {
   const whole = String(reply ?? "");
   const seen = new Set();
@@ -236,7 +236,7 @@ export const numbered = (reply, files = null) => {
     })
     .filter((one) => !seen.has(one.id) && seen.add(one.id))
     .filter((one) => {
-      const found = files ? ANCHOR.exec(one.head) : null;
+      const found = files?.length ? ANCHOR.exec(one.head) : null;
       return !found || onTracker(found[1]) || files.includes(found[1]);
     });
 };
