@@ -96,8 +96,13 @@ export const overrideFields = async (reference, given, why, { next, patch } = {}
       + `fields after it:\n  forge advance ${reference} --set <status> --why <w>\n`
       + `  forge issue ${reference} ${setForm(pairs)} --why <w>`);
   }
-  const back = await writeFields(documentId, pairs, { ref: reference, next, patch, refuse, override: true });
-  for (const { field, value } of pairs) console.log(`${reference}  ${field} is ${back?.[field] ?? value}`);
-  console.log(UNREAD);
-  await correctionFor(documentId, reference, movedSaid(pairs), said);
+  const told = async (moved, read) => {
+    for (const { field, value } of moved) console.log(`${reference}  ${field} is ${read?.[field] ?? value}`);
+    console.log(UNREAD);
+    await correctionFor(documentId, reference, movedSaid(moved), said);
+  };
+  const back = await writeFields(documentId, pairs, {
+    ref: reference, next, patch, refuse, override: true, partly: (moved) => told(moved, null),
+  });
+  await told(pairs, back);
 };

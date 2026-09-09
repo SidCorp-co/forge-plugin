@@ -514,7 +514,7 @@ export const doctor = async (argv) => {
   if (wantsHelp(argv)) return console.log(`${usage}\nwhat resolves, and from where.\n${PROJECT_USAGE}`);
   const { values: pairs, rest } = pullRepeated(argv, "--meta", "doctor", { usage });
   const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "doctor", usage });
-  const asked = flags(flagArgv, "doctor", BOOLEAN, { usage });
+  const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token"] });
   const { full, credentials, hide, show: reveal, ship } = asked;
   if (positionals.length && asked.line === undefined) {
     fail(`doctor: \`${positionals[0]}\` names no flag, and the prose of a line is --line's: `

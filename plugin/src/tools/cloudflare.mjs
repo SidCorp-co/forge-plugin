@@ -266,7 +266,8 @@ const masked = (token, full) => {
 };
 
 const saveAccount = (rest) => {
-  const { name, "account-id": accountId, token, forget } = flags(rest, "cloudflare login", [], { usage: LOGIN_USAGE });
+  const { name, "account-id": accountId, token, forget } =
+    flags(rest, "cloudflare login", [], { usage: LOGIN_USAGE, secret: ["--token"] });
   const held = userConfig().cloudflare?.accounts ?? [];
   if (forget) {
     const kept = held.filter((one) => one.name !== forget);

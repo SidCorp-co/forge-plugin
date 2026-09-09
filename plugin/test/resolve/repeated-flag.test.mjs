@@ -46,6 +46,33 @@ test("two different flags are two answers to two questions, and both are read", 
   assert.deepEqual(flags(["--one", "a", "--two", "b"], "thing", [], { usage: USAGE }), { one: "a", two: "b" });
 });
 
+/* Naming both values is the rule and a credential is the exception: the flag is the whole of what a
+   caller needs, and a token printed to stderr is a token in a transcript and in the refusal log. */
+test("a flag the verb declares a credential is refused without either value", async () => {
+  const said = await refused(() =>
+    flags(["--one", "sk-live-first", "--one", "sk-live-second"], "thing", [], { usage: USAGE, secret: ["--one"] }));
+  assert.match(said, /--one was given twice, `\*\*\*` and then `\*\*\*`/u, said);
+  assert.doesNotMatch(said, /sk-live/u, "neither credential reaches the reply");
+  assert.match(said, /Send the --one you meant/u, "and the way on is unchanged");
+});
+
+test("a flag beside a declared one keeps its values, the declaration being per flag", async () => {
+  const said = await refused(() =>
+    flags(["--two", "a", "--two", "b"], "thing", [], { usage: USAGE, secret: ["--one"] }));
+  assert.match(said, /--two was given twice, `a` and then `b`/u, said);
+});
+
+test("the two verbs that take a credential declare it, so neither prints one twice over", async () => {
+  for (const argv of [["doctor", "--token", "sk-aaa", "--token", "sk-bbb"],
+    ["cloudflare", "login", "--name", "n", "--token", "sk-aaa", "--token", "sk-bbb"]]) {
+    const run = await ran(...argv);
+    assert.equal(run.status, 1, `forge ${argv[0]}: ${run.stdout}`);
+    assert.match(run.stderr, /--token was given twice, `\*\*\*` and then `\*\*\*`/u, run.stderr);
+    assert.doesNotMatch(`${run.stdout}${run.stderr}`, /sk-aaa|sk-bbb/u,
+      `forge ${argv[0]} printed a credential: ${run.stdout}${run.stderr}`);
+  }
+});
+
 /* The one asymmetry in the rule, deliberate: refusing a boolean would spend a round on a call that meant exactly what it did. */
 test("a repeated boolean is not refused, because a second `true` drops nothing", () => {
   assert.deepEqual(flags(["--full", "--full"], "thing", ["--full"], { usage: USAGE }), { full: true });

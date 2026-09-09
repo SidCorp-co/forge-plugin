@@ -71,6 +71,9 @@ export const repeatedFlag = (verb, flag, kept, given) =>
   `${verb}: ${flag} was given twice, \`${kept}\` and then \`${given}\`, and one flag carries one `
   + `value. Send the ${flag} you meant, and make a second call for the other. Nothing was sent.`;
 
+/* Which of a verb's flags carries a credential is the verb's own declaration, beside `boolean` and `hidden` and for the same reason: a second list here would drift from the row the caller was shown. A refusal naming the flag is the whole of what a caller needs, and both values printed is a token in a transcript. */
+export const HIDDEN_VALUE = "***";
+
 export const flags = (argv, verb, boolean = [], row = {}) => {
   strangerIn(argv, verb, { ...row, boolean });
   const found = {};
@@ -83,7 +86,10 @@ export const flags = (argv, verb, boolean = [], row = {}) => {
     const value = pairs[index + 1];
     if (value === undefined || FLAG_WORD.test(value)) fail(noValue(verb, key, value));
     const name = key.slice(2);
-    if (found[name] !== undefined) fail(repeatedFlag(verb, key, found[name], value));
+    if (found[name] !== undefined) {
+      const shown = (one) => ((row.secret ?? []).includes(key) ? HIDDEN_VALUE : one);
+      fail(repeatedFlag(verb, key, shown(found[name]), shown(value)));
+    }
     found[name] = value;
     index += 1;
   }

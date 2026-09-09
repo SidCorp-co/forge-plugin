@@ -72,7 +72,7 @@ export const rowOf = (field) => fields()[field];
 export const ownsField = (field) => Boolean(rowOf(field));
 
 /** Every field of one write, in one update, so a caller naming several either writes all of them or names none as written. The gate and the renewal are the write's rather than each field's, and the read-back reports per field because a `PATCH` the tracker refuses for one key documents nothing about the others. */
-export const writeFields = async (documentId, given, { ref, next, patch, refuse, override = false }) => {
+export const writeFields = async (documentId, given, { ref, next, patch, refuse, partly, override = false }) => {
   const rows = given.map(({ field, value }) => {
     const row = override ? { same: landedAs } : rowOf(field);
     if (!row) {
@@ -97,7 +97,14 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
   });
   const back = await scoped("forge_issues", { action: "get", documentId, fields: rows.map((one) => one.field) });
   const wrong = rows.filter((one) => !one.row.same(back?.[one.field], one.sent));
-  if (wrong.length) refuse(wrong.map((one) => mismatch(one.row, one.field, ref, back?.[one.field])).join(" "));
+  if (!wrong.length) return back;
+  /* A field that read back as written has moved, and the caller's record of why is owed before this exits: refusing on its neighbour would leave the tracker holding a value with nothing on the page saying who set it. */
+  const landed = rows.filter((one) => !wrong.includes(one)).map(({ field, value }) => ({ field, value }));
+  if (landed.length) await partly?.(landed);
+  refuse([
+    ...wrong.map((one) => mismatch(one.row, one.field, ref, back?.[one.field])),
+    ...(landed.length ? [`${landed.map((one) => one.field).join(", ")} did read back as written and stands.`] : []),
+  ].join(" "));
   return back;
 };
 

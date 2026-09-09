@@ -179,6 +179,26 @@ test("a --set naming status is refused with the verb that moves one, before anyt
   assert.equal(ISSUE.priority, "medium", "and the field beside it is untouched");
 });
 
+/* One update is one request and no partial write starts here, but transactionality at the tracker is
+   the tracker's and is documented nowhere this CLI can read. Where the read-back says one field
+   moved and another did not, the one that moved is owed its reason before the refusal exits: the
+   alternative is a value in the tracker with nothing on the page saying who set it. */
+test("a field that landed beside one that did not still gets its correction, and the call still fails", async () => {
+  before();
+  state.ignores = "priority";
+  const run = await setField("--set", "complexity=m", "--set", "priority=high", "--why", WHY);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /priority did not read back as written/u, run.stderr);
+  assert.match(run.stderr, /complexity did read back as written and stands/u,
+    "the refusal says which half of the call is now true of the issue");
+  assert.equal(posted().length, 1, "one correction, for the call rather than for the field");
+  const [correction] = posted();
+  assert.match(correction, /moved: complexity set to `m` by `forge issue --set`/u,
+    "naming the field that moved and no other");
+  assert.doesNotMatch(correction, /priority/u, "the field that did not move is claimed nowhere");
+  assert.ok(correction.includes(WHY), "under the reason the caller gave for the call");
+});
+
 /* The reason is the whole difference between an override and a lie about what the record earned, so
    it is asked for before anything is sent rather than after the field has moved. */
 test("an override with no reason is refused, and nothing at all is sent", async () => {
