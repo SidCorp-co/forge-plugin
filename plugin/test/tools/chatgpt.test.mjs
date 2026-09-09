@@ -30,7 +30,11 @@ const answered = (out, meta = {}) => ({
 const BODIES = {
   /* A notification carries no id, and the impostor carries this request's id with a method beside
      it — which is what the transport's own server-to-client requests look like. */
-  json: () => JSON.stringify(answered({ answers: "the stub answered" }, { account: "acct-7" })),
+  /* The id is in both halves because the backend puts it in both — `content[0].text` is
+     `JSON.stringify(out)` and `_meta` repeats it beside the account. No `model`, so a reply naming
+     none is what the passthrough case is judged against (search-master's mcp/tools/chatgpt.ts). */
+  json: () => JSON.stringify(answered({ answers: "the stub answered", conversationId: "conv-json" },
+    { account: "acct-7", conversationId: "conv-json" })),
   sse: () => [
     `data: ${JSON.stringify({ jsonrpc: "2.0", method: "notifications/progress", params: {} })}\n\n`,
     `data: ${JSON.stringify(answered({ answers: "past the notification" }, { account: "acct-7" }))}\n\n`,
@@ -75,6 +79,16 @@ const BODIES = {
   /* The gateway that puts the request's own Authorization back in its error body, which is the one
      way the configured key reaches a terminal (consult 4f91a2, F2). */
   echoes: () => `502 from the gateway, upstream said: authorization: Bearer ${KEY}`,
+  /* The three shapes a *successful* reply can carry the key in. The third is the one that made
+     exempting the answer from the redactor unsafe: a text part that will not parse becomes the
+     answer, and an echoed authorization header is exactly such a part (review 829fc7, F2). */
+  keyInAnswer: () => JSON.stringify(answered({ answers: `the gateway said authorization: Bearer ${KEY}` })),
+  keyInObject: () => JSON.stringify(answered({ answers: { sent: `Bearer ${KEY}`, rows: [1, 2] } })),
+  keyInRaw: () => JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    result: { content: [{ type: "text", text: `authorization: Bearer ${KEY}` }] },
+  }),
 };
 
 const served = (request, response) => {
@@ -219,8 +233,25 @@ test("a JSON reply prints the answer, the account and the resume line", async ()
   assert.equal(run.status, 0);
   assert.match(run.stdout, /the stub answered/u);
   assert.match(run.stdout, /account   acct-7/u);
+  assert.match(run.stdout, /^resume {4}forge chatgpt "<next>" --resume conv-json$/mu,
+    "a reply carrying an id ends with the way on, and the title said so before anything asserted it");
   assert.equal(state.calls.length, 1, "one turn per invocation");
   assert.equal(state.sent[0].params.arguments.prompt, "what do you say");
+});
+
+/* The printed command is run rather than matched. The verb refuses a flag standing in the prompt's
+   place, so a recovery line written flag-first is one the verb itself turns away — which is what it
+   printed for as long as the criterion asking for it prescribed that order (review 829fc7, F1). */
+test("the resume command a reply prints is one this verb accepts, and it carries the new prompt and the id", async () => {
+  const first = await asked("json", "the first turn");
+  const line = first.stdout.split("\n").find((one) => one.startsWith("resume "));
+  assert.ok(line, "there is a command to run");
+  const argv = line.trim().split(/\s+/u).slice(3)
+    .map((one) => (one === '"<next>"' ? "the second turn" : one));
+  const again = await ran(configured(), ...argv);
+  assert.equal(again.status, 0, `the command it printed was refused: forge chatgpt ${argv.join(" ")}`);
+  assert.equal(state.sent[0].params.arguments.prompt, "the second turn");
+  assert.equal(state.sent[0].params.arguments.conversationId, "conv-json");
 });
 
 test("an answer that is already an object prints as JSON rather than being coerced to a string", async () => {
@@ -342,6 +373,20 @@ test("a local --file is uploaded as multipart under the field name file, and onl
     prompt: "describe this",
     files: [`${state.origin}/held/one.png`],
   }, "the prompt and the URL the upload answered, and no field carrying the file itself");
+});
+
+for (const mode of ["keyInAnswer", "keyInObject", "keyInRaw"]) {
+  test(`the configured key is struck out of a successful answer that carries it (${mode})`, async () => {
+    const run = await asked(mode, "echo my header back to me");
+    assert.equal(run.status, 0);
+    assert.ok(!run.stdout.includes(KEY), "the answer is backend text like any other");
+    assert.match(run.stdout, /<the key>/u);
+  });
+}
+
+test("striking the key leaves the rest of the answer whole", async () => {
+  const run = await asked("keyInAnswer", "echo my header back to me");
+  assert.match(run.stdout, /^the gateway said authorization: Bearer <the key>$/mu);
 });
 
 test("a --file that is already a URL is sent untouched and uploads nothing", async () => {

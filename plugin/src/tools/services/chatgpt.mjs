@@ -59,9 +59,8 @@ const parsedOr = (text) => {
   }
 };
 
-/* An answer to this request, not merely a message about it: the id alone is not enough, since the
-   transport may send a server-to-client *request* on the same stream under an id counter of its own
-   that starts where ours does (consult 4f91a2, F1). A reply has no method and one of two envelopes. */
+/* An answer to this request, not merely a message about it: the transport may send a request of its
+   own on the same stream under an id counter that starts where ours does (consult 4f91a2, F1). */
 const isAnswer = (held, id) => held?.id === id && held.method === undefined
   && (held.result !== undefined || held.error !== undefined);
 
@@ -78,17 +77,17 @@ const answerIn = (text, type, id) => {
 };
 
 /* A gateway echoing the request's headers into a 4xx puts the configured key in the body this verb
-   quotes, so all external text is struck — metadata and interpolated ids too. Truncating is a
-   separate job only a quoted body wants: a signed URL outruns any cap an error deserves, and
-   cutting one to guard against a key nobody put in it breaks a working link (4f91a2, ea77c3). */
+   quotes, so every piece of external text is struck. Truncating is a separate job that only a quoted
+   error body wants: a signed URL outruns any cap an error deserves (4f91a2, ea77c3). */
 const redactorsFor = (key) => {
   const struck = (text) => (key ? String(text).split(key).join("<the key>") : String(text));
   return { struck, shown: (text) => struck(text).slice(0, BODY_CHARS) };
 };
 
-const ambiguous = (said, conversation, shown) => {
+/* The prompt leads the printed command, or the recovery line is one this verb's own parser turns away (review 829fc7, F1). */
+const ambiguous = (said, conversation, struck) => {
   const back = conversation
-    ? `\n  The turn may already exist: forge chatgpt --resume ${shown(conversation)} "<next>"`
+    ? `\n  The turn may already exist: forge chatgpt "<next>" --resume ${struck(conversation)}`
     : "";
   fail(`chatgpt: ${said}\n  This turn may have been spent and is not sent again — the tool cannot say `
     + `whether it ran.${back}`);
@@ -140,16 +139,17 @@ const attached = async (given, held, clock) => {
   return urls;
 };
 
-/* The metadata is struck like any other backend text; the answer itself is not, because it is what
-   was asked for and mangling it to guard against a key nobody put there is the worse trade. */
-const printed = (out, meta, shown) => {
+/* The answer is struck like every other piece of backend text: a text part that will not parse
+   becomes the answer, which is exactly where an echoed authorization header arrives, so exempting it
+   held open the path it was guarding (review 829fc7, F2). The model prints only where the reply
+   carries one, since `_meta` has none and a slug asked for may never have run. */
+const printed = (out, meta, struck) => {
   const said = out.answers ?? null;
-  if (said !== null) console.log(typeof said === "string" ? said : JSON.stringify(said, null, 2));
-  if (out.imageUrl) console.log(`\nimage     ${shown(out.imageUrl)}`);
-  if (meta?.account) console.log(`account   ${shown(meta.account)}`);
-  /* Only where the reply carries one: `_meta` has no model, and the slug asked for may never have run. */
-  if (out.model) console.log(`model     ${shown(out.model)}`);
-  if (out.conversationId) console.log(`resume    forge chatgpt --resume ${shown(out.conversationId)} "<next>"`);
+  if (said !== null) console.log(struck(typeof said === "string" ? said : JSON.stringify(said, null, 2)));
+  if (out.imageUrl) console.log(`\nimage     ${struck(out.imageUrl)}`);
+  if (meta?.account) console.log(`account   ${struck(meta.account)}`);
+  if (out.model) console.log(`model     ${struck(out.model)}`);
+  if (out.conversationId) console.log(`resume    forge chatgpt "<next>" --resume ${struck(out.conversationId)}`);
 };
 
 export const chatgpt = async (argv) => {
