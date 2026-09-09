@@ -5,7 +5,7 @@ import { isAbsolute, join } from "node:path";
 
 import { HUMAN_REF } from "../tracker/issues.mjs";
 import { appendJsonl, jsonlAt } from "../hooks/hook-log-file.mjs";
-import { configDir, userConfig } from "../resolve/config.mjs";
+import { configDir, NO_SESSION, sessionSourced, userConfig } from "../resolve/config.mjs";
 import { masked } from "../hooks/hook-log.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -31,10 +31,16 @@ const maskedDeep = (value) => {
   return value;
 };
 
+/** Which run is writing, and the source row that answered for its id — an inherited id is a wave's and a saved one a machine's, so either alone attributes a wave's rulings to one run. Minting none: docs/cli/codex-the-log.md. */
+export const writingRun = () => {
+  const held = sessionSourced();
+  return held.id ? { run: held.id, runFrom: held.source } : { runFrom: NO_SESSION };
+};
+
 /* It warns and carries on: failing closed would mean a full disk costs the review itself. */
 export const logConsult = (record) => {
   try {
-    appendJsonl(logPath(), maskedDeep(record), configDir("forge"));
+    appendJsonl(logPath(), maskedDeep({ ...record, ...writingRun() }), configDir("forge"));
     return true;
   } catch (error) {
     console.error(`codex: could not write ${logPath()} (${error.message}); this consult is unlogged.`);
@@ -434,14 +440,21 @@ const countFrom = (raw, floor = 1, fallback = LOG_TAIL) => {
   return value;
 };
 
+const wroteIt = (entry) => {
+  if (entry.run) return `  by ${entry.run} (${entry.runFrom ?? "?"})`;
+  return entry.runFrom === NO_SESSION ? "  by no run id" : "";
+};
+
 export const logLine = (stored, full) => {
   const entry = maskedDeep(stored);
   if (entry.kind === "started") {
-    return `${entry.id ? `${entry.id}  ` : ""}${entry.at}  ${startedState(entry)} on ${(entry.files ?? []).join(" ")}`;
+    return `${entry.id ? `${entry.id}  ` : ""}${entry.at}  ${startedState(entry)} `
+      + `on ${(entry.files ?? []).join(" ")}${wroteIt(entry)}`;
   }
   if (entry.kind === "verdict") {
     const note = entry.note ? `  ${entry.note}` : "";
-    return `${entry.at}  verdict on ${entry.of}: ${entry.accepted} accepted, ${entry.rejected} rejected${note}`;
+    return `${entry.at}  verdict on ${entry.of}: ${entry.accepted} accepted, ${entry.rejected} rejected`
+      + `${wroteIt(entry)}${note}`;
   }
   const answer = stored.ok ? `${(stored.reply ?? "").length}ch` : `failed: ${entry.error ?? "?"}`;
   const id = entry.id ? `${entry.id}  ` : "";
@@ -449,7 +462,8 @@ export const logLine = (stored, full) => {
   const served = entry.served?.length ? `  +${entry.served.length} served` : "";
   const counted = countedIn(stored.reply);
   const many = counted ? `  ${counted.total} finding(s)` : "";
-  const head = `${id}${entry.at}  ${entry.model ?? entry.slot ?? "?"}  ${Math.round((entry.ms ?? 0) / 1000)}s  ${at}  ${answer}${many}${served}`;
+  const head = `${id}${entry.at}  ${entry.model ?? entry.slot ?? "?"}  ${Math.round((entry.ms ?? 0) / 1000)}s  `
+    + `${at}  ${answer}${many}${served}${wroteIt(entry)}`;
   const files = `  files  ${(entry.files ?? []).join(" ")}`;
   if (!full) return `${head}\n${files}`;
   /* The bytes that were judged: a field with no reader is a field nobody can trust. */

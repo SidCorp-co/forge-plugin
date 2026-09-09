@@ -62,7 +62,8 @@ the log by the `--of` the call names and otherwise by the log's own entry inside
 the pairing is one-to-one **over the whole corpus, resolved before the windows are cut**: a
 competitor outside the displayed windows still spoils a match, so `--size` cannot decide what paired.
 Under a wave of concurrent runs most spans overlap and most calls therefore go unpaired, which the
-screen prints as a count rather than hiding; the log records no run identity, which is why (ISS-834).
+screen prints as a count rather than hiding; a row of the log now says which run wrote it and this
+pairing does not read that yet, which is why (ISS-853).
 
 **`unavailable` is not zero.** A figure whose population is empty — no pair it could read, or no
 finding ruled — prints `unavailable`; one with a population and no outcome in it prints `0` over that

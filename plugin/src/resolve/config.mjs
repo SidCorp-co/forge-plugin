@@ -166,6 +166,9 @@ export const sessionOf = () => {
 
 export const MINTED = "minted";
 
+/* No row above answered, said in a word: a blank meaning "nobody asked" reads like one a writer forgot. */
+export const NO_SESSION = "none";
+
 /* The id a write goes under and where it came from, in one answer, and the one source no row above reads: `sessionOf` saves what it mints, so a source asked for after it would say `saved` about an id that did not exist a call earlier. */
 export const sessionWriting = () => {
   const held = sessionSourced();

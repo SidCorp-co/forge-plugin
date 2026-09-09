@@ -16,6 +16,13 @@ that dies mid-flight reaches no handler and a review that vanished is what an ev
 Each entry carries the commit, a per-file sha256 and whether the file was clipped: advice that cannot
 be tied to bytes cannot be checked.
 
+**Which run wrote a row.** Waves of three to six runs consult at once here, and the clock told 151
+recent ruling calls from nobody, so `forge stats eval` disclosed a blind spot where a number was
+owed. A row carries the granted id this run's tracker writes go under and the source that answered
+for it, because an id alone is not evidence of a run: inherited, it is a wave's; saved, a machine's;
+and none is minted here, an id saved on the way past being the blank wearing a value. Nothing
+backfills the rows behind it, and the eval pairs as it always did until ISS-853 moves it.
+
 **It is a file on disk, and `forge codex log` prints it back into a session.** So every string in a
 record is masked at the write, at every depth, by the same seat the refusal log reads: a second set of
 patterns is the one that misses the level the first set learned about. It does not take that log's

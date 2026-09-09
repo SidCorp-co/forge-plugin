@@ -129,6 +129,13 @@ outcome; leaving it unruled makes "resolved or still open" a guess.
 - **AC-06-5-2** · Rev: 1 · Proof: plugin/test/codex/codex-log.test.mjs "a credential in a consult record is masked before the line is written"
   WHEN a credential appears in anything written to the log THEN it SHALL be masked before it is
   written down.
+- **AC-06-5-3** · Rev: 1 · Proof: plugin/test/codex/log/identity.test.mjs "an entry says which run wrote it, and which source answered for the id"
+  WHEN anything is written to the log THEN the entry SHALL name the run that wrote it beside the
+  source that answered for that identity, because two entries written in one second are attributable
+  only by what each of them says of itself.
+- **AC-06-5-4** · Rev: 1 · Proof: plugin/test/codex/log/identity.test.mjs "an entry written where no run id resolves says so rather than carrying a blank"
+  WHERE no identity resolves for the writing run the entry SHALL say that, rather than carry an empty
+  one, because a blank every unattributed entry shares reads as one run having written them all.
 
 ### UC-06-6 — Compare the log's last hundred consults with the hundred before them
 

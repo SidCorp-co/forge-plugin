@@ -443,7 +443,7 @@ test("a credential in a consult record is masked before the line is written", ()
   /* The refusal log clips at 220 characters; a reply is the eval set this log is kept for. */
   assert.ok(entry.reply.endsWith(long.slice(-40)), "the reply comes back whole, not clipped");
   assert.deepEqual(numbered(entry.reply).map((one) => one.id), ["F1"], "and it is still read for its findings");
-  const blanked = { intent: null, risks: null, reply: null };
+  const blanked = { intent: null, risks: null, reply: null, run: null, runFrom: null };
   assert.deepEqual({ ...entry, ...blanked }, { ...record, ...blanked },
     "everything a reader is keyed on — the shas, the numbers, the nested usage — survives field for field");
 });
