@@ -23,7 +23,7 @@ import { markRefused, REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, spannedIn
 import { edgesLeft, fileIssue } from "../plugin/src/tracker/filing/route.mjs";
 import { releaseMark, runsMark } from "../plugin/src/stats/eval.mjs";
 import { refusing, slugIfAny } from "../plugin/src/resolve/settings.mjs";
-import { CEILINGS, overCeiling, resizeForm, tierOf } from "../plugin/src/ladder.mjs";
+import { CEILINGS, climbForm, overCeiling, rungOf } from "../plugin/src/ladder.mjs";
 import { partForLanding } from "../plugin/src/guides/served.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -368,19 +368,19 @@ const tierCeiling = (tree, was) => {
     if (!body || typeof body !== "object") return undefined;
     /* One string: every climb on it is a climb, whichever record carried it, and only the latest. */
     const page = forgeSays(tree, ["resume", ref, "--report"]);
-    const size = { band: body.complexity, plan: body.plan, whole: true, moved: page.why ? [] : [page.out] };
-    const tier = tierOf(size), ceiling = CEILINGS[tier];
+    const fields = { complexity: body.complexity, plan: body.plan, whole: true, moved: page.why ? [] : [page.out] };
+    const rung = rungOf(fields), ceiling = CEILINGS[rung];
     if (!ceiling) return undefined;
     const rows = (gitOut(["diff", "--numstat", `${was}..HEAD`], tree) ?? "").split("\n").filter(Boolean);
     const each = (row) => row.split("\t").slice(0, 2).reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0);
     const landed = { files: rows.length, lines: rows.reduce((sum, row) => sum + each(row), 0) };
-    const line = `  ${ref} is a \`${tier}\` and landed ${landed.files} file(s) and `
-      + `${landed.lines} changed line(s), against that tier's ceiling of ${ceiling.files} and ${ceiling.lines}`;
-    const over = overCeiling(tier, landed);
+    const line = `  ${ref} is a \`${rung}\` and landed ${landed.files} file(s) and `
+      + `${landed.lines} changed line(s), against that rung's ceiling of ${ceiling.files} and ${ceiling.lines}`;
+    const over = overCeiling(rung, landed);
     if (!over) return console.log(line);
     console.error(`${line} — past it on ${over.join(" and ")}`);
-    return console.error("    a landing larger than its tier owes a correction naming the re-size, and the "
-      + `tier's skipped obligations are earned before the close:\n      ${resizeForm(ref, tier)}`);
+    return console.error("    a landing larger than its rung owes a correction naming the climb, and the "
+      + `rung's skipped obligations are earned before the close:\n      ${climbForm(ref, rung)}`);
   } catch {
     return undefined;
   }

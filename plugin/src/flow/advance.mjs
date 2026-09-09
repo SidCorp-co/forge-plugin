@@ -14,7 +14,7 @@ import { citedClauses } from "../spec/checked.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/record.mjs";
 import { render } from "./record/page.mjs";
-import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, setForm, sizeOf, viewFrom } from "./earned.mjs";
+import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, rungFieldsOf, setForm, viewFrom } from "./earned.mjs";
 import { laneLines } from "../guides/phases.mjs";
 import { undoForm } from "./record/merged.mjs";
 import { credentialAhead, deployFor, lookAhead, owedLine, policyFor, targetOf } from "./route.mjs";
@@ -198,10 +198,10 @@ export const checkTarget = (to, next, view, ref) => {
 /* Printed under the shortfall and under "the record earns it" alike, because the point of it is
    that a run reads it before the status it belongs to is the one being asked for. */
 const sayAhead = (view, ref, next) => {
-  const size = fixReport(view, ref);
-  if (size) console.log(`\n${size}`);
+  const report = fixReport(view, ref);
+  if (report) console.log(`\n${report}`);
   console.log("");
-  for (const line of laneLines({ status: view.issue.status, size: sizeOf(view) })) console.log(line);
+  for (const line of laneLines({ status: view.issue.status, fields: rungFieldsOf(view) })) console.log(line);
   const shortly = credentialAhead(view, ref);
   if (shortly) console.log(`\n${shortly}`);
   const said = lookAhead(view, ref);

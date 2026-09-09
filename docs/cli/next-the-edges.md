@@ -67,5 +67,5 @@ A dependency phrase that matched no title is evidence that failed to resolve, no
 leaves its own issue out with the phrase quoted, and the tail line counts them; the graph is where
 all of them, in both directions, are printed.
 
-The call budget the ranking itself is bounded by, and the two sources of a size band:
+The call budget the ranking itself is bounded by, and the one source of a complexity:
 [`next`](next.md).

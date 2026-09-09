@@ -127,7 +127,7 @@ export const GUIDE_TABLE = [
   {
     slug: "memory-and-knowledge",
     disposition: "partly",
-    why: "the three tiers are the tracker's and stand; of the verbs its recall discipline names, one is wrapped here and two are served by no route",
+    why: "memory, knowledge and projectFacts are the tracker's own three and stand; of the verbs its recall discipline names, one is wrapped here and two are served by no route",
     replaced: [
       {
         says: "recall, write and confirm through `forge_memory.search`, `forge_memory.write` and"

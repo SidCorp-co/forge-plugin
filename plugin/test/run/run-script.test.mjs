@@ -6,8 +6,8 @@ import test from "node:test";
 import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { BARE, brokenAnswer, committed, corrected, emptyAnswer, GATE, git, LAST_STEP, lastStep, landIn,
-  planned, pushed, ref, ROOT, runIn, scratch, sized, stubbed } from "./run-fixtures.mjs";
+import { atRung, BARE, brokenAnswer, committed, corrected, emptyAnswer, GATE, git, LAST_STEP, lastStep,
+  landIn, planned, pushed, ref, ROOT, runIn, scratch, stubbed } from "./run-fixtures.mjs";
 
 /* The threshold and the mark are typed here rather than imported: nothing imports an entry point,
    and a second party that has to agree with the constants is what pins them to the help at all. */
@@ -341,29 +341,29 @@ test("a release moving only gate code sends nobody to restart, and says what the
 });
 
 /* The backstop the ladder's ceiling is: it runs after the judging, so it says what landed against
-   what the tier claimed and refuses nothing. The branch is where the issue key comes from, `start`
-   having cut it, so nothing here is a second place a tier could be set. */
+   what the rung claimed and refuses nothing. The branch is where the issue key comes from, `start`
+   having cut it, so nothing here is a second place a rung could be set. */
 const shipOnBranch = (work, branch) => {
   git(work, "checkout", "-b", branch);
   return lastStep(work);
 };
 
-test("the ship measures the landing against the tier its branch's issue claims", () => {
-  const { at, work } = pushed("tier-within");
+test("the ship measures the landing against the rung its branch's issue claims", () => {
+  const { at, work } = pushed("rung-within");
   stubbed(work);
-  sized(at, "fix");
-  landIn(work, join("plugin", "src", "one.mjs"), 3, "a change inside the tier");
+  atRung(at,"fix");
+  landIn(work, join("plugin", "src", "one.mjs"), 3, "a change inside the rung");
   const out = shipOnBranch(work, "iss-318").stdout;
   assert.match(out, /ISS-318 is a `fix` and landed \d+ file\(s\) and \d+ changed line\(s\)/u, out);
-  assert.match(out, /against that tier's ceiling of 15 and 500/u, out);
-  assert.doesNotMatch(out, /owes a correction naming the re-size/u,
+  assert.match(out, /against that rung's ceiling of 15 and 500/u, out);
+  assert.doesNotMatch(out, /owes a correction naming the climb/u,
     "inside its ceiling, so nothing is owed and no correction is printed");
 });
 
-test("a landing past its tier's ceiling names which of the two, and the correction that answers it", () => {
-  const { at, work } = pushed("tier-past");
+test("a landing past its rung's ceiling names which of the two, and the correction that answers it", () => {
+  const { at, work } = pushed("rung-past");
   stubbed(work);
-  sized(at, "trivial");
+  atRung(at,"trivial");
   for (const one of ["a", "b", "c", "d", "e", "f", "g"]) {
     landIn(work, join("plugin", "src", `${one}.mjs`), 40, `${one} landed`);
   }
@@ -371,21 +371,21 @@ test("a landing past its tier's ceiling names which of the two, and the correcti
   const said = `${run.stdout}\n${run.stderr}`;
   assert.match(said, /ISS-318 is a `trivial`/u, said);
   assert.match(said, /past it on files \(\d+ of 5\) and lines \(\d+ of 150\)/u, said);
-  assert.match(said, /--moved "Size: trivial -> fix"/u, "the correction names the next rung up");
+  assert.match(said, /--moved "Rung: trivial -> fix"/u, "the correction names the next rung up");
   assert.match(said, /skipped obligations are earned before the close/u, said);
 });
 
 /* Silent rather than wrong: a landing measured against a ceiling nobody set is a number with no
    claim behind it, and a branch that names no issue has set none. */
 test("a ship from a branch naming no issue measures the landing against nothing", () => {
-  const { at, work } = pushed("tier-unnamed");
+  const { at, work } = pushed("rung-unnamed");
   stubbed(work);
-  sized(at, "trivial");
+  atRung(at,"trivial");
   landIn(work, join("plugin", "src", "one.mjs"), 400, "far past any ceiling");
   const run = shipOnBranch(work, "some-other-branch");
   const said = `${run.stdout}\n${run.stderr}`;
   assert.doesNotMatch(said, /ceiling/u, said);
-  assert.doesNotMatch(said, /Size: trivial ->/u, said);
+  assert.doesNotMatch(said, /(?:Rung|Size): trivial ->/u, said);
 });
 
 /* The ceiling is advisory and runs after the release: by the time it prints, the branch is pushed
@@ -393,9 +393,9 @@ test("a ship from a branch naming no issue measures the landing against nothing"
    happened for nothing it could act on. `null` is the case that reaches it — a tracker that answered
    cleanly with nothing, which parses and has no field to read (consult F5). */
 test("an answer with nothing in it costs the ship the ceiling and not the run", () => {
-  const { at, work } = pushed("tier-empty");
+  const { at, work } = pushed("rung-empty");
   stubbed(work);
-  sized(at, "trivial");
+  atRung(at,"trivial");
   emptyAnswer(at);
   landIn(work, join("plugin", "src", "one.mjs"), 400, "far past the shortest rung's ceiling");
   const run = shipOnBranch(work, "iss-318");
@@ -415,9 +415,9 @@ test("an answer with nothing in it costs the ship the ceiling and not the run", 
    measured against its original ceiling would be held to a threshold it left rounds ago and offered
    a correction that could not clear it, on this ship or any later one (consult F3). */
 test("the ceiling is the rung the issue reached, counting its plan and its corrections", () => {
-  const { at, work } = pushed("tier-climbed");
+  const { at, work } = pushed("rung-climbed");
   stubbed(work);
-  sized(at, "trivial");
+  atRung(at,"trivial");
   corrected(at, "Size: trivial -> feature");
   for (const one of ["a", "b", "c", "d", "e", "f", "g"]) {
     landIn(work, join("plugin", "src", `${one}.mjs`), 40, `${one} landed`);
@@ -429,9 +429,9 @@ test("the ceiling is the rung the issue reached, counting its plan and its corre
 });
 
 test("a plan declaring a person climbs the rung the ceiling is read at", () => {
-  const { at, work } = pushed("tier-declared");
+  const { at, work } = pushed("rung-declared");
   stubbed(work);
-  sized(at, "trivial");
+  atRung(at,"trivial");
   planned(at, "Screen change: no\nSchema coupling: no\nUser-facing outcome: yes");
   landIn(work, join("plugin", "src", "one.mjs"), 3, "a small change on a declared issue");
   const said = shipOnBranch(work, "iss-318").stdout;

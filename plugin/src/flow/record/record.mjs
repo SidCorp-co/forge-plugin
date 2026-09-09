@@ -19,7 +19,7 @@ import {
 } from "../../tracker/evidence.mjs";
 import { briefGoals, releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
 import { NONE_STATED, servesRefusal } from "../../goals.mjs";
-import { belowTop, resizeForm, sizeFrom } from "../../ladder.mjs";
+import { belowTop, climbForm, rungClaimed } from "../../ladder.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
 import { capsOf, writeField } from "../../tracker/field-write.mjs";
 import { scoped } from "../../tracker/rest.mjs";
@@ -226,27 +226,27 @@ export const fromRecord = (kind, got, { comments, names, cut = null }, say = con
   say(`--evidence ${before.join(", ")}, as the latest ${kind} on this issue cites it.`);
 };
 
-/* Read off what the write already knows, a line an author could type proving only that they typed it: the release policy from the config, the tier off the `get` this write has already made.
-   It is not the entry checks' answer either: the stamp reads the complexity field, where `tierOf` climbs from there for a plan's declarations and for a correction that re-sized the issue, and answers the top rung outright on a cut page (ISS-428).
+/* Read off what the write already knows, a line an author could type proving only that they typed it: the release policy from the config, the rung off the `get` this write has already made.
+   It is not the entry checks' answer either: the stamp reads the complexity field, where `rungOf` climbs from there for a plan's declarations and for a correction that moved the issue up, and answers the top rung outright on a cut page (ISS-428).
    It stays a copy for a reader outside the flow, so a hand-written record lacking it is refused nothing. */
 const DERIVED = {
   verification: async () => {
     const held = releaseLine(await releasePolicy());
     return held ? { [held[0]]: held[1] } : null;
   },
-  confirmation: async (body) => ({ tier: sizeFrom({ band: body?.complexity }).rung }),
+  confirmation: async (body) => ({ rung: rungClaimed({ complexity: body?.complexity }).rung }),
 };
 
-/* The stamp said out loud, because a run that has to read its own record back to learn its rung learns it after the phase that would have checked it. The rung is the triager's claim; this run's reading of the code is what holds it up, and the route up is printed only where one exists — `resizeForm` at the top rung renders a pair that does not climb, which `climbsIn` drops. Advisory throughout: nothing here can judge the work against the rung. */
+/* The stamp said out loud, because a run that has to read its own record back to learn its rung learns it after the phase that would have checked it. The rung is the triager's claim; this run's reading of the code is what holds it up, and the route up is printed only where one exists — `climbForm` at the top rung renders a pair that does not climb, which `climbsIn` drops. Advisory throughout: nothing here can judge the work against the rung. */
 const SAID = {
   confirmation: (body, reference) => {
-    const { rung, band } = sizeFrom({ band: body?.complexity });
-    const from = band
-      ? `claimed by the complexity \`${band}\``
+    const { rung, complexity } = rungClaimed({ complexity: body?.complexity });
+    const from = complexity
+      ? `claimed by the complexity \`${complexity}\``
       : "claimed by nobody: this issue holds no complexity, so the top rung stands by the upward rule";
-    return `tier \`${rung}\`, ${from}. `
+    return `rung \`${rung}\`, ${from}. `
       + (belowTop(rung)
-        ? `Where what you have just read is bigger than that, move it up before the plan:\n  ${resizeForm(reference, rung)}`
+        ? `Where what you have just read is bigger than that, move it up before the plan:\n  ${climbForm(reference, rung)}`
         : "No rung stands above it, so there is nothing here to correct upward.");
   },
 };

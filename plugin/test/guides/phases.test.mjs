@@ -10,16 +10,16 @@ import { CHECKS, ORDER, PHASE, viewFrom } from "../../src/flow/earned.mjs";
 import { LIGHTER } from "../../src/ladder.mjs";
 import { KINDS } from "../../src/flow/record/record-rows.mjs";
 
-const sized = (band, moved = []) =>
-  ({ description: "a defect", plan: null, moved, whole: true, band });
+const fieldsOf = (complexity, moved = []) =>
+  ({ description: "a defect", plan: null, moved, whole: true, complexity });
 
 const PLAN = "Screen change: no. Schema coupling: no.";
 
-/** What a status's entry check asks of a record holding nothing but the band and the two readings
+/** What a status's entry check asks of a record holding nothing but the complexity and the two readings
  *  the criteria field decides between, so a case asks the check rather than a table about it. */
-const asked = (status, band = null) => [{ acceptanceCriteria: "1. The outcome." }, {}]
+const asked = (status, complexity = null) => [{ acceptanceCriteria: "1. The outcome." }, {}]
   .map((held) => CHECKS[status](
-    viewFrom("the-uuid", { status, plan: PLAN, complexity: band, ...held }, []), "ISS-1",
+    viewFrom("the-uuid", { status, plan: PLAN, complexity, ...held }, []), "ISS-1",
   ))
   .map((one) => JSON.stringify(one))
   .join(" ");
@@ -74,12 +74,12 @@ test("a phase cites the record that carried it, not the one that reached its own
 
 test("a status the flow table gives no numbered phase is not listed as owing one", () => {
   assert.ok(Number.isNaN(phaseNumber("closed")), "closed owes `none`, which is no phase number");
-  assert.deepEqual(phaseIndex({ status: "closed", size: sized("s") }).owed, [],
+  assert.deepEqual(phaseIndex({ status: "closed", fields: fieldsOf("s") }).owed, [],
     "so a closed issue owes no phase and the index says so by listing none");
 });
 
 test("the first phase owed at approved is Phase 4, and the phases before it are on the record", () => {
-  const { first, passed } = phaseIndex({ status: "approved", size: sized("m") });
+  const { first, passed } = phaseIndex({ status: "approved", fields: fieldsOf("m") });
   assert.match(first, /^4 /u, "an approved issue implements next, and the index opens on that");
   assert.deepEqual(passed.map((one) => [one.phase, one.cites]), [
     ["1 Triage", "confirmation"],
@@ -107,34 +107,34 @@ test("the opening lists each phase behind with the record that discharged it, or
    it names, because every one of these lines is what a run acts on: the payload it writes at each
    status, the one it is not asked for, and the two ways a status can owe nothing (ISS-810). */
 test("the lane names what earns each status ahead, and what the rung drops on the way", () => {
-  assert.deepEqual(laneLines({ status: "open", size: sized("s") }), [
+  assert.deepEqual(laneLines({ status: "open", fields: fieldsOf("s") }), [
     "Lane at `fix` — every status from where it stands, and what earns it:",
     "  open           ← where it stands",
     "  confirmed      confirmation",
-    "  clarified      nothing owed at this tier",
-    "  approved       criteria; no plan at this tier",
+    "  clarified      nothing owed at this rung",
+    "  approved       criteria; no plan at this rung",
     "  in_progress    baseline",
     "  developed      review, merged",
     "  tested         verdict",
-    "  released       verification; no note at this tier",
-    "  closed         nothing owed at any tier",
+    "  released       verification; no note at this rung",
+    "  closed         nothing owed at any rung",
     "Each name is a record kind: `forge record <kind> -h`.",
   ], "a fix reads its whole route: what it writes, what it does not, and where it ends");
-  const feature = laneLines({ status: "open", size: sized("m") });
-  assert.ok(!feature.some((one) => one.includes("at this tier")),
+  const feature = laneLines({ status: "open", fields: fieldsOf("m") });
+  assert.ok(!feature.some((one) => one.includes("at this rung")),
     "a feature is waived nothing, so no line of its lane names a payload as dropped");
   assert.deepEqual(feature.filter((one) => /clarified|approved|released/u.test(one)), [
     "  clarified      decision",
     "  approved       plan, criteria",
     "  released       verification, note",
   ], "and each of the three rows a lighter rung touches asks for the whole of its payload");
-  assert.deepEqual(laneLines({ status: "open", size: sized("s", ["Size: fix -> feature"]) }), feature,
+  assert.deepEqual(laneLines({ status: "open", fields: fieldsOf("s", ["Size: fix -> feature"]) }), feature,
     "a correction that re-sized the work prints the feature lane, the field having claimed a fix");
 });
 
 /* The lane is what is ahead, so a status the ladder's path does not hold has none to read. */
 test("a status off the linear path is told there is no lane, and is shown no rows", () => {
-  const lines = laneLines({ status: "reopen", size: sized("s") });
+  const lines = laneLines({ status: "reopen", fields: fieldsOf("s") });
   assert.deepEqual(lines, ["Lane: `reopen` is off the ladder's linear path, so no lane is read from it."],
     "one line saying why, and not a lane read from a status the order does not hold");
 });
@@ -147,9 +147,9 @@ test("neither verb that prints the opening composes a line of it", () => {
 });
 
 /* A waiver is on a transition: dropping the plan is not dropping the implementing, and an index
-   reading it as the latter tells a fix-tier run its work is done. */
-test("a tier's waiver is printed against the phase that pays it, and waives no phase", () => {
-  const owed = (band) => phaseIndex({ status: "clarified", size: sized(band) }).owed;
+   reading it as the latter tells a run at the fix rung its work is done. */
+test("a rung's waiver is printed against the phase that pays it, and waives no phase", () => {
+  const owed = (complexity) => phaseIndex({ status: "clarified", fields: fieldsOf(complexity) }).owed;
   const waived = owed("s").filter((one) => one.waived);
   assert.deepEqual(waived.map((one) => one.phase), ["3 Plan", "6, 7 Ship"],
     "the plan is waived on the way into approved, the note on the way into released");
@@ -164,7 +164,7 @@ test("a tier's waiver is printed against the phase that pays it, and waives no p
 
 test("the lines say a phase is owed without a record, never that the phase is dropped", () => {
   const lines = indexLines("issue-flow", "ISS-9",
-    phaseIndex({ status: "clarified", size: sized("s") }));
+    phaseIndex({ status: "clarified", fields: fieldsOf("s") }));
   assert.equal(lines.filter((one) => one.startsWith("dropped")).length, 0,
     "no line calls a phase dropped, which is what told a fix its implementing was waived");
   assert.match(lines.find((one) => one.startsWith("owed") && one.includes("3 Plan")),
@@ -175,12 +175,12 @@ test("the lines say a phase is owed without a record, never that the phase is dr
 
 /* `ORDER` is the path, not the table: a status beside it read as completion owes work silently. */
 test("a status off the linear path owes its own phase and is not read as finished", () => {
-  const index = phaseIndex({ status: "reopen", size: sized("s") });
+  const index = phaseIndex({ status: "reopen", fields: fieldsOf("s") });
   assert.match(index.first, /^1 Triage/u, "a reopen owes the triage of the person's finding");
   assert.equal(index.aside, "reopen", "and says it is off the path rather than implying a rung");
   assert.deepEqual(index.passed, [], "nothing is claimed passed on a path this status is not on");
   assert.deepEqual(index.owed.map((one) => one.waived), [null],
-    "no tier waiver is read against a status the ladder's rows do not speak to");
+    "no rung waiver is read against a status the ladder's rows do not speak to");
   assert.match(indexLines("issue-flow", "ISS-9", index)[0], /off the ladder's linear path/u);
 });
 
@@ -189,6 +189,6 @@ test("every status the flow table gives a phase is on the order or named as besi
   const off = Object.keys(PHASE).filter((status) => Number.isFinite(phaseNumber(status)) && !ORDER.includes(status));
   assert.deepEqual(off, ["reopen"], "reopen alone sits outside the order, being a bounce not a rung");
   for (const status of off) {
-    assert.equal(phaseIndex({ status, size: sized("s") }).aside, status, `${status} reads as finished`);
+    assert.equal(phaseIndex({ status, fields: fieldsOf("s") }).aside, status, `${status} reads as finished`);
   }
 });

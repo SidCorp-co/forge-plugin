@@ -84,9 +84,9 @@ not, and the two would drift the first time a row moved.
 Two shifts in it are worth stating, because both were wrong first and a reader will otherwise
 reintroduce them. A phase is the work owed *at* a status while an entry check guards the way *into*
 one, so a phase is discharged by the rung above it: citing its own status names the evidence for the
-step before, and sends a successor to the wrong record. And a tier's lightening is a waiver on a
+step before, and sends a successor to the wrong record. And a rung's lightening is a waiver on a
 transition, never on a phase — the ladder drops the plan on the way into `approved`, which does not
-drop the implementing. An index reading the second as the first tells a fix-tier run its work is
+drop the implementing. An index reading the second as the first tells a run at the fix rung its work is
 done, so a waiver is printed against the phase that pays it, in the ladder's own words, and the
 phase stays owed. The one table added is which record discharges which status, held to the entry
 checks by a case that reads their refusals: a status with a check and no record named against it

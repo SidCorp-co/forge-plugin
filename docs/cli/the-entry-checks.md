@@ -48,7 +48,7 @@ the plan put outside the change, and a plain substring test would let a longer n
 beside the file it templates, a vendored copy under a path that ends the same way — answer for the
 shorter one, with no false word anywhere on the record.
 
-Two silences are deliberate. A tier below **feature** writes no plan field at all, and an issue with
+Two silences are deliberate. A rung below **feature** writes no plan field at all, and an issue with
 no list has nothing to be outside of — a refusal there would be this check taking back the rung the
 ladder gave. And a note carrying no such clause says nothing about what was written, which is what
 every record predating the clause is.

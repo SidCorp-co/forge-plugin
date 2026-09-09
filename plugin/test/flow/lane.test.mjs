@@ -75,9 +75,9 @@ test("the claim prints the lane at the rung the complexity claims, and takes the
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /ISS-810 {2}claim:/u, "the lease is taken and said so");
   assert.match(run.stdout, /^Lane at `fix` — every status/mu, "and the lane is printed under it");
-  assert.match(run.stdout, /^ {2}clarified {6}nothing owed at this tier$/mu,
+  assert.match(run.stdout, /^ {2}clarified {6}nothing owed at this rung$/mu,
     "a fix writes no decision record, which is the whole of what clarified is earned by");
-  assert.match(run.stdout, /^ {2}approved {7}criteria; no plan at this tier$/mu,
+  assert.match(run.stdout, /^ {2}approved {7}criteria; no plan at this rung$/mu,
     "and its criteria still stand where its plan is dropped, which is half a status and not one");
 });
 

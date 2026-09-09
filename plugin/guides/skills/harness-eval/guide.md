@@ -14,7 +14,7 @@ thing the numbers are read against first.
    is supposed to cost; the only question is whether the latest fifty cost more or less than their
    predecessors, and why.
 2. **Attribute before you judge.** A moved figure is explained by a difference between the windows
-   — the copies installed, the prompt versions, the model behind the slot, the mix of tiers and
+   — the copies installed, the prompt versions, the model behind the slot, the mix of rungs and
    efforts — and one that moved with the mix is the mix, not the harness.
 3. **Thin is said, not smoothed.** A row resting on few runs on either side is reported as thin, with
    the counts, and no judgement is built on it alone.
@@ -48,7 +48,7 @@ commits between the two windows' dates, the commit that moved a prompt version, 
 the reviewer's slot. `git log` over the window's span and `forge issue` on the keys those commits
 name are the sources; a change the dispatcher named is read first.
 
-Where the windows differ in mix — more feature-tier runs, a higher effort default — say so before
+Where the windows differ in mix — more runs at the feature rung, a higher effort default — say so before
 any harness figure is read, because the mix moves the medians on its own.
 
 ## Phase 3 — Judge, figure by figure
@@ -58,7 +58,7 @@ counts on both sides:
 
 - **better** — moved the way the figure's own doc calls good, attributable to a named change;
 - **worse** — moved the other way, attributable to a named change;
-- **the mix** — moved with a shift in tiers, efforts or spanned releases, and the harness is not
+- **the mix** — moved with a shift in rungs, efforts or spanned releases, and the harness is not
   shown to have moved;
 - **unattributable** — moved, and nothing named separates the windows on that axis.
 

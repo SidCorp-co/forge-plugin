@@ -5,10 +5,10 @@ What is asked of the tracker, on what terms, and what the reply shows for it are
 another issue instead of an issue of its own. It is the only write this CLI has no verb to take
 back, so every line here is about what has to be true before it fires.
 
-**What folds is a filing that says where its subject comes from, and the size it is marked at
-decides nothing.** The mark used to be the condition, on the reasoning that a small filing is cheap
-to move and a large one is somebody's plan. That was the wrong axis: the duplicates it was meant to
-catch were bug reports of every size, and a body's own claim about how big it is has never been what
+**What folds is a filing that says where its subject comes from, and the complexity it carries
+decides nothing.** The complexity used to be the condition, on the reasoning that a small filing is
+cheap to move and a large one is somebody's plan. That was the wrong axis: the duplicates it was meant
+to catch were bug reports of every size, and a body's own claim about how big it is has never been what
 makes it a finding. The condition is the kinds table instead — a kind whose body owes a cause
 section can land on the issue that owns that cause, and a kind that owes none has nothing to land, a
 reading of work already done or a request for work not yet started being a finding on nothing. It is

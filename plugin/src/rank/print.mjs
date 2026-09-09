@@ -1,7 +1,7 @@
 /* What the rank looks like on a terminal: one row per candidate, its batch under it, the wave it
    frees, and the issues a filter dropped with the filter that did it. */
 import { servesIn, servesSaid } from "../goals.mjs";
-import { BAND_NAMES } from "../ladder.mjs";
+import { COMPLEXITY_NAMES } from "../ladder.mjs";
 import { UNSET } from "./weights.mjs";
 
 const KEY = 8;
@@ -24,7 +24,7 @@ const headRow = (candidate) =>
     String(candidate.score.total).padStart(3),
     String(candidate.row.priority ?? "none").padEnd(8),
     String(candidate.row.category ?? "").padEnd(11),
-    candidate.score.band.padEnd(5),
+    candidate.score.complexity.padEnd(10),
     costSaid(candidate.cost).padEnd(9),
     marks(candidate).padEnd(13),
     cut(candidate.row.title, TITLE),
@@ -40,7 +40,7 @@ const signalLine = (candidate) => {
   const { cost } = candidate;
   const over = cost.minutes === null
     ? "no measured run under this transcript root; --checkout names the tree the runs were worked in"
-    : `median of ${cost.over} run(s) at band ${cost.band ?? "any, none measured at this one"}`;
+    : `median of ${cost.over} run(s) at complexity ${cost.complexity ?? "any, none measured at this one"}`;
   const said = [
     `cost ${cost.minutes === null ? "—" : `${cost.minutes}m`} (${over})`,
     candidate.restart ? "restart: its body names a file no open session can pick up" : null,
@@ -49,11 +49,11 @@ const signalLine = (candidate) => {
   return `  signal ${said.join(" · ")}`;
 };
 
-/* Only where the field is empty, and its own line rather than a widened band column: a column can carry `unset` and not the write that clears it, and a line on every candidate would repeat the column for the sized ones. docs/cli/next.md carries the rest. */
-const sizeLine = (candidate) =>
-  `  size   nobody sized this lead, so the ladder runs it as a feature. Size it before the brief:`
-  + ` forge issue ${candidate.issueId} --set complexity=<${BAND_NAMES.join("|")}>`
-  + ` --why "<what you read to size it>"`;
+/* Only where the field is empty, and its own line rather than a widened column: a column can carry `unset` and not the write that clears it, and a line on every candidate would repeat the column for the rows that hold one. docs/cli/next.md carries the rest. */
+const unsetLine = (candidate) =>
+  `  unset  this lead holds no complexity, so the ladder runs it as a feature. Set one before the brief:`
+  + ` forge issue ${candidate.issueId} --set complexity=<${COMPLEXITY_NAMES.join("|")}>`
+  + ` --why "<what you read to judge it>"`;
 
 /* Its own line, under both: a `Serves:` is neither a weight nor a signal, and this issue moved no weight, so a goal printed inside either line would read as a number the score used.
    Read off the body here rather than on the way in: only `--why` prints it, where the read loop pays for every body it walks past. */
@@ -66,7 +66,7 @@ const memberLine = (member) =>
   `  + ${member.issueId.padEnd(KEY)} ${member.said.padEnd(44)} ${cut(member.row.title, TITLE)}`;
 
 const asideLine = (one) =>
-  `  ~ ${one.issueId.padEnd(KEY)} related, not batched: ${one.capped ? "the batch is full" : `it ${one.said}, and a batch is fix-size throughout`}`;
+  `  ~ ${one.issueId.padEnd(KEY)} related, not batched: ${one.capped ? "the batch is full" : `it ${one.said}, and a batch stays below the top rung throughout`}`;
 
 const chainSaid = (path) => path.join(" -> ");
 
@@ -89,14 +89,14 @@ export const droppedLine = (one) =>
 export const candidateLines = (batch, { why = false } = {}) => [
   headRow(batch.head),
   ...(why ? [whyLine(batch.head), signalLine(batch.head), servesLine(batch.head)] : []),
-  ...(why && batch.head.score.band === UNSET ? [sizeLine(batch.head)] : []),
+  ...(why && batch.head.score.complexity === UNSET ? [unsetLine(batch.head)] : []),
   ...batch.members.map(memberLine),
   ...batch.aside.map(asideLine),
   ...(hasWave(batch.wave) ? [unblocksLine(batch.wave)] : []),
 ];
 
 export const HEAD = `${"issue".padEnd(KEY)} ${"pts".padStart(3)} ${"priority".padEnd(8)} `
-  + `${"kind".padEnd(11)} ${"band".padEnd(5)} ${"cost".padEnd(9)} ${"signals".padEnd(13)} title`;
+  + `${"kind".padEnd(11)} ${"complexity".padEnd(10)} ${"cost".padEnd(9)} ${"signals".padEnd(13)} title`;
 
 const edgeRow = (edge) =>
   `  ${String(edge.from).padEnd(KEY)} -> ${String(edge.to).padEnd(KEY)} ${edge.kind}`

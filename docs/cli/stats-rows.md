@@ -97,7 +97,7 @@ Those other errors are one line, broken down by the class of the call that exite
 refusals they were six of the listing's top ten: a test's failure line, a `grep` that matched
 nothing, a `-h` read whose help text carries the word, an issue body that does.
 
-## The tier table
+## The rung table
 
 The ladder's rungs are what a change's cost is meant to differ by, so the profile groups by them: a
 row per rung and one more for the runs that claimed none. What a rung *drops* is three payloads and
@@ -115,7 +115,7 @@ The call's own class picks which call to read, and the record inside its output 
 that write's. A `forge issue` or a `forge resume` printing the same thread carries the line too, and
 read from those a run is filed under the rung of whatever issue it happened to open; so does anything
 the same shell call printed after the write, which a class covering the whole call cannot tell apart.
-A run that confirmed nothing is `untiered` and keeps its own row: folded into a rung it would flatter
+A run that confirmed nothing is `unknown` and keeps its own row: folded into a rung it would flatter
 that rung, and dropped it would leave a table that quietly counts fewer runs than the profile above
 it.
 

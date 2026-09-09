@@ -1,8 +1,8 @@
 /* `forge next` — the open issues this project should work next, ranked and written nowhere. The
    call budget, and why the score is computed on the browse projection: docs/cli/next.md. */
-import { bandSpread, weightLines, weightsFrom } from "./weights.mjs";
-import { bandsOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart } from "./cost.mjs";
-import { bandSaid, chainOf, holdingKeys, ordered, scoreOf, takeableKeys } from "./score.mjs";
+import { complexitySpread, weightLines, weightsFrom } from "./weights.mjs";
+import { complexitiesOf, costFor, isWarm, lastLanded, measuredRuns, owesRestart } from "./cost.mjs";
+import { chainOf, complexitySaid, holdingKeys, ordered, scoreOf, takeableKeys } from "./score.mjs";
 import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { asksOf } from "../tracker/issue-shape.mjs";
@@ -87,7 +87,7 @@ const usageLines = (weights) => [
   "",
   "  --count n        how many candidates print; 5 unless you say otherwise",
   "  --why            the breakdown per issue: weights, signals, the goal its body serves, and the",
-  "                   write that sizes a lead the tracker holds no complexity for",
+  "                   write that sets a complexity on a lead the tracker holds none for",
   "  --json           the whole table, for whatever dispatches on it",
   "  --graph [ISS-nn] the edges this ranking reads instead of the ranking: every edge the tracker",
   "                   holds on the issues read here, and under a heading of its own the claims only",
@@ -153,8 +153,8 @@ const bodiesFor = async (window) =>
  *  can consume `count` times the cap before the last head is settled. */
 export const wanted = (count, weights) => count * weights.batchCap;
 
-/** Whether the size bound holds over what is still unread. A body's own size is the one weight it
- *  decides, so an unread row can climb by the band's spread and no further, and the read stops when
+/** Whether the score bound holds over what is still unread. The complexity is the one weight a body
+ *  decides, so an unread row can climb by that weight's spread and no further, and the read stops when
  *  the best it could reach cannot beat the last candidate the printing can need. It bounds nothing
  *  about a blocking relation, which only a body carries and which raises whatever it names by the
  *  whole chain behind it — so a read that has already met one keeps going rather than pretending
@@ -167,7 +167,7 @@ export const bounded = (eligible, unread, count, weights, edges = 0) => {
   const needed = wanted(count, weights);
   if (eligible.length < needed) return false;
   const floor = eligible[needed - 1].score.total;
-  return (unread[0]?.score.total ?? -Infinity) + bandSpread(weights) <= floor;
+  return (unread[0]?.score.total ?? -Infinity) + complexitySpread(weights) <= floor;
 };
 
 const heldFrom = async (keys, rows) => {
@@ -233,8 +233,8 @@ const jsonOf = (batches, dropped, weights, from, read) => ({
     title: batch.head.row.title,
     score: batch.head.score.total,
     parts: Object.fromEntries(batch.head.score.parts.map(([name, said, points]) => [name, { said, points }])),
-    band: batch.head.score.band,
-    bandFrom: bandSaid(batch.head.score.band),
+    complexity: batch.head.score.complexity,
+    complexityFrom: complexitySaid(batch.head.score.complexity),
     priority: batch.head.row.priority ?? null,
     kind: batch.head.row.category ?? null,
     cost: batch.head.cost,
@@ -283,7 +283,8 @@ const askedIn = (argv, usage) => {
 
 /* One walk, one prose-edge read, one body per candidate in the window, two searches per head. */
 export const next = async (argv) => {
-  const { value: weights, from, refusal } = weightsFrom();
+  const { value: weights, from, refusal, said: retired } = weightsFrom();
+  if (retired) console.error(`warning: ${retired}`);
   if (refusal) fail(`next: ${refusal}`);
   const usage = usageLines(weights).join("\n");
   if (wantsHelp(argv)) return console.log(usage);
@@ -313,7 +314,7 @@ export const next = async (argv) => {
   })));
   const held = await heldFrom(holding.flatMap((one) => keysIn(one)), rows);
   const runs = measuredRuns(rootFor(asked.checkout ?? process.cwd()));
-  const bands = bandsOf(rows);
+  const complexities = complexitiesOf(rows);
   const landed = lastLanded(rows);
   const warmPaths = landed ? pathsNamed((await scoped("forge_issues", {
     action: "get", documentId: landed.documentId, fields: ["description"] }))?.description ?? "") : [];
@@ -340,7 +341,7 @@ export const next = async (argv) => {
       body: text,
       read,
       relates: (body?.relations?.relates ?? []).flatMap((other) => keysIn(other?.issueId ?? other)),
-      cost: costFor(score.band, runs, bands),
+      cost: costFor(score.complexity, runs, complexities),
       restart: owesRestart(text),
       warm: isWarm(text, warmPaths) ? (pathsNamed(text)[0] ?? "the tree") : null,
       ...verdict,
@@ -422,7 +423,7 @@ export const next = async (argv) => {
   }
   if (unread.length && holds) {
     console.log(`\nRead whole: the top ${cursor} of ${preScored.length} takeable. The rest scored on the`
-      + " listing alone, and none could reach this order at the band's own spread — but a body among"
+      + " listing alone, and none could reach this order at that weight's own spread — but a body among"
       + " them declaring a blocking relation would, and this reading did not open them.");
   }
   return console.log(`\n${eligible.length} eligible of ${takeable.length} takeable, ${rows.length} on the`

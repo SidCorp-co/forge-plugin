@@ -2,7 +2,7 @@
    a phase is the work owed *at* a status and an entry check guards the way *into* one, so the phase
    at a rung answers to the rung above. docs/cli/resume.md. */
 import { ORDER, PHASE, stepAfter } from "../flow/earned.mjs";
-import { LIGHTER, tierOf } from "../ladder.mjs";
+import { LIGHTER, rungOf } from "../ladder.mjs";
 
 const NUMBERED = /^(\d+)/u;
 
@@ -22,27 +22,27 @@ export const CITED = {
 
 export const dischargedBy = (status) => CITED[stepAfter(status)]?.[0] ?? null;
 
-/** Three readings of one row: every phase it names, the phase a record of a kind ends, and the phase the landing ends. A record's is the rung below the one `CITED` says it earns, and null where that rung owes several phases, since `CITED` does not say which of a rung's records ends it; the landing's is the last its own rung names, that row abbreviating the note and the ship into one cell. docs/cli/the-parts.md. */
+/** Three readings of one row: every phase it names, the phase a record of a kind ends, and the phase the landing ends. A record's is the stage below the one `CITED` says it earns, and null where that stage owes several phases, since `CITED` does not say which of a stage's records ends it; the landing's is the last its own stage names, that row abbreviating the note and the ship into one cell. docs/cli/the-parts.md. */
 const EVERY_NUMBER = /\d+/gu;
 const RELEASED = "released";
-const rungBelow = (status) => ORDER[ORDER.indexOf(status) - 1] ?? null;
+const stageBelow = (status) => ORDER[ORDER.indexOf(status) - 1] ?? null;
 
 export const phasesOwed = (status) =>
   [...String(PHASE[status]?.[0] ?? "").matchAll(EVERY_NUMBER)].map((one) => Number(one[0]));
 
 export const phaseForRecord = (kind) => {
   const earns = ORDER.find((status) => CITED[status]?.includes(kind));
-  const owed = earns ? phasesOwed(rungBelow(earns)) : [];
+  const owed = earns ? phasesOwed(stageBelow(earns)) : [];
   return owed.length === 1 ? owed[0] : null;
 };
 
-export const phaseAtLanding = () => phasesOwed(rungBelow(RELEASED)).at(-1) ?? null;
+export const phaseAtLanding = () => phasesOwed(stageBelow(RELEASED)).at(-1) ?? null;
 
-/** The waiver a tier grants on the way out of a status, named by what it drops and why. */
-const waivedFor = (status, size) => {
+/** The waiver a rung grants on the way out of a status, named by what it drops and why. */
+const waivedFor = (status, fields) => {
   const next = stepAfter(status);
-  const tier = tierOf(size);
-  const row = next && LIGHTER.find((one) => one.status === next && one.tiers.includes(tier));
+  const rung = rungOf(fields);
+  const row = next && LIGHTER.find((one) => one.status === next && one.rungs.includes(rung));
   return row ? { drops: row.drops, because: row.because } : null;
 };
 
@@ -53,7 +53,7 @@ const owedFrom = (status) => {
 
 const numbered = (status) => Number.isFinite(phaseNumber(status));
 
-/* Everything a status alone decides, the waiver below being the only reading that needs a tier. A
+/* Everything a status alone decides, the waiver below being the only reading that needs a rung. A
    status off `ORDER` — a reopen, a park's side — owes its own row's phase and is not completion. */
 const behind = (status) => {
   const aside = !ORDER.includes(status) && numbered(status);
@@ -70,15 +70,15 @@ const behind = (status) => {
   };
 };
 
-/** The phases behind this issue with what discharged each, then those owed with what a tier waives. */
-export const phaseIndex = ({ status, size }) => {
+/** The phases behind this issue with what discharged each, then those owed with what a rung waives. */
+export const phaseIndex = ({ status, fields }) => {
   const { aside, owing, passed, first } = behind(status);
   return {
     passed,
     owed: owing.map((one) => ({
       status: one,
       phase: PHASE[one][0],
-      waived: aside ? null : waivedFor(one, size),
+      waived: aside ? null : waivedFor(one, fields),
     })),
     first,
     aside,
@@ -100,20 +100,20 @@ export const openingLines = (status) => {
 };
 
 /* The lane: every status from this one on, and the payloads each is earned by at this rung, read off the two tables and never off the record — so a status it says owes nothing is one the rung leaves no payload to write rather than one whose payload happens to be on the page, which is the distinction ISS-810 defers. A route is not a shortfall. docs/cli/the-ladder.md. */
-const droppedAt = (status, tier) => LIGHTER
-  .filter((one) => one.status === status && one.tiers.includes(tier))
+const droppedAt = (status, rung) => LIGHTER
+  .filter((one) => one.status === status && one.rungs.includes(rung))
   .map((one) => one.kind);
 
-export const laneOf = ({ status, size }) => {
+export const laneOf = ({ status, fields }) => {
   const at = ORDER.indexOf(status);
   if (at < 0) return { aside: status, rows: [] };
-  const tier = tierOf(size);
+  const rung = rungOf(fields);
   return {
     aside: null,
-    tier,
+    rung,
     rows: ORDER.slice(at).map((one) => {
       const earns = CITED[one] ?? [];
-      const dropped = droppedAt(one, tier);
+      const dropped = droppedAt(one, rung);
       return {
         status: one,
         here: one === status,
@@ -125,23 +125,23 @@ export const laneOf = ({ status, size }) => {
   };
 };
 
-/* Two answers and not one: a status this tier leaves nothing to write at is one a lighter rung bought, and one no tier ever asks a payload of is earned by the status below it — a reader given a single sentence for both would read the ladder as the reason for either. */
+/* Two answers and not one: a status this rung leaves nothing to write at is one a lighter rung bought, and one no rung ever asks a payload of is earned by the status below it — a reader given a single sentence for both would read the ladder as the reason for either. */
 const laneSaid = (row) => {
   if (row.here) return "← where it stands";
-  if (!row.earns.length) return "nothing owed at any tier";
+  if (!row.earns.length) return "nothing owed at any rung";
   const dropped = row.dropped.map((kind) => `no ${kind}`).join(", ");
-  if (!row.owed.length) return "nothing owed at this tier";
-  return row.dropped.length ? `${row.owed.join(", ")}; ${dropped} at this tier` : row.owed.join(", ");
+  if (!row.owed.length) return "nothing owed at this rung";
+  return row.dropped.length ? `${row.owed.join(", ")}; ${dropped} at this rung` : row.owed.join(", ");
 };
 
 const LANE_WIDTH = 15;
 
 /** The lane as the three verbs print it, one renderer so their blocks cannot differ (ISS-810). */
-export const laneLines = ({ status, size }) => {
-  const { aside, tier, rows } = laneOf({ status, size });
+export const laneLines = ({ status, fields }) => {
+  const { aside, rung, rows } = laneOf({ status, fields });
   if (aside) return [`Lane: \`${aside}\` is off the ladder's linear path, so no lane is read from it.`];
   return [
-    `Lane at \`${tier}\` — every status from where it stands, and what earns it:`,
+    `Lane at \`${rung}\` — every status from where it stands, and what earns it:`,
     ...rows.map((one) => `  ${one.status.padEnd(LANE_WIDTH)}${laneSaid(one)}`),
     ...(rows.some((one) => !one.here && one.owed.length)
       ? ["Each name is a record kind: `forge record <kind> -h`."]

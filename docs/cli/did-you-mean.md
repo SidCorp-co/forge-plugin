@@ -69,7 +69,7 @@ resolves against, which is not always the one the process stands in.
 
 A flag accepted and named nowhere is declared beside the verb that takes it rather than on its row.
 [Withholding a verb](withholding-a-verb.md) is the reason for the two only a maintainer can act on, and
-`new` declares two more so that the tracker's own names for a kind and for a size reach the refusal that
+`new` declares two more so that the retired flags for a kind and for a complexity reach the refusal that
 names this CLI's flag instead. No suggestion may offer any of them: a refusal naming a flag its caller
 may not act on has leaked the thing that rule keeps off every other surface.
 

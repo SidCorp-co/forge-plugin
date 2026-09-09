@@ -1,7 +1,7 @@
 # What is already open beside a filing
 
-**The check an agent remembers to make is the one that was not made.** On 2026-09-04 two fix-size
-defects in the same file were filed an hour apart by two runs that never saw each other's issue, and
+**The check an agent remembers to make is the one that was not made.** On 2026-09-04 two defects in
+the same file, both at the fix rung, were filed an hour apart by two runs that never saw each other's issue, and
 each would have cost a full round of the flow for a change of a few lines. Later the same day a run
 filed a defect that an issue already open described, and the duplicate was found by a person reading
 the backlog afterwards. Nothing was broken in either case: the create path simply never asked. So
@@ -24,12 +24,12 @@ is measured off *Where* and then off its own first token, so nothing filed under
 measured anywhere new.
 
 **Two thresholds, because a glance and a comment cost differently.** The duplicate came back at
-0.830 and the filing's own already-indexed self at 0.891; the band from 0.70 to 0.74 held
+0.830 and the filing's own already-indexed self at 0.891; the range from 0.70 to 0.74 held
 neighbours by machinery rather than by subject — the ship script, the review mark, the verdict
 record — and nothing at all fell between 0.74 and 0.83. A neighbour is worth printing from 0.70,
 because a machinery neighbour costs a reader one glance and printing nothing costs them the
 duplicate. Landing a filing on one takes 0.78, in the middle of that measured gap, because the
-band the printing tolerates is exactly the band where the subject is known not to match. One
+range the printing tolerates is exactly the range where the subject is known not to match. One
 threshold for both would have folded onto a machinery neighbour and called it the subject.
 
 **Which filings then land on a neighbour, on what condition, and what that act costs:**

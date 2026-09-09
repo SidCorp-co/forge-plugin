@@ -120,9 +120,9 @@ test("every figure of a window is the profile over that window's runs, ordered b
   assert.deepEqual(Object.keys(held.now).sort(), ["groups", "profile", "runs", "spanned"]);
   assert.deepEqual(Object.keys(held.before).sort(), ["groups", "profile", "runs", "spanned"]);
   assert.equal(held.now.spanned, 0);
-  assert.deepEqual(held.shifts.map((one) => one.name), ["tier", "spanned"], "copies are compared in the group block alone");
+  assert.deepEqual(held.shifts.map((one) => one.name), ["rung", "spanned"], "copies are compared in the group block alone");
   /* Criterion 18: off the window objects, and what the row tally said. */
-  const rowTally = (rows) => tallied(rows, [["tier", (run) => run.tier], ["spanned", (run) => (run.spanned ? "saw a release land" : "one copy throughout")]]);
+  const rowTally = (rows) => tallied(rows, [["rung", (run) => run.rung], ["spanned", (run) => (run.spanned ? "saw a release land" : "one copy throughout")]]);
   const untallied = shiftBetween(rowTally(byEnd.slice(-50).map((run) => ({ ...run, spanned: false }))), rowTally(byEnd.slice(10, 60).map((run) => ({ ...run, spanned: false }))));
   assert.deepEqual(held.shifts, untallied, "the tallies the windows carry give the shifts the rows gave");
 });
@@ -131,19 +131,20 @@ test("the rows that moved most carry both values and both counts, and a row abse
   const runs = runsOf(110);
   const held = evalRuns(runs, [], WINDOW);
   /* The fixture's tenth run of every ten is the long one on both sides, so the medians match and nothing moves. */
-  assert.equal(held.moved.tiers.rose, null);
-  assert.equal(held.moved.tiers.fell, null);
+  assert.equal(held.moved.rungs.rose, null);
+  assert.equal(held.moved.rungs.fell, null);
   const lines = evalLines(held).join("\n");
   assert.match(lines, /the last 50 issue-flow run\(s\)/u);
   assert.match(lines, /the 50 before them/u);
-  assert.match(lines, /tier {3}no row rose on both sides/u);
+  assert.match(lines, /rung {3}no row rose on both sides/u);
   assert.match(lines, /copy unrecorded — began before every copy the cache still holds/u);
 
-  /* Shorten the recent window's runs and the untiered row falls, with the counts beside it. */
+  /* Shorten the recent window's runs and the row for the runs that named no rung falls, with the
+     counts beside it. */
   const cheaper = runs.map((run, n) => (n >= 60 ? { ...run, seconds: run.seconds / 2 } : run));
-  const moved = evalRuns(cheaper, [], WINDOW).moved.tiers;
+  const moved = evalRuns(cheaper, [], WINDOW).moved.rungs;
   assert.equal(moved.rose, null);
-  assert.equal(moved.fell.row, "untiered");
+  assert.equal(moved.fell.row, "unknown");
   assert.equal(moved.fell.runsBefore, 50);
   assert.equal(moved.fell.runsNow, 50);
   assert.ok(moved.fell.by < 0 && moved.fell.now < moved.fell.before);
@@ -334,6 +335,47 @@ test("a stored reading is the before window, and the screen says where the windo
     } finally {
       console.error = said;
     }
+  } finally {
+    Object.assign(process.env, was);
+  }
+});
+
+/* Every mark on a device predating this change holds its rung rows under the retired key, with the
+   runs that named none under the retired word. Read as they stand, a comparison against one reports
+   every rung as newly arrived and the whole shift block moves (ISS-822). */
+test("a reading held before the rung had one word is read as the canonical one", () => {
+  const was = { TMPDIR: process.env.TMPDIR, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
+  const home = tempRoom("stats-eval-retired-");
+  process.env.XDG_CONFIG_HOME = home;
+  try {
+    const room = corpusOf(50);
+    process.env.TMPDIR = room;
+    assert.match(runsMark(PROJECT), /held as mark 50/u);
+    const [record] = marksOf("runs");
+    const retire = (rows) => rows.map(({ rung, ...row }) =>
+      ({ tier: rung === "unknown" ? "untiered" : rung, ...row }));
+    const { rungs, ...profile } = record.now.profile;
+    const groups = record.now.groups.map(({ profile: held, ...group }) => {
+      const { rungs: rows, ...rest } = held;
+      return { ...group, profile: { ...rest, tiers: retire(rows) } };
+    });
+    writeFileSync(marksPath(), `${JSON.stringify({
+      ...record, now: { ...record.now, profile: { ...profile, tiers: retire(rungs) }, groups },
+    })}\n`);
+    corpusOf(75, room);
+    const held = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--against", "50", "--json"], home).stdout);
+    assert.equal(held.before.profile.tiers, undefined, "the retired key is not carried forward");
+    assert.deepEqual(held.before.profile.rungs.map((row) => row.rung), rungs.map((row) => row.rung),
+      "the rows are the ones the reading held, under the canonical key and the canonical name");
+    const shift = held.shifts.find((one) => one.name === "rung");
+    assert.deepEqual(shift.values.map((one) => one.value).filter((one) => one === "untiered"), [],
+      "so no row arrives out of the rename, which would read as every run changing rung at once");
+    assert.deepEqual(shift.values.find((one) => one.value === "unknown"), { value: "unknown", now: 50, before: 50 });
+    assert.equal(/\b(?:tiers?|untiered)\b/u.test(JSON.stringify(held.before)), false,
+      "and no group of the stored window prints the retired spelling, which `--json` prints whole");
+    assert.deepEqual(held.before.groups.map((one) => one.profile.rungs),
+      record.now.groups.map((one) => one.profile.rungs),
+      "each group's rows and every measurement on them as the reading held them");
   } finally {
     Object.assign(process.env, was);
   }

@@ -64,3 +64,13 @@ tracker never held, and an agent that has to learn which of the two a given scre
 rung names stay the contract's, because a rung is not a field — `forge guide contract` says what
 each rung owes, and `plugin/src/ladder.mjs` holds the one mapping from the tracker's five values to
 those three.
+
+**That decision had no checker for two releases, and three aliases outlived it** — `band` across the
+rank, `tier` across the ladder and the stats, and a `size` that meant the field. ISS-822 made a
+checker of it: `plugin/src/checks/tracker-names.mjs` refuses any of the three in a string under
+`plugin/src` or `plugin/hooks`, saying which of the two nouns was meant, and the one shape an alias
+may stand in is the value of a `const RETIRED_*` declaration — the reader of a record written in the
+old spelling, which is compatibility and not a second live vocabulary. `size` is refused by the
+grammar of the retired mark and the retired flag, and by the word only where the same string already
+names the complexity, a rung or the ladder, so a file's size in bytes and a window of runs still say
+`size`.

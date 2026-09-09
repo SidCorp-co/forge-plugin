@@ -11,7 +11,7 @@ const home = tempHome("issue-shape");
 process.env.XDG_CONFIG_HOME = home.path;
 const { UNRANKED, duplicateOf, filedAs, partsIn, priorityFor, refusalFrom,
   shapeOf, tokensNamed, twoChangesIn } = await import("../../../src/tracker/issue-shape.mjs");
-const { BAND_NAMES, belowTop, rungFrom } = await import("../../../src/ladder.mjs");
+const { COMPLEXITY_NAMES, belowTop, rungFrom } = await import("../../../src/ladder.mjs");
 /* Prose now: `markFor` went with the second source (ISS-701), and a body already on the tracker still carries the line the emptiness strip reads. */
 const SIZE_LINE = "Size: fix.";
 const { filingsOf } = await import("../../../src/tracker/issue-read.mjs");
@@ -141,9 +141,9 @@ test("the complexity clears the fix route, and a line in the body clears nothing
   assert.equal(read(null), true, "with no field the body owes its route");
   assert.equal(read(null, `${body}\n\n${SIZE_LINE}`), true,
     "and the line in the body claims nothing, so the same body still owes it");
-  for (const band of BAND_NAMES) {
-    assert.equal(read(band), !belowTop(rungFrom(band)),
-      `${band}: the two values below the top are exempt from the sections, the three at it are not`);
+  for (const complexity of COMPLEXITY_NAMES) {
+    assert.equal(read(complexity), !belowTop(rungFrom(complexity)),
+      `${complexity}: the two values below the top are exempt from the sections, the three at it are not`);
   }
   assert.equal(read("huge"), true, "a value the ladder maps to no rung claims none");
 });

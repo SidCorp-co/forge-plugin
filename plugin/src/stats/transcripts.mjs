@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { NOTHING, logRead } from "../hooks/log-reads.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { handledBy } from "../resolve/handler.mjs";
-import { TIERS, highest } from "../ladder.mjs";
+import { RUNGS, highest } from "../ladder.mjs";
 import { stampedIn } from "../flow/machine.mjs";
 
 export const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`);
@@ -24,16 +24,19 @@ export const FLOW_BRIEF = /issue-flow/u;
 const CONFIRMS = "forge record confirmation";
 const CONFIRMED = "confirmation";
 
-export const UNTIERED = "untiered";
+export const RUNG_UNKNOWN = "unknown";
 
-/* Which rung a whole run was worked at, off the records its writes posted and never off the output a class covers whole: the-ladder.md. Named apart from `ladder.mjs`'s `tierOf`, which answers for one issue's fields where this reads a transcript, and `UNTIERED` is no rung of the ladder rather than its cheapest. */
-export const tierRun = (calls) => {
+const RETIRED_STAMP = "tier";
+
+/* Which rung a whole run was worked at, off the records its writes posted and never off the output a class covers whole: the-ladder.md. Named apart from `ladder.mjs`'s `rungOf`, which answers for one issue's fields where this reads a transcript, and `RUNG_UNKNOWN` is no rung of the ladder rather than its cheapest. Either stamp reads, so a transcript written before the record's field was renamed classifies at the rung it always did (ISS-822). */
+export const rungRun = (calls) => {
   const said = calls
     .filter((call) => call.class === CONFIRMS)
-    .map((call) => String(stampedIn(call.body ?? "", CONFIRMED, "tier") ?? "").trim().toLowerCase())
-    .filter((one) => TIERS.includes(one));
+    .map((call) => String(stampedIn(call.body ?? "", CONFIRMED, "rung")
+      ?? stampedIn(call.body ?? "", CONFIRMED, RETIRED_STAMP) ?? "").trim().toLowerCase())
+    .filter((one) => RUNGS.includes(one));
   /* The largest, which is the batch rule: a run of three issues is as heavy as its heaviest. */
-  return said.length ? highest(said) : UNTIERED;
+  return said.length ? highest(said) : RUNG_UNKNOWN;
 };
 
 const namesIn = (directory) => {

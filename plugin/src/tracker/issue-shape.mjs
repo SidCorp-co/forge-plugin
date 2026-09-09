@@ -7,7 +7,7 @@
    plugin/hooks/how/issue-shape.md. */
 import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vendor/text-overlap.js";
 import { sentences } from "../checks/duplication.mjs";
-import { BAND_NAMES, FIX, MARK_LINE, bandFor, belowTop, rungFrom } from "../ladder.mjs";
+import { COMPLEXITY_NAMES, FIX, MARK_LINE, complexityFor, belowTop, rungFrom } from "../ladder.mjs";
 import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
@@ -148,10 +148,10 @@ export const kindNeeded = () =>
   + ` is the table of what each one's body owes.`;
 
 /** A complexity outside the tracker's five, refused by naming them: the field is the one source of
- *  the rung, so a value nothing maps reads later as an issue nobody sized. */
+ *  the rung, so a value nothing maps reads later as an issue holding none. */
 export const complexityRefusal = (given) =>
-  `${didYouMean("complexity", given, BAND_NAMES)} They are the tracker's own five, smallest first,`
-  + ` and the rung each claims is \`forge guide contract\`'s: ${BAND_NAMES.map((one) => `${one} a ${rungFrom(one)}`).join(", ")}.`;
+  `${didYouMean("complexity", given, COMPLEXITY_NAMES)} They are the tracker's own five, smallest first,`
+  + ` and the rung each claims is \`forge guide contract\`'s: ${COMPLEXITY_NAMES.map((one) => `${one} a ${rungFrom(one)}`).join(", ")}.`;
 
 /** The one writer, and nothing where nothing was named: a default reads later as one somebody chose. */
 export const trackerFields = ({ category = null, complexity = null }) => ({
@@ -516,7 +516,7 @@ const alsoNamed = async (tokens, live) => {
 };
 
 /* The value a filing takes to reach the light path, read off the ladder rather than spelt here. */
-const LIGHT = bandFor(FIX);
+const LIGHT = complexityFor(FIX);
 
 const unread = (token) =>
   `Whether an open issue names ${token} is unread: the search for it did not come back whole, so no `
@@ -527,7 +527,7 @@ const fixRoutes = (tokens, { open, whole }) => [
   `  forge comment ISS-nn <body>   post this body there and file nothing; it needs no --category,`,
   `                  a comment being read against no shape, and renews a lease only where it is yours`,
   `  --with ISS-nn   file it and relate it, so one branch, one review and one release carry both`,
-  `  --complexity ${BAND_NAMES.join("|")}`,
+  `  --complexity ${COMPLEXITY_NAMES.join("|")}`,
   `                  the tracker's own value: the two claiming a rung below the top carry it on the light path`,
   "Whichever of those you take, an open issue that both reads like this filing and names the place its",
   "cause names takes it as a finding rather than a second issue; `--new` declines that.",

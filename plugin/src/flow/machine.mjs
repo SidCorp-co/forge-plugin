@@ -451,7 +451,7 @@ export const SHAPES = {
       FIELD("is", "What it is"),
       FIELD("finding", "Finding", { oneOf: FINDINGS }),
       FIELD("detail", "Detail", { optional: true }),
-      FIELD("tier", "Tier", { optional: true, derived: true }),
+      FIELD("rung", "Rung", { optional: true, derived: true }),
     ],
   },
   decision: {

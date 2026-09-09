@@ -8,7 +8,7 @@ import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
-import { sizeOf, viewFrom } from "./earned.mjs";
+import { rungFieldsOf, viewFrom } from "./earned.mjs";
 import { laneLines, openingLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { parse } from "./record/page.mjs";
@@ -48,16 +48,16 @@ const PARKS_IN = "on_hold";
 
 /* Beside the advisory rather than above the lease line: both are what the run does next, where the lines above are what this write did. A claim opens a phase's work, so the part is the one its status owes. */
 /* And the opening above both, because a run handed an issue past `open` redoes the phases behind it otherwise, through the renderer `forge resume` prints so the two cannot say different things about one record. Both printers are exported so a case reads what each verb prints rather than what that renderer returns, a renderer nobody prints passing every case that asks it for lines (ISS-804). */
-export const advisory = (status, size) => {
+export const advisory = (status, fields) => {
   for (const line of openingLines(status)) console.log(line);
   console.log("");
-  for (const line of laneLines({ status, size })) console.log(line);
+  for (const line of laneLines({ status, fields })) console.log(line);
   console.log(`\n${ADVISORY}`);
   partForStatus(status, (part) => console.log(`\n${part}`));
 };
 
 /* The rung the lane is printed at is the effective one — the field, every correction that climbs and the cut rule — so this is the one read this verb makes for something other than the lease, and it is made after the writes and softly: a hard read's own failure exits the process, which would take a claim that had already landed down with it, and a page that does not read back is owed a line and not the claim. Unread, it is read as a cut page is, which is the rung that owes most (docs/cli/the-ladder.md). */
-const UNREAD = { plan: null, moved: [], whole: false, band: null };
+const UNREAD = { plan: null, moved: [], whole: false, complexity: null };
 
 const advise = async (documentId, issue) => {
   const page = await commentPage(documentId, true);
@@ -66,7 +66,7 @@ const advise = async (documentId, issue) => {
       + `rung an unread page owes: ${page.refused}`);
     return advisory(issue.status, UNREAD);
   }
-  return advisory(issue.status, sizeOf(viewFrom(documentId, issue, page.comments, cutIn(page))));
+  return advisory(issue.status, rungFieldsOf(viewFrom(documentId, issue, page.comments, cutIn(page))));
 };
 
 export const USAGE = [

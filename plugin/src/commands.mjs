@@ -25,7 +25,7 @@ import { keysFrom, rankFor } from "./tracker/filing/route.mjs";
 import { fileAndSay } from "./tracker/filing/say.mjs";
 import { routingBlock } from "./tracker/filing/plugin-defect.mjs";
 import { commentLanded, sayLanded } from "./tracker/filing/landed.mjs";
-import { BAND_NAMES } from "./ladder.mjs";
+import { COMPLEXITY_NAMES } from "./ladder.mjs";
 import { helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { exclusive, flags, partition, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
@@ -121,7 +121,7 @@ const NEW_FLAGS = [
   `  --category C   ${KIND_NAMES.join(" | ")} — the shape the body is read against`,
   "  --status S     the status to file at; the tracker's own default absent one",
   "  --priority P   the tracker's own set; absent, the filing is unranked and the reply says so",
-  `  --complexity C ${BAND_NAMES.join(" | ")} — the tracker's field, and the one source of the rung`,
+  `  --complexity C ${COMPLEXITY_NAMES.join(" | ")} — the tracker's field, and the one source of the rung`,
   "  --with ISS-45  file it with a `relates` edge to that issue, or to several separated by commas",
   "  --new          file it even where it would have folded onto a neighbour, and say which",
 ].join("\n");
@@ -224,7 +224,7 @@ export const commands = {
     if (retired) fail(retired);
     const { with: rides, complexity, category, priority, new: fresh, ...given } = flags(rest, "new", ["--new"], row);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
-    if (complexity !== undefined && !BAND_NAMES.includes(complexity)) fail(complexityRefusal(complexity));
+    if (complexity !== undefined && !COMPLEXITY_NAMES.includes(complexity)) fail(complexityRefusal(complexity));
     if (category !== undefined && !KIND_NAMES.includes(category)) fail(kindRefusal(category));
     const { keys: withKeys, refusal: badKeys } = keysFrom(rides);
     if (badKeys) fail(badKeys);

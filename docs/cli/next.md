@@ -1,4 +1,4 @@
-# `forge next` — the call budget, the one source of a band, and where the module reading stops
+# `forge next` — the call budget, the one source of a complexity, and where the module reading stops
 
 The order this verb prints is arithmetic over what the tracker already holds, and `forge next -h`
 prints the table it is arithmetic over. What follows is what neither the table nor the code can
@@ -12,11 +12,11 @@ available server` after three backoffs. The walk that lists them costs five page
 seconds; the bodies cost the tracker.
 
 So the score is computed on the browse projection alone, which carries the priority, the category,
-the size, the reopen count and the filing date — every weight there is. The bodies are read for the
-eligibility no projection carries: which paths a plan claims, and who holds them. They are read a
+the complexity, the reopen count and the filing date — every weight there is. The bodies are read for
+the eligibility no projection carries: which paths a plan claims, and who holds them. They are read a
 pass at a time, and what stops the reading is not a count but a bound: an unread row can climb by
-the slack the weights leave it and no further, which is more slack than it needs now the band is a
-field. The reading stops when the best unread row cannot beat the last candidate asked for.
+the slack the weights leave it and no further, which is more slack than it needs now the complexity
+is a field. The reading stops when the best unread row cannot beat the last candidate asked for.
 
 A fixed window is wrong two ways. It truncates the row the pass after it would have promoted, and a
 window every filter drops reports nothing eligible while eligible issues sit below it, because
@@ -29,9 +29,9 @@ the last head is settled.
 
 And the bound has a hole that is disclosed rather than closed, which is why the answer carries two
 words and not one. A body may declare a blocking relation, and that raises whatever it names by
-three points for every issue in the chain behind it — an amount no size-only bound covers. Where one
+three points for every issue in the chain behind it — an amount no score bound covers. Where one
 has already been met the read keeps going rather than pretending the next body holds none. What
-nothing can cover is a relation in a body nobody opened, so *bounded* says the size bound held over
+nothing can cover is a relation in a body nobody opened, so *bounded* says the score bound held over
 what is unread and *settled* says every candidate was read. They certify different things and one
 word for both would claim the stronger of the two. On this tracker no issue's relations came back
 filled at all, so the first has always held here and the second has not.
@@ -52,26 +52,32 @@ the search can see goes unfound. That would make every search a round of its own
 fifty-nine seconds, so the heads a batch does not move are asked for together and only a head a
 batch promoted costs a round — the rare case paying for itself instead of every case paying for it.
 
-## The band is the `complexity` field, and a row holding none says so
+## The weight is the `complexity` field, and a row holding none says so
 
-The listing carries the field on every row and that is the whole of the band: five values wide, so
-`l` and `xl` score apart where a rung would fold them together. A row holding none bands as `unset`
-and takes the weight declared for that, which is a value of its own rather than the rung an unsized
-issue would fall to at `forge advance --owed` — what to work next is a question about what somebody
-weighed, and reading an unweighed issue as a feature would score it as though they had.
+The listing carries the field on every row and that is the whole of it: five values wide, so
+`l` and `xl` score apart where a rung would fold them together. A row holding none scores as `unset`
+and takes the weight declared for that, which is a value of its own rather than the rung an issue
+holding none would fall to at `forge advance --owed` — what to work next is a question about what
+somebody weighed, and reading an unweighed issue as a feature would score it as though they had.
 
-The body's `Size:` line was the other source until ISS-701. Two sources meant a band the body claimed
-and one the tracker gave scoring alike and meaning differently, and it meant reading a body per
-candidate to find out. [`the-ladder`](the-ladder.md) holds why the field is the one source.
+The body's retired `Size:` line was the other source until ISS-701. Two sources meant a value the body
+claimed and one the tracker gave scoring alike and meaning differently, and it meant reading a body
+per candidate to find out. [`the-ladder`](the-ladder.md) holds why the field is the one source.
 
-**`--why` is where an unsized lead is told to be sized**, on a line of its own carrying the `forge
-issue --set complexity=` write, and only where the field is empty. The `unset` in the band column
-says a lead was never weighed and cannot say what to do about it; a line on every candidate would
-repeat the column for the sized ones. The word is one constant, `UNSET`, and it lives in
-`plugin/src/rank/weights.mjs` because the overridable `band` table keys a row by it and both the
-scoring and the printing then ask by the same name — a second spelling of it is how the column comes
-to say `unset` while the line below it goes quiet, or how a project's `rank.band.unset` comes to
-weight a row nothing lands in.
+**`--why` is where a lead the field holds nothing for is told what to set**, on a line of its own
+carrying the `forge issue --set complexity=` write, and only where the field is empty. The `unset` in
+the complexity column says a lead was never weighed and cannot say what to do about it; a line on
+every candidate would repeat the column for the rows that hold a value. The word is one constant,
+`UNSET`, declared beside the weights because the overridable `complexity` table keys a row by it and
+both the scoring and the printing then ask by the same name — a second spelling of it is how the
+column comes to say `unset` while the line below it goes quiet, or how a project's
+`rank.complexity.unset` comes to weight a row nothing lands in.
+
+**`rank.band` was that table's key until ISS-822**, when the CLI stopped keeping two words for the
+tracker's field. A project that set it scores exactly as it did: the reader folds it onto
+`rank.complexity` before it validates and says on stderr which key it read, and where a project sets
+both, the canonical one scores and the line says the other was passed over. Nothing writes the old
+key back, and `forge next -h` prints the canonical one alone.
 
 ## Where the module reading stops, and why it is not the repository
 
@@ -104,9 +110,9 @@ claim` call. The root is derived from `--checkout`, defaulting to the working di
 sees no corpus and prints a dash, which is honest, where reaching for the checkout above would be a
 guess about which tree the runs were worked in.
 
-A band no past run landed in falls back to the median over every measured run and says so. A dash
-means no corpus at all, and it has to keep meaning that: a band with nothing behind it printing a
-dash would read as a harness that keeps no transcripts.
+A complexity no past run landed in falls back to the median over every measured run and says so. A
+dash means no corpus at all, and it has to keep meaning that: a complexity with nothing behind it
+printing a dash would read as a harness that keeps no transcripts.
 
 The figure is what a past run took, not what this one will. It is a column beside the score and
 enters no total, which is the whole of what "the agent decides" costs the code: the order is advice,

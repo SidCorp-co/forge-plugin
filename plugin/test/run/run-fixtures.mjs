@@ -11,7 +11,7 @@ import { derivationFiles } from "../../../tools/gates/scope.mjs";
    the developer's config directory would run on their credential. */
 process.env.XDG_CONFIG_HOME = tempRoom("run-script-home-");
 
-const { bandFor } = await import("../../src/ladder.mjs");
+const { complexityFor } = await import("../../src/ladder.mjs");
 
 export const ROOT = new URL("../../..", import.meta.url).pathname;
 export const OWN_SLUG = JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")).slug;
@@ -240,8 +240,8 @@ if (argv[0] === "issue") {
   const row = (existsSync(rows) ? readFileSync(rows, "utf8") : "").split("\\n")
     .find((line) => line.startsWith(argv[1]));
   const status = row ? row.trim().split(/\\s+/)[STATUS_AT] : "open";
-  const sizedAt = join(room, "forge-size");
-  const complexity = existsSync(sizedAt) ? readFileSync(sizedAt, "utf8").trim() : null;
+  const heldAt = join(room, "forge-complexity");
+  const complexity = existsSync(heldAt) ? readFileSync(heldAt, "utf8").trim() : null;
   const planned = join(room, "forge-plan");
   const plan = existsSync(planned) ? readFileSync(planned, "utf8") : "";
   if (existsSync(join(room, "forge-broken"))) {
@@ -288,7 +288,7 @@ export const stubbed = (work) => {
 };
 
 /** What the stubbed tracker answers a ship whose branch names an issue: the complexity on the issue, the two things that climb from it, and `null`, which parses and has no field to read. Named by rung and written as the field's own value, which is what the ship reads it back as. */
-export const sized = (at, tier) => writeFileSync(join(at, "forge-size"), bandFor(tier));
+export const atRung = (at, rung) => writeFileSync(join(at, "forge-complexity"), complexityFor(rung));
 export const planned = (at, text) => writeFileSync(join(at, "forge-plan"), text);
 /** Two answers the ceiling cannot measure: `null`, which parses and has no field, and neither. */
 export const emptyAnswer = (at) => writeFileSync(join(at, "forge-null"), "");

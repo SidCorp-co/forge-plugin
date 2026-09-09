@@ -6,7 +6,7 @@ import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { COLUMNS, printedColumns, quoted } from "../../src/checks/tracker-names.mjs";
+import { COLUMNS, printedAliases, printedColumns, quoted } from "../../src/checks/tracker-names.mjs";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 
@@ -44,6 +44,66 @@ test("the reader that fetches a column passes, and a string holding the same nam
   /* The complexity is spoken as the tracker spells it — this CLI has no second word for it — so a
      string holding that name is not this rule's (ISS-701, docs/cli/the-kinds.md). */
   assert.deepEqual(printedColumns("fail(`no complexity on ${slug}`);", "printer.mjs"), []);
+});
+
+/* The other half of the same rule: `docs/cli/the-kinds.md` decided that the tracker's `complexity`
+   and the contract's `rung` each have one word, and three aliases outlived the decision for two
+   releases because nothing checked it (ISS-822). */
+test("no string this CLI holds says a third word for the complexity or the rung", () => {
+  const files = sources();
+  const found = files.flatMap(({ rel, text }) => printedAliases(text, rel));
+  assert.deepEqual(found, [], `a reader would be handed a second word for one of the two:\n${found.join("\n")}`);
+});
+
+test("each alias is refused with the line and the noun meant, and each measurement passes", () => {
+  const refused = [
+    ["fail(`the band is unset`);", "band", "the tracker's complexity"],
+    ["line(`nothing owed at any tier`);", "tier", "the contract's rung"],
+    ["say(`untiered`);", "untiered", "the contract's rung"],
+    ["say(`Size: fix -> feature`);", "Size: fix", "the contract's rung"],
+    /* The retired mark was handed a value from either vocabulary, so the colon reads both; and a template's hole holds code, so a string inside one is a span of its own rather than the delimiter that ends the span around it, while a sentence a hole breaks is still read whole. */
+    ["say(`Size: xs -> l`);", "Size: xs", "the tracker's complexity"],
+    ["say(`Size: xl`);", "Size: xl", "the tracker's complexity"],
+    ["say(`--size feature`);", "--size feature", "the tracker's complexity"],
+    ["say(`a batch is fix-size throughout`);", "fix-size", "the contract's rung"],
+    ["say(`outer ${`tier`}`);", "tier", "the contract's rung"],
+    ["say(`nobody sized ${lead} on the ladder`);", "sized",
+      "one of the two the same string already names"],
+  ];
+  for (const [source, word, meant] of refused) {
+    assert.deepEqual(printedAliases(source, "printer.mjs"),
+      [`printer.mjs:1 says \`${word}\`, where the word is ${meant}`], source);
+  }
+  assert.deepEqual(printedAliases("say(`nobody sized this lead, so the ladder runs it as a feature`);", "printer.mjs"),
+    ["printer.mjs:1 says `sized`, where the word is one of the two the same string already names"],
+    "and the word itself where the same string names what it would be a second word for");
+  /* Three measurements this CLI is right to make, one of them `forge doctor`'s own line. */
+  for (const passing of [
+    "say(`size: 4096 bytes`);",
+    "line(OK, `claude.md size`, held);",
+    "say(`${items.size} held`);",
+    "say(`  --size n           runs per window; fifty unless you say otherwise`);",
+    "fail(`stats eval: --size takes an integer of 1 or more`);",
+    "say(`the complexity is `s``);",
+    "say(`Lane at `fix` — every status from where it stands`);",
+  ]) {
+    assert.deepEqual(printedAliases(passing, "printer.mjs"), [], passing);
+  }
+});
+
+/* A retired spelling has to live somewhere or a record written before the rename reads as nothing;
+   a path or file exemption is where a rule like this goes to die, so the boundary is the one
+   declaration shape and the rest of that line is judged as any other. */
+test("an alias stands as a retired declaration's own value, and nowhere else on that line", () => {
+  for (const held of ['const RETIRED_STAMP = "tier";', 'export const RETIRED_TABLE = "band";',
+    'const RETIRED_MARK = "size: fix";']) {
+    assert.deepEqual(printedAliases(held, "reader.mjs"), [], held);
+  }
+  assert.deepEqual(printedAliases('const RETIRED_STAMP = "tier"; say(`tier`);', "reader.mjs"),
+    ["reader.mjs:1 says `tier`, where the word is the contract's rung"],
+    "a second string on the line is refused, so the boundary is the value and not the line");
+  assert.equal(printedAliases('const HELD = "tier";', "reader.mjs").length, 1,
+    "and a name that does not say the spelling is retired earns no boundary at all");
 });
 
 test("a comment may name the column it fetches, which is the carve-out the rule keeps", () => {

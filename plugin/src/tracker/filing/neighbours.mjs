@@ -60,7 +60,7 @@ export const neighboursOf = async ({ seed, place }, live) => {
   };
 };
 
-/** The issue a fix-size filing joins: the nearest of those the place query found too, at the
+/** The issue a filing below the top rung joins: the nearest of those the place query found too, at the
  *  fold's own threshold. Nearest among THOSE, and no line here calls it nearest of all. */
 export const foldOnto = (suggestions) =>
   suggestions.find((one) => one.samePlace && one.score !== null && one.score >= FOLD_FLOOR) ?? null;

@@ -7,9 +7,9 @@ How to clear it: the refusal is the guide — each line says what was read, what
 what to add, for the kind it read the body as; `forge new -h` states the sections per kind. A body
 naming one verb, hook or file with no rule in it is a fix, and takes a route: `forge comment ISS-45
 notes.md` posts it there instead of filing — the body is a file, and the key alone is refused —
-`--with ISS-45` files and relates it, `--size fix` files it marked for the light path.
+`--with ISS-45` files and relates it, `--complexity s` files it at the fix rung's light path.
 
-How to work through it: `forge advance ISS-45 --owed` says what a marked fix owes. Asked once per
+How to work through it: `forge advance ISS-45 --owed` says what a fix owes. Asked once per
 filing, never again on a filed one. `forge hooks --off issue-read-first` clears the gate, not this
 CLI's own copy, so a refusal you believe wrong goes to the tracker's own screens and a note there.
 

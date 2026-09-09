@@ -22,8 +22,8 @@ body names are searched for only past its ceiling, since a search can name nothi
 did not already hold. What neither reaches is said on the way past, because refusing every filing on
 a backlog that large is a refusal nobody can act on.
 
-Where nothing in the body is a rule and nothing is out of scope, its size is the finding rather
-than its shape, and two flags take such a filing instead of the tracker — with `forge comment ISS-45`
+Where nothing in the body is a rule and nothing is out of scope, how small the change is is the
+finding rather than its shape, and two flags take such a filing instead of the tracker — with `forge comment ISS-45`
 beside them for a finding that belongs on an issue already open, which posts the body there and files
 nothing, and renews a lease only where the lease is yours. `--with ISS-45`, or several keys
 separated by commas, files it and writes a relates edge to each in the same create, so one branch,

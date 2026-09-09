@@ -8,7 +8,7 @@ const home = tempHome("fold");
 process.env.XDG_CONFIG_HOME = home.path;
 const { FLOOR, foldFiling, foldOnto, foldedInto, suggestionLines } =
   await import("../../../src/tracker/filing/neighbours.mjs");
-const { BAND_NAMES } = await import("../../../src/ladder.mjs");
+const { COMPLEXITY_NAMES } = await import("../../../src/ladder.mjs");
 const { placeIn, seedFor } = await import("../../../src/tracker/issue-shape.mjs");
 
 const suggestion = (issueId, score, samePlace) =>
@@ -82,9 +82,9 @@ test("a category whose body owes a cause is foldable at every size, and one that
       kind, complexity, ...rest, onBeside: (_, one) => { said = one; } });
     return said.foldable;
   };
-  for (const band of [...BAND_NAMES, undefined]) {
-    assert.equal(await decided("bug", band), true, `bug at ${band ?? "no complexity"}`);
-    assert.equal(await decided("feature", band), false, `feature at ${band ?? "no complexity"}`);
+  for (const complexity of [...COMPLEXITY_NAMES, undefined]) {
+    assert.equal(await decided("bug", complexity), true, `bug at ${complexity ?? "no complexity"}`);
+    assert.equal(await decided("feature", complexity), false, `feature at ${complexity ?? "no complexity"}`);
   }
   assert.equal(await decided("review"), false, "a reading of work already landed is a finding on nothing");
   assert.equal(await decided("enhancement"), false, "and a kind that owes no cause today owes no fold");

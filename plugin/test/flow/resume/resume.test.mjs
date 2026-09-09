@@ -82,17 +82,17 @@ test("the claim and the resume print one opening, and at open neither prints any
     try { run(); } finally { console.log = was; }
     return lines;
   };
-  const size = { plan: null, moved: [], whole: true, band: "m" };
+  const fields = { plan: null, moved: [], whole: true, complexity: "m" };
   const opened = openingLines("approved");
   assert.equal(opened.length, 4, "an approved issue has three phases behind it and a line saying so");
-  assert.deepEqual(said(() => opening("approved", size)).slice(0, opened.length), opened,
+  assert.deepEqual(said(() => opening("approved", fields)).slice(0, opened.length), opened,
     "the resume prints them above what is ahead");
-  const claimed = said(() => advisory("approved", size));
+  const claimed = said(() => advisory("approved", fields));
   assert.deepEqual(claimed.slice(0, opened.length), opened,
     "and the claim prints the same lines, so a run reading both is shown one record once");
-  assert.deepEqual(said(() => opening("open", size)).slice(0, 1), [""],
+  assert.deepEqual(said(() => opening("open", fields)).slice(0, 1), [""],
     "an issue at open has nothing behind it, so the first thing either verb prints is what is ahead");
-  assert.ok(said(() => advisory("open", size)).includes(`\n${ADVISORY}`),
+  assert.ok(said(() => advisory("open", fields)).includes(`\n${ADVISORY}`),
     "and the claim still prints the advisory, under what is ahead and above the served method");
 });
 
@@ -109,12 +109,12 @@ test("the claim and the resume print the lane, and neither composes a line of it
     try { run(); } finally { console.log = was; }
     return lines;
   };
-  const size = { plan: null, moved: [], whole: true, band: "s" };
-  const lane = laneLines({ status: "in_progress", size });
+  const fields = { plan: null, moved: [], whole: true, complexity: "s" };
+  const lane = laneLines({ status: "in_progress", fields });
   assert.ok(lane.length > 1, "a lane at a status short of the end has rows to print");
   const inside = (lines) => lines.slice(lines.indexOf(lane[0]), lines.indexOf(lane[0]) + lane.length);
-  assert.deepEqual(inside(said(() => opening("in_progress", size))), lane, "the resume prints it whole");
-  assert.deepEqual(inside(said(() => advisory("in_progress", size))), lane,
+  assert.deepEqual(inside(said(() => opening("in_progress", fields))), lane, "the resume prints it whole");
+  assert.deepEqual(inside(said(() => advisory("in_progress", fields))), lane,
     "and the claim prints the same block, byte for byte, since one renderer answers for both");
   for (const path of ["../../../src/flow/claim.mjs", "../../../src/flow/resume.mjs", "../../../src/flow/advance.mjs"]) {
     const source = readFileSync(new URL(path, import.meta.url), "utf8");

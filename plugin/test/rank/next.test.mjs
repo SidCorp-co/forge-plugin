@@ -153,13 +153,14 @@ test("a batch of three rides together and the fourth prints as related", async (
   assert.doesNotMatch(run.stdout, /\+ ISS-4/u, "the cap is three members, and it holds");
 });
 
-test("a related issue that is not fix-size is named rather than batched", async () => {
+test("a related issue at the top rung is named rather than batched", async () => {
   load(
     [issue("ISS-1", { complexity: "s", priority: "high" }), issue("ISS-2", { complexity: "xl", priority: "high" })],
     { semantic: [["ISS-2", 0.9]] },
   );
   const run = await ran(["next", "--count", "1"]);
-  assert.match(run.stdout, /~ ISS-2\s+related, not batched: it reads like ISS-1 at 0\.90, and a batch is fix-size/u);
+  assert.match(run.stdout,
+    /~ ISS-2\s+related, not batched: it reads like ISS-1 at 0\.90, and a batch stays below the top rung/u);
 });
 
 /* The mark is a word; the line beside it is where its meaning is stated, and a signal whose
@@ -172,23 +173,25 @@ test("the restart line says what a session cannot pick up, not which tree the fi
 });
 
 /* The gap a wave has to close before the brief, and the column cannot: `unset` says a lead was never
-   weighed and not what to do about it, so the line carries the write. Sized, it prints nothing —
-   a fourth line per candidate repeating the band column is what this asks to be told apart from. */
-test("--why names the write that sizes a lead the tracker holds no complexity for", async () => {
+   weighed and not what to do about it, so the line carries the write. Where the field holds one it
+   prints nothing — a fourth line per candidate repeating the column is what this asks to be told
+   apart from. */
+test("--why names the write that sets a complexity the tracker holds none of", async () => {
   load([issue("ISS-1", { priority: "critical" })]);
   const run = await ran(["next", "--why"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^ {2}size {3}nobody sized this lead, so the ladder runs it as a feature\./mu);
-  assert.match(run.stdout, /forge issue ISS-1 --set complexity=<xs\|s\|m\|l\|xl> --why "<what you read to size it>"/u,
+  assert.match(run.stdout, /^ {2}unset {2}this lead holds no complexity, so the ladder runs it as a feature\./mu);
+  assert.match(run.stdout, /forge issue ISS-1 --set complexity=<xs\|s\|m\|l\|xl> --why "<what you read to judge it>"/u,
     "the write is on the line, so the dispatcher needs no second call to learn the values");
 });
 
-test("a lead the tracker already sized earns no sizing line", async () => {
+test("a lead the field already holds a value for earns no line of its own", async () => {
   load([issue("ISS-1", { priority: "critical", complexity: "s" })]);
   const run = await ran(["next", "--why"]);
   assert.equal(run.status, 0, run.stderr);
-  assert.doesNotMatch(run.stdout, /nobody sized this lead/u);
-  assert.match(run.stdout, /band s /u, "and the band column says which rung it claims, as it did before");
+  assert.doesNotMatch(run.stdout, /this lead holds no complexity/u);
+  assert.match(run.stdout, /^issue {4}.*\bcomplexity\b/mu, "the column heads the field in the tracker's own word");
+  assert.match(run.stdout, /· complexity s 6 ·/u, "and the breakdown says the value with no gloss beside it");
 });
 
 test("--json carries the score, its parts and every signal as its own column", async () => {
@@ -201,11 +204,11 @@ test("--json carries the score, its parts and every signal as its own column", a
   /* Age is the one weight a clock moves, so the total is judged against its own parts. */
   assert.equal(first.score, Object.values(first.parts).reduce((sum, one) => sum + one.points, 0));
   assert.equal(first.parts.priority.points, 40);
-  assert.equal(first.parts.band.points, 3);
+  assert.equal(first.parts.complexity.points, 3);
   assert.equal(first.parts.kind.points, 0);
   assert.equal(first.restart, true, "its body names a file no open session picks up");
-  assert.equal(first.bandFrom, "no complexity on the tracker");
-  assert.deepEqual(Object.keys(first.cost).sort(), ["band", "minutes", "over"]);
+  assert.equal(first.complexityFrom, "none on the tracker");
+  assert.deepEqual(Object.keys(first.cost).sort(), ["complexity", "minutes", "over"]);
   assert.equal(held.weightsFrom, "the built-in table");
   assert.equal(held.weights.priority.critical, 40);
 });
@@ -229,7 +232,7 @@ test("the read goes on until the bodies settle the order, not for a fixed number
     "so the read went past its first pass rather than reporting nothing eligible");
 });
 
-/* The band rides on the list row, so a candidate the score promotes is promoted in the first pass:
+/* The complexity rides on the list row, so a candidate the score promotes is promoted in the first pass:
    what a body once had to be opened for is a column of the list the rank already read. */
 test("the complexity field promotes a candidate, no body of it having been read", async () => {
   const plain = Array.from({ length: 14 }, (_, at) =>
@@ -239,7 +242,7 @@ test("the complexity field promotes a candidate, no body of it having been read"
   assert.equal(run.status, 0, run.stderr);
   const [head] = run.stdout.split("\n").filter((line) => line.startsWith("ISS-"));
   assert.match(head, /^ISS-91\b/u, "xs is worth five points over unset and nothing else separates them");
-  assert.match(head, /\bxs\b/u, "and the band it was scored at is the field's own value, printed as it stands");
+  assert.match(head, /\bxs\b/u, "and what it was scored at is the field's own value, printed as it stands");
 });
 
 /* The budget is the one thing that can leave the order wrong, so it is disclosed in both forms:
@@ -296,7 +299,7 @@ test("the read is bounded against every candidate a batch could consume", () => 
   assert.equal(bounded(eligible, [scored(30)], 5, DEFAULTS), false,
     "five eligible cannot settle five batches: one batch can absorb three of them");
   const plenty = Array.from({ length: 15 }, () => scored(43));
-  assert.equal(bounded(plenty, [scored(30)], 5, DEFAULTS), true, "43 - 30 is more than the band's spread");
+  assert.equal(bounded(plenty, [scored(30)], 5, DEFAULTS), true, "43 - 30 is more than that weight's spread");
   assert.equal(bounded(plenty, [scored(36)], 5, DEFAULTS), false, "36 + 8 reaches 43, so it is still open");
   assert.equal(bounded(plenty, [], 5, DEFAULTS), true, "nothing unread bounds it whatever the scores");
 });

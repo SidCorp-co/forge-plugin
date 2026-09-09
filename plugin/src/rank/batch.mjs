@@ -31,7 +31,7 @@ export const batchUnder = (head, rest, context, weights) => {
   for (const other of rest) {
     const related = relatednessOf(head, other, context);
     if (!related) continue;
-    if (!belowTop(rungFrom(other.score.band)) || !belowTop(rungFrom(head.score.band))) {
+    if (!belowTop(rungFrom(other.score.complexity)) || !belowTop(rungFrom(head.score.complexity))) {
       aside.push({ ...other, ...related });
       continue;
     }

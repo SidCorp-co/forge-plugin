@@ -8,12 +8,11 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { PHASES, methodOf } from "../../src/flow/earned.mjs";
-import { render } from "../../src/flow/record/page.mjs";
 import {
-  MARKERS, UNTIERED, WHOLE_SET_CLASS, callsIn, classOf, markerOf, shellOf, slugFor, tierRun,
+  MARKERS, RUNG_UNKNOWN, WHOLE_SET_CLASS, callsIn, classOf, markerOf, shellOf, slugFor,
 } from "../../src/stats/transcripts.mjs";
 import { segmented, unionSeconds } from "../../src/stats/runs.mjs";
-import { TIERS } from "../../src/ladder.mjs";
+import { RUNGS } from "../../src/ladder.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -62,68 +61,22 @@ const transcript = () => [
   use(UNANSWERED[0], UNANSWERED[1], "Bash", { command: UNANSWERED[2] }),
 ].join("\n");
 
-/* The tier a run worked at comes off the confirmation it posted, and it is the call's own class
-   that says which call that was. Every line below carries the same words in a body some other verb
-   printed: read from those, a run is filed at the tier of whatever issue it happened to read. */
-const said = (klass, body) => ({ class: klass, body });
-
-/* Written by `render`, the only writer of these records: a body composed by hand would not carry the
-   tag and fence that say which record a stamped key belongs to, and asserting over one would
-   re-derive the blind spot (F2 of the whole-set read). */
-const wrote = (tier, extra = {}) =>
-  render("confirmation", { where: ["src/a.mjs"], is: "a reading", finding: "holds", tier, ...extra });
-
-test("a run's tier is read off the confirmation it wrote, and off no other call that echoes one", () => {
-  const [trivial, , feature] = TIERS;
-  assert.equal(tierRun([said("forge record confirmation", wrote(trivial))]), trivial);
-  assert.equal(tierRun([]), UNTIERED, "a run that confirmed nothing is filed under no tier");
-  for (const klass of ["forge issue", "forge resume", "read", "forge record verdict"]) {
-    assert.equal(tierRun([said(klass, wrote(trivial))]), UNTIERED,
-      `\`${klass}\` printing the record is a run reading a thread, not a run that claimed a tier`);
-  }
-  assert.equal(tierRun([said("forge record confirmation", wrote("enormous"))]), UNTIERED,
-    "a word this ladder has not got names no rung, and is not folded into the nearest one");
-  assert.equal(tierRun([said("forge record confirmation", `${wrote(trivial)}\n\ntier: ${feature}`)]), trivial,
-    "and a line the same call printed after the record is prose: the class covers the shell, not the write");
-  assert.equal(
-    tierRun([said("forge record confirmation", wrote(trivial)), said("forge record confirmation", wrote(feature))]),
-    feature,
-    "a batch is as heavy as its heaviest member, never the cheapest of them",
-  );
-});
-
-/* Two ways a body carries the word without a record having stamped it, and the writer makes both:
-   `blockOf` indents every continuation line of a multi-line field, and a chained read prints whole
-   records of its own. A reading that took either would re-file the run that wrote it (F2, F3). */
-test("prose inside a field cannot claim a rung the run did not stamp", () => {
-  const [trivial, , feature] = TIERS;
-  const written = wrote(trivial, { detail: `the plan said one thing\ntier: ${feature}` });
-  assert.match(written, /\n {2}tier: feature/u, "the writer really does indent a continuation line");
-  assert.equal(tierRun([said("forge record confirmation", written)]), trivial,
-    "so the stamped key decides, and a sentence a person typed under another field does not");
-  assert.equal(tierRun([said("forge record confirmation", `${wrote(trivial)}\n\n${wrote(feature)}`)]), trivial,
-    "and the record the write printed is the first one: a thread read after it belongs to another issue");
-  assert.equal(tierRun([said("forge record confirmation", wrote(feature))]), feature,
-    "while the key the writer really wrote is read, or nothing would be");
-});
-
-
-/* The rows have to add up to the corpus: a run filed under no tier and dropped would leave a table
+/* The rows have to add up to the corpus: a run filed under no rung and dropped would leave a table
    that silently reports fewer runs than the profile above it. */
 test("the table has a row per rung and one for the runs that named none, and they add up", () => {
   const run = ask(corpus());
   assert.equal(run.status, 0, run.stderr);
-  const table = run.stdout.split("\ntier ")[1]?.split("\nphase")[0] ?? "";
-  assert.ok(table, `no tier table printed\n--- printed ---\n${run.stdout}`);
+  const table = run.stdout.split("\nrung ")[1]?.split("\nphase")[0] ?? "";
+  assert.ok(table, `no rung table printed\n--- printed ---\n${run.stdout}`);
   const rows = new Map(table.split("\n").map((line) => line.trim().split(/\s+/u))
     .filter(([name, runs]) => name && /^\d+$/u.test(runs ?? ""))
     .map(([name, runs]) => [name, Number(runs)]));
-  for (const tier of [...TIERS, UNTIERED]) {
-    assert.ok(rows.has(tier), `${tier} has no row, and a rung absent reads as one that costs nothing`);
+  for (const rung of [...RUNGS, RUNG_UNKNOWN]) {
+    assert.ok(rows.has(rung), `${rung} has no row, and a rung absent reads as one that costs nothing`);
   }
   assert.equal([...rows.values()].reduce((sum, one) => sum + one, 0), 1,
-    "the rows count the corpus once: this fixture is one run, and it claimed no tier");
-  assert.equal(rows.get(UNTIERED), 1, "so it is the untiered row that holds it, not the cheapest rung");
+    "the rows count the corpus once: this fixture is one run, and it claimed no rung");
+  assert.equal(rows.get(RUNG_UNKNOWN), 1, "so it is the unknown row that holds it, not the cheapest rung");
 });
 
 /* A subagent that was not an issue-flow run: it is skipped and said to be, because a corpus that

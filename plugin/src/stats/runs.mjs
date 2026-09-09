@@ -6,7 +6,7 @@ import {
   EDIT_ROUTES,
   GUIDE_INDEX,
   POLL,
-  UNTIERED,
+  RUNG_UNKNOWN,
   WHOLE_SET_CLASS,
   callsIn,
   guidePartOf,
@@ -14,13 +14,13 @@ import {
   markerOf,
   readTranscript,
   rootFor,
-  tierRun,
+  rungRun,
   transcriptsUnder,
 } from "./transcripts.mjs";
 import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
 import { median } from "./median.mjs";
 import { PHASES } from "../flow/earned.mjs";
-import { TIERS } from "../ladder.mjs";
+import { RUNGS } from "../ladder.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { FORMS, READ_AS } from "../resolve/handler.mjs";
 import { isVersioned } from "../guides/skill-guides.mjs";
@@ -256,7 +256,7 @@ export const runFrom = (path, session, text) => {
     session,
     startedAt,
     endedAt,
-    tier: tierRun(calls),
+    rung: rungRun(calls),
     /* What the eval joins a run to its work by; the profile prints neither, so this reads no tracker. */
     issues: claimedIn(calls),
     rulings: rulingsIn(calls),
@@ -442,7 +442,7 @@ export const profileOf = (runs) => {
       rejectedRuns: runs.reduce((sum, run) => sum + run.ships.rejected, 0),
     },
     phases,
-    tiers: perTier(runs),
+    rungs: perRung(runs),
     byClass: mergedClasses(runs, (run) => run.byClass),
     refusals: mergedCounts(runs, (run) => run.refusals),
     forms: mergedCounts(runs, (run) => run.forms),
@@ -453,15 +453,15 @@ export const profileOf = (runs) => {
   };
 };
 
-/* One row per tier the ladder has, plus one for the runs that named none: folded into a tier those
-   would flatter it, and dropped they would make the rows fail to add up to the corpus. The tiers'
-   own order, so the table reads as the ladder and a tier no run reached still has its row saying so
-   — a tier absent from a profile is indistinguishable from a tier that costs nothing. */
-export const perTier = (runs) => [...TIERS, UNTIERED].map((tier) => {
-  const held = runs.filter((run) => run.tier === tier);
+/* One row per rung the ladder has, plus one for the runs that named none: folded into a rung those
+   would flatter it, and dropped they would make the rows fail to add up to the corpus. The rungs'
+   own order, so the table reads as the ladder and a rung no run reached still has its row saying so
+   — a rung absent from a profile is indistinguishable from a rung that costs nothing. */
+export const perRung = (runs) => [...RUNGS, RUNG_UNKNOWN].map((rung) => {
+  const held = runs.filter((run) => run.rung === rung);
   const seconds = held.map((run) => run.seconds);
   return {
-    tier,
+    rung,
     runs: held.length,
     medianMinutes: minutes(medianOrZero(seconds)),
     totalMinutes: minutes(seconds.reduce((sum, one) => sum + one, 0)),
@@ -471,13 +471,13 @@ export const perTier = (runs) => [...TIERS, UNTIERED].map((tier) => {
   };
 });
 
-const TIER_WIDTH = 10;
-const tierLines = (held) => [
+const RUNG_WIDTH = 10;
+const rungLines = (held) => [
   "",
-  `${"tier".padEnd(TIER_WIDTH)}${"runs".padStart(5)}${"min med".padStart(9)}${"min sum".padStart(9)}`
+  `${"rung".padEnd(RUNG_WIDTH)}${"runs".padStart(5)}${"min med".padStart(9)}${"min sum".padStart(9)}`
   + `${"calls med".padStart(11)}${"consults".padStart(10)}${"gates".padStart(7)}`,
-  ...held.tiers.map((row) =>
-    `${row.tier.padEnd(TIER_WIDTH)}${String(row.runs).padStart(5)}${row.medianMinutes.toFixed(1).padStart(9)}`
+  ...held.rungs.map((row) =>
+    `${row.rung.padEnd(RUNG_WIDTH)}${String(row.runs).padStart(5)}${row.medianMinutes.toFixed(1).padStart(9)}`
     + `${row.totalMinutes.toFixed(0).padStart(9)}${row.medianCalls.toFixed(1).padStart(11)}`
     + `${row.medianConsults.toFixed(1).padStart(10)}${row.medianGates.toFixed(1).padStart(7)}`),
 ];
@@ -515,7 +515,7 @@ export const profileLines = (held, all = false) => [
   `timeouts        ${held.timeouts}`,
   `other errors    ${held.errors.reduce((sum, [, many]) => sum + many, 0)} non-zero exit(s) refused by no rule of this plugin`
     + `${held.errors.length ? `: ${held.errors.map(([label, many]) => `${label} ${many}`).join(", ")}` : ""}`,
-  ...tierLines(held),
+  ...rungLines(held),
   ...phaseLines(held),
   ...listing(
     `${"tool-seconds by class".padEnd(28)}${"min".padStart(8)}${"share".padStart(7)}${"calls".padStart(7)}`,

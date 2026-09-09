@@ -101,7 +101,7 @@ pinned comparison beside the sliding one (`forge guide harness-eval`).
 
 Two fields exist for the stored side alone. The shifts are tallied off each window rather than its
 rows, because a stored window has none: a runs window carries `spanned`, the count of runs that saw
-a release land (its tier counts are already in the profile), and a consult window carries `from`,
+a release land (its rung counts are already in the profile), and a consult window carries `from`,
 `to` and `mix`, one count per value of slot, model, prompt and effort — a consult group's key folds
 slots and efforts together, so nothing else in the object holds those counts. A stored window's
 scores are the ones written at the mark; a verdict recorded after it does not rescore it, which is

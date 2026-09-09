@@ -29,7 +29,7 @@ how many topics there may be.
 | [the primitives](cli/the-primitives.md) | What two verbs' own copies of the paging primitives cost, why one list serves a process, the measurements behind the shared markdown set, and where the SSE frame reader's home stops. |
 | [one primitive, or two](cli/one-primitive-or-two.md) | Why the capturing and stripping spans are two readers rather than a copy, which link target a verifier spends and which a parser does, and what an exclusion row owes the issue that clears it. |
 | [the help predicate](cli/the-help-predicate.md) | Why a predicate spelled in ten places is its own finding, what proving each site neutral cost, and why nothing looser is the needle. |
-| [`next`](cli/next.md) | The call budget a 503 set, why the band is the complexity field alone, and where the module reading stops rather than inferring a layout. |
+| [`next`](cli/next.md) | The call budget a 503 set, why the weight is the complexity field alone, and where the module reading stops rather than inferring a layout. |
 | [`next` — the edges](cli/next-the-edges.md) | Why an edge lives in two stores and neither proves the other, and what a landing frees against what it only reaches. |
 | [`knowledge`](cli/knowledge.md) | What the store held after forty-three runs, why a write carries forward what the caller did not name, and who refuses an entry restating a rules file. |
 | [the shown ledger](cli/the-shown-ledger.md) | What a repeat costs a refusal and what it costs advice, the two readings of "already shown", and why the journal is appended. |

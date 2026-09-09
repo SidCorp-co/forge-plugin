@@ -10,7 +10,7 @@ import { correctionForm, judgedHead, landingMoved, landingWrote, markedCommit, m
 import { eachProblem } from "./record/content.mjs";
 import { FORMS } from "../spec/parse.mjs";
 import { lightens } from "../ladder.mjs";
-import { sizeReport } from "../ladder-report.mjs";
+import { rungReport } from "../ladder-report.mjs";
 import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/evidence.mjs";
 
 import { Refused } from "../refusal.mjs";
@@ -152,21 +152,21 @@ export const need = (what, command) => ({ what, command });
 export const personLooks = (flags, policy = null) =>
   (policy && !waitsForPerson(policy) ? null : looksTo(flags));
 
-/* Every correction, not the latest: the kind does not repeat, so a plan one erases a re-size (ISS-161). Kept on the view once read: it parses every comment on the issue, and four readers ask for it. */
+/* Every correction, not the latest: the kind does not repeat, so a plan one erases a climb (ISS-161). Kept on the view once read: it parses every comment on the issue, and four readers ask for it. */
 const correctionsIn = (view) => (view.moved ??= view.comments
   .map((one) => parse(one.body ?? ""))
   .filter((one) => one?.kind === "correction" && !shapeGaps("correction", one, view.names).length)
   .map((one) => one.fields.moved));
 
-export const sizeOf = (view) => (view.size ??= {
+export const rungFieldsOf = (view) => (view.rungFields ??= {
   plan: unwrap(view.issue.plan),
   moved: correctionsIn(view),
   whole: view.whole !== false,
-  band: view.issue.complexity ?? null,
+  complexity: view.issue.complexity ?? null,
 });
 
-export const lightPath = (view, status) => lightens(status, sizeOf(view));
-export const fixReport = (view, ref) => sizeReport(sizeOf(view), ref);
+export const lightPath = (view, status) => lightens(status, rungFieldsOf(view));
+export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 
 export const setForm = (ref, status) =>
   `forge advance ${ref} --set ${status} --why "<why this status is set with nothing earning it>"`;
@@ -417,7 +417,7 @@ const deployOwed = (view, ref) => {
 /** The plan's own text and not a path list, a plan being prose; `wrote` is not `moved`. The composer of the note reads this too, before it leaves a path out of one that will not fit. */
 export const namedIn = (view) => [unwrap(view.issue.plan), ...correctionsIn(view)].join("\n");
 
-/* A tier below `feature` writes no plan, and refusing against a list the ladder excused would take
+/* A rung below `feature` writes no plan, and refusing against a list the ladder excused would take
    that rung back. */
 const unplannedIn = (view) => {
   const wrote = landingWrote(view.comments);

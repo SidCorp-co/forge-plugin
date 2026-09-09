@@ -7,7 +7,7 @@ import { cpSync, existsSync, readFileSync, writeFileSync, mkdirSync } from "node
 import { execFileSync, spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { tempHome, tempRoom } from "../fixtures.mjs";
+import { flat, tempHome, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("contract").path;
 const {
@@ -27,8 +27,8 @@ const {
   statesContract,
 } = await import("../../src/guides/contract.mjs");
 const { CHECKS, ORDER, PHASE, viewFrom } = await import("../../src/flow/earned.mjs");
-const { LIGHTER, SPARES, TIERS, bandFor } = await import("../../src/ladder.mjs");
-const { sizeReport } = await import("../../src/ladder-report.mjs");
+const { LIGHTER, RUNGS, SPARES, complexityFor } = await import("../../src/ladder.mjs");
+const { rungReport } = await import("../../src/ladder-report.mjs");
 const { render } = await import("../../src/flow/record/page.mjs");
 
 const ROOT = new URL("../../../", import.meta.url).pathname;
@@ -111,7 +111,6 @@ test("no part is longer than one pass, and the contract is shorter than what it 
 
 test("the parts partition the whole, so nothing is served twice and nothing is unreachable", () => {
   const rejoined = PARTS.map((part) => part.text).join("\n");
-  const flat = (text) => text.replace(/\s+/gu, " ").trim();
   assert.equal(flat(rejoined), flat(TEXT));
   assert.ok(PARTS.every((part) => part.chars > 100), "a part with no body is a heading nobody wrote under");
 });
@@ -132,7 +131,6 @@ const SKILL = join(PLUGIN, "guides", "v1", "skills", "issue-flow", "guide.md");
 const VERIFICATION = join(PLUGIN, "guides", "v1", "skills", "issue-flow", "references", "verification.md");
 /* Split rather than matched to a lookahead: a lazy body against a multiline `$` ends at the first
    line break, and every phase then reads as empty. */
-const flat = (text) => text.replace(/\s+/gu, " ");
 const phasesOf = (text) => Object.fromEntries(
   text.split(/^## /mu)
     .map((one) => [/^Phase (\d)/u.exec(one)?.[1], flat(one)])
@@ -319,7 +317,7 @@ const sized = (tier, extra = {}) => ({
   description: UNMARKED,
   plan: "",
   acceptanceCriteria: "1. The one check that fails without the change.",
-  ...(tier ? { complexity: bandFor(tier) } : {}),
+  ...(tier ? { complexity: complexityFor(tier) } : {}),
   ...extra,
 });
 const missing = (status, issue, comments = []) =>
@@ -338,7 +336,7 @@ test("every status a tier lightens is dropped by its own check, and the rung rep
     assert.ok(CHECKS[row.status], `the ladder drops ${row.drops} at ${row.status}, which is no entry check`);
     assert.ok(row.because, `${row.status} drops ${row.drops} and says why nowhere`);
     const held = CASES[row.status].comments ?? [];
-    for (const tier of row.tiers) {
+    for (const tier of row.rungs) {
       assert.deepEqual(missing(row.status, sized(tier), held), [],
         `${row.status} is reported to drop ${row.drops} for a ${tier} and the check still asks for it`);
     }
@@ -352,29 +350,29 @@ test("every status a tier lightens is dropped by its own check, and the rung rep
    printed for the issue in hand by `forge advance --owed`. A guide restating any of it is a second
    copy that goes stale when the data moves, and the contract carried one for months (ISS-802). */
 test("what a tier drops and the rounds it spares are the rung report's, and no guide restates them", () => {
-  const rung = sizeReport({ plan: "", moved: [], whole: true, band: null }, "ISS-3");
-  for (const tier of TIERS) {
+  const rung = rungReport({ plan: "", moved: [], whole: true, complexity:null }, "ISS-3");
+  for (const tier of RUNGS) {
     for (const one of SPARES[tier]) {
       const words = one.split(";")[0].split(",")[0].trim();
-      const said = sizeReport({ plan: "", moved: [], whole: true, band: bandFor(tier) }, "ISS-3");
+      const said = rungReport({ plan: "", moved: [], whole: true, complexity:complexityFor(tier) }, "ISS-3");
       assert.ok(said.includes(words), `\`${tier}\` may spend fewer rounds on "${words}" and --owed does not say so`);
     }
   }
   for (const row of LIGHTER) {
-    const said = sizeReport({ plan: "", moved: [], whole: true, band: bandFor(row.tiers[0]) }, "ISS-3");
+    const said = rungReport({ plan: "", moved: [], whole: true, complexity:complexityFor(row.rungs[0]) }, "ISS-3");
     assert.ok(said.includes(row.drops) && said.includes(row.because),
       `${row.status} drops ${row.drops} and --owed prints neither it nor the reason`);
   }
   assert.ok(rung.includes("nothing dropped"), "and a feature is told it drops nothing");
   const restating = PARTS.filter((part) =>
-    TIERS.some((tier) => new RegExp(`\`${tier}\``, "u").test(part.text))
+    RUNGS.some((tier) => new RegExp(`\`${tier}\``, "u").test(part.text))
     && Object.values(SPARES).flat().concat(LIGHTER.map((one) => one.drops))
       .some((one) => part.text.includes(one.split(";")[0].split(",")[0].trim())));
   assert.deepEqual(restating.map((part) => part.keys[0]), [], "a part of the contract restates what "
     + "`forge advance --owed` prints about a rung: cut it to the command, which prints it for the "
     + "issue in hand rather than in general");
-  const [lowest] = TIERS;
-  assert.ok(SPARES[lowest].length > SPARES[TIERS[1]].length,
+  const [lowest] = RUNGS;
+  assert.ok(SPARES[lowest].length > SPARES[RUNGS[1]].length,
     "the shortest ladder saves no more rounds than the one above it, so nothing distinguishes them");
 });
 
@@ -382,7 +380,7 @@ test("what a tier drops and the rounds it spares are the rung report's, and no g
    scoped and remembers, so its failure mode is a step ABSENT rather than red, and a rung skipping
    the one whole run would hand later scoped runs a green nothing established. */
 test("no rung buys a judgement: the baseline and the migration classification cost every rung alike", () => {
-  for (const tier of TIERS) {
+  for (const tier of RUNGS) {
     const held = sized(tier, { plan: "Schema coupling: yes" });
     assert.ok(missing("in_progress", held).some((one) => /^no baseline/u.test(one)),
       `a ${tier} is asked for no baseline, and the one whole gate run of the work is what it skipped`);

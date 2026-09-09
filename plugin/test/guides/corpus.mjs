@@ -1,5 +1,5 @@
 /* What the CLI actually prints about the flow, as units a comparison can read: the shortfall of
-   every entry check, the refusals `route.mjs` raises, the rung report at each tier and every record
+   every entry check, the refusals `route.mjs` raises, the rung report at each rung and every record
    kind's own usage. One synthetic issue state per family, so a message a conditional check raises on
    an otherwise whole record is here beside the one an absent payload raises — a corpus of absences
    would pass a contract that copied the conditional halves (ISS-802). */
@@ -8,8 +8,8 @@ import assert from "node:assert/strict";
 import { CHECKS, viewFrom } from "../../src/flow/earned.mjs";
 import { owedIn } from "../../src/flow/route.mjs";
 import { KINDS, kindHelp } from "../../src/flow/record/record-rows.mjs";
-import { TIERS, bandFor } from "../../src/ladder.mjs";
-import { sizeReport } from "../../src/ladder-report.mjs";
+import { RUNGS, complexityFor } from "../../src/ladder.mjs";
+import { rungReport } from "../../src/ladder-report.mjs";
 import { claims } from "../../src/checks/duplication.mjs";
 import { render } from "../../src/flow/record/page.mjs";
 
@@ -85,8 +85,8 @@ export const FAMILIES = {
       recorded("verdict", { criterion: "1 — The first outcome.", verdict: "pass", commit: "43b811e", evidence: ["run.txt"] }),
       recorded("verdict", { criterion: "2 — The second outcome.", verdict: "pass", commit: "43b811e", evidence: ["run.txt"] }),
       recorded("triage", { outcome: "wrong-test", "would-have-caught": "a criterion naming the order" }, "0")]),
-  "the rung report": () => TIERS.map((tier) =>
-    sizeReport({ plan: "", moved: [], whole: true, band: bandFor(tier) }, "ISS-3")),
+  "the rung report": () => RUNGS.map((rung) =>
+    rungReport({ plan: "", moved: [], whole: true, complexity: complexityFor(rung) }, "ISS-3")),
   "a record kind's own usage": () => KINDS.map((kind) => kindHelp(kind)),
 };
 

@@ -5,8 +5,8 @@ wrote, `forge feedback` files a defect against this plugin from any checkout, an
 script's batch-review step files the reading a range of commits is owed. Two of them assembled the
 same nine steps by hand out of seven shared exports, each in its own order; the third spawned the CLI
 and matched two patterns against the refusal text to learn what had happened. So a rule about filing
-was three edits and a test that the three agreed, and ISS-334 was about to add a fourth kind, a size
-field and an unranked value to all of them.
+was three edits and a test that the three agreed, and ISS-334 was about to add a fourth kind, a
+complexity field and an unranked value to all of them.
 
 One interface decides a filing now: the body assembled from what the route wrote and what it fills,
 the shape read against the kind's sections, the duplicate, the neighbours, the fold, the rank, the

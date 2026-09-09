@@ -65,4 +65,4 @@ compared with next week's, a filter silently dropped is worse than a refusal, so
 does not have is named back.
 
 What each row of the profile is — the classifier and the wrong rows it was built to avoid, the
-phase table, the tier table: [`stats-rows.md`](stats-rows.md).
+phase table, the rung table: [`stats-rows.md`](stats-rows.md).

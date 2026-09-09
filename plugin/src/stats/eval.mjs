@@ -2,7 +2,7 @@
    the profile computes, and beside them what became of the work, which is the tracker's to say and
    not the profile's. The one line the ship prints at a multiple of the window, the reading it writes
    there, and what a comparison since a release is confounded by — docs/cli/stats-the-eval.md. */
-import { rootFor } from "./transcripts.mjs";
+import { RUNG_UNKNOWN, rootFor } from "./transcripts.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder, stamp } from "./runs.mjs";
 import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
@@ -130,7 +130,7 @@ const movedIn = (nowRows, beforeRows, key) => {
   return moved;
 };
 
-/* Nothing a reader can derive: the profile carries the bounds and the tier counts, the shortfall is the
+/* Nothing a reader can derive: the profile carries the bounds and the rung counts, the shortfall is the
    size less the runs, and `spanned` is the one count the shifts need that nothing else holds. */
 const windowOf = (rows, read) => ({
   runs: rows.length,
@@ -144,9 +144,40 @@ const windowOf = (rows, read) => ({
 
 /* The tallies the shifts compare, read off a window and never its rows: a stored before has none. */
 const mixOf = (window) => ({
-  tier: Object.fromEntries(window.profile.tiers.map((row) => [row.tier, row.runs])),
+  rung: Object.fromEntries(window.profile.rungs.map((row) => [row.rung, row.runs])),
   spanned: { [SPANNED]: window.spanned, [STEADY]: window.runs - window.spanned },
 });
+
+const RETIRED_ROWS = "tiers";
+const RETIRED_ROW = "tier";
+const RETIRED_UNKNOWN = "untiered";
+
+const rungsBack = (profile) => {
+  const rows = profile?.[RETIRED_ROWS];
+  if (!rows) return profile;
+  const { [RETIRED_ROWS]: held, ...rest } = profile;
+  const rungs = held.map(({ [RETIRED_ROW]: name, ...row }) =>
+    ({ rung: name === RETIRED_UNKNOWN ? RUNG_UNKNOWN : name, ...row }));
+  return { ...rest, rungs };
+};
+
+/** A reading held before the rung had one word carries the retired key for its rows, for each row's
+ *  own name, and for the runs no stamp named. All three read as the canonical ones, so a mark written
+ *  then compares against a window read now rather than reporting every rung as newly arrived. Every
+ *  profile the record holds is turned over, its own and each group's, because `--json` prints the
+ *  whole of a stored window and a spelling nothing reads is still a spelling something emitted. */
+export const readBack = (record) => {
+  if (!record?.now?.profile) return record ?? null;
+  const groups = record.now.groups?.map((one) => ({ ...one, profile: rungsBack(one.profile) }));
+  return {
+    ...record,
+    now: {
+      ...record.now,
+      profile: rungsBack(record.now.profile),
+      ...(groups ? { groups } : {}),
+    },
+  };
+};
 
 /** The comparison, every cost figure of it one `profileOf` computes over a window or a group. With a
  *  stored reading, its recent window stands where the earlier one would, through the same lines; a
@@ -162,7 +193,7 @@ export const evalRuns = (runs, copies, size = WINDOW, against = null, read = nul
     now: nowHeld,
     before: beforeHeld,
     moved: beforeHeld
-      ? { tiers: movedIn(nowHeld.profile.tiers, beforeHeld.profile.tiers, "tier"),
+      ? { rungs: movedIn(nowHeld.profile.rungs, beforeHeld.profile.rungs, "rung"),
         phases: movedIn(nowHeld.profile.phases, beforeHeld.profile.phases, "name") }
       : null,
     separates: (a, b) => shiftBetween(mixOf(a), mixOf(b)),
@@ -322,8 +353,8 @@ export const evalLines = (held, release = null, copies = []) => {
     ...(release ? confoundedLines(held, release, copies) : []),
     "",
     "moved most, in median minutes before → now",
-    movedLine("tier", held.moved.tiers.rose, "rose"),
-    movedLine("tier", held.moved.tiers.fell, "fell"),
+    movedLine("rung", held.moved.rungs.rose, "rose"),
+    movedLine("rung", held.moved.rungs.fell, "fell"),
     movedLine("phase", held.moved.phases.rose, "rose"),
     movedLine("phase", held.moved.phases.fell, "fell"),
     "",
@@ -435,7 +466,7 @@ export const printEval = async (argv) => {
       + `${readingAside(corpus)}.${derivedFrom(directory)}`);
   }
   const read = await outcomeRead(corpus, directory, window, asked);
-  const held = readingOf(directory, corpus, window, stored ?? since ?? null, read);
+  const held = readingOf(directory, corpus, window, readBack(stored ?? since ?? null), read);
   if (json) return console.log(JSON.stringify(held, null, 2));
   for (const line of evalLines(held, since, corpus.copies)) console.log(line);
   return null;

@@ -6,10 +6,10 @@ import test from "node:test";
 import { DEFAULTS } from "../../src/rank/weights.mjs";
 import { MODULE, RELATION, SEARCH, batchUnder, batchesOf, relatednessOf } from "../../src/rank/batch.mjs";
 
-const candidate = (issueId, band = "xs") => ({
+const candidate = (issueId, complexity = "xs") => ({
   issueId,
   row: { issueId, title: `${issueId} as it is filed` },
-  score: { band },
+  score: { complexity },
 });
 
 /* `relates` is keyed by the head it was read off; `near` is one head's own answer, handed to
@@ -51,16 +51,16 @@ test("a batch holds three and refuses the fourth, which prints as related rather
   assert.equal(aside[0].capped, true);
 });
 
-test("a related issue that is not fix-size rides with nothing and is printed as such", () => {
+test("a related issue at the top rung rides with nothing and is printed as such", () => {
   const head = candidate("ISS-1");
   const large = candidate("ISS-2", "l");
   const near = new Map([["ISS-2", 0.9]]);
   const { members, aside } = batchUnder(head, [large], context({ near }), DEFAULTS);
   assert.deepEqual(members, []);
   assert.deepEqual(aside.map((one) => one.issueId), ["ISS-2"]);
-  assert.equal(aside[0].capped, undefined, "not the cap: the size is what kept it out");
+  assert.equal(aside[0].capped, undefined, "not the cap: the rung is what kept it out");
   const big = batchUnder(candidate("ISS-1", "m"), [candidate("ISS-2")], context({ near }), DEFAULTS);
-  assert.deepEqual(big.members, [], "and a head that is not fix-size batches nothing either");
+  assert.deepEqual(big.members, [], "and a head at the top rung batches nothing either");
 });
 
 test("an issue is a member once, and one the cap turned away is a head of its own", async () => {
