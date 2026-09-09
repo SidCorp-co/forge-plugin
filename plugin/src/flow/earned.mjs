@@ -152,15 +152,14 @@ export const need = (what, command) => ({ what, command });
 export const personLooks = (flags, policy = null) =>
   (policy && !waitsForPerson(policy) ? null : looksTo(flags));
 
-/* Every correction, not the latest: the kind does not repeat, so a plan one erases a climb (ISS-161). Kept on the view once read: it parses every comment on the issue, and four readers ask for it. */
-const correctionsIn = (view) => (view.moved ??= view.comments
-  .map((one) => parse(one.body ?? ""))
-  .filter((one) => one?.kind === "correction" && !shapeGaps("correction", one, view.names).length)
-  .map((one) => one.fields.moved));
+/* What the corrections on a record say moved, for the rung and for `namedIn`, which are its only readers. `correction` repeats since ISS-11, so `assemble` has already filed every one of them off the parse it made, and the hand parse of `view.comments` this replaced was a second parse for one answer (ISS-161, ISS-847). Whole payloads only: a comment carrying `moved` and no `why` reaches the page through any client no gate sits before, and it is no correction — read as a climb it would un-lighten an issue on a payload nothing wrote, and read as a path named it would excuse a landing that wrote one. The report counts what is on the page rather than what is a correction, which is a different question and stays `record.mjs`'s. */
+const movedIn = (view) => (view.repeated?.correction ?? [])
+  .filter((one) => !shapeGaps("correction", one.record, view.names).length)
+  .map((one) => one.record.fields.moved);
 
 export const rungFieldsOf = (view) => (view.rungFields ??= {
   plan: unwrap(view.issue.plan),
-  moved: correctionsIn(view),
+  moved: movedIn(view),
   whole: view.whole !== false,
   complexity: view.issue.complexity ?? null,
 });
@@ -415,7 +414,7 @@ const deployOwed = (view, ref) => {
 };
 
 /** The plan's own text and not a path list, a plan being prose; `wrote` is not `moved`. The composer of the note reads this too, before it leaves a path out of one that will not fit. */
-export const namedIn = (view) => [unwrap(view.issue.plan), ...correctionsIn(view)].join("\n");
+export const namedIn = (view) => [unwrap(view.issue.plan), ...movedIn(view)].join("\n");
 
 /* A rung below `feature` writes no plan, and refusing against a list the ladder excused would take
    that rung back. */
