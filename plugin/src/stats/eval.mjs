@@ -361,11 +361,12 @@ const outcomeRead = async (corpus, directory, size, { horizon, most }) => {
   const { spent, bound } = budgetOf(most);
   const aimed = scopeFor(directory);
   if (aimed) useProject(aimed);
-  const threads = await readThreads(wanted, bound);
+  const { threads, documents } = await readThreads(wanted, bound);
   return {
     threads,
+    documents,
     ruled: ruledOver(corpus.runs, logEntries()),
-    parks: parkedOver(corpus.runs, threads),
+    parks: parkedOver(corpus.runs, threads, documents),
     horizon,
     now: Date.now(),
     spent,

@@ -207,6 +207,10 @@ it. Reading is all this product does there.
   WHERE the runs read are a named checkout's the CLI SHALL scope its tracker read to the project
   that checkout declares rather than to the one the working directory resolves to, and SHALL leave
   the working directory's scope standing where the named checkout declares none.
+- **AC-19-8-26** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "two names for one issue are one issue: aliased owners compete for its park, and one run owning both is one pair"
+  WHERE one issue answers to more than one name the CLI SHALL count it as one issue under every one
+  of them, SHALL count one run that owned it under two names as one observation, and SHALL treat two
+  runs that owned it under different names as two owners of the one issue.
 
 - **AC-19-8-11** · Rev: 1 · Proof: none yet — ISS-673
   WHEN a profile is printed THEN the CLI SHALL list per wave the time from ready to landed, from

@@ -30,7 +30,8 @@ const figureOf = (held, name) => held.figures.find((one) => one.name === name);
 const read = (over = {}) => ({ threads: new Map(), ruled: new Map(), horizon: DAY, now: NOW, ...over });
 /* Every run the case declares is the corpus the park attribution is resolved over; the window and
    the corpus part company only where a case cuts them apart on purpose. */
-const heldOf = (runs, given) => outcomesOf(runs, { ...given, parks: parkedOver(runs, given.threads) });
+const heldOf = (runs, given) =>
+  outcomesOf(runs, { ...given, parks: parkedOver(runs, given.threads, given.documents) });
 
 test("a run is joined to every issue its own claim output granted, and to none a refusal or a quoted line names", () => {
   const granted = (key, how) => `forge_issues -> project p (from the project file), prose as written
@@ -208,6 +209,41 @@ test("park attribution is resolved over the corpus, so no window size can make a
   const alone = parkedOver([early, quiet], threads);
   assert.equal(parkedFor(pairsOf([early]), threads, alone).count, 1);
   assert.equal(parkedFor(pairsOf([quiet]), threads, alone).count, 0);
+});
+
+test("two names for one issue are one issue: aliased owners compete for its park, and one run owning both is one pair", () => {
+  const uuid = "1F2E3D4C-5B6A-7980-A1B2-C3D4E5F60718";
+  const documents = new Map([["ISS-1", "doc-1"], [uuid, "doc-1"]]);
+  const span = { at: NOW - 5 * DAY, endedAt: NOW - 5 * DAY + 1000 };
+  const byKey = { ...run({ endedAt: NOW - 5 * DAY + 2000 }), issues: ["ISS-1"], parks: [span] };
+  const byId = { ...run({ endedAt: NOW - 2 * DAY }), issues: [uuid], parks: [span] };
+  const one = { records: [{ kind: "park", at: span.at + 100, fields: {} }] };
+  /* One thread under both names, which is what `readThreads` hands back for one document. */
+  const threads = new Map([["ISS-1", one], [uuid, one]]);
+
+  const both = parkedOver([byKey, byId], threads, documents);
+  for (const window of [[byKey], [byId]]) {
+    const held = parkedFor(pairsOf(window, documents), threads, both);
+    assert.equal(held.count, 0, "a key owner and an id owner are two owners of one issue, so neither is its sole writer");
+    assert.equal(held.unattributed, 1, "and the record is disclosed once, under the issue and not under a name");
+  }
+
+  /* The id owner's own reference never read: it is a candidate writer all the same, because the
+     group's thread came in under the other name — and a candidate missed miscredits the record. */
+  const partial = new Map([["ISS-1", one]]);
+  const outside = parkedOver([byKey, byId], partial, documents);
+  assert.equal(parkedFor(pairsOf([byKey], documents), partial, outside).count, 0,
+    "a competitor whose own name was never asked for still spoils the attribution");
+
+  const twice = { ...run({ endedAt: NOW - 4 * DAY }), issues: ["ISS-1", uuid], parks: [span] };
+  assert.equal(pairsOf([twice], documents).length, 1,
+    "one run that claimed under one name and renewed under the other owned one issue, which is one observation");
+  const alone = figureOf(heldOf([twice], read({ threads, documents })), "parked or dropped");
+  assert.equal(alone.over, 1, "so it stands once in the denominator");
+  assert.equal(alone.count, 1, "and it is the record's sole writer");
+
+  assert.equal(pairsOf([twice]).length, 2,
+    "without the tracker's own names there is nothing to canonicalise on, and the printed reference is all there is");
 });
 
 test("a criterion judged twice after a run is one count, and a verdict before it is not that run's", () => {

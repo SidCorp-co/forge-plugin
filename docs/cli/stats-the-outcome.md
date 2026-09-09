@@ -22,7 +22,9 @@ The reference has to be the printed line's own subject: a refusal reads `ISS-nn 
 `--next` line prints behind `Next: `, so neither can forge an ownership. A run with no ownership this
 reading can establish is `unread` and stands in no figure — a run admitted by its brief alone is
 unread by definition. A claim grants an issue by its key or by its id, so the reading resolves either
-name to the one row and walks that thread once.
+name to the one row, walks that thread once, and keys the pair on the row: one run that named one
+issue twice is one observation, and two runs that named it differently are two owners competing for
+the same record.
 
 **Two figures are observed after the run and two during it, and the screen groups them so.** The
 rates are not interchangeable.

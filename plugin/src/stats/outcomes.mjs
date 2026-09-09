@@ -69,9 +69,12 @@ const inBatches = async (list, most, each) => {
 
 /** Every issue the corpus's runs owned, read once: the walk maps a reference to a row and a thread
  *  read per issue carries the records. Both spend the one budget. */
+/* Every alias the project's rows answer to, off the walk already paid for: what makes an issue one issue whichever name a claim printed. */
+const documentsOf = (rows) => new Map([...rows].map(([alias, row]) => [alias, row.documentId]));
+
 export const readThreads = async (references, bound) => {
   const held = new Map();
-  if (!references.length) return held;
+  if (!references.length) return { threads: held, documents: new Map() };
   /* Asked here and not left to the transport: `settings()` exits the process where no endpoint
      resolves, soft caller or not, so an eval that would have said `unavailable` would instead take
      its own cost figures down with it. */
@@ -81,8 +84,7 @@ export const readThreads = async (references, bound) => {
     return held;
   }
   const read = await everyIssue({}, bound);
-  /* Both names a claim can print, because a run may own an issue by its id: the reference is
-     whatever its own output granted, and a row missed under one alias is a pair lost for nothing. */
+  /* Indexed under both names a claim can print: a row missed under one alias is a pair lost for nothing. */
   const rows = new Map();
   for (const row of read.rows) {
     for (const alias of [row?.issueId, row?.documentId]) if (alias) rows.set(String(alias).toUpperCase(), row);
@@ -103,12 +105,23 @@ export const readThreads = async (references, bound) => {
     const thread = threadOf(await commentPage(documentId, true, bound));
     for (const reference of named) held.set(reference, thread);
   });
-  return held;
+  return { threads: held, documents: documentsOf(rows) };
 };
 
 /* A pair is a run and one issue it owned; the run carries the cost and the pair carries none, which
    is what keeps an issue worked twice from doubling anything. */
-export const pairsOf = (runs) => runs.flatMap((run) => run.issues.map((ref) => ({ run, ref })));
+export const pairsOf = (runs, documents = null) => runs.flatMap((run) => {
+  const seen = new Set();
+  const held = [];
+  for (const ref of run.issues) {
+    /* Keyed on the issue the tracker holds, never on the name printed: one run that claimed under one alias and renewed under another owned one issue, and that is one observation. */
+    const key = documents?.get(ref) ?? ref;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    held.push({ run, ref, key });
+  }
+  return held;
+});
 
 export const unreadIn = (runs) => runs.filter((run) => !run.issues.length).length;
 
@@ -181,26 +194,28 @@ const wrote = (run, at) => run.parks.some((span) => at >= span.at - SLACK && at 
 
 /** Which run each park record belongs to, keyed on the issue and resolved over the whole corpus before any window is cut, as the ruling pairing is: the one owner whose own park-writing call the record landed inside, and exactly one of them.
  *  The record's claim, never a state. */
-export const parkedOver = (runs, threads) => {
-  const byRef = new Map();
-  for (const pair of pairsOf(runs)) {
-    if (!threads?.get(pair.ref)?.records) continue;
-    if (!byRef.has(pair.ref)) byRef.set(pair.ref, []);
-    byRef.get(pair.ref).push(pair);
+export const parkedOver = (runs, threads, documents = null) => {
+  const byKey = new Map();
+  for (const pair of pairsOf(runs, documents)) {
+    if (!byKey.has(pair.key)) byKey.set(pair.key, []);
+    byKey.get(pair.key).push(pair);
   }
   const owned = new Map();
   const loose = new Map();
-  for (const [ref, held] of byRef) {
-    for (const record of threads.get(ref).records.filter((one) => one.kind === "park")) {
+  for (const [key, held] of byKey) {
+    /* One thread among the owners, whatever name reached it: a corpus owner whose own reference was never asked for is still a candidate writer, and a candidate missed is a record miscredited. */
+    const read = held.map((one) => threads?.get(one.ref)).find((one) => one?.records);
+    if (!read) continue;
+    for (const record of read.records.filter((one) => one.kind === "park")) {
       const writers = held.filter((one) => wrote(one.run, record.at));
       if (writers.length !== 1) {
-        loose.set(ref, (loose.get(ref) ?? 0) + 1);
+        loose.set(key, (loose.get(key) ?? 0) + 1);
         continue;
       }
       /* The transcript's own path: a window's rows are copies, and only what a spread carries keys. */
       const owner = writers[0].run.path;
       if (!owned.has(owner)) owned.set(owner, new Set());
-      owned.get(owner).add(ref);
+      owned.get(owner).add(key);
     }
   }
   return { owned, loose };
@@ -219,11 +234,11 @@ export const parkedFor = (pairs, threads, { owned, loose }) => {
       continue;
     }
     over += 1;
-    refs.add(pair.ref);
-    if (owned.get(pair.run.path)?.has(pair.ref)) count += 1;
+    refs.add(pair.key);
+    if (owned.get(pair.run.path)?.has(pair.key)) count += 1;
   }
   let unattributed = 0;
-  for (const ref of refs) unattributed += loose.get(ref) ?? 0;
+  for (const key of refs) unattributed += loose.get(key) ?? 0;
   return {
     ...figure({ name: "parked or dropped", when: DURING_RUN, over, count, unread }),
     unattributed,
@@ -273,8 +288,8 @@ export const rejectedFor = (runs, ruled) => {
 /** Every outcome figure of one window, each with the population it was counted over and what it
  *  could not read. The three pair figures answer `unavailable` where the tracker did not; the
  *  fourth does not read the tracker and answers whatever the log and the transcripts said. */
-export const outcomesOf = (runs, { threads, ruled, parks, horizon, now }) => {
-  const pairs = pairsOf(runs);
+export const outcomesOf = (runs, { threads, ruled, parks, documents, horizon, now }) => {
+  const pairs = pairsOf(runs, documents);
   const none = (name, when) => figure({ name, when, over: 0, count: 0, unread: pairs.length ? [] : [NO_PAIRS] });
   return {
     pairs: pairs.length,
