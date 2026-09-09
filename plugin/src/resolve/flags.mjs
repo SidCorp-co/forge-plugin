@@ -66,6 +66,11 @@ const strangerIn = (argv, verb, { usage, hidden = [], boolean = [] }) => {
   if (said) fail(said);
 };
 
+/* One value too many, where `noValue` is one too few: a dropped value leaves the caller a reply about what did move and nothing about what did not (ISS-930). */
+export const repeatedFlag = (verb, flag, kept, given) =>
+  `${verb}: ${flag} was given twice, \`${kept}\` and then \`${given}\`, and one flag carries one `
+  + `value. Send the ${flag} you meant, and make a second call for the other. Nothing was sent.`;
+
 export const flags = (argv, verb, boolean = [], row = {}) => {
   strangerIn(argv, verb, { ...row, boolean });
   const found = {};
@@ -77,7 +82,9 @@ export const flags = (argv, verb, boolean = [], row = {}) => {
     if (key.includes("=")) fail(`${verb}: write \`${key.split("=")[0]} <value>\`; --flag=value is not read.`);
     const value = pairs[index + 1];
     if (value === undefined || FLAG_WORD.test(value)) fail(noValue(verb, key, value));
-    found[key.slice(2)] = value;
+    const name = key.slice(2);
+    if (found[name] !== undefined) fail(repeatedFlag(verb, key, found[name], value));
+    found[name] = value;
     index += 1;
   }
   return found;
@@ -86,8 +93,7 @@ export const flags = (argv, verb, boolean = [], row = {}) => {
 /* First or not at all, unless the verb takes a subject, in which case the slot after one too — further along it is an argument, and help there is a write that never ran. Their home imports nothing, which is what lets the second CLI spend them: README, Layout. */
 export { helpAskedOf, isHelpWord, wantsHelp } from "./help-word.mjs";
 
-/* `flags` keeps only the last value of a repeated flag, which reads as a filtered answer rather
-   than a dropped one. A caller that means "all of these" pulls them out first. */
+/* `flags` refuses a name it has already bound, so this is the one declaration that a flag's values accumulate: a verb that means "all of these" pulls them out before handing the rest over. */
 export const pullRepeated = (argv, flag, verb, row = {}) => {
   strangerIn(argv, verb, { ...row, hidden: [...(row.hidden ?? []), flag] });
   const values = [];

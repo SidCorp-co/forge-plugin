@@ -2,7 +2,7 @@
 import { refuse } from "../refusal.mjs";
 import { pairOf } from "../resolve/flags.mjs";
 import { keepOnFailure } from "../resolve/settings.mjs";
-import { ownsField, writeField } from "../tracker/field-write.mjs";
+import { ownsField, writeFields } from "../tracker/field-write.mjs";
 import { AMBIGUOUS } from "../tracker/rest.mjs";
 import { ANSWERED_BY_COMMENT } from "./earned.mjs";
 import { issueOf, post } from "./record/record.mjs";
@@ -57,21 +57,47 @@ const setPair = (given) => {
   return { field, value };
 };
 
-/** `forge issue --set <field>=<value> --why <w>`: the update route, said to be unread and corrected. */
-export const overrideField = async (reference, given, why, { next, patch } = {}) => {
+/* The tracker moves a status on a route of its own and refuses one sent to `update`. Refused by name here rather than by the tracker after the send, because the fields of one call go up together: one name the tracker will not take costs every name beside it. */
+const MOVED_ELSEWHERE = { status: (ref, value) => `forge advance ${ref} --set ${value} --why <w>` };
+
+const setForm = (pairs) => pairs.map(({ field, value }) => `--set ${field}=${value}`).join(" ");
+
+const pairsOf = (given, ref) => {
+  const pairs = given.map((one) => setPair(one));
+  const twice = pairs.find(({ field }, at) => pairs.findIndex((one) => one.field === field) !== at);
+  if (twice) {
+    const values = pairs.filter(({ field }) => field === twice.field).map(({ value }) => `\`${value}\``);
+    refuse(`--set names ${twice.field} ${values.length} times, as ${values.join(" and ")}, and one call `
+      + `writes each field once. Ask for the one you meant: --set ${twice.field}=<value>. Nothing was sent.`);
+  }
+  const moved = pairs.find(({ field }) => MOVED_ELSEWHERE[field]);
+  if (moved) {
+    refuse(`${moved.field} is not a field an update writes: the tracker moves it on a route of its `
+      + "own and refuses it here, and the fields of one call go up together, so nothing of this one "
+      + `was sent. Move it with:\n  ${MOVED_ELSEWHERE[moved.field](ref, moved.value)}`);
+  }
+  return pairs;
+};
+
+/* One record for the call and not one per field: a correction naming a subset of what was asked is true about what happened and misleading about what was asked, and no later reader can tell those apart (ISS-930). */
+const movedSaid = (pairs) =>
+  `${pairs.map(({ field, value }) => `${field} set to \`${value}\``).join(", ")} by \`forge issue --set\``;
+
+/** `forge issue --set <field>=<value>... --why <w>`: the update route, said to be unread and corrected. */
+export const overrideFields = async (reference, given, why, { next, patch } = {}) => {
   const said = whyChecked("issue --set", why);
-  const { field, value } = setPair(given);
+  const pairs = pairsOf(given, reference);
   const { documentId, body } = await issueOf(reference);
   /* A record whose write moves a status is the one thing an override is for the opposite of, so the field set is refused here rather than followed by a move nobody asked for. */
   if (body?.status === ANSWERED_BY_COMMENT) {
     refuse(`${reference} waits for an answer, and the correction an override leaves is a comment: the `
       + "tracker reads one on this status as that answer and puts the issue back to `open`, leaving a "
       + "field set by hand and a status moved by nobody. Move the status yourself first, and the "
-      + `field after it:\n  forge advance ${reference} --set <status> --why <w>\n`
-      + `  forge issue ${reference} --set ${field}=${value} --why <w>`);
+      + `fields after it:\n  forge advance ${reference} --set <status> --why <w>\n`
+      + `  forge issue ${reference} ${setForm(pairs)} --why <w>`);
   }
-  const back = await writeField(documentId, field, value, { ref: reference, next, patch, refuse, override: true });
-  console.log(`${reference}  ${field} is ${back ?? value}`);
+  const back = await writeFields(documentId, pairs, { ref: reference, next, patch, refuse, override: true });
+  for (const { field, value } of pairs) console.log(`${reference}  ${field} is ${back?.[field] ?? value}`);
   console.log(UNREAD);
-  await correctionFor(documentId, reference, `${field} set to \`${value}\` by \`forge issue --set\``, said);
+  await correctionFor(documentId, reference, movedSaid(pairs), said);
 };

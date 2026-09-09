@@ -15,7 +15,7 @@ const HARNESS = "The harness";
 export const GROUPS = [BACKLOG, FLOW, METHOD, HARNESS];
 
 export const VERBS = [
-  ["issue", "[<uuid|ISS-45>] [--status s] [--search q] [--limit n] [--fields a,b] [--full] [--set f=v --why W] [--blocks|--relates|--unlink ISS-46]",
+  ["issue", "[<uuid|ISS-45>] [--status s] [--search q] [--limit n] [--fields a,b] [--full] [--set f=v... --why W] [--blocks|--relates|--unlink ISS-46]",
     "every matching issue with no key, or one body and the edges on it with one",
     "forge_issues", { group: BACKLOG, wraps: { list: "`forge issue`", get: "`forge issue ISS-45`",
       at: "`forge issue ISS-45`",

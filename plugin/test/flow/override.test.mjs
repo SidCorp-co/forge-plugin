@@ -126,6 +126,59 @@ test("a field set by hand is written, said to be unread, and left with a correct
   assert.ok(correction.includes(WHY), "and carrying the reason the run typed");
 });
 
+/* The defect ISS-930 was filed from: three `--set` pairs, the parser kept the last, and the reply and the correction were both rendered from the survivor under a reason written for three. The correction is the durable trace of the call, so a record naming a subset is the cost that outlives the re-run. */
+test("every field of one call is written, and one correction names all of them", async () => {
+  before();
+  const run = await setField("--set", "complexity=m", "--set", "priority=high", "--why", WHY);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const update = sent("update", "complexity");
+  assert.equal(update.complexity, "m", "the field the old parse dropped reaches the tracker");
+  assert.equal(update.priority, "high", "beside the one it kept");
+  assert.match(run.stdout, /^ISS-96 {2}complexity is m$/mu, "a reply line per field");
+  assert.match(run.stdout, /^ISS-96 {2}priority is high$/mu);
+  assert.equal(posted().length, 1, "one record for the call, not one per field");
+  const [correction] = posted();
+  assert.match(correction, /moved: complexity set to `m`, priority set to `high` by `forge issue --set`/u,
+    "naming every field that moved, each beside the value it moved to");
+  assert.ok(correction.includes(WHY), "under the one reason the caller typed for all of them");
+});
+
+test("the fields of one call go up in one update, so none of them can land without the rest", async () => {
+  before();
+  const run = await setField("--set", "complexity=m", "--set", "priority=high", "--why", WHY);
+  assert.equal(run.status, 0, run.stderr);
+  const updates = state.calls.filter((one) =>
+    one.name === "forge_issues" && one.args.action === "update" && one.args.data?.sessionContext === undefined);
+  assert.equal(updates.length, 1, `one request carries every field: ${JSON.stringify(updates.map((one) => one.args.data))}`);
+});
+
+/* One question asked twice, so the caller is shown both values rather than told which one won. */
+test("a field named twice in one call is refused with both values, and nothing is sent", async () => {
+  before();
+  const run = await setField("--set", "priority=high", "--set", "priority=low", "--why", WHY);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--set names priority 2 times, as `high` and `low`/u, run.stderr);
+  assert.match(run.stderr, /--set priority=<value>/u, "and the form that asks for the one they meant");
+  assert.match(run.stderr, /Nothing was sent\./u);
+  assert.equal(state.calls.some((one) => one.args.action === "update"), false);
+  assert.deepEqual(posted(), [], "and no correction for a call that moved nothing");
+});
+
+/* The tracker moves a status on its own route and answers one sent to `update` with a raw
+   BAD_REQUEST naming no way on (ISS-931 for every other such name). Refused here rather than there
+   because the fields of one call go up together: the status would cost every field beside it. */
+test("a --set naming status is refused with the verb that moves one, before anything is sent", async () => {
+  before();
+  const run = await setField("--set", "status=open", "--set", "priority=high", "--why", WHY);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /status is not a field an update writes/u, run.stderr);
+  assert.match(run.stderr, /forge advance ISS-96 --set open --why <w>/u,
+    "the route out carries the value the caller gave, so the line can be typed as printed");
+  assert.match(run.stderr, /nothing of this one\s+was sent/u);
+  assert.equal(state.calls.length, 0, "no request at all, not merely no update");
+  assert.equal(ISSUE.priority, "medium", "and the field beside it is untouched");
+});
+
 /* The reason is the whole difference between an override and a lie about what the record earned, so
    it is asked for before anything is sent rather than after the field has moved. */
 test("an override with no reason is refused, and nothing at all is sent", async () => {

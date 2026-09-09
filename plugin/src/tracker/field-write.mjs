@@ -13,8 +13,7 @@ export const noteLandedAs = (held, sent) =>
 
 export const storedNotEmpty = (held) => Boolean(String(held ?? "").trim());
 
-/* Comparator, cap, gate and renewal are the field's, never a caller's argument, and renewal is what a write here means, so only a row that does not renew says so. Built on first use: `lease.mjs` imports back.
-   A recorded override writes under a row of its own, in `writeField`: the tracker judges a field this CLI declares no cap and no comparator of, so what came back is compared with what was sent and nothing else. */
+/* Comparator, cap, gate and renewal are the field's, never a caller's argument, and renewal is what a write here means, so only a row that does not renew says so. Built on first use: `lease.mjs` imports back. A recorded override writes under a row of its own, the tracker judging a field this CLI declares no cap and no comparator of, so what came back is compared with what was sent and nothing else. */
 let rows = null;
 const fields = () => (rows ??= {
   plan: {
@@ -72,21 +71,36 @@ export const rowOf = (field) => fields()[field];
 
 export const ownsField = (field) => Boolean(rowOf(field));
 
-export const writeField = async (documentId, field, value, { ref, next, patch, refuse, override = false }) => {
-  const row = override ? { same: landedAs } : rowOf(field);
-  if (!row) {
-    refuse(`${field} is not a field this writer sets. It takes ${Object.keys(fields()).join(", ")}.`);
-  }
-  const caps = capsOf();
-  if (row.shows) await mustBeShown([{ ref, documentId }]);
-  if (row.renews !== false) await renew(documentId, ref, next, patch);
-  const given = typeof value === "function" ? await value() : value;
-  let sent = given;
-  await write("forge_issues", { action: "update", documentId, data: { [field]: given } }, (data) => {
-    sent = data?.[field] ?? given;
-    capChecked(field, caps, sent, given, refuse, row);
+/** Every field of one write, in one update, so a caller naming several either writes all of them or names none as written. The gate and the renewal are the write's rather than each field's, and the read-back reports per field because a `PATCH` the tracker refuses for one key documents nothing about the others. */
+export const writeFields = async (documentId, given, { ref, next, patch, refuse, override = false }) => {
+  const rows = given.map(({ field, value }) => {
+    const row = override ? { same: landedAs } : rowOf(field);
+    if (!row) {
+      refuse(`${field} is not a field this writer sets. It takes ${Object.keys(fields()).join(", ")}.`);
+    }
+    return { field, value, row };
   });
-  const back = await scoped("forge_issues", { action: "get", documentId, fields: [field] });
-  if (!row.same(back?.[field], sent)) refuse(mismatch(row, field, ref, back?.[field]));
-  return back?.[field];
+  const caps = capsOf();
+  if (rows.some((one) => one.row.shows)) await mustBeShown([{ ref, documentId }]);
+  if (rows.some((one) => one.row.renews !== false)) await renew(documentId, ref, next, patch);
+  const data = {};
+  for (const one of rows) {
+    one.given = typeof one.value === "function" ? await one.value() : one.value;
+    one.sent = one.given;
+    data[one.field] = one.given;
+  }
+  await write("forge_issues", { action: "update", documentId, data }, (posted) => {
+    for (const one of rows) {
+      one.sent = posted?.[one.field] ?? one.given;
+      capChecked(one.field, caps, one.sent, one.given, refuse, one.row);
+    }
+  });
+  const back = await scoped("forge_issues", { action: "get", documentId, fields: rows.map((one) => one.field) });
+  const wrong = rows.filter((one) => !one.row.same(back?.[one.field], one.sent));
+  if (wrong.length) refuse(wrong.map((one) => mismatch(one.row, one.field, ref, back?.[one.field])).join(" "));
+  return back;
 };
+
+/** One field, which is what every caller but the recorded override wants, and the value it read back rather than the row whole. */
+export const writeField = async (documentId, field, value, options) =>
+  (await writeFields(documentId, [{ field, value }], options))?.[field];

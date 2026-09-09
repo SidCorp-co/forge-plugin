@@ -43,6 +43,27 @@ because *given no value* said of a value sitting quoted in the same argument nam
 did not make either. Where the candidates are a set the tracker owns — a filter, a rank, a guide slug,
 a tool name — the live read stays where it is and the refusal waits for it.
 
+**A name the parser has already bound is refused, and `pullRepeated` is the only thing that says otherwise.**
+Two readings are available for `--set a=1 --set a=2`: keep one and drop the other, or hand the verb
+both. Keeping one is the reading no caller can have meant, and until ISS-930 it was the one the
+parser made silently — the reply then described the value that survived, so a caller who asked for
+three fields read a success naming one and had no line anywhere saying the other two were dropped.
+It cost more than a re-run on the verb where a recorded override leaves a correction, because that
+correction is the durable trace of the call: it named the surviving field under a reason written for
+three, which is true about what happened and misleading about what was asked, and no later reader
+can tell those two apart. So the refusal names **both** values rather than the survivor, since a
+caller shown only what was kept cannot see which of their arguments the parser threw away, and it
+says nothing was sent, because a flag given twice is one question asked twice and neither answer is
+better than the other. A repeated **boolean** is not refused: binding `true` a second time loses no
+value, and refusing it would spend a round on a call that meant exactly what it did.
+
+The other reading is a declaration and not a default. A verb whose flag accumulates pulls it out with
+`pullRepeated` before handing the rest to the parser, which is the one place in the tree that says a
+flag may repeat — there is no second list, no `many` table beside the parser and nothing to keep in
+step with the usage row. So reading a verb tells you which of its flags accumulate without reading
+the parser, and a verb that meant to accumulate and forgot gets a refusal rather than a drop, which
+is the failure this way round is chosen for.
+
 **The other wrong call a body slot takes is the body itself.** An agent holding the text in context
 writes it where the path goes, and until ISS-842 nothing between that argument and `open` judged it:
 the answer came from `fs` and named a file the caller never meant to open. So the read decides first,

@@ -62,7 +62,7 @@ globalThis.fetch = async (address, init = {}) => {
   return answer({ id: ISSUE, ...stored, sessionContext: readBack ? readBack(held) : held });
 };
 
-const { capChecked, capRefusal, capsOf, lengthOf, rowOf, writeField } = await import("../../src/tracker/field-write.mjs");
+const { capChecked, capRefusal, capsOf, lengthOf, rowOf, writeField, writeFields } = await import("../../src/tracker/field-write.mjs");
 
 class Refused extends Error {}
 const refuse = (message) => {
@@ -274,4 +274,66 @@ test("a lease that came back another run's is refused in the lease's own words",
   assert.match(said, /another-session/u, "AC-03-2-1: the run that holds it");
   assert.match(said, /expiring 2026-09-06T04:30/u, "its renew time, read out of the lease");
   assert.match(said, /forge claim ISS-9/u, "and the one command that clears it");
+});
+
+/* The several-field arm the recorded override spends (ISS-930). Its whole reason is that one update
+   carries the set: a loop here would put the partial write back, with a correction per field or one
+   naming a subset. The cap, the read-back and the mismatch are still each field's own. */
+const settingAll = async (...pairs) => {
+  stored = {};
+  updates = [];
+  leaseWrites = [];
+  trail = [];
+  return writeFields(ISSUE, pairs, { ref: "ISS-9", refuse, override: true });
+};
+
+test("several fields go out as one update, and the read-back answers for each of them", async () => {
+  const back = await settingAll({ field: "complexity", value: "m" }, { field: "priority", value: "high" });
+  assert.equal(updates.length, 1, `one request, not one per field: ${JSON.stringify(updates)}`);
+  assert.deepEqual(updates[0], { complexity: "m", priority: "high" }, "carrying every field it was given");
+  assert.equal(back.complexity, "m", "and the row it returns holds each of them as the tracker read it back");
+  assert.equal(back.priority, "high");
+  assert.equal(trail.filter((one) => one === "forge_issues:update").length, 2,
+    "the renewal and the write, which is what one content field costs too");
+});
+
+test("one renewal for the set, not one per field", async () => {
+  await settingAll({ field: "complexity", value: "m" }, { field: "priority", value: "high" }, { field: "category", value: "bug" });
+  assert.equal(leaseWrites.length, 1, `three fields renewed the lease ${leaseWrites.length} times`);
+});
+
+test("a field of the set that did not read back is named, and the ones that did are not", async () => {
+  rewrite = (sent) => ({ ...sent, priority: "low" });
+  const said = await assert.rejects(
+    () => settingAll({ field: "complexity", value: "m" }, { field: "priority", value: "high" }),
+    (error) => {
+      assert.match(error.message, /priority did not read back as written/u, error.message);
+      assert.doesNotMatch(error.message, /complexity did not read back/u,
+        "the field that landed is not reported as one that did not");
+      return true;
+    },
+  );
+  rewrite = null;
+  return said;
+});
+
+test("the cap is read per field of the payload, so one over it names itself and not the set", async () => {
+  const said = await assert.rejects(
+    () => settingAll({ field: "plan", value: "p" }, { field: "title", value: "t".repeat(501) }),
+    (error) => {
+      assert.match(error.message, /title is capped at 500 code points and this one is 501/u, error.message);
+      return true;
+    },
+  );
+  assert.equal(updates.length, 0, "and the payload was never sent, the cap being read before the send");
+  return said;
+});
+
+test("one field through the several-field sender is what the single-field caller still gets", async () => {
+  const one = await settingAll({ field: "priority", value: "high" });
+  assert.deepEqual(updates, [{ priority: "high" }], "one field, one update, the same payload as before");
+  assert.equal(one.priority, "high");
+  const bare = await setting("acceptanceCriteria", "1. one outcome a reader could check");
+  assert.equal(bare, "1. one outcome a reader could check",
+    "and writeField still answers with the field's own value rather than the row");
 });

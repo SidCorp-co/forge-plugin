@@ -28,7 +28,7 @@ import { commentLanded, sayLanded } from "./tracker/filing/landed.mjs";
 import { COMPLEXITY_NAMES } from "./ladder.mjs";
 import { helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { exclusive, flags, partition, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
+import { exclusive, flags, partition, pullRepeated, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
 import { dispositionOf, localGuide, localRows, localSlugs, trackerHeader, visibleGuides } from "./guides/guides.mjs";
 import { briefGoals, servesOwed } from "./tracker/project-config.mjs";
 import { goalBlock } from "./goals.mjs";
@@ -43,7 +43,7 @@ import { stats } from "./stats/stats.mjs";
 import { hooks } from "./hooks/hook-log.mjs";
 import { record } from "./flow/record/record.mjs";
 import { advance } from "./flow/advance.mjs";
-import { overrideField } from "./flow/override.mjs";
+import { overrideFields } from "./flow/override.mjs";
 import { spec } from "./spec/verbs.mjs";
 import { claim } from "./flow/claim.mjs";
 import { indexFor, resume } from "./flow/resume.mjs";
@@ -112,7 +112,7 @@ const printIssues = (read, limit, order) => {
 
 const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n]";
 
-const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v --why W]"
+const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W]"
   + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46]";
 
 /* One line per flag, then the one table a row cannot hold: what a body is read against depends on the kind it names. What is open beside a filing prints on the filing, and which rank it took is in the reply — the reasoning behind both is docs/cli/beside.md and docs/cli/new.md, whose second copy this help was. */
@@ -199,9 +199,11 @@ export const commands = {
       return printIssues(await everyIssue(filters), limitFrom(raw), declaredFor("forge_issues", "priority"));
     }
     const reference = first;
-    const { fields, full, why, ...asked } = flags(rest, "issue", ["--full"], { usage: READ_USAGE });
+    const pulled = pullRepeated(rest, "--set", "issue", { usage: READ_USAGE, boolean: ["--full"] });
+    const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full"], { usage: READ_USAGE });
+    const asked = { ...single, ...(pulled.values.length ? { set: pulled.values } : {}) };
     const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set"], "issue", "writes and a call makes one");
-    if (wrote === "set") return overrideField(reference, asked.set, why);
+    if (wrote === "set") return overrideFields(reference, asked.set, why);
     if (wrote !== undefined) return console.log(await wroteEdge(reference, asked));
     if (why !== undefined) fail("--why belongs to --set; a read takes no reason.");
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
