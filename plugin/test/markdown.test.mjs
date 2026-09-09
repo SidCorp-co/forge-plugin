@@ -24,14 +24,14 @@ import {
 } from "../src/markdown.mjs";
 import { FENCE_PATTERN } from "../src/tracker/rest.mjs";
 import { typed } from "../src/hooks/shell-spans.mjs";
-import { DATA_FIELD, sseData } from "../src/sse.mjs";
+import { DATA_FIELD, sseData } from "../src/wire/sse.mjs";
 import { checkStructure } from "../src/checks/claude-md.mjs";
 import { protectInline, verify } from "../vi-natural/format/doc.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const MARKDOWN = "plugin/src/markdown.mjs";
 const SHELL = "plugin/src/hooks/shell-spans.mjs";
-const SSE = "plugin/src/sse.mjs";
+const SSE = "plugin/src/wire/sse.mjs";
 const TRANSPORT = "plugin/src/tracker/rest.mjs";
 const HELP_WORD = "plugin/src/resolve/help-word.mjs";
 const LOG_READS = "plugin/src/hooks/log-reads.mjs";

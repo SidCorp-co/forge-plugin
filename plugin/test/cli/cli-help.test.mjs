@@ -8,7 +8,7 @@ import { existsSync } from "node:fs";
 import { GROUPS, VERBS, VERB_NAMES, helpOf, usageOf } from "../../src/resolve/visibility.mjs";
 import { flagsNamed, helpAskedOf, unknownFlag, wantsHelp } from "../../src/resolve/flags.mjs";
 import { USAGE as KNOWLEDGE, SAYS as KNOWLEDGE_SAYS } from "../../src/tools/knowledge.mjs";
-import { USAGE as CLOUDFLARE, SAYS as CLOUDFLARE_SAYS } from "../../src/tools/cloudflare.mjs";
+import { USAGE as CLOUDFLARE, SAYS as CLOUDFLARE_SAYS } from "../../src/tools/services/cloudflare.mjs";
 import { USAGE as STATS, SAYS as STATS_SAYS } from "../../src/stats/stats.mjs";
 import { SAYS as CODEX_SAYS, USAGE as CODEX } from "../../src/codex/codex.mjs";
 import { CHECK_USAGE, USAGE as SPEC } from "../../src/spec/verbs.mjs";
@@ -162,6 +162,7 @@ const FIELDS_OF = {
     + " query, scope, slug, sourceFilter, strategy, title, topK",
   cloudflare: null,
   codex: null,
+  chatgpt: null,
   hooks: null,
   feedback: null,
   doctor: "depth, issueId",

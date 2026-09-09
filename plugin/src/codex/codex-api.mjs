@@ -11,7 +11,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { defaultEffort } from "./codex-plan.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { userConfig } from "../resolve/config.mjs";
-import { sseData } from "../sse.mjs";
+import { sseData } from "../wire/sse.mjs";
 
 const profilePath = () => process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
 export const modelSlot = () => userConfig().codex?.model || "fable";

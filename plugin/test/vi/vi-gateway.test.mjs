@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { DATA_FIELD } from "../../src/sse.mjs";
+import { DATA_FIELD } from "../../src/wire/sse.mjs";
 
 import { Client } from "../../vi-natural/gateway/client.mjs";
 import { translateItems } from "../../vi-natural/gateway/engine.mjs";
@@ -69,7 +69,7 @@ test("a key reaches the results only where its translation carries the source's 
 });
 
 /* The frame reader, against the line shapes a gateway actually puts on the wire. It borrows
-   DATA_FIELD from plugin/src/sse.mjs and nothing else, and the two lines below are why: an indented
+   DATA_FIELD from plugin/src/wire/sse.mjs and nothing else, and the two below are why: an indented
    payload is one here and is not one to `sseData`, which tests the raw line. Driven through a real
    stream in three chunkings, because the buffer is what decides where a line ends. */
 const streaming = (t, body, bytes) => {
@@ -120,7 +120,7 @@ for (const bytes of [0, 7, 512]) {
 test("the field name is the shared one and the width is not counted here", async (t) => {
   streaming(t, `data: ${JSON.stringify({ choices: [{ delta: { content: "ok" } }] })}\ndata: [DONE]\n`, 0);
   assert.equal(await new Client(CONFIG).chat("system", "user"), "ok");
-  assert.equal(DATA_FIELD, "data:", "the constant this client slices by, declared in plugin/src/sse.mjs");
+  assert.equal(DATA_FIELD, "data:", "the constant this client slices by, declared in plugin/src/wire/sse.mjs");
   assert.equal(
     readFileSync(new URL("../../vi-natural/gateway/client.mjs", import.meta.url), "utf8").includes("slice(5)"),
     false,

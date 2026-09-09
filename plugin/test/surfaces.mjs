@@ -3,7 +3,7 @@ import { USAGE as ADVANCE } from "../src/flow/advance.mjs";
 import { USAGE as CLAIM } from "../src/flow/claim.mjs";
 import { USAGE as RECORD } from "../src/flow/record/record.mjs";
 import { USAGE as RESUME } from "../src/flow/resume.mjs";
-import { SAYS as CLOUDFLARE, USAGE as CLOUDFLARE_USAGE } from "../src/tools/cloudflare.mjs";
+import { SAYS as CLOUDFLARE, USAGE as CLOUDFLARE_USAGE } from "../src/tools/services/cloudflare.mjs";
 import { SAYS as CODEX, USAGE as CODEX_USAGE } from "../src/codex/codex.mjs";
 import { SAYS as KNOWLEDGE, USAGE as KNOWLEDGE_USAGE } from "../src/tools/knowledge.mjs";
 import { SAYS as STATS } from "../src/stats/stats.mjs";

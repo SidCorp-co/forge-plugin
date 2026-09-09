@@ -107,13 +107,19 @@ plugin/
     commands.mjs     one function per verb
     suggest.mjs      the near miss every refusal offers
     flow/            the lease, the typed records, what each status is earned by
-    tracker/         paging, the browse projection, ISS-45 -> uuid, transport,
-                     retry, the cached tool surface, the write boundary, and the
-                     contract above cut at its own headings
+    tracker/         paging, the browse projection, ISS-45 -> uuid, the retry
+                     ladder over one wire/ attempt, the cached tool surface, the
+                     write boundary, and the contract above cut at its headings
     codex/           the consult, its tools, its log and what it owes
     checks/          what this tree holds its own documents and code to
     hooks/           the refusal log and the per-hook switch, shared with hooks/
-    tools/           cloudflare, vi-natural, doctor, which copy is running
+    wire/            what one outbound attempt is made of: the clock it runs
+                     under, the REST origin beside an MCP endpoint, and how an
+                     event stream is read off it
+    tools/           vi-natural, doctor, which copy is running
+      services/      the verbs answering from somebody else's service on this
+                     machine's own credentials — cloudflare, chatgpt — and the
+                     doctor lines reporting those credentials
     spec/            the requirements tree, answered by identifier
     stats/           where an issue-flow run's time and rounds go, off the transcripts
     resolve/         what this run is: settings to { value, from }, ~/.config/forge

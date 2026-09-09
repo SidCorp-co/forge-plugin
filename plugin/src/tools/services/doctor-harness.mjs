@@ -1,9 +1,9 @@
 /* The credentials that are this machine's and a harness verb's, gating nothing: every other verb
    works with none of them saved, so each absence is a note. Rows out rather than printed lines,
    because importing `line` from `doctor.mjs` would be a cycle. docs/cli/doctor.md. */
-import { userConfig } from "../resolve/config.mjs";
-import { modelBehind, profile } from "../codex/codex-api.mjs";
-import { consults, logEntries, logPath } from "../codex/codex-log.mjs";
+import { userConfig } from "../../resolve/config.mjs";
+import { modelBehind, profile } from "../../codex/codex-api.mjs";
+import { consults, logEntries, logPath } from "../../codex/codex-log.mjs";
 import { cloudflareAccounts } from "./cloudflare.mjs";
 
 export const masked = (token, full) => {

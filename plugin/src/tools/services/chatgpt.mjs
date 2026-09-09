@@ -1,18 +1,13 @@
 /* One ChatGPT turn over the search-master backend's `chatgpt` MCP tool: text, a generated image, an
-   attached file, or a chat continued by its id. docs/cli/chatgpt.md.
-
-   One attempt per invocation and never a second. The tool answers a failure during polling with the
-   same `isError` shape it answers a refusal with, and salvages onto it the account and conversation
-   id that served the turn — so a failed call may have spent a real metered turn, no idempotence key
-   is on offer, and a replay can open a second conversation (ISS-791). A failure names `--resume`
-   instead, where an id came back. */
+   attached file, or a chat continued by its id. One attempt per invocation and never a second, and
+   a failure names `--resume` instead — docs/cli/chatgpt.md carries why. */
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 
-import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds } from "../request.mjs";
-import { userConfig } from "../resolve/config.mjs";
-import { fail } from "../resolve/settings.mjs";
-import { firstLine, flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
+import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds } from "../../wire/request.mjs";
+import { userConfig } from "../../resolve/config.mjs";
+import { fail } from "../../resolve/settings.mjs";
+import { firstLine, flags, pullRepeated, wantsHelp } from "../../resolve/flags.mjs";
 
 const FILE_CAP = 10;
 const BODY_CHARS = 400;
@@ -45,10 +40,9 @@ const settingsFor = () => {
   return held;
 };
 
-/* Event-aware and deliberately not `sseData`, whose own comment says a consumer needing the wire
-   format's dispatch wants a different function: it concatenates every `data:` value in the body, so
-   a progress notification arriving before the result yields two adjacent JSON documents and the
-   parse fails (consult ab0c46, F1). */
+/* Event-aware and deliberately not `sseData`, whose own comment sends a consumer needing the wire
+   format's dispatch elsewhere: it concatenates every `data:` value, so a notification before the
+   result yields two adjacent JSON documents and the parse fails (consult ab0c46, F1). */
 const eventsIn = (text) => text
   .split(/\r?\n\r?\n/u)
   .map((block) => block
@@ -72,8 +66,6 @@ const parsedOr = (text) => {
 const isAnswer = (held, id) => held?.id === id && held.method === undefined
   && (held.result !== undefined || held.error !== undefined);
 
-/* The reply is JSON or an event stream, and both are held to the same test — the single-document
-   case is not exempt from it just because there is nowhere else for the answer to be. */
 const answerIn = (text, type, id) => {
   if (!type.includes("event-stream")) {
     const held = parsedOr(text);
@@ -86,14 +78,20 @@ const answerIn = (text, type, id) => {
   return null;
 };
 
-/* Every diagnostic here quotes a body the far side wrote, and a gateway that echoes the request's
-   headers into a 4xx puts the configured key in it — so the key is struck out of external text
-   before it is printed, rather than trusted not to appear (consult 4f91a2, F2). */
-const shownVia = (key) => (text) =>
-  (key ? String(text).split(key).join("<the key>") : String(text)).slice(0, BODY_CHARS);
+/* A gateway echoing the request's headers into a 4xx puts the configured key in the body this verb
+   then quotes, so external text is struck before it prints — ids and metadata too, since clearing
+   the sentence and then interpolating a backend field clears nothing. Striking and truncating are
+   two jobs and only a quoted body wants both: a signed URL runs past any cap worth putting on an
+   error, so cutting one to guard against a key not in it breaks a working link (4f91a2, 4d1f8e, ea77c3). */
+const redactorsFor = (key) => {
+  const struck = (text) => (key ? String(text).split(key).join("<the key>") : String(text));
+  return { struck, shown: (text) => struck(text).slice(0, BODY_CHARS) };
+};
 
-const ambiguous = (said, conversation) => {
-  const back = conversation ? `\n  The turn may already exist: forge chatgpt --resume ${conversation} "<next>"` : "";
+const ambiguous = (said, conversation, shown) => {
+  const back = conversation
+    ? `\n  The turn may already exist: forge chatgpt --resume ${shown(conversation)} "<next>"`
+    : "";
   fail(`chatgpt: ${said}\n  This turn may have been spent and is not sent again — the tool cannot say `
     + `whether it ran.${back}`);
 };
@@ -104,7 +102,7 @@ const uploaded = async (base, key, path, clock) => {
   } catch {
     fail(`chatgpt: no file at ${path}, so nothing was sent`);
   }
-  const shown = shownVia(key);
+  const { shown } = redactorsFor(key);
   const form = new FormData();
   form.set("file", new Blob([readFileSync(path)]), basename(path));
   const answer = await fetch(`${base}/upload`, {
@@ -112,6 +110,7 @@ const uploaded = async (base, key, path, clock) => {
     headers: { authorization: `Bearer ${key}` },
     body: form,
     signal: clock(),
+    redirect: "error",
   });
   const text = await answer.text();
   if (!answer.ok) fail(`chatgpt: the upload of ${path} was refused — ${shown(text)}`);
@@ -135,22 +134,28 @@ const attached = async (given, held, clock) => {
   return urls;
 };
 
-const printed = (out, meta) => {
+/* The metadata is struck like any other backend text; the answer itself is not, because it is what
+   was asked for and mangling it to guard against a key nobody put there is the worse trade. */
+const printed = (out, meta, shown) => {
   const said = out.answers ?? null;
   if (said !== null) console.log(typeof said === "string" ? said : JSON.stringify(said, null, 2));
-  if (out.imageUrl) console.log(`\nimage     ${out.imageUrl}`);
-  if (meta?.account) console.log(`account   ${meta.account}`);
+  if (out.imageUrl) console.log(`\nimage     ${shown(out.imageUrl)}`);
+  if (meta?.account) console.log(`account   ${shown(meta.account)}`);
   /* Only where the reply carries one: `_meta` has no model, and the slug asked for may never have run. */
-  if (out.model) console.log(`model     ${out.model}`);
-  if (out.conversationId) console.log(`resume    forge chatgpt --resume ${out.conversationId} "<next>"`);
+  if (out.model) console.log(`model     ${shown(out.model)}`);
+  if (out.conversationId) console.log(`resume    forge chatgpt --resume ${shown(out.conversationId)} "<next>"`);
 };
 
 export const chatgpt = async (argv) => {
   const said = usage();
   if (wantsHelp(argv) || argv.length === 0) return console.log(said);
   const [prompt, ...others] = argv;
-  /* The prompt is a subject rather than a flag's value, so it comes off before the parser: `flags`
-     refuses a bare word, which is what tells a caller that everything after it is named. */
+  /* The prompt is a subject, not a flag's value, so it comes off before the parser, which refuses a
+     bare word. A flag standing in its place is two mistakes at once, so the flags are judged first
+     — or a mistyped one is never named and reads as a missing prompt. */
+  if (prompt.startsWith("--")) {
+    flags(pullRepeated(argv, "--file", "chatgpt", { usage: said }).rest, "chatgpt", [], { usage: said });
+  }
   if (prompt.startsWith("--") || !prompt.trim()) {
     fail(`chatgpt: the prompt comes first, before any flag.\n${firstLine(said)}`);
   }
@@ -158,7 +163,7 @@ export const chatgpt = async (argv) => {
   const { resume, model, save } = flags(rest, "chatgpt", [], { usage: said });
 
   const held = settingsFor();
-  const shown = shownVia(held.key);
+  const { struck, shown } = redactorsFor(held.key);
   const deadline = deadlineOf(null);
   const clock = () => clockFor(deadline);
   const files = await attached(given, held, clock);
@@ -191,34 +196,40 @@ export const chatgpt = async (argv) => {
       },
       body: JSON.stringify(body),
       signal: clock(),
+      /* A 307 or 308 is followed with method and body intact, so a redirect is a second `tools/call`
+         and no retry loop never enforced one turn by itself (consult 4d1f8e, F1). Not on the image
+         `GET`, where following one is ordinary and costs no turn. */
+      redirect: "error",
     });
     text = await answer.text();
   } catch (error) {
-    ambiguous(error.name === "TimeoutError" ? `ran out after ${deadline.value}s` : shown(error.message), resume);
+    ambiguous(error.name === "TimeoutError" ? `ran out after ${deadline.value}s` : shown(error.message),
+      resume, struck);
   }
   if (!answer.ok) fail(`chatgpt: the backend answered ${answer.status} — ${shown(text)}`);
 
   const message = answerIn(text, answer.headers.get("content-type") ?? "", id);
-  if (!message) ambiguous(`the reply could not be read as this request's answer — ${shown(text)}`, resume);
+  if (!message) ambiguous(`the reply could not be read as this request's answer — ${shown(text)}`, resume, struck);
   const result = message.result ?? {};
   const part = result.content?.find((one) => one.type === "text");
   if (result.isError || message.error) {
     ambiguous(`the tool refused — ${shown(message.error?.message ?? part?.text ?? "no reason given")}`,
-      resume ?? result._meta?.conversationId);
+      resume ?? result._meta?.conversationId, struck);
   }
   /* Nothing to read is refused rather than printed as an empty answer, and names --resume like any
      other spent turn; text that will not parse is shown as it came (consult 4f91a2, F1). */
   if (typeof part?.text !== "string" || !part.text.trim()) {
-    ambiguous(`the reply carried no answer to read — ${shown(text)}`, resume ?? result._meta?.conversationId);
+    ambiguous(`the reply carried no answer to read — ${shown(text)}`,
+      resume ?? result._meta?.conversationId, struck);
   }
   const out = parsedOr(part.text) ?? { answers: part.text };
-  printed(out, result._meta);
+  printed(out, result._meta, struck);
   if (save && out.imageUrl) {
     const drawn = await fetch(out.imageUrl, { signal: clock() });
     /* Checked before the write, or a 403's error document lands on the destination under a `saved`
        line and overwrites whatever was there (consult 4f91a2, F3). */
     if (!drawn.ok) {
-      fail(`chatgpt: the image at ${out.imageUrl} answered ${drawn.status}, so ${save} is untouched.`
+      fail(`chatgpt: the image at ${struck(out.imageUrl)} answered ${drawn.status}, so ${save} is untouched.`
         + "\n  The turn is not sent again — the answer above is already the one it gave.");
     }
     writeFileSync(save, Buffer.from(await drawn.arrayBuffer()));
@@ -226,3 +237,6 @@ export const chatgpt = async (argv) => {
   }
   return undefined;
 };
+
+/* Or the CLI answers `-h` off the verb table, and the one attempt, the cap and the deadline in force are all missing from what a caller reads. */
+chatgpt.answersHelp = true;

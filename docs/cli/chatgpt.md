@@ -10,6 +10,11 @@ where an id came back, which hands the decision to a person rather than taking i
 The rule was the user's, on 2026-09-09, against this issue's own earlier text: the original asked for
 one retry, and the backend's salvage is why that was wrong.
 
+Having no retry loop is not by itself enough to keep the promise. `fetch` follows a 307 or 308 with
+the method and the body intact, so a redirect on the endpoint puts a second `tools/call` on the wire
+that no code here asked for; the turn refuses to follow one and reports the ambiguous failure
+instead. The image download is a `GET` and still follows redirects, because that costs no turn.
+
 Two transports, because the backend has two. The turn goes over the MCP endpoint and a local file's
 upload goes over REST, which is search-master's own split rather than a choice made here; there is no
 REST route that sends a turn. The transformation between them takes the URL as an argument instead of
@@ -26,9 +31,9 @@ printed as nothing at all.
 
 Every diagnostic quotes a body the far side wrote, and a gateway that echoes the request's headers
 into a 4xx puts the configured key in it, so the key is struck out of external text before anything
-is printed. The type list a refused upload names is the backend's own words, never a copy kept here:
-this repository is read-only against search-master, and a copy is a claim about another codebase that
-goes stale without failing anything.
+is printed. The type list a refused upload names is the backend's own words, never a copy kept here: the
+authority for it is `ALLOWED` in search-master, which this repository cannot write to and does not
+gate.
 
 No default model is sent. The upstream ignores an unknown slug silently rather than refusing it, so a
 default from here would misreport which model ran; the reply's model line is printed only where the

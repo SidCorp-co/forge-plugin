@@ -55,6 +55,23 @@ const BODIES = {
     },
   }),
   image: () => JSON.stringify(answered({ answers: "drawn", imageUrl: `${state.origin}/image.png` })),
+  /* A signed URL is routinely longer than any cap worth putting on a quoted error body, so a
+     redactor that also truncates breaks a link it had no key to strike (consult ea77c3, F1). */
+  longUrl: () => JSON.stringify(answered({
+    answers: "drawn",
+    imageUrl: `${state.origin}/image.png?signature=${"s".repeat(500)}`,
+  })),
+  /* The key arriving back through a field the verb interpolates rather than through the message it
+     already struck: a redaction that stops at the sentence prints it on the next line. */
+  keyInMeta: () => JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    result: {
+      content: [{ type: "text", text: "the tool would not run" }],
+      isError: true,
+      _meta: { conversationId: `conv-${KEY}` },
+    },
+  }),
   /* The gateway that puts the request's own Authorization back in its error body, which is the one
      way the configured key reaches a terminal (consult 4f91a2, F2). */
   echoes: () => `502 from the gateway, upstream said: authorization: Bearer ${KEY}`,
@@ -62,6 +79,8 @@ const BODIES = {
 
 const served = (request, response) => {
   const url = new URL(request.url, state.origin);
+  state.authorization = request.headers.authorization ?? null;
+  state.verb = request.method;
   /* Its own switch rather than a mode: the reply has to name an image for the download to be
      attempted at all, so serving the image and refusing it are two axes and not one. */
   if (url.pathname === "/image.png") {
@@ -76,6 +95,13 @@ const served = (request, response) => {
     }
     return response.writeHead(200, { "content-type": "application/json" })
       .end(JSON.stringify({ id: "up-1", url: `${state.origin}/held/one.png`, name: "one.png", mime: "image/png", size: 8 }));
+  }
+  /* Answered before the body is read, as a real redirector does, and pointing at a path that counts
+     its own arrivals: `fetch` follows a 307 with the POST intact, so a verb that allows one sends a
+     second tools/call and the count is what shows it. */
+  if (state.mode === "moved" && url.pathname === "/mcp") {
+    state.calls.push(url.pathname);
+    return response.writeHead(307, { location: `${state.origin}/mcp-moved` }).end();
   }
   let body = "";
   request.on("data", (chunk) => {
@@ -140,6 +166,33 @@ const asked = (mode, ...argv) => {
   return ran(configured(), ...argv);
 };
 
+/* Through the CLI rather than the exported text: without `answersHelp` the dispatcher answers `-h`
+   off the verb table before the verb sees it, and every line below is silently missing. */
+test("-h is answered by the verb, and states the one attempt, the cap and the deadline in force", async () => {
+  state.mode = "json";
+  const run = await ran(seeded({ url: `${state.origin}/mcp`, key: KEY }), "-h");
+  assert.equal(run.status, 0);
+  assert.match(run.stdout, /sent once and never again/u);
+  assert.match(run.stdout, /up to 10/u);
+  assert.match(run.stdout, /no default is sent/u);
+  assert.match(run.stdout, /The wait is \d+s, from waitSeconds in config\.json\./u);
+  assert.equal(state.calls.length, 0);
+});
+
+/* A flag where the prompt belongs is two mistakes, and the stranger is the one worth naming: a
+   refusal that only said the prompt was missing left a typo of a real flag unnamed. */
+test("a stranger flag standing in the prompt's place is named, and a real one still misses the prompt", async () => {
+  state.mode = "json";
+  const env = seeded({ url: `${state.origin}/mcp`, key: KEY });
+  const stranger = await ran(env, "--zzz", "x");
+  assert.equal(stranger.status, 1);
+  assert.match(stranger.stderr, /No chatgpt flag named --zzz\. The set is/u);
+  const missing = await ran(env, "--model", "gpt-5.6");
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /the prompt comes first/u);
+  assert.equal(state.calls.length, 0);
+});
+
 test("no endpoint or key: the refusal names the doctor flag for each, and sends nothing", async () => {
   state.mode = "json";
   const run = await ran(seeded(null), "a prompt it never gets to send");
@@ -168,6 +221,21 @@ test("an answer that is already an object prints as JSON rather than being coerc
 test("keepContext is never sent false by this verb, which would disable an image turn upstream", async () => {
   await asked("json", "draw me a thing");
   assert.notEqual(state.sent[0].params.arguments.keepContext, false);
+});
+
+/* The shape on the wire, which every other case here takes for granted: nothing else asserts the
+   method, the tool's name or the credential, so all three could move unnoticed. */
+test("one turn is a tools/call of chatgpt at the configured endpoint, under the configured key", async () => {
+  const run = await asked("json", "what shape is this");
+  assert.equal(run.status, 0);
+  assert.deepEqual(state.calls, ["/mcp"], "one request, at the endpoint that was configured");
+  /* The HTTP verb, which the JSON-RPC method is not: a turn sent as PUT would satisfy every other
+     line here (consult 6b02a4, F1). */
+  assert.equal(state.verb, "POST");
+  assert.equal(state.sent[0].jsonrpc, "2.0");
+  assert.equal(state.sent[0].method, "tools/call");
+  assert.equal(state.sent[0].params.name, "chatgpt");
+  assert.equal(state.authorization, `Bearer ${KEY}`);
 });
 
 test("an event stream is read past a progress notification, which carries no id", async () => {
@@ -211,6 +279,22 @@ test("a body that never finishes runs out on the deadline, the headers having al
   const run = await asked("stalls", "wait for me");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /ran out after 2s/u);
+  assert.equal(state.calls.length, 1);
+});
+
+/* One turn means one request on the wire, not one call to fetch. */
+test("a 307 on the endpoint is refused rather than followed, so the turn reaches one address only", async () => {
+  const run = await asked("moved", "do not send this twice");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /may have been spent and is not sent again/u);
+  assert.deepEqual(state.calls, ["/mcp"], "the redirect target is never asked");
+});
+
+test("a key echoed back through the conversation id is struck out of the failure too", async () => {
+  const run = await asked("keyInMeta", "the id carries it");
+  assert.equal(run.status, 1);
+  assert.ok(!run.stderr.includes(KEY), "a redaction that stops at the sentence is not a redaction");
+  assert.match(run.stderr, /--resume conv-<the key>/u);
   assert.equal(state.calls.length, 1);
 });
 
@@ -306,6 +390,13 @@ test("a --resume turn that fails is counted the same as a fresh one", async () =
   assert.equal(run.status, 1);
   assert.equal(state.calls.length, 1);
   assert.equal(state.sent[0].params.arguments.conversationId, "conv-3");
+});
+
+test("a signed image URL past the diagnostic cap is printed whole, not truncated by the redactor", async () => {
+  const run = await asked("longUrl", "draw me a long one");
+  assert.equal(run.status, 0);
+  const url = `${state.origin}/image.png?signature=${"s".repeat(500)}`;
+  assert.ok(run.stdout.includes(url), "the link a caller has to open is printed entire");
 });
 
 test("--save writes the bytes the image URL served", async () => {

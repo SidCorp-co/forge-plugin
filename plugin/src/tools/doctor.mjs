@@ -30,7 +30,7 @@ import {
   readClaudeMd,
   reviewClaudeMd,
 } from "../checks/claude-md.mjs";
-import { harnessLines, masked } from "./doctor-harness.mjs";
+import { harnessLines, masked } from "./services/doctor-harness.mjs";
 import { copyToRun, FROZEN, pluginCopy } from "./plugin-copy.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";

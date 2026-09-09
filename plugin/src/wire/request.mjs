@@ -1,5 +1,5 @@
 /* The clock one outbound attempt runs under and the REST origin beside an MCP endpoint, shared once `forge chatgpt` became a second caller: a copied deadline is a second place `waitSeconds` has to be honoured. The ladder above one attempt stays `tracker/rest.mjs`'s and the route table stays `tracker/routes.mjs`'s. */
-import { userConfig } from "./resolve/config.mjs";
+import { userConfig } from "../resolve/config.mjs";
 
 const FALLBACK_WAIT_SECONDS = 60;
 /* Signed, not unsigned: `AbortSignal.timeout` validates against the unsigned range while the timer under it fires at 1ms past the signed one, so past that a deadline of nothing wears the number asked for (consult 8b2c3d, F1). */
