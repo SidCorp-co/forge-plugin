@@ -3,7 +3,7 @@ import { readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { digest, locate } from "./codex-api.mjs";
-import { judgedBy, logEntries } from "./codex-log.mjs";
+import { bodied, judgedBy, logEntries } from "./codex-log.mjs";
 import { repoRoot } from "./codex.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
 import { bodyItself, notAPath } from "../resolve/payload.mjs";
@@ -21,11 +21,11 @@ const readIt = (here, root, rel, why) =>
   + `what this claims to have verified in code>" | forge codex consult --send bodies ${typed(rel)}\`, `
   + `then re-send. ${OFF}`;
 
-/* `recheckOwed`'s test: `sent` is what was read off disk, and a diffs consult sent none of it. */
+/* One file's half of `shortOfWhole`, borrowing its test rather than restating it: what is wanted here is the part itself, for the bytes it carried, and a diffs consult sent none of them. */
 const carriedWhole = (entry, rel) => {
   if (entry.send !== "bodies") return null;
   const held = (entry.sent ?? []).find((one) => one.rel === rel);
-  return held && !held.clipped && Number(held.chars) > 0 ? held : null;
+  return bodied(held) ? held : null;
 };
 
 const STOOD_DOWN = { refusal: null, text: null };

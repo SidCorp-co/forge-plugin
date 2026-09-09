@@ -14,7 +14,7 @@ import { recordDir, runSays } from "./gates/timing.mjs";
 import { acrossVersion } from "./gates/carried.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { follows, installs, LINKED } from "./run/install.mjs";
-import { REPLAYED, replaySays } from "./run/replayed.mjs";
+import { REPLAY_HELP, REPLAYED, replaySays } from "./run/replayed.mjs";
 import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./run/land.mjs";
 import { landReady } from "./run/land-ready.mjs";
 import { onlyRelease, RELEASE_FILES } from "./run/landing.mjs";
@@ -48,7 +48,7 @@ const usage = () => [
   `  ${sig("start")}   add the worktree beside this checkout, link both node_modules, and`,
   "                          print the wrapper a probe of the change must invoke",
   `  ${sig("ship")}`,
-  "                          clean tree, fetch, the base the review judged proved still the base,",
+  "                          clean tree, fetch, the review proved to answer for the head this lands,",
   "                          rebase, `npm run check`, a version above the remote head, push, the",
   "                          checkout offered that head, the marketplace and the plugin installed",
   "                          from the tree that shipped, then the installed copy named, the sha the",
@@ -78,20 +78,7 @@ const usage = () => [
   "ship stops at the first failure and writes nothing past it, and a resume past the gate spends the",
   "gate first, so nothing that pushes runs against a tree no gate has passed.",
   "",
-  "The step before the rebase is the same rule land-ready takes for a batch, at the one landing that",
-  "had none. It pins the head the remote holds by ls-remote, not off a remote-tracking ref a resume",
-  "never refreshed; reads the base this change was replayed onto as its merge base with that pin, and",
-  "the paths the change writes against that base, a rename putting both of its own in the set; and",
-  "refuses where the base moved and the move left a difference in any of those paths: the read that",
-  "earned the review judged them at the old base, so a rebase past it would push a head nobody read",
-  "and leave the review record, the verdicts and the mark's reviewed clause naming it. A pin this",
-  "checkout has not fetched is refused the same way and names the fetch. It names which of the",
-  "change's files moved, not just that the branch did — a landing that touched none of them",
-  "invalidates no read and is not refused, and it replays nothing and re-reads nothing for you:",
-  "replaying onto the head that is there now is the whole of what clears it, and it goes back in",
-  "ahead of the gate on any resume that can still reach the push, so --from is no way past it",
-  "either. Where nothing moved it prints the mark's own `landing moved` clause, which nothing else",
-  "in a single run's ship computes.",
+  ...REPLAY_HELP,
   "",
   "What a session registered, and the skills it loaded, reach it at its next start — gate code does",
   "not, being chosen per call — so the last step says whether a restart is owed and names the set it",

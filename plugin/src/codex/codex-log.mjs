@@ -142,6 +142,26 @@ const sharing = (one, rels) => (one.files ?? []).some((file) => rels.includes(fi
 export const judgedBy = (entries, root, rels) =>
   answered(entries).filter((one) => one.root === root && sharing(one, rels));
 
+/* A `sent` entry is not a body: `bundle` records one for a file it could not read, and a clipped
+   one, a missing one and an empty one each close a review on something nobody read. */
+export const bodied = (one) => one && !one.clipped && Number(one.chars) > 0;
+
+/** What of this set a consult did not read whole, and whether it read the whole of it: `send` bodies with every file among its own and a whole body carried for each. The recheck explains a shortfall and the ship names the head there was none at, so what "whole" is has one home. */
+export const shortOfWhole = (one, rels) => {
+  const unread = rels.filter((rel) => !(one?.files ?? []).includes(rel));
+  const carried = new Map((one?.sent ?? []).map((sent) => [sent.rel, sent]));
+  const part = rels.filter((rel) => !unread.includes(rel) && !bodied(carried.get(rel)));
+  return { unread, part, whole: one?.send === "bodies" && !unread.length && !part.length };
+};
+
+/** The last answered consult of this root that read the whole of this set at a commit — the head a review was earned at — or null. Two absences are this caller's and not `shortOfWhole`'s, so the recheck's own reading is untouched: an empty set is read whole by every consult ever taken, and a `dirty` entry's head is where the pass was taken rather than what it read, so it argues neither way about ancestry. */
+export const wholeReadOf = (entries, root, rels) => {
+  if (!rels.length) return null;
+  return answered(entries)
+    .filter((one) => one.root === root && !one.dirty && one.head && shortOfWhole(one, rels).whole)
+    .at(-1) ?? null;
+};
+
 export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
   const scored = verdictsBy(entries);
   const own = answered(entries).filter((one) => one.root === root);
@@ -335,14 +355,9 @@ export const recheckOwed = (plan, rels) => {
       + `${read} — the read of the whole set is the pass a review is earned by, and a recheck follows one of its findings.`;
   }
   const of = plan.judged.id ?? plan.judged.at;
-  /* The last consult sharing ANY of these files. `files` is what it was about, `sent` what it carried,
-     and a `sent` entry is not a body — `bundle` records one for a file it could not read. Half a set,
-     a clipped body, a missing entry and an empty one each close a review on something nobody read. */
-  const unread = rels.filter((rel) => !(plan.judged.files ?? []).includes(rel));
-  const carried = new Map((plan.judged.sent ?? []).map((one) => [one.rel, one]));
-  const whole = (one) => one && !one.clipped && Number(one.chars) > 0;
-  const part = rels.filter((rel) => !unread.includes(rel) && !whole(carried.get(rel)));
-  if (plan.judged.send === "bodies" && !unread.length && !part.length) {
+  // `plan.judged` is the last consult sharing ANY of these files, which is why a shortfall is likely.
+  const { unread, part, whole } = shortOfWhole(plan.judged, rels);
+  if (whole) {
     return `consult ${of} read this set whole and found nothing${plan.judged.head ? `, taken at ${plan.judged.head}` : ""}: `
       + "that is the whole-set read a review is earned by, and a recheck has nothing to verify against it. It read a "
       + "working tree, so the head is where the pass was taken and not what it read.\n"

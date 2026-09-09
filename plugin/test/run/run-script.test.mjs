@@ -22,9 +22,11 @@ test("-h names all four steps, the resume flag and the threshold it counts again
     "gate and raises no version",
     "The install reads the tree that shipped", "past the push and through the install",
     "the source is the checkout and no registration is written",
-    "the base the review judged proved still the base",
+    "the review proved to answer for the head this lands",
     "the move left a difference in any of those paths",
-    "replaying onto the head that is there now is the whole of what clears it"]) {
+    "replaying onto the head that is there now is the whole of what clears it",
+    "is not an ancestor of the head it would land",
+    "a read of the whole set at the head that would land"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
   assert.ok(!run.stdout.includes("3 release(s)"), `a release count is no part of the trigger:\n${run.stdout}`);
