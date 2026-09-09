@@ -99,11 +99,16 @@ const corpus = () => {
   return room;
 };
 
-const ask = (room, ...argv) =>
-  spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, ...argv], {
+const asked = (room, ...argv) =>
+  spawnSync(FORGE, ["stats", "runs", ...argv], {
     encoding: "utf8",
     env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-home-"), TMPDIR: room },
   });
+
+/* With this suite's own --checkout in front. A case about that flag itself calls `asked` instead: a
+   helper naming a flag makes the caller's own occurrence a second one, which the parser refuses
+   rather than overrides (ISS-930). */
+const ask = (room, ...argv) => asked(room, "--checkout", PROJECT, ...argv);
 
 test("every row of a fixture run is what the transcript adds up to", () => {
   const run = ask(corpus());
@@ -170,7 +175,7 @@ test("a window is read off the run's own clock, not the file's", () => {
 
 test("nothing a caller writes is opened", () => {
   const room = corpus();
-  const relative = ask(room, "--checkout", "../elsewhere");
+  const relative = asked(room, "--checkout", "../elsewhere");
   assert.equal(relative.status, 1);
   assert.match(relative.stderr, /--checkout takes an absolute directory, not `\.\.\/elsewhere`/u);
   assert.match(relative.stderr, /no transcript is opened by name/u);

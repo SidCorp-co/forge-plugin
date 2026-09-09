@@ -236,6 +236,27 @@ test("a block's own value replaces a shared single flag and adds to a shared rep
   assert.deepEqual(read[1].fields.evidence, [COMMIT, "9a4d36d"], "and both where it does");
 });
 
+/* The shared prefix rides in front of every block, so a block naming its own single flag hands the
+   parser that flag twice — and since ISS-930 the parser refuses a name it has already bound. The
+   shared occurrence comes out for a flag the block replaces, and only for that one, so a caller
+   naming it twice inside one block is still asking twice and is still refused. */
+test("a flag named twice inside one block is refused, where replacing the shared one is not", async () => {
+  const before = posted();
+  const twice = await ask("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+    "--verdict", "pass",
+    "--criterion", "1", "--verdict", "skipped", "--verdict", "fail");
+  assert.equal(twice.status, 1, twice.stdout);
+  assert.match(twice.stderr, /--verdict was given twice, `skipped` and then `fail`/u, twice.stderr);
+  assert.equal(posted(), before, "and nothing was written");
+
+  const replaced = await ask("record", "verdict", "ISS-7", "--commit", COMMIT, "--evidence", COMMIT,
+    "--verdict", "pass",
+    "--criterion", "1", "--verdict", "skipped", "--why", "no screen to look at");
+  assert.equal(replaced.status, 0, replaced.stderr);
+  assert.deepEqual(parseAll(replaced.stdout).map((one) => one.fields.verdict), ["skipped"],
+    "the block's own value, with the shared one taken out rather than refused");
+});
+
 /* One document answering two criteria was the loop: attached under one name, cited by both, and a
    second PUT of the same base name would resolve to two documents (ISS-55). */
 test("a file two criteria cite goes up once, under the one name both of them carry", async () => {

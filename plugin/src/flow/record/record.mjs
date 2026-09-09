@@ -273,26 +273,42 @@ const servesChecked = async (kind, blocks) => {
   if (bad) refuse(bad);
 };
 
+/* A block's own value of a single flag replaces the shared one, so the shared occurrence comes out
+   rather than riding in front of it: the parser refuses a name it has already bound, and one flag
+   in front of its own replacement is that shape and not a caller asking twice (ISS-930). Which
+   flags are single is the shape's, so a name absent from `single` is left where it is. */
+const sharedFor = (shared, own, single) => {
+  const replaced = new Set(own.filter((token) => single.includes(token)));
+  if (!replaced.size) return shared;
+  const kept = [];
+  for (let index = 0; index < shared.length; index += 1) {
+    if (replaced.has(shared[index])) index += 1;
+    else kept.push(shared[index]);
+  }
+  return kept;
+};
+
 /* Split by the rule `groupsIn` splits the payload by, so one call writes what the reader hands back
    as several records: one commit and one evidence set over fourteen criteria. */
-export const blocksIn = (argv, per) => {
+export const blocksIn = (argv, per, single = []) => {
   const flag = `--${per}`;
   const opens = per ? argv.indexOf(flag) : -1;
   if (opens < 0) return [argv];
   const shared = argv.slice(0, opens);
   const blocks = [];
   for (const token of argv.slice(opens)) {
-    if (token === flag) blocks.push([...shared]);
+    if (token === flag) blocks.push([]);
     blocks.at(-1).push(token);
   }
-  return blocks;
+  return blocks.map((own) => [...sharedFor(shared, own, single), ...own]);
 };
 
 /* Refused here and by the number the reader keys by, so `01` and `1` are one: the map every check
    keys keeps the last of two blocks naming one, and says so nowhere. */
 const blocksOf = (kind, argv) => {
   const shape = SHAPES[kind];
-  const blocks = blocksIn(argv, shape.per).map((one) => gather(kind, one, DEFERRED));
+  const single = shape.fields.filter((one) => !one.many).map((one) => `--${one.flag}`);
+  const blocks = blocksIn(argv, shape.per, single).map((one) => gather(kind, one, DEFERRED));
   const seen = new Set();
   for (const got of blocks) {
     const named = got[shape.per];

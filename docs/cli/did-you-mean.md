@@ -64,6 +64,16 @@ step with the usage row. So reading a verb tells you which of its flags accumula
 the parser, and a verb that meant to accumulate and forgot gets a refusal rather than a drop, which
 is the failure this way round is chosen for.
 
+**Anything that puts a flag in front of a caller's own argv has made a repeat**, and that is where
+the rule bites rather than on anything a caller types. Two places do it and both were found by the
+suite going red, not by reading: `blocksIn` gives every block of a `record` write the shared flags
+that stood before the first key, and `record verdict -h`'s own rule is that a block's own value of a
+single flag *replaces* the shared one — so the shared occurrence is taken out for exactly the flags
+the block names, and a flag named twice inside one block is still a caller asking twice and is still
+refused. A test helper that prepends a flag is the same shape: the case that wants to write that flag
+itself calls a helper that does not. Neither may be answered by softening the parser, because both
+know which occurrence is the replacement and the parser cannot.
+
 **The other wrong call a body slot takes is the body itself.** An agent holding the text in context
 writes it where the path goes, and until ISS-842 nothing between that argument and `open` judged it:
 the answer came from `fs` and named a file the caller never meant to open. So the read decides first,
