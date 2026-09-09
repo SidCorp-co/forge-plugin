@@ -56,18 +56,17 @@ export const advisory = (status, size) => {
   partForStatus(status, (part) => console.log(`\n${part}`));
 };
 
-/* The rung the lane is printed at is the effective one — the field, every correction that climbs and the cut rule — so this is the one read this verb makes for something other than the lease, and it is made after the writes: a page that does not read back costs a line and never the claim. Unread, it is read as a cut page is, which is the rung that owes most (docs/cli/the-ladder.md). */
+/* The rung the lane is printed at is the effective one — the field, every correction that climbs and the cut rule — so this is the one read this verb makes for something other than the lease, and it is made after the writes and softly: a hard read's own failure exits the process, which would take a claim that had already landed down with it, and a page that does not read back is owed a line and not the claim. Unread, it is read as a cut page is, which is the rung that owes most (docs/cli/the-ladder.md). */
 const UNREAD = { plan: null, moved: [], whole: false, band: null };
 
 const advise = async (documentId, issue) => {
-  try {
-    const page = await commentPage(documentId);
-    return advisory(issue.status, sizeOf(viewFrom(documentId, issue, page.comments, cutIn(page))));
-  } catch (error) {
+  const page = await commentPage(documentId, true);
+  if (page?.refused) {
     console.log(`This issue's comment page did not read back, so the lane below is printed at the `
-      + `rung an unread page owes: ${error.message}`);
+      + `rung an unread page owes: ${page.refused}`);
     return advisory(issue.status, UNREAD);
   }
+  return advisory(issue.status, sizeOf(viewFrom(documentId, issue, page.comments, cutIn(page))));
 };
 
 export const USAGE = [
