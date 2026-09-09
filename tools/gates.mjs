@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
 import { attribute, attributionLines, CASES_ENV } from "./gates/isolation.mjs";
-import { cheapestFirst, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
+import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
@@ -71,10 +71,17 @@ without this plugin's own CLI — prints why, prints the body, prints the one co
 hand, and leaves the run's status alone: a gate that cannot reach the tracker may not become a gate
 that refuses. A run with nothing to file reaches none of this and sends no request.
 
-Past that, a step whose inputs are byte for byte what they were when it last passed is skipped and
-says which digest matched. Only passes are recorded, so a red step is red again next time. The
+Past that, a step whose inputs are byte for byte what one of its recorded passes covered is skipped
+and says which digest matched. Only passes are recorded, so a red step is red again next time. The
 record lives under the common git directory, so a worktree's pass counts for the checkout's re-run
 of the same tree, and carries the seconds that step took when it passed.
+
+The record is keyed by the step and the content together, one entry per pair, so a second worktree
+gating other content adds an entry beside this tree's instead of replacing it: that is what makes
+the sharing survive a wave of runs that disagree about the tree. What bounds the store is stated
+where it is enforced — one step keeps its ${ENTRIES_PER_STEP} newest contents, and a pass past that
+evicts its oldest, which costs the tree that held it one re-run of that step and no green it should
+not have.
 
 Those seconds decide the order the steps are spent in: cheapest first, so a tree that is going to be
 rejected is told about its cheapest failure rather than made to wait behind an expensive step, and a

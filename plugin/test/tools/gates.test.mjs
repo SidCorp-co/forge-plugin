@@ -11,19 +11,8 @@ import { join } from "node:path";
 import { STEPS, gateSteps } from "../../../tools/gates/steps.mjs";
 import { REVIEW } from "../../../tools/gates/timing.mjs";
 import { tempRoom } from "../fixtures.mjs";
-import { entries, entryDir, entryNames, git, landed, ledgerFile, NAMED, ROOT, RUNNER, run,
-  runs, runsFile, scratch, SHELL_ENV, STAMPED, write } from "./gates/scratch.mjs";
-
-/* One landing under a path of every step, so a run over it fills the record whole: the questions
-   below are about a tree the record already answers for, which a scoped landing never leaves. */
-const REACHES_ALL = ["plugin/skills/one.md", "packages/code-quality/claude-quality.mjs",
-  "plugin/scripts/one.mjs", "plugin/src/one.mjs"];
-
-const touchedEverywhere = (work, text) => {
-  for (const one of REACHES_ALL) write(work, one, `${one}\n${text}\n`);
-  git(work, "add", "-A");
-  git(work, "commit", "-m", `touched every step: ${text}`);
-};
+import { entries, entryDir, entryNames, git, landed, NAMED, passesDir, passesFor, ROOT, RUNNER, run,
+  runs, runsFile, scratch, SHELL_ENV, STAMPED, touchedEverywhere, write } from "./gates/scratch.mjs";
 
 /* Seconds no step of this scratch ever takes, over the digest each entry already holds. Without it
    a run that spent every step and then recorded over them leaves the same bytes, since every step
@@ -32,7 +21,7 @@ const PLANTED = 4242;
 
 const plantSeconds = (work) => {
   for (const name of entryNames(work)) {
-    const at = join(entryDir(work), name);
+    const at = join(passesDir(work), name);
     const [digest, , label] = readFileSync(at, "utf8").trim().split(" ");
     writeFileSync(at, `${digest} ${PLANTED}s ${label}\n`);
   }
@@ -49,7 +38,7 @@ const ABSENT = STEPS.at(4).label;
 
 const plantCosts = (work) => {
   for (const name of entryNames(work)) {
-    const at = join(entryDir(work), name);
+    const at = join(passesDir(work), name);
     const [digest, , label] = readFileSync(at, "utf8").trim().split(" ");
     if (label === ABSENT) rmSync(at);
     else writeFileSync(at, label === LEGACY ? `${digest} ${label}\n` : `${digest} ${COSTS.get(label)}s ${label}\n`);
@@ -303,8 +292,8 @@ test("a red step records nothing, and the failing verdict names the tree", () =>
     const said = run(work);
     assert.equal(said.status, 1, said.stdout);
     assert.match(said.stderr, new RegExp(`Gate failed: lint — the tree judged: ${work}`, "u"), said.stderr);
-    assert.ok(!existsSync(ledgerFile(work, "lint")), "a step that failed was recorded as passed");
-    assert.ok(!existsSync(ledgerFile(work, "test")), "a step the run never reached was recorded as passed");
+    assert.deepEqual(passesFor(work, "lint"), [], "a step that failed was recorded as passed");
+    assert.deepEqual(passesFor(work, "test"), [], "a step the run never reached was recorded as passed");
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
@@ -319,7 +308,7 @@ test("a step that leaves hook stamps in the temp root it was handed is refused, 
     assert.match(said.stderr, new RegExp(`Gate failed: lint — the tree judged: ${work}`, "u"), said.stderr);
     assert.match(said.stderr, new RegExp(`left 1 hook stamp\\(s\\) in \\S+/${STAMPED}`, "u"), said.stderr);
     assert.match(said.stderr, /plugin\/test\/fixtures\.mjs/u, said.stderr);
-    assert.ok(!existsSync(ledgerFile(work, "lint")), "a step that filled a stamp room was recorded as passed");
+    assert.deepEqual(passesFor(work, "lint"), [], "a step that filled a stamp room was recorded as passed");
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
@@ -330,9 +319,11 @@ test("--full runs every step whatever the diff and the record say", () => {
   try {
     landed(work, "docs/two.md", "a second document\n");
     assert.equal(run(work).status, 0);
+    const held = entries(work);
     const said = run(work, ["--full"]);
     assert.ok(!said.stdout.includes("=== ledger:"), `--full read the record:\n${said.stdout}`);
     for (const step of STEPS) assert.ok(said.stdout.includes(`=== ${step.label} ===`), `${step.label} did not run`);
+    assert.deepEqual(entries(work), held, "a --full run wrote a pass, and it is the run that trusts none of them");
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
@@ -448,7 +439,8 @@ test("a pass records the seconds it took, the skip line says them, and an older 
   try {
     landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
     assert.equal(run(work).status, 0);
-    const entry = readFileSync(ledgerFile(work, "lint"), "utf8").trim();
+    const [at] = passesFor(work, "lint");
+    const entry = readFileSync(at, "utf8").trim();
     assert.match(entry, /^[0-9a-f]{12} \d+s lint$/u, `the pass carries no seconds: ${entry}`);
 
     const again = run(work);
@@ -456,7 +448,7 @@ test("a pass records the seconds it took, the skip line says them, and an older 
 
     // The form written before seconds were kept: it names a pass, and reading it as a miss re-runs
     // every step in the repository the day the release lands.
-    writeFileSync(ledgerFile(work, "lint"), `${entry.replace(/ \d+s /u, " ")}\n`);
+    writeFileSync(at, `${entry.replace(/ \d+s /u, " ")}\n`);
     const older = run(work);
     assert.match(older.stdout, /skip lint {19}digest [0-9a-f]{12}, passing before this record kept seconds/u,
       `an entry without seconds read as a miss:\n${older.stdout}`);

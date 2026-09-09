@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { acrossVersion, carryPasses, passesHeld } from "../../../../tools/gates/carried.mjs";
 import { STEPS } from "../../../../tools/gates/steps.mjs";
 import { tempRoom } from "../../fixtures.mjs";
-import { entries, git, landed, run, scratch, write } from "./scratch.mjs";
+import { entries, git, landed, passesFor, run, scratch, write } from "./scratch.mjs";
 
 const MANIFEST = join(".claude-plugin", "plugin.json");
 const LOCK = "package-lock.json";
@@ -99,6 +99,10 @@ test("the passes read before that commit and carried after it leave every step g
     release(work, "1.0.1");
     assert.match(carryPasses(work, held, WROTE),
       new RegExp(`${STEPS.length} of ${STEPS.length} gate step\\(s\\) carried onto this content`, "u"));
+    for (const step of STEPS) {
+      assert.equal(passesFor(work, step.label).length, 2, `${step.label} holds one content after the carry, `
+        + `so the pass the gate judged was replaced rather than joined: ${Object.keys(entries(work)).join(", ")}`);
+    }
 
     const again = run(work);
     assert.match(again.stdout, new RegExp(`ledger: ${STEPS.length} of ${STEPS.length} step\\(s\\) green already`, "u"), again.stdout);

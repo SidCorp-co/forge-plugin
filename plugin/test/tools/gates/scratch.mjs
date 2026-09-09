@@ -120,6 +120,16 @@ export const scratch = (name, failing, leaking, { also = [], slug = null } = {})
   return { at, work };
 };
 
+// One landing under a path of every step, so a run over it fills the record whole: a question about a tree the record already answers for is one a scoped landing cannot ask.
+export const REACHES_ALL = ["plugin/skills/one.md", "packages/code-quality/claude-quality.mjs",
+  "plugin/scripts/one.mjs", "plugin/src/one.mjs"];
+
+export const touchedEverywhere = (work, text) => {
+  for (const one of REACHES_ALL) write(work, one, `${one}\n${text}\n`);
+  git(work, "add", ...REACHES_ALL);
+  git(work, "commit", "-m", `touched every step: ${text}`);
+};
+
 export const landed = (work, path, text) => {
   write(work, path, text);
   git(work, "add", "-A");
@@ -127,13 +137,23 @@ export const landed = (work, path, text) => {
 };
 
 export const entryDir = (work) => join(work, ".git", "gate-ledger");
-export const ledgerFile = (work, label) => join(entryDir(work), label.replace(/[^\w.-]+/gu, "-"));
+export const passesDir = (work) => join(entryDir(work), "passes");
 export const runsFile = (work) => join(entryDir(work), "runs");
 export const runs = (work) => readFileSync(runsFile(work), "utf8").trim().split("\n");
 
-// The step entries alone: the runs series, the per-file records and the attributions share the directory.
-export const entryNames = (work) => readdirSync(entryDir(work))
-  .filter((one) => one !== "runs" && !one.endsWith("-files") && !one.endsWith("-alone")).sort();
+// The entries themselves, a write in flight left out; a record no pass has reached yet answers as none rather than throwing.
+export const entryNames = (work) => {
+  try {
+    return readdirSync(passesDir(work)).filter((one) => !one.startsWith(".")).sort();
+  } catch {
+    return [];
+  }
+};
 
 export const entries = (work) =>
-  Object.fromEntries(entryNames(work).map((one) => [one, readFileSync(join(entryDir(work), one), "utf8")]));
+  Object.fromEntries(entryNames(work).map((one) => [one, readFileSync(join(passesDir(work), one), "utf8")]));
+
+// One step's own, one per content it has passed at, each named for the digest before its label.
+export const passesFor = (work, label) => entryNames(work)
+  .filter((one) => one.split(".").slice(1).join(".") === label.replace(/[^\w.-]+/gu, "-"))
+  .map((one) => join(passesDir(work), one));

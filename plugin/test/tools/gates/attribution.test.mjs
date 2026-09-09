@@ -9,7 +9,7 @@ import { dirname, join, relative, resolve } from "node:path";
 
 import { CASES_ENV } from "../../../../tools/gates/isolation.mjs";
 import { fakeTracker } from "../../fixtures.mjs";
-import { COPIED, entryDir, landed, ledgerFile, ranGate, reachedFrom, ROOT as SCRATCH_ROOT,
+import { COPIED, entryDir, landed, passesFor, ranGate, reachedFrom, ROOT as SCRATCH_ROOT,
   ROUTE_ROOTS, run, runsFile, scratch, STAMPED } from "./scratch.mjs";
 
 const DYNAMIC = /\bimport\s*\(\s*["'](\.[^"']+)["']\s*\)/gu;
@@ -75,7 +75,7 @@ test("a case that fails however it is run refuses the gate, and the refusal name
     assert.match(said.stderr, /a case of this scratch's own/u, said.stderr);
     assert.match(said.stderr, new RegExp(CASE.replace(/\//gu, "\\/"), "u"), said.stderr);
     assert.match(said.stdout, /reproduced alone/u, said.stdout);
-    assert.ok(!existsSync(ledgerFile(work, "test")), "a step whose case reproduced was recorded as passed");
+    assert.deepEqual(passesFor(work, "test"), [], "a step whose case reproduced was recorded as passed");
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
@@ -105,8 +105,8 @@ test("the run that carried on prints no clean verdict, no figure, and no pass fo
     assert.match(said.stdout, /1 case\(s\) failed in a step and were not reproduced alone:/u, said.stdout);
     assert.match(said.stdout, /test {2}plugin\/test\/tools\/two\.test\.mjs {2}a case of this scratch's own/u, said.stdout);
     assert.match(said.stdout, /the next invocation on this content spends each of them whole/u, said.stdout);
-    assert.ok(!existsSync(ledgerFile(work, "test")), "a step that exited non-zero was recorded as passed");
-    assert.ok(existsSync(ledgerFile(work, "lint")), "a step that passed beside it was not recorded");
+    assert.deepEqual(passesFor(work, "test"), [], "a step that exited non-zero was recorded as passed");
+    assert.equal(passesFor(work, "lint").length, 1, "a step that passed beside it was not recorded");
     assert.ok(!existsSync(runsFile(work)), "a run that re-ran a case left a whole-run figure");
   } finally {
     rmSync(at, { recursive: true, force: true });
@@ -150,7 +150,7 @@ test("a filing whose route cannot be loaded prints why, prints the body, names t
     assert.ok(again.stdout.includes("## What happened"), again.stdout);
     assert.ok(again.stdout.includes(`- case: ${CASE_NAME}`), again.stdout);
     assert.match(again.stdout, /→ no issue: the filing route could not be loaded/u, again.stdout);
-    assert.ok(!existsSync(ledgerFile(work, "test")), "the step the recurrence was in was recorded as passed");
+    assert.deepEqual(passesFor(work, "test"), [], "the step the recurrence was in was recorded as passed");
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
@@ -254,7 +254,7 @@ test("--full attributes the case and claims no repeat of it, having read no dige
       assert.match(said.stdout, /not reproduced/u, said.stdout);
       assert.ok(!said.stdout.includes("suite-interaction"), `a --full run claimed a repeat:\n${said.stdout}`);
     }
-    assert.ok(!existsSync(ledgerFile(work, "test")), "a --full run recorded a pass for the step it attributed");
+    assert.deepEqual(passesFor(work, "test"), [], "a --full run recorded a pass for the step it attributed");
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
