@@ -468,6 +468,75 @@ test("a release mark carries its version and head, resolves apart from a count m
   }
 });
 
+/* A reading is held at one point and every line answers for that point. Given both flags the verb
+   took the count mark's window and printed the release's name over it, and counted the releases
+   inside it from the release the header named rather than from the window the figures came from — so
+   the disclosure that says what a reading cannot attribute misstated instead of omitting (ISS-849). */
+test("two anchors are refused with both of them named, and either flag alone answers as it did", () => {
+  const was = { TMPDIR: process.env.TMPDIR, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
+  const home = tempRoom("stats-eval-anchor-");
+  process.env.XDG_CONFIG_HOME = home;
+  try {
+    const room = corpusOf(50);
+    process.env.TMPDIR = room;
+    assert.match(runsMark(PROJECT), /held as mark 50/u);
+    corpusOf(75, room);
+    assert.match(releaseMark(PROJECT, { version: "3.35.500", head: "cafe123" }), /held as 3\.35\.500 over 75 run\(s\)/u);
+    corpusOf(100, room);
+
+    /* Two marks holding two windows, which is what makes a window labelled with the other's source
+       visible in the span the header prints beside the name. */
+    const spanOf = (said, named) => new RegExp(`^the 50 held at ${named} {2}(\\S+ \\S+ to \\S+ \\S+)`, "mu").exec(said)?.[1];
+    const mark = askStats(room, ["eval", "--checkout", PROJECT, "--against", "50"], home);
+    assert.equal(mark.status, 0, mark.stderr);
+    const since = askStats(room, ["eval", "--checkout", PROJECT, "--since-release", "3.35.500"], home);
+    assert.equal(since.status, 0, since.stderr);
+    const marked = spanOf(mark.stdout, "mark 50");
+    const released = spanOf(since.stdout, "release 3\\.35\\.500");
+    assert.ok(marked && released, `both headers name their own anchor: ${marked} / ${released}`);
+    assert.notEqual(marked, released, "and each over its own window");
+    assert.match(since.stdout, /^what a comparison since 3\.35\.500 is confounded by$/mu);
+    assert.doesNotMatch(mark.stdout, /confounded by/u, "a count mark keeps the screen it has always had");
+
+    const argv = ["eval", "--checkout", PROJECT, "--against", "50", "--since-release", "3.35.500"];
+    const both = askStats(room, argv, home);
+    assert.equal(both.status, 1);
+    assert.equal(both.stdout, "", "no window, no header and no confounding line");
+    assert.match(both.stderr, /^stats eval: --against 50 and --since-release 3\.35\.500 name two anchors, and a reading has one/u);
+    assert.match(both.stderr, /Run one alone: `forge stats eval --against 50` for the reading held at a count mark, or `forge stats eval --since-release 3\.35\.500` for the one held at a release\./u);
+    assert.equal(askStats(room, argv, home).stderr, both.stderr, "and the same call is refused the same way twice");
+
+    const bare = askStats(room, ["eval", "--checkout", PROJECT, "--against", "--since-release"], home);
+    assert.equal(bare.status, 1);
+    assert.match(bare.stderr, /^stats eval: --against and --since-release name two anchors/u,
+      "the flags are named where no anchor was typed to name");
+  } finally {
+    Object.assign(process.env, was);
+  }
+});
+
+/* The construction rather than the call: one anchor argument, so the header and the confounding lines
+   cannot be handed two. Flipping the one object's kind moves both together (ISS-849). */
+test("the header and the confounding lines are read off one anchor", () => {
+  const runs = runsOf(110);
+  const copies = [
+    { copy: "3.35.500", at: Date.parse(at(70 * HOUR)), born: true },
+    { copy: "3.35.600", at: Date.parse(at(400 * HOUR)), born: true },
+  ];
+  const stored = evalRuns(runs.slice(0, 60), [], WINDOW);
+  const anchor = { kind: "releases", mark: 60, version: "3.35.400", at: at(60 * HOUR), now: stored.now };
+  const lines = evalLines(evalRuns(runs, copies, WINDOW, anchor), anchor, copies).join("\n");
+  assert.match(lines, /^the 50 held at release 3\.35\.400 {2}/mu);
+  assert.match(lines, /^what a comparison since 3\.35\.400 is confounded by$/mu);
+  assert.match(lines, /^ {2}1 release\(s\) landed after it inside this window$/mu,
+    "counted from the anchor the header named, over the window that anchor's reading gave");
+
+  const counted = { ...anchor, kind: "runs" };
+  const said = evalLines(evalRuns(runs, copies, WINDOW, counted), counted, copies).join("\n");
+  assert.match(said, /^the 50 held at mark 60 {2}/mu, "the same reading held at a count says so");
+  assert.doesNotMatch(said, /confounded by/u, "and carries no disclosure anchored at a release it was not read against");
+});
+
 test("each outcome figure discloses both windows' coverage, and says which window every reason is about", () => {
   const runs = runsOf(4);
   const [older, second] = runs;

@@ -46,6 +46,10 @@ export const EVAL_USAGE = [
   "the consult that crosses a hundred-mark names `forge codex eval` — and writes the reading there,",
   "once per mark, which `--against` puts in the before window's place.",
   "",
+  "One anchor per reading: each of the two flags below names the point the before window is taken",
+  "from, which is also the point the header names and the point the confounding lines count from, so",
+  "the two together are refused with both anchors named.",
+  "",
   "  --checkout <dir>   as for runs",
   "  --size n           runs per window; fifty unless you say otherwise",
   "  --against [<mark>] the reading held at that mark as the before window, or the newest held",
@@ -316,22 +320,25 @@ const confoundedLines = (held, release, copies) => {
       + "older copy, which no install moves until it restarts"];
 };
 
-const head = (held, release) => {
+/** Whether the anchor a screen was taken at is a release's reading, asked of one object by every line
+ *  that names it: two points stated for one reading leave the reader nothing to tell which of them
+ *  the figures came from. */
+const releaseIn = (anchor) => (anchor?.kind === RELEASES ? anchor : null);
+
+const head = (held, anchor) => {
   const full = held.now.runs < held.size ? `  — ${held.size} is a full window and the corpus holds no more` : "";
   const first = `the last ${held.now.runs} issue-flow run(s)  ${span(held.now)}${full}`;
   if (!held.before) {
     return [first,
       `no window before them: the corpus holds ${held.total} run(s) in all, so there is nothing yet to compare this one against.`];
   }
+  const overlapping = held.now.profile.from <= held.before.profile.to;
+  const release = releaseIn(anchor);
   if (release) {
     return [first, `the ${held.before.runs} held at release ${release.version}  ${span(held.before)}`
-      + (held.now.profile.from <= held.before.profile.to
-        ? "  — overlapping the recent window, which begins before this one ends" : "")];
+      + (overlapping ? "  — overlapping the recent window, which begins before this one ends" : "")];
   }
-  if (held.against !== undefined) {
-    return [first, heldAtMark(held.before.runs, held.against, span(held.before),
-      held.now.profile.from <= held.before.profile.to)];
-  }
+  if (anchor) return [first, heldAtMark(held.before.runs, held.against, span(held.before), overlapping)];
   const short = held.size - held.before.runs;
   return [
     first,
@@ -339,8 +346,11 @@ const head = (held, release) => {
   ];
 };
 
-export const evalLines = (held, release = null, copies = []) => {
-  const lines = head(held, release);
+/** `anchor` is the stored reading this comparison's before window came from, or null where it slid:
+ *  one argument and not one per line, so no line is handed a point another line did not read. */
+export const evalLines = (held, anchor = null, copies = []) => {
+  const release = releaseIn(anchor);
+  const lines = head(held, anchor);
   if (!held.before) return lines;
   return [
     ...lines,
@@ -419,6 +429,18 @@ const readingOf = (directory, corpus, size, against = null, read = null) => ({
 const WRITES = "the release step writes one at every multiple of fifty runs in the corpus";
 const RELEASE_WRITES = "the release step writes one at every release";
 
+const anchorAsked = (flag, value) => (value === null ? flag : `${flag} ${value}`);
+
+/* Every line answers for the one point a reading was taken at: the before window comes from it, the
+   header names it, the confounding count measures from it. Two flags name two, so the pair is refused
+   rather than one taking the figures while the other takes the words. */
+const oneAnchorOnly = (against, release) => fail(
+  `stats eval: ${anchorAsked("--against", against)} and ${anchorAsked("--since-release", release)} name two anchors, `
+  + "and a reading has one — the before window, the header line and the confounding lines all read it. "
+  + `Run one alone: \`forge stats eval ${anchorAsked("--against", against)}\` for the reading held at a count mark, `
+  + `or \`forge stats eval ${anchorAsked("--since-release", release)}\` for the one held at a release.`,
+);
+
 /** The count is the corpus's own, read each time and never off the store, so no stale memory of a
  *  crossing can misplace it; the reading is written once, and a second ship landing on the same
  *  count appends nothing. */
@@ -450,6 +472,7 @@ export const releaseMark = (directory, { version, head }, size = WINDOW) => {
 export const printEval = async (argv) => {
   const { against, rest: left } = againstIn(argv, "stats eval");
   const { release, rest } = sinceReleaseIn(left);
+  if (against !== undefined && release !== undefined) oneAnchorOnly(against, release);
   const { checkout, size, horizon, requests, json } = flags(rest, "stats eval", ["--json"], { usage: EVAL_USAGE });
   const window = sized(size);
   const asked = { horizon: horizonOf(horizon), most: spend(requests) };
@@ -466,9 +489,10 @@ export const printEval = async (argv) => {
       + `${readingAside(corpus)}.${derivedFrom(directory)}`);
   }
   const read = await outcomeRead(corpus, directory, window, asked);
-  const held = readingOf(directory, corpus, window, readBack(stored ?? since ?? null), read);
+  const anchor = readBack(stored ?? since ?? null);
+  const held = readingOf(directory, corpus, window, anchor, read);
   if (json) return console.log(JSON.stringify(held, null, 2));
-  for (const line of evalLines(held, since, corpus.copies)) console.log(line);
+  for (const line of evalLines(held, anchor, corpus.copies)) console.log(line);
   return null;
 };
 
