@@ -12,6 +12,7 @@ import { releasePolicy } from "../../tracker/project-config.mjs";
 import { scoped, write } from "../../tracker/rest.mjs";
 import { notAnothers, renew } from "../lease.mjs";
 import { unwrap } from "../machine.mjs";
+import { commitProblem } from "./content.mjs";
 
 /* The tracker's own audit comment for the mark opens on the action's name, and that is what tells a
    mark apart from a comment quoting one. */
@@ -214,7 +215,7 @@ export const undoForm = (ref) => `forge record merged ${ref} --undo`;
 const valueOf = (one, given) => {
   if (one.commit) {
     if (!isCommit(given)) {
-      refuse(`--${one.flag} takes ${one.label} as 7 to 40 hex digits, not \`${given}\`.`);
+      refuse(`--${one.flag} ${commitProblem(one, given)}`);
     }
     return given;
   }

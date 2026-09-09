@@ -4,6 +4,7 @@
 import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES,
   sectionOwedBy } from "../machine.mjs";
 import { CLAUSES, NOTHING } from "./merged.mjs";
+import { commitTakes } from "./content.mjs";
 import { declaredFor } from "../../tracker/rest.mjs";
 import { goalBlock } from "../../goals.mjs";
 import { OPEN_KEPT } from "../worklog.mjs";
@@ -142,6 +143,12 @@ const EVIDENCE_BLOCKS = [
 /** The field a deferred fill reads, the first of its type: `verification` declares two commit-typed fields, the fill reads the first, and the second is promised nothing. */
 const filled = (kind, type) => SHAPES[kind]?.fields.find((one) => one[type]) ?? null;
 
+/* What a commit-typed field the fill does not read takes, off the field itself: `readsOff` below promises the first one a read and says nothing of the others, so `verification`'s `--contains` was described nowhere but in the refusal a caller got for guessing (ISS-833). */
+const alsoCommit = (kind) => (SHAPES[kind]?.fields ?? [])
+  .filter((one) => one.commit)
+  .slice(1)
+  .map((one) => `--${one.flag} takes ${commitTakes(one)}.`);
+
 /* One sentence per fill, under that fill's own condition: an evidence field nothing owes, `routed`'s, is never filled and is promised no read. */
 const readsOff = (kind) => {
   const commit = filled(kind, "commit");
@@ -213,6 +220,7 @@ export const kindHelp = (kind, caps = {}, goals = null) => {
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
     ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
     ...(filled(kind, "evidence") ? ["", ...EVIDENCE_BLOCKS] : []),
+    ...(alsoCommit(kind).length ? ["", ...alsoCommit(kind)] : []),
     ...readsOff(kind),
     "",
     `The flags every writing kind also takes, and the other ${KINDS.length - 1} kinds: \`forge record -h\`.`,

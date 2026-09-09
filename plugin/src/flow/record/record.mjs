@@ -8,7 +8,7 @@ export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 import { CLOSES_FROM, SECTIONS, SHAPES, compoundCriteria, criterionNumber, heldSaid, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, unwrap } from "../machine.mjs";
 import { assemble, parseAll, printRecord, render } from "./page.mjs";
 import { markedCommit, recordMerged } from "./merged.mjs";
-import { eachProblem } from "./content.mjs";
+import { commitProblem, eachProblem } from "./content.mjs";
 import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, usage } from "./record-rows.mjs";
 import { readOrRefuse } from "../../codex/codex-read.mjs";
 import { bodyFrom } from "../../resolve/payload.mjs";
@@ -114,7 +114,7 @@ const gather = (kind, argv, defer = []) => {
     if (field.oneOf && !field.oneOf.includes(value)) {
       refuse(`--${field.flag} takes one of ${field.oneOf.join(", ")}, not \`${value}\`.`);
     }
-    if (field.commit && !isCommit(value)) refuse(`--commit takes 7 to 40 hex digits, not \`${value}\`.`);
+    if (field.commit && !isCommit(value)) refuse(`--${field.flag} ${commitProblem(field, value)}`);
     if (field.criterion && !/^\d+$/u.test(value)) refuse(`--criterion takes the criterion's number, not \`${value}\`.`);
   }
   return got;

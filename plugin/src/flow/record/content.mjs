@@ -4,6 +4,16 @@
 export const eachProblem = (field, values) =>
   (values ?? []).map((one) => field.each?.(one)).find(Boolean) ?? null;
 
+const HEX = "7 to 40 hex digits";
+
+/** What a commit-typed field takes, and the refusal a value that is no sha earns, both in that field's own words: its `takes` where it declares one, else its label, and neither where those words are the flag's own, since `takes commit as ...` hands a caller back the word it typed. The sentence is composed after `--<flag>` by whichever table holds the field. One home, because two tables refuse such a value and `-h` describes it, and a flag name written as a literal in any of them refuses the kind's second commit-typed field in the first's name (ISS-833). */
+export const commitTakes = (field) => {
+  const said = field.takes ?? String(field.label ?? "").toLowerCase();
+  return said === field.flag ? HEX : `${said} as ${HEX}`;
+};
+
+export const commitProblem = (field, value) => `takes ${commitTakes(field)}, not \`${value}\`.`;
+
 /* A place a reader can open: a path by separator or extension, a backticked span, a code name in any of the three casings this tree writes, or a clause or issue key. */
 const OPENABLE = [
   /[\w.@-]+\/[\w./@-]+/u,

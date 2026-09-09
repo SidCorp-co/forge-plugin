@@ -411,8 +411,8 @@ export const OUTCOMES = ["approved", "changes-requested"];
 const FINDING = /^F\d+ (?:accepted|rejected: .+)$/u;
 export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
 
-/* `many` flags repeat; `oneOf` names the values; `least` is the smallest count that is a payload;
-   `newer` is asked for at the write and excused at the read-back, a shape's records outliving it. */
+/* `many` flags repeat; `oneOf` names the values; `least` is the smallest count that is a payload; `newer` is asked for at the write and excused at the read-back, a shape's records outliving it.
+   `takes` is what a sentence about the field says it holds where the label cannot say it: the label is `labelledIn`'s read key above, so renaming one drops that field off every record already written in that form, and what a refusal has to say is longer than what a printed line wants (ISS-833). */
 const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 
 /* The shape `decision` established: a kind whose honest answer may be *none* asks for every field or
@@ -597,7 +597,7 @@ export const SHAPES = {
     fields: [
       FIELD("where", "Where it runs"),
       FIELD("commit", "Commit", { commit: true }),
-      FIELD("contains", "Landed commit in it", { optional: true, commit: true }),
+      FIELD("contains", "Landed commit in it", { optional: true, commit: true, takes: "the landed commit the head on --commit carries" }),
       FIELD("evidence", "Evidence", { many: true, least: 1, evidence: true }),
       FIELD("review", "Review", { optional: true, derived: true }),
       FIELD("promotion", "Promotion", { optional: true, derived: true }),

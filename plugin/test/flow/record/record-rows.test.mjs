@@ -91,6 +91,27 @@ test("a kind is shown the evidence vocabulary and the read sentence its own shap
   assert.doesNotMatch(kindHelp("park"), /--commit/u, "and the kind citing evidence and no commit hears of no --commit");
 });
 
+/* `[--contains C]` beside `--where W` reads as a slot for prose and the row's letters cannot say
+   otherwise: the fill's sentence describes the first commit-typed field and said nothing of any
+   other, so what `--contains` takes reached a caller only in a refusal for guessing (ISS-833). */
+test("a commit-typed field the fill does not read is told what it takes", () => {
+  for (const kind of KINDS) {
+    const shown = kindHelp(kind);
+    const commits = (SHAPES[kind]?.fields ?? []).filter((one) => one.commit);
+    for (const field of commits.slice(1)) {
+      assert.match(shown, new RegExp(`^--${field.flag} takes .+ as 7 to 40 hex digits\\.$`, "mu"),
+        `${kind}: --${field.flag} is described, the fill promising it nothing`);
+    }
+    if (commits.length) {
+      assert.doesNotMatch(shown, new RegExp(`^--${commits[0].flag} takes `, "mu"),
+        `${kind}: the field the fill does read is described by the sentence saying so`);
+    }
+  }
+  assert.match(kindHelp("verification"),
+    /^--contains takes the landed commit the head on --commit carries as 7 to 40 hex digits\.$/mu,
+    "and the words are the field's own label, so a new one of them needs no edit here");
+});
+
 test("a kind -h answers for the kind alone, and a name that is no kind still refuses", () => {
   const one = ask("record", "park", "-h").stdout;
   assert.match(one, /^ {2}park\b.*--kind K/mu, "the kind asked about is answered");

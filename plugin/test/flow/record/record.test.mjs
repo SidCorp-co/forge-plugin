@@ -404,6 +404,60 @@ test("the verification says who released it, in the project's own words and neve
   assert.match(automatic.stdout, /^promotion: to master, automatic$/mu, "and the config says whether anyone owes it");
 });
 
+/* Five runs in one day read `--commit takes 7 to 40 hex digits` with a valid sha on `--commit`, and
+   each spent a round on the argument that was right: the sentence was a literal and `verification`
+   is the one kind declaring two commit-typed fields (ISS-833). */
+test("a commit-typed field refused for its value names itself, and its own label says which commit it wanted", () => {
+  const prose = "this is prose and not a sha";
+  const named = ask("record", "verification", "ISS-3", "--where", "here", "--commit", "43b811e",
+    "--evidence", "43b811e", "--contains", prose);
+  assert.equal(named.status, 1, named.stdout);
+  assert.equal(named.stderr.trim(), "--contains takes the landed commit the head on --commit "
+    + `carries as 7 to 40 hex digits, not \`${prose}\`.`, "the flag refused is the one it was typed on");
+  const commit = ask("record", "verification", "ISS-3", "--where", "here", "--commit", prose,
+    "--evidence", "43b811e");
+  assert.equal(commit.stderr.trim(), `--commit takes 7 to 40 hex digits, not \`${prose}\`.`,
+    "and a field whose label is its flag's own word is refused in the words it always was");
+});
+
+/* Why the words a refusal says a field holds are the field's `takes` and never its label: the label
+   is the read key for the form a body carries when its payload block did not survive. */
+test("a verification written in the labelled form still reads its contains back", () => {
+  const older = "## Release verification\n\n- **Landed commit in it:** 43b811e\n\n`forge-record: verification · contract 1`";
+  assert.equal(parse(older).fields.contains, "43b811e", "renaming that label drops the field off every record already in it");
+});
+
+/* A value every other field of the kind takes, so the one field under test is the only thing the
+   write can be refused for. */
+const fillFor = (field) => {
+  if (field.commit) return "43b811e";
+  if (field.criterion) return "1";
+  if (field.oneOf) return field.oneOf[0];
+  return "a.mjs";
+};
+
+/* Over the table and through the write rather than over the one field that can be misnamed today:
+   what makes the next commit-typed field right is that no sentence about one is written by hand. */
+test("no commit-typed field of any kind is refused under another field's name", () => {
+  const prose = "this is prose and not a sha";
+  const commits = Object.entries(SHAPES)
+    .flatMap(([kind, shape]) => shape.fields.filter((one) => one.commit).map((one) => ({ kind, shape, one })));
+  assert.ok(commits.length > 1, "the table declares more than one commit-typed field to tell apart");
+  for (const { kind, shape, one } of commits) {
+    const argv = shape.fields
+      .filter((field) => !field.derived && !field.written && (!field.optional || field.flag === one.flag))
+      .flatMap((field) => [`--${field.flag}`, field.flag === one.flag ? prose : fillFor(field)]);
+    const run = ask("record", kind, "ISS-3", ...argv);
+    const said = run.stderr.trim();
+    assert.equal(run.status, 1, `${kind}: --${one.flag} carrying prose is refused`);
+    assert.ok(said.startsWith(`--${one.flag} takes `), `${kind}: the refusal opens on --${one.flag}: ${said}`);
+    assert.ok(said.includes(`not \`${prose}\`.`), `${kind}: the value refused is quoted back: ${said}`);
+    const words = one.takes ?? one.label.toLowerCase();
+    assert.equal(said.includes(` ${words} as `), words !== one.flag,
+      `${kind}: --${one.flag} says what it holds where its own words say more than its flag: ${said}`);
+  }
+});
+
 test("no flag puts the project's answer on a record", () => {
   const derived = SHAPES.verification.fields.filter((one) => one.derived).map((one) => one.flag);
   assert.deepEqual(derived, ["review", "promotion"], "the two the project answers, and no others");
