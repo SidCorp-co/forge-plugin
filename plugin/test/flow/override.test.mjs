@@ -48,6 +48,11 @@ const state = {
       if (args.action === "update") {
         /* Acknowledged and not applied, which is the one answer the read-back below exists for. */
         if (state.ignores && args.data?.[state.ignores] !== undefined) return { ...ISSUE };
+        /* And acknowledged, applied in part: one key of a payload the tracker took whole. Nothing documents whether its PATCH is atomic, so the read-back has to answer for a set that came back split. */
+        if (state.drops) {
+          const kept = Object.entries(args.data ?? {}).filter(([key]) => key !== state.drops);
+          return Object.assign(ISSUE, Object.fromEntries(kept));
+        }
         return Object.assign(ISSUE, args.data);
       }
       if (args.action === "transition") {
@@ -93,10 +98,12 @@ const MINE = structuredClone(ISSUE.sessionContext);
 const before = (status = "in_progress") => {
   ISSUE.status = status;
   ISSUE.priority = "medium";
+  ISSUE.complexity = "s";
   ISSUE.sessionContext = structuredClone(MINE);
   state.calls = [];
   state.refuses = null;
   state.ignores = null;
+  state.drops = null;
   state.dropsRecord = null;
   state.takesLease = null;
   state.losesLeaseRead = null;
@@ -179,13 +186,10 @@ test("a --set naming status is refused with the verb that moves one, before anyt
   assert.equal(ISSUE.priority, "medium", "and the field beside it is untouched");
 });
 
-/* One update is one request and no partial write starts here, but transactionality at the tracker is
-   the tracker's and is documented nowhere this CLI can read. Where the read-back says one field
-   moved and another did not, the one that moved is owed its reason before the refusal exits: the
-   alternative is a value in the tracker with nothing on the page saying who set it. */
+/* Where the read-back says one field moved and another did not, the one that moved is owed its reason before the refusal exits: the alternative is a value in the tracker with nothing on the page saying who set it. */
 test("a field that landed beside one that did not still gets its correction, and the call still fails", async () => {
   before();
-  state.ignores = "priority";
+  state.drops = "priority";
   const run = await setField("--set", "complexity=m", "--set", "priority=high", "--why", WHY);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /priority did not read back as written/u, run.stderr);
