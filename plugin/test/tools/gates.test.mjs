@@ -72,7 +72,13 @@ test("-h names the two flags and what the record cannot see", () => {
     "one-minute load", "ceiling that review set", "<label>-files", `${REVIEW.seconds}s on ${REVIEW.on}`,
     "re-runs each of them once, alone", "the gate refuses and names it",
     "has not been shown to be this tree's", "One re-run per case and never a loop",
-    "suite-interaction finding", "a step that failed records no pass"]) {
+    "suite-interaction finding", "a step that failed records no pass",
+    "A suite-interaction finding files an issue, and refuses nothing",
+    "exactly what it would have been with no recurrence in it",
+    "comments on that case's issue rather than filing again",
+    "searching the backlog for that marker and matching it in a title",
+    "An issue somebody has closed or dropped", "does not come back whole files nothing",
+    "leaves the run's status alone", "sends no request"]) {
     assert.ok(said.includes(one), `${one} is not in the usage:\n${said}`);
   }
 });

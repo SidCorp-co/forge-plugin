@@ -5,13 +5,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 import { CASES_ENV } from "../../../../tools/gates/isolation.mjs";
-import { entryDir, landed, ledgerFile, run, runsFile, scratch, STAMPED } from "./scratch.mjs";
+import { fakeTracker } from "../../fixtures.mjs";
+import { COPIED, entryDir, landed, ledgerFile, ranGate, reachedFrom, ROOT as SCRATCH_ROOT,
+  ROUTE_ROOTS, run, runsFile, scratch, STAMPED } from "./scratch.mjs";
 
+const DYNAMIC = /\bimport\s*\(\s*["'](\.[^"']+)["']\s*\)/gu;
 const CASE = "plugin/test/tools/two.test.mjs";
+const CASE_NAME = "a case of this scratch's own";
 const REACHED = "plugin/src/two.mjs";
+const FILED = "ISS-9001";
+const SLUG = "forge-plugin";
 
 const caseFile = (body) => `import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -41,9 +47,18 @@ const WHEN_ASKED = `  if (process.env.${CASES_ENV} || process.env.${ASKED}) thro
 const UNWRITABLE = `  mkdirSync(process.env.${CASES_ENV}, { recursive: true });
   throw new Error("and then fails");`;
 
-const withCase = (name, body) => {
-  const made = scratch(name);
+const withCase = (name, body, leaking) => {
+  const made = scratch(name, undefined, leaking);
   landed(made.work, CASE, caseFile(body));
+  landed(made.work, REACHED, "export const two = 2;\n");
+  return made;
+};
+
+/* Carrying the filing route and a real project file, which is what a checkout with this plugin
+   installed has and what the scratches above deliberately do not. */
+const routed = (name, body = null) => {
+  const made = scratch(name, undefined, undefined, { also: ROUTE_ROOTS, slug: SLUG });
+  if (body) landed(made.work, CASE, caseFile(body));
   landed(made.work, REACHED, "export const two = 2;\n");
   return made;
 };
@@ -109,10 +124,100 @@ test("the same case not reproduced twice at one digest is a suite-interaction fi
     const again = run(work);
     assert.equal(again.status, 0, again.stdout + again.stderr);
     assert.match(again.stdout, /suite-interaction finding/u, again.stdout);
-    assert.match(again.stdout, /It does not refuse\. What a refusal would need/u, again.stdout);
-    assert.match(again.stdout, /ISS-925/u, again.stdout);
+    assert.match(again.stdout, /It does not refuse, and it is filed/u, again.stdout);
+    assert.ok(!again.stdout.includes("What a refusal would need"),
+      `the line still asks for a ruling that has been made:\n${again.stdout}`);
+    assert.match(readFileSync(aloneFile(work), "utf8"), /"at":"\d{4}-\d\d-\d\dT[\d:.]+Z"/u);
   } finally {
     rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* A checkout without this plugin's own CLI is every checkout the scratches above are: the filing
+   route is not there, and the one thing that may not happen is the gate refusing for it. */
+test("a filing whose route cannot be loaded prints why, prints the body, names the command by hand, and refuses nothing", () => {
+  const { at, work } = withCase("attributed-no-route-", ONLY_IN_THE_STEP);
+  try {
+    run(work);
+    const again = run(work);
+    assert.equal(again.status, 0, again.stdout + again.stderr);
+    assert.ok(!again.stdout.includes("Gate failed"), again.stdout);
+    assert.match(again.stdout,
+      /the filing could not be made: the filing route could not be loaded: Cannot find module/u, again.stdout);
+    assert.ok(again.stdout.includes("file it by hand, the body being the block below: forge new - --title "),
+      again.stdout);
+    assert.ok(again.stdout.includes("--category bug"), again.stdout);
+    assert.ok(again.stdout.includes("## What happened"), again.stdout);
+    assert.ok(again.stdout.includes(`- case: ${CASE_NAME}`), again.stdout);
+    assert.match(again.stdout, /→ no issue: the filing route could not be loaded/u, again.stdout);
+    assert.ok(!existsSync(ledgerFile(work, "test")), "the step the recurrence was in was recorded as passed");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The leak refusal is an exit like the other two and owes the same list: a step leaking after the
+   step that attributed would otherwise leave the finding only in the middle of the log. */
+test("a step that leaks after a recurrence still names what the recurrence reached", () => {
+  const { at, work } = withCase("attributed-leak-after-", ONLY_IN_THE_STEP, "check:dup");
+  try {
+    run(work);
+    const again = run(work);
+    assert.equal(again.status, 1, again.stdout);
+    assert.match(again.stderr, /Gate failed: check:dup/u, again.stderr);
+    assert.match(again.stderr, /hook stamp\(s\) in/u, again.stderr);
+    assert.ok(again.stderr.includes(`test  ${CASE}  ${CASE_NAME}  → no issue:`),
+      `the leak refusal named no finding:\n${again.stderr}`);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The walk behind the copy sets follows static imports only, so a module reached by a literal
+   dynamic one is a root somebody declares. This says when a new one appears, rather than leaving a
+   scratch quietly copying less than the runner needs. */
+test("every module the copy sets reach by a literal dynamic import is in them", () => {
+  const held = new Set([...COPIED, ...reachedFrom(ROUTE_ROOTS)]);
+  const missing = [];
+  for (const one of held) {
+    const text = readFileSync(join(SCRATCH_ROOT, one), "utf8");
+    for (const [, spec] of text.matchAll(DYNAMIC)) {
+      const target = relative(SCRATCH_ROOT, resolve(dirname(join(SCRATCH_ROOT, one)), spec));
+      if (!held.has(target)) missing.push(`${one} imports ${target}`);
+    }
+  }
+  assert.deepEqual(missing, [], `declare each of these among scratch.mjs's roots: ${missing.join("; ")}`);
+});
+
+/* The runner's own wiring, which no module test reaches: the dynamic import resolving, the lookup
+   asking, the create arriving. A scratch carrying the route and pointed at a server of this case's
+   own, so what the gate sent is read off the wire and no live backlog is written. */
+test("the runner asks the tracker nothing until a recurrence, and then files it", async () => {
+  const state = { issues: [], calls: [], key: FILED };
+  const tracker = await fakeTracker(state);
+  const clean = routed("attributed-route-clean-");
+  const held = routed("attributed-route-filed-", ONLY_IN_THE_STEP);
+  const env = { XDG_CONFIG_HOME: tracker.env.XDG_CONFIG_HOME };
+  try {
+    const green = await ranGate(clean.work, [], clean.work, env);
+    assert.equal(green.status, 0, green.stdout + green.stderr);
+    assert.equal(state.calls.length, 0, `a clean run called the tracker: ${JSON.stringify(state.calls)}`);
+
+    const first = await ranGate(held.work, [], held.work, env);
+    assert.equal(first.status, 0, first.stdout + first.stderr);
+    assert.equal(state.calls.length, 0, `a first attribution called the tracker: ${JSON.stringify(state.calls)}`);
+
+    const again = await ranGate(held.work, [], held.work, env);
+    assert.equal(again.status, 0, again.stdout + again.stderr);
+    const made = state.calls.filter((one) => one.method === "POST" && /\/issues$/u.test(one.path));
+    assert.equal(made.length, 1, JSON.stringify(state.calls.map((one) => `${one.method} ${one.path}`)));
+    assert.equal(made[0].sent.category, "bug");
+    assert.ok(made[0].sent.description.includes(`- case: ${CASE_NAME}`), made[0].sent.description);
+    assert.match(again.stdout, new RegExp(`filed as ${FILED}`, "u"), again.stdout);
+    assert.match(again.stdout, new RegExp(`→ ${FILED}, filed`, "u"), again.stdout);
+  } finally {
+    tracker.close();
+    for (const one of [clean.at, held.at]) rmSync(one, { recursive: true, force: true });
   }
 });
 

@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
 import { attribute, attributionLines, CASES_ENV } from "./gates/isolation.mjs";
 import { cheapestFirst, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
+import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
@@ -44,10 +45,31 @@ not reproduce has not been shown to be this tree's, and the gate carries on — 
 can say, and it says no more: a starved process and an interaction between cases both answer this
 way. One re-run per case and never a loop, because a tree failure retried into green is the one
 thing this may not do. A case the previous attribution of that step named at this same digest is said
-to be a suite-interaction finding instead; it does not refuse either, and the line says what a
-refusal would need. Whichever way its cases went, a step that failed records no pass — cases passing
-one at a time are not the suite passing — so the next invocation spends it whole, and a run that
-re-ran anything prints neither the line a clean run prints nor a figure of its own.
+to be a suite-interaction finding instead. Whichever way its cases went,
+a step that failed records no pass — cases passing one at a time are not the suite passing — so the
+next invocation spends it whole, and a run that re-ran anything prints neither the line a clean run
+prints nor a figure of its own.
+
+**A suite-interaction finding files an issue, and refuses nothing.** Ruled on 2026-09-09 (ISS-925)
+between four readings, three of which refuse: a case that fails in company and passes alone twice at
+one content gets an owner on this project's backlog, and the landing proceeds. The exit status of
+every step and of the whole run is exactly what it would have been with no recurrence in it, which
+is what the re-run's own ruling settles and this changes no part of. The issue carries the case, its
+file, this step, the digest, both attributions' times and that it passed alone at each, so that
+nobody has to read the middle of this log to work it; the verdict block names the issue beside the
+case, for the same reason.
+
+A finding is the case's whole file and its whole name, and no more, digested into a marker the title
+carries: **a second recurrence of one case comments on that case's issue rather than filing again**,
+found by searching the backlog for that marker and matching it in a title, never by a count kept
+here. A renamed case or a moved file is a new finding. An issue somebody has closed or dropped
+answers nothing — a finding that came back past a close is filed again and the body names the
+settled one — and a live issue is preferred over a settled one where both are there. A lookup that
+does not come back whole files nothing and says so, because a page that came back short is a ceiling
+and not an absence. A filing that cannot be made at all — no credential, no network, a checkout
+without this plugin's own CLI — prints why, prints the body, prints the one command that files it by
+hand, and leaves the run's status alone: a gate that cannot reach the tracker may not become a gate
+that refuses. A run with nothing to file reaches none of this and sends no request.
 
 Past that, a step whose inputs are byte for byte what they were when it last passed is skipped and
 says which digest matched. Only passes are recorded, so a red step is red again next time. The
@@ -237,10 +259,16 @@ const [load] = loadavg();
 const cores = availableParallelism();
 const record = recordDir(ROOT);
 const unproved = [];
+const owned = [];
 
 const testEnv = (step) => step.tests
   ? { GATE_FILE_TIMES: fileTimesPath(record, step.label), [CASES_ENV]: casesPath(scratch, step.label) }
   : {};
+
+/* Every exit past an attribution says what its findings reached, the leak refusal included: a key
+   printed only in the middle of a 2500-second log is the state ISS-925 exists to leave. */
+const ownedLines = () => owned.map((each) =>
+  `  ${each.step}  ${each.one.file}  ${each.one.name}${reachedBy(owned, each)}`);
 
 /* Why a step is being refused, in one clause between the label and the tree. Empty for a step no
    case can be named in, whose refusal is then the one it printed before any of this existed. */
@@ -265,11 +293,20 @@ for (const step of planned) {
       record: alonePath(record, step.label), say: console.log,
     }) : null;
     if (said) for (const line of attributionLines(said)) console.log(line);
+    /* Before the branch below and not inside it: a recurrence beside a case that reproduced is a
+       finding too, and the run that refuses for the second still owes the first an owner. */
+    const again = said ? recurrencesIn(said, step) : [];
+    if (again.length > 0) {
+      const asked = await fileRecurrences(again);
+      for (const line of asked.lines) console.log(line);
+      owned.push(...asked.named);
+    }
     if (said && said.tree.length === 0) unproved.push(...said.quiet.map((one) => ({ step: step.label, one })));
     else {
       console.error(`\nGate failed: ${step.label}${error ? ` (${error.message})` : ""}`
         + `${because(step, said, error)} — the tree judged: ${ROOT}`);
       for (const each of said?.tree ?? []) console.error(`  ${each.one.file}  ${each.one.name}`);
+      for (const line of ownedLines()) console.error(line);
       finish(status ?? 1);
     }
   }
@@ -277,6 +314,7 @@ for (const step of planned) {
   const leak = roomLeft(scratch);
   if (leak) {
     console.error(`\nGate failed: ${step.label} — the tree judged: ${ROOT}\n${leakMessage(leak)}`);
+    for (const line of ownedLines()) console.error(line);
     finish(1);
   }
   if (ledger && !failed) recordPass(ledger.dir, step, took);
@@ -292,7 +330,9 @@ if (unproved.length > 0) {
   console.log(`\n${planned.length} gate step(s) ran in ${elapsed}s and this is not a clean pass `
     + `— the tree judged: ${ROOT}`);
   console.log(`${unproved.length} case(s) failed in a step and were not reproduced alone:`);
-  for (const each of unproved) console.log(`  ${each.step}  ${each.one.file}  ${each.one.name}`);
+  for (const each of unproved) {
+    console.log(`  ${each.step}  ${each.one.file}  ${each.one.name}${reachedBy(owned, each)}`);
+  }
   console.log(`No pass is recorded for the step(s) they were in, so the next invocation on this `
     + `content spends each of them whole: cases passing one at a time are not the suite passing. `
     + `No whole-run figure is recorded either — seconds spent re-running cases measure neither this `

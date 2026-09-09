@@ -82,26 +82,26 @@ const reran = (one, { root, scratch }) => {
   return { reproduced: Boolean(error) || status !== 0, took: Math.round((Date.now() - at) / 1000) };
 };
 
-/** What the previous attribution of this step named, under the digest it named it at. A run that
- *  read no digest classifies nothing: a stand-in would manufacture the identical-content evidence. */
+/** What the previous attribution named at this digest, whole: its `at` is half of what a recurrence's
+ *  issue says. A run that read no digest classifies nothing — it would invent the evidence. */
 const previously = (at, digest) => {
-  if (!digest) return () => false;
+  if (!digest) return () => null;
   let held;
   try {
     held = jsonLines(at);
   } catch {
-    return () => false;
+    return () => null;
   }
-  const keys = new Set(held.filter((one) => one.digest === digest).map(named));
-  return (one) => keys.has(named(one));
+  const rows = new Map(held.filter((one) => one.digest === digest).map((one) => [named(one), one]));
+  return (one) => rows.get(named(one)) ?? null;
 };
 
 // After every attribution, an empty one included: a reproduced case between two ends their run.
-const remember = (at, digest, cases) => {
+const remember = (at, digest, cases, when) => {
   try {
     mkdirSync(dirname(at), { recursive: true });
     writeFileSync(at, cases.map((one) =>
-      JSON.stringify({ digest: digest ?? null, file: one.file, name: one.name })).join("\n"));
+      JSON.stringify({ digest: digest ?? null, at: when, file: one.file, name: one.name })).join("\n"));
   } catch {
     /* A note and not a verdict: a run that could not write it has still attributed every case. */
   }
@@ -115,14 +115,14 @@ export const attribute = (step, { root, scratch, cases, record, say }) => {
   const seen = previously(record, step.digest);
   const judged = found.cases.map((one) => ({ one, repeat: seen(one), ...reran(one, { root, scratch }) }));
   const quiet = judged.filter((each) => !each.reproduced).map((each) => each.one);
-  remember(record, step.digest, quiet);
-  return { counted: found.counted, judged, quiet, tree: judged.filter((each) => each.reproduced) };
+  const at = new Date().toISOString();
+  remember(record, step.digest, quiet, at);
+  return { at, counted: found.counted, judged, quiet, tree: judged.filter((each) => each.reproduced) };
 };
 
 const REPEAT = `named by the previous attribution of this step at this digest, so it is a `
   + `suite-interaction finding: the same case failing in the suite twice at one content and passing `
-  + `alone twice is a claim about how the suite runs. It does not refuse. What a refusal would need `
-  + `is a ruling that such a case is the tree's, which is filed as ISS-925`;
+  + `alone twice is a claim about how the suite runs. It does not refuse, and it is filed`;
 
 const WHAT_IT_IS_NOT = `Not reproduced alone means the case was not shown to be this tree's. It does `
   + `not say why: a starved process and an interaction between cases both answer this way, and one `
