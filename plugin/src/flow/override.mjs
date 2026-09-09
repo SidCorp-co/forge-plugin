@@ -83,8 +83,8 @@ const pairsOf = (given, ref) => {
 const movedSaid = (pairs) =>
   `${pairs.map(({ field, value }) => `${field} set to \`${value}\``).join(", ")} by \`forge issue --set\``;
 
-/** `forge issue --set <field>=<value>... --why <w>`: the update route, said to be unread and corrected. */
-export const overrideFields = async (reference, given, why, { next, patch } = {}) => {
+/** `forge issue --set <field>=<value>... --why <w>`: the update route, said to be unread and corrected. `ask` is what the parser read off argv, carried through rather than re-derived here: this layer's own pairs are what a narrowing above it would already have shortened (ISS-945). */
+export const overrideFields = async (reference, given, why, { next, patch, ask } = {}) => {
   const said = whyChecked("issue --set", why);
   const pairs = pairsOf(given, reference);
   const { documentId, body } = await issueOf(reference);
@@ -102,7 +102,7 @@ export const overrideFields = async (reference, given, why, { next, patch } = {}
     await correctionFor(documentId, reference, movedSaid(moved), said);
   };
   const back = await writeFields(documentId, pairs, {
-    ref: reference, next, patch, refuse, override: true, partly: (moved) => told(moved, null),
+    ref: reference, next, patch, refuse, ask, override: true, partly: (moved) => told(moved, null),
   });
   await told(pairs, back);
 };

@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { flags, pullRepeated, repeatedFlag } from "../../src/resolve/flags.mjs";
+import { flags, pullRepeated, repeatedFlag, shortOfAsk } from "../../src/resolve/flags.mjs";
 import { Refusal, refusing } from "../../src/resolve/settings.mjs";
 import { homeEnv, ranAsync } from "../fixtures.mjs";
 
@@ -149,4 +149,53 @@ test("a form that renames a flag onto one already given is refused rather than c
   const run = await ran("park", "ISS-1", "--kind", "blocked", "--park", "question");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /--park was given twice, `blocked` and then `question`/u, run.stderr);
+});
+
+/* ISS-945. This is the one place a repeated flag's words are read, so it is the one place a count of
+   them can be established, and every layer that later reports on the work answers to it rather than
+   to whatever it was itself handed. */
+const SET_USAGE = "Usage: forge thing <ref> [--set <field>=<value>]...";
+const askFor = (...words) =>
+  pullRepeated(words.flatMap((one) => ["--set", one]), "--set", "thing", { usage: SET_USAGE }).ask;
+
+test("the ask carries the caller's own words, the verb and the flag they were given to", () => {
+  const ask = askFor("status=open", "priority=high");
+  assert.deepEqual([...ask.items], ["status=open", "priority=high"], "as typed, in the order typed");
+  assert.equal(ask.verb, "thing");
+  assert.equal(ask.flag, "--set");
+  assert.equal(ask.wordFor({ field: "status", value: "open" }), "status=open",
+    "and the ask words what a reporting layer holds, so neither layer chooses a vocabulary");
+});
+
+test("an ask every word of which reached the layer is answered with nothing to say", () => {
+  const held = [{ field: "status", value: "open" }, { field: "priority", value: "high" }];
+  assert.equal(shortOfAsk(askFor("status=open", "priority=high"), held), null);
+});
+
+test("a word that did not reach the layer is named, with both counts", () => {
+  const said = shortOfAsk(askFor("status=open", "priority=high", "complexity=m"),
+    [{ field: "priority", value: "high" }]);
+  assert.match(said, /^thing: --set was given 3 thing\(s\) and 1 reached the write\./u, said);
+  assert.match(said, /`status=open` and `complexity=m` did not/u, "each in the caller's own spelling");
+  assert.match(said, /Nothing was sent\./u, said);
+  assert.match(said, /Ask for what you meant, once each: `--set <value>`/u, "the form to type");
+  assert.match(said, /this CLI lost it between your call and the write/u,
+    "and the other reading, since no layer here can tell which of the two it was");
+});
+
+/* Two of one word cannot be answered by one thing that arrived: a count that only tested membership
+   would call a call complete that was not. */
+test("occurrences are consumed, so two identical words are not answered by one", () => {
+  const said = shortOfAsk(askFor("priority=high", "priority=high"), [{ field: "priority", value: "high" }]);
+  assert.match(said, /was given 2 thing\(s\) and 1 reached the write/u, said);
+  assert.match(said, /`priority=high` did not/u, said);
+});
+
+/* A layer asked to judge a call against nothing has judged nothing, and answering `null` there would
+   read exactly like a call every word of which arrived — the shape this whole rule is against. */
+test("a layer handed no ask at all is refused as this CLI's own defect", () => {
+  const said = shortOfAsk(undefined, [{ field: "status", value: "open" }]);
+  assert.match(said, /no record of what was asked for reached the layer that reports/u, said);
+  assert.match(said, /Nothing was sent\./u, said);
+  assert.match(said, /a defect in this CLI, not in what you typed/u, said);
 });

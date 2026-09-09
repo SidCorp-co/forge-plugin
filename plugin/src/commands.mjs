@@ -205,7 +205,7 @@ export const commands = {
     const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full"], { usage: READ_USAGE });
     const asked = { ...single, ...(pulled.values.length ? { set: pulled.values } : {}) };
     const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set"], "issue", "writes and a call makes one");
-    if (wrote === "set") return overrideFields(reference, asked.set, why);
+    if (wrote === "set") return overrideFields(reference, asked.set, why, { ask: pulled.ask });
     if (wrote !== undefined) return console.log(await wroteEdge(reference, asked));
     if (why !== undefined) fail("--why belongs to --set; a read takes no reason.");
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;

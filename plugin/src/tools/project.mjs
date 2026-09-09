@@ -3,7 +3,7 @@
    naming picks between. Why deletion is not among them: docs/cli/doctor.md. */
 import { deployFrom, deployRows, deployed } from "../tracker/project-config.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { exclusive, flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
+import { exclusive, flags, partition, pullRepeated, shortOfAsk, wantsHelp } from "../resolve/flags.mjs";
 import { projectIdOf, scoped, write } from "../tracker/rest.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
@@ -83,7 +83,7 @@ const created = async (asked) => {
   return [`created: ${answer?.project?.slug ?? asked.slug}`, ...recordLines(answer?.project)];
 };
 
-const updated = async (slug, pairs) => {
+const updated = async (slug, pairs, ask) => {
   const data = {};
   for (const pair of pairs) {
     const at = pair.indexOf("=");
@@ -95,6 +95,9 @@ const updated = async (slug, pairs) => {
     }
     data[field] = pair.slice(at + 1);
   }
+  /* The object about to go, against what the call asked for, and no write has happened yet on this route: the loop above is keyed by field, so a second `--set` on one field left the count below counting keys rather than the pairs a caller gave (ISS-945). */
+  const short = shortOfAsk(ask, Object.entries(data).map(([field, value]) => ({ field, value })));
+  if (short) fail(short);
   const projectRef = await idFor(slug);
   const answer = await write("forge_projects", { action: "update", projectRef, data });
   return [`set: ${Object.keys(data).join(", ")}`, ...recordLines(answer?.project)];
@@ -106,10 +109,10 @@ const archived = async (slug, action) => {
   return [`${action}d: ${slug}`, ...recordLines(answer?.project ?? { slug })];
 };
 
-const routed = async (slug, asked) => {
+const routed = async (slug, asked, ask) => {
   if (asked.archive) return archived(slug, "archive");
   if (asked.unarchive) return archived(slug, "unarchive");
-  if (asked.set) return updated(slug, asked.set);
+  if (asked.set) return updated(slug, asked.set, ask);
   const answer = await scoped("forge_projects", { action: "read", projectRef: await idFor(slug) });
   return recordLines(answer?.project);
 };
@@ -120,7 +123,7 @@ export const project = async (argv) => {
      act that replaces it, and a usage row offering a flag nothing does is a row that invites the call. */
   if (argv.includes("--delete")) fail(NO_DELETE);
   const usage = usageOf("project");
-  const { values: pairs, rest } = pullRepeated(argv, "--set", "project", { usage });
+  const { values: pairs, rest, ask } = pullRepeated(argv, "--set", "project", { usage });
   const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "project", usage });
   const asked = { ...flags(flagArgv, "project", BOOLEAN, { usage }), ...(pairs.length ? { set: pairs } : {}) };
   const acts = exclusive(asked, ACTS, "project", "acts on one record and a call takes one");
@@ -141,7 +144,7 @@ export const project = async (argv) => {
     }
     return undefined;
   }
-  return (await routed(first, asked)).forEach((said) => console.log(said));
+  return (await routed(first, asked, ask)).forEach((said) => console.log(said));
 };
 
 project.answersHelp = true;

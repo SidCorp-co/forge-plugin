@@ -63,6 +63,7 @@ globalThis.fetch = async (address, init = {}) => {
 };
 
 const { capChecked, capRefusal, capsOf, lengthOf, rowOf, writeField, writeFields } = await import("../../src/tracker/field-write.mjs");
+const { pullRepeated } = await import("../../src/resolve/flags.mjs");
 
 class Refused extends Error {}
 const refuse = (message) => {
@@ -279,12 +280,29 @@ test("a lease that came back another run's is refused in the lease's own words",
 /* The several-field arm the recorded override spends (ISS-930). Its whole reason is that one update
    carries the set: a loop here would put the partial write back, with a correction per field or one
    naming a subset. The cap, the read-back and the mismatch are still each field's own. */
+/* Through the parser rather than hand-built, so what these cases hand the writer is the same value
+   `forge issue --set` hands it, and a change to the ask's shape is red here rather than agreed with. */
+const SET_USAGE = "Usage: forge issue <ref> [--set <field>=<value>]... --why <w>";
+const asking = (...words) =>
+  pullRepeated(words.flatMap((one) => ["--set", one]), "--set", "issue", { usage: SET_USAGE }).ask;
+
 const settingAll = async (...pairs) => {
   stored = {};
   updates = [];
   leaseWrites = [];
   trail = [];
-  return writeFields(ISSUE, pairs, { ref: "ISS-9", refuse, override: true });
+  const ask = asking(...pairs.map(({ field, value }) => `${field}=${value}`));
+  return writeFields(ISSUE, pairs, { ref: "ISS-9", refuse, ask, override: true });
+};
+
+/* What a narrowing above the writer leaves it: fewer rows than the ask, or no ask at all, which is
+   `undefined` here because that is what a caller reaching this layer without one hands it. */
+const narrowedTo = async (ask, pairs) => {
+  stored = {};
+  updates = [];
+  leaseWrites = [];
+  trail = [];
+  return writeFields(ISSUE, pairs, { ref: "ISS-9", refuse, ask, override: true });
 };
 
 test("several fields go out as one update, and the read-back answers for each of them", async () => {
@@ -336,4 +354,69 @@ test("one field through the several-field sender is what the single-field caller
   const bare = await setting("acceptanceCriteria", "1. one outcome a reader could check");
   assert.equal(bare, "1. one outcome a reader could check",
     "and writeField still answers with the field's own value rather than the row");
+});
+
+/* ISS-945. A reply that reports success against what the writer was handed is the expensive kind:
+   it is truthful, it is verified, and it reads as evidence. Every case below exits zero at 3.35.279,
+   which is what makes the ask the thing this layer answers to. */
+const THREE = ["status=open", "priority=high", "complexity=m"];
+
+test("a call that asked for three fields and reaches the writer with two is refused", async () => {
+  const said = await assert.rejects(
+    () => narrowedTo(asking(...THREE), [{ field: "priority", value: "high" }, { field: "complexity", value: "m" }]),
+    (error) => {
+      assert.match(error.message, /--set was given 3 thing\(s\) and 2 reached the write/u, error.message);
+      assert.match(error.message, /`status=open` did not/u, "the word that went missing is quoted");
+      assert.match(error.message, /Nothing was sent/u, error.message);
+      return true;
+    },
+  );
+  assert.equal(updates.length, 0, "and no update of any kind went out, the renewal included");
+  assert.equal(leaseWrites.length, 0, "which is why the comparison sits above the renewal");
+  return said;
+});
+
+test("both words are named where three were asked for and one row arrived", async () => {
+  const said = await assert.rejects(
+    () => narrowedTo(asking(...THREE), [{ field: "priority", value: "high" }]),
+    (error) => {
+      assert.match(error.message, /--set was given 3 thing\(s\) and 1 reached the write/u, error.message);
+      assert.match(error.message, /`status=open` and `complexity=m` did not/u,
+        "one surviving row is what a sole-writer rule cannot tell from an honest single-field call");
+      return true;
+    },
+  );
+  assert.equal(updates.length, 0, updates.length ? JSON.stringify(updates) : "nothing sent");
+  return said;
+});
+
+test("a call reaching the writer with no record of the ask at all is refused as this CLI's defect", async () => {
+  const said = await assert.rejects(
+    () => narrowedTo(undefined, [{ field: "priority", value: "high" }]),
+    (error) => {
+      assert.match(error.message, /no record of what was asked for reached the layer that reports/u, error.message);
+      assert.match(error.message, /defect in this CLI/u, error.message);
+      return true;
+    },
+  );
+  assert.equal(updates.length, 0, "an absent ask reads exactly like a complete one, which is the whole rule");
+  return said;
+});
+
+test("two identical words asked for are not answered by the one that arrived", async () => {
+  const said = await assert.rejects(
+    () => narrowedTo(asking("priority=high", "priority=high"), [{ field: "priority", value: "high" }]),
+    (error) => {
+      assert.match(error.message, /--set was given 2 thing\(s\) and 1 reached the write/u, error.message);
+      assert.match(error.message, /`priority=high` did not/u, error.message);
+      return true;
+    },
+  );
+  return said;
+});
+
+test("the lease's own renewal goes through this writer and states its ask in its source", async () => {
+  await settingAll({ field: "complexity", value: "m" }, { field: "priority", value: "high" });
+  assert.equal(leaseWrites.length, 1,
+    "the renewal writes sessionContext through writeField, which names one field and needs no flag");
 });

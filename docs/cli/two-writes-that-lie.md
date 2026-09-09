@@ -14,3 +14,19 @@ had in fact landed. The plan's three declaration lines are the one piece of mach
 prose field, and the boundary wraps each in a code span before the rewrite runs — a rewrite renames
 prose and leaves a span alone, so `advance` still reads them off a plan it cannot otherwise parse. A
 line already wrapped no longer matches, so a stored copy sent through again is wrapped once.
+
+That comparison settles what a write did and cannot settle what the call asked, and the two are
+different claims. A verified reply is the expensive way to be wrong: four calls over two days exited
+having done less than they were asked, two of them at zero, and the read-back behind each was working
+— it was aimed at the writer's own input, so anything that narrowed the instruction on the way down
+came back confirmed (ISS-945). So the count belongs where the argument is read off `argv`, and it
+travels to whoever reports; a layer that judges its own input can report the wrong thing accurately
+for as long as the defect above it lives.
+
+Which is why the record of the ask is a value and not an absence. A reporting layer reached without
+one is refused rather than passed: an ask nobody supplied and an ask every word of which arrived are
+otherwise the same to read, and the second is exactly the thing being guarded against. That is also
+why one call may not be the unit — a narrowing that loses two of three items leaves one behind, and
+one item reaching a writer that only refuses several is indistinguishable from an honest call for a
+single thing. The single-field writer therefore states the ask its caller's own source names, in
+place of being excused from stating one.

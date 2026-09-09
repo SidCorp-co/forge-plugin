@@ -99,6 +99,36 @@ export const flags = (argv, verb, boolean = [], row = {}) => {
 /* First or not at all, unless the verb takes a subject, in which case the slot after one too — further along it is an argument, and help there is a write that never ran. Their home imports nothing, which is what lets the second CLI spend them: README, Layout. */
 export { helpAskedOf, isHelpWord, wantsHelp } from "./help-word.mjs";
 
+/* What the caller asked for, counted where argv is read, so the layer that reports on the work answers to the call rather than to its own input: a layer given a narrowed instruction cannot tell it was narrowed (ISS-945). `wordFor` is the ask's own vocabulary — how one thing a reporting layer holds is put into the words the ask was written in — so neither reporting layer chooses between the two. */
+const askedFor = (verb, flag, items) => Object.freeze({
+  verb, flag, items: Object.freeze([...items]), wordFor: ({ field, value }) => `${field}=${value}`,
+});
+
+/** The ask a caller names in its own source rather than off argv: one thing, written where the call is. It exists so that a writer reached with no ask and a writer reached with an ask of one are two different values, which is the whole of the rule — an absent record of the call reads exactly like a complete one. */
+export const askedInSource = (verb, field) => Object.freeze({
+  verb, flag: field, items: Object.freeze([field]), wordFor: (one) => one.field,
+});
+
+/** What a reporting layer owes where fewer of the caller's words reached it than the call gave it: both counts and every word that went missing, whatever layer lost it. `held` is what reached the layer, each in whatever shape that layer holds one, and the ask words them. Occurrences are consumed rather than matched, so two identical asks are not answered by one thing. */
+export const shortOfAsk = (ask, held) => {
+  if (!ask) {
+    return "This call reported on what the writer was handed and on nothing the caller typed, "
+      + "because no record of what was asked for reached the layer that reports. Nothing was sent. "
+      + "That is a defect in this CLI, not in what you typed: `forge feedback`.";
+  }
+  const left = held.map((one) => ask.wordFor(one));
+  const lost = ask.items.filter((one) => {
+    const at = left.indexOf(one);
+    if (at >= 0) left.splice(at, 1);
+    return at < 0;
+  });
+  if (!lost.length) return null;
+  return `${ask.verb}: ${ask.flag} was given ${ask.items.length} thing(s) and ${held.length} reached `
+    + `the write. ${lost.map((one) => `\`${one}\``).join(" and ")} did not. Nothing was sent. Ask for `
+    + `what you meant, once each: \`${ask.flag} <value>\`. If that is what you typed, this CLI lost it `
+    + "between your call and the write, which is its defect and not yours: `forge feedback`.";
+};
+
 /* `flags` refuses a name it has already bound, so this is the one declaration that a flag's values accumulate: a verb that means "all of these" pulls them out before handing the rest over. */
 export const pullRepeated = (argv, flag, verb, row = {}) => {
   strangerIn(argv, verb, { ...row, hidden: [...(row.hidden ?? []), flag] });
@@ -114,7 +144,7 @@ export const pullRepeated = (argv, flag, verb, row = {}) => {
     values.push(value);
     index += 1;
   }
-  return { values, rest };
+  return { values, rest, ask: askedFor(verb, flag, values) };
 };
 
 /* Positionals and flags interleave (`consult a.mjs --diff --only major b.mjs`), and splitting on

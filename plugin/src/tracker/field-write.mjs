@@ -2,6 +2,7 @@
    comment delivery and the read-back, which is why it imports upward (ISS-346, ISS-451). */
 import { declaredFor, scoped, write } from "./rest.mjs";
 import { mustBeShown } from "./comments.mjs";
+import { askedInSource, shortOfAsk } from "../resolve/flags.mjs";
 import { leaseLandedAs, leaseMismatch, renew } from "../flow/lease.mjs";
 
 const NOTE_HALVES = ["section", "userFacing", "technical"];
@@ -72,7 +73,7 @@ export const rowOf = (field) => fields()[field];
 export const ownsField = (field) => Boolean(rowOf(field));
 
 /** Every field of one write, in one update, so a caller naming several either writes all of them or names none as written. The gate and the renewal are the write's rather than each field's, and the read-back reports per field because a `PATCH` the tracker refuses for one key documents nothing about the others. */
-export const writeFields = async (documentId, given, { ref, next, patch, refuse, partly, override = false }) => {
+export const writeFields = async (documentId, given, { ref, next, patch, refuse, partly, ask, override = false }) => {
   const rows = given.map(({ field, value }) => {
     const row = override ? { same: landedAs } : rowOf(field);
     if (!row) {
@@ -80,6 +81,9 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
     }
     return { field, value, row };
   });
+  /* What the call asked for, before the renewal, which writes the lease's own field through this same writer: a comparison beside the send would refuse a short call only after an update had gone out (ISS-945). Being the one place a field is written says where a write goes and nothing about where its instruction came from, so a call reaching here with no ask at all is refused too. */
+  const short = shortOfAsk(ask, rows);
+  if (short) refuse(short);
   const caps = capsOf();
   if (rows.some((one) => one.row.shows)) await mustBeShown([{ ref, documentId }]);
   if (rows.some((one) => one.row.renews !== false)) await renew(documentId, ref, next, patch);
@@ -108,6 +112,7 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
   return back;
 };
 
-/** One field, which is what every caller but the recorded override wants, and the value it read back rather than the row whole. */
+/** One field, which is what every caller but the recorded override wants, and the value it read back rather than the row whole. Its ask is the field name its caller already passed, named here on that caller's behalf: a source's own word for one thing, which is why no record writer and not the lease states one of its own. */
 export const writeField = async (documentId, field, value, options) =>
-  (await writeFields(documentId, [{ field, value }], options))?.[field];
+  (await writeFields(documentId, [{ field, value }],
+    { ...options, ask: askedInSource(options?.ref ?? "this write", field) }))?.[field];

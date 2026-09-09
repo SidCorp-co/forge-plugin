@@ -25,7 +25,7 @@ how many topics there may be.
 | [`the checkpoint`](cli/the-checkpoint.md) | What a build ready to land leaves whoever lands it, why both merge routes are one table, and how the judge's turn is handed back. |
 | [`resume`](cli/resume.md) | What the worklog holds beside the lease, why no capture of it is automatic, and what the brief prints. |
 | [`spec`](cli/spec.md) | Why a clause is answered by its identifier, and the three readings of the notation narrowed rather than guessed. |
-| [two writes that lie about themselves](cli/two-writes-that-lie.md) | Why a field is reported written only after the server shows it, and why the read-back compares the copy the boundary sent. |
+| [two writes that lie about themselves](cli/two-writes-that-lie.md) | Why a field is reported written only after the server shows it, why the read-back compares the copy the boundary sent, and why the count a reply answers to is read off argv, not at the layer reporting. |
 | [the entry checks](cli/the-entry-checks.md) | The five obligations a plugin holds a project to without reading its tree, and why `--scope` is both asked for and excused. |
 | [the ladder](cli/the-ladder.md) | Why a doubtful rung answers with the rung that owes more, why the complexity field is its one source, and what the rule is not. |
 | [the primitives](cli/the-primitives.md) | What two verbs' own copies of the paging primitives cost, why one list serves a process, the measurements behind the shared markdown set, and where the SSE frame reader's home stops. |

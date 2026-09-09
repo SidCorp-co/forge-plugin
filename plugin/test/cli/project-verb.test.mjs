@@ -131,6 +131,30 @@ test("a pair with no `=` in it is refused rather than read as a field set to not
   assert.match(run.stderr, /--set takes one field and its value joined by `=`, not `name`/u);
 });
 
+/* ISS-945. The line this verb ends on counts the keys of the object it built, and that object is
+   keyed by field, so a second `--set` on one field left three pairs asked for and two reported set —
+   truthfully, about the two the writer held. The count it prints is now one the call asked for. */
+const updates = () => state.calls.filter((one) => one.name === "forge_projects.update");
+
+test("a field named twice among three pairs is refused, and the reply names the pair that went nowhere", async () => {
+  state.calls = [];
+  const run = await ask("forge-plugin", "--set", "name=one", "--set", "description=two", "--set", "name=three");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--set was given 3 thing\(s\) and 2 reached the write/u, run.stderr);
+  assert.match(run.stderr, /`name=one` did not/u, "the pair that never left the process, in the caller's own spelling");
+  assert.match(run.stderr, /Nothing was sent/u, run.stderr);
+  assert.equal(updates().length, 0, "and no update went out");
+  assert.doesNotMatch(run.stdout, /^set: /mu, "nor did a line claiming a set");
+});
+
+test("two pairs on two fields are set, and both field names are in the line that says so", async () => {
+  state.calls = [];
+  const run = await ask("forge-plugin", "--set", "name=one", "--set", "description=two");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^set: name, description$/mu, "the honest call is turned away by nothing");
+  assert.equal(updates().length, 1, "one update, carrying both");
+});
+
 test("the archive is reversible and each direction says which project moved", async () => {
   const away = await ask("forge-plugin", "--archive");
   assert.equal(away.status, 0, away.stderr);
