@@ -11,11 +11,12 @@ import { hookEntries } from "../plugin/src/hooks/hook-log-file.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, loud, parsed, read, REMOTE, Stop, stop } from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
+import { acrossVersion } from "./gates/carried.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { follows, installs, LINKED } from "./run/install.mjs";
 import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./run/land.mjs";
 import { landReady } from "./run/land-ready.mjs";
-import { isRelease, onlyRelease } from "./run/landing.mjs";
+import { isRelease, onlyRelease, RELEASE_FILES } from "./run/landing.mjs";
 import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
 import { occupied } from "./run/occupant.mjs";
 import { mintRunId, RUN_ID_VAR } from "./run/run-id.mjs";
@@ -78,6 +79,19 @@ const usage = () => [
   "says beside that what the gate run a step earlier took and how that compares with the run before",
   "it, so a release that made the gate slower is visible where a release that wrote a lot of unread",
   "code already is.",
+  "",
+  "The version step carries the gate's record onto the version it wrote. Every step's digest is keyed",
+  "on the manifests, so the commit naming a release used to leave the whole record unreadable at the",
+  "one head every later branch is cut from, and a worktree holding no change paid for the whole table",
+  "to re-prove content this gate had passed minutes earlier. So the step reads what the record holds",
+  "green before the bump and re-keys those same entries after it, deciding nothing green that the",
+  "record did not already hold. It carries nothing at all unless the only difference between the two",
+  "reads is the release's own: every path that moved is one of the manifests a release writes, each of",
+  "those is unchanged once its version fields are taken out, and they all name one version afterwards.",
+  "Whatever it does it says so, and it refuses nothing — a record that cannot be read or written is",
+  "not a release this stops. `npm run check -- --full` reads no digest and writes no pass, so it",
+  "proves a tree independently and repairs nothing; a carried entry is dropped by removing the",
+  "gate-ledger directory under the common git directory, which the gate prints.",
   "",
   "The install reads the tree that shipped. The marketplace installs from one registered directory,",
   "so a release used to have to move the shared checkout to the pushed head before it could install,",
@@ -500,10 +514,12 @@ const shipSteps = (tree, root, base, note) => {
       loud("git", ["rebase", `${REMOTE}/${base}`], tree, `Resolve it, or \`git rebase --abort\`, then ${SELF} ship --from 3`), LANDS],
     /* After the rebase, because the range is what the release actually ships, and before the bump,
        because the gate's record is keyed on the manifests too: run it after and every release pays
-       for a whole gate over a change of one version string. */
+       for a whole gate over a change of one version string. The step below carries that record
+       across the commit, which is the other half of the same reason. */
     [GATE, () => loud("npm", ["run", "check"], tree,
       "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run."), LANDS],
-    [`a version above ${REMOTE}/${base}`, () => versionAbove(tree, base, note), LANDS],
+    [`a version above ${REMOTE}/${base}`,
+      () => acrossVersion(tree, RELEASE_FILES, () => versionAbove(tree, base, note)), LANDS],
     [`push to ${REMOTE}/${base}`, () => {
       pushing(tree, base, () => `Rejected means the remote `
         + `moved${unwound(tree)}: rebase, re-run the review of the rebased head, then ${SELF} ship --from 2`);

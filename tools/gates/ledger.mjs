@@ -22,7 +22,7 @@ const hashed = new Map();
 
 /* The mode with the bytes, because the suite executes files of this tree; a deletion answers as
    itself; and a path git calls a file that the disk does not is a shape no digest here models. */
-const digested = (path) => {
+export const digestFile = (path, rewrite = null) => {
   let found;
   try {
     found = lstatSync(path);
@@ -33,13 +33,19 @@ const digested = (path) => {
     throw new Error(`git reports ${path} as a file and the disk has ${found.isDirectory() ? "a directory" : "something else"} `
       + `there, so it is a submodule or a link no digest here models. Gate with --full until it is.`);
   }
-  return createHash("sha256").update(found.mode & 0o111 ? "x" : "-").update(readFileSync(path)).digest("hex");
+  const bytes = readFileSync(path);
+  return createHash("sha256").update(found.mode & 0o111 ? "x" : "-")
+    .update(rewrite ? rewrite(bytes.toString("utf8")) : bytes).digest("hex");
 };
 
 const hashFile = (path) => {
-  if (!hashed.has(path)) hashed.set(path, digested(path));
+  if (!hashed.has(path)) hashed.set(path, digestFile(path));
   return hashed.get(path);
 };
+
+export const contentOf = (root, files) => new Map(files.map((file) => [file, hashFile(join(root, file))]));
+
+export const forgetContent = () => hashed.clear();
 
 const digestOf = (root, files) => {
   const hash = createHash("sha256");
@@ -66,7 +72,7 @@ const recorded = (dir, label) => {
 export const recordPass = (dir, step, seconds) => {
   const staging = `${fileFor(dir, step.label)}.${process.pid}`;
   mkdirSync(dir, { recursive: true });
-  writeFileSync(staging, `${step.digest} ${seconds}s ${step.label}\n`);
+  writeFileSync(staging, `${step.digest} ${seconds === null ? "" : `${seconds}s `}${step.label}\n`);
   renameSync(staging, fileFor(dir, step.label));
 };
 
