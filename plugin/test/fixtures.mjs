@@ -440,7 +440,8 @@ export const fakeTracker = async (state) => {
       const says = Object.hasOwn(held ?? {}, "hasMore") ? held.hasMore : false;
       const failing = held.refused || held.notARecord;
       const counted = Object.hasOwn(held ?? {}, "total") ? { total: held.total } : {};
-      return { ...asPage(rows, 0, rows.length, says), ...counted, ...(failing ? held : {}) };
+      const walking = Object.hasOwn(held ?? {}, "nextCursor") ? { nextCursor: held.nextCursor } : {};
+      return { ...asPage(rows, 0, rows.length, says), ...counted, ...walking, ...(failing ? held : {}) };
     }],
     [/^\/api\/issues\/([^/]+)\/transition$/u, (q, sent, method, [id]) => {
       const { toStatus, ...rest } = sent;

@@ -210,11 +210,18 @@ const sayAhead = (view, ref, next) => {
 };
 
 /* Every entry criterion is a presence check, so a shortfall off a read that stopped short is only ever longer than the true one:
-   judged rather than refused (ISS-131), and naming no end, the envelope never saying which rows the read missed (ISS-697). */
-const cutSays = (said) =>
-  `${said} What the rows read earn, they earn, and anything they say is owed may be a record `
-  + "the read never reached: write it again for this status, or read the thread on the tracker's own "
-  + "screens and take it up there.";
+   judged rather than refused (ISS-131), and naming no end, the envelope never saying which rows the read missed (ISS-697).
+   The two reads part on what a second record would do, so one sentence cannot advise both (ISS-841): a walk that ended short holds a prefix
+   and a record written into it lands past the end that walk never reached, while rows the tracker called whole are the rows the next read hands back. */
+const EARNED = "What the rows read earn, they earn, and anything they say is owed ";
+const cutSays = (said, ref) =>
+  `${said} ${EARNED}may be a record past that prefix, so this shortfall is a ceiling and not a `
+  + "count. Once the thread, read where it is whole, shows the record that earns the status, "
+  + `\`forge advance ${ref} --set <status> --why "<why>"\` puts that status on with no entry check `
+  + "read and a correction saying so.";
+const countSays = (said) =>
+  `${said} ${EARNED}is owed on rows the tracker called whole, so write it again for this status: a `
+  + "record written now is in the rows the next read hands back.";
 
 export const shortfall = (ref, view, held) => {
   console.log(owedLine(view, ref, held));
@@ -272,8 +279,8 @@ const run = async (argv, readAs) => {
   const view = await viewOf(ref, given);
   const left = nextHeld(view);
   if (given.owed && left) console.log(`Next, as the last write left it: ${left}`);
-  if (!view.whole) console.log(cutSays(view.cut));
-  if (view.counted) console.log(cutSays(view.counted));
+  if (!view.whole) console.log(cutSays(view.cut, ref));
+  if (view.counted) console.log(countSays(view.counted));
   if (given.set) return setStatus(view, ref, given.set, given.why);
   if (given.park || given.drop) {
     return park(view, ref, given.park ?? "dropped", given.why, given.evidence);
