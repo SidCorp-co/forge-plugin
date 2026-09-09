@@ -8,7 +8,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { didYouMean, suggest } from "../../src/suggest.mjs";
-import { FORMS } from "../../src/resolve/handler.mjs";
+import { FORMS, ROUTES, routeSaid } from "../../src/resolve/handler.mjs";
 import { RETIRED } from "../../src/checks/retired-names.mjs";
 import { USAGE as CLAIM } from "../../src/flow/claim.mjs";
 import { SAYS as CODEX } from "../../src/codex/codex.mjs";
@@ -138,12 +138,15 @@ test("the form the parser refuses is left to the parser", () => {
    spellings of the wrong one. What a row has to hold is held here rather than in prose: a form
    naming a retired verb would answer a name the CLI is supposed not to know, which is the redirect
    docs/cli/withholding-a-verb.md forbids, and a form that is itself a verb is a row nothing reads. */
+const retiredRow = (given, retired) =>
+  (retired.some((entry) => entry.kind === "verb" && entry.name === given)
+    ? [`the table answers ${given}, retired in ${retired.find((entry) => entry.name === given).release}`
+      + " — delete the row rather than aiming it at a live name (docs/cli/withholding-a-verb.md)"]
+    : []);
+
 const formProblems = (forms, retired, live) =>
   Object.entries(forms).flatMap(([given, { verb: meant }]) => [
-    ...(retired.some((entry) => entry.kind === "verb" && entry.name === given)
-      ? [`the table answers ${given}, retired in ${retired.find((entry) => entry.name === given).release}`
-        + " — delete the row rather than aiming it at a live name (docs/cli/withholding-a-verb.md)"]
-      : []),
+    ...retiredRow(given, retired),
     ...(live.includes(meant) ? [] : [`the table sends ${given} to ${meant}, which no verb answers to`]),
     ...(live.includes(given) ? [`${given} is a verb of its own, so its row is never reached`] : []),
   ]);
@@ -166,6 +169,58 @@ test("an alias answers wherever the name it means is among the candidates", () =
     "No issue flag named --get. The set is --fields, --full.");
   assert.deepEqual(suggest("list", ["consult", "verdict", "pending", "show", "log"]), [],
     "and a codex action named list reaches no name of this CLI's");
+});
+
+/* A route is a name for a call and not for a verb, so what a row owes differs from a form's: it is
+   answered rather than performed, the call has to be one this CLI makes, and the flag in it is the whole
+   point — the verb alone was not what that caller wanted. The retirement rule is the same one and for a
+   stronger reason: a route naming a retired name is the redirect itself. Held beside the helper as the
+   form table's rules are, because the tables themselves state neither. */
+const routeProblems = (routes, forms, retired, live) =>
+  Object.entries(routes).flatMap(([given, row]) => [
+    ...retiredRow(given, retired),
+    ...(live.includes(row.verb) ? [] : [`the route for ${given} is made through ${row.verb}, which no verb answers to`]),
+    ...(row.call.startsWith(`forge ${row.verb} `) ? [] : [`the route for ${given} does not open with forge ${row.verb}`]),
+    ...(row.call.includes(" --") ? [] : [`the route for ${given} names no flag, and the verb alone is not the call that caller wanted`]),
+    ...(live.includes(given) || Object.hasOwn(forms, given)
+      ? [`${given} is a word this CLI already answers, so its row is never reached`] : []),
+  ]);
+
+/* The route is the verb miss's own, said through the hint the sentence already takes, so it reaches no other caller: `forge attach search` wanted a target and no read of the backlog. */
+test("a name for a call is answered with the call, and the flag in it is what the verb alone would miss", () => {
+  const said = routeSaid("search", VERB_NAMES);
+  assert.equal(said, "`forge issue --search <query>` reads the backlog by a query.");
+  assert.equal(didYouMean("verb", "search", VERB_NAMES, said),
+    "No verb named search. `forge issue --search <query>` reads the backlog by a query.");
+  assert.equal(routeSaid("search", ["comment", "new"]), null,
+    "a route through a verb this credential may not see is said to nobody");
+  assert.equal(routeSaid("issue", VERB_NAMES), null, "and a word the CLI answers to has no row to read");
+  assert.equal(didYouMean("attach target", "search", ["issue", "comment"]),
+    "No attach target named search. The set is issue, comment.");
+  assert.equal(didYouMean("kind", "search", KINDS), "No kind named search. The set is bug, enhancement, feature.");
+});
+
+test("every route is a call this CLI makes, names the flag in it, and re-spells no word the CLI answers", () => {
+  assert.deepEqual(routeProblems(ROUTES, FORMS, RETIRED, VERB_NAMES), []);
+  assert.ok(Object.keys(ROUTES).length > 0, "and the table holds something, so the rule judged a row");
+});
+
+test("the rule fires on a route through no verb, on a call with no flag, and on a word the CLI has", () => {
+  const row = { verb: "issue", call: "forge issue --search <query>", does: "reads the backlog by a query" };
+  const problems = (routes, retired = RETIRED) => routeProblems(routes, FORMS, retired, VERB_NAMES);
+  assert.deepEqual(problems({ query: { ...row, verb: "gone", call: "forge gone --search q" } }),
+    ["the route for query is made through gone, which no verb answers to"]);
+  assert.deepEqual(problems({ query: { ...row, call: "forge issue ISS-45" } }),
+    ["the route for query names no flag, and the verb alone is not the call that caller wanted"]);
+  assert.deepEqual(problems({ query: { ...row, call: "forge next --search q" } }),
+    ["the route for query does not open with forge issue"]);
+  assert.deepEqual(problems({ issue: row }),
+    ["issue is a word this CLI already answers, so its row is never reached"]);
+  assert.deepEqual(problems({ list: row }),
+    ["list is a word this CLI already answers, so its row is never reached"]);
+  const found = problems({ query: row }, [{ name: "query", kind: "verb", release: "3.36.0" }]);
+  assert.equal(found.length, 1, found.join("\n"));
+  assert.match(found[0], /retired in 3\.36\.0/u, "a route to a retired name is the redirect itself");
 });
 
 test("every form names a live verb, and no form is a name the CLI answers to", () => {
@@ -281,10 +336,30 @@ test("a target is turned away like any other name", async () => {
   assert.match(run.stderr, /No attach target named isue\. Did you mean: issue\? The set is issue, comment\./u);
 });
 
-test("a verb nobody has is named back before the list of the ones there are", async () => {
+/* The cost this fixes is context: the sentence was right and the 33 lines behind it were the waste,
+   so the bound is on the whole of what came back — a case reading only the first line passes on the
+   block it exists to keep out (ISS-846). */
+const BUDGET = 300;
+const wholeOf = (run) => `${run.stdout}${run.stderr}`;
+
+test("a verb nobody has is answered with the way to the list, and never with the list", async () => {
   const run = await ran("nosuchverb");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /^No verb named nosuchverb\./u);
+  assert.match(run.stderr, /^No verb named nosuchverb\. `forge -h` lists the verbs\.$/mu);
+  assert.doesNotMatch(wholeOf(run), /Usage: forge </u, "the list is what `forge -h` prints when it is asked for");
+  assert.equal(wholeOf(run).trimEnd().split("\n").length, 1, wholeOf(run));
+  assert.ok(wholeOf(run).length < BUDGET, `${wholeOf(run).length} characters for one miss: ${wholeOf(run)}`);
+});
+
+test("a name for a call spends one sentence on the call, not thirty-three lines on the catalogue", async () => {
+  const run = await ran("search", "foo");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^No verb named search\. `forge issue --search <query>` reads the backlog by a query\.$/mu);
+  assert.doesNotMatch(wholeOf(run), /Usage: forge </u);
+  assert.equal(wholeOf(run).trimEnd().split("\n").length, 1, wholeOf(run));
+  assert.ok(wholeOf(run).length < BUDGET, `${wholeOf(run).length} characters for one miss: ${wholeOf(run)}`);
+  assert.doesNotMatch(run.stderr, /forge: read search as/u, "and the word is answered, never performed");
+  assert.doesNotMatch(run.stderr, /No Forge endpoint/u, "nor was anything resolved to answer it");
 });
 
 /* The one place this CLI answers a name with a replacement, and it is bounded: a write that had two

@@ -1,6 +1,6 @@
-/* A form is a word this CLI performs through a verb it already has, and it is not a redirect: it runs,
-   and says which verb ran it. Why that is allowed where a retirement's is not, what a form may never
-   be, and why the line goes to stderr: docs/cli/withholding-a-verb.md. */
+/* A form is a word this CLI performs through a verb it already has, not a redirect: it runs and says which
+   verb ran it; a route is a word nothing runs, whose shape wanted a flag, so a refusal says the call. Why a
+   form is allowed where a retirement's is not, what it may never be, why its line goes to stderr: docs/cli/withholding-a-verb.md. */
 
 /* One row per status something advances to, `open` having none; this file imports nothing, because the near-miss reader reads it and the order table's own tree reads that. */
 export const MOVES = {
@@ -32,6 +32,15 @@ export const FORMS = {
 
 export const FORM_NAMES = Object.keys(FORMS);
 export const handledBy = (word) => (Object.hasOwn(FORMS, word) ? FORMS[word] : null);
+
+export const ROUTES = {
+  search: { verb: "issue", call: "forge issue --search <query>", does: "reads the backlog by a query" },
+};
+
+export const routeSaid = (word, verbs) => {
+  const row = Object.hasOwn(ROUTES, word) ? ROUTES[word] : null;
+  return row && verbs.includes(row.verb) ? `\`${row.call}\` ${row.does}.` : null;
+};
 
 const refOf = (rest) => (rest[0] !== undefined && !rest[0].startsWith("--") ? rest[0] : null);
 

@@ -7,7 +7,7 @@ import { blockedBy, channelRefusal, grouped, helpLine, helpOf, offeredVerbs, ver
   from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
 import { retiredRefusal } from "./resolve/retiring.mjs";
-import { argvOf, handledBy, refusedFor, saidFor } from "./resolve/handler.mjs";
+import { argvOf, handledBy, refusedFor, routeSaid, saidFor } from "./resolve/handler.mjs";
 import { fail } from "./resolve/settings.mjs";
 
 const offered = offeredVerbs();
@@ -42,6 +42,8 @@ const PREAMBLE = [
   "  `forge guide` lists the tracker's guides this flow stands behind, and `forge guide contract` is",
   "    this plugin's own, one part per call, which is what holds where it and a guide disagree.",
 ].join("\n");
+
+const LIST_ROUTE = "`forge -h` lists the verbs.";
 
 const MORE = "\nWhat to type for one verb: `forge <verb> -h`, with the schema behind the tracker"
   + " fields it\ntakes, where it takes any. The write-time rules a first issue gets wrong:"
@@ -104,7 +106,9 @@ if (form) {
    prototype member ran it and exited 0. */
 if (asked || !command || !Object.hasOwn(commands, command)) {
   if (command && !asked) {
-    console.error(`${didYouMean("verb", command, offered.map(([verb]) => verb))}\n`);
+    const verbs = offered.map(([verb]) => verb);
+    console.error(didYouMean("verb", command, verbs, routeSaid(command, verbs) ?? LIST_ROUTE));
+    process.exit(1);
   }
   /* An answer, not a failure: on stderr, `forge -h | head` printed nothing. */
   if (!asked) {
