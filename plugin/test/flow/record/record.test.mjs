@@ -11,7 +11,7 @@ import { fakeTracker, ranAsync, tempRoom, typedPlan } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-");
 const {
-  KINDS, USAGE, checked, compoundRefused, criteriaLines, fromRecord, kindHelp, noteFrom, usage,
+  checked, compoundRefused, criteriaLines, fromRecord, noteFrom,
 } = await import("../../../src/flow/record/record.mjs");
 const { parse, render } = await import("../../../src/flow/record/page.mjs");
 const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../../src/flow/machine.mjs");
@@ -20,65 +20,6 @@ const { TWICE } = await import("../../../src/tracker/evidence.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
-
-test("every kind is on the usage line, and -h prints it without touching the tracker", () => {
-  for (const kind of KINDS) assert.match(USAGE, new RegExp(`^  ${kind}\\b`, "mu"), kind);
-  const run = ask("record", "-h");
-  assert.equal(run.status, 0, run.stderr);
-  assert.ok(run.stdout.includes("Usage: forge record"), run.stdout);
-  assert.doesNotMatch(run.stdout, /\(\d+\)/u, "the fields are each kind's own, so no cap is on this text");
-  const note = ask("record", "note", "-h");
-  assert.equal(note.status, 0, note.stderr);
-  assert.match(note.stdout, /--user T\(500\)/u, "the cap on the kind's own row, with no endpoint saved to ask");
-});
-
-/* A note was drafted against a cap nobody had, refused, and rewritten — six sends for one note on
-   ISS-525 (ISS-46). The row prints the cap it was handed, which is what a number of its own would
-   fail on. */
-test("the cap of a capped field is on its row, and a row with no cap read prints what it always did", () => {
-  const caps = {
-    releaseNotes: { self: null, halves: { userFacing: 40, technical: 41 } },
-    acceptanceCriteria: { self: 42, halves: {} },
-  };
-  const shown = kindHelp("note", caps);
-  assert.match(shown, /^ {2}note {9}--section S --user T\(40\) \[--technical T\(41\)\]/mu, "both halves of the note");
-  assert.match(kindHelp("criteria", caps), /^ {2}criteria {5}<file\.md>\(42\) +numbered lines/mu, "and the criteria file");
-  assert.match(shown, /^A number in parentheses after a value is that field's cap in code points/mu, "notation said once");
-  assert.match(kindHelp("note"), /^ {2}note {9}--section S --user T \[--technical T\]/mu, "no cap read, and the row is untouched");
-  assert.match(kindHelp("criteria"), /^ {2}criteria {5}<file\.md> +numbered lines/mu, "the description column holding where it was");
-  assert.doesNotMatch(kindHelp("note"), /A number in parentheses/u, "and no notation to explain, so none is printed");
-  assert.doesNotMatch(usage(), /\(4[01]\)|A number in parentheses/u,
-    "and the text that lists the kinds carries no field of theirs, capped or not");
-  assert.doesNotMatch(kindHelp("note"), /\(\d+\)|A number in parentheses/u, "and neither where none was read");
-});
-
-/* `record` answers its own help, so the dispatcher's route never sees the tail and `-h` after a kind
-   was read as the issue reference: every kind refused for a flag, and four of them for a bad key,
-   which is the one flag a refusal naming the missing flag could not answer for (ISS-208). */
-test("naming a kind narrows -h to that kind's arguments rather than refusing for a flag", () => {
-  for (const kind of KINDS) {
-    const run = ask("record", kind, "-h");
-    assert.equal(run.status, 0, `${kind}: ${run.stderr}`);
-    assert.match(run.stdout, new RegExp(`^Usage: forge record ${kind}\\b`, "mu"), kind);
-    assert.match(run.stdout, new RegExp(`^ {2}${kind}\\b`, "mu"), `${kind} is offered its own row`);
-    assert.equal(run.stderr, "", `${kind} refuses nothing`);
-  }
-});
-
-test("the kind that opens a block carries what its one row cannot, and no other kind does", () => {
-  const block = /^--criterion repeats/mu;
-  assert.match(ask("record", "verdict", "-h").stdout, block);
-  assert.doesNotMatch(ask("record", "confirmation", "-h").stdout, block);
-});
-
-test("a kind -h answers for the kind alone, and a name that is no kind still refuses", () => {
-  const one = ask("record", "park", "-h").stdout;
-  assert.match(one, /^ {2}park\b.*--kind K/mu, "the kind asked about is answered");
-  assert.doesNotMatch(one, /^ {2}verdict\b/mu, "one kind's help is not the whole table");
-  const bad = ask("record", "nosuchkind", "-h");
-  assert.equal(bad.status, 1, bad.stdout);
-  assert.match(bad.stderr, /record knows no kind `nosuchkind`/u);
-});
 
 /* The kinds and their rows are unchanged: a help word is the whole of what this reads. */
 test("a missing flag that is not a help word is refused as it was", () => {

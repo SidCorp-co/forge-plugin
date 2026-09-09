@@ -129,21 +129,35 @@ const servesBlocks = (goals) => (goals
   ? goalBlock(goals, `A \`${SERVES_KINDS.join("` or a `")}\` record`)
   : []);
 
-/* The evidence vocabulary sits under the kinds that cite evidence rather than over the whole list:
-   a caller writing a verdict is the one who needs it, and `forge record -h` is not that call. */
+/* This and each sentence under it go to the kinds whose own shape carries the field: one predicate
+   over both field types promised five kinds a flag their parse refuses (ISS-835). */
 const EVIDENCE_BLOCKS = [
   "Evidence is an attachment name on the issue, a URL, a commit of 7 to 40 hex digits, or a path to",
   "a readable file, which goes up under its base name and is cited by it. A name already attached is",
   `refused rather than attached twice. The tracker types a file by its name and takes`,
   `${declaredFor("forge_uploads", "extensions").join(" ")} — this CLI's reading of the tracker's set rather`,
   "than its answer, so one missing may work too, and no path costs an upload before it is minted.",
-  "",
-  "--commit and --evidence are read off the record where the flag is absent: the commit from the",
-  "merged mark's note, the evidence from what the latest record of this kind cited. Each is printed.",
 ];
 
-const CITES_EVIDENCE = (kind) =>
-  Boolean(SHAPES[kind]?.fields.some((one) => one.evidence || one.commit));
+/** The field a deferred fill reads, the first of its type: `verification` declares two commit-typed fields, the fill reads the first, and the second is promised nothing. */
+const filled = (kind, type) => SHAPES[kind]?.fields.find((one) => one[type]) ?? null;
+
+/* One sentence per fill, under that fill's own condition: an evidence field nothing owes, `routed`'s, is never filled and is promised no read. */
+const readsOff = (kind) => {
+  const commit = filled(kind, "commit");
+  const evidence = filled(kind, "evidence");
+  const reads = evidence && ((evidence.least ?? 1) >= 1 || Boolean(evidence.owed));
+  const said = [
+    ...(commit
+      ? [`--${commit.flag} is read off the merged mark's note where the flag is absent.`]
+      : []),
+    ...(reads
+      ? [`--${evidence.flag} is read off what the latest record of this kind cited where the flag is`,
+        `absent${evidence.owed ? " and this record owes one" : ""}.`]
+      : []),
+  ];
+  return said.length ? ["", ...said, "Every value read that way is printed."] : [];
+};
 
 const SHARED_FLAGS = [
   "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
@@ -198,7 +212,8 @@ export const kindHelp = (kind, caps = {}, goals = null) => {
     ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
     ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
-    ...(CITES_EVIDENCE(kind) ? ["", ...EVIDENCE_BLOCKS] : []),
+    ...(filled(kind, "evidence") ? ["", ...EVIDENCE_BLOCKS] : []),
+    ...readsOff(kind),
     "",
     `The flags every writing kind also takes, and the other ${KINDS.length - 1} kinds: \`forge record -h\`.`,
   ].join("\n");
