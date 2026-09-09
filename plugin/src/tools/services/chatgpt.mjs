@@ -1,7 +1,7 @@
 /* One ChatGPT turn over the search-master backend's `chatgpt` MCP tool: text, a generated image, an
    attached file, or a chat continued by its id. One attempt per invocation and never a second, and
    a failure names `--resume` instead — docs/cli/chatgpt.md carries why. */
-import { readFileSync, statSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 
 import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds } from "../../wire/request.mjs";
@@ -40,9 +40,8 @@ const settingsFor = () => {
   return held;
 };
 
-/* Event-aware and deliberately not `sseData`, whose own comment sends a consumer needing the wire
-   format's dispatch elsewhere: it concatenates every `data:` value, so a notification before the
-   result yields two adjacent JSON documents and the parse fails (consult ab0c46, F1). */
+/* Event-aware and deliberately not `sseData`, which concatenates every `data:` value: a notification
+   before the result then yields two adjacent JSON documents and the parse fails (consult ab0c46, F1). */
 const eventsIn = (text) => text
   .split(/\r?\n\r?\n/u)
   .map((block) => block
@@ -79,10 +78,9 @@ const answerIn = (text, type, id) => {
 };
 
 /* A gateway echoing the request's headers into a 4xx puts the configured key in the body this verb
-   then quotes, so external text is struck before it prints — ids and metadata too, since clearing
-   the sentence and then interpolating a backend field clears nothing. Striking and truncating are
-   two jobs and only a quoted body wants both: a signed URL runs past any cap worth putting on an
-   error, so cutting one to guard against a key not in it breaks a working link (4f91a2, 4d1f8e, ea77c3). */
+   quotes, so all external text is struck — metadata and interpolated ids too. Truncating is a
+   separate job only a quoted body wants: a signed URL outruns any cap an error deserves, and
+   cutting one to guard against a key nobody put in it breaks a working link (4f91a2, ea77c3). */
 const redactorsFor = (key) => {
   const struck = (text) => (key ? String(text).split(key).join("<the key>") : String(text));
   return { struck, shown: (text) => struck(text).slice(0, BODY_CHARS) };
@@ -96,15 +94,10 @@ const ambiguous = (said, conversation, shown) => {
     + `whether it ran.${back}`);
 };
 
-const uploaded = async (base, key, path, clock) => {
-  try {
-    statSync(path);
-  } catch {
-    fail(`chatgpt: no file at ${path}, so nothing was sent`);
-  }
+const uploaded = async (base, key, { path, bytes }, clock) => {
   const { shown } = redactorsFor(key);
   const form = new FormData();
-  form.set("file", new Blob([readFileSync(path)]), basename(path));
+  form.set("file", new Blob([bytes]), basename(path));
   const answer = await fetch(`${base}/upload`, {
     method: "POST",
     headers: { authorization: `Bearer ${key}` },
@@ -119,17 +112,30 @@ const uploaded = async (base, key, path, clock) => {
   return held.url;
 };
 
+/* Every attachment is read before the first upload leaves: reading inside the loop spends the first
+   file's request before a missing second one is found, and an upload cannot be taken back. */
 const attached = async (given, held, clock) => {
   if (given.length > FILE_CAP) fail(`chatgpt: ${given.length} files, and the tool takes ${FILE_CAP}`);
-  const urls = [];
+  const parts = [];
   for (const one of given) {
     if (URL_LIKE.test(one)) {
-      urls.push(one);
+      parts.push({ url: one });
       continue;
     }
-    const { base, problem } = apiBaseOf(held.url);
-    if (problem) fail(`chatgpt: a local file is uploaded to the origin beside the endpoint, and there is ${problem}`);
-    urls.push(await uploaded(base, held.key, one, clock));
+    try {
+      parts.push({ path: one, bytes: readFileSync(one) });
+    } catch (error) {
+      /* Named apart, or an unreadable file that is plainly there reads as a typo in the path. */
+      fail(error.code === "ENOENT"
+        ? `chatgpt: no file at ${one}, so nothing was sent`
+        : `chatgpt: ${one} could not be read (${error.code ?? error.message}), so nothing was sent`);
+    }
+  }
+  const { base, problem } = parts.some((one) => one.path) ? apiBaseOf(held.url) : {};
+  if (problem) fail(`chatgpt: a local file is uploaded to the origin beside the endpoint, and there is ${problem}`);
+  const urls = [];
+  for (const one of parts) {
+    urls.push(one.url ? one.url : await uploaded(base, held.key, one, clock));
   }
   return urls;
 };

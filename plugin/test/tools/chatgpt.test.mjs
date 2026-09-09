@@ -19,7 +19,7 @@ const ROOT = new URL("../../..", import.meta.url).pathname;
 const KEY = "sm_stub_key_never_a_real_credential";
 const PNG = Buffer.from("89504e470d0a1a0a", "hex");
 
-const state = { mode: "json", calls: [], uploads: 0, sent: [] };
+const state = { mode: "json", calls: [], uploads: 0, sent: [], form: "" };
 
 const answered = (out, meta = {}) => ({
   jsonrpc: "2.0",
@@ -87,14 +87,25 @@ const served = (request, response) => {
     if (state.imageGone) return response.writeHead(403).end("<html>expired signature</html>");
     return response.writeHead(200, { "content-type": "image/png" }).end(PNG);
   }
+  /* The multipart body is kept, in latin1 so the PNG's bytes survive as characters: the field name
+     is what the backend's route reads by, and the same string is how the bytes are shown to be in
+     this request and in no MCP payload. */
   if (url.pathname === "/api/upload") {
     state.uploads += 1;
-    if (state.mode === "unsupported") {
-      return response.writeHead(415, { "content-type": "text/plain" })
-        .end(`.xyz is not one of: png, jpg, pdf — and your key was Bearer ${KEY}`);
-    }
-    return response.writeHead(200, { "content-type": "application/json" })
-      .end(JSON.stringify({ id: "up-1", url: `${state.origin}/held/one.png`, name: "one.png", mime: "image/png", size: 8 }));
+    let sent = "";
+    request.on("data", (chunk) => {
+      sent += chunk.toString("latin1");
+    });
+    request.on("end", () => {
+      state.form = sent;
+      if (state.mode === "unsupported") {
+        return response.writeHead(415, { "content-type": "text/plain" })
+          .end(`.xyz is not one of: png, jpg, pdf — and your key was Bearer ${KEY}`);
+      }
+      return response.writeHead(200, { "content-type": "application/json" })
+        .end(JSON.stringify({ id: "up-1", url: `${state.origin}/held/one.png`, name: "one.png", mime: "image/png", size: 8 }));
+    });
+    return undefined;
   }
   /* Answered before the body is read, as a real redirector does, and pointing at a path that counts
      its own arrivals: `fetch` follows a 307 with the POST intact, so a verb that allows one sends a
@@ -158,6 +169,7 @@ const ran = (env, ...argv) => {
   state.calls = [];
   state.sent = [];
   state.uploads = 0;
+  state.form = "";
   return ranAsync(FORGE, ["chatgpt", ...argv], env, ROOT, null);
 };
 
@@ -304,20 +316,32 @@ test("--resume sends the id as conversationId", async () => {
   assert.equal(state.sent[0].params.arguments.conversationId, "conv-42");
 });
 
-test("--model is passed through, and is absent when it is not asked for", async () => {
-  await asked("json", "with a model", "--model", "gpt-5.6");
+test("--model is passed through, is absent when it is not asked for, and is not printed as what ran", async () => {
+  const passed = await asked("json", "with a model", "--model", "gpt-5.6");
   assert.equal(state.sent[0].params.arguments.model, "gpt-5.6");
+  /* This fixture's reply names no model, so a `model` line here could only be the slug echoed back
+     as though it had run — and the upstream ignores a slug it does not know rather than refusing. */
+  assert.doesNotMatch(passed.stdout, /^model\s/mu, "what was asked for is not reported as what answered");
   await asked("json", "with no model");
   assert.ok(!("model" in state.sent[0].params.arguments), "no default is sent from here");
 });
 
-test("a local --file is uploaded first and the turn carries the URL the upload answered", async () => {
+test("a local --file is uploaded as multipart under the field name file, and only its URL travels on", async () => {
   const path = join(home.path, "one.png");
   writeFileSync(path, PNG);
   const run = await asked("json", "describe this", "--file", path);
   assert.equal(run.status, 0);
   assert.equal(state.uploads, 1);
-  assert.deepEqual(state.sent[0].params.arguments.files, [`${state.origin}/held/one.png`]);
+  assert.match(state.form, /name="file"/u, "the field name the backend's upload route reads by");
+  assert.match(state.form, /filename="one\.png"/u, "under the file's own name");
+  assert.ok(state.form.includes(PNG.toString("latin1")), "the bytes went up in the multipart body");
+  /* The whole arguments object, not a search of it for the bytes: `JSON.stringify` escapes this
+     fixture's carriage return and control bytes, so a payload really carrying them would pass such
+     a search and criterion 21 would read as proven (consult e92e2e, F1). */
+  assert.deepEqual(state.sent[0].params.arguments, {
+    prompt: "describe this",
+    files: [`${state.origin}/held/one.png`],
+  }, "the prompt and the URL the upload answered, and no field carrying the file itself");
 });
 
 test("a --file that is already a URL is sent untouched and uploads nothing", async () => {
@@ -344,6 +368,7 @@ test("a missing second file is refused with no turn sent and the first file's up
   assert.equal(run.status, 1);
   assert.match(run.stderr, /no file at/u);
   assert.equal(state.calls.length, 0, "no turn is sent when one of the attachments is missing");
+  assert.equal(state.uploads, 0, "and the first file's upload is not spent before the second is missed");
 });
 
 test("more files than the tool takes is refused before the first upload", async () => {
