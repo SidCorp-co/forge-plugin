@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -59,6 +60,14 @@ test("a document test added under checks/docs joins the half that reads the whol
 
 test("a test step whose half is empty is refused, because it would pass having run nothing", () => {
   assert.throws(() => gateSteps(WHOLE_TREE_TESTS), /step test matches no test file/u);
+});
+
+// A tripwire on a derivation this repository refused rather than forgot: the number of runs a machine declares sizes nothing here, and `node tools/gates.mjs -h` carries the figures that refused it (ISS-917).
+test("a test step spends the whole machine, whatever number of runs this box declares", () => {
+  for (const step of gateSteps(tracked()).filter((one) => one.tests)) {
+    assert.ok(step.argv.includes(`--test-concurrency=${availableParallelism()}`),
+      `${step.label} sizes its concurrency by something other than the core count: ${step.argv.slice(0, 4).join(" ")}`);
+  }
 });
 
 /* Every step spends the npm script of its own name, so a renamed script is a red step rather than

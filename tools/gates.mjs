@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
 import { attribute, attributionLines, CASES_ENV } from "./gates/isolation.mjs";
 import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
+import { DECLINED, placeFor, RAISE, runnersOf } from "./gates/machine.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
@@ -110,6 +111,36 @@ Every step runs under a temporary directory of this run's own, and a step that l
 hook stamps in it is failed: on a developer's machine that directory is the room every hook reaps
 before every stamp, and a suite that fills it is a cost no green can show.
 
+Before any of that, before the table and before the first step, it counts the gates of this checkout
+already running and declines where they have reached the number this machine declares — one number,
+\`${RAISE} <n>\`, absent which nothing is counted and nothing declines. A decline exits ${DECLINED}
+rather than 1, names each gate it counted and the tree that gate is judging, records no pass and no
+figure, and says no verdict about this tree: a run that spent twenty-five minutes and then reported
+the tree is what this exists to stop, and a refusal costing the caller a step has already lost the
+argument.
+
+What it counts is gates, not load. Four whole runs of this gate at one-minute loads of 5.6, 5.9,
+10.5 and 24.7 did not order by whether they passed (ISS-917), and three whole gates at once, at load
+27, were all green. What it counts them off is the process table: a gate is a node process running a
+runner of one of this checkout's worktrees, and the order is the kernel's own start time for each,
+which is fixed before either gate runs a line. A file left behind would have to be reclaimed when
+its holder is killed, and reclaiming a shared name is a race two gates can both win.
+
+The ceiling is advisory and not mutual exclusion. A gate becomes countable when the shell
+\`npm run check\` spawned execs node, so two gates starting inside that window — milliseconds, and
+only ever a gate's own fork-to-exec — can both admit themselves; the cost of that is one extra gate
+on a box measured to carry three with no loss. Not counted at all: a gate of another checkout, a
+build of another project, a gate belonging to another user, and every gate on a machine whose
+process table cannot be read, which declines nobody. Only the process running a runner is counted,
+never one that merely names its path, because a run declined for somebody's \`grep\` costs a wave a
+round.
+
+Test concurrency is untouched by the number and stays the whole core count. Measured here over 175
+files and 2368 cases: the same work took 276s at 3 workers, 223s at 6, 228s at 12 and 231s at 18, so
+sizing a lone gate down by the declared number would cost it a quarter to save a crowded box a
+thirtieth — and the crowded box has no deficit to recover, three whole gates at once having finished
+in 726s against 789s for the same three taken in turn.
+
 A run in the shared checkout is refused while that checkout holds uncommitted paths: more than one
 session stands there, so the result would be about a tree none of them owns. A worktree is never
 refused — its uncommitted work is the point of it.
@@ -179,6 +210,21 @@ const finish = (code) => {
   if (dirty.length > 0) console.log(`\n${banner}`);
   process.exit(code);
 };
+
+/* Before the table, the record and the first step, because a refusal that cost the caller a step has
+   already lost the argument. It says nothing about the tree and records nothing of it. */
+const place = placeFor(runnersOf(ROOT));
+
+if (place.declined) {
+  console.error(`\nThis gate declined the machine and judged nothing.`);
+  console.error(`${place.ahead.length} gate(s) of this checkout are already running, and this machine `
+    + `carries ${place.declared.value} run(s) at once  ← ${place.declared.from}`);
+  for (const one of place.ahead) console.error(`  pid ${one.pid}  gating ${one.tree}`);
+  console.error(`No step ran and nothing was recorded, so nothing here judges ${ROOT}.`);
+  console.error(`Wait for one of those to finish, or say what this machine carries: `
+    + `${RAISE} ${place.declared.value + 1}`);
+  finish(DECLINED);
+}
 
 const files = gitFiles(ROOT);
 

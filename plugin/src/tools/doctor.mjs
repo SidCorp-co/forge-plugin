@@ -14,12 +14,14 @@ import {
   sessionSourced,
   userConfig,
 } from "../resolve/config.mjs";
-import { didYouMean } from "../suggest.mjs";
+import {
+  CHATGPT_FLAGS, SAVED, install, runsGiven, setChatgpt, setRuns, setShip, setVisibility,
+} from "./doctor-keys.mjs";
 import { backoff, deadlineSeconds, retrySeconds, waitSeconds } from "../tracker/rest.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
-  FEEDBACK_CHANNELS, LANDING_ROUTES, SHIP_MODES, accountCredentials, fail, feedbackScope,
-  landingScope, mcpForgeIgnored, projectRoot, projectScope, shipMode, translateScope,
+  FEEDBACK_CHANNELS, LANDING_ROUTES, RUNS_TAKES, SHIP_MODES, accountCredentials, fail, feedbackScope,
+  landingScope, mcpForgeIgnored, parallelRuns, projectRoot, projectScope, shipMode, translateScope,
 } from "../resolve/settings.mjs";
 import {
   MAX_CLAUDE_MD_LINES,
@@ -35,7 +37,7 @@ import { copyToRun, FROZEN, pluginCopy } from "./plugin-copy.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
-import { VERB_NAMES, usageOf } from "../resolve/visibility.mjs";
+import { usageOf } from "../resolve/visibility.mjs";
 import { PROJECT_USAGE, WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { methodPinned, pinRefusal } from "../guides/version.mjs";
@@ -402,41 +404,6 @@ const checkEndpoint = async (full, credentials) => {
   await checkProject(credentials, findings.answered?.forge_project_pm ?? null);
 };
 
-const install = (values) => {
-  const written = saveConfig(values);
-  console.log(`Saved ${Object.keys(values).join(" and ")} to ${written} (mode 0600).\n`);
-};
-
-/* `forge chatgpt`'s two keys live under one name, and `saveConfig` merges the top level only — so
-   writing the url from a bare object would drop the key beside it, and the pair is read first. */
-const CHATGPT_FLAGS = { "chatgpt-url": "url", "chatgpt-key": "key" };
-
-const setChatgpt = (asked) => {
-  const named = Object.entries(CHATGPT_FLAGS).filter(([flag]) => asked[flag] !== undefined);
-  const held = { ...(userConfig().chatgpt ?? {}) };
-  for (const [flag, key] of named) held[key] = asked[flag];
-  const written = saveConfig({ chatgpt: held });
-  console.log(`Saved chatgpt ${named.map(([, key]) => key).join(" and ")} to ${written} (mode 0600).\n`);
-};
-
-const setVisibility = (verb, hide) => {
-  if (!VERB_NAMES.includes(verb)) fail(didYouMean("verb", verb, VERB_NAMES));
-  const withheld = new Set(userConfig().withheld ?? []);
-  if (hide) withheld.add(verb);
-  else withheld.delete(verb);
-  saveConfig({ withheld: [...withheld] });
-  console.log(`${verb} is now ${hide ? "withheld from" : "offered in"} the usage list.\n`);
-};
-
-/* Whose the option is, and why: `shipMode` in resolve/settings.mjs. */
-const setShip = (mode) => {
-  if (!SHIP_MODES.includes(mode)) fail(didYouMean("--ship mode", mode, SHIP_MODES));
-  saveConfig({ ship: mode });
-  console.log(mode === "ready"
-    ? "A run on this machine now ends at a pushed branch and a landing checkpoint; the landing is another actor's.\n"
-    : "A run on this machine now lands its own change, as it did before the option existed.\n");
-};
-
 /* This is the surface allowed to say what a project or a machine turned off, so each key prints its
    value and where it was read; a value the key does not take is named here and nowhere else. */
 const held = (one, allowed) =>
@@ -455,6 +422,10 @@ const checkFlowKeys = () => {
   else line(OK, "landing", "unset, so the branches on the tracker's record derive where the merge sits");
   const ship = shipMode();
   line(ship.unknown ? BAD : OK, "ship", held(ship, SHIP_MODES));
+  const runs = parallelRuns();
+  if (runs.unknown) line(BAD, "parallel runs", held({ ...runs, value: "the whole machine" }, [RUNS_TAKES]));
+  else if (runs.value) line(OK, "parallel runs", `${runs.value}  ← ${runs.from}`);
+  else line(OK, "parallel runs", "unset, so a gate takes the whole machine and declines for no sibling");
   const given = userConfig().retrySeconds;
   const own = retrySeconds({ retrySeconds: given }) === given;
   const retry = {
@@ -475,8 +446,7 @@ const checkFlowKeys = () => {
 
 const BOOLEAN = ["--full", "--credentials"];
 /* The machine's, the checkout's and the project's, in one surface: `--set` and the brief's three
-   are the project's half, and the account keys below them this machine's. */
-const SAVED = ["token", "url"];
+   are the project's half, and the keys doctor-keys.mjs writes this machine's. */
 const PROJECT_FLAGS = ["set", ...WRITES, ...WITH_BODY];
 
 /** One write per call, then the report, because a run that asked to write is not asking to be
@@ -501,13 +471,13 @@ export const doctor = async (argv) => {
   const { values: pairs, rest } = pullRepeated(argv, "--meta", "doctor", { usage });
   const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "doctor", usage });
   const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token", "--chatgpt-key"] });
-  const { full, credentials, hide, show: reveal, ship } = asked;
+  const { full, credentials, hide, show: reveal, ship, runs } = asked;
   if (positionals.length && asked.line === undefined) {
     fail(`doctor: \`${positionals[0]}\` names no flag, and the prose of a line is --line's: `
       + "forge doctor --line <n> <text>");
   }
   /* Two stores: the project write returns before the report, dropping the machine's half silently. */
-  const machine = [...SAVED, ...Object.keys(CHATGPT_FLAGS), "hide", "show", "ship"]
+  const machine = [...SAVED, ...Object.keys(CHATGPT_FLAGS), "hide", "show", "ship", "runs"]
     .filter((key) => asked[key] !== undefined);
   const project = PROJECT_FLAGS.filter((key) => asked[key] !== undefined);
   if (project.length && machine.length) {
@@ -516,9 +486,11 @@ export const doctor = async (argv) => {
   }
   const wrote = await wroteProject(asked, pairs, positionals);
   if (wrote) return wrote.forEach((said) => console.log(said));
+  const wantsRuns = runs === undefined ? null : runsGiven(runs);
   if (hide) setVisibility(hide, true);
   if (reveal) setVisibility(reveal, false);
   if (ship) setShip(ship);
+  if (wantsRuns !== null) setRuns(wantsRuns);
   const saved = Object.fromEntries(SAVED.filter((key) => asked[key] !== undefined).map((key) => [key, asked[key]]));
   if (Object.keys(saved).length) install(saved);
   if (Object.keys(CHATGPT_FLAGS).some((flag) => asked[flag] !== undefined)) setChatgpt(asked);

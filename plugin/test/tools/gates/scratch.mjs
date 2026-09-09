@@ -1,5 +1,5 @@
-/* A checkout of the runner's own, per case: its questions are about a tree, never this repository's. */
-import { spawnSync } from "node:child_process";
+/* A checkout of the runner's own per case, and a configuration home beside it: a case's questions are about that tree and that box, never this repository's and never whoever ran the suite. */
+import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -71,13 +71,34 @@ export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "ut
    runs as a child of this suite and spends no file, so the scratch's test steps would pass empty. */
 export const SHELL_ENV = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT"));
 
+const scratchEnv = (work, env) =>
+  ({ ...SHELL_ENV, XDG_CONFIG_HOME: join(work, "..", "config"), ...env });
+
 export const run = (work, argv = [], cwd = work, env = {}) =>
   spawnSync(process.execPath, [join(work, RUNNER), ...argv],
-    { cwd, encoding: "utf8", env: { ...SHELL_ENV, ...env } });
+    { cwd, encoding: "utf8", env: scratchEnv(work, env) });
 
 // Awaited: a case serving the tracker itself cannot also block in `spawnSync` and answer the gate.
 export const ranGate = (work, argv = [], cwd = work, env = {}) =>
-  ranAsync(process.execPath, [join(work, RUNNER), ...argv], { ...SHELL_ENV, ...env }, cwd);
+  ranAsync(process.execPath, [join(work, RUNNER), ...argv], scratchEnv(work, env), cwd);
+
+// Its own process group, so the step it spawned goes with it: a hanging step outlives its gate, and a ten-minute sleeper per case is what the suite would leave on the developer's box.
+export const heldGate = (work, argv = [], env = {}) =>
+  spawn(process.execPath, [join(work, RUNNER), ...argv],
+    { cwd: work, detached: true, env: scratchEnv(work, env), stdio: ["ignore", "pipe", "pipe"] });
+
+export const stopGate = async (child) => {
+  if (child.exitCode === null && child.signalCode === null) {
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch {
+      child.kill("SIGKILL");
+    }
+    await new Promise((done) => child.once("exit", done));
+  }
+  child.stdout.destroy();
+  child.stderr.destroy();
+};
 
 /* A step writing the hook stamp room into whatever temporary directory it was handed, which is the
    shape a suite has when nothing points TMPDIR at a room of its own (ISS-361). */
@@ -85,19 +106,24 @@ export const LEAKS = "node -e \"const fs=require('node:fs'),os=require('node:os'
   + `const room=p.join(os.tmpdir(),'${STAMPED}');fs.mkdirSync(room,{recursive:true});`
   + "fs.writeFileSync(p.join(room,'learning-gate-planted'),'')\"";
 
-const command = (label, failing, leaking) => {
+export const HOLDING = "holding";
+const HANGS = `node -e "console.log('${HOLDING}');setTimeout(()=>{},600000)"`;
+
+const command = (label, { failing, leaking, hanging }) => {
   if (label === failing) return "node -e \"process.exit(1)\"";
   if (label === leaking) return LEAKS;
+  if (label === hanging) return HANGS;
   return "node -e \"\"";
 };
 
-const scripts = (failing, leaking) =>
+const scripts = (marks) =>
   Object.fromEntries(STEPS.filter((step) => !step.tests)
-    .map((step) => [step.label, command(step.label, failing, leaking)]));
+    .map((step) => [step.label, command(step.label, marks)]));
 
 /* Committed on master, then worked on a branch, so the merge-base is real and a change to it diffs.
-   `also` are roots beyond the runner's, `slug` the project a filing from inside would be aimed at. */
-export const scratch = (name, failing, leaking, { also = [], slug = null } = {}) => {
+   `also` are roots beyond the runner's, `slug` the project a filing from inside would be aimed at,
+   `hanging` a step that prints `HOLDING` and then never returns, so a gate can be held open. */
+export const scratch = (name, failing, leaking, { also = [], slug = null, hanging = null } = {}) => {
   const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
   for (const one of [...COPIED, ...reachedFrom(also)]) {
@@ -111,7 +137,8 @@ export const scratch = (name, failing, leaking, { also = [], slug = null } = {})
   }
   if (slug) write(work, ".forge.json", JSON.stringify({ slug }));
   write(work, "package.json",
-    JSON.stringify({ name: "scratch", version: "1.0.0", scripts: scripts(failing, leaking) }, null, 2));
+    JSON.stringify({ name: "scratch", version: "1.0.0",
+      scripts: scripts({ failing, leaking, hanging }) }, null, 2));
   git(work, "init", "-b", "master");
   for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(work, "config", key, value);
   git(work, "add", "-A");

@@ -86,7 +86,7 @@ export const VERBS = [
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout",
     null, { group: HARNESS }],
   ["doctor", "[--token t] [--url u] [--chatgpt-url u] [--chatgpt-key k] [--hide v|--show v]"
-    + " [--ship ready|self] [--set k=v] [--credentials]"
+    + " [--ship ready|self] [--runs n] [--set k=v] [--credentials]"
     + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text>] [--title T]"
     + " [--confidence C] [--meta k=v]... [--full]",
     "what resolves and from where, this project's own record included, and the keys of it that are written here",

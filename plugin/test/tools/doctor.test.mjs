@@ -381,6 +381,51 @@ test("the mode the report prints is the mode last written, either way", () => {
     "and self is written rather than cleared, so the report never has to guess which way a silence means");
 });
 
+/* The second key whose scope is the machine's, and the one a gate reads before it spends a step. Read
+   back off the file for the same reason the mode above is: what a gate reads is the file. */
+const asked = (home, ...argv) => {
+  const cwd = tempRoom("doctor-runs-cwd-");
+  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "demo" }));
+  const run = spawnSync(process.execPath, [CLI, "doctor", ...argv], {
+    encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+  });
+  return { run, cwd, saved: join(home, "forge", "config.json") };
+};
+
+test("the number of parallel runs is the machine's: it is written to the user config, read back, and the project's file is untouched", () => {
+  const home = tempRoom("doctor-runs-home-");
+  const { run, cwd, saved } = asked(home, "--runs", "3");
+  assert.equal(JSON.parse(readFileSync(saved, "utf8")).runs, 3, "the number is in the user config");
+  assert.match(run.stdout, new RegExp(`carries 3 run\\(s\\) at once, read back from ${saved}`, "u"), run.stdout);
+  assert.match(run.stdout, /\[ {2}ok {2}\] parallel runs\s+3 {2}← \S+config\.json/u, "and the report reads it back with its source");
+  assert.deepEqual(JSON.parse(readFileSync(join(cwd, ".forge.json"), "utf8")), { slug: "demo" },
+    "and the project's own file is exactly as it was: the machine decided, not the project");
+});
+
+test("a machine that declares no number of runs is told the key is unset and what follows from that", () => {
+  const out = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo" }) });
+  assert.match(out, /\[ {2}ok {2}\] parallel runs\s+unset, so a gate takes the whole machine and declines for no sibling/u, out);
+});
+
+test("a number of runs the key does not take is refused, and the file it would have gone in is left alone", () => {
+  const home = tempRoom("doctor-runs-bad-");
+  asked(home, "--runs", "3");
+  const before = readFileSync(join(home, "forge", "config.json"), "utf8");
+  for (const given of ["0", "-1", "two", "1.5"]) {
+    const { run, saved } = asked(home, "--runs", given);
+    assert.equal(run.status, 1, `\`${given}\` was taken: ${run.stdout}${run.stderr}`);
+    assert.match(run.stderr, /--runs is how many runs this machine carries at once and takes a whole number above 0/u,
+      "the refusal does not say what the key takes");
+    assert.equal(readFileSync(saved, "utf8"), before, `\`${given}\` was refused and the file moved anyway`);
+  }
+  /* Beside another machine key, which is the shape that catches a validation happening after a
+     write: the sentence says nothing was written and the ship mode had already moved. */
+  const beside = asked(home, "--ship", "ready", "--runs", "0");
+  assert.equal(beside.run.status, 1, `${beside.run.stdout}${beside.run.stderr}`);
+  assert.equal(readFileSync(beside.saved, "utf8"), before,
+    "a refused number left the key the flag beside it wrote, so nothing was written is untrue");
+});
+
 /* A diagnostic that minted an id would be answering its own question, and a wave would race one file. */
 test("the report mints no session id to have one to report", () => {
   const home = tempRoom("doctor-session-");

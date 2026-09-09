@@ -107,16 +107,18 @@ rather than behaving as though the verb never existed.
   WHEN the filing verb's help is printed THEN it SHALL render the destination of a finding off the
   project's key, naming the channel's verb where the key allows it and no verb where it does not.
 
-### UC-01-5 — The project's keys, and the machine's one option
+### UC-01-5 — The project's keys, and the machine's own
 
-Rev: 1 · Actors: developer, agent · Enforces: BR-07, BR-08
+Rev: 2 · Actors: developer, agent · Enforces: BR-07, BR-08
 
 A project decides how this product behaves inside its checkout — what a run may report about the
 product, which version of the method it runs, how its changes land — and it decides in its own
 project file, because a decision held anywhere else is a plugin default wearing the project's name
-(BR-07). One choice is the machine's rather than the project's: whether a release on this machine
-lands itself or stops ready to land, since the landing runs on this machine's checkout. Each key is
-read from one place and reported with its source (BR-08).
+(BR-07). The keys listed below as the machine's are the machine's instead, because what they answer
+is a fact about the box rather than about the checkout: whether a release here lands itself or stops
+ready to land, and how many runs this box carries at once. Each key is read from one place and
+reported with its source (BR-08), and a box that declares no number of runs is a box this says
+nothing about.
 
 - **AC-01-5-1** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "every key the project set is printed with .forge.json as its source"
   WHEN the resolution report is printed THEN the CLI SHALL list each project key with its value and
@@ -137,6 +139,13 @@ read from one place and reported with its source (BR-08).
 - **AC-01-5-6** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the mode the report prints is the mode last written, either way"
   WHEN the resolution report is printed THEN it SHALL print the landing mode the account's
   configuration holds.
+- **AC-01-5-7** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the number of parallel runs is the machine's: it is written to the user config, read back, and the project's file is untouched"
+  WHEN the developer sets how many runs this machine carries at once THEN the CLI SHALL write it to
+  the account's configuration, SHALL print the value read back from there, and SHALL write nothing
+  of the project's.
+- **AC-01-5-8** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "a machine that declares no number of runs is told the key is unset and what follows from that"
+  IF the account's configuration declares no number of runs THEN the resolution report SHALL say the
+  key is unset and SHALL say what a gate does in that case.
 
 ## The way back
 

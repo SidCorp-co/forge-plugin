@@ -234,3 +234,15 @@ export const SHIP_MODES = ["self", "ready"];
 
 /** Unmemoised: `forge doctor --ship` writes the option and reports it in the same process. */
 export const shipMode = () => chosen(userConfig().ship, SHIP_MODES, SHIP_MODES[0], { source: configPath() });
+
+export const RUNS_TAKES = "a whole number above 0";
+
+// How many runs this box carries at once, which is the box's fact and not a checkout's: a clone on a sixty-four-core machine may not inherit a six-core answer. Absent it is null, and every reader then behaves as it did before the key existed.
+export const parallelRuns = () => {
+  const given = userConfig().runs;
+  if (given === undefined || given === null) return { value: null, from: PLUGIN_DEFAULT };
+  const held = Number(given);
+  return Number.isInteger(held) && held > 0
+    ? { value: held, from: configPath() }
+    : { value: null, from: PLUGIN_DEFAULT, unknown: String(given) };
+};
