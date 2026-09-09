@@ -83,7 +83,7 @@ test("the claim prints the lane at the rung the complexity claims, and takes the
 
 /* Read off the record and not off the field alone: the tracker's complexity claims a fix and a
    correction on the page says the work turned out to be a feature, so the lane is a feature's. */
-test("a correction that re-sized the work moves the lane the claim prints", async () => {
+test("a correction that climbed a rung moves the lane the claim prints", async () => {
   field();
   state.comments[UUID] = [{
     documentId: "c-1",

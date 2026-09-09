@@ -129,7 +129,7 @@ test("the lane names what earns each status ahead, and what the rung drops on th
     "  released       verification, note",
   ], "and each of the three rows a lighter rung touches asks for the whole of its payload");
   assert.deepEqual(laneLines({ status: "open", fields: fieldsOf("s", ["Size: fix -> feature"]) }), feature,
-    "a correction that re-sized the work prints the feature lane, the field having claimed a fix");
+    "a correction that climbed a rung prints the feature lane, the field having claimed a fix");
 });
 
 /* The lane is what is ahead, so a status the ladder's path does not hold has none to read. */

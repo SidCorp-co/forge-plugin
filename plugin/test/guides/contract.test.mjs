@@ -310,14 +310,14 @@ const recorded = (kind, fields) =>
   ({ createdAt: `2026-09-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`, body: render(kind, fields) });
 const UNMARKED = "`forge issue` should take the `data.relations` route.";
 const VERIFIED = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] })];
-const reSized = (moved) => [recorded("correction", { moved, why: "what the work turned out to be" })];
+const climbed = (moved) => [recorded("correction", { moved, why: "what the work turned out to be" })];
 /* A rung is the tracker's complexity and nothing else, so a case at a rung sets the field the entry
    checks read; `null` is the issue that holds none, which is the top rung by the upward rule. */
-const sized = (tier, extra = {}) => ({
+const weighed = (rung, extra = {}) => ({
   description: UNMARKED,
   plan: "",
   acceptanceCriteria: "1. The one check that fails without the change.",
-  ...(tier ? { complexity: complexityFor(tier) } : {}),
+  ...(rung ? { complexity: complexityFor(rung) } : {}),
   ...extra,
 });
 const missing = (status, issue, comments = []) =>
@@ -329,33 +329,33 @@ const CASES = {
   released: { comments: VERIFIED, owed: /^no release note/u },
 };
 
-test("every status a tier lightens is dropped by its own check, and the rung report is the one home", () => {
+test("every status a rung lightens is dropped by its own check, and the rung report is the one home", () => {
   assert.deepEqual(LIGHTER.map((one) => one.status), Object.keys(CASES),
     "a row this test has no case for is a status lightened and unasked");
   for (const row of LIGHTER) {
     assert.ok(CHECKS[row.status], `the ladder drops ${row.drops} at ${row.status}, which is no entry check`);
     assert.ok(row.because, `${row.status} drops ${row.drops} and says why nowhere`);
     const held = CASES[row.status].comments ?? [];
-    for (const tier of row.rungs) {
-      assert.deepEqual(missing(row.status, sized(tier), held), [],
-        `${row.status} is reported to drop ${row.drops} for a ${tier} and the check still asks for it`);
+    for (const rung of row.rungs) {
+      assert.deepEqual(missing(row.status, weighed(rung), held), [],
+        `${row.status} is reported to drop ${row.drops} for a ${rung} and the check still asks for it`);
     }
-    const heavy = missing(row.status, sized(null), held);
+    const heavy = missing(row.status, weighed(null), held);
     assert.ok(heavy.some((one) => CASES[row.status].owed.test(one)),
       `and the complexity is the whole difference at ${row.status}: ${heavy.join("; ") || "nothing owed"}`);
   }
 });
 
-/* What a tier drops, why, and the rounds it spares are `LIGHTER`, `LIGHTER.because` and `SPARES`,
+/* What a rung drops, why, and the rounds it spares are `LIGHTER`, `LIGHTER.because` and `SPARES`,
    printed for the issue in hand by `forge advance --owed`. A guide restating any of it is a second
    copy that goes stale when the data moves, and the contract carried one for months (ISS-802). */
-test("what a tier drops and the rounds it spares are the rung report's, and no guide restates them", () => {
-  const rung = rungReport({ plan: "", moved: [], whole: true, complexity:null }, "ISS-3");
-  for (const tier of RUNGS) {
-    for (const one of SPARES[tier]) {
+test("what a rung drops and the rounds it spares are the rung report's, and no guide restates them", () => {
+  const top = rungReport({ plan: "", moved: [], whole: true, complexity:null }, "ISS-3");
+  for (const rung of RUNGS) {
+    for (const one of SPARES[rung]) {
       const words = one.split(";")[0].split(",")[0].trim();
-      const said = rungReport({ plan: "", moved: [], whole: true, complexity:complexityFor(tier) }, "ISS-3");
-      assert.ok(said.includes(words), `\`${tier}\` may spend fewer rounds on "${words}" and --owed does not say so`);
+      const said = rungReport({ plan: "", moved: [], whole: true, complexity:complexityFor(rung) }, "ISS-3");
+      assert.ok(said.includes(words), `\`${rung}\` may spend fewer rounds on "${words}" and --owed does not say so`);
     }
   }
   for (const row of LIGHTER) {
@@ -363,9 +363,9 @@ test("what a tier drops and the rounds it spares are the rung report's, and no g
     assert.ok(said.includes(row.drops) && said.includes(row.because),
       `${row.status} drops ${row.drops} and --owed prints neither it nor the reason`);
   }
-  assert.ok(rung.includes("nothing dropped"), "and a feature is told it drops nothing");
+  assert.ok(top.includes("nothing dropped"), "and a feature is told it drops nothing");
   const restating = PARTS.filter((part) =>
-    RUNGS.some((tier) => new RegExp(`\`${tier}\``, "u").test(part.text))
+    RUNGS.some((name) => new RegExp(`\`${name}\``, "u").test(part.text))
     && Object.values(SPARES).flat().concat(LIGHTER.map((one) => one.drops))
       .some((one) => part.text.includes(one.split(";")[0].split(",")[0].trim())));
   assert.deepEqual(restating.map((part) => part.keys[0]), [], "a part of the contract restates what "
@@ -380,35 +380,35 @@ test("what a tier drops and the rounds it spares are the rung report's, and no g
    scoped and remembers, so its failure mode is a step ABSENT rather than red, and a rung skipping
    the one whole run would hand later scoped runs a green nothing established. */
 test("no rung buys a judgement: the baseline and the migration classification cost every rung alike", () => {
-  for (const tier of RUNGS) {
-    const held = sized(tier, { plan: "Schema coupling: yes" });
+  for (const rung of RUNGS) {
+    const held = weighed(rung, { plan: "Schema coupling: yes" });
     assert.ok(missing("in_progress", held).some((one) => /^no baseline/u.test(one)),
-      `a ${tier} is asked for no baseline, and the one whole gate run of the work is what it skipped`);
+      `a ${rung} is asked for no baseline, and the one whole gate run of the work is what it skipped`);
     assert.ok(missing("tested", { ...held, acceptanceCriteria: "" }).length,
-      `a ${tier} declaring schema coupling earns tested with nothing said about the migration`);
+      `a ${rung} declaring schema coupling earns tested with nothing said about the migration`);
   }
   assert.equal(LIGHTER.some((row) => row.status === "in_progress"), false,
     "and no row lightens in_progress, so the demand is the table's and not this case's");
 });
 
-test("the size drops nothing the contract keeps, and a declared person takes a fix off the path", () => {
-  assert.equal(missing("confirmed", sized("fix")).length, 1, "the confirmation with its where");
-  assert.deepEqual(missing("approved", sized("fix", { acceptanceCriteria: "" })),
+test("the rung drops nothing the contract keeps, and a declared person takes a fix off the path", () => {
+  assert.equal(missing("confirmed", weighed("fix")).length, 1, "the confirmation with its where");
+  assert.deepEqual(missing("approved", weighed("fix", { acceptanceCriteria: "" })),
     ["the criteria field holds no numbered line `N. outcome`"], "the criteria, being the whole of a fix's plan");
-  assert.deepEqual(missing("released", sized("fix")).map((one) => one.slice(0, 16)), ["no verification:"]);
-  const seen = missing("released", sized("fix", { plan: "User-facing outcome: yes" }), VERIFIED);
+  assert.deepEqual(missing("released", weighed("fix")).map((one) => one.slice(0, 16)), ["no verification:"]);
+  const seen = missing("released", weighed("fix", { plan: "User-facing outcome: yes" }), VERIFIED);
   assert.ok(seen.includes("no release note and no withholding either"), "declaring a person owes the note again");
   assert.ok(seen.some((one) => /no person has answered/u.test(one)), "and the park with it");
 });
 
-test("a re-size outlives the corrections written after it, and a shortened page never lightens", () => {
-  const both = [...reSized("Size: fix -> feature"), ...reSized("criterion 2 | the review proved it impossible")];
-  assert.equal(missing("clarified", sized("fix"), both).length, 1,
-    "the newest correction is the plan's, and `assemble` keeps that one alone (ISS-161): the re-size is "
+test("a climb outlives the corrections written after it, and a shortened page never lightens", () => {
+  const both = [...climbed("Size: fix -> feature"), ...climbed("criterion 2 | the review proved it impossible")];
+  assert.equal(missing("clarified", weighed("fix"), both).length, 1,
+    "the newest correction is the plan's, and `assemble` keeps that one alone (ISS-161): the climb is "
     + "read off every comment, or the correction `approved` asks for would put the issue back on the light path");
-  const cut = CHECKS.clarified(viewFrom("the-uuid", sized("fix"), [], "2 of 40 comments read"), "ISS-3");
+  const cut = CHECKS.clarified(viewFrom("the-uuid", weighed("fix"), [], "2 of 40 comments read"), "ISS-3");
   assert.equal(cut.length, 1,
-    "and a cut cannot show a re-size, so losing one would shrink a shortfall every other check only grows");
+    "and a cut cannot show a climb, so losing one would shrink a shortfall every other check only grows");
   /* Read like every other record and not by its tag alone: a comment carrying `moved` and no `why`
      is no correction, and taking it for one would un-lighten an issue on a payload nothing wrote. */
   const half = [{ createdAt: "2026-09-02T11:00:00.000Z", body: `\`\`\`forge-record
@@ -416,20 +416,20 @@ moved: Size: fix -> feature
 \`\`\`
 
 \`forge-record: correction · contract 1\`` }];
-  assert.deepEqual(missing("clarified", sized("fix"), half), [],
-    "a correction missing its why is not the re-size, and the light path stands");
+  assert.deepEqual(missing("clarified", weighed("fix"), half), [],
+    "a correction missing its why is not the climb, and the light path stands");
 });
 
-test("a correction re-sizes a fix back onto the full path, and reads one direction only", () => {
-  const back = (status) => missing(status, sized("fix"), [...reSized("Size: fix -> feature"), ...VERIFIED]);
+test("a correction climbs a fix back onto the full path, and reads one direction only", () => {
+  const back = (status) => missing(status, weighed("fix"), [...climbed("Size: fix -> feature"), ...VERIFIED]);
   assert.equal(back("clarified").length, 1, "the decision record is owed again");
   assert.deepEqual(back("approved"), ["the plan field is empty"]);
   assert.ok(back("released").includes("no release note and no withholding either"));
   for (const moved of ["Size: feature -> fix", "Size: fix later"]) {
-    assert.deepEqual(missing("clarified", sized("fix"), reSized(moved)), [],
-      `\`${moved}\` is not the re-size, and reading it as one unearns a status the issue holds`);
+    assert.deepEqual(missing("clarified", weighed("fix"), climbed(moved)), [],
+      `\`${moved}\` is not the climb, and reading it as one unearns a status the issue holds`);
   }
-  assert.equal(missing("clarified", sized("fix"), reSized("Size: fix to feature")).length, 1,
+  assert.equal(missing("clarified", weighed("fix"), climbed("Size: fix to feature")).length, 1,
     "while the word and the arrow are both the author's");
 });
 

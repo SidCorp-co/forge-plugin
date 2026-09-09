@@ -77,8 +77,8 @@ test("a thread the walk could not finish is judged, and the record on it earns t
   assert.doesNotMatch(run.stdout, /more than the 200/u, "no message names a cap the tracker did not report");
 });
 
-/* `cut` is what puts an issue on the feature tier, so a column read on one tracker cannot be it. */
-test("a thread called whole below its own count is said, and the count sizes nothing", async () => {
+/* `cut` is what puts an issue on the feature rung, so a column read on one tracker cannot be it. */
+test("a thread called whole below its own count is said, and the count claims no rung", async () => {
   const run = await owed("ISS-97");
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /called this thread whole at 1 comment\(s\) and counted 2 on it/u, run.stdout);

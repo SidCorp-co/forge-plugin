@@ -37,11 +37,11 @@ const issue = (rung, extra = {}) => ({
 /* The tracker's five complexities, each on a body claiming nothing at all. */
 const COMPLEXITIES = ["xs", "s", "m", "l", "xl"];
 const UNMARKED = "`forge issue` should take the `data.relations` route.";
-const sized = (complexity, at, extra = {}) => ({
+const weighed = (complexity, at, extra = {}) => ({
   documentId: `${complexity}-uuid`,
   issueId: `ISS-${at}`,
   status: "open",
-  title: `the change the tracker sized at ${complexity}`,
+  title: `the change the tracker weighed at ${complexity}`,
   description: UNMARKED,
   complexity: complexity,
   ...extra,
@@ -52,12 +52,12 @@ const state = {
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
   issues: [
     issue("trivial"), issue("fix"),
-    /* The two holding no complexity: one whose body says nothing about its size and one whose body
+    /* The two holding no complexity: one whose body says nothing about a rung and one whose body
        names the top rung in full, which is the pair a report speaking of the body would tell apart. */
     { ...issue("feature"), description: "no mark here", complexity: null },
     { ...issue("feature"), documentId: "claimed-uuid", issueId: "ISS-73", complexity: null },
-    ...COMPLEXITIES.map((complexity, at) => sized(complexity, 80 + at)),
-    sized("xs", 90, { documentId: "disagree-uuid", description: body("feature") }),
+    ...COMPLEXITIES.map((complexity, at) => weighed(complexity, 80 + at)),
+    weighed("xs", 90, { documentId: "disagree-uuid", description: body("feature") }),
   ],
   comments: {},
   answer: {
@@ -83,7 +83,7 @@ test("the complexity names the rung, and an issue holding none is at the top", (
   }
   assert.deepEqual(rungClaimed({}), { rung: "feature", complexity: null },
     "an issue holding no complexity reads as the rung that owes everything, claimed by nothing");
-  assert.equal(rungClaimed({ complexity: "huge" }).rung, "feature", "as does one sized a word the ladder has no rung for");
+  assert.equal(rungClaimed({ complexity: "huge" }).rung, "feature", "as does one holding a word the ladder has no rung for");
 });
 
 /* Every case below is one a reader could resolve either way, and each was resolved downward until a
@@ -96,7 +96,7 @@ test("a doubtful reading answers with the rung that owes more, never the one tha
     "a pair pointing down is no climb: read by its destination alone it would raise a trivial to a fix");
   assert.deepEqual(climbsIn(`Size: ${lowest} -> ${middle}\nSize: ${middle} -> ${RUNGS.at(-1)}`),
     [middle, RUNGS.at(-1)],
-    "and every climb a page states, so the newest correction cannot erase the re-size before it");
+    "and every climb a page states, so the newest correction cannot erase the climb before it");
   assert.equal(rungOf({ complexity: complexityFor(lowest), plan: "", moved: [`Size: ${RUNGS.at(-1)} -> ${middle}`], whole: true }),
     lowest, "so a downward correction moves nothing at all");
 });
@@ -126,7 +126,7 @@ test("every rung the ladder has has its rows, its rounds, and a ceiling unless i
   assert.ok(SPARES[lowest].length > SPARES[rest[0]].length,
     "the shortest ladder saves no more rounds than the one above it, so a run cannot tell them apart");
   assert.equal(SPARES[top].length, 0, "the top rung is what the others are measured against");
-  assert.equal(CEILINGS[top], undefined, "and has nothing to be re-sized to, so it has no ceiling");
+  assert.equal(CEILINGS[top], undefined, "and has nothing to climb to, so it has no ceiling");
   for (const rung of RUNGS.filter((one) => one !== top)) {
     assert.ok(CEILINGS[rung].files > 0 && CEILINGS[rung].lines > 0, `${rung} has no ceiling to be past`);
   }
@@ -182,13 +182,13 @@ test("a declaration climbs one rung and a correction climbs to what it names, an
     "a downward pair would unearn statuses already held, so it is read as no climb at all");
   assert.equal(climbed("fix", "", ["Size: fix -> full"]), "feature", "and the older word still reads");
   assert.equal(climbed("trivial", "Screen change: yes", ["Size: trivial -> feature"]), "feature",
-    "the highest of the two, so a plan declaration cannot walk a re-size back down");
+    "the highest of the two, so a plan declaration cannot walk a climb back down");
 });
 
 test("a page the tracker cut is judged at the top rung, whatever its complexity says", () => {
   for (const rung of RUNGS) {
     assert.equal(rungOf({ complexity: complexityFor(rung), plan: "", moved: [], whole: false }), "feature",
-      "a cut cannot show the correction that re-sized it, and losing one would shrink a shortfall");
+      "a cut cannot show the correction that climbed it, and losing one would shrink a shortfall");
   }
 });
 
@@ -218,7 +218,7 @@ test("a confirmation a write posts carries the rung, and one handed in without i
   const posted = state.calls.filter((one) => one.args.action === "create").at(-1)?.args.data?.body ?? "";
   assert.match(posted, new RegExp(`^rung: ${trivial}$`, "mu"),
     "the rung is stamped at the write, off the issue, rather than asked of whoever is writing");
-  /* ISS-81 is sized `s` on the tracker with nothing in its body: the stamp and the checks read the
+  /* ISS-81 is at `s` on the tracker with nothing in its body: the stamp and the checks read the
      one field, so a run cannot be stamped one rung and held to another (ISS-394). */
   await ranAsync(FORGE, ["claim", "ISS-81"], tracker.env);
   const field = await ranAsync(FORGE,
@@ -270,13 +270,13 @@ test("the confirmation says the rung it stamped, the complexity that claimed it,
   assert.doesNotMatch(held, /Size: \w+ -> /u, "the retired spelling is read and never handed to anyone");
 });
 
-test("a confirmation at the top rung offers no upward correction, and an unsized issue says who claimed it", async () => {
+test("a confirmation at the top rung offers no upward correction, and one claimed by nobody says so", async () => {
   const top = RUNGS.at(-1);
-  const unsized = await confirmed("ISS-72");
-  assert.match(unsized, new RegExp(String.raw`rung \x60${top}\x60, claimed by nobody`, "u"));
-  assert.match(unsized, /holds no complexity, so the top rung stands by the upward rule/u);
-  assert.match(unsized, /No rung stands above it/u);
-  assert.doesNotMatch(unsized, /(?:Rung|Size): \w+ -> /u, "a pair that does not climb is a write that corrects nothing");
+  const nobody = await confirmed("ISS-72");
+  assert.match(nobody, new RegExp(String.raw`rung \x60${top}\x60, claimed by nobody`, "u"));
+  assert.match(nobody, /holds no complexity, so the top rung stands by the upward rule/u);
+  assert.match(nobody, /No rung stands above it/u);
+  assert.doesNotMatch(nobody, /(?:Rung|Size): \w+ -> /u, "a pair that does not climb is a write that corrects nothing");
   const atTop = await confirmed("ISS-82");
   assert.match(atTop, new RegExp(String.raw`rung \x60${top}\x60, claimed by the complexity \x60m\x60`, "u"));
   assert.doesNotMatch(atTop, /(?:Rung|Size): \w+ -> /u);
@@ -344,7 +344,7 @@ test("each of the tracker's five complexities claims a rung, named as the field 
   assert.deepEqual(RUNGS.map((one) => complexityFor(one)), ["xs", "s", "m"],
     "and the other direction is a declared complexity per rung, not the first key of the table above");
   /* The pair has to close: a complexity written back that reads as a different rung would let one filing
-     claim two sizes, which is the whole of what the two directions are for. */
+     claim two rungs, which is the whole of what the two directions are for. */
   for (const rung of RUNGS) {
     assert.equal(rungFrom(complexityFor(rung)), rung, `${rung} is written back as a complexity that reads as ${rung}`);
   }
@@ -355,7 +355,7 @@ test("each of the tracker's five complexities claims a rung, named as the field 
 });
 
 /* The two largest are worth a question and no payload: a report that grew a demand is a second ladder. */
-test("the two largest sizes ask whether the issue is one change, and the three below do not", async () => {
+test("the two largest complexities ask whether the issue is one change, and the three below do not", async () => {
   assert.deepEqual(COMPLEXITIES.map((one) => splits(one)), [false, false, false, true, true]);
   for (const [at, complexity] of COMPLEXITIES.entries()) {
     const run = await owed(`ISS-${80 + at}`);
@@ -364,7 +364,7 @@ test("the two largest sizes ask whether the issue is one change, and the three b
   }
 });
 
-/* The reading a second source bought: an issue sized `xs` whose body named the top rung had two answers, and whichever won, the other had to be printed for the losing claim to be actionable. One source, so the body is prose and the field is the answer at every reader (ISS-701). */
+/* The reading a second source bought: an issue at `xs` whose body named the top rung had two answers, and whichever won, the other had to be printed for the losing claim to be actionable. One source, so the body is prose and the field is the answer at every reader (ISS-701). */
 test("a body naming another rung changes nothing, the field being the only claim there is", async () => {
   const run = await owed("ISS-90");
   assert.match(run.stdout, /is a `trivial`: the tracker's complexity is `xs`/u);
@@ -373,7 +373,7 @@ test("a body naming another rung changes nothing, the field being the only claim
 });
 
 /* The contract's existing rule, read over the one source. */
-test("a correction re-sizing upward outranks a complexity naming a lower rung", () => {
+test("a correction climbing upward outranks a complexity naming a lower rung", () => {
   const moved = ["Size: trivial -> feature"];
   assert.equal(rungOf({ plan: "", moved, complexity: "xs" }), "feature");
   assert.equal(rungOf({ plan: "", moved: ["Size: feature -> fix"], complexity: "xs" }), "trivial",
@@ -383,7 +383,7 @@ test("a correction re-sizing upward outranks a complexity naming a lower rung", 
 });
 
 
-/* A size counts where it is spelt as a literal in code — a quoted string or a bare object key, with
+/* A complexity counts where it is spelt as a literal in code — a quoted string or a bare object key, with
    comments stripped first and a backtick span never counting — `s`, `m` and `l` being single letters
    this tree writes as prose, as a plural and as another table's key. Two of the five are words
    nothing else spells, so one alone is a copy and the other three are one in pairs; the complete
@@ -397,7 +397,7 @@ const copiesTable = (text) => {
   return named.some((one) => TELLING.includes(one)) || named.length > 1;
 };
 
-test("the table from a tracker size to a rung lives in one file, and the one carve-out is named", () => {
+test("the table from a tracker complexity to a rung lives in one file, and the one carve-out is named", () => {
   const ROOT = new URL("../src", import.meta.url).pathname;
   const found = [];
   const walk = (dir, at) => {
@@ -418,12 +418,12 @@ test("the table from a tracker size to a rung lives in one file, and the one car
 });
 
 /* A walk is green over a clean tree whether its selector reads anything or not, which is how the last one shipped broken: three of these are the copies ISS-317 took out of the files named beside them, and the fourth is that table's top half, which the two-letter names alone walk past. */
-test("a partial copy is collected, and a size that is prose, a plural or another table's key is not", () => {
+test("a partial copy is collected, and a complexity that is prose, a plural or another table's key is not", () => {
   for (const [where, planted] of [
     ["plugin/src/rank/batch.mjs", `const FIX = ["xs", "s"];`],
     ["plugin/src/tracker/issue-shape.mjs", `export const SIZES = { xs: "fix" };`],
     ["plugin/src/rank/score.mjs", `if (fix === true) return { complexity: "xs", from: "the Size line" };`],
-    ["the three sizes that claim the top rung", "const TOP = { m: FEATURE, l: FEATURE };"],
+    ["the three complexities that claim the top rung", "const TOP = { m: FEATURE, l: FEATURE };"],
     ["a key on its own line", `const SIZES = { xs\n: "fix" };`],
     ["a key holding a comment off its colon", `const SIZES = { xs /* the smallest */: "fix" };`],
   ]) {
