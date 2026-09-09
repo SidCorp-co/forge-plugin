@@ -6,6 +6,7 @@ import { digest, locate } from "./codex-api.mjs";
 import { judgedBy, logEntries } from "./codex-log.mjs";
 import { repoRoot } from "./codex.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
+import { bodyItself, notAPath } from "../resolve/payload.mjs";
 
 const OFF = "`FORGE_CODEX_DISABLE=1` in front of this command stands the check down; it runs in this "
   + "process, so the prefix reaches it.";
@@ -50,6 +51,7 @@ export const readOrRefuse = (path, cwd = process.cwd()) => {
   if (process.env.FORGE_CODEX_DISABLE === "1") return STOOD_DOWN;
   if (path === "-") return refusing(FILE_ROUTE("A body piped in on stdin"));
   if (path.startsWith("@")) return refusing(FILE_ROUTE(`\`${path}\``));
+  if (bodyItself(path, cwd)) return refusing(notAPath(path, false));
   const real = resolve(cwd, path);
   /* Raised, never swallowed: a stand-down here is a body the reader takes unjudged; `stat` first because `readFileSync` on a fifo does not return. */
   const file = statSync(real).isFile();

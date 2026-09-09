@@ -220,6 +220,10 @@ method text and not a feature to keep.
 - **AC-02-9-14** · Rev: 1 · Proof: none yet — ISS-681
   IF a form the handler reads names a read THEN the CLI SHALL perform that read, since a read has no
   entry check to fail.
+- **AC-02-9-15** · Rev: 1 · Proof: plugin/test/resolve/body-slot.test.mjs "the body itself where a path goes is refused by the verb, and no fs error reaches the caller"
+  IF the slot where a body's path goes holds the body itself THEN the CLI SHALL refuse before it opens
+  any file, and SHALL print the caller's own call in each of the forms that slot does take, because a
+  caller who has to ask a second time what the slot takes spends the turn guessing.
 
 ### UC-02-10 — The projects, at the plugin's own scope
 

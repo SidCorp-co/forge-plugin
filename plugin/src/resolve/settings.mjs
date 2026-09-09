@@ -19,6 +19,9 @@ export class Refusal extends Error {}
 
 let embedded = 0;
 
+/** Inside `refusing()` the argv is the embedding script's, so nothing is built from it (ISS-842). */
+export const embeddedRun = () => embedded > 0;
+
 export const refusing = async (run) => {
   embedded += 1;
   try {
