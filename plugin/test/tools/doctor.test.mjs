@@ -33,9 +33,9 @@ const MCP_FORGE = JSON.stringify({
   mcpServers: { forge: { url: "https://old.example/mcp", headers: { Authorization: "Bearer t" } } },
 });
 
-/* The retry schedule is a setting like `ship`: read back where every setting is, with its source, and
-   a value the key does not take named as such (ISS-736). */
-test("the retry line says the schedule that resolves and where it was read", () => {
+/* The transport's two numbers are settings like `ship`: read back where every setting is, with its
+   source, and a value the key does not take named as such (ISS-736, ISS-828). */
+test("the retry and deadline lines say the numbers that resolve and where each was read", () => {
   const forgeConfig = (body) => {
     const home = tempRoom("doctor-retry-");
     mkdirSync(join(home, "forge"));
@@ -51,6 +51,17 @@ test("the retry line says the schedule that resolves and where it was read", () 
     "a value over the cap is reported as the wait it buys, not as written");
   assert.match(forgeConfig({ retrySeconds: "soon" }),
     /\[ miss \] retry\s+"soon" is no value of this key — it takes a non-negative number of seconds; reading 2s first, doubling under 60s  ← the plugin's default/u);
+  assert.match(forgeConfig({}), /\[  ok  \] deadline\s+60s per attempt, the ladder's four unchanged  ← the plugin's default/u,
+    "the deadline is the second of this transport's two numbers and is read back beside the first (ISS-828)");
+  assert.match(forgeConfig({ waitSeconds: 5 }), /\[  ok  \] deadline\s+5s per attempt, the ladder's four unchanged  ← \S+\/forge\/config\.json/u);
+  assert.match(forgeConfig({ waitSeconds: 0 }), /\[  ok  \] deadline\s+0s per attempt, the ladder's four unchanged  ← \S+\/forge\/config\.json/u,
+    "zero is a deadline a suite can prove the refusal with, so it reads as the project's value and not as unset");
+  assert.match(forgeConfig({ waitSeconds: 1e9 }), /\[  ok  \] deadline\s+2147483\.647s per attempt, the ladder's four unchanged  ← \S+\/forge\/config\.json/u,
+    "a value the timer's range cuts down is the project's all the same, reported as the deadline it buys");
+  assert.match(forgeConfig({ waitSeconds: 0.0004 }), /\[  ok  \] deadline\s+0s per attempt, the ladder's four unchanged  ← \S+\/forge\/config\.json/u,
+    "and one under a millisecond too: a value the transport honours is never reported as no value of this key");
+  assert.match(forgeConfig({ waitSeconds: "soon" }),
+    /\[ miss \] deadline\s+"soon" is no value of this key — it takes a non-negative number of seconds; reading 60s per attempt, the ladder's four unchanged  ← the plugin's default/u);
 });
 
 /* The account config is the only source, and a `.mcp.json` carrying credentials is the one setup

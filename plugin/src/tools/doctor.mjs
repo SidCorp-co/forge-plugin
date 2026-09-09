@@ -15,7 +15,7 @@ import {
   userConfig,
 } from "../resolve/config.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { backoff, retrySeconds } from "../tracker/rest.mjs";
+import { backoff, deadlineSeconds, retrySeconds, waitSeconds } from "../tracker/rest.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
   FEEDBACK_CHANNELS, LANDING_ROUTES, SHIP_MODES, accountCredentials, fail, feedbackScope,
@@ -477,6 +477,14 @@ const checkFlowKeys = () => {
     unknown: given === undefined || own ? null : JSON.stringify(given),
   };
   line(retry.unknown ? BAD : OK, "retry", held(retry, ["a non-negative number of seconds"]));
+  const waits = userConfig().waitSeconds;
+  const ownWait = waitSeconds({ waitSeconds: waits }) === waits;
+  const deadline = {
+    value: `${deadlineSeconds()}s per attempt, the ladder's four unchanged`,
+    from: ownWait ? configPath() : "the plugin's default",
+    unknown: waits === undefined || ownWait ? null : JSON.stringify(waits),
+  };
+  line(deadline.unknown ? BAD : OK, "deadline", held(deadline, ["a non-negative number of seconds"]));
 };
 
 const BOOLEAN = ["--full", "--credentials"];

@@ -6,11 +6,12 @@
    out: which requests declare a JSON payload, and which carry one. */
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { join } from "node:path";
 import test from "node:test";
 
 import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
-import { backoff, callTool, retryAfter, retryOf, retrySeconds, unfencedIn } from "../../src/tracker/rest.mjs";
+import { backoff, callTool, deadlineSeconds, retryAfter, retryOf, retrySeconds, unfencedIn, waitSeconds } from "../../src/tracker/rest.mjs";
 import { useProject } from "../../src/resolve/settings.mjs";
 import { REFERENCE_KEYS } from "../../src/tracker/routes.mjs";
 
@@ -190,6 +191,26 @@ test("the retry schedule is 2, 4, 8 unless config.json names a non-negative numb
   assert.equal(retryAfter("{}", new Map()), 2, "and the fallback for a 429 saying nothing is the constant, not the knob");
 });
 
+/* The other number of seconds, and the same reading of what config.json may put in it: how long one
+   attempt may take, where the ladder above says how many there are (ISS-828). */
+test("the deadline one attempt gets is 60s unless config.json names a non-negative number of seconds", () => {
+  assert.equal(waitSeconds({}), 60, "the default is the constant's");
+  assert.equal(waitSeconds({ waitSeconds: 0 }), 0, "zero is a deadline that runs out at once, not the absence of one");
+  assert.equal(waitSeconds({ waitSeconds: 0.5 }), 0.5);
+  for (const bad of ["1", null, -1, Number.NaN, Number.POSITIVE_INFINITY, true, undefined]) {
+    assert.equal(waitSeconds({ waitSeconds: bad }), 60, `${String(bad)} read as a deadline`);
+  }
+  /* The timer's own two limits, spent by the deadline rather than thrown where a request should go:
+     whole milliseconds, and no more than a signed 32-bit count of them, past which the timer warns
+     and fires at 1ms (consults 6b1ac4 F1, 8b2c3d F1). */
+  assert.equal(waitSeconds({ waitSeconds: 1.001 }), 1.001, "what a project may write is read as written");
+  assert.equal(deadlineSeconds({ waitSeconds: 1.001 }), 1.001, "and a whole millisecond of it is what it gets");
+  assert.equal(deadlineSeconds({ waitSeconds: 0.0004 }), 0, "less than a millisecond gets none, which fires at once");
+  assert.equal(deadlineSeconds({ waitSeconds: 1e9 }), 2147483.647,
+    "and a value past the timer's range gets the deadline it buys rather than one that fires at 1ms");
+  assert.equal(deadlineSeconds({}), 60, "the default goes through the same reading");
+});
+
 /* What went on the wire, off `fetch`'s own second argument rather than off the row's intent. */
 const wired = async (call) => {
   const held = globalThis.fetch;
@@ -318,10 +339,69 @@ test("a request given a deadline is refused in words, and the request itself is 
     assert.ok(Date.now() - began < 3000, "a tracker that never answers does not hold the caller open");
     assert.ok(cancelled, "and the request is aborted rather than left in flight");
     assert.match(answer.refused, /did you mean|did not answer/u, answer.refused);
-    assert.match(answer.refused, /timeout/iu, "the caller is told what ran out, not only that nothing came");
+    assert.match(answer.refused, /ran out after 0\.05s \(the caller's own deadline\)/u,
+      "the caller is told the number that ran out and that it was its own, not the configured one");
   } finally {
     globalThis.fetch = live;
   }
+});
+
+/* The half a count of attempts cannot see: a response whose headers arrived and whose body then did
+   not. `fetch` resolves, `response.text()` rejects, and the attempt carries both — so the ladder is
+   asked about a status the server sent for a body that never came (ISS-828). */
+const stalling = async (status, call) => {
+  const held = globalThis.fetch;
+  asks = 0;
+  globalThis.fetch = async () => {
+    asks += 1;
+    return {
+      ok: status < 400,
+      status,
+      headers: new Map(),
+      /* What an aborted body read really rejects with, named off `globalThis` because that is where
+         the runtime keeps it: `ranOut` reads the name and nothing else. */
+      text: async () => { throw new globalThis.DOMException("The operation was aborted due to timeout", "TimeoutError"); },
+    };
+  };
+  try {
+    return await call();
+  } finally {
+    globalThis.fetch = held;
+  }
+};
+
+const read = (soft = true, held = {}) =>
+  callTool("forge_issues", { action: "get", documentId: "u-1", fields: ["title"] }, soft, held);
+const update = () =>
+  callTool("forge_issues", { action: "update", documentId: "u-1", data: { priority: "high" } }, true);
+
+test("an attempt whose body ran out is a dropped attempt whatever its headers said: a read goes round the ladder, a write does not", async () => {
+  const gone = await stalling(200, read);
+  assert.equal(asks, 4, `a read whose body stalled under a 200 was sent ${asks} time(s), not the ladder's four`);
+  assert.match(gone.refused, /Forge did not answer GET \/issues\/u-1: ran out after 60s \(waitSeconds in config\.json\)/u,
+    gone.refused);
+  assert.ok(!gone.refused.includes("Read the record first"), "a read is not the ambiguous one");
+
+  const wrote = await stalling(200, update);
+  assert.equal(asks, 1, "a write is never sent again on an attempt that may have completed");
+  assert.match(wrote.refused, /ran out after 60s/u, wrote.refused);
+  assert.match(wrote.refused, /may have been processed/u, "and it reads AMBIGUOUS, as it does for a dropped connection");
+
+  const limited = await stalling(429, update);
+  assert.equal(asks, 1, "the 429 the headers carried does not license sending a write again");
+  assert.match(limited.refused, /may have been processed/u, limited.refused);
+
+  await stalling(400, read);
+  assert.equal(asks, 4, "and a read is sent again whatever the status those headers carried");
+});
+
+/* One number spent on the timer and printed to the caller: `AbortSignal.timeout` takes whole milliseconds, so a fractional deadline is rounded where it is read and never refused where the request should go (consult 6b1ac4, F1). */
+test("a fractional deadline the millisecond cannot hold still sends the request", async () => {
+  const answer = await answering([ok({ documentId: "u-1", title: "sent" })],
+    () => read(true, { once: true, waits: 1.001 }));
+  assert.equal(asks, 1, "the request went out rather than a local RangeError standing in for it");
+  assert.equal(answer.refused, undefined, `refused instead of answering: ${answer.refused}`);
+  assert.equal(answer.title, "sent");
 });
 
 test("a refused connection with retrySeconds 0 is retried to the limit in well under the old fourteen seconds", async () => {
@@ -336,4 +416,28 @@ test("a refused connection with retrySeconds 0 is retried to the limit in well u
   assert.match(run.stderr, /Forge did not answer/u, run.stderr);
   assert.notEqual(run.status, 0);
   home.remove();
+});
+
+/* The failure a refused connection is not: a host that accepts and then writes nothing, which is
+   what left every verb and every hook waiting for as long as the session lasted (ISS-828). The
+   verb is a whole process here because the number is read off config.json, which one process reads
+   once. */
+test("a host that accepts and never answers refuses the verb at the deadline config.json names", async () => {
+  const stalled = createServer(() => {});
+  await new Promise((listening) => stalled.listen(0, "127.0.0.1", listening));
+  const home = tempHome("stalled-host");
+  mkdirSync(join(home.path, "forge"), { recursive: true });
+  writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({
+    url: `http://127.0.0.1:${stalled.address().port}/mcp`, token: "t", retrySeconds: 0, waitSeconds: 0.05,
+  }));
+  const began = Date.now();
+  const run = await ranAsync(FORGE, ["issue", "ISS-1"], { ...process.env, XDG_CONFIG_HOME: home.path }, ROOT, null);
+  const took = Date.now() - began;
+  assert.ok(took < 15000, `a host that never answers held the verb for ${took}ms`);
+  assert.match(run.stderr, /ran out after 0\.05s \(waitSeconds in config\.json\)/u, run.stderr);
+  assert.match(run.stderr, /waiting 0s \(attempt 3 of 4\)/u, "and a read still goes round the ladder");
+  assert.match(run.stderr, /Forge did not answer GET /u, run.stderr);
+  assert.notEqual(run.status, 0);
+  home.remove();
+  await new Promise((closed) => stalled.close(closed));
 });

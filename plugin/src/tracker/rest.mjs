@@ -14,6 +14,9 @@ import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, row
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
 const MAX_RETRY_SECONDS = 60;
+const FALLBACK_WAIT_SECONDS = 60;
+/* Signed and not unsigned: `AbortSignal.timeout` validates against the unsigned range while the timer under it warns and fires at 1ms past the signed one, so past that a deadline of nothing wears the number a project asked for (consult 8b2c3d, F1). */
+const MAX_DEADLINE_MILLIS = 2 ** 31 - 1;
 const RATE_LIMITED = 429;
 /* Only a read is sent again, off the row's own declaration; 429 says the call was not processed. */
 const TRANSIENT = [408, 425, 500, 502, 503, 504];
@@ -27,13 +30,36 @@ export const retryOf = (status, repeatable) => {
 
 const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000));
 
-/* The first wait, doubled per attempt under the cap; `retrySeconds` in config.json sets it (0 for a suite proving
-   the message, not the wait), only a non-negative JSON number counts, and the attempt count and a 429's wait stay (ISS-736). */
-export const retrySeconds = (config = userConfig()) => {
-  const given = config.retrySeconds;
-  return typeof given === "number" && Number.isFinite(given) && given >= 0 ? given : FALLBACK_RETRY_SECONDS;
-};
+const secondsGiven = (given) =>
+  (typeof given === "number" && Number.isFinite(given) && given >= 0 ? given : null);
+
+/* The first wait, doubled per attempt under the cap; `retrySeconds` in config.json sets it, 0 for a suite proving the message rather than the wait, and the attempt count and a 429's wait stay (ISS-736). */
+export const retrySeconds = (config = userConfig()) => secondsGiven(config.retrySeconds) ?? FALLBACK_RETRY_SECONDS;
 export const backoff = (attempt, config) => Math.min(retrySeconds(config) * 2 ** (attempt - 1), MAX_RETRY_SECONDS);
+
+/* How long one attempt may take, `waitSeconds` in config.json setting it and 0 running out at once, which is the value a suite proving the refusal wants. The ladder's numbers are the other two and stay its: how many attempts, and how long between them. */
+export const waitSeconds = (config = userConfig()) => secondsGiven(config.waitSeconds) ?? FALLBACK_WAIT_SECONDS;
+
+/* The timer takes a whole number of milliseconds inside one range, so the read above accepts what a project may write and this is what a project gets: `waitSeconds: 1.001` is 1000.9999999999999 milliseconds, which throws a RangeError in place of sending the request. */
+const millisOf = (seconds) => Math.min(Math.round(seconds * 1000), MAX_DEADLINE_MILLIS);
+
+/** The deadline this attempt gets, as `backoff` is the wait the ladder gets: one number the timer is given as `millis` and the refusal says as `value`, so no run is told a deadline it did not get. */
+export const deadlineSeconds = (config) => millisOf(waitSeconds(config)) / 1000;
+
+const deadlineOf = (waits) => {
+  const own = secondsGiven(waits);
+  const millis = millisOf(own ?? waitSeconds());
+  return {
+    millis,
+    value: millis / 1000,
+    from: own === null ? "waitSeconds in config.json" : "the caller's own deadline",
+  };
+};
+
+/** The number that ran out and whose it was, neither of which the abort reason carries, so a run told to raise `waitSeconds` when the consult's own twenty seconds ran out is not told to change the wrong thing. A caller's own abort reads `AbortError`, `AbortSignal.any` handing on the reason of whichever fired, and keeps its own words. */
+const ranOut = (dropped, deadline) => (dropped.name === "TimeoutError"
+  ? `ran out after ${deadline.value}s (${deadline.from})`
+  : dropped.message);
 
 const parsed = (text) => {
   try {
@@ -104,16 +130,12 @@ const send = ({ path, method = "GET", form, body }, signal) => {
   });
 };
 
-/* What a caller inside somebody else's clock needs: one attempt rather than the ladder, and `spend`
-   charged before each attempt — so a refusal is one the other end never saw, and a retry and a
-   nested lookup are both counted. How long to wait and how often stays this module's. */
-/* `waits` bounds an attempt in time as `once` bounds their number, and `signal` is a caller's own
-   clock: no answer at all is the failure a count of them cannot bound. */
+/* What a caller inside somebody else's clock needs: one attempt rather than the ladder, `waits` for its own deadline, `signal` for its own abort, and `spend` charged before each attempt — so a refusal is one the other end never saw, and a retry and a nested lookup are both counted. A caller naming no deadline still gets one, fresh per attempt: no answer at all is the failure a count of attempts cannot bound. */
 const attempted = async (make, repeatable, { once = false, spend = null, waits = null, signal = null } = {}) => {
+  const deadline = deadlineOf(waits);
   const clock = () => {
-    const deadline = waits ? AbortSignal.timeout(waits * 1000) : null;
-    if (signal && deadline) return AbortSignal.any([signal, deadline]);
-    return signal ?? deadline ?? undefined;
+    const held = AbortSignal.timeout(deadline.millis);
+    return signal ? AbortSignal.any([signal, held]) : held;
   };
   const attempts = once ? 1 : RETRY_ATTEMPTS;
   let text = "";
@@ -122,23 +144,25 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const stop = spend?.();
     if (stop) return { response: null, text: "", dropped: null, spent: stop };
-    [response, dropped] = [null, null];
+    [text, response, dropped] = ["", null, null];
     try {
       response = await make(clock());
       text = await response.text();
     } catch (error) {
       dropped = error;
     }
-    if (response?.ok) break;
-    const again = retryOf(response ? response.status : null, repeatable);
+    /* An attempt whose body dropped is a dropped attempt, whatever its headers said: those describe a request the server answered and `dropped` the connection dying before the answer arrived, so a 200 whose body stalled is no success and a 429's is judged no differently. What the rule costs rather than exempts: a 429 whose body stalls waits the ladder's number instead of the one the server sent (ISS-828). */
+    if (response?.ok && !dropped) break;
+    const again = retryOf(dropped ? null : response.status, repeatable);
     if (!again || attempt === attempts) break;
     const limited = again === "rate-limited";
     const wait = limited ? retryAfter(text, response.headers) : backoff(attempt);
-    const said = limited ? "rate-limited this call" : `answered ${response?.status ?? dropped.message}`;
+    const answered = dropped ? ranOut(dropped, deadline) : `answered ${response.status}`;
+    const said = limited ? "rate-limited this call" : answered;
     console.error(`Forge ${said}; waiting ${wait}s (attempt ${attempt} of ${attempts}).`);
     await sleep(wait);
   }
-  return { response, text, dropped };
+  return { response, text, dropped, deadline };
 };
 
 /* The tracker's own validation error is the diagnostic; nothing here re-derives it. Each message is
@@ -167,14 +191,14 @@ const fetchedParts = async (row, args, soft, held) => {
   if (project.refused) return [["page", refused(project.refused)]];
   const requests = row.requests(args, project.id);
   const parts = await Promise.all(Object.entries(requests).map(async ([part, request]) => {
-    const { response, text, dropped, spent } = await attempted(
+    const { response, text, dropped, spent, deadline } = await attempted(
       (signal) => send(request, signal),
       !row.writes,
       held,
     );
     if (spent) return [part, refused(spent)];
     if (dropped) return [part, refused(`Forge did not answer ${request.method ?? "GET"} ${request.path}: `
-      + `${dropped.message}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
+      + `${ranOut(dropped, deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
     if (!response.ok) return [part, refused(said(parsed(text), response.status))];
     const body = text ? parsed(text) : null;
     /* Refused rather than projected: an empty page built out of a gateway's HTML would read as the
