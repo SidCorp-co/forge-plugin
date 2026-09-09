@@ -11,10 +11,13 @@ const TOP_LEVEL_EXPORT =
   new RegExp(String.raw`^\s*export\s+FORGE_SESSION_ID=${ID_VALUE}\s*$`, "u");
 
 const PREFIX_ON_THE_WRITER = new RegExp(
-  String.raw`^[ \t]*(?:env[ \t]+)?FORGE_SESSION_ID=${ID_VALUE}[ \t]+(?:[\w./~-]*/)?forge`
-  + String.raw`(?:[ \t]+[^\s&|;$()<>${BACKTICK}]+)*[ \t]*$`,
+  String.raw`^[ \t]*(?:env[ \t]+)?FORGE_SESSION_ID=${ID_VALUE}[ \t]+(?:[\w./~-]*/)?forge(?=[ \t]|$)`,
   "u",
 );
+
+const RUNS_A_COMMAND = new RegExp(String.raw`[$<>]\(|\$\{[\s|]|<<|${BACKTICK}`, "u");
+const CONTINUED = /\\\n/gu;
+const runsACommand = (said) => RUNS_A_COMMAND.test(said.replace(CONTINUED, ""));
 
 const CALLS_THE_WRITER = new RegExp(String.raw`(?:^|[\s;&|()])[^\s;&|()]*forge(?![\w-])`, "u");
 const OPENS_A_BODY = new RegExp(String.raw`[(${BACKTICK}]|<<`, "u");
@@ -37,11 +40,11 @@ const reachOf = (found) => {
 const inThisShell = (found, i) =>
   !["|", "&"].includes(sepAfter(found[i])) && sepAfter(found[i - 1]) !== "|";
 
-/* `spans` owns where a command begins, so no grammar for one lives here; a `(`, a `<<` or a backtick
-   opens what is not this shell, and neither is a pipeline stage or a background job. An export
-   covers a later call of this shell when nothing can run that call without it: it is reached
-   unconditionally, or an unbroken `&&` no `||` can jump into joins the two. A prefix covers the
-   command it sits on. Every call owes the same grant, or the id names only some of the writes. */
+/* `spans` owns where a command begins and ends, so no grammar for one lives here; a `(`, a `<<` or a
+   backtick opens what is not this shell, and neither is a pipeline stage or a background job. An
+   export covers a later call of this shell reached unconditionally, or joined to it by an unbroken
+   `&&` no `||` can jump into, and being the environment it reaches a substitution too — where a
+   prefix covers one command, so one able to start another is refused unread (ISS-858). */
 const grantedIn = (found) => {
   const reach = reachOf(found);
   const at = found.findIndex(({ said }, i) =>
@@ -51,7 +54,8 @@ const grantedIn = (found) => {
   const reached = (i) => at >= 0 && i > at && i < reach
     && (!before.includes("||") && (!before.includes("&&") || chained(i)));
   const called = found.map(({ said }) => CALLS_THE_WRITER.test(said));
-  const prefixes = found.map(({ said }, i) => (called[i] ? PREFIX_ON_THE_WRITER.exec(said) : null));
+  const prefixes = found.map(({ said }, i) =>
+    (called[i] && !runsACommand(said) ? PREFIX_ON_THE_WRITER.exec(said) : null));
   const calls = called.map((yes, i) => (yes ? Boolean(prefixes[i]) || reached(i) : null));
   if (!calls.includes(true) || calls.includes(false)) return null;
   return prefixes.find(Boolean) ?? TOP_LEVEL_EXPORT.exec(found[at].said);

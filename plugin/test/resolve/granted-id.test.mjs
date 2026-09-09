@@ -74,3 +74,58 @@ test("an id the writer would not receive is not granted", () => {
     assert.equal(idGrantedBy(command), null, what);
   }
 });
+
+/* ISS-858. `spans` cut the command where it ends, so what it carries after the verb is that command's
+   own: a redirection belongs to the process being granted, and a metacharacter inside a quoted value
+   is prose the shell hands on. Both lost the grant to one character class, and this repository's own
+   conventions put the second in nearly every record it writes. */
+test("what a granted call carries after the verb is that call's own", () => {
+  const advance = "forge advance ISS-29 --why";
+  const reads = {
+    [`FORGE_SESSION_ID=a-run ${WRITE} 2>&1`]: "the redirection an agent writes to see a refusal",
+    [`FORGE_SESSION_ID=a-run ${WRITE} 2>&1 | tail -3`]: "the same, piped on",
+    [`FORGE_SESSION_ID=a-run ${WRITE} > /tmp/out.log`]: "the output captured to a file",
+    [`FORGE_SESSION_ID=a-run ${advance} "flags & payload both read it"`]: "an ampersand in a value",
+    [`FORGE_SESSION_ID=a-run ${advance} "went from 8985 > 9000 chars"`]: "a greater-than in one",
+    [`FORGE_SESSION_ID=a-run ${advance} "one update; one renewal"`]: "a semicolon in one",
+    [`FORGE_SESSION_ID=a-run ${advance} "the parser (flags.mjs) refuses"`]: "parentheses in one",
+    [`FORGE_SESSION_ID=a-run ${advance} "costs $5 a round"`]: "a dollar that opens nothing",
+    [`FORGE_SESSION_ID=a-run ${advance} "held \${ROUNDS:-3} times"`]: "nor does an ordinary expansion",
+    [`FORGE_SESSION_ID=a-run ${advance} "a | stage is read"`]: "a pipe in one",
+    [`FORGE_SESSION_ID=a-run ${advance} 'flags & payload; a parser (x) | $5'`]: "the same six, apostrophed",
+    [`FORGE_SESSION_ID=a-run forge comment ISS-29 --body "one line\nand another"`]: "a quoted newline",
+    [`FORGE_SESSION_ID=a-run ${WRITE} \\\n  --why "a line the shell joins"`]: "a continuation, no opener",
+  };
+  for (const [command, what] of Object.entries(reads)) {
+    assert.equal(idGrantedBy(command), "a-run", what);
+  }
+});
+
+/* The other side of the same removal, and the reason the class could not simply go: an inline
+   assignment prefixes one command, so a writer a substitution starts is a second process this grant
+   never reaches, where an export — being the environment — does reach one. Every attempt to read what
+   sits inside an opener had a hole, each row below one of them, so an opener is refused unread. */
+test("a granted call that can start a second command is granted nothing", () => {
+  const advance = "forge advance ISS-29 --why";
+  const refuses = {
+    [`FORGE_SESSION_ID=a-run ${WRITE} $(date)`]: "a substitution the prefix cannot reach",
+    [`FORGE_SESSION_ID=a-run ${WRITE} \`date\``]: "the same, spelled with backticks",
+    [`FORGE_SESSION_ID=a-run ${advance} "the \`set\` flag"`]: "a backtick a shell runs in double quotes",
+    [`FORGE_SESSION_ID=a-run ${advance} 'the \`set\` flag'`]: "and refused apostrophed too, unread",
+    [`FORGE_SESSION_ID=a-run ${advance} "$(forge advance ISS-30)"`]: "a writer nested in a substitution",
+    [`FORGE_SESSION_ID=a-run ${advance} "$(cd /x && forge advance ISS-30)"`]: "a separator a quote hides",
+    [`FORGE_SESSION_ID=a-run ${advance} "it's $(forge advance ISS-30) isn't"`]: "apostrophes delimit nothing",
+    [`FORGE_SESSION_ID=a-run ${advance} "say '$(forge advance ISS-30)' now"`]: "nor does a spaced pair",
+    [`FORGE_SESSION_ID=a-run ${advance} "$(for"ge" advance ISS-30)"`]: "what quote removal spells",
+    [`FORGE_SESSION_ID=a-run ${advance} "$\\\n(forge advance ISS-30)"`]: "a continuation splitting an opener",
+    [`FORGE_SESSION_ID=a-run ${advance} "\${ forge advance ISS-30; }"`]: "bash 5.3's brace substitution",
+    [`FORGE_SESSION_ID=a-run ${advance} "\${| forge advance ISS-30; }"`]: "and the form that names a reply",
+    [`FORGE_SESSION_ID=a-run forge comment ISS-29 <(forge issue ISS-30)`]: "a process substitution",
+    [`FORGE_SESSION_ID=a-run forge comment ISS-29 - <<EOF\n# $(forge advance ISS-30)\nEOF`]:
+      "a body the shell expands and `spans` reads as a comment",
+    ["FORGE_SESSION_ID=a-run forge advance ISS-29"]: "a no-break space is part of the name",
+  };
+  for (const [command, what] of Object.entries(refuses)) {
+    assert.equal(idGrantedBy(command), null, what);
+  }
+});

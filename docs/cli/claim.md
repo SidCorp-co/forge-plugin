@@ -48,6 +48,8 @@ command of that text (ISS-672). Spell the id out; this reader has the text, not 
 run it, so `"$RUN_ID"` names nothing. Given a way it cannot read, the run pays the round it would
 with no reader at all rather than a wrong one.
 
+Which spelling survives what the call carries: [the granted id](the-granted-id.md).
+
 Where it was not, the CLI **says so and does not refuse**. A run whose own id came from the
 dispatching session is told, where it claims and where it reads the lease, that the holder it
 matched names a wave rather than a run. Refusing that write instead would change what a claim means

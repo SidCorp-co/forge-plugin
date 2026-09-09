@@ -248,6 +248,28 @@ test("a run whose assignment stands behind a cd is one run across its writes", a
     "while a third run is shown nothing by either of them having looked");
 });
 
+/* The shape a delegated run writes all day, and the one ISS-497's fix did not survive: the prefix
+   names the run and the `2>&1` captures the refusal this CLI writes to stderr, so a class over the
+   words after the verb refused the whole prefix and credited the wave. The write after each record
+   was then held on that record, and this repository's prose puts the second half of it — a
+   metacharacter inside a quoted value — in nearly every `--why` it types (ISS-858). */
+test("a granted call keeps its name through a redirection and through a quoted metacharacter", async () => {
+  state.comments = { [UUID]: [comment("c4", "the record this run wrote a moment ago")] };
+  const redirected = "FORGE_SESSION_ID=through-a-redirect forge advance ISS-29 2>&1";
+  const held = await gate(redirected, { harness: "harness-eight" });
+  assert.equal(held.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
+  assert.equal((await gate(redirected, { harness: "harness-nine" })).out, null,
+    "and the re-send is the same run, whatever session the harness names");
+  const other = "FORGE_SESSION_ID=another-redirected-run forge advance ISS-29 2>&1";
+  const stranger = await gate(other, { harness: "harness-eight" });
+  assert.equal(stranger.out.hookSpecificOutput.permissionDecision, "deny",
+    "while a second name is shown nothing by the first having looked");
+  const quoted = `FORGE_SESSION_ID=through-a-quote forge advance ISS-29 --why "flags & payload (both)"`;
+  const first = await gate(quoted, { harness: "harness-ten" });
+  assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "the value names a run of its own");
+  assert.equal((await gate(quoted, { harness: "harness-eleven" })).out, null, "whose own second write passes");
+});
+
 test("the uuid form is denied where the reference form is", async () => {
   const run = await gate(`forge comment ${UUID} @note.md`);
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
