@@ -3,7 +3,9 @@
 Four homes, and each fact has one. `forge -h` and every verb's is the **surface**; the skills are
 **how to spend a call**; the code is the **mechanism**. This holds what none of them can — the
 failure that was hit, the measurement that settled an argument. Dates stay: a measurement was true
-once, not forever. One terse row per topic: this file is under the cap a topic is.
+once, not forever. One terse row per topic, each row held to a length of its own; this file is held
+to none, because its rows grow one per topic and a size it shared with them would be a ceiling on
+how many topics there may be.
 
 | Topic | The decision it holds |
 |---|---|
@@ -51,9 +53,11 @@ once, not forever. One terse row per topic: this file is under the cap a topic i
 | [which gates run](cli/which-gates-run.md) | Why the switch is derived from the hooks directory, and why one place alone answers whether a gate is off. |
 | [the test credentials](cli/test-credentials.md) | Why a host is told from a secret by the shape of the value, and where the trim stops. |
 | [the project's brief](cli/the-brief.md) | Why `--refresh` takes the answer it is meant to produce, which files a digest covers and which it deliberately does not, and why a store that will not answer is not a store with no brief. |
+| [the goals a `Serves:` may name](cli/the-goals.md) | Whose list an identifier is read from, why one the brief does not list is still put to the requirements tree, and why naming no goal is refused by nothing while no weight reads the line. |
 | [settings](cli/settings.md) | Why provenance is the shape of every answer, which six environment variables remain, and where a credential may sit. |
 | [withholding a verb](cli/withholding-a-verb.md) | The difference between a tool the server gates and a verb a human hid, and why `forge doctor` alone may say so. |
 | [one transport](cli/one-transport.md) | Why the route each capability takes is a declared table, what a capability with no route does instead, why a write announces itself here, and the edge the credential guard states. |
+| [the deadline](cli/the-deadline.md) | Why counting attempts bounds no attempt, which of two numbers a refusal names and whose it was, and why an attempt whose body ran out is a dropped attempt whatever its headers said. |
 | [the handler](cli/the-handler.md) | Why a performed word is neither a verb nor a redirect, whose refusals every form borrows, and what the one line on stderr is counted for. |
 | ["did you mean"](cli/did-you-mean.md) | Why matching is on the separator-stripped form: an agent recalls a name from the wrong shape rather than fat-fingering a key. |
 | [vietnamese](cli/vietnamese.md) | Why `vi-natural review` cannot be the gate, and which copy of the binary is spawned. |

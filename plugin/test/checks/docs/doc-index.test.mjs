@@ -7,10 +7,11 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { TOPIC_MAX, docsCited, indexProblems, overCap } from "../../../src/checks/doc-index.mjs";
+import {
+  INDEX, LEAD_MAX, ROW_MAX, TOPIC_MAX, docsCited, indexProblems, overCap,
+} from "../../../src/checks/doc-index.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
-const INDEX = join("docs", "FORGE-CLI.md");
 const chars = (rel) => readFileSync(join(ROOT, rel), "utf8").length;
 
 const tracked = (pattern) =>
@@ -43,6 +44,41 @@ test("no document under docs/ is longer than one pass", () => {
 test("docs/HOOKS.md is one file and the cap is the reason it may stay one", () => {
   const size = chars(join("docs", "HOOKS.md"));
   assert.ok(size <= TOPIC_MAX, `docs/HOOKS.md is ${size} characters, over ${TOPIC_MAX}: split it`);
+});
+
+/* Both boundaries are spelled out here rather than read off the module: a case taking its
+   expectation from the constant it is checking passes at whatever that constant becomes. */
+const ROW_OPEN = "| [one more](cli/one-more.md) | ";
+const LEAD_OPEN = "# A title\n\n";
+const rowOf = (size) => `${ROW_OPEN}${"a".repeat(size - ROW_OPEN.length - 2)} |`;
+const leadOf = (size) => `${LEAD_OPEN}${"a".repeat(size - LEAD_OPEN.length)}`;
+
+/* The wall three runs met: a topic cannot be added to a tree whose index has no room for its row,
+   while the remedy `overCap` prints for an oversized topic is that exact move (ISS-665). */
+test("an index is budgeted per row and per opening paragraph, and a topic added to a full index is green", () => {
+  assert.deepEqual([ROW_MAX, LEAD_MAX], [300, 800], "the two numbers the cases below are written to");
+  assert.deepEqual([rowOf(300).length, leadOf(800).length], [300, 800]);
+  const text = readFileSync(join(ROOT, INDEX), "utf8");
+  const held = [...topics().map((one) => `cli/${one}`), "cli/one-more.md"];
+  const grown = `${text.trimEnd()}\n${rowOf(300)}\n`;
+  assert.ok(grown.length > TOPIC_MAX, `the grown index is ${grown.length} characters, under the cap`);
+  const said = indexProblems({ text: grown, topics: held, path: INDEX });
+  assert.deepEqual(said, [], said.join("\n"));
+  assert.deepEqual(overCap([{ rel: INDEX, chars: grown.length }]), []);
+  assert.equal(overCap([{ rel: "docs/cli/one-more.md", chars: TOPIC_MAX + 1 }]).length, 1);
+  const over = indexProblems({ text: `${text.trimEnd()}\n${rowOf(301)}\n`, topics: held, path: INDEX });
+  assert.deepEqual(over, [`${INDEX} gives cli/one-more.md a row of 301 characters, over the 300 one`
+    + " row is read in — tighten that row and no other. A row is the whole of an index's budget, so"
+    + " the room the next topic has is this number whatever the rows already here come to"]);
+  const rows = "| Topic | The decision it holds |\n|---|---|\n| [`new`](cli/new.md) | what it reads |";
+  const one = ["cli/new.md"];
+  assert.deepEqual(indexProblems({ text: `${leadOf(800)}\n\n${rows}`, topics: one }), []);
+  assert.deepEqual(indexProblems({ text: `${leadOf(801)}\n\n${rows}`, topics: one }), [
+    "the index takes 801 characters before its table, over the 800 an index's own heading and"
+      + " paragraph are read in — cut them back to what the tree is for. Splitting the index and"
+      + " shortening a row both buy nothing here: every other budget is one row's, and the file"
+      + " itself is held to no length at all",
+  ]);
 });
 
 const sources = () => {

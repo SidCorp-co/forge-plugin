@@ -6,8 +6,13 @@ import { LINK_TARGET_PATTERN, TABLE_SEPARATOR_PATTERN, withoutSpans } from "../m
 import { RECORDS_RATHER_THAN_INSTRUCTS } from "./doc-shape.mjs";
 
 export const TOPIC_MAX = 9000;
+/* An index has no length of its own, budgeted per part below; UC-12-6 of the tree says why not. */
+export const INDEX = "docs/FORGE-CLI.md";
+export const ROW_MAX = 300;
+export const LEAD_MAX = 800;
 const REQUIREMENTS = /^docs\/requirements\//u;
-const uncapped = (rel) => REQUIREMENTS.test(rel) || RECORDS_RATHER_THAN_INSTRUCTS.test(rel);
+const uncapped = (rel) =>
+  rel === INDEX || REQUIREMENTS.test(rel) || RECORDS_RATHER_THAN_INSTRUCTS.test(rel);
 
 export const overCap = (docs, max = TOPIC_MAX) =>
   docs
@@ -36,6 +41,13 @@ export const indexProblems = ({ text, topics, path = "the index" }) => {
     out.push(`${path} is ${kinds.join(", ") || "empty"} and an index is a heading, one paragraph`
       + " saying what the tree is for, and one table");
   }
+  const lead = blocks.filter((block) => kindOf(block) !== "table").join("\n\n");
+  if (lead.length > LEAD_MAX) {
+    out.push(`${path} takes ${lead.length} characters before its table, over the ${LEAD_MAX} an`
+      + " index's own heading and paragraph are read in — cut them back to what the tree is for."
+      + " Splitting the index and shortening a row both buy nothing here: every other budget is one"
+      + " row's, and the file itself is held to no length at all");
+  }
   const rows = blocks.filter((block) => kindOf(block) === "table").flatMap((one) => one.split("\n"));
   const heads = CELLS.test(rows[0] ?? "") && !LINK.test(rows[0] ?? "") && SEPARATOR.test(rows[1] ?? "");
   if (rows.length && !heads) {
@@ -45,6 +57,12 @@ export const indexProblems = ({ text, topics, path = "the index" }) => {
   const named = [];
   for (const row of rows.slice(2)) {
     const target = LINK.exec(row)?.[1];
+    if (row.length > ROW_MAX) {
+      out.push(`${path} gives ${target ?? "a row"} a row of ${row.length} characters, over the`
+        + ` ${ROW_MAX} one row is read in — tighten that row and no other. A row is the whole of an`
+        + " index's budget, so the room the next topic has is this number whatever the rows already"
+        + " here come to");
+    }
     if (!CELLS.test(row)) out.push(`a row of ${path} is not a topic and a sentence: ${row.slice(0, 60)}`);
     else if (!target) out.push(`a row of ${path} links no file: ${row.slice(0, 60)}`);
     else if (!topics.includes(target)) out.push(`${path} links ${target}, which is not there`);

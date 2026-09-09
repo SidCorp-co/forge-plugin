@@ -132,7 +132,7 @@ small one.
 
 ### UC-12-6 — A document every run reads is an index, and a topic is one pass
 
-Rev: 1 · Actors: agent · Enforces: BR-09, BR-13
+Rev: 2 · Actors: agent · Enforces: BR-09, BR-13
 
 One document reached sixty-seven thousand characters in twenty-two sections while every delegated
 run was pointed at it whole, so a reader after one verb's decision paid for the rest. It is an index
@@ -141,19 +141,33 @@ sends a reader nowhere, and a file no row names is a topic nobody is told exists
 a topic one pass, and the number belongs to the check, measured against the one document this
 repository keeps whole.
 
+An index answers to no such number. Its rows grow one per topic by the rule above, so a size shared
+with the topics is a ceiling on how many topics the tree may hold — a ceiling reached in practice,
+with three finished documents withheld for want of room and one run buying room by cutting the
+clauses a reader chooses between two topics on. So what an index costs a reader is budgeted per row
+and per opening paragraph instead, which leaves the room the next topic has a stated number rather
+than whatever the rows already there left over.
+
 - **AC-12-6-1** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs "a second paragraph, a dead row, an unindexed topic and an oversized file each fail"
   WHEN an index is checked THEN the check SHALL fail on a paragraph past the first and on a row
   whose link names no file that exists.
 - **AC-12-6-2** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs "a second paragraph, a dead row, an unindexed topic and an oversized file each fail"
   IF a topic file is named by no row of the index THEN the check SHALL fail, since a topic nobody is
   told about is a document nobody reads.
-- **AC-12-6-3** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs "no document under docs/ is longer than one pass"
+- **AC-12-6-3** · Rev: 2 · Proof: plugin/test/checks/docs/doc-index.test.mjs "no document under docs/ is longer than one pass"
   IF a document is longer than the cap the check names THEN the check SHALL fail and SHALL name the
-  file, its size and the split it owes; WHERE the document is a clause of this tree or the journal a
-  run appends to, the cap SHALL not apply.
+  file, its size and the split it owes; WHERE the document is a clause of this tree, the journal a
+  run appends to, or an index whose rows this check requires, the cap SHALL not apply.
 - **AC-12-6-4** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs "every document a source file cites is one that is there"
   IF a source comment names a document that is not there THEN the check SHALL fail, and WHERE the
   path sits inside a code span it SHALL be read as an example rather than as a citation.
+- **AC-12-6-5** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs "an index is budgeted per row and per opening paragraph, and a topic added to a full index is green"
+  WHEN an index is checked THEN each of its rows and the heading and paragraph it opens with SHALL
+  each be held to a length of its own, and the failure SHALL name the size, the length allowed, and
+  a move confined to the part it refused.
+- **AC-12-6-6** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs "an index is budgeted per row and per opening paragraph, and a topic added to a full index is green"
+  WHERE a topic is added to a tree whose index already names every other topic, the index that gains
+  its row SHALL pass however long that index has grown.
 
 ### UC-12-7 — A path this repository's own files name is one that resolves
 
