@@ -102,10 +102,8 @@ reading that thread, not taken.
 <!-- forge:when ship ready -->
 **Where the runs end at ready-to-land, the landing is this phase's and it is one actor's.** Every
 branch a run left with a ready checkpoint is landed from this checkout, in the order the fold names
-them, and the reason it is one actor is the lock: a landing holds one every worktree shares, so runs
-landing their own would each pay a whole gate for one branch and queue behind each other to do it.
-Landed here they are gated against the base as it actually is at that moment, which is what a run's
-own gate cannot be while its siblings are still landing.
+them. Landed here they are gated against the base as it actually is at that moment, which is what a
+run's own gate cannot be while its siblings are still landing.
 
 A branch handed back is not a failure of the fold, and one thing hands one back: a merge that touched
 a path the change owns, which leaves the checkpoint at `builder-owed`. The run that built it is
@@ -120,11 +118,10 @@ dispatches it: a role of its own, given the issue, its criteria and Outcome, and
 identity the checkpoint names — never the run that built the change, whose own verdicts earn nothing
 there. Its verdicts and its hand-back are what let the landing finish.
 
-**The two statuses after `tested` are this phase's too.** A landing moves `developed` and `tested`
-and stops, so the release note each run left drafted is published from here and `released` and
-`closed` are moved from here, once the release those statuses answer for is actually out. A wave
-that lands every branch and moves neither has left the queue exactly where a person has to finish
-it, which is the one outcome this method exists to remove.
+**The two statuses after `tested` are this phase's too.** The release note each run left drafted is
+published from here, once the release those statuses answer for is actually out, and `released` and
+`closed` are moved from here. A wave that lands every branch and moves neither has left the queue
+exactly where a person has to finish it, which is the one outcome this method exists to remove.
 <!-- forge:end -->
 
 **A run that parked is resumed, never replaced.** When the block it named clears, the same agent is
