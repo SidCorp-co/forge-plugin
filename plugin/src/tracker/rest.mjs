@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { clockFor, deadlineOf, deadlineSeconds, ranOut, secondsGiven, waitSeconds } from "../request.mjs";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
@@ -14,9 +15,6 @@ import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, row
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;
 const MAX_RETRY_SECONDS = 60;
-const FALLBACK_WAIT_SECONDS = 60;
-/* Signed and not unsigned: `AbortSignal.timeout` validates against the unsigned range while the timer under it warns and fires at 1ms past the signed one, so past that a deadline of nothing wears the number a project asked for (consult 8b2c3d, F1). */
-const MAX_DEADLINE_MILLIS = 2 ** 31 - 1;
 const RATE_LIMITED = 429;
 /* Only a read is sent again, off the row's own declaration; 429 says the call was not processed. */
 const TRANSIENT = [408, 425, 500, 502, 503, 504];
@@ -30,36 +28,12 @@ export const retryOf = (status, repeatable) => {
 
 const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000));
 
-const secondsGiven = (given) =>
-  (typeof given === "number" && Number.isFinite(given) && given >= 0 ? given : null);
-
 /* The first wait, doubled per attempt under the cap; `retrySeconds` in config.json sets it, 0 for a suite proving the message rather than the wait, and the attempt count and a 429's wait stay (ISS-736). */
 export const retrySeconds = (config = userConfig()) => secondsGiven(config.retrySeconds) ?? FALLBACK_RETRY_SECONDS;
 export const backoff = (attempt, config) => Math.min(retrySeconds(config) * 2 ** (attempt - 1), MAX_RETRY_SECONDS);
 
-/* How long one attempt may take, `waitSeconds` in config.json setting it and 0 running out at once, which is the value a suite proving the refusal wants. The ladder's numbers are the other two and stay its: how many attempts, and how long between them. */
-export const waitSeconds = (config = userConfig()) => secondsGiven(config.waitSeconds) ?? FALLBACK_WAIT_SECONDS;
-
-/* The timer takes a whole number of milliseconds inside one range, so the read above accepts what a project may write and this is what a project gets: `waitSeconds: 1.001` is 1000.9999999999999 milliseconds, which throws a RangeError in place of sending the request. */
-const millisOf = (seconds) => Math.min(Math.round(seconds * 1000), MAX_DEADLINE_MILLIS);
-
-/** The deadline this attempt gets, as `backoff` is the wait the ladder gets: one number the timer is given as `millis` and the refusal says as `value`, so no run is told a deadline it did not get. */
-export const deadlineSeconds = (config) => millisOf(waitSeconds(config)) / 1000;
-
-const deadlineOf = (waits) => {
-  const own = secondsGiven(waits);
-  const millis = millisOf(own ?? waitSeconds());
-  return {
-    millis,
-    value: millis / 1000,
-    from: own === null ? "waitSeconds in config.json" : "the caller's own deadline",
-  };
-};
-
-/** The number that ran out and whose it was, neither of which the abort reason carries, so a run told to raise `waitSeconds` when the consult's own twenty seconds ran out is not told to change the wrong thing. A caller's own abort reads `AbortError`, `AbortSignal.any` handing on the reason of whichever fired, and keeps its own words. */
-const ranOut = (dropped, deadline) => (dropped.name === "TimeoutError"
-  ? `ran out after ${deadline.value}s (${deadline.from})`
-  : dropped.message);
+/* Re-exported rather than moved out of reach: `doctor` and two suites take both names from this module, and the deadline behind them is `../request.mjs`'s now that `forge chatgpt` runs under the same clock. */
+export { deadlineSeconds, waitSeconds };
 
 const parsed = (text) => {
   try {
@@ -133,10 +107,7 @@ const send = ({ path, method = "GET", form, body }, signal) => {
 /* What a caller inside somebody else's clock needs: one attempt rather than the ladder, `waits` for its own deadline, `signal` for its own abort, and `spend` charged before each attempt — so a refusal is one the other end never saw, and a retry and a nested lookup are both counted. A caller naming no deadline still gets one, fresh per attempt: no answer at all is the failure a count of attempts cannot bound. */
 const attempted = async (make, repeatable, { once = false, spend = null, waits = null, signal = null } = {}) => {
   const deadline = deadlineOf(waits);
-  const clock = () => {
-    const held = AbortSignal.timeout(deadline.millis);
-    return signal ? AbortSignal.any([signal, held]) : held;
-  };
+  const clock = () => clockFor(deadline, signal);
   const attempts = once ? 1 : RETRY_ATTEMPTS;
   let text = "";
   let response = null;
