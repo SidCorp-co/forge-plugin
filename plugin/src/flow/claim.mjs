@@ -8,6 +8,7 @@ import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
 import { commentPage } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
+import { openingLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
@@ -45,8 +46,11 @@ const MAX_MINUTES = 24 * 60;
 const PARKS_IN = "on_hold";
 
 /* Beside the advisory rather than above the lease line: both are what the run does next, where the lines above are what this write did. A claim opens a phase's work, so the part is the one its status owes. */
-const advisory = (status) => {
-  console.log(ADVISORY);
+/* And the opening above both, because a run handed an issue past `open` redoes the phases behind it otherwise, through the renderer `forge resume` prints so the two cannot say different things about one record. Both printers are exported so a case reads what each verb prints rather than what that renderer returns, a renderer nobody prints passing every case that asks it for lines (ISS-804). */
+export const advisory = (status) => {
+  const lines = openingLines(status);
+  for (const line of lines) console.log(line);
+  console.log(`${lines.length ? "\n" : ""}${ADVISORY}`);
   partForStatus(status, (part) => console.log(`\n${part}`));
 };
 

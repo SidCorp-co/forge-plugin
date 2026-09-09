@@ -102,6 +102,11 @@ answer to are the contract's: `forge guide
 contract` is its table of contents, and `forge guide contract <status>` the part for the status
 the issue is about to enter, taken on arrival at the phase.
 
+**An issue past `open` is a run somebody already opened**, and it is resumed rather than started:
+`forge resume <ref>` says which phases the record earned and which one is owed. Start at the one
+owed and run none of the others again. Its plan and its criteria are the issue's own, read off its
+fields, and writing either a second time is redoing a phase somebody already paid for.
+
 Then decide what the issue *is*. Three outcomes, none a stop:
 
 - **Build it.** Phase 2.

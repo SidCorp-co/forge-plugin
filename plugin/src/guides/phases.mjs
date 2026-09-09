@@ -53,30 +53,51 @@ const owedFrom = (status) => {
 
 const numbered = (status) => Number.isFinite(phaseNumber(status));
 
-/** The phases behind this issue with what discharged each, then those owed. A status off `ORDER` —
- *  a reopen, a park's side status — owes its own row's phase and is not read as completion. */
-export const phaseIndex = ({ status, size }) => {
+/* Everything a status alone decides, the waiver below being the only reading that needs a tier. A
+   status off `ORDER` — a reopen, a park's side — owes its own row's phase and is not completion. */
+const behind = (status) => {
   const aside = !ORDER.includes(status) && numbered(status);
   const owing = aside ? [status] : owedFrom(status).filter(numbered);
   return {
+    aside: aside ? status : null,
+    owing,
     passed: aside ? [] : ORDER.slice(0, ORDER.indexOf(status)).filter(numbered).map((one) => ({
       status: one,
       phase: PHASE[one][0],
       cites: dischargedBy(one),
     })),
+    first: owing.length ? PHASE[owing[0]][0] : null,
+  };
+};
+
+/** The phases behind this issue with what discharged each, then those owed with what a tier waives. */
+export const phaseIndex = ({ status, size }) => {
+  const { aside, owing, passed, first } = behind(status);
+  return {
+    passed,
     owed: owing.map((one) => ({
       status: one,
       phase: PHASE[one][0],
       waived: aside ? null : waivedFor(one, size),
     })),
-    first: owing.length ? PHASE[owing[0]][0] : null,
-    aside: aside ? status : null,
+    first,
+    aside,
   };
 };
 
 export const READ_OFF_THE_RECORD =
   "Start at the phase owed. The phases before it are read off the record and not run again — each"
   + " one below names the record that discharged it.";
+
+/** The opening on an issue somebody else opened: one line per phase behind, none where none is, and
+ *  one renderer for `resume` and `claim` both (ISS-804, BR-09). docs/cli/resume.md. */
+export const openingLines = (status) => {
+  const { passed, first } = behind(status);
+  const earned = first ? passed.filter((one) => one.cites) : [];
+  return earned.length
+    ? [READ_OFF_THE_RECORD, ...earned.map((one) => `  passed: ${one.phase}  —  ${one.cites}`)]
+    : [];
+};
 
 export const indexLines = (slug, ref, index) => [
   `${slug} for ${ref} — ${index.first ? `phase owed: ${index.first}` : "no phase owed"}`

@@ -67,6 +67,14 @@ record already held — this issue's own run did exactly that, replaying Phases 
 phases before it are read off the record rather than run again, each one naming the record that
 discharged it. The header carries which phase; the line under it carries what to do with the rest.
 
+That was not enough, because the workflow claims before it reads: a run told to take the issue
+before its first write saw the method for the phase ahead and nothing about the record behind, and
+the one run that resumed correctly did so because a person had said the record was there. So the
+same lines print on the claim, from the one renderer this verb prints them with — two renderers
+would disagree about one record the first time a row moved, which is the whole of why there is one.
+They are silent where nothing is behind the status, so an issue at `open` says on both verbs what a
+claim there always said.
+
 `forge guide issue-flow --for ISS-nn` prints the same cut whole, and it is where the shape lives:
 every phase, every drop and every citation is read off a table some other reader already answers
 to — the flow table's phase column, the entry checks beside it, the ladder's lightening rows. An

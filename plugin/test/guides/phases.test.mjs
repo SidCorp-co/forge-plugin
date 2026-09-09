@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 
-import { CITED, dischargedBy, indexLines, phaseIndex, phaseNumber } from "../../src/guides/phases.mjs";
+import {
+  CITED, READ_OFF_THE_RECORD, dischargedBy, indexLines, openingLines, phaseIndex, phaseNumber,
+} from "../../src/guides/phases.mjs";
 import { CHECKS, ORDER, PHASE, viewFrom } from "../../src/flow/earned.mjs";
 
 const sized = (band) => ({ description: "a defect", plan: null, moved: [], whole: true, band });
@@ -46,6 +49,28 @@ test("the first phase owed at approved is Phase 4, and the phases before it are 
     ["2 Clarify", "decision"],
     ["3 Plan", "plan"],
   ], "each passed phase names the record that ended it, so a run reads it instead of redoing it");
+});
+
+/* Two verbs print this and a run compares them, so a second composition of one line is the defect
+   the renderer exists to prevent — and it reads exactly like a working one (ISS-804). */
+test("the opening lists each phase behind with the record that discharged it, or nothing", () => {
+  const lines = openingLines("approved");
+  assert.equal(lines[0], READ_OFF_THE_RECORD, "the line saying where to start leads it");
+  assert.deepEqual(lines.slice(1), [
+    "  passed: 1 Triage  —  confirmation",
+    "  passed: 2 Clarify  —  decision",
+    "  passed: 3 Plan  —  plan",
+  ], "one line per phase, since a phase's own name carries commas and a joined list reads as more");
+  assert.deepEqual(openingLines("open"), [],
+    "an issue nobody has opened yet earns no header over an empty list, on either verb");
+  assert.deepEqual(openingLines("closed"), [], "and one owing no phase is not told where to start");
+});
+
+test("neither verb that prints the opening composes a line of it", () => {
+  for (const path of ["../../src/flow/claim.mjs", "../../src/flow/resume.mjs"]) {
+    const source = readFileSync(new URL(path, import.meta.url), "utf8");
+    assert.ok(!source.includes("passed:"), `${path} renders an opening line of its own`);
+  }
 });
 
 /* A waiver is on a transition: dropping the plan is not dropping the implementing, and an index

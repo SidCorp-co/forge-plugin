@@ -66,17 +66,32 @@ test("the brief carries the status, the phase it owes and the reference that hol
 });
 
 /* The opening block a run handed an issue past `open` reads first. This issue's own run replayed
-   Phases 0 and 1 on an `approved` issue, so the line saying not to is the fix and it is checked
-   where the brief is, the print path composing exactly these two facts (ISS-673). */
-test("an issue past open opens on the phase owed and the line saying the rest are on the record", async () => {
-  const { READ_OFF_THE_RECORD, phaseIndex } = await import("../../../src/guides/phases.mjs");
-  const { sizeOf } = await import("../../../src/flow/earned.mjs");
-  const view = viewFrom("the-uuid", issue({ status: "approved" }), []);
-  const index = phaseIndex({ status: "approved", size: sizeOf(view) });
-  assert.match(index.first, /^4 /u, "an approved issue implements next, which is criterion 57's case");
-  assert.match(READ_OFF_THE_RECORD, /read off the record and not run again/u);
-  assert.deepEqual(index.passed.map((one) => one.cites), ["confirmation", "decision", "plan"],
-    "and each phase behind it names the record that carried it, which is the rung above's own");
+   Phases 0 and 1 on an `approved` issue, so the line saying not to is the fix — and the run that
+   claims before it reads, as Phase 1 says, saw it on neither verb until the claim printed it too.
+   Judged on what each verb puts on the screen: a renderer whose lines nobody prints passes every
+   case that asks it for lines (ISS-673, ISS-804). */
+test("the claim and the resume print one opening, and at open neither prints any", async () => {
+  const { openingLines } = await import("../../../src/guides/phases.mjs");
+  const { opening } = await import("../../../src/flow/resume.mjs");
+  const { ADVISORY } = await import("../../../src/flow/lease.mjs");
+  const { advisory } = await import("../../../src/flow/claim.mjs");
+  const said = (run) => {
+    const lines = [];
+    const was = console.log;
+    console.log = (line) => lines.push(String(line));
+    try { run(); } finally { console.log = was; }
+    return lines;
+  };
+  const opened = openingLines("approved");
+  assert.equal(opened.length, 4, "an approved issue has three phases behind it and a line saying so");
+  assert.deepEqual(said(() => opening("approved")), opened, "the resume prints them and nothing else");
+  const claimed = said(() => advisory("approved"));
+  assert.deepEqual(claimed.slice(0, opened.length), opened,
+    "and the claim prints the same lines, so a run reading both is shown one record once");
+  assert.equal(claimed[opened.length], `\n${ADVISORY}`, "above the advisory, which the method follows");
+  assert.deepEqual(said(() => opening("open")), [], "an issue at open has nothing behind it");
+  assert.equal(said(() => advisory("open"))[0], ADVISORY,
+    "so a claim there opens on the advisory, which is what it printed before any of this");
 });
 
 /* Written by one run and readable by none: the checkpoint sat in the field beside the lease and no
