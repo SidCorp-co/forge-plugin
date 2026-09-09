@@ -81,7 +81,7 @@ export const readThreads = async (references, bound) => {
   const account = accountCredentials();
   if (!account.url.value || !account.token.value) {
     for (const one of references) held.set(one, { unread: NO_ENDPOINT });
-    return held;
+    return { threads: held, documents: new Map() };
   }
   const read = await everyIssue({}, bound);
   /* Indexed under both names a claim can print: a row missed under one alias is a pair lost for nothing. */

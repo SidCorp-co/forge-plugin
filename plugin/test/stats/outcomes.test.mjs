@@ -471,6 +471,18 @@ test("a run owning its issue by id reaches the same row, and one issue under two
   }
 });
 
+test("an eval with pairs and no credential to read them with prints unavailable rather than falling over", async () => {
+  const room = corpusOf(8);
+  /* No config directory of its own, so no endpoint resolves and the read is refused before a socket:
+     the one branch of the tracker read that sends nothing, and the one a green suite can miss. */
+  const held = await ranAsync(FORGE, ["stats", "eval", "--checkout", PROJECT, "--size", "4"],
+    { ...tracker.env, XDG_CONFIG_HOME: tempRoom("outcomes-blank-"), TMPDIR: room, HOME: tempRoom("outcomes-user-") });
+  assert.equal(held.status, 0, held.stderr);
+  assert.match(held.stdout, /median \d+(\.\d+)? min/u, "every cost figure prints");
+  assert.match(held.stdout, new RegExp(`parked or dropped .*${UNAVAILABLE}`, "u"));
+  assert.match(held.stdout, /unread now: no Forge endpoint is configured/u, "and says why it read nothing");
+});
+
 test("stats runs sends the tracker no request and carries no outcome figure", async () => {
   const room = corpusOf(4);
   state.calls = [];
