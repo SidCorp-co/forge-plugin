@@ -76,7 +76,9 @@ test("each part is one file, whose name carries its order and its slug", () => {
 });
 
 /* A join is one text, so a file that lost its heading would have its prose served under the part
-   above it and a file with two would hold a part its name does not address. Both are named. */
+   above it and a file with two would hold a part its name does not address. Both are named, and the
+   call that names them passes no file list: the parts are the directory's, so no caller can omit
+   its way past the rule and be told the contract is well formed (ISS-848). */
 test("a part file with no heading of its own, or with two, is a finding naming that file", () => {
   const room = tempRoom("contract-files-");
   const dir = join(room, "guides", "v1", "contract");
@@ -85,13 +87,18 @@ test("a part file with no heading of its own, or with two, is a finding naming t
   writeFileSync(join(dir, "02-second.md"), "Prose with no heading over it at all.\n");
   const path = join(room, "guides", "v1", "contract");
   assert.equal(readContract(room), null, "the raw reader served a join it should have withheld");
-  const said = contractProblems({ text: readContract(room), files: readContractFiles(room), path });
+  const said = contractProblems({ text: readContract(room), path });
   assert.equal(said.length, 1, said.join("; "));
   assert.match(said[0], /02-second\.md opens with no heading, so nothing addresses it/u);
   writeFileSync(join(dir, "02-second.md"), "## Second\n\nProse.\n\n## Third\n\nMore prose.\n");
-  const two = contractProblems({ text: readContract(room), files: readContractFiles(room), path });
+  const two = contractProblems({ text: readContract(room), path });
   assert.equal(two.length, 1, two.join("; "));
   assert.match(two[0], /02-second\.md carries 2 headings, and its name addresses one part/u);
+  /* The join a caller made for itself: it states the number and passes every other check, so the
+     directory is the only thing left that can refuse it, and this is the call that came back empty
+     while the parts arrived as an argument. */
+  const held = readContractFiles(room).map(([, text]) => text.replace(/\s+$/u, "")).join("\n\n");
+  assert.deepEqual(contractProblems({ text: held, path }), two);
   assert.deepEqual(partFileProblem("03-ok.md", "### `x` — reads y\n\nProse.\n"), null);
 });
 
@@ -277,7 +284,7 @@ test("the verb's answer is one part, the contents, or one refusal that names the
 
 /* A copy of the code with no guides/ beside it is what every installed copy was before ISS-78, and
    the only way to watch the report say so is to make one. */
-const copyOfCode = (contract) => {
+const copyOfCode = (contract, argv = ["doctor"]) => {
   const room = tempRoom("contract-copy-");
   for (const held of ["src", "hooks"]) {
     cpSync(join(PLUGIN, held), join(room, held), { recursive: true });
@@ -288,7 +295,7 @@ const copyOfCode = (contract) => {
     writeFileSync(join(room, "guides", "v1", "contract", "01-only.md"), contract);
   }
   const home = tempRoom("contract-home-");
-  const run = spawnSync(process.execPath, [join(room, "src", "cli.mjs"), "doctor"], {
+  const run = spawnSync(process.execPath, [join(room, "src", "cli.mjs"), ...argv], {
     encoding: "utf8",
     env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
@@ -303,6 +310,16 @@ test("doctor names the missing file, and a file from another build, in the copy 
     /\[ miss \] contract\s+\S+: 01-only\.md opens with no heading/u,
     "a part file the install truncated is named, not served under the part before it");
   assert.match(copyOfCode("whole"), /\[ {2}ok {2}\] contract\s+\S+ states contract 1/u);
+});
+
+/* Serving is the same route as reporting and is asked by the verb rather than by a call: a copy
+   holding a malformed part is refused by that file's name, never by the absent-contract line, which
+   would send a reader looking for a directory that is right there. */
+test("the verb refuses a copy whose part carries two headings, naming the file and not the absence", () => {
+  const said = flat(copyOfCode("# A contract\n\n**Contract 1.** The number.\n\n## A second heading\n\nProse.\n",
+    ["guide", "contract"]));
+  assert.match(said, /01-only\.md carries 2 headings, and its name addresses one part/u);
+  assert.doesNotMatch(said, /no contract at/u);
 });
 
 let clock = 0;

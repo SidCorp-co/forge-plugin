@@ -29,8 +29,7 @@ export const partFileProblem = (name, text) => {
   return heads.length > 1 ? `${name} carries ${heads.length} headings, and its name addresses one part` : null;
 };
 
-export const readContractFiles = (root = HERE) => {
-  const dir = contractPath(root);
+export const partFilesIn = (dir) => {
   try {
     const names = readdirSync(dir).filter((one) => one.endsWith(".md")).sort();
     return names.length ? names.map((name) => [name, readFileSync(join(dir, name), "utf8")]) : null;
@@ -38,6 +37,8 @@ export const readContractFiles = (root = HERE) => {
     return null;
   }
 };
+
+export const readContractFiles = (root = HERE) => partFilesIn(contractPath(root));
 
 /** The parts joined into the one text every reader below expects, the files being the parts in order. A malformed part withholds the whole join rather than serving its prose under the part before it: a reader that took the join would answer with the wrong part's text and nothing would say so, and this way every reader takes its own absent-contract route to `forge doctor`, which names the file. */
 export const readContract = (root = HERE) => {
@@ -112,9 +113,9 @@ export const stageLine = (status, parts, path = contractPath()) => {
     + ` (${part.chars} characters).`;
 };
 
-/** The malformed part before presence: a directory holding one is what `readContract` withholds the join for, and a reader told only that the contract is absent would go looking for a directory that is right there. */
-export const contractProblems = ({ text, path, files = null, reads = CONTRACT }) => {
-  const malformed = (files ?? []).map(([name, held]) => partFileProblem(name, held)).filter(Boolean);
+/** The malformed part before presence: a directory holding one is what `readContract` withholds the join for, and a reader told only that the contract is absent would go looking for a directory that is right there. The parts are read off `path` rather than handed in, because a caller with no list to offer would otherwise switch the rule off and be told the contract is well formed (ISS-848). */
+export const contractProblems = ({ text, path, reads = CONTRACT }) => {
+  const malformed = (partFilesIn(path) ?? []).map(([name, held]) => partFileProblem(name, held)).filter(Boolean);
   if (malformed.length) return malformed.map((one) => `${path}: ${one}`);
   if (text === null || text === undefined) {
     return [`no contract at ${path}, so this copy holds none of the rules that are not code`];
@@ -142,9 +143,8 @@ export const contractAnswer = ({ part = null, tracker = false, extra = [], root 
   /* The pin before the file: an absent `v7/` is a chosen number, not a copy that lost its rules. */
   const pinned = pinRefusal();
   if (pinned) return { refusal: pinned };
-  const files = readContractFiles(root);
-  const text = files && files.map(([, held]) => held.replace(/\s+$/u, "")).join("\n\n");
-  const wrong = contractProblems({ text, files, path: contractPath(root) });
+  const text = readContract(root);
+  const wrong = contractProblems({ text, path: contractPath(root) });
   if (wrong.length) return { refusal: `${wrong[0]}. \`forge doctor\` reports which copy is running.` };
   const parts = partsOf(text);
   if (!part) return { lines: contentsOf(parts, statesContract(text)) };
