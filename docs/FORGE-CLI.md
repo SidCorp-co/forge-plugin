@@ -45,7 +45,8 @@ once, not forever. One terse row per topic: this file is under the cap a topic i
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, and what an unanswered call counts as. |
 | [stats — the rows](cli/stats-rows.md) | The three rows a hand profile got wrong, why a phase boundary is read off the class a call carries, and why a run that claimed no rung keeps a row. |
-| [stats — the eval](cli/stats-the-eval.md) | Why the eval adds no figure of its own, why a window is fifty runs by the run's last record, what the copy installed at a run's start cannot fix, what a pinned comparison is for, and who reads the result. |
+| [stats — the eval](cli/stats-the-eval.md) | Why a cost figure is the profile's, and what the installed copy cannot fix. |
+| [stats — the outcome](cli/stats-the-outcome.md) | The four figures beside the costs, and the release mark. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, and why one verb reports every level of configuration and reads a key back before calling it set. |
 | [which gates run](cli/which-gates-run.md) | Why the switch is derived from the hooks directory, and why one place alone answers whether a gate is off. |
 | [the test credentials](cli/test-credentials.md) | Why a host is told from a secret by the shape of the value, and where the trim stops. |

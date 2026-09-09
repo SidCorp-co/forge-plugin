@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { WINDOW, evalRuns, evalLines, runsMark } from "../../src/stats/eval.mjs";
+import { WINDOW, evalRuns, evalLines, releaseMark, runsMark } from "../../src/stats/eval.mjs";
 import { marksOf, marksPath, writeMark } from "../../src/stats/marks.mjs";
 import { profileOf, runsUnder } from "../../src/stats/runs.mjs";
 import { slugFor } from "../../src/stats/transcripts.mjs";
@@ -35,7 +35,9 @@ const runText = (n) => {
   return [
     JSON.stringify({ timestamp: at(start), type: "user", message: { role: "user", content: `Skill forge:issue-flow ISS-${n}` } }),
     JSON.stringify({ timestamp: at(start + 30), message: { role: "assistant", content: [{ type: "tool_use", id: `c${n}`, name: "Bash", input: { command: `forge claim ISS-${n}` } }] } }),
-    JSON.stringify({ timestamp: at(start + lasted), message: { role: "user", content: [{ type: "tool_result", tool_use_id: `c${n}`, content: "claimed" }] } }),
+    /* The line `flow/claim.mjs` prints for an ownership it granted, which is what joins a run to the
+       issue it worked; a body merely saying so joins nothing (ISS-821). */
+    JSON.stringify({ timestamp: at(start + lasted), message: { role: "user", content: [{ type: "tool_result", tool_use_id: `c${n}`, content: `ISS-${n}  claim: session iss-${n} (agent, pid 1), renewed for 30 minute(s)` }] } }),
   ].join("\n");
 };
 
@@ -172,8 +174,19 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
   assert.equal(held.before.runs, 50);
   assert.equal(held.project, PROJECT);
   assert.equal(held.copies, 0);
-  assert.deepEqual(Object.keys(held), ["root", "project", "skipped", "unreadable", "copies", "size", "total", "now", "before", "moved", "shifts"]);
-  assert.deepEqual(Object.keys(held.now), ["runs", "spanned", "profile", "groups"], "criterion 15: the window carries spanned and nothing else new");
+  assert.deepEqual(Object.keys(held),
+    ["root", "project", "skipped", "unreadable", "copies", "requests", "size", "total", "now", "before", "moved", "shifts"]);
+  assert.deepEqual(Object.keys(held.now), ["runs", "spanned", "profile", "groups", "outcomes"],
+    "criterion 15: the window carries spanned, and ISS-821's outcomes beside the cost");
+  /* No credential resolves in this room, so every tracker read is refused and every outcome figure
+     says so — which is the shape a reader must be able to tell from a window that read and found
+     nothing (ISS-821). */
+  assert.equal(held.requests, 0, "a refused reading spends none of the budget");
+  for (const figure of held.now.outcomes.figures) {
+    assert.equal(figure.count, null, `${figure.name} is unavailable, not zero`);
+    assert.equal(figure.over, 0);
+  }
+  assert.equal(held.now.outcomes.pairs, 50, "the pairs are the transcripts' and need no tracker");
   assert.ok(held.now.profile.from <= held.now.profile.to, "the bounds are the profile's, not a second copy on the window");
 
   const sized = JSON.parse(ask(room, "--size", "7", "--json").stdout);
@@ -216,7 +229,13 @@ test("the ship's mark is one line at a multiple of the window, read off the corp
     assert.equal(record.root, root);
     assert.ok(Date.parse(record.at) > 0, "the moment it was written");
     const printed = JSON.parse(ask(room, "--json").stdout);
-    assert.deepEqual(Object.keys(record), ["kind", "mark", "at", ...Object.keys(printed)], "the object --json prints, under the mark's own three fields");
+    /* Every key of the printed object but the two the tracker read adds: a mark is written with the
+       cost figures alone, because the ship must not spend a hundred tracker requests per release
+       and one written where no credential resolves would take the release down with it (ISS-821). */
+    const costOnly = Object.keys(printed).filter((one) => one !== "requests");
+    assert.deepEqual(Object.keys(record), ["kind", "mark", "at", ...costOnly],
+      "the object --json prints less its tracker read, under the mark's own three fields");
+    assert.equal(record.now.outcomes, undefined, "a stored reading carries no outcome figure rather than zeroes");
     /* The profile and the count: the groups and `spanned` name copies, and this process sees the real cache where the spawned verb sees an empty HOME. */
     assert.deepEqual([record.now.runs, record.now.profile], [printed.now.runs, printed.now.profile], "and the same figures");
     const bytes = readFileSync(marksPath());
@@ -248,7 +267,7 @@ test("a stored reading is the before window, and the screen says where the windo
     process.env.TMPDIR = room;
     const empty = askStats(room, ["marks", "--checkout", PROJECT], home);
     assert.equal(empty.status, 0, empty.stderr);
-    assert.match(empty.stdout, /^No reading is held for this project yet; the release step writes one at every multiple of fifty runs/u);
+    assert.match(empty.stdout, /^No reading is held for this project yet; the release step writes one at every multiple of fifty runs in the corpus, and the release step writes one at every release\./u);
     const none = ask(room, "--against");
     assert.equal(none.status, 1);
     assert.match(none.stderr, /stats eval: --against names no reading — none is held for this project yet/u);
@@ -265,8 +284,9 @@ test("a stored reading is the before window, and the screen says where the windo
     const json = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--against", "50", "--json"], home).stdout);
     assert.equal(json.against, 50, "criterion 7");
     assert.deepEqual(json.before, record.now, "the stored recent window, byte for byte, as the before");
+    assert.equal(json.before.outcomes, undefined, "which is why the before side of a pinned comparison has no outcome figure");
     assert.equal(json.now.runs, 50);
-    assert.deepEqual(Object.keys(json).slice(5, 8), ["size", "total", "against"]);
+    assert.deepEqual(Object.keys(json).slice(5, 9), ["requests", "size", "total", "against"]);
 
     const newest = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--against", "--json"], home).stdout);
     assert.equal(newest.against, 50, "criterion 8: bare --against is the newest held");
@@ -327,4 +347,94 @@ test("the eval subject stands beside runs in the verb's own help", () => {
   const wrong = spawnSync(FORGE, ["stats", "consults"], { encoding: "utf8", env });
   assert.equal(wrong.status, 1);
   assert.match(wrong.stderr, /no subject named consults\. There is: runs, eval, marks\./u);
+});
+
+/* Attribution by copy answers which copy was installed, never which change did it: on 2026-09-09 the
+   recent window held sixteen copies with one to eight runs each. So a release is marked in its own
+   right, and what a comparison since one cannot hold apart is printed rather than removed (ISS-821). */
+test("a release mark carries its version and head, resolves apart from a count mark at one corpus count, and names what the comparison since it is confounded by", () => {
+  const was = { TMPDIR: process.env.TMPDIR, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
+  const home = tempRoom("stats-eval-release-");
+  process.env.XDG_CONFIG_HOME = home;
+  try {
+    const room = corpusOf(50);
+    process.env.TMPDIR = room;
+    const root = join(room, `claude-${process.getuid()}`, slugFor(PROJECT));
+
+    assert.match(releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }),
+      /^stats: this release is held as 3\.35\.300 over 50 run\(s\) \(`forge stats eval --since-release 3\.35\.300`\)\./u);
+    const [held] = marksOf("releases", root);
+    assert.equal(held.kind, "releases");
+    assert.equal(held.version, "3.35.300");
+    assert.equal(held.head, "abc1234");
+    assert.equal(held.mark, 50, "the corpus count it was taken at");
+    assert.equal(held.now.outcomes, undefined, "a mark is the cost figures alone");
+
+    /* The count mark at the same corpus count: two records at one count, neither resolving the other. */
+    assert.match(runsMark(PROJECT), /held as mark 50/u);
+    assert.equal(marksOf("runs", root).length, 1);
+    assert.equal(marksOf("releases", root).length, 1, "one count, two kinds, no collision");
+
+    assert.equal(releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }),
+      "stats: this release is held as 3.35.300 over 50 run(s) (`forge stats eval --since-release 3.35.300`). "
+      + "Version 3.35.300 was already held, so nothing was written.");
+    assert.equal(releaseMark(PROJECT, { version: null, head: "abc1234" }), null, "no version is no mark");
+    assert.equal(releaseMark("/fixture/nowhere", { version: "3.35.301", head: "d" }), null, "and no corpus is none either");
+
+    const listed = askStats(room, ["marks", "--checkout", PROJECT], home);
+    assert.equal(listed.status, 0, listed.stderr);
+    assert.match(listed.stdout, /^mark {4}50 {2}\S+ \S+ {2}release 3\.35\.300 at abc1234 {3}50 run\(s\)/mu,
+      "the release mark lists its version and its head");
+    assert.match(listed.stdout, /^mark {4}50 {2}\S+ \S+ +50 run\(s\)/mu, "beside the count mark at the same count");
+
+    corpusOf(75, room);
+    const since = askStats(room, ["eval", "--checkout", PROJECT, "--since-release", "3.35.300"], home);
+    assert.equal(since.status, 0, since.stderr);
+    assert.match(since.stdout, /^the 50 held at release 3\.35\.300 {2}/mu, "the release names itself where a count mark names its count");
+    assert.match(since.stdout, /^what a comparison since 3\.35\.300 is confounded by$/mu);
+    assert.match(since.stdout, /^ {2}\d+ release\(s\) landed after it inside this window$/mu);
+    assert.match(since.stdout, /^ {2}\d+ run\(s\) saw a release land while they ran/mu);
+    assert.match(since.stdout, /a dispatching session may still have held a role, a skill stub or a hook registration/u);
+
+    const newest = askStats(room, ["eval", "--checkout", PROJECT, "--since-release"], home);
+    assert.equal(newest.status, 0, newest.stderr);
+    assert.match(newest.stdout, /held at release 3\.35\.300/u, "bare --since-release is the newest held");
+
+    const missing = askStats(room, ["eval", "--checkout", PROJECT, "--since-release", "9.9.9"], home);
+    assert.equal(missing.status, 1);
+    assert.match(missing.stderr, /stats eval: no release reading for version 9\.9\.9 on this project\. `forge stats marks` lists what is held\./u);
+    const unheld = askStats(room, ["eval", "--checkout", PROJECT, "--since-release"], tempRoom("stats-eval-home-"));
+    assert.equal(unheld.status, 1);
+    assert.match(unheld.stderr, /--since-release names no reading — none is held for this project yet/u);
+
+    /* Two releases at one corpus count, which a count-keyed store discards the second of: the
+       version is a release's identity and `--since-release` has nothing else to resolve by. */
+    assert.match(releaseMark(PROJECT, { version: "3.35.400", head: "aaa1111" }), /held as 3\.35\.400 over 75 run\(s\)/u);
+    assert.match(releaseMark(PROJECT, { version: "3.35.401", head: "bbb2222" }), /held as 3\.35\.401 over 75 run\(s\)/u);
+    assert.equal(marksOf("releases", root).filter((one) => one.mark === 75).length, 2, "both are held at one count");
+    assert.equal(releaseMark(PROJECT, { version: "3.35.400", head: "aaa1111" }),
+      "stats: this release is held as 3.35.400 over 75 run(s) (`forge stats eval --since-release 3.35.400`). "
+      + "Version 3.35.400 was already held, so nothing was written.", "and rewriting either writes nothing twice");
+    for (const version of ["3.35.400", "3.35.401"]) {
+      const read = askStats(room, ["eval", "--checkout", PROJECT, "--since-release", version], home);
+      assert.equal(read.status, 0, read.stderr);
+      assert.match(read.stdout, new RegExp(`held at release ${version.replaceAll(".", "\\.")}`, "u"),
+        "each version resolves to its own reading");
+    }
+  } finally {
+    Object.assign(process.env, was);
+  }
+});
+
+/* Under three runs a median is one run's accident wearing a statistic (ISS-821). */
+test("a window under the floor prints insufficient evidence, and a copy's thin side prints its count and no median", () => {
+  const room = corpusOf(4);
+  const held = ask(room, "--size", "2");
+  assert.equal(held.status, 0, held.stderr);
+  assert.match(held.stdout, /^ {2}now +2 run\(s\) {2}.* {2}insufficient evidence: fewer than the floor of 3 runs, so no median$/mu);
+  assert.match(held.stdout, /^ {2}before +2 run\(s\) {2}.* {2}insufficient evidence: fewer than the floor of 3 runs, so no median$/mu);
+
+  const wide = ask(room, "--size", "3");
+  assert.equal(wide.status, 0, wide.stderr);
+  assert.match(wide.stdout, /median \d+(\.\d+)? min/u, "at the floor the median prints");
 });

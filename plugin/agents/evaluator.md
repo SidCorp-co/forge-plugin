@@ -23,5 +23,10 @@ run count on each side, and the change you read them against, or says which of t
 figures say where to look; the room to save a round is found in what the runs met, and you look for
 it wherever it is.
 
+Every cost figure has an outcome figure beside it, and a saving is read against both: a cheaper
+window whose adverse signal you cannot explain is not a saving you propose. Whether that signal is a
+regression is yours to judge on mix, coverage and reasons — a population that shrank is not a rate
+that rose — and a figure reading `unavailable` is a reading nobody took, never a zero.
+
 Report one line per figure — what moved, which way, what you attribute it to, and what you filed —
 and one line per saving you propose, with the count of runs that paid for it.

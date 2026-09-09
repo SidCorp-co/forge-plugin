@@ -169,6 +169,37 @@ it. Reading is all this product does there.
   WHEN a profile is printed THEN the CLI SHALL list each guide part the window's runs read with its
   calls, the runs that read it and the runs that read it more than once, read off the call's own
   words by the reading the class uses, and SHALL keep the class table's one row for the verb.
+- **AC-19-8-17** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "a run is joined to every issue its own claim output granted, and to none a refusal or a quoted line names"
+  WHEN a run's work is joined to the issues it owned THEN the CLI SHALL read every ownership its own
+  claim calls printed, SHALL take the reference only where it is the printed line's own subject, and
+  SHALL count a run whose ownership it cannot establish apart rather than as a run that owned nothing.
+- **AC-19-8-18** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "each outcome figure prints over its own population, and an empty population is unavailable rather than zero"
+  WHEN two windows of runs are compared THEN the CLI SHALL print beside every figure of cost a count
+  of what became of the work, each over the population it was counted across, and SHALL report a
+  figure whose population is empty as unavailable rather than as none found.
+- **AC-19-8-19** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "an outcome after the run is counted inside one interval both windows share, and a run short of it is counted in neither figure"
+  WHERE an outcome is observed after a run has ended the CLI SHALL count it only inside one interval
+  both windows are measured over, SHALL leave out a run that has not itself completed that interval,
+  and SHALL name that interval in what it prints.
+- **AC-19-8-20** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "the tracker reads of one eval share a request budget, and past it the outcome figures are unavailable while the cost figures print"
+  WHILE the readings behind those counts are being taken the CLI SHALL spend no more than one stated
+  number of requests for the whole comparison, SHALL count against it every attempt and every lookup
+  a request makes, and SHALL go on printing every figure of cost where that number is reached.
+- **AC-19-8-21** · Rev: 1 · Proof: plugin/test/stats/eval.test.mjs "a release mark carries its version and head, resolves apart from a count mark at one corpus count, and names what the comparison since it is confounded by"
+  WHEN a release lands THEN the release step SHALL hold a reading for that release carrying the
+  version and the head it landed at, SHALL hold it under that version so that two releases landing at
+  one count of runs are two readings, SHALL keep it apart from a reading held at a count of runs so
+  that neither resolves the other, and a comparison read against it SHALL name what it is confounded
+  by rather than presenting the difference as one change's.
+- **AC-19-8-22** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "park attribution is resolved over the corpus, so no window size can make an owner of a run the corpus refused"
+  WHERE more than one of the runs that owned an issue could be credited with the same outcome the CLI
+  SHALL decide the credit over the whole corpus before either window is cut, SHALL credit the outcome
+  to no run where more than one is equally placed to claim it, and SHALL disclose it as unattributed.
+- **AC-19-8-23** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "a comment page the tracker never called whole is a prefix, so its pairs go unread rather than outcome-free"
+  IF a reading the counts stand on came back without the tracker calling it complete THEN the CLI
+  SHALL treat it as a reading it could not take, and SHALL NOT count what it did receive as a
+  population it read and found no outcome in.
+
 - **AC-19-8-11** · Rev: 1 · Proof: none yet — ISS-673
   WHEN a profile is printed THEN the CLI SHALL list per wave the time from ready to landed, from
   landed to judged and in total, the batch size, the gate time and lock wait, the reviews and

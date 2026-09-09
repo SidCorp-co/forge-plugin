@@ -17,6 +17,7 @@ import {
   tierRun,
   transcriptsUnder,
 } from "./transcripts.mjs";
+import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
 import { median } from "./median.mjs";
 import { PHASES } from "../flow/earned.mjs";
 import { TIERS } from "../ladder.mjs";
@@ -256,6 +257,10 @@ export const runFrom = (path, session, text) => {
     startedAt,
     endedAt,
     tier: tierRun(calls),
+    /* What the eval joins a run to its work by; the profile prints neither, so this reads no tracker. */
+    issues: claimedIn(calls),
+    rulings: rulingsIn(calls),
+    parks: parkWritersIn(calls),
     brief: read.brief,
     calls: calls.length,
     seconds: (endedAt - startedAt) / 1000,

@@ -17,13 +17,13 @@ export const keysIn = (text) => String(text ?? "").match(new RegExp(`\\b${KEY}\\
 export const rowsOf = (payload, key = "issues") =>
   payload?.[key] ?? payload?.data ?? (Array.isArray(payload) ? payload : []);
 
-export const listIssues = async (filters = {}, limit = DEFAULT_LIMIT, extra = {}) =>
+export const listIssues = async (filters = {}, limit = DEFAULT_LIMIT, extra = {}, held = {}) =>
   scoped("forge_issues", {
     action: "list",
     limit,
     ...(Object.keys(filters).length ? { filters } : {}),
     ...extra,
-  });
+  }, Boolean(held.soft), held);
 
 const aged = (row) => Date.parse(row?.createdAt ?? "") || Infinity;
 
@@ -58,8 +58,13 @@ export const keeps = (row, filters = {}) =>
 
 /** One page at an offset; a walk ends on `hasMore` being false, never on a length or on silence. */
 const window = async (held, offset) => {
-  const payload = await listIssues(held.filters, MAX_LIMIT, offset ? { offset } : {});
+  const payload = await listIssues(held.filters, MAX_LIMIT, offset ? { offset } : {}, held.bound);
   held.pages += 1;
+  /* Carried, not looped past: a walk the transport refused is not a walk that reached the end. */
+  if (payload?.refused) {
+    held.refused = payload.refused;
+    return { rows: [], whole: false };
+  }
   const page = rowsOf(payload);
   const rows = page.filter((row) => keeps(row, held.filters));
   for (const row of rows) {
@@ -73,10 +78,10 @@ const window = async (held, offset) => {
    read, so two readers advancing one walk skip a page and still reach `whole` (codex F1, ISS-538). */
 const walks = new Map();
 
-const walkFor = (filters) => {
+const walkFor = (filters, bound) => {
   if (!walks.has(keyFor(filters))) {
     walks.set(keyFor(filters), (async () => {
-      const held = { filters, rows: new Map(), pages: 0, read: 0 };
+      const held = { filters, bound, rows: new Map(), pages: 0, read: 0 };
       held.page = await window(held, 0);
       while (!held.page.whole) {
         const before = held.read;
@@ -95,10 +100,11 @@ const readOf = (held) => ({
   rows: [...held.rows.values()],
   whole: held.page.whole,
   pages: held.pages,
+  ...(held.refused ? { refused: held.refused } : {}),
 });
 
 /** Every row matching `filters`, paged to the end; `whole` false is a ceiling, not absence. */
-export const everyIssue = async (filters = {}) => readOf(await walkFor(filters));
+export const everyIssue = async (filters = {}, bound = {}) => readOf(await walkFor(filters, bound));
 
 /** The names a body projects to are its own keys and the ones the tracker declares, read off each
  *  answer and never listed here; a declared name the answer left out is empty. */

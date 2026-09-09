@@ -21,7 +21,7 @@ import { occupied } from "./run/occupant.mjs";
 import { mintRunId, RUN_ID_VAR } from "./run/run-id.mjs";
 import { markRefused, REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, spannedIn } from "./run/review.mjs";
 import { edgesLeft, fileIssue } from "../plugin/src/tracker/filing/route.mjs";
-import { runsMark } from "../plugin/src/stats/eval.mjs";
+import { releaseMark, runsMark } from "../plugin/src/stats/eval.mjs";
 import { refusing, slugIfAny } from "../plugin/src/resolve/settings.mjs";
 import { CEILINGS, overCeiling, resizeForm, tierOf } from "../plugin/src/ladder.mjs";
 import { partForLanding } from "../plugin/src/guides/served.mjs";
@@ -524,6 +524,10 @@ const shipSteps = (tree, root, base, note) => {
       await reviewOwed(tree);
       const mark = runsMark(root);
       if (mark) console.log(`  ${mark}`);
+      /* Whatever the corpus count, so a comparison can be taken since THIS release: the version and
+         the head are the two things a reading taken later cannot work out for itself. */
+      const held = releaseMark(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree) });
+      if (held) console.log(`  ${held}`);
       /* Inside the step and not after the whole run, so a `--from 9` resume carries it too. */
       partForLanding((phase) => console.log(`\n${phase}`));
     }],

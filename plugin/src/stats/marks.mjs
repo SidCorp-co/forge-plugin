@@ -8,6 +8,8 @@ import { fail } from "../resolve/settings.mjs";
 
 export const RUNS = "runs";
 export const CONSULTS = "consults";
+/* A kind of its own, so a count mark and the release that landed at that count never compete. */
+export const RELEASES = "releases";
 
 export const marksPath = () => join(configDir("forge"), "eval-marks.jsonl");
 
@@ -16,15 +18,17 @@ const readAll = () => jsonlAt(marksPath());
 export const marksOf = (kind, root = null) =>
   readAll().filter((one) => one.kind === kind && (root === null || one.root === root));
 
+/* A release is one version and not one count: two can land at the same count, and holding them by count discards the second and leaves the version nothing to resolve. */
+const identityOf = (record) => (record.kind === RELEASES ? record.version ?? null : record.mark);
+
 const sameMark = (held, record) =>
-  held.kind === record.kind && held.mark === record.mark && (held.root ?? null) === (record.root ?? null);
+  held.kind === record.kind && identityOf(held) === identityOf(record) && (held.root ?? null) === (record.root ?? null);
 
 export const WRITTEN = "written";
 export const HELD = "held";
 export const FAILED = "failed";
 
-/** Appends unless the same kind, mark and root is held, and says which — written, held or failed. A failed write is said and carried past, as the consult log's is: the mark line it accompanies is worth more than a stats file.
- *  No two writers race here: a runs mark is written under the ship's lock, and a consult crossing belongs to exactly the record that landed on it. */
+/** Appends unless the same reading is held, and says which — written, held or failed. A failed write is said and carried past, as the consult log's is: the mark line it accompanies is worth more than a stats file. No two writers race here — a runs mark is written under the ship's lock, and a consult crossing belongs to exactly the record that landed on it. */
 export const writeMark = (record) => {
   try {
     if (readAll().some((one) => sameMark(one, record))) return HELD;
@@ -42,6 +46,13 @@ export const wroteSaid = (outcome, mark, verb) => ({
   [FAILED]: `The reading could not be written, so mark ${mark} is not held.`,
 }[outcome]);
 
+/** The same three outcomes said in a release's own identity, a count being none of it. */
+export const releaseSaid = (outcome, version) => ({
+  [WRITTEN]: "The reading is held at that version.",
+  [HELD]: `Version ${version} was already held, so nothing was written.`,
+  [FAILED]: `The reading could not be written, so ${version} holds none.`,
+}[outcome]);
+
 /* Pulled out before `flags`, which cannot read a flag standing alone: alone is `null`, the newest. */
 export const againstIn = (argv, verb) => {
   const at = argv.indexOf("--against");
@@ -51,6 +62,28 @@ export const againstIn = (argv, verb) => {
   const mark = Number(next);
   if (!Number.isInteger(mark) || mark < 1) fail(`${verb}: --against takes a mark — the count the mark line printed — not \`${next}\`.`);
   return { against: mark, rest: argv.filter((one, n) => n !== at && n !== at + 1) };
+};
+
+/* Pulled out before `flags` as `againstIn` is; a version where that takes a count. */
+export const sinceReleaseIn = (argv) => {
+  const at = argv.indexOf("--since-release");
+  if (at < 0) return { release: undefined, rest: argv };
+  const next = argv[at + 1];
+  if (next === undefined || next.startsWith("--")) return { release: null, rest: argv.filter((one, n) => n !== at) };
+  return { release: next, rest: argv.filter((one, n) => n !== at && n !== at + 1) };
+};
+
+/** The release reading a version names, or the newest held for this project. */
+export const resolveRelease = (root, asked, { verb, list, writes }) => {
+  const held = marksOf(RELEASES, root);
+  if (!held.length) {
+    fail(`${verb}: --since-release names no reading — none is held for this project yet; ${writes}. \`${list}\` lists what is held.`);
+  }
+  if (asked === null) return held.at(-1);
+  const found = held.findLast((one) => one.version === asked);
+  if (found) return found;
+  fail(`${verb}: no release reading for version ${asked} on this project. \`${list}\` lists what is held.`);
+  return null;
 };
 
 /** The reading `--against` names, or the newest of the scope; refused by name, with the list subject. */

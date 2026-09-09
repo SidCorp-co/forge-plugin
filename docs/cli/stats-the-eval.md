@@ -7,14 +7,21 @@ few. The codex harness had already stopped doing that (ISS-310): its log says wh
 and the look is two windows side by side. This topic is the same arrangement for the flow the harness
 serves, and the reasons it takes the shape it does.
 
-## Why the eval adds no figure of its own
+## Why every cost figure is the profile's, and why no outcome figure can be
 
-Every number the comparison prints is one the profile already computes over a list of runs. A window
+Every **cost** the comparison prints is one the profile already computes over a list of runs. A window
 is a slice of the corpus and a group is a filter over a window, so both are handed to the same reader
 the screen uses. The alternative — a second reader with its own arithmetic for the comparison — is
-two copies of every median, and the day either moves the two disagree about what a run cost. The
-comparison therefore holds no measurement the profile lacks, and a figure added to the profile is in
-the eval the same day with no second change.
+two copies of every median, and the day either moves the two disagree about what a run cost. So a
+cost figure added to the profile is in the eval the same day with no second change.
+
+No **outcome** can come that way, and for one reason: the profile reads transcripts and nothing else,
+and what became of an issue is on the tracker. `stats runs` keeps that rule — it sends the tracker no
+request and prints no outcome — so the four outcome figures are the eval's own, computed by
+`outcomes.mjs` and by nothing the profile can be asked for.
+
+What those four claim, and the release mark a comparison since one change needs, is
+[stats — the outcome](stats-the-outcome.md).
 
 ## Why a window is fifty runs, ordered by the run's own last record
 
@@ -29,14 +36,11 @@ earlier one is compared as far as it reaches and the shortfall is printed beside
 padded or silently shortened reads exactly like a full one.
 
 `--json` prints the comparison as one object — `size`, `total`, `now`, `before`, `moved`, `shifts` —
-and each window is its `runs`, its `profile` and its `groups` by copy. Nothing in it can be derived
-from another field: the bounds are the profile's and the shortfall is the size less the runs, so a
-reader that parses it holds one spelling of each figure and the screen computes the rest where it
-prints (ISS-492). `forge codex eval --json` answers in the same outer shape — `size`, `total`, `now`,
-`before`, `shifts` — each window its `consults`, its `stats` and its `groups` per model, effort and
-prompt, a group carrying its `score`, its `stats` and how many rows were `timed` and `metered`; the
-two readers the harness-eval method names take the same argument and are quoted the same way
-(ISS-484).
+each window its `runs`, `profile`, `groups` by copy and `outcomes`. Nothing in it can be derived from
+another field: the bounds are the profile's and the shortfall is the size less the runs, so a reader
+holds one spelling of each figure and the screen computes the rest (ISS-492). `forge codex eval --json` answers in the same outer shape, each window its
+`consults`, its `stats` and its `groups` per model, effort and prompt; the two readers the
+harness-eval method names take the same argument and are quoted the same way (ISS-484).
 
 ## What the copy installed at a run's start fixes, and what it does not
 
@@ -58,6 +62,11 @@ A run older than every copy the cache still holds is grouped as unrecorded rathe
 oldest copy present, and the screen folds copies with fewer than three runs on either side into one
 line — on this device a release lands about every half hour, so most copies carry one or two runs —
 while the JSON keeps every group.
+
+Three runs is also the floor a median is worth printing above. A copy listed because one side has
+runs to count prints, on its thin side, that count and no median; a whole window under the floor
+prints insufficient evidence in place of every median it would otherwise carry. A median of two runs
+is a number that reads like a finding and is one run's accident.
 
 ## Why the ship prints the mark, writes the reading there once, and remembers nothing else
 

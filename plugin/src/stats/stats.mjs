@@ -31,7 +31,8 @@ export const stats = (argv) => {
     console.error(USAGE);
     process.exit(1);
   }
-  SUBJECTS[subject](rest);
+  /* Returned: the eval awaits the tracker, and a promise nobody awaits exits before its answer. */
+  return SUBJECTS[subject](rest);
 };
 
 stats.answersHelp = true;
