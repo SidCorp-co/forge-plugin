@@ -13,9 +13,9 @@ process.env.XDG_CONFIG_HOME = HOME.path;
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
-  ADVISORY, MINUTES, RECLAIMS_BEFORE_PARK, SHARED_HOLDER, agentOf, canonical, claimRefusal, claimed,
-  describe, expiryOf, historyLine, leaseOf, nextLine, parksAsCrashed, pidOf, reclaimsOf,
-  sharedHolder, stateOf, writeRefusal, writtenBy,
+  ADVISORY, MINUTES, READING_MINUTES, RECLAIMS_BEFORE_PARK, SHARED_HOLDER, agentOf, canonical,
+  claimRefusal, claimed, describe, expiryOf, historyLine, leaseOf, nextLine, nothingWorked,
+  parksAsCrashed, pidOf, reclaimsOf, sharedHolder, stateOf, writeRefusal, writtenBy,
 } = await import("../../src/flow/lease.mjs");
 const {
   MINTED, sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced, sessionWriting,
@@ -66,6 +66,21 @@ test("every refusal names the holder, its renew time and the one command that cl
   const free = writeRefusal("free", "ISS-4", null);
   assert.match(free, /forge claim ISS-4/u, "and a write with no lease at all says how to take one");
   assert.match(describe(lease), /session the-other-run \(a-test-agent, pid 4242\), renewed 2026-09-02T12:00 for 30 minute\(s\)/u);
+});
+
+/* The second lease shape, which was decided and then stated only in a dispatch reference about
+   dispositions: two triage runs on one instruction resolved it opposite ways, and one of them
+   handed four of these writes back to the dispatcher rather than making them (ISS-840). */
+test("the free-lease refusal and `forge claim -h` name the short lease out of one string", () => {
+  const said = nothingWorked("ISS-4");
+  assert.match(said, new RegExp(`forge claim ISS-4 --minutes ${READING_MINUTES}\\b`, "u"),
+    "the sentence carries the whole command, so a run that met it types nothing it has to derive");
+  assert.match(said, /--next "nothing was worked under this lease"/u, "with the line the record owes");
+  assert.ok(READING_MINUTES < MINUTES, `a reading's lease of ${READING_MINUTES} is not shorter than the default ${MINUTES}`);
+  assert.ok(writeRefusal("free", "ISS-4", null).includes(said), "the refusal prints that string and no paraphrase of it");
+  assert.ok(USAGE.includes(nothingWorked()), "and so does the help, which is where a run that has not been refused yet reads it");
+  assert.doesNotMatch(said, /disposition|triage|holds/u,
+    "and it names no verdict and no kind of write: nothing here can tell a reading's output from a build's");
 });
 
 /* A uuid places nobody: the run whose shell died in ISS-26 was named by one, and a person deciding

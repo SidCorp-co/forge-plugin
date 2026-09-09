@@ -33,6 +33,7 @@ import {
   landingSaved,
   leaseOf,
   nextLine,
+  nothingWorked,
   parkAnswers,
   parksAsCrashed,
   reclaimsOf,
@@ -88,6 +89,8 @@ export const USAGE = [
   "--pushed, --review and --open write the worklog beside the lease, which `forge resume` reads",
   "first; neither capture is automatic, since a write from another checkout would name that one.",
   "What the checkpoint holds and which state names whose turn: docs/cli/the-checkpoint.md.",
+  "",
+  nothingWorked(),
   "",
   ADVISORY,
 ].join("\n");

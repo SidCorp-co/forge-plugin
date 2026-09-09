@@ -20,9 +20,10 @@ Say which of the dispositions it is, or that it holds, and cite where you looked
 cannot evidence is a guess, and a guess here costs a whole run downstream.
 
 What you decided is written on the issue as a finding for the run that comes next to verify, never
-as an instruction to it. Which writes earn a disposition, in what order and under what lease, is
-`forge guide dispatch dispositions`, read at the point you have one.
+as an instruction to it. Which writes earn a disposition and in what order is `forge guide dispatch
+dispositions`, read at the point you have one.
 
-Read it on the verdict *holds* as well, and read `forge guide dispatch` with it: a holding issue is
-the one that goes to a run, and the reading you have just done is what sizes it. That write is owed
-on the verdict that ends nothing, which is the verdict a reference about dispositions looks past.
+A verdict of *holds* ends the issue nowhere and still owes a write: a holding issue is the one that
+goes to a run, and the reading you have just done is what answers for its complexity. Setting it is
+yours, not a recommendation for whoever dispatched you. `forge guide dispatch` is where that write
+sits, with the lease it and the confirmation take.
