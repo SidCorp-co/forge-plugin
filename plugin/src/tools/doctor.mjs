@@ -41,7 +41,7 @@ import { VERB_NAMES, usageOf } from "../resolve/visibility.mjs";
 import { PROJECT_USAGE, WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { methodPinned, pinRefusal } from "../guides/version.mjs";
-import { contractPath, contractProblems, readContract, readContractFiles, statesContract } from "../guides/contract.mjs";
+import { contractPath, contractProblems, readContract, statesContract } from "../guides/contract.mjs";
 
 const viConfig = () => join(configDir("vi-natural"), "config.json");
 
@@ -352,7 +352,7 @@ const checkContract = () => {
   if (pinned) return line(BAD, "contract", pinned);
   const path = contractPath();
   const text = readContract();
-  const wrong = contractProblems({ text, files: readContractFiles(), path });
+  const wrong = contractProblems({ text, path });
   for (const said of wrong) {
     line(BAD, "contract", `${said} — install the plugin again for a whole copy`);
   }
