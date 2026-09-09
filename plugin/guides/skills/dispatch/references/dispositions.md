@@ -46,11 +46,11 @@ the code have been read:
 3. **Verify "already fixed" live, once for the set.** Run the verb on the installed copy by its own
    path, not the checkout, and name the landing that fixed it with its release. One live read covers
    every filing on that cause.
-4. **Post, per issue, on its own command line.** A short `forge claim` whose record says nothing was
-   worked under it; `forge record confirmation --finding duplicate|already-fixed --where … --is …
-   --detail …`, the detail naming the survivor or the release; then `forge advance --drop --why` for
-   a duplicate and `forge advance --set closed --why` for a fix that landed. The read-first gate may
-   hold the first write with the thread's unseen comments: read them, re-send the same command.
+4. **Post, per issue, on its own command line.** `forge claim`, then `forge record confirmation
+   --finding duplicate|already-fixed --where … --is … --detail …`, the detail naming the survivor or
+   the release; then `forge advance --drop --why` for a duplicate and `forge advance --set closed
+   --why` for a fix that landed. The read-first gate may hold the first write with the thread's
+   unseen comments: read them, re-send the same command.
 5. **The survivor keeps what the dropped body added.** One comment on it, carrying the evidence and
    any rule the duplicate stated better; a drop with nothing carried loses the second report's
    reading, which is the one thing it was worth.
@@ -63,10 +63,8 @@ How a disposition is posted and what earns the status move are the executor's, s
 disposition paragraph of `forge guide issue-flow`. A wave takes one for the same reasons and by the
 same route.
 
-The one thing that is the dispatcher's: whatever lease this write needs is a short one, and it says
-on the record that nothing was worked under it. An issue left holding a lease from a triage pass is
-a reclaim charged to the next run — the cost this skill exists to remove, paid back with interest.
-Where the CLI offers a route that needs no lease at all, that is the route, and this skill stops
-using one the CLI withholds rather than working around the refusal.
+The lease these writes take is not a disposition's and is not stated here. Which of this phase's
+writes need one at all is the method's Phase 2, and the refusal a write with no lease meets prints
+the command in full.
 
 A disposition taken here is counted in the fold against the run it did not cost.

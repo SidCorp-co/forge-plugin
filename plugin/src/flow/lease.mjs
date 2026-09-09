@@ -10,6 +10,7 @@ import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 export const FIELD = "sessionContext";
 export const KEY = "lease";
 export const MINUTES = 30;
+export const READING_MINUTES = 10;
 export const RECLAIMS_BEFORE_PARK = 2;
 const HISTORY_KEPT = 12;
 
@@ -17,6 +18,13 @@ export const ADVISORY =
   "The lease is advisory: the tracker refuses no stale write yet (ISS-7), so two runs that both "
   + "find no lease both claim, and the later write erases the earlier. A project running more than "
   + "one agent at a time needs the tracker's refusal before it can trust this.";
+
+/** The other lease a write can be owed, spent by `forge claim -h` and by the refusal a payload write with no lease meets, so a run reaches it where it is stopped rather than in a document it may not open. It names no kind of write, because nothing here can tell a reading's output from a build's: the run knows whether work follows it and the CLI does not (ISS-840). */
+export const nothingWorked = (ref = "<ref>") =>
+  "A write that is the whole of what a run will do to the issue — a reading posted and the issue "
+  + "left — takes a short lease that says so on the record, so the run after it reads a reading "
+  + "rather than a reclaim:\n"
+  + `  forge claim ${ref} --minutes ${READING_MINUTES} --next "nothing was worked under this lease"`;
 
 /* Said, not refused: `stateOf` reads an inherited holder as this run's own. docs/cli/claim.md. */
 export const SHARED_HOLDER =
@@ -281,7 +289,8 @@ export const claimRefusal = (ref, lease) =>
 
 const WRITE_REFUSAL = {
   free: (ref) =>
-    `${ref} carries no lease, and a payload write is the holder's. Take it first:\n  forge claim ${ref}`,
+    `${ref} carries no lease, and a payload write is the holder's. Take it first:\n  forge claim ${ref}\n`
+    + nothingWorked(ref),
   live: (ref, lease) =>
     `${ref} is held by another run: ${describe(lease)}. Its payload writes are that run's, so this `
     + `one is refused. Take the lease once it expires:\n  forge claim ${ref}`,

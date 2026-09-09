@@ -161,6 +161,22 @@ test("a field a record writes is refused by name, the override being no route ro
   assert.equal(state.calls.some((one) => one.args.action === "update"), false);
 });
 
+/* The write a triage pass owes on the one verdict that ends nothing. Two runs on one instruction and one head split on whether to claim for it:
+   the rule sat in a reference about dispositions, while this surface, which both of them did reach, said only that a lease was owed (ISS-840). */
+test("a holding verdict's complexity write with no lease is refused with the short lease and what the record owes", async () => {
+  before();
+  ISSUE.sessionContext = null;
+  const run = await setField(
+    "--set", "complexity=s",
+    "--why", "holds — read the two guides and the refusal it would change; nothing was worked",
+  );
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /carries no lease/u, "the write is still the holder's, which this change does not move");
+  assert.match(run.stderr, /--minutes 10/u, "and the lease the reading is owed is named as a short one");
+  assert.match(run.stderr, /nothing was worked under this lease/u, "with the line the record owes beside it");
+  assert.equal(state.calls.some((one) => one.args.data?.complexity !== undefined), false, "and the field never moved");
+});
+
 /* The override writes fields the writer keeps no row for, and the read-back's own sentence is built
    off that row: the one it does not have reached the mismatch as a crash rather than as the refusal
    a run can act on. */

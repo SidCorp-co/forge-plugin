@@ -20,6 +20,7 @@ how many topics there may be.
 | [the field rules](cli/the-field-rules.md) | The three fields judged on what they say, and the two overrides round a check. |
 | [`advance`](cli/advance.md) | What the entry criteria read, why git is never asked at a transition while the requirements tree is, and how a reopen routes. |
 | [`claim`](cli/claim.md) | How far a lease can be promised without a conditional write, what the step line is for, and why every write lists the issue's comments first. |
+| [the short lease](cli/the-short-lease.md) | Why a write no work follows takes a lease of minutes, why the refusal is where that is said, and the split it was measured on. |
 | [`the checkpoint`](cli/the-checkpoint.md) | What a build ready to land leaves whoever lands it, why both merge routes are one table, and how the judge's turn is handed back. |
 | [`resume`](cli/resume.md) | What the worklog holds beside the lease, why no capture of it is automatic, and what the brief prints. |
 | [`spec`](cli/spec.md) | Why a clause is answered by its identifier, and the three readings of the notation narrowed rather than guessed. |
