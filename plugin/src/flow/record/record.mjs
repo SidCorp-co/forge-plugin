@@ -277,20 +277,26 @@ const servesChecked = async (kind, blocks) => {
    rather than riding in front of it: the parser refuses a name it has already bound, and one flag
    in front of its own replacement is that shape and not a caller asking twice (ISS-930). Which
    flags are single is the shape's, so a name absent from `single` is left where it is. */
-const sharedFor = (shared, own, single) => {
+const sharedFor = (shared, own, single, verb) => {
   const replaced = new Set(own.filter((token) => single.includes(token)));
   if (!replaced.size) return shared;
   const kept = [];
   for (let index = 0; index < shared.length; index += 1) {
-    if (replaced.has(shared[index])) index += 1;
-    else kept.push(shared[index]);
+    if (!replaced.has(shared[index])) {
+      kept.push(shared[index]);
+      continue;
+    }
+    /* Removing a pair is not skipping it: the occurrence has to be a pair before it can be replaced, or a block's own value would erase a syntax error the parser was going to answer. */
+    const value = shared[index + 1];
+    if (value === undefined || FLAG_WORD.test(value)) refuse(noValue(verb, shared[index], value));
+    index += 1;
   }
   return kept;
 };
 
 /* Split by the rule `groupsIn` splits the payload by, so one call writes what the reader hands back
    as several records: one commit and one evidence set over fourteen criteria. */
-export const blocksIn = (argv, per, single = []) => {
+export const blocksIn = (argv, per, single = [], verb = "record") => {
   const flag = `--${per}`;
   const opens = per ? argv.indexOf(flag) : -1;
   if (opens < 0) return [argv];
@@ -300,7 +306,7 @@ export const blocksIn = (argv, per, single = []) => {
     if (token === flag) blocks.push([]);
     blocks.at(-1).push(token);
   }
-  return blocks.map((own) => [...sharedFor(shared, own, single), ...own]);
+  return blocks.map((own) => [...sharedFor(shared, own, single, verb), ...own]);
 };
 
 /* Refused here and by the number the reader keys by, so `01` and `1` are one: the map every check
@@ -308,7 +314,8 @@ export const blocksIn = (argv, per, single = []) => {
 const blocksOf = (kind, argv) => {
   const shape = SHAPES[kind];
   const single = shape.fields.filter((one) => !one.many).map((one) => `--${one.flag}`);
-  const blocks = blocksIn(argv, shape.per, single).map((one) => gather(kind, one, DEFERRED));
+  const blocks = blocksIn(argv, shape.per, single, `record ${kind}`)
+    .map((one) => gather(kind, one, DEFERRED));
   const seen = new Set();
   for (const got of blocks) {
     const named = got[shape.per];

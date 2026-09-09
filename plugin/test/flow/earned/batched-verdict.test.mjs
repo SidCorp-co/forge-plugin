@@ -257,6 +257,19 @@ test("a flag named twice inside one block is refused, where replacing the shared
     "the block's own value, with the shared one taken out rather than refused");
 });
 
+/* Taking the shared occurrence out is what lets a block replace it, and a pair is what may be taken
+   out: a shared flag with nothing after it is a syntax error, and a block's own value must not erase
+   one the parser was going to answer. */
+test("a shared flag with no value is refused for that, even where a block replaces it", async () => {
+  const before = posted();
+  const run = await ask("record", "verdict", "ISS-7", "--verdict",
+    "--criterion", "1", "--verdict", "pass", "--commit", COMMIT, "--evidence", COMMIT);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /record verdict: --verdict was given no value/u, run.stderr);
+  assert.doesNotMatch(run.stderr, /given twice/u, "and not as a repeat, which is the nearer mistake here");
+  assert.equal(posted(), before, "nothing was written");
+});
+
 /* One document answering two criteria was the loop: attached under one name, cited by both, and a
    second PUT of the same base name would resolve to two documents (ISS-55). */
 test("a file two criteria cite goes up once, under the one name both of them carry", async () => {

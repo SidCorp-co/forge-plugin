@@ -43,36 +43,32 @@ because *given no value* said of a value sitting quoted in the same argument nam
 did not make either. Where the candidates are a set the tracker owns — a filter, a rank, a guide slug,
 a tool name — the live read stays where it is and the refusal waits for it.
 
-**A name the parser has already bound is refused, and `pullRepeated` is the only thing that says otherwise.**
-Two readings are available for `--set a=1 --set a=2`: keep one and drop the other, or hand the verb
-both. Keeping one is the reading no caller can have meant, and until ISS-930 it was the one the
-parser made silently — the reply then described the value that survived, so a caller who asked for
-three fields read a success naming one and had no line anywhere saying the other two were dropped.
-It cost more than a re-run on the verb where a recorded override leaves a correction, because that
-correction is the durable trace of the call: it named the surviving field under a reason written for
-three, which is true about what happened and misleading about what was asked, and no later reader
-can tell those two apart. So the refusal names **both** values rather than the survivor, since a
-caller shown only what was kept cannot see which of their arguments the parser threw away, and it
-says nothing was sent, because a flag given twice is one question asked twice and neither answer is
-better than the other. A repeated **boolean** is not refused: binding `true` a second time loses no
-value, and refusing it would spend a round on a call that meant exactly what it did.
+**A name the parser has already bound is refused, and `pullRepeated` is the only thing that says
+otherwise.** Keeping one of `--set a=1 --set a=2` and dropping the other is the reading no caller can
+have meant, and until ISS-930 it was the one the parser made silently. The reply then described the
+survivor, so a caller who asked for three fields read a success naming one. It cost more than a
+re-run where a recorded override leaves a correction, because that correction is the durable trace of
+the call: it named the surviving field under a reason written for three, which is true about what
+happened and misleading about what was asked. So the refusal names **both** values rather than the
+survivor — a caller shown only what was kept cannot see which of their arguments was thrown away —
+and it says nothing was sent, a flag given twice being one question asked twice with neither answer
+better. A repeated **boolean** is not refused: a second `true` loses no value.
 
-The other reading is a declaration and not a default. A verb whose flag accumulates pulls it out with
-`pullRepeated` before handing the rest to the parser, which is the one place in the tree that says a
-flag may repeat — there is no second list, no `many` table beside the parser and nothing to keep in
-step with the usage row. So reading a verb tells you which of its flags accumulate without reading
-the parser, and a verb that meant to accumulate and forgot gets a refusal rather than a drop, which
-is the failure this way round is chosen for.
+Accumulating is a declaration and not a default: a verb whose flag accumulates pulls it out with
+`pullRepeated` first, and that call is the one place in the tree saying a flag may repeat. No second
+list, no `many` table beside the parser, nothing to keep in step with the usage row — so reading a
+verb tells you which of its flags accumulate, and one that meant to accumulate and forgot is refused
+rather than silently dropping a value.
 
 **Anything that puts a flag in front of a caller's own argv has made a repeat**, and that is where
-the rule bites rather than on anything a caller types. Two places do it and both were found by the
-suite going red, not by reading: `blocksIn` gives every block of a `record` write the shared flags
-that stood before the first key, and `record verdict -h`'s own rule is that a block's own value of a
-single flag *replaces* the shared one — so the shared occurrence is taken out for exactly the flags
-the block names, and a flag named twice inside one block is still a caller asking twice and is still
-refused. A test helper that prepends a flag is the same shape: the case that wants to write that flag
-itself calls a helper that does not. Neither may be answered by softening the parser, because both
-know which occurrence is the replacement and the parser cannot.
+the rule bites rather than on anything a caller types. `blocksIn` gives every block of a `record`
+write the flags shared before the first key, and a block's own value of a single flag *replaces* the
+shared one, so the shared occurrence comes out for exactly the flags the block names — while a flag
+named twice inside one block is still a caller asking twice and is still refused. Removing a pair is
+not skipping it: the shared occurrence is refused for a missing value first, or a replacement would
+erase a syntax error before the parser saw it. A test helper prepending a flag is the same shape, and
+the case that writes that flag itself calls a helper that does not. Neither is answered by softening
+the parser, which cannot know which occurrence is the replacement.
 
 **The other wrong call a body slot takes is the body itself.** An agent holding the text in context
 writes it where the path goes, and until ISS-842 nothing between that argument and `open` judged it:
@@ -104,6 +100,6 @@ A flag accepted and named nowhere is declared beside the verb that takes it rath
 names this CLI's flag instead. No suggestion may offer any of them: a refusal naming a flag its caller
 may not act on has leaked the thing that rule keeps off every other surface.
 
-The parser itself, the verbs that parse their own flags, and the check that would hold every source line
-to the sentence above are ISS-227's; until it lands, this rule is held by cases and not by a checker, so
-a new refusal can still be written in its own words without anything going red.
+No checker holds a source line to the sentences above — ISS-227 was to and is dropped, and the wider
+rule is ISS-936's. So this page is held by cases, and a new refusal can still be written in its own
+words without anything going red.
