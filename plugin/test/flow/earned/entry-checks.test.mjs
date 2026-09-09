@@ -5,12 +5,14 @@
    the last two ask what an issue of a project keeping a requirements tree owes it (ISS-422). */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 
 import { tempHome, typedPlan } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("entry-checks").path;
 const { parse, render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, shapeGaps, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { CHECKS, namedIn, rungFieldsOf, shapeGaps, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { rungOf } = await import("../../../src/ladder.mjs");
 const { planFlags, planSections, planSteps } = await import("../../../src/flow/machine.mjs");
 const { markNote } = await import("../../../src/flow/record/merged.mjs");
 const { targetOf } = await import("../../../src/flow/route.mjs");
@@ -94,6 +96,44 @@ test("a file the landing wrote and the plan does not name owes a correction", ()
   assert.deepEqual(owed({ acceptanceCriteria: CRITERIA, mergedAt: at() },
     wrote("; landing wrote plugin/src/flow/earned.mjs, tools/run.mjs")).map((one) => one.what), [],
   "an issue carrying no plan has no list to be outside of");
+});
+
+/* The rung and `namedIn` read the corrections a record holds through one function over the list `assemble` filed, `correction` repeating since ISS-11; the hand parse of the same comments that stood beside it was a second parse for one answer and its comment still claimed the kind cannot repeat (ISS-161, ISS-847). The source assertion is the half that fails without the change, this being a change of readers and not of answers: what a malformed correction earns is `plugin/test/guides/contract.test.mjs`'s, and one copy of that is enough. */
+test("one reader answers for the corrections a record holds, and both its readers agree on the same page", () => {
+  const fix = { plan: "One line of plan.", acceptanceCriteria: CRITERIA, complexity: "s" };
+  const moved = (fields) => recorded("correction", fields);
+  /* The boundary itself and not a spelling of it: both readers are handed a view whose comment page throws, so a second parse of a page `assemble` already parsed fails here however it is written. The mark readers and `parkRecord` read comments and must go on doing so — this guards these two. */
+  const sealed = (one) => Object.defineProperty({ ...one }, "comments", {
+    get() { throw new Error("read view.comments: the corrections come off the assembled record"); },
+  });
+  const climb = sealed(view(fix, [moved({ moved: "Rung: fix -> feature", why: "the work grew a second tree" })]));
+  assert.equal(rungOf(rungFieldsOf(climb)), "feature", "the rung is read off the assembled record alone");
+  const path = sealed(view(fix, [moved({ moved: "the change also wrote tools/run.mjs", why: "the ship prints it" })]));
+  assert.match(namedIn(path), /tools\/run\.mjs/u, "and so is the path a correction names");
+  const source = readFileSync(new URL("../../../src/flow/earned.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /kind does not repeat/u, "and no comment here claims a correction cannot repeat");
+  /* Every whole one and not the latest of them, which is the hole ISS-161 was filed for: a plan
+     correction written after a climb would otherwise erase it. Three on the page, one incomplete. */
+  const three = view(fix, [
+    moved({ moved: "Rung: fix -> feature", why: "the work grew a second tree" }),
+    moved({ moved: "criterion 1 named the wrong file" }),
+    moved({ moved: "criterion 2 read as two outcomes", why: "the review found it" }),
+  ]);
+  assert.equal(three.repeated.correction.length, 3, "the report counts what is on the page");
+  assert.deepEqual(rungFieldsOf(three).moved,
+    ["Rung: fix -> feature", "criterion 2 read as two outcomes"],
+    "and the reader holds both whole ones, oldest first, so the later plan correction erases neither");
+  assert.equal(rungOf(rungFieldsOf(three)), "feature", "so the climb under two later corrections still stands");
+  /* One page, both readers, one answer: a correction counts for the rung and for the path it names, or for neither. */
+  const wrote = "the change also wrote tools/run.mjs";
+  const half = view(fix, [moved({ moved: `${wrote}. Rung: fix -> feature` })]);
+  assert.equal(half.repeated.correction.length, 1, "the report counts what is on the page");
+  assert.deepEqual(rungFieldsOf(half).moved, [], "and neither reader takes a comment that is no whole correction");
+  assert.doesNotMatch(namedIn(half), /tools\/run\.mjs/u);
+  const told = view(fix, [moved({ moved: `${wrote}. Rung: fix -> feature`, why: "the work grew a second tree" })]);
+  assert.equal(rungFieldsOf(told).moved.length, 1, "a whole one reaches both");
+  assert.equal(rungOf(rungFieldsOf(told)), "feature", "climbing the rung it claims");
+  assert.match(namedIn(told), /tools\/run\.mjs/u, "and naming the path it names");
 });
 
 /* ISS-730: the note of a change too big to carry every path leaves out only paths the plan names,
