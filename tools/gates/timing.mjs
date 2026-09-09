@@ -20,7 +20,13 @@ export const recordDir = (root) => join(gitCommonDir(root), "gate-ledger");
 
 export const seriesFile = (dir) => join(dir, FILE);
 
-export const fileTimesPath = (dir, label) => join(dir, `${label.replace(/[^\w.-]+/gu, "-")}-files`);
+const beside = (dir, label, what) => join(dir, `${label.replace(/[^\w.-]+/gu, "-")}-${what}`);
+
+export const fileTimesPath = (dir, label) => beside(dir, label, "files");
+
+export const alonePath = (dir, label) => beside(dir, label, "alone");
+
+export const casesPath = (dir, label) => beside(dir, label, "failed");
 
 export const runSeries = (dir) => {
   let text;

@@ -10,11 +10,12 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
+import { attribute, attributionLines, CASES_ENV } from "./gates/isolation.mjs";
 import { cheapestFirst, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
-import { CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, seriesFile } from "./gates/timing.mjs";
+import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, seriesFile } from "./gates/timing.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SELF), "..");
@@ -35,6 +36,18 @@ digests unread as well, because no step's digest is keyed on a path no step read
 would be handed straight back. Three ways it cannot: a path no step claims, no merge base to diff
 against, and a listing git refused. Each of those says which it was, spends every step and
 records no pass. A diff that succeeded and came back empty is none of them, and keeps the record.
+
+A test step that fails says which cases did, and then re-runs each of them once, alone, at this same
+head, under a temporary directory of that re-run's own. A case the re-run reproduces is this tree's:
+the gate refuses and names it, rather than naming the step and leaving a run to guess. A case it does
+not reproduce has not been shown to be this tree's, and the gate carries on — that is all one re-run
+can say, and it says no more: a starved process and an interaction between cases both answer this
+way. One re-run per case and never a loop, because a tree failure retried into green is the one
+thing this may not do. A case the previous attribution of that step named at this same digest is said
+to be a suite-interaction finding instead; it does not refuse either, and the line says what a
+refusal would need. Whichever way its cases went, a step that failed records no pass — cases passing
+one at a time are not the suite passing — so the next invocation spends it whole, and a run that
+re-ran anything prints neither the line a clean run prints nor a figure of its own.
 
 Past that, a step whose inputs are byte for byte what they were when it last passed is skipped and
 says which digest matched. Only passes are recorded, so a red step is red again next time. The
@@ -222,18 +235,43 @@ if (planned.length > 0) {
 const started = Date.now();
 const [load] = loadavg();
 const cores = availableParallelism();
+const record = recordDir(ROOT);
+const unproved = [];
+
+const testEnv = (step) => step.tests
+  ? { GATE_FILE_TIMES: fileTimesPath(record, step.label), [CASES_ENV]: casesPath(scratch, step.label) }
+  : {};
+
+/* Why a step is being refused, in one clause between the label and the tree. Empty for a step no
+   case can be named in, whose refusal is then the one it printed before any of this existed. */
+const because = (step, said, error) => {
+  if (said) return ` — ${said.tree.length} of ${said.judged.length} case(s) reproduced alone`;
+  return step.tests && !error ? ` — no failing case was named, so none was re-run` : "";
+};
 
 for (const step of planned) {
   console.log(`\n=== ${step.label} ===`);
   const at = Date.now();
-  const env = { ...process.env, TMPDIR: scratch };
-  if (step.tests) env.GATE_FILE_TIMES = fileTimesPath(recordDir(ROOT), step.label);
+  const env = { ...process.env, TMPDIR: scratch, ...testEnv(step) };
   const { status, error } = spawnSync(step.argv[0], step.argv.slice(1), { cwd: ROOT, env, stdio: "inherit" });
   const took = Math.round((Date.now() - at) / 1000);
+  const failed = Boolean(error) || status !== 0;
   console.log(`\n--- ${step.label}: ${took}s`);
-  if (error || status !== 0) {
-    console.error(`\nGate failed: ${step.label}${error ? ` (${error.message})` : ""} — the tree judged: ${ROOT}`);
-    finish(status ?? 1);
+  if (failed) {
+    /* A step of thousands of cases that refuses on three of them says which three, and whether
+       re-running each once, alone, at this head reproduces any of them (ISS-907). */
+    const said = step.tests && !error ? attribute(step, {
+      root: ROOT, scratch, cases: casesPath(scratch, step.label),
+      record: alonePath(record, step.label), say: console.log,
+    }) : null;
+    if (said) for (const line of attributionLines(said)) console.log(line);
+    if (said && said.tree.length === 0) unproved.push(...said.quiet.map((one) => ({ step: step.label, one })));
+    else {
+      console.error(`\nGate failed: ${step.label}${error ? ` (${error.message})` : ""}`
+        + `${because(step, said, error)} — the tree judged: ${ROOT}`);
+      for (const each of said?.tree ?? []) console.error(`  ${each.one.file}  ${each.one.name}`);
+      finish(status ?? 1);
+    }
   }
   /* Before the pass is recorded, or the ledger holds a step green that left the machine dirtier. */
   const leak = roomLeft(scratch);
@@ -241,12 +279,27 @@ for (const step of planned) {
     console.error(`\nGate failed: ${step.label} — the tree judged: ${ROOT}\n${leakMessage(leak)}`);
     finish(1);
   }
-  if (ledger) recordPass(ledger.dir, step, took);
+  if (ledger && !failed) recordPass(ledger.dir, step, took);
 }
 
 const elapsed = Math.round((Date.now() - started) / 1000);
 const held = ledger?.entries.filter((step) => step.green).length ?? 0;
 const spared = held > 0 ? ` (${held} the ledger already held)` : "";
+
+/* Not the line a clean run prints, and no figure either: this run refused nothing and proved less
+   than the one it is about to be compared with, so neither may read as the other (ISS-907). */
+if (unproved.length > 0) {
+  console.log(`\n${planned.length} gate step(s) ran in ${elapsed}s and this is not a clean pass `
+    + `— the tree judged: ${ROOT}`);
+  console.log(`${unproved.length} case(s) failed in a step and were not reproduced alone:`);
+  for (const each of unproved) console.log(`  ${each.step}  ${each.one.file}  ${each.one.name}`);
+  console.log(`No pass is recorded for the step(s) they were in, so the next invocation on this `
+    + `content spends each of them whole: cases passing one at a time are not the suite passing. `
+    + `No whole-run figure is recorded either — seconds spent re-running cases measure neither this `
+    + `gate nor this tree.`);
+  finish(0);
+}
+
 console.log(`\nAll ${planned.length} gate step(s) passed in ${elapsed}s${spared} — the tree judged: ${ROOT}`);
 
 /* Past the verdict, and only on the green one: a figure a red run left would be the seconds spent
