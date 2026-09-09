@@ -172,6 +172,29 @@ test("the read that earns the review has one place, and no landing owes a rechec
   }
 });
 
+/* A case's name is prose, so one named for two properties while asserting one is green forever and
+   the reviewer reading the diff agrees, every assertion present being correct — two of ISS-791's
+   criteria were met by nothing and its own run judged them met. Nothing compares a title to its
+   assertions mechanically, so the method names the comparison target instead, in the phase that
+   judges and in no other: two phases answering it is a run reading whichever it reached first. */
+test("Phase 5 names what a criterion is matched against, and no other phase answers that", () => {
+  const phases = phasesOf(readFileSync(SKILL, "utf8"));
+  for (const [beat, phrase] of [
+    ["the comparison target", "the assertion lines that would go red"],
+    ["that a case's name is not it", "never a case's name"],
+    ["what a name carrying two claims costs", "two searches rather than one"],
+    ["that an assertion which cannot fail is not coverage", "cannot fail covers nothing"],
+  ]) {
+    assert.ok(phases["5"].includes(phrase), `Phase 5 no longer names ${beat}, so a run judging a `
+      + "criterion is back to reading a case's title for the assertions under it (ISS-960)");
+  }
+  /* The instruction's own words, not the two ordinary ones in it: a phase saying anything else is
+     matched against anything is prose this rule has no claim on (review 6cae45, F2). */
+  const naming = Object.keys(phases).filter((n) => /criterion is matched against/u.test(phases[n]));
+  assert.deepEqual(naming, ["5"], "and the phase that judges the criteria is the only one that says "
+    + "what they are matched against");
+});
+
 /* The cadence has one home, and a retirement leaving a copy behind is what ISS-108 refuses. Both
    directions are asserted: absence alone passes on a file somebody emptied, reading exactly like a
    clean repository. The history doc is no rule surface — it records what runs did, not what to do. */
