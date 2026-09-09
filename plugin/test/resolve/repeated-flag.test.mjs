@@ -30,7 +30,8 @@ test("both values are named, the caller's own words in their own order", async (
   const said = await refused(() => flags(["--one", "first", "--one", "second"], "thing", ["--full"], { usage: USAGE }));
   assert.match(said, /^thing: --one was given twice, `first` and then `second`, /u, said);
   assert.match(said, /one flag carries one value/u, "the rule, said once");
-  assert.match(said, /Send the --one you meant, and make a second call for the other\./u, "the way on");
+  assert.match(said, /Ask for the one you meant: `--one <value>`, once\./u,
+    "and the form to type, which every other refusal on this CLI carries");
   assert.match(said, /Nothing was sent\./u, "and neither answer was preferred over the other");
   assert.equal(said, repeatedFlag("thing", "--one", "first", "second"),
     "the verb half and the unit half read one sentence, not two copies");
@@ -53,7 +54,8 @@ test("a flag the verb declares a credential is refused without either value", as
     flags(["--one", "sk-live-first", "--one", "sk-live-second"], "thing", [], { usage: USAGE, secret: ["--one"] }));
   assert.match(said, /--one was given twice, `\*\*\*` and then `\*\*\*`/u, said);
   assert.doesNotMatch(said, /sk-live/u, "neither credential reaches the reply");
-  assert.match(said, /Send the --one you meant/u, "and the way on is unchanged");
+  assert.match(said, /Ask for the one you meant: `--one <value>`, once\./u,
+    "and the form is the flag with a placeholder, never a command built out of the value");
 });
 
 test("a flag beside a declared one keeps its values, the declaration being per flag", async () => {

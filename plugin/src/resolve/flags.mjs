@@ -69,7 +69,7 @@ const strangerIn = (argv, verb, { usage, hidden = [], boolean = [] }) => {
 /* One value too many, where `noValue` is one too few: a dropped value leaves the caller a reply about what did move and nothing about what did not (ISS-930). */
 export const repeatedFlag = (verb, flag, kept, given) =>
   `${verb}: ${flag} was given twice, \`${kept}\` and then \`${given}\`, and one flag carries one `
-  + `value. Send the ${flag} you meant, and make a second call for the other. Nothing was sent.`;
+  + `value. Ask for the one you meant: \`${flag} <value>\`, once. Nothing was sent.`;
 
 /* Which of a verb's flags carries a credential is the verb's own declaration, beside `boolean` and `hidden` and for the same reason: a second list here would drift from the row the caller was shown. A refusal naming the flag is the whole of what a caller needs, and both values printed is a token in a transcript. */
 export const HIDDEN_VALUE = "***";
