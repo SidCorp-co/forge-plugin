@@ -12,7 +12,7 @@ import {
 } from "./marks.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
 import { logEntries } from "../codex/codex-log.mjs";
-import { fail } from "../resolve/settings.mjs";
+import { fail, projectAt, projectTarget, useProject } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 
 export const WINDOW = 50;
@@ -232,13 +232,20 @@ const said = (figure) => {
 };
 
 const notesOn = (figure) => [
-  figure.later ? `${figure.later} later than the horizon, counted apart` : null,
-  figure.unattributed ? `${figure.unattributed} park(s) no owner's call answers for` : null,
-  figure.unpaired ? `${figure.unpaired} ruling call(s) unpaired` : null,
+  figure?.later ? `${figure.later} later than the horizon, counted apart` : null,
+  figure?.unattributed ? `${figure.unattributed} park(s) no owner's call answers for` : null,
+  figure?.unpaired ? `${figure.unpaired} ruling call(s) unpaired` : null,
 ].filter(Boolean).join("; ");
 
-const unreadLines = (figure) => figure.unread.map((one) =>
-  `      ${String(one.pairs).padStart(3)} pair(s) unread: ${one.why}`);
+/* Both sides and each said whose it is: one window's fraction beside the other's is comparable only
+   with the coverage that explains it, and a note printed unlabelled was read as belonging to both. */
+const notesLine = (was, figure) => {
+  const held = [["before", notesOn(was)], ["now", notesOn(figure)]].filter(([, note]) => note);
+  return held.length ? `  ${held.map(([side, note]) => `${side} ${note}`).join("; ")}` : "";
+};
+
+const unreadLines = (figure, side) => (figure?.unread ?? []).map((one) =>
+  `      ${String(one.pairs).padStart(3)} pair(s) unread ${side}: ${one.why}`);
 
 const outcomeLines = (held) => {
   const mine = held.now.outcomes;
@@ -255,10 +262,9 @@ const outcomeLines = (held) => {
       lines.push(`  ${when}`);
     }
     const was = theirs?.figures.find((one) => one.name === figure.name);
-    const note = notesOn(figure);
     lines.push(`    ${figure.name.padEnd(NAMES)} ${said(was).padStart(22)} → ${said(figure).padStart(22)}`
-      + (note ? `  ${note}` : ""));
-    lines.push(...unreadLines(figure));
+      + notesLine(was, figure));
+    lines.push(...unreadLines(was, "before"), ...unreadLines(figure, "now"));
   }
   lines.push("A parked figure is the record's own claim and not the issue's status today: no source here can "
     + "establish what an issue's state was when a run ended. A count over a population is comparable with "
@@ -338,11 +344,23 @@ const corpusOf = (directory) => {
 
 /** The tracker read both windows share, taken once for the union of their pairs and keyed so each
  *  window folds it alone; the ruling pairing's own scope is `outcomes.mjs`'s. */
-const outcomeRead = async (corpus, size, { horizon, most }) => {
+/** Where the tracker read of a NAMED checkout goes, or null for wherever the shell already points:
+ *  `ISS-1` means one issue per project, so a reading of one project's runs against another's records
+ *  is a figure about work nobody did. A checkout declaring no project contradicts nothing. */
+export const scopeFor = (directory) => {
+  const held = projectAt(directory);
+  return held && held !== projectTarget().value
+    ? { slug: held, from: `the project file under ${directory}` }
+    : null;
+};
+
+const outcomeRead = async (corpus, directory, size, { horizon, most }) => {
   const rows = byEnd(corpus.runs);
   const { now, before } = twoWindows(rows, size);
   const wanted = [...new Set([...now, ...before].flatMap((run) => run.issues))];
   const { spent, bound } = budgetOf(most);
+  const aimed = scopeFor(directory);
+  if (aimed) useProject(aimed);
   const threads = await readThreads(wanted, bound);
   return {
     threads,
@@ -415,7 +433,7 @@ export const printEval = async (argv) => {
     return console.log(`No issue-flow run under ${corpus.root}, so there is nothing to compare. `
       + `${readingAside(corpus)}.${derivedFrom(directory)}`);
   }
-  const read = await outcomeRead(corpus, window, asked);
+  const read = await outcomeRead(corpus, directory, window, asked);
   const held = readingOf(directory, corpus, window, stored ?? since ?? null, read);
   if (json) return console.log(JSON.stringify(held, null, 2));
   for (const line of evalLines(held, since, corpus.copies)) console.log(line);

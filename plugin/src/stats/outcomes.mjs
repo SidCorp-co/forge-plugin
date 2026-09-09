@@ -11,8 +11,7 @@ export const HORIZON = 86_400_000;
 export const BUDGET = 400;
 export const AT_ONCE = 4;
 const WAIT_SECONDS = 20;
-/* The gap between a write and the result the harness stamps, and nothing wider: widen it and two
-   calls a second apart both reach one entry, so neither pairs. */
+/* The gap between a write and the result the harness stamps, and nothing wider: widen it and two calls a second apart both reach one entry, so neither pairs. */
 const SLACK = 5000;
 
 export const UNAVAILABLE = "unavailable";
@@ -49,7 +48,7 @@ const recordsOn = (comments) => (comments ?? []).flatMap((one) => {
 
 /* Whole or not at all: a page that reported rows behind it and a paging run that stopped are both a
    prefix, and a figure over a prefix is a figure that read less and says it read the same. */
-const threadOf = (page) => {
+export const threadOf = (page) => {
   if (page?.refused) return { unread: page.refused };
   if (page?.stopped) return { unread: "the thread's paging stopped part way" };
   if (page?.hasMore !== false) return { unread: "the tracker never called this thread whole" };
@@ -82,16 +81,27 @@ export const readThreads = async (references, bound) => {
     return held;
   }
   const read = await everyIssue({}, bound);
+  /* Both names a claim can print, because a run may own an issue by its id: the reference is
+     whatever its own output granted, and a row missed under one alias is a pair lost for nothing. */
   const rows = new Map();
-  for (const row of read.rows) if (row?.issueId) rows.set(String(row.issueId).toUpperCase(), row);
+  for (const row of read.rows) {
+    for (const alias of [row?.issueId, row?.documentId]) if (alias) rows.set(String(alias).toUpperCase(), row);
+  }
   const missed = read.refused ?? (read.whole ? null : "the issue list came back a prefix");
-  await inBatches(references, AT_ONCE, async (reference) => {
+  const byDocument = new Map();
+  for (const reference of references) {
     const row = rows.get(reference) ?? null;
     if (!row) {
       held.set(reference, { unread: missed ?? "no row on this project's tracker answers to it" });
-      return;
+      continue;
     }
-    held.set(reference, threadOf(await commentPage(row.documentId, true, bound)));
+    if (!byDocument.has(row.documentId)) byDocument.set(row.documentId, []);
+    byDocument.get(row.documentId).push(reference);
+  }
+  /* Grouped, so two references to one issue cost one walk and answer alike. */
+  await inBatches([...byDocument], AT_ONCE, async ([documentId, named]) => {
+    const thread = threadOf(await commentPage(documentId, true, bound));
+    for (const reference of named) held.set(reference, thread);
   });
   return held;
 };
@@ -108,8 +118,7 @@ const grouped = (reasons) => {
   return [...held].map(([why, pairs]) => ({ why, pairs })).sort((a, b) => b.pairs - a.pairs);
 };
 
-/* `count` null is `unavailable` and is not zero: a population of nothing has no rate to print, and
-   printing one is how a reading that saw nothing comes to look like a reading that saw no problem. */
+/* `count` null is `unavailable` and is not zero: a population of nothing has no rate to print, and printing one is how a reading that saw nothing comes to look like a reading that saw no problem. */
 const figure = ({ name, when, over, count, later = null, unread = [] }) => ({
   name,
   when,
@@ -163,15 +172,15 @@ const judgedTwiceIn = (pair, records) => {
     if (!byCriterion.has(number)) byCriterion.set(number, []);
     byCriterion.get(number).push(one.at);
   }
-  const twice = [...byCriterion.values()].filter((held) => held.length > 1);
-  return twice.map((held) => Math.min(...held.slice(1)));
+  /* Sorted, so the second is the second by clock and not by delivery order. */
+  const twice = [...byCriterion.values()].filter((held) => held.length > 1).map((held) => [...held].sort((a, b) => a - b));
+  return twice.map((held) => held[1]);
 };
 
 const wrote = (run, at) => run.parks.some((span) => at >= span.at - SLACK && at <= span.endedAt + SLACK);
 
-/** Which run each park record belongs to, keyed on the issue and resolved over the whole corpus
- *  before any window is cut, as the ruling pairing is: among the issue's owners, the one whose own
- *  park-writing call the record landed inside, and exactly one. The record's claim, never a state. */
+/** Which run each park record belongs to, keyed on the issue and resolved over the whole corpus before any window is cut, as the ruling pairing is: the one owner whose own park-writing call the record landed inside, and exactly one of them.
+ *  The record's claim, never a state. */
 export const parkedOver = (runs, threads) => {
   const byRef = new Map();
   for (const pair of pairsOf(runs)) {

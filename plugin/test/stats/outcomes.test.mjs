@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { claimedIn, pairedOneToOne, parkWritersIn, rulingsIn } from "../../src/stats/joined.mjs";
 import {
-  AFTER_RUN, DURING_RUN, UNAVAILABLE, budgetOf, outcomesOf, pairsOf, parkedFor, parkedOver, unreadIn,
+  AFTER_RUN, DURING_RUN, UNAVAILABLE, budgetOf, outcomesOf, pairsOf, parkedFor, parkedOver, threadOf, unreadIn,
 } from "../../src/stats/outcomes.mjs";
 import { slugFor } from "../../src/stats/transcripts.mjs";
 import { runsUnder } from "../../src/stats/runs.mjs";
@@ -230,6 +230,16 @@ test("a criterion judged twice after a run is one count, and a verdict before it
   ] }]]);
   assert.equal(figureOf(heldOf([owner], read({ threads: early })), "criteria judged twice").count, 0,
     "the run's own two verdicts on one criterion are its work, not what became of it");
+
+  /* Which of two judgements is the second is a question about the clock, and a thread delivered
+     newest first would otherwise date the repeat to the earlier of them. */
+  const pair = [verdict(ended + HOUR, "3 — x"), verdict(ended + 2 * DAY, "3 — x")];
+  for (const order of [pair, [...pair].reverse()]) {
+    const held = figureOf(heldOf([owner], read({ threads: new Map([["ISS-1", { records: order }]]) })),
+      "criteria judged twice");
+    assert.equal(held.count, 0, "the second judgement fell past the horizon, whichever order it arrived in");
+    assert.equal(held.later, 1, "and it is counted apart in both");
+  }
 });
 
 test("a ruling entry two calls could claim is attributed to neither, and the pairing does not depend on the window", () => {
@@ -280,6 +290,30 @@ test("the rejected-findings figure counts findings, needs no tracker, and is una
   const ruledNothing = figureOf(heldOf([owner], read({ ruled: zero })), "consult findings rejected");
   assert.equal(ruledNothing.count, null, "a paired ruling that ruled on nothing has no denominator either");
   assert.equal(ruledNothing.paired, 1);
+});
+
+test("a thread is read whole or not at all: every way a page falls short leaves its records unreachable", () => {
+  const one = {
+    createdAt: new Date(NOW).toISOString(),
+    body: "## Park\n\n```forge-record\nkind: blocked\nwhy: waiting on another issue\n```\n\n`forge-record: park · contract 1`\n",
+  };
+
+  const whole = threadOf({ comments: [one], hasMore: false });
+  assert.equal(whole.unread, undefined, "called whole by the tracker, and only then, the thread is a thread");
+  assert.deepEqual(whole.records.map((held) => held.kind), ["park"],
+    "and its records are the ones the page's own bodies carry");
+
+  assert.equal(threadOf({ refused: "Forge answered 429" }).records, undefined);
+  assert.equal(threadOf({ refused: "Forge answered 429" }).unread, "Forge answered 429",
+    "a refusal is carried as it came rather than restated");
+
+  assert.equal(threadOf({ comments: [one], hasMore: true, stopped: "Forge answered 429" }).unread,
+    "the thread's paging stopped part way", "a walk that ended early read a prefix, whatever it got");
+
+  for (const page of [{ comments: [one] }, { comments: [one], hasMore: null }, { comments: [one], hasMore: true }]) {
+    assert.equal(threadOf(page).unread, "the tracker never called this thread whole",
+      "and silence about completeness is not completeness");
+  }
 });
 
 /* From here the tracker is a real one on a socket, because the cases are which requests were sent. */
@@ -348,7 +382,8 @@ test("a rate-limited page leaves the outcome figures unavailable and every cost 
     assert.equal(held.status, 0, held.stderr);
     assert.match(held.stdout, /median \d+(\.\d+)? min/u, "the cost comparison survives a refused tracker");
     assert.match(held.stdout, new RegExp(`reopened .*${UNAVAILABLE}`, "u"));
-    assert.match(held.stdout, /pair\(s\) unread: /u, "and the reason is printed rather than swallowed");
+    assert.match(held.stdout, /pair\(s\) unread now: /u, "and the reason is printed rather than swallowed");
+    assert.match(held.stdout, /pair\(s\) unread before: /u, "for the window it is about, on both sides");
   } finally {
     state.status = null;
   }
@@ -372,6 +407,31 @@ test("a comment page the tracker never called whole is a prefix, so its pairs go
   } finally {
     state.issues = [];
     state.answer = {};
+  }
+});
+
+test("a run owning its issue by id reaches the same row, and one issue under two names is one thread walk", async () => {
+  const uuid = "1f2e3d4c-5b6a-7980-a1b2-c3d4e5f60718";
+  const room = tempRoom("outcomes-alias-");
+  const tasks = join(room, `claude-${process.getuid()}`, slugFor(PROJECT), "session", "tasks");
+  mkdirSync(tasks, { recursive: true });
+  for (const [n, key] of [uuid, "ISS-1", uuid, "ISS-1"].entries()) {
+    writeFileSync(join(tasks, `a${String(n).padStart(4, "0")}.output`), `${runText(n, key)}\n`);
+  }
+  state.issues = [{ documentId: uuid, issueId: "ISS-1" }];
+  state.comments = { [uuid]: [{ documentId: "c1", body: "prose with no record in it" }] };
+  state.calls = [];
+  try {
+    const held = await ask(room, "--size", "2");
+    assert.equal(held.status, 0, held.stderr);
+    assert.match(held.stdout, /parked or dropped .*→ +0\/2 pair\(s\)/u,
+      "the pair a claim granted by id is read like any other, not counted unread");
+    assert.equal(held.stdout.includes("answers to it"), false, "so no owned reference is reported rowless");
+    assert.equal(state.calls.filter((one) => one.name === "forge_comments").length, 1,
+      "and the key and the id are one issue, walked once");
+  } finally {
+    state.issues = [];
+    state.comments = {};
   }
 });
 

@@ -355,7 +355,7 @@
     },
     "AC-19-8-17": {
       "rev": 1,
-      "digest": "c36c2a59573211d573614a41193c408246e5f46ce09683f7a7234ae5856b97ee"
+      "digest": "aa54d36c0aa00c1c09b85b2796c94dd2aa45faced3677b50a4c764d149243658"
     },
     "AC-19-8-18": {
       "rev": 1,
@@ -380,6 +380,14 @@
     "AC-19-8-23": {
       "rev": 1,
       "digest": "f09118086cc703e5ed0ed22e53bbee87ca9005506f7d79298dd36921cad9237a"
+    },
+    "AC-19-8-24": {
+      "rev": 1,
+      "digest": "540d000daaed1ecefb6561af3a69c61be0ec43b34f85c56337dd69d714ff4dcd"
+    },
+    "AC-19-8-25": {
+      "rev": 1,
+      "digest": "07b0f4229de46925d78d1a29fb102f65c267f3050f4d19ebcf1701ca72b9ee16"
     },
     "AC-19-8-11": {
       "rev": 1,

@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { WINDOW, evalRuns, evalLines, releaseMark, runsMark } from "../../src/stats/eval.mjs";
+import { WINDOW, evalRuns, evalLines, releaseMark, runsMark, scopeFor } from "../../src/stats/eval.mjs";
 import { marksOf, marksPath, writeMark } from "../../src/stats/marks.mjs";
 import { profileOf, runsUnder } from "../../src/stats/runs.mjs";
 import { slugFor } from "../../src/stats/transcripts.mjs";
@@ -424,6 +424,41 @@ test("a release mark carries its version and head, resolves apart from a count m
   } finally {
     Object.assign(process.env, was);
   }
+});
+
+test("each outcome figure discloses both windows' coverage, and says which window every reason is about", () => {
+  const runs = runsOf(4);
+  const [older, second] = runs;
+  const threads = new Map([
+    ["ISS-0", { unread: "the tracker refused" }],
+    ["ISS-1", { records: [{ kind: "finding", at: second.endedAt + 3 * 86_400_000, fields: {} }] }],
+    ["ISS-2", { records: [] }],
+    ["ISS-3", { records: [] }],
+  ]);
+  assert.equal(older.issues[0], "ISS-0", "the fixture's runs own one issue each, oldest first");
+
+  const read = { threads, ruled: new Map(), parks: { owned: new Map(), loose: new Map() }, horizon: 86_400_000, now: Date.now() };
+  const lines = evalLines(evalRuns(runs, [], 2, null, read)).join("\n");
+  assert.match(lines, /reopened .*0\/1 pair\(s\).*→.*0\/2 pair\(s\)/u, "both windows print their own fraction");
+  assert.match(lines, /before 1 later than the horizon, counted apart/u,
+    "a note about the before window says so rather than reading as the recent one's");
+  assert.match(lines, /1 pair\(s\) unread before: the tracker refused/u,
+    "and the before window's own coverage loss is printed, not only the recent window's");
+});
+
+test("the tracker read of a named checkout is scoped to the project that checkout declares, not the shell's", () => {
+  const elsewhere = tempRoom("stats-eval-other-");
+  writeFileSync(join(elsewhere, ".forge.json"), JSON.stringify({ slug: "another-project" }));
+  const nested = join(elsewhere, "src", "deep");
+  mkdirSync(nested, { recursive: true });
+
+  const aimed = scopeFor(nested);
+  assert.equal(aimed.slug, "another-project", "the checkout's own project file decides, from anywhere under it");
+  assert.match(aimed.from, /the project file under /u, "and the reading says where that came from");
+
+  const quiet = tempRoom("stats-eval-none-");
+  assert.equal(scopeFor(quiet), null, "a checkout declaring no project contradicts nothing, so nothing is aimed");
+  assert.equal(scopeFor(process.cwd()), null, "and a checkout that is this project's own aims nowhere either");
 });
 
 /* Under three runs a median is one run's accident wearing a statistic (ISS-821). */

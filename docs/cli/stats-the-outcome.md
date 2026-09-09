@@ -21,7 +21,8 @@ that took an expired lease, the one that took a handoff — are the runs whose o
 The reference has to be the printed line's own subject: a refusal reads `ISS-nn is claimed:` and a
 `--next` line prints behind `Next: `, so neither can forge an ownership. A run with no ownership this
 reading can establish is `unread` and stands in no figure — a run admitted by its brief alone is
-unread by definition.
+unread by definition. A claim grants an issue by its key or by its id, so the reading resolves either
+name to the one row and walks that thread once.
 
 **Two figures are observed after the run and two during it, and the screen groups them so.** The
 rates are not interchangeable.
@@ -63,8 +64,9 @@ screen prints as a count rather than hiding; the log records no run identity, wh
 
 **`unavailable` is not zero.** A figure whose population is empty — no pair it could read, or no
 finding ruled — prints `unavailable`; one with a population and no outcome in it prints `0` over that
-population. Every figure prints what it could not read and why, because two counts over different
-populations are comparable only as far as both populations are printed. A thread read is whole only
+population. Every figure prints what each window could not read and why, each reason said of the
+window it is about, because two counts over different populations are comparable only as far as both
+populations are printed. A thread read is whole only
 where the tracker said so: an envelope silent about its own completeness is a prefix, and its pairs
 go unread rather than counting as pairs with no outcome on them.
 
@@ -73,8 +75,11 @@ regression is a judgement on mix, coverage and reasons, and that is the evaluato
 
 ## The request budget, and what it buys
 
-The whole eval has one budget, spent before every attempt, so a retry and a nested project-id lookup
-each cost one. It walks the issue list once to map a reference to a row, then reads one comment
+The read is scoped to the project the checkout declares, not to the one the shell stands in: a key
+means one issue per project, so reading one project's runs against another's records would be a
+figure about work nobody did. The whole eval has one budget, spent before every attempt, so a retry
+and a nested project-id lookup each cost one. It walks the issue list once to map a reference to a
+row, then reads one comment
 thread per issue at a bounded concurrency; each attempt is bounded in time and sent once, which means
 a transient failure can print `unavailable` where a retry would have answered. That is the trade: an
 eval that may spend an unbounded number of requests against a reading that says where it stopped.

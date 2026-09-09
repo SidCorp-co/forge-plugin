@@ -171,8 +171,9 @@ it. Reading is all this product does there.
   words by the reading the class uses, and SHALL keep the class table's one row for the verb.
 - **AC-19-8-17** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "a run is joined to every issue its own claim output granted, and to none a refusal or a quoted line names"
   WHEN a run's work is joined to the issues it owned THEN the CLI SHALL read every ownership its own
-  claim calls printed, SHALL take the reference only where it is the printed line's own subject, and
-  SHALL count a run whose ownership it cannot establish apart rather than as a run that owned nothing.
+  claim calls printed, by either name a claim may print it under, SHALL take the reference only where
+  it is the printed line's own subject, and SHALL count a run whose ownership it cannot establish
+  apart rather than as a run that owned nothing.
 - **AC-19-8-18** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "each outcome figure prints over its own population, and an empty population is unavailable rather than zero"
   WHEN two windows of runs are compared THEN the CLI SHALL print beside every figure of cost a count
   of what became of the work, each over the population it was counted across, and SHALL report a
@@ -195,10 +196,17 @@ it. Reading is all this product does there.
   WHERE more than one of the runs that owned an issue could be credited with the same outcome the CLI
   SHALL decide the credit over the whole corpus before either window is cut, SHALL credit the outcome
   to no run where more than one is equally placed to claim it, and SHALL disclose it as unattributed.
-- **AC-19-8-23** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "a comment page the tracker never called whole is a prefix, so its pairs go unread rather than outcome-free"
+- **AC-19-8-23** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "a thread is read whole or not at all: every way a page falls short leaves its records unreachable"
   IF a reading the counts stand on came back without the tracker calling it complete THEN the CLI
   SHALL treat it as a reading it could not take, and SHALL NOT count what it did receive as a
   population it read and found no outcome in.
+- **AC-19-8-24** · Rev: 1 · Proof: plugin/test/stats/eval.test.mjs "each outcome figure discloses both windows' coverage, and says which window every reason is about"
+  WHEN two windows print a count each THEN the CLI SHALL print for each window what it could not
+  read and why, and SHALL say of every such reason which of the two windows it is about.
+- **AC-19-8-25** · Rev: 1 · Proof: plugin/test/stats/eval.test.mjs "the tracker read of a named checkout is scoped to the project that checkout declares, not the shell's"
+  WHERE the runs read are a named checkout's the CLI SHALL scope its tracker read to the project
+  that checkout declares rather than to the one the working directory resolves to, and SHALL leave
+  the working directory's scope standing where the named checkout declares none.
 
 - **AC-19-8-11** · Rev: 1 · Proof: none yet — ISS-673
   WHEN a profile is printed THEN the CLI SHALL list per wave the time from ready to landed, from
