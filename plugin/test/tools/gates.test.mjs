@@ -4,93 +4,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
-import { basename, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-import { stampRoom } from "../../src/hooks/stamps.mjs";
-import { STEPS, WHOLE_TREE_TESTS, gateSteps } from "../../../tools/gates/steps.mjs";
+import { STEPS, gateSteps } from "../../../tools/gates/steps.mjs";
 import { REVIEW } from "../../../tools/gates/timing.mjs";
 import { tempRoom } from "../fixtures.mjs";
-
-const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
-const RUNNER = join("tools", "gates.mjs");
-const COPIED = [RUNNER, join("tools", "checkout.mjs"), join("tools", "gates", "steps.mjs"),
-  join("tools", "gates", "scope.mjs"), join("tools", "gates", "ledger.mjs"),
-  join("tools", "gates", "timing.mjs"), join("tools", "gates", "stamp-room.mjs"), join("tools", "gates", "file-times.mjs"),
-  join("plugin", "src", "hooks", "stamps.mjs")];
-const STAMPED = basename(stampRoom());
-
-/* One file per top-level entry the table claims, plus one under every path a step reads, so a
-   scratch run scopes the way the real one does instead of widening on a path nothing owns. */
-const PLACED = ["eslint.config.mjs", ".forge.json", "package-lock.json", "docs/one.md",
-  "docs/requirements/one.md", ".claude-plugin/one.json", "plugin/src/one.mjs",
-  "plugin/scripts/one.mjs", "plugin/skills/one.md", "plugin/vi-natural/one.mjs",
-  "plugin/hooks/vendor/one.mjs", "tools/check-vi-text.mjs", "tools/sync-skills.mjs",
-  "packages/code-quality/claude-quality.mjs", "packages/code-quality/claude-plugin/skills/one.md"];
-
-const write = (work, path, text) => {
-  mkdirSync(join(work, dirname(path)), { recursive: true });
-  writeFileSync(join(work, path), text);
-};
-
-const NAMED = WHOLE_TREE_TESTS.map((one) => one.endsWith(".test.mjs") ? one : join(one, "one.test.mjs"));
-
-const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
-
-/* Without the variable node's runner sets in every test process: a `node --test` spawned under it
-   runs as a child of this suite and spends no file, so the scratch's test steps would pass empty. */
-const SHELL_ENV = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT"));
-
-const run = (work, argv = [], cwd = work) =>
-  spawnSync(process.execPath, [join(work, RUNNER), ...argv], { cwd, encoding: "utf8", env: SHELL_ENV });
-
-/* A step writing the hook stamp room into whatever temporary directory it was handed, which is the
-   shape a suite has when nothing points TMPDIR at a room of its own (ISS-361). */
-const LEAKS = "node -e \"const fs=require('node:fs'),os=require('node:os'),p=require('node:path');"
-  + `const room=p.join(os.tmpdir(),'${STAMPED}');fs.mkdirSync(room,{recursive:true});`
-  + "fs.writeFileSync(p.join(room,'learning-gate-planted'),'')\"";
-
-const command = (label, failing, leaking) => {
-  if (label === failing) return "node -e \"process.exit(1)\"";
-  if (label === leaking) return LEAKS;
-  return "node -e \"\"";
-};
-
-const scripts = (failing, leaking) =>
-  Object.fromEntries(STEPS.filter((step) => !step.tests)
-    .map((step) => [step.label, command(step.label, failing, leaking)]));
-
-/* Its own checkout, because the questions are about a tree: the branch a diff is taken against,
-   and whether the tree is the shared one. Committed on master, then worked on a branch, so the
-   merge-base is a real base and a change to it is a real diff. */
-const scratch = (name, failing, leaking) => {
-  const at = tempRoom(`${name}-`);
-  const work = join(at, "checkout");
-  for (const one of COPIED) write(work, one, readFileSync(join(ROOT, one), "utf8"));
-  for (const one of [...PLACED, ...NAMED, "plugin/test/tools/one.test.mjs"]) {
-    write(work, one, one.endsWith(".test.mjs") ? `import test from "node:test";\ntest("${one}", () => {});\n` : `${one}\n`);
-  }
-  write(work, "package.json",
-    JSON.stringify({ name: "scratch", version: "1.0.0", scripts: scripts(failing, leaking) }, null, 2));
-  git(work, "init", "-b", "master");
-  for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(work, "config", key, value);
-  git(work, "add", "-A");
-  git(work, "commit", "-m", "the tree");
-  git(work, "checkout", "-b", "work");
-  return { at, work };
-};
-
-const landed = (work, path, text) => {
-  write(work, path, text);
-  git(work, "add", "-A");
-  git(work, "commit", "-m", `wrote ${path}`);
-};
-
-const ledgerFile = (work, label) => join(work, ".git", "gate-ledger", label.replace(/[^\w.-]+/gu, "-"));
-const runsFile = (work) => join(work, ".git", "gate-ledger", "runs");
-const runs = (work) => readFileSync(runsFile(work), "utf8").trim().split("\n");
+import { entries, entryDir, entryNames, git, landed, ledgerFile, NAMED, ROOT, RUNNER, run,
+  runs, runsFile, scratch, SHELL_ENV, STAMPED, write } from "./gates/scratch.mjs";
 
 /* One landing under a path of every step, so a run over it fills the record whole: the questions
    below are about a tree the record already answers for, which a scoped landing never leaves. */
@@ -102,12 +24,6 @@ const touchedEverywhere = (work, text) => {
   git(work, "add", "-A");
   git(work, "commit", "-m", `touched every step: ${text}`);
 };
-
-const entryDir = (work) => join(work, ".git", "gate-ledger");
-// The step entries alone: the runs series and the per-file records share the directory.
-const entryNames = (work) => readdirSync(entryDir(work)).filter((one) => one !== "runs" && !one.endsWith("-files")).sort();
-const entries = (work) =>
-  Object.fromEntries(entryNames(work).map((one) => [one, readFileSync(join(entryDir(work), one), "utf8")]));
 
 /* Seconds no step of this scratch ever takes, over the digest each entry already holds. Without it
    a run that spent every step and then recorded over them leaves the same bytes, since every step
@@ -153,7 +69,10 @@ test("-h names the two flags and what the record cannot see", () => {
     "seconds that step took", "one line per green run", "a temporary directory of this run's own",
     "a path no step claims", "leaves the record", "records no pass",
     "decide the order the steps are spent in: cheapest first", "no seconds for",
-    "one-minute load", "ceiling that review set", "<label>-files", `${REVIEW.seconds}s on ${REVIEW.on}`]) {
+    "one-minute load", "ceiling that review set", "<label>-files", `${REVIEW.seconds}s on ${REVIEW.on}`,
+    "re-runs each of them once, alone", "the gate refuses and names it",
+    "has not been shown to be this tree's", "One re-run per case and never a loop",
+    "suite-interaction finding", "a step that failed records no pass"]) {
     assert.ok(said.includes(one), `${one} is not in the usage:\n${said}`);
   }
 });
@@ -582,14 +501,16 @@ test("a green run records its whole-run seconds and how many steps it spent; a r
   }
 });
 
-test("a test step runs on every core with node's own reporter named and the per-file one beside it", () => {
+test("a test step runs on every core with node's own reporter, the per-file one and the failing-case one", () => {
   const [tree, rest] = gateSteps([...NAMED, "plugin/test/tools/one.test.mjs"]).filter((step) => step.tests);
+  const ours = (name) => `--test-reporter=${join(ROOT, "tools", "gates", name)}`;
   for (const step of [tree, rest]) {
-    const flags = step.argv.slice(2, 7);
+    const flags = step.argv.slice(2, 9);
     assert.deepEqual(flags, [`--test-concurrency=${availableParallelism()}`,
       `--test-reporter=${process.stdout.isTTY ? "spec" : "tap"}`, "--test-reporter-destination=stdout",
-      `--test-reporter=${join(ROOT, "tools", "gates", "file-times.mjs")}`, "--test-reporter-destination=stdout"], step.label);
-    assert.ok(step.argv.slice(7).every((one) => one.endsWith(".test.mjs")), `the files follow the flags: ${step.argv.join(" ")}`);
+      ours("file-times.mjs"), "--test-reporter-destination=stdout",
+      ours("isolation.mjs"), "--test-reporter-destination=stdout"], step.label);
+    assert.ok(step.argv.slice(9).every((one) => one.endsWith(".test.mjs")), `the files follow the flags: ${step.argv.join(" ")}`);
   }
 });
 

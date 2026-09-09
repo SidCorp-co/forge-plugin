@@ -1,13 +1,17 @@
 import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 
+import { HUMAN_REPORTER } from "./isolation.mjs";
 import { under } from "./scope.mjs";
 
-// Every core, since the gate spends one step at a time; node's own reporter named so the per-file seconds can ride beside it.
-const TEST_FLAGS = [
+const ours = (name) => fileURLToPath(new URL(`./${name}`, import.meta.url));
+
+// Every core, since the gate spends one step at a time; node's own reporter named so the per-file seconds and the failing cases can ride beside it.
+export const TEST_FLAGS = [
   `--test-concurrency=${availableParallelism()}`,
-  `--test-reporter=${process.stdout.isTTY ? "spec" : "tap"}`, "--test-reporter-destination=stdout",
-  `--test-reporter=${fileURLToPath(new URL("./file-times.mjs", import.meta.url))}`, "--test-reporter-destination=stdout",
+  `--test-reporter=${HUMAN_REPORTER}`, "--test-reporter-destination=stdout",
+  `--test-reporter=${ours("file-times.mjs")}`, "--test-reporter-destination=stdout",
+  `--test-reporter=${ours("isolation.mjs")}`, "--test-reporter-destination=stdout",
 ];
 
 /* The gate's steps and the paths each one reads. Nothing is inferred: every step is a script this
