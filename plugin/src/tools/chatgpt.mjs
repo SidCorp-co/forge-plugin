@@ -18,23 +18,26 @@ const FILE_CAP = 10;
 const BODY_CHARS = 400;
 const URL_LIKE = /^https?:\/\//u;
 
-export const USAGE = [
+/* Built, not a constant: a deadline written into the text goes stale against `waitSeconds`. */
+export const usage = () => [
   "Usage: forge chatgpt \"<prompt>\" [--resume id] [--model slug] [--file path|url]... [--save path]",
   "Ask ChatGPT once and print what came back. A prompt describing an image gets one; the same",
   "endpoint answers both. The turn is sent once and never again: a failure that may have spent it",
   "says so and names --resume rather than asking twice.",
   "",
   "  --resume id    continue that conversation instead of starting one",
-  "  --model slug   pass a model through; omitted, the upstream runs its account default",
+  "  --model slug   pass a model through; no default is sent, so the upstream runs its account's",
   "  --file p|url   attach a file, up to 10; a local path is uploaded first, a URL is sent as it is",
   "  --save path    write the bytes of the image the reply names",
+  "",
+  `The wait is ${deadlineSeconds()}s, from waitSeconds in config.json.`,
 ].join("\n");
 
 const settingsFor = () => {
   const held = userConfig().chatgpt ?? {};
   const missing = [];
-  if (!held.url) missing.push("--set chatgpt.url=<endpoint>");
-  if (!held.key) missing.push("--set chatgpt.key=<key>");
+  if (!held.url) missing.push("--chatgpt-url <endpoint>");
+  if (!held.key) missing.push("--chatgpt-key <key>");
   if (missing.length) {
     fail(`chatgpt: no endpoint and key here yet. Set ${missing.length === 2 ? "both" : "it"}:\n  `
       + missing.map((one) => `forge doctor ${one}`).join("\n  "));
@@ -137,22 +140,22 @@ const printed = (out, meta) => {
   if (said !== null) console.log(typeof said === "string" ? said : JSON.stringify(said, null, 2));
   if (out.imageUrl) console.log(`\nimage     ${out.imageUrl}`);
   if (meta?.account) console.log(`account   ${meta.account}`);
-  /* Only where the reply carries one: `_meta` has no model, and printing the slug asked for would
-     name a model that may never have run. */
+  /* Only where the reply carries one: `_meta` has no model, and the slug asked for may never have run. */
   if (out.model) console.log(`model     ${out.model}`);
   if (out.conversationId) console.log(`resume    forge chatgpt --resume ${out.conversationId} "<next>"`);
 };
 
 export const chatgpt = async (argv) => {
-  if (wantsHelp(argv) || argv.length === 0) return console.log(USAGE);
+  const said = usage();
+  if (wantsHelp(argv) || argv.length === 0) return console.log(said);
   const [prompt, ...others] = argv;
   /* The prompt is a subject rather than a flag's value, so it comes off before the parser: `flags`
      refuses a bare word, which is what tells a caller that everything after it is named. */
   if (prompt.startsWith("--") || !prompt.trim()) {
-    fail(`chatgpt: the prompt comes first, before any flag.\n${firstLine(USAGE)}`);
+    fail(`chatgpt: the prompt comes first, before any flag.\n${firstLine(said)}`);
   }
-  const { values: given, rest } = pullRepeated(others, "--file", "chatgpt", { usage: USAGE });
-  const { resume, model, save } = flags(rest, "chatgpt", [], { usage: USAGE });
+  const { values: given, rest } = pullRepeated(others, "--file", "chatgpt", { usage: said });
+  const { resume, model, save } = flags(rest, "chatgpt", [], { usage: said });
 
   const held = settingsFor();
   const shown = shownVia(held.key);

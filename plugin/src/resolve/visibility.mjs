@@ -76,13 +76,17 @@ export const VERBS = [
     null, { group: HARNESS }],
   ["codex", "<consult|verdict|pending|show|log|stats|eval|marks|replay>",
     "a second model reviews what this turn changed", null, { group: HARNESS }],
+  ["chatgpt", "\"<prompt>\" [--resume id] [--model slug] [--file path|url]... [--save path]",
+    "one ChatGPT turn, or an image, over the endpoint this machine has saved", null,
+    { group: HARNESS }],
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
     "what the gates refused, why one does, which are off", null, { group: HARNESS }],
   /* No `needs`, though it writes: the gates below are the CALLER's project's — docs/cli/feedback.md. */
   ["feedback", "<file.md|@file|-> --title T [--kind K] [--with ISS-45,ISS-46] [--new]",
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout",
     null, { group: HARNESS }],
-  ["doctor", "[--token t] [--url u] [--hide v|--show v] [--ship ready|self] [--set k=v] [--credentials]"
+  ["doctor", "[--token t] [--url u] [--chatgpt-url u] [--chatgpt-key k] [--hide v|--show v]"
+    + " [--ship ready|self] [--set k=v] [--credentials]"
     + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text>] [--title T]"
     + " [--confidence C] [--meta k=v]... [--full]",
     "what resolves and from where, this project's own record included, and the keys of it that are written here",

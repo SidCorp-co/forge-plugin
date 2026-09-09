@@ -39,6 +39,7 @@ import { cloudflare } from "./tools/cloudflare.mjs";
 import { knowledge } from "./tools/knowledge.mjs";
 import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
+import { chatgpt } from "./tools/chatgpt.mjs";
 import { stats } from "./stats/stats.mjs";
 import { hooks } from "./hooks/hook-log.mjs";
 import { record } from "./flow/record/record.mjs";
@@ -187,6 +188,7 @@ export const commands = {
   cloudflare,
   feedback,
   codex,
+  chatgpt,
   hooks,
   stats,
   /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser

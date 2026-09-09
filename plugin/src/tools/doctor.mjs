@@ -30,11 +30,9 @@ import {
   readClaudeMd,
   reviewClaudeMd,
 } from "../checks/claude-md.mjs";
-import { cloudflareAccounts } from "./cloudflare.mjs";
-import { modelBehind, profile } from "../codex/codex-api.mjs";
+import { harnessLines, masked } from "./doctor-harness.mjs";
 import { copyToRun, FROZEN, pluginCopy } from "./plugin-copy.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
-import { consults, logEntries, logPath } from "../codex/codex-log.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { VERB_NAMES, usageOf } from "../resolve/visibility.mjs";
@@ -69,12 +67,6 @@ const checkSession = () => {
     return line(OK, "session id", `none held yet — the next verb needing one mints it and saves it at ${sessionPath()}`);
   }
   return line(source === INHERITED ? NOTE : OK, "session id", `${id}  ← ${said}`);
-};
-
-const masked = (token, full) => {
-  const bare = token.replace(/^Bearer /u, "");
-  if (!full) return `set (${bare.length} chars)`;
-  return bare.length <= 12 ? "set" : `${bare.slice(0, 6)}…${bare.slice(-4)} (${bare.length} chars)`;
 };
 
 /* A gate a switch of its own holds down, read from the gates: printing one undo while another
@@ -122,26 +114,8 @@ const checkVi = (waited) => {
   else line(login, "vi-natural model", "run `vi-natural login --model <id>` — `vi-natural models` lists them");
 };
 
-/* Cloudflare's credentials are this machine's, not the tracker's, so they resolve and report here
-   and gate nothing: every other verb works with none saved, which is why the absence is a note. */
-const checkCloudflare = (full) => {
-  const { accounts, from } = cloudflareAccounts();
-  if (!accounts.length) {
-    line(NOTE, "cloudflare", "no account — `forge cloudflare login --name n --account-id a --token t`");
-    return;
-  }
-  const held = accounts.map((account) => `${account.name} ${masked(account.apiToken, full)}`);
-  line(OK, "cloudflare", `${held.join(", ")}  ← ${from}`);
-};
-
-/* codex answers from a gateway of the user's own, over one HTTPS call, so it reports and gates
-   nothing: a missing profile costs the second opinion and no verb, so both halves are notes. */
-const checkCodex = () => {
-  const { problem, values } = profile();
-  if (problem) return line(NOTE, "codex", `${problem} — \`forge codex\` cannot consult`);
-  const model = modelBehind(values);
-  if (!model) return line(NOTE, "codex", "the profile maps that model slot to nothing");
-  line(OK, "codex", `${model}  ${consults(logEntries()).length} consult(s) logged at ${logPath()}`);
+const checkHarness = (full) => {
+  for (const { ok, label, detail } of harnessLines(full)) line(ok ? OK : NOTE, label, detail);
 };
 
 /* Something saying no, against a fault of the moment: a dropped socket or a 5xx is one bad minute,
@@ -433,6 +407,18 @@ const install = (values) => {
   console.log(`Saved ${Object.keys(values).join(" and ")} to ${written} (mode 0600).\n`);
 };
 
+/* `forge chatgpt`'s two keys live under one name, and `saveConfig` merges the top level only — so
+   writing the url from a bare object would drop the key beside it, and the pair is read first. */
+const CHATGPT_FLAGS = { "chatgpt-url": "url", "chatgpt-key": "key" };
+
+const setChatgpt = (asked) => {
+  const named = Object.entries(CHATGPT_FLAGS).filter(([flag]) => asked[flag] !== undefined);
+  const held = { ...(userConfig().chatgpt ?? {}) };
+  for (const [flag, key] of named) held[key] = asked[flag];
+  const written = saveConfig({ chatgpt: held });
+  console.log(`Saved chatgpt ${named.map(([, key]) => key).join(" and ")} to ${written} (mode 0600).\n`);
+};
+
 const setVisibility = (verb, hide) => {
   if (!VERB_NAMES.includes(verb)) fail(didYouMean("verb", verb, VERB_NAMES));
   const withheld = new Set(userConfig().withheld ?? []);
@@ -514,14 +500,15 @@ export const doctor = async (argv) => {
   if (wantsHelp(argv)) return console.log(`${usage}\nwhat resolves, and from where.\n${PROJECT_USAGE}`);
   const { values: pairs, rest } = pullRepeated(argv, "--meta", "doctor", { usage });
   const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "doctor", usage });
-  const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token"] });
+  const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token", "--chatgpt-key"] });
   const { full, credentials, hide, show: reveal, ship } = asked;
   if (positionals.length && asked.line === undefined) {
     fail(`doctor: \`${positionals[0]}\` names no flag, and the prose of a line is --line's: `
       + "forge doctor --line <n> <text>");
   }
   /* Two stores: the project write returns before the report, dropping the machine's half silently. */
-  const machine = [...SAVED, "hide", "show", "ship"].filter((key) => asked[key] !== undefined);
+  const machine = [...SAVED, ...Object.keys(CHATGPT_FLAGS), "hide", "show", "ship"]
+    .filter((key) => asked[key] !== undefined);
   const project = PROJECT_FLAGS.filter((key) => asked[key] !== undefined);
   if (project.length && machine.length) {
     fail(`doctor: \`--${project[0]}\` writes the project's own record and \`--${machine[0]}\` writes this `
@@ -534,6 +521,7 @@ export const doctor = async (argv) => {
   if (ship) setShip(ship);
   const saved = Object.fromEntries(SAVED.filter((key) => asked[key] !== undefined).map((key) => [key, asked[key]]));
   if (Object.keys(saved).length) install(saved);
+  if (Object.keys(CHATGPT_FLAGS).some((flag) => asked[flag] !== undefined)) setChatgpt(asked);
 
   const { url, token } = accountCredentials();
   if (url.value) line(OK, "endpoint url", `${url.value}  ← ${url.from}`);
@@ -600,8 +588,7 @@ export const doctor = async (argv) => {
   checkContract();
   /* Reads and writes differ: `new` translates before it posts, and a read never asks. */
   checkVi(language.value === "vi");
-  checkCloudflare(full);
-  checkCodex();
+  checkHarness(full);
   checkClaudeMdLocally();
 
   if (!url.value || !token.value) {
