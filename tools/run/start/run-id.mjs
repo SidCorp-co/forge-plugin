@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { gitOut } from "../checkout.mjs";
+import { gitOut } from "../../checkout.mjs";
 
 const RUN_ID = "forge-run-id";
 

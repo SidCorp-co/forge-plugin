@@ -49,13 +49,17 @@ const remoted = (name, gate = GATE) => {
   return room;
 };
 
-/* A landing from another machine, which no lock on this one reaches. */
+/* A landing from another machine, which no lock on this one reaches, fetched here afterwards: every
+   case below resumes past the fetch to reach the push, and the step before the rebase pins by
+   ls-remote and refuses a head this checkout does not hold. Unfetched is that step's case and it has
+   its own; these are about the rejected push, so the commit is here and the pin reads. */
 const moveRemote = (room, nth) => {
   const mover = join(room.at, `mover-${nth}`);
   git(room.at, "clone", "-q", join(room.at, "origin.git"), mover);
   for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(mover, "config", key, value);
   git(mover, "commit", "-q", "--allow-empty", "-m", `a sibling landed ${nth}`);
   git(mover, "push", "-q", "origin", "HEAD:master");
+  git(room.work, "fetch", "-q", "origin", "master");
 };
 
 /* `claude` is the install step, and BARE carries none: a case that needs a whole ship past the push
@@ -169,7 +173,7 @@ test("a ship waiting behind a landing names it, reaches no step, and refuses rat
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stdout, /waiting behind the landing in \/run\/wt-ISS-999/u, run.stdout);
   assert.ok(run.stdout.includes(`pid ${other.pid}`), run.stdout);
-  assert.doesNotMatch(run.stdout, /step 2\/9/u, "a ship waiting for the lock took the fetch anyway");
+  assert.doesNotMatch(run.stdout, /step 2\/10/u, "a ship waiting for the lock took the fetch anyway");
   assert.match(run.stderr, /has been held by \/run\/wt-ISS-999/u, run.stderr);
   assert.ok(run.stderr.includes(`rm ${at(work, LOCK)}`), run.stderr);
   /* A landing and not a ship: the checkout lands the wave's own record through this same lock, and
@@ -208,7 +212,7 @@ test("the lock is held through the gate and the install, and gone once the insta
   const env = claudeSaying(room, "claude-saw");
 
   const run = runIn(room.work, ["ship"], env);
-  assert.match(run.stdout, /step 9\/9/u, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /step 10\/10/u, `${run.stdout}${run.stderr}`);
   assert.equal(readFileSync(join(room.at, "gate-saw"), "utf8").trim(), "held",
     "the gate ran with the branch unlocked, so a sibling could move it under the run");
   assert.equal(readFileSync(join(room.at, "claude-saw"), "utf8").trim(), "held",
@@ -242,7 +246,7 @@ test("a resume aimed past the install takes no lock and runs to its last step be
   const run = runIn(room.work, ["ship", "--from", String(LAST_STEP)], env);
   other.kill();
   assert.doesNotMatch(run.stdout, /waiting behind/u, "a resume that moves nothing shared waited for the branch");
-  assert.match(run.stdout, /step 9\/9/u, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /step 10\/10/u, `${run.stdout}${run.stderr}`);
   assert.ok(existsSync(at(room.work, LOCK)), "the resume removed a lock it never took");
 });
 
@@ -254,7 +258,7 @@ test("a resume that reaches the install waits behind a landing that holds the lo
   const other = idle();
   held(room.work, { tree: "/run/wt-ISS-996", pid: other.pid, since: "2026-09-06T06:00:00.000Z" });
 
-  const run = runIn(room.work, ["ship", "--from", "8", "--wait", "0.05"], env);
+  const run = runIn(room.work, ["ship", "--from", "9", "--wait", "0.05"], env);
   other.kill();
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stdout, /waiting behind the landing in \/run\/wt-ISS-996/u,
@@ -268,7 +272,7 @@ test("a ship that stops inside the span leaves no lock behind", () => {
 
   const run = runIn(room.work, ["ship"], BARE);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /stopped at step 4 \(the gate\)/u, run.stderr);
+  assert.match(run.stderr, /stopped at step 5 \(the gate\)/u, run.stderr);
   assert.ok(!existsSync(at(room.work, LOCK)),
     "a stopped ship left the branch locked, and the next run waits behind a landing that is over");
 });
@@ -292,7 +296,7 @@ test("a rejected push undoes the version commit it made, and the resume lands th
 
   const env = claudeSaying(room, "claude-saw");
   const again = runIn(room.work, ["ship", "--from", "2"], env);
-  assert.match(again.stdout, /step 9\/9/u, `${again.stdout}${again.stderr}`);
+  assert.match(again.stdout, /step 10\/10/u, `${again.stdout}${again.stderr}`);
 
   const subjects = git(room.work, "log", "--format=%s", "origin/master").stdout;
   assert.match(subjects, /the change this release ships \(ISS-333\)/u, subjects);
@@ -310,7 +314,7 @@ test("a release commit this run did not make is left where it is by a rejected p
   git(room.work, "commit", "-m", "a manifest change somebody made by hand");
   const was = git(room.work, "rev-parse", "HEAD").stdout.trim();
 
-  const run = runIn(room.work, ["ship", "--from", "6"], BARE);
+  const run = runIn(room.work, ["ship", "--from", "7"], BARE);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /this run did not make the whole of it/u, run.stderr);
   assert.equal(git(room.work, "rev-parse", "HEAD").stdout.trim(), was,
@@ -323,7 +327,7 @@ test("a version step that swept somebody's manifest edit in records no undo, and
   const kept = JSON.parse(readFileSync(join(room.work, "package.json"), "utf8"));
   writeFileSync(join(room.work, "package.json"), JSON.stringify({ ...kept, dependencies: { left: "1.0.0" } }, null, 2));
 
-  const run = runIn(room.work, ["ship", "--from", "5"], BARE);
+  const run = runIn(room.work, ["ship", "--from", "6"], BARE);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stdout, /package\.json differed from HEAD before this step ran/u, run.stdout);
   assert.ok(!existsSync(at(room.work, BUMP)), "a commit carrying somebody's edit was recorded as this run's to undo");
@@ -340,7 +344,7 @@ test("an untracked release file the version step would sweep in records no undo,
   const lock = join(room.work, "package-lock.json");
   writeFileSync(lock, `${JSON.stringify({ name: "scratch", version: "1.0.0", lockfileVersion: 3, packages: {} }, null, 2)}\n`);
 
-  const run = runIn(room.work, ["ship", "--from", "5"], BARE);
+  const run = runIn(room.work, ["ship", "--from", "6"], BARE);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stdout, /package-lock\.json differed from HEAD before this step ran/u, run.stdout);
   assert.ok(!existsSync(at(room.work, BUMP)),
@@ -374,7 +378,7 @@ test("uncommitted work at a rejected push stops the undo, and stays on disk", ()
   writeFileSync(join(room.work, "plugin", "src", "one.mjs"), "work somebody has not committed\n");
   moveRemote(room, 1);
 
-  const run = runIn(room.work, ["ship", "--from", "6"], BARE);
+  const run = runIn(room.work, ["ship", "--from", "7"], BARE);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /this tree has uncommitted work in it/u, run.stderr);
   assert.equal(git(room.work, "rev-parse", "HEAD").stdout.trim(), bump,
@@ -501,7 +505,7 @@ test("a ship waits behind the lock record a land from the checkout leaves, on th
   assert.equal(shipped.stdout.match(sentence)[0], landed.stdout.match(sentence)?.[0],
     "the two landing verbs print two different contention messages for one lock");
   assert.ok(shipped.stdout.includes(room.work), `the tree the record names is not printed:\n${shipped.stdout}`);
-  assert.doesNotMatch(shipped.stdout, /step 2\/9/u, "a ship behind a land took the fetch anyway");
+  assert.doesNotMatch(shipped.stdout, /step 2\/10/u, "a ship behind a land took the fetch anyway");
 });
 
 /* Every guard case runs against a lock somebody else is holding, and that is what makes them about

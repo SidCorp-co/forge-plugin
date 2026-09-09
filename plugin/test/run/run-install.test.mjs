@@ -25,7 +25,7 @@ test("the checkout follows to the pushed head over a dirty path, and the install
   writeFileSync(theirs, "the fold, as that run has it now\n");
 
   const run = runIn(room.tree, ["ship"], room.env);
-  assert.match(run.stdout, /step 9\/9/u, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /step 10\/10/u, `${run.stdout}${run.stderr}`);
   assert.equal(git(room.work, "rev-parse", "HEAD").stdout.trim(), git(room.tree, "rev-parse", "HEAD").stdout.trim(),
     "the checkout was not offered the pushed head it could fast-forward to");
   assert.equal(readFileSync(theirs, "utf8"), "the fold, as that run has it now\n",
@@ -49,7 +49,7 @@ test("a checkout that cannot follow does not stop the release, and the install r
   landIn(room.tree, join("plugin", "src", "one.mjs"), 4, "the change this release ships");
 
   const run = runIn(room.tree, ["ship"], room.env);
-  assert.match(run.stdout, /step 9\/9/u, `the release stopped short:\n${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /step 10\/10/u, `the release stopped short:\n${run.stdout}${run.stderr}`);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /cannot fast-forward to the pushed head and stays at/u,
     `the step named no head the checkout is left at:\n${run.stderr}`);
@@ -82,7 +82,7 @@ test("a fast-forward blocked by an uncommitted path alone names the path and the
   writeFileSync(join(room.work, "docs", "shared.md"), "as that run has it now\n");
 
   const run = runIn(room.tree, ["ship"], room.env);
-  assert.match(run.stdout, /step 9\/9/u, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /step 10\/10/u, `${run.stdout}${run.stderr}`);
   assert.match(run.stderr, /uncommitted: docs\/shared\.md/u,
     `the uncommitted path in the way is not named:\n${run.stderr}`);
   assert.match(run.stderr, /stays at/u, `the head the checkout is left at is not named:\n${run.stderr}`);
@@ -105,7 +105,7 @@ test("an install that records a version below the tree's is refused with both nu
   /* The route out is the step, which the runner names on every stop. By hand is the one route this
      refusal must not offer: it re-points what the step put back and installs under no lock. */
   assert.match(run.stderr, /take this step again rather than installing by hand/u, run.stderr);
-  assert.match(run.stderr, /ship --from 8/u, `the resume that redoes the install is not named:\n${run.stderr}`);
+  assert.match(run.stderr, /ship --from 9/u, `the resume that redoes the install is not named:\n${run.stderr}`);
   assert.doesNotMatch(run.stderr, /marketplace add/u,
     `the refusal prescribes an unlocked re-point of the registration:\n${run.stderr}`);
 });
@@ -118,7 +118,7 @@ test("an install command that fails still leaves the registration on the checkou
 
   const run = runIn(room.tree, ["ship"], room.env);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /stopped at step 8/u, run.stderr);
+  assert.match(run.stderr, /stopped at step 9/u, run.stderr);
   assert.equal(registeredAt(room.at), room.work,
     "the release failed and left every session on this machine installing from a worktree");
 });
@@ -169,7 +169,7 @@ test("an install-only resume of a superseded release is refused before the regis
   landIn(later, join("plugin", "src", "two.mjs"), 4, "a release that landed after this one pushed");
   assert.equal(runIn(later, ["ship"], room.env).status, 0, "the later release did not land");
 
-  const run = runIn(room.tree, ["ship", "--from", "8"], room.env);
+  const run = runIn(room.tree, ["ship", "--from", "9"], room.env);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /this tree is not what origin\/master holds/u, run.stderr);
   assert.match(run.stderr, /ship --from 2/u, `no route out of a superseded resume:\n${run.stderr}`);
@@ -194,7 +194,7 @@ test("an install-only resume is refused where another clone pushed, which no ref
     git(room.tree, "rev-parse", "HEAD").stdout.trim(), "the tracking ref moved, so this case proves nothing");
   const asked = claudeCalls(room.at).length;
 
-  const run = runIn(room.tree, ["ship", "--from", "8"], room.env);
+  const run = runIn(room.tree, ["ship", "--from", "9"], room.env);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /this tree is not what origin\/master holds/u, run.stderr);
   assert.equal(claudeCalls(room.at).length, asked, "the resume installed something before refusing");
@@ -212,7 +212,7 @@ test("an install-only resume is refused where the remote names no such branch at
   git(join(room.at, "origin.git"), "update-ref", "-d", "refs/heads/master");
   const asked = claudeCalls(room.at).length;
 
-  const run = runIn(room.tree, ["ship", "--from", "8"], room.env);
+  const run = runIn(room.tree, ["ship", "--from", "9"], room.env);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /could not be compared: origin named nothing for master/u, run.stderr);
   assert.equal(claudeCalls(room.at).length, asked, "the resume installed against a comparison it never made");

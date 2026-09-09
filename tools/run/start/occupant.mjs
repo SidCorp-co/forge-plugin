@@ -3,7 +3,7 @@
 import { realpathSync } from "node:fs";
 import { basename, dirname } from "node:path";
 
-import { gitCommonDir, gitOut } from "../checkout.mjs";
+import { gitCommonDir, gitOut } from "../../checkout.mjs";
 import { runIdAt, RUN_ID_VAR } from "./run-id.mjs";
 
 const resolved = (one) => {

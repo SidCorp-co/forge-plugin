@@ -4,6 +4,7 @@
    `docs/cli/knowledge.md` says why this half moved. */
 import { projectReview } from "../../plugin/src/resolve/settings.mjs";
 import { gitOut, REMOTE, stop } from "../checkout.mjs";
+import { isRelease } from "./landing.mjs";
 
 export const REVIEWED = "refs/forge/reviewed";
 export const REVIEW_PATHS = ["plugin/src", "plugin/hooks", "plugin/bin"];
@@ -22,6 +23,33 @@ export const reviewLines = () => {
       + `\`${JSON.stringify(given)}\`. Drop the key to take the ${REVIEW_LINES} this script ships with.`);
   }
   return given;
+};
+
+/** What has landed in a range, walked `--first-parent` for the reason `isRelease` reads one: off it a
+ *  merge that carried a bump in from a side branch is TREESAME while the side branch's own bumps are
+ *  each counted, and neither is a release of this branch. Binary is `-\t-` and has no lines to add. */
+const landed = (tree, from) => {
+  const bumps = (gitOut(["log", "--first-parent", "--format=%H", `${from}..HEAD`, "--", "package.json"], tree) ?? "")
+    .split("\n").filter(Boolean);
+  const rows = (gitOut(["diff", "--numstat", `${from}..HEAD`, "--", ...REVIEW_PATHS], tree) ?? "")
+    .split("\n").filter(Boolean);
+  return {
+    releases: bumps.filter((sha) => isRelease(tree, sha)).length,
+    files: rows.length,
+    lines: rows.reduce((sum, row) => sum + row.split("\t").slice(0, 2)
+      .reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0), 0),
+  };
+};
+
+/** The one sentence both readers print, so ship's last step and the review verb cannot disagree. */
+export const reviewSays = (tree, from) => {
+  const { releases, files, lines } = landed(tree, from);
+  return {
+    owed: lines >= reviewLines(),
+    range: `${from.slice(0, 7)}..HEAD`,
+    count: `${releases} release(s), ${files} file(s), ${lines} changed line(s)`,
+    volume: `${files} file(s) and ${lines} changed line(s)`,
+  };
 };
 
 const KEY = /ISS-\d+/gu;

@@ -21,7 +21,10 @@ test("-h names all four steps, the resume flag and the threshold it counts again
     "--done <the range's end>", "land a commit that is not a release", "It spends no",
     "gate and raises no version",
     "The install reads the tree that shipped", "past the push and through the install",
-    "the source is the checkout and no registration is written"]) {
+    "the source is the checkout and no registration is written",
+    "the base the review judged proved still the base",
+    "the move left a difference in any of those paths",
+    "replaying onto the head that is there now is the whole of what clears it"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
   assert.ok(!run.stdout.includes("3 release(s)"), `a release count is no part of the trigger:\n${run.stdout}`);
@@ -142,8 +145,8 @@ test("ship takes a version above the remote head, pushes, and stops at the first
   assert.equal(git(at, "-C", join(at, "origin.git"), "rev-parse", "master").stdout.trim(),
     git(work, "rev-parse", "HEAD").stdout.trim(), "the push did not land the bump it made");
   assert.ok(run.stdout.includes("scratch gate ran"), `the gate step did not spend the tree's own gate:\n${run.stdout}`);
-  assert.match(run.stderr, /stopped at step 8 \(install scratch@scratch-local from the tree that shipped\)/u, run.stderr);
-  assert.match(run.stderr, /Resume from there: node \S+ ship --from 8/u, run.stderr);
+  assert.match(run.stderr, /stopped at step 9 \(install scratch@scratch-local from the tree that shipped\)/u, run.stderr);
+  assert.match(run.stderr, /Resume from there: node \S+ ship --from 9/u, run.stderr);
   assert.ok(!run.stdout.includes("Released."), "nothing may claim a release it did not finish");
 });
 
@@ -159,7 +162,7 @@ test("a red gate stops the ship before it bumps, pushes or installs anything", (
 
   const run = runIn(work, ["ship"], BARE);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /stopped at step 4 \(the gate\)/u, run.stderr);
+  assert.match(run.stderr, /stopped at step 5 \(the gate\)/u, run.stderr);
   assert.equal(JSON.parse(readFileSync(join(work, "package.json"), "utf8")).version, "1.0.0",
     "the version was raised past a gate that had not passed");
   assert.equal(git(join(at, "origin.git"), "rev-parse", "master").stdout.trim(),
@@ -167,8 +170,8 @@ test("a red gate stops the ship before it bumps, pushes or installs anything", (
 
   /* The run that most needs a gate is the one that edited something to get past a failed step, so
      a resume aimed past the gate spends it first rather than pushing on the last run's word. */
-  const resumed = runIn(work, ["ship", "--from", "6"], BARE);
-  assert.match(resumed.stderr, /stopped at step 4 \(the gate\)/u, resumed.stderr);
+  const resumed = runIn(work, ["ship", "--from", "7"], BARE);
+  assert.match(resumed.stderr, /stopped at step 5 \(the gate\)/u, resumed.stderr);
   assert.equal(git(join(at, "origin.git"), "rev-parse", "master").stdout.trim(),
     git(work, "rev-parse", "HEAD~1").stdout.trim(), "a resume past the gate pushed an ungated tree");
 });
@@ -190,7 +193,7 @@ test("a resumed ship commits a bump left on disk, and never says nothing moved w
   const headVersion = () => JSON.parse(git(work, "show", "HEAD:package.json").stdout).version;
   writeFileSync(join(work, "package.json"),
     JSON.stringify({ name: "scratch", version: "1.0.2", scripts: { check: GATE } }, null, 2));
-  runIn(work, ["ship", "--from", "5"], BARE);
+  runIn(work, ["ship", "--from", "6"], BARE);
   assert.equal(headVersion(), "1.0.2", "a version raised on disk and left uncommitted is committed by the resume");
 
   const told = runIn(work, ["ship", "--from", String(LAST_STEP)], BARE);

@@ -111,7 +111,7 @@ export const landIn = (work, path, lines, message) => {
 
 /* The install step is `claude`, which BARE does not carry, so the release runs as far as it can and
    the last step is then reached in a process of its own — which is how a resume reaches it too. */
-export const LAST_STEP = 9;
+export const LAST_STEP = 10;
 
 export const lastStep = (work) => {
   runIn(work, ["ship"], BARE);

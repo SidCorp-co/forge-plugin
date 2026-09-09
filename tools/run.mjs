@@ -14,13 +14,15 @@ import { recordDir, runSays } from "./gates/timing.mjs";
 import { acrossVersion } from "./gates/carried.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { follows, installs, LINKED } from "./run/install.mjs";
+import { REPLAYED, replaySays } from "./run/replayed.mjs";
 import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./run/land.mjs";
 import { landReady } from "./run/land-ready.mjs";
-import { isRelease, onlyRelease, RELEASE_FILES } from "./run/landing.mjs";
+import { onlyRelease, RELEASE_FILES } from "./run/landing.mjs";
 import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
-import { occupied } from "./run/occupant.mjs";
-import { mintRunId, RUN_ID_VAR } from "./run/run-id.mjs";
-import { markRefused, REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, spannedIn } from "./run/review.mjs";
+import { occupied } from "./run/start/occupant.mjs";
+import { mintRunId, RUN_ID_VAR } from "./run/start/run-id.mjs";
+import { markRefused, REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, reviewSays, spannedIn }
+  from "./run/review.mjs";
 import { edgesLeft, fileIssue } from "../plugin/src/tracker/filing/route.mjs";
 import { releaseMark, runsMark } from "../plugin/src/stats/eval.mjs";
 import { refusing, slugIfAny } from "../plugin/src/resolve/settings.mjs";
@@ -46,11 +48,12 @@ const usage = () => [
   `  ${sig("start")}   add the worktree beside this checkout, link both node_modules, and`,
   "                          print the wrapper a probe of the change must invoke",
   `  ${sig("ship")}`,
-  "                          clean tree, fetch, rebase, `npm run check`, a version above the remote",
-  "                          head, push, the checkout offered that head, the marketplace and the",
-  "                          plugin installed from the tree that shipped, then the installed copy",
-  "                          named, the sha the change landed as, and every file of it a session",
-  "                          cannot pick up without restarting",
+  "                          clean tree, fetch, the base the review judged proved still the base,",
+  "                          rebase, `npm run check`, a version above the remote head, push, the",
+  "                          checkout offered that head, the marketplace and the plugin installed",
+  "                          from the tree that shipped, then the installed copy named, the sha the",
+  "                          change landed as, and every file of it a session cannot pick up",
+  "                          without restarting",
   `  ${sig("land")}         land a commit that is not a release: clean tree, fetch, rebase, push,`,
   "                          under the same lock the ship takes and nothing else of it. It spends no",
   "                          gate and raises no version, so what it pushes is the caller's judgement",
@@ -72,13 +75,29 @@ const usage = () => [
   "",
   ...flagLines([...VERBS.values()].flatMap((one) => one.flags)),
   "",
-  "ship stops at the first failure and writes nothing past it, and a resume past the gate spends",
-  "the gate first, so nothing that pushes runs against a tree no gate has passed. What a session",
-  "registered, and the skills it loaded, reach it at its next start — gate code does not, being chosen",
-  "per call — so the last step says whether a restart is owed and names the set it filtered on. It",
-  "says beside that what the gate run a step earlier took and how that compares with the run before",
-  "it, so a release that made the gate slower is visible where a release that wrote a lot of unread",
-  "code already is.",
+  "ship stops at the first failure and writes nothing past it, and a resume past the gate spends the",
+  "gate first, so nothing that pushes runs against a tree no gate has passed.",
+  "",
+  "The step before the rebase is the same rule land-ready takes for a batch, at the one landing that",
+  "had none. It pins the head the remote holds by ls-remote, not off a remote-tracking ref a resume",
+  "never refreshed; reads the base this change was replayed onto as its merge base with that pin, and",
+  "the paths the change writes against that base, a rename putting both of its own in the set; and",
+  "refuses where the base moved and the move left a difference in any of those paths: the read that",
+  "earned the review judged them at the old base, so a rebase past it would push a head nobody read",
+  "and leave the review record, the verdicts and the mark's reviewed clause naming it. A pin this",
+  "checkout has not fetched is refused the same way and names the fetch. It names which of the",
+  "change's files moved, not just that the branch did — a landing that touched none of them",
+  "invalidates no read and is not refused, and it replays nothing and re-reads nothing for you:",
+  "replaying onto the head that is there now is the whole of what clears it, and it goes back in",
+  "ahead of the gate on any resume that can still reach the push, so --from is no way past it",
+  "either. Where nothing moved it prints the mark's own `landing moved` clause, which nothing else",
+  "in a single run's ship computes.",
+  "",
+  "What a session registered, and the skills it loaded, reach it at its next start — gate code does",
+  "not, being chosen per call — so the last step says whether a restart is owed and names the set it",
+  "filtered on. It says beside that what the gate run a step earlier took and how that compares with",
+  "the run before it, so a release that made the gate slower is visible where a release that wrote a",
+  "lot of unread code already is.",
   "",
   "The version step carries the gate's record onto the version it wrote. Every step's digest is keyed",
   "on the manifests, so the commit naming a release used to leave the whole record unreadable at the",
@@ -134,10 +153,10 @@ const usage = () => [
   "a worktree and a ship waits behind it: a push that took no lock is what put a rejected push in the",
   "middle of a run's release. A lock a killed landing left is named with the one command that removes",
   "it, and never taken over silently. Where a ship's push is rejected anyway, by a landing from",
-  "another machine, the version commit",
-  "step 5 made for a version now taken is undone before the refusal is printed, so the tree a caller",
-  "rebases holds only the change; a commit this run did not make whole, or a tree with uncommitted",
-  "work in it, is left exactly where it is and the refusal says so.",
+  "another machine, the version commit the release made for a version now taken is undone before the",
+  "refusal is printed, so the tree a caller rebases holds only the change; a commit this run did not",
+  "make whole, or a tree with uncommitted work in it, is left exactly where it is and the refusal",
+  "says so.",
 ].join("\n");
 
 /* The slug is in the name because two projects on one device share the parent directory and the
@@ -255,34 +274,6 @@ const landedLine = (was, all, own, pushed) => {
 };
 
 const reviewedAt = (tree) => gitOut(["rev-parse", "--verify", "--quiet", REVIEWED], tree);
-
-/** What has landed in a range, walked `--first-parent` for the reason `isRelease` reads one: off it a
- *  merge that carried a bump in from a side branch is TREESAME while the side branch's own bumps are
- *  each counted, and neither is a release of this branch. Binary is `-\t-` and has no lines to add. */
-const landed = (tree, from) => {
-  const bumps = (gitOut(["log", "--first-parent", "--format=%H", `${from}..HEAD`, "--", "package.json"], tree) ?? "")
-    .split("\n").filter(Boolean);
-  const rows = (gitOut(["diff", "--numstat", `${from}..HEAD`, "--", ...REVIEW_PATHS], tree) ?? "")
-    .split("\n").filter(Boolean);
-  return {
-    releases: bumps.filter((sha) => isRelease(tree, sha)).length,
-    files: rows.length,
-    lines: rows.reduce((sum, row) => sum + row.split("\t").slice(0, 2)
-      .reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0), 0),
-  };
-};
-
-/** The one sentence both readers of the count print, so ship's last step and the review verb can
- *  never disagree about what the range holds or whether it is enough. */
-const reviewSays = (tree, from) => {
-  const { releases, files, lines } = landed(tree, from);
-  return {
-    owed: lines >= reviewLines(),
-    range: `${from.slice(0, 7)}..HEAD`,
-    count: `${releases} release(s), ${files} file(s), ${lines} changed line(s)`,
-    volume: `${files} file(s) and ${lines} changed line(s)`,
-  };
-};
 
 const CLI = join(HERE, "plugin", "bin", "forge");
 const CLI_MS = 60_000;
@@ -510,8 +501,9 @@ const shipSteps = (tree, root, base, note) => {
       loud("git", ["fetch", REMOTE, base], tree, "Check the remote is reachable.");
       writeFileSync(markFile(tree), `${gitOut(["rev-parse", `${REMOTE}/${base}`], tree)}\n`);
     }, LANDS],
+    [REPLAYED, () => replaySays(tree, base, SELF), LANDS],
     [`rebase onto ${REMOTE}/${base}`, () =>
-      loud("git", ["rebase", `${REMOTE}/${base}`], tree, `Resolve it, or \`git rebase --abort\`, then ${SELF} ship --from 3`), LANDS],
+      loud("git", ["rebase", `${REMOTE}/${base}`], tree, "Resolve it, or `git rebase --abort`."), LANDS],
     /* After the rebase, because the range is what the release actually ships, and before the bump,
        because the gate's record is keyed on the manifests too: run it after and every release pays
        for a whole gate over a change of one version string. The step below carries that record
@@ -564,10 +556,15 @@ const ship = async ({ flags }) => {
   }
   /* A resume past the gate would push a tree no gate has passed, and the run that most needs one
      is the run that edited something to get past a failed step. The gate's own record makes an
-     unchanged tree cost nothing, so it is spent again rather than taken on trust. */
-  const gateAt = steps.findIndex(([name]) => name === GATE);
-  const order = [...steps.keys()].filter((at) => at >= from - 1);
-  if (from - 1 > gateAt) order.unshift(gateAt);
+     unchanged tree cost nothing, so it is spent again rather than taken on trust. The replay check
+     goes back the same way and ahead of it, so `--from` is no way past a read nobody took and a
+     refusal there costs no gate — but only while the resume can still reach the push, since past it
+     there is no head left to protect and a sibling's landing would refuse the release's own
+     reporting (ISS-962). */
+  const at = (name) => steps.findIndex(([one]) => one === name);
+  const pushes = steps.findLastIndex(([, , role]) => role === PUSHES);
+  const owed = [...(from - 1 <= pushes ? [at(REPLAYED)] : []), at(GATE)];
+  const order = [...owed.filter((one) => from - 1 > one), ...[...steps.keys()].filter((one) => one >= from - 1)];
   /* Taken only where this run will move what the checkout shares — its branch, or the registration
      an install reads. A resume aimed past both spends the gate again, and holding the branch through
      that would block every sibling for a landing nobody makes. */
